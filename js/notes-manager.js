@@ -70,6 +70,10 @@ export class NotesManager {
     if (this.pending) this._saveNotes();
   }
 
+  /** Public alias so native tagging calls this directly instead of the legacy
+   *  button's `.click()`. */
+  insertTimestamp() { return this._insertTimestamp(); }
+
   _insertTimestamp() {
     const time = this.vc.currentTime;
     const m = Math.floor(time / 60);

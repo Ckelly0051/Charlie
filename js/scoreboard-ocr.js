@@ -51,10 +51,16 @@ export class ScoreboardOCR {
       this.btnReadNow.addEventListener('click', () => this.readNow());
     }
     if (this.btnAutoOcr) {
-      this.btnAutoOcr.addEventListener('change', () => {
-        this.autoOnPlayEnd = this.btnAutoOcr.checked;
-      });
+      this.btnAutoOcr.addEventListener('change', () => this.setAutoOcr(this.btnAutoOcr.checked));
     }
+  }
+
+  /** Real setter — a native control can drive this directly. Mirrors into the
+   *  optional legacy checkbox rather than depending on it. */
+  setAutoOcr(value) {
+    this.autoOnPlayEnd = !!value;
+    if (this.btnAutoOcr) this.btnAutoOcr.checked = this.autoOnPlayEnd;
+    return true;
   }
 
   _regionKey() {

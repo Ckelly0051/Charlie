@@ -1,22 +1,27 @@
 import { isPlayTagged } from './football-rules.js';
 
-/** Feature-flagged Phase 1 shell. Hosts the existing #app intact. */
+/**
+ * The one native application shell.
+ *
+ * S7 demolition: `#app` and `#wsClassicOutlet` are gone. The tagging domain,
+ * Film Room grid, Reports' legacy render target, and the remaining top-bar
+ * controls now live permanently in `#giLegacyEngineHost` (a sibling of
+ * `#giMediaHost`), outside this shell's own root — real backing stores the
+ * domain engines still read/write directly, not a second visible surface.
+ */
 export class WorkspaceShell {
   constructor(app) {
     this.app = app;
     this.root = null;
-    this.classicApp = null;
     this._homeToken = 0;
     this._homeSelectedGameId = null;
     this._homeFilmHealth = new Map();
-    // Controls the classic top bar owns that the shell has no replacement for.
-    // The bar itself lives inside #app, which lives inside the permanently
-    // hidden #wsClassicOutlet — so anything NOT relocated here is not "legacy
-    // chrome still showing", it is a capability ENTOMBED and unreachable in the
-    // product (measured 2026-07-25: undo, redo, shortcuts, and the CV badge had
-    // no reachable affordance on any route). Relocation moves the live element,
-    // so every listener and disabled-state binding rides along untouched —
-    // history-manager binds undo/redo by id at init() and keeps driving them.
+    // Controls the legacy top bar owned that this shell has no replacement
+    // for. Their permanent authored home is #giLegacyEngineHost now, not a
+    // container this shell adopts/returns — relocation moves the live
+    // element, so every listener and disabled-state binding rides along
+    // untouched — history-manager binds undo/redo by id at init() and keeps
+    // driving them.
     this._chrome = {
       undo: this._remember(document.getElementById('btnUndoAction')),
       redo: this._remember(document.getElementById('btnRedoAction')),
@@ -60,19 +65,17 @@ export class WorkspaceShell {
     if (!this.root) return;
     this._homeToken++;
     // Order matters: breakdownVideo un-mounts its chrome from .video-section
-    // BEFORE breakdownWorkspace moves that section back to the classic #app.
+    // BEFORE breakdownWorkspace tears down — both park their media in the
+    // permanent #giMediaHost, not a container this shell owns.
     this.app.breakdownVideo?.restore();
     this.app.reportsScreen?.restore();
     this.app.teamHubScreen?.restore();
     this.app.breakdownWorkspace?.restore();
     this._restoreChrome();
-    if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
     document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
   }
   _mount() {
-    this.classicApp = document.getElementById('app');
-    if (!this.classicApp) throw new Error('Workspace shell requires #app');
     const root = document.createElement('div');
     root.id = 'workspaceShell'; root.className = 'ws-shell';
     root.innerHTML = `<aside class="ws-sidebar"><div class="ws-brand">GRIDIRON <b>IQ</b></div>
@@ -84,9 +87,8 @@ export class WorkspaceShell {
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div><ul class="ws-unit-progress" id="wsUnitProgress" aria-label="Charting progress by unit"></ul></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-team-hub" id="wsTeamHub" hidden></section><section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+      <section class="ws-team-hub" id="wsTeamHub" hidden></section><section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
     document.body.appendChild(root);
-    root.querySelector('#wsClassicOutlet').appendChild(this.classicApp);
     this.root = root;
     this._mountChrome();
     this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown'));
@@ -147,18 +149,12 @@ export class WorkspaceShell {
   }
   /** Re-apply the CURRENT route's visibility with NO navigation side effects.
    *
-   * Why this exists (coach smoke, 2026-07-24): `_openLibrary()` and
-   * `showAdvancedReports()` both reveal `#wsClassicOutlet` because the library
-   * overlay and the stats dashboard live inside the relocated classic `#app` and
-   * cannot render while it is hidden. But closing those overlays only removed
-   * their own `hidden` class — nothing ever re-hid the outlet — so the ENTIRE
-   * classic UI, including its legacy top bar and game dropdown, was left exposed
-   * underneath. The coach found the retired flow this way by clicking `⋯`.
-   * Only `show()` re-hid the outlet, so it self-corrected on the next route
-   * click, which made it look intermittent rather than broken.
-   *
-   * Deliberately NOT `show()`: show() calls `library.hide()`, which now calls
-   * this — routing through show() would recurse. This is visibility only. */
+   * Historical note (coach smoke, 2026-07-24): this used to also manage a
+   * `#wsClassicOutlet` that could be left visible underneath the shell —
+   * S7 deleted that outlet and `#app` with it, so there is nothing left to
+   * leak. Kept as route-visibility-only, since callers still need a
+   * non-navigating re-apply (`show()` calls `library.hide()`, which calls
+   * this — routing through `show()` would recurse). */
   restoreRouteVisibility() {
     if (!this.root) return;
     this._setRouteVisibility(this.app.workspace.currentRoute() || 'home');
@@ -174,12 +170,10 @@ export class WorkspaceShell {
       plan: this.root.querySelector('#wsPlan'),
     };
   }
-  _setRouteVisibility(routeId, outletVisible = false) {
+  _setRouteVisibility(routeId) {
     Object.entries(this._routeHosts()).forEach(([id, host]) => {
       if (host) host.hidden = id !== routeId;
     });
-    const outlet = this.root?.querySelector('#wsClassicOutlet');
-    if (outlet) outlet.hidden = !outletVisible;
   }
   _syncChrome() {
     if (!this.root) return; const c=this.app.workspace.snapshot();

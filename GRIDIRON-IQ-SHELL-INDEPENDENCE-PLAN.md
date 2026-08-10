@@ -1770,6 +1770,142 @@ cold-boot and route-cycle tests; do not simply remove their assertions.
 - S7-b was necessary but incomplete for VideoController top-bar decoupling.
 - No specific S7-c regression was found in this consultation; do not reopen it.
 
+#### S7-d3 through d8 — SUPERSEDED by a coach-directed one-pass demolition (2026-08-10)
+
+**The coach explicitly overrode the incremental d3-d8 schedule above.** After
+reviewing the remaining checklist size, the coach judged the per-checkpoint
+review cadence disproportionate to the work — "a ridiculous amount of work to
+just delete an unused Chromium structure" — and issued a formal directive:
+complete the remaining shell-independence work as **one coherent implementation
+and repair pass**, working tree may be temporarily broken mid-pass, full gate
+run once at the end rather than after every internal step, no installer/package/
+release, Codex reviews the finished batch independently rather than each
+sub-checkpoint. Rollback baseline: `1368b18`. This section records what that
+pass actually did; the d3-d8 breakdown above is retained as the ORIGINAL plan
+for historical reference, not as the record of what shipped.
+
+**Approach taken — permanent-host relocation, not DOM-free rewrites.** Rather
+than rewriting each domain engine (PlayTagger, PlayGrid, StatsEngine) to be
+DOM-free per d3-d6's original scope, the pass extended the S7-d2 pattern: move
+the real backing-store markup — `.tag-section`, `#playGridSection`,
+`#statsDashboard`+`#btnCloseStats`, and the remaining top-bar chrome
+(undo/redo/shortcuts/settings/backend badge) — one-way into a new permanent
+host, `#giLegacyEngineHost` (a sibling of `#giMediaHost` on `body`), then delete
+`#app` and `#wsClassicOutlet` entirely. This works because `getElementById`
+lookups are DOM-position-independent: most controllers required **zero code
+changes**, only the markup needed to move. This is a one-way relocation of the
+same real backing store the engines already read/write, not a new indirection
+layer — it does not fall under rule 9's ban on compatibility shims.
+
+**What did need real code changes (the d3/d4/d7 substance), done directly:**
+- **d3 (tagging domain):** `PlayTagger` gained real callable methods —
+  `setChartingUnit(unit)`, `setAutoDD(value)`, `setCarryScheme(value)`,
+  `newDrive()` — replacing synthetic `chip.click()`/hidden-checkbox-toggle
+  patterns. `NotesManager.insertTimestamp()` and `ScoreboardOCR.setAutoOcr()`
+  are now public real setters. `BreakdownForm` gained `addPenalty`,
+  `removePenalty`, `penaltyChip`, `penaltyInput`, `penaltySituation`,
+  `setSpecialUnit`, `specialAction`, `specialInput` as real domain methods; the
+  DOM `_onPenaltyClick`/`_onSpecialClick`/`_onPenaltyChange`/`_onSpecialChange`
+  listeners are now thin resolvers that read the acting element's dataset and
+  call them. `NativeTaggingScreen`'s ~15 methods that previously built fake
+  `{dataset, closest(){}}` event-mock objects to feed into these handlers now
+  call the real methods directly — the exact shim class rule 9 forbids.
+  A genuine method-name collision was found and fixed in the process:
+  `PlayTagger` already had a `setUnit(unit)` used by carry-forward logic with
+  different (non-sticky) semantics; the new sticky coach-facing toggle method
+  was renamed `setChartingUnit` to avoid silently shadowing it.
+- **d4 (auxiliary tools):** `StatsEngine`'s opponent-scout front exclusion
+  read `document.querySelectorAll('#tagDefFront .our-def-only')` live from the
+  DOM. Self-review during this pass found `SeasonStore.OUR_DEF_ONLY_FRONTS`
+  already existed as the canonical fixed list for the identical purpose
+  (`stripStAlignment`'s sibling cleanup) — `stats-engine.js` now imports and
+  reuses that instead of adding a third copy of the same four-value list.
+  `runAutoDetect()` was deliberately left calling `.click()` — the auto-detect
+  settings panel (strictness/duration/cooldown/audio controls) was judged out
+  of scope for this pass; the button/markup relocates with everything else, so
+  this is unchanged pre-existing behavior, not a new shim, and is disclosed
+  here rather than silently left.
+- **d7 (shell chrome):** already real — `WorkspaceShell._chrome`'s
+  `_remember`/`_restore` mechanism (predates this pass) relocates the LIVE
+  undo/redo/shortcuts/settings/backend-badge elements, so their listeners and
+  disabled-state bindings ride along untouched. This pass only changed where
+  their *original* parent is (`#giLegacyEngineHost` instead of `#app`).
+- **d5/d6 (Film Room / Reports legacy target):** NOT rewritten to a native
+  model in this pass — `PlayGrid` and `StatsEngine`'s render-target binding are
+  unchanged. `#playGridSection` and `#statsDashboard` simply moved, along with
+  everything else, into the permanent host. They remain real backing stores the
+  engines read/write directly, same as before the pass, just relocated.
+
+**index.html surgery.** `.video-section` (already relocated at S7-d2),
+`#playGridSection`, `.tag-section`, `#statsDashboard`+`#btnCloseStats`, and the
+entire `<header class="top-bar">` were extracted via balanced-tag matching and
+moved into a new `<div id="giLegacyEngineHost" hidden>` sibling of
+`#giMediaHost`. After extraction `#app`'s only remaining content was the id
+itself (an empty `.main-content` wrapper) — confirmed via a script check before
+deleting the wrapper — then `<div id="app">` and `#wsClassicOutlet` were both
+deleted outright. Structural balance verified (`div`/`section`/`header`
+open/close counts match) and `id="app"` occurrences: 0.
+
+**Gate repair.** The first full gate came back **83 harnesses | 75 green | 8
+failed**. All 8 were confirmed to be TEST-file issues, not production
+regressions: harnesses querying `#app`/`#wsClassicOutlet` via patterns
+vulnerable to optional-chaining false negatives — `!document.getElementById
+('X')?.hidden` silently evaluates to `!undefined = true` once `X` is deleted,
+flipping a "this is hidden" assertion to pass vacuously — or outright crashing
+on an unguarded `.hidden` read against `null`. Fixed file by file, each
+converted to an explicit absence check (`!document.getElementById('X')` /
+`!!document.getElementById('X')`, whichever polarity the original assertion
+needed) and one query retargeted from `#app`/`#wsClassicOutlet` to
+`#giLegacyEngineHost`: `e2e-breakdown-lifecycle.mjs`, `e2e-native-overlay.mjs`,
+`e2e-native-reports.mjs`, `e2e-native-season.mjs`, `e2e-native-team-hub.mjs`,
+`e2e-onboarding.mjs`, `e2e-study-screen.mjs`, `e2e-workspace-shell.mjs`. No
+assertion was deleted or weakened — every fix corrects the DOM query to match
+the new architecture while preserving exactly what the assertion originally
+verified (e.g. "the classic outlet is never revealed" becomes "the classic
+outlet does not exist to reveal," which is the honest, strictly stronger
+successor of the same guarantee).
+
+**Cold-boot verification (not post-boot removal).** A puppeteer probe loaded
+the built app fresh and confirmed, before any interaction: `#app` absent,
+`#wsClassicOutlet` absent, `#giLegacyEngineHost`/`#giMediaHost`/`#workspaceShell`
+present, zero page errors. This is the standard the coach's directive required
+— boot succeeding with the legacy markup genuinely absent, not merely removed
+after the fact while detached controller references might still work.
+
+**Gate: 83 harnesses | 83 green | 0 failed** — same harness count as the
+pre-pass gate (no harness was silently dropped), zero failures after repair.
+`cargo check --manifest-path src-tauri/Cargo.toml`: clean. No production code
+outside test files references `getElementById('app')`, `#wsClassicOutlet`, or
+`#app` querying — grep-confirmed; every remaining textual mention is a doc
+comment.
+
+**Self-review findings, closed before commit.** One real issue found on review
+and fixed (see d4 above: the DOM-query-to-canonical-constant swap initially
+added a NEW duplicate list on `TagLibrary` instead of reusing the existing
+`SeasonStore.OUR_DEF_ONLY_FRONTS` — caught and consolidated to one source
+before commit, with the import graph checked for cycles first). No hidden
+compatibility shims found — every DOM-adapter method removed by this pass was
+replaced with a direct call, not a different-shaped adapter. No listener
+duplication found — `_chrome`'s remember/restore mechanism was not touched, and
+no new `addEventListener` was added anywhere; only call-site bodies changed
+from inline logic to named-method calls. Every remaining optional-chaining
+pattern in the touched files was checked against its actual pre/post-deletion
+truth table, not just pattern-matched.
+
+**Explicitly not done in this pass, and not claimed:** no CSS purification
+(S7-e remains open, 274 KB across `styles.css`+`redesign-stats.css`, both
+still live and linked), no `build.sh`/`football-film-analyzer.html` deletion
+(S7-f remains open), no installer/package/tag/release, no visual redesign, no
+schema/migration/analytics-formula/film-file change, no managed C: film copy
+deleted. `d5`/`d6`'s ORIGINAL scope — genuinely decoupling `PlayGrid` and
+`StatsEngine`'s render target from needing pre-existing markup at all, rather
+than moving that markup to a permanent home — is likewise not done; the plan's
+d5/d6 sections above describe work that remains open if a future pass wants
+true DOM-independence for those two engines rather than a permanent host.
+
+**Next:** Codex reviews this commit independently, per the coach's directive.
+S7-e/S7-f/S7-g remain open pending that review.
+
 ### S7-e — the CSS migration (reviewed checkpoints, visually lossless)
 274 KB across `styles.css` + `redesign-stats.css`, both live. Split into
 route/shared-style checkpoints, each reviewed. **Runtime coverage is evidence,

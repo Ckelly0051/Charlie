@@ -12,6 +12,7 @@ import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
+import { SeasonStore } from './season-store.js';
 
 // AX-5 (S6-4c): run/pass data ink comes from the design system's CATEGORICAL
 // palette, not from two hand-picked hexes that happened to sit next to the
@@ -4482,11 +4483,14 @@ export class StatsEngine {
     // why the tables were right while the overview was empty.)
     const asOffense = offPlays.map(p => ({ ...p, tags: { ...p.tags, unit: 'offense' } }));
     // Their defense = the fronts/coverages we faced on our OFFENSE snaps. Exclude
-    // our OWN custom fronts (the .our-def-only chips, read live from the form) —
-    // they can never be the opponent's call, so any occurrence here is carry leak
-    // from our defensive snaps (the "Maverick shows up in their fronts" bug).
-    let ourOnly = new Set();
-    try { ourOnly = new Set([...document.querySelectorAll('#tagDefFront .our-def-only')].map(c => c.dataset.value)); } catch (e) {}
+    // our OWN custom fronts — they can never be the opponent's call, so any
+    // occurrence here is carry leak from our defensive snaps (the "Maverick
+    // shows up in their fronts" bug). SeasonStore.OUR_DEF_ONLY_FRONTS is
+    // already the canonical source for this exact list (used by
+    // stripStAlignment's sibling cleanup) — reuse it instead of reading the
+    // DOM (S7 demolition; the chip markup is not a required runtime
+    // dependency) or duplicating the list a third place.
+    const ourOnly = new Set(SeasonStore.OUR_DEF_ONLY_FRONTS);
     const frontCounts = {}, covCounts = {};
     defPlays.forEach(p => {
       StatsEngine.splitFronts(p.tags.defFront).forEach(f => { if (f && !ourOnly.has(f)) frontCounts[f] = (frontCounts[f] || 0) + 1; });

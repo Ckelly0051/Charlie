@@ -14,7 +14,135 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
-### ▶ ACTIVE — S7-d architecture consultation (Codex, 2026-08-09)
+### ▶ ACTIVE — S7 one-pass demolition COMPLETE; awaiting Codex review (Claude, 2026-08-10)
+
+**The coach issued a formal, explicit directive superseding the incremental
+S7-d3 through S7-d8 schedule below.** After reviewing how much sequenced
+per-checkpoint work remained ("this is a ridiculous amount of work to just
+delete an unused Chromium structure"), the coach directed one coherent
+implementation-and-repair pass instead: complete the remaining shell-
+independence work in one batch, working tree may be temporarily broken
+mid-pass, full canonical gate run once at the end rather than after every
+internal step, no migrations/data clearing/tag rewrites/film moves/analytics
+changes, no managed C: film deletion, no CSS purification, no installer/
+package/release. **Rollback baseline: `1368b18`.** Codex reviews the finished
+batch independently — not each sub-checkpoint. The detailed S7-d3..d8 section
+further down (§13 of the plan doc) is retained as the ORIGINAL sequenced plan
+for history; it does not describe what shipped. The full account of what did
+ship is recorded in `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` under **"S7-d3
+through d8 — SUPERSEDED by a coach-directed one-pass demolition."**
+
+**`#app` and `#wsClassicOutlet` are deleted. There is exactly one native
+application shell; nothing loads a legacy application to sit behind it.**
+
+**Approach: permanent-host relocation, not per-engine DOM-free rewrites.**
+Extending the S7-d2 pattern rather than inventing a new one: the real backing
+markup — `.tag-section`, `#playGridSection`, `#statsDashboard`+
+`#btnCloseStats`, and the remaining top-bar chrome — moved one-way into a new
+permanent host, `#giLegacyEngineHost` (sibling of `#giMediaHost` on `body`),
+then `#app`/`#wsClassicOutlet` were deleted outright. This works because
+`getElementById` lookups don't care where in the document a node lives, so
+most controllers (video-controller.js, ui-polish.js, stats-engine.js,
+reports-screen.js, play-grid.js) needed **zero code changes** — only the
+markup moved. This is a one-way relocation of the same real backing store the
+engines already read/write, not a new indirection layer, so it is not the
+"compatibility shim" the coach's directive forbade.
+
+**Real behavior changes, not just relocation:** `PlayTagger` gained genuine
+callable methods (`setChartingUnit`, `setAutoDD`, `setCarryScheme`,
+`newDrive`) replacing synthetic `chip.click()`/hidden-checkbox patterns.
+`BreakdownForm` gained real penalty/special-teams domain methods (`addPenalty`,
+`removePenalty`, `penaltyChip`, `penaltyInput`, `penaltySituation`,
+`setSpecialUnit`, `specialAction`, `specialInput`); its DOM listeners are now
+thin resolvers over them. `NativeTaggingScreen`'s ~15 methods that built fake
+`{dataset, closest(){}}` event-mock objects to drive those handlers now call
+the real methods directly — exactly the shim class the directive named.
+`NotesManager.insertTimestamp()` and `ScoreboardOCR.setAutoOcr()` are now
+public real setters instead of `.click()`/checkbox-toggle proxies.
+
+**A genuine method-name collision was caught before it shipped.** `PlayTagger`
+already had a `setUnit(unit)` used by carry-forward logic with different
+(non-sticky) semantics. Adding a same-named sticky coach-facing toggle method
+would have silently shadowed it — JS lets the later definition win with no
+warning. Caught via a puppeteer probe showing the wrong method executing;
+fixed by naming the new one `setChartingUnit`, with a comment on both
+explaining why they're distinct.
+
+**A duplicate-list smell was caught in self-review and fixed before commit.**
+Replacing `StatsEngine`'s live DOM query (`#tagDefFront .our-def-only`) for
+its four our-own-fronts exclusion list initially added a NEW static list on
+`TagLibrary`. Self-review found `SeasonStore.OUR_DEF_ONLY_FRONTS` already
+existed as the canonical source for the identical four values, used by
+`stripStAlignment`'s sibling cleanup — exactly the kind of silent two-copies
+duplication this codebase has been bitten by before (see the `ST_ALIGNMENT_KEYS`
+history). Consolidated to reuse `SeasonStore.OUR_DEF_ONLY_FRONTS`; import
+graph checked for cycles first (none).
+
+**`runAutoDetect()` deliberately still calls `.click()`.** The auto-detect
+settings panel (strictness/duration/cooldown/audio controls) was judged out of
+scope for a full rewrite in this pass; the button/markup relocates with
+everything else, so this is unchanged pre-existing behavior, disclosed here
+rather than left silent. `PlayGrid` and `StatsEngine`'s render-target binding
+were likewise NOT rewritten to be DOM-free — they still read/write the same
+real elements, just relocated into the permanent host. Genuine DOM-independence
+for those two engines (the original d5/d6 scope) remains open work if a future
+pass wants it.
+
+**Gate repair — the interesting part.** The first full gate came back **83
+harnesses | 75 green | 8 failed**. Every failure was confirmed to be a
+TEST-file issue, not a production regression: harnesses querying `#app`/
+`#wsClassicOutlet` via `!document.getElementById('X')?.hidden` — which
+silently evaluates to `!undefined = true` once `X` is genuinely deleted,
+flipping a "this stays hidden" assertion to pass vacuously — or an unguarded
+`.hidden` read against `null` that crashed outright. Fixed file by file to an
+explicit absence check, plus one query retargeted from `#app` to
+`#giLegacyEngineHost`: `e2e-breakdown-lifecycle.mjs`, `e2e-native-overlay.mjs`,
+`e2e-native-reports.mjs`, `e2e-native-season.mjs`, `e2e-native-team-hub.mjs`,
+`e2e-onboarding.mjs`, `e2e-study-screen.mjs`, `e2e-workspace-shell.mjs`. No
+assertion was deleted or weakened — each fix corrects the DOM query to match
+the new architecture while proving exactly what it proved before ("the classic
+outlet is never revealed" becomes the honest, strictly stronger "the classic
+outlet does not exist to reveal").
+
+**Cold-boot verified, not post-boot removal.** A puppeteer probe loaded the
+built app fresh and confirmed, before any interaction: `#app` absent,
+`#wsClassicOutlet` absent, `#giLegacyEngineHost`/`#giMediaHost`/
+`#workspaceShell` present, zero page errors. That is the standard the
+directive required — boot succeeding with the legacy markup genuinely gone,
+not merely removed after the fact while a detached controller reference might
+still make something work.
+
+**Gate: 83 harnesses | 83 green | 0 failed.** Same harness count as
+pre-pass — no harness silently dropped — zero failures after repair.
+`cargo check --manifest-path src-tauri/Cargo.toml`: clean. Grep-confirmed: no
+production code outside test files references `getElementById('app')`,
+`#wsClassicOutlet`, or `#app` as a selector; every remaining textual mention is
+a doc comment recording the history.
+
+**Self-review pass (required by the directive) — no hidden shims, no listener
+duplication found.** Every DOM-adapter method removed by this pass was
+replaced with a direct call, not a differently-shaped adapter. `_chrome`'s
+remember/restore relocation mechanism (predates this pass) was not touched and
+no new `addEventListener` was added anywhere — only call-site bodies changed
+from inline logic to named-method calls. The one real finding (the duplicate
+front-list) is recorded above and was fixed before commit.
+
+**Scope respected — nothing else changed.** No schema, migration, season byte,
+analytics formula, film cohort, storage path, film file, tag, or release. No
+managed C: film copy deleted. No CSS purification (S7-e remains open — 274 KB
+across `styles.css`+`redesign-stats.css`, both still live). No
+`build.sh`/`football-film-analyzer.html` deletion (S7-f remains open). No
+installer, package, tag, or release built or requested.
+
+**Next:** Codex independently reviews this commit. S7-e (CSS migration), S7-f
+(build-artifact retirement) and S7-g (review-then-installer) remain open
+pending that review.
+
+### ▶ SUPERSEDED — S7-d architecture consultation (Codex, 2026-08-09)
+
+*(Retained for history. The incremental S7-d3..d8 schedule this consultation
+refined was itself superseded by the coach's one-pass demolition directive
+above — read that section first for what actually shipped.)*
 
 **Do not delete `#app` or `#wsClassicOutlet` from the current ledger count.**
 Codex reviewed the live ownership paths after S7-c. The hardened ledger's

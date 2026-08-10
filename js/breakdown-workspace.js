@@ -4,11 +4,10 @@ import '../css/native-breakdown-route.css';
 export class BreakdownWorkspace {
   constructor(app) {
     this.app = app;
-    this.source = document.querySelector('#app .main-content');
-    // S7-d2: .video-section left #app for the permanent media host. This
-    // field was assigned and never read, so it goes with the move.
-    this.grid = this.source?.querySelector('#playGridSection') || null;
-    this.tags = this.source?.querySelector('.tag-section') || null;
+    // S7 demolition: #app is gone. .grid/.tags were assigned and never read,
+    // same dead-field pattern as the S7-d2 .video-section field — PlayGrid and
+    // NativeTaggingScreen each resolve their own backing element by id/selector
+    // now that it lives in the permanent #giLegacyEngineHost.
     this.unitControl = document.querySelector('#tagForm .unit-toggle-section');
     this.unitParent = this.unitControl?.parentNode || null;
     this.unitNext = this.unitControl?.nextSibling || null;

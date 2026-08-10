@@ -15,7 +15,11 @@ export class NativeTaggingScreen {
   constructor(app) {
     this.app = app;
     this.tagger = app.tagger;
-    this.source = document.querySelector('#app .tag-section');
+    // S7 demolition: .tag-section's permanent authored home is
+    // #giLegacyEngineHost, not #app (deleted). getElementById-style lookups
+    // elsewhere in this file are unaffected — id lookups don't care where in
+    // the document a node lives.
+    this.source = document.querySelector('.tag-section');
     this.host = null;
     this._view = null;
     this._listeners = new Set();
@@ -174,25 +178,30 @@ export class NativeTaggingScreen {
     this._saveTimer = setTimeout(() => { this._saveConfirmed = false; this._queuePublish(); }, 650);
   }
   skip() { this.app._advancePlay({skip:true}); }
-  setAutoDD(value) { const field=document.getElementById('autoDDToggle'); if(!field)return false; field.checked=!!value; field.dispatchEvent(new Event('change',{bubbles:true})); this._queuePublish(); return true; }
-  setCarryScheme(value) { const field=document.getElementById('carrySchemeToggle'); if(!field)return false; field.checked=!!value; field.dispatchEvent(new Event('change',{bubbles:true})); this._queuePublish(); return true; }
-  addPenalty() { const target={dataset:{penAdd:''},closest(selector){return selector==='[data-pen-add]'?this:null}}; this.app.breakdownForm?._onPenaltyClick?.({target}); }
-  penaltyAction(index,field,value) { const target={dataset:{penChip:index+':'+field+':'+value},closest(selector){return selector==='[data-pen-chip]'?this:null}}; this.app.breakdownForm?._onPenaltyClick?.({target}); }
-  penaltyInput(index,field,value) { this.app.breakdownForm?._onPenaltyChange?.({target:{dataset:{penInput:index+':'+field},value}}); }
-  removePenalty(index) { const target={dataset:{penRemove:String(index)},closest(selector){return selector==='[data-pen-remove]'?this:null}}; this.app.breakdownForm?._onPenaltyClick?.({target}); }
-  penaltySituation(field,value,checked=false) { this.app.breakdownForm?._onPenaltyChange?.({target:{dataset:{penSit:field},value,checked}}); }
-  _specialClick(dataset) { const target={dataset,closest(selector){return selector==='button'?this:null}}; return this.app.breakdownForm?._onSpecialClick?.({target}); }
-  setSpecialUnit(value) { return this._specialClick({stUnit:value}); }
-  specialAction(key,value) { const map={status:'stOutcome',attempt:'stAttempt',score:'stScore',owner:'stOwner',recovery:'stRecovery',toggle:'stToggle',spot:'stSpotSide',tryAttempt:'stTryAttempt',tryResult:'stTryResult',tryEvent:'stTryEvent',tryTurnover:'stTryTurnover',tryScore:'stTryScore',returnAward:'stReturnAward'}; return map[key]?this._specialClick({[map[key]]:value}):false; }
-  specialInput(key,value) { this.app.breakdownForm?._onSpecialChange?.({target:{dataset:{stInput:key},value}}); }
+  // S7 demolition: every one of these now calls a real domain method directly
+  // — no hidden checkbox, no synthetic click, no fake DOM event/target mock.
+  setAutoDD(value) { const ok=this.tagger?.setAutoDD?.(value); if(ok)this._queuePublish(); return !!ok; }
+  setCarryScheme(value) { const ok=this.tagger?.setCarryScheme?.(value); if(ok)this._queuePublish(); return !!ok; }
+  addPenalty() { return this.app.breakdownForm?.addPenalty?.() === true; }
+  penaltyAction(index,field,value) { return this.app.breakdownForm?.penaltyChip?.(index,field,value) === true; }
+  penaltyInput(index,field,value) { return this.app.breakdownForm?.penaltyInput?.(index,field,value) === true; }
+  removePenalty(index) { return this.app.breakdownForm?.removePenalty?.(index); }
+  penaltySituation(field,value,checked=false) { return this.app.breakdownForm?.penaltySituation?.(field,value,checked) === true; }
+  setSpecialUnit(value) { return this.app.breakdownForm?.setSpecialUnit?.(value); }
+  specialAction(key,value) {
+    const map={status:'stOutcome',attempt:'stAttempt',score:'stScore',owner:'stOwner',recovery:'stRecovery',toggle:'stToggle',spot:'stSpotSide',tryAttempt:'stTryAttempt',tryResult:'stTryResult',tryEvent:'stTryEvent',tryTurnover:'stTryTurnover',tryScore:'stTryScore',returnAward:'stReturnAward'};
+    const dataKey=map[key];
+    return dataKey ? this.app.breakdownForm?.specialAction?.(dataKey,value) === true : false;
+  }
+  specialInput(key,value) { return this.app.breakdownForm?.specialInput?.(key,value) === true; }
   drawDiagram() { this.app.playDiagram?.openEditor?.(); }
   clearDiagram() { this.app.playDiagram?.clearCurrent?.(); }
   setScoreboardRegion() { this.app.ocr?.startRegionSelect?.(); }
   readScoreboard() { this.app.ocr?.readNow?.(); }
-  setAutoOcr(value) { const field=document.getElementById('btnAutoOcr'); if(!field)return; field.checked=!!value; field.dispatchEvent(new Event('change',{bubbles:true})); }
+  setAutoOcr(value) { return this.app.ocr?.setAutoOcr?.(value); }
   runAutoDetect() { document.getElementById('btnAutoDetect')?.click(); }
-  newDrive() { document.getElementById('btnNewDrive')?.click(); }
-  addNoteTimestamp() { document.getElementById('btnInsertTimestamp')?.click(); }
+  newDrive() { return this.tagger?.newDrive?.(); }
+  addNoteTimestamp() { return this.app.notes?.insertTimestamp?.(); }
 
   setActiveRole(role) { this.activeRole=role; this.app.roster.activeRole=role; this.app.roster._markActiveRole?.(); this._queuePublish(); }
   quickPickPlayer(number) {
@@ -205,11 +214,7 @@ export class NativeTaggingScreen {
   }
 
   setUnit(value) {
-    const control = this.tagger?.unitField;
-    if (!control || !['offense', 'defense', 'special'].includes(value)) return false;
-    const chip = control.chips?.find(item => item.dataset.value === value);
-    if (!chip) return false;
-    if (control.value !== value) chip.click();
+    if (!this.tagger?.setChartingUnit?.(value)) return false;
     this.activeRole = this.app.roster?.activeRole || this.activeRole;
     this._derivePerspective(value);
     this._queuePublish();

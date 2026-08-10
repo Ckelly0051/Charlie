@@ -150,705 +150,696 @@
           </div>
         </div>
   </div>
-  <div id="app">
-    <!-- Top Bar -->
-    <header class="top-bar">
-      <div class="top-bar-left">
-        <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Open settings" aria-label="Open settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="4" y1="7" x2="20" y2="7"/>
-            <line x1="4" y1="12" x2="20" y2="12"/>
-            <line x1="4" y1="17" x2="20" y2="17"/>
-          </svg>
-          <span class="sidebar-toggle-label">Settings</span>
-        </button>
-<button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)" aria-label="Keyboard shortcuts">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="6" width="20" height="12" rx="2"/>
-            <line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/>
-            <line x1="7" y1="14" x2="17" y2="14"/>
-          </svg>
-          <span>Shortcuts</span>
-        </button>
-        <h1 class="app-title">GridIron <span class="app-iq">IQ</span></h1>
-        <!-- The breadcrumb (Team ▸ Season ▸ Game) and its game-switcher dropdown
-             were the retired game-entry route (C1). Home is the sole game entry
-             and the shell's own `.ws-context` bar duplicates the breadcrumb
-             verbatim, so both are deleted rather than left hidden — hidden
-             markup is what let the retired flow resurface twice when an overlay
-             revealed the classic outlet. -->
-      </div>
-      <div class="top-bar-center">
-        <label class="file-input-label" id="videoDropZone" for="videoFileInput">
-          <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
-          <span id="fileLabel">Drop video(s) / folder or click to load</span>
-        </label>
-        <button class="btn btn-sm" id="btnLoadFolder" title="Load an entire folder of plays">
-          <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
-          <span class="btn-label">Folder</span>
-        </button>
-        <span class="folder-load-badge hidden" id="folderLoadBadge"></span>
-      </div>
-      <div class="top-bar-right">
-        <button class="backend-status-badge offline" id="backendStatusBadge" type="button"
-                title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
-          Auto-Detect: Basic
-        </button>
-        <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
-          <svg class="icon"><use href="assets/icons.svg#icon-undo"/></svg>
-        </button>
-        <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>
-          <svg class="icon"><use href="assets/icons.svg#icon-redo"/></svg>
-        </button>
-        <button class="btn btn-secondary" id="btnQuickChart" title="Toggle Quick Chart Mode">
-          <svg class="icon"><use href="assets/icons.svg#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
-        </button>
-        <button class="btn btn-secondary" id="btnShowStats" title="View Game Stats">
-          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> <span class="btn-label">Stats</span>
-        </button>
-        <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
-          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save Season</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="main-content">
-
-
-      <!-- Film Room: play grid co-equal with the video (PlayGrid builds the
-           inner DOM). Hidden until the open game has plays. -->
-      <section class="play-grid-section" id="playGridSection" hidden></section>
-
-      <!-- Tag Section (full-width, below video) -->
-      <section class="tag-section">
-        <!-- Game header — an always-visible summary and launcher for the
-             native Game settings dialog. -->
-        <button class="game-header-bar" id="btnEditGame" type="button" title="Edit game details — opponent, date, score…">
-          <span class="ghb-summary" id="gameHeaderSummary">Set up this game</span>
-          <span class="ghb-edit-hint">Edit</span>
-        </button>
-        <!-- Shown while no play is selected — the form below is disabled so
-             chip taps can't be silently discarded. -->
-        <div class="tag-form-hint hidden" id="tagFormHint">
-          Mark a play to start tagging — press <kbd>[</kbd> at the snap, <kbd>]</kbd> at the whistle
-        </div>
-        <!-- Tag Form -->
-        <div class="tag-form" id="tagForm">
-          <!-- Offense / Defense / Special Teams toggle (top right) -->
-          <div class="chip-section unit-toggle-section">
-            <div class="pick-group unit-toggle" id="tagUnit">
-              <button class="pick" data-value="offense" type="button">Offense</button>
-              <button class="pick" data-value="defense" type="button">Defense</button>
-              <button class="pick" data-value="special" type="button">Special Teams</button>
-            </div>
+  <!-- S7 demolition: the tagging domain, Film Room grid, Reports
+       legacy render target, and the remaining top-bar controls (undo,
+       redo, shortcuts, settings, quick chart, save, film status) live
+       here permanently, OUTSIDE #app and #wsClassicOutlet (both deleted).
+       These are real backing stores the domain engines still read/write
+       directly (ChipField chips, the Film Room table, StatsEngine's
+       render target) — moving them here removes #app as a runtime
+       dependency without rewriting those engines. -->
+  <div id="giLegacyEngineHost" class="gi-legacy-engine-host" hidden>
+  <section class="play-grid-section" id="playGridSection" hidden></section>
+  <section class="tag-section">
+          <!-- Game header — an always-visible summary and launcher for the
+               native Game settings dialog. -->
+          <button class="game-header-bar" id="btnEditGame" type="button" title="Edit game details — opponent, date, score…">
+            <span class="ghb-summary" id="gameHeaderSummary">Set up this game</span>
+            <span class="ghb-edit-hint">Edit</span>
+          </button>
+          <!-- Shown while no play is selected — the form below is disabled so
+               chip taps can't be silently discarded. -->
+          <div class="tag-form-hint hidden" id="tagFormHint">
+            Mark a play to start tagging — press <kbd>[</kbd> at the snap, <kbd>]</kbd> at the whistle
           </div>
-
-          <div class="tag-progress-row">
-            <span id="tagProgressLabel">0 / 0 tagged</span>
-            <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
-          </div>
-
-          <!-- Tagging speed helpers: copy from previous play + reusable templates -->
-          <div class="tag-helpers">
-            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copies the look from the previous play — formation, personnel, play type, defense. Result &amp; yards stay yours.">⤓ Same as Last</button>
-            <select id="templateSelect" class="template-select" title="Apply a saved tag template">
-              <option value="">Templates…</option>
-            </select>
-            <button class="btn btn-sm" id="btnSaveTemplate" type="button" title="Save this play's tags as a reusable template">Save…</button>
-            <button class="btn btn-sm btn-icon-only" id="btnDeleteTemplate" type="button" title="Delete the selected template">🗑</button>
-          </div>
-
-          <div class="chip-section">
-            <label class="chip-label dd-label">Down &amp; Distance <span class="dd-badge dd-readout" id="ddReadout"></span></label>
-            <div class="chip-inline">
-              <div class="pick-group" id="tagDown">
-                <button class="pick" data-value="1" type="button">1st</button>
-                <button class="pick" data-value="2" type="button">2nd</button>
-                <button class="pick" data-value="3" type="button">3rd</button>
-                <button class="pick" data-value="4" type="button">4th</button>
-              </div>
-              <span class="chip-sep">&amp;</span>
-              <input type="number" id="tagDistance" placeholder="Dist" min="0" max="99" class="compact-input">
-            </div>
-          </div>
-
-          <!-- Offense / Defense / Special Teams reorderable groups -->
-          <div class="tag-side-groups">
-            <div class="tag-group group-offense" data-group="offense">
-              <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
-              <div class="tag-group-body">
-                <div class="chip-section">
-                  <label class="chip-label">Formation <span class="chip-hint">structure — select all that apply</span></label>
-                  <div class="pick-group multi" id="tagFormation">
-                    <!-- E4: Under Center/Pistol/Shotgun moved to the QB Alignment
-                         group below — they are QB alignment, not formation
-                         structure (GRIDIRON-IQ-TAG-MODEL.md E1 decision).
-                         E4-2: Empty moved to the Backfield group — it's a
-                         back-alignment concept (no running back), not a
-                         formation structure, and Backfield already has its
-                         own Empty chip. -->
-                    <!-- Named / system formations -->
-                    <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
-                    <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
-                    <button class="pick" data-value="Wing-T" type="button">Wing-T</button>
-                    <button class="pick" data-value="Flexbone" type="button">Flexbone</button>
-                    <button class="pick" data-value="Wishbone" type="button">Wishbone</button>
-                    <button class="pick" data-value="Spread" type="button">Spread</button>
-                    <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
-                    <button class="pick" data-value="Unbalanced" type="button">Unbalanced</button>
-                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
-                    <button class="pick" data-value="I-Form" type="button">I-Form</button>
-                    <button class="pick" data-value="Split Back" type="button">Split Back</button>
-                    <button class="pick" data-value="Power-I" type="button">Power-I</button>
-                    <button class="pick" data-value="Ace" type="button">Ace</button>
-                    <button class="pick" data-value="Victory" type="button">Victory</button>
-                    <!-- Receiver structure -->
-                    <button class="pick" data-value="Trips" type="button">Trips</button>
-                    <button class="pick" data-value="Twins" type="button">Twins</button>
-                    <button class="pick" data-value="Doubles" type="button">Doubles</button>
-                    <button class="pick" data-value="Bunch" type="button">Bunch</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">QB Alignment <span class="chip-hint">optional</span></label>
-                  <div class="pick-group" id="tagQbAlignment">
-                    <button class="pick" data-value="Under Center" type="button">Under Center</button>
-                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Backfield <span class="chip-hint">back alignment</span></label>
-                  <!-- E4-2: Pistol moved to the QB Alignment group — it's a QB
-                       alignment concept, not a back alignment, and QB
-                       Alignment already has its own Pistol chip. -->
-                  <div class="pick-group" id="tagBackfield">
-                    <button class="pick" data-value="Single" type="button">Single</button>
-                    <button class="pick" data-value="Split" type="button">Split</button>
-                    <button class="pick" data-value="I" type="button">I</button>
-                    <button class="pick" data-value="Power" type="button">Power</button>
-                    <button class="pick" data-value="Offset" type="button">Offset</button>
-                    <button class="pick" data-value="Strong" type="button">Strong</button>
-                    <button class="pick" data-value="Weak" type="button">Weak</button>
-                    <button class="pick" data-value="Diamond" type="button">Diamond</button>
-                    <button class="pick" data-value="Empty" type="button">Empty</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Strength <span class="chip-hint">offense's strong side</span></label>
-                  <div class="pick-group" id="tagStrength">
-                    <button class="pick" data-value="Right" type="button">Right</button>
-                    <button class="pick" data-value="Left" type="button">Left</button>
-                    <button class="pick" data-value="Balanced" type="button">Balanced</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Personnel</label>
-                  <div class="pick-group" id="tagPersonnel">
-                    <button class="pick" data-value="00" type="button">00</button>
-                    <button class="pick" data-value="01" type="button">01</button>
-                    <button class="pick" data-value="02" type="button">02</button>
-                    <button class="pick" data-value="10" type="button">10</button>
-                    <button class="pick" data-value="11" type="button">11</button>
-                    <button class="pick" data-value="12" type="button">12</button>
-                    <button class="pick" data-value="13" type="button">13</button>
-                    <button class="pick" data-value="20" type="button">20</button>
-                    <button class="pick" data-value="21" type="button">21</button>
-                    <button class="pick" data-value="22" type="button">22</button>
-                    <button class="pick" data-value="23" type="button">23</button>
-                    <button class="pick" data-value="30" type="button">30</button>
-                    <button class="pick" data-value="31" type="button">31</button>
-                    <button class="pick" data-value="32" type="button">32</button>
-                    <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
-                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Motion <span class="chip-hint">pre-snap, blank = none</span></label>
-                  <div class="pick-group" id="tagMotion">
-                    <button class="pick" data-value="Jet" type="button">Jet</button>
-                    <button class="pick" data-value="Orbit" type="button">Orbit</button>
-                    <button class="pick" data-value="Shift" type="button">Shift</button>
-                    <button class="pick" data-value="Trade" type="button">Trade</button>
-                  </div>
-                </div>
+          <!-- Tag Form -->
+          <div class="tag-form" id="tagForm">
+            <!-- Offense / Defense / Special Teams toggle (top right) -->
+            <div class="chip-section unit-toggle-section">
+              <div class="pick-group unit-toggle" id="tagUnit">
+                <button class="pick" data-value="offense" type="button">Offense</button>
+                <button class="pick" data-value="defense" type="button">Defense</button>
+                <button class="pick" data-value="special" type="button">Special Teams</button>
               </div>
             </div>
-            <div class="tag-group group-defense" data-group="defense">
-              <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
-              <div class="tag-group-body">
-                <div class="chip-section">
-                  <label class="chip-label">Def Front <span class="chip-hint">base + shift</span></label>
-                  <div class="pick-group multi" id="tagDefFront">
-                    <button class="pick our-def-only" data-value="Maverick" type="button">Maverick</button>
-                    <button class="pick our-def-only" data-value="Eagle" type="button">Eagle</button>
-                    <button class="pick our-def-only" data-value="Falcon" type="button">Falcon</button>
-                    <button class="pick our-def-only" data-value="Jumbo Shift" type="button" title="Shifted to Jumbo — select along with the base front">Jumbo Shift</button>
-                    <button class="pick" data-value="4-3" type="button">4-3</button>
-                    <button class="pick" data-value="3-4" type="button">3-4</button>
-                    <button class="pick" data-value="4-4" type="button">4-4</button>
-                    <button class="pick" data-value="5-2" type="button">5-2</button>
-                    <button class="pick" data-value="5-3" type="button">5-3</button>
-                    <button class="pick" data-value="6-2" type="button">6-2</button>
-                    <button class="pick" data-value="3-3-5" type="button">3-3-5</button>
-                    <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
-                    <button class="pick" data-value="Nickel" type="button">Nickel</button>
-                    <button class="pick" data-value="Dime" type="button">Dime</button>
-                    <button class="pick" data-value="Quarter" type="button">Quarter</button>
-                    <button class="pick" data-value="4-6" type="button">4-6</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Coverage <span class="chip-hint">the call</span></label>
-                  <div class="pick-group" id="tagCoverage">
-                    <!-- E4: Man/Zone moved to the Coverage Family group below —
-                         they are family, not the shell/call (E1 decision). -->
-                    <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
-                    <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
-                    <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
-                    <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
-                    <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
-                    <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Coverage Family <span class="chip-hint">optional</span></label>
-                  <div class="pick-group" id="tagCoverageFamily">
-                    <button class="pick" data-value="Man" type="button">Man</button>
-                    <button class="pick" data-value="Zone" type="button">Zone</button>
-                    <button class="pick" data-value="Match" type="button">Match</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Blitz</label>
-                  <div class="pick-group multi" id="tagBlitz">
-                    <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
-                    <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
-                    <button class="pick" data-value="C-Gap" type="button">C-Gap</button>
-                    <button class="pick" data-value="Edge" type="button">Edge</button>
-                    <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
-                    <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="tag-group group-special" data-group="special">
-              <button class="tag-group-head" type="button">Special Teams<span class="tag-group-caret">▾</span></button>
-              <div class="tag-group-body">
-                <div class="chip-section">
-                  <label class="chip-label">ST Play Type</label>
-                  <div class="pick-group" id="tagStType">
-                    <button class="pick" data-value="Kickoff" type="button">Kickoff</button>
-                    <button class="pick" data-value="Kick Return" type="button">Kick Return</button>
-                    <button class="pick" data-value="Punt" type="button">Punt</button>
-                    <button class="pick" data-value="Punt Return" type="button">Punt Return</button>
-                    <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
-                    <button class="pick" data-value="XP" type="button">XP</button>
-                    <button class="pick" data-value="2-Pt" type="button">2-Pt</button>
-                    <button class="pick" data-value="Onside" type="button">Onside</button>
-                    <button class="pick" data-value="Fake" type="button">Fake</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Scored by</label>
-                  <div class="pick-group" id="tagScoreFor" title="Who the points count for — tap Them for the opponent's kick or score (XP, FG, 2-Pt, return TD). Blank = us.">
-                    <button class="pick" data-value="us" type="button">Us</button>
-                    <button class="pick" data-value="them" type="button">Them</button>
-                  </div>
-                </div>
-                <!-- Phase-aware ST details — PlayTagger._applyStPhase shows only
-                     the fields/chips the selected ST Play Type uses. -->
-                <div class="chip-section st-field" data-phases="Kickoff|Kick Return|Punt|Punt Return|Field Goal|XP|2-Pt|Onside">
-                  <label class="chip-label">Kick Outcome</label>
-                  <div class="pick-group" id="tagKickOutcome">
-                    <button class="pick" data-value="Returned" data-phases="Kickoff|Punt" type="button">Returned</button>
-                    <button class="pick" data-value="Touchback" data-phases="Kickoff|Punt" type="button">Touchback</button>
-                    <button class="pick" data-value="Fair Catch" data-phases="Kickoff|Punt|Kick Return|Punt Return" type="button">Fair Catch</button>
-                    <button class="pick" data-value="Downed" data-phases="Punt" type="button">Downed</button>
-                    <button class="pick" data-value="Out of Bounds" data-phases="Kickoff|Punt" type="button">Out of Bounds</button>
-                    <button class="pick" data-value="Muffed" data-phases="Kick Return|Punt Return|Punt|Kickoff" type="button">Muffed</button>
-                    <button class="pick" data-value="Blocked" data-phases="Punt|Field Goal|XP" type="button">Blocked</button>
-                    <button class="pick" data-value="Recovered" data-phases="Onside" type="button">Recovered</button>
-                    <button class="pick" data-value="Good" data-phases="Field Goal|XP|2-Pt" type="button">Good</button>
-                    <button class="pick" data-value="No Good" data-phases="Field Goal|XP|2-Pt" type="button">No Good</button>
-                  </div>
-                </div>
-                <div class="st-detail-row">
-                  <div class="chip-section st-field" data-phases="Kickoff|Punt|Field Goal">
-                    <label class="chip-label">Kick Dist</label>
-                    <input type="number" id="tagKickDistance" class="compact-input" min="0" max="99" placeholder="yds">
-                  </div>
-                  <div class="chip-section st-field" data-phases="Kickoff|Punt">
-                    <label class="chip-label">Hang (s)</label>
-                    <input type="number" id="tagHangTime" class="compact-input" min="0" max="9.9" step="0.1" placeholder="sec">
-                  </div>
-                  <div class="chip-section st-field" data-phases="Kickoff|Kick Return|Punt|Punt Return">
-                    <label class="chip-label">Return</label>
-                    <input type="number" id="tagReturnYards" class="compact-input" min="0" max="109" placeholder="yds">
-                  </div>
-                  <div class="chip-section st-field" data-phases="Kickoff|Punt">
-                    <label class="chip-label">Kicked To</label>
-                    <input type="number" id="tagKickedTo" class="compact-input" min="1" max="50" placeholder="YL">
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">ST Players — jersey #</label>
-                  <div class="player-roles">
-                    <label class="player-role" data-role="kicker">
-                      <span class="player-role-label">Kicker / Punter</span>
-                      <input type="number" id="tagPlayerKicker" class="player-num" min="0" max="99" placeholder="#">
-                      <select id="tagGradeKicker" class="player-grade" title="Grade">
-                        <option value="">—</option>
-                        <option value="2">++</option>
-                        <option value="1">+</option>
-                        <option value="0">0</option>
-                        <option value="-1">−</option>
-                        <option value="-2">−−</option>
-                      </select>
-                    </label>
-                    <label class="player-role" data-role="returner">
-                      <span class="player-role-label">Returner</span>
-                      <input type="number" id="tagPlayerReturner" class="player-num" min="0" max="99" placeholder="#">
-                      <select id="tagGradeReturner" class="player-grade" title="Grade">
-                        <option value="">—</option>
-                        <option value="2">++</option>
-                        <option value="1">+</option>
-                        <option value="0">0</option>
-                        <option value="-1">−</option>
-                        <option value="-2">−−</option>
-                      </select>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- What happened on the play (post-snap) -->
-          <div class="chip-section core-hide-st">
-            <label class="chip-label">Run / Pass</label>
-            <div class="pick-group runpass-group" id="tagRunPass">
-              <button class="pick" data-value="Run" type="button">Run</button>
-              <button class="pick" data-value="Pass" type="button">Pass</button>
+            <div class="tag-progress-row">
+              <span id="tagProgressLabel">0 / 0 tagged</span>
+              <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
             </div>
-          </div>
-          <div class="chip-section core-hide-st">
-            <label class="chip-label">Play Type</label>
-            <div class="pick-group multi" id="tagPlayType">
-              <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
-              <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
-              <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
-              <button class="pick" data-value="Short Pass" type="button">Short Pass<kbd>P</kbd></button>
-              <button class="pick" data-value="Medium Pass" type="button">Med Pass<kbd>M</kbd></button>
-              <button class="pick" data-value="Deep Pass" type="button">Deep Pass<kbd>D</kbd></button>
-              <button class="pick" data-value="Play Action" type="button">Play Action<kbd>A</kbd></button>
-              <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
-              <button class="pick" data-value="Trick Play" type="button">Trick Play<kbd>X</kbd></button>
-            </div>
-          </div>
-          <div class="chip-section core-hide-st">
-            <label class="chip-label">Play Direction <span class="chip-hint">where it went — offense's L/R</span></label>
-            <div class="pick-group" id="tagPlayDir">
-              <button class="pick" data-value="Left" type="button">Left</button>
-              <button class="pick" data-value="Middle" type="button">Middle</button>
-              <button class="pick" data-value="Right" type="button">Right</button>
-            </div>
-          </div>
 
-          <div class="chip-section">
-            <label class="chip-label">Result</label>
-            <div class="pick-group multi" id="tagResult">
-              <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
-              <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
-              <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>
-              <button class="pick" data-value="Incomplete" type="button">Incomplete<kbd>I</kbd></button>
-              <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
-              <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
-              <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
-              <button class="pick" data-value="Fumble" type="button">Fumble<kbd>F</kbd></button>
-              <button class="pick" data-value="Penalty" type="button">Penalty<kbd>E</kbd></button>
-              <button class="pick" data-value="Punt" type="button">Punt<kbd>K</kbd></button>
-              <span class="pick-rare" id="tagResultRare">
-                <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
-                <button class="pick" data-value="Good" type="button" title="Conversion / kick is good (2-Pt, XP, FG)">Good</button>
-                <button class="pick" data-value="No Good" type="button" title="Conversion / kick failed (2-Pt, XP, FG)">No Good</button>
-                <button class="pick" data-value="Kneel" type="button">Kneel</button>
-                <button class="pick" data-value="Spike" type="button">Spike</button>
-                <button class="pick" data-value="Safety" type="button">Safety</button>
-              </span>
-              <button class="pick pick-more" id="tagResultMore" type="button" title="Show kicking / clock / rare results">More ▾</button>
+            <!-- Tagging speed helpers: copy from previous play + reusable templates -->
+            <div class="tag-helpers">
+              <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copies the look from the previous play — formation, personnel, play type, defense. Result &amp; yards stay yours.">⤓ Same as Last</button>
+              <select id="templateSelect" class="template-select" title="Apply a saved tag template">
+                <option value="">Templates…</option>
+              </select>
+              <button class="btn btn-sm" id="btnSaveTemplate" type="button" title="Save this play's tags as a reusable template">Save…</button>
+              <button class="btn btn-sm btn-icon-only" id="btnDeleteTemplate" type="button" title="Delete the selected template">🗑</button>
             </div>
-          </div>
 
-          <div class="chip-section chip-section-inline">
-            <label class="chip-label">Yards</label>
-            <div class="yards-row">
-              <button class="btn-nudge" id="yardsMinus" type="button">−</button>
-              <input type="number" id="tagYardage" min="0" max="99" placeholder="0" class="yards-input" title="Press Y to jump here. Enter yards as a positive number — Result (Gain / Loss / Sack) sets the direction. Enter saves &amp; advances.">
-              <button class="btn-nudge" id="yardsPlus" type="button">+</button>
-            </div>
-          </div>
-
-          <!-- Players (shared) -->
-          <div class="chip-section" id="tagPlayersSection">
-            <label class="chip-label">Players — jersey #</label>
-            <div class="player-roles">
-              <label class="player-role active" data-role="ballCarrier">
-                <span class="player-role-label">Ball Carrier</span>
-                <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
-                <select id="tagGradeBC" class="player-grade" title="Grade">
-                  <option value="">—</option>
-                  <option value="2">++</option>
-                  <option value="1">+</option>
-                  <option value="0">0</option>
-                  <option value="-1">−</option>
-                  <option value="-2">−−</option>
-                </select>
-              </label>
-              <label class="player-role" data-role="passer">
-                <span class="player-role-label">Passer</span>
-                <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
-                <select id="tagGradePasser" class="player-grade" title="Grade">
-                  <option value="">—</option>
-                  <option value="2">++</option>
-                  <option value="1">+</option>
-                  <option value="0">0</option>
-                  <option value="-1">−</option>
-                  <option value="-2">−−</option>
-                </select>
-              </label>
-              <label class="player-role" data-role="receiver">
-                <span class="player-role-label">Receiver</span>
-                <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
-                <select id="tagGradeReceiver" class="player-grade" title="Grade">
-                  <option value="">—</option>
-                  <option value="2">++</option>
-                  <option value="1">+</option>
-                  <option value="0">0</option>
-                  <option value="-1">−</option>
-                  <option value="-2">−−</option>
-                </select>
-              </label>
-              <label class="player-role" data-role="tackler">
-                <span class="player-role-label">Tackler(s)</span>
-                <input type="text" id="tagPlayerTackler" class="player-num player-num-multi" inputmode="numeric" placeholder="# #" title="Multiple allowed for shared tackles (e.g. 55, 22)">
-                <select id="tagGradeTackler" class="player-grade" title="Grade">
-                  <option value="">—</option>
-                  <option value="2">++</option>
-                  <option value="1">+</option>
-                  <option value="0">0</option>
-                  <option value="-1">−</option>
-                  <option value="-2">−−</option>
-                </select>
-              </label>
-              <label class="player-role" data-role="takeaway">
-                <span class="player-role-label">Takeaway (INT/FR)</span>
-                <input type="number" id="tagPlayerTakeaway" class="player-num" min="0" max="99" placeholder="#" title="Defender credited with the interception or fumble recovery">
-                <select id="tagGradeTakeaway" class="player-grade" title="Grade">
-                  <option value="">—</option>
-                  <option value="2">++</option>
-                  <option value="1">+</option>
-                  <option value="0">0</option>
-                  <option value="-1">−</option>
-                  <option value="-2">−−</option>
-                </select>
-              </label>
-            </div>
-            <div class="player-quickpick" id="rosterQuickPick"></div>
-          </div>
-
-          <!-- Custom user-defined tag fields -->
-          <div class="chip-section cf-empty" id="customFieldsSection">
-            <div class="cf-head">
-              <label class="chip-label">Custom Fields</label>
-              <button class="btn btn-sm btn-icon-only" id="btnEditCustomFields" type="button" title="Add or edit your own tag categories">✎ Fields</button>
-            </div>
-            <div id="tagCustomFields"></div>
-          </div>
-
-          <!-- Notes — embedded in tag flow (before Situation & Details) -->
-          <div class="tag-notes">
-            <div class="tag-notes-label">
-              <span>Play Notes</span>
-              <button class="btn btn-sm" id="btnInsertTimestamp" title="Insert Timestamp">+ Time</button>
-            </div>
-            <textarea id="notesArea" class="notes-area" placeholder="Add notes for the current play..."></textarea>
-          </div>
-
-          <details class="chip-details">
-            <summary>Situation &amp; Details</summary>
             <div class="chip-section">
-              <label class="chip-label">Hash <span class="chip-hint">offense's L/R</span></label>
-              <div class="pick-group" id="tagHash">
+              <label class="chip-label dd-label">Down &amp; Distance <span class="dd-badge dd-readout" id="ddReadout"></span></label>
+              <div class="chip-inline">
+                <div class="pick-group" id="tagDown">
+                  <button class="pick" data-value="1" type="button">1st</button>
+                  <button class="pick" data-value="2" type="button">2nd</button>
+                  <button class="pick" data-value="3" type="button">3rd</button>
+                  <button class="pick" data-value="4" type="button">4th</button>
+                </div>
+                <span class="chip-sep">&amp;</span>
+                <input type="number" id="tagDistance" placeholder="Dist" min="0" max="99" class="compact-input">
+              </div>
+            </div>
+
+            <!-- Offense / Defense / Special Teams reorderable groups -->
+            <div class="tag-side-groups">
+              <div class="tag-group group-offense" data-group="offense">
+                <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
+                <div class="tag-group-body">
+                  <div class="chip-section">
+                    <label class="chip-label">Formation <span class="chip-hint">structure — select all that apply</span></label>
+                    <div class="pick-group multi" id="tagFormation">
+                      <!-- E4: Under Center/Pistol/Shotgun moved to the QB Alignment
+                           group below — they are QB alignment, not formation
+                           structure (GRIDIRON-IQ-TAG-MODEL.md E1 decision).
+                           E4-2: Empty moved to the Backfield group — it's a
+                           back-alignment concept (no running back), not a
+                           formation structure, and Backfield already has its
+                           own Empty chip. -->
+                      <!-- Named / system formations -->
+                      <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
+                      <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
+                      <button class="pick" data-value="Wing-T" type="button">Wing-T</button>
+                      <button class="pick" data-value="Flexbone" type="button">Flexbone</button>
+                      <button class="pick" data-value="Wishbone" type="button">Wishbone</button>
+                      <button class="pick" data-value="Spread" type="button">Spread</button>
+                      <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
+                      <button class="pick" data-value="Unbalanced" type="button">Unbalanced</button>
+                      <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                      <button class="pick" data-value="I-Form" type="button">I-Form</button>
+                      <button class="pick" data-value="Split Back" type="button">Split Back</button>
+                      <button class="pick" data-value="Power-I" type="button">Power-I</button>
+                      <button class="pick" data-value="Ace" type="button">Ace</button>
+                      <button class="pick" data-value="Victory" type="button">Victory</button>
+                      <!-- Receiver structure -->
+                      <button class="pick" data-value="Trips" type="button">Trips</button>
+                      <button class="pick" data-value="Twins" type="button">Twins</button>
+                      <button class="pick" data-value="Doubles" type="button">Doubles</button>
+                      <button class="pick" data-value="Bunch" type="button">Bunch</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">QB Alignment <span class="chip-hint">optional</span></label>
+                    <div class="pick-group" id="tagQbAlignment">
+                      <button class="pick" data-value="Under Center" type="button">Under Center</button>
+                      <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                      <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Backfield <span class="chip-hint">back alignment</span></label>
+                    <!-- E4-2: Pistol moved to the QB Alignment group — it's a QB
+                         alignment concept, not a back alignment, and QB
+                         Alignment already has its own Pistol chip. -->
+                    <div class="pick-group" id="tagBackfield">
+                      <button class="pick" data-value="Single" type="button">Single</button>
+                      <button class="pick" data-value="Split" type="button">Split</button>
+                      <button class="pick" data-value="I" type="button">I</button>
+                      <button class="pick" data-value="Power" type="button">Power</button>
+                      <button class="pick" data-value="Offset" type="button">Offset</button>
+                      <button class="pick" data-value="Strong" type="button">Strong</button>
+                      <button class="pick" data-value="Weak" type="button">Weak</button>
+                      <button class="pick" data-value="Diamond" type="button">Diamond</button>
+                      <button class="pick" data-value="Empty" type="button">Empty</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Strength <span class="chip-hint">offense's strong side</span></label>
+                    <div class="pick-group" id="tagStrength">
+                      <button class="pick" data-value="Right" type="button">Right</button>
+                      <button class="pick" data-value="Left" type="button">Left</button>
+                      <button class="pick" data-value="Balanced" type="button">Balanced</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Personnel</label>
+                    <div class="pick-group" id="tagPersonnel">
+                      <button class="pick" data-value="00" type="button">00</button>
+                      <button class="pick" data-value="01" type="button">01</button>
+                      <button class="pick" data-value="02" type="button">02</button>
+                      <button class="pick" data-value="10" type="button">10</button>
+                      <button class="pick" data-value="11" type="button">11</button>
+                      <button class="pick" data-value="12" type="button">12</button>
+                      <button class="pick" data-value="13" type="button">13</button>
+                      <button class="pick" data-value="20" type="button">20</button>
+                      <button class="pick" data-value="21" type="button">21</button>
+                      <button class="pick" data-value="22" type="button">22</button>
+                      <button class="pick" data-value="23" type="button">23</button>
+                      <button class="pick" data-value="30" type="button">30</button>
+                      <button class="pick" data-value="31" type="button">31</button>
+                      <button class="pick" data-value="32" type="button">32</button>
+                      <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
+                      <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Motion <span class="chip-hint">pre-snap, blank = none</span></label>
+                    <div class="pick-group" id="tagMotion">
+                      <button class="pick" data-value="Jet" type="button">Jet</button>
+                      <button class="pick" data-value="Orbit" type="button">Orbit</button>
+                      <button class="pick" data-value="Shift" type="button">Shift</button>
+                      <button class="pick" data-value="Trade" type="button">Trade</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tag-group group-defense" data-group="defense">
+                <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
+                <div class="tag-group-body">
+                  <div class="chip-section">
+                    <label class="chip-label">Def Front <span class="chip-hint">base + shift</span></label>
+                    <div class="pick-group multi" id="tagDefFront">
+                      <button class="pick our-def-only" data-value="Maverick" type="button">Maverick</button>
+                      <button class="pick our-def-only" data-value="Eagle" type="button">Eagle</button>
+                      <button class="pick our-def-only" data-value="Falcon" type="button">Falcon</button>
+                      <button class="pick our-def-only" data-value="Jumbo Shift" type="button" title="Shifted to Jumbo — select along with the base front">Jumbo Shift</button>
+                      <button class="pick" data-value="4-3" type="button">4-3</button>
+                      <button class="pick" data-value="3-4" type="button">3-4</button>
+                      <button class="pick" data-value="4-4" type="button">4-4</button>
+                      <button class="pick" data-value="5-2" type="button">5-2</button>
+                      <button class="pick" data-value="5-3" type="button">5-3</button>
+                      <button class="pick" data-value="6-2" type="button">6-2</button>
+                      <button class="pick" data-value="3-3-5" type="button">3-3-5</button>
+                      <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
+                      <button class="pick" data-value="Nickel" type="button">Nickel</button>
+                      <button class="pick" data-value="Dime" type="button">Dime</button>
+                      <button class="pick" data-value="Quarter" type="button">Quarter</button>
+                      <button class="pick" data-value="4-6" type="button">4-6</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Coverage <span class="chip-hint">the call</span></label>
+                    <div class="pick-group" id="tagCoverage">
+                      <!-- E4: Man/Zone moved to the Coverage Family group below —
+                           they are family, not the shell/call (E1 decision). -->
+                      <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
+                      <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
+                      <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
+                      <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
+                      <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
+                      <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Coverage Family <span class="chip-hint">optional</span></label>
+                    <div class="pick-group" id="tagCoverageFamily">
+                      <button class="pick" data-value="Man" type="button">Man</button>
+                      <button class="pick" data-value="Zone" type="button">Zone</button>
+                      <button class="pick" data-value="Match" type="button">Match</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Blitz</label>
+                    <div class="pick-group multi" id="tagBlitz">
+                      <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
+                      <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                      <button class="pick" data-value="C-Gap" type="button">C-Gap</button>
+                      <button class="pick" data-value="Edge" type="button">Edge</button>
+                      <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
+                      <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tag-group group-special" data-group="special">
+                <button class="tag-group-head" type="button">Special Teams<span class="tag-group-caret">▾</span></button>
+                <div class="tag-group-body">
+                  <div class="chip-section">
+                    <label class="chip-label">ST Play Type</label>
+                    <div class="pick-group" id="tagStType">
+                      <button class="pick" data-value="Kickoff" type="button">Kickoff</button>
+                      <button class="pick" data-value="Kick Return" type="button">Kick Return</button>
+                      <button class="pick" data-value="Punt" type="button">Punt</button>
+                      <button class="pick" data-value="Punt Return" type="button">Punt Return</button>
+                      <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                      <button class="pick" data-value="XP" type="button">XP</button>
+                      <button class="pick" data-value="2-Pt" type="button">2-Pt</button>
+                      <button class="pick" data-value="Onside" type="button">Onside</button>
+                      <button class="pick" data-value="Fake" type="button">Fake</button>
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">Scored by</label>
+                    <div class="pick-group" id="tagScoreFor" title="Who the points count for — tap Them for the opponent's kick or score (XP, FG, 2-Pt, return TD). Blank = us.">
+                      <button class="pick" data-value="us" type="button">Us</button>
+                      <button class="pick" data-value="them" type="button">Them</button>
+                    </div>
+                  </div>
+                  <!-- Phase-aware ST details — PlayTagger._applyStPhase shows only
+                       the fields/chips the selected ST Play Type uses. -->
+                  <div class="chip-section st-field" data-phases="Kickoff|Kick Return|Punt|Punt Return|Field Goal|XP|2-Pt|Onside">
+                    <label class="chip-label">Kick Outcome</label>
+                    <div class="pick-group" id="tagKickOutcome">
+                      <button class="pick" data-value="Returned" data-phases="Kickoff|Punt" type="button">Returned</button>
+                      <button class="pick" data-value="Touchback" data-phases="Kickoff|Punt" type="button">Touchback</button>
+                      <button class="pick" data-value="Fair Catch" data-phases="Kickoff|Punt|Kick Return|Punt Return" type="button">Fair Catch</button>
+                      <button class="pick" data-value="Downed" data-phases="Punt" type="button">Downed</button>
+                      <button class="pick" data-value="Out of Bounds" data-phases="Kickoff|Punt" type="button">Out of Bounds</button>
+                      <button class="pick" data-value="Muffed" data-phases="Kick Return|Punt Return|Punt|Kickoff" type="button">Muffed</button>
+                      <button class="pick" data-value="Blocked" data-phases="Punt|Field Goal|XP" type="button">Blocked</button>
+                      <button class="pick" data-value="Recovered" data-phases="Onside" type="button">Recovered</button>
+                      <button class="pick" data-value="Good" data-phases="Field Goal|XP|2-Pt" type="button">Good</button>
+                      <button class="pick" data-value="No Good" data-phases="Field Goal|XP|2-Pt" type="button">No Good</button>
+                    </div>
+                  </div>
+                  <div class="st-detail-row">
+                    <div class="chip-section st-field" data-phases="Kickoff|Punt|Field Goal">
+                      <label class="chip-label">Kick Dist</label>
+                      <input type="number" id="tagKickDistance" class="compact-input" min="0" max="99" placeholder="yds">
+                    </div>
+                    <div class="chip-section st-field" data-phases="Kickoff|Punt">
+                      <label class="chip-label">Hang (s)</label>
+                      <input type="number" id="tagHangTime" class="compact-input" min="0" max="9.9" step="0.1" placeholder="sec">
+                    </div>
+                    <div class="chip-section st-field" data-phases="Kickoff|Kick Return|Punt|Punt Return">
+                      <label class="chip-label">Return</label>
+                      <input type="number" id="tagReturnYards" class="compact-input" min="0" max="109" placeholder="yds">
+                    </div>
+                    <div class="chip-section st-field" data-phases="Kickoff|Punt">
+                      <label class="chip-label">Kicked To</label>
+                      <input type="number" id="tagKickedTo" class="compact-input" min="1" max="50" placeholder="YL">
+                    </div>
+                  </div>
+                  <div class="chip-section">
+                    <label class="chip-label">ST Players — jersey #</label>
+                    <div class="player-roles">
+                      <label class="player-role" data-role="kicker">
+                        <span class="player-role-label">Kicker / Punter</span>
+                        <input type="number" id="tagPlayerKicker" class="player-num" min="0" max="99" placeholder="#">
+                        <select id="tagGradeKicker" class="player-grade" title="Grade">
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
+                      </label>
+                      <label class="player-role" data-role="returner">
+                        <span class="player-role-label">Returner</span>
+                        <input type="number" id="tagPlayerReturner" class="player-num" min="0" max="99" placeholder="#">
+                        <select id="tagGradeReturner" class="player-grade" title="Grade">
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- What happened on the play (post-snap) -->
+            <div class="chip-section core-hide-st">
+              <label class="chip-label">Run / Pass</label>
+              <div class="pick-group runpass-group" id="tagRunPass">
+                <button class="pick" data-value="Run" type="button">Run</button>
+                <button class="pick" data-value="Pass" type="button">Pass</button>
+              </div>
+            </div>
+            <div class="chip-section core-hide-st">
+              <label class="chip-label">Play Type</label>
+              <div class="pick-group multi" id="tagPlayType">
+                <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
+                <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
+                <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
+                <button class="pick" data-value="Short Pass" type="button">Short Pass<kbd>P</kbd></button>
+                <button class="pick" data-value="Medium Pass" type="button">Med Pass<kbd>M</kbd></button>
+                <button class="pick" data-value="Deep Pass" type="button">Deep Pass<kbd>D</kbd></button>
+                <button class="pick" data-value="Play Action" type="button">Play Action<kbd>A</kbd></button>
+                <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
+                <button class="pick" data-value="Trick Play" type="button">Trick Play<kbd>X</kbd></button>
+              </div>
+            </div>
+            <div class="chip-section core-hide-st">
+              <label class="chip-label">Play Direction <span class="chip-hint">where it went — offense's L/R</span></label>
+              <div class="pick-group" id="tagPlayDir">
                 <button class="pick" data-value="Left" type="button">Left</button>
                 <button class="pick" data-value="Middle" type="button">Middle</button>
                 <button class="pick" data-value="Right" type="button">Right</button>
               </div>
             </div>
+
             <div class="chip-section">
-              <label class="chip-label">Quarter</label>
-              <div class="pick-group" id="tagQuarter">
-                <button class="pick" data-value="Q1" type="button">Q1</button>
-                <button class="pick" data-value="Q2" type="button">Q2</button>
-                <button class="pick" data-value="Q3" type="button">Q3</button>
-                <button class="pick" data-value="Q4" type="button">Q4</button>
-                <button class="pick" data-value="OT" type="button">OT</button>
+              <label class="chip-label">Result</label>
+              <div class="pick-group multi" id="tagResult">
+                <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
+                <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
+                <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>
+                <button class="pick" data-value="Incomplete" type="button">Incomplete<kbd>I</kbd></button>
+                <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
+                <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
+                <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
+                <button class="pick" data-value="Fumble" type="button">Fumble<kbd>F</kbd></button>
+                <button class="pick" data-value="Penalty" type="button">Penalty<kbd>E</kbd></button>
+                <button class="pick" data-value="Punt" type="button">Punt<kbd>K</kbd></button>
+                <span class="pick-rare" id="tagResultRare">
+                  <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                  <button class="pick" data-value="Good" type="button" title="Conversion / kick is good (2-Pt, XP, FG)">Good</button>
+                  <button class="pick" data-value="No Good" type="button" title="Conversion / kick failed (2-Pt, XP, FG)">No Good</button>
+                  <button class="pick" data-value="Kneel" type="button">Kneel</button>
+                  <button class="pick" data-value="Spike" type="button">Spike</button>
+                  <button class="pick" data-value="Safety" type="button">Safety</button>
+                </span>
+                <button class="pick pick-more" id="tagResultMore" type="button" title="Show kicking / clock / rare results">More ▾</button>
               </div>
             </div>
-            <div class="chip-section">
-              <label class="chip-label">Field Position</label>
-              <div class="chip-inline">
-                <div class="pick-group" id="tagFieldSide">
-                  <button class="pick" data-value="own" type="button">Own</button>
-                  <button class="pick" data-value="opp" type="button">Opp</button>
-                </div>
-                <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" class="compact-input">
-              </div>
-            </div>
+
             <div class="chip-section chip-section-inline">
-              <label class="chip-label">Drive</label>
-              <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" class="compact-input">
-              <button class="btn btn-sm btn-accent" id="btnNewDrive" type="button">New Drive</button>
-            </div>
-            <div class="chip-section">
-              <label class="chip-label">Custom Tags</label>
-              <div class="custom-tags-input">
-                <div class="tag-chips" id="tagChips"></div>
-                <input type="text" id="customTagInput" placeholder="Add tag + Enter" class="compact-input" style="width:100%">
+              <label class="chip-label">Yards</label>
+              <div class="yards-row">
+                <button class="btn-nudge" id="yardsMinus" type="button">−</button>
+                <input type="number" id="tagYardage" min="0" max="99" placeholder="0" class="yards-input" title="Press Y to jump here. Enter yards as a positive number — Result (Gain / Loss / Sack) sets the direction. Enter saves &amp; advances.">
+                <button class="btn-nudge" id="yardsPlus" type="button">+</button>
               </div>
+            </div>
+
+            <!-- Players (shared) -->
+            <div class="chip-section" id="tagPlayersSection">
+              <label class="chip-label">Players — jersey #</label>
+              <div class="player-roles">
+                <label class="player-role active" data-role="ballCarrier">
+                  <span class="player-role-label">Ball Carrier</span>
+                  <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
+                  <select id="tagGradeBC" class="player-grade" title="Grade">
+                    <option value="">—</option>
+                    <option value="2">++</option>
+                    <option value="1">+</option>
+                    <option value="0">0</option>
+                    <option value="-1">−</option>
+                    <option value="-2">−−</option>
+                  </select>
+                </label>
+                <label class="player-role" data-role="passer">
+                  <span class="player-role-label">Passer</span>
+                  <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
+                  <select id="tagGradePasser" class="player-grade" title="Grade">
+                    <option value="">—</option>
+                    <option value="2">++</option>
+                    <option value="1">+</option>
+                    <option value="0">0</option>
+                    <option value="-1">−</option>
+                    <option value="-2">−−</option>
+                  </select>
+                </label>
+                <label class="player-role" data-role="receiver">
+                  <span class="player-role-label">Receiver</span>
+                  <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
+                  <select id="tagGradeReceiver" class="player-grade" title="Grade">
+                    <option value="">—</option>
+                    <option value="2">++</option>
+                    <option value="1">+</option>
+                    <option value="0">0</option>
+                    <option value="-1">−</option>
+                    <option value="-2">−−</option>
+                  </select>
+                </label>
+                <label class="player-role" data-role="tackler">
+                  <span class="player-role-label">Tackler(s)</span>
+                  <input type="text" id="tagPlayerTackler" class="player-num player-num-multi" inputmode="numeric" placeholder="# #" title="Multiple allowed for shared tackles (e.g. 55, 22)">
+                  <select id="tagGradeTackler" class="player-grade" title="Grade">
+                    <option value="">—</option>
+                    <option value="2">++</option>
+                    <option value="1">+</option>
+                    <option value="0">0</option>
+                    <option value="-1">−</option>
+                    <option value="-2">−−</option>
+                  </select>
+                </label>
+                <label class="player-role" data-role="takeaway">
+                  <span class="player-role-label">Takeaway (INT/FR)</span>
+                  <input type="number" id="tagPlayerTakeaway" class="player-num" min="0" max="99" placeholder="#" title="Defender credited with the interception or fumble recovery">
+                  <select id="tagGradeTakeaway" class="player-grade" title="Grade">
+                    <option value="">—</option>
+                    <option value="2">++</option>
+                    <option value="1">+</option>
+                    <option value="0">0</option>
+                    <option value="-1">−</option>
+                    <option value="-2">−−</option>
+                  </select>
+                </label>
+              </div>
+              <div class="player-quickpick" id="rosterQuickPick"></div>
+            </div>
+
+            <!-- Custom user-defined tag fields -->
+            <div class="chip-section cf-empty" id="customFieldsSection">
+              <div class="cf-head">
+                <label class="chip-label">Custom Fields</label>
+                <button class="btn btn-sm btn-icon-only" id="btnEditCustomFields" type="button" title="Add or edit your own tag categories">✎ Fields</button>
+              </div>
+              <div id="tagCustomFields"></div>
+            </div>
+
+            <!-- Notes — embedded in tag flow (before Situation & Details) -->
+            <div class="tag-notes">
+              <div class="tag-notes-label">
+                <span>Play Notes</span>
+                <button class="btn btn-sm" id="btnInsertTimestamp" title="Insert Timestamp">+ Time</button>
+              </div>
+              <textarea id="notesArea" class="notes-area" placeholder="Add notes for the current play..."></textarea>
+            </div>
+
+            <details class="chip-details">
+              <summary>Situation &amp; Details</summary>
+              <div class="chip-section">
+                <label class="chip-label">Hash <span class="chip-hint">offense's L/R</span></label>
+                <div class="pick-group" id="tagHash">
+                  <button class="pick" data-value="Left" type="button">Left</button>
+                  <button class="pick" data-value="Middle" type="button">Middle</button>
+                  <button class="pick" data-value="Right" type="button">Right</button>
+                </div>
+              </div>
+              <div class="chip-section">
+                <label class="chip-label">Quarter</label>
+                <div class="pick-group" id="tagQuarter">
+                  <button class="pick" data-value="Q1" type="button">Q1</button>
+                  <button class="pick" data-value="Q2" type="button">Q2</button>
+                  <button class="pick" data-value="Q3" type="button">Q3</button>
+                  <button class="pick" data-value="Q4" type="button">Q4</button>
+                  <button class="pick" data-value="OT" type="button">OT</button>
+                </div>
+              </div>
+              <div class="chip-section">
+                <label class="chip-label">Field Position</label>
+                <div class="chip-inline">
+                  <div class="pick-group" id="tagFieldSide">
+                    <button class="pick" data-value="own" type="button">Own</button>
+                    <button class="pick" data-value="opp" type="button">Opp</button>
+                  </div>
+                  <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" class="compact-input">
+                </div>
+              </div>
+              <div class="chip-section chip-section-inline">
+                <label class="chip-label">Drive</label>
+                <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" class="compact-input">
+                <button class="btn btn-sm btn-accent" id="btnNewDrive" type="button">New Drive</button>
+              </div>
+              <div class="chip-section">
+                <label class="chip-label">Custom Tags</label>
+                <div class="custom-tags-input">
+                  <div class="tag-chips" id="tagChips"></div>
+                  <input type="text" id="customTagInput" placeholder="Add tag + Enter" class="compact-input" style="width:100%">
+                </div>
+              </div>
+            </details>
+
+            <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
+              <input type="checkbox" id="autoDDToggle" checked>
+              <span>Auto down &amp; distance</span>
+            </label>
+
+            <label class="auto-dd-toggle" title="Carry Formation, Personnel, Def Front & Coverage to the next untagged play — for teams that don't change looks often. Only fills blanks; one tap changes any of them.">
+              <input type="checkbox" id="carrySchemeToggle">
+              <span>Carry formation to next play</span>
+            </label>
+
+            <div class="tag-nav">
+              <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
+              <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Next play, carrying the situation forward (Enter). Tags already save as you tap.">Save &amp; Next →</button>
+              <button class="btn btn-sm" id="btnTagSkip" type="button" title="Next play WITHOUT carrying the situation forward. Your tags are already saved either way.">Skip ➝ next</button>
+            </div>
+
+            <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
+            <div class="chip-section" id="playDiagramSection">
+              <div class="cf-head">
+                <label class="chip-label">Play Diagram</label>
+                <span class="pd-actions">
+                  <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
+                  <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
+                </span>
+              </div>
+              <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
+            </div>
+          </div>
+
+          <!-- Secondary tools (OCR, smart suggestions) -->
+          <details class="tagger-tools">
+            <summary>More tools (scoreboard OCR, suggestions)</summary>
+            <div class="tagger-tools-body">
+              <!-- Scoreboard OCR -->
+              <div class="ocr-section">
+                <div class="ocr-header">
+                  <span class="ocr-title">📺 Scoreboard OCR</span>
+                  <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
+                    <input type="checkbox" id="btnAutoOcr"> Auto
+                  </label>
+                </div>
+                <div class="ocr-controls">
+                  <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
+                  <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
+                </div>
+                <div class="ocr-status" id="ocrStatus">No region set</div>
+                <div class="ocr-preview" id="ocrPreview"></div>
+              </div>
+              <!-- Smart suggestions toggle -->
+              <label class="suggestion-toggle">
+                <input type="checkbox" id="btnToggleSuggestions" checked>
+                <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
+              </label>
             </div>
           </details>
 
-          <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
-            <input type="checkbox" id="autoDDToggle" checked>
-            <span>Auto down &amp; distance</span>
-          </label>
-
-          <label class="auto-dd-toggle" title="Carry Formation, Personnel, Def Front & Coverage to the next untagged play — for teams that don't change looks often. Only fills blanks; one tap changes any of them.">
-            <input type="checkbox" id="carrySchemeToggle">
-            <span>Carry formation to next play</span>
-          </label>
-
-          <div class="tag-nav">
-            <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
-            <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Next play, carrying the situation forward (Enter). Tags already save as you tap.">Save &amp; Next →</button>
-            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Next play WITHOUT carrying the situation forward. Your tags are already saved either way.">Skip ➝ next</button>
-          </div>
-
-          <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
-          <div class="chip-section" id="playDiagramSection">
-            <div class="cf-head">
-              <label class="chip-label">Play Diagram</label>
-              <span class="pd-actions">
-                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
-                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
-              </span>
-            </div>
-            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
-          </div>
-        </div>
-
-        <!-- Secondary tools (OCR, smart suggestions) -->
-        <details class="tagger-tools">
-          <summary>More tools (scoreboard OCR, suggestions)</summary>
-          <div class="tagger-tools-body">
-            <!-- Scoreboard OCR -->
-            <div class="ocr-section">
-              <div class="ocr-header">
-                <span class="ocr-title">📺 Scoreboard OCR</span>
-                <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
-                  <input type="checkbox" id="btnAutoOcr"> Auto
-                </label>
-              </div>
-              <div class="ocr-controls">
-                <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
-                <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
-              </div>
-              <div class="ocr-status" id="ocrStatus">No region set</div>
-              <div class="ocr-preview" id="ocrPreview"></div>
-            </div>
-            <!-- Smart suggestions toggle -->
-            <label class="suggestion-toggle">
-              <input type="checkbox" id="btnToggleSuggestions" checked>
-              <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
-            </label>
-          </div>
-        </details>
-
-        <!-- Auto-Detect (experimental) -->
-        <details class="tagger-tools auto-detect-tools">
-          <summary>Auto-Detect Plays (experimental)</summary>
-          <div class="tagger-tools-body">
-            <div class="auto-detect-section">
-              <div class="auto-detect-header">
-                <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
-                  <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
-                  Auto-Detect Plays
-                </button>
-                <button class="btn btn-sm btn-danger hidden" id="btnCancelScan">Cancel</button>
-              </div>
-              <div class="auto-detect-progress hidden" id="autoDetectProgress">
-                <div class="progress-bar">
-                  <div class="progress-bar-fill" id="scanProgressFill"></div>
+          <!-- Auto-Detect (experimental) -->
+          <details class="tagger-tools auto-detect-tools">
+            <summary>Auto-Detect Plays (experimental)</summary>
+            <div class="tagger-tools-body">
+              <div class="auto-detect-section">
+                <div class="auto-detect-header">
+                  <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
+                    <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
+                    Auto-Detect Plays
+                  </button>
+                  <button class="btn btn-sm btn-danger hidden" id="btnCancelScan">Cancel</button>
                 </div>
-                <span class="progress-label" id="scanProgressLabel">0%</span>
-              </div>
-              <div class="auto-detect-settings hidden" id="autoDetectSettings">
-                <div class="detect-setting">
-                  <label>Strictness</label>
-                  <input type="range" id="detectStrictness" min="0.5" max="1.6" value="1.0" step="0.05" title="Lower = more plays, higher = fewer false positives">
-                  <span class="setting-value" id="strictnessValue">Balanced</span>
+                <div class="auto-detect-progress hidden" id="autoDetectProgress">
+                  <div class="progress-bar">
+                    <div class="progress-bar-fill" id="scanProgressFill"></div>
+                  </div>
+                  <span class="progress-label" id="scanProgressLabel">0%</span>
                 </div>
-                <div class="detect-setting detect-setting-toggle">
-                  <label for="detectUseAudio">Use audio (whistles)</label>
-                  <input type="checkbox" id="detectUseAudio" checked>
-                </div>
-                <div class="detect-setting">
-                  <label>Min Play (sec)</label>
-                  <input type="number" id="detectMinDuration" value="2" min="1" max="15" step="0.5">
-                </div>
-                <div class="detect-setting">
-                  <label>Max Play (sec)</label>
-                  <input type="number" id="detectMaxDuration" value="30" min="5" max="60" step="1">
-                </div>
-                <div class="detect-setting">
-                  <label>Cooldown (sec)</label>
-                  <input type="number" id="detectCooldown" value="2.5" min="1" max="15" step="0.5">
-                </div>
-                <div class="detect-hint">
-                  Tip: strictness "Balanced" works for most broadcast angles. Raise it if you're getting false positives from crowd shots or replays.
-                </div>
-              </div>
-              <button class="btn btn-sm btn-link" id="btnToggleDetectSettings">Settings</button>
-              <div class="auto-detect-results hidden" id="autoDetectResults">
-                <div class="detect-results-header">
-                  <span id="detectResultCount">0 plays detected</span>
-                  <div class="detect-results-actions">
-                    <button class="btn btn-sm" id="btnReviewDetected" title="Scrub, trim, and accept detections one by one">Review…</button>
-                    <button class="btn btn-sm btn-accent" id="btnApplyDetected">Apply All</button>
+                <div class="auto-detect-settings hidden" id="autoDetectSettings">
+                  <div class="detect-setting">
+                    <label>Strictness</label>
+                    <input type="range" id="detectStrictness" min="0.5" max="1.6" value="1.0" step="0.05" title="Lower = more plays, higher = fewer false positives">
+                    <span class="setting-value" id="strictnessValue">Balanced</span>
+                  </div>
+                  <div class="detect-setting detect-setting-toggle">
+                    <label for="detectUseAudio">Use audio (whistles)</label>
+                    <input type="checkbox" id="detectUseAudio" checked>
+                  </div>
+                  <div class="detect-setting">
+                    <label>Min Play (sec)</label>
+                    <input type="number" id="detectMinDuration" value="2" min="1" max="15" step="0.5">
+                  </div>
+                  <div class="detect-setting">
+                    <label>Max Play (sec)</label>
+                    <input type="number" id="detectMaxDuration" value="30" min="5" max="60" step="1">
+                  </div>
+                  <div class="detect-setting">
+                    <label>Cooldown (sec)</label>
+                    <input type="number" id="detectCooldown" value="2.5" min="1" max="15" step="0.5">
+                  </div>
+                  <div class="detect-hint">
+                    Tip: strictness "Balanced" works for most broadcast angles. Raise it if you're getting false positives from crowd shots or replays.
                   </div>
                 </div>
-                <div class="detect-motion-graph" id="motionGraph">
-                  <canvas id="motionGraphCanvas" height="60"></canvas>
+                <button class="btn btn-sm btn-link" id="btnToggleDetectSettings">Settings</button>
+                <div class="auto-detect-results hidden" id="autoDetectResults">
+                  <div class="detect-results-header">
+                    <span id="detectResultCount">0 plays detected</span>
+                    <div class="detect-results-actions">
+                      <button class="btn btn-sm" id="btnReviewDetected" title="Scrub, trim, and accept detections one by one">Review…</button>
+                      <button class="btn btn-sm btn-accent" id="btnApplyDetected">Apply All</button>
+                    </div>
+                  </div>
+                  <div class="detect-motion-graph" id="motionGraph">
+                    <canvas id="motionGraphCanvas" height="60"></canvas>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </details>
-      </section>
-    </div>
-
-    <!-- Temporary controller state until S5 removes the last global game-context
-         lookups. These are not a presentation owner and leave with #app in S7. -->
-
-    <!-- Stats Dashboard (full-screen overlay) -->
-    <div class="hidden" id="statsDashboard"></div>
+          </details>
+        </section>
+  <div class="hidden" id="statsDashboard"></div>
     <button class="hidden" id="btnCloseStats"></button>
-
-
-
+  <header class="top-bar">
+        <div class="top-bar-left">
+          <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Open settings" aria-label="Open settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="4" y1="7" x2="20" y2="7"/>
+              <line x1="4" y1="12" x2="20" y2="12"/>
+              <line x1="4" y1="17" x2="20" y2="17"/>
+            </svg>
+            <span class="sidebar-toggle-label">Settings</span>
+          </button>
+  <button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)" aria-label="Keyboard shortcuts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"/>
+              <line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/>
+              <line x1="7" y1="14" x2="17" y2="14"/>
+            </svg>
+            <span>Shortcuts</span>
+          </button>
+          <h1 class="app-title">GridIron <span class="app-iq">IQ</span></h1>
+          <!-- The breadcrumb (Team ▸ Season ▸ Game) and its game-switcher dropdown
+               were the retired game-entry route (C1). Home is the sole game entry
+               and the shell's own `.ws-context` bar duplicates the breadcrumb
+               verbatim, so both are deleted rather than left hidden — hidden
+               markup is what let the retired flow resurface twice when an overlay
+               revealed the classic outlet. -->
+        </div>
+        <div class="top-bar-center">
+          <label class="file-input-label" id="videoDropZone" for="videoFileInput">
+            <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
+            <span id="fileLabel">Drop video(s) / folder or click to load</span>
+          </label>
+          <button class="btn btn-sm" id="btnLoadFolder" title="Load an entire folder of plays">
+            <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
+            <span class="btn-label">Folder</span>
+          </button>
+          <span class="folder-load-badge hidden" id="folderLoadBadge"></span>
+        </div>
+        <div class="top-bar-right">
+          <button class="backend-status-badge offline" id="backendStatusBadge" type="button"
+                  title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
+            Auto-Detect: Basic
+          </button>
+          <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+            <svg class="icon"><use href="assets/icons.svg#icon-undo"/></svg>
+          </button>
+          <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>
+            <svg class="icon"><use href="assets/icons.svg#icon-redo"/></svg>
+          </button>
+          <button class="btn btn-secondary" id="btnQuickChart" title="Toggle Quick Chart Mode">
+            <svg class="icon"><use href="assets/icons.svg#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
+          </button>
+          <button class="btn btn-secondary" id="btnShowStats" title="View Game Stats">
+            <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> <span class="btn-label">Stats</span>
+          </button>
+          <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
+            <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save Season</span>
+          </button>
+        </div>
+      </header>
   </div>
+
+  
 
   <script type="module" src="js/native-root.jsx"></script>
   <script type="module" src="js/legacy-global-bridge.js"></script>

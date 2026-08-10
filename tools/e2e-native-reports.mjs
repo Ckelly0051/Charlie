@@ -63,7 +63,9 @@ await sleep(150);
 let result = await page.evaluate(() => ({
   native: document.querySelectorAll('#wsReports > [data-native-reports]').length,
   dashboardIds: document.querySelectorAll('#statsDashboard').length,
-  oldId: document.querySelector('#app > #legacyStatsDashboard')?.id || '',
+  // S7 demolition: #app is deleted. #statsDashboard's permanent authored home
+  // is #giLegacyEngineHost now, not #app.
+  oldId: document.querySelector('#giLegacyEngineHost #legacyStatsDashboard')?.id || '',
   oldInsideReports: !!document.querySelector('#wsReports #legacyStatsDashboard'),
   tabs: [...document.querySelectorAll('#wsReports [data-report-tab]')].map(node => node.dataset.reportTab),
   actions: [...document.querySelectorAll('#wsReports [data-rp-action]')].map(node => node.dataset.rpAction),

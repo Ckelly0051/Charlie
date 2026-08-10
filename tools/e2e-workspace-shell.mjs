@@ -26,7 +26,10 @@ let r = await page.evaluate(() => ({
   shell: !!document.querySelector('#workspaceShell'),
   active: document.body.classList.contains('ws-shell-active'),
   hub: !document.querySelector('#wsTeamHub')?.hidden && !!document.querySelector('[data-native-team-hub]'),
-  appInOutlet: document.querySelector('#wsClassicOutlet > #app')?.id === 'app',
+  // S7 demolition: #app/#wsClassicOutlet are deleted. The tagging/Film-Room/
+  // Reports backing stores now live in the permanent #giLegacyEngineHost,
+  // a sibling of the shell root rather than something nested inside it.
+  legacyHostPresent: !!document.getElementById('giLegacyEngineHost') && !document.getElementById('app'),
   flag: localStorage.getItem('ffa_workspace_shell_v2'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
   reportsDisabled: [...document.querySelectorAll('[data-ws-route="reports"]')].every(button => button.disabled),
@@ -34,7 +37,7 @@ let r = await page.evaluate(() => ({
   emptyActionEnabled: !document.querySelector('#wsResume')?.disabled,
   emptyActionTarget: document.querySelector('#wsResume')?.dataset.wsAction,
 }));
-ok(r.shell && r.active && r.hub && r.appInOutlet, 'Shell mounts with the native Team Hub as its single front door', JSON.stringify(r));
+ok(r.shell && r.active && r.hub && r.legacyHostPresent, 'Shell mounts with the native Team Hub as its single front door', JSON.stringify(r));
 
 // NO JS VALUES IN THE CHROME (coach smoke, 2026-07-25). Adding the Reports
 // route without adding its nav icon rendered the literal string "undefined"
@@ -146,7 +149,8 @@ await page.setViewport({ width: 1280, height: 800 });
 await page.click('.ws-sidebar [data-ws-route="breakdown"]');
 r = await page.evaluate(() => ({
   dedicatedVisible: !document.querySelector('#wsBreakdown')?.hidden,
-  classicHidden: document.querySelector('#wsClassicOutlet')?.hidden,
+  // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion.
+  classicHidden: !document.querySelector('#wsClassicOutlet'),
   homeHidden: document.querySelector('#wsHome')?.hidden,
   route: window.app.workspace.currentRoute(),
   videoOwners: document.querySelectorAll('#wsBreakdown #videoContainer').length,
@@ -500,11 +504,11 @@ ok(r.route === 'breakdown' && r.active === 'preview-game' && r.breakdownVisible,
   'Stale Home async from a prior game cannot pull the workspace off the game just opened', JSON.stringify(r));
 
 await page.click('.ws-top-nav [data-ws-route="study"]');
-r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), study: !document.querySelector('#wsStudy')?.hidden, reportsHidden: document.querySelector('#wsReports')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), study: !document.querySelector('#wsStudy')?.hidden, reportsHidden: document.querySelector('#wsReports')?.hidden, appHidden: !document.querySelector('#wsClassicOutlet') }));
 ok(r.route === 'study' && r.study && r.reportsHidden && r.appHidden, 'Study opens the query workspace inside the persistent shell');
 
 await page.click('[data-study-action="advanced"]');
-r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !document.querySelector('#wsClassicOutlet')?.hidden }));
+r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !!document.querySelector('#wsClassicOutlet') }));
 ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
 // S1 REPORTS OWNERSHIP CONTRACT. The visible dashboard is created inside the
 // Preact route; the hidden legacy node stays home and relinquishes its public id.
@@ -512,7 +516,9 @@ r = await page.evaluate(() => ({
   nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
   nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
   legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
-  legacyStillHome: !!document.querySelector('#app #legacyStatsDashboard'),
+  // S7 demolition: #app is deleted. The hidden legacy dashboard's home is now
+  // the permanent #giLegacyEngineHost, a sibling of the shell root.
+  legacyStillHome: !!document.querySelector('#giLegacyEngineHost #legacyStatsDashboard'),
   mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
   tabs: document.querySelectorAll('#wsReports [data-report-tab]').length,
 }));
@@ -571,7 +577,8 @@ const reportsLibrary = await page.evaluate(async () => {
   const whileOpen = {
     reportsHidden: document.getElementById('wsReports').hidden,
     hubVisible: !document.getElementById('wsTeamHub').hidden,
-    outletVisible: !document.getElementById('wsClassicOutlet').hidden,
+    // S7 demolition: #wsClassicOutlet is deleted — absence IS "never visible".
+    outletVisible: !!document.getElementById('wsClassicOutlet'),
   };
   await shell.closeTeamHub();
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -579,7 +586,7 @@ const reportsLibrary = await page.evaluate(async () => {
     whileOpen,
     after: {
       reportsVisible: !document.getElementById('wsReports').hidden,
-      outletHidden: document.getElementById('wsClassicOutlet').hidden,
+      outletHidden: !document.getElementById('wsClassicOutlet'),
     },
   };
 });
@@ -588,7 +595,7 @@ ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.hubVisible
   'Opening and backing out of native Team Hub from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));await page.click('.ws-sidebar [data-ws-route="study"]');
 
 await page.click('.ws-sidebar [data-ws-route="plan"]');
-r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden, text: document.querySelector('#wsPlan')?.textContent || '' }));
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: !document.querySelector('#wsClassicOutlet'), text: document.querySelector('#wsPlan')?.textContent || '' }));
 ok(r.route === 'plan' && r.plan && r.appHidden && /GAME PLAN/.test(r.text), 'Plan opens the live season plan workspace');
 
 // Finding 2 (2026-07-23): the classic-layout escape hatch is fully retired —
@@ -607,7 +614,9 @@ ok(r.newGameBtn, 'Home exposes a direct New Game action (finding 4)', JSON.strin
 // must restore the exact invoking route. Reports remains native too.
 r = await page.evaluate(async () => {
   const shell = window.app.workspaceShell;
-  const outletHidden = () => document.getElementById('wsClassicOutlet').hidden;
+  // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion —
+  // there is no element left to reveal.
+  const outletHidden = () => !document.getElementById('wsClassicOutlet');
   await shell.show('breakdown');
   await shell._openLibrary();
   const hubVisible = !document.getElementById('wsTeamHub').hidden;
@@ -644,16 +653,19 @@ r = await page.evaluate(() => {
   window.app.workspaceShell.disable();
   const media = document.querySelector('#giMediaHost > .video-section');
   return {
+    // S7 demolition: #app is gone. The tagging/Film-Room backing stores'
+    // permanent, original home is #giLegacyEngineHost — teardown must return
+    // adopted chrome there, not to a container that no longer exists.
     restored: media != null
-      && !media.closest('#app')
+      && !media.closest('#giLegacyEngineHost')
       && document.querySelectorAll('.video-section').length === 1
-      && document.querySelector('#app .main-content > #playGridSection') != null
-      && document.querySelector('#app .main-content > .tag-section') != null,
+      && document.querySelector('#giLegacyEngineHost > #playGridSection') != null
+      && document.querySelector('#giLegacyEngineHost > .tag-section') != null,
     // Every adopted control must go home, not just the two the shell started
     // with — an un-restored one would leak into a detached tree on re-enable.
     chromeRestored: ['btnSidebarToggle', 'btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
-      .every(id => !!document.querySelector(`#app .top-bar #${id}`))
-      && !document.querySelector('#app .top-bar .more-menu')
+      .every(id => !!document.querySelector(`#giLegacyEngineHost .top-bar #${id}`))
+      && !document.querySelector('#giLegacyEngineHost .top-bar .more-menu')
       && !document.getElementById('settingsDrawer')
       && !document.getElementById('drawerScrim'),
   };

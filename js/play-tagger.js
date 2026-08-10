@@ -324,25 +324,7 @@ export class PlayTagger {
 
     // Unit toggle: save the side on the play and re-lay-out the form.
     if (this.unitField) {
-      this.unitField.addEventListener('change', () => {
-        const play = this.getCurrentPlay();
-        // The toggle always keeps a side selected — re-tapping the active
-        // side would otherwise clear it, so fall back to the current value.
-        let unit = this.unitField.value;
-        if (!unit) {
-          unit = (play && play.tags.unit) || this.defaultUnit || 'offense';
-          this.unitField.value = unit;
-        }
-        if (play) {
-          play.tags.unit = unit;
-          if (this._stripStAlignment(play)) this._loadTagForm(play);
-          this._emit('play-updated', play);
-        }
-        // Make the side "sticky": the user's choice carries forward to the
-        // next untagged play (Save & Next) until they change it again.
-        this.defaultUnit = unit;
-        this.applyUnitMode(unit);
-      });
+      this.unitField.addEventListener('change', () => this._onUnitFieldChanged());
     }
 
     // Collapsible secondary side groups (e.g. "Defense Faced" while charting
@@ -365,13 +347,7 @@ export class PlayTagger {
     // event; _saveField('driveNumber') is the same single-field commit every
     // other field's own change listener already uses.
     if (this.btnNewDrive) {
-      this.btnNewDrive.addEventListener('click', () => {
-        this.currentDrive++;
-        if (this.tagFields.driveNumber) {
-          this.tagFields.driveNumber.value = this.currentDrive;
-          this._saveField('driveNumber');
-        }
-      });
+      this.btnNewDrive.addEventListener('click', () => this.newDrive());
     }
 
     // Custom tag input
@@ -1263,6 +1239,71 @@ export class PlayTagger {
     const inPhase = (el) => (el.dataset.phases || '').split('|').filter(Boolean).includes(phase);
     document.querySelectorAll('.st-field').forEach(el => el.classList.toggle('st-hidden', !phase || !inPhase(el)));
     document.querySelectorAll('#tagKickOutcome .pick[data-phases]').forEach(chip => chip.classList.toggle('st-hidden', !phase || !inPhase(chip)));
+  }
+
+  /**
+   * S7 demolition: real domain API replacing the native tag form's synthetic
+   * `chip.click()` on the unit toggle. ChipField already has a genuine `.value`
+   * setter — the click was never load-bearing behavior, only a habit — so this
+   * is the SAME logic the DOM change listener runs, callable directly.
+   */
+  _onUnitFieldChanged() {
+    const play = this.getCurrentPlay();
+    // The toggle always keeps a side selected — re-tapping the active side
+    // would otherwise clear it, so fall back to the current value.
+    let unit = this.unitField.value;
+    if (!unit) {
+      unit = (play && play.tags.unit) || this.defaultUnit || 'offense';
+      this.unitField.value = unit;
+    }
+    if (play) {
+      play.tags.unit = unit;
+      if (this._stripStAlignment(play)) this._loadTagForm(play);
+      this._emit('play-updated', play);
+    }
+    // Make the side "sticky": the user's choice carries forward to the next
+    // untagged play (Save & Next) until they change it again.
+    this.defaultUnit = unit;
+    this.applyUnitMode(unit);
+  }
+
+  /**
+   * The coach-facing, STICKY unit change (the toggle a coach taps while
+   * charting). Named distinctly from `setUnit()` below, which is an internal
+   * carry-forward helper (auto-fills an untagged play's unit from the
+   * previous one) with deliberately different, non-sticky semantics — the two
+   * used to share a name by coincidence, which silently shadowed one of them.
+   */
+  setChartingUnit(unit) {
+    if (!this.unitField || !['offense', 'defense', 'special'].includes(unit)) return false;
+    if (this.unitField.value === unit) return true;
+    this.unitField.value = unit;
+    this._onUnitFieldChanged();
+    return true;
+  }
+
+  /** Real setters for the two charting-speed toggles. Persist + apply in one
+   *  call, so a native control can drive them without a hidden checkbox. */
+  setAutoDD(value) {
+    this.autoDD = !!value;
+    try { localStorage.setItem('ffa_auto_dd', this.autoDD ? '1' : '0'); } catch (e) {}
+    return true;
+  }
+  setCarryScheme(value) {
+    this.carryScheme = !!value;
+    try { localStorage.setItem('ffa_carry_scheme', this.carryScheme ? '1' : '0'); } catch (e) {}
+    return true;
+  }
+
+  /** Bump the drive counter on the current play. Extracted from the legacy
+   *  button's click handler so native tagging can call it directly. */
+  newDrive() {
+    this.currentDrive++;
+    if (this.tagFields.driveNumber) {
+      this.tagFields.driveNumber.value = this.currentDrive;
+      this._saveField('driveNumber');
+    }
+    return true;
   }
 
   /**

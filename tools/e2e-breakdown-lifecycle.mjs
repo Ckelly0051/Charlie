@@ -51,7 +51,8 @@ let state = await page.evaluate(async () => {
     mediaOwner: document.querySelectorAll('[data-breakdown-theater-host] #videoContainer').length,
     legacyVideo: document.querySelectorAll('.breakdown-player-controls, .breakdown-play-strip').length,
     legacyTagVisible: app.nativeTagging.source.offsetParent !== null,
-    classicVisible: document.getElementById('wsClassicOutlet').hidden === false,
+    // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion now.
+    classicVisible: !!document.getElementById('wsClassicOutlet'),
     dataSame: before === JSON.stringify(app.storage.seasonStore.data),
   };
 });

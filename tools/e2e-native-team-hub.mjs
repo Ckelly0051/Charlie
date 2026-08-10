@@ -20,7 +20,7 @@ let r = await page.evaluate(() => ({
   // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
   // read true once el is gone, so this asserts absence, which cannot invert.
   legacy: !!document.getElementById('libraryOverlay'),
-  outlet: !document.getElementById('wsClassicOutlet')?.hidden,
+  outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
   route: document.getElementById('workspaceShell')?.dataset.route,
 }));
 ok(r.native === 1 && r.first && !r.legacy && !r.outlet && r.route === 'team-hub',
@@ -67,7 +67,7 @@ r = await page.evaluate(() => ({
   // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
   // read true once el is gone, so this asserts absence, which cannot invert.
   legacy: !!document.getElementById('libraryOverlay'),
-  outlet: !document.getElementById('wsClassicOutlet')?.hidden,
+  outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
 }));
 ok(r.rows === 1 && /Current/.test(r.current) && /No film linked/.test(r.film) && !r.legacy && !r.outlet,
   'Current season is explicit with honest neutral film health and no legacy owner', JSON.stringify(r));

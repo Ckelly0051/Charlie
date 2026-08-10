@@ -1,6 +1,10 @@
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
 
+// S7 demolition: #app is deleted. `appInert` below checks #giLegacyEngineHost —
+// the real permanent body child that replaced it — since the inertness
+// mechanism (native-root.jsx) makes every document.body child inert, not #app
+// specifically. The variable name is kept for a minimal diff.
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
   if (condition) { pass++; console.log(`  PASS  ${label}`); }
@@ -37,7 +41,7 @@ await page.evaluate(() => {
   HTMLElement.prototype.focus = function (...args) {
     if (this.closest?.('.gi-overlay-panel') && !window.__modalFocusOrder) {
       window.__modalFocusOrder = {
-        appInert: !!document.getElementById('app')?.closest('[inert]'),
+        appInert: !!document.getElementById('giLegacyEngineHost')?.closest('[inert]'),
         nativeRouteInert: !!document.querySelector('.gi-native-routes')?.closest('[inert]'),
       };
     }
@@ -49,7 +53,7 @@ await page.waitForSelector('.gi-overlay-dialog.is-top');
 await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Keep working');
 state = await page.evaluate(() => ({
   active: document.activeElement?.textContent?.trim(),
-  appInert: !!document.getElementById('app')?.closest('[inert]'),
+  appInert: !!document.getElementById('giLegacyEngineHost')?.closest('[inert]'),
   nativeRouteInert: !!document.querySelector('.gi-native-routes')?.closest('[inert]'),
   modal: document.querySelector('.gi-overlay-dialog .gi-overlay-panel')?.getAttribute('aria-modal'),
   focusOrder: window.__modalFocusOrder,
@@ -205,7 +209,7 @@ console.log('\n== 3. Sheet desktop/mobile behavior ==');
 await page.click('[data-probe-sheet]');
 await page.waitForSelector('.gi-overlay-sheet.is-top');
 await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Practice note');
-state = await page.evaluate(() => ({ active: document.activeElement?.getAttribute('aria-label'), appInert: !!document.getElementById('app')?.closest('[inert]'), modal: document.querySelector('.gi-overlay-sheet .gi-overlay-panel')?.getAttribute('aria-modal') }));
+state = await page.evaluate(() => ({ active: document.activeElement?.getAttribute('aria-label'), appInert: !!document.getElementById('giLegacyEngineHost')?.closest('[inert]'), modal: document.querySelector('.gi-overlay-sheet .gi-overlay-panel')?.getAttribute('aria-modal') }));
 ok(state.active === 'Practice note', 'sheet focuses the first working control, never its close button', JSON.stringify(state));
 ok(!state.appInert && state.modal == null, 'desktop non-modal sheet leaves the route available', JSON.stringify(state));
 await page.keyboard.press('Escape');
@@ -217,13 +221,13 @@ await page.setViewport({ width: 390, height: 844 });
 await page.click('[data-probe-sheet]');
 await page.waitForSelector('.gi-overlay-sheet.is-top');
 await page.waitForFunction(() => document.querySelector('.gi-overlay-sheet .gi-overlay-panel')?.getAttribute('aria-modal') === 'true'
-  && !!document.getElementById('app')?.closest('[inert]')
+  && !!document.getElementById('giLegacyEngineHost')?.closest('[inert]')
   && !!document.querySelector('.gi-native-routes')?.closest('[inert]'));
 state = await page.evaluate(() => {
   const panel = document.querySelector('.gi-overlay-sheet .gi-overlay-panel');
   const controls = [...panel.querySelectorAll('button,input')];
   return {
-    appInert: !!document.getElementById('app')?.closest('[inert]'),
+    appInert: !!document.getElementById('giLegacyEngineHost')?.closest('[inert]'),
     nativeRouteInert: !!document.querySelector('.gi-native-routes')?.closest('[inert]'),
     modal: panel.getAttribute('aria-modal'),
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -387,10 +391,10 @@ state = await page.evaluate(() => {
   const hook = window.__GIQ_NATIVE_TEST__;
   const service = hook.service;
   hook.unmount();
-  return { subscribers: service.subscriberCount, children: document.getElementById('giNativeRoot').childElementCount, appInert: document.getElementById('app')?.inert };
+  return { subscribers: service.subscriberCount, children: document.getElementById('giNativeRoot').childElementCount, appInert: document.getElementById('giLegacyEngineHost')?.inert };
 });
 await sleep(50);
-state.appInert = await page.evaluate(() => document.getElementById('app')?.inert);
+state.appInert = await page.evaluate(() => document.getElementById('giLegacyEngineHost')?.inert);
 ok(state.subscribers === 0 && state.children === 0 && !state.appInert, 'unmount removes presentation, subscription, key/focus ownership, and route inertness', JSON.stringify(state));
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'complete overlay journey leaves canonical season data byte-identical');
 ok(errors.length === 0, 'overlay journey produces zero page/console errors', errors.join(' | '));

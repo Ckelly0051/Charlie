@@ -1796,24 +1796,19 @@ class App {
       });
     });
 
-    // Auto down & distance toggle
+    // Auto down & distance toggle. S7: PlayTagger.setAutoDD is the one write
+    // path now — the checkbox (if present) is an optional mirror of it.
     const autoDD = document.getElementById('autoDDToggle');
     if (autoDD) {
       autoDD.checked = this.tagger.autoDD;
-      autoDD.addEventListener('change', () => {
-        this.tagger.autoDD = autoDD.checked;
-        try { localStorage.setItem('ffa_auto_dd', autoDD.checked ? '1' : '0'); } catch (e) {}
-      });
+      autoDD.addEventListener('change', () => this.tagger.setAutoDD(autoDD.checked));
     }
 
     // Carry formation/personnel/front/coverage to the next play (opt-in).
     const carryScheme = document.getElementById('carrySchemeToggle');
     if (carryScheme) {
       carryScheme.checked = this.tagger.carryScheme;
-      carryScheme.addEventListener('change', () => {
-        this.tagger.carryScheme = carryScheme.checked;
-        try { localStorage.setItem('ffa_carry_scheme', carryScheme.checked ? '1' : '0'); } catch (e) {}
-      });
+      carryScheme.addEventListener('change', () => this.tagger.setCarryScheme(carryScheme.checked));
     }
 
     // Yardage is a magnitude (positive); the Result chip sets the direction.

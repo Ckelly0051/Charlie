@@ -55,7 +55,7 @@ await page.evaluate(() => [...document.querySelectorAll('[data-overlay-id] [role
 await page.waitForFunction(() => window.app.workspace.currentRoute() === 'reports' && document.querySelector('[data-native-reports]'));
 state = await page.evaluate(() => ({
   route: window.app.workspace.currentRoute(),
-  classicHidden: document.getElementById('wsClassicOutlet')?.hidden,
+  classicHidden: !document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
   legacy: !!document.getElementById('seasonOverlay'),
 }));
 ok(state.route === 'reports' && state.classicHidden && !state.legacy,

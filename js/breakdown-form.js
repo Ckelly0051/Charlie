@@ -226,46 +226,84 @@ export class BreakdownForm {
     this._renderPenalties(play);
   }
 
-  async _onPenaltyClick(event) {
+  // S7 demolition: real domain API, callable directly with plain values. The
+  // DOM listeners below resolve the acting element's dataset and call these —
+  // no more feeding a fake `{dataset, closest(){}}` mock into an event handler
+  // (that pattern is exactly the "compatibility shim" rule 9 forbids).
+
+  /** Append a new structured penalty foul to the current play. */
+  addPenalty() {
     const play = this.tagger.getCurrentPlay();
-    if (!play) return;
-    if (event.target.closest('[data-pen-add]')) {
-      play.penalties = PenaltyModel.normalizeList([...(play.penalties || []), { team:'subject', phase:this._penaltyPhase(play), foul:'', disposition:'accepted', yards:null, playCounts:null, player:'', automaticFirstDown:null, lossOfDown:null, notes:'', legacy:false }]);
-      this._savePenaltyPlay(play, true); return;
-    }
+    if (!play) return false;
+    play.penalties = PenaltyModel.normalizeList([...(play.penalties || []), { team:'subject', phase:this._penaltyPhase(play), foul:'', disposition:'accepted', yards:null, playCounts:null, player:'', automaticFirstDown:null, lossOfDown:null, notes:'', legacy:false }]);
+    this._savePenaltyPlay(play, true);
+    return true;
+  }
+
+  /** Remove a structured penalty foul by index, after confirmation. */
+  async removePenalty(index) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play || !play.penalties?.[index]) return false;
+    const ok = await this.tagger._confirmDialog('Remove this structured penalty?', 'Remove Penalty');
+    if (!ok) return false;
+    play.penalties.splice(index, 1);
+    if (!play.penalties.length) delete play.resultingSituation;
+    this._savePenaltyPlay(play, true);
+    return true;
+  }
+
+  /** Set one chip-driven field (foul disposition, play-counts ruling, ...) on
+   *  a structured penalty. `raw` is the chip's stored string value. */
+  penaltyChip(index, field, raw) {
+    const play = this.tagger.getCurrentPlay();
+    const penalty = play?.penalties?.[index];
+    if (!penalty) return false;
+    penalty[field] = field === 'playCounts' ? (raw === 'true' ? true : raw === 'false' ? false : null) : raw;
+    this._savePenaltyPlay(play, true);
+    return true;
+  }
+
+  /** Set one free-text/numeric field on a structured penalty. */
+  penaltyInput(index, field, value) {
+    const play = this.tagger.getCurrentPlay();
+    const penalty = play?.penalties?.[index];
+    if (!penalty) return false;
+    penalty[field] = field === 'yards' ? (value === '' ? null : Number(value)) : value;
+    this._savePenaltyPlay(play, true);
+    return true;
+  }
+
+  /** Set one field of the confirmed resulting situation (down/distance/... or
+   *  the Auto D&D confirmation checkbox). */
+  penaltySituation(field, value, checked = false) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return false;
+    const sit = PenaltyModel.normalizeSituation(play.resultingSituation) || { down:'',distance:'',fieldSide:'',yardLine:'',confirmed:false };
+    sit[field] = field === 'confirmed' ? checked : value;
+    play.resultingSituation = PenaltyModel.normalizeSituation(sit);
+    this._savePenaltyPlay(play);
+    return true;
+  }
+
+  async _onPenaltyClick(event) {
+    const add = event.target.closest('[data-pen-add]');
+    if (add) return this.addPenalty();
     const remove = event.target.closest('[data-pen-remove]');
-    if (remove) {
-      const ok = await this.tagger._confirmDialog('Remove this structured penalty?', 'Remove Penalty');
-      if (!ok) return;
-      play.penalties.splice(Number(remove.dataset.penRemove), 1);
-      if (!play.penalties.length) delete play.resultingSituation;
-      this._savePenaltyPlay(play, true); return;
-    }
+    if (remove) return this.removePenalty(Number(remove.dataset.penRemove));
     const chip = event.target.closest('[data-pen-chip]');
     if (!chip) return;
     const [indexRaw, field, raw] = chip.dataset.penChip.split(':');
-    const penalty = play.penalties?.[Number(indexRaw)];
-    if (!penalty) return;
-    penalty[field] = field === 'playCounts' ? (raw === 'true' ? true : raw === 'false' ? false : null) : raw;
-    this._savePenaltyPlay(play, true);
+    return this.penaltyChip(Number(indexRaw), field, raw);
   }
 
   _onPenaltyChange(event) {
-    const play = this.tagger.getCurrentPlay();
-    if (!play) return;
     if (event.target.dataset.penInput) {
       const [indexRaw, field] = event.target.dataset.penInput.split(':');
-      const penalty = play.penalties?.[Number(indexRaw)];
-      if (!penalty) return;
-      penalty[field] = field === 'yards' ? (event.target.value === '' ? null : Number(event.target.value)) : event.target.value;
-      this._savePenaltyPlay(play, true); return;
+      return this.penaltyInput(Number(indexRaw), field, event.target.value);
     }
     const field = event.target.dataset.penSit;
     if (!field) return;
-    const sit = PenaltyModel.normalizeSituation(play.resultingSituation) || { down:'',distance:'',fieldSide:'',yardLine:'',confirmed:false };
-    sit[field] = field === 'confirmed' ? event.target.checked : event.target.value;
-    play.resultingSituation = PenaltyModel.normalizeSituation(sit);
-    this._savePenaltyPlay(play);
+    return this.penaltySituation(field, event.target.value, event.target.checked);
   }
 
   _esc(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
@@ -397,106 +435,114 @@ export class BreakdownForm {
       || st.return.end.fieldSide || st.return.end.yardLine || Object.values(st.players).some(Boolean));
   }
 
-  async _onSpecialClick(event) {
-    const button = event.target.closest('button');
-    if (!button || !this.tagger.getCurrentPlay()) return;
-    if (button.dataset.stUnit) {
-      const play = this.tagger.getCurrentPlay();
-      const current = SpecialTeamsModel.normalize(play.specialTeams);
-      if (current && current.unit !== button.dataset.stUnit && this._hasSpecialDetails(current)) {
-        const ok = await this.tagger._confirmDialog('Changing the Special Teams unit will clear its charted details.', 'Change Unit');
-        if (!ok) return;
-      }
-      play.specialTeams = this._newSpecial(button.dataset.stUnit);
-      this.tagger._updateTimeline();
-      this.tagger._emit('play-updated', play);
-      this.loadPlay(play);
-      return;
+  // S7 demolition: real domain API. `specialAction(key, value)` takes the
+  // dataset key name directly (the SAME vocabulary the markup already used) so
+  // native tagging calls it with real values instead of a fake button/dataset
+  // mock. The DOM listener below is now a thin resolver: find the clicked
+  // control's one live dataset entry and forward it.
+
+  /** Change the Special Teams unit, confirming first if it would clear
+   *  already-charted details. */
+  async setSpecialUnit(unit) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return false;
+    const current = SpecialTeamsModel.normalize(play.specialTeams);
+    if (current && current.unit !== unit && this._hasSpecialDetails(current)) {
+      const ok = await this.tagger._confirmDialog('Changing the Special Teams unit will clear its charted details.', 'Change Unit');
+      if (!ok) return false;
     }
-    if (button.dataset.stTryAttempt) {
-      this._saveSpecial(st => {
-        st.attemptType = button.dataset.stTryAttempt;
-        if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.attemptType;
-      });
-      return;
-    }
-    if (button.dataset.stTryResult) {
-      this._saveSpecial(st => {
-        st.result = button.dataset.stTryResult;
-        if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.outcome.score || st.attemptType;
-        else if (!st.events.defensiveReturn || !['subject','opponent'].includes(st.outcome.returnAward)) { st.outcome.score = null; st.outcome.scoredBy = null; }
-      });
-      return;
-    }
-    if (button.dataset.stTryScore) {
-      this._saveSpecial(st => {
-        st.result = 'converted';
-        st.outcome.score = button.dataset.stTryScore;
+    play.specialTeams = this._newSpecial(unit);
+    this.tagger._updateTimeline();
+    this.tagger._emit('play-updated', play);
+    this.loadPlay(play);
+    return true;
+  }
+
+  specialAction(key, value) {
+    if (!this.tagger.getCurrentPlay()) return false;
+    if (key === 'stUnit') return this.setSpecialUnit(value);
+    if (key === 'stTryAttempt') return this._saveSpecial(st => {
+      st.attemptType = value;
+      if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.attemptType;
+    }) || true;
+    if (key === 'stTryResult') return this._saveSpecial(st => {
+      st.result = value;
+      if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.outcome.score || st.attemptType;
+      else if (!st.events.defensiveReturn || !['subject','opponent'].includes(st.outcome.returnAward)) { st.outcome.score = null; st.outcome.scoredBy = null; }
+    }) || true;
+    if (key === 'stTryScore') return this._saveSpecial(st => {
+      st.result = 'converted';
+      st.outcome.score = value;
+      st.outcome.scoredBy = null;
+    }) || true;
+    if (key === 'stTryTurnover') return this._saveSpecial(st => { st.events.turnover = st.events.turnover === value ? null : value; }) || true;
+    if (key === 'stTryEvent') return this._saveSpecial(st => {
+      st.events[value] = !st.events[value];
+      if (value === 'defensiveReturn') {
+        st.outcome.returnAward = null;
+        st.outcome.score = st.events.defensiveReturn ? null : (st.result === 'converted' ? st.attemptType : null);
         st.outcome.scoredBy = null;
-      });
-      return;
-    }
-    if (button.dataset.stTryTurnover) {
-      this._saveSpecial(st => { st.events.turnover = st.events.turnover === button.dataset.stTryTurnover ? null : button.dataset.stTryTurnover; });
-      return;
-    }
-    if (button.dataset.stTryEvent) {
-      this._saveSpecial(st => {
-        const key = button.dataset.stTryEvent;
-        st.events[key] = !st.events[key];
-        if (key === 'defensiveReturn') {
-          st.outcome.returnAward = null;
-          st.outcome.score = st.events.defensiveReturn ? null : (st.result === 'converted' ? st.attemptType : null);
-          st.outcome.scoredBy = null;
-          if (st.events.defensiveReturn && st.result === 'converted') st.result = 'failed';
-        }
-      });
-      return;
-    }
-    if (button.dataset.stReturnAward) {
-      this._saveSpecial(st => {
-        st.outcome.returnAward = button.dataset.stReturnAward;
-        st.outcome.score = st.outcome.returnAward === 'none' ? null : 'twoPoint';
-        st.outcome.scoredBy = st.outcome.returnAward === 'none' ? null : st.outcome.returnAward;
-      });
-      return;
-    }
-    if (button.dataset.stOutcome) this._saveSpecial(st => {
-      st.outcome.status = st.outcome.status === button.dataset.stOutcome ? null : button.dataset.stOutcome;
+        if (st.events.defensiveReturn && st.result === 'converted') st.result = 'failed';
+      }
+    }) || true;
+    if (key === 'stReturnAward') return this._saveSpecial(st => {
+      st.outcome.returnAward = value;
+      st.outcome.score = st.outcome.returnAward === 'none' ? null : 'twoPoint';
+      st.outcome.scoredBy = st.outcome.returnAward === 'none' ? null : st.outcome.returnAward;
+    }) || true;
+    if (key === 'stOutcome') return this._saveSpecial(st => {
+      st.outcome.status = st.outcome.status === value ? null : value;
       if (st.outcome.status === 'returned') st.return.attempted = true;
       else if (['touchback','fairCatch','downed','outOfBounds'].includes(st.outcome.status)) st.return.attempted = false;
       else if (!st.outcome.status) st.return.attempted = null;
       if (!['recovered','muffed','blocked'].includes(st.outcome.status)) st.outcome.recoveredBy = null;
       if (st.outcome.status === 'good') st.outcome.score = st.attemptType;
       else if (st.outcome.score === 'fieldGoal' || st.outcome.score === 'extraPoint') st.outcome.score = null;
-    });
-    else if (button.dataset.stAttempt) this._saveSpecial(st => {
-      st.attemptType = button.dataset.stAttempt;
+    }) || true;
+    if (key === 'stAttempt') return this._saveSpecial(st => {
+      st.attemptType = value;
       st.outcome.score = st.outcome.status === 'good' ? st.attemptType : null;
-    });
-    else if (button.dataset.stScore) this._saveSpecial(st => { st.outcome.score = st.outcome.score === button.dataset.stScore ? null : button.dataset.stScore; st.outcome.scoredBy = null; });
-    else if (button.dataset.stOwner) this._saveSpecial(st => { st.outcome.scoredBy = button.dataset.stOwner; });
-    else if (button.dataset.stRecovery) this._saveSpecial(st => { st.outcome.recoveredBy = button.dataset.stRecovery; });
-    else if (button.dataset.stToggle) this._saveSpecial(st => { st[button.dataset.stToggle] = !st[button.dataset.stToggle]; });
-    else if (button.dataset.stSpotSide) {
-      const [key, side] = button.dataset.stSpotSide.split(':');
-      this._saveSpecial(st => { (key === 'landing' ? st.kick.landing : st.return.end).fieldSide = side; });
+    }) || true;
+    if (key === 'stScore') return this._saveSpecial(st => { st.outcome.score = st.outcome.score === value ? null : value; st.outcome.scoredBy = null; }) || true;
+    if (key === 'stOwner') return this._saveSpecial(st => { st.outcome.scoredBy = value; }) || true;
+    if (key === 'stRecovery') return this._saveSpecial(st => { st.outcome.recoveredBy = value; }) || true;
+    if (key === 'stToggle') return this._saveSpecial(st => { st[value] = !st[value]; }) || true;
+    if (key === 'stSpotSide') {
+      const [spotKey, side] = value.split(':');
+      return this._saveSpecial(st => { (spotKey === 'landing' ? st.kick.landing : st.return.end).fieldSide = side; }) || true;
     }
+    return false;
+  }
+
+  /** Set one Special Teams free-text/numeric field. `key` matches the markup's
+   *  `data-st-input` vocabulary (kick-distance, hang-time, return-yards, ...). */
+  specialInput(key, value) {
+    return this._saveSpecial(st => {
+      const numeric = value === '' ? null : Number(value);
+      if (key === 'kick-distance') st.kick.distance = numeric;
+      if (key === 'hang-time') st.kick.hangTime = numeric;
+      if (key === 'return-yards') { st.return.yards = numeric; st.return.attempted = numeric == null ? null : true; }
+      if (key === 'landing-yard') st.kick.landing.yardLine = value;
+      if (key === 'end-yard') st.return.end.yardLine = value;
+      if (key === 'blocker') st.players.blocker = value;
+      if (key === 'recoverer') st.players.recoverer = value;
+    }) || true;
+  }
+
+  _specialActionKeys = ['stUnit','stTryAttempt','stTryResult','stTryScore','stTryTurnover','stTryEvent',
+    'stReturnAward','stOutcome','stAttempt','stScore','stOwner','stRecovery','stToggle','stSpotSide'];
+
+  async _onSpecialClick(event) {
+    const button = event.target.closest('button');
+    if (!button || !this.tagger.getCurrentPlay()) return;
+    const key = this._specialActionKeys.find(k => button.dataset[k] !== undefined);
+    if (key) return this.specialAction(key, button.dataset[key]);
   }
 
   _onSpecialChange(event) {
     const key = event.target.dataset.stInput;
     if (!key) return;
-    this._saveSpecial(st => {
-      const value = event.target.value === '' ? null : Number(event.target.value);
-      if (key === 'kick-distance') st.kick.distance = value;
-      if (key === 'hang-time') st.kick.hangTime = value;
-      if (key === 'return-yards') { st.return.yards = value; st.return.attempted = value == null ? null : true; }
-      if (key === 'landing-yard') st.kick.landing.yardLine = event.target.value;
-      if (key === 'end-yard') st.return.end.yardLine = event.target.value;
-      if (key === 'blocker') st.players.blocker = event.target.value;
-      if (key === 'recoverer') st.players.recoverer = event.target.value;
-    });
+    return this.specialInput(key, event.target.value);
   }
 
   _syncSpecialist(role) {

@@ -343,7 +343,8 @@ await new Promise(r => setTimeout(r, 400));
 // exposed to get there.
 r = await page.evaluate(() => ({
   stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'),
-  outletHidden: document.querySelector('#wsClassicOutlet')?.hidden,
+  // S7 demolition: outlet deleted; absence is the assertion.
+  outletHidden: !document.querySelector('#wsClassicOutlet'),
   route: window.app.workspace.currentRoute(),
   dashInReportsRoute: !!document.querySelector('#wsReports #statsDashboard'),
 }));

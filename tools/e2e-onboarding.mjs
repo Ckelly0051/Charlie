@@ -50,7 +50,7 @@ let r = await page.evaluate(() => ({
   // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
   // read true once el is gone, so this asserts absence, which cannot invert.
   legacy: !!document.getElementById('libraryOverlay'),
-  outlet: !document.getElementById('wsClassicOutlet')?.hidden,
+  outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
 }));
 ok(r.route === 'team-hub' && /Set up your team/.test(r.first) && !r.legacy && !r.outlet,
   'First-run Team Hub offers team setup before any season', JSON.stringify(r));
