@@ -19,10 +19,10 @@ export class PlaybookLibrary {
   }
 
   _teamId() { return typeof this.teamId === 'function' ? this.teamId() : this.teamId; }
-  key() { return `ffa_playbook_${this._teamId() || 'default'}`; }
+  key(teamId = this._teamId()) { return `ffa_playbook_${teamId || 'default'}`; }
   _blank() { return { version: PlaybookLibrary.VERSION, calls: [] }; }
   _read() { try { return JSON.parse(this.storage?.getItem(this.key()) || 'null'); } catch { return null; } }
-  _write(state) { try { this.storage?.setItem(this.key(), JSON.stringify(state)); } catch {} return state; }
+  _write(state, teamId) { try { this.storage?.setItem(this.key(teamId), JSON.stringify(state)); } catch {} return state; }
 
   _cleanDefaults(raw) {
     const defaults = {};
@@ -57,6 +57,9 @@ export class PlaybookLibrary {
   }
 
   load() { return this._normalize(this._read() || this._blank()); }
+  snapshot() { return this.load(); }
+  hasStored(teamId = this._teamId()) { try { return this.storage?.getItem(this.key(teamId)) != null; } catch { return false; } }
+  replace(raw, teamId = this._teamId()) { return this._write(this._normalize(raw || this._blank()), teamId); }
   list() { return this.load().calls.map(call => ({ ...call, defaults: { ...call.defaults } })); }
   get(id) { return this.list().find(call => call.id === id) || null; }
   _slug(name) { return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'play'; }
@@ -70,7 +73,9 @@ export class PlaybookLibrary {
 
   add(input) {
     const state = this.load();
-    const call = this._normalizeCall(input, this._availableId(input?.name || input?.playCall, state.calls));
+    const name = String(input?.name || input?.playCall || '').trim();
+    if (state.calls.some(call => call.name.toLowerCase() === name.toLowerCase())) return null;
+    const call = this._normalizeCall(input, this._availableId(name, state.calls));
     if (!call) return null;
     state.calls.push(call); this._write(state);
     return { ...call, defaults: { ...call.defaults } };
@@ -80,6 +85,8 @@ export class PlaybookLibrary {
     const state = this.load(), index = state.calls.findIndex(call => call.id === id);
     if (index < 0) return null;
     const current = state.calls[index];
+    const nextName = String(patch.name ?? current.name).trim().toLowerCase();
+    if (state.calls.some((call, i) => i !== index && call.name.toLowerCase() === nextName)) return null;
     const next = this._normalizeCall({ ...current, ...patch, id: current.id,
       defaults: patch.defaults ? { ...current.defaults, ...patch.defaults } : current.defaults }, current.id);
     if (!next) return null;

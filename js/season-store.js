@@ -50,7 +50,7 @@ export class SeasonStore {
     return {
       version: this.SCHEMA, type: 'season',
       id: '', seasonName: '', team: '', year: '', level: '',
-      teamProfile: {}, roster: [],
+      teamProfile: {}, roster: [], playbook: { version: 1, calls: [] },
       games: [g], activeGameId: g.id,
       plans: [],
     };
@@ -318,6 +318,9 @@ export class SeasonStore {
     }
     d.teamProfile = d.teamProfile || {};
     d.roster = Array.isArray(d.roster) ? d.roster : [];
+    d.playbook = d.playbook && Array.isArray(d.playbook.calls)
+      ? { version: Number(d.playbook.version) || 1, calls: d.playbook.calls }
+      : { version: 1, calls: [] };
     d.seasonName = d.seasonName || '';
     d.team = d.team || (d.teamProfile && d.teamProfile.teamName) || '';
     d.year = d.year || '';
@@ -349,6 +352,7 @@ export class SeasonStore {
     this.data.seasonName = rec.name;
     this.data.team = rec.team; this.data.teamId = rec.teamId || meta?.teamId || ''; this.data.year = rec.year; this.data.level = rec.level;
     if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
+    if (meta?.playbook && Array.isArray(meta.playbook.calls)) this.data.playbook = meta.playbook;
     this.persist();
     return rec;
   }

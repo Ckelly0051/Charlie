@@ -49,7 +49,9 @@ const res = await page.evaluate(async () => {
   const penaltyOnly = sm.tagger.plays.find(play => play.penalties?.[0]?.foul === 'False Start');
   const roundtrippedQuote = (parsed.lines || []).some(row => row.some(c => c === 'A"B'));
   const roundtrippedNotes = (parsed.lines || []).some(row => row.some(c => c === 'said "hi", ok'));
-  return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties, situation: structured?.resultingSituation, penaltyOnly };
+  return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties,
+    situation: structured?.resultingSituation, penaltyOnly,
+    callFields: structured ? [structured.tags.playCall, structured.tags.playCallId, structured.tags.playConcept] : null };
 });
 
 ok(res.csv.includes('"A""B"'), 'embedded quote in formation is escaped ("→"") on export', JSON.stringify(res.csv.split('\n')[1]?.slice(0, 60)));
@@ -61,6 +63,7 @@ ok(res.roundtrippedNotes, 'export→import round-trips notes containing a quote 
 ok(res.penalties?.length === 2 && res.penalties[0].yards === 8 && res.penalties[1].disposition === 'declined', 'export→import preserves multiple structured penalties');
 ok(res.situation?.confirmed === true && res.situation?.fieldSide === 'opp' && res.situation?.yardLine === '35', 'export→import preserves the coach-confirmed resulting situation');
 ok(res.penaltyOnly?.penalties?.[0]?.yards === 5, 'CSV import retains a structured penalty-only row without legacy charting fields');
+ok(JSON.stringify(res.callFields) === JSON.stringify(['', '', '']), 'CSV-imported plays are born with blank play-call fields before normalize/save');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

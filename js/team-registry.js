@@ -25,6 +25,7 @@
  *                         (Game Info sync, checklist, commitActive) keeps
  *                         working unchanged; switching teams rewrites it
  *   ffa_roster_<teamId>   per-team roster snapshot (live ffa_roster is active)
+ *   ffa_playbook_<teamId> durable call definitions mirrored into season files
  *   ffa_checklist_dismissed
  * Seasons carry `teamId` in their library meta; metas without one are legacy
  * and belong to the first team.
@@ -64,6 +65,7 @@ export class TeamRegistry {
   }
 
   rosterKey(id) { return 'ffa_roster_' + id; }
+  playbookKey(id) { return 'ffa_playbook_' + id; }
 
   /** A team id that does not collide with `existingIds`. */
   newTeamId(name, existingIds = []) {
@@ -216,19 +218,23 @@ export class TeamRegistry {
       });
       const teams = [];
       const rosters = {};
+      const playbooks = {};
       try {
         for (const [tid, group] of groups) {
-          let profile = null, roster = null;
-          for (const m of group) {                 // newest first wins
+          let profile = null, roster = null, playbook = null;
+          for (const m of group) {                 // newest first wins per durable field
             const data = await peek(m.id);
             if (!data) continue;
-            if (!roster && Array.isArray(data.roster) && data.roster.length) roster = data.roster;
-            if (data.teamProfile && data.teamProfile.teamName) { profile = data.teamProfile; break; }
+            if (roster === null && Array.isArray(data.roster)) roster = data.roster;
+            if (playbook === null && data.playbook && Array.isArray(data.playbook.calls)) playbook = data.playbook;
+            if (!profile && data.teamProfile && data.teamProfile.teamName) profile = data.teamProfile;
+            if (profile && roster !== null && playbook !== null) break;
           }
           const name = (profile && profile.teamName) || group[0].name || 'My Team';
           const id = tid || this.newTeamId(name, teams.map(t => t.id));
           teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
-          if (roster) rosters[id] = roster;
+          if (roster !== null) rosters[id] = roster;
+          if (playbook !== null) playbooks[id] = playbook;
         }
       } finally {
         backend.setCurrentSeason(prevId);
@@ -239,6 +245,13 @@ export class TeamRegistry {
       this.saveTeamProfile({ teamName: teams[0].teamName, jerseyColor: teams[0].jerseyColor || '' });
       Object.entries(rosters).forEach(([id, roster]) => {
         try { localStorage.setItem(this.rosterKey(id), JSON.stringify(roster)); } catch (e) {}
+      });
+      Object.entries(playbooks).forEach(([id, playbook]) => {
+        try {
+          const library = this._app()?.playbook;
+          if (library?.replace) library.replace(playbook, id);
+          else localStorage.setItem(this.playbookKey(id), JSON.stringify(playbook));
+        } catch (e) {}
       });
       // Live roster = the active team's. Refresh RosterManager's in-memory copy
       // too, or its next _save() would clobber the recovery with [].

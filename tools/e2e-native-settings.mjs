@@ -25,6 +25,9 @@ await page.evaluate(() => {
   const managed = { id:'g-managed', name:'Week 2 vs Refuge', filmMode:'managed', gameInfo:{ opponent:'Refuge' }, plays:[{ id:1, tags:{ unit:'defense', custom:[] } }], clipNames:Array.from({length:12},(_,i)=>`RF_${i+1}`) };
   store.currentSeasonId = 'settings-season';
   store.data = { version:5, type:'season', id:'settings-season', seasonName:'2026 Mavericks', activeGameId:'g-linked', games:[linked, managed] };
+  localStorage.setItem('ffa_active_team_id', 'settings-team');
+  localStorage.removeItem('ffa_playbook_settings-team');
+  store.persist = async () => true;
   const state = { mode:'linked', root:'D:/Football/Film', opened:[], teamSave:null };
   store.backend = {
     supportsLinkedFilm: () => true,
@@ -78,6 +81,47 @@ await page.click('.gi-settings-team .gi-settings-primary');
 r = await page.evaluate(() => ({ saved:window.__nativeSettingsState.teamSave, status:document.querySelector('.gi-settings-saved')?.textContent }));
 ok(r.saved?.name === 'St. Joseph Mavericks' && r.saved?.color === 'navy' && /saved/i.test(r.status),
   'Team identity saves only the coach-selected name and jersey color', JSON.stringify(r));
+
+
+const playbookBefore = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data.games));
+await page.type('[data-playbook-manager] [name="playCallName"]', '26 Blast');
+await page.type('[data-playbook-manager] input[placeholder="Blast"]', 'Blast');
+await page.click('[data-playbook-manager] details summary');
+await page.select('[data-playbook-manager] .gi-playbook-defaults label:nth-child(1) select', 'Run');
+await page.select('[data-playbook-manager] .gi-playbook-defaults label:nth-child(2) select', 'Run Inside');
+await page.select('[data-playbook-manager] .gi-playbook-defaults label:nth-child(3) select', 'Right');
+await page.click('[data-playbook-manager] .gi-playbook-favorite-check input');
+await page.click('[data-playbook-manager] button[type="submit"]');
+await page.waitForSelector('[data-play-call="call_26_blast"]');
+r = await page.evaluate(() => ({
+  call:window.app.playbook.get('call_26_blast'),
+  mirror:window.app.storage.seasonStore.data.playbook,
+  games:JSON.stringify(window.app.storage.seasonStore.data.games),
+  row:document.querySelector('[data-play-call="call_26_blast"]')?.textContent,
+}));
+ok(r.call?.name === '26 Blast' && r.call?.concept === 'Blast' && r.call?.favorite === true
+  && r.call?.defaults?.runPass === 'Run' && r.call?.defaults?.playType === 'Run Inside' && r.call?.defaults?.playDir === 'Right',
+  'Team Settings creates an exact favorite call with visible optional defaults', JSON.stringify(r.call));
+ok(JSON.stringify(r.mirror) === JSON.stringify({version:1,calls:[r.call]}) && r.games === playbookBefore,
+  'Playbook edits mirror into the open season without touching any game or play', JSON.stringify(r));
+await page.click('[data-play-call="call_26_blast"] button:nth-last-child(2)');
+await page.click('[data-playbook-manager] input[placeholder="Blast"]');
+await page.keyboard.down('Control'); await page.keyboard.press('A'); await page.keyboard.up('Control');
+await page.type('[data-playbook-manager] input[placeholder="Blast"]', 'Power');
+await page.click('[data-playbook-manager] button[type="submit"]');
+r = await page.evaluate(() => ({ call:window.app.playbook.get('call_26_blast'), count:window.app.playbook.list().length }));
+ok(r.call?.id === 'call_26_blast' && r.call?.concept === 'Power' && r.count === 1,
+  'Editing a call preserves its stable id and does not create a duplicate', JSON.stringify(r));
+r = await page.evaluate(async () => {
+  const store=window.app.storage.seasonStore;
+  store.persist=async()=>false;
+  const result=await window.app.settingsScreen.updatePlayCall('call_26_blast',{concept:'Should Roll Back'});
+  store.persist=async()=>true;
+  return {result,call:window.app.playbook.get('call_26_blast'),mirror:store.data.playbook};
+});
+ok(r.result.ok === false && r.call?.concept === 'Power' && r.mirror?.calls?.[0]?.concept === 'Power',
+  'A failed canonical save rolls the local playbook and season mirror back together', JSON.stringify(r));
+await page.evaluate(() => { window.__settingsSeasonBefore = JSON.stringify(window.app.storage.seasonStore.data); });
 
 await page.click('.gi-settings-tabs button:first-child');
 await page.waitForSelector('.gi-settings-mode-actions button:nth-child(2)');

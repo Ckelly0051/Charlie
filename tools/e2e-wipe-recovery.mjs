@@ -44,6 +44,7 @@ await page.evaluate(async () => {
     { num: '55', name: 'Dee Jones', pos: 'LB', side: 'D' },
   ];
   window.app.roster._save();
+  window.app.playbook.add({ name: '26 Blast', concept: 'Blast', defaults: { runPass: 'Run', playType: 'Run Inside', playDir: 'Right' } });
   await window.app.storage.createSeason({ name: 'Fall 2026' });
   const t = window.app.tagger;
   t.plays.push(
@@ -70,6 +71,7 @@ await page.evaluate(() => {
   localStorage.removeItem('ffa_active_team_id');
   localStorage.removeItem('ffa_roster');
   teams.forEach(t => localStorage.removeItem('ffa_roster_' + t.id));
+  teams.forEach(t => localStorage.removeItem('ffa_playbook_' + t.id));
   localStorage.removeItem('ffa_checklist_dismissed');
   localStorage.removeItem('ffa_seen_stats');
 });
@@ -91,6 +93,7 @@ const rec = await page.evaluate(() => {
     profileName: profile.teamName,
     rosterCount: roster.length,
     rosterInMemory: window.app.roster.players.length,
+    playbook: window.app.playbook.list(),
     listText: hub?.textContent || '',
   };
 });
@@ -100,6 +103,7 @@ check('registry rebuilt with original team', rec.teamCount === 1 && rec.teamName
 check('profile restored', rec.profileName === 'Mavericks');
 check('roster restored from season file', rec.rosterCount === 2, 'got ' + rec.rosterCount);
 check('roster manager in-memory copy refreshed', rec.rosterInMemory === 2, 'got ' + rec.rosterInMemory);
+check('team playbook restored from the newest season mirror', rec.playbook.length === 1 && rec.playbook[0].name === '26 Blast' && rec.playbook[0].defaults.playDir === 'Right', JSON.stringify(rec.playbook));
 check('recovered season is visible in Team Hub', rec.listText.includes('Fall 2026'), rec.listText.slice(0, 200));
 
 // ---- Open the recovered season: plays intact ----

@@ -13,7 +13,39 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
-### ▶ PLAY CALLS P1 — DATA FOUNDATION BUILT, AWAITING REVIEW (2026-08-11)
+### ▶ PLAY CALLS P2 — DURABLE MANAGER BUILT, AWAITING REVIEW (2026-08-11)
+
+The accepted P1 finding is closed: `StorageManager.applyPlayImport()` now gives
+CSV/Hudl-created plays blank `playCall`, `playCallId`, and `playConcept` fields
+immediately, before normalize/save can hide the missing constructor.
+
+The next checkpoint is also built:
+
+- Team Settings now contains a native **Playbook & Calls** manager for exact
+  call names, concepts, favorites, and the nine approved optional defaults.
+  Standardized defaults use canonical/coach-configured selectors rather than
+  free text, preventing typo-fragmented analytics.
+- Call ids remain stable through edits; duplicate names are rejected
+  case-insensitively; removing a definition explicitly leaves every existing
+  tagged play snapshot unchanged.
+- The team-scoped playbook mirrors into the open season on call edits and normal
+  saves, rolls back both copies if the canonical save fails, seeds a new`n  season's first durable save, and restores per team from the
+  newest season mirror during wipe recovery. Removing a team with no seasons
+  removes only that team's orphaned local playbook key.
+- No charting selector is exposed yet, no call default is applied to any play,
+  and no existing-season mapping/migration is authorized.
+
+**Focused verification on fresh Vite bytes:** playbook contract **12/12**, CSV
+round-trip/import **10/10**, native Settings **23/23**, wipe recovery **13/13**,
+and production build clean. The Settings proof creates and edits `26 Blast`
+through the real native sheet, verifies the season mirror, and fingerprints the
+entire games array unchanged. The wipe proof creates the playbook before a new
+season and recovers it after all team/playbook local keys are removed.
+
+**Next after independent review:** native charting typeahead with recent and
+favorite calls, inline free-text Add, and override-safe default application.
+Existing-season migration remains a separate dry-run-and-confirm pass.
+### ▶ PLAY CALLS P1 — DATA FOUNDATION ACCEPTED; IMPORT GAP CLOSED (2026-08-11)
 
 The first checkpoint of `GRIDIRON-IQ-PLAY-CALL-MODEL.md` is implemented. It is
 additive only and does not expose unfinished UI:
@@ -23,7 +55,7 @@ additive only and does not expose unfinished UI:
   normalize to blank; recoverable non-string imports are coerced rather than
   deleted. Existing notes are never parsed or rewritten.
 - Every current play-creation path (continuous film, whole-video placeholder,
-  multi-clip import, and Clear Tags) starts with the three blank fields.
+  multi-clip import, CSV/Hudl import, and Clear Tags) starts with the three`n  blank fields.
 - New DOM-free `PlaybookLibrary` owns team-scoped call definitions at
   `ffa_playbook_<teamId>`, including stable ids, exact call/concept names,
   favorites, and approved optional football defaults. Partial edits preserve
@@ -36,9 +68,8 @@ additive only and does not expose unfinished UI:
 charting **28/28**, add-files race **4/4**, real six-game integrity fuzzer **0
 violations** across 12 × 80 operations, and a fresh Vite production build.
 
-**Next checkpoint after independent review:** durable/team recovery ownership,
-then the Playbook & Calls manager and charting typeahead/default-application
-workflow. No existing-season migration is authorized.
+**P1 review result:** accepted at 36a140f; its CSV/Hudl constructor finding is
+closed in the P2 checkpoint above. No existing-season migration is authorized.
 
 ### ▶ CLAUDE'S REVIEW of `918cf9b` — ACCEPTED, 1 finding (P2, not blocking) (2026-08-11)
 

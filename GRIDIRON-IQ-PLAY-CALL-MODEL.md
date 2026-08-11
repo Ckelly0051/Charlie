@@ -12,11 +12,19 @@ separate post-build, dry-run-and-confirm pass.
 
 ## Implementation Progress
 
-- **P1 data foundation — built, awaiting independent review (2026-08-11):**
-  additive call/concept snapshot fields, all new-play constructors, and the
-  DOM-free team-scoped `PlaybookLibrary`. No UI and no existing-data rewrite.
-- **Next:** make playbook definitions recoverable with team data, then build the
-  settings manager and charting selector with visible, overridable defaults.
+- **P1 data foundation — accepted; P2 import gap closed (2026-08-11):**
+  additive call/concept snapshot fields, every new-play constructor including
+  CSV/Hudl import, and the DOM-free team-scoped `PlaybookLibrary`. No existing
+  play was reinterpreted or migrated.
+- **P2 durable Playbook & Calls manager — built, awaiting independent review:**
+  Team Settings can add, edit, favorite, and remove exact calls plus canonical
+  optional defaults. Definitions remain team-scoped in local storage, mirror
+  into the open season, roll back atomically on save failure, seed a new`n  season's first save, and recover from the
+  newest season mirror alongside team identity and roster. Settings edits do
+  not touch game/play arrays; deleting a definition does not rewrite tagged
+  play snapshots.
+- **Next after review:** native charting typeahead, recent/favorite choices,
+  inline free-text Add, and override-safe default application.
 - **Still deferred:** existing-season mapping/migration, exactly as contracted
   below.
 ## Goal

@@ -320,6 +320,7 @@ export class TeamHubScreen {
     const rest = this._state.teams.filter(item => item.id !== id);
     this._registry().saveTeams(rest);
     try { localStorage.removeItem(this._registry().rosterKey(id)); } catch {}
+    try { localStorage.removeItem(this._registry().playbookKey(id)); } catch {}
     if (rest.length) {
       this._registry().setActiveTeamId(rest[0].id);
       this._registry().saveTeamProfile({ teamName: rest[0].teamName, jerseyColor: rest[0].jerseyColor || '' });

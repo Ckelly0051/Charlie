@@ -88,5 +88,20 @@ test('existing call snapshots survive normalization unchanged', () => {
   assert.deepEqual([play.tags.playCall, play.tags.playCallId, play.tags.playConcept], ['26 Blast', 'call_26_blast', 'Blast']);
 });
 
+test('duplicate call names are rejected case-insensitively', () => {
+  assert.equal(library.add({ name: '26 blast right' }), null);
+  team = 'wildcats';
+  assert.equal(library.update('call_power_read', { name: 'Power Read' }).id, 'call_power_read');
+  team = 'mavericks';
+});
+
+test('a durable season snapshot restores into the named team without changing the active team', () => {
+  const restored = library.replace({ version: 1, calls: [{ id: 'call_counter', name: 'Counter', concept: 'Counter', defaults: { playDir: 'Left', notes: 'ignored' } }] }, 'recovered-team');
+  assert.deepEqual(restored.calls[0].defaults, { playDir: 'Left' });
+  assert.equal(team, 'mavericks');
+  team = 'recovered-team';
+  assert.equal(library.get('call_counter').concept, 'Counter');
+  team = 'mavericks';
+});
 console.log(`\n== RESULT: ${passed} passed, ${process.exitCode ? 1 : 0} failed ==`);
 if (process.exitCode) process.exit(process.exitCode);

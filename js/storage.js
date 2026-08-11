@@ -207,7 +207,8 @@ export class StorageManager {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();
     this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
-    const rec = await this.seasonStore.createSeason(meta);
+    const app = window.app;
+    const rec = await this.seasonStore.createSeason({ ...(meta || {}), playbook: app?.playbook?.snapshot?.() });
     this._afterSeasonLoaded();
     return rec;
   }
@@ -347,11 +348,15 @@ export class StorageManager {
 
   /** After a season becomes current: load its active game + refresh app UI. */
   _afterSeasonLoaded() {
+    const app = window.app;
+    const teamId = this.seasonStore.data?.teamId || app?.teamRegistry?.activeTeamId?.() || '';
+    if (app?.playbook && !app.playbook.hasStored(teamId) && this.seasonStore.data?.playbook) {
+      app.playbook.replace(this.seasonStore.data.playbook, teamId);
+    }
     this._clearForNewGame();
     // _loadActiveGame already refreshes the season chip + games panel and resets
     // the finish hint, so only the season-level UI (history/versions) is left.
     this._loadActiveGame();
-    const app = window.app;
     if (app) {
       if (app.history) app.history.init();
       if (app.versions) app.versions.renderList();
@@ -372,6 +377,7 @@ export class StorageManager {
     this.seasonStore.updateActiveGame(this._serialize());
     const app = window.app;
     if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
+    if (app && app.playbook) this.seasonStore.data.playbook = app.playbook.snapshot();
     try {
       const prof = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
       // Only adopt a real identity — after "Switch team" the profile is empty,
@@ -1584,6 +1590,7 @@ ${body}
         defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
         fieldSide: 'own', personnel: '', motion: '', playDir: '', driveNumber: '',
+        playCall: '', playCallId: '', playConcept: '',
         players: {}, custom: []
       };
       let notes = '';

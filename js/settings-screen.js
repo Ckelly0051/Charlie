@@ -53,6 +53,62 @@ export class SettingsScreen {
   teamProfile() { return this.app.teamRegistry.teamProfile(); }
   saveTeam(name, color) { return this.app.teamRegistry.saveTeamIdentity(name, color) === true; }
 
+  playbookSnapshot() { return this.app.playbook?.list?.() || []; }
+  playbookDefaultOptions() {
+    return {
+      runPass:['Run','Pass'],
+      playType:['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Trick Play'],
+      playDir:['Left','Middle','Right'],
+      formation:this.chartingSnapshot('formation').enabled,
+      qbAlignment:['Under Center','Pistol','Shotgun'],
+      backfield:this.chartingSnapshot('backfield').enabled,
+      strength:['Left','Right','Balanced'],
+      personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
+      motion:['Jet','Orbit','Shift','Trade'],
+    };
+  }
+  async _persistPlaybook(previous) {
+    const store = this._store();
+    if (!store?.data || !this.app.playbook) return true;
+    store.data.playbook = this.app.playbook.snapshot();
+    const saved = await store.persist();
+    if (saved === false) {
+      this.app.playbook.replace(previous);
+      store.data.playbook = previous;
+      this._toast('The playbook change was not saved. Your prior playbook was kept.', 'error');
+      return false;
+    }
+    return true;
+  }
+  async addPlayCall(input) {
+    const previous = this.app.playbook?.snapshot?.();
+    const call = this.app.playbook?.add?.(input);
+    if (!call) return { ok:false, message:'Enter a unique play call.', calls:this.playbookSnapshot() };
+    const durable = await this._persistPlaybook(previous);
+    return { ok:durable, durable, call:durable ? call : null, message:durable ? '' : 'That call was not saved.', calls:this.playbookSnapshot() };
+  }
+  async updatePlayCall(id, patch) {
+    const previous = this.app.playbook?.snapshot?.();
+    const call = this.app.playbook?.update?.(id, patch);
+    if (!call) return { ok:false, message:'That play call could not be updated.', calls:this.playbookSnapshot() };
+    const durable = await this._persistPlaybook(previous);
+    return { ok:durable, durable, call:durable ? call : null, message:durable ? '' : 'That change was not saved.', calls:this.playbookSnapshot() };
+  }
+  async removePlayCall(id) {
+    const call = this.app.playbook?.get?.(id);
+    if (!call) return { ok:false, calls:this.playbookSnapshot() };
+    const choice = await this.overlays.dialog({
+      title:`Remove "${call.name}"?`,
+      message:'The call leaves this team playbook. Existing tagged plays keep their saved call and concept.',
+      actions:[{key:'cancel',label:'Keep call',default:true},{key:'remove',label:'Remove call',tone:'destructive'}],
+    }).result;
+    if (choice !== 'remove') return { ok:false, cancelled:true, calls:this.playbookSnapshot() };
+    const previous = this.app.playbook.snapshot();
+    this.app.playbook.remove(id);
+    const durable = await this._persistPlaybook(previous);
+    return { ok:durable, durable, calls:this.playbookSnapshot() };
+  }
+
   analysisProfile() {
     return {
       apiKey: localStorage.getItem('ffa_claude_api_key') || '',

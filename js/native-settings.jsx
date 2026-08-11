@@ -77,6 +77,36 @@ function FilmSettings({ screen, required, finish }) {
   </div>;
 }
 
+const PLAY_CALL_DEFAULTS = [
+  ['runPass','Run / Pass'],['playType','Play type'],['playDir','Direction'],
+  ['formation','Formation'],['qbAlignment','QB alignment'],['backfield','Backfield'],
+  ['strength','Strength'],['personnel','Personnel'],['motion','Motion'],
+];
+const blankCall = () => ({ id:'', name:'', concept:'', favorite:false, defaults:{} });
+
+function PlaybookSettings({ screen }) {
+  const [calls,setCalls]=useState(()=>screen.playbookSnapshot());
+  const [draft,setDraft]=useState(blankCall());
+  const [error,setError]=useState('');
+  const [busy,setBusy]=useState(false);
+  const defaultOptions=useMemo(()=>screen.playbookDefaultOptions(),[screen]);
+  const edit=call=>{setDraft({ ...call, defaults:{...call.defaults} });setError('');};
+  const cancel=()=>{setDraft(blankCall());setError('');};
+  const save=async event=>{
+    event.preventDefault(); if(busy)return; setBusy(true);setError('');
+    const result=draft.id ? await screen.updatePlayCall(draft.id,draft) : await screen.addPlayCall(draft);
+    setBusy(false); if(!result.ok){setError(result.message||'That call could not be saved.');return;}
+    setCalls(result.calls);cancel();
+  };
+  const remove=async id=>{if(busy)return;setBusy(true);const result=await screen.removePlayCall(id);setBusy(false);setCalls(result.calls);};
+  const favorite=async call=>{const result=await screen.updatePlayCall(call.id,{favorite:!call.favorite});if(result.ok)setCalls(result.calls);};
+  return <section class="gi-settings-section" data-playbook-manager><header><div><span class="gi-settings-kicker">PLAYBOOK & CALLS</span><h3>Exact calls available while charting</h3></div><span class="gi-settings-status">{calls.length} call{calls.length===1?'':'s'}</span></header><div class="gi-settings-section-body">
+    <p class="gi-settings-truth"><strong>Your language stays yours.</strong> Optional defaults speed up charting but remain visible and overridable on every play. Editing this library never rewrites an already-tagged play.</p>
+    <div class="gi-playbook-list">{calls.length?calls.map(call=><div class="gi-playbook-row" key={call.id} data-play-call={call.id}><button type="button" class="gi-playbook-favorite" aria-label={`${call.favorite?'Remove':'Add'} ${call.name} ${call.favorite?'from':'to'} favorites`} aria-pressed={call.favorite} onClick={()=>favorite(call)}>{call.favorite?'★':'☆'}</button><div><strong>{call.name}</strong><span>{call.concept||'No concept'}{Object.keys(call.defaults).length?` · ${Object.keys(call.defaults).length} defaults`:''}</span></div><button type="button" onClick={()=>edit(call)}>Edit</button><button type="button" class="gi-settings-danger" onClick={()=>remove(call.id)}>Remove</button></div>):<div class="gi-settings-empty"><p>No calls yet. Add the exact language your staff uses, such as 26 Blast.</p></div>}</div>
+    <form class="gi-playbook-form" onSubmit={save}><div class="gi-playbook-form-head"><strong>{draft.id?'Edit play call':'Add play call'}</strong>{draft.id&&<button type="button" onClick={cancel}>Cancel edit</button>}</div><div class="gi-playbook-primary"><label>Play call<input name="playCallName" value={draft.name} onInput={e=>setDraft({...draft,name:e.currentTarget.value})} placeholder="26 Blast" maxLength="80" required/></label><label>Concept<input value={draft.concept} onInput={e=>setDraft({...draft,concept:e.currentTarget.value})} placeholder="Blast" maxLength="60"/></label></div><details><summary>Optional charting defaults</summary><div class="gi-playbook-defaults">{PLAY_CALL_DEFAULTS.map(([key,label])=><label key={key}>{label}<select value={draft.defaults[key]||''} onChange={e=>setDraft({...draft,defaults:{...draft.defaults,[key]:e.currentTarget.value}})}><option value="">No default</option>{defaultOptions[key].map(value=><option key={value} value={value}>{value}</option>)}</select></label>)}</div></details><label class="gi-playbook-favorite-check"><input type="checkbox" checked={draft.favorite} onChange={e=>setDraft({...draft,favorite:e.currentTarget.checked})}/> Show in favorites</label><button type="submit" class="gi-settings-primary" disabled={busy||!draft.name.trim()}>{busy?'Saving...':draft.id?'Save call':'Add call'}</button>{error&&<p class="gi-settings-error" role="alert">{error}</p>}</form>
+  </div></section>;
+}
+
 function TeamSettings({ screen }) {
   const profile = screen.teamProfile();
   const [name, setName] = useState(profile.teamName || '');
@@ -86,7 +116,7 @@ function TeamSettings({ screen }) {
     <label class="gi-settings-field"><span>Team name</span><input value={name} onInput={event => { setName(event.currentTarget.value); setSaved(false); }} /></label>
     <fieldset class="gi-settings-swatches"><legend>Jersey color</legend>{JERSEY_COLORS.map(value => <button key={value} type="button" class={color === value ? 'is-selected' : ''} aria-label={`${value} jersey`} aria-pressed={color === value} data-color={value} onClick={() => { setColor(value); setSaved(false); }} />)}</fieldset>
     <button type="button" class="gi-settings-primary" disabled={!name.trim()} onClick={() => setSaved(screen.saveTeam(name, color))}>Save team identity</button>{saved && <span class="gi-settings-saved" role="status">Team identity saved</span>}
-  </div></section></div>;
+  </div></section><PlaybookSettings screen={screen}/></div>;
 }
 
 function RosterSettings({ screen }) {
