@@ -24,28 +24,49 @@ CLAUDE.md entry no longer self-declares acceptance, and correctly defers to
 this confirmation instead. **`6ffad83` and `d18dd5e` are accepted; P2/P3 may
 proceed.**
 
-### ▶ PLAY CALLS P4a/P4b — CONSUMERS BUILDING; INTERNAL CHECKPOINT (2026-08-11)
+### ▶ CODEX REVIEW QUEUE — INTEGRATED PLAY-CALL CONSUMERS (2026-08-11)
 
-P3 is independently accepted at `b952106`. Codex has begun the combined consumer
-milestone requested by the coach; **this is not yet an installer or review
-handoff**. Chart and Film Room now share `PlayCallModel`, so selecting a saved
-call has identical snapshot/default/override behavior on both surfaces. Film
-Room adds distinct Play Call, Concept, and Notes columns, upgrades exact stock
-saved presets without touching custom layouts, and keeps the call edit as one
-undo/redo transaction. CSV now round-trips Play Call, Play Call ID, and Play
-Concept while preserving backward-compatible blanks for old files.
+**Review commits:** `a5d29dc`, `71c0177`, `bd1a2ad`
+**Diff range:** `a5d29dc^..bd1a2ad`
+**Accepted baseline:** P3 at `b952106`
 
-P4b now adds ready Play Call and Play Concept dimensions to the analytics
-registry and Study, plus canonical cut filters for both. The focused proof
-compares each Study cohort directly with `AnalyticsRegistry.matchingRefs`, so
-the displayed measure and the film action are pinned to the same composite
-`gameId::playId` set.
+The combined consumer milestone requested by the coach is complete and ready
+for independent review. **Do not package yet.** Chart and Film Room share
+`PlayCallModel`, so selecting a saved call has identical snapshot/default/
+override behavior on both surfaces. Film Room adds distinct Play Call, Concept,
+and Notes columns, upgrades exact stock saved presets without touching custom
+layouts, and keeps the call edit as one undo/redo transaction. CSV round-trips
+Play Call, Play Call ID, and Play Concept while preserving backward-compatible
+blanks for old files.
 
-Focused verification on built Vite bytes: play-call charting **18/18**, CSV
-round-trip **11/11**, Film Room **179/179**, analytics registry **25/25**,
-Study query **37/37**, Study screen **80/80**, zero page errors. Next: Reports
-analysis and exact report film links. One combined independent review,
-installer, and coach smoke follow only after all consumers are integrated.
+P4b adds ready Play Call and Play Concept dimensions to the analytics registry
+and Study, plus canonical cut filters for both. The proof compares each Study
+cohort directly with `AnalyticsRegistry.matchingRefs`, pinning the displayed
+measure and film action to the same composite `gameId::playId` set.
+
+P4c completes Reports, Call Sheet, and Plan consumers. Reports derive exact-call
+frequency, Success Rate, yards/play, Explosive Rate, and Negative Rate from the
+canonical engine, roll calls up by concept, and expose five situational lenses.
+Every clickable report cohort carries exact composite refs. The legacy
+formation/alignment/motion view remains available but is honestly renamed **Core
+Tendencies**, not presented as the coach's play call. Call Sheet and Plan lead
+with the exact call and preserve structural fallback for old plays.
+
+Verification on committed Vite bytes: focused play-call charting **24/24**, CSV
+**11/11**, Film Room **179/179**, analytics registry **25/25**, parity **2/2**,
+Study query **37/37**, Study screen **80/80**, Plan export **22/22**, Study/Plan
+**14/14**, Season tab **169/169**, zero page errors. Final canonical gate:
+**85 harnesses | 85 green | 0 skipped | 0 failed**.
+
+Review priorities: exact film-ref equality and no cross-game leakage; canonical
+metric definitions; legacy blank-call fallback; CSV backward compatibility;
+Call Sheet/Plan label order; and compact Reports layout. Automated geometry is
+green, but Codex could not inspect the screenshot pixels because the Windows ACL
+image helper failed. The installed coach smoke remains the visual acceptance.
+Existing-season call mapping/migration remains explicitly deferred and no coach
+data was rewritten. No installer, package, tag, release, or film file changed.
+After independent acceptance, build one installer and run the single integrated
+smoke already specified below.
 ### ▶ PLAY CALLS — INTEGRATED SMOKE DECISION (2026-08-11)
 
 The coach explicitly declined a charting-only installer smoke. After P3 repair

@@ -24,16 +24,22 @@ separate post-build, dry-run-and-confirm pass.
 - **P3 native charting selector — accepted at `b952106`:** typeahead,
   favorite/recent choices, explicit one-use or durable Add, exact call/concept
   snapshots, visible defaults, and one-transaction override-safe call changes.
-- **P4a Film Room + CSV consumers — built, internal checkpoint:** Chart and Film
+- **P4a Film Room + CSV consumers — complete, awaiting combined review:** Chart and Film
   Room now share one DOM-free call-application model. Film Room exposes distinct
   Play Call, Concept, and Notes columns, upgrades only stock saved presets, and
   applies saved-call defaults as one undoable transaction. CSV exports/imports
   Play Call, Play Call ID, and Play Concept losslessly; older CSVs remain valid.
-- **P4b Study consumers — built, internal checkpoint:** Play Call and Play
+- **P4b Study consumers — complete, awaiting combined review:** Play Call and Play
   Concept are ready registry/Study dimensions. Their grouped measures and Watch
   actions are equality-tested against the same canonical composite play refs.
-- **Next in the same review cycle:** Reports analysis and exact report cut-ups.
-  Do not package before the complete consumer milestone is accepted.
+- **P4c Reports + presentation consumers — complete, awaiting combined review:**
+  Reports provide exact-call performance, concept roll-ups, and five situational
+  call lenses over canonical measures. Report film actions use exact composite
+  refs. Call Sheet and Plan prefer exact calls with legacy structural fallback.
+  The old structural combination report is labeled Core Tendencies.
+- **Review range:** commits `a5d29dc`, `71c0177`, and `bd1a2ad`
+  (`a5d29dc^..bd1a2ad`). Final canonical gate: **85/85 green**. Do not package
+  before independent acceptance; then build one installer for the combined smoke.
 - **Still deferred:** existing-season mapping/migration, exactly as contracted
   below.
 ## Goal
