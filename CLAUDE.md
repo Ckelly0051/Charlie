@@ -147,6 +147,19 @@ existing assertions' field references and expected strings, adds none).
 Parity 2/2 unchanged. `cargo check --manifest-path src-tauri/Cargo.toml`:
 clean.
 
+### ▶ CODEX FINAL REVIEW of `2001590` — ACCEPTED (2026-08-11)
+
+The remaining wording issue is closed without changing the calculation or
+stored data. The per-game table now says `INT±`; report summaries use
+interception-specific `made / thrown` language; and raw fumble event counts use
+neutral `defensiveFumbles` / `offensiveFumbles` names while remaining excluded
+from margin. Independent source review found no regression, and the focused
+Season harness is **169/169**. The earlier independent native Reports **68/68**
+and parity **2/2** results remain applicable because this commit does not touch
+either surface or formula. `7532b2e` plus repairs `22da6f9` and `2001590` are
+accepted. The only residual nit is a stale human-readable test description
+(`Turnover Margin value renders`); it does not inspect or affect coach-facing
+copy and does not warrant another repair cycle.
 ### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
 
 **Not a numbered milestone; not yet reviewed by Codex; no installer built.** A
