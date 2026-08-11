@@ -14,6 +14,18 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ NEXT — first-class Play Calls and team Playbook Library
+
+After the Reports redesign at `7532b2e` passes independent review, the next
+approved product milestone is exact offensive play-call charting (`26 Blast`)
+without sacrificing standardized formation/play-type/direction analytics. The
+binding contract is `GRIDIRON-IQ-PLAY-CALL-MODEL.md`.
+
+Existing-season migration is explicitly a separate post-build pass: coach-
+provided mappings, complete dry-run diff, named backup, and explicit confirmation
+before any write. Nothing in the initial feature build may rewrite existing
+charted data.
+
 ### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
 
 **Not a numbered milestone; not yet reviewed by Codex; no installer built.** A
