@@ -14,6 +14,16 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ ACTIVE - `1.12.0-46` CONSOLIDATED COACH REPAIR (2026-08-11)
+
+The installed play-call milestone review is complete. The coach authorized one
+consolidated repair, one final canonical gate, and one new installer; no
+iterative packages. Binding findings and acceptance criteria are in
+`SMOKE-1.12.0-46-FINDINGS.md`. Highest-risk items are the discoverable saved-call
+library/default workflow, confirmed ordinary-snap fumble ownership for true
+turnover margin, and the offense/defense Self-Scout information hierarchy.
+Design work is a compact copy/density/contrast pass, not decorative expansion.
+Existing call migration and destructive coach-data changes remain unauthorized.
 ### ▶ PLAY-CALL MILESTONE ACCEPTED; `1.12.0-46` INSTALLER READY (2026-08-11)
 
 Claude independently accepted the complete consumer range
