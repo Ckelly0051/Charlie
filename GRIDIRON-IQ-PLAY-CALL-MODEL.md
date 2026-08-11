@@ -10,6 +10,15 @@ backward-compatible blank fields and the team-scoped playbook foundation. It is
 not permission to migrate or reinterpret existing season data; that remains a
 separate post-build, dry-run-and-confirm pass.
 
+## Implementation Progress
+
+- **P1 data foundation — built, awaiting independent review (2026-08-11):**
+  additive call/concept snapshot fields, all new-play constructors, and the
+  DOM-free team-scoped `PlaybookLibrary`. No UI and no existing-data rewrite.
+- **Next:** make playbook definitions recoverable with team data, then build the
+  settings manager and charting selector with visible, overridable defaults.
+- **Still deferred:** existing-season mapping/migration, exactly as contracted
+  below.
 ## Goal
 
 Let a coach chart the offense's exact call — for example `26 Blast` — and see it

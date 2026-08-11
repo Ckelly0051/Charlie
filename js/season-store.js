@@ -283,6 +283,10 @@ export class SeasonStore {
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
       g.plays.forEach(p => {
+        if (!p.tags || typeof p.tags !== 'object') p.tags = {};
+        for (const key of ['playCall', 'playCallId', 'playConcept']) {
+          if (typeof p.tags[key] !== 'string') p.tags[key] = p.tags[key] == null ? '' : String(p.tags[key]);
+        }
         // Every in-app creation site sets `custom: []`, but an imported or
         // pre-field season file has no such key — and the tag form both READS
         // it (_renderCustomTags) and WRITES it (`custom.includes(tag)` on the

@@ -58,6 +58,7 @@ import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
 import { TeamRegistry } from './team-registry.js';
 import { GameContext } from './game-context.js';
+import { PlaybookLibrary } from './playbook-library.js';
 import { PlayGrid } from './play-grid.js';
 import { configureBetaDefaults } from './beta-config.js';
 // LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
@@ -89,6 +90,7 @@ class App {
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
     this.customChips = new CustomChips(this.tagger);
+    this.playbook = new PlaybookLibrary();
     this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
     this.breakdownForm = new BreakdownForm(this.tagger, { tagLibrarySettings: this.tagLibrarySettings });
     this.playDiagram = new PlayDiagram(this.tagger);

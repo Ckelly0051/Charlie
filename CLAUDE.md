@@ -13,6 +13,32 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PLAY CALLS P1 — DATA FOUNDATION BUILT, AWAITING REVIEW (2026-08-11)
+
+The first checkpoint of `GRIDIRON-IQ-PLAY-CALL-MODEL.md` is implemented. It is
+additive only and does not expose unfinished UI:
+
+- `play.tags` now has backward-compatible `playCall`, `playCallId`, and
+  `playConcept` snapshots. Existing strings survive exactly; missing values
+  normalize to blank; recoverable non-string imports are coerced rather than
+  deleted. Existing notes are never parsed or rewritten.
+- Every current play-creation path (continuous film, whole-video placeholder,
+  multi-clip import, and Clear Tags) starts with the three blank fields.
+- New DOM-free `PlaybookLibrary` owns team-scoped call definitions at
+  `ffa_playbook_<teamId>`, including stable ids, exact call/concept names,
+  favorites, and approved optional football defaults. Partial edits preserve
+  unspecified defaults; returned snapshots cannot mutate storage.
+- The service is constructed as `app.playbook`, but nothing yet applies a call
+  to a play. That deliberate boundary keeps override semantics out of the data
+  foundation and guarantees this checkpoint cannot re-tag existing film.
+
+**Focused verification:** playbook contract **10/10**, tag model **37/37**, live
+charting **28/28**, add-files race **4/4**, real six-game integrity fuzzer **0
+violations** across 12 × 80 operations, and a fresh Vite production build.
+
+**Next checkpoint after independent review:** durable/team recovery ownership,
+then the Playbook & Calls manager and charting typeahead/default-application
+workflow. No existing-season migration is authorized.
 ### ▶ `1.12.0-45` REPORTS MILESTONE — LOCAL INSTALLER BUILT (2026-08-11)
 
 The accepted native Reports redesign (`7532b2e`, repairs `22da6f9` and
