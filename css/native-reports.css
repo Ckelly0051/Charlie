@@ -102,7 +102,23 @@
 .gi-reports .gi-glance{min-width:0;border-left:1px solid var(--gi-6);padding-left:var(--gi-5x)}
 .gi-reports .gi-glance h4{margin:0 0 var(--gi-3x);font-family:var(--gi-cond);font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--gi-12)}
 .gi-reports .gi-glance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gi-2x)}
-.gi-reports .gi-glance-tile{min-width:0;padding:var(--gi-3x);border:1px solid var(--gi-6);background:var(--gi-2);display:grid;gap:2px;align-content:start}
+/* Coach: tile text must be centered both horizontally AND vertically, not
+   just horizontally (F11 below already centers horizontally) — a tile with
+   fewer lines than its neighbours packed its content to the TOP instead of
+   the middle of the (matched-height) box.
+   Coach (follow-up, measured not assumed): "Top Formation" still read as
+   shifted right even after the above. Root cause found via computed style,
+   not guessed: this rule declares NO `grid-template-columns`, so its one
+   implicit column defaults to auto-sizing against its widest child's own
+   content width ("8 snaps · 63%" measured at 71px) rather than the tile's
+   actual available width (65px inside the padding/border) — the column
+   itself was 6px wider than the box it lived in and anchored at the box's
+   left edge, so `justify-items:center` was correctly centering every row
+   inside a column that was ITSELF off-center. `minmax(0,1fr)` is the same
+   fix `.gi-lens-tiles` two lines below already uses for the same reason:
+   floor the column at the container's real width instead of letting content
+   size it past that width. */
+.gi-reports .gi-glance-tile{min-width:0;padding:var(--gi-3x);border:1px solid var(--gi-6);background:var(--gi-2);display:grid;grid-template-columns:minmax(0,1fr);gap:2px;align-content:center}
 .gi-reports .gi-glance-tile span{font-size:11.5px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:var(--gi-11)}
 .gi-reports .gi-glance-tile strong{font-family:var(--gi-cond);font-size:26px;line-height:1.05;color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
 .gi-reports .gi-glance-tile small{font-size:11.5px;color:var(--gi-11)}
@@ -119,7 +135,17 @@
   .gi-reports .gi-glance{border-left:0;border-top:1px solid var(--gi-6);padding:var(--gi-4x) 0 0}
   .gi-reports .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
-.gi-reports .season-summary{display:flex;flex-wrap:wrap;gap:var(--gi-2x);padding:var(--gi-4x);background:var(--gi-2);color:var(--gi-12);border-left:3px solid var(--gi-los);border-radius:var(--gi-radius)}
+/* .season-summary used to carry its own rounded/accent-border card look from
+   an earlier design pass. The season KPI hero markup is `class="gi-hero
+   season-summary"` — it now reuses the `.gi-hero`/`.gi-kpi` primitive (see
+   SeasonManager._renderHeader), and this rule's `display:flex;flex-wrap:wrap`
+   was fighting `.gi-hero`'s own `display:grid;grid-template-columns:repeat
+   (auto-fit,minmax(...))`, winning on source order. Grid's `auto-fit` collapses
+   empty tracks and grows real ones to fill the row — flex-wrap with no
+   flex-grow on `.gi-kpi` does not, which is exactly why 8 season tiles left a
+   158px blank rectangle at the end of the row while the persistent game-scope
+   rail (same primitive, no season-summary override) never had this problem.
+   Removed rather than patched, so both KPI rail contexts share one behavior. */
 .gi-reports .gi-subnav{display:flex;overflow-x:auto;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
 .gi-reports .gi-subtab{min-height:var(--gi-control);padding:0 var(--gi-4x);border:0;border-bottom:2px solid transparent;background:transparent;color:var(--gi-11);font:600 12px/1 var(--gi-sans)}
 .gi-reports .gi-subtab.active{color:var(--gi-12);border-bottom-color:var(--gi-los)}
@@ -190,11 +216,20 @@
 /* AX-7 (S6-4c): the five-lens board. Each lens is one card carrying its
    question and its own tiles, so a number is read under the question it
    answers rather than in an unlabelled row. Tiles reuse the Game at a Glance
-   component exactly — one tile in the product, not two that drift. */
-.gi-reports .gi-lens-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--gi-3x);margin-top:var(--gi-3x)}
-.gi-reports .gi-lens{min-width:0;display:flex;flex-direction:column;gap:var(--gi-3x);padding:var(--gi-4x);border:1px solid var(--gi-6);background:var(--gi-2)}
+   component exactly — one tile in the product, not two that drift.
+   Reports redesign (item B): the board is a fixed FIVE lenses, and a CSS grid
+   with auto-fit columns leaves a dangling empty cell whenever 5 doesn't divide
+   evenly by the column count it picks (measured at 900px: 3 columns, 2 in the
+   final row) — the empty cell inherits the grid container's own seam-color
+   background, so it painted as a solid gray-blue rectangle the width and
+   height of a card. Flexbox does not reserve a track for a card that doesn't
+   exist: the last row's cards grow to fill the row instead. */
+.gi-reports .gi-lens-grid{display:flex;flex-wrap:wrap;gap:var(--gi-3x);margin-top:var(--gi-3x)}
+.gi-reports .gi-lens{min-width:0;flex:1 1 260px;display:flex;flex-direction:column;gap:var(--gi-3x);padding:var(--gi-4x);border:1px solid var(--gi-6);background:var(--gi-2)}
 .gi-reports .gi-lens-head h4{margin:0;font-family:var(--gi-cond);font-size:16px;letter-spacing:.02em;text-transform:uppercase;color:var(--gi-12)}
-.gi-reports .gi-lens-head p{margin:2px 0 0;font-size:12px;color:var(--gi-11)}
+/* .gi-lens-head p removed — the coach removed the per-lens caption sentence.
+   The header-to-tiles gap is owned by `.gi-lens`'s own flex `gap` above, so
+   deleting the paragraph needs no compensating spacing rule. */
 .gi-reports .gi-lens-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x)}
 .gi-reports .gi-lens-tiles .gi-glance-tile{background:var(--gi-1)}
 .gi-reports .gi-lens-more{
@@ -230,8 +265,18 @@
   margin:0;padding:var(--gi-4x) var(--gi-5x)}
 .gi-reports [data-native-main-report]{display:grid;gap:1px;background:var(--gi-6);
   border:1px solid var(--gi-6)}
-.gi-reports .gi-lens-grid{gap:1px;background:var(--gi-6);border:1px solid var(--gi-6);
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.gi-reports .gi-lens-grid{gap:1px;background:var(--gi-6);border:1px solid var(--gi-6)}
+/* Coach: "Top Formation" text read as off-center. Measured, not assumed: at
+   1440px five lens cards don't quite fit one row at 220px each, and the base
+   rule's `flex:1 1 260px` left shrink ENABLED — flex-shrink distributes the
+   shortfall unevenly across cards with different content, so Situational
+   (five rigid tiles) barely gave ground while Tendencies (two light tiles)
+   was crushed to 91px. In a tile that narrow, a couple of px of ordinary
+   sub-pixel rounding reads as a visible off-center shift; on a normal-width
+   tile the same rounding is invisible. `flex-shrink:0` stops any card from
+   being crushed below its basis — a row that cannot fit five at full width
+   now wraps instead, and every card keeps an even, predictable width. */
+.gi-reports .gi-lens-grid .gi-lens{flex-basis:220px;flex-shrink:0}
 .gi-reports .gi-lens{border:0;background:var(--gi-2)}
 
 /* FILM BELOW THE APP FLOOR — the scoreboard is game identity, so it reads as
@@ -314,9 +359,16 @@
 .gi-reports .gi-np-headline b{font-family:var(--gi-cond);font-weight:700;font-size:34px;
   line-height:.9;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
 .gi-reports .gi-np-headline span{font-size:12px;color:var(--gi-11)}
-.gi-reports .gi-np-rows{display:grid;gap:1px}
+/* Coach: the Turnovers/Plays for Loss/Penalties rows read as "odd looking
+   black boxes" — a flat `--gi-1` fill with no edge, sitting directly on the
+   lens card's own `--gi-2` background with nothing marking where one row
+   ends and the next begins beyond a 1px gap. Given each row its own border,
+   matching every other tile on this board; the gap grows slightly so the
+   borders read as separate rows rather than doubling into one thick line. */
+.gi-reports .gi-np-rows{display:grid;gap:4px}
 .gi-reports .gi-np-row{display:flex;align-items:center;gap:var(--gi-2x);
-  min-height:var(--gi-row);padding:0 var(--gi-2x);background:var(--gi-1)}
+  min-height:var(--gi-row);padding:0 var(--gi-2x);background:var(--gi-1);
+  border:1px solid var(--gi-6)}
 .gi-reports .gi-np-label{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--gi-12)}
 .gi-reports .gi-np-value{flex:0 0 auto;font-family:var(--gi-cond);font-weight:700;
   font-size:17px;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
@@ -439,6 +491,11 @@
    owners are `.viz-block` (481px) and `.hm-field-wrap` (448px). Guessing a
    class is how the last two fixes silently did nothing. */
 .gi-reports .viz-block>svg{max-height:230px;height:auto;width:100%}
+/* Reports redesign (item H): the field heat map earns a genuinely larger
+   treatment than the other shape charts on this route — it is the one visual
+   whose whole job is showing precise field position, so it gets more of the
+   viewport than a bar chart needs. Superseded by the redesign block at the
+   end of this file, which raises the cap further; kept here as the floor. */
 .gi-reports .hm-field-wrap>svg{max-height:250px;height:auto;width:100%}
 .gi-reports .stats-section svg{max-width:100%}
 /* H10 - the radar rendered full-viewport. My own regression, and the same
@@ -458,7 +515,7 @@
    caption inherited both. Definitions are longer than the old framing copy, so
    this had to land WITH the rewrite, not after it. */
 .gi-reports .viz-caption,.gi-reports .self-scout-intro,.gi-reports .tm-eligible,
-.gi-reports .stats-cut-hint,.gi-reports .gi-lens-head p{
+.gi-reports .stats-cut-hint{
   white-space:normal;overflow-wrap:anywhere;max-width:76ch;
 }
 
@@ -586,9 +643,117 @@
    Keep them neutral and readable; blue remains reserved for action/emphasis. */
 .gi-reports .stats-cut-hint,.gi-reports .viz-caption,
 .gi-reports .self-scout-intro,.gi-reports .tm-eligible,
-.gi-reports .gi-lens-head p,.gi-reports .gi-answer>p{
+.gi-reports .gi-answer>p{
   color:var(--gi-11);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
 }
 .gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4{
   font:var(--gi-text-label);letter-spacing:0
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REPORTS REDESIGN — items A/B/C/D/G/H. Design rules, placed last per the
+   file's own standing discipline (H9/S6-5b): a later same-specificity rule
+   silently wins, so anything intended to be final goes at the end.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* A — the persistent KPI rail. Reuses .gi-hero/.gi-kpi (the same primitive
+   the season header now shares — see SeasonManager._renderHeader) so it
+   never reads as a second, differently-styled summary component. Sits below
+   the perspective switch and above the tab bar, so it survives every tab
+   change; ReportsScreen._syncKpiRail keeps its numbers current. */
+.gi-reports-rail{margin:0 var(--gi-6x);border:1px solid var(--gi-6);
+  border-top:0;border-bottom:0}
+.gi-reports-rail[hidden]{display:none}
+.gi-reports-rail .gi-kpi{min-height:76px;padding:var(--gi-3x) var(--gi-4x)}
+.gi-reports-rail .gi-kpi-value{font-size:28px}
+@media(max-width:900px){.gi-reports-rail{margin:0 var(--gi-4x)}}
+@media(max-width:700px){
+  .gi-reports-rail{margin:0 var(--gi-3x)}
+  .gi-reports-rail .gi-kpi{min-height:64px;padding:var(--gi-2x) var(--gi-3x)}
+  .gi-reports-rail .gi-kpi-value{font-size:24px}
+}
+
+/* B/C — Team detail: two stat tables plus a compact Yards-by-Type companion
+   chart, sharing one row instead of the chart leading its own full-width
+   section (the retired "Team Summary" block). The chart column is capped so
+   two full-height tables next to a small donut don't stretch the donut cell
+   to match them. */
+.gi-team-detail{display:grid;grid-template-columns:1fr 1fr auto;gap:var(--gi-5x);align-items:start}
+.gi-team-detail-chart{align-self:center;min-width:150px}
+.gi-team-detail-chart .chart-donut-block{margin:0}
+@media(max-width:820px){.gi-team-detail{grid-template-columns:1fr 1fr}.gi-team-detail-chart{grid-column:1/-1;justify-self:center}}
+@media(max-width:560px){.gi-team-detail{grid-template-columns:1fr}.gi-team-detail-chart{justify-self:stretch}}
+
+/* D — Team Profile: radar + actual-value table share a row on wide screens,
+   the radar staying a stable square instead of floating alone in a full-width
+   panel. `.gi-tp-now` marks the "this game" column so it reads first during a
+   quick scan; the dashed-series legend colour matches Charts.radar's stroke. */
+.gi-team-profile .gi-tp-layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:var(--gi-5x);align-items:center}
+.gi-team-profile .gi-radar{margin:0}
+/* Reports redesign (item J): four columns (Metric/This game/Season avg/Season
+   best) genuinely don't fit a narrow phone width. The page itself must never
+   scroll sideways (measured and asserted elsewhere), so this table gets its
+   own contained horizontal scroll instead of being silently clipped at the
+   viewport edge — found by screenshot review at 390px, where "Season best"
+   and its values were cut off with no way to reach them. */
+.gi-tp-table-wrap{min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gi-tp-table td:first-child{text-align:left;color:var(--gi-11)}
+.gi-tp-table .gi-tp-now{color:var(--gi-12);font-weight:700}
+.gi-tp-best-mark{color:var(--gi-first-down);font-size:10px}
+@media(max-width:700px){.gi-team-profile .gi-tp-layout{grid-template-columns:1fr}}
+
+/* G — the game timeline. One compact row per drive, grouped under a quarter
+   label, replacing both the old full-width cumulative-yards line chart and
+   the separate non-interactive Drives list (their exact duplication, and the
+   height mismatch it left under Drives, is why both were removed — see the
+   comment on StatsEngine._renderDrives). */
+.gi-timeline{display:grid;gap:2px}
+.gi-tl-quarter{margin-top:var(--gi-3x);padding-bottom:2px;border-bottom:1px solid var(--gi-6);
+  color:var(--gi-11);font:650 10.5px/1.4 var(--gi-sans);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.gi-timeline>.gi-tl-quarter:first-child{margin-top:0}
+.gi-tl-drive{display:grid;grid-template-columns:44px minmax(60px,1fr) auto minmax(0,1.4fr) 64px;
+  align-items:center;gap:var(--gi-2x);min-height:30px;padding:0 var(--gi-1x);cursor:pointer}
+.gi-tl-drive:hover,.gi-tl-drive:focus-visible{background:var(--gi-3);outline:none}
+.gi-tl-num{color:var(--gi-11);font:var(--gi-text-caption);font-variant-numeric:var(--gi-num-feat)}
+.gi-tl-track{min-width:0;height:12px;background:var(--gi-3)}
+.gi-tl-track i{display:block;height:100%}
+.gi-tl-markers{display:flex;gap:3px;font-size:10px;line-height:1}
+.gi-tl-mark{font-style:normal}
+.gi-tl-score{color:var(--gi-first-down)}
+.gi-tl-turnover{color:var(--gi-turnover)}
+.gi-tl-explosive{color:var(--gi-warn)}
+.gi-tl-meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gi-11);font:var(--gi-text-caption)}
+.gi-tl-outcome{text-align:right;font:650 11px/1 var(--gi-sans);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.gi-tl-flow{margin:var(--gi-4x) 0 0;padding-top:var(--gi-3x);border-top:1px solid var(--gi-6)}
+.gi-tl-flow figcaption{display:flex;justify-content:space-between;margin-bottom:var(--gi-1x);
+  color:var(--gi-11);font:var(--gi-text-caption)}
+.gi-tl-flow figcaption span{color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
+.gi-tl-flow svg{width:100%;height:34px;display:block}
+@media(max-width:640px){
+  .gi-tl-drive{grid-template-columns:36px minmax(40px,1fr) auto 60px;}
+  .gi-tl-meta{display:none}
+}
+
+/* H — the field-position heat map earns real size and a real hit target.
+   Raises the H8-era cap (250px) now that the SVG's own viewBox is larger, and
+   makes every dot's enlarged invisible hit-circle behave like the button it
+   is — focus-visible outline, pointer cursor, keyboard reachable. */
+.gi-reports .hm-field-wrap>svg{max-height:420px}
+.gi-reports .hm-dot{cursor:pointer}
+.gi-reports .hm-dot:focus-visible{outline:2px solid var(--gi-los);outline-offset:2px}
+.gi-reports .hm-dot:hover circle:nth-child(2){opacity:1}
+@media(pointer:coarse){.gi-reports .hm-field-wrap>svg{max-height:520px}}
+
+/* Coach: a tile's definition (i) mark rendered on its own row, below the
+   label, because `.gi-glance-tile` is a bare `display:grid` with no explicit
+   columns — every direct child becomes its own implicit row. The label text
+   and its (i) mark are now ONE child (see StatsEngine._statTile), laid out
+   as a single centered inline row so they can never be pulled apart again. */
+.gi-reports .gi-glance-label{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+/* The Situational lens now always renders every spot its caption names,
+   including ones with zero charted snaps — those get this state instead of
+   silently vanishing. Deliberately not a cut-row: there is no film to watch
+   for a situation with no plays in it. */
+.gi-reports .gi-glance-tile.is-empty{border-style:dashed;background:transparent}
+.gi-reports .gi-glance-tile.is-empty strong{color:var(--gi-8)}
+.gi-reports .gi-glance-tile.is-empty small{color:var(--gi-8);font-style:italic}

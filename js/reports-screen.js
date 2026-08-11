@@ -100,6 +100,19 @@ export class ReportsScreen {
     this.app.stats._lastTab = tab;
     this._mode = 'main';
     this._syncTabState();
+    // Reports redesign (item A): the persistent KPI rail hides itself on the
+    // Season tab (which carries its own equivalent header) — but only
+    // _syncHeader() re-evaluated that, and selectTab() never called it, so
+    // switching tabs left the game-scope rail showing on top of the Season
+    // tab's own hero. Found by screenshot review, not by the harness: every
+    // e2e assertion drives selectTab() once from a fresh route, which never
+    // exercises a SECOND tab switch. A second, deeper cause: _setChrome()
+    // used to force `hidden=false` on every `data-reports-main-chrome` node
+    // unconditionally, which would have re-revealed the rail the instant it
+    // (or the MutationObserver-driven _syncPresentation) ran again — the rail
+    // markup no longer carries that attribute, so _syncKpiRail() is its only
+    // owner.
+    this._syncKpiRail();
     this._setChrome(true);
     this._renderActiveTab();
     return true;
@@ -135,8 +148,40 @@ export class ReportsScreen {
     return true;
   }
 
+  /**
+   * Reports redesign — the persistent KPI rail (item A). Literal labels: Final
+   * Score, Total Plays, Plays Charted, Plays per Phase, Success Rate. Reads
+   * StatsEngine._kpiRailData(), which is a read-only count over the canonical
+   * play list — no value is computed here. Hidden on Season (own rail) and in
+   * opponent perspective (its own answer-sheet header already states the
+   * sample), so it never duplicates a header the tab already carries.
+   */
+  _syncKpiRail() {
+    const rail = this.host?.querySelector('[data-reports-rail]');
+    if (!rail) return;
+    if (this._mode !== 'main' || this.perspective !== 'self' || this.activeTab === 'season') { rail.hidden = true; return; }
+    const stats = this.app.stats;
+    const data = stats?._kpiRailData?.(stats.compute());
+    if (!data || !data.totalPlays) { rail.hidden = true; return; }
+    const esc = Charts._esc;
+    const tile = (label, value, sub) => `<div class="gi-kpi"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
+    const score = data.finalScore ? `${data.finalScore.us}–${data.finalScore.them}` : '—';
+    const phase = `${data.units.offense}O / ${data.units.defense}D / ${data.units.special}ST`;
+    const success = data.successRate != null ? `${Math.round(parseFloat(data.successRate))}%` : '—';
+    rail.innerHTML = [
+      tile('Final Score', score),
+      tile('Total Plays', data.totalPlays),
+      tile('Plays Charted', data.playsCharted, `of ${data.totalPlays}`),
+      tile('Plays per Phase', phase),
+      // Coach: "on-schedule" is commentary, not a definitional label.
+      tile('Success Rate', success, 'offense'),
+    ].join('');
+    rail.hidden = false;
+  }
+
   _syncHeader() {
     if (!this.host) return;
+    this._syncKpiRail();
     const context = this.app.workspace?.snapshot?.();
     const title = this.host.querySelector('[data-reports-title]');
     const sub = this.host.querySelector('[data-reports-context]');
@@ -202,11 +247,13 @@ export class ReportsScreen {
     if (this.content.querySelector('[data-native-main-report]')) {
       this._mode = 'main';
       this._setChrome(true);
+      this._syncKpiRail();
       return;
     }
     if (this.content.querySelector('.stats-overlay, .stats-header')) {
       this._mode = 'specialized';
       this._setChrome(false);
+      this._syncKpiRail();
     }
   }
 
@@ -423,24 +470,26 @@ export class ReportsScreen {
       ${s._renderLensBoard(stats)}
       ${s._renderTakeaways(stats)}
       ${s._renderDownAnalysis(stats)}
-      ${/* H14 — three equal columns left ~400px empty under Efficiency and Big
-            Plays, because Drives runs ~700px and the other two do not. The
-            earlier `align-items:start` fix was a no-op: it was already set, and
-            the space was never a stretch — it was genuinely empty.
-
-            Two columns instead. Drives keeps its own column; the short panels
-            stack beside it and the remaining room carries the by-down read,
-            which was computed already and only rendered far below the fold. */''}
-      <div class="gi-card-grid gi-overview-row">
-        ${s._renderDrives(stats)}
-        <div class="gi-stack">
-          ${s._renderEfficiency(stats)}
-          ${s._renderByDownPanel(stats)}
-          ${s._renderBigPlays(stats)}
-        </div>
-      </div>
-      ${s._renderGameFlow(stats)}
-      ${s._renderDriveChart(stats)}
+      ${/* H14/C — this pairing was wrong FOUR times, always the same
+            mechanism: CSS Grid makes a ROW as tall as its tallest column, and
+            `align-items:start` only stops the SHORT column from being
+            STRETCHED to fill that height — it cannot stop the row itself from
+            CLAIMING the space, so the leftover always lands as a visible
+            empty rectangle. Every reshuffle of which two sections share a row
+            (Drives+[Efficiency,ByDown,BigPlays] stack, then
+            Drives+[Efficiency,ByDown] stack, then Drives+Efficiency alone)
+            closed part of the gap and left a smaller one — coach's word was
+            "has to be fixed", not "smaller", and real game data will always
+            vary the exact height of every section, so no fixed pairing is
+            safe against reopening this on a different season. Every section
+            here now runs full width, one after another. A shorter section is
+            simply shorter — there is no partner row for it to leave empty
+            space in. */''}
+      ${s._renderDrives(stats)}
+      ${s._renderEfficiency(stats)}
+      ${s._renderByDownPanel(stats)}
+      ${s._renderBigPlays(stats)}
+      ${s._renderGameTimeline(stats)}
       ${s._renderPenalties(stats)}`;
   }
 

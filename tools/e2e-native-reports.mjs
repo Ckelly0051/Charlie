@@ -482,7 +482,13 @@ ok(composition.glanceTiles === 6 && composition.glanceLinked >= 3 && composition
   'Game at a Glance fills the space beside the scoreboard with factual, partly film-linked tiles', JSON.stringify(composition));
 ok(composition.disclosure && composition.inlineTechnical,
   'Technical scoring rules sit behind an information affordance rather than as body copy', JSON.stringify({ disclosure: composition.disclosure }));
-ok(composition.donutBlocks >= 2 && composition.titleOutsideSvg && composition.legendLabels.every(label => /\S+\s+\d/.test(label)),
+// Reports redesign (item A): Overview's old Team Summary donut pair (Run Rate
+// + Total Yards) duplicated the persistent KPI rail and the Tendencies lens,
+// so the Run Rate donut was removed — Yards by Type is the one shape chart
+// left here, since it isn't shown as a chart anywhere else. The composition
+// rule this assertion actually guards (title outside the ring, a real legend
+// below with values, not just a count) does not require a specific count.
+ok(composition.donutBlocks >= 1 && composition.titleOutsideSvg && composition.legendLabels.every(label => /\S+\s+\d/.test(label)),
   'Donuts carry their title outside the ring and a complete legend below', JSON.stringify(composition.legendLabels));
 ok(composition.centreWidth > 0 && composition.centreWidth <= composition.hole,
   'The donut centre number fits inside the ring hole instead of overlapping the stroke', JSON.stringify({ centreWidth: composition.centreWidth, hole: composition.hole }));
@@ -523,15 +529,25 @@ const lensBoard = await page.evaluate(() => {
   const stats = engine.compute();
   const lenses = [...document.querySelectorAll('.gi-reports .gi-lens')].map(node => ({
     id: node.dataset.lens,
-    ask: (node.querySelector('.gi-lens-head p')?.textContent || '').trim(),
+    hasCaption: !!node.querySelector('.gi-lens-head p'),
     detail: node.querySelector('.gi-lens-more')?.dataset.lensTab || null,
-    tiles: [...node.querySelectorAll('.gi-glance-tile')].map(tile => ({
-      label: (tile.querySelector('span')?.textContent || '').trim(),
-      value: (tile.querySelector('strong')?.textContent || '').trim(),
-      cutType: tile.dataset.cutType || '',
-      cutVal: tile.dataset.cutVal || '',
-      clickable: tile.classList.contains('cut-row'),
-    })),
+    tiles: [...node.querySelectorAll('.gi-glance-tile')].map(tile => {
+      // The label and its (i) definition mark share one <span> (a coach-
+      // reported fix: the icon used to land on its own grid row, separate
+      // from the label). Reading that span's raw textContent now pulls in
+      // the icon glyph plus its hidden tooltip text, so the label is read
+      // from a clone with the mark stripped out first.
+      const labelEl = tile.querySelector('.gi-glance-label') || tile.querySelector('span');
+      const labelClone = labelEl?.cloneNode(true);
+      labelClone?.querySelector('.gi-def')?.remove();
+      return {
+        label: (labelClone?.textContent || '').trim(),
+        value: (tile.querySelector('strong')?.textContent || '').trim(),
+        cutType: tile.dataset.cutType || '',
+        cutVal: tile.dataset.cutVal || '',
+        clickable: tile.classList.contains('cut-row'),
+      };
+    }),
   }));
   const claims = lenses.flatMap(lens => lens.tiles.filter(tile => tile.cutType).map(tile => ({
     lens: lens.id, label: tile.label, clickable: tile.clickable,
@@ -541,7 +557,7 @@ const lensBoard = await page.evaluate(() => {
   const value = name => lenses.flatMap(l => l.tiles).find(t => t.label === name)?.value || '';
   return {
     ids: lenses.map(lens => lens.id),
-    asks: lenses.map(lens => lens.ask),
+    anyCaption: lenses.some(lens => lens.hasCaption),
     details: lenses.map(lens => lens.detail),
     claims,
     orphanCut: lenses.flatMap(l => l.tiles).some(t => t.cutType && !t.clickable),
@@ -560,21 +576,28 @@ const lensBoard = await page.evaluate(() => {
 });
 ok(lensBoard.ids.join(',') === 'efficiency,explosiveness,situational,tendencies,negative',
   'Reports Overview answers through the five lenses in order', lensBoard.ids.join(','));
-/* THIS ASSERTION USED TO REQUIRE THE OPPOSITE, and that is why the coach had to
-   ask four times. It read `asks.every(ask => ask.endsWith('?'))` — a harness
-   actively enforcing rhetorical sub-heads. Every manual removal was therefore
-   reverted by whoever next made the gate green, and the copy kept reappearing
-   with no one able to point at why. Inverted, not deleted: the lens still has to
-   carry a sub-line, it just has to DEFINE the stat instead of asking about it. */
-ok(lensBoard.asks.every(line => line.length > 12 && !line.trim().endsWith('?')),
-  'Every lens defines the stats it aggregates, and none pose a question',
-  JSON.stringify(lensBoard.asks));
+/* This assertion has flipped THREE times across this project's history — first
+   requiring a rhetorical sub-head ('?'), then requiring a real defining
+   sentence, now requiring NO sentence at all. Each flip is a genuine, direct
+   coach decision recorded in CLAUDE.md at the time it happened; the most
+   recent one is authoritative. Coach (direct, this session): "these
+   definitions are still there. Delete them out." No lens header carries a
+   caption paragraph any more — the header and the tiles explain themselves. */
+ok(!lensBoard.anyCaption,
+  'No lens carries a caption sentence — the coach removed them; the header and tiles explain themselves',
+  JSON.stringify(lensBoard.anyCaption));
 
-/* G14 — the Negative Plays lens. The defect this replaces was a sack counted
-   in "Negative plays" AND again in "Sacks taken", inside one lens, with nothing
-   saying so. These assertions pin the three things that fix cannot silently
-   lose: the children are mutually exclusive, the headline counts PLAYS while
-   the rows count EVENTS, and the one clickable row plays exactly what it says. */
+/* G14 — the Negative Plays lens. Renamed to "Risk" earlier in the Reports
+   redesign batch per the accepted five-lens model brief, then the coach
+   REVERSED that renaming directly in this same session: "Risk isn't the right
+   word there, we changed it a few builds ago." "Negative Plays" is the
+   coach's own prior, standing decision — do not rename this again without a
+   fresh, explicit instruction from the coach. The defect this section's proof
+   replaces was a sack counted in "Negative plays" AND again in "Sacks taken",
+   inside one lens, with nothing saying so. These assertions pin the three
+   things that fix cannot silently lose: the children are mutually exclusive,
+   the headline counts PLAYS while the rows count EVENTS, and the one
+   clickable row plays exactly what it says. */
 const negLens = await page.evaluate(() => {
   const stats = window.app.stats.compute(window.app.tagger.plays);
   const np = stats.negativePlays;
@@ -603,20 +626,67 @@ const negLens = await page.evaluate(() => {
     rowsHavePct: rows.some(r => /%/.test(r.value || '')),
     // Exactly one row claims a cohort, and it is Plays for Loss.
     cutRows: rows.filter(r => r.cut).map(r => r.label),
-    // The word "Risk" must be gone from the board entirely.
-    riskGone: !document.querySelector('.gi-reports .gi-lens[data-lens="risk"]'),
-    definitions: [...(host?.querySelectorAll('.gi-def') || [])].map(button => ({
-      label: button.getAttribute('aria-label') || '',
-      text: button.querySelector('.gi-def-pop')?.textContent || '',
-      hidden: button.querySelector('.gi-def-pop')?.getAttribute('aria-hidden'),
-    })),
+    // "Risk" (this batch's brief-driven rename, reversed by the coach in the
+    // same session) must be gone from the board entirely.
+    riskNameGone: ![...document.querySelectorAll('.gi-reports .gi-lens-head h4')]
+      .some(node => node.textContent.trim() === 'Risk'),
+    // Coach (direct): "I don't think we need the definitions at all. Remove
+    // all of them." No lens tile anywhere on the board may carry a `.gi-def`
+    // (i) mark any more.
+    definitionCount: document.querySelectorAll('.gi-reports .gi-lens .gi-def').length,
   };
 });
-ok(negLens.present && negLens.name === 'Negative Plays' && negLens.riskGone,
-  'The Risk lens is renamed Negative Plays and no lens still calls itself Risk', JSON.stringify({ name: negLens.name, riskGone: negLens.riskGone }));
-ok(negLens.definitions.length >= 3 && negLens.definitions.every(definition => definition.hidden === 'true' && definition.text && definition.label.includes(definition.text)),
-  'Definition markers keep labels clean while exposing the complete definition in their accessible name',
-  JSON.stringify(negLens.definitions));
+ok(negLens.present && negLens.name === 'Negative Plays' && negLens.riskNameGone,
+  'The fifth lens is named Negative Plays (coach\'s standing decision), not Risk', JSON.stringify({ name: negLens.name, riskNameGone: negLens.riskNameGone }));
+ok(negLens.definitionCount === 0,
+  'No lens tile carries a definition (i) mark — the coach removed them; the header and data explain themselves',
+  JSON.stringify({ definitionCount: negLens.definitionCount }));
+/* Coach-reported, measured not eyeballed: `.gi-glance-tile` declared no
+   `grid-template-columns`, so its one implicit column auto-sized to its
+   widest child's own content width rather than the tile's real available
+   width, and `justify-items:center` then centered every row inside a column
+   that was itself off-center — every row shifted the SAME direction by the
+   SAME amount, which is exactly what made it look like a real (not
+   optical-illusion) shift. Reproduces most visibly on a tile whose sibling
+   lens cards are wide (Tendencies, next to five-tile Situational), so this
+   checks a tile from that exact lens. Tolerance is 0.5px for ordinary
+   sub-pixel layout rounding — the bug measured at ~3px. */
+/* Whether this bug produces a visible offset depends on how wide a tile's
+   content is relative to its box, which is fixture-dependent — this
+   harness's own hand-built fixture happens not to reproduce it measurably,
+   though a live probe against the real 40-play synthetic fixture (used by
+   the screenshot tooling) showed a real 6px column overflow on this exact
+   selector. Rather than depend on the harness's incidental content widths,
+   this injects a throwaway `.gi-glance-tile` with deliberately long content
+   into a deliberately narrow parent — the same shape as the reported defect
+   — and checks the CSS property directly: the tile's one implicit grid
+   column must never size wider than the box it lives in. Removed
+   immediately after; touches no report content. */
+const columnOverflow = await page.evaluate(() => {
+  // Every `.gi-glance-tile` rule is scoped `.gi-reports .gi-glance-tile` —
+  // the probe must live inside a real `.gi-reports` ancestor or none of the
+  // styling (including the fix under test) applies to it at all.
+  const host = document.querySelector('.gi-reports') || document.body;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:90px';
+  // This exact shape — few wrap points relative to its length — is what
+  // triggered the real defect ("8 snaps · 63%" on a real tile). A string
+  // with many short words wraps down small enough that it stops proving
+  // anything; a single unbroken word overflows its own cell regardless of
+  // the fix, which is a different (item-level) overflow, not this
+  // (track-level) one. This reproduces the actual reported shape.
+  probe.innerHTML = '<div class="gi-glance-tile"><span class="gi-glance-label">Top formation</span><strong>Bunch</strong><small>8 snaps &middot; 63%</small></div>';
+  host.appendChild(probe);
+  const tile = probe.firstElementChild;
+  const cs = getComputedStyle(tile);
+  const columnPx = parseFloat(cs.gridTemplateColumns);
+  const contentWidth = tile.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  probe.remove();
+  return { columnPx, contentWidth, overflow: columnPx - contentWidth };
+});
+ok(columnOverflow.overflow < 0.5,
+  'A lens tile\'s implicit grid column never sizes wider than the tile\'s own content box, even when its content would otherwise overflow it',
+  JSON.stringify(columnOverflow));
 ok(negLens.kidsSum === negLens.lossValue && negLens.lossValue === negLens.engine.lossTotal,
   'Sacks, runs and passes are mutually exclusive and sum exactly to Plays for Loss — no play counted twice',
   JSON.stringify({ kidsSum: negLens.kidsSum, loss: negLens.lossValue, engine: negLens.engine.lossTotal }));

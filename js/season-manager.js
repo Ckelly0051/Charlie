@@ -141,14 +141,15 @@ export class SeasonManager {
         ${s._renderLensBoard(stats)}
         ${s._renderTakeaways(stats)}
         ${s._renderDownAnalysis(stats)}
-        <div class="gi-card-grid gi-overview-row">
-          ${s._renderDrives(stats)}
-          <div class="gi-stack">
-            ${s._renderEfficiency(stats)}
-            ${s._renderByDownPanel(stats)}
-            ${s._renderBigPlays(stats)}
-          </div>
-        </div>
+        ${/* Mirrors the game-scope Overview composition in reports-screen.js
+              (see its comment there for the full history): no fixed pairing
+              of Drives against any other section survived real data without
+              leaving a visible empty rectangle under the shorter one. Every
+              section runs full width instead. */''}
+        ${s._renderDrives(stats)}
+        ${s._renderEfficiency(stats)}
+        ${s._renderByDownPanel(stats)}
+        ${s._renderBigPlays(stats)}
         ${this._renderSituationalScorecard(stats)}
         ${this._renderTurnoverScoring(stats)}
         ${s._renderPenalties(stats)}
@@ -200,6 +201,14 @@ export class SeasonManager {
     return html;
   }
 
+  /**
+   * Reports redesign — the season-scope persistent KPI rail. Every value is
+   * read from `stats` (the season-scope `compute()` output the parity gate
+   * already covers) or from `gameInfo` fields SeasonManager already reads
+   * elsewhere (win/loss record); nothing here introduces a new formula.
+   * Total Yards is deliberately NOT its own tile — Yards by Type (rush/pass
+   * split) already answers that question with more information.
+   */
   _renderHeader(stats) {
     const games = this._effectiveGames();
     let wins = 0, losses = 0, ties = 0, ptsFor = 0, ptsAgainst = 0;
@@ -215,14 +224,34 @@ export class SeasonManager {
       }
     }
     const recordStr = ties ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
+    const diff = ptsFor - ptsAgainst;
+    const diffStr = diff > 0 ? `+${diff}` : String(diff);
+    const s = stats.scoring || {};
+    const t = stats.turnovers || {};
+    const d = stats.defensive || {};
+    const takeaways = (d.interceptions || 0) + (d.fumbles || 0);
+    const giveaways = t.total || 0;
+    const margin = takeaways - giveaways;
+    const marginStr = margin > 0 ? `+${margin}` : String(margin);
+    const tend = stats.tendencies || {};
+    const rushYds = stats.rushing?.yards || 0, passYds = stats.passing?.yards || 0;
+    const totalYds = rushYds + passYds;
+    const rushPct = totalYds ? Math.round(rushYds / totalYds * 100) : 0;
+    // Reuses the exact .gi-hero/.gi-kpi markup the game-scope rail uses (see
+    // ReportsScreen._syncKpiRail in reports-screen.js) so the two rails read
+    // as one system rather than two hand-styled tables.
+    const tile = (num, label, sub) => `<div class="gi-kpi"><div class="gi-kpi-label">${label}</div><div class="gi-kpi-value">${num}</div>${sub ? `<div class="gi-kpi-sub">${sub}</div>` : ''}</div>`;
     return `
-      <div class="season-summary">
-        <div class="ss-stat"><div class="ss-num">${games.length}</div><div class="ss-lbl">Games</div></div>
-        ${(wins + losses + ties) ? `<div class="ss-stat"><div class="ss-num">${recordStr}</div><div class="ss-lbl">Record</div></div>` : ''}
-        <div class="ss-stat"><div class="ss-num">${stats.totalPlays}</div><div class="ss-lbl">Plays</div></div>
-        <div class="ss-stat"><div class="ss-num">${stats.rushing.yards + stats.passing.yards}</div><div class="ss-lbl">Total Yds</div></div>
-        ${(ptsFor || ptsAgainst) ? `<div class="ss-stat"><div class="ss-num">${ptsFor}-${ptsAgainst}</div><div class="ss-lbl">Pts For-Against</div></div>` : ''}
-        <div class="ss-stat"><div class="ss-num">${stats.efficiency.successRate}%</div><div class="ss-lbl">Success</div></div>
+      <div class="gi-hero season-summary">
+        ${tile(games.length, 'Games')}
+        ${(wins + losses + ties) ? tile(recordStr, 'Record') : ''}
+        ${(ptsFor || ptsAgainst) ? tile(`${ptsFor}-${ptsAgainst}`, 'Points For / Against') : ''}
+        ${(ptsFor || ptsAgainst) ? tile(diffStr, 'Point Differential') : ''}
+        ${stats.efficiency?.successRate != null ? tile(`${stats.efficiency.successRate}%`, 'Success Rate') : ''}
+        ${s.touchdowns != null ? tile(s.touchdowns, 'Touchdowns', `${s.rushingTDs || 0}R / ${s.passingTDs || 0}P`) : ''}
+        ${(takeaways || giveaways) ? tile(marginStr, 'Turnover Margin', `${takeaways} takeaways / ${giveaways} giveaways`) : ''}
+        ${tend.runPct != null ? tile(`${Math.round(parseFloat(tend.runPct))}%`, 'Run Rate', `${tend.runs || 0}R / ${tend.passes || 0}P`) : ''}
+        ${totalYds ? tile(totalYds, 'Yards by Type', `${rushPct}% rush · ${100 - rushPct}% pass`) : ''}
       </div>
     `;
   }

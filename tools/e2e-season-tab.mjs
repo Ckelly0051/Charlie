@@ -170,12 +170,16 @@ r = await page.evaluate(() => {
   if (!tab) return { noTab: true };
   tab.click();   // lazy render is synchronous inside the click handler
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
-  const ssNum = pane.querySelector('.season-summary .ss-num');
+  // Reports redesign (item A): the season KPI rail now shares the exact
+  // .gi-hero/.gi-kpi primitive the game-scope persistent rail uses (see
+  // ReportsScreen._syncKpiRail / SeasonManager._renderHeader), not the
+  // retired .ss-stat/.ss-num markup — one KPI component in the product.
+  const kpiValue = pane.querySelector('.season-summary .gi-kpi-value');
   const leaderboard = Array.from(pane.querySelectorAll('table.stats-table-full')).find(t => t.querySelector('tr.player-row'));
   return {
     nativePane: pane.matches('[data-native-main-report]'),
-    kpiCount: pane.querySelectorAll('.season-summary .ss-stat').length,
-    hasKpi: !!ssNum,
+    kpiCount: pane.querySelectorAll('.season-summary .gi-kpi').length,
+    hasKpi: !!kpiValue,
     trendCount: pane.querySelectorAll('.gi-trend').length,
     hasLeaderboard: !!leaderboard,
     leaderboardSortable: leaderboard ? leaderboard.querySelectorAll('th.gi-sort-th').length : 0,
@@ -183,22 +187,23 @@ r = await page.evaluate(() => {
 });
 ok(!r.noTab, 'the Season tab button exists in the dashboard', JSON.stringify(r));
 ok(r.nativePane, 'Season pane renders through the native route on first selection', JSON.stringify(r));
-ok(r.hasKpi && r.kpiCount >= 4, 'season header shows KPI cards (games/plays/yards/success…)', JSON.stringify(r));
+ok(r.hasKpi && r.kpiCount >= 4, 'season header shows KPI cards (games/record/points/success…)', JSON.stringify(r));
 ok(r.trendCount >= 1, 'game-by-game trend line charts render (>=2 games)', JSON.stringify(r));
 ok(r.hasLeaderboard, 'season player roll-up leaderboard renders', JSON.stringify(r));
 ok(r.leaderboardSortable >= 1, 'season leaderboard headers are wired sortable too', JSON.stringify(r));
 
-console.log('\n== 3. Header hero (v1.9.5): .season-summary wears the .gi-hero card look ==');
+console.log('\n== 3. Header hero: .season-summary wears the .gi-hero hairline-joined scan-board look ==');
 r = await page.evaluate(() => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
-  const summary = pane.querySelector('.season-summary');
-  const num = pane.querySelector('.season-summary .ss-num');
-  const cs = summary ? getComputedStyle(summary) : null;
+  // The CONTAINER (.gi-hero) deliberately carries the seam colour (--gi-6),
+  // not the deck itself — the deck surface lives on each .gi-kpi CELL, with
+  // 1px gaps showing the seam through. Same hairline-join pattern the
+  // game-scope KPI rail and Reports lens board already use (S6D). Checking
+  // the container's own background against the deck would fail by design.
+  const card = pane.querySelector('.season-summary .gi-kpi');
+  const num = pane.querySelector('.season-summary .gi-kpi-value');
+  const cs = card ? getComputedStyle(card) : null;
   const csNum = num ? getComputedStyle(num) : null;
-  // Resolve the token rather than pinning its literal value. The guarantee is
-  // "this band sits on the DECK surface", not "the deck surface is #121820" —
-  // pinning the hex made a legitimate palette re-tune look like a regression
-  // while still not catching a band moved onto the wrong surface.
   const probe = document.createElement('div');
   probe.style.background = 'var(--gi-2)';
   document.body.appendChild(probe);
@@ -208,12 +213,11 @@ r = await page.evaluate(() => {
     radius: cs?.borderTopLeftRadius,
     bg: cs?.backgroundColor,
     deck,
-    border: cs?.borderLeftWidth,
     numFont: csNum?.fontFamily || '',
   };
 });
-ok(r.radius === '0px', 'Native season KPI band uses the square broadcast geometry', JSON.stringify(r));
-ok(r.bg === r.deck && r.border === '3px', 'Native season KPI band uses the DECK surface and current-context rule', JSON.stringify(r));
+ok(r.radius === '0px', 'Native season KPI cells use the square broadcast geometry', JSON.stringify(r));
+ok(r.bg === r.deck, 'Native season KPI cells sit on the DECK surface', JSON.stringify(r));
 ok(/IBM Plex Sans Condensed/i.test(r.numFont), 'KPI numbers use the native condensed football-number face', JSON.stringify(r));
 
 console.log('\n== 3b. Season analytics blocks (v1.10.2) + trend un-clip ==');

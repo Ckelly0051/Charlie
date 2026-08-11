@@ -64,6 +64,23 @@ function NativeReportsRoute({ screen }) {
       <span class="gi-reports-film-note">Select any highlighted row to watch the exact snaps.</span>
     </div>
 
+    {/* Reports redesign — the persistent KPI rail. Carries across every game-
+        scope tab (Overview/Offense/Defense/Special Teams/Players/Self-Scout/
+        Matchup) so the coach never loses the score/plays/success-rate context
+        while digging into a report. Populated by ReportsScreen._syncKpiRail —
+        this stays raw markup here because its numbers change on every tab and
+        game switch, the same reason the title/context block above is synced
+        rather than re-rendered by Preact. Hidden on Season (which carries its
+        own season-scope rail) and in opponent perspective (its own answer
+        sheet already states the sample). */}
+    {/* Reports redesign (item A): deliberately NOT data-reports-main-chrome.
+        _setChrome() force-sets every main-chrome node's `hidden` on every
+        render pass (including the MutationObserver-driven _syncPresentation),
+        which would unconditionally re-reveal the rail on the Season tab right
+        after _syncKpiRail() hid it. _syncKpiRail() is this element's sole
+        owner. */}
+    <div class="gi-hero gi-reports-rail" data-reports-rail hidden></div>
+
     <nav class="gi-reports-tabs stats-tabs" aria-label="Report sections" data-reports-main-chrome>
       {REPORT_TABS.map(([id, label]) => <button
         key={id}

@@ -148,28 +148,48 @@ export class Charts {
      engine already scaled (StatsEngine._teamProfile) and draws them. It does
      not know what full scale means, which is the whole point — that was a
      football decision, not a rendering one. Outward is always better. */
+  /**
+   * @param {Array<{label,value,ratio,isBest,compareValue,compareLabel,compareRatio}>} axes
+   * @param {object} opts — `compareName` labels the second series when
+   *   `compareRatio` is present on the axes (Reports redesign item D: Current
+   *   Game vs Season Average, with Season Best available as the alternate).
+   */
   static radar(axes, opts = {}) {
     const list = (axes || []).filter(a => a && Number.isFinite(a.ratio));
     if (list.length < 3) return '';
+    const hasCompare = list.some(a => Number.isFinite(a.compareRatio));
     /* H6 — the viewBox reserves room for the labels. They sit at r + 11 and the
        box was 100 wide with no margin, so "Ball security", "Explosiveness" and
        "Yards / play" were clipped to ":ity", "Exp:" and "ards / play". The
-       drawing is unchanged; the canvas around it grew. */
+       drawing is unchanged; the canvas around it grew.
+       Reports redesign (item D, follow-up): the H6 margin was still 2-3 units
+       short for the longest labels ("Ball security" / "Explosiveness", both
+       13 characters) once the team-profile radar shipped with real season
+       data — measured via a rendered screenshot, not assumed. Widened again
+       with headroom rather than tuned to the exact character count, so the
+       next longest label doesn't reopen this. */
     const cx = 50, cy = 50, r = 30;
     const at = (index, radius) => {
       const angle = (Math.PI * 2 * index) / list.length - Math.PI / 2;
       return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
     };
     const ring = (frac) => list.map((unused, i) => at(i, r * frac).map(n => n.toFixed(2)).join(',')).join(' ');
-    const shape = list.map((a, i) => at(i, r * Math.max(a.ratio, 0.04)).map(n => n.toFixed(2)).join(',')).join(' ');
+    const shapeOf = key => list.map((a, i) => at(i, r * Math.max(a[key], 0.04)).map(n => n.toFixed(2)).join(',')).join(' ');
+    const shape = shapeOf('ratio');
+    const compareShape = hasCompare ? shapeOf('compareRatio') : '';
     const spokes = list.map((unused, i) => {
       const [x, y] = at(i, r);
       return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}" style="stroke:var(--gi-6);stroke-width:.3"/>`;
     }).join('');
+    const compareDots = hasCompare ? list.map((a, i) => {
+      const [x, y] = at(i, r * Math.max(a.compareRatio, 0.04));
+      return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.3"
+        style="fill:var(--gi-9)"><title>${Charts._esc(a.label)} — ${Charts._esc(opts.compareName || 'comparison')}: ${Charts._esc(String(a.compareLabel ?? a.compareValue))}</title></circle>`;
+    }).join('') : '';
     const dots = list.map((a, i) => {
       const [x, y] = at(i, r * Math.max(a.ratio, 0.04));
       return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.5"
-        style="fill:${a.isBest ? 'var(--gi-first-down)' : 'var(--gi-los)'}"><title>${Charts._esc(a.label)}: ${Charts._esc(String(a.value))}${a.isBest ? ' — season best' : ''}</title></circle>`;
+        style="fill:${a.isBest ? 'var(--gi-first-down)' : 'var(--gi-los)'}"><title>${Charts._esc(a.label)}: ${Charts._esc(String(a.valueLabel ?? a.value))}${a.isBest ? ' — season best' : ''}</title></circle>`;
     }).join('');
     const labels = list.map((a, i) => {
       const [x, y] = at(i, r + 11);
@@ -178,13 +198,14 @@ export class Charts {
         style="fill:var(--gi-11);font:600 3.6px var(--gi-mono)">${Charts._esc(a.label)}</text>`;
     }).join('');
     return `<figure class="gi-radar">
-      <svg viewBox="-16 -6 132 112" role="img" aria-label="${Charts._esc(opts.label || 'Team profile')}">
+      <svg viewBox="-24 -6 148 112" role="img" aria-label="${Charts._esc(opts.label || 'Team profile')}">
         <polygon points="${ring(1)}" style="fill:none;stroke:var(--gi-6);stroke-width:.4"/>
         <polygon points="${ring(0.66)}" style="fill:none;stroke:var(--gi-6);stroke-width:.25;opacity:.6"/>
         <polygon points="${ring(0.33)}" style="fill:none;stroke:var(--gi-6);stroke-width:.25;opacity:.6"/>
         ${spokes}
+        ${compareShape ? `<polygon points="${compareShape}" style="fill:none;stroke:var(--gi-9);stroke-width:.6;stroke-dasharray:1.6 1.2"/>` : ''}
         <polygon points="${shape}" style="fill:var(--gi-los);fill-opacity:.22;stroke:var(--gi-los);stroke-width:.7"/>
-        ${dots}${labels}
+        ${compareDots}${dots}${labels}
       </svg>
     </figure>`;
   }

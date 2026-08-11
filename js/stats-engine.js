@@ -8,7 +8,7 @@ import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
-import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
+import { gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
@@ -2686,6 +2686,31 @@ export class StatsEngine {
    * tagged silently lost its glance panel too. When only one is available it
    * takes the full width.
    */
+  /**
+   * Reports redesign — the persistent KPI rail's raw numbers. Read-only counts
+   * over the canonical play list, using the SAME `isPlayTagged` predicate
+   * WorkspaceShell's Home progress-by-unit card already uses (js/workspace-
+   * shell.js `_gameSummary`) — this is not a new formula, it is the identical
+   * "count by tag-completeness x unit" read applied to the Reports header.
+   * No value here feeds `compute()`, so nothing here touches parity.
+   */
+  _kpiRailData(stats) {
+    const plays = this.tagger?.plays || [];
+    const totalPlays = plays.length;
+    const playsCharted = plays.filter(isPlayTagged).length;
+    const units = { offense: 0, defense: 0, special: 0 };
+    plays.forEach(p => {
+      const u = p?.tags?.unit || 'offense';
+      if (Object.hasOwn(units, u)) units[u]++;
+    });
+    const sb = stats?.scoreboard;
+    return {
+      totalPlays, playsCharted, units,
+      finalScore: (sb && sb.hasData) ? { us: sb.us, them: sb.them } : null,
+      successRate: stats?.efficiency?.successRate,
+    };
+  }
+
   _renderGameHeader(stats) {
     const board = this._renderScoreboard(stats);
     const glance = this._renderGlance(stats);
@@ -2810,7 +2835,13 @@ export class StatsEngine {
     const attrs = cut
       ? ` class="gi-glance-tile cut-row" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" tabindex="0" role="button"`
       : ' class="gi-glance-tile"';
-    return `<div${attrs}><span>${Charts._esc(label)}</span>${def}<strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
+    // Coach: the definition (i) mark rendered on its own line below the
+    // label instead of beside it — `.gi-glance-tile` is `display:grid` with
+    // no explicit columns, so every direct child (label span, icon button,
+    // value, sub) became its own implicit grid row. The label and its icon
+    // are now one child (`.gi-glance-label`), laid out as a single inline
+    // row by CSS, so they can never split onto separate lines again.
+    return `<div${attrs}><span class="gi-glance-label">${Charts._esc(label)}${def}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
   }
 
   _renderGlance(stats) {
@@ -2845,7 +2876,13 @@ export class StatsEngine {
           ${tile('Offensive plays', plays,
             stats.allPlays && stats.allPlays !== plays ? `of ${stats.allPlays} charted` : 'charted this game')}
           ${tile('Yds / play', ypp, `${totalYards} total`)}
-          ${tile('Success rate', success, 'on-schedule')}
+          ${/* Coach: "on-schedule" is commentary, not a definitional label —
+                it explains a threshold rather than naming a scope, unlike
+                "watch them"/"charted this game" on the sibling tiles. The
+                success-rate DEFINITION already lives behind the (i) mark
+                elsewhere; this tile doesn't carry one, so it drops the sub
+                entirely rather than leaving a half-explained fragment. */''}
+          ${tile('Success rate', success, '')}
           ${tile('Explosives', explosiveCount, 'watch them', { type: 'situation', val: 'explosive', label: 'Explosive plays' })}
           ${tile('Plays for Loss', negativeCount, 'watch them', { type: 'situation', val: 'negative', label: 'Plays for Loss' })}
           ${tile('Third down', thirdLabel, 'watch them', { type: 'down', val: '3', label: 'Third down' })}
@@ -2891,8 +2928,15 @@ export class StatsEngine {
     const pen = stats.penalties;
     const pct = v => (v == null ? null : `${Math.round(parseFloat(v))}%`);
     const tile = (label, value, sub, cut, def) => this._statTile(label, value, sub, cut, def);
+    // Coach: the Situational lens's own caption names five spots (red zone,
+    // goal line, third-and-long, third-and-short, backed up), so showing only
+    // whichever ones happened to have snaps read as broken/incomplete rather
+    // than as "nothing charted there yet." A bucket with no snaps now renders
+    // an explicit no-data tile — same convention the field-zone visualization
+    // already uses — instead of vanishing from the grid. It is deliberately
+    // NOT a cut-row: there is no film to watch for a situation with 0 plays.
     const bucket = (label, data, val, name) => {
-      if (!data || !data.total) return '';
+      if (!data || !data.total) return `<div class="gi-glance-tile is-empty"><span class="gi-glance-label">${Charts._esc(label)}</span><strong>—</strong><small>no data</small></div>`;
       return tile(label, data.total, `${data.successPct}% success`, { type: 'situation', val, label: name });
     };
 
@@ -2904,8 +2948,11 @@ export class StatsEngine {
     // and first downs before that. Nothing the hero showed is lost — its total
     // yards live in the Yds/play sub and its TD count in the scoreboard.
     const drives = stats.drives || {};
+    // Coach: "on-schedule" is commentary, not a definitional label — dropped.
+    // Coach (follow-up): the (i) definition marks are removed entirely from
+    // this board — the header and the data explain themselves.
     const efficiency = [
-      tile('Success rate', pct(e.successRate) || '—', 'on-schedule', null, StatsEngine.defMark('successRate')),
+      tile('Success rate', pct(e.successRate) || '—', ''),
       tile('Yds / play', StatsEngine.yardsPerPlay(stats), `${StatsEngine.totalYards(stats)} total`),
       d.thirdDownPct != null ? tile('Third down', pct(d.thirdDownPct), d.thirdDownConv || '', { type: 'down', val: '3', label: 'Third down' }) : '',
       drives.total >= 3
@@ -2916,7 +2963,7 @@ export class StatsEngine {
 
     // 2. EXPLOSIVENESS — the longest gains, and which phase produced them.
     const explosive = [
-      tile('Explosive rate', pct(e.explosivePct) || '—', `${e.explosivePlays || 0} plays`, (e.explosivePlays ? { type: 'situation', val: 'explosive', label: 'Explosive plays' } : null), StatsEngine.defMark('explosive')),
+      tile('Explosive rate', pct(e.explosivePct) || '—', `${e.explosivePlays || 0} plays`, (e.explosivePlays ? { type: 'situation', val: 'explosive', label: 'Explosive plays' } : null)),
       // The sub describes the COHORT THE TILE PLAYS, not a near-neighbour of
       // it. `passing.attempts` excludes sacks, so "3 attempts" on a tile that
       // opens 4 clips would be a small lie at the exact moment a coach checks
@@ -2924,18 +2971,26 @@ export class StatsEngine {
       // isRun/isPass partition the `runpass` cut uses.
       rush.longest ? tile('Longest run', `${rush.longest} yd`, `${tend.runs || 0} run plays`, { type: 'runpass', val: 'Run', label: 'Run plays' }) : '',
       pass.longest ? tile('Longest pass', `${pass.longest} yd`, `${tend.passes || 0} pass plays`, { type: 'runpass', val: 'Pass', label: 'Pass plays' }) : '',
-      stats.bigPlays?.length ? tile('Big plays', stats.bigPlays.length, '20+ yds or TD') : '',
+      // Coach: "20+ yds or TD" wrapped to two lines in the tile. Same fact,
+      // one line.
+      stats.bigPlays?.length ? tile('Big plays', stats.bigPlays.length, '20+ yds/TD') : '',
     ].filter(Boolean);
     lenses.push({ id: 'explosiveness', name: 'Explosiveness', defines: 'Plays gaining 20+ yards or scoring, the explosive rate, and the longest run and pass.', tiles: explosive, detail: 'offense', detailLabel: 'Offense report' });
 
-    // 3. SITUATIONAL — the spots where the call changes.
-    const situational = [
+    // 3. SITUATIONAL — the spots where the call changes. Rule 3 (empty is
+    // omitted, not zeroed) still governs the LENS as a whole: if the game has
+    // literally no situational snaps of any kind, the lens disappears rather
+    // than showing five "no data" tiles with nothing behind any of them. Once
+    // the lens is showing, every one of the five spots its own caption names
+    // gets a tile — real or "no data" — rather than a silent subset.
+    const hasSituational = [sit.redZone, sit.goalLine, sit.thirdLong, sit.thirdShort, sit.backedUp].some(d => d?.total);
+    const situational = hasSituational ? [
       bucket('Red zone', sit.redZone, 'redZone', 'Red zone'),
       bucket('Goal line', sit.goalLine, 'goalLine', 'Goal line'),
       bucket('3rd & long', sit.thirdLong, 'thirdLong', 'Third and long'),
       bucket('3rd & short', sit.thirdShort, 'thirdShort', 'Third and short'),
       bucket('Backed up', sit.backedUp, 'backedUp', 'Backed up'),
-    ].filter(Boolean).slice(0, 4);
+    ] : [];
     if (situational.length) lenses.push({ id: 'situational', name: 'Situational', defines: 'Success rate in the red zone, on the goal line, on third and long or short, and backed up.', tiles: situational, detail: null });
 
     // 4. TENDENCIES — what we show before the snap.
@@ -2973,36 +3028,52 @@ export class StatsEngine {
         np.lossPasses ? row('Passes', np.lossPasses, null, 'is-child') : '',
         np.lossOther ? row('Other', np.lossOther, null, 'is-child') : '',
       ].filter(Boolean).join('');
+      // Coach (direct, this session): the (i) definition marks are removed
+      // from this board entirely.
       const body = `
         <div class="gi-np">
           <div class="gi-np-headline">
             <b>${np.distinct}</b>
-            <span>${np.distinctPct}% of plays</span>${StatsEngine.defMark('negativePlays')}
+            <span>${np.distinctPct}% of plays</span>
           </div>
           <div class="gi-np-rows">
-            ${row('Turnovers', np.turnovers, null, '', StatsEngine.defMark('turnovers'))}
-            ${np.lossTotal ? row('Plays for Loss', np.lossTotal, { type: 'situation', val: 'negative', label: 'Plays for Loss' }, '', StatsEngine.defMark('playsForLoss')) : ''}
+            ${row('Turnovers', np.turnovers, null)}
+            ${np.lossTotal ? row('Plays for Loss', np.lossTotal, { type: 'situation', val: 'negative', label: 'Plays for Loss' }) : ''}
             ${kids ? `<div class="gi-np-kids">${kids}</div>` : ''}
             ${row('Penalties', np.penalties, null)}
           </div>
         </div>`;
+      // Coach (direct, this session): reverts the "Risk" rename from earlier
+      // in this same batch — "Risk isn't the right word there, we changed it
+      // a few builds ago." Back to "Negative Plays", the coach's own prior
+      // decision. Do not rename this again without a fresh, explicit
+      // instruction.
       lenses.push({ id: 'negative', name: 'Negative Plays', defines: 'Distinct plays that lost yardage, turned the ball over, or drew a flag, as a share of all plays.', tiles: ['x'], body, detail: 'defense', detailLabel: 'Defense report' });
     }
 
+    // Coach (direct, this session): "these definitions are still there.
+    // Delete them out and space properly." — the per-lens caption sentence is
+    // removed along with the (i) icons from the earlier round; the header and
+    // the tiles are left to explain themselves. `lens.defines` is left on
+    // each lens object rather than deleted from every `lenses.push()` call —
+    // it has no other reader today, but it is the one place each lens's
+    // definition is written down, which is worth keeping if a caption is
+    // ever wanted back.
     const cards = lenses.filter(lens => lens.tiles.length).map(lens => `
       <section class="gi-lens" data-lens="${lens.id}">
         <header class="gi-lens-head">
           <h4>${Charts._esc(lens.name)}</h4>
-          <p>${Charts._esc(lens.defines)}</p>
         </header>
         ${lens.body ? lens.body : `<div class="gi-lens-tiles">${lens.tiles.join('')}</div>`}
         ${lens.detail ? `<button type="button" class="gi-lens-more" data-lens-tab="${lens.detail}">${Charts._esc(lens.detailLabel)} &rarr;</button>` : ''}
       </section>`).join('');
     if (!cards) return '';
+    // Coach (direct, this session): removed along with the per-lens captions
+    // — the board-level intro sentence explaining highlighted-vs-unhighlighted
+    // tiles is gone too. Header and tiles only.
     return `
       <div class="stats-section gi-lens-board">
         <h3>Key Metrics</h3>
-        <p class="viz-caption">All five lenses read the same charted plays. Highlighted tiles play their exact cohort; unhighlighted tiles have no film cut.</p>
         <div class="gi-lens-grid">${cards}</div>
       </div>`;
   }
@@ -3059,10 +3130,20 @@ export class StatsEngine {
       ${cut && opts.profile !== false ? this._renderTeamProfile(stats) : ''}`;
   }
 
-  /* F12c — renders only with at least two charted games, because "compared to
-     our best" is meaningless against a single game. Empty is omitted, not
-     zeroed. The caption states the scale explicitly so a moved axis is never
-     silent. */
+  /**
+   * Reports redesign (item D) — renders only with at least two charted games,
+   * because a comparison is meaningless against a single game. Empty is
+   * omitted, not zeroed.
+   *
+   * Default is now CURRENT GAME vs SEASON AVERAGE (a team-relative reading a
+   * coach can act on mid-season), not the old per-axis Season Best default.
+   * The scale itself is still anchored to the season's best/worst per axis —
+   * that is what "further out = better" means — but the shape drawn against
+   * it is this game vs the average, with Season Best carried as a named
+   * secondary column in the value table rather than silently dropped. Actual
+   * values are listed for every spoke so the chart never stands alone as
+   * normalized geometry with no real numbers attached.
+   */
   _renderTeamProfile(stats) {
     let seasonStats = [];
     try {
@@ -3071,14 +3152,24 @@ export class StatsEngine {
         .map(game => this.compute(game.plays));
     } catch { return ''; }
     if (seasonStats.length < 2) return '';
-    const profile = this._teamProfile(stats, seasonStats);
+    const profile = this._teamProfile(stats, seasonStats, { compare: 'average' });
     if (!profile) return '';
-    const svg = Charts.radar(profile.axes, { label: 'Team profile against our season best' });
+    const svg = Charts.radar(profile.axes, { label: 'Team profile: this game vs season average', compareName: 'season average' });
     if (!svg) return '';
-    return `<div class="stats-section">
-      <h3>Team profile vs season best</h3>
-      <p class="viz-caption">Each axis runs from our worst to our best across ${profile.games} charted games. Further out = better on every spoke.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
-      ${svg}
+    const rows = profile.axes.map(a => `
+      <tr><td>${Charts._esc(a.label)}</td>
+        <td class="gi-tp-now">${Charts._esc(a.valueLabel)}</td>
+        <td>${Charts._esc(a.compareLabel)}</td>
+        <td>${a.lower ? '≤ ' : ''}${typeof a.best === 'number' ? (Number.isInteger(a.best) ? a.best : a.best.toFixed(1)) : a.best}${a.isBest ? ' <span class="gi-tp-best-mark" title="Season best">★</span>' : ''}</td>
+      </tr>`).join('');
+    return `<div class="stats-section gi-team-profile">
+      <h3>Team profile</h3>
+      <p class="viz-caption">This game against our own season average — a team-relative read, not a league benchmark — across ${profile.games} charted games. Each axis still scales to our season's own best/worst, so further out always means closer to our best.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
+      <div class="gi-tp-layout">
+        ${svg}
+        <div class="gi-tp-table-wrap"><table class="stats-table gi-tp-table"><thead><tr><th>Metric</th><th>This game</th><th>Season avg</th><th>Season best</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      </div>
     </div>`;
   }
 
@@ -3162,30 +3253,27 @@ export class StatsEngine {
       </div>`;
   }
 
+  /**
+   * Reports redesign — trimmed to the summary (cards + outcome donut) only.
+   * It used to ALSO draw its own non-interactive numbered drive list right
+   * below the donut — a second, worse copy of exactly what `_renderDriveChart`
+   * already drew with real click-to-film wiring, and the two together are what
+   * left ~370px of empty column under this section next to the taller
+   * Efficiency/By Down/Big Plays stack (measured on the installed app, not
+   * assumed fixed by an earlier CSS pass). `_renderGameTimeline` below is now
+   * the ONE clickable drive view; this section stays the compact summary that
+   * belongs beside it in the two-column row.
+   */
   _renderDrives(stats) {
     const d = stats.drives;
     if (d.total === 0) return '';
-    const colorMap = { TD: '#22c55e', FG: '#3b82f6', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
+    const colorMap = { TD: 'var(--gi-first-down,#22c55e)', FG: 'var(--gi-pass,#3b82f6)', Safety: '#a78bfa', Punt: 'var(--gi-8,#6b7280)', Turnover: 'var(--gi-turnover,#ef4444)', Kneel: 'var(--gi-8,#4b5563)', Other: 'var(--gi-warn,#f59e0b)' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
     const outcomeDonut = Charts.donutWithLegend(
-      Object.entries(outcomeCounts).map(([k, v]) => ({ value: v, color: colorMap[k] || '#aaa', label: k })),
+      Object.entries(outcomeCounts).map(([k, v]) => ({ value: v, color: colorMap[k] || 'var(--gi-8)', label: k })),
       100, String(d.total), 'drives'
     );
-
-    let rows = '';
-    const maxYds = Math.max(1, ...d.list.map(dr => Math.abs(dr.yards)));
-    for (const dr of d.list) {
-      const color = colorMap[dr.outcome] || '#aaa';
-      const barPct = Math.max(3, (Math.abs(dr.yards) / maxYds) * 100);
-      const startLabel = dr.startYL != null ? (dr.startYL > 50 ? `Opp ${100 - dr.startYL}` : `Own ${dr.startYL}`) : '';
-      rows += `<div class="drive-row">
-        <span class="drive-num">${dr.number}</span>
-        <div class="drive-bar"><div style="background:${color};height:100%;width:${barPct.toFixed(1)}%;border-radius:3px"></div></div>
-        <span class="drive-meta">${startLabel ? startLabel + ' · ' : ''}${dr.plays}pl · ${dr.yards}yd</span>
-        <span class="drive-outcome" style="color:${color}">${dr.outcome}</span>
-      </div>`;
-    }
     return `
       <div class="stats-section">
         <h3>Drives</h3>
@@ -3199,15 +3287,65 @@ export class StatsEngine {
           </div>
           <div class="drives-donut">${outcomeDonut}</div>
         </div>
-        <div class="drive-chart">${rows}</div>
       </div>`;
   }
 
-  _renderGameFlow(stats) {
-    if (!stats.gameFlow || stats.gameFlow.length < 3) return '';
+  /**
+   * Reports redesign (item G) — the game timeline. Replaces BOTH the
+   * stretched cumulative-yards line (`_renderGameFlow`) and the separate
+   * "Drive Chart" bar list (`_renderDriveChart`) with one compact view: one
+   * segment per drive, grouped by quarter, colored by outcome, each carrying
+   * the SAME `data-drive-ids` click-to-film wiring `_renderDriveChart`
+   * already had (`_bindContent`'s `.drive-row[data-drive-ids]` binding is
+   * unchanged) — turnovers and explosive plays get a marker read off the
+   * already-computed `stats.bigPlays` set and the drive's own outcome, not a
+   * new formula. Cumulative yards survives as a thin secondary sparkline
+   * beneath the drive row, per the brief's "keep only as secondary context".
+   *
+   * Quarter is looked up from the RAW play the drive's first playId points
+   * at (`this.tagger.plays`), not stored on the `stats.drives` object — this
+   * keeps `compute()`'s output shape, and therefore the parity golden,
+   * completely unchanged.
+   */
+  _renderGameTimeline(stats) {
+    const list = stats.drives?.list || [];
+    if (!list.length) return '';
+    const colorMap = { TD: 'var(--gi-first-down,#22c55e)', FG: 'var(--gi-pass,#3b82f6)', Safety: '#a78bfa', Turnover: 'var(--gi-turnover,#ef4444)', Punt: 'var(--gi-8,#94a3b8)', Kneel: 'var(--gi-8,#64748b)', Other: 'var(--gi-8,#64748b)' };
+    const byId = new Map((this.tagger?.plays || []).map(p => [p.id, p]));
+    const explosiveIds = new Set((stats.bigPlays || []).map(p => p.id));
+    const maxYds = Math.max(10, ...list.map(d => Math.abs(d.yards)));
+    let lastQuarter = null;
+    const segments = list.map(d => {
+      const quarter = byId.get(d.playIds?.[0])?.tags?.quarter || '';
+      const quarterBreak = quarter && quarter !== lastQuarter;
+      if (quarter) lastQuarter = quarter;
+      const color = colorMap[d.outcome] || 'var(--gi-8)';
+      const width = Math.max(6, Math.round(Math.min(100, Math.abs(d.yards) / maxYds * 100)));
+      const startLabel = d.startYL != null ? (d.startYL > 50 ? `Opp ${100 - d.startYL}` : `Own ${d.startYL}`) : '';
+      const hasExplosive = (d.playIds || []).some(id => explosiveIds.has(id));
+      const isTurnover = d.outcome === 'Turnover';
+      const markers = [
+        d.outcome === 'TD' || d.outcome === 'FG' ? '<i class="gi-tl-mark gi-tl-score" title="Scored">●</i>' : '',
+        isTurnover ? '<i class="gi-tl-mark gi-tl-turnover" title="Turnover">✕</i>' : '',
+        hasExplosive ? '<i class="gi-tl-mark gi-tl-explosive" title="Explosive play">▲</i>' : '',
+      ].filter(Boolean).join('');
+      return `${quarterBreak ? `<div class="gi-tl-quarter">${Charts._esc(quarter)}</div>` : ''}
+        <div class="gi-tl-drive cut-row" data-drive-ids="${(d.playIds || []).join(',')}" tabindex="0" role="button" title="Watch drive ${d.number}">
+          <span class="gi-tl-num">Dr ${d.number}</span>
+          <span class="gi-tl-track"><i style="width:${width}%;background:${color}"></i></span>
+          <span class="gi-tl-markers">${markers}</span>
+          <span class="gi-tl-meta">${startLabel ? startLabel + ' · ' : ''}${d.plays}pl · ${d.yards >= 0 ? '+' : ''}${d.yards}yd</span>
+          <span class="gi-tl-outcome" style="color:${color}">${Charts._esc(d.outcome)}</span>
+        </div>`;
+    }).join('');
+    const flowValues = (stats.gameFlow || []).map(p => p.cumYards);
+    const sparkline = flowValues.length >= 2 ? Charts.sparkline(flowValues, { width: 700, height: 34, fill: true }) : '';
     return `
-      <div class="stats-section viz-section">
-        ${Charts.gameFlow(stats.gameFlow)}
+      <div class="stats-section">
+        <h3>Game Timeline</h3>
+        <p class="viz-caption">One row per possession, grouped by quarter. ● scored · ✕ turnover · ▲ explosive play. Click a drive to watch it.</p>
+        <div class="gi-timeline">${segments}</div>
+        ${sparkline ? `<figure class="gi-tl-flow"><figcaption>Cumulative yards<span>${flowValues[flowValues.length - 1]} total</span></figcaption>${sparkline}</figure>` : ''}
       </div>`;
   }
 
@@ -3400,7 +3538,9 @@ export class StatsEngine {
     };
     const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
     const kpis = [];
-    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33), tip: SUCCESS_RATE_TIP });
+    // Coach: "on-schedule" is commentary, not definitional; the tip already
+    // carries the real definition (SUCCESS_RATE_TIP).
+    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: '', tone: tone(succ, 45, 33), tip: SUCCESS_RATE_TIP });
     if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
     if (neg != null) kpis.push({ label: 'Plays for Loss', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
     kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
@@ -3413,44 +3553,29 @@ export class StatsEngine {
       </div>`).join('')}</div>`;
   }
 
+  /**
+   * Reports redesign (item A) — this used to open with "Team Summary": TD /
+   * Turnover cards and a Run Rate donut, all now READ FROM THE PAGE ABOVE —
+   * the persistent KPI rail carries Plays per Phase and Success Rate, and the
+   * Key Metrics lens board's Tendencies/Risk lenses already carry Run rate and
+   * Turnovers. Repeating them here was the "duplicated Overview/Team Summary
+   * information" the redesign brief named directly. Only the Yards-by-Type
+   * shape (a real chart, not shown as a chart anywhere else) survives, sized
+   * down to a compact companion beside the Rushing/Passing detail tables
+   * instead of leading its own section.
+   */
   _renderTeamStats(stats) {
     const r = stats.rushing;
     const p = stats.passing;
-    const s = stats.scoring;
-    const t = stats.turnovers;
-    const tend = stats.tendencies;
     const totalYards = r.yards + p.yards;
 
-    // AX-5: title above, one primary number in the ring, legend below.
-    // F1 (S6-4e): each donut used to carry a SECOND legend underneath — a row
-    // of dots with labels and no values, sitting under a legend that already
-    // had both. `donutBlock` owns the legend; the dot row is gone.
-    const rpDonut = Charts.donutBlock([
-      { value: tend.runs, color: RUN_COLOR, label: 'Run' },
-      { value: tend.passes, color: PASS_COLOR, label: 'Pass' }
-    ], 110, tend.runPct + '%', 'Run Rate');
-
-    const ydsDonut = Charts.donutBlock([
+    const ydsDonut = totalYards ? Charts.donutBlock([
       { value: Math.max(0, r.yards), color: RUN_COLOR, label: 'Rush Yards' },
       { value: Math.max(0, p.yards), color: PASS_COLOR, label: 'Pass Yards' }
-    ], 110, String(totalYards), 'Total Yards');
+    ], 92, String(totalYards), 'Yards by Type') : '';
 
     return `
-      <div class="stats-section">
-        <h3>Team Summary</h3>
-        <div class="team-summary-row">
-          <div class="stats-grid stats-grid-flex">
-            <div class="stat-card"><div class="stat-card-title">TDs</div><div class="stat-card-value">${s.touchdowns}</div><div style="font-size:11px;opacity:.6">${s.rushingTDs}R / ${s.passingTDs}P</div></div>
-            <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${t.total}</div><div style="font-size:11px;opacity:.6">${t.interceptions} INT / ${t.fumbles} Fum</div></div>
-          </div>
-          <div class="team-summary-donuts">
-            <div class="team-donut-cell">${rpDonut}</div>
-            <div class="team-donut-cell">${ydsDonut}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="stats-section stats-two-col">
+      <div class="stats-section gi-team-detail">
         <div>
           <h3>Rushing</h3>
           <table class="stats-table">
@@ -3477,6 +3602,7 @@ export class StatsEngine {
             <tr><td>First Downs</td><td>${p.firstDowns}</td></tr>
           </table>
         </div>
+        ${ydsDonut ? `<div class="gi-team-detail-chart">${ydsDonut}</div>` : ''}
       </div>
     `;
   }
@@ -4212,7 +4338,16 @@ export class StatsEngine {
    * Lower-is-better spokes are inverted so that OUTWARD always means BETTER;
    * a radar where one spoke means the opposite of its neighbours is a trap.
    */
-  _teamProfile(gameStats, seasonGames) {
+  /**
+   * Reports redesign (item D) — the default comparison is now CURRENT GAME
+   * vs SEASON AVERAGE, not per-axis Season Best. Every axis keeps a fixed
+   * [0, best-of-season] scale (so "further out" always means "closer to the
+   * best game we've played", the same honest anchor the old best-only view
+   * used) but now plots TWO points on it: this game, and the season mean —
+   * both reported as real values, not only the normalized geometry. Season
+   * Best remains available as a secondary series via `opts.compare`.
+   */
+  _teamProfile(gameStats, seasonGames, opts = {}) {
     const measure = (stats) => {
       const e = stats?.efficiency || {};
       const d = stats?.downs || {};
@@ -4226,32 +4361,39 @@ export class StatsEngine {
       };
     };
     const SPOKES = [
-      { key: 'success', label: 'Efficiency', lower: false },
-      { key: 'explosive', label: 'Explosiveness', lower: false },
-      { key: 'thirdDown', label: 'Third down', lower: false },
-      { key: 'ypp', label: 'Yards / play', lower: false },
-      { key: 'ballSecurity', label: 'Ball security', lower: true },
+      { key: 'success', label: 'Efficiency', lower: false, fmt: v => `${Math.round(v)}%` },
+      { key: 'explosive', label: 'Explosiveness', lower: false, fmt: v => `${Math.round(v)}%` },
+      { key: 'thirdDown', label: 'Third down', lower: false, fmt: v => `${Math.round(v)}%` },
+      { key: 'ypp', label: 'Yards / play', lower: false, fmt: v => v.toFixed(1) },
+      { key: 'ballSecurity', label: 'Ball security', lower: true, fmt: v => `${Math.round(v)}%` },
     ];
     const now = measure(gameStats);
     const history = (seasonGames || []).map(measure);
     if (!history.length) return null;
+    const compare = opts.compare === 'best' ? 'best' : 'average';
 
     const axes = SPOKES.map(spoke => {
       const values = history.map(h => h[spoke.key]).filter(v => Number.isFinite(v));
       const best = spoke.lower ? Math.min(...values) : Math.max(...values);
       const worst = spoke.lower ? Math.max(...values) : Math.min(...values);
+      const mean = values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
       const value = now[spoke.key];
-      // Outward is always better. For a lower-is-better spoke the scale runs
-      // from the worst game (0) to the best game (1), inverted.
+      const compareValue = compare === 'best' ? best : mean;
+      // Outward is always better; the scale is fixed to [worst, best] across
+      // the season so a moved axis on ONE series doesn't silently rescale
+      // the other. For a lower-is-better spoke the direction inverts.
       const span = Math.abs(best - worst);
-      const ratio = span ? Math.abs(value - worst) / span : (values.length ? 1 : 0);
+      const ratioOf = v => Math.max(0, Math.min(1, span ? Math.abs(v - worst) / span : (values.length ? 1 : 0)));
       return {
-        label: spoke.label, value, best, lower: spoke.lower,
-        ratio: Math.max(0, Math.min(1, ratio)),
+        label: spoke.label, value, valueLabel: spoke.fmt(value),
+        compareValue, compareLabel: spoke.fmt(compareValue),
+        best, lower: spoke.lower,
+        ratio: ratioOf(value),
+        compareRatio: ratioOf(compareValue),
         isBest: spoke.lower ? value <= best : value >= best,
       };
     });
-    return { axes, games: history.length, newBest: axes.some(a => a.isBest) };
+    return { axes, games: history.length, newBest: axes.some(a => a.isBest), compare };
   }
 
   _scoutByDown(plays) {

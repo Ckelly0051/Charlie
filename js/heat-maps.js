@@ -48,6 +48,30 @@ export class HeatMaps {
         if (target) target.classList.add('active');
       });
     });
+    // Field-position dots (item H): one delegated click/keydown handler for
+    // every dot, rather than one listener per play. `data-heat-ref` is either
+    // a composite `gameId::playId` (season scope, where `__gid` is stamped —
+    // see H16 in CLAUDE.md on why bare ids collide across games) or a bare
+    // play id (game scope, the active game only). The `::` in the ref decides
+    // which owner resolves it, mirroring the same split reports-screen.js's
+    // `_bindContent` already makes between season-pane and game-pane rows.
+    const activate = target => {
+      const ref = target?.dataset?.heatRef;
+      if (!ref) return;
+      const label = target.dataset.heatLabel || 'Field position';
+      if (ref.includes('::')) window.app?.filmNavigation?.watch?.([ref], { label });
+      else window.app?.stats?._watchPlays?.(play => String(play.id) === ref, label);
+    };
+    container.querySelectorAll('.hm-field-wrap').forEach(wrap => {
+      wrap.addEventListener('click', event => activate(event.target.closest('.hm-dot')));
+      wrap.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const dot = event.target.closest('.hm-dot');
+        if (!dot) return;
+        event.preventDefault();
+        activate(dot);
+      });
+    });
   }
 
   _absYardLine(tags) {
@@ -56,11 +80,20 @@ export class HeatMaps {
     return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
   }
 
+  /**
+   * Reports redesign (item H) — enlarged field + dots, real hit targets, and
+   * genuine click/keyboard-to-film per play (previously a tooltip only — this
+   * visual had NO film link at all). Each dot carries its own composite
+   * `gameId::playId` ref via `data-heat-ref`; `bind()` wires a single
+   * delegated click/keydown handler rather than one listener per dot. Overlap
+   * is still handled with a hash-based jitter (unchanged math), now scaled
+   * to the larger canvas.
+   */
   _renderField(plays) {
-    const W = 1000, H = 440;
-    const fStart = 60, fEnd = 940;
+    const W = 1200, H = 560;
+    const fStart = 70, fEnd = 1130;
     const fW = fEnd - fStart;
-    const fTop = 60, fBot = 380;
+    const fTop = 70, fBot = 480;
     const fH = fBot - fTop;
 
     const plotted = plays.filter(p => this._absYardLine(p.tags) !== null);
@@ -75,8 +108,8 @@ export class HeatMaps {
       lines += `<line x1="${x}" y1="${fTop}" x2="${x}" y2="${fBot}" stroke="#fff" stroke-width="${isMajor ? 2 : 1}" opacity="${isMajor ? 0.6 : 0.3}"/>`;
       if (i > 0 && i < 100) {
         const label = i === 50 ? '50' : (i < 50 ? i : 100 - i);
-        lines += `<text x="${x}" y="${fTop + 22}" fill="#fff" text-anchor="middle" font-size="14" opacity="0.7">${label}</text>`;
-        lines += `<text x="${x}" y="${fBot - 8}" fill="#fff" text-anchor="middle" font-size="14" opacity="0.7">${label}</text>`;
+        lines += `<text x="${x}" y="${fTop + 26}" fill="#fff" text-anchor="middle" font-size="16" opacity="0.7">${label}</text>`;
+        lines += `<text x="${x}" y="${fBot - 10}" fill="#fff" text-anchor="middle" font-size="16" opacity="0.7">${label}</text>`;
       }
     }
 
@@ -94,21 +127,31 @@ export class HeatMaps {
       let yFrac = 0.5;
       if (hash === 'Left') yFrac = 0.25;
       else if (hash === 'Right') yFrac = 0.75;
-      // Tiny jitter so overlapping plays don't fully hide
-      const jitter = ((p.id * 37) % 11 - 5) * 1.5;
+      // Hash-based jitter so overlapping plays don't fully hide, scaled to
+      // the larger canvas (same spread ratio as before, bigger canvas).
+      const jitter = ((p.id * 37) % 11 - 5) * 2.1;
       const y = fTop + yFrac * fH + jitter;
 
       const yds = parseInt(p.tags.yardage) || 0;
-      let color = '#888', radius = 5;
+      let color = '#888', radius = 7;
       const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
-      if (rParts.includes('Touchdown')) { color = '#22c55e'; radius = 7; }
-      else if (yds >= 20) { color = '#38bdf8'; radius = 6; }
+      if (rParts.includes('Touchdown')) { color = '#22c55e'; radius = 9; }
+      else if (yds >= 20) { color = '#38bdf8'; radius = 8; }
       else if (yds >= 4) { color = '#f97316'; }
       else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ef4444'; }
-      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#a855f7'; radius = 6; }
+      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#a855f7'; radius = 8; }
 
-      const desc = `Play ${p.id}: ${p.tags.playType || ''} ${yds}yd ${p.tags.result || ''}`.trim();
-      dots += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.5" opacity="0.8"><title>${this._escape(desc)}</title></circle>`;
+      const situation = [p.tags.down ? `${p.tags.down}${{'1':'st','2':'nd','3':'rd','4':'th'}[p.tags.down] || ''} & ${p.tags.distance || '?'}` : '', p.tags.playType || ''].filter(Boolean).join(' · ');
+      const phase = p.tags.unit === 'defense' ? 'Defense' : p.tags.unit === 'special' ? 'Special Teams' : 'Offense';
+      const desc = `Play ${p.id} — ${phase}${situation ? ' · ' + situation : ''} · ${yds >= 0 ? '+' : ''}${yds} yd${p.tags.result ? ' · ' + p.tags.result : ''}`;
+      const ref = p.__gid != null ? `${p.__gid}::${p.id}` : String(p.id);
+      // Invisible larger hit-circle UNDER the visible dot — the click target
+      // is bigger than the mark without inflating the mark's own visual size.
+      dots += `<g class="hm-dot" data-heat-ref="${this._escape(ref)}" data-heat-label="${this._escape(desc)}" tabindex="0" role="button" aria-label="Watch: ${this._escape(desc)}">
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius + 7}" fill="transparent"/>
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.75" opacity="0.85"/>
+        <title>${this._escape(desc)}</title>
+      </g>`;
     }
 
     return `
@@ -118,8 +161,8 @@ export class HeatMaps {
           <rect x="${fEnd}" y="${fTop}" width="${fStart}" height="${fH}" fill="#0a3a0a"/>
           <rect x="${fStart}" y="${fTop}" width="${fW}" height="${fH}" fill="#1f5e1f"/>
           ${lines}
-          <text x="30" y="${(fTop + fBot) / 2}" fill="#fff" text-anchor="middle" font-size="22" font-weight="bold" transform="rotate(-90 30 ${(fTop + fBot) / 2})">OWN</text>
-          <text x="970" y="${(fTop + fBot) / 2}" fill="#fff" text-anchor="middle" font-size="22" font-weight="bold" transform="rotate(90 970 ${(fTop + fBot) / 2})">OPP</text>
+          <text x="35" y="${(fTop + fBot) / 2}" fill="#fff" text-anchor="middle" font-size="26" font-weight="bold" transform="rotate(-90 35 ${(fTop + fBot) / 2})">OWN</text>
+          <text x="1165" y="${(fTop + fBot) / 2}" fill="#fff" text-anchor="middle" font-size="26" font-weight="bold" transform="rotate(90 1165 ${(fTop + fBot) / 2})">OPP</text>
           ${dots}
         </svg>
         <div class="hm-legend">
@@ -130,7 +173,7 @@ export class HeatMaps {
           <span><i style="background:#ef4444"></i> Loss/Sack</span>
           <span><i style="background:#a855f7"></i> Turnover</span>
         </div>
-        <p class="hm-caption">${plotted.length} of ${plays.length} plays plotted (need yard line + side tagged). Hover a dot for details.</p>
+        <p class="hm-caption">${plotted.length} of ${plays.length} plays plotted (need yard line + side tagged). Click or focus a dot to watch that exact play.</p>
       </div>
     `;
   }

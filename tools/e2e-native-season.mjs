@@ -64,9 +64,12 @@ ok(state.route === 'reports' && state.classicHidden && !state.legacy,
 await page.click('[data-report-tab="season"]');
 await page.waitForFunction(() => document.querySelector('[data-native-main-report][data-pane="season"] .season-summary'));
 state = await page.evaluate(() => ({
-  summary: [...document.querySelectorAll('[data-pane="season"] .ss-stat')].map(card => ({
-    value: card.querySelector('.ss-num')?.textContent.trim(),
-    label: card.querySelector('.ss-lbl')?.textContent.trim(),
+  // Reports redesign (item A): the season KPI rail is now the same .gi-hero/
+  // .gi-kpi primitive the game-scope persistent rail uses (see
+  // ReportsScreen._syncKpiRail), not the retired .ss-stat/.ss-num markup.
+  summary: [...document.querySelectorAll('[data-pane="season"] .season-summary .gi-kpi')].map(card => ({
+    value: card.querySelector('.gi-kpi-value')?.textContent.trim(),
+    label: card.querySelector('.gi-kpi-label')?.textContent.trim(),
   })),
   subTabs: [...document.querySelectorAll('[data-pane="season"] .gi-subtab')].map(button => button.textContent.trim()),
   // A season row must resolve its own cross-game composite refs. A row still
@@ -77,7 +80,15 @@ state = await page.evaluate(() => ({
   data: JSON.stringify(window.app.storage.seasonStore.data),
 }));
 const metric = label => state.summary.find(item => item.label === label)?.value;
-ok(metric('Games') === '2' && metric('Record') === '1-1' && metric('Plays') === '3' && metric('Total Yds') === '17',
+// "Total Plays"/"Total Yds" are no longer their own tiles (item A dropped the
+// redundant Total Yards card); "Yards by Type" carries the same aggregated
+// total (rush+pass yards across BOTH games including the live, uncommitted
+// edit) as its primary value, so it proves the identical guarantee: 17, not
+// 13, is only reachable if the in-memory edit was picked up without writing
+// it back to the store.
+ok(metric('Games') === '2' && metric('Record') === '1-1'
+  && metric('Points For / Against') === '21-28' && metric('Point Differential') === '-7'
+  && metric('Yards by Type') === '17',
   'Native Season report aggregates both games and includes an uncommitted live edit without writing it', JSON.stringify(state.summary));
 // H16 — the season view is now composed from the game report's block set, so
 // its sections mirror the game tabs instead of a hand-maintained subset. The
@@ -88,6 +99,22 @@ ok(state.subTabs.join('|') === 'Overview|Offense|Defense|Special Teams|Players|S
 ok(state.seasonFilmRows > 0 && state.gameScopedLeaks === 0,
   'H16: every clickable season row films the SEASON, not the active game only',
   JSON.stringify({ seasonFilmRows: state.seasonFilmRows, gameScopedLeaks: state.gameScopedLeaks }));
+
+// Reports redesign (item A) regression: the persistent game-scope KPI rail
+// must hide on the Season tab, which carries its own equivalent hero. Found
+// by screenshot review, not by any prior harness — every existing assertion
+// reached the Season tab via a single click from a fresh route, which never
+// exercised _setChrome()'s render-pass side effect of unconditionally
+// re-revealing every `data-reports-main-chrome` node (the rail used to be
+// one) on the very next render. A second tab switch reproduces it.
+const railHidden = () => document.querySelector('[data-reports-rail]')?.hidden;
+const railOnSeason = await page.evaluate(railHidden);
+await page.click('[data-report-tab="overview"]');
+await page.waitForFunction(() => !document.querySelector('[data-reports-rail]')?.hidden);
+const railOnOverview = await page.evaluate(railHidden);
+ok(railOnSeason === true && railOnOverview === false,
+  'The persistent KPI rail hides on the Season tab and reappears when switching back to Overview',
+  JSON.stringify({ railOnSeason, railOnOverview }));
 const diffAt = [...Array(Math.max(state.data.length, fixture.before.length)).keys()]
   .find(index => state.data[index] !== fixture.before[index]);
 ok(state.data === fixture.before, 'Opening and reading season analytics leaves canonical season bytes unchanged',

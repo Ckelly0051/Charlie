@@ -14,6 +14,70 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
+
+**Not a numbered milestone; not yet reviewed by Codex; no installer built.** A
+coach-driven visual QA pass over the native Reports screen's five-lens Overview
+board and the rest of the report tabs, run after S7 closed. Source only —
+`APP_VERSION`/Tauri/Cargo remain stamped `1.12.0-44`.
+
+**What changed, all in `_renderLensBoard` (`stats-engine.js`) and its CSS
+(`native-reports.css`), plus one shared hero-row rule:**
+
+- **Root-caused a real centering bug, not a viewing artifact.** `.gi-glance-tile`
+  was `display:grid` with no `grid-template-columns` declared, so the implicit
+  column auto-sized to its widest content line instead of the tile's actual
+  width — narrow tiles (e.g. "Top Formation · Bunch") rendered visibly
+  off-center. Fixed with `grid-template-columns:minmax(0,1fr)`, the same
+  pattern already used by the sibling `.gi-lens-tiles` rule. A first pass at
+  this measured the wrong (wider) tile and wrongly concluded there was no bug —
+  corrected once the coach pointed at the exact tile.
+- **A second, unrelated instance of the "fill the space or kill the space"
+  house rule (G6)**: `.gi-reports .season-summary{display:flex}` was
+  overriding `.gi-hero`'s self-correcting `grid-template-columns:repeat
+  (auto-fit,...)`, leaving a ~158px dead gap after the last KPI tile on the
+  season-scope hero row. Deleted the redundant `.season-summary` rule (grep-
+  confirmed single occurrence) so `.gi-hero`'s existing grid takes over — same
+  fix shape as the game-level Game-at-a-Glance hero, found while sweeping the
+  Season tab's own sub-tabs for the same bug class.
+- Label + definition icon merged into one `.gi-glance-label` span (was two
+  separate DOM children, rendering the icon on its own line).
+- Situational lens now always renders all spots (Red Zone / Goal Line / 3rd &
+  Long / 3rd & Short), with an explicit `is-empty` "no data" state instead of
+  silently omitting a spot with nothing charted.
+- Removed the per-tile `[i]` definition icons and the per-lens caption
+  sentence from the lens board — both were coach-flagged as clutter once the
+  layout bugs were fixed and the tiles were readable on their own.
+- Negative Plays lens: reverted the "Risk" rename (id/name both back to
+  `negative`/`Negative Plays` — the rename had come from a stale task brief,
+  not a coach decision) and gave `.gi-np-rows` a visible border + real gap
+  (previously 1px gap, no border — read as "odd black boxes").
+
+**New permanent regression**, mutation-verified: `e2e-native-reports.mjs`
+injects a probe tile with the exact real-world content shape that triggered
+the bug ("Top formation" / "Bunch" / "8 snaps · 63%") and asserts the implicit
+grid column never sizes wider than the tile's own content box. Reverting the
+CSS fix reproduces a measurable overflow; restoring it clears to ~0. Also
+pins: no lens is named "Risk", zero `[i]` definition icons remain on the
+board, and no lens carries a caption sentence.
+
+**Verified across every report tab, not just Overview** — Offense, Defense,
+Special Teams, Players, Self-Scout, and the Season tab's own seven sub-tabs
+were screenshotted and reviewed for the same bug classes. Only the
+`.season-summary` dead-space bug above was found there; everything else uses
+different, pre-existing components (`.gi-kpi` left-aligned KPI cards, plain
+data tables) that were never touched and show no issue.
+
+**Verification:** `e2e-native-reports` 63/63, `e2e-native-season` 10/10,
+`e2e-season-tab` 167/167, parity 2/2 (both goldens, 814 drilldowns). Full
+canonical gate re-run clean: **83 harnesses | 83 green | 0 skipped | 0
+failed** — same harness count as the prior S7 baseline, zero drops.
+`cargo check --manifest-path src-tauri/Cargo.toml`: clean.
+
+**Not done:** no Codex review of this diff; no installer; the coach's own
+app-wide bug sweep (the same bug classes on Home/Break Down/Study/Plan/Team
+Hub/Settings) has not started; no version bump.
+
 ### ▶ S7 FULLY CLOSED at `1.12.0-44` (coach, 2026-08-10)
 
 **Administrative closeout, coach's explicit call.** S7-0 through S7-d (ledger,
