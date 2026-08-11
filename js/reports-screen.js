@@ -364,8 +364,8 @@ export class ReportsScreen {
         : ' class="gi-answer-row"';
       return `<li${attrs}><span>${Charts._esc(label)}</span><strong>${Charts._esc(value)}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</li>`;
     };
-    const block = (title, note, rows) => rows.length
-      ? `<section class="gi-answer"><h4>${Charts._esc(title)}</h4><p>${Charts._esc(note)}</p><ul>${rows.join('')}</ul></section>` : '';
+    const block = (title, rows) => rows.length
+      ? `<section class="gi-answer"><h4>${Charts._esc(title)}</h4><ul>${rows.join('')}</ul></section>` : '';
 
     const expect = (off?.formationDetail || []).slice(0, 3).map(row =>
       line(row.name, `${row.total} snaps`, `${row.runPct}% run`));
@@ -374,30 +374,30 @@ export class ReportsScreen {
     const avoid = join ? [join.worst].filter(Boolean).filter(row => row !== join.best).map(row =>
       line(row.name, `${row.succPct}% success`, `${row.n} snaps · ${row.avg} avg`, row.refs)) : [];
     const risk = join ? [
-      line('They bring pressure', `${join.pressure.ratePct}% of snaps`,
-        `${join.pressure.blitzed.succPct}% success against it`, join.pressure.blitzed.refs),
+      line('Blitz Rate', `${join.pressure.ratePct}% of snaps`,
+        `Success Rate: ${join.pressure.blitzed.n ? `${join.pressure.blitzed.succPct}%` : 'N/A'}`, join.pressure.blitzed.refs),
       join.pressure.blitzed.sacks ? line('Sacks allowed', String(join.pressure.blitzed.sacks + join.pressure.noBlitz.sacks), 'across this cohort') : '',
     ].filter(Boolean) : [];
 
     return `
-      <div class="stats-cut-hint">Every line reads the same charted plays. Highlighted rows play their exact snaps.</div>
+
       <div class="stats-section gi-answer-head">
         <h3>${Charts._esc(opponentName)}</h3>
         ${identity ? `<p class="gi-answer-identity">${Charts._esc(identity)}</p>` : ''}
-        <p class="viz-caption">${data.games} charted game${data.games === 1 ? '' : 's'} · ${data.offCount} of their offensive snaps · ${data.defCount} of their defensive snaps${thin ? ' — under the minimum sample for a reliable read.' : ''}</p>
+        <p class="viz-caption gi-answer-sample">Games Charted: ${data.games} · Offensive Snaps: ${data.offCount} · Defensive Snaps: ${data.defCount}${thin ? ' · Small Sample' : ''}</p>
       </div>
       <div class="stats-section gi-answer-grid">
-        ${block('Expect', 'Their most frequent looks.', expect)}
-        ${block('Attack', 'Where our offense had the most success against them.', attack)}
-        ${block('Avoid', 'Where it did not.', avoid)}
-        ${block('Risk', 'What their pressure costs us.', risk)}
+        ${block('Expect', expect)}
+        ${block('Attack', attack)}
+        ${block('Avoid', avoid)}
+        ${block('Risk', risk)}
       </div>
       <div class="stats-section"><h3>Film</h3><div class="gi-reports-watch-row">
         ${this._opponentWatchButton('all', data.offCount + data.defCount + data.stCount, `Watch all ${opponentName} film`)}
         ${this._opponentWatchButton('offense', data.offCount, `Their offense`)}
         ${this._opponentWatchButton('defense', data.defCount, `Their defense`)}
         ${this._opponentWatchButton('special', data.stCount, `Their Special Teams`)}
-      </div><p class="viz-caption">Special Teams includes opponent-film scout games only. Head-to-head self-scout film is not silently perspective-flipped, because a stored ST play does not record whose unit the event was.</p></div>`;
+      </div></div>`;
   }
 
   /**
@@ -426,12 +426,12 @@ export class ReportsScreen {
     const p = join.pressure;
     return `
       <div class="stats-section gi-reports-unit-head"><h3>Their defense · ${join.total} snaps</h3>${this._opponentWatchButton('defense', join.total, 'Watch opponent defense')}</div>
-      <div class="stats-section"><h3>Pressure</h3>
-        <p class="viz-caption">Snaps with pressure charted, and our yards per play and success rate with and without it.</p>
+      <div class="stats-section"><h3>Blitz</h3>
+
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-card-title">Pressure rate</div><div class="stat-card-value">${p.ratePct}%</div><div class="stat-card-sub">${p.blitzed.n} of ${join.total} snaps</div></div>
-          <div class="stat-card"><div class="stat-card-title">Our success vs pressure</div><div class="stat-card-value">${p.blitzed.succPct}%</div><div class="stat-card-sub">${p.blitzed.avg} yds/play</div></div>
-          <div class="stat-card"><div class="stat-card-title">Our success without</div><div class="stat-card-value">${p.noBlitz.succPct}%</div><div class="stat-card-sub">${p.noBlitz.avg} yds/play</div></div>
+          <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">${p.ratePct}%</div><div class="stat-card-sub">${p.blitzed.n} of ${join.total} snaps</div></div>
+          <div class="stat-card"><div class="stat-card-title">Success Rate vs. Blitz</div><div class="stat-card-value">${p.blitzed.n ? `${p.blitzed.succPct}%` : 'N/A'}</div><div class="stat-card-sub">${p.blitzed.avg} yds/play</div></div>
+          <div class="stat-card"><div class="stat-card-title">No Blitz</div><div class="stat-card-value">${p.noBlitz.succPct}%</div><div class="stat-card-sub">${p.noBlitz.avg} yds/play</div></div>
           <div class="stat-card"><div class="stat-card-title">Sacks allowed</div><div class="stat-card-value">${p.blitzed.sacks + p.noBlitz.sacks}</div></div>
         </div></div>
       ${table('Fronts — and what they cost us', 'Snaps we faced from each front, with yards per play, our success rate, our explosive rate and sacks allowed against it.', join.fronts, 'Front')}
@@ -464,7 +464,7 @@ export class ReportsScreen {
     const s = this.app.stats;
     if (!stats.allPlays) return this._emptyHtml();
     return `
-      <div class="stats-cut-hint">Select any highlighted row to watch those exact plays. Report totals never substitute for the film.</div>
+
       ${s._renderGameHeader(stats)}
       ${s._renderTeamStats(stats)}
       ${s._renderLensBoard(stats)}

@@ -322,7 +322,10 @@ export class BreakdownVideo {
     button.setAttribute('aria-label', `Open play ${play.id}: ${this._situation(play)}, ${this._call(play)}, ${this._result(play)}`);
     button.querySelector('.breakdown-play-number').textContent = `PLAY ${play.id}`;
     button.querySelector('strong').textContent = this._situation(play);
-    button.querySelector('.breakdown-play-call').textContent = `${this._call(play)} · ${this._result(play)}`;
+    const call = `${this._call(play)} · ${this._result(play)}`;
+    const callEl = button.querySelector('.breakdown-play-call');
+    callEl.textContent = call;
+    callEl.title = call;
   }
 
   _renderPlay(play) {

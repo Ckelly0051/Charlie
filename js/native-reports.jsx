@@ -61,7 +61,7 @@ function NativeReportsRoute({ screen }) {
         <span>Team</span>
         <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
       </label>
-      <span class="gi-reports-film-note">Select any highlighted row to watch the exact snaps.</span>
+
     </div>
 
     {/* Reports redesign — the persistent KPI rail. Carries across every game-

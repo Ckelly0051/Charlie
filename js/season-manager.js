@@ -232,7 +232,7 @@ export class SeasonManager {
     // mistake _toMargin had. See _toMargin's docblock.
     const m = this._toMargin(stats);
     const marginStr = m.margin > 0 ? `+${m.margin}` : String(m.margin);
-    const fumbleNote = (m.defensiveFumbles || m.offensiveFumbles) ? ` · ${m.defensiveFumbles}/${m.offensiveFumbles} fumbles untracked` : '';
+    const fumbleNote = m.unresolved ? ` · ${m.unresolved} unresolved fumble${m.unresolved === 1 ? '' : 's'}` : '';
     const tend = stats.tendencies || {};
     const rushYds = stats.rushing?.yards || 0, passYds = stats.passing?.yards || 0;
     const totalYds = rushYds + passYds;
@@ -249,7 +249,7 @@ export class SeasonManager {
         ${(ptsFor || ptsAgainst) ? tile(diffStr, 'Point Differential') : ''}
         ${stats.efficiency?.successRate != null ? tile(`${stats.efficiency.successRate}%`, 'Success Rate') : ''}
         ${s.touchdowns != null ? tile(s.touchdowns, 'Touchdowns', `${s.rushingTDs || 0}R / ${s.passingTDs || 0}P`) : ''}
-        ${(m.takeaways || m.giveaways || m.defensiveFumbles || m.offensiveFumbles) ? tile(marginStr, 'INT Margin', `${m.takeaways} INT made / ${m.giveaways} INT thrown${fumbleNote}`) : ''}
+        ${(m.takeaways || m.giveaways || m.defensiveFumbles || m.offensiveFumbles) ? tile(marginStr, 'Turnover Margin', `${m.takeaways} takeaways / ${m.giveaways} giveaways${fumbleNote}`) : ''}
         ${tend.runPct != null ? tile(`${Math.round(parseFloat(tend.runPct))}%`, 'Run Rate', `${tend.runs || 0}R / ${tend.passes || 0}P`) : ''}
         ${totalYds ? tile(totalYds, 'Yards by Type', `${rushPct}% rush · ${100 - rushPct}% pass`) : ''}
       </div>
@@ -380,7 +380,7 @@ export class SeasonManager {
         <h3>Per-Game Box Score</h3>
         <div class="hm-scroll">
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Game</th><th>Plays</th><th>Yds</th><th>Rush A/Y</th><th>Pass C/A/Y</th><th>TD</th><th title="Interception margin (made − thrown). Fumbles are tagged but not counted here: recovery isn't tracked, so a fumble can't be confirmed as a turnover.">INT±</th><th title="Points per drive">PPD</th><th>Succ%</th><th>3rd%</th></tr></thead>
+            <thead><tr><th>Game</th><th>Plays</th><th>Yds</th><th>Rush A/Y</th><th>Pass C/A/Y</th><th>TD</th><th title="Takeaways minus giveaways; fumbles count only when recovery is confirmed.">TO±</th><th title="Points per drive">PPD</th><th>Succ%</th><th>3rd%</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
@@ -391,24 +391,19 @@ export class SeasonManager {
   // ---- Season analytics (v1.10.2) — aggregate the existing per-game
   //      compute() output into the season views a coach game-plans from.
 
-  /** Confirmed turnover margin for a compute() result -- INTERCEPTIONS ONLY.
-   *  An interception is unambiguously a turnover. A tagged `Fumble` result is
-   *  NOT: the tag model has no fumble-recovered-by field, so a play tagged
-   *  Fumble could be the fumbling team recovering its own ball. Counting
-   *  every tagged Fumble as an automatic takeaway/giveaway produced a false
-   *  margin (Codex review of `7532b2e`, 2026-08-11). Raw fumble counts are
-   *  returned separately, named `defensiveFumbles`/`offensiveFumbles` rather
-   *  than "forced"/"lost" -- those words assert a recovery/causation fact
-   *  the model does not have -- and must never be netted into `margin`/
-   *  `takeaways`/`giveaways` (Codex re-review of `22da6f9`, 2026-08-11). */
+  /** Confirmed turnover margin. Interceptions always count; a fumble counts
+   *  only when the charted recovery owner proves possession changed. Raw and
+   *  unresolved fumble events remain visible for ball-security QA. */
   _toMargin(s) {
-    const giveaways = (s.turnovers && s.turnovers.interceptions) || 0;
-    const takeaways = s.defensive ? (s.defensive.interceptions || 0) : 0;
-    const offensiveFumbles = (s.turnovers && s.turnovers.fumbles) || 0;
-    const defensiveFumbles = s.defensive ? (s.defensive.fumbles || 0) : 0;
-    return { margin: takeaways - giveaways, takeaways, giveaways, defensiveFumbles, offensiveFumbles };
+    const offensiveFumbles = s.turnovers?.fumbles || 0;
+    const defensiveFumbles = s.defensive?.fumbles || 0;
+    const fumblesLost = s.turnovers?.fumblesLost || 0;
+    const fumblesRecovered = s.defensive?.fumblesRecovered || 0;
+    const giveaways = (s.turnovers?.interceptions || 0) + fumblesLost;
+    const takeaways = (s.defensive?.interceptions || 0) + fumblesRecovered;
+    return { margin: takeaways - giveaways, takeaways, giveaways, offensiveFumbles, defensiveFumbles,
+      fumblesLost, fumblesRecovered, unresolved: (s.turnovers?.fumblesUnknown || 0) + (s.defensive?.fumblesUnknown || 0) };
   }
-
   _scTile(label, value, sub, tone) {
     return `<div class="gi-sc-tile${tone ? ' tone-' + tone : ''}">`
       + `<div class="gi-sc-label">${this._escape(label)}</div>`
@@ -451,13 +446,13 @@ export class SeasonManager {
     }).join('');
     const tone = m.margin > 0 ? 'good' : m.margin < 0 ? 'bad' : 'even';
     const marginStr = m.margin > 0 ? `+${m.margin}` : `${m.margin}`;
-    const fumbleNote = (m.defensiveFumbles || m.offensiveFumbles) ? ` · ${m.defensiveFumbles}/${m.offensiveFumbles} fumbles (recovery untracked)` : '';
+    const fumbleNote = m.unresolved ? ` · ${m.unresolved} unresolved fumble${m.unresolved === 1 ? '' : 's'}` : '';
     return `<div class="stats-section"><h3>Turnovers &amp; Scoring</h3>
       <div class="gi-ts-grid">
         <div class="gi-ts-margin tone-${tone}">
-          <div class="gi-sc-label">INT Margin</div>
+          <div class="gi-sc-label">Turnover Margin</div>
           <div class="gi-ts-margin-val">${marginStr}</div>
-          <div class="gi-sc-sub">${m.takeaways} INT made · ${m.giveaways} INT thrown${fumbleNote}</div>
+          <div class="gi-sc-sub">${m.takeaways} takeaways · ${m.giveaways} giveaways${fumbleNote}</div>
         </div>
         <div class="gi-ts-quarters">
           <div class="gi-sc-label">Scoring by Quarter <span class="gi-q-key"><i class="us"></i>Us <i class="them"></i>Opp</span></div>
@@ -513,7 +508,7 @@ export class SeasonManager {
         ${row('Success %', w.succ + '%', l.succ + '%')}
         ${row('3rd Down %', w.third + '%', l.third + '%')}
         ${row('Pts / Drive', w.ppd, l.ppd)}
-        ${row('INT Margin', sign(w.toM), sign(l.toM))}
+        ${row('Turnover Margin', sign(w.toM), sign(l.toM))}
       </tbody></table></div>`;
   }
 

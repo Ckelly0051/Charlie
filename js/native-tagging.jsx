@@ -65,18 +65,19 @@ function PlayCallField({screen, state}) {
   const commit = candidate => screen.selectPlayCall(candidate ?? draft);
   return <section class="gi-play-call" data-native-play-call>
     <div class="gi-tag-field-label">
-      <span>{state.unit === 'offense' && state.perspective !== 'scout' ? 'Our Play Call' : 'Opponent Play'}</span>
+      <span>{state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play'}</span>
       {state.values.playConcept && <small>Concept: {state.values.playConcept}</small>}
+      <button type="button" class="gi-play-call-library" onClick={() => screen.editPlayCallLibrary()}>Edit Library</button>
     </div>
     <div class="gi-play-call-entry">
       <input type="text" list="giPlayCallChoices" value={draft} placeholder="e.g. 26 Blast"
-        aria-label={state.unit === 'offense' && state.perspective !== 'scout' ? 'Our Play Call' : 'Opponent Play'}
+        aria-label={state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play'}
         onInput={event => setDraft(event.currentTarget.value)}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commit(event.currentTarget.value); event.currentTarget.blur(); }}}/>
       <datalist id="giPlayCallChoices">{calls.map(call => <option key={call.id} value={call.name}>{call.concept || ''}</option>)}</datalist>
       {draft.trim() && <div class="gi-play-call-entry-actions">
         <button type="button" onClick={() => commit(draft)}>{match ? 'Use call' : 'Use once'}</button>
-        {!match && <button type="button" onClick={async () => { if (await screen.addPlayCall(draft)) setDraft(draft.trim()); }}>Add to playbook</button>}
+        {!match && <button type="button" onClick={() => screen.editPlayCallLibrary(draft)}>Add to Playbook</button>}
         {value && <button type="button" class="gi-play-call-clear" aria-label="Clear play call"
           onClick={() => { setDraft(''); screen.selectPlayCall(''); }}>Clear</button>}
       </div>}
@@ -98,7 +99,8 @@ const RESULT_PRIMARY = [
 ];
 const RESULT_MORE = ['Punt','Penalty','Field Goal','Good','No Good','Kneel','Spike','Safety'];
 
-function ResultField({screen, value}) {
+function ResultField({screen, state}) {
+  const value = state.values.result;
   const hiddenCount = RESULT_MORE.filter(option => selected(value, option)).length;
   return <div class="gi-tag-field gi-tag-result" data-native-field="result">
     <div class="gi-tag-field-label"><span>Result</span></div>
@@ -112,13 +114,16 @@ function ResultField({screen, value}) {
         {RESULT_MORE.map(option => <option key={option} value={option}>{selected(value, option) ? `Selected: ${option}` : option}</option>)}
       </select>
     </div>
+    {selected(value, 'Fumble') && <Choice label="Fumble recovery" value={state.values.fumbleRecovery || 'unknown'}
+      options={[[ 'subject', state.perspective === 'scout' ? 'Scouted team' : 'Our team' ],[ 'opponent', state.perspective === 'scout' ? 'Other team' : 'Opponent' ],['unknown','Unknown']]}
+      choose={value => screen.setFumbleRecovery(value)}/>}
   </div>;
 }
 
-function Group({title, detail, open=false, children}) {
+function Group({title, open=false, children}) {
   const [expanded,setExpanded] = useState(open);
   return <details class="gi-tag-group" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-    <summary><strong>{title}</strong><span>{detail}</span><i aria-hidden="true">▾</i></summary>
+    <summary><strong>{title}</strong><i aria-hidden="true">▾</i></summary>
     <div class="gi-tag-group-body">{children}</div>
   </details>;
 }
@@ -353,7 +358,7 @@ function NativeTagging({screen}) {
         </Group>;
         const playResult = <Group key="pr" title="Play &amp; Result" detail="call, direction, outcome" open>
           {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',OPTIONS.playType)}
-          {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} value={state.values.result}/>
+          {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} state={state}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
         </Group>;
         return <>{state.unit === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;

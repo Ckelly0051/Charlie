@@ -99,18 +99,22 @@ const takeaway = await page.evaluate(() => {
   const se = window.app.stats;
   const mk = (id, tags) => ({ id, timestamp: { start: id * 10, end: id * 10 + 5 }, tags });
   const plays = [
-    // New-style: takeaway role set → #21 gets the INT, no tackle credit.
+    // Interception credit is explicit and independent of tackle credit.
     mk(1, { unit: 'defense', playType: 'Deep Pass', runPass: 'Pass', result: 'Interception', yardage: '0', players: { takeaway: '21' }, custom: [] }),
-    // Legacy-style: only tackler set on a fumble play → #55 keeps FR credit.
+    // A tackler alone does not prove who recovered a fumble.
     mk(2, { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'Fumble', yardage: '2', players: { tackler: '55' }, custom: [] }),
+    // Confirmed recovery: the Takeaway role receives the FR credit.
+    mk(3, { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'Fumble', fumbleRecovery: 'subject', yardage: '1', players: { takeaway: '44' }, custom: [] }),
   ];
   const stats = se.compute(plays);
   const p21 = stats.individuals.tacklers.find(x => x.num === '21');
   const p55 = stats.individuals.tacklers.find(x => x.num === '55');
-  return { p21, p55 };
+  const p44 = stats.individuals.tacklers.find(x => x.num === '44');
+  return { p21, p55, p44 };
 });
 check('Takeaway role credits INT without a tackle', takeaway.p21 && takeaway.p21.ints === 1 && takeaway.p21.tackles === 0, JSON.stringify(takeaway.p21));
-check('legacy tackler-only fumble play keeps FR credit', takeaway.p55 && takeaway.p55.fumblesRec === 1 && takeaway.p55.tackles === 1, JSON.stringify(takeaway.p55));
+check('tackler-only fumble with unknown recovery gets no false FR credit', takeaway.p55 && takeaway.p55.fumblesRec === 0 && takeaway.p55.tackles === 1, JSON.stringify(takeaway.p55));
+check('confirmed fumble recovery credits the Takeaway player', takeaway.p44 && takeaway.p44.fumblesRec === 1 && takeaway.p44.tackles === 0, JSON.stringify(takeaway.p44));
 
 // ---- 4. Carry scheme ----
 const carry = await page.evaluate(() => {

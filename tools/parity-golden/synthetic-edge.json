@@ -177,7 +177,9 @@
    "turnovers": {
     "total": 1,
     "interceptions": 1,
-    "fumbles": 0
+    "fumbles": 0,
+    "fumblesLost": 0,
+    "fumblesUnknown": 0
    },
    "negativePlays": {
     "totalPlays": 16,
@@ -859,6 +861,9 @@
     "tfl": 0,
     "interceptions": 1,
     "fumbles": 0,
+    "fumblesRecovered": 0,
+    "fumblesUnknown": 0,
+    "turnovers": 1,
     "havocPlays": 2,
     "havocRate": "25.0",
     "incompletions": 2,
@@ -2870,7 +2875,9 @@
      "turnovers": {
       "total": 1,
       "interceptions": 1,
-      "fumbles": 0
+      "fumbles": 0,
+      "fumblesLost": 0,
+      "fumblesUnknown": 0
      },
      "negativePlays": {
       "totalPlays": 16,
@@ -3544,6 +3551,9 @@
       "tfl": 0,
       "interceptions": 1,
       "fumbles": 0,
+      "fumblesRecovered": 0,
+      "fumblesUnknown": 0,
+      "turnovers": 1,
       "havocPlays": 2,
       "havocRate": "25.0",
       "incompletions": 2,
@@ -4456,7 +4466,9 @@
    "turnovers": {
     "total": 1,
     "interceptions": 1,
-    "fumbles": 0
+    "fumbles": 0,
+    "fumblesLost": 0,
+    "fumblesUnknown": 0
    },
    "negativePlays": {
     "totalPlays": 10,
@@ -5061,6 +5073,9 @@
     "tfl": 0,
     "interceptions": 0,
     "fumbles": 0,
+    "fumblesRecovered": 0,
+    "fumblesUnknown": 0,
+    "turnovers": 0,
     "havocPlays": 1,
     "havocRate": "20.0",
     "incompletions": 0,
@@ -6488,7 +6503,9 @@
      "turnovers": {
       "total": 1,
       "interceptions": 1,
-      "fumbles": 0
+      "fumbles": 0,
+      "fumblesLost": 0,
+      "fumblesUnknown": 0
      },
      "negativePlays": {
       "totalPlays": 10,
@@ -7085,6 +7102,9 @@
       "tfl": 0,
       "interceptions": 0,
       "fumbles": 0,
+      "fumblesRecovered": 0,
+      "fumblesUnknown": 0,
+      "turnovers": 0,
       "havocPlays": 1,
       "havocRate": "20.0",
       "incompletions": 0,
@@ -7815,7 +7835,9 @@
    "turnovers": {
     "total": 0,
     "interceptions": 0,
-    "fumbles": 0
+    "fumbles": 0,
+    "fumblesLost": 0,
+    "fumblesUnknown": 0
    },
    "negativePlays": {
     "totalPlays": 6,
@@ -8177,6 +8199,9 @@
     "tfl": 0,
     "interceptions": 1,
     "fumbles": 0,
+    "fumblesRecovered": 0,
+    "fumblesUnknown": 0,
+    "turnovers": 1,
     "havocPlays": 1,
     "havocRate": "33.3",
     "incompletions": 2,
@@ -9113,7 +9138,9 @@
      "turnovers": {
       "total": 0,
       "interceptions": 0,
-      "fumbles": 0
+      "fumbles": 0,
+      "fumblesLost": 0,
+      "fumblesUnknown": 0
      },
      "negativePlays": {
       "totalPlays": 6,
@@ -9475,6 +9502,9 @@
       "tfl": 0,
       "interceptions": 1,
       "fumbles": 0,
+      "fumblesRecovered": 0,
+      "fumblesUnknown": 0,
+      "turnovers": 1,
       "havocPlays": 1,
       "havocRate": "33.3",
       "incompletions": 2,

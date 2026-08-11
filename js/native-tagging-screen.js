@@ -168,7 +168,20 @@ export class NativeTaggingScreen {
     const field = this.tagger?.tagFields?.[key];
     if (!field?.toggle || !this.tagger?.getCurrentPlay?.()) return false;
     this._protectCallOverride(key);
-    field.toggle(value); this.tagger._saveField(key); this._queuePublish(); return true;
+    field.toggle(value);
+    const play = this.tagger.getCurrentPlay();
+    if (key === 'result' && value === 'Fumble' && !field.value.split(' + ').includes('Fumble')) play.tags.fumbleRecovery = '';
+    this.tagger._saveField(key); this._queuePublish(); return true;
+  }
+  setFumbleRecovery(value) {
+    const play = this.tagger?.getCurrentPlay?.();
+    if (!play || !StatsEngine.hasResult(play, 'Fumble')) return false;
+    const owner = ['subject', 'opponent', 'unknown'].includes(value) ? value : 'unknown';
+    play.tags.fumbleRecovery = owner;
+    this.tagger._updateTimeline();
+    this.tagger._emit('play-updated', play);
+    this._queuePublish();
+    return true;
   }
   setField(key, value) {
     const field = this.tagger?.tagFields?.[key];
@@ -193,13 +206,9 @@ export class NativeTaggingScreen {
     return true;
   }
 
-  async addPlayCall(name) {
-    const text = String(name || '').trim();
-    if (!text) return false;
-    const result = await this.app.settingsScreen?.addPlayCall?.({ name: text });
-    if (!result?.ok || !result.call) return false;
-    this.selectPlayCall(result.call.id);
-    return true;
+  editPlayCallLibrary(name = '') {
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.app.settingsScreen?.openPlaybook?.({ name:String(name || '').trim(), returnFocus });
   }
   setPlayer(role, value) { const field=this.tagger?.playerFields?.[role]; if(!field)return false; field.value=value; this.tagger._savePlayer(role); this._queuePublish(); return true; }
   setGrade(role, value) { const field=this.tagger?.gradeFields?.[role]; if(!field)return false; field.value=value; this.tagger._saveGrade(role); this._queuePublish(); return true; }

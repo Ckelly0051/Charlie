@@ -31,7 +31,7 @@ const res = await page.evaluate(async () => {
     { id: 1, timestamp: { start: 0, end: 5 }, notes: 'said "hi", ok', annotations: [], penalties: [
       { id: 'p1', team: 'subject', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false, phase: 'offense' },
       { id: 'p2', team: 'opponent', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true, phase: 'defense' },
-    ], resultingSituation: { down: '1', distance: '10', fieldSide: 'opp', yardLine: '35', confirmed: true }, tags: { formation: 'A"B', playCall: '26 Blast', playCallId: 'call_26_blast', playConcept: 'Blast', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
+    ], resultingSituation: { down: '1', distance: '10', fieldSide: 'opp', yardLine: '35', confirmed: true }, tags: { formation: 'A"B', playCall: '26 Blast', playCallId: 'call_26_blast', playConcept: 'Blast', playType: 'Run Inside', runPass: 'Run', result: 'Gain + Fumble', fumbleRecovery: 'opponent', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
     { id: 2, timestamp: { start: 0, end: 5 }, notes: '', annotations: [], tags: { formation: '=EVIL', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '7', down: '2', distance: '4', custom: [], players: {}, grades: {} } },
     { id: 3, timestamp: { start: 0, end: 0 }, notes: '', annotations: [], penalties: [
       { id: 'p3', team: 'subject', foul: 'False Start', disposition: 'accepted', yards: 5, playCounts: false, phase: 'offense' },
@@ -52,6 +52,7 @@ const res = await page.evaluate(async () => {
   return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties,
     situation: structured?.resultingSituation, penaltyOnly,
     callFields: structured ? [structured.tags.playCall, structured.tags.playCallId, structured.tags.playConcept] : null,
+    fumbleRecovery: structured?.tags?.fumbleRecovery || '',
     blankCallFields: penaltyOnly ? [penaltyOnly.tags.playCall, penaltyOnly.tags.playCallId, penaltyOnly.tags.playConcept] : null };
 });
 
@@ -61,6 +62,7 @@ ok(res.csv.includes(`"'=EVIL"`), 'formula-injection cell (=EVIL) is neutralized 
 ok(res.csv.includes('"-5"') && !res.csv.includes(`"'-5"`), 'signed number -5 stays numeric (NOT formula-guarded)');
 ok(res.roundtrippedQuote, 'export→import round-trips a doubled "" back to a literal quote (A"B)');
 ok(res.roundtrippedNotes, 'export→import round-trips notes containing a quote and a comma');
+ok(res.fumbleRecovery === 'opponent', 'export→import preserves coach-confirmed fumble recovery ownership', JSON.stringify(res.fumbleRecovery));
 ok(res.penalties?.length === 2 && res.penalties[0].yards === 8 && res.penalties[1].disposition === 'declined', 'export→import preserves multiple structured penalties');
 ok(res.situation?.confirmed === true && res.situation?.fieldSide === 'opp' && res.situation?.yardLine === '35', 'export→import preserves the coach-confirmed resulting situation');
 ok(res.penaltyOnly?.penalties?.[0]?.yards === 5, 'CSV import retains a structured penalty-only row without legacy charting fields');

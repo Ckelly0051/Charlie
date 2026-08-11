@@ -260,8 +260,8 @@ ok(result.games === 2
 ok(JSON.stringify(result.special) === JSON.stringify(['g-scout::3']) && !result.all.includes('g-self::3'),
   'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST', JSON.stringify(result));
 ok(result.visibleTabs.join(',') === 'overview,offense,defense,special'
-  && /Head-to-head self-scout film is not silently perspective-flipped/.test(result.text),
-  'Opponent mode exposes only supported views and discloses the Special Teams boundary', JSON.stringify(result));
+  && /Games Charted:\s*2/.test(result.text),
+  'Opponent mode exposes only supported views and a dynamic sample strip', JSON.stringify(result));
 await capture('desktop-opponent');
 
 result = await page.evaluate(() => {
@@ -386,7 +386,7 @@ await page.evaluate(async () => {
   game.plays.push({
     id: 66, timestamp: { start: 410, end: 414 }, notes: '', analysis: null,
     tags: { unit: 'offense', formation: 'Trips', backfield: 'Single', personnel: '11',
-      runPass: 'Pass', playType: 'Short Pass', result: 'Sack + Fumble', yardage: '-5',
+      runPass: 'Pass', playType: 'Short Pass', result: 'Sack + Fumble', fumbleRecovery: 'opponent', yardage: '-5',
       down: '2', distance: '10', quarter: 'Q4', defFront: '4-2-5', coverage: 'Cover 3',
       custom: [], players: { passer: '12' }, grades: {} },
   });

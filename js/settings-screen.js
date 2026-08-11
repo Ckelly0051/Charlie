@@ -11,7 +11,7 @@ export class SettingsScreen {
     this.activeTab = null;
   }
 
-  open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formation' } = {}) {
+  open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formation', initialPlayCall = '' } = {}) {
     if (this.handle) return this.handle.result;
     this.activeTab = required ? 'film' : initialTab;
     const finish = value => this.close(value);
@@ -22,7 +22,7 @@ export class SettingsScreen {
       returnFocus,
       dismissOnEscape: !required,
       dismissOnScrim: !required,
-      content: h(NativeSettingsContent, { screen: this, required, finish, initialTab:this.activeTab, chartGroup }),
+      content: h(NativeSettingsContent, { screen: this, required, finish, initialTab:this.activeTab, chartGroup, initialPlayCall } ),
       actions: required ? [] : [{ key: 'done', label: 'Done', tone: 'primary', default: true }],
     });
     this.handle = handle;
@@ -36,6 +36,10 @@ export class SettingsScreen {
   }
 
   setActiveTab(tab) { this.activeTab = tab; }
+
+  openPlaybook({ name = '', returnFocus = null } = {}) {
+    return this.open({ initialTab: 'team', initialPlayCall: name, returnFocus });
+  }
 
   close(value = 'cancel') {
     const handle = this.handle;

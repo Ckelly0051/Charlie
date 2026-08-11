@@ -67,7 +67,7 @@ let state = await page.evaluate(async () => {
     history: app.history.stack.length,
   };
 });
-ok(state.label === 'Our Play Call' && state.favorite, 'Self-scout offense shows Our Play Call with favorite access', JSON.stringify(state));
+ok(state.label === 'Play Call' && state.favorite, 'Self-scout offense shows Play Call with favorite access', JSON.stringify(state));
 ok(JSON.stringify(state.call) === JSON.stringify(['26 Blast', 'call_26_blast', 'Blast']), 'Library selection stores durable call and concept snapshots', JSON.stringify(state.call));
 ok(state.values.formation === 'Power-I' && state.values.backfield === 'I' && state.values.strength === 'Right'
   && state.values.runPass === 'Run' && state.values.playType === 'Run Inside' && state.values.playDir === 'Right',
@@ -101,7 +101,7 @@ state = await page.evaluate(async () => {
   app.nativeTagging.selectPlayCall('Counter GT');
   await new Promise(resolve => setTimeout(resolve, 0));
   const free = structuredClone(app.tagger.getCurrentPlay().tags);
-  const added = await app.nativeTagging.addPlayCall('Counter GT');
+  const added = await app.settingsScreen.addPlayCall({ name: 'Counter GT' });
   await new Promise(resolve => setTimeout(resolve, 0));
   const saved = structuredClone(app.tagger.getCurrentPlay().tags);
   const library = app.playbook.list();
@@ -113,8 +113,8 @@ state = await page.evaluate(async () => {
 });
 ok(state.free.playCall === 'Counter GT' && state.free.playCallId === '' && state.free.playConcept === '',
   'Free text stores an exact call without inventing concept or numbering meaning', JSON.stringify(state.free));
-ok(state.added && state.saved.playCallId && state.library.some(call => call.name === 'Counter GT'),
-  'Inline Add durably promotes free text into the team playbook', JSON.stringify({ saved: state.saved, library: state.library }));
+ok(state.added?.ok && !state.saved.playCallId && state.library.some(call => call.name === 'Counter GT'),
+  'Add to Playbook saves a reusable definition without silently rewriting the current free-text play', JSON.stringify({ saved: state.saved, library: state.library }));
 ok(state.label === 'Opponent Play', 'Opponent scout uses the football-correct Opponent Play label', state.label);
 
 state = await page.evaluate(() => {

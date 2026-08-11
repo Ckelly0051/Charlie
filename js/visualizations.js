@@ -114,7 +114,7 @@ export class Visualizations {
       `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#f97316' : '#38bdf8'}" fill-opacity="0.8"/>`
     ).join('');
     return `<div class="viz-block">
-      <h4>Yardage Spray <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span></h4>
+      <h4>Field Position vs. Yardage Gained <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span></h4>
       <svg class="viz-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
         ${grid}
         <line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#4a5a7d" stroke-width="1.5" stroke-dasharray="4 3"/>
@@ -122,7 +122,7 @@ export class Visualizations {
         <text x="${padL - 4}" y="${yOf(yMax) + 3}" fill="#8b949e" font-size="9" text-anchor="end">${yMax}</text>
         ${dots}
       </svg>
-      <p class="viz-caption">Each dot is a play — field position (own goal → opp goal) vs. yards gained.</p>
+      <p class="viz-caption">Field position vs. yardage gained.</p>
     </div>`;
   }
 

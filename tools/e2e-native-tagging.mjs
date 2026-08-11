@@ -97,6 +97,20 @@ const moreFit=await page.evaluate(()=>{const el=document.querySelector('.gi-tag-
 ok(moreFit&&moreFit.label==='More'&&moreFit.scroll<=moreFit.client+1,
   'The More control renders its whole label instead of clipping to "Mo"',JSON.stringify(moreFit));
 ok(state.yardWidth>=80,'Yardage input reserves enough width for three digits and spinner controls',JSON.stringify(state.yardWidth));
+state=await page.evaluate(async()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  const fumble=[...root.querySelectorAll('[data-native-field="result"] button')].find(b=>b.textContent.trim()==='Fumble');
+  fumble?.click(); await new Promise(r=>setTimeout(r,0));
+  const selector=root.querySelector('[data-native-choice="Fumble recovery"]');
+  const opponent=selector?.querySelectorAll('button')?.[1] || null;
+  opponent?.click(); await new Promise(r=>setTimeout(r,0));
+  const confirmed=app.tagger.getCurrentPlay().tags.fumbleRecovery;
+  fumble?.click(); await new Promise(r=>setTimeout(r,0));
+  return{selector:!!selector,opponent:!!opponent,confirmed,cleared:app.tagger.getCurrentPlay().tags.fumbleRecovery||''};
+});
+ok(state.selector&&state.opponent&&state.confirmed==='opponent',
+  'Selecting Fumble reveals recovery ownership and records an opponent recovery',JSON.stringify(state));
+ok(state.cleared==='', 'Removing Fumble clears stale recovery ownership',JSON.stringify(state));
 if(screenshotPath) await (await page.$('[data-native-tagging]')).screenshot({path:screenshotPath});
 state=await page.evaluate(async()=>{const group=[...document.querySelectorAll('.gi-tag-group')].find(node=>node.querySelector('summary strong')?.textContent==='Notes & Details');group.querySelector('summary').click();await new Promise(r=>setTimeout(r,0));const opened=group.open;app.nativeTagging._publish();await new Promise(r=>setTimeout(r,0));return{opened,stayedOpen:group.open}});
 ok(state.opened&&state.stayedOpen,'Coach section expansion survives native state updates',JSON.stringify(state));

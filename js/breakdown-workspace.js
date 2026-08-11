@@ -32,8 +32,8 @@ export class BreakdownWorkspace {
       <div class="gi-breakdown-route" data-native-breakdown-route>
         <header class="gi-breakdown-toolbar" aria-label="Break Down tools">
           <div class="gi-breakdown-context" role="group" aria-label="Film context">
-            <button type="button" data-bd-context="self">Our games <small>Self-scout</small></button>
-            <button type="button" data-bd-context="scout">Opponent film <small>Scout</small></button>
+            <button type="button" data-bd-context="self">SELF SCOUT</button>
+            <button type="button" data-bd-context="scout">OPPONENT SCOUT</button>
           </div>
           <div class="gi-breakdown-view" role="group" aria-label="Break Down view">
             <button type="button" class="active" data-bd-view="chart" aria-pressed="true">Chart</button>

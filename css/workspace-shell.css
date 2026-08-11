@@ -223,3 +223,9 @@ body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
   margin-top:3px;font:400 13px/1.4 var(--gi-sans);color:var(--ws-text-soft)
 }
 .ws-shell .ws-film-source{font-size:12px;color:var(--ws-muted)}
+
+/* 1.12.0-47: film health is a status, not neutral chrome. */
+.ws-film-chip.is-ready{border-color:color-mix(in srgb,var(--ws-green) 55%,var(--ws-line));background:color-mix(in srgb,var(--ws-green) 12%,transparent);color:var(--ws-green);font-weight:700}
+.ws-film-chip.is-missing{border-color:color-mix(in srgb,var(--ws-red) 55%,var(--ws-line));background:color-mix(in srgb,var(--ws-red) 12%,transparent);color:var(--ws-red);font-weight:700}
+.ws-film-row.state-linked [data-film-health],.ws-film-row.state-managed [data-film-health]{color:var(--ws-green)}
+.ws-film-row.state-missing [data-film-health],.ws-film-row.state-unauthorized [data-film-health]{color:var(--ws-red)}

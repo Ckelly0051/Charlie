@@ -14,16 +14,28 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
-### ▶ ACTIVE - `1.12.0-46` CONSOLIDATED COACH REPAIR (2026-08-11)
+### COMPLETE - `1.12.0-47` CONSOLIDATED COACH REPAIR (2026-08-11)
 
-The installed play-call milestone review is complete. The coach authorized one
-consolidated repair, one final canonical gate, and one new installer; no
-iterative packages. Binding findings and acceptance criteria are in
-`SMOKE-1.12.0-46-FINDINGS.md`. Highest-risk items are the discoverable saved-call
-library/default workflow, confirmed ordinary-snap fumble ownership for true
-turnover margin, and the offense/defense Self-Scout information hierarchy.
-Design work is a compact copy/density/contrast pass, not decorative expansion.
-Existing call migration and destructive coach-data changes remain unauthorized.
+The installed-review batch in `SMOKE-1.12.0-46-FINDINGS.md` is implemented as
+one candidate. It adds the discoverable Play Call library/default workflow,
+confirmed ordinary-snap fumble ownership and true Turnover Margin, performance-
+first offense/defense Self-Scout, and the approved Reports/charting UX cleanup.
+No existing coach data was rewritten or deleted. Unknown legacy fumble recovery
+fails closed and is disclosed as unresolved.
+
+The first canonical gate found and drove three repairs (design-token colors,
+confirmed-recovery player-credit proof, and the intentional parity update). The
+final committed-source candidate passed **85/85 harnesses, 0 skipped**. All four
+version owners are `1.12.0-47`; `cargo tauri build --no-sign` produced:
+
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-47_x64-setup.exe`
+  - SHA-256: `2FCC19107805ED70E99A187A3A15501071B29079C7566575D945C5B4FA88A184`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-47_x64_en-US.msi`
+  - SHA-256: `87A19F571B93DC57906019B0214CA7C88591F12920A63A69CA9DA3AC0EDB79A7`
+
+This is a local unsigned coach candidate. Claude's next task is independent
+review of this single milestone; do not reset the shared branch or discard local
+commits. Stable promotion remains closed until the coach accepts the candidate.
 ### ▶ PLAY-CALL MILESTONE ACCEPTED; `1.12.0-46` INSTALLER READY (2026-08-11)
 
 Claude independently accepted the complete consumer range

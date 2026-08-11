@@ -389,7 +389,7 @@ export class PlayTagger {
       autoFull: true,
       tags: {
         down: '', distance: '', formation: '', qbAlignment: '', playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
-        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '',
+        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '',
         hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '',
         motion: '', playDir: '',
         driveNumber: this.currentDrive.toString(),
@@ -482,6 +482,7 @@ export class PlayTagger {
         coverageFamily: '',
         blitz: '',
         result: '',
+        fumbleRecovery: '',
         yardage: '',
         hash: '',
         quarter: '',
@@ -619,7 +620,7 @@ export class PlayTagger {
     if (play) {
       play.tags = {
         down: '', distance: '', formation: '', qbAlignment: '', playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '', defFront: '',
-        coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
+        coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '', hash: '', quarter: '',
         yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
         unit: play.tags.unit || this.defaultUnit || 'offense',

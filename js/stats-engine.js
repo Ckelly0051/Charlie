@@ -102,6 +102,22 @@ export class StatsEngine {
     return StatsEngine.splitResults(p.tags.result).includes(val);
   }
 
+  static isFumbleLost(p) {
+    return StatsEngine.hasResult(p, 'Fumble') && p?.tags?.fumbleRecovery === 'opponent';
+  }
+
+  static isFumbleRecovered(p) {
+    return StatsEngine.hasResult(p, 'Fumble') && p?.tags?.fumbleRecovery === 'subject';
+  }
+
+  static isGiveaway(p) {
+    return StatsEngine.hasResult(p, 'Interception') || StatsEngine.isFumbleLost(p);
+  }
+
+  static isTakeaway(p) {
+    return StatsEngine.hasResult(p, 'Interception') || StatsEngine.isFumbleRecovered(p);
+  }
+
   /**
    * Split a player attribution value into individual jersey #s. Most roles hold
    * a single number, but Tackler can hold several (shared tackles), stored as a
@@ -457,7 +473,7 @@ export class StatsEngine {
       else if (res.includes('Field Goal')) outcome = 'FG';
       else if (res.includes('Safety')) outcome = 'Safety';
       else if (res.includes('Punt')) outcome = 'Punt';
-      else if (res.includes('Interception') || res.includes('Fumble')) outcome = 'Turnover';
+      else if (StatsEngine.isGiveaway(last)) outcome = 'Turnover';
       else if (res.includes('Kneel')) outcome = 'Kneel';
       const startYL = this._absYardLine(first.tags);
       const points = outcome === 'TD' ? 6 : outcome === 'FG' ? 3 : outcome === 'Safety' ? 2 : 0;
@@ -542,10 +558,12 @@ export class StatsEngine {
     const yourDef = [];
     const oppMap = {};
     const oppOffMap = {};
+    const oppGameMap = {};
     games.forEach(g => {
       const scout = ((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
       const rawOpp = String((g.gameInfo && g.gameInfo.opponent) || '').trim();
       const key = rawOpp || 'Opponent';
+      if (rawOpp) (oppGameMap[key] = oppGameMap[key] || new Set()).add(String(g.id || g.name || games.indexOf(g)));
       (g.plays || []).forEach(p => {
         const t = p.tags || {};
         const u = t.unit || 'offense';
@@ -588,6 +606,7 @@ export class StatsEngine {
       name,
       defPlays: oppMap[name] || [],
       offPlays: oppOffMap[name] || [],
+      games: oppGameMap[name]?.size || 0,
     })).sort((a, b) => (b.defPlays.length + b.offPlays.length) - (a.defPlays.length + a.offPlays.length));
     return { opponents, yourOff, yourDef };
   }
@@ -640,8 +659,7 @@ export class StatsEngine {
         </div>
       </div>` : '';
     const halfB = (yourDefPlays.length && oppOffPlays.length) ? `
-      <div class="stats-section"><h3>Defense vs ${esc(opp.name)} offense</h3>
-        <p class="self-scout-intro">Our fronts, coverages and blitzes on ${yourDefPlays.length} defensive snaps, beside the ${oppOffPlays.length} offensive snaps we faced. Read-only.</p></div>
+      <div class="stats-section"><h3>Defense vs ${esc(opp.name)} offense</h3></div>
       <div class="gi-matchup">
         <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-def">Our Defense</div>
           ${this._renderDefensive(ourDefStats)}
@@ -657,9 +675,8 @@ export class StatsEngine {
 
     pane.innerHTML = `
       <div class="stats-section"><h3>Matchup — ${picker}</h3>
-        <p class="self-scout-intro">Both sides of the ball against the same opponent, aggregated across every game charted with them. Read-only.</p></div>
-      ${halfA ? `<div class="stats-section"><h3>Offense vs ${esc(opp.name)} defense</h3>
-        <p class="self-scout-intro">Our offensive calls on ${yourOffPlays.length} snaps, against their ${oppDefPlays.length} charted defensive fronts and coverages.</p></div>` : ''}
+        <div class="gi-matchup-sample">Games Charted: ${opp.games} · Offensive Snaps: ${oppOffPlays.length} · Defensive Snaps: ${oppDefPlays.length}</div></div>
+      ${halfA ? `<div class="stats-section"><h3>Offense vs ${esc(opp.name)} defense</h3></div>` : ''}
       ${halfA}
       ${halfB}
       ${missing.length ? `<div class="stats-section"><h3>Not charted yet</h3>
@@ -842,6 +859,8 @@ export class StatsEngine {
       && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike'));
     const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception'));
     const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble'));
+    const fumblesRecovered = fumbles.filter(p => StatsEngine.isFumbleRecovered(p));
+    const fumblesUnknown = fumbles.filter(p => !['subject', 'opponent'].includes(p.tags?.fumbleRecovery));
     const incompletions = plays.filter(p => StatsEngine.hasResult(p, 'Incomplete'));
     const havocPlays = sacks.length + tfl.length + ints.length + fumbles.length;
     const threeAndOuts = this._countThreeAndOuts(plays);
@@ -919,6 +938,9 @@ export class StatsEngine {
       tfl: tfl.length,
       interceptions: ints.length,
       fumbles: fumbles.length,
+      fumblesRecovered: fumblesRecovered.length,
+      fumblesUnknown: fumblesUnknown.length,
+      turnovers: ints.length + fumblesRecovered.length,
       havocPlays,
       havocRate: plays.length ? ((havocPlays / plays.length) * 100).toFixed(1) : '0.0',
       incompletions: incompletions.length,
@@ -1321,11 +1343,15 @@ export class StatsEngine {
 
   _turnoverStats(plays) {
     const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception')).length;
-    const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble')).length;
+    const fumblePlays = plays.filter(p => StatsEngine.hasResult(p, 'Fumble'));
+    const fumblesLost = fumblePlays.filter(p => StatsEngine.isFumbleLost(p)).length;
+    const fumblesUnknown = fumblePlays.filter(p => !['subject', 'opponent'].includes(p.tags?.fumbleRecovery)).length;
     return {
-      total: ints + fumbles,
+      total: ints + fumblesLost,
       interceptions: ints,
-      fumbles
+      fumbles: fumblePlays.length,
+      fumblesLost,
+      fumblesUnknown,
     };
   }
 
@@ -1434,7 +1460,7 @@ export class StatsEngine {
   _negativePlayStats(plays) {
     const list = plays || [];
     const isLoss = p => (parseInt(p.tags?.yardage, 10) || 0) < 0;
-    const isTurnover = p => StatsEngine.hasResult(p, 'Interception') || StatsEngine.hasResult(p, 'Fumble');
+    const isTurnover = p => StatsEngine.isGiveaway(p);
     const isSack = p => StatsEngine.hasResult(p, 'Sack');
     const isFlagged = p => StatsEngine.hasResult(p, 'Penalty')
       || (Array.isArray(p.penalties) && p.penalties.length > 0);
@@ -2101,7 +2127,7 @@ export class StatsEngine {
         // TFL excludes sacks — matches the team-level definition.
         else if (yds < 0) tacklers[id].tfl++;
         if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
-        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
+        if (creditTakeawayViaTackler && StatsEngine.isFumbleRecovered(p)) tacklers[id].fumblesRec++;
         if (p.tags.grades?.tackler != null) {
           if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
           if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -2113,7 +2139,7 @@ export class StatsEngine {
         takeawayIds.forEach(id => {
           if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
           if (StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
-          if (StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
+          if (StatsEngine.isFumbleRecovered(p)) tacklers[id].fumblesRec++;
           if (p.tags.grades?.takeaway != null) {
             if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
             if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -2329,9 +2355,27 @@ export class StatsEngine {
         ${this._defScoutBlock(defScout)}`;
     }
     const mc = StatsEngine._meterColor(report.predictability);
+    const performance = this.compute();
+    const e = performance.efficiency || {};
+    const d = performance.downs || {};
+    const sit = performance.situational || {};
+    const neg = performance.negativePlays || {};
+    const redZone = sit.redZone || {};
+    const callRows = this._selfScoutRows(this._selfScoutGroup(this._offensePlays(), play => play.tags.playCall || play.tags.playConcept || null));
+    const callsHtml = callRows.length ? `<div class="stats-section ss-call-performance"><h3>Play Call Performance</h3>${this._selfScoutSplitTable(callRows, 'Play Call')}</div>` : '';
+    const performanceHtml = `<div class="stats-section ss-performance"><h3>Offensive Performance</h3><div class="ss-performance-grid">
+      <div><strong>${e.successRate || '0.0'}%</strong><span>Success Rate</span></div>
+      <div><strong>${StatsEngine.yardsPerPlay(performance)}</strong><span>Yards / Play</span></div>
+      <div><strong>${e.explosivePct || '0.0'}%</strong><span>Explosive Rate</span></div>
+      <div><strong>${e.negativePct || '0.0'}%</strong><span>Negative Plays</span></div>
+      <div><strong>${d.thirdDownPct || '0.0'}%</strong><span>Third Down</span></div>
+      <div><strong>${redZone.total ? Math.round((redZone.tds || 0) / redZone.total * 100) + '%' : 'N/A'}</strong><span>Red Zone TD</span></div>
+    </div></div>`;
     return `
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
-      <div class="stats-section">
+      ${performanceHtml}
+      ${callsHtml}
+      <div class="stats-section ss-predictability">
         <h3>Predictability (${report.totalPlays} run/pass plays)${StatsEngine.defMark("predictability")}</h3>
         <div class="ss-meter-wrap">
           <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${mc}"></div></div>
@@ -2547,7 +2591,7 @@ export class StatsEngine {
     const head = cols.map((col, i) => `<th class="${col.num ? 'bt-num' : ''}" data-bt-sort="${i}"${i === 6 ? ' aria-sort="descending"' : ''}>${esc(col.label)}</th>`).join('');
     return `<div class="stats-section">
       <h3>The “Big ${d.to90}” — ${esc(label)}'s Core Tendencies</h3>
-      <p class="self-scout-intro"><b>${d.to90} structural combination${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Sorted by frequency; click any column to re-sort.${cut ? ' Click a row to watch it. Click a column to sort.' : ' Click a column to sort.'}</p>
+      <p class="self-scout-intro">Snaps sorted by frequency; click any column or row to sort. Click any row to watch the film.</p>
       <table class="stats-table stats-table-full bt-table" data-bt-table>
         <thead><tr>${head}</tr></thead>
         <tbody>${rows}</tbody>
@@ -3209,15 +3253,15 @@ export class StatsEngine {
       ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
 
     return `
-      ${panel('Formation frequency and success rate', 'Bar length = share of offensive snaps. Fill = success rate. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th. Faded = under 3 snaps.',
+      ${panel('Formation frequency and success rate', 'Bar = snap share; fill = success rate. Success: 50% on 1st, 70% on 2nd, conversion on 3rd/4th. Faded = fewer than 3 snaps.',
         Charts.rampBars(formations))}
       ${panel('Yards gained per play, distribution', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`,
         dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '')}
       ${panel('Yards gained vs distance to go', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.',
         Charts.scatter(points, { label: 'Yards gained by distance to go' }))}
-      ${panel('Success rate by field zone', 'Success rate by field position, own goal line to opponent goal line. Zones with no charted snaps are blank, not 0%.',
+      ${panel('Success Rate by Field Position', 'Success rate by field position; empty zones have no charted snaps.',
         Charts.zoneStrip(zones))}
-      ${panel('Run/pass split and success rate by down', 'Run/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.',
+      ${panel('Run/pass split and success rate by down', 'Run/pass split and success rate by down.',
         Charts.smallMultiples(downs))}
       ${/* H16 — the radar is gated SEPARATELY from `cut`, not as a side effect
             of it. It asks "how did THIS GAME do against our season best", which
@@ -3262,7 +3306,7 @@ export class StatsEngine {
       </tr>`).join('');
     return `<div class="stats-section gi-team-profile">
       <h3>Team profile</h3>
-      <p class="viz-caption">This game against our own season average — a team-relative read, not a league benchmark — across ${profile.games} charted games. Each axis still scales to our season's own best/worst, so further out always means closer to our best.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
+      <p class="viz-caption">This game vs. our season average.</p>
       <div class="gi-tp-layout">
         ${svg}
         <div class="gi-tp-table-wrap"><table class="stats-table gi-tp-table"><thead><tr><th>Metric</th><th>This game</th><th>Season avg</th><th>Season best</th></tr></thead>
@@ -3959,7 +4003,7 @@ export class StatsEngine {
     return `
       <div class="stats-section" id="tendencyMatrixSection">
         <h3>${Charts._esc(opts.title || 'Tendency Matrix')}</h3>
-        <p class="viz-caption">Pick any two dimensions. Cell = snap count, run/pass split, success rate and average yards. Direction vs Strength and Direction vs Hash read Balanced strength and middle hash as n-a, because they have no side.</p>
+
         <div class="tm-controls">
           <label>Rows: <select id="tmRowDim">${opts_}</select></label>
           <span style="opacity:.5;margin:0 4px">×</span>
@@ -4046,7 +4090,7 @@ export class StatsEngine {
           <div class="stats-grid stats-grid-flex">
             <div class="stat-card"><div class="stat-card-title">Sacks</div><div class="stat-card-value">${d.sacks}</div><div style="font-size:11px;opacity:.6">${d.sackYards} yds</div></div>
             <div class="stat-card"><div class="stat-card-title">TFL</div><div class="stat-card-value">${d.tfl}</div></div>
-            <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${d.interceptions + d.fumbles}</div><div style="font-size:11px;opacity:.6">${d.interceptions} INT / ${d.fumbles} Fum</div></div>
+            <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${d.turnovers}</div><div style="font-size:11px;opacity:.6">${d.interceptions} INT / ${d.fumblesRecovered} FR</div></div>
             <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">${d.blitzRate}%</div><div style="font-size:11px;opacity:.6">${d.blitzTotal} plays</div></div>
             <div class="stat-card"><div class="stat-card-title">Blitz Havoc</div><div class="stat-card-value" style="color:${parseFloat(d.blitzHavocRate) >= 20 ? '#44ff88' : '#fff'}">${d.blitzHavocRate}%</div></div>
             <div class="stat-card"><div class="stat-card-title">Forced Inc</div><div class="stat-card-value">${d.incompletions}</div></div>
@@ -4636,7 +4680,7 @@ export class StatsEngine {
       if (yards >= EXPLOSIVE(play)) bucket.expl += 1;
       if (yards < 0) bucket.neg += 1;
       if (StatsEngine.hasResult(play, 'Sack')) bucket.sacks += 1;
-      if (StatsEngine.hasResult(play, 'Interception') || StatsEngine.hasResult(play, 'Fumble')) bucket.tos += 1;
+      if (StatsEngine.isGiveaway(play)) bucket.tos += 1;
       if (play.__gid != null && play.id != null) bucket.refs.push(`${play.__gid}::${play.id}`);
     };
     const finish = bucket => ({
@@ -5025,7 +5069,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       const succ = this._isSuccessfulPlay(p);
       const explosive = yds >= (isRun ? 12 : 16);
       const td = StatsEngine.hasResult(p, 'Touchdown');
-      const to = StatsEngine.hasResult(p, 'Interception') || StatsEngine.hasResult(p, 'Fumble');
+      const to = StatsEngine.isGiveaway(p);
       keys.forEach(k => {
         if (k == null || k === '' || k === '?' || /(^|&)\?($|&)/.test(String(k))) return;
         if (!g[k]) g[k] = { key: k, n: 0, runs: 0, passes: 0, yards: 0,
@@ -5888,6 +5932,19 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
 
   _renderDefScoutSection(ds) {
     const mc = StatsEngine._meterColor(ds.predictability);
+    const computed = this.compute();
+    const d = computed.defensive || {};
+    const defPlays = computed.defPlays || [];
+    const stopRate = defPlays.length ? Math.round(defPlays.filter(play => !this._isSuccessfulPlay(play)).length / defPlays.length * 100) : 0;
+    const yppAllowed = defPlays.length ? (defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage) || 0), 0) / defPlays.length).toFixed(1) : '0.0';
+    const performanceHtml = `<div class="ss-performance-grid is-defense">
+      <div><strong>${stopRate}%</strong><span>Stop Rate</span></div>
+      <div><strong>${yppAllowed}</strong><span>Yards Allowed / Play</span></div>
+      <div><strong>${d.havocRate || '0.0'}%</strong><span>Havoc Rate</span></div>
+      <div><strong>${d.sacks || 0}</strong><span>Sacks</span></div>
+      <div><strong>${d.tfl || 0}</strong><span>TFL</span></div>
+      <div><strong>${d.turnovers || 0}</strong><span>Takeaways</span></div>
+    </div>`;
     const tellsHtml = ds.tells.length ? `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
       <tbody>${ds.tells.map(t => {
@@ -5919,10 +5976,10 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       <div class="stats-section ss-def-section">
         <div class="ss-def-header">
           <h3>Defensive Self-Scout</h3>
-          <div class="ss-def-summary">
-            ${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${mc};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span>
-          </div>
+          <div class="ss-def-summary">${ds.totalPlays} defensive plays</div>
         </div>
+        ${performanceHtml}
+        <div class="ss-def-predictability">Predictability: <span style="color:${mc};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span></div>
         ${ds.recommendations.length ? `<div class="ss-recs" style="margin-bottom:12px">${ds.recommendations.map(r => `<div class="ss-rec">${r}</div>`).join('')}</div>` : ''}
         <h4 style="margin:12px 0 6px;font-size:13px;color:var(--text-dim)">Defensive Tendency Tells</h4>
         ${tellsHtml}
@@ -6158,7 +6215,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
 <div class="card"><div class="cv">${d.havocRate}%</div><div class="cl">Havoc Rate</div></div>
 <div class="card"><div class="cv">${d.sacks}</div><div class="cl">Sacks (${d.sackYards} yds)</div></div>
 <div class="card"><div class="cv">${d.tfl}</div><div class="cl">TFL</div></div>
-<div class="card"><div class="cv">${d.interceptions + d.fumbles}</div><div class="cl">Turnovers</div></div>
+<div class="card"><div class="cv">${d.turnovers}</div><div class="cl">Turnovers</div></div>
 <div class="card"><div class="cv">${d.blitzRate}%</div><div class="cl">Blitz Rate</div></div>
 <div class="card"><div class="cv">${d.blitzHavocRate}%</div><div class="cl">Blitz Havoc</div></div>
 <div class="card"><div class="cv">${d.incompletions}</div><div class="cl">Incompletions</div></div>
@@ -6256,7 +6313,7 @@ ${gamePlanHtml}
 <div class="card"><div class="cv">${d.havocRate}%</div><div class="cl">Havoc Rate</div></div>
 <div class="card"><div class="cv">${d.sacks}</div><div class="cl">Sacks</div></div>
 <div class="card"><div class="cv">${d.tfl}</div><div class="cl">TFL</div></div>
-<div class="card"><div class="cv">${d.interceptions + d.fumbles}</div><div class="cl">Turnovers</div></div>
+<div class="card"><div class="cv">${d.turnovers}</div><div class="cl">Turnovers</div></div>
 <div class="card"><div class="cv">${d.threeAndOuts}</div><div class="cl">3-and-Outs</div></div>
 </div>
 ${frontRows ? `<table><thead><tr><th>Front</th><th>#</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}

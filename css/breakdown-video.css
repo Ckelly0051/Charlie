@@ -248,3 +248,7 @@ body.ws-shell-active.ws-route-breakdown .video-play-controls .play-select { min-
   body.ws-shell-active.ws-route-breakdown .breakdown-player-controls { transition: none; }
   .bdv-group > summary i, #btnTagSaveNext.just-saved { transition: none; animation: none; }
 }
+
+/* 1.12.0-47: long calls stay inside a fixed play card; full text remains in the title. */
+.breakdown-play-card{min-width:0;overflow:hidden}
+.breakdown-play-call{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}

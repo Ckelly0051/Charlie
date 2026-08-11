@@ -1,10 +1,11 @@
-# GridIron IQ 1.12.0-46 - Consolidated Coach Findings
+# GridIron IQ 1.12.0-46 Findings - Delivered in 1.12.0-47
 
 ## Status
 
-**ACTIVE REPAIR BATCH.** The coach completed the installed review on 2026-08-11
-and authorized one consolidated implementation, one canonical gate, and one new
-installer. Do not ship iterative installers from individual findings.
+**COMPLETE - 1.12.0-47 CANDIDATE BUILT.** The coach completed the installed
+review on 2026-08-11 and authorized one consolidated implementation, one final
+canonical gate, and one new installer. The batch below is implemented without
+rewriting existing coach data. Final canonical gate: **85/85 green, 0 skipped**.
 
 ## A. Functional Requirements
 
@@ -89,3 +90,36 @@ one secondary diagnostic, not the page's primary content.
 - Do not delete or rewrite coach data without explicit approval.
 - Focused tests during implementation; one full canonical gate at the end.
 - Build one uniquely versioned unsigned installer only after the gate is green.
+## E. Completion Record
+
+Implemented in one consolidated candidate:
+
+- Play Call now has a direct `Edit Library` route, explicit `Use once` and `Add
+  to Playbook` choices, and atomic saved-call defaults through the shared
+  PlayCallModel.
+- Ordinary-snap fumbles now store an explicit recovery owner. Turnover Margin
+  combines interceptions with only confirmed fumble losses/recoveries; unknown
+  recovery remains visible but does not invent a turnover. The field survives
+  canonical save and CSV round-trip.
+- Offense and defense Self-Scout lead with performance measures and exact calls;
+  Predictability remains a secondary diagnostic.
+- The approved Reports and charting copy, density, navigation, contrast, status,
+  and overflow corrections are applied.
+
+The first full gate correctly found three issues: two raw report colors, a stale
+legacy test that awarded fumble-recovery credit from a tackler alone, and an
+expected parity snapshot change from the new turnover fields. The colors now use
+design tokens; the test now distinguishes unknown from confirmed recovery; the
+tracked parity delta was audited and contains only the added turnover fields.
+The real six-game snapshot is deterministic and treats unconfirmed legacy
+fumbles as unresolved. The final gate passed **85 harnesses | 85 green | 0
+skipped | 0 failed**.
+
+Version owners are synchronized at `1.12.0-47`. Unsigned local installers:
+
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-47_x64-setup.exe`
+  - SHA-256: `2FCC19107805ED70E99A187A3A15501071B29079C7566575D945C5B4FA88A184`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-47_x64_en-US.msi`
+  - SHA-256: `87A19F571B93DC57906019B0214CA7C88591F12920A63A69CA9DA3AC0EDB79A7`
+
+This is a local unsigned coach candidate, not a stable published release.
