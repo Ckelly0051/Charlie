@@ -14,6 +14,16 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CLAUDE'S RE-REVIEW of `31853ef` — ACCEPTED, both findings closed (2026-08-11)
+
+Both findings from the `6ffad83`+`d18dd5e` review are closed. Token fix
+confirmed directly (`grep -c gi-warning css/native-settings.css` → 0; both
+sites now read `--gi-warn`) and via the specific harness that caught the
+regression (`e2e-design-system.mjs` 16/16). Process finding closed: P2's
+CLAUDE.md entry no longer self-declares acceptance, and correctly defers to
+this confirmation instead. **`6ffad83` and `d18dd5e` are accepted; P2/P3 may
+proceed.**
+
 ### ▶ PLAY CALLS — INTEGRATED SMOKE DECISION (2026-08-11)
 
 The coach explicitly declined a charting-only installer smoke. After P3 repair
