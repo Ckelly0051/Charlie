@@ -233,7 +233,7 @@ r = await page.evaluate(() => {
     quarterRows: q('.gi-q-row'),
     identityRows: q('.gi-id-row'),
     winLossTable: !!pane.querySelector('.gi-wl-table'),
-    perGameTO: /TO±/.test(pane.querySelector('.stats-table-full thead')?.textContent || ''),
+    perGameTO: /INT±/.test(pane.querySelector('.stats-table-full thead')?.textContent || ''),
     legendFirst,
   };
 });
@@ -266,10 +266,12 @@ r = await page.evaluate(() => {
   return m;
 });
 ok(r.margin === 1 && r.takeaways === 2 && r.giveaways === 1,
-  'Margin is computed from interceptions only (2 forced - 1 lost = 1), not inflated by the fumble counts',
+  'Margin is computed from interceptions only (2 made - 1 thrown = 1), not inflated by the fumble counts',
   JSON.stringify(r));
-ok(r.fumblesForced === 1 && r.fumblesLost === 4,
-  'Fumble counts are returned separately from the confirmed margin, not netted into it',
+// Codex re-review of `22da6f9`: "forced"/"lost" assert a recovery fact the
+// model does not have. Neutral field names instead.
+ok(r.defensiveFumbles === 1 && r.offensiveFumbles === 4,
+  'Fumble counts are returned separately from the confirmed margin under neutral (non-causal) names, not netted into it',
   JSON.stringify(r));
 
 console.log('\n== 4. Sub-tabs organize the 13 sections (Overview/Breakdown/Players/Self-Scout) ==');

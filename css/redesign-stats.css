@@ -436,7 +436,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 :is(.stats-overlay,.gi-reports) .gi-id-use { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--gi-text); font-variant-numeric: tabular-nums; }
 :is(.stats-overlay,.gi-reports) .gi-id-succ { width: 38px; text-align: right; font-size: 12px; color: var(--gi-dim); font-variant-numeric: tabular-nums; }
 
-/* --- Wins vs Losses table + per-game TO± cells --- */
+/* --- Wins vs Losses table + per-game INT± cells --- */
 :is(.stats-overlay,.gi-reports) .gi-wl-table td:nth-child(2), :is(.stats-overlay,.gi-reports) .gi-wl-table th:nth-child(2) { text-align: right; }
 :is(.stats-overlay,.gi-reports) .gi-wl-table td:nth-child(3), :is(.stats-overlay,.gi-reports) .gi-wl-table th:nth-child(3) { text-align: right; }
 :is(.stats-overlay,.gi-reports) .gi-wl-w { color: var(--gi-green); font-weight: 700; }

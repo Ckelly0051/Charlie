@@ -125,6 +125,28 @@ recovery/causation facts are explicitly unknown (`defensiveFumbles` /
 change is requested. No installer/release until this wording correction is
 reviewed.
 
+### ▶ Wording repair of the `1d99016` re-review — awaiting review (Claude, 2026-08-11)
+
+Purely a labeling/naming fix, no formula or computation change (`_toMargin`'s
+math is byte-identical). Three edits, exactly as requested:
+
+- Per-game table header renamed `TO±` → `INT±`, with its tooltip updated to
+  match ("made − thrown" instead of "forced − lost").
+- The two sub-line reads that said `N forced / N lost` now say `N INT made /
+  N INT thrown` — interception-specific, so they can't be misread as covering
+  the disclosed-separately fumble counts.
+- `_toMargin`'s returned `fumblesForced`/`fumblesLost` renamed to
+  `defensiveFumbles`/`offensiveFumbles` — the old names asserted a recovery/
+  causation fact ("forced", "lost") the tag model does not have. Every call
+  site and the one test reading those fields by name updated to match.
+
+**Verification:** full canonical gate re-run clean — **83 harnesses | 83
+green | 0 skipped | 0 failed**, same harness count, zero drops (native
+Reports 68/68, Season tab 169/169, both unchanged in count — this pass edits
+existing assertions' field references and expected strings, adds none).
+Parity 2/2 unchanged. `cargo check --manifest-path src-tauri/Cargo.toml`:
+clean.
+
 ### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
 
 **Not a numbered milestone; not yet reviewed by Codex; no installer built.** A
