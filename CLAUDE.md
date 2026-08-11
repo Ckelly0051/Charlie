@@ -39,6 +39,58 @@ violations** across 12 × 80 operations, and a fresh Vite production build.
 **Next checkpoint after independent review:** durable/team recovery ownership,
 then the Playbook & Calls manager and charting typeahead/default-application
 workflow. No existing-season migration is authorized.
+
+### ▶ CLAUDE'S REVIEW of `918cf9b` — ACCEPTED, 1 finding (P2, not blocking) (2026-08-11)
+
+Every claim checked against source and independently reproduced, not taken on
+report. `PlaybookLibrary` correctly has zero references to any play or tagger
+object, so "call definitions cannot mutate stored play tags" holds
+structurally — nothing in this commit wires a call's defaults onto a play yet.
+
+**Independently probed, not just read:**
+- **Id stability** — added a call, renamed it twice, edited its defaults, then
+  attempted to overwrite its id via `update(id, { id: 'call_hijacked' })`. The
+  id survived every operation (`update()` forces `id: current.id` after the
+  patch spread, so a patch can never smuggle a new id through).
+- **Team isolation, including a live mid-session switch** — the default
+  `teamId` is a function re-evaluated on every call, not a value captured at
+  construction. Switching the active team mid-session and writing immediately
+  re-scoped to the new team's own storage key with zero bleed either
+  direction, confirmed both ways.
+- **Existing-data safety** — `SeasonStore._normalize`'s three-field backfill
+  only ever produces `''` for genuinely new keys (every pre-existing play has
+  `undefined` under these brand-new key names, which the coercion always
+  blanks); the `String(...)` coercion branch has no live writer that could
+  hand it a non-string value today. Re-ran the included normalize tests myself
+  plus the real six-game integrity fuzzer (12 seeds × 80 ops, 0 violations)
+  and parity (2/2, 625 drilldowns) — unchanged.
+- Independently reran every cited count rather than trusting the report:
+  playbook contract 10/10, tag model 37/37, tagging 28/28, addfiles-race 4/4,
+  integrity 0 violations, parity 2/2 — all match. Full canonical gate:
+  **84/84** (83 + this commit's new harness), zero drops. `cargo check` clean.
+
+**[P2, not blocking] The handoff's "every current play-creation path" claim is
+incomplete, and one real new-play path is missing the three fields.**
+`StorageManager.applyPlayImport()` — CSV/Hudl play import — builds its own
+blank-tags object (`storage.js:1580-1588`) independently of the four
+constructors this commit patched, and it does not carry `playCall`/
+`playCallId`/`playConcept`. Reproduced in isolation: a play created via CSV
+import has `'playCall' in play.tags === false` (the key is entirely absent,
+not blank) until the next season save/reload cycle runs it through
+`_normalize`. Low blast radius today — no UI reads these fields yet, and the
+debounced autosave normalizes it shortly after in the running app — but it is
+exactly the gap this checkpoint's own review focus named, and the same
+incomplete-sweep shape this codebase has hit before (`ST_ALIGNMENT_KEYS`, the
+wizard.js consumer sweep). Fix is additive and small: add the same three
+blank keys to `applyPlayImport`'s constructor at `storage.js:1582`.
+
+**Scope respected:** no existing play tag, note, penalty, Special Teams field,
+player attribution, or unrelated key touched; no schema version bump; no
+migration; no UI. Recommend closing the CSV-import gap before the next
+checkpoint (durable recovery + the Playbook & Calls manager), since that
+checkpoint is the first coach-testable one and the gap is cheapest to close
+now, before more constructors exist to keep in sync.
+
 ### ▶ `1.12.0-45` REPORTS MILESTONE — LOCAL INSTALLER BUILT (2026-08-11)
 
 The accepted native Reports redesign (`7532b2e`, repairs `22da6f9` and
