@@ -105,6 +105,26 @@ parity-tracked formula — the raw `defensive.fumbles`/`turnovers.interceptions`
 fields StatsEngine computes are untouched; only how SeasonManager combines
 them changed). `cargo check --manifest-path src-tauri/Cargo.toml`: clean.
 
+### ▶ CODEX RE-REVIEW of `22da6f9` — ONE NARROW CHANGE REQUESTED (2026-08-11)
+
+The three repairs are correct at the data and interaction layers. Independent
+focused runs are green: native Reports **68/68**, Season tab **169/169**, and
+analytics parity **2/2**. Official-score precedence uses the active game's
+stored score, interception-only margin no longer invents fumble possession,
+and the heat-map tests prove exact mouse/keyboard film refs across duplicate
+play ids.
+
+One presentation remnant keeps finding 2 open: the per-game season table still
+labels the interception-only value `TO±`, which coaches will reasonably read as
+turnover margin. The other surfaces call it `INT Margin`; make this header
+literal too (`INT±` or `INT Margin`). In the same small edit, replace
+`forced / lost` with interception-specific language such as `made / thrown`,
+and avoid internal/public names `fumblesForced` / `fumblesLost` because those
+recovery/causation facts are explicitly unknown (`defensiveFumbles` /
+`offensiveFumbles`, or similarly neutral names). No formula or stored data
+change is requested. No installer/release until this wording correction is
+reviewed.
+
 ### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
 
 **Not a numbered milestone; not yet reviewed by Codex; no installer built.** A
