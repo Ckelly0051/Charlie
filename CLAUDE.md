@@ -14,6 +14,16 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of 9dbf4b4 — BUILT, AWAITING RE-REVIEW (2026-08-11)
+
+- Replaced both invalid --gi-warning references in the playbook favorite control
+  with the declared --gi-warn design token.
+- Corrected the handoff status: the builder must not convert a relayed verdict
+  into a recorded independent acceptance. P2 and P3 remain awaiting Claude's
+  confirmation of this repair.
+- Verification on repaired bytes: design-system **16/16**; full canonical gate
+  **85/85 green, 0 skipped, 0 failed**. Complete log:
+  `%TEMP%\gridiron-gate-p3-repair.log`.
 ### ▶ CLAUDE'S REVIEW of `6ffad83` + `d18dd5e` — CHANGES REQUESTED, 1 blocking, 1 process finding (2026-08-11)
 
 **Reviewed both commits, not just the one named** — `d18dd5e` (the charting
@@ -125,7 +135,7 @@ labels, and zero page errors.
 Room and CSV first, then add the parity-locked Study/Reports/cut-up consumers.
 Existing-season mapping remains a separate dry-run-and-confirm pass.
 
-### ▶ PLAY CALLS P2 — DURABLE MANAGER ACCEPTED (2026-08-11)
+### ▶ PLAY CALLS P2 — REVIEWED; TOKEN REPAIR AWAITING CONFIRMATION (2026-08-11)
 
 - Team Settings owns exact call names, concepts, favorites, and nine approved
   optional defaults through canonical selectors.

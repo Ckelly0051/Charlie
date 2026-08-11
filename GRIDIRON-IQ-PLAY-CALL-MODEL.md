@@ -16,7 +16,7 @@ separate post-build, dry-run-and-confirm pass.
   additive call/concept snapshot fields, every new-play constructor including
   CSV/Hudl import, and the DOM-free team-scoped `PlaybookLibrary`. No existing
   play was reinterpreted or migrated.
-- **P2 durable Playbook & Calls manager — accepted:** Team Settings can add,
+- **P2 durable Playbook & Calls manager — reviewed; token repair awaiting confirmation:** Team Settings can add,
   edit, favorite, and remove exact calls plus canonical optional defaults.
   Definitions remain team-scoped, mirror into the open season, roll back
   atomically on save failure, seed a new season, and recover from the newest
