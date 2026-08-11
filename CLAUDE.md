@@ -14,6 +14,15 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ PLAY CALLS — INTEGRATED SMOKE DECISION (2026-08-11)
+
+The coach explicitly declined a charting-only installer smoke. After P3 repair
+acceptance, build the Film Room + CSV + Study/Reports consumer milestone as
+reviewable commits under one review cycle. Package only after that milestone is
+accepted, then run one installed smoke covering exact-call charting, save/reopen,
+Film Room, CSV round-trip, Study/Reports numbers and film links, and final visual
+quality. This replaces the earlier recommendation to smoke P3 by itself.
+
 ### ▶ CODEX REPAIR of 9dbf4b4 — BUILT, AWAITING RE-REVIEW (2026-08-11)
 
 - Replaced both invalid --gi-warning references in the playbook favorite control

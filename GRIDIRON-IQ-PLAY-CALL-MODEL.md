@@ -140,7 +140,9 @@ complexity in the customer UI.
 1. Accept the active Reports redesign.
 2. Implement the new fields and team playbook library without touching old data.
 3. Independently review football semantics, persistence, CSV, reports, and film.
-4. Coach-smoke fresh/test plays in an installer.
+4. Do not package a charting-only installer. Integrate Film Room, CSV, Study,
+   Reports, and exact-film consumers, then run one installer smoke covering
+   charting, persistence, reporting correctness, and visuals together.
 5. Scope, dry-run, approve, back up, and execute any legacy-data mapping later.
 
 ## Non-Goals
