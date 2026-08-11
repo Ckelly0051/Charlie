@@ -161,15 +161,18 @@ export class CallSheetBuilder {
   _playLabel(p) {
     const t = p.tags || {};
     const parts = [];
-    // E3b: the spoken-call label (alignment + structure), not a raw formation
-    // read — a legacy "Shotgun + Trips" play must not print "Shotgun + Trips"
-    // literally when qbAlignment/formation have since been split apart elsewhere.
-    const look = TagProjection.lookLabel(t);
-    if (look) parts.push(look);
-    if (t.personnel) parts.push(t.personnel);
-    if (t.playType) parts.push(t.playType);
-    // Coaches often type the real play call ("Power R 34 Lead") in notes —
-    // surface it in quotes so the sheet shows the actual call, not just type.
+    const exactCall = String(t.playCall || '').trim();
+    if (exactCall) {
+      parts.push(exactCall);
+      if (t.playConcept && t.playConcept !== exactCall) parts.push(`(${t.playConcept})`);
+    } else {
+      // Legacy fallback: preserve the prior structural label and optional
+      // notes-as-call behavior without converting or rewriting old data.
+      const look = TagProjection.lookLabel(t);
+      if (look) parts.push(look);
+      if (t.personnel) parts.push(t.personnel);
+      if (t.playType) parts.push(t.playType);
+    }
     const note = (p.notes || '').trim().replace(/\s+/g, ' ');
     if (note) parts.push(`"${note.length > 40 ? note.slice(0, 39) + '…' : note}"`);
     return parts.join(' ') || `Play #${p.id}`;

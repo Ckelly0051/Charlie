@@ -169,6 +169,76 @@ ok(state.call?.sampleSize === 1 && JSON.stringify(state.call.matchingPlayIds) ==
   'Study Play Call result equals the canonical composite-ref cut and measures that cohort', JSON.stringify(state));
 ok(state.concept?.sampleSize === 1 && JSON.stringify(state.concept.matchingPlayIds) === JSON.stringify(state.registryConcept),
   'Study Concept roll-up equals the canonical composite-ref cut', JSON.stringify(state));
+console.log('\n== Play-call Reports ==');
+state = await page.evaluate(async () => {
+  const [first, second, third] = app.tagger.plays;
+  Object.assign(first.tags, { playCall: '26 Blast', playCallId: 'call_26_blast', playConcept: 'Blast',
+    runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10',
+    formation: 'Power-I', personnel: '21', fieldSide: 'own', yardLine: '20', strength: 'Right', playDir: 'Right' });
+  Object.assign(second.tags, { playCall: 'Counter GT', playConcept: 'Counter', runPass: 'Run',
+    playType: 'Run Outside', result: 'Loss', yardage: '-2', down: '3', distance: '2',
+    formation: 'Ace', personnel: '11', fieldSide: 'opp', yardLine: '35', strength: 'Right', playDir: 'Left' });
+  Object.assign(third.tags, { result: 'Touchdown', yardage: '15', down: '2', distance: '5',
+    personnel: '22', fieldSide: 'opp', yardLine: '12' });
+  app.storage.commitActive();
+  const analysis = app.stats._playCallAnalysis(app.tagger.plays);
+  await app.workspaceShell.show('reports');
+  app.reportsScreen.selectTab('offense');
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const root = document.querySelector('#wsReports');
+  const callRows = [...root.querySelectorAll('.gi-call-table tbody tr')];
+  const blastRow = callRows.find(row => row.cells[0]?.textContent.trim() === '26 Blast');
+  const contexts = [...root.querySelectorAll('.gi-call-context')];
+  const downTable = contexts.find(node => node.querySelector('h4')?.textContent.trim() === 'Down & Distance');
+  const situationRow = [...(downTable?.querySelectorAll('tbody tr') || [])]
+    .find(row => row.cells[0]?.textContent.trim() === '1st & Long');
+  const calls = [];
+  const original = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label }); return Promise.resolve({ completed: true }); };
+  situationRow?.click();
+  app.filmNavigation.watch = original;
+  return {
+    analysis,
+    callText: blastRow?.textContent || '',
+    conceptText: root.querySelector('.gi-call-concepts')?.textContent || '',
+    lenses: contexts.map(node => node.querySelector('h4')?.textContent.trim()),
+    situationRefs: (situationRow?.dataset.playCallRefs || '').split(',').filter(Boolean),
+    calls,
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  };
+});
+if (process.env.GIQ_PLAY_CALL_SCREENSHOT) await page.screenshot({ path: process.env.GIQ_PLAY_CALL_SCREENSHOT, fullPage: false });
+const reportBlast = state.analysis.calls.find(row => row.name === '26 Blast');
+ok(reportBlast?.n === 2 && reportBlast.sharePct === 66.7 && reportBlast.successRate === 100
+  && reportBlast.yardsPerPlay === 10.5 && reportBlast.explosiveRate === 50 && reportBlast.negativeRate === 0,
+  'Reports derives call frequency, Success Rate, Yards per Play, explosive, and negative rates from canonical metrics', JSON.stringify(reportBlast));
+ok(state.callText.includes('26 Blast') && state.callText.includes('Blast') && state.callText.includes('66.7%')
+  && state.conceptText.includes('Blast') && state.conceptText.includes('26 Blast'),
+  'Reports renders exact calls and nests precise calls under their concept roll-up', JSON.stringify({ call: state.callText, concept: state.conceptText }));
+ok(['Down & Distance', 'Formation', 'Personnel', 'Field Position', 'Direction vs Strength']
+  .every(label => state.lenses.includes(label)),
+  'Reports answers what we call by situation, structure, personnel, field position, and strength relationship', JSON.stringify(state.lenses));
+ok(state.situationRefs.length === 1 && state.calls.length === 1
+  && JSON.stringify(state.calls[0].refs) === JSON.stringify(state.situationRefs)
+  && /^[^:]+::1$/.test(state.situationRefs[0]) && !state.overflow,
+  'A situational result opens only its exact composite-ref film cohort without horizontal page overflow', JSON.stringify(state));
+
+state = await page.evaluate(() => {
+  const game = app.storage.seasonStore.activeGame();
+  const play = app.tagger.getPlay(1);
+  const label = app.callSheet._playLabel(play);
+  const plan = { name: 'Call Plan', items: [{ id: 'i1', kind: 'film', label: 'Blast family', refs: [`${game.id}::1`] }] };
+  const built = app.planExport.build(plan, [game]);
+  const html = app.planExport.html(built);
+  return { label, resolved: built.items[0].plays[0], html };
+});
+ok(state.label.startsWith('26 Blast') && state.label.includes('(Blast)') && !state.label.startsWith('Power-I'),
+  'Call Sheet leads with the exact call while retaining legacy fallback only for plays without one', state.label);
+ok(state.resolved.playCall === '26 Blast' && state.resolved.playConcept === 'Blast'
+  && state.html.includes('<th>Play Call</th>') && state.html.includes('<th>Concept</th>')
+  && state.html.includes('26 Blast'),
+  'Plan data and printable output carry exact call and concept separately from look, play type, and notes', JSON.stringify(state.resolved));
+
 ok(errors.length === 0, 'No page errors', errors.join('\n'));
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');

@@ -75,9 +75,10 @@ const ACK = [
   // DISPLAY (_cellHtml, _tendency) goes through projField and is NOT listed here;
   // only the editor may touch the coach's stored value.
   // NOTE: the former `_openEditor` ACK (count 2) is GONE on purpose — E3b-P1
-  // re-seeded both editor branches from projField(), so that expression no longer
-  // exists there. The stale-ACK check caught it and forced this deletion, which is
-  // exactly the behaviour R4b added.
+  // `_openEditor` may read generic text/call columns raw, but projected enum
+  // columns still seed exclusively through projField(). Its ACK below is method-
+  // scoped and multiplicity-pinned so another generic branch cannot inherit it.
+  { file: 'js/play-grid.js', method: '_openEditor', code: 'play.tags[col.key]', count: 1, reason: "EDITOR seed for yds/text/call columns only. The six projected fields are enum columns and take the projField branches above, so this path cannot bypass projection." },
   { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 1, reason: "EDITOR write: commits the coach's explicit choice to the stored tag. Raw by design — display never writes." },
   // E4-2: the former `_applyEdit` `play.tags[sibling]` ACK (count 2) is GONE on
   // purpose — the promote-then-strip logic moved into

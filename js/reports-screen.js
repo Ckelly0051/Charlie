@@ -498,6 +498,7 @@ export class ReportsScreen {
     if (!stats.offPlays.length) return '<div class="stats-section"><h3>No offensive snaps charted</h3><p>Set Unit to Offense to populate this report.</p></div>';
     return `
       ${s._renderOffenseHero(stats)}
+      ${this._playCallHtml(stats)}
       ${s._renderShape(stats)}
       ${s._renderPlayAction(stats)}
       ${s._renderTendencies(stats)}
@@ -512,6 +513,31 @@ export class ReportsScreen {
       ${s.heatMaps.render(stats.offPlays)}
       ${Visualizations.render(stats.offPlays)}
       ${s._renderAdvanced(stats)}`;
+  }
+
+  _playCallHtml(stats) {
+    const analysis = this.app.stats._playCallAnalysis(stats.offPlays);
+    if (!analysis.eligible) return '';
+    const esc = Charts._esc;
+    const gameId = this.app.storage?.seasonStore?.activeGame?.()?.id || '';
+    const pct = value => `${Number(value || 0).toFixed(1).replace(/\.0$/, '')}%`;
+    const refs = row => row.playIds.map(id => `${gameId}::${id}`).join(',');
+    const attrs = (row, label, classes = '') => `class="cut-row gi-call-film ${classes}" data-play-call-refs="${esc(refs(row))}" data-cut-label="${esc(label)}"`;
+    const metricCells = row => `<td>${row.n}</td><td>${pct(row.sharePct)}</td><td>${pct(row.successRate)}</td><td>${row.yardsPerPlay.toFixed(1)}</td><td>${pct(row.explosiveRate)}</td><td>${pct(row.negativeRate)}</td>`;
+    const callRows = analysis.calls.map(row => `<tr ${attrs(row, `Play Call: ${row.name}`)}><td><strong>${esc(row.name)}</strong></td><td>${esc(row.concept || '—')}</td>${metricCells(row)}</tr>`).join('');
+    const conceptRows = analysis.concepts.map(concept => {
+      const head = `<tr ${attrs(concept, `Concept: ${concept.name}`, 'gi-call-concept')}><td><strong>${esc(concept.name)}</strong></td><td>${concept.n}</td><td>${pct(concept.successRate)}</td><td>${concept.yardsPerPlay.toFixed(1)}</td></tr>`;
+      const children = concept.calls.map(call => `<tr ${attrs(call, `Play Call: ${call.name}`, 'gi-call-child')}><td>${esc(call.name)}</td><td>${call.n}</td><td>${pct(call.successRate)}</td><td>${call.yardsPerPlay.toFixed(1)}</td></tr>`).join('');
+      return head + children;
+    }).join('');
+    const lenses = [...new Set(analysis.situations.map(row => row.lens))];
+    const situationHtml = lenses.map(lens => {
+      const rows = analysis.situations.filter(row => row.lens === lens)
+        .sort((a, b) => b.contextN - a.contextN || a.value.localeCompare(b.value))
+        .map(row => `<tr ${attrs(row, `${lens}: ${row.value} — ${row.call}`)}><td>${esc(row.value)}</td><td><strong>${esc(row.call)}</strong></td><td>${row.n}/${row.contextN}</td><td>${pct(row.successRate)}</td><td>${row.yardsPerPlay.toFixed(1)}</td></tr>`).join('');
+      return `<div class="gi-call-context"><h4>${esc(lens)}</h4><table class="stats-table stats-table-full"><thead><tr><th>Situation</th><th>Top Call</th><th>Use</th><th>Success Rate</th><th>Yds/Play</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }).join('');
+    return `<div class="stats-section gi-play-calls"><h3>Play Calls</h3><p class="gi-call-note">${analysis.eligible} offensive snaps have an exact call. Frequency uses those call-charted snaps; every row opens its exact film.</p><div class="gi-call-grid"><div><h4>Call performance</h4><table class="stats-table stats-table-full gi-call-table"><thead><tr><th>Play Call</th><th>Concept</th><th>Plays</th><th>Frequency</th><th>Success Rate</th><th>Yds/Play</th><th>Explosive</th><th>Negative</th></tr></thead><tbody>${callRows}</tbody></table></div><div><h4>Concept roll-up</h4>${conceptRows ? `<table class="stats-table stats-table-full gi-call-concepts"><thead><tr><th>Concept / Call</th><th>Plays</th><th>Success Rate</th><th>Yds/Play</th></tr></thead><tbody>${conceptRows}</tbody></table>` : '<p>No concepts assigned yet.</p>'}</div></div><h4>What we call by situation</h4><div class="gi-call-context-grid">${situationHtml}</div></div>`;
   }
 
   _specialTeamsHtml(stats) {
@@ -605,7 +631,15 @@ export class ReportsScreen {
         row.title = "Watch this player's plays";
         this._makeFilmControl(row, () => stats._watchPlayer(row.dataset.player));
       });
-      root.querySelectorAll('.cut-row[data-cut-type]:not([data-season-film])').forEach(row => {
+      root.querySelectorAll('[data-play-call-refs]').forEach(row => {
+        row.setAttribute('data-direct-film', '');
+        const refs = (row.dataset.playCallRefs || '').split(',').filter(Boolean);
+        if (!refs.length) { row.classList.remove('cut-row'); return; }
+        this._makeFilmControl(row, () => this.app.filmNavigation?.watch?.(refs, {
+          label: row.dataset.cutLabel || 'Play call film',
+        }));
+      });
+      root.querySelectorAll('.cut-row[data-cut-type]:not([data-season-film]):not([data-direct-film])').forEach(row => {
         row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
         this._makeFilmControl(row, () => {
           const filter = stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);

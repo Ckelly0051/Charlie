@@ -307,7 +307,7 @@ r = await page.evaluate(() => {
     drives: /Drives/.test(text('overview')),
     bigPlays: /Big Plays/.test(text('overview')),
     penalties: /Penalt/.test(text('overview')),
-    bigCalls: /Big “?\d+/.test(text('offense')) || /Core Calls|Big /.test(text('offense')),
+    bigCalls: /Big “?\d+/.test(text('offense')) || /Core Tendencies|Big /.test(text('offense')),
     epa: /Expected Points/.test(text('offense')),
     defense: /Defensive Analytics/.test(text('defense')),
     special: text('special').trim().length > 0,
@@ -894,7 +894,7 @@ ok(r.defCount === 3, 'their defense = our 3 offensive snaps that carried a faced
 ok(r.allRelabeled, 'faced snaps are relabeled as defensive reps for the defensive renderer', JSON.stringify(r));
 ok(r.rendered, 'the matchup renders their defense, not the empty state', JSON.stringify(r));
 
-console.log('\n== 22. "Big 12" core-calls report (formation·strength·motion → play rollup) ==');
+console.log('\n== 22. "Big 12" structural-tendencies report (formation·strength·motion → play rollup) ==');
 r = await page.evaluate(() => {
   const mk = window.__mk, eng = window.app.stats;
   const plays = [];
@@ -921,7 +921,7 @@ r = await page.evaluate(() => {
        run-together prose line. Each dimension owns a column, so these assert
        the columns exist and carry their own values rather than looking for the
        retired "Shotgun Trips … Right … Jet mo" signature string. */
-    rendered: /Core Calls/.test(html)
+    rendered: /Core Tendencies/.test(html)
       && /<th[^>]*>Formation<\/th>/.test(html) && /<th[^>]*>QB align<\/th>/.test(html)
       && /<td[^>]*>Trips<\/td>/.test(html) && /<td[^>]*>Shotgun<\/td>/.test(html),
     // Cells still render as trusted markup, never as escaped source. This is the
@@ -932,11 +932,11 @@ r = await page.evaluate(() => {
       && !hostileHtml.includes('<svg') && hostileHtml.includes('&lt;img'),
   };
 });
-ok(r.total === 20 && r.unique === 6, 'Big 12 rolls 20 snaps into 6 unique calls', JSON.stringify(r));
+ok(r.total === 20 && r.unique === 6, 'Big 12 rolls 20 snaps into 6 unique structural combinations', JSON.stringify(r));
 ok(r.topN === 10 && r.topPct === 50, 'dominant call (Shotgun Trips Right · Jet → Run Outside) = 10 snaps / 50%', JSON.stringify(r));
 ok(r.to75 === 2 && r.to90 === 4, 'cumulative coverage: 2 calls = 75%, 4 calls = 90%', JSON.stringify(r));
 ok(r.cutN === 10, 'the bigCall cut filter resolves to exactly that call\'s 10 snaps', JSON.stringify(r));
-ok(r.rendered, 'the report renders the core-calls table with the call signature', JSON.stringify(r));
+ok(r.rendered, 'the report renders the core-tendencies table with the structural signature', JSON.stringify(r));
 ok(r.chipsRender, 'Big 12 renders trusted call-format spans instead of showing raw markup', JSON.stringify(r));
 ok(r.hostileSafe, 'Big 12 escapes adversarial coach-entered call values at the trusted markup boundary', JSON.stringify(r));
 

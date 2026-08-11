@@ -77,7 +77,7 @@ export class PlanScreen {
     const query=[item.query?.group,item.query?.dimension,item.query?.measure].filter(Boolean).map(value=>this._esc(value)).join(' / ');
     const plays=item.plays.length?item.plays.map(play=>play.missing
       ? `<div class="ws-present-play is-missing"><span>${this._esc(play.gameName)}</span><strong>${play.invalid?'Invalid film reference':`Play ${this._esc(play.playId)} not found`}</strong></div>`
-      : `<button class="ws-present-play" data-plan-present-ref="${this._esc(play.ref)}"><span>${this._esc(play.gameName)}${play.situation?` · ${this._esc(play.situation)}`:''}</span><strong>${this._esc(play.look||'Unlabeled look')}</strong><small>${this._esc(play.playType||'Unlabeled play')}${play.result?` · ${this._esc(play.result)}${play.yardage?`: ${this._esc(play.yardage)}`:''}`:''}</small></button>`).join('')
+      : `<button class="ws-present-play" data-plan-present-ref="${this._esc(play.ref)}"><span>${this._esc(play.gameName)}${play.situation?` · ${this._esc(play.situation)}`:''}</span><strong>${this._esc(play.playCall||play.look||'Unlabeled play')}</strong><small>${this._esc([play.playConcept,play.playType].filter(Boolean).join(' · ')||'Unlabeled play')}${play.result?` · ${this._esc(play.result)}${play.yardage?`: ${this._esc(play.yardage)}`:''}`:''}</small></button>`).join('')
       : '<div class="ws-present-empty">No film is linked to this item.</div>';
     // S6-3 bottom strip: every item in PLAN ORDER, always visible, so the coach
     // jumps rather than pages. Selection only — Watch stays the explicit action

@@ -728,6 +728,92 @@ export class StatsEngine {
     };
   }
 
+  /**
+   * Exact offensive play-call analysis. The source is already the canonical
+   * offensive report cohort; blank calls are omitted rather than invented.
+   * Every rate is derived by compute(), so Reports cannot drift from the
+   * established Success Rate, explosive, negative-play, or YPP definitions.
+   */
+  _playCallAnalysis(plays) {
+    const source = (plays || []).filter(play => (play.tags.unit || 'offense') === 'offense'
+      && String(play.tags.playCall || '').trim());
+    if (!source.length) return { eligible: 0, calls: [], concepts: [], situations: [] };
+
+    const summarize = (name, cohort, denominator = source.length) => {
+      const computed = this.compute(cohort);
+      return {
+        name,
+        n: cohort.length,
+        sharePct: denominator ? Number((cohort.length / denominator * 100).toFixed(1)) : 0,
+        successRate: Number(computed.efficiency.successRate),
+        yardsPerPlay: Number(StatsEngine.yardsPerPlay(computed)),
+        explosiveRate: Number(computed.efficiency.explosivePct),
+        negativeRate: Number(computed.efficiency.negativePct),
+        playIds: cohort.map(play => play.id),
+      };
+    };
+    const group = (items, values) => {
+      const groups = new Map();
+      items.forEach(play => {
+        const raw = values(play);
+        const keys = Array.isArray(raw) ? raw : [raw];
+        [...new Set(keys.map(value => String(value || '').trim()).filter(Boolean))].forEach(key => {
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(play);
+        });
+      });
+      return groups;
+    };
+    const callGroups = group(source, play => play.tags.playCall);
+    const calls = [...callGroups.entries()]
+      .map(([name, cohort]) => ({ ...summarize(name, cohort), concept: String(cohort[0]?.tags?.playConcept || '').trim() }))
+      .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+
+    const conceptGroups = group(source, play => play.tags.playConcept);
+    const concepts = [...conceptGroups.entries()].map(([name, cohort]) => ({
+      ...summarize(name, cohort),
+      calls: [...group(cohort, play => play.tags.playCall).entries()]
+        .map(([call, callPlays]) => summarize(call, callPlays, source.length))
+        .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)),
+    })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+
+    const dirVsStrength = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
+    const fieldZone = play => {
+      const yard = this._absYardLine(play.tags);
+      if (yard === null) return '';
+      if (yard <= 10) return 'Backed up';
+      if (yard <= 39) return 'Own 11–39';
+      if (yard <= 59) return 'Midfield';
+      if (yard <= 79) return 'Opp 40–20';
+      if (yard <= 94) return 'Red zone';
+      return 'Goal line';
+    };
+    const dimensions = [
+      { id: 'downDistance', label: 'Down & Distance', values: play => { const key = this._ddKey(play.tags); return key ? this._ddPretty(key) : ''; } },
+      { id: 'formation', label: 'Formation', values: play => StatsEngine.splitFormations(StatsEngine.proj(play).formation) },
+      { id: 'personnel', label: 'Personnel', values: play => play.tags.personnel || '' },
+      { id: 'fieldPosition', label: 'Field Position', values: fieldZone },
+      { id: 'directionStrength', label: 'Direction vs Strength', values: play => dirVsStrength ? dirVsStrength(play) : [] },
+    ];
+    const situations = [];
+    dimensions.forEach(dimension => {
+      for (const [value, cohort] of group(source, dimension.values).entries()) {
+        const ranked = [...group(cohort, play => play.tags.playCall).entries()]
+          .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+        if (!ranked.length) continue;
+        const [call, callPlays] = ranked[0];
+        situations.push({
+          dimension: dimension.id,
+          lens: dimension.label,
+          value,
+          contextN: cohort.length,
+          call,
+          ...summarize(call, callPlays, cohort.length),
+        });
+      }
+    });
+    return { eligible: source.length, calls, concepts, situations };
+  }
   _personnelStats(plays) {
     const groups = {};
     plays.forEach(p => {
@@ -2361,7 +2447,7 @@ export class StatsEngine {
    * plays; defensive dimensions (front/coverage/blitz) match our defensive
    * plays — mirroring how the dashboard partitions stats by unit.
    */
-  // The "Big 12": the handful of formation·strength·motion → play calls that make
+  // The "Big 12": the handful of formation·strength·motion → play combinations that make
   // up the bulk of an offense's snaps. Hudl's scouting axiom — most teams live in
   // ~8-14 calls (≈90% of snaps); find them and you've found the offense. Pure
   // rollup over data already tagged. The call signature is the EXACT tagged look,
@@ -2460,8 +2546,8 @@ export class StatsEngine {
     }).join('');
     const head = cols.map((col, i) => `<th class="${col.num ? 'bt-num' : ''}" data-bt-sort="${i}"${i === 6 ? ' aria-sort="descending"' : ''}>${esc(col.label)}</th>`).join('');
     return `<div class="stats-section">
-      <h3>The “Big ${d.to90}” — ${esc(label)}'s Core Calls</h3>
-      <p class="self-scout-intro"><b>${d.to90} call${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Sorted by frequency; click any column to re-sort.${cut ? ' Click a row to watch it. Click a column to sort.' : ' Click a column to sort.'}</p>
+      <h3>The “Big ${d.to90}” — ${esc(label)}'s Core Tendencies</h3>
+      <p class="self-scout-intro"><b>${d.to90} structural combination${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Sorted by frequency; click any column to re-sort.${cut ? ' Click a row to watch it. Click a column to sort.' : ' Click a column to sort.'}</p>
       <table class="stats-table stats-table-full bt-table" data-bt-table>
         <thead><tr>${head}</tr></thead>
         <tbody>${rows}</tbody>

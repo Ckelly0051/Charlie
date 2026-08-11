@@ -442,6 +442,24 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 :is(.stats-overlay,.gi-reports) .gi-wl-w { color: var(--gi-green); font-weight: 700; }
 :is(.stats-overlay,.gi-reports) .gi-wl-l { color: var(--gi-red); font-weight: 700; }
 
+/* --- Exact play-call analysis: dense tables, no decorative empty panels --- */
+:is(.stats-overlay,.gi-reports) .gi-call-note { margin: 0 0 10px; color: var(--gi-dim); }
+:is(.stats-overlay,.gi-reports) .gi-call-grid {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 14px; align-items: start;
+}
+:is(.stats-overlay,.gi-reports) .gi-call-grid > div,
+:is(.stats-overlay,.gi-reports) .gi-call-context { min-width: 0; overflow-x: auto; }
+:is(.stats-overlay,.gi-reports) .gi-call-table,
+:is(.stats-overlay,.gi-reports) .gi-call-concepts,
+:is(.stats-overlay,.gi-reports) .gi-call-context table { white-space: nowrap; }
+:is(.stats-overlay,.gi-reports) .gi-call-concept { background: var(--gi-card-2); }
+:is(.stats-overlay,.gi-reports) .gi-call-child td:first-child { padding-left: 24px; color: var(--gi-dim); }
+:is(.stats-overlay,.gi-reports) .gi-call-context-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 12px 16px; align-items: start;
+}
+:is(.stats-overlay,.gi-reports) .gi-call-context h4 { margin-top: 0; }
+
 @media (max-width: 640px) {
+  :is(.stats-overlay,.gi-reports) .gi-call-grid, :is(.stats-overlay,.gi-reports) .gi-call-context-grid { grid-template-columns: 1fr; }
   :is(.stats-overlay,.gi-reports) .gi-ts-grid, :is(.stats-overlay,.gi-reports) .gi-id-grid { grid-template-columns: 1fr; }
 }
