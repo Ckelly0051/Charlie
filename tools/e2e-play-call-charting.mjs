@@ -22,7 +22,7 @@ await page.evaluate(async () => {
   const store = app.storage.seasonStore;
   const game = store.activeGame();
   game.gameInfo = { ...(game.gameInfo || {}), opponent: 'Wildcats', week: '1', perspective: 'offense' };
-  game.plays = [1, 2].map(id => ({
+  game.plays = [1, 2, 3].map(id => ({
     id, timestamp: { start: (id - 1) * 6, end: id * 6 - 1 }, notes: '',
     tags: {
       unit: 'offense', down: '', distance: '', quarter: '', fieldSide: 'own', yardLine: '',
@@ -116,6 +116,34 @@ ok(state.free.playCall === 'Counter GT' && state.free.playCallId === '' && state
 ok(state.added && state.saved.playCallId && state.library.some(call => call.name === 'Counter GT'),
   'Inline Add durably promotes free text into the team playbook', JSON.stringify({ saved: state.saved, library: state.library }));
 ok(state.label === 'Opponent Play', 'Opponent scout uses the football-correct Opponent Play label', state.label);
+
+state = await page.evaluate(() => {
+  app.gameContext.update({ perspective: 'self' });
+  app.tagger.selectPlay(3);
+  app.history.stack = []; app.history.index = -1;
+  const columns = app.playGrid.nativeSnapshot().allColumns;
+  const upgradedDefault = app.playGrid.constructor._upgradeCols(
+    app.playGrid.constructor.PRE_CALL_PRESETS.default);
+  app.playGrid.nativeCommitEdit(3, 'playCall', '26 Blast');
+  const after = structuredClone(app.tagger.getCurrentPlay().tags);
+  const entries = app.history.stack.length;
+  app.history.undo();
+  const undone = structuredClone(app.tagger.getPlay(3).tags);
+  app.history.redo();
+  const redone = structuredClone(app.tagger.getPlay(3).tags);
+  return { columns, upgradedDefault, after, entries, undone, redone };
+});
+ok(state.columns.some(col => col.key === 'playCall' && col.label === 'Play Call')
+  && state.columns.some(col => col.key === 'playConcept' && col.label === 'Concept')
+  && state.columns.some(col => col.key === 'notes' && col.label === 'Notes'),
+  'Film Room exposes distinct Play Call, Concept, and Notes columns', JSON.stringify(state.columns));
+ok(state.upgradedDefault.includes('playCall'),
+  'A saved pre-call stock preset upgrades to reveal Play Call', JSON.stringify(state.upgradedDefault));
+ok(state.after.playCall === '26 Blast' && state.after.playCallId === 'call_26_blast'
+  && state.after.playConcept === 'Blast' && state.after.formation === 'Power-I',
+  'Film Room selects a saved call through the same snapshot/default rules as Chart', JSON.stringify(state.after));
+ok(state.entries === 1 && state.undone.playCall === '' && state.redone.playCall === '26 Blast',
+  'Film Room call selection is one complete undo/redo transaction', JSON.stringify(state));
 ok(errors.length === 0, 'No page errors', errors.join('\n'));
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');

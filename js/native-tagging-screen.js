@@ -2,6 +2,7 @@ import { mountNativeTagging } from './native-tagging.jsx';
 import { StatsEngine } from './stats-engine.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { PlayCallModel } from './play-call-model.js';
 
 /**
  * S5c native tag-form presentation.
@@ -177,47 +178,14 @@ export class NativeTaggingScreen {
   }
 
   _protectCallOverride(key) {
-    const play = this.tagger?.getCurrentPlay?.();
-    if (!play?.tags?.playCallDefaults || typeof play.tags.playCallDefaults !== 'object') return;
-    delete play.tags.playCallDefaults[key];
+    PlayCallModel.protectOverride(this.tagger?.getCurrentPlay?.(), key);
   }
 
   selectPlayCall(value) {
     const play = this.tagger?.getCurrentPlay?.();
     if (!play) return false;
-    const text = String(value || '').trim();
-    const call = (this.app.playbook?.list?.() || []).find(item =>
-      item.id === text || item.name.toLowerCase() === text.toLowerCase());
-    const next = call || (text
-      ? { id: '', name: text, concept: '', defaults: {} }
-      : { id: '', name: '', concept: '', defaults: {} });
-    const previous = play.tags.playCallDefaults && typeof play.tags.playCallDefaults === 'object'
-      ? play.tags.playCallDefaults : {};
-    const projected = StatsEngine.proj(play);
-    const applied = {};
-    for (const key of (this.app.playbook?.constructor?.DEFAULT_KEYS || [])) {
-      const current = String(projected?.[key] ?? play.tags[key] ?? '').trim();
-      const priorOwned = Object.hasOwn(previous, key) && current === String(previous[key] ?? '').trim();
-      const incoming = String(next.defaults?.[key] || '').trim();
-      if (priorOwned) {
-        play.tags[key] = incoming;
-        if (incoming) applied[key] = incoming;
-      } else if (!current && incoming) {
-        play.tags[key] = incoming;
-        applied[key] = incoming;
-      }
-    }
-    if (!String(play.tags.runPass || '').trim() && applied.playType) {
-      const inferred = this.tagger?.constructor?.runPassForPlayType?.(play.tags.playType);
-      if (inferred) {
-        play.tags.runPass = inferred;
-        applied.runPass = inferred;
-      }
-    }
-    play.tags.playCall = next.name;
-    play.tags.playCallId = next.id;
-    play.tags.playConcept = next.concept;
-    play.tags.playCallDefaults = applied;
+    PlayCallModel.apply(play, value, this.app.playbook,
+      playType => this.tagger?.constructor?.runPassForPlayType?.(playType));
     this.tagger._loadTagForm(play);
     this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);

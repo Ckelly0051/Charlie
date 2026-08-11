@@ -31,7 +31,7 @@ const res = await page.evaluate(async () => {
     { id: 1, timestamp: { start: 0, end: 5 }, notes: 'said "hi", ok', annotations: [], penalties: [
       { id: 'p1', team: 'subject', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false, phase: 'offense' },
       { id: 'p2', team: 'opponent', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true, phase: 'defense' },
-    ], resultingSituation: { down: '1', distance: '10', fieldSide: 'opp', yardLine: '35', confirmed: true }, tags: { formation: 'A"B', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
+    ], resultingSituation: { down: '1', distance: '10', fieldSide: 'opp', yardLine: '35', confirmed: true }, tags: { formation: 'A"B', playCall: '26 Blast', playCallId: 'call_26_blast', playConcept: 'Blast', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
     { id: 2, timestamp: { start: 0, end: 5 }, notes: '', annotations: [], tags: { formation: '=EVIL', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '7', down: '2', distance: '4', custom: [], players: {}, grades: {} } },
     { id: 3, timestamp: { start: 0, end: 0 }, notes: '', annotations: [], penalties: [
       { id: 'p3', team: 'subject', foul: 'False Start', disposition: 'accepted', yards: 5, playCounts: false, phase: 'offense' },
@@ -51,7 +51,8 @@ const res = await page.evaluate(async () => {
   const roundtrippedNotes = (parsed.lines || []).some(row => row.some(c => c === 'said "hi", ok'));
   return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties,
     situation: structured?.resultingSituation, penaltyOnly,
-    callFields: structured ? [structured.tags.playCall, structured.tags.playCallId, structured.tags.playConcept] : null };
+    callFields: structured ? [structured.tags.playCall, structured.tags.playCallId, structured.tags.playConcept] : null,
+    blankCallFields: penaltyOnly ? [penaltyOnly.tags.playCall, penaltyOnly.tags.playCallId, penaltyOnly.tags.playConcept] : null };
 });
 
 ok(res.csv.includes('"A""B"'), 'embedded quote in formation is escaped ("→"") on export', JSON.stringify(res.csv.split('\n')[1]?.slice(0, 60)));
@@ -63,7 +64,10 @@ ok(res.roundtrippedNotes, 'export→import round-trips notes containing a quote 
 ok(res.penalties?.length === 2 && res.penalties[0].yards === 8 && res.penalties[1].disposition === 'declined', 'export→import preserves multiple structured penalties');
 ok(res.situation?.confirmed === true && res.situation?.fieldSide === 'opp' && res.situation?.yardLine === '35', 'export→import preserves the coach-confirmed resulting situation');
 ok(res.penaltyOnly?.penalties?.[0]?.yards === 5, 'CSV import retains a structured penalty-only row without legacy charting fields');
-ok(JSON.stringify(res.callFields) === JSON.stringify(['', '', '']), 'CSV-imported plays are born with blank play-call fields before normalize/save');
+ok(JSON.stringify(res.callFields) === JSON.stringify(['26 Blast', 'call_26_blast', 'Blast']),
+  'CSV export/import round-trips exact call identity and concept', JSON.stringify(res.callFields));
+ok(JSON.stringify(res.blankCallFields) === JSON.stringify(['', '', '']),
+  'CSV-imported plays without call data retain backward-compatible blank fields');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

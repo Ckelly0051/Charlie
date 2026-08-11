@@ -21,14 +21,17 @@ separate post-build, dry-run-and-confirm pass.
   Definitions remain team-scoped, mirror into the open season, roll back
   atomically on save failure, seed a new season, and recover from the newest
   season mirror alongside team identity and roster.
-- **P3 native charting selector — built, awaiting independent review:**
-  typeahead, favorite/recent choices, explicit one-use or durable Add, exact
-  call/concept snapshots, visible defaults, and one-transaction override-safe
-  call changes. Internal playCallDefaults provenance records only defaults
-  supplied by the selected call; explicitly edited chips are removed from that
-  map and therefore survive later call changes.
-- **Next after review:** Film Room and CSV call/concept surfaces, followed by
-  parity-locked Study/Reports/cut-up consumers.
+- **P3 native charting selector — accepted at `b952106`:** typeahead,
+  favorite/recent choices, explicit one-use or durable Add, exact call/concept
+  snapshots, visible defaults, and one-transaction override-safe call changes.
+- **P4a Film Room + CSV consumers — built, internal checkpoint:** Chart and Film
+  Room now share one DOM-free call-application model. Film Room exposes distinct
+  Play Call, Concept, and Notes columns, upgrades only stock saved presets, and
+  applies saved-call defaults as one undoable transaction. CSV exports/imports
+  Play Call, Play Call ID, and Play Concept losslessly; older CSVs remain valid.
+- **Next in the same review cycle:** parity-locked Study dimensions, Reports
+  analysis, and exact composite-ref cut-ups. Do not package before the complete
+  consumer milestone is accepted.
 - **Still deferred:** existing-season mapping/migration, exactly as contracted
   below.
 ## Goal

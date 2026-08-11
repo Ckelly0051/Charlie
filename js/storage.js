@@ -1338,6 +1338,7 @@ export class StorageManager {
       // that puts Shotgun/Pistol/Under Center back in Formation, and a blank
       // optional exports blank — "Unknown" would read as a real analytics category.
       'Formation', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
+      'Play Call', 'Play Call ID', 'Play Concept',
       'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front',
       'Coverage Call', 'Coverage Family', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
@@ -1368,6 +1369,9 @@ export class StorageManager {
       look.strength ?? '',
       p.tags.personnel || '',
       p.tags.motion || '',
+      p.tags.playCall || '',
+      p.tags.playCallId || '',
+      p.tags.playConcept || '',
       p.tags.runPass || '',
       p.tags.playType,
       p.tags.playDir || '',
@@ -1547,6 +1551,9 @@ ${body}
       personnel: 'personnel', pers: 'personnel', offpers: 'personnel',
       hash: 'hash', hashmark: 'hash',
       motion: 'motion',
+      playcall: 'playCall', call: 'playCall',
+      playcallid: 'playCallId', callid: 'playCallId',
+      playconcept: 'playConcept', concept: 'playConcept',
       playdir: 'playDir', direction: 'playDir', playdirection: 'playDir', dir: 'playDir',
       deffront: 'defFront', front: 'defFront', defenseformation: 'defFront', defform: 'defFront',
       coverage: 'coverage', cov: 'coverage',

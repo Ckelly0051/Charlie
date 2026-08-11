@@ -36,6 +36,7 @@ import { PlayTagger } from './play-tagger.js';
 import { isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
+import { PlayCallModel } from './play-call-model.js';
 
 export class PlayGrid {
   /**
@@ -66,6 +67,8 @@ export class PlayGrid {
     { key: 'strength',  label: 'Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
+    { key: 'playCall',  label: 'Play Call', type: 'call',                                  unit: 'offense' },
+    { key: 'playConcept', label: 'Concept', type: 'text-tag',                               unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
     { key: 'playType',  label: 'Type',      type: 'enum', src: 'tagPlayType',  multi: true },
     { key: 'playDir',   label: 'Dir',       type: 'enum', src: 'tagPlayDir' },
@@ -82,14 +85,14 @@ export class PlayGrid {
     { key: 'stReturn',  label: 'Return',    type: 'st-readonly',                              unit: 'special' },
     { key: 'penalty',   label: 'Penalty',   type: 'pen-readonly' },
     { key: 'penaltyYards', label: 'Pen Yds', type: 'pen-readonly' },
-    { key: 'notes',     label: 'Call / Notes', type: 'text' },
+    { key: 'notes',     label: 'Notes',      type: 'text' },
   ];
 
   // E3b coach decision: Offense/Default place QB Alignment AFTER Formation;
   // Defense places Coverage Family AFTER Coverage Call.
   static PRESETS = {
-    default: ['sit', 'formation', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
-    offense: ['sit', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    default: ['sit', 'playCall', 'formation', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
+    offense: ['sit', 'playCall', 'playConcept', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
     defense: ['sit', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
@@ -111,10 +114,18 @@ export class PlayGrid {
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
-  constructor(tagger, videoController, cutupPlayer) {
+  // P4: presets saved after E3b but before Play Call existed are also stock,
+  // not coach customizations. Upgrade only exact matches.
+  static PRE_CALL_PRESETS = {
+    default: ['sit', 'formation', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
+    offense: ['sit', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
+  };
+
+  constructor(tagger, videoController, cutupPlayer, playbook = null) {
     this.tagger = tagger;
     this.vc = videoController;
     this.cutup = cutupPlayer;
+    this.playbook = playbook;
 
     this.section = document.getElementById('playGridSection');
     if (!this.section) return;
@@ -151,8 +162,10 @@ export class PlayGrid {
    *  A preserved custom layout keeps both new columns available in the Columns menu. */
   static _upgradeCols(cols) {
     const same = (a, b) => a.length === b.length && a.every((k, i) => k === b[i]);
-    for (const name of Object.keys(PlayGrid.LEGACY_PRESETS)) {
-      if (same(cols, PlayGrid.LEGACY_PRESETS[name])) return PlayGrid.PRESETS[name].slice();
+    for (const presets of [PlayGrid.LEGACY_PRESETS, PlayGrid.PRE_CALL_PRESETS]) {
+      for (const name of Object.keys(presets)) {
+        if (same(cols, presets[name])) return PlayGrid.PRESETS[name].slice();
+      }
     }
     return cols;   // custom layout — untouched
   }
@@ -895,11 +908,14 @@ export class PlayGrid {
       dist.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); commit({ down, distance: dist.value.trim() }, 'down'); }
       });
-    } else {   // yds / text
+    } else {   // yds / text / call
       const isYds = col.type === 'yds';
-      const cur = isYds ? String(play.tags.yardage ?? '') : String(play.notes || '');
+      const cur = isYds ? String(play.tags.yardage ?? '')
+        : col.key === 'notes' ? String(play.notes || '') : String(play.tags[col.key] || '');
+      const callOptions = col.type === 'call'
+        ? `<datalist id="pgCallOptions">${(this.playbook?.list?.() || []).map(call => `<option value="${this._esc(call.name)}"></option>`).join('')}</datalist>` : '';
       wrap.innerHTML = `<input type="${isYds ? 'number' : 'text'}" class="pg-pop-input pg-pop-wide" id="pgCellInput"
-        value="${this._esc(cur)}"${isYds ? '' : ' maxlength="200" placeholder="e.g. Power R 34 Lead"'}>`;
+        value="${this._esc(cur)}"${isYds ? '' : ` maxlength="200"${col.type === 'call' ? ' list="pgCallOptions" placeholder="e.g. 26 Blast"' : ''}`}>${callOptions}`;
       const input = wrap.querySelector('#pgCellInput');
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); commit(input.value.trim(), 'down'); }
@@ -939,6 +955,11 @@ export class PlayGrid {
   _applyEdit(play, col, value) {
     if (col.key === 'notes') {
       play.notes = value;
+    } else if (col.key === 'playCall') {
+      PlayCallModel.apply(play, value, this.playbook,
+        playType => PlayTagger.runPassForPlayType(playType));
+    } else if (col.key === 'playConcept') {
+      play.tags.playConcept = String(value || '').trim();
     } else if (col.type === 'sit') {
       play.tags.down = value.down;
       play.tags.distance = value.distance;

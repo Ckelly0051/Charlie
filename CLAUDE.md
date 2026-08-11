@@ -24,6 +24,22 @@ CLAUDE.md entry no longer self-declares acceptance, and correctly defers to
 this confirmation instead. **`6ffad83` and `d18dd5e` are accepted; P2/P3 may
 proceed.**
 
+### ▶ PLAY CALLS P4a — FILM ROOM + CSV BUILT; INTERNAL CHECKPOINT (2026-08-11)
+
+P3 is independently accepted at `b952106`. Codex has begun the combined consumer
+milestone requested by the coach; **this is not yet an installer or review
+handoff**. Chart and Film Room now share `PlayCallModel`, so selecting a saved
+call has identical snapshot/default/override behavior on both surfaces. Film
+Room adds distinct Play Call, Concept, and Notes columns, upgrades exact stock
+saved presets without touching custom layouts, and keeps the call edit as one
+undo/redo transaction. CSV now round-trips Play Call, Play Call ID, and Play
+Concept while preserving backward-compatible blanks for old files.
+
+Focused verification on built Vite bytes: play-call charting **15/15**, CSV
+round-trip **11/11**, Film Room **179/179**, zero page errors. Next: add the
+registry/Study dimensions with exact composite-ref equality, then Reports and
+its football analysis. One combined independent review, installer, and coach
+smoke follow only after all consumers are integrated.
 ### ▶ PLAY CALLS — INTEGRATED SMOKE DECISION (2026-08-11)
 
 The coach explicitly declined a charting-only installer smoke. After P3 repair
