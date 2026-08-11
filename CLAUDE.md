@@ -26,6 +26,35 @@ provided mappings, complete dry-run diff, named backup, and explicit confirmatio
 before any write. Nothing in the initial feature build may rewrite existing
 charted data.
 
+### ▶ CODEX REVIEW of `7532b2e` — CHANGES REQUESTED (2026-08-11)
+
+The Reports redesign is structurally sound and the canonical gate is green on
+the committed bytes: **83/83 harnesses, 0 skipped**, with both analytics parity
+goldens exact. Three items remain before acceptance:
+
+1. **P1 — `Final Score` is not necessarily the final score.** The persistent
+   rail reads only `stats.scoreboard`, reconstructed from tagged scoring plays,
+   and ignores the official `gameInfo.scoreUs` / `scoreThem` values entered in
+   Game Settings. An incompletely charted 21–14 game can show `—` or a partial
+   score. Prefer a valid stored final score and use the tagged scoreboard only
+   as fallback. The existing Reports fixture already discriminates this case
+   (official 21–14 with no tagged scoring play), but does not assert rail values.
+2. **P1 — `Turnover Margin` claims possession outcomes the model cannot prove.**
+   `defensive.fumbles` counts every defense-tagged `Fumble` as a takeaway while
+   `turnovers.fumbles` counts every offense-tagged `Fumble` as a giveaway. The
+   model has no fumble-lost/recovered field, so recovered fumbles can produce a
+   false margin. Add the missing structured outcome or temporarily present the
+   underlying event counts without calling them takeaways/giveaways or margin.
+3. **P2 — the new heat-map film interaction has no exact-cohort proof.** Add
+   failing-first coverage for mouse and keyboard activation, duplicate play ids
+   across games, and the exact one-play ref sent by both game-scope bare-id and
+   season-scope composite-ref paths. Source tracing found the implementation
+   coherent, but the film-link parity contract requires executable proof.
+
+Independent focused runs were also green: native Reports 63/63, native Season
+10/10, Season tab 167/167, and parity 2/2. No installer or release is authorized
+from this commit until these findings are repaired and independently re-reviewed.
+
 ### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
 
 **Not a numbered milestone; not yet reviewed by Codex; no installer built.** A
