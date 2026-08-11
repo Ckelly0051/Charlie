@@ -41,6 +41,56 @@ function Field({screen, field, label, value, type='number', min, max, step, plac
   </label>;
 }
 
+const CALL_DEFAULT_LABELS = {
+  runPass:'Run / Pass', playType:'Play Type', playDir:'Direction', formation:'Formation',
+  qbAlignment:'QB Alignment', backfield:'Backfield', strength:'Strength',
+  personnel:'Personnel', motion:'Motion',
+};
+
+function PlayCallField({screen, state}) {
+  const value = state.values.playCall || '';
+  const [draft,setDraft] = useState(value);
+  useLayoutEffect(() => setDraft(value), [state.currentPlayId, value]);
+  const calls = state.playbookCalls || [];
+  const match = calls.find(call => call.name.toLowerCase() === draft.trim().toLowerCase());
+  const quick = [];
+  const seen = new Set();
+  for (const call of calls.filter(item => item.favorite)) {
+    if (!seen.has(call.name.toLowerCase())) { seen.add(call.name.toLowerCase()); quick.push({name:call.name,favorite:true}); }
+  }
+  for (const name of state.recentCalls || []) {
+    if (!seen.has(name.toLowerCase())) { seen.add(name.toLowerCase()); quick.push({name,favorite:false}); }
+  }
+  const applied = Object.entries(state.appliedCallDefaults || {});
+  const commit = candidate => screen.selectPlayCall(candidate ?? draft);
+  return <section class="gi-play-call" data-native-play-call>
+    <div class="gi-tag-field-label">
+      <span>{state.unit === 'offense' && state.perspective !== 'scout' ? 'Our Play Call' : 'Opponent Play'}</span>
+      {state.values.playConcept && <small>Concept: {state.values.playConcept}</small>}
+    </div>
+    <div class="gi-play-call-entry">
+      <input type="text" list="giPlayCallChoices" value={draft} placeholder="e.g. 26 Blast"
+        aria-label={state.unit === 'offense' && state.perspective !== 'scout' ? 'Our Play Call' : 'Opponent Play'}
+        onInput={event => setDraft(event.currentTarget.value)}
+        onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commit(event.currentTarget.value); event.currentTarget.blur(); }}}/>
+      <datalist id="giPlayCallChoices">{calls.map(call => <option key={call.id} value={call.name}>{call.concept || ''}</option>)}</datalist>
+      {draft.trim() && <div class="gi-play-call-entry-actions">
+        <button type="button" onClick={() => commit(draft)}>{match ? 'Use call' : 'Use once'}</button>
+        {!match && <button type="button" onClick={async () => { if (await screen.addPlayCall(draft)) setDraft(draft.trim()); }}>Add to playbook</button>}
+        {value && <button type="button" class="gi-play-call-clear" aria-label="Clear play call"
+          onClick={() => { setDraft(''); screen.selectPlayCall(''); }}>Clear</button>}
+      </div>}
+    </div>
+    {quick.length > 0 && <div class="gi-play-call-quick" aria-label="Favorite and recent play calls">
+      {quick.slice(0,6).map(item => <button type="button" key={item.name} class={item.name === value ? 'is-active' : ''}
+        onClick={() => { setDraft(item.name); screen.selectPlayCall(item.name); }}>{item.favorite ? '★ ' : ''}{item.name}</button>)}
+    </div>}
+    {applied.length > 0 && <div class="gi-play-call-defaults" aria-label="Defaults applied by this call">
+      <span>Applied:</span>{applied.map(([key,fieldValue]) => <em key={key}>{CALL_DEFAULT_LABELS[key] || key}: {fieldValue}</em>)}
+    </div>}
+  </section>;
+}
+
 const RESULT_PRIMARY = [
   {value:'Gain',label:'Gain'}, {value:'Loss',label:'Loss'}, {value:'No Gain',label:'No Gain'},
   {value:'Incomplete',label:'Incomplete'}, {value:'Touchdown',label:'TD'}, {value:'Sack',label:'Sack'},
@@ -291,6 +341,7 @@ function NativeTagging({screen}) {
         // Charting defense, OUR call comes first and the offense we faced
         // second. The group a coach is actually charting leads.
         const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open={state.unit !== 'defense'}>
+          <PlayCallField screen={screen} state={state}/>
           {chips('formation','Formation',state.libraries.formation,'select all','formation')}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment,'optional')}
           {chips('backfield','Backfield',state.libraries.backfield,'optional','backfield')}

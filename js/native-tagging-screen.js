@@ -127,6 +127,16 @@ export class NativeTaggingScreen {
     };
     let diagram = '';
     try { diagram = document.getElementById('playDiagramPreview')?.toDataURL('image/png') || ''; } catch {}
+    const playbookCalls = this.app.playbook?.list?.() || [];
+    const recentCalls = [];
+    const seenCalls = new Set();
+    for (const item of [...(this.tagger?.plays || [])].reverse()) {
+      const name = String(item?.tags?.playCall || '').trim();
+      const folded = name.toLowerCase();
+      if (!name || seenCalls.has(folded)) continue;
+      seenCalls.add(folded); recentCalls.push(name);
+      if (recentCalls.length >= 6) break;
+    }
     return {
       enabled: !!play, currentPlayId: play?.id ?? null,
       unit: raw.unit || this.tagger?.defaultUnit || 'offense',
@@ -134,6 +144,8 @@ export class NativeTaggingScreen {
       progress: document.getElementById('tagProgressLabel')?.textContent || '0 / 0 tagged',
       values: { ...raw, ...projected, yardage: raw.yardage === '' || raw.yardage == null ? '' : String(Math.abs(Number(raw.yardage) || 0)) },
       libraries: { formation: library('formation'), backfield: library('backfield'), defFront: library('front') },
+      playbookCalls, recentCalls,
+      appliedCallDefaults: raw.playCallDefaults && typeof raw.playCallDefaults === 'object' ? { ...raw.playCallDefaults } : {},
       players: { ...(raw.players || {}) }, grades: { ...(raw.grades || {}) }, notes: play?.notes || '',
       roster: (this.app.roster?.players || []).map(player => ({ ...player })), activeRole: this.app.roster?.activeRole || this.activeRole,
       customTags: Array.isArray(raw.custom) ? [...raw.custom] : [],
@@ -154,12 +166,72 @@ export class NativeTaggingScreen {
   toggleField(key, value) {
     const field = this.tagger?.tagFields?.[key];
     if (!field?.toggle || !this.tagger?.getCurrentPlay?.()) return false;
+    this._protectCallOverride(key);
     field.toggle(value); this.tagger._saveField(key); this._queuePublish(); return true;
   }
   setField(key, value) {
     const field = this.tagger?.tagFields?.[key];
     if (!field || !this.tagger?.getCurrentPlay?.()) return false;
+    this._protectCallOverride(key);
     field.value = value; this.tagger._saveField(key); this._queuePublish(); return true;
+  }
+
+  _protectCallOverride(key) {
+    const play = this.tagger?.getCurrentPlay?.();
+    if (!play?.tags?.playCallDefaults || typeof play.tags.playCallDefaults !== 'object') return;
+    delete play.tags.playCallDefaults[key];
+  }
+
+  selectPlayCall(value) {
+    const play = this.tagger?.getCurrentPlay?.();
+    if (!play) return false;
+    const text = String(value || '').trim();
+    const call = (this.app.playbook?.list?.() || []).find(item =>
+      item.id === text || item.name.toLowerCase() === text.toLowerCase());
+    const next = call || (text
+      ? { id: '', name: text, concept: '', defaults: {} }
+      : { id: '', name: '', concept: '', defaults: {} });
+    const previous = play.tags.playCallDefaults && typeof play.tags.playCallDefaults === 'object'
+      ? play.tags.playCallDefaults : {};
+    const projected = StatsEngine.proj(play);
+    const applied = {};
+    for (const key of (this.app.playbook?.constructor?.DEFAULT_KEYS || [])) {
+      const current = String(projected?.[key] ?? play.tags[key] ?? '').trim();
+      const priorOwned = Object.hasOwn(previous, key) && current === String(previous[key] ?? '').trim();
+      const incoming = String(next.defaults?.[key] || '').trim();
+      if (priorOwned) {
+        play.tags[key] = incoming;
+        if (incoming) applied[key] = incoming;
+      } else if (!current && incoming) {
+        play.tags[key] = incoming;
+        applied[key] = incoming;
+      }
+    }
+    if (!String(play.tags.runPass || '').trim() && applied.playType) {
+      const inferred = this.tagger?.constructor?.runPassForPlayType?.(play.tags.playType);
+      if (inferred) {
+        play.tags.runPass = inferred;
+        applied.runPass = inferred;
+      }
+    }
+    play.tags.playCall = next.name;
+    play.tags.playCallId = next.id;
+    play.tags.playConcept = next.concept;
+    play.tags.playCallDefaults = applied;
+    this.tagger._loadTagForm(play);
+    this.tagger._updateTimeline();
+    this.tagger._emit('play-updated', play);
+    this._queuePublish();
+    return true;
+  }
+
+  async addPlayCall(name) {
+    const text = String(name || '').trim();
+    if (!text) return false;
+    const result = await this.app.settingsScreen?.addPlayCall?.({ name: text });
+    if (!result?.ok || !result.call) return false;
+    this.selectPlayCall(result.call.id);
+    return true;
   }
   setPlayer(role, value) { const field=this.tagger?.playerFields?.[role]; if(!field)return false; field.value=value; this.tagger._savePlayer(role); this._queuePublish(); return true; }
   setGrade(role, value) { const field=this.tagger?.gradeFields?.[role]; if(!field)return false; field.value=value; this.tagger._saveGrade(role); this._queuePublish(); return true; }

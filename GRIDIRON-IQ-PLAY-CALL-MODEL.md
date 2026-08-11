@@ -16,15 +16,19 @@ separate post-build, dry-run-and-confirm pass.
   additive call/concept snapshot fields, every new-play constructor including
   CSV/Hudl import, and the DOM-free team-scoped `PlaybookLibrary`. No existing
   play was reinterpreted or migrated.
-- **P2 durable Playbook & Calls manager — built, awaiting independent review:**
-  Team Settings can add, edit, favorite, and remove exact calls plus canonical
-  optional defaults. Definitions remain team-scoped in local storage, mirror
-  into the open season, roll back atomically on save failure, seed a new`n  season's first save, and recover from the
-  newest season mirror alongside team identity and roster. Settings edits do
-  not touch game/play arrays; deleting a definition does not rewrite tagged
-  play snapshots.
-- **Next after review:** native charting typeahead, recent/favorite choices,
-  inline free-text Add, and override-safe default application.
+- **P2 durable Playbook & Calls manager — accepted:** Team Settings can add,
+  edit, favorite, and remove exact calls plus canonical optional defaults.
+  Definitions remain team-scoped, mirror into the open season, roll back
+  atomically on save failure, seed a new season, and recover from the newest
+  season mirror alongside team identity and roster.
+- **P3 native charting selector — built, awaiting independent review:**
+  typeahead, favorite/recent choices, explicit one-use or durable Add, exact
+  call/concept snapshots, visible defaults, and one-transaction override-safe
+  call changes. Internal playCallDefaults provenance records only defaults
+  supplied by the selected call; explicitly edited chips are removed from that
+  map and therefore survive later call changes.
+- **Next after review:** Film Room and CSV call/concept surfaces, followed by
+  parity-locked Study/Reports/cut-up consumers.
 - **Still deferred:** existing-season mapping/migration, exactly as contracted
   below.
 ## Goal

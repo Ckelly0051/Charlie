@@ -13,38 +13,50 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
-### ▶ PLAY CALLS P2 — DURABLE MANAGER BUILT, AWAITING REVIEW (2026-08-11)
+### ▶ PLAY CALLS P3 — CHARTING SELECTOR BUILT, AWAITING REVIEW (2026-08-11)
 
-The accepted P1 finding is closed: `StorageManager.applyPlayImport()` now gives
-CSV/Hudl-created plays blank `playCall`, `playCallId`, and `playConcept` fields
-immediately, before normalize/save can hide the missing constructor.
+P2 is accepted and its one non-blocking constructor finding is closed:
+StorageManager.applyPlayImport() now initializes playCall, playCallId, and
+playConcept before normalization, pinned by the CSV/Hudl import proof.
 
-The next checkpoint is also built:
+The next coach-facing checkpoint is built:
 
-- Team Settings now contains a native **Playbook & Calls** manager for exact
-  call names, concepts, favorites, and the nine approved optional defaults.
-  Standardized defaults use canonical/coach-configured selectors rather than
-  free text, preventing typo-fragmented analytics.
-- Call ids remain stable through edits; duplicate names are rejected
-  case-insensitively; removing a definition explicitly leaves every existing
-  tagged play snapshot unchanged.
-- The team-scoped playbook mirrors into the open season on call edits and normal
-  saves, rolls back both copies if the canonical save fails, seeds a new`n  season's first durable save, and restores per team from the
-  newest season mirror during wipe recovery. Removing a team with no seasons
-  removes only that team's orphaned local playbook key.
-- No charting selector is exposed yet, no call default is applied to any play,
-  and no existing-season mapping/migration is authorized.
+- The offensive-look group now leads with **Our Play Call** for self-scout
+  offense and **Opponent Play** for opponent film/our defensive charting.
+- The native selector supports typeahead, up to six favorite/recent quick
+  choices, explicit Use call / Use once, keyboard Enter, inline **Add to
+  playbook**, Clear, and exact call/concept snapshots.
+- Selecting a library call visibly applies its canonical optional defaults.
+  tags.playCallDefaults records only values supplied by that call. Any
+  standardized chip the coach explicitly touches leaves that provenance map,
+  so changing calls replaces prior call-owned values while preserving the
+  coach's overrides. The whole call change emits once and is one undo/redo
+  transaction.
+- Free text never invents a concept, direction, strength, or numbering rule.
+  Merely leaving the input does not save partial text.
+- No automatic carry-forward was added, no old play was reinterpreted, and no
+  existing-season migration is authorized.
 
-**Focused verification on fresh Vite bytes:** playbook contract **12/12**, CSV
-round-trip/import **10/10**, native Settings **23/23**, wipe recovery **13/13**,
-and production build clean. The Settings proof creates and edits `26 Blast`
-through the real native sheet, verifies the season mirror, and fingerprints the
-entire games array unchanged. The wipe proof creates the playbook before a new
-season and recovers it after all team/playbook local keys are removed.
+**Verification on fresh Vite bytes:** focused play-call charting **11/11**,
+native charting **48/48**, production build clean. The focused journey proves
+keyboard selection, visible defaults, manual override survival across a call
+change, one-step undo/redo, free text, inline durable Add, self-scout/opponent
+labels, and zero page errors.
 
-**Next after independent review:** native charting typeahead with recent and
-favorite calls, inline free-text Add, and override-safe default application.
-Existing-season migration remains a separate dry-run-and-confirm pass.
+**Next after independent review:** expose Play Call and Play Concept in Film
+Room and CSV first, then add the parity-locked Study/Reports/cut-up consumers.
+Existing-season mapping remains a separate dry-run-and-confirm pass.
+
+### ▶ PLAY CALLS P2 — DURABLE MANAGER ACCEPTED (2026-08-11)
+
+- Team Settings owns exact call names, concepts, favorites, and nine approved
+  optional defaults through canonical selectors.
+- Team-scoped definitions mirror into seasons, roll back on failed canonical
+  saves, seed new seasons, and recover per team after a local-key wipe.
+- Stable ids, case-insensitive duplicate rejection, and delete-without-rewriting
+  historical play snapshots are covered by focused tests.
+- Accepted by the independent review reported by the coach; the import
+  constructor finding is closed in P3 above.
 ### ▶ PLAY CALLS P1 — DATA FOUNDATION ACCEPTED; IMPORT GAP CLOSED (2026-08-11)
 
 The first checkpoint of `GRIDIRON-IQ-PLAY-CALL-MODEL.md` is implemented. It is
@@ -55,7 +67,7 @@ additive only and does not expose unfinished UI:
   normalize to blank; recoverable non-string imports are coerced rather than
   deleted. Existing notes are never parsed or rewritten.
 - Every current play-creation path (continuous film, whole-video placeholder,
-  multi-clip import, CSV/Hudl import, and Clear Tags) starts with the three`n  blank fields.
+  multi-clip import, CSV/Hudl import, and Clear Tags) starts with the three blank fields.
 - New DOM-free `PlaybookLibrary` owns team-scoped call definitions at
   `ffa_playbook_<teamId>`, including stable ids, exact call/concept names,
   favorites, and approved optional football defaults. Partial edits preserve
