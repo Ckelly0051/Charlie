@@ -13,6 +13,27 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ `1.12.0-45` REPORTS MILESTONE — LOCAL INSTALLER BUILT (2026-08-11)
+
+The accepted native Reports redesign (`7532b2e`, repairs `22da6f9` and
+`2001590`, final Codex acceptance `f1222fb`) is stamped and packaged as
+**GridIron IQ `1.12.0-45`**. This is a local unsigned milestone build, not a
+published tag and not yet coach-smoked.
+
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-45_x64-setup.exe`
+  — SHA-256 `E13C4C9C35C6B12337922EE441F5E5C9EBDBC6EF04C1EF9969AE55C225C40534`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-45_x64_en-US.msi`
+  — SHA-256 `7EF57E6E291FE79FF39DA947337EC3B44E9F2C0A55E1A95C5D54A8163FCD4D15`
+- Build: `cargo tauri build --no-sign` succeeded, including a fresh Vite build.
+- Release/version composition check: `e2e-p0-exit` **17/17**.
+- Full canonical gate on the repaired Reports source: **83/83**, recorded by the
+  builder; Codex independently reran native Reports **68/68**, Season tab
+  **169/169**, and parity **2/2** during review.
+
+Generated `dist/` and `src-tauri/target/` remain ignored and are not committed.
+The next active product milestone is `GRIDIRON-IQ-PLAY-CALL-MODEL.md`; its first
+build must add backward-compatible blank fields and a team-scoped playbook
+library without rewriting any existing play.
 
 ### ▶ NEXT — first-class Play Calls and team Playbook Library
 

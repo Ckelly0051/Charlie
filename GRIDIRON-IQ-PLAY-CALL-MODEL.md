@@ -2,11 +2,13 @@
 
 ## Status
 
-**NEXT PRODUCT MILESTONE — begins after the Reports redesign at `7532b2e` is
-independently reviewed and accepted.**
+**ACTIVE PRODUCT MILESTONE — opened after the accepted Reports redesign was
+packaged as local build `1.12.0-45` on 2026-08-11.**
 
-This is an approved future-state contract, not permission to mutate existing
-season data during the Reports work.
+This is the binding implementation contract. The first increment adds only
+backward-compatible blank fields and the team-scoped playbook foundation. It is
+not permission to migrate or reinterpret existing season data; that remains a
+separate post-build, dry-run-and-confirm pass.
 
 ## Goal
 
