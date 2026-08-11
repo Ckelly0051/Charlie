@@ -13,6 +13,84 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+
+### ▶ CLAUDE'S REVIEW of `6ffad83` + `d18dd5e` — CHANGES REQUESTED, 1 blocking, 1 process finding (2026-08-11)
+
+**Reviewed both commits, not just the one named** — `d18dd5e` (the charting
+selector) builds directly on `6ffad83` (the durable playbook manager /
+Playbook & Calls settings UI), and `6ffad83` had never actually been
+independently reviewed despite what its own follow-up commit claims. See the
+process finding below.
+
+**The substance of both commits is sound, and the riskiest claims are
+independently mutation-verified, not just read.**
+
+- **Override-safe call changes — mutation-verified.** `selectPlayCall`'s
+  `priorOwned` check (does the play's current value for a default-tracked key
+  still equal the value the previous call set it to) is what lets a call swap
+  replace only its own untouched defaults while leaving a coach's manual edit
+  alone. Forced `priorOwned = false` and confirmed exactly one assertion reds
+  — *"Changing calls replaces only prior call-owned defaults"* — with the old
+  call's formation/backfield/strength stuck instead of updating. Restored,
+  green. `_protectCallOverride` correctly strips a key from the owned-set the
+  moment the coach touches it via `toggleField`/`setField`, before the
+  mutation lands.
+- **One-step undo/redo — traced, not assumed.** `HistoryManager` records one
+  snapshot per `play-updated` **event**, not per field write
+  (`tagger.on('play-updated', p => this._record(...))`). `selectPlayCall`
+  mutates several tag fields directly and emits exactly once at the end, so
+  the one-entry guarantee holds independent of any timing-based coalescing —
+  it isn't relying on the 800ms same-label merge window elsewhere in
+  `HistoryManager`, which would have been a much shakier foundation.
+- **Automatic carry-forward correctly excludes playCall.** Verified against
+  source: `PlayTagger.CARRY_SCHEME_KEYS` (the automatic Save & Next carry) has
+  no `playCall`/`playCallId`/`playConcept`. `SCHEME_KEYS` (Copy Last /
+  templates, both explicit actions) also omits them — permitted but not
+  required by the contract's "Explicit Copy Last **may** copy it," so this is
+  not a gap.
+- **Opponent/self label switching verified against all three unit/perspective
+  combinations**, not just the one the test drives: offense+self → "Our Play
+  Call"; defense unit (offense faced = the opponent's call, regardless of
+  perspective) and scout perspective → "Opponent Play". Correct in both cases
+  because the field renders inside whichever offense-look Group is showing
+  ("Our Offensive Look" or "Offense Faced"), and the call itself always
+  describes whoever ran the play.
+- **The P1 CSV-import finding from my last review is closed and reproduced
+  fixed**: `applyPlayImport`'s blank-tags constructor now includes the three
+  fields.
+- Independently reran every cited count: playbook contract, native Settings,
+  wipe recovery, play-call charting, native tagging — all matched.
+
+**[P1, blocking] Full canonical gate is red, reproducible standalone —
+`e2e-design-system.mjs` FAILS: *"every native design token reference
+resolves"* at `css/native-settings.css:--gi-warning`.** `6ffad83`'s new
+`.gi-playbook-favorite` star-icon color references `var(--gi-warning)`, which
+is not a declared token anywhere in `design-system/tokens.css` — the real
+token is `--gi-warn` (Reports scope aliases it as `--gi-amber`). Confirmed
+`--gi-warning` appears nowhere else in the codebase; this is the only site.
+Trivial fix (`--gi-warning` -> `--gi-warn`, two occurrences, one line,
+`css/native-settings.css:72`. Gate: **85 harnesses | 84 green | 1 failed**
+before this is fixed. Not caught by either commit's own cited verification,
+which did not include a full gate run.
+
+**[Process finding, not a code defect] `6ffad83` marked itself "ACCEPTED" in
+its own follow-up commit (`d18dd5e`), with no independent review ever having
+happened.** `d18dd5e`'s CLAUDE.md edit rewrote the P2 entry from "BUILT,
+AWAITING REVIEW" to "PLAY CALLS P2 — DURABLE MANAGER ACCEPTED... Accepted by
+the independent review reported by the coach" — but no review of `6ffad83`
+exists anywhere in this document's history, and this is the first time I am
+seeing it. This is the exact builder/reviewer separation this project's whole
+review culture exists to enforce, and it was bypassed. The underlying work
+turned out sound on my actual review just now — so no functional harm this
+time — but the next commit built directly on top of an unreviewed one that
+had already declared itself accepted, which is the precise mechanism by which
+an unreviewed defect would compound before anyone caught it.
+
+**Scope respected:** no schema, existing play tag, note, penalty, or
+unrelated field touched by either commit; no existing-season migration; no
+automatic carry-forward added. No code changed by this review — the token
+typo is left for the builder to fix, per this project's review protocol.
+
 ### ▶ PLAY CALLS P3 — CHARTING SELECTOR BUILT, AWAITING REVIEW (2026-08-11)
 
 P2 is accepted and its one non-blocking constructor finding is closed:
