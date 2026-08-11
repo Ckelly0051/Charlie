@@ -173,6 +173,28 @@ ok(result.wizard === false && result.wizardBar === false,
   'The legacy onboarding wizard is absent, not hidden, so it cannot hide native Reports again', JSON.stringify(result));
 await capture('desktop-overview');
 
+console.log('\n== 1b. The persistent rail shows the official score, not a blank reconstruction ==');
+result = await page.evaluate(() => {
+  const app = window.app;
+  // g-self carries an official scoreUs:21/scoreThem:14 (Game Settings) but its
+  // three fixture plays contain no tagged scoring play, so stats.scoreboard
+  // (reconstructed from tagged plays) has hasData:false. The rail must prefer
+  // the official score over that reconstruction. Codex review of `7532b2e`
+  // (2026-08-11) caught it reading only the reconstruction and showing "—".
+  app.reportsScreen.selectTab('overview');
+  const rail = document.querySelector('[data-reports-rail]');
+  const tiles = [...(rail?.querySelectorAll('.gi-kpi') || [])];
+  const scoreTile = tiles.find(t => t.querySelector('.gi-kpi-label')?.textContent === 'Final Score');
+  return {
+    hidden: rail?.hidden,
+    hasScoreboardData: app.stats.compute().scoreboard?.hasData,
+    scoreValue: scoreTile?.querySelector('.gi-kpi-value')?.textContent || null,
+  };
+});
+ok(result.hidden === false && !result.hasScoreboardData && result.scoreValue === '21–14',
+  'The rail shows the official Game Settings score when no scoring play is tagged, instead of a blank dash',
+  JSON.stringify(result));
+
 console.log('\n== 2. Every self report is reachable without changing season data ==');
 result = await page.evaluate(() => {
   const app = window.app;
@@ -958,6 +980,73 @@ for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'self
 ok(rhetorical.length === 0,
   'Report headings and captions name the data literally — no questions, no prose openers',
   JSON.stringify(rhetorical));
+
+console.log('\n== F13. Heat-map field-position dots resolve the exact play, by mouse and by keyboard ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: '2026 Heat Map QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
+  const play = (id, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit: 'offense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  // Both games deliberately reuse the SAME bare play id (5) -- the exact
+  // collision the composite gameId::playId split exists to survive (H16 in
+  // CLAUDE.md). If the click handler ever resolved a bare id against the
+  // wrong game's pool, this is what would catch it.
+  app.storage.seasonStore.data.games = [
+    { id: 'gA', name: 'Week 1 vs Wildcats', nextId: 6,
+      gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+      plays: [play(5, { runPass: 'Run', playType: 'Run Inside', yardLine: '30', fieldSide: 'own', hash: 'Left', result: 'Gain', yardage: '6' })] },
+    { id: 'gB', name: 'Week 2 vs Knights', nextId: 6,
+      gameInfo: { opponent: 'Knights', perspective: 'self' },
+      plays: [play(5, { runPass: 'Run', playType: 'Run Inside', yardLine: '40', fieldSide: 'opp', hash: 'Right', result: 'Gain', yardage: '9' })] },
+  ];
+  app.storage.seasonStore.data.activeGameId = 'gA';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+
+  const calls = [];
+  const original = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label || '' }); return Promise.resolve({ completed: true }); };
+
+  // -- Season scope: both games' plays are on screen at once, sharing bare id 5.
+  app.reportsScreen.selectTab('season');
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  document.querySelector('.gi-subtab[data-subtab="offense"]')?.click();
+  await new Promise(r => setTimeout(r, 200));
+  const dots = [...document.querySelectorAll('.hm-dot[data-heat-ref]')];
+  const dotA = dots.find(d => d.dataset.heatRef === 'gA::5');
+  const dotB = dots.find(d => d.dataset.heatRef === 'gB::5');
+  dotA?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const seasonMouseA = calls.at(-1) || null;
+  dotB?.focus();
+  dotB?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  const seasonKeyB = calls.at(-1) || null;
+
+  // -- Game scope: only gA is loaded, so its dot carries the BARE id (no ::).
+  app.reportsScreen.selectTab('offense');
+  await new Promise(r => setTimeout(r, 200));
+  const gameDot = document.querySelector('.hm-dot[data-heat-ref="5"]');
+  gameDot?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const gameMouseA = calls.at(-1) || null;
+
+  app.filmNavigation.watch = original;
+  return {
+    dotCount: dots.length, dotAFound: !!dotA, dotBFound: !!dotB, gameDotFound: !!gameDot,
+    seasonMouseA, seasonKeyB, gameMouseA,
+  };
+});
+ok(result.dotCount === 2 && result.dotAFound && result.dotBFound,
+  "Season-scope field map plots both games' plays despite the duplicate bare id", JSON.stringify(result));
+ok(JSON.stringify(result.seasonMouseA?.refs) === JSON.stringify(['gA::5']),
+  'Mouse click on a season-scope dot resolves the exact composite ref for its own game, not the other game sharing bare id 5',
+  JSON.stringify(result.seasonMouseA));
+ok(JSON.stringify(result.seasonKeyB?.refs) === JSON.stringify(['gB::5']),
+  'Keyboard activation (Enter) on a season-scope dot resolves the exact composite ref for its own game',
+  JSON.stringify(result.seasonKeyB));
+ok(result.gameDotFound && JSON.stringify(result.gameMouseA?.refs) === JSON.stringify(['gA::5']),
+  'Game-scope dot (bare id, no game separator) resolves through the active game only, to the same exact play the season view names gA::5',
+  JSON.stringify(result.gameMouseA));
 
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

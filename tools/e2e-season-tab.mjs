@@ -244,6 +244,34 @@ ok(r.identityRows >= 1, 'Offensive Identity usage rows render', JSON.stringify(r
 ok(r.winLossTable, 'Wins vs Losses table renders (demo has a W and an L)', JSON.stringify(r));
 ok(/^[A-Za-z]/.test(r.legendFirst), 'trend legend shows the first game name un-clipped (S1/S2 fix)', JSON.stringify(r));
 
+console.log('\n== 3c. Turnover margin counts confirmed turnovers only, never a fumble of unknown recovery ==');
+r = await page.evaluate(() => {
+  // Direct unit-style probe of SeasonManager._toMargin -- the tag model has
+  // no fumble-recovered-by field, so a play tagged Fumble is NOT provably a
+  // turnover (the fumbling team may have recovered its own ball). Counting
+  // every tagged Fumble as an automatic takeaway/giveaway produced a false
+  // margin (Codex review of `7532b2e`, 2026-08-11). Interceptions ARE always
+  // a turnover by rule, so they alone drive the signed margin; fumble counts
+  // must be returned separately and never netted in.
+  const season = window.app.season;
+  // Chosen so the old and new formulas DISAGREE, not just differ in magnitude:
+  // old (interceptions+fumbles both sides): takeaways 2+1=3, giveaways
+  // (turnovers.total)=5 -> margin -2. New (interceptions only): takeaways 2,
+  // giveaways 1 -> margin +1. A regression to the old formula flips the sign.
+  const stats = {
+    turnovers: { total: 5, interceptions: 1, fumbles: 4 },
+    defensive: { interceptions: 2, fumbles: 1 },
+  };
+  const m = season._toMargin(stats);
+  return m;
+});
+ok(r.margin === 1 && r.takeaways === 2 && r.giveaways === 1,
+  'Margin is computed from interceptions only (2 forced - 1 lost = 1), not inflated by the fumble counts',
+  JSON.stringify(r));
+ok(r.fumblesForced === 1 && r.fumblesLost === 4,
+  'Fumble counts are returned separately from the confirmed margin, not netted into it',
+  JSON.stringify(r));
+
 console.log('\n== 4. Sub-tabs organize the 13 sections (Overview/Breakdown/Players/Self-Scout) ==');
 r = await page.evaluate(() => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');

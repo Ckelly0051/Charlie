@@ -55,6 +55,56 @@ Independent focused runs were also green: native Reports 63/63, native Season
 10/10, Season tab 167/167, and parity 2/2. No installer or release is authorized
 from this commit until these findings are repaired and independently re-reviewed.
 
+### ▶ Repair of the `7532b2e` review findings — awaiting independent re-review (Claude, 2026-08-11)
+
+All three findings verified against source before touching anything, each
+reproduced on the pre-fix code, then mutation-verified after. **Not yet
+independently re-reviewed — no installer or release authorized from this
+commit either.**
+
+1. **Final Score.** `StatsEngine._kpiRailData` now prefers `gameInfo.scoreUs`/
+   `scoreThem` (the official score from Game Settings) when present, falling
+   back to the tagged-play reconstruction (`stats.scoreboard`) only when no
+   official score is recorded — same presence check `_gameTitle()` already
+   uses. Reproduced on the existing `g-self` fixture (official 21–14, no
+   tagged scoring play): the rail read `—` before the fix. New assertion
+   ("1b") pins `21–14`; mutation-verified by reverting the precedence check,
+   which reproduces the exact `—`.
+2. **Turnover Margin.** `SeasonManager._toMargin` now computes the signed
+   margin from **interceptions only** — an interception is unambiguously a
+   turnover, but the tag model has no fumble-recovered-by field, so a play
+   tagged `Fumble` could be the fumbling team recovering its own ball.
+   Fumble counts are still surfaced (as `fumblesForced`/`fumblesLost`,
+   disclosed in the tile sub-line as "recovery untracked"), but never netted
+   into `margin`/`takeaways`/`giveaways`. The three visible labels that said
+   "Turnover Margin" now say "INT Margin"; the per-game table's "TO±" column
+   keeps its header but its tooltip states the same limit. Also found and
+   fixed the underlying cause of a class of drift this codebase has been bitten
+   by before: `_renderHeader`'s hero tile had an **independent inline copy**
+   of the same over-inclusive formula, not routed through `_toMargin` at all
+   — consolidated onto the one helper. New unit-style assertion ("3c") in
+   `e2e-season-tab.mjs` calls `_toMargin` directly with counts chosen so the
+   old and new formulas disagree in sign (old: -2, new: +1); mutation-verified
+   by reverting to the old formula, which reproduces exactly -2.
+3. **Heat-map film links.** New `e2e-native-reports.mjs` section ("F13")
+   drives the field-position heat map with a two-game fixture where both
+   games deliberately reuse the same bare play id (5) — the exact collision
+   the composite `gameId::playId` ref exists to survive. Covers mouse click
+   and keyboard (Enter) activation at season scope, and confirms the
+   game-scope bare-id path (which resolves through `_watchPlays` →
+   `refsForGame`) lands on the same exact play. Mutation-verified: dropping
+   the composite-ref split in `heat-maps.js` reproduces the collision (both
+   dots read bare `"5"`, the season-scope assertions fail to find either
+   expected ref).
+
+**Verification:** full canonical gate re-run clean — **83 harnesses | 83
+green | 0 skipped | 0 failed**, same harness count, zero drops. Counts
+diffed: native Reports 63→68 (+5, exactly the new assertions), Season tab
+167→169 (+2), parity 2/2 unchanged (confirms nothing here touches a
+parity-tracked formula — the raw `defensive.fumbles`/`turnovers.interceptions`
+fields StatsEngine computes are untouched; only how SeasonManager combines
+them changed). `cargo check --manifest-path src-tauri/Cargo.toml`: clean.
+
 ### ▶ ACTIVE — native Reports visual polish pass on top of `1.12.0-44` (Claude, 2026-08-11)
 
 **Not a numbered milestone; not yet reviewed by Codex; no installer built.** A

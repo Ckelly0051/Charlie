@@ -2704,9 +2704,19 @@ export class StatsEngine {
       if (Object.hasOwn(units, u)) units[u]++;
     });
     const sb = stats?.scoreboard;
+    // The official score entered in Game Settings (gameInfo.scoreUs/scoreThem)
+    // wins when present -- it is the coach's confirmed final, unlike
+    // stats.scoreboard, which is only ever a reconstruction from tagged
+    // scoring plays and reads as blank/wrong on an incompletely charted game.
+    // Same presence check _gameTitle() already uses. Codex review of
+    // `7532b2e` (2026-08-11) caught this rail ignoring the official score.
+    const gi = window.app?.storage?.gameInfo || {};
+    const hasOfficialScore = gi.scoreUs !== '' && gi.scoreUs != null && gi.scoreThem !== '' && gi.scoreThem != null;
+    const finalScore = hasOfficialScore ? { us: gi.scoreUs, them: gi.scoreThem }
+      : ((sb && sb.hasData) ? { us: sb.us, them: sb.them } : null);
     return {
       totalPlays, playsCharted, units,
-      finalScore: (sb && sb.hasData) ? { us: sb.us, them: sb.them } : null,
+      finalScore,
       successRate: stats?.efficiency?.successRate,
     };
   }
