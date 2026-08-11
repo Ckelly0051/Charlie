@@ -14,6 +14,58 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CLAUDE'S REVIEW of `a5d29dc^..bd1a2ad` — ACCEPTED, 0 findings (2026-08-11)
+
+Film Room, CSV, Study, and Reports consumers of Play Call/Concept (3 commits:
+`a5d29dc`, `71c0177`, `bd1a2ad`). Read every changed file rather than running
+the full gate first; ran only what the diff touched.
+
+- **The override-preservation algorithm from the charting selector is
+  extracted verbatim into a new shared `PlayCallModel`, not duplicated.**
+  Diffed `native-tagging-screen.js`'s old inline `selectPlayCall` body against
+  `PlayCallModel.apply` — byte-identical logic, just relocated — so the
+  mutation-verified guarantee from my last review still holds without
+  re-testing it. Film Room's grid editor calls the same `PlayCallModel.apply`,
+  not a second copy.
+- **The contract's specific naming requirement is honored, checked against
+  the exact wording, not assumed:** "the current structural `bigCall`
+  composite must not be presented as the coach's actual call after `playCall`
+  exists" — the Big-12 section is renamed "Core Tendencies" (was "Core
+  Calls") and its cut-filter description now says "structural combination,"
+  not "call."
+- **`_playCallAnalysis` is structurally isolated from parity** — it is never
+  called from within `compute()` (only from `reports-screen.js`, after
+  `compute()` has already run), and it derives every rate through
+  `this.compute(cohort)` rather than a new formula, so it cannot drift from
+  the established Success Rate/YPP/explosive/negative definitions and cannot
+  appear in a parity snapshot. Confirmed via `e2e-parity` (2/2, 625
+  drilldowns, real 6-game season) unchanged.
+- **Call Sheet and Plan both prefer `playCall`, falling back to the existing
+  structural label for plays that don't have one** — matches the contract's
+  explicit fallback requirement, and the legacy fallback path is untouched.
+- **CSV round-trip test upgraded, not just extended**: it now proves an
+  actual call/concept round-trips exactly, plus a separate assertion still
+  covers the no-call-data blank case — both, not one replacing the other.
+- **The new raw-read site is a scoped, counted exception in the AST audit**
+  (`play-grid.js`'s `_openEditor`, `count: 1`, method-scoped), not a
+  loosening of the rule that display must go through projection — the six
+  enum fields with legacy/projected duality still seed exclusively from
+  `projField()`; only the new free-text/call columns read raw, which is
+  correct since they have no legacy-value ambiguity to project.
+- Registry/Study wiring (`playCall`/`playConcept` as ready dimensions) is
+  trivial and matches the existing pattern exactly — nothing novel to verify.
+
+**Verification, scoped to what the range touched, not the whole suite:**
+`e2e-play-call-charting` 24/24, `e2e-csv-roundtrip` 11/11,
+`e2e-raw-read-audit` 11/11, `e2e-season-tab` 169/169, `e2e-study-query`
+37/37, `e2e-plan-export` 22/22, `e2e-parity` 2/2. No full canonical gate run
+— nothing in this range touches a surface those targeted harnesses don't
+already cover, and the reviewer's job here is to explain why that scoping is
+sound, not to substitute a slower blanket check for it.
+
+**Scope respected:** no schema, existing play tag, or unrelated field
+touched; no existing-season migration.
+
 ### ▶ CLAUDE'S RE-REVIEW of `31853ef` — ACCEPTED, both findings closed (2026-08-11)
 
 Both findings from the `6ffad83`+`d18dd5e` review are closed. Token fix
