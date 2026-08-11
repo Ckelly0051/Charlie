@@ -14,6 +14,29 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ PLAY-CALL MILESTONE ACCEPTED; `1.12.0-46` INSTALLER READY (2026-08-11)
+
+Claude independently accepted the complete consumer range
+`a5d29dc^..bd1a2ad` with zero findings at `6256012`. The accepted milestone
+connects exact Play Call and Concept through Chart, Film Room, CSV, Study,
+Reports, Call Sheet, Plan, and exact composite-ref film playback. Existing
+season mapping remains deferred; no existing coach tags were reinterpreted.
+
+The four version owners were synchronized and committed at `5375821`. P0 exit
+passed **17/17**. The previously completed canonical gate remains **85/85 green**;
+it was not repeated for a version-only change. `cargo tauri build --no-sign`
+then completed a fresh Vite and Tauri release build from `5375821`:
+
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-46_x64-setup.exe`
+  - SHA-256: `13EC101E345A6764CE2AFD93F4E628BC3842723FDE09C700791577ADDCC74FFE`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-46_x64_en-US.msi`
+  - SHA-256: `B102728A2B82E3E749F2CB289C74B17BC67261E01BA97A22309AD67CE1290CF1`
+
+This is a local unsigned smoke candidate, not a tag or published release. The
+single integrated coach checklist is `SMOKE-1.12.0-46.md`. Use disposable season
+data for the write portion; the real six-game season is not required. Promotion
+or existing-season migration stays closed until that smoke passes.
+
 ### ▶ CLAUDE'S REVIEW of `a5d29dc^..bd1a2ad` — ACCEPTED, 0 findings (2026-08-11)
 
 Film Room, CSV, Study, and Reports consumers of Play Call/Concept (3 commits:

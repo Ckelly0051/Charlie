@@ -2,8 +2,8 @@
 
 ## Status
 
-**ACTIVE PRODUCT MILESTONE — opened after the accepted Reports redesign was
-packaged as local build `1.12.0-45` on 2026-08-11.**
+**IMPLEMENTED AND ACCEPTED — complete consumer range accepted at `6256012`;
+packaged as local smoke build `1.12.0-46` from `5375821` on 2026-08-11.**
 
 This is the binding implementation contract. The first increment adds only
 backward-compatible blank fields and the team-scoped playbook foundation. It is
@@ -16,7 +16,7 @@ separate post-build, dry-run-and-confirm pass.
   additive call/concept snapshot fields, every new-play constructor including
   CSV/Hudl import, and the DOM-free team-scoped `PlaybookLibrary`. No existing
   play was reinterpreted or migrated.
-- **P2 durable Playbook & Calls manager — reviewed; token repair awaiting confirmation:** Team Settings can add,
+- **P2 durable Playbook & Calls manager — accepted:** Team Settings can add,
   edit, favorite, and remove exact calls plus canonical optional defaults.
   Definitions remain team-scoped, mirror into the open season, roll back
   atomically on save failure, seed a new season, and recover from the newest
@@ -24,24 +24,26 @@ separate post-build, dry-run-and-confirm pass.
 - **P3 native charting selector — accepted at `b952106`:** typeahead,
   favorite/recent choices, explicit one-use or durable Add, exact call/concept
   snapshots, visible defaults, and one-transaction override-safe call changes.
-- **P4a Film Room + CSV consumers — complete, awaiting combined review:** Chart and Film
+- **P4a Film Room + CSV consumers — complete and accepted:** Chart and Film
   Room now share one DOM-free call-application model. Film Room exposes distinct
   Play Call, Concept, and Notes columns, upgrades only stock saved presets, and
   applies saved-call defaults as one undoable transaction. CSV exports/imports
   Play Call, Play Call ID, and Play Concept losslessly; older CSVs remain valid.
-- **P4b Study consumers — complete, awaiting combined review:** Play Call and Play
+- **P4b Study consumers — complete and accepted:** Play Call and Play
   Concept are ready registry/Study dimensions. Their grouped measures and Watch
   actions are equality-tested against the same canonical composite play refs.
-- **P4c Reports + presentation consumers — complete, awaiting combined review:**
+- **P4c Reports + presentation consumers — complete and accepted:**
   Reports provide exact-call performance, concept roll-ups, and five situational
   call lenses over canonical measures. Report film actions use exact composite
   refs. Call Sheet and Plan prefer exact calls with legacy structural fallback.
   The old structural combination report is labeled Core Tendencies.
-- **Review range:** commits `a5d29dc`, `71c0177`, and `bd1a2ad`
-  (`a5d29dc^..bd1a2ad`). Final canonical gate: **85/85 green**. Do not package
-  before independent acceptance; then build one installer for the combined smoke.
+- **Acceptance and package:** commits `a5d29dc`, `71c0177`, and `bd1a2ad`
+  (`a5d29dc^..bd1a2ad`) were accepted with zero findings at `6256012`.
+  Canonical gate: **85/85 green**. Local smoke build `1.12.0-46` was built
+  from version commit `5375821`; no release or migration has been authorized.
 - **Still deferred:** existing-season mapping/migration, exactly as contracted
   below.
+
 ## Goal
 
 Let a coach chart the offense's exact call — for example `26 Blast` — and see it
