@@ -29,9 +29,11 @@ separate post-build, dry-run-and-confirm pass.
   Play Call, Concept, and Notes columns, upgrades only stock saved presets, and
   applies saved-call defaults as one undoable transaction. CSV exports/imports
   Play Call, Play Call ID, and Play Concept losslessly; older CSVs remain valid.
-- **Next in the same review cycle:** parity-locked Study dimensions, Reports
-  analysis, and exact composite-ref cut-ups. Do not package before the complete
-  consumer milestone is accepted.
+- **P4b Study consumers — built, internal checkpoint:** Play Call and Play
+  Concept are ready registry/Study dimensions. Their grouped measures and Watch
+  actions are equality-tested against the same canonical composite play refs.
+- **Next in the same review cycle:** Reports analysis and exact report cut-ups.
+  Do not package before the complete consumer milestone is accepted.
 - **Still deferred:** existing-season mapping/migration, exactly as contracted
   below.
 ## Goal

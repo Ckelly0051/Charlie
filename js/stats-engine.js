@@ -2475,6 +2475,8 @@ export class StatsEngine {
     switch (type) {
       case 'qbAlignment': return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '') === val;
       case 'formation': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formation).includes(val);
+      case 'playCall':  return p => isOff(p) && (p.tags.playCall || '') === val;
+      case 'playConcept': return p => isOff(p) && (p.tags.playConcept || '') === val;
       case 'playType':  return p => isOff(p) && StatsEngine.splitPlayTypes(p.tags.playType).includes(val);
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
       case 'backfield': return p => isOff(p) && (StatsEngine.proj(p).backfield || '') === val;

@@ -69,6 +69,8 @@ export class AnalyticsRegistry {
       ready('strength', 'Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
       ready('personnel', 'Personnel', tag('personnel'), 'play.tags.personnel'),
       ready('motion', 'Motion', p => [p?.tags?.motion || 'No Motion'], 'play.tags.motion | No Motion'),
+      ready('playCall', 'Play Call', tag('playCall'), 'play.tags.playCall'),
+      ready('playConcept', 'Play Concept', tag('playConcept'), 'play.tags.playConcept'),
       ready('playType', 'Play Type', p => SE.splitPlayTypes(p?.tags?.playType), 'StatsEngine.splitPlayTypes', { multi: true }),
       ready('playDir', 'Play Direction', tag('playDir'), 'play.tags.playDir'),
       ready('defFront', 'Defensive Front', p => SE.splitFronts(p?.tags?.defFront), 'StatsEngine.splitFronts', { multi: true }),

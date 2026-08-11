@@ -7,7 +7,7 @@ export class StudyScreen {
     // coach could not select either dimension in Study at all. Positioned next to
     // their structural counterpart (qbAlignment after formation, coverageFamily
     // after coverage), mirroring the Film Room column placement.
-    return ['formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'quarter',
+    return ['playCall', 'playConcept', 'formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
       'playDir', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore',
@@ -57,7 +57,7 @@ export class StudyScreen {
   static get DIMENSION_GROUPS() {
     return [
       { name: 'Situation', ids: ['down', 'distance', 'quarter', 'drive', 'hash'] },
-      { name: 'Offensive look', ids: ['formation', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'playDir', 'playType', 'runPass'] },
+      { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formation', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'playDir', 'playType', 'runPass'] },
       { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
       { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
       { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore'] },

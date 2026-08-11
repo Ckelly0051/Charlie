@@ -144,6 +144,31 @@ ok(state.after.playCall === '26 Blast' && state.after.playCallId === 'call_26_bl
   'Film Room selects a saved call through the same snapshot/default rules as Chart', JSON.stringify(state.after));
 ok(state.entries === 1 && state.undone.playCall === '' && state.redone.playCall === '26 Blast',
   'Film Room call selection is one complete undo/redo transaction', JSON.stringify(state));
+
+state = await page.evaluate(() => {
+  const gameId = app.storage.seasonStore.activeGame().id;
+  const plays = app.tagger.plays;
+  const call = app.study.run({ plays, dimension: 'playCall', measures: ['sampleSize', 'successRate'], context: { gameId } });
+  const concept = app.study.run({ plays, dimension: 'playConcept', measures: ['sampleSize'], context: { gameId } });
+  const blast = call.groups.find(group => group.value === '26 Blast');
+  const blastConcept = concept.groups.find(group => group.value === 'Blast');
+  return {
+    call: blast,
+    concept: blastConcept,
+    registryCall: app.analyticsRegistry.matchingRefs(plays, 'playCall', '26 Blast', { gameId }),
+    registryConcept: app.analyticsRegistry.matchingRefs(plays, 'playConcept', 'Blast', { gameId }),
+    dimensions: app.studyScreen.constructor.DIMENSIONS,
+    group: app.studyScreen.constructor.DIMENSION_GROUPS.find(item => item.name === 'Offensive look')?.ids || [],
+  };
+});
+ok(state.dimensions.includes('playCall') && state.dimensions.includes('playConcept')
+  && state.group.includes('playCall') && state.group.includes('playConcept'),
+  'Study exposes Play Call and Play Concept under Offensive look');
+ok(state.call?.sampleSize === 1 && JSON.stringify(state.call.matchingPlayIds) === JSON.stringify(state.registryCall)
+  && state.call.measures.sampleSize === 1,
+  'Study Play Call result equals the canonical composite-ref cut and measures that cohort', JSON.stringify(state));
+ok(state.concept?.sampleSize === 1 && JSON.stringify(state.concept.matchingPlayIds) === JSON.stringify(state.registryConcept),
+  'Study Concept roll-up equals the canonical composite-ref cut', JSON.stringify(state));
 ok(errors.length === 0, 'No page errors', errors.join('\n'));
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');

@@ -24,7 +24,7 @@ CLAUDE.md entry no longer self-declares acceptance, and correctly defers to
 this confirmation instead. **`6ffad83` and `d18dd5e` are accepted; P2/P3 may
 proceed.**
 
-### ▶ PLAY CALLS P4a — FILM ROOM + CSV BUILT; INTERNAL CHECKPOINT (2026-08-11)
+### ▶ PLAY CALLS P4a/P4b — CONSUMERS BUILDING; INTERNAL CHECKPOINT (2026-08-11)
 
 P3 is independently accepted at `b952106`. Codex has begun the combined consumer
 milestone requested by the coach; **this is not yet an installer or review
@@ -35,11 +35,17 @@ saved presets without touching custom layouts, and keeps the call edit as one
 undo/redo transaction. CSV now round-trips Play Call, Play Call ID, and Play
 Concept while preserving backward-compatible blanks for old files.
 
-Focused verification on built Vite bytes: play-call charting **15/15**, CSV
-round-trip **11/11**, Film Room **179/179**, zero page errors. Next: add the
-registry/Study dimensions with exact composite-ref equality, then Reports and
-its football analysis. One combined independent review, installer, and coach
-smoke follow only after all consumers are integrated.
+P4b now adds ready Play Call and Play Concept dimensions to the analytics
+registry and Study, plus canonical cut filters for both. The focused proof
+compares each Study cohort directly with `AnalyticsRegistry.matchingRefs`, so
+the displayed measure and the film action are pinned to the same composite
+`gameId::playId` set.
+
+Focused verification on built Vite bytes: play-call charting **18/18**, CSV
+round-trip **11/11**, Film Room **179/179**, analytics registry **25/25**,
+Study query **37/37**, Study screen **80/80**, zero page errors. Next: Reports
+analysis and exact report film links. One combined independent review,
+installer, and coach smoke follow only after all consumers are integrated.
 ### ▶ PLAY CALLS — INTEGRATED SMOKE DECISION (2026-08-11)
 
 The coach explicitly declined a charting-only installer smoke. After P3 repair
