@@ -13,6 +13,16 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ACTIVE - `1.12.0-47` COACH SMOKE FINDINGS (2026-08-12)
+
+The independent review of `4b1effa` is accepted at `e518172`, but installed
+visual smoke remains open. New findings belong in
+`SMOKE-1.12.0-47-FINDINGS.md` and must be repaired as a batch, not through
+one-finding installers. HOME-1 records the broken season-row composition and
+its responsive acceptance criteria. The next product enhancement is also
+recorded there: preview-first exact-match historical Play Call mapping that adds
+call identity without rewriting existing football tags. No destructive mapping
+or coach-data rewrite is authorized.
 
 ### ▶ CLAUDE'S REVIEW of `4b1effa` — ACCEPTED, 0 findings (2026-08-11)
 
