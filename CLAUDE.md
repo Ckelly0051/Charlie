@@ -14,6 +14,50 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CLAUDE'S REVIEW of `4b1effa` — ACCEPTED, 0 findings (2026-08-11)
+
+The first canonical gate found and drove three repairs before this landed
+(design-token colors, confirmed-recovery player-credit proof, and the
+intentional parity update). My focus was auditing that "intentional" claim,
+not re-running what already passed once.
+
+- **The parity golden diff is genuinely additive-only.** Read every hunk of
+  `tools/parity-golden/synthetic-edge.json` directly — every changed block
+  only gains new keys (`fumblesLost`, `fumblesUnknown`, `fumblesRecovered`,
+  `turnovers`); every pre-existing value (`total`, `interceptions`,
+  `havocRate`, etc.) is byte-identical. No silent regression riding along.
+- **Real fumble-recovery schema, not another copy relabel.** `tags.
+  fumbleRecovery` (`subject`/`opponent`/`unknown`) is now genuinely chartable
+  (a Choice control appears under Result the moment Fumble is selected).
+  `_toMargin` nets in only confirmed `fumblesLost`/`fumblesRecovered`;
+  everything else surfaces as a disclosed `unresolved` count, never guessed.
+  This closes the exact gap my two previous reviews of this feature flagged
+  (`7532b2e` and `22da6f9`) — that gap needed a real schema addition, and
+  this is it, not another wording patch.
+- **All four blank-tags constructors got the field this time** — verified by
+  reading `play-tagger.js` (both) and `storage.js`'s CSV import in the same
+  diff, the exact completeness gap I found missing in an earlier play-call
+  review (`918cf9b`). CSV export/import round-trips it too.
+- **Legacy data isn't reinterpreted.** `SeasonStore._normalize` coerces only
+  malformed values to `unknown`; a genuinely absent field on an old play
+  normalizes to blank, which every derived stat already treats identically
+  to `unknown` (excluded from the confirmed margin, counted as unresolved).
+- **The test fix is a correction, not a loosened check**: the old assertion
+  claimed a tackler-only fumble proves recovery, which the new model
+  correctly says it doesn't — split into "no false credit without
+  confirmation" plus a new positive case for an actual confirmed recovery.
+- Version owners synchronized (`1.12.0-47` in app.js, Cargo.toml, Cargo.lock,
+  tauri.conf.json) and CSS spot-checked clean of raw colors.
+
+**Verification, scoped to what changed:** `e2e-field-fixes` 15/15,
+`e2e-season-tab` 169/169, `e2e-csv-roundtrip` 12/12, `e2e-native-reports`
+68/68, `e2e-play-call-charting` 24/24, `e2e-native-tagging` 50/50,
+`e2e-design-system` 16/16, `e2e-parity` 2/2 (real six-game season, 625
+drilldowns). Did not re-run the full 85-harness gate — the commit's own
+first-pass gate already found and fixed the only three real issues, and
+everything I independently traced (schema completeness, parity honesty,
+legacy-data safety) checked out clean.
+
 ### COMPLETE - `1.12.0-47` CONSOLIDATED COACH REPAIR (2026-08-11)
 
 The installed-review batch in `SMOKE-1.12.0-46-FINDINGS.md` is implemented as
