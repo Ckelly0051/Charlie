@@ -13,6 +13,58 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ACTIVE - `1.12.0-50` DEFENSIVE PERFORMANCE REPORT (2026-08-13)
+
+The Defense report is now a season analysis surface rather than a current-game
+scheme table. It defaults to **Full season**, offers **Current game**, and
+excludes games charted in Opponent scout mode from our-team defensive totals.
+
+Performance leads the page: Defensive Snaps, Yards/Play Allowed, Stop Rate,
+Explosives Allowed, 3rd Down Stop Rate, possession-based Red Zone TD Rate,
+Takeaways, and Havoc Rate. The core table answers how the defense performed
+against All Runs, All Passes, Run Inside, Run Outside, Screen, Short/Medium/Deep
+Pass, RPO, Play Action, and Trick Play. Multi-tagged play types may appear in
+more than one detail row, so the report does not present a misleading detail
+share total.
+
+**Best Calls by Opponent Play Type** identifies the best sufficiently sampled
+front, coverage, and blitz/no-blitz answer (minimum 3 snaps), ordered by Stop
+Rate, then Yards/Play Allowed, then sample. Game Trend and Situational Defense
+complete the season view. Existing front/coverage/blitz detail and Defensive
+Self-Scout remain below the performance analysis rather than being deleted.
+
+Every play-type, game, situation, and best-call row carries exact
+`gameId::playId` references. Cross-game duplicate play IDs stay distinct, and
+the displayed cohort is the film cohort. Export follows the selected Defense
+scope.
+
+Verification:
+- Focused native Reports: **73/73**
+- Defensive Self-Scout compatibility: **41/41**
+- Canonical full gate: **85/85 harnesses**, 0 skipped, 0 failed
+- No coach data, tags, film paths, or storage schema are migrated or rewritten
+
+Unsigned installers (the repository has no local Tauri signing private key):
+
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-50_x64-setup.exe`
+  - SHA-256: `F766E0FDBBBF72D7A0343A7010C3EE308E7DC1906FD017E7A97107EE5877839B`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-50_x64_en-US.msi`
+  - SHA-256: `F8C10977C5DF4E33A403AD1249F31B5B028898968CABEBA27224B5675DDBB184`
+
+Post-gate hardening: structured penalty no-play/unresolved snaps are excluded from
+the new defensive rates through the existing penalty contract. Rebuilt candidate
+passed native Reports **73/73**, penalty contract **7/7**, and release ownership
+**17/17** after that one-line eligibility safeguard.
+
+Coach smoke after install:
+1. Reports -> Defense opens on Full season.
+2. Compare All Runs, All Passes, Run Inside, Run Outside and pass categories.
+3. Select a row; film opens on exactly that cohort and Next follows the cohort.
+4. Switch Current game / Full season; Defensive Snaps and Game Trend change.
+5. Open a Best Calls answer and confirm the named front/coverage/blitz film.
+6. Confirm the lower Scheme Detail and Defensive Self-Scout sections remain.
+
+
 ### ACTIVE - `1.12.0-49` FULLSCREEN CONTROLS CANDIDATE (2026-08-13)
 
 The coach installed `1.12.0-48` and confirmed fullscreen playback is **smooth**,

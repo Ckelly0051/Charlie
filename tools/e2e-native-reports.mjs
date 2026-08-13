@@ -220,6 +220,64 @@ ok(result.evidence.special.marker && result.evidence.selfscout.marker && result.
   'Special Teams, Self-Scout, and Season retain their football-specific surfaces', JSON.stringify(result.evidence));
 ok(result.unchanged, 'Report navigation is read-only against canonical season data', JSON.stringify(result.diff));
 
+
+console.log('\n== 2b. Defense is season-wide, performance-first, and film-exact ==');
+result = await page.evaluate(() => {
+  const app = window.app;
+  const mk = (gid, id, tags) => {
+    const play = { id, timestamp: { start: id * 4, end: id * 4 + 3 }, tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } };
+    Object.defineProperty(play, '__gid', { value: gid, enumerable: false });
+    return play;
+  };
+  const plays = [
+    mk('a', 1, { runPass: 'Run', playType: 'Run Inside', result: 'No Gain', yardage: '0', down: '1', distance: '10', defFront: '4-2-5', coverage: 'Cover 3' }),
+    mk('a', 2, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '8', defFront: '4-2-5', coverage: 'Cover 3' }),
+    mk('b', 1, { runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '20', down: '3', distance: '5', fieldSide: 'opp', yardLine: '10', defFront: '5-2', coverage: 'Cover 1', blitz: 'Edge' }),
+    mk('b', 2, { runPass: 'Pass', playType: 'Short Pass', result: 'Interception', yardage: '0', down: '3', distance: '7', fieldSide: 'opp', yardLine: '10', defFront: '4-2-5', coverage: 'Cover 3', blitz: 'Edge' }),
+    { ...mk('b', 3, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '99', down: '1', distance: '10' }), penalties: [{ id: 'no-play', team: 'opponent', phase: 'offense', foul: 'False start', disposition: 'accepted', playCounts: false }] },
+  ];
+  const model = app.stats.defensivePerformance(plays, { a: 'Week 1', b: 'Week 2' });
+  app.reportsScreen.show();
+  app.reportsScreen.selectTab('defense');
+  const pane = document.querySelector('[data-pane="defense"]');
+  const seasonActive = pane?.querySelector('[data-defense-scope="season"].active') != null;
+  const runInside = model.playTypes.find(row => row.name === 'Run Inside');
+  const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
+  const before = pane?.querySelector('.gi-def-kpi strong')?.textContent || '';
+  let watched = null;
+  const originalWatch = app.filmNavigation.watch;
+  app.filmNavigation.watch = refs => { watched = refs; return true; };
+  pane?.querySelector('[data-defense-refs]')?.click();
+  app.filmNavigation.watch = originalWatch;
+  pane?.querySelector('[data-defense-scope="game"]')?.click();
+  const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].active') != null;
+  const after = document.querySelector('[data-pane="defense"] .gi-def-kpi strong')?.textContent || '';
+  return {
+    total: model.total, ypp: model.summary.yardsPerPlay, stop: model.summary.stopRate,
+    third: model.thirdDownStopRate, redZone: model.redZoneTdRate, takeaways: model.takeaways,
+    runInside: runInside && { n: runInside.n, refs: runInside.refs },
+    duplicateRefs, games: model.byGame.map(row => row.name),
+    seasonActive, gameActive, before, after, watched,
+    headings: [...(pane?.querySelectorAll('h3') || [])].map(node => node.textContent.trim()),
+    scoutExcluded: before === '1',
+  };
+});
+ok(result.total === 4 && result.ypp === 6 && result.stop === 75
+  && result.third === 50 && result.redZone === 50 && result.takeaways === 1,
+  'Defensive performance uses the established success direction and exact season cohort', JSON.stringify(result));
+ok(result.runInside?.n === 2 && JSON.stringify(result.runInside.refs) === JSON.stringify(['a::1', 'a::2'])
+  && JSON.stringify(result.duplicateRefs) === JSON.stringify(['a::1', 'b::1']),
+  'Opponent play-type rows retain composite game/play identity even when bare ids collide', JSON.stringify(result));
+ok(Array.isArray(result.watched) && result.watched.length === 1 && result.watched[0] === 'g-self::2',
+  'A season Defense row launches exactly the film refs it displays', JSON.stringify(result.watched));
+ok(result.games.join(',') === 'Week 1,Week 2'
+  && result.seasonActive && result.gameActive && result.scoutExcluded,
+  'Defense defaults to full season, excludes opponent-scout games, and can switch to current game', JSON.stringify(result));
+ok(result.headings.includes('Defensive Performance')
+  && result.headings.includes('Performance by Opponent Play Type')
+  && result.headings.includes('Game Trend')
+  && result.headings.includes('Situational Defense'),
+  'The Defense page leads with performance, play type, game trend, and situation', JSON.stringify(result.headings));
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
 result = await page.evaluate(() => {
   const app = window.app;
@@ -872,7 +930,15 @@ ok(shape.rampFill === shape.losToken,
   'Chart marks resolve to design-system tokens rather than literal colours', JSON.stringify({ fill: shape.rampFill, token: shape.losToken }));
 ok(!shape.overflow, 'The visual deck does not push the page sideways', JSON.stringify(shape));
 
-ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
+if (screenshotDir) {
+  await page.evaluate(() => {
+    window.app.reportsScreen.show();
+    window.app.reportsScreen.defenseScope = 'season';
+    window.app.reportsScreen.selectTab('defense');
+  });
+  await sleep(150);
+  await capture('desktop-defense');
+}ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
 /* G13 / G2 / G3 / F12c — the opponent Offense rebuild. */
 const oppOffense = await page.evaluate(async () => {
   window.app.reportsScreen.scoutOpponent('Wildcats');

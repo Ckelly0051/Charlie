@@ -24,6 +24,7 @@ export class ReportsScreen {
     this._mode = 'main';
     this.perspective = 'self';
     this._opponentData = null;
+    this.defenseScope = 'season';
   }
 
   mount(host) {
@@ -283,8 +284,7 @@ export class ReportsScreen {
     if (tab === 'overview') html = this._overviewHtml(stats);
     else if (tab === 'offense') html = this._offenseHtml(stats);
     else if (tab === 'defense') {
-      const defScout = statsEngine.generateDefensiveSelfScout();
-      html = statsEngine._renderDefenseTabBody(stats, defScout);
+      html = this._defenseHtml();
     } else if (tab === 'special') html = this._specialTeamsHtml(stats);
     else if (tab === 'players') html = this._playersHtml(stats);
     else if (tab === 'selfscout') {
@@ -546,6 +546,54 @@ export class ReportsScreen {
     return body || '<div class="stats-section"><h3>No Special Teams snaps charted</h3><p>Chart kickoff, return, punt, field goal, and try units to populate this report.</p></div>';
   }
 
+  _defenseHtml() {
+    const engine = this.app.stats;
+    const store = this.app.storage?.seasonStore;
+    const games = store?.gamesChrono?.() || store?.data?.games || [];
+    const selfGames = games.filter(game => game?.gameInfo?.perspective !== 'scout');
+    const allowed = new Set(selfGames.map(game => String(game.id)));
+    const labels = Object.fromEntries(selfGames.map(game => [String(game.id), game.name || `Game ${game.id}`]));
+    let plays = (this.app.season?._allPlays?.() || []).filter(play => allowed.has(String(play.__gid)));
+    if (!plays.length) {
+      const gid = String(store?.data?.activeGameId || 'current');
+      plays = (this.app.tagger?.plays || []).map(play => {
+        const copy = { ...play, tags: play.tags };
+        Object.defineProperty(copy, '__gid', { value: gid, enumerable: false });
+        return copy;
+      });
+      labels[gid] = this.app.workspace?.snapshot?.()?.game?.name || 'Current game';
+    }
+    const activeId = String(store?.data?.activeGameId || 'current');
+    const scoped = this.defenseScope === 'game'
+      ? plays.filter(play => String(play.__gid) === activeId) : plays;
+    this._defenseScopedPlays = scoped;
+    const report = engine.defensivePerformance(scoped, labels);
+    if (!report.total) return `<div class="stats-section def-empty"><h3>No defensive data tagged yet</h3><p>Tag plays as Defense and add the opponent's play type, result and yardage to build this report.</p></div>`;
+    const esc = Charts._esc;
+    const pct = value => value == null ? 'N/A' : `${value}%`;
+    const filmAttrs = (row, label) => row.refs?.length
+      ? `class="cut-row" data-defense-refs="${esc(row.refs.join(','))}" data-cut-label="${esc(label)}"`
+      : '';
+    const metric = (label, value, sub = '') => `<div class="gi-def-kpi"><span>${esc(label)}</span><strong>${esc(String(value))}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+    const typeRows = report.playTypes.map(row => `<tr ${filmAttrs(row, `${row.name} — ${row.n} defensive snaps`)}><td><strong>${esc(row.name)}</strong></td><td>${row.n}</td><td>${row.sharePct}%</td><td>${row.yardsPerPlay.toFixed(1)}</td><td>${row.stopRate}%</td><td>${row.explosiveRate}%</td><td>${row.havocRate}%</td><td>${row.touchdowns}</td></tr>`).join('');
+    const answerCell = answer => answer
+      ? `<button type="button" class="gi-def-answer" data-defense-refs="${esc(answer.refs.join(','))}" data-cut-label="${esc(answer.name)} answer"><strong>${esc(answer.name)}</strong><span>${answer.stopRate}% stop · ${answer.yardsPerPlay.toFixed(1)} yds/play · ${answer.n} snaps</span></button>`
+      : '<span class="gi-def-no-sample">Not enough snaps</span>';
+    const answerRows = report.answers.map(row => `<tr><td><strong>${esc(row.playType)}</strong><small>${row.n} snaps</small></td><td>${answerCell(row.front)}</td><td>${answerCell(row.coverage)}</td><td>${answerCell(row.pressure)}</td></tr>`).join('');
+    const gameRows = report.byGame.map(row => `<tr ${filmAttrs(row, `${row.name} defense`)}><td><strong>${esc(row.name)}</strong></td><td>${row.n}</td><td>${row.yardsPerPlay.toFixed(1)}</td><td>${row.stopRate}%</td><td>${row.explosives}</td><td>${row.havoc}</td><td>${row.touchdowns}</td></tr>`).join('');
+    const sitRows = report.situations.map(row => `<tr ${filmAttrs(row, `${row.name} defense`)}><td><strong>${esc(row.name)}</strong></td><td>${row.n}</td><td>${row.yardsPerPlay.toFixed(1)}</td><td>${row.stopRate}%</td><td>${row.explosiveRate}%</td><td>${row.havocRate}%</td></tr>`).join('');
+    const scopedStats = engine.compute(scoped);
+    const defScout = engine.generateDefensiveSelfScout(scoped);
+    return `<div class="gi-defense-report">
+      <div class="gi-def-toolbar"><div class="gi-def-scope" role="group" aria-label="Defense report scope"><button type="button" data-defense-scope="season" class="${this.defenseScope === 'season' ? 'active' : ''}">Full season</button><button type="button" data-defense-scope="game" class="${this.defenseScope === 'game' ? 'active' : ''}">Current game</button></div><button class="btn btn-sm" id="btnExportDef">Export Report</button></div>
+      <section class="stats-section"><h3>Defensive Performance</h3><div class="gi-def-kpis">${metric('Defensive Snaps', report.total)}${metric('Yards / Play Allowed', report.summary.yardsPerPlay.toFixed(1))}${metric('Stop Rate', pct(report.summary.stopRate))}${metric('Explosives Allowed', report.summary.explosives, `${report.summary.explosiveRate}%`)}${metric('3rd Down Stop Rate', pct(report.thirdDownStopRate))}${metric('Red Zone TD Rate', pct(report.redZoneTdRate))}${metric('Takeaways', report.takeaways)}${metric('Havoc Rate', pct(report.summary.havocRate))}</div></section>
+      <section class="stats-section"><h3>Performance by Opponent Play Type</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-type"><thead><tr><th>Play Type</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead><tbody>${typeRows}</tbody></table></div></section>
+      ${answerRows ? `<section class="stats-section"><h3>Best Calls by Opponent Play Type</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers"><thead><tr><th>Opponent Play Type</th><th>Best Front</th><th>Best Coverage</th><th>Blitz Decision</th></tr></thead><tbody>${answerRows}</tbody></table></div></section>` : ''}
+      <div class="gi-def-split"><section class="stats-section"><h3>Game Trend</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full"><thead><tr><th>Game</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead><tbody>${gameRows}</tbody></table></div></section><section class="stats-section"><h3>Situational Defense</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full"><thead><tr><th>Situation</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th></tr></thead><tbody>${sitRows}</tbody></table></div></section></div>
+      <section class="stats-section"><h3>Scheme Detail</h3>${engine._renderDefensive(scopedStats)}</section>
+      ${engine._defScoutBlock(defScout, false)}
+    </div>`;
+  }
   _playersHtml(stats) {
     const body = this.app.stats._renderIndividualStats(stats, 'all');
     return body || '<div class="stats-section"><h3>No player attribution yet</h3><p>Add ball carrier, passer, receiver, tackler, returner, or kicker to chart individual performance.</p></div>';
@@ -572,7 +620,18 @@ export class ReportsScreen {
     });
 
     if (this.perspective === 'self') {
-      // ── H16 — SEASON ROWS FILM THE SEASON, NOT THE ACTIVE GAME ─────────────
+      root.querySelectorAll('[data-defense-scope]').forEach(button => {
+        button.addEventListener('click', () => {
+          this.defenseScope = button.dataset.defenseScope === 'game' ? 'game' : 'season';
+          this._renderActiveTab();
+        });
+      });
+      root.querySelectorAll('[data-defense-refs]').forEach(row => {
+        const refs = (row.dataset.defenseRefs || '').split(',').filter(Boolean);
+        if (refs.length) this._makeFilmControl(row, () => this.app.filmNavigation?.watch?.(refs, {
+          label: row.dataset.cutLabel || 'Defensive film',
+        }));
+      });      // ── H16 — SEASON ROWS FILM THE SEASON, NOT THE ACTIVE GAME ─────────────
       //
       // Every binding below resolves through StatsEngine._watchPlays, which
       // rebuilds its pool from `this.tagger.plays` — the ACTIVE GAME only. That
@@ -682,7 +741,7 @@ export class ReportsScreen {
       const report = stats.generateSelfScout();
       if (report) stats._exportSelfScout(report, this.app.gameContext.snapshot().teamName || 'Our Offense');
     });
-    root.querySelector('#btnExportDef')?.addEventListener('click', () => stats._exportDefensiveReport(stats.compute(), this.app.gameContext.snapshot().teamName || 'Our Defense'));
+    root.querySelector('#btnExportDef')?.addEventListener('click', () => stats._exportDefensiveReport(stats.compute(this._defenseScopedPlays || undefined), this.app.gameContext.snapshot().teamName || 'Our Defense'));
   }
 
   _makeFilmControl(element, activate) {

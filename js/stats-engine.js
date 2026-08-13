@@ -959,6 +959,115 @@ export class StatsEngine {
     };
   }
 
+  /**
+   * Performance-first defensive analysis over an explicitly supplied cohort.
+   * Defensive plays describe the opponent's offense, so offensive playType,
+   * run/pass, down, distance and yardage are the dimensions being defended.
+   */
+  defensivePerformance(plays, gameLabels = {}) {
+    const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
+    const refFor = p => p?.__gid != null && p?.id != null ? `${p.__gid}::${p.id}` : null;
+    const refsFor = cohort => [...new Set(cohort.map(refFor).filter(Boolean))];
+    const yards = p => parseInt(p.tags.yardage, 10) || 0;
+    const isExplosive = p => StatsEngine.isRun(p) ? yards(p) >= 12
+      : StatsEngine.isPass(p) ? yards(p) >= 16 : yards(p) >= 16;
+    const isHavoc = p => StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception')
+      || StatsEngine.hasResult(p, 'Fumble')
+      || (yards(p) < 0 && !StatsEngine.hasResult(p, 'Penalty')
+        && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike'));
+    const summarize = (name, cohort) => {
+      const n = cohort.length;
+      const stops = cohort.filter(p => !this._isSuccessfulPlay(p)).length;
+      const explosives = cohort.filter(isExplosive).length;
+      const havoc = cohort.filter(isHavoc).length;
+      const touchdowns = cohort.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length;
+      return {
+        name, n, stops, explosives, havoc, touchdowns,
+        sharePct: source.length ? +(n / source.length * 100).toFixed(1) : 0,
+        stopRate: n ? +(stops / n * 100).toFixed(1) : 0,
+        yardsPerPlay: n ? +(cohort.reduce((sum, p) => sum + yards(p), 0) / n).toFixed(1) : 0,
+        explosiveRate: n ? +(explosives / n * 100).toFixed(1) : 0,
+        havocRate: n ? +(havoc / n * 100).toFixed(1) : 0,
+        refs: refsFor(cohort),
+      };
+    };
+
+    const run = source.filter(StatsEngine.isRun);
+    const pass = source.filter(StatsEngine.isPass);
+    const detailOrder = ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass',
+      'Deep Pass', 'RPO', 'Play Action', 'Trick Play'];
+    const detail = detailOrder.map(name => summarize(name,
+      source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))))
+      .filter(row => row.n > 0);
+    const playTypes = [summarize('All Runs', run), summarize('All Passes', pass), ...detail]
+      .filter(row => row.n > 0);
+
+    const grouped = (cohort, keyFn) => {
+      const map = new Map();
+      cohort.forEach(play => {
+        let keys = keyFn(play);
+        if (!Array.isArray(keys)) keys = [keys];
+        keys.filter(Boolean).forEach(key => {
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(play);
+        });
+      });
+      return [...map.entries()];
+    };
+    const bestAnswer = (cohort, values) => {
+      const candidates = [];
+      values(cohort).forEach(([name, answerPlays]) => {
+        if (!name || answerPlays.length < 3) return;
+        candidates.push(summarize(name, answerPlays));
+      });
+      return candidates.sort((a, b) => b.stopRate - a.stopRate
+        || a.yardsPerPlay - b.yardsPerPlay || b.n - a.n)[0] || null;
+    };
+    const answers = playTypes.map(type => {
+      const cohort = source.filter(p => type.name === 'All Runs' ? StatsEngine.isRun(p)
+        : type.name === 'All Passes' ? StatsEngine.isPass(p)
+          : StatsEngine.splitPlayTypes(p.tags.playType).includes(type.name));
+      return {
+        playType: type.name, n: cohort.length,
+        front: bestAnswer(cohort, ps => grouped(ps, p => StatsEngine.splitFronts(p.tags.defFront))),
+        coverage: bestAnswer(cohort, ps => grouped(ps, p => StatsEngine.proj(p).coverage || '')),
+        pressure: bestAnswer(cohort, ps => grouped(ps, p => p.tags.blitz ? 'Blitz' : 'No Blitz')),
+      };
+    }).filter(row => row.front || row.coverage || row.pressure);
+
+    const byGame = grouped(source, p => String(p.__gid ?? 'current')).map(([gid, cohort]) => ({
+      ...summarize(gameLabels[gid] || gid, cohort), gameId: gid,
+    })).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    const situationSpecs = [
+      ['1st Down', p => p.tags.down === '1'],
+      ['2nd Down', p => p.tags.down === '2'],
+      ['3rd Down', p => p.tags.down === '3'],
+      ['4th Down', p => p.tags.down === '4'],
+      ['3rd & Short', p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 1 && (parseInt(p.tags.distance, 10) || 0) <= 3],
+      ['3rd & Long', p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 7],
+      ['Red Zone', p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 80; }],
+      ['Goal Line', p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 95; }],
+    ];
+    const situations = situationSpecs.map(([name, predicate]) => summarize(name, source.filter(predicate)))
+      .filter(row => row.n > 0);
+    const defensive = this._defensiveStats(source);
+    const thirdDown = source.filter(p => p.tags.down === '3');
+    const redZoneDrives = this._reconstructDrives(source).filter(drive =>
+      drive.some(p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 80; }));
+    const redZoneTouchdowns = redZoneDrives.filter(drive =>
+      drive.some(p => StatsEngine.hasResult(p, 'Touchdown'))).length;
+    return {
+      total: source.length,
+      summary: summarize('All Defensive Snaps', source),
+      takeaways: defensive.turnovers,
+      thirdDownStopRate: thirdDown.length
+        ? +(thirdDown.filter(p => !this._isSuccessfulPlay(p)).length / thirdDown.length * 100).toFixed(1) : null,
+      redZoneTdRate: redZoneDrives.length
+        ? +(redZoneTouchdowns / redZoneDrives.length * 100).toFixed(1) : null,
+      playTypes, answers, byGame, situations,
+    };
+  }
+
   _countThreeAndOuts(plays) {
     // A three-and-out = the defense forced the offense to give the ball back in
     // three plays without a first down. We must NOT rely on the driveNumber
