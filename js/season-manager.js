@@ -529,13 +529,14 @@ export class SeasonManager {
 
     const vIcon = v => v === 'dominant' ? '▲' : v === 'effective' ? '▬' : '▼';
     const vLabel = v => v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable';
+    const displayLabel = label => this._escape(String(label).replace(/&amp;/g, '&'));
     let flags = report.tells.map(t => {
       const ctx = t.verdict === 'dominant'
         ? `working at ${t.leanAvg} yds/${t.leanSuccRate}% success — keep riding it`
         : t.verdict === 'effective'
           ? `productive (${t.leanAvg} yds/${t.leanSuccRate}% succ) but a DC will see it`
           : `underperforming at ${t.leanAvg} yds/${t.leanSuccRate}% success — mix it up`;
-      return `<li class="ss-v-${t.verdict}"><b>${this._escape(t.label)}</b>: ${t.lean.toLowerCase()} ${t.leanPct}% (${t.n} plays) — <span class="ss-verdict-tag ${t.verdict}">${vIcon(t.verdict)} ${vLabel(t.verdict)}</span> ${ctx}</li>`;
+      return `<li class="ss-v-${t.verdict}"><b>${displayLabel(t.label)}</b>: ${t.lean.toLowerCase()} ${t.leanPct}% (${t.n} plays) — <span class="ss-verdict-tag ${t.verdict}">${vIcon(t.verdict)} ${vLabel(t.verdict)}</span> ${ctx}</li>`;
     }).join('');
     if (!flags) flags = '<li class="ok">No strong tells detected at the current sample size — your run/pass mix is well balanced.</li>';
 
@@ -548,7 +549,7 @@ export class SeasonManager {
         const ctx = t.verdict === 'dominant'
           ? `working (${t.stopRate}% stops) — fine to lean on`
           : `only ${t.stopRate}% stops — an OC will attack it`;
-        return `<li class="ss-v-${t.verdict}"><b>${this._escape(t.label)}</b>: ${this._escape(t.tellVal)} ${t.tellPct}% of the time (${t.n} plays) — <span class="ss-verdict-tag ${t.verdict}">${vIcon(t.verdict)} ${vLabel(t.verdict)}</span> ${ctx}</li>`;
+        return `<li class="ss-v-${t.verdict}"><b>${displayLabel(t.label)}</b>: ${this._escape(t.tellVal)} ${t.tellPct}% of the time (${t.n} plays) — <span class="ss-verdict-tag ${t.verdict}">${vIcon(t.verdict)} ${vLabel(t.verdict)}</span> ${ctx}</li>`;
       }).join('');
       defBlock = `
         <p class="self-scout-intro" style="margin-top:14px"><b>Your defense</b> — scheme tells an opposing OC would key on (${ds.totalPlays} defensive plays, predictability ${ds.predictability}/100):</p>

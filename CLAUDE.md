@@ -13,6 +13,39 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ACTIVE - `1.12.0-51` OPPONENT PLAY-TYPE DEFENSE (2026-08-13)
+
+The Defense report now makes the coach's primary question explicit: **what did
+the opponent run against us, and what happened?** Run/Pass totals are separate
+summary controls. Run Inside, Run Outside, Screen, Short/Medium/Deep Pass, RPO,
+Play Action, and Trick Play are frequency-first rows in **Opponent Offense by
+Play Type**.
+
+Every table header sorts the displayed rows: play type, snaps, yards/play
+allowed, Stop Rate, Explosive Rate, Havoc Rate, and TD Allowed. Every summary
+and detail row retains exact `gameId::playId` film references. Full season is
+still the default and Current game remains available.
+
+Also repaired a season Self-Scout rendering defect where internally encoded
+down-and-distance labels were escaped again and displayed literal `&amp;` text.
+No stored tags, film paths, or season data changed.
+
+Focused verification on rebuilt output:
+- Native Reports: **74/74**
+- Defensive/Self-Scout compatibility: **41/41**
+- Release ownership/version sync: **17/17**
+
+Unsigned installers (bundles completed before the expected missing-private-key
+signing exit):
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-51_x64-setup.exe`
+  - SHA-256: `F2EF081D754E05ED5D30F60704B750CD4AC79B7676E493357906D5094EB5E921`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-51_x64_en-US.msi`
+  - SHA-256: `0819DED16223FA8FF07D3CBCD0002E1CDFBA9DCBC6147D0F67FB978851B51F12`
+
+Coach smoke: Reports -> Defense -> Opponent Offense by Play Type. Sort by Snaps,
+Yds/Play, and Stop Rate; then select Run Outside and a pass category and confirm
+each cut-up contains only that exact opponent play type.
+
 ### ACTIVE - `1.12.0-50` DEFENSIVE PERFORMANCE REPORT (2026-08-13)
 
 The Defense report is now a season analysis surface rather than a current-game

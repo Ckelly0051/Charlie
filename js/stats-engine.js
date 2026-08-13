@@ -4394,7 +4394,7 @@ export class StatsEngine {
     return html;
   }
 
-  // Make the individual-stat leaderboard tables click-to-sort. A header click
+  // Make data tables with recognized row contracts click-to-sort. A header click
   // sorts by that column — numeric columns (Yds, TD, Grade…) sort by value with
   // blanks ("—") sinking to the bottom; the Player column sorts as text.
   // Re-clicking a header flips direction. Non-destructive: existing <tr>s are
@@ -4412,7 +4412,7 @@ export class StatsEngine {
       // G13 — the Big 13 joins the existing sorter rather than growing a second
       // one. Its rows are `bt-row`, so the gate widens; everything below (numeric
       // detection, direction toggle) is the proven path.
-      if (!tbody || !tbody.querySelector('tr.player-row, tr.bt-row')) return;
+      if (!tbody || !tbody.querySelector('tr.player-row, tr.bt-row, tr.gi-def-type-row')) return;
       const heads = Array.from(table.querySelectorAll('thead th'));
       if (heads.length < 2) return;
       heads.forEach((th, idx) => {
@@ -6571,4 +6571,3 @@ ${bodyHtml}
     setTimeout(doPrint, 900);
   }
 }
-

@@ -243,6 +243,13 @@ result = await page.evaluate(() => {
   const seasonActive = pane?.querySelector('[data-defense-scope="season"].active') != null;
   const runInside = model.playTypes.find(row => row.name === 'Run Inside');
   const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
+  const typeTable = pane?.querySelector('.gi-def-type');
+  const typeRowsBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
+  const sortableHeaders = typeTable?.querySelectorAll('thead th.gi-sort-th').length || 0;
+  typeTable?.querySelector('thead th:nth-child(3)')?.click();
+  const typeRowsAfterYppSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
+  const yppAfterSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => Number(row.cells[2]?.dataset.sort));
+  const aggregateCards = [...(pane?.querySelectorAll('.gi-def-type-summary') || [])].map(card => card.textContent.trim());
   const before = pane?.querySelector('.gi-def-kpi strong')?.textContent || '';
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
@@ -257,7 +264,8 @@ result = await page.evaluate(() => {
     third: model.thirdDownStopRate, redZone: model.redZoneTdRate, takeaways: model.takeaways,
     runInside: runInside && { n: runInside.n, refs: runInside.refs },
     duplicateRefs, games: model.byGame.map(row => row.name),
-    seasonActive, gameActive, before, after, watched,
+    seasonActive, gameActive, before, after, watched, typeRowsBefore, typeRowsAfterYppSort,
+    sortableHeaders, aggregateCards, yppAfterSort,
     headings: [...(pane?.querySelectorAll('h3') || [])].map(node => node.textContent.trim()),
     scoutExcluded: before === '1',
   };
@@ -274,10 +282,18 @@ ok(result.games.join(',') === 'Week 1,Week 2'
   && result.seasonActive && result.gameActive && result.scoutExcluded,
   'Defense defaults to full season, excludes opponent-scout games, and can switch to current game', JSON.stringify(result));
 ok(result.headings.includes('Defensive Performance')
-  && result.headings.includes('Performance by Opponent Play Type')
+  && result.headings.includes('Opponent Offense by Play Type')
   && result.headings.includes('Game Trend')
   && result.headings.includes('Situational Defense'),
   'The Defense page leads with performance, play type, game trend, and situation', JSON.stringify(result.headings));
+ok(result.sortableHeaders === 7
+  && result.typeRowsBefore.length > 0
+  && result.typeRowsAfterYppSort.length === result.typeRowsBefore.length
+  && result.yppAfterSort.every((value, index, values) => index === 0 || values[index - 1] <= value)
+  && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes')
+  && result.aggregateCards.length > 0
+  && result.aggregateCards.every(text => text.includes('All Runs') || text.includes('All Passes')),
+  'Opponent offense is a sortable play-type table with Run/Pass totals separated from detail rows', JSON.stringify(result));
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
 result = await page.evaluate(() => {
   const app = window.app;
