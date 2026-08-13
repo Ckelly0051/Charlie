@@ -250,6 +250,10 @@ result = await page.evaluate(() => {
   const typeRowsAfterYppSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
   const yppAfterSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => Number(row.cells[2]?.dataset.sort));
   const aggregateCards = [...(pane?.querySelectorAll('.gi-def-type-summary') || [])].map(card => card.textContent.trim());
+  const answerHead = typeTable?.querySelector('thead');
+  const answerFirst = typeTable?.querySelector('tbody tr');
+  const answerHeaderPosition = answerHead?.querySelector('th') ? getComputedStyle(answerHead.querySelector('th')).position : '';
+  const answerRowsClearHeader = !answerHead || !answerFirst || answerFirst.getBoundingClientRect().top >= answerHead.getBoundingClientRect().bottom - 1;
   const before = pane?.querySelector('.gi-def-kpi strong')?.textContent || '';
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
@@ -265,7 +269,7 @@ result = await page.evaluate(() => {
     runInside: runInside && { n: runInside.n, refs: runInside.refs },
     duplicateRefs, games: model.byGame.map(row => row.name),
     seasonActive, gameActive, before, after, watched, typeRowsBefore, typeRowsAfterYppSort,
-    sortableHeaders, aggregateCards, yppAfterSort,
+    sortableHeaders, aggregateCards, yppAfterSort, answerHeaderPosition, answerRowsClearHeader,
     headings: [...(pane?.querySelectorAll('h3') || [])].map(node => node.textContent.trim()),
     scoutExcluded: before === '1',
   };
@@ -294,6 +298,8 @@ ok(result.sortableHeaders === 7
   && result.aggregateCards.length > 0
   && result.aggregateCards.every(text => text.includes('All Runs') || text.includes('All Passes')),
   'Opponent offense is a sortable play-type table with Run/Pass totals separated from detail rows', JSON.stringify(result));
+ok(result.answerHeaderPosition === 'static' && result.answerRowsClearHeader,
+  'Defense table headers stay in normal flow and never cover the first answer row', JSON.stringify(result));
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
 result = await page.evaluate(() => {
   const app = window.app;

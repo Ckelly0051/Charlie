@@ -80,6 +80,7 @@ export class ReportsScreen {
       this._syncTabState();
       this._setChrome(true);
       this._renderActiveTab();
+      this.host.scrollTop = 0;
       this.content.classList.remove('hidden');
       return true;
     } catch (error) {
@@ -116,6 +117,7 @@ export class ReportsScreen {
     this._syncKpiRail();
     this._setChrome(true);
     this._renderActiveTab();
+    this.host.scrollTop = 0;
     return true;
   }
 
@@ -134,6 +136,7 @@ export class ReportsScreen {
     this._syncTabState();
     this._setChrome(true);
     this._renderActiveTab();
+    this.host.scrollTop = 0;
     return true;
   }
 

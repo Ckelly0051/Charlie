@@ -13,6 +13,23 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ACTIVE - `1.12.0-52` REPORT TOP/HEADER REPAIR (2026-08-13)
+
+Defense report table headers no longer inherit the route-tab sticky offset, so
+they remain in normal table flow and cannot cover the first data row. Entering
+Reports or intentionally switching report tabs now resets the Reports route to
+the top; ordinary scrolling inside the current report is unchanged.
+
+Focused native Reports verification: **75/75**. No analytics, tags, film, or
+stored season data changed.
+
+Unsigned installers (bundles completed before the expected missing-private-key
+signing exit):
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-52_x64-setup.exe`
+  - SHA-256: `51E0E8B5699174B4B82BE86C8E99A1D9E2A0F5A566FC604A3DE2F1F17494CE46`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-52_x64_en-US.msi`
+  - SHA-256: `BBCF69594ECF553A0B4A47282595A32F8FB921BABE0DA24FB92CD65D538A0B49`
+
 ### ACTIVE - `1.12.0-51` OPPONENT PLAY-TYPE DEFENSE (2026-08-13)
 
 The Defense report now makes the coach's primary question explicit: **what did
