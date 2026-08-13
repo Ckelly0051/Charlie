@@ -41,6 +41,33 @@ fragments rather than one selectable season.
 Coach screenshot: `codex-clipboard-c62c847d-3395-450a-b0ca-d98f5d7afcb5.png`.
 The screenshot is local evidence and is not required in git.
 
+## VIDEO-1 - Fullscreen playback stutters or judders
+
+Observed on the installed `1.12.0-47` candidate on 2026-08-12. The same film
+plays normally in the embedded player but visibly stutters/judders after entering
+fullscreen. This is a playback defect and blocks closing the current smoke batch.
+
+The fullscreen-only boundary points first to presentation work triggered by
+fullscreen: media sizing and fractional resampling, canvas/drawing overlays,
+control animation, resize observers, and repeated layout or state updates. Do not
+assume linked-film I/O or source compression is the cause while the identical
+source plays smoothly outside fullscreen.
+
+### Required outcome
+
+- Fullscreen playback is perceptually as smooth as embedded playback for the
+  same clip, speed, and hardware.
+- The media element retains integer, aspect-correct presentation geometry; no
+  CSS transform, filter, or animation may be applied to the video itself.
+- Fullscreen entry/exit must not create duplicate playback loops, resize
+  handlers, animation frames, timeupdate work, or overlay redraw owners.
+- Drawing canvas and movable controls remain aligned without forcing continuous
+  layout or full-canvas redraw while idle.
+- Verify linked film and one managed/local fixture at normal speed, including
+  pause/resume, seeking, play advance, fullscreen exit/re-entry, and Windows
+  display scaling used by the coach.
+- Capture frame timing or long-task evidence before choosing an optimization;
+  do not hide judder by lowering video quality.
 ## Next Product Enhancement - Exact-match historical Play Call mapping
 
 After the current smoke batch is accepted, build a preview-first mapper that
