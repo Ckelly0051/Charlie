@@ -13,38 +13,37 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
-### ACTIVE - `1.12.0-48` HOME + FULLSCREEN REPAIR CANDIDATE (2026-08-13)
+### ACTIVE - `1.12.0-49` FULLSCREEN CONTROLS CANDIDATE (2026-08-13)
 
-The two blocking findings from the installed `1.12.0-47` smoke are repaired as
-one batch. HOME-1 replaces the stretched all-row button with a bounded,
-responsive season summary and a distinct action group: Open is the primary
-command, Delete is named and spatially separated, the misleading arrow is gone,
-and closed-season film state now says `Film status not checked`. VIDEO-1 removes
-two fullscreen-only costs without touching codecs, source files, or video
-quality: media ticks no longer diff the hidden transport/play strip while the
-canonical media node is fullscreen, and the transparent drawing canvas leaves
-the compositor while no tool or frame annotation needs it. Drawing activation
-and frame-accurate annotation visibility still restore the canvas immediately.
+The coach installed `1.12.0-48` and confirmed fullscreen playback is **smooth**,
+closing VIDEO-1 on the real WebView2/GPU path. That smoke exposed VIDEO-2:
+fullscreen contained only `#videoContainer`, while the native playback transport
+was its sibling, so no controls were available.
 
-Focused verification: native Team Hub **24/24** and native theater **29/29**.
-The canonical gate passed **85/85 harnesses, 0 skipped** on the repaired source.
-The four version owners are synchronized at `1.12.0-48`. The unsigned installer
-build completed successfully:
+`1.12.0-49` fullscreens a dedicated player surface containing the canonical
+video/canvas and the complete transport. Play/pause, frame step, previous/next
+clip, live time, scrub, loop, speed, drawing, camera-angle, and exit-fullscreen
+controls remain visible. Fullscreen media ticks update only the two time labels
+and scrubber imperatively; they do not ask Preact to diff the play strip, so the
+accepted `-48` smoothness optimization remains intact. The play strip and
+charting actions intentionally stay outside fullscreen.
 
-- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-48_x64-setup.exe`
-  - SHA-256: `4C5F7B596B1103F0989A911FE7E33A2B84F7F11FC8FAC5C65B5647670951F3F7`
-- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-48_x64_en-US.msi`
-  - SHA-256: `75709B965FF3BF2BCFBDEEF6FAC50ABD9F36E3A8CC155137DA5426E8870611F7`
+Focused verification: native theater **29/29**. The canonical gate passed
+**85/85 harnesses, 0 skipped**. Release ownership passed **17/17** and all four
+version owners are synchronized at `1.12.0-49`. Unsigned installers:
 
-HOME-1 is automated and visually bounded at desktop/mobile widths. VIDEO-1 still requires the
-coach's installed linked-film A/B because headless Chromium cannot certify
-perceptual smoothness on the coach's WebView2/GPU/display-scaling path. The
-acceptance check is embedded playback versus fullscreen at 1x, then
-pause/resume, seek, next play, exit, and re-enter fullscreen.
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-49_x64-setup.exe`
+  - SHA-256: `25FF27A854767103555DE4BA018F25FD0E74A10B3D721C3991D73E1DC0EAAC3E`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-49_x64_en-US.msi`
+  - SHA-256: `85A39B85611D94C5BFEEDC3E7BA55C4BB9281BACAAA888E0D794CD8046A8966F`
+
+Coach acceptance is one installed check: enter fullscreen and confirm the
+transport is visible and live, scrub and change speed, pause/resume, then exit;
+playback must remain as smooth as `-48`.
 
 No coach data, film files, tag schema, analytics, or storage behavior changed.
-The exact-match historical Play Call mapper remains the next product
-enhancement after this smoke batch is accepted.
+The exact-match historical Play Call mapper remains the next product enhancement
+after this smoke batch is accepted.
 ### ▶ CLAUDE'S REVIEW of `4b1effa` — ACCEPTED, 0 findings (2026-08-11)
 
 The first canonical gate found and drove three repairs before this landed

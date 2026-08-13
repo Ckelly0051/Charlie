@@ -14,6 +14,7 @@ export class BreakdownTheaterScreen {
     this.app = app;
     this.host = null;
     this.media = document.getElementById('videoContainer');
+    this.fullscreenTarget = null;
     this._native = null;
     this._listeners = new Set();
     this._mounted = false;
@@ -29,10 +30,19 @@ export class BreakdownTheaterScreen {
     ['video-loaded', 'video-unloaded', 'play-state-change']
       .forEach(event => this.app.vc?.on(event, () => this._publish()));
     this.app.vc?.on('time-update', () => {
-      // Fullscreen contains only the canonical media node. Re-rendering the
-      // hidden transport and every play card on each media tick wastes the
-      // same main/GPU time needed to present the enlarged video frame.
-      if (!(document.fullscreenElement || document.webkitFullscreenElement)) this._publish();
+      if ((document.fullscreenElement || document.webkitFullscreenElement) === this.fullscreenTarget) {
+        // Keep the visible fullscreen timer and scrubber live without asking
+        // Preact to diff the complete play strip on every media tick.
+        const duration = Number(this.app.vc?.duration) || 0;
+        const time = Number(this.app.vc?.currentTime) || 0;
+        this._native?.updatePlayback?.({
+          time,
+          duration,
+          progress: duration > 0 ? Math.max(0, Math.min(1, time / duration)) : 0,
+        });
+      } else {
+        this._publish();
+      }
     });
     ['play-created', 'play-updated', 'play-deleted', 'play-selected', 'plays-loaded']
       .forEach(event => this.app.tagger?.on(event, () => this._publish()));
@@ -51,6 +61,7 @@ export class BreakdownTheaterScreen {
     try {
       this.host = host;
       this._native = mountNativeBreakdownTheater({ host, screen: this });
+      this.fullscreenTarget = this._native.fullscreenTarget;
       this._native.mediaSlot.appendChild(this.media);
       this.media.classList.add('gi-native-video');
       this._mounted = true;
@@ -61,6 +72,7 @@ export class BreakdownTheaterScreen {
       this._returnMediaHome();
       this._native?.unmount?.();
       this._native = null;
+      this.fullscreenTarget = null;
       this.host = null;
       this._restoreLegacyVideo();
       throw error;
@@ -75,6 +87,7 @@ export class BreakdownTheaterScreen {
     this._returnMediaHome();
     this._native?.unmount?.();
     this._native = null;
+    this.fullscreenTarget = null;
     this.host = null;
     this._resizeMedia();
     this._restoreLegacyVideo();
@@ -115,7 +128,7 @@ export class BreakdownTheaterScreen {
     const current = tagger?.getCurrentPlay?.() || null;
     const duration = Number(vc?.duration) || 0;
     const time = Number(vc?.currentTime) || 0;
-    const fullscreen = (document.fullscreenElement || document.webkitFullscreenElement) === this.media;
+    const fullscreen = (document.fullscreenElement || document.webkitFullscreenElement) === this.fullscreenTarget;
     return {
       playing: !!vc && !vc.paused,
       time,
@@ -232,9 +245,10 @@ export class BreakdownTheaterScreen {
     if (active) {
       await (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
     } else {
-      const enter = this.media.requestFullscreen || this.media.webkitRequestFullscreen;
+      const target = this.fullscreenTarget;
+      const enter = target?.requestFullscreen || target?.webkitRequestFullscreen;
       if (!enter) { this.app.tagger?.toast?.("Full screen isn't supported here."); return false; }
-      await enter.call(this.media);
+      await enter.call(target);
     }
     this._resizeMedia();
     return true;

@@ -1,7 +1,12 @@
 .gi-breakdown-theater {
   width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden;
-  display: grid; grid-template-rows: minmax(280px, 1fr) auto auto auto auto;
+  display: grid; grid-template-rows: minmax(326px, 1fr) auto auto auto;
   background: var(--gi-film); color: var(--gi-12); font-family: var(--gi-sans); letter-spacing: 0;
+}
+.gi-theater-player {
+  min-width: 0; min-height: 0; overflow: hidden;
+  display: grid; grid-template-rows: minmax(280px, 1fr) auto;
+  background: var(--gi-film);
 }
 .gi-theater-stage {
   min-width: 0; min-height: 0; padding: var(--gi-2x); display: flex;
@@ -21,13 +26,20 @@
   width: 100%; height: 100%; object-fit: contain; image-rendering: auto;
   transform: none; filter: none;
 }
-#videoContainer.gi-native-video:fullscreen,
-#videoContainer.gi-native-video:-webkit-full-screen {
+.gi-theater-player:fullscreen,
+.gi-theater-player:-webkit-full-screen {
   position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
   margin: 0; padding: 0; border: 0; box-sizing: border-box; background: var(--gi-film);
+  display: grid; grid-template-rows: minmax(0, 1fr) auto;
 }
-#videoContainer.gi-native-video:fullscreen .angle-wrapper,
-#videoContainer.gi-native-video:-webkit-full-screen .angle-wrapper { min-width: 0; min-height: 0; }
+.gi-theater-player:fullscreen .gi-theater-stage,
+.gi-theater-player:-webkit-full-screen .gi-theater-stage { padding: 0; }
+.gi-theater-player:fullscreen #videoContainer.gi-native-video,
+.gi-theater-player:-webkit-full-screen #videoContainer.gi-native-video {
+  width: 100%; height: 100%; max-width: none; max-height: none; border: 0;
+}
+.gi-theater-player:fullscreen .angle-wrapper,
+.gi-theater-player:-webkit-full-screen .angle-wrapper { min-width: 0; min-height: 0; }
 .gi-theater-transport, .gi-theater-anglebar, .gi-theater-actions {
   min-width: 0; border-top: 1px solid var(--gi-6); background: var(--gi-1);
 }

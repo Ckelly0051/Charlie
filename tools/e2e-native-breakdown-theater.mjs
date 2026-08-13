@@ -142,7 +142,7 @@ const tablet = await geometryAt(768, 1024);
 if (shotDir) console.log('  QA    desktop geometry', JSON.stringify({ desktop, wide }));
 await page.setViewport({ width: 1920, height: 1080 });
 await page.click('[aria-label="Full screen"]');
-await page.waitForFunction(() => (document.fullscreenElement || document.webkitFullscreenElement)?.id === 'videoContainer');
+await page.waitForFunction(() => (document.fullscreenElement || document.webkitFullscreenElement)?.matches?.('[data-native-player-surface]'));
 state = await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
   window.app.canvas._syncSize();
   const media = document.getElementById('videoContainer').getBoundingClientRect();
@@ -150,7 +150,9 @@ state = await page.evaluate(() => new Promise(resolve => requestAnimationFrame((
   const canvas = document.getElementById('drawingCanvas');
   const drawing = canvas.getBoundingClientRect();
   resolve({
-    target: (document.fullscreenElement || document.webkitFullscreenElement)?.id,
+    target: (document.fullscreenElement || document.webkitFullscreenElement)?.matches?.('[data-native-player-surface]') || false,
+    transportInside: !!(document.fullscreenElement || document.webkitFullscreenElement)?.querySelector?.('.gi-theater-transport'),
+    transportVisible: document.querySelector('.gi-theater-transport').getBoundingClientRect().height > 0,
     media: [Math.round(media.width), Math.round(media.height)],
     canvasAligned: Math.abs(drawing.left - wrapper.left) <= 1
       && Math.abs(drawing.top - wrapper.top) <= 1
@@ -160,8 +162,8 @@ state = await page.evaluate(() => new Promise(resolve => requestAnimationFrame((
     expectedPixels: [Math.round(wrapper.width * devicePixelRatio), Math.round(wrapper.height * devicePixelRatio)],
   });
 })));
-ok(state.target === 'videoContainer' && state.media[0] === 1920 && state.media[1] === 1080,
-  'Full screen uses the canonical media node at the exact viewport pixel budget', JSON.stringify(state));
+ok(state.target && state.transportInside && state.transportVisible && state.media[0] === 1920 && state.media[1] < 1080,
+  'Full screen uses the complete player surface with visible transport and a viewport-width media stage', JSON.stringify(state));
 ok(state.canvasAligned && state.canvasPixels.join('x') === state.expectedPixels.join('x'),
   'Drawing canvas stays pixel-aligned after native reparent and full screen', JSON.stringify(state));
 state = await page.evaluate(() => {
@@ -170,6 +172,11 @@ state = await page.evaluate(() => {
   let publishes = 0;
   theater._publish = () => { publishes++; };
   for (let index = 0; index < 20; index++) window.app.vc._emit('time-update', { time: index / 10 });
+  const scrub = document.querySelector('.gi-theater-scrub');
+  window.app.vc.videoElement.currentTime = 7;
+  Object.defineProperty(window.app.vc.videoElement, 'duration', { configurable: true, value: 10 });
+  window.app.vc._emit('time-update', { time: 7 });
+  const transportLive = scrub.value === '0.7' && document.querySelectorAll('.gi-theater-time')[0].textContent === '0:07';
   const canvas = document.getElementById('drawingCanvas');
   const dormant = canvas.classList.contains('is-dormant') && getComputedStyle(canvas).visibility === 'hidden';
   window.app._selectTool('line');
@@ -177,10 +184,10 @@ state = await page.evaluate(() => {
   window.app._selectTool(null);
   const disarmed = canvas.classList.contains('is-dormant') && getComputedStyle(canvas).visibility === 'hidden';
   theater._publish = originalPublish;
-  return { publishes, dormant, armed, disarmed };
+  return { publishes, transportLive, dormant, armed, disarmed };
 });
-ok(state.publishes === 0,
-  'Fullscreen playback ticks do not re-render hidden transport and play-strip UI', JSON.stringify(state));
+ok(state.publishes === 0 && state.transportLive,
+  'Fullscreen playback ticks update the visible transport without re-rendering the play strip', JSON.stringify(state));
 ok(state.dormant && state.armed && state.disarmed,
   'Transparent drawing canvas leaves fullscreen composition until a drawing tool needs it', JSON.stringify(state));
 await page.evaluate(() => (document.exitFullscreen || document.webkitExitFullscreen)?.call(document));

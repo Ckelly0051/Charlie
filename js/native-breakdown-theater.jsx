@@ -92,10 +92,12 @@ function NativeBreakdownTheater({ screen }) {
     current?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
   }, [state.currentPlayId]);
   return <section class="gi-breakdown-theater" data-native-breakdown-theater aria-label="Film theater">
-    <div class="gi-theater-stage">
-      <div class="gi-theater-media-slot" data-native-media-slot />
+    <div class="gi-theater-player" data-native-player-surface>
+      <div class="gi-theater-stage">
+        <div class="gi-theater-media-slot" data-native-media-slot />
+      </div>
+      <Transport screen={screen} state={state} />
     </div>
-    <Transport screen={screen} state={state} />
     <AngleBar screen={screen} state={state} />
     <PlayStrip screen={screen} state={state} />
     <ChartActions screen={screen} state={state} />
@@ -107,6 +109,19 @@ export function mountNativeBreakdownTheater({ host, screen }) {
   if (!screen) throw new Error('Native Break Down theater requires a screen controller.');
   render(<NativeBreakdownTheater screen={screen} />, host);
   const mediaSlot = host.querySelector('[data-native-media-slot]');
+  const fullscreenTarget = host.querySelector('[data-native-player-surface]');
   if (!mediaSlot) throw new Error('Native Break Down theater media slot did not mount.');
-  return { mediaSlot, unmount() { render(null, host); } };
+  if (!fullscreenTarget) throw new Error('Native Break Down theater fullscreen surface did not mount.');
+  return {
+    mediaSlot,
+    fullscreenTarget,
+    updatePlayback({ time, duration, progress }) {
+      const times = fullscreenTarget.querySelectorAll('.gi-theater-time');
+      if (times[0]) times[0].textContent = screen.formatTime(time);
+      if (times[1]) times[1].textContent = screen.formatTime(duration);
+      const scrub = fullscreenTarget.querySelector('.gi-theater-scrub');
+      if (scrub) scrub.value = String(progress);
+    },
+    unmount() { render(null, host); },
+  };
 }

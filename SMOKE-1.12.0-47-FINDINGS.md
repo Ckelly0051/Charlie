@@ -2,10 +2,11 @@
 
 ## Status
 
-**REPAIRED IN `1.12.0-48`; INSTALLED VIDEO CONFIRMATION PENDING.** HOME-1 and
-VIDEO-1 were repaired together, the focused journeys pass, and the canonical
-gate is 85/85 green. HOME-1 is closed. VIDEO-1 remains open only for the
-coach's real-film WebView2/GPU smoke; no coach data change is authorized.
+**HOME-1 AND VIDEO-1 CLOSED; VIDEO-2 REPAIRED IN `1.12.0-49`.** The coach
+installed `1.12.0-48` and confirmed fullscreen playback is smooth. The same
+smoke exposed that fullscreen omitted the playback transport. `1.12.0-49`
+repairs that separate controls defect; installed confirmation is pending. No
+coach data change is authorized.
 ## HOME-1 - Season row composition is visually broken
 
 Observed on the installed `1.12.0-47` candidate on 2026-08-12.
@@ -90,10 +91,30 @@ geometry, and canvas alignment (29/29). The full gate is 85/85 green.
 **Installer:** `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-48_x64-setup.exe`
 (SHA-256 `4C5F7B596B1103F0989A911FE7E33A2B84F7F11FC8FAC5C65B5647670951F3F7`).
 
-**Final acceptance still required:** install `1.12.0-48` and compare the same
-linked clip embedded/fullscreen at 1x, including pause/resume, seek, next play,
-exit, and re-entry. This installed observation decides whether the WebView2/GPU
-judder is closed or whether frame-timing diagnostics are still needed.
+**Coach result:** `1.12.0-48` fullscreen playback is smooth on the installed
+WebView2/GPU path. VIDEO-1 is closed.
+## VIDEO-2 - Fullscreen omitted playback controls
+
+The `1.12.0-48` smoke found that fullscreen targeted only `#videoContainer`.
+After the native theater redesign, the playback transport is a sibling rather
+than a child of that node, so fullscreen film had no visible controls.
+
+### Repair result (`1.12.0-49`)
+
+Fullscreen now targets a dedicated player surface containing both the canonical
+media node and native transport. The complete playback controls remain visible.
+Media ticks update the live time and scrubber directly without rerendering the
+play strip, preserving the smoothness repair accepted in `1.12.0-48`.
+`e2e-native-breakdown-theater.mjs` proves player-surface ownership, visible
+transport, live scrub/time, zero fullscreen play-strip publishes, canvas
+alignment, and route restoration (29/29). Full gate: 85/85.
+
+**Installer:** `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-49_x64-setup.exe`
+(SHA-256 `25FF27A854767103555DE4BA018F25FD0E74A10B3D721C3991D73E1DC0EAAC3E`).
+
+**Coach acceptance:** verify visible controls, live time/scrub, seeking, speed,
+pause/resume, exit, and playback smoothness in fullscreen.
+
 ## Next Product Enhancement - Exact-match historical Play Call mapping
 
 After the current smoke batch is accepted, build a preview-first mapper that
