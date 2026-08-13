@@ -2,10 +2,10 @@
 
 ## Status
 
-**ACTIVE FINDINGS LOG.** Record installed-candidate feedback here and repair it
-in a deliberate batch. Do not ship an iterative installer for this single item.
-No coach data change is authorized by this document.
-
+**REPAIRED IN `1.12.0-48`; INSTALLED VIDEO CONFIRMATION PENDING.** HOME-1 and
+VIDEO-1 were repaired together, the focused journeys pass, and the canonical
+gate is 85/85 green. HOME-1 is closed. VIDEO-1 remains open only for the
+coach's real-film WebView2/GPU smoke; no coach data change is authorized.
 ## HOME-1 - Season row composition is visually broken
 
 Observed on the installed `1.12.0-47` candidate on 2026-08-12.
@@ -41,6 +41,14 @@ fragments rather than one selectable season.
 Coach screenshot: `codex-clipboard-c62c847d-3395-450a-b0ca-d98f5d7afcb5.png`.
 The screenshot is local evidence and is not required in git.
 
+### Repair result (`1.12.0-48`)
+
+The season library now uses a bounded 1120px maximum content row rather than
+stretching its fields to the workspace edge. Season identity, game/play counts,
+and explicit film state form one summary; Open and Delete are separate named
+buttons. The arrow and absolute-positioned delete control are gone. Desktop and
+mobile containment, visibility, action separation, accessible deletion, and
+closed-season status wording are pinned in `e2e-native-team-hub.mjs` (24/24).
 ## VIDEO-1 - Fullscreen playback stutters or judders
 
 Observed on the installed `1.12.0-47` candidate on 2026-08-12. The same film
@@ -68,6 +76,24 @@ source plays smoothly outside fullscreen.
   display scaling used by the coach.
 - Capture frame timing or long-task evidence before choosing an optimization;
   do not hide judder by lowering video quality.
+### Repair result (`1.12.0-48`)
+
+Fullscreen media ticks no longer publish Preact state for the hidden transport
+and complete play strip. The drawing canvas is `visibility:hidden` and removed
+from pointer/compositing work whenever no tool or current-frame annotation needs
+it; selecting a tool or entering an annotated frame restores it immediately.
+The canonical media node remains exact, aspect-correct, unfiltered, and
+untransformed. `e2e-native-breakdown-theater.mjs` pins zero fullscreen
+time-update publishes, dormant/armed canvas transitions, exact 1920x1080
+geometry, and canvas alignment (29/29). The full gate is 85/85 green.
+
+**Installer:** `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-48_x64-setup.exe`
+(SHA-256 `4C5F7B596B1103F0989A911FE7E33A2B84F7F11FC8FAC5C65B5647670951F3F7`).
+
+**Final acceptance still required:** install `1.12.0-48` and compare the same
+linked clip embedded/fullscreen at 1x, including pause/resume, seek, next play,
+exit, and re-entry. This installed observation decides whether the WebView2/GPU
+judder is closed or whether frame-timing diagnostics are still needed.
 ## Next Product Enhancement - Exact-match historical Play Call mapping
 
 After the current smoke batch is accepted, build a preview-first mapper that

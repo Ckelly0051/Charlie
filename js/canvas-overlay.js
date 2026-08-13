@@ -22,6 +22,7 @@ export class CanvasOverlay {
 
     this._resizeObserver = new ResizeObserver(() => this._syncSize());
     this._resizeObserver.observe(this.container);
+    this.canvas.classList.add('is-dormant');
 
     this.vc.on('video-loaded', () => {
       requestAnimationFrame(() => this._syncSize());
@@ -72,6 +73,18 @@ export class CanvasOverlay {
     this.canvas.height = Math.round(renderH * devicePixelRatio);
 
     this.render();
+  }
+
+  setTool(toolName) {
+    this.currentTool = toolName || null;
+    this.render();
+  }
+
+  _syncLayerState(hasVisible = this._hasVisiblePlaybackAnnotations) {
+    const dormant = !this.currentTool && !hasVisible;
+    this.canvas.classList.toggle('is-dormant', dormant);
+    this.canvas.setAttribute('aria-hidden', dormant ? 'true' : 'false');
+    return !dormant;
   }
 
   _bindDrawingEvents() {
@@ -311,6 +324,7 @@ export class CanvasOverlay {
 
     ctx.restore();
     this._hasVisiblePlaybackAnnotations = hasVisible;
+    this._syncLayerState(hasVisible);
   }
 
   /** Playback ticks are frequent and the canvas can be several million pixels

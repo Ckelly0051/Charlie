@@ -145,18 +145,21 @@ function FilmBadge({ film }) {
 function SeasonRow({ season, screen }) {
   const meta = [season.year, season.level, formatDate(season.lastOpened) && `opened ${formatDate(season.lastOpened)}`].filter(Boolean).join(' · ');
   return <article class={`gi-hub-season${season.current ? ' is-current' : ''}`} data-season-id={season.id}>
-    <button class="gi-hub-season-open" data-hub-open-season={season.id} onClick={() => screen.openSeason(season.id)}>
+    <div class="gi-hub-season-summary">
       <span class="gi-hub-season-state">{season.current ? 'Current' : season.isDemo ? 'Sample' : 'Season'}</span>
       <span class="gi-hub-season-main"><strong>{season.name}</strong><small>{meta || 'Season workspace'}</small></span>
-      <span class="gi-hub-count"><b>{season.gameCount}</b> games</span>
-      <span class="gi-hub-count"><b>{season.playCount}</b> plays</span>
+      <span class="gi-hub-season-counts">
+        <span class="gi-hub-count"><b>{season.gameCount}</b> games</span>
+        <span class="gi-hub-count"><b>{season.playCount}</b> plays</span>
+      </span>
       <FilmBadge film={season.film} />
-      <span class="gi-hub-open-label">{season.current ? 'Return to Home' : 'Open'} →</span>
-    </button>
-    <button class="gi-hub-delete" aria-label={`${season.isDemo ? 'Remove sample season' : 'Delete season'} ${season.name}`} onClick={event => screen.deleteSeason(season.id, event.currentTarget)}>×</button>
+    </div>
+    <div class="gi-hub-season-actions">
+      <button class="gi-hub-season-open" data-hub-open-season={season.id} onClick={() => screen.openSeason(season.id)}>{season.current ? 'Return to Home' : 'Open'}</button>
+      <button class="gi-hub-delete" aria-label={`${season.isDemo ? 'Remove sample season' : 'Delete season'} ${season.name}`} onClick={event => screen.deleteSeason(season.id, event.currentTarget)}>{season.isDemo ? 'Remove' : 'Delete'}</button>
+    </div>
   </article>;
 }
-
 function SetupProgress({ checklist, screen }) {
   if (!checklist?.visible) return null;
   return <section class="gi-hub-setup" aria-labelledby="giHubSetupTitle">

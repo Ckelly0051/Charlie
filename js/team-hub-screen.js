@@ -92,10 +92,10 @@ export class TeamHubScreen {
     const playCount = games ? games.reduce((sum, game) => sum + (game.plays?.length || 0), 0) : Number(meta.plays) || 0;
     // J6 — "Open to check film" described an app action and named film, when
     // the subject of the row is the season and this cell is a STATE. It also
-    // read as a second command competing with the real `Open →` button beside
+    // read as a second command competing with the real Open button beside
     // it. Film health for a closed season genuinely is not known until it is
     // opened, so the honest label says that rather than instructing.
-    let film = { state: 'checking', label: current ? 'Checking film' : 'Not checked yet', expected: 0, found: 0, missing: 0 };
+    let film = { state: 'checking', label: current ? 'Checking film status' : 'Film status not checked', expected: 0, found: 0, missing: 0 };
     if (games) film = await this._aggregateFilm(games);
     return {
       id: String(meta.id), name: meta.name || 'Untitled Season', year: meta.year || '', level: meta.level || '',
@@ -113,8 +113,8 @@ export class TeamHubScreen {
     if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing };
     if (health.some(item => item.state === 'unauthorized' || item.action === 'reconnect')) return { state: 'missing', label: 'Reconnect film', expected, found, missing };
     if (missing || health.some(item => item.state === 'missing')) return { state: 'partial', label: `${missing || Math.max(0, expected - found)} clips missing`, expected, found, missing };
-    if (health.every(item => item.ready)) return { state: 'ready', label: 'Film ready', expected, found: expected, missing: 0 };
-    return { state: 'checking', label: 'Checking film', expected, found, missing };
+    if (health.every(item => item.ready)) return { state: 'ready', label: 'Film linked', expected, found: expected, missing: 0 };
+    return { state: 'checking', label: 'Checking film status', expected, found, missing };
   }
 
   close() { return this.app.workspaceShell?.closeTeamHub?.(); }

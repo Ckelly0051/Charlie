@@ -211,6 +211,10 @@ body {
   pointer-events: auto;
   cursor: crosshair;
 }
+.video-container canvas.is-dormant {
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .video-placeholder {
   position: absolute;

@@ -75,7 +75,7 @@ import '../design-system/material.css';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-47';
+const APP_VERSION = '1.12.0-48';
 
 class App {
   constructor() {
@@ -962,7 +962,7 @@ class App {
   }
 
   _selectTool(toolName) {
-    this.canvas.currentTool = toolName;
+    this.canvas.setTool(toolName);
     document.querySelectorAll('.tool-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tool === toolName);
     });

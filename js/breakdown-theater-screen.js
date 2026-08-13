@@ -26,8 +26,14 @@ export class BreakdownTheaterScreen {
   }
 
   _bindDomainEvents() {
-    ['video-loaded', 'video-unloaded', 'time-update', 'play-state-change']
+    ['video-loaded', 'video-unloaded', 'play-state-change']
       .forEach(event => this.app.vc?.on(event, () => this._publish()));
+    this.app.vc?.on('time-update', () => {
+      // Fullscreen contains only the canonical media node. Re-rendering the
+      // hidden transport and every play card on each media tick wastes the
+      // same main/GPU time needed to present the enlarged video frame.
+      if (!(document.fullscreenElement || document.webkitFullscreenElement)) this._publish();
+    });
     ['play-created', 'play-updated', 'play-deleted', 'play-selected', 'plays-loaded']
       .forEach(event => this.app.tagger?.on(event, () => this._publish()));
     ['clip-switched'].forEach(event => this.app.playlist?.on(event, () => this._publish()));

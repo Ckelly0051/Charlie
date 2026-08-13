@@ -1,4 +1,6 @@
 /* S3 native Team Hub journey. Drives the actual route and BrowserBackend. */
+import fs from 'node:fs';
+import path from 'node:path';
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
 
@@ -10,6 +12,8 @@ const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 800 });
 const errors = [];
+const shotDir = process.env.GIQ_TEAM_HUB_SHOTS_DIR || '';
+if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
 page.on('pageerror', error => errors.push(error.stack || error.message));
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-team-hub]'));
@@ -71,6 +75,27 @@ r = await page.evaluate(() => ({
 }));
 ok(r.rows === 1 && /Current/.test(r.current) && /No film linked/.test(r.film) && !r.legacy && !r.outlet,
   'Current season is explicit with honest neutral film health and no legacy owner', JSON.stringify(r));
+r = await page.evaluate(() => {
+  const list = document.querySelector('.gi-hub-seasons').getBoundingClientRect();
+  const row = document.querySelector('.gi-hub-season').getBoundingClientRect();
+  const state = document.querySelector('.gi-hub-season-state').getBoundingClientRect();
+  const open = document.querySelector('.gi-hub-season-open');
+  const remove = document.querySelector('.gi-hub-delete');
+  const openRect = open.getBoundingClientRect();
+  const removeRect = remove.getBoundingClientRect();
+  return {
+    listWidth: Math.round(list.width), rowWidth: Math.round(row.width),
+    stateVisible: state.left >= 0 && state.right <= innerWidth && row.top >= 0 && row.bottom <= innerHeight,
+    openText: open.textContent.trim(), removeText: remove.textContent.trim(),
+    actionGap: Math.round(removeRect.left - openRect.right),
+    directionalCopy: /→/.test(document.querySelector('.gi-hub-season').textContent),
+  };
+});
+ok(r.listWidth <= 1120 && r.rowWidth === r.listWidth && r.stateVisible,
+  'Season rows stay compact and fully visible instead of stretching across the viewport', JSON.stringify(r));
+ok(r.openText === 'Return to Home' && r.removeText === 'Delete' && r.actionGap >= 8 && !r.directionalCopy,
+  'Open is a distinct primary action and Delete is separated without a misleading arrow', JSON.stringify(r));
+if (shotDir) await page.screenshot({ path: path.join(shotDir, 'team-hub-1280.png'), fullPage: true });
 
 await page.click('.gi-hub-add-team');
 await page.waitForSelector('[data-overlay-id="team-hub-add-team"]');
@@ -92,6 +117,8 @@ await page.click('[data-hub-team="mavericks"]');
 await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
 r = await page.evaluate(() => ({ rows: document.querySelectorAll('[data-season-id]').length, current: !!document.querySelector('[data-season-id].is-current') }));
 ok(r.rows === 1 && !r.current, 'Switching back shows only that team seasons without implicitly opening one', JSON.stringify(r));
+ok(await page.$eval('[data-season-id] .gi-hub-film', node => node.textContent.trim() === 'Film status not checked'),
+  'Closed-season film health names the subject instead of showing an ambiguous status');
 
 await page.click('[data-hub-open-season]');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
@@ -173,6 +200,7 @@ r = await page.evaluate(() => ({
 }));
 ok(!r.overflow && !r.small.length && r.route === 'team-hub',
   'Mobile Team Hub preserves complete touch access without page-level scrolling traps', JSON.stringify(r));
+if (shotDir) await page.screenshot({ path: path.join(shotDir, 'team-hub-390.png'), fullPage: true });
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

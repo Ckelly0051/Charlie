@@ -164,6 +164,25 @@ ok(state.target === 'videoContainer' && state.media[0] === 1920 && state.media[1
   'Full screen uses the canonical media node at the exact viewport pixel budget', JSON.stringify(state));
 ok(state.canvasAligned && state.canvasPixels.join('x') === state.expectedPixels.join('x'),
   'Drawing canvas stays pixel-aligned after native reparent and full screen', JSON.stringify(state));
+state = await page.evaluate(() => {
+  const theater = window.app.breakdownTheater;
+  const originalPublish = theater._publish;
+  let publishes = 0;
+  theater._publish = () => { publishes++; };
+  for (let index = 0; index < 20; index++) window.app.vc._emit('time-update', { time: index / 10 });
+  const canvas = document.getElementById('drawingCanvas');
+  const dormant = canvas.classList.contains('is-dormant') && getComputedStyle(canvas).visibility === 'hidden';
+  window.app._selectTool('line');
+  const armed = !canvas.classList.contains('is-dormant') && getComputedStyle(canvas).visibility === 'visible';
+  window.app._selectTool(null);
+  const disarmed = canvas.classList.contains('is-dormant') && getComputedStyle(canvas).visibility === 'hidden';
+  theater._publish = originalPublish;
+  return { publishes, dormant, armed, disarmed };
+});
+ok(state.publishes === 0,
+  'Fullscreen playback ticks do not re-render hidden transport and play-strip UI', JSON.stringify(state));
+ok(state.dormant && state.armed && state.disarmed,
+  'Transparent drawing canvas leaves fullscreen composition until a drawing tool needs it', JSON.stringify(state));
 await page.evaluate(() => (document.exitFullscreen || document.webkitExitFullscreen)?.call(document));
 await page.waitForFunction(() => !(document.fullscreenElement || document.webkitFullscreenElement));
 const mobile = await geometryAt(390, 844);
