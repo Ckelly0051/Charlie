@@ -1,3 +1,5 @@
+import { AnalyticsMetrics } from './analytics-metrics.js';
+
 /**
  * StudyQuery — the redesign's pure query executor over the accepted P0-c
  * AnalyticsRegistry. It groups a play set by ONE dimension, computes the
@@ -108,6 +110,63 @@ export class StudyQuery {
   _num(v) {
     const n = typeof v === 'number' ? v : parseFloat(v);
     return Number.isFinite(n) ? n : null;
+  }
+
+  /** Bound to the LIVE `registry.stats` StatsEngine instance (not a fake
+   *  object) -- this runs inside the running app, unlike the pure-Node
+   *  contract tests in tools/e2e-analytics-metrics.mjs, which bind the same
+   *  static/instance methods to `{}` since they never need a real DOM. */
+  _metricsEngine() {
+    const SE = this.stats.constructor;
+    return new AnalyticsMetrics({
+      isRun: SE.isRun, isPass: SE.isPass, hasResult: SE.hasResult,
+      isSuccessfulPlay: p => this.stats._isSuccessfulPlay(p),
+      buildCutFilter: (type, val) => this.stats._buildCutFilter(type, val),
+    });
+  }
+
+  /**
+   * runMetrics({ plays, dimension, metricIds, filters?, minSample?, context?, missingAsZero? })
+   *   -> { dimension, total, metricIds, minSample,
+   *        groups: [{ value, sampleSize, belowMinSample, matchingPlayIds,
+   *                   metrics: { [metricId]: <AnalyticsMetrics shared contract> } }],
+   *        warnings }
+   *
+   * ADDITIVE seam, not a replacement for `run()`. Grouping (dimension value
+   * membership, film-link parity via DIMENSION_CUT/_buildCutFilter, min-sample
+   * warnings) is byte-identical to `run()` -- this method reuses `_groupPlays`
+   * rather than re-deriving cohorts. The only difference is what each group's
+   * measures LOOK like: `run()` returns a flat `{name: number}` object;
+   * `runMetrics()` returns the full AnalyticsMetrics contract per metric
+   * (value/count/eligible/denominator/polarity/state/refs), which is what a
+   * future Study consumer needs to disclose an insufficient-sample or
+   * missing-data state honestly instead of rendering a bare number.
+   *
+   * `run()` and `compare()` are UNCHANGED by this addition -- per the bounded
+   * analytics-architecture-cleanup scope, Study's current screen is not
+   * redesigned to consume this yet.
+   */
+  runMetrics({ plays, dimension, metricIds = [], filters = [], minSample = 0, context = {}, missingAsZero = false } = {}) {
+    if (!Array.isArray(plays)) throw new TypeError('StudyQuery.runMetrics requires a plays array');
+    if (!this.registry.getDimension(dimension)) throw new Error(`Unknown Study dimension: ${dimension}`);
+    if (this.registry.getDimension(dimension).availability !== 'ready') {
+      throw new Error(`Study dimension requires context: ${dimension}`);
+    }
+    const metricsEngine = this._metricsEngine();
+    const cohort = this._cohort(plays, filters, context);
+    const values = this._distinct(cohort, dimension, context);
+    const warnings = [];
+    const groups = values.map(value => {
+      const groupPlays = this._groupPlays(cohort, dimension, value, context);
+      const sampleSize = groupPlays.length;
+      const belowMinSample = minSample > 0 && sampleSize < minSample;
+      if (belowMinSample) warnings.push(`${value}: sample ${sampleSize} below minimum ${minSample}`);
+      const matchingPlayIds = groupPlays.map(p => this.registry.playRef(p, context)).sort();
+      const groupMetrics = {};
+      for (const id of metricIds) groupMetrics[id] = metricsEngine.metric(groupPlays, id, context, { missingAsZero });
+      return { value, sampleSize, belowMinSample, matchingPlayIds, metrics: groupMetrics };
+    });
+    return { dimension, total: cohort.length, metricIds: metricIds.slice(), minSample, groups, warnings };
   }
 
   /**

@@ -120,6 +120,18 @@ const result = await page.evaluate((fixture) => {
   // parity), not registry membership. On this fixture both paths coincide, so pin
   // the mapping structurally — removing it must fail here.
   const DC = window.app.study.constructor.DIMENSION_CUT;
+
+  // runMetrics() — the additive AnalyticsMetrics seam (bounded analytics
+  // architecture cleanup). Grouping must be IDENTICAL to run() (same
+  // dimension/cut/parity machinery); only the per-group measure shape differs.
+  const richQ = study.runMetrics({ plays, dimension: 'formation', metricIds: ['stopRate', 'yardsPerPlay'] });
+  const richFormationQ = study.run({ plays, dimension: 'formation', measures: ['sampleSize'] });
+  const richTrips = richQ.groups.find(g => g.value === 'Trips');
+  const richMissingAsZero = study.runMetrics({ plays, dimension: 'formation', metricIds: ['yardsPerPlay'] });
+  const richMissingAsZeroOn = study.runMetrics({ plays, dimension: 'formation', metricIds: ['yardsPerPlay'], missingAsZero: true });
+  const richTripsHonest = richMissingAsZero.groups.find(g => g.value === 'Trips')?.metrics.yardsPerPlay;
+  const richTripsLegacy = richMissingAsZeroOn.groups.find(g => g.value === 'Trips')?.metrics.yardsPerPlay;
+
   return {
     grouped, playCount: plays.length,
     dimCut: { qbAlignment: DC.qbAlignment, coverageFamily: DC.coverageFamily },
@@ -135,6 +147,13 @@ const result = await page.evaluate((fixture) => {
     minWarn: minQ.warnings, wildBelow: wild?.belowMinSample, wildSample: wild?.sampleSize,
     resultTdIds: tdGroup?.matchingPlayIds || null,
     unknownThrows, deferredThrows,
+    richGroups: richQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize, matchingPlayIds: g.matchingPlayIds })),
+    richFormationGroups: richFormationQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize, matchingPlayIds: g.matchingPlayIds })),
+    richTrips: richTrips ? {
+      stopRate: richTrips.metrics.stopRate, yardsPerPlay: richTrips.metrics.yardsPerPlay,
+      matchingPlayIds: richTrips.matchingPlayIds,
+    } : null,
+    richTripsHonest, richTripsLegacy,
   };
 }, syntheticEdge());
 
@@ -224,6 +243,19 @@ if (!result.missing) {
   // A formation present only in game 2 shows an empty base side + a negative sampleDelta.
   ok(result.cmpFlexbone.aSample === 0 && result.cmpFlexbone.aIds.length === 0 && result.cmpFlexbone.sampleDelta < 0 && JSON.stringify(result.cmpFlexbone.bIds) === JSON.stringify(golden.season.drill['formation::Flexbone']), 'compare aligns a value missing from one cohort (Flexbone: base empty, against present)', JSON.stringify(result.cmpFlexbone));
   ok(result.compareBadArgsThrows, 'compare() with a non-array cohort fails loudly');
+
+  // 5. runMetrics() — additive AnalyticsMetrics seam, grouping parity with run().
+  ok(JSON.stringify(result.richGroups) === JSON.stringify(result.richFormationGroups),
+    'runMetrics() groups identically to run() for the same dimension (same values, sampleSize, matchingPlayIds)',
+    JSON.stringify({ rich: result.richGroups, run: result.richFormationGroups }));
+  ok(!!result.richTrips && result.richTrips.stopRate.polarity === 'higher' && result.richTrips.yardsPerPlay.polarity === 'lower',
+    'runMetrics() results carry each metric\'s own polarity', JSON.stringify(result.richTrips));
+  ok(!!result.richTrips && JSON.stringify(result.richTrips.stopRate.refs) === JSON.stringify(result.richTrips.matchingPlayIds),
+    'runMetrics() metric refs equal the group\'s matchingPlayIds (same composite-ref contract as run())',
+    JSON.stringify(result.richTrips));
+  ok(!!result.richTripsHonest && !!result.richTripsLegacy && result.richTripsHonest.denominator <= result.richTripsLegacy.denominator,
+    'runMetrics({missingAsZero}) is a real, wired option — honest exclusion never has a LARGER denominator than the legacy full-cohort mode',
+    JSON.stringify({ honest: result.richTripsHonest, legacy: result.richTripsLegacy }));
 }
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));

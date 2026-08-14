@@ -8,6 +8,7 @@ import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
+import { AnalyticsMetrics } from './analytics-metrics.js';
 import { gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
@@ -966,29 +967,33 @@ export class StatsEngine {
    */
   defensivePerformance(plays, gameLabels = {}) {
     const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
-    const refFor = p => p?.__gid != null && p?.id != null ? `${p.__gid}::${p.id}` : null;
-    const refsFor = cohort => [...new Set(cohort.map(refFor).filter(Boolean))];
     const yards = p => parseInt(p.tags.yardage, 10) || 0;
-    const isExplosive = p => StatsEngine.isRun(p) ? yards(p) >= 12
-      : StatsEngine.isPass(p) ? yards(p) >= 16 : yards(p) >= 16;
-    const isHavoc = p => StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception')
-      || StatsEngine.hasResult(p, 'Fumble')
-      || (yards(p) < 0 && !StatsEngine.hasResult(p, 'Penalty')
-        && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike'));
+    // Cohort filtering + rate calculation for stopRate/explosiveRate/havocRate/
+    // yardsPerPlay now go through the shared AnalyticsMetrics seam (the pure
+    // module Study's expansion will also build on) instead of being hand-rolled
+    // here a second time. `missingAsZero: true` on yardsPerPlay preserves this
+    // report's exact historical formula (a play with no tagged yardage counted
+    // as 0 yards, not excluded) -- see analytics-metrics.js's docblock for why
+    // that stays an explicit opt-in rather than the new module's honest default.
+    const metrics = new AnalyticsMetrics({
+      isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult,
+      isSuccessfulPlay: p => this._isSuccessfulPlay(p),
+    });
     const summarize = (name, cohort) => {
       const n = cohort.length;
-      const stops = cohort.filter(p => !this._isSuccessfulPlay(p)).length;
-      const explosives = cohort.filter(isExplosive).length;
-      const havoc = cohort.filter(isHavoc).length;
+      const stopRate = metrics.metric(cohort, 'stopRate');
+      const explosive = metrics.metric(cohort, 'explosiveRate');
+      const havoc = metrics.metric(cohort, 'havocRate');
+      const ypp = metrics.metric(cohort, 'yardsPerPlay', {}, { missingAsZero: true });
       const touchdowns = cohort.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length;
       return {
-        name, n, stops, explosives, havoc, touchdowns,
+        name, n, stops: stopRate.count, explosives: explosive.count, havoc: havoc.count, touchdowns,
         sharePct: source.length ? +(n / source.length * 100).toFixed(1) : 0,
-        stopRate: n ? +(stops / n * 100).toFixed(1) : 0,
-        yardsPerPlay: n ? +(cohort.reduce((sum, p) => sum + yards(p), 0) / n).toFixed(1) : 0,
-        explosiveRate: n ? +(explosives / n * 100).toFixed(1) : 0,
-        havocRate: n ? +(havoc / n * 100).toFixed(1) : 0,
-        refs: refsFor(cohort),
+        stopRate: stopRate.value ?? 0,
+        yardsPerPlay: ypp.value ?? 0,
+        explosiveRate: explosive.value ?? 0,
+        havocRate: havoc.value ?? 0,
+        refs: stopRate.refs,
       };
     };
 

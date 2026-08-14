@@ -14,6 +14,192 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — bounded analytics architecture cleanup; AWAITING CODEX REVIEW (2026-08-14)
+
+**Builder: Claude. Baseline: `022d064`. Scope: bounded per the coach's explicit
+requirements — a seam for Study's future expansion, not a stats-engine.js
+rewrite, not a Study redesign.** No installer, no Study UI change, no
+unrelated renderer/export/Self-Scout code touched.
+
+**New module: `js/analytics-metrics.js` (`AnalyticsMetrics`), pure and
+DOM-free — genuinely Node-testable with no browser, no `document`, no
+StatsEngine instantiation.** It extracts the canonical cohort-filtering +
+metric-calculation pattern that was duplicated inline in `defensivePerformance`'s
+Best-Calls builder, so a future consumer (Study, and any future Reports work)
+computes a rate exactly once and gets back one typed result instead of
+re-deriving a cohort or a formula by hand.
+
+**The shared result contract**, returned by `AnalyticsMetrics.metric(cohort,
+metricId, context, options)`:
+```js
+{
+  id, value, count, eligible, denominator,   // value: number|null; count = raw
+  polarity, state, refs,                      // numerator; state: 'ok'|'unavailable'
+}
+```
+`polarity` is `'higher'` or `'lower'` (which direction is better) and is a
+property of the metric definition, never guessed by a caller. `refs` are
+sorted, deduped composite `gameId::playId` strings — the same three-line
+convention `AnalyticsRegistry.playRef` and the old `defensivePerformance`
+closures already used (deliberately not imported from the registry, to keep
+this module free of a StatsEngine-instance dependency; the duplication is
+covered by a dedicated cross-game-duplicate-id regression so the two sites
+can't silently drift apart).
+
+**`eligible` vs `denominator` is the mechanism that satisfies both "preserve
+existing behavior" and "give Study honest denominators."** Every metric here
+except `yardsPerPlay` is a boolean per-play classification with no missing-data
+ambiguity, so `eligible === denominator` always. `yardsPerPlay` is the one
+metric with real missing-data semantics: a play with no tagged yardage has
+nothing to average in. The **default** (`missingAsZero: false`) excludes such
+plays from both `eligible` and `denominator` — the honest behavior a future
+Study consumer needs to disclose an insufficient-sample state rather than
+silently averaging in a fabricated zero. `defensivePerformance`'s historical
+formula treated a missing yardage tag as 0 and folded it into the average
+anyway; that exact legacy formula is preserved via `missingAsZero: true`
+(`eligible` still reports the true count either way — the gap is never hidden,
+only which divisor is *used* changes).
+
+**Six metrics defined:** `stopRate`/`successRate`/`havocRate` (higher is
+better), `explosiveRate`/`negativeRate`/`yardsPerPlay` (lower is better, framed
+defensively for the first two). `cohortByCut(plays, cutType, cutValue)`
+delegates to a caller-supplied `_buildCutFilter`-shaped predicate factory —
+it does not reimplement multi-value overlap matching (Formation `"Ace +
+Trips"` etc.), it reuses the existing one, so a play tagged with two values
+still appears in both single-value cohorts exactly as every existing Reports/
+Study consumer already expects.
+
+**`defensivePerformance()` in `js/stats-engine.js` now delegates to
+`AnalyticsMetrics` for its Best-Calls rate calculations** (`stopRate`,
+`explosiveRate`, `havocRate`, `yardsPerPlay` with `missingAsZero: true`)
+instead of hand-rolling them a second time next to the cohort-filtering code
+that already existed for `playTypeCohorts`/`playTypes`. The function's flat
+return shape (`name, n, stops, explosives, havoc, touchdowns, sharePct,
+stopRate, yardsPerPlay, explosiveRate, havocRate, refs`) is byte-identical to
+before — verified by `tools/e2e-native-reports.mjs` staying 76/76 with no
+assertion changed, and by `tools/e2e-parity.mjs` staying 2/2 (the defensive
+Best-Calls path was never part of the parity-golden snapshot, and this
+confirms the refactor changed no observable output either way).
+
+**Additive Study seam: `StudyQuery.runMetrics(...)` in `js/study-query.js`.**
+Groups a play set by dimension using the exact same machinery `run()` already
+uses (`_cohort`, `_distinct`, `_groupPlays` — including the `DIMENSION_CUT`
+film-link-parity routing), but returns each group's measures as the full
+`AnalyticsMetrics` contract instead of `run()`'s flat `{name: number}` shape.
+**`run()` and `compare()` are byte-unchanged** — `runMetrics` is a new method,
+not a modification, and nothing in the Study screen calls it yet. This is
+deliberately just the seam: the redesign work that would consume it (per-cell
+insufficient-sample/unavailable disclosure, polarity-aware coloring) is
+explicitly out of this task's scope (requirement #5, "do not redesign Study
+yet").
+
+**Files changed:**
+- `js/analytics-metrics.js` — new, pure, DOM-free.
+- `js/stats-engine.js` — `defensivePerformance()`'s Best-Calls rate
+  calculations delegate to `AnalyticsMetrics`; one new import.
+- `js/study-query.js` — additive `runMetrics()` method + one new import;
+  `run()`/`compare()` unchanged.
+- `build.sh` — `js/analytics-metrics.js` added to the legacy single-file
+  bundle's file list (before `stats-engine.js`/`study-query.js`, which import
+  it). Note: this reference bundle is not the canonical test/build path since
+  the P0 Vite migration — `tools/app-entry.mjs` serves `dist/` (via `npm run
+  build`) for every harness — but it's kept in sync since `build.sh` remains a
+  tracked artifact pending its S7 retirement.
+- `tools/e2e-analytics-metrics.mjs` — new, pure Node, no browser. 14
+  assertions covering all 5 required properties: denominator correctness
+  (honest exclusion vs. legacy `missingAsZero`), overlapping multi-value
+  dimensions (a play tagged "Ace + Trips" appears in both single-formation
+  cohorts, and isn't double-counted within one cohort), metric polarity
+  (higher/lower correctly labeled per metric, not a hardcoded default),
+  missing/insufficient data (empty cohort and all-missing-yardage cohort both
+  report `state:'unavailable'`, `value:null` — never a fabricated zero),
+  and exact cross-game film references (two games sharing a bare play id
+  resolve to distinct composite refs; a malformed play is silently excluded
+  from refs without throwing, matching `defensivePerformance`'s original
+  behavior; a direct `compositeRef()` call throws instead, matching
+  `AnalyticsRegistry.playRef`'s fail-loud contract).
+- `tools/e2e-study-query.mjs` — extended (37→41 assertions) with a `runMetrics`
+  section: grouping parity with `run()` (byte-identical values/sampleSize/
+  matchingPlayIds for the same dimension), polarity present per metric, `refs`
+  equal to `matchingPlayIds` (same composite-ref contract as `run()`), and
+  `missingAsZero` genuinely changes the divisor (not a dead option).
+
+**Verification:**
+- `node tools/e2e-analytics-metrics.mjs` — **14/14**, pure Node.
+- `node tools/e2e-study-query.mjs` — **41/41** (was 37/37; +4 new, 0 changed/
+  removed — `run()`/`compare()`'s existing assertions are untouched and still
+  pass verbatim).
+- `node tools/e2e-native-reports.mjs` — **76/76**, unchanged assertion count —
+  confirms the `defensivePerformance` delegation is behaviorally transparent.
+- `node tools/e2e-parity.mjs` — **2/2** (3 scopes/189 drilldowns synthetic + 7
+  scopes/625 drilldowns real six-game), unchanged — confirms no analytics
+  output moved.
+- Full canonical gate (`bash tools/run-gate.sh`): **86 harnesses | 86 green |
+  0 skipped | 0 failed** — was 85 at the `022d064` baseline; +1 is exactly the
+  new `e2e-analytics-metrics.mjs` harness, zero drops elsewhere.
+- **Mutation-verified**, both on the highest-risk new logic (own new code, not
+  delegated/reused): (1) breaking `yardsPerPlay`'s `missingAsZero` branch
+  (forcing `denominator = cohort.length` unconditionally) reds exactly the two
+  denominator-correctness tests in `e2e-analytics-metrics.mjs`, restored →
+  green; (2) removing the silent-skip guard in the internal `refsFor` helper
+  (letting a malformed play produce `"undefined::5"`) reds exactly the one
+  ref-exclusion test with that literal string as evidence, restored → green;
+  (3) breaking `runMetrics`'s reuse of `_groupPlays` (substituting the whole
+  cohort for the grouped subset) reds exactly the grouping-parity assertion in
+  `e2e-study-query.mjs` with a full before/after diff as evidence, restored →
+  green.
+
+**Known limitations, disclosed rather than left implicit:**
+1. **Only six metrics are defined**, covering exactly what `defensivePerformance`
+   needed (stopRate/successRate/explosiveRate/havocRate/negativeRate/
+   yardsPerPlay). This is not a port of every StatsEngine formula —
+   `_efficiencyStats`, `_tendencyStats`, EPA, and every other analytics block
+   remain exactly where they were, untouched, per requirement #6.
+2. **`runMetrics()` has no consumer yet.** It is proven correct and
+   parity-matched against `run()`, but nothing in the Study screen calls it.
+   Wiring it into an actual Study UI surface (per-cell unavailable-state
+   disclosure, polarity-aware presentation) is explicitly the next task, not
+   this one.
+3. **`cohortByCut`/`runMetrics`'s cut-filter reuse is only exercised through
+   `_buildCutFilter` cut types that don't touch `this` inside StatsEngine**
+   (`formation`, `playType`, etc., verified by reading `_buildCutFilter`'s body
+   before relying on it) **in the pure-Node test file** — the pure-Node harness
+   binds `_buildCutFilter`/`_isSuccessfulPlay` to a bare `{}` rather than a real
+   StatsEngine instance, which would break on a cut type needing
+   `this._situationPred`/`this._absYardLine` (e.g. `dd`/`comboFD`). The
+   browser-level `runMetrics` test in `e2e-study-query.mjs` (which binds to the
+   real live `registry.stats` instance) does not have this limitation and is
+   the one that matters for the actual app, but it's worth flagging for review:
+   a future pure-Node test exercising a `this`-dependent cut type needs a real
+   fake-engine object, not `{}`.
+4. **Deliberate asymmetry in the composite-ref contract**, worth Codex's
+   specific attention: the exported `compositeRef()` function throws on an
+   unresolvable gameId/id (matching `AnalyticsRegistry.playRef`'s fail-loud
+   contract, for direct external callers); the internal `refsFor()` helper used
+   by `metric()` silently skips such a play instead (matching
+   `defensivePerformance`'s original closure, which never let one malformed
+   play fail an entire report). Both behaviors are intentional and tested, but
+   a reviewer should confirm this split is the right call rather than
+   accidental inconsistency.
+5. **No Reports renderer other than `defensivePerformance` was touched.**
+   Requirement #6 explicitly excluded splitting other report renderers,
+   exports, or Self-Scout code — this checkpoint does not claim they were
+   reviewed or are consistent with the new contract, only that they are
+   unchanged.
+
+**Codex review handoff:** review `js/analytics-metrics.js` for the contract
+shape and the `missingAsZero`/`eligible` vs `denominator` semantics first —
+that's the highest-leverage new code, reused by both Reports and (eventually)
+Study. Then verify `defensivePerformance`'s delegation is truly
+behavior-preserving (the parity/native-reports counts above are the evidence,
+but tracing the diff directly is worth doing given this is a report a coach
+reads every week). Then the `StudyQuery.runMetrics` addition — confirm it is
+genuinely additive (grep confirms `run`/`compare` bodies are unmodified) and
+that grouping reuse is real, not just structurally similar. The four "known
+limitations" above are exactly where to focus; nothing else in this checkpoint
+is claimed beyond what's stated. No installer was built and no Study UI was
+changed — both are explicitly out of scope for this checkpoint.
+
 ### FIXED - full code check (2026-08-13)
 
 A thorough code check ("check for bugs and inefficiencies") of the current
