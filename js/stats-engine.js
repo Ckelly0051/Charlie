@@ -996,10 +996,13 @@ export class StatsEngine {
     const pass = source.filter(StatsEngine.isPass);
     const detailOrder = ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass',
       'Deep Pass', 'RPO', 'Play Action', 'Trick Play'];
-    const detail = detailOrder.map(name => summarize(name,
-      source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))))
-      .filter(row => row.n > 0);
-    const playTypes = [summarize('All Runs', run), summarize('All Passes', pass), ...detail]
+    // Build each play-type cohort exactly once. `playTypes` and `answers`
+    // both need "the plays for this play type" -- previously `answers`
+    // re-derived it with a second full pass over `source` per type instead
+    // of reusing the cohort already filtered here.
+    const playTypeCohorts = [['All Runs', run], ['All Passes', pass],
+      ...detailOrder.map(name => [name, source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))])];
+    const playTypes = playTypeCohorts.map(([name, cohort]) => summarize(name, cohort))
       .filter(row => row.n > 0);
 
     const grouped = (cohort, keyFn) => {
@@ -1023,17 +1026,12 @@ export class StatsEngine {
       return candidates.sort((a, b) => b.stopRate - a.stopRate
         || a.yardsPerPlay - b.yardsPerPlay || b.n - a.n)[0] || null;
     };
-    const answers = playTypes.map(type => {
-      const cohort = source.filter(p => type.name === 'All Runs' ? StatsEngine.isRun(p)
-        : type.name === 'All Passes' ? StatsEngine.isPass(p)
-          : StatsEngine.splitPlayTypes(p.tags.playType).includes(type.name));
-      return {
-        playType: type.name, n: cohort.length,
-        front: bestAnswer(cohort, ps => grouped(ps, p => StatsEngine.splitFronts(p.tags.defFront))),
-        coverage: bestAnswer(cohort, ps => grouped(ps, p => StatsEngine.proj(p).coverage || '')),
-        pressure: bestAnswer(cohort, ps => grouped(ps, p => p.tags.blitz ? 'Blitz' : 'No Blitz')),
-      };
-    }).filter(row => row.front || row.coverage || row.pressure);
+    const answers = playTypeCohorts.filter(([, cohort]) => cohort.length > 0).map(([name, cohort]) => ({
+      playType: name, n: cohort.length,
+      front: bestAnswer(cohort, ps => grouped(ps, p => StatsEngine.splitFronts(p.tags.defFront))),
+      coverage: bestAnswer(cohort, ps => grouped(ps, p => StatsEngine.proj(p).coverage || '')),
+      pressure: bestAnswer(cohort, ps => grouped(ps, p => p.tags.blitz ? 'Blitz' : 'No Blitz')),
+    })).filter(row => row.front || row.coverage || row.pressure);
 
     const byGame = grouped(source, p => String(p.__gid ?? 'current')).map(([gid, cohort]) => ({
       ...summarize(gameLabels[gid] || gid, cohort), gameId: gid,

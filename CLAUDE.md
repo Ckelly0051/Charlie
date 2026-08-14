@@ -13,6 +13,47 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+
+### FIXED - full code check (2026-08-13)
+
+A thorough code check ("check for bugs and inefficiencies") of the current
+build found one correctness bug and two efficiency issues, all in the Reports
+Defense path. All three fixed and verified against source, not just read.
+
+- **Bug** — `ReportsScreen._defenseHtml()` (`reports-screen.js`): when no
+  self-perspective defensive play exists anywhere in the season, the fallback
+  used the active game's live plays unconditionally, without checking that
+  game's own `perspective`. A season whose only charted film so far is an
+  opponent-scout game would have its scouted fronts/coverages rendered under
+  "Current game" as if they were the coach's own defense — the exact silent
+  perspective flip this codebase has repeated standing policy against. Fixed:
+  the fallback now only fires when the active game itself is not
+  `perspective:'scout'`; otherwise the report correctly falls through to the
+  honest "No defensive data tagged yet" empty state. New permanent regression
+  (`e2e-native-reports.mjs` "F14"), mutation-verified: reverting the guard
+  reproduces the exact mislabeling (`sawCurrentGameLabel:true,
+  sawScoutFront:true, sawEmptyState:false`).
+- **Efficiency** — `ReportsScreen._renderActiveTab()`: ran a full unscoped
+  `statsEngine.compute()` (the whole multi-pass rushing/passing/scoring/
+  downs/turnovers/tendencies/bigPlays/individuals/drives/situational/
+  efficiency/personnel/EPA/defensive engine) unconditionally on every tab
+  switch, including Defense, Self-Scout, Season, and Matchup — none of which
+  read the result (`_bindContent(root)` takes one parameter; the `stats`
+  argument passed to it everywhere was dead, confirmed by reading the
+  function). `compute()` now only runs for the four tabs that actually
+  consume it (overview/offense/special/players).
+- **Efficiency** — `StatsEngine.defensivePerformance()`: the Best-Calls
+  builder re-filtered `source` from scratch per play type to rebuild a
+  cohort that had already been built moments earlier while constructing
+  `playTypes`. Both now derive from one `playTypeCohorts` list built once.
+  Pure refactor, no formula change — confirmed via the full parity gate.
+
+**Verification:** `e2e-native-reports` 76/76 (was 75; +1 new regression).
+Full canonical gate re-run clean: **85 harnesses | 85 green | 0 skipped | 0
+failed**, same harness count as the prior baseline, zero drops — including
+analytics parity, confirming the `defensivePerformance` reordering changed
+no output. No schema, season byte, film path, or unrelated behavior changed.
+
 ### ACTIVE - `1.12.0-52` REPORT TOP/HEADER REPAIR (2026-08-13)
 
 Defense report table headers no longer inherit the route-tab sticky offset, so

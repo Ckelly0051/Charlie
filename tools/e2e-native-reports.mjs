@@ -1136,6 +1136,40 @@ ok(result.gameDotFound && JSON.stringify(result.gameMouseA?.refs) === JSON.strin
   'Game-scope dot (bare id, no game separator) resolves through the active game only, to the same exact play the season view names gA::5',
   JSON.stringify(result.gameMouseA));
 
+console.log('\n== F14. The Defense report never mislabels opponent-scout film as the coach\'s own defense ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: 'Scout-Only Defense QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
+  const play = (id, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  // The ONLY charted game is opponent-scout perspective -- there is no
+  // self-perspective defensive data anywhere in the season.
+  app.storage.seasonStore.data.games = [{
+    id: 'g-scout', name: 'Wildcats vs Knights (scout)', nextId: 3,
+    gameInfo: { opponent: 'Wildcats', perspective: 'scout' },
+    plays: [
+      play(1, { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '3', down: '1', distance: '10' }),
+      play(2, { defFront: '3-3-5', coverage: 'Cover 1', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '6', down: '2', distance: '7' }),
+    ],
+  }];
+  app.storage.seasonStore.data.activeGameId = 'g-scout';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+  app.reportsScreen.selectTab('defense');
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const pane = document.querySelector('[data-pane="defense"]');
+  return {
+    sawCurrentGameLabel: !!pane && /Current game/i.test(pane.textContent || ''),
+    sawEmptyState: !!pane?.querySelector('.def-empty'),
+    sawScoutFront: !!pane && /4-2-5/.test(pane.textContent || ''),
+  };
+});
+ok(!result.sawCurrentGameLabel && !result.sawScoutFront && result.sawEmptyState,
+  "A season with only opponent-scout film shows the honest empty state, never the scout game's fronts mislabeled as \"Current game\"",
+  JSON.stringify(result));
+
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (fail) process.exit(1);

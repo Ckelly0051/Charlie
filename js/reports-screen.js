@@ -267,11 +267,21 @@ export class ReportsScreen {
       return;
     }
     const statsEngine = this.app.stats;
-    const stats = statsEngine.compute();
     const tab = this.activeTab;
+    // compute() is a full unscoped multi-pass season/game analysis (rushing/
+    // passing/scoring/downs/turnovers/tendencies/bigPlays/individuals/drives/
+    // situational/efficiency/personnel/EPA/defensive). Only the four tabs
+    // below actually read its result -- season/matchup build their own
+    // content with no args, and defense/selfscout build their own scoped
+    // computations. `_bindContent(root)` takes one parameter (confirmed by
+    // reading it: it locally shadows `stats` with `this.app.stats`), so the
+    // second argument passed to it everywhere was always inert. Skipping the
+    // compute() call for the tabs that don't need it avoids paying for the
+    // whole engine on every Defense/Self-Scout/Season/Matchup render.
+    const stats = ['overview', 'offense', 'special', 'players'].includes(tab) ? statsEngine.compute() : null;
     if (tab === 'season') {
       this.content.innerHTML = `<section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane="season">${this.app.season?.statsHtml?.() || '<div class="stats-section"><p>Season stats unavailable — open a season first.</p></div>'}</section>`;
-      this._bindContent(this.content, stats);
+      this._bindContent(this.content);
       return;
     }
     if (tab === 'matchup') {
@@ -279,7 +289,7 @@ export class ReportsScreen {
       const pane = this.content.querySelector('[data-pane="matchup"]');
       try { statsEngine._renderMatchupInto(pane); }
       catch { pane.innerHTML = '<div class="stats-section"><p>Matchup unavailable for this game.</p></div>'; }
-      this._bindContent(this.content, stats);
+      this._bindContent(this.content);
       return;
     }
 
@@ -296,7 +306,7 @@ export class ReportsScreen {
       html = statsEngine._renderSelfScoutBody(report, defScout);
     }
     this.content.innerHTML = `<section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane="${tab}">${html}</section>`;
-    this._bindContent(this.content, stats);
+    this._bindContent(this.content);
   }
 
   _renderOpponentTab() {
@@ -558,13 +568,22 @@ export class ReportsScreen {
     const labels = Object.fromEntries(selfGames.map(game => [String(game.id), game.name || `Game ${game.id}`]));
     let plays = (this.app.season?._allPlays?.() || []).filter(play => allowed.has(String(play.__gid)));
     if (!plays.length) {
+      // Only fall back to the live tagger when the ACTIVE game is itself
+      // self-perspective. Without this check, a coach whose only charted
+      // film so far is an opponent-scout game would see that opponent's
+      // defensive tags rendered under "Current game" as if it were their
+      // own defense -- the exact silent perspective flip this report
+      // otherwise guards against via `selfGames`/`allowed` above.
       const gid = String(store?.data?.activeGameId || 'current');
-      plays = (this.app.tagger?.plays || []).map(play => {
-        const copy = { ...play, tags: play.tags };
-        Object.defineProperty(copy, '__gid', { value: gid, enumerable: false });
-        return copy;
-      });
-      labels[gid] = this.app.workspace?.snapshot?.()?.game?.name || 'Current game';
+      const activeGame = games.find(game => String(game.id) === gid);
+      if (activeGame && activeGame.gameInfo?.perspective !== 'scout') {
+        plays = (this.app.tagger?.plays || []).map(play => {
+          const copy = { ...play, tags: play.tags };
+          Object.defineProperty(copy, '__gid', { value: gid, enumerable: false });
+          return copy;
+        });
+        labels[gid] = this.app.workspace?.snapshot?.()?.game?.name || 'Current game';
+      }
     }
     const activeId = String(store?.data?.activeGameId || 'current');
     const scoped = this.defenseScope === 'game'
