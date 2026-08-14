@@ -14,6 +14,150 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the analytics architecture cleanup — AWAITING RE-REVIEW (2026-08-14)
+
+**Builder: Claude. Repairs all five findings from Codex's CHANGES REQUESTED
+review of `b5c24f8`.** All five were verified against source before touching
+anything — none were taken on report.
+
+**1. [P1, closed] Metric polarity was universal; it is per unit.** `explosiveRate`/
+`yardsPerPlay` were hard-coded lower-is-better (correct only for what a
+defense *allowed*) and contradicted `study-screen.js`'s own
+`_lowerIsBetter()` convention, which already treats explosive/yards/
+success/havoc as higher-is-better for a team's own production. Fixed by
+splitting every ambiguous metric into an explicit offense-produced/
+defense-framed pair sharing one formula, polarity the only difference:
+`explosiveRate` (higher) / `explosivesAllowedRate` (lower),
+`yardsPerPlay` (higher — **default polarity flipped**) /
+`yardsAllowedPerPlay` (lower), `havocRate` (higher, unchanged — already
+defense-created) / `havocRateAllowed` (lower, new), `negativeRate`
+(lower, unchanged — already offense-framed, matches
+`study-screen.js`'s existing list) / `negativeRateForced` (higher, new).
+`stopRate`/`successRate` need no sibling — already unambiguous by name and
+exact complements of each other. `defensivePerformance()`'s calls (a
+defensive cohort) now use `explosivesAllowedRate`/`yardsAllowedPerPlay`
+instead of the old ids; `havocRate`/`stopRate` are unchanged since their
+existing framing was already correct.
+- **2. [P1, closed] Metric and film cohorts could silently disagree.** `refsFor`
+  used to skip an unresolvable play from `refs` while still counting it in
+  `count`/`denominator` — "N% based on D plays" could open fewer than D
+  clips with no signal. `metric()` now **fails loudly by default**
+  (`allowUnlinkedPlays: false`) the instant a play in the cohort can't
+  produce a ref. `allowUnlinkedPlays: true` is the explicit, narrow
+  compatibility escape hatch `defensivePerformance` uses to preserve its
+  historical closure (never let one malformed play fail a whole report) —
+  even there, the new `unlinkedCount` field and a `state: 'partial-film'`
+  result make the gap visible instead of hiding it.
+- **3. [P1, closed] Missing/insufficient data was reported as `ok`.**
+  Two sub-defects: (a) `stopRate`/`successRate` treated every play as
+  "eligible" even though `_isSuccessfulPlay` (stats-engine.js) silently
+  defaults missing yardage to 0 and missing distance to 10 — a play with
+  nothing tagged still got classified and counted. Fixed with a new,
+  side-effect-free `StatsEngine._isSuccessfulPlayEligible(p)` (mirrors
+  `_isSuccessfulPlay`'s branch structure but reports whether real data
+  exists rather than ever fabricating a default) wired as a new required
+  `isEligiblePlay` dependency; every yardage-driven metric
+  (explosive/negative/havoc pairs) got the same honest-eligibility
+  treatment via a shared `eligibleRate()` driver. (b) A group below
+  `minSample` still reported `state: 'ok'`. `metric()` now accepts a
+  `minSample` option and reports `state: 'insufficient'` when its own
+  `denominator` (not the caller's raw cohort size) falls short — so one
+  metric in a group can be `insufficient` on its own denominator while a
+  sibling metric with more real data is `ok`. `state` priority is
+  `unavailable > insufficient > partial-film > ok`, evaluated in that
+  order and pinned by a dedicated mutation-verified test. Both eligibility
+  fixes are opt-out via the existing `missingAsZero` option, which now
+  spans every metric (not just `yardsPerPlay`) — `defensivePerformance`
+  passes it for all four of its calls to preserve its exact historical
+  formulas.
+- **4. [P2, closed] Two competing metric registries.** `analytics-registry.js`
+  marked `yardsPerPlay`/`stopRate` `requires-context` with reasons written
+  before `AnalyticsMetrics` existed and now factually stale ("has no single
+  canonical output field"). The two interfaces genuinely answer different
+  questions (`readMeasures()` reads a pre-aggregated field off one
+  `compute()` snapshot; `AnalyticsMetrics.metric()` computes ad-hoc over an
+  arbitrary cohort) so they aren't merged, but they no longer read as
+  unreconciled: the `reason` text for both now explains the split and
+  points at the fix — **`AnalyticsRegistry.metricsEngine()`**, a new public
+  method and the one place that constructs a correctly-bound
+  `AnalyticsMetrics` instance (cached per registry instance) for the live
+  `StatsEngine`. `StudyQuery._metricsEngine()` now delegates to it instead
+  of re-deriving the same `deps` binding a second time.
+- **5. [P2, closed] One test could pass with `missingAsZero` forwarding
+  silently broken.** `e2e-study-query.mjs`'s assertion used `<=` against a
+  shared fixture's "Trips" formation group, whose 7 plays all happened to
+  already carry real yardage — honest and legacy denominators agreed (7
+  vs 7), so the inequality passed vacuously either way. Replaced with two
+  hand-built plays (one missing yardage) called directly against
+  `window.app.analyticsRegistry.metricsEngine()`, asserting **exact**
+  denominators and values (`1`/`6` honest vs `2`/`3` legacy) with strict
+  inequality, guaranteed to differ regardless of fixture data shape.
+
+**Files changed:** `js/analytics-metrics.js` (rewritten METRICS table,
+`resolveRefs`/`eligibleRate`, new contract fields `unlinkedCount` and
+`state:'insufficient'|'partial-film'`, `isEligiblePlay` now a required dep);
+`js/stats-engine.js` (`_isSuccessfulPlayEligible` new method;
+`defensivePerformance()`'s metric-id/options updated, flat return shape
+unchanged); `js/analytics-registry.js` (`metricsEngine()` new method, two
+`reason` strings corrected, one new import); `js/study-query.js`
+(`_metricsEngine()` now delegates; `runMetrics()` threads
+`minSample`/`allowUnlinkedPlays` into every metric call); `tools/
+e2e-analytics-metrics.mjs` (rewritten, 14→24, covers all five findings by
+name, three new mutation-verified behaviors); `tools/e2e-analytics-registry.mjs`
+(25→27, `metricsEngine()` singleton + real-computation checks); `tools/
+e2e-study-query.mjs` (41, same count — 2 assertions repaired in place, not
+added: polarity now spans a genuine higher/lower pair,
+missingAsZero uses a guaranteed-differing fixture with strict equality).
+
+**Verification:**
+- `node tools/e2e-analytics-metrics.mjs` — **24/24** (was 14; +10 covering
+  findings 1/2/3/5 by name).
+- `node tools/e2e-analytics-registry.mjs` — **27/27** (was 25; +2, the new
+  `metricsEngine()` checks).
+- `node tools/e2e-study-query.mjs` — **41/41** (unchanged count; 2
+  assertions repaired in place per finding #1 and #5).
+- `node tools/e2e-native-reports.mjs` — **76/76**, unchanged — confirms
+  `defensivePerformance`'s flat output shape is still byte-identical; the
+  metric-id remap (explosiveRate→explosivesAllowedRate etc.) is an internal
+  lookup change only, same formula, same numeric output.
+- `node tools/e2e-parity.mjs` — **2/2**, unchanged.
+- Full canonical gate (`bash tools/run-gate.sh`): **86 harnesses | 86 green
+  | 0 skipped | 0 failed** — same harness count as the pre-repair baseline
+  (no new harness file this round, only new assertions in existing files),
+  zero drops.
+- **Mutation-verified**, every one on this repair's own new logic: (1) the
+  `allowUnlinkedPlays` fail-loud default, disabling the throw reproduces
+  silent omission and reds exactly the fail-loud test; (2) the eligibility
+  gate, forcing `_isSuccessfulPlayEligible` to always return `true` reds
+  exactly the two eligibility-dependent tests; (3) the `minSample` →
+  `insufficient` wiring, zeroing it out reds exactly the two minSample
+  tests; (4) the `state` priority ordering itself, swapping the
+  insufficient/partial-film checks reds exactly the dedicated priority
+  test. All four restored and reconfirmed green individually.
+
+**Known limitations, unchanged from the original checkpoint and still
+disclosed:** only the metrics `defensivePerformance` needed (now ten ids
+instead of six, after the offense/defense split) are defined;
+`StudyQuery.runMetrics()` still has no UI consumer; `cohortByCut`'s
+`this`-dependent cut types are still only exercised at the browser level,
+not in pure Node; the composite-ref throw-vs-compat-flag split is now
+symmetric with the eligibility/insufficient-state design (same
+`missingAsZero`/`allowUnlinkedPlays` opt-out shape) rather than a one-off
+asymmetry. No Reports renderer other than `defensivePerformance` was
+touched; no installer built; no Study UI changed.
+
+**Codex re-review handoff:** the five findings above map 1:1 to this repair
+in the order Codex listed them. Highest-value re-check: (a) that
+`explosivesAllowedRate`/`yardsAllowedPerPlay`/`havocRate`/`stopRate` are
+truly the correct four ids for `defensivePerformance`'s defensive cohort
+(reasoning is in the code comment directly above the call sites); (b) that
+`_isSuccessfulPlayEligible`'s branch structure genuinely mirrors
+`_isSuccessfulPlay`'s (they're hand-kept-in-sync, not derived from one
+source, so a future edit to one without the other is a real drift risk —
+flagged in both methods' doc comments); (c) that `metricsEngine()`'s
+caching (`this._metrics`) is safe given `AnalyticsRegistry` is constructed
+once per `StatsEngine` instance, same lifetime as `this.stats`.
+
 ### ▶ BUILT — bounded analytics architecture cleanup; AWAITING CODEX REVIEW (2026-08-14)
 
 **Builder: Claude. Baseline: `022d064`. Scope: bounded per the coach's explicit

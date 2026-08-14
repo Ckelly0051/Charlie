@@ -124,13 +124,30 @@ const result = await page.evaluate((fixture) => {
   // runMetrics() — the additive AnalyticsMetrics seam (bounded analytics
   // architecture cleanup). Grouping must be IDENTICAL to run() (same
   // dimension/cut/parity machinery); only the per-group measure shape differs.
-  const richQ = study.runMetrics({ plays, dimension: 'formation', metricIds: ['stopRate', 'yardsPerPlay'] });
+  // stopRate (higher) + yardsAllowedPerPlay (lower) exercise BOTH polarity
+  // directions -- yardsPerPlay's own default flipped to 'higher' as part of
+  // the Codex review repair (2026-08-14, finding #1: polarity is per unit),
+  // so it can no longer stand in as "the lower-is-better metric" here.
+  const richQ = study.runMetrics({ plays, dimension: 'formation', metricIds: ['stopRate', 'yardsAllowedPerPlay'] });
   const richFormationQ = study.run({ plays, dimension: 'formation', measures: ['sampleSize'] });
   const richTrips = richQ.groups.find(g => g.value === 'Trips');
-  const richMissingAsZero = study.runMetrics({ plays, dimension: 'formation', metricIds: ['yardsPerPlay'] });
-  const richMissingAsZeroOn = study.runMetrics({ plays, dimension: 'formation', metricIds: ['yardsPerPlay'], missingAsZero: true });
-  const richTripsHonest = richMissingAsZero.groups.find(g => g.value === 'Trips')?.metrics.yardsPerPlay;
-  const richTripsLegacy = richMissingAsZeroOn.groups.find(g => g.value === 'Trips')?.metrics.yardsPerPlay;
+
+  // Finding 5 repair: missingAsZero must be proven with STRICT inequality on
+  // a fixture GUARANTEED to differ, not `<=` against whatever a shared
+  // fixture group happens to contain (the original assertion could pass even
+  // if missingAsZero forwarding were silently broken, since Trips' 7 plays
+  // all already carry real yardage). Two hand-built plays -- one with
+  // yardage, one without -- make the honest/legacy denominators provably
+  // different, and this reaches the SAME live, registry-bound metrics engine
+  // Study will actually use (window.app.analyticsRegistry.metricsEngine()),
+  // not a synthetic stand-in.
+  const metricsEngine = window.app.analyticsRegistry.metricsEngine();
+  const missingYardageCohort = [
+    { id: 9001, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10', yardage: '6' } },
+    { id: 9002, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10' } }, // no yardage tag at all
+  ];
+  const honestYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay');
+  const legacyYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay', {}, { missingAsZero: true });
 
   return {
     grouped, playCount: plays.length,
@@ -150,10 +167,10 @@ const result = await page.evaluate((fixture) => {
     richGroups: richQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize, matchingPlayIds: g.matchingPlayIds })),
     richFormationGroups: richFormationQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize, matchingPlayIds: g.matchingPlayIds })),
     richTrips: richTrips ? {
-      stopRate: richTrips.metrics.stopRate, yardsPerPlay: richTrips.metrics.yardsPerPlay,
+      stopRate: richTrips.metrics.stopRate, yardsAllowedPerPlay: richTrips.metrics.yardsAllowedPerPlay,
       matchingPlayIds: richTrips.matchingPlayIds,
     } : null,
-    richTripsHonest, richTripsLegacy,
+    honestYpp, legacyYpp,
   };
 }, syntheticEdge());
 
@@ -248,14 +265,27 @@ if (!result.missing) {
   ok(JSON.stringify(result.richGroups) === JSON.stringify(result.richFormationGroups),
     'runMetrics() groups identically to run() for the same dimension (same values, sampleSize, matchingPlayIds)',
     JSON.stringify({ rich: result.richGroups, run: result.richFormationGroups }));
-  ok(!!result.richTrips && result.richTrips.stopRate.polarity === 'higher' && result.richTrips.yardsPerPlay.polarity === 'lower',
-    'runMetrics() results carry each metric\'s own polarity', JSON.stringify(result.richTrips));
+  // Codex review, 2026-08-14, finding #1: polarity is per unit, not
+  // universal -- stopRate (higher, unambiguous by name) paired with
+  // yardsAllowedPerPlay (lower, the defense-framed sibling) exercises BOTH
+  // directions through the live registry-bound engine, not just the pure
+  // module's own unit tests.
+  ok(!!result.richTrips && result.richTrips.stopRate.polarity === 'higher' && result.richTrips.yardsAllowedPerPlay.polarity === 'lower',
+    'runMetrics() results carry each metric\'s own per-unit polarity', JSON.stringify(result.richTrips));
   ok(!!result.richTrips && JSON.stringify(result.richTrips.stopRate.refs) === JSON.stringify(result.richTrips.matchingPlayIds),
     'runMetrics() metric refs equal the group\'s matchingPlayIds (same composite-ref contract as run())',
     JSON.stringify(result.richTrips));
-  ok(!!result.richTripsHonest && !!result.richTripsLegacy && result.richTripsHonest.denominator <= result.richTripsLegacy.denominator,
-    'runMetrics({missingAsZero}) is a real, wired option — honest exclusion never has a LARGER denominator than the legacy full-cohort mode',
-    JSON.stringify({ honest: result.richTripsHonest, legacy: result.richTripsLegacy }));
+  // Codex review, 2026-08-14, finding #5: strict inequality on a fixture
+  // GUARANTEED to differ (two hand-built plays, one with no yardage tag),
+  // not `<=` against a fixture group that might already agree -- the
+  // original assertion could pass even with missingAsZero forwarding
+  // silently broken.
+  ok(!!result.honestYpp && !!result.legacyYpp
+    && result.honestYpp.denominator === 1 && result.honestYpp.value === 6
+    && result.legacyYpp.denominator === 2 && result.legacyYpp.value === 3
+    && result.honestYpp.denominator !== result.legacyYpp.denominator,
+    'runMetrics({missingAsZero}) genuinely changes the divisor -- exact denominators/values on a fixture proven to differ, not just <=',
+    JSON.stringify({ honest: result.honestYpp, legacy: result.legacyYpp }));
 }
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));

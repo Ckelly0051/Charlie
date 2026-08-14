@@ -73,6 +73,14 @@ const result = await page.evaluate(() => {
     penaltyRulings: registry.values('penaltyRuling', play),
     penaltyCounts: registry.values('penaltyPlayCounts', play),
     ref: registry.playRef(play),
+    // Codex review, 2026-08-14, finding #4: AnalyticsRegistry is the ONE
+    // place that constructs a correctly-bound AnalyticsMetrics instance --
+    // no consumer should re-derive the isSuccessfulPlay/isEligiblePlay/
+    // buildCutFilter binding a second time. Confirm it's real (computes a
+    // metric over an ad-hoc cohort, not just returns an object) and stable
+    // (repeat calls return the SAME instance, not a fresh rebuild each time).
+    metricsEngineSame: registry.metricsEngine() === registry.metricsEngine(),
+    metricsEngineStopRate: registry.metricsEngine().metric([play], 'stopRate'),
     selected: registry.readMeasures(stats, ['plays', 'successRate', 'epaPerPlay']),
     unresolvedMeasures,
     blocksSelected: registry.readBlocks(stats, ['rushing', 'advanced']),
@@ -112,6 +120,10 @@ if (!result.missing) {
     && JSON.stringify(result.penaltyCounts) === JSON.stringify(['No play','Play counts']),
   'Structured penalty dimensions preserve every foul on the play');
   ok(result.ref === 'g2::7', 'Composite play reference is gameId::playId');
+  ok(result.metricsEngineSame, 'AnalyticsRegistry.metricsEngine() returns the SAME bound instance on repeat calls, not a fresh rebuild');
+  ok(result.metricsEngineStopRate.id === 'stopRate' && result.metricsEngineStopRate.polarity === 'higher'
+    && typeof result.metricsEngineStopRate.value === 'number' && result.metricsEngineStopRate.denominator === 1,
+    'AnalyticsRegistry.metricsEngine() computes a real ad-hoc-cohort metric, not a stand-in object', JSON.stringify(result.metricsEngineStopRate));
   ok(result.selected.plays === 1 && result.selected.successRate === '100.0' && result.selected.epaPerPlay === 0, 'Ready measures select canonical compute outputs', JSON.stringify(result.selected));
   ok(result.unresolvedMeasures.length === 0, 'EVERY ready measure resolves to a defined value (no silent undefined path)', JSON.stringify(result.unresolvedMeasures));
   ok(result.blocksSelected.rushing.attempts === 0 && result.blocksSelected.advanced.count === 0, 'Block bindings return canonical objects');

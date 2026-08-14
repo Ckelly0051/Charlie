@@ -463,6 +463,27 @@ export class StatsEngine {
     }
   }
 
+  /** Whether `_isSuccessfulPlay` classifies this play from REAL tagged data
+   *  rather than one of its own missing-data defaults (yardage -> 0,
+   *  distance -> 10, an untagged down falling into the flat 4-yard
+   *  heuristic). Added for AnalyticsMetrics (Codex review, 2026-08-14,
+   *  finding #3): stopRate/successRate previously reported every play as
+   *  "eligible" even when `_isSuccessfulPlay` had silently invented the
+   *  down/distance/yardage it classified on. Mirrors `_isSuccessfulPlay`'s
+   *  branch structure -- kept in sync by hand, since the two must agree on
+   *  which branch a play falls into -- but never fills a gap with a
+   *  fallback; it reports whether one exists. */
+  _isSuccessfulPlayEligible(p) {
+    if (StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'No Good')) return true;
+    if (p.tags.custom?.includes('1st Down')) return true;
+    const yardage = parseInt(p.tags.yardage, 10);
+    const distance = parseInt(p.tags.distance, 10);
+    const hasYardage = p.tags.yardage !== '' && p.tags.yardage != null && Number.isFinite(yardage);
+    const hasDistance = p.tags.distance !== '' && p.tags.distance != null && Number.isFinite(distance);
+    const hasDown = ['1', '2', '3', '4'].includes(p.tags.down);
+    return hasYardage && hasDown && hasDistance;
+  }
+
   _driveStats(plays) {
     const list = this._reconstructDrives(plays).map((dp, idx) => {
       const yards = dp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
@@ -968,23 +989,32 @@ export class StatsEngine {
   defensivePerformance(plays, gameLabels = {}) {
     const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
     const yards = p => parseInt(p.tags.yardage, 10) || 0;
-    // Cohort filtering + rate calculation for stopRate/explosiveRate/havocRate/
-    // yardsPerPlay now go through the shared AnalyticsMetrics seam (the pure
-    // module Study's expansion will also build on) instead of being hand-rolled
-    // here a second time. `missingAsZero: true` on yardsPerPlay preserves this
-    // report's exact historical formula (a play with no tagged yardage counted
-    // as 0 yards, not excluded) -- see analytics-metrics.js's docblock for why
-    // that stays an explicit opt-in rather than the new module's honest default.
+    // Cohort filtering + rate calculation for stopRate/explosivesAllowedRate/
+    // havocRate/yardsAllowedPerPlay now go through the shared AnalyticsMetrics
+    // seam (the pure module Study's expansion will also build on) instead of
+    // being hand-rolled here a second time. This cohort is our DEFENSE's
+    // snaps, so the "Allowed" metric ids are the correct defense-framed half
+    // of each offense/defense metric pair -- stopRate and havocRate need no
+    // "Allowed" sibling, since both are already unambiguously defense-framed
+    // by name (see analytics-metrics.js's "POLARITY IS PER UNIT" docblock
+    // section). `legacyOptions` reproduces this report's exact historical
+    // formulas: a missing yardage tag counted as 0 rather than excluded
+    // (`missingAsZero`), and a play with no resolvable film ref was silently
+    // dropped from `refs` rather than failing the whole report
+    // (`allowUnlinkedPlays`) -- both opt-ins, never the new module's honest
+    // default; see analytics-metrics.js's docblock for why.
     const metrics = new AnalyticsMetrics({
       isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult,
       isSuccessfulPlay: p => this._isSuccessfulPlay(p),
+      isEligiblePlay: p => this._isSuccessfulPlayEligible(p),
     });
+    const legacyOptions = { missingAsZero: true, allowUnlinkedPlays: true };
     const summarize = (name, cohort) => {
       const n = cohort.length;
-      const stopRate = metrics.metric(cohort, 'stopRate');
-      const explosive = metrics.metric(cohort, 'explosiveRate');
-      const havoc = metrics.metric(cohort, 'havocRate');
-      const ypp = metrics.metric(cohort, 'yardsPerPlay', {}, { missingAsZero: true });
+      const stopRate = metrics.metric(cohort, 'stopRate', {}, legacyOptions);
+      const explosive = metrics.metric(cohort, 'explosivesAllowedRate', {}, legacyOptions);
+      const havoc = metrics.metric(cohort, 'havocRate', {}, legacyOptions);
+      const ypp = metrics.metric(cohort, 'yardsAllowedPerPlay', {}, legacyOptions);
       const touchdowns = cohort.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length;
       return {
         name, n, stops: stopRate.count, explosives: explosive.count, havoc: havoc.count, touchdowns,

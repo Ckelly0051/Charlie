@@ -1,5 +1,3 @@
-import { AnalyticsMetrics } from './analytics-metrics.js';
-
 /**
  * StudyQuery — the redesign's pure query executor over the accepted P0-c
  * AnalyticsRegistry. It groups a play set by ONE dimension, computes the
@@ -112,21 +110,19 @@ export class StudyQuery {
     return Number.isFinite(n) ? n : null;
   }
 
-  /** Bound to the LIVE `registry.stats` StatsEngine instance (not a fake
-   *  object) -- this runs inside the running app, unlike the pure-Node
-   *  contract tests in tools/e2e-analytics-metrics.mjs, which bind the same
-   *  static/instance methods to `{}` since they never need a real DOM. */
+  /** Delegates to `AnalyticsRegistry.metricsEngine()` -- the one place that
+   *  constructs a correctly-bound `AnalyticsMetrics` instance for the live
+   *  `registry.stats` StatsEngine (Codex review, 2026-08-14, finding #4: two
+   *  competing metric registries). `StudyQuery` no longer derives its own
+   *  binding. The pure-Node contract tests in tools/e2e-analytics-metrics.mjs
+   *  bind the same static/instance methods to `{}` directly, since they
+   *  never need a real DOM or registry. */
   _metricsEngine() {
-    const SE = this.stats.constructor;
-    return new AnalyticsMetrics({
-      isRun: SE.isRun, isPass: SE.isPass, hasResult: SE.hasResult,
-      isSuccessfulPlay: p => this.stats._isSuccessfulPlay(p),
-      buildCutFilter: (type, val) => this.stats._buildCutFilter(type, val),
-    });
+    return this.registry.metricsEngine();
   }
 
   /**
-   * runMetrics({ plays, dimension, metricIds, filters?, minSample?, context?, missingAsZero? })
+   * runMetrics({ plays, dimension, metricIds, filters?, minSample?, context?, missingAsZero?, allowUnlinkedPlays? })
    *   -> { dimension, total, metricIds, minSample,
    *        groups: [{ value, sampleSize, belowMinSample, matchingPlayIds,
    *                   metrics: { [metricId]: <AnalyticsMetrics shared contract> } }],
@@ -138,21 +134,31 @@ export class StudyQuery {
    * rather than re-deriving cohorts. The only difference is what each group's
    * measures LOOK like: `run()` returns a flat `{name: number}` object;
    * `runMetrics()` returns the full AnalyticsMetrics contract per metric
-   * (value/count/eligible/denominator/polarity/state/refs), which is what a
-   * future Study consumer needs to disclose an insufficient-sample or
-   * missing-data state honestly instead of rendering a bare number.
+   * (value/count/eligible/denominator/polarity/state/unlinkedCount/refs),
+   * which is what a future Study consumer needs to disclose an
+   * insufficient-sample, partial-film, or missing-data state honestly
+   * instead of rendering a bare number.
+   *
+   * `minSample`/`allowUnlinkedPlays` are forwarded into EVERY metric() call
+   * as `options`, so a metric's own `state` can be `'insufficient'` on its
+   * own denominator even when the group's raw `sampleSize` clears
+   * `minSample` (a metric can have fewer *eligible* plays than the group has
+   * total plays -- see analytics-metrics.js's docblock). `allowUnlinkedPlays`
+   * defaults to false: a Study consumer gets the honest fail-loud default,
+   * not the legacy `defensivePerformance` compatibility escape hatch.
    *
    * `run()` and `compare()` are UNCHANGED by this addition -- per the bounded
    * analytics-architecture-cleanup scope, Study's current screen is not
    * redesigned to consume this yet.
    */
-  runMetrics({ plays, dimension, metricIds = [], filters = [], minSample = 0, context = {}, missingAsZero = false } = {}) {
+  runMetrics({ plays, dimension, metricIds = [], filters = [], minSample = 0, context = {}, missingAsZero = false, allowUnlinkedPlays = false } = {}) {
     if (!Array.isArray(plays)) throw new TypeError('StudyQuery.runMetrics requires a plays array');
     if (!this.registry.getDimension(dimension)) throw new Error(`Unknown Study dimension: ${dimension}`);
     if (this.registry.getDimension(dimension).availability !== 'ready') {
       throw new Error(`Study dimension requires context: ${dimension}`);
     }
     const metricsEngine = this._metricsEngine();
+    const metricOptions = { missingAsZero, allowUnlinkedPlays, minSample };
     const cohort = this._cohort(plays, filters, context);
     const values = this._distinct(cohort, dimension, context);
     const warnings = [];
@@ -163,7 +169,7 @@ export class StudyQuery {
       if (belowMinSample) warnings.push(`${value}: sample ${sampleSize} below minimum ${minSample}`);
       const matchingPlayIds = groupPlays.map(p => this.registry.playRef(p, context)).sort();
       const groupMetrics = {};
-      for (const id of metricIds) groupMetrics[id] = metricsEngine.metric(groupPlays, id, context, { missingAsZero });
+      for (const id of metricIds) groupMetrics[id] = metricsEngine.metric(groupPlays, id, context, metricOptions);
       return { value, sampleSize, belowMinSample, matchingPlayIds, metrics: groupMetrics };
     });
     return { dimension, total: cohort.length, metricIds: metricIds.slice(), minSample, groups, warnings };

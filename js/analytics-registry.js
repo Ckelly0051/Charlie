@@ -7,6 +7,7 @@
  */
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
+import { AnalyticsMetrics } from './analytics-metrics.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -103,7 +104,21 @@ export class AnalyticsRegistry {
       deferred('frequency', 'Frequency', 'Requires an explicit parent-cohort denominator'),
       ready('runShare', 'Run Share', ['tendencies', 'runPct'], 'StatsEngine._tendencyStats'),
       ready('passShare', 'Pass Share', ['tendencies', 'passPct'], 'StatsEngine._tendencyStats'),
-      deferred('yardsPerPlay', 'Yards / Play', 'Displayed in several reports but has no single canonical output field'),
+      // yardsPerPlay/stopRate stay 'requires-context' for THIS path-based
+      // readMeasures() interface specifically -- it reads a pre-aggregated
+      // field off a compute()-for-one-cohort snapshot, and neither metric has
+      // a single such field (StatsEngine.compute() computes offense- and
+      // defense-side aggregates on the SAME object; there's no one path that
+      // means "yards/play" or "stop rate" without knowing which side you
+      // want). That is still true and this deferral is correct for
+      // readMeasures(). It does NOT mean the metric is uncomputable: as of
+      // the bounded analytics-architecture cleanup (2026-08-14),
+      // `AnalyticsRegistry.metricsEngine()` below is the canonical,
+      // ready-today way to compute both from an ad-hoc cohort, complete with
+      // eligible/denominator/polarity/state and exact film refs -- the two
+      // registries are not competing sources of truth, they answer different
+      // questions (a compute()-snapshot field vs. an arbitrary-cohort metric).
+      deferred('yardsPerPlay', 'Yards / Play', 'No single compute()-output field for either offense- or defense-framed yards/play; use AnalyticsRegistry.metricsEngine().metric(cohort, "yardsPerPlay"|"yardsAllowedPerPlay") for an ad-hoc cohort'),
       ready('successRate', 'Success Rate', ['efficiency', 'successRate'], 'StatsEngine._efficiencyStats'),
       deferred('conversionRate', 'Conversion Rate', 'Requires conversion type/down context'),
       ready('explosiveRate', 'Explosive Rate', ['efficiency', 'explosivePct'], 'StatsEngine._efficiencyStats'),
@@ -112,7 +127,7 @@ export class AnalyticsRegistry {
       deferred('scoring', 'Scoring', 'Requires an explicit points vs touchdowns contract'),
       ready('touchdowns', 'Touchdowns', ['scoring', 'touchdowns'], 'StatsEngine._scoringStats', { unit: 'offense' }),
       ready('havocRate', 'Havoc Rate', ['defensive', 'havocRate'], 'StatsEngine._defensiveStats', { unit: 'defense' }),
-      deferred('stopRate', 'Stop Rate', 'Canonical only inside defensive groups; requires a selected cohort'),
+      deferred('stopRate', 'Stop Rate', 'No single compute()-output field outside a selected defensive cohort; use AnalyticsRegistry.metricsEngine().metric(cohort, "stopRate") for an ad-hoc cohort'),
       ready('epaPerPlay', 'EPA / Play', ['advanced', 'perPlay'], 'AdvancedMetrics.summarize'),
       ready('sampleSize', 'Sample Size', ['allPlays'], 'StatsEngine.compute().allPlays'),
       deferred('dataCompleteness', 'Data Completeness', 'No canonical production completeness measure'),
@@ -136,6 +151,31 @@ export class AnalyticsRegistry {
 
   _readPath(source, path) {
     return path.reduce((value, key) => value == null ? undefined : value[key], source);
+  }
+
+  /**
+   * The ONE place that constructs a correctly-bound `AnalyticsMetrics`
+   * instance for this registry's own `StatsEngine` (Codex review, 2026-08-14,
+   * finding #4: two competing metric registries). `readMeasures()`/`values()`
+   * remain the canonical path for measures/dimensions that already have a
+   * field inside `StatsEngine.compute()`'s output for a given cohort;
+   * `metricsEngine()` is the canonical path for ad-hoc-cohort metrics
+   * (yardsPerPlay/stopRate and their offense/defense-framed siblings) that
+   * `compute()` has no single field for -- see the `deferred(...)` reasons
+   * above, both of which point here. A consumer should get its engine from
+   * here rather than re-deriving the `deps` binding a second time.
+   */
+  metricsEngine() {
+    if (!this._metrics) {
+      const SE = this._SE;
+      this._metrics = new AnalyticsMetrics({
+        isRun: SE.isRun, isPass: SE.isPass, hasResult: SE.hasResult,
+        isSuccessfulPlay: p => this.stats._isSuccessfulPlay(p),
+        isEligiblePlay: p => this.stats._isSuccessfulPlayEligible(p),
+        buildCutFilter: (type, val) => this.stats._buildCutFilter(type, val),
+      });
+    }
+    return this._metrics;
   }
 
   listDimensions() { return [...this._dimensionMap.values()]; }
