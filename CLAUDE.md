@@ -14,6 +14,62 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX REVIEW - Study expansion `098ea6a` - CHANGES REQUESTED (2026-08-15)
+
+**Verdict: CHANGES REQUESTED.** The new analytics/query foundation is additive and
+the focused metric, registry, query, screen, reports, and parity harnesses are
+green. The checkpoint is blocked by three coach-facing cohort/compatibility
+defects, one unproved feature path, and a repeatable red canonical gate.
+
+1. **P1 - the rich Study row presents three different cohorts as one result**
+   (`js/study-screen.js:541-544,565-572`). The metric value and Watch action use
+   the metric's eligible `refs`, but the displayed Plays count uses the broader
+   group `sampleSize` and Run/Pass uses broader `matchingPlayIds`. A play missing
+   metric-required data can therefore be counted in Plays and Run/Pass, excluded
+   from the metric, and absent from the film opened by the same row. Render the
+   metric denominator (or an explicit eligible/total treatment) and calculate
+   secondary row values from the same metric refs. Pin the mismatch with a
+   fixture containing a grouped play that is ineligible for the selected metric.
+
+2. **P1 - Watch Results can leak the comparison cohort**
+   (`js/study-screen.js:210,550-578,660-665`). `_setWatchAll(aRefs, label)` only
+   updates the button; clicking ignores those refs and rebuilds film from
+   `this.rows`. A row present only on the against side stores against refs, so
+   `Watch current game` / `Watch recent period` can include plays from the
+   comparison cohort. Make the button action consume the exact refs passed to
+   `_setWatchAll`, and add an against-only group regression for legacy and rich
+   comparison paths.
+
+3. **P2 - pre-expansion saved Study views are not backward compatible**
+   (`js/study-screen.js:54-57,881-898`). Old views may store `successRate`,
+   `explosiveRate`, `negativeRate`, `havocRate`, `runShare`, or `passShare`.
+   Those values no longer exist in the picker; assigning one makes the select
+   value blank and the view no longer restores the saved question. Add an
+   explicit legacy-view upgrade/fallback that never guesses offense vs defense,
+   and pin every retired id. Do not mutate or delete the saved view merely by
+   opening it.
+
+4. **P2 - Recent vs prior is shipped without an end-to-end proof.** No screen
+   test selects `compare=recent`, changes the 2/3/5-game period, proves the two
+   windows are adjacent/non-overlapping, checks an undersized season, or restores
+   the period from a saved view. Also include `recent`/`periodGames` in the saved
+   view's visible name/identity so 2-game and 5-game questions are distinguishable.
+
+5. **Release gate remains red.** Codex independently ran the focused harnesses:
+   Study Query 48/48, Registry 33/33, Study Screen 81/81, and Tag Projection Form
+   54/54. The isolated full canonical gate then reproduced the builder's result:
+   **86 harnesses | 85 green | 1 failed**, with `e2e-tag-projform.mjs` crashing at
+   section 15 (`ProtocolError: Runtime.callFunctionOn: Promise was collected`).
+   Because the same harness passes alone but fails at the same point in the full
+   sequence, treat this as a load/order-sensitive harness defect until proven
+   otherwise; do not label it random or certify the checkpoint until the full
+   gate completes 86/86.
+
+**Repairs required:** fix 1-3 at the root, add discriminating regressions for
+1-4, stabilize or isolate the repeated full-gate failure without masking it,
+run the focused Study/metric/parity checks, then run one full canonical gate.
+No installer/package/deploy while this review is open.
+
 ### ▶ BUILT — Study expansion: core coaching analysis — AWAITING CODEX REVIEW (2026-08-15)
 
 **Builder: Claude. Baseline: `de7a469` (the accepted analytics-metrics foundation).
