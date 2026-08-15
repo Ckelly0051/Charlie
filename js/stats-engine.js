@@ -1254,6 +1254,27 @@ export class StatsEngine {
     };
   }
 
+  /** `${gameId}::${playId}` for a Study-stamped play, or null when the play
+   *  cannot produce a composite ref (matches the fail-open convention every
+   *  other composite-ref site in this file already uses). Shared by
+   *  `_conversionStats`/`_specialTeamsStats`'s Phase-2 refs additions below. */
+  static _compositeRef(play) {
+    const gid = play?.__gid;
+    return (gid != null && play?.id != null) ? `${gid}::${play.id}` : null;
+  }
+  /** Composite refs for an array of rows, deduped + sorted. `getPlay`
+   *  extracts the play from a row shaped differently than a bare play
+   *  (e.g. `_specialTeamsStats`'s structured `{p, st}` rows). */
+  static _refsOf(rows, getPlay = row => row) {
+    const seen = new Set();
+    const out = [];
+    for (const row of rows) {
+      const ref = StatsEngine._compositeRef(getPlay(row));
+      if (ref && !seen.has(ref)) { seen.add(ref); out.push(ref); }
+    }
+    return out.sort();
+  }
+
   /**
    * PAT / 2-point conversion success. Keyed on stType ('XP' | '2-Pt') and the
    * explicit Good / No Good (or Touchdown / Field Goal) result, so it works
@@ -1285,8 +1306,12 @@ export class StatsEngine {
         }
         return p.tags.stType === type && StatsEngine.scoringSide(p) === 'us';
       });
-      const m = att.filter(p => made(p, wanted)).length;
-      return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
+      const madePlays = att.filter(p => made(p, wanted));
+      // Codex review finding #1 (Study expansion Phase 2): refs for the exact
+      // plays behind `att`/`made`, so a Study row for "Extra Points Attempted"
+      // can never Watch anything beyond the actual XP attempts.
+      return { att: att.length, made: madePlays.length, pct: att.length ? Math.round(madePlays.length / att.length * 100) : 0,
+        refs: { att: StatsEngine._refsOf(att), made: StatsEngine._refsOf(madePlays) } };
     };
     const two = tally('2-Pt');
     const xp = tally('XP');
@@ -1300,6 +1325,15 @@ export class StatsEngine {
   _specialTeamsStats(plays) {
     const num = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
     const structured = (plays || []).map(p => ({ p, st: SpecialTeamsModel.normalize(p?.specialTeams) })).filter(x => x.st);
+    // Codex review finding #1: every leaf below carries its own `refs` --
+    // the exact composite refs of the ROWS that produced that number, not
+    // the whole cohort. A rate/mean's refs are its DENOMINATOR set (matches
+    // AnalyticsMetrics' established "refs = refSource, the exact plays that
+    // produced `denominator`" contract); a raw count's refs are simply the
+    // matching plays. Sibling fields sharing one denominator (n/grossAvg/
+    // hangAvg/tbPct/fairCatchPct all divide by the same row-group) share one
+    // `refs.all` array rather than each computing an identical set anew.
+    const getPlay = x => x.p;
     if (structured.length) {
       const rows = unit => structured.filter(x => x.st.unit === unit);
       const avg = (arr, get) => { const values = arr.map(get).filter(Number.isFinite); return values.length ? +(values.reduce((s, x) => s + x, 0) / values.length).toFixed(1) : null; };
@@ -1307,6 +1341,7 @@ export class StatsEngine {
       const koRows = rows('kickoff');
       const fgRows = rows('fieldGoal').filter(x => x.st.attemptType === 'fieldGoal');
       const made = x => x.st.outcome.status === 'good' && x.st.outcome.score === 'fieldGoal';
+      const puntReturnedRows = puntRows.filter(x => x.st.outcome.status === 'returned');
       const punts = {
         n: puntRows.length,
         grossAvg: avg(puntRows, x => x.st.kick.distance),
@@ -1318,34 +1353,47 @@ export class StatsEngine {
         // was previously invisible outside the netAvg composite.
         fairCatchPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'fairCatch').length / puntRows.length * 100) : 0,
         blocked: puntRows.filter(x => x.st.outcome.status === 'blocked').length,
-        retAllowedAvg: avg(puntRows.filter(x => x.st.outcome.status === 'returned'), x => x.st.return.yards),
+        retAllowedAvg: avg(puntReturnedRows, x => x.st.return.yards),
+        refs: {
+          all: StatsEngine._refsOf(puntRows, getPlay),
+          blocked: StatsEngine._refsOf(puntRows.filter(x => x.st.outcome.status === 'blocked'), getPlay),
+          returned: StatsEngine._refsOf(puntReturnedRows, getPlay),
+        },
       };
+      const onsideRows = koRows.filter(x => x.st.isOnside);
+      const koReturnedRows = koRows.filter(x => x.st.outcome.status === 'returned');
       const kickoffs = {
         n: koRows.length,
         avg: avg(koRows, x => x.st.kick.distance),
         tbPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'touchback').length / koRows.length * 100) : 0,
         fairCatchPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'fairCatch').length / koRows.length * 100) : 0,
-        retAllowedAvg: avg(koRows.filter(x => x.st.outcome.status === 'returned'), x => x.st.return.yards),
+        retAllowedAvg: avg(koReturnedRows, x => x.st.return.yards),
         // isOnside is a structured modifier (not a separate unit) -- 'recovered'
         // counts only a SUBJECT recovery (the point of an onside attempt).
-        onside: (() => {
-          const onsideRows = koRows.filter(x => x.st.isOnside);
-          return { n: onsideRows.length, recovered: onsideRows.filter(x => x.st.outcome.recoveredBy === 'subject').length };
-        })(),
+        onside: { n: onsideRows.length, recovered: onsideRows.filter(x => x.st.outcome.recoveredBy === 'subject').length },
+        refs: {
+          all: StatsEngine._refsOf(koRows, getPlay),
+          returned: StatsEngine._refsOf(koReturnedRows, getPlay),
+          onside: StatsEngine._refsOf(onsideRows, getPlay),
+        },
       };
+      const fgMadeRows = fgRows.filter(made);
       const fg = {
         att: fgRows.length,
-        made: fgRows.filter(made).length,
-        pct: fgRows.length ? Math.round(fgRows.filter(made).length / fgRows.length * 100) : 0,
-        long: fgRows.filter(made).reduce((m, x) => Math.max(m, x.st.kick.distance || 0), 0),
+        made: fgMadeRows.length,
+        pct: fgRows.length ? Math.round(fgMadeRows.length / fgRows.length * 100) : 0,
+        long: fgMadeRows.reduce((m, x) => Math.max(m, x.st.kick.distance || 0), 0),
         byDist: [['<30',0,29],['30-39',30,39],['40-49',40,49],['50+',50,99]].map(([label,lo,hi]) => {
           const attempts = fgRows.filter(x => x.st.kick.distance != null && x.st.kick.distance >= lo && x.st.kick.distance <= hi);
           return { label, att: attempts.length, made: attempts.filter(made).length };
         }).filter(bucket => bucket.att),
+        refs: { all: StatsEngine._refsOf(fgRows, getPlay), made: StatsEngine._refsOf(fgMadeRows, getPlay) },
       };
       const ret = unit => {
         const arr = rows(unit);
         const attempts = arr.filter(x => x.st.return.attempted === true && Number.isFinite(x.st.return.yards));
+        const tdRows = arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject');
+        const muffedRows = arr.filter(x => x.st.outcome.status === 'muffed');
         return {
           n: arr.length,
           avg: avg(attempts, x => x.st.return.yards),
@@ -1354,20 +1402,31 @@ export class StatsEngine {
           // play of this unit, including fair catches/touchbacks/muffs with no
           // usable return yardage).
           attempts: attempts.length,
-          td: arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject').length,
-          muffed: arr.filter(x => x.st.outcome.status === 'muffed').length,
+          td: tdRows.length,
+          muffed: muffedRows.length,
+          refs: {
+            all: StatsEngine._refsOf(arr, getPlay), attempts: StatsEngine._refsOf(attempts, getPlay),
+            td: StatsEngine._refsOf(tdRows, getPlay), muffed: StatsEngine._refsOf(muffedRows, getPlay),
+          },
         };
       };
       const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
       const blocks = rows('fieldGoalBlock');
-      const tries = { n: rows('try').length + rows('tryDefense').length };
-      return { punts, kickoffs, fg, returns, tries, blocks: { n: blocks.length, blocked: blocks.filter(x => x.st.outcome.status === 'blocked').length }, structured: true, hasData: true };
+      const blockedRows = blocks.filter(x => x.st.outcome.status === 'blocked');
+      const tries = { n: rows('try').length + rows('tryDefense').length, refs: { all: StatsEngine._refsOf([...rows('try'), ...rows('tryDefense')], getPlay) } };
+      return {
+        punts, kickoffs, fg, returns, tries,
+        blocks: { n: blocks.length, blocked: blockedRows.length, refs: { all: StatsEngine._refsOf(blocks, getPlay), blocked: StatsEngine._refsOf(blockedRows, getPlay) } },
+        structured: true, hasData: true,
+      };
     }
     const by = (type) => plays.filter(p => p.tags && p.tags.stType === type);
     const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
     const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good');
+    const refsOf = rows => StatsEngine._refsOf(rows);
 
     const pp = by('Punt');
+    const puntReturnedRows = pp.filter(p => p.tags.kickOutcome === 'Returned');
     const punts = {
       n: pp.length,
       grossAvg: avg(pp, p => num(p.tags.kickDistance)),
@@ -1381,42 +1440,55 @@ export class StatsEngine {
       // fields the structured branch now computes.
       fairCatchPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Fair Catch').length / pp.length * 100) : 0,
       blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
-      retAllowedAvg: avg(pp.filter(p => p.tags.kickOutcome === 'Returned'), p => num(p.tags.returnYards)),
+      retAllowedAvg: avg(puntReturnedRows, p => num(p.tags.returnYards)),
+      refs: {
+        all: refsOf(pp),
+        blocked: refsOf(pp.filter(p => p.tags.kickOutcome === 'Blocked')),
+        returned: refsOf(puntReturnedRows),
+      },
     };
     const ko = by('Kickoff');
+    const koReturnedRows = ko.filter(p => p.tags.kickOutcome === 'Returned');
     const kickoffs = {
       n: ko.length,
       avg: avg(ko, p => num(p.tags.kickDistance)),
       tbPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Touchback').length / ko.length * 100) : 0,
       fairCatchPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Fair Catch').length / ko.length * 100) : 0,
-      retAllowedAvg: avg(ko.filter(p => p.tags.kickOutcome === 'Returned'), p => num(p.tags.returnYards)),
+      retAllowedAvg: avg(koReturnedRows, p => num(p.tags.returnYards)),
       // Legacy charted an onside kick as its OWN stType ('Onside'), never as a
       // Kickoff modifier -- a structurally different shape than the new model's
       // isOnside flag, so it is not derivable from `by('Kickoff')` here. Stays
       // an honest null rather than a guessed zero (see the fair-catch/muffed
       // reuse above for the contrast: those DO reuse real legacy vocabulary).
       onside: { n: null, recovered: null },
+      refs: { all: refsOf(ko), returned: refsOf(koReturnedRows), onside: [] },
     };
     const fgp = by('Field Goal');
+    const fgMade = fgp.filter(made);
     const fg = {
-      att: fgp.length, made: fgp.filter(made).length,
-      pct: fgp.length ? Math.round(fgp.filter(made).length / fgp.length * 100) : 0,
-      long: fgp.filter(made).reduce((m, p) => Math.max(m, num(p.tags.kickDistance) || 0), 0),
+      att: fgp.length, made: fgMade.length,
+      pct: fgp.length ? Math.round(fgMade.length / fgp.length * 100) : 0,
+      long: fgMade.reduce((m, p) => Math.max(m, num(p.tags.kickDistance) || 0), 0),
       byDist: [['<30', 0, 29], ['30-39', 30, 39], ['40-49', 40, 49], ['50+', 50, 99]].map(([label, lo, hi]) => {
         const att = fgp.filter(p => { const d = num(p.tags.kickDistance); return d != null && d >= lo && d <= hi; });
         return { label, att: att.length, made: att.filter(made).length };
       }).filter(b => b.att > 0),
+      refs: { all: refsOf(fgp), made: refsOf(fgMade) },
     };
     const ret = (type) => {
       const arr = by(type);
-      const yds = arr.map(p => num(p.tags.returnYards)).filter(x => x != null);
+      const attemptRows = arr.filter(p => num(p.tags.returnYards) != null);
+      const yds = attemptRows.map(p => num(p.tags.returnYards));
+      const tdRows = arr.filter(p => StatsEngine.hasResult(p, 'Touchdown'));
+      const muffedRows = arr.filter(p => p.tags.kickOutcome === 'Muffed');
       return {
         n: arr.length,
         avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null,
         long: yds.length ? Math.max(...yds) : 0,
         attempts: yds.length,
-        td: arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
-        muffed: arr.filter(p => p.tags.kickOutcome === 'Muffed').length,
+        td: tdRows.length,
+        muffed: muffedRows.length,
+        refs: { all: refsOf(arr), attempts: refsOf(attemptRows), td: refsOf(tdRows), muffed: refsOf(muffedRows) },
       };
     };
     const returns = { kick: ret('Kick Return'), punt: ret('Punt Return') };
@@ -1426,7 +1498,12 @@ export class StatsEngine {
     // unit). Present as explicit nulls, not omitted keys and not fabricated
     // zeros, so every registered measure resolves to a real value (a
     // structural "not derivable here", not a silent "zero of these happened").
-    return { punts, kickoffs, fg, returns, blocks: { n: null, blocked: null }, tries: { n: null }, hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n) };
+    return {
+      punts, kickoffs, fg, returns,
+      blocks: { n: null, blocked: null, refs: { all: [], blocked: [] } },
+      tries: { n: null, refs: { all: [] } },
+      hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n),
+    };
   }
 
   _renderSpecialTeams(stats) {

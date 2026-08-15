@@ -1,3 +1,5 @@
+import { PenaltyModel } from './penalty-model.js';
+
 /**
  * StudyQuery — the redesign's pure query executor over the accepted P0-c
  * AnalyticsRegistry. It groups a play set by ONE dimension, computes the
@@ -19,8 +21,35 @@
  * custom tag/field, drive, distance, unit) still group + film-link via the
  * registry's value extractor — new query surfaces, honestly outside the report
  * golden.
+ *
+ * RECORD-SCOPED AGGREGATION (Codex review finding #2, Study expansion Phase
+ * 2): `penaltyTeam`/`penaltyFoul`/`penaltyRuling`/`penaltyPhase` are
+ * RECORD-valued dimensions -- a play belongs to group "subject" because it
+ * carries ONE matching penalty record, but that same play may carry OTHER
+ * records too (an offsetting pair charges both teams on ONE play). Computing
+ * a penalty measure from `compute(groupPlays)` unfiltered sums EVERY record
+ * on those plays, including the sibling that does not belong to this row --
+ * `penaltyFouls` for `penaltyTeam=subject` returning 3 when only 2 records
+ * are actually subject-charged. `PENALTY_RECORD_FILTER` + `_recordScopedPlays`
+ * give the measure computation a SYNTHETIC view of each group's plays whose
+ * `.penalties` array is pre-filtered to ONLY the records matching this
+ * group's value, before `stats.compute()` ever sees them -- the play
+ * objects (and therefore `matchingPlayIds`/composite refs) are untouched;
+ * only which of a play's OWN penalty records feed the aggregate changes.
+ * Scoped to exactly these four dimensions -- an unrelated dimension (e.g.
+ * `unit`) has no "this group is supposed to represent only these records"
+ * contract, so filtering there would be wrong, not more honest.
  */
 export class StudyQuery {
+  static get PENALTY_RECORD_FILTER() {
+    return {
+      penaltyTeam: (penalty, value) => penalty.team === value,
+      penaltyFoul: (penalty, value) => (penalty.foul || 'unknown') === value,
+      penaltyRuling: (penalty, value) => penalty.disposition === value,
+      penaltyPhase: (penalty, value) => penalty.phase === value,
+    };
+  }
+
   constructor(registry) {
     if (!registry || typeof registry.values !== 'function' || !registry.stats) {
       throw new TypeError('StudyQuery requires an AnalyticsRegistry');
@@ -74,6 +103,21 @@ export class StudyQuery {
     return cohort.filter(p => this.registry.values(dimension, p, context).includes(value));
   }
 
+  /** Codex review finding #2: for the four penalty RECORD-valued dimensions,
+   *  returns shallow play copies whose `.penalties` array is filtered to
+   *  only the records matching this group's value -- see the module
+   *  docblock's "RECORD-SCOPED AGGREGATION" section. A no-op (returns
+   *  `groupPlays` unchanged, by reference) for every other dimension, so
+   *  every pre-existing dimension/measure combination is untouched. */
+  _recordScopedPlays(groupPlays, dimension, value) {
+    const test = StudyQuery.PENALTY_RECORD_FILTER[dimension];
+    if (!test) return groupPlays;
+    return groupPlays.map(play => ({
+      ...play,
+      penalties: PenaltyModel.normalizeList(play?.penalties).filter(penalty => test(penalty, value)),
+    }));
+  }
+
   /**
    * run({ plays, dimension, measures?, filters?, minSample?, context? })
    *   -> { dimension, total, measures, minSample,
@@ -97,10 +141,21 @@ export class StudyQuery {
       const belowMinSample = minSample > 0 && sampleSize < minSample;
       if (belowMinSample) warnings.push(`${value}: sample ${sampleSize} below minimum ${minSample}`);
       const matchingPlayIds = groupPlays.map(p => this.registry.playRef(p, context)).sort();
-      const groupMeasures = measures.length
-        ? this.registry.readMeasures(this.stats.compute(groupPlays), measures)
-        : {};
-      return { value, sampleSize, belowMinSample, matchingPlayIds, measures: groupMeasures };
+      // Codex review finding #2: measures compute from the record-scoped
+      // view when applicable (see `_recordScopedPlays`) -- `matchingPlayIds`
+      // above stay derived from the REAL, unfiltered `groupPlays`, since
+      // every one of those plays genuinely has a matching record and its
+      // film ref belongs in the row regardless of sibling records.
+      const scopedPlays = this._recordScopedPlays(groupPlays, dimension, value);
+      const scopedStats = measures.length ? this.stats.compute(scopedPlays) : null;
+      const groupMeasures = scopedStats ? this.registry.readMeasures(scopedStats, measures) : {};
+      // Codex review finding #1: `measureRefs[id]` is the metric-eligible
+      // composite refs for measures that declare `refsPath` (`null` for
+      // every measure that doesn't -- study-screen.js falls back to
+      // `matchingPlayIds` for those, unchanged).
+      const measureRefs = {};
+      if (scopedStats) for (const id of measures) measureRefs[id] = this.registry.readRefs(scopedStats, id);
+      return { value, sampleSize, belowMinSample, matchingPlayIds, measures: groupMeasures, measureRefs };
     });
     return { dimension, total: cohort.length, measures: measures.slice(), minSample, groups, warnings };
   }

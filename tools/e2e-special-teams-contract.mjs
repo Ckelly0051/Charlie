@@ -160,7 +160,12 @@ test('structured conversion totals and score labels do not depend on legacy tags
   const missed = { id: 8, tags: { unit: 'special' }, specialTeams: event({ unit: 'fieldGoal', attemptType: 'extraPoint', outcome: { status: 'noGood', score: null } }) };
   const engine = Object.create(StatsEngine.prototype);
   assert.equal(engine._scoreType(xp), 'XP');
-  assert.deepEqual(engine._conversionStats([xp, missed]).xp, { att: 2, made: 1, pct: 50 });
+  // refs is additive (Study expansion Phase 2, Codex review finding #1): the
+  // exact eligible-cohort composite refs behind att/made. Both plays here are
+  // bare fixture objects with no `__gid`, so StatsEngine._compositeRef can't
+  // resolve an identity and both ref lists are honestly empty -- not a bug,
+  // just this fixture never carrying a game/season context.
+  assert.deepEqual(engine._conversionStats([xp, missed]).xp, { att: 2, made: 1, pct: 50, refs: { att: [], made: [] } });
 });
 
 test('scoreboard tracks ambiguous points without assigning them to either team', () => {
@@ -191,7 +196,9 @@ test('structured reports ignore quarantined legacy details and reconcile unit me
   assert.equal(stats.punts.netAvg, 35);
   assert.equal(stats.returns.kick.avg, -2);
   assert.deepEqual({ made: stats.fg.made, att: stats.fg.att, pct: stats.fg.pct }, { made: 1, att: 2, pct: 50 });
-  assert.deepEqual(stats.blocks, { n: 1, blocked: 1 });
+  // refs is additive, same reasoning as above -- this fixture's plays carry
+  // no `__gid` either.
+  assert.deepEqual(stats.blocks, { n: 1, blocked: 1, refs: { all: [], blocked: [] } });
 });
 
 await testAsync('canonical persist, reopen, snapshot, and restore keep the event losslessly', async () => {

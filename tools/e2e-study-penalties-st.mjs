@@ -99,6 +99,35 @@ const direct = await page.evaluate(() => {
   const opponentGroup = teamYards.groups.find(g => g.value === 'opponent');
   const noPlay = run(game1, 'unit', ['penaltyNoPlay']);
 
+  // Codex review finding #2, reproduced on this fixture's own numbers (not
+  // the reviewer's literal 2-vs-3): plays P1 (accepted), P3 (declined), and
+  // P4 (offsetting) each carry a genuine subject-team record, so the
+  // penaltyTeam=subject ROW correctly matches all 3 plays -- but P4 ALSO
+  // carries a sibling OPPONENT-side offsetting record. A whole-play filter
+  // that then sums every penalty record on the 3 matched plays (the exact
+  // pre-fix bug) would count P1:1 + P3:1 + P4:2 = 4 -- one too many, the
+  // opponent's own foul leaking onto the subject row. The GENERIC
+  // (non-team-scoped) `penaltyFouls` measure, record-scoped, must report
+  // exactly 3: each play's own subject-team record, never P4's opponent one.
+  const genericFoulsByTeam = run(game1, 'penaltyTeam', ['penaltyFouls']);
+  const subjectFouls = genericFoulsByTeam.groups.find(g => g.value === 'subject');
+
+  // Codex review finding #1, same cohort: the 'subject' group's raw
+  // `matchingPlayIds` are still BOTH plays (P1 + P4 -- both genuinely carry a
+  // subject record), but the MEASURE's own `measureRefs.penaltyFouls`
+  // (record-scoped, via readRefs) must be just those 2 composite refs --
+  // proving the record-scoped VALUE and the record-scoped REFS agree.
+  const subjectFoulsMatchingPlays = subjectFouls?.matchingPlayIds || [];
+  const subjectFoulsRefs = subjectFouls?.measureRefs?.penaltyFouls || [];
+
+  // Codex review finding #3: `penaltyTiming` must no longer exist as a
+  // registered/selectable dimension anywhere -- registry, DIMENSIONS array,
+  // and DIMENSION_GROUPS.
+  const timingDimension = app.analyticsRegistry.getDimension('penaltyTiming');
+  const timingInDimensionsList = app.studyScreen.constructor.DIMENSIONS.includes('penaltyTiming');
+  const timingInGroups = app.studyScreen.constructor.DIMENSION_GROUPS.some(group => group.ids.includes('penaltyTiming'));
+  const timingInSelect = Array.from(document.querySelectorAll('#wsStudyDimension option')).some(o => o.value === 'penaltyTiming');
+
   // 2: team + unit (byPhase) perspective -- `phase` is the FOUL's own
   // side-of-ball, independent of which team's SNAP the play was tagged
   // (P2 is an offense-unit play carrying a phase:'defense' foul -- the
@@ -161,6 +190,13 @@ const direct = await page.evaluate(() => {
     compareA: compareRow?.a.measures.penaltyYardsSubject,
     compareB: compareRow?.b.measures.penaltyYardsSubject,
     compareDelta: compareRow?.deltas.penaltyYardsSubject,
+    subjectFouls: subjectFouls?.measures.penaltyFouls,
+    subjectFoulsMatchingPlays: subjectFoulsMatchingPlays.slice().sort(),
+    subjectFoulsRefs: subjectFoulsRefs.slice().sort(),
+    timingDimension,
+    timingInDimensionsList,
+    timingInGroups,
+    timingInSelect,
   };
 });
 
@@ -195,6 +231,18 @@ ok(direct.bareIdOneRefs[0] === true && direct.bareIdOneRefs[1] === true,
 ok(direct.compareA === 10 && direct.compareB === 20 && direct.compareDelta === -10,
   'Game-vs-season comparison computes both sides through the identical measure definition', JSON.stringify({ a: direct.compareA, b: direct.compareB, delta: direct.compareDelta }));
 
+// ---- Codex review finding #2: multi-foul rows do not leak sibling records --
+ok(direct.subjectFouls === 3,
+  'Codex review finding #2: the generic (non-team-scoped) penaltyFouls measure, grouped by penaltyTeam=subject, reports exactly the row\'s own 3 subject-team records (P1+P3+P4) -- not 4, which would include P4\'s sibling opponent-side offsetting foul', JSON.stringify(direct.subjectFouls));
+ok(direct.subjectFoulsMatchingPlays.join(',') === 'g-pen-st-1::1,g-pen-st-1::3,g-pen-st-1::4' && direct.subjectFoulsRefs.join(',') === 'g-pen-st-1::1,g-pen-st-1::3,g-pen-st-1::4',
+  'The subject row\'s raw matchingPlayIds (all 3 plays genuinely carry a subject record) and its record-scoped measureRefs agree -- the value (3) and the ref set (3) describe the same plays, and neither leaks a 4th ref for P4\'s opponent-side sibling', JSON.stringify({ matching: direct.subjectFoulsMatchingPlays, refs: direct.subjectFoulsRefs }));
+
+// ---- Codex review finding #3: penaltyTiming is fully removed, not fixed ----
+ok(direct.timingDimension == null,
+  'Codex review finding #3: penaltyTiming is no longer a registered AnalyticsRegistry dimension', String(direct.timingDimension));
+ok(direct.timingInDimensionsList === false && direct.timingInGroups === false && direct.timingInSelect === false,
+  'penaltyTiming does not appear in StudyScreen.DIMENSIONS, DIMENSION_GROUPS, or the rendered dimension <select> -- fabricated pre-snap/live-ball timing is fully retracted, not merely hidden', JSON.stringify({ list: direct.timingInDimensionsList, groups: direct.timingInGroups, select: direct.timingInSelect }));
+
 // ---- proof #7: metric refs exactly equal Watch-film refs (through the UI) --
 let watch = await page.evaluate(async () => {
   const app = window.app;
@@ -226,16 +274,22 @@ watch = await page.evaluate(async () => {
   const original = app.filmNavigation.watch;
   const calls = [];
   app.filmNavigation.watch = (refs, options) => { calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
-  document.querySelector('#wsStudyDimension').value = 'specialTeamsUnit';
+  // Proof #1's decisive case: measure = a Special Teams RATE (its own
+  // eligible cohort is the FG-attempt subset, not every Special Teams play)
+  // grouped by an UNRELATED dimension ('unit') so the 'special' group's raw
+  // sample (14 plays) is far broader than the measure's own denominator (2).
+  document.querySelector('#wsStudyMeasure').value = 'stFieldGoalAtt';
+  document.querySelector('#wsStudyMeasure').dispatchEvent(new Event('change', { bubbles: true }));
+  document.querySelector('#wsStudyDimension').value = 'unit';
   document.querySelector('#wsStudyDimension').dispatchEvent(new Event('change', { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
-  const rowIndex = [...document.querySelectorAll('.ws-study-row > strong')].findIndex(el => el.textContent === 'Field Goal');
+  const rowIndex = [...document.querySelectorAll('.ws-study-row > strong')].findIndex(el => el.textContent === 'special');
   document.querySelector(`[data-study-row="${rowIndex}"]`)?.click();
   app.filmNavigation.watch = original;
   return calls;
 });
 ok(watch.length === 1 && watch[0].refs.sort().join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
-  'Clicking Watch on a Field Goal phase row plays exactly the two FG-attempt plays, never the try-unit plays', JSON.stringify(watch));
+  'Codex review finding #1: Watch on the "special" unit row plays exactly the 2 FG-attempt plays that produced Field Goal Rate, not all 14 Special Teams plays in that unit group', JSON.stringify(watch));
 
 // ---- UI-level: measure lens groups exist, denominator honesty, no-zero -----
 let ui = await page.evaluate(() => {
@@ -293,6 +347,28 @@ ui = await page.evaluate(() => ({
 }));
 ok(ui.dimension === 'penaltyTeam' && ui.measure === 'penaltyYardsSubject',
   'A saved view referencing a penalty measure restores its exact dimension and measure', JSON.stringify(ui));
+
+// ---- Codex review finding #4: a neutral measure gets no favorable/
+// unfavorable coloring in compare mode, even with a real, non-zero delta ----
+await page.select('#wsStudyDimension', 'penaltyTeam');
+await page.select('#wsStudyMeasure', 'penaltyFouls');
+await page.select('#wsStudyCompare', 'season');
+await new Promise(r => setTimeout(r, 50));
+const neutralDelta = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('.ws-study-row-compare')];
+  const subjectRow = rows.find(row => row.querySelector('strong')?.textContent === 'subject');
+  const deltaSpan = subjectRow?.querySelectorAll('span')[3];
+  const barRow = document.querySelector('.ws-study-delta-row');
+  return {
+    deltaText: deltaSpan?.textContent,
+    deltaClass: deltaSpan?.className || '',
+    barClass: barRow?.className || '',
+  };
+});
+ok(neutralDelta.deltaText && neutralDelta.deltaText !== '—' && neutralDelta.deltaText !== '0' && neutralDelta.deltaText !== '+0',
+  'The neutral-measure compare row has a real, non-zero delta to color (precondition for the finding)', JSON.stringify(neutralDelta));
+ok(!/is-positive|is-negative/.test(neutralDelta.deltaClass) && !/is-favorable|is-unfavorable/.test(neutralDelta.barClass),
+  'Codex review finding #4: a neutral measure (a raw penalty foul count -- neither declared higher-nor-lower-is-better) receives no favorable/unfavorable green-or-red class on its non-zero delta, in either the row or the bar visualization', JSON.stringify(neutralDelta));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Page errors:', errors); fail++; }

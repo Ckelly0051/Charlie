@@ -67,6 +67,25 @@ export class PenaltyModel {
     return situation;
   }
 
+  /** `${gameId}::${playId}` -- deduped, sorted. Only emitted for plays that
+   *  actually carry the identity (matches the composite-ref convention used
+   *  throughout the app); a play missing `__gid` is silently excluded from
+   *  `refs` rather than producing an ambiguous bare-id ref (the SAME
+   *  fail-open choice `defensivePerformance`'s legacy closures make, not a
+   *  new one invented here). */
+  static _refs(rows) {
+    const seen = new Set();
+    const out = [];
+    for (const row of rows) {
+      const gid = row.play?.__gid;
+      const id = row.play?.id;
+      if (gid == null || id == null) continue;
+      const ref = `${gid}::${id}`;
+      if (!seen.has(ref)) { seen.add(ref); out.push(ref); }
+    }
+    return out.sort();
+  }
+
   /**
    * Study expansion Phase 2 (penalties + Special Teams): `bucket()` is the
    * ONE classification formula, applied to the full record set for the
@@ -78,6 +97,13 @@ export class PenaltyModel {
    * `byTeam`/`byPhase` are keyed by every value in TEAMS/PHASES, including
    * 'unknown', so an unresolved team/phase is visible as its own bucket
    * rather than silently absorbed into another team's count.
+   *
+   * Codex review finding #1 (this checkpoint): every count also carries its
+   * OWN `refs` -- the exact composite refs of the plays whose records
+   * produced that number, not the broader play set a Study row might be
+   * grouped by. A play with an accepted AND a declined foul contributes to
+   * `refs.accepted` and `refs.declined` independently; `refs.yards` mirrors
+   * `refs.accepted` (yards are accepted-only, same records).
    */
   static summarize(plays) {
     const records = [];
@@ -89,23 +115,30 @@ export class PenaltyModel {
     }
     const bucket = rows => {
       const accepted = rows.filter(row => row.penalty.disposition === 'accepted');
+      const declined = rows.filter(row => row.penalty.disposition === 'declined');
+      const offsetting = rows.filter(row => row.penalty.disposition === 'offsetting');
+      const incomplete = rows.filter(row => row.penalty.disposition === 'unknown' || row.penalty.team === 'unknown' || !row.penalty.foul);
+      // A "no play" foul (playCounts:false) is disposition-independent --
+      // it's a fact about the down, not about who was charged or whether
+      // the penalty was accepted/declined.
+      const noPlay = rows.filter(row => row.penalty.playCounts === false);
+      // Only an ACCEPTED foul can actually gift a first down.
+      const automaticFirstDowns = accepted.filter(row => row.penalty.automaticFirstDown === true);
       return {
-        fouls: rows.length,
-        accepted: accepted.length,
-        declined: rows.filter(row => row.penalty.disposition === 'declined').length,
-        offsetting: rows.filter(row => row.penalty.disposition === 'offsetting').length,
-        incomplete: rows.filter(row => row.penalty.disposition === 'unknown' || row.penalty.team === 'unknown' || !row.penalty.foul).length,
-        // A "no play" foul (playCounts:false) is disposition-independent --
-        // it's a fact about the down, not about who was charged or whether
-        // the penalty was accepted/declined.
-        noPlay: rows.filter(row => row.penalty.playCounts === false).length,
-        // Only an ACCEPTED foul can actually gift a first down.
-        automaticFirstDowns: accepted.filter(row => row.penalty.automaticFirstDown === true).length,
+        fouls: rows.length, accepted: accepted.length, declined: declined.length,
+        offsetting: offsetting.length, incomplete: incomplete.length, noPlay: noPlay.length,
+        automaticFirstDowns: automaticFirstDowns.length,
         yards: accepted.reduce((sum, row) => sum + (row.penalty.yards || 0), 0),
+        refs: {
+          fouls: this._refs(rows), accepted: this._refs(accepted), declined: this._refs(declined),
+          offsetting: this._refs(offsetting), incomplete: this._refs(incomplete), noPlay: this._refs(noPlay),
+          automaticFirstDowns: this._refs(automaticFirstDowns), yards: this._refs(accepted),
+        },
       };
     };
     const all = bucket(records);
-    const yardsByTeam = team => bucket(records.filter(row => row.penalty.team === team)).yards;
+    const byTeam = Object.fromEntries([...this.TEAMS].map(team => [team, bucket(records.filter(row => row.penalty.team === team))]));
+    const byPhase = Object.fromEntries([...this.PHASES].map(phase => [phase, bucket(records.filter(row => row.penalty.phase === phase))]));
     return {
       flaggedPlays,
       fouls: all.fouls,
@@ -115,10 +148,10 @@ export class PenaltyModel {
       incomplete: all.incomplete,
       noPlay: all.noPlay,
       automaticFirstDowns: all.automaticFirstDowns,
-      subjectYards: yardsByTeam('subject'),
-      opponentYards: yardsByTeam('opponent'),
-      byTeam: Object.fromEntries([...this.TEAMS].map(team => [team, bucket(records.filter(row => row.penalty.team === team))])),
-      byPhase: Object.fromEntries([...this.PHASES].map(phase => [phase, bucket(records.filter(row => row.penalty.phase === phase))])),
+      subjectYards: byTeam.subject.yards,
+      opponentYards: byTeam.opponent.yards,
+      byTeam, byPhase,
+      refs: all.refs,
       records,
       hasData: records.length > 0,
     };

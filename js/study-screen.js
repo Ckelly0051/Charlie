@@ -16,7 +16,7 @@ export class StudyScreen {
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
       'playDir', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier',
-      'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyTiming', 'penaltyPlayCounts',
+      'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
       'customTag', 'customField'];
   }
 
@@ -170,7 +170,7 @@ export class StudyScreen {
       { name: 'Situation', ids: ['down', 'distance', 'fieldZone', 'quarter', 'drive', 'hash'] },
       { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formation', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'playDir', 'playType', 'runPass'] },
       { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
-      { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyTiming', 'penaltyPlayCounts'] },
+      { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
       { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier'] },
       { name: 'Players', ids: ['unit', 'playerRole', 'grade'] },
       { name: 'Custom', ids: ['customTag', 'customField'] },
@@ -432,16 +432,32 @@ export class StudyScreen {
     this._renderWarnings(result.warnings || []);
   }
 
+  /**
+   * Codex review finding #1: the exact metric-eligible refs for `measure`
+   * within `group`, when the measure declares `refsPath` (Study expansion
+   * Phase 2's penalty/Special Teams measures); falls back to the group's
+   * raw `matchingPlayIds` for every measure that predates this checkpoint
+   * (`group.measureRefs[measure]` is `null` for those -- a documented,
+   * additive no-op). This is the SINGLE seam every row/bar/Watch-Results/
+   * compare/pivot use so none of them can independently drift back to the
+   * broader cohort.
+   */
+  _groupRefs(group, measure) {
+    const scoped = group.measureRefs?.[measure];
+    return scoped != null ? scoped : group.matchingPlayIds;
+  }
+
   _renderQuery(result, scope, measure, rangeName) {
     const groups = result.groups.filter(group => group.sampleSize > 0);
-    const matching = [...new Set(groups.flatMap(group => group.matchingPlayIds))];
-    this.rows = groups.map(group => ({ label: group.value, refs: group.matchingPlayIds }));
+    const matching = [...new Set(groups.flatMap(group => this._groupRefs(group, measure)))];
+    this.rows = groups.map(group => ({ label: group.value, refs: this._groupRefs(group, measure) }));
     const scopeLabel = scope === 'game' ? 'current game' : scope === 'range' ? rangeName : 'full season';
     this._saveCohorts = [{ id: 'result', label: scopeLabel, refs: matching }];
     this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${this._esc(scopeLabel)}</span>`;
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((group, index) => {
       const m = group.measures;
-      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${this._esc(this._measureDenominatorText(measure, m, group.sampleSize))}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
+      const refs = this._groupRefs(group, measure);
+      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${this._esc(this._measureDenominatorText(measure, m, group.sampleSize))}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${refs.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
     this._renderQueryVisuals(groups, measure, matching);
     this._setWatchAll(matching);
@@ -500,26 +516,33 @@ export class StudyScreen {
       const tds = colValues.map(value => {
         const cell = cells.get(`${rowLabel}\u0000${value}`);
         if (!cell || !cell.sampleSize) return `<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span><span class="ws-pivot-n">no plays</span></td>`;
-        const idx = addTarget(`${rowLabel} · ${value}`, cell.matchingPlayIds);
+        // Codex review finding #1: the cell's Watch action AND its disclosed
+        // count both come from the measure's own eligible refs, not the raw
+        // filtered sample -- a "2 of 14" FG-rate cell can no longer Watch
+        // (or claim) 14 plays.
+        const cellRefs = this._groupRefs(cell, measure);
+        const idx = addTarget(`${rowLabel} · ${value}`, cellRefs);
         cellIndex.set(idx, true);
         // Under-sampled cells stay visible and are labelled. Hiding them is how a
         // coach ends up trusting a 2-play cell without knowing it is a 2-play cell.
         const small = cell.belowMinSample ? ' is-small' : '';
-        return `<td class="ws-pivot-cell${small}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch ${this._esc(rowLabel)} ${this._esc(value)}, ${cell.sampleSize} play${cell.sampleSize === 1 ? '' : 's'}"><span class="ws-pivot-value">${this._measure(measure, cell.measures[measure])}</span><span class="ws-pivot-n">${cell.sampleSize}${cell.belowMinSample ? ' · low sample' : ''}</span></button></td>`;
+        return `<td class="ws-pivot-cell${small}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch ${this._esc(rowLabel)} ${this._esc(value)}, ${cellRefs.length} play${cellRefs.length === 1 ? '' : 's'}"><span class="ws-pivot-value">${this._measure(measure, cell.measures[measure])}</span><span class="ws-pivot-n">${cellRefs.length}${cell.belowMinSample ? ' · low sample' : ''}</span></button></td>`;
       }).join('');
-      const totalIdx = addTarget(rowLabel, group.matchingPlayIds);
-      const totalCell = `<td class="ws-pivot-cell ws-pivot-total${group.belowMinSample ? ' is-small' : ''}"><button type="button" class="ws-pivot-btn" data-study-row="${totalIdx}" aria-label="Watch all ${this._esc(rowLabel)}, ${group.sampleSize} plays"><span class="ws-pivot-value">${this._measure(measure, group.measures[measure])}</span><span class="ws-pivot-n">${group.sampleSize}${group.belowMinSample ? ' · low sample' : ''}</span></button></td>`;
+      const rowRefs = this._groupRefs(group, measure);
+      const totalIdx = addTarget(rowLabel, rowRefs);
+      const totalCell = `<td class="ws-pivot-cell ws-pivot-total${group.belowMinSample ? ' is-small' : ''}"><button type="button" class="ws-pivot-btn" data-study-row="${totalIdx}" aria-label="Watch all ${this._esc(rowLabel)}, ${rowRefs.length} plays"><span class="ws-pivot-value">${this._measure(measure, group.measures[measure])}</span><span class="ws-pivot-n">${rowRefs.length}${group.belowMinSample ? ' · low sample' : ''}</span></button></td>`;
       return `<tr><th scope="row">${this._esc(rowLabel)}</th>${tds}${totalCell}</tr>`;
     }).join('');
 
     const footCells = colValues.map(value => {
       const total = colTotals.get(String(value));
       if (!total || !total.sampleSize) return '<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span></td>';
-      const idx = addTarget(String(value), total.matchingPlayIds);
-      return `<td class="ws-pivot-cell${total.belowMinSample ? ' is-small' : ''}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch all ${this._esc(value)}, ${total.sampleSize} plays"><span class="ws-pivot-value">${this._measure(measure, total.measures[measure])}</span><span class="ws-pivot-n">${total.sampleSize}</span></button></td>`;
+      const colRefs = this._groupRefs(total, measure);
+      const idx = addTarget(String(value), colRefs);
+      return `<td class="ws-pivot-cell${total.belowMinSample ? ' is-small' : ''}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch all ${this._esc(value)}, ${colRefs.length} plays"><span class="ws-pivot-value">${this._measure(measure, total.measures[measure])}</span><span class="ws-pivot-n">${colRefs.length}</span></button></td>`;
     }).join('');
 
-    const matching = [...new Set(rowGroups.flatMap(group => group.matchingPlayIds))];
+    const matching = [...new Set(rowGroups.flatMap(group => this._groupRefs(group, measure)))];
     const grandIdx = addTarget('All matching plays', matching);
     const scopeLabel = state.scope === 'game' ? 'current game' : state.scope === 'range' ? sets.rangeName : 'full season';
     this._saveCohorts = [{ id: 'result', label: scopeLabel, refs: matching }];
@@ -552,15 +575,18 @@ export class StudyScreen {
 
   _renderCompare(result, measure, compareMode) {
     const rows = result.rows.filter(row => row.a.sampleSize > 0 || row.b.sampleSize > 0);
-    const aRefs = [...new Set(rows.flatMap(row => row.a.matchingPlayIds))];
-    const bRefs = [...new Set(rows.flatMap(row => row.b.matchingPlayIds))];
+    const aRefs = [...new Set(rows.flatMap(row => this._groupRefs(row.a, measure)))];
+    const bRefs = [...new Set(rows.flatMap(row => this._groupRefs(row.b, measure)))];
     const bothRefs = [...new Set([...aRefs, ...bRefs])];
     this._saveCohorts = [
       { id: 'base', label: result.a.label, refs: aRefs },
       { id: 'against', label: result.b.label, refs: bRefs },
       { id: 'both', label: 'Both cohorts', refs: bothRefs },
     ];
-    this.rows = rows.map(row => ({ label: row.value, refs: row.a.matchingPlayIds.length ? row.a.matchingPlayIds : row.b.matchingPlayIds }));
+    this.rows = rows.map(row => {
+      const rowARefs = this._groupRefs(row.a, measure);
+      return { label: row.value, refs: rowARefs.length ? rowARefs : this._groupRefs(row.b, measure) };
+    });
     this._control('wsStudySummary').innerHTML = `<strong>${aRefs.length} vs ${bRefs.length} plays</strong><span>${this._esc(result.a.label)} compared with ${this._esc(result.b.label)}</span>`;
     this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
       const delta = row.deltas[measure];
@@ -821,8 +847,7 @@ export class StudyScreen {
     const bars = ranked.slice(0, 8).map(row => {
       const index = rows.indexOf(row), delta = Number(row.deltas[measure]) || 0;
       const width = Math.max(2, Math.round(Math.abs(delta) / max * 50));
-      const favorable = this._isFavorableDelta(measure, delta);
-      return `<button class="ws-study-delta-row ${favorable ? 'is-favorable' : delta ? 'is-unfavorable' : ''}" data-study-row="${index}" aria-label="Watch ${this._esc(row.value)} film"><span>${this._esc(row.value)}</span><i aria-hidden="true"><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong class="${this._deltaClass(measure, delta)}">${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}</strong></button>`;
+      return `<button class="ws-study-delta-row ${this._deltaVisualClass(measure, delta)}" data-study-row="${index}" aria-label="Watch ${this._esc(row.value)} film"><span>${this._esc(row.value)}</span><i aria-hidden="true"><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong class="${this._deltaClass(measure, delta)}">${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}</strong></button>`;
     }).join('');
     host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
   }
@@ -840,18 +865,69 @@ export class StudyScreen {
     return { run: classified ? run / classified * 100 : 0, pass: classified ? pass / classified * 100 : 0, classified };
   }
 
-  _lowerIsBetter(measure) {
-    // Study expansion Phase 2: only measures UNAMBIGUOUSLY scoped to "us" are
-    // marked here -- `byPhase` (offense/defense/special) classifies which
-    // SNAP a foul happened on, not which team was charged, so those measures
-    // stay at the neutral default rather than guessing a favorable direction.
-    return ['negativeRate', 'turnovers',
+  /**
+   * Codex review finding #4 (this checkpoint): `_lowerIsBetter` was boolean,
+   * so every measure NOT on that list silently defaulted to higher-is-better
+   * -- including genuinely neutral/context-dependent ones (a phase-scoped
+   * penalty count that could belong to either team; a punt touchback rate,
+   * where forcing a touchback vs. allowing a return is a strategic tradeoff,
+   * not a scored outcome). Explicit three-state polarity: a measure is
+   * 'higher' or 'lower' ONLY when it is on one of these two lists; anything
+   * else, including every measure this checkpoint could not classify with
+   * confidence, is 'neutral' and renders with NO favorable/unfavorable
+   * color at all. The RICH_METRIC_PAIRS path is unaffected -- it already
+   * carries real per-metric polarity from AnalyticsMetrics and never reaches
+   * this fallback.
+   */
+  static get HIGHER_IS_BETTER_MEASURES() {
+    return new Set([
+      'successRate', 'explosiveRate', 'havocRate', 'touchdowns', 'epaPerPlay',
+      // Charged to the OPPONENT -- unambiguously good for us.
+      'penaltyYardsOpponent', 'penaltyAcceptedOpponent',
+      'stPuntGrossAvg', 'stPuntNetAvg', 'stPuntHangAvg',
+      'stKickoffAvg', 'stKickoffOnsideRecovered',
+      'stFieldGoalMade', 'stFieldGoalPct', 'stFieldGoalLong', 'stFieldGoalBlocked',
+      'stExtraPointMade', 'stExtraPointPct', 'stTwoPointMade', 'stTwoPointPct',
+      'stKickReturnAvg', 'stKickReturnLong', 'stKickReturnTD',
+      'stPuntReturnAvg', 'stPuntReturnLong', 'stPuntReturnTD',
+    ]);
+  }
+  static get LOWER_IS_BETTER_MEASURES() {
+    return new Set([
+      'negativeRate', 'turnovers',
+      // Charged to US -- unambiguously costly.
       'penaltyYardsSubject', 'penaltyAcceptedSubject',
       'stPuntBlocked', 'stKickReturnMuffed', 'stPuntReturnMuffed',
-      'stKickoffReturnAllowedAvg', 'stPuntReturnAllowedAvg'].includes(measure);
+      'stKickoffReturnAllowedAvg', 'stPuntReturnAllowedAvg',
+    ]);
   }
-  _isFavorableDelta(measure, delta) { return delta !== 0 && (this._lowerIsBetter(measure) ? delta < 0 : delta > 0); }
-  _deltaClass(measure, delta) { return !delta ? '' : this._isFavorableDelta(measure, delta) ? 'is-positive' : 'is-negative'; }
+  /** Everything else -- including 'runShare'/'passShare' (a mix, not a
+   *  performance score), phase-scoped penalty counts/yards (the foul's own
+   *  side-of-ball, not who was charged), raw foul/no-play/offsetting/
+   *  declined/unresolved counts, punt/kickoff/FG-attempt/return COUNTS, and
+   *  touchback/fair-catch rates (a strategic tradeoff, not a scored result)
+   *  -- is deliberately 'neutral', never colored. */
+  _measurePolarity(measure) {
+    if (StudyScreen.HIGHER_IS_BETTER_MEASURES.has(measure)) return 'higher';
+    if (StudyScreen.LOWER_IS_BETTER_MEASURES.has(measure)) return 'lower';
+    return 'neutral';
+  }
+  _isFavorableDelta(measure, delta) {
+    if (delta == null || delta === 0) return false;
+    const polarity = this._measurePolarity(measure);
+    if (polarity === 'neutral') return false;
+    return polarity === 'higher' ? delta > 0 : delta < 0;
+  }
+  _deltaClass(measure, delta) {
+    if (!delta || this._measurePolarity(measure) === 'neutral') return '';
+    return this._isFavorableDelta(measure, delta) ? 'is-positive' : 'is-negative';
+  }
+  /** Bar-row variant of `_deltaClass` -- same neutral guard, distinct CSS
+   *  vocabulary ('is-favorable'/'is-unfavorable' vs '.ws-study-delta-row'). */
+  _deltaVisualClass(measure, delta) {
+    if (this._measurePolarity(measure) === 'neutral') return '';
+    return this._isFavorableDelta(measure, delta) ? 'is-favorable' : delta ? 'is-unfavorable' : '';
+  }
 
   _seedDateRange() {
     const from = this._control('wsStudyDateFrom'), to = this._control('wsStudyDateTo');
