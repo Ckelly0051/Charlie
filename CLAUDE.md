@@ -14,6 +14,250 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — Study expansion Phase 2: Penalties + Special Teams — AWAITING CODEX REVIEW (2026-08-15)
+
+**Builder: Claude. Baseline: `9c1b90a` (the accepted Study coaching-analysis
+expansion, e2e-tag-projform intermittent closed). Scope: penalty and Special
+Teams coaching analysis in Study, over the existing structured
+`PenaltyModel`/`SpecialTeamsModel`/`StatsEngine`/registry seams — no new
+query engine, no parallel formulas in `study-screen.js`.**
+
+**Penalty analysis.** `PenaltyModel.summarize(plays)` gained additive fields,
+byte-identical on every pre-existing one (`fouls`/`accepted`/`declined`/
+`offsetting`/`incomplete`/`subjectYards`/`opponentYards`/`records`/
+`hasData` unchanged — verified by the golden diff below and the pre-existing
+`e2e-penalty-contract.mjs`, still 7/7):
+- `noPlay` — records with `playCounts:false`, independent of disposition.
+- `automaticFirstDowns` — accepted records only.
+- `byTeam`/`byPhase` — the SAME `fouls/accepted/declined/offsetting/
+  incomplete/yards` shape, computed for each `team`(subject/opponent/unknown)
+  and `phase`(offense/defense/special/deadBall/unknown) bucket
+  **independently from the record set**, never by filtering the cohort and
+  re-summing. That distinction is the one correctness trap this checkpoint
+  had to close: a play carrying BOTH a subject and an opponent penalty (an
+  offsetting pair) would double-count one team's bucket if a coach's
+  "penalties by team" view were built by filtering plays to `penaltyTeam
+  includes X` and re-running the generic aggregate over that cohort.
+  `byTeam`/`byPhase` classify each RECORD by its own team/phase, so an
+  offsetting pair contributes exactly one record to each side, never two to
+  one. Registry measures (`penaltyAcceptedSubject`/`penaltyAcceptedOpponent`/
+  `penaltyAcceptedOffense`/`penaltyAcceptedDefense`/`penaltyAcceptedSpecial
+  Teams`/`penaltyYardsOffense`/`penaltyYardsDefense`, plus the pre-existing-
+  named `penaltyYardsSubject`/`penaltyYardsOpponent`) read these buckets
+  directly. Deliberately NOT marked as "our team" for the phase-scoped ones
+  (`penaltyAcceptedOffense` etc.) — `phase` records which SIDE OF THE BALL a
+  foul happened on, not who was charged (an opponent's pass interference
+  against our offense is `phase:'offense', team:'opponent'`), so those
+  measures stay at neutral compare-mode polarity rather than guessing a
+  favorable direction.
+- **Pre-snap vs. live-ball** ("where the stored model supports it," per the
+  brief): `PenaltyModel.PHASES` has no dedicated pre-snap concept, but
+  `'deadBall'` already means exactly that (false start, delay of game,
+  illegal formation — the ball was never live), while offense/defense/special
+  are all live-snap fouls. New registry dimension `penaltyTiming` relabels
+  the EXISTING enum (`'Dead ball'` vs `'Live ball'`); it never guesses a
+  timing the coach didn't chart, and `'unknown'` phase emits no value here
+  (the existing `penaltyPhase` dimension already offers an explicit
+  `'unknown'` bucket for that).
+- Accepted-only yards rule is enforced structurally inside `PenaltyModel`
+  itself (both the pre-existing top-level fields and the new byTeam/byPhase
+  buckets sum only `disposition:'accepted'` records) — never re-derived or
+  reasoned about at the registry or UI layer.
+
+**Special Teams analysis.** `StatsEngine._specialTeamsStats()` gained
+additive fields in **both** the structured and legacy branches (the
+structured/legacy quarantine — never blend untrusted legacy data into a
+trusted structured total — is untouched):
+- `punts.fairCatchPct`, `punts.retAllowedAvg` (punt coverage/return-allowed
+  was previously computed for kickoffs only; punts now have the same field).
+- `kickoffs.fairCatchPct`, `kickoffs.onside: {n, recovered}` (isOnside +
+  recoveredBy are structured-model fields; the legacy model charted an onside
+  kick as its own separate `stType:'Onside'`, never a Kickoff modifier — a
+  structurally different shape, so the legacy branch reports `onside:
+  {n: null, recovered: null}` rather than guessing).
+- `returns.kick`/`returns.punt` gain `attempts` (the exact denominator behind
+  `avg`/`long`, distinct from `n` which includes fair catches/touchbacks with
+  no usable return yardage) and `muffed` (reused from the existing legacy
+  `kickOutcome:'Muffed'` vocabulary and the structured `outcome.status:
+  'muffed'`, not invented).
+- `blocks`/`tries` are present in the legacy branch too, as explicit
+  `{n: null, blocked: null}`/`{n: null}` — legacy has no dedicated
+  "field-goal-block-unit" or "try" charting concept at all (a blocked FG was
+  just `kickOutcome:'Blocked'` on the kicking team's own attempt), so this is
+  a structural "not derivable here," never a fabricated zero or an omitted
+  key that would make a registered measure resolve to `undefined`.
+- **Tries stay isolated from FG/offense per the accepted try contract,
+  unchanged.** New measures read the EXISTING `stats.conversions.xp`/`.two`
+  block (`StatsEngine._conversionStats`, untouched) for XP/2-Pt att/made/pct,
+  and the EXISTING `stats.specialTeams.fg` block (already filtered to
+  `attemptType==='fieldGoal'`) for Field Goal att/made/pct/long. A structured
+  `try`/`tryDefense` play can never reach the FG counts and vice versa —
+  proven directly in the new harness (`stFieldGoalAtt`=2 vs `stExtraPointAtt`
+  =2 vs `stTwoPointAtt`=1 on a fixture where all three coexist).
+- **Literal football phase labels, including the XP/2-Pt split.** New
+  registry dimension `specialTeamsUnit` resolves the structural `unit` id
+  into a coach-facing label (Kickoff / Kick Return / Punt / Punt Return /
+  Field Goal / Field Goal Block), and for `try`/`tryDefense` specifically
+  splits by `attemptType` into "Extra Point" / "Two-Point Try" — the try
+  contract keeps both on one structural unit distinguished only by
+  `attemptType`, so a raw `unit` dimension could never separate them. New
+  `specialTeamsModifier` dimension surfaces `isOnside`/`isFake` as
+  "Onside"/"Fake" values. Both are ADDITIVE alongside the pre-existing
+  `specialTeamsPhase` dimension (raw unit id, unchanged), so no saved view
+  filtering on the old dimension is affected.
+
+**Honesty: never render missing data as zero — closed at the registry
+layer, and found a real pre-existing bug while proving it.** A handful of
+StatsEngine rate fields (`punts.tbPct`, `kickoffs.tbPct`, `fg.pct`,
+`conversions.xp/two.pct`, and the new `fairCatchPct` fields) intentionally
+return a literal `0` — not `null` — on an empty denominator, because Reports
+has depended on that exact shape since before this checkpoint; changing it
+there risks a real regression on a surface this checkpoint doesn't touch.
+`AnalyticsRegistry.readMeasures()` gained an opt-in `zeroDenominatorPath`:
+a measure declares the path to its own true denominator, and `readMeasures`
+coerces the value to `null` (never touching `stats` itself, never touching
+what Reports reads) whenever that denominator is empty — Study's "0%" become
+honest "not charted" without a second copy of any formula. **Building this
+surfaced a real bug in `study-screen.js` predating this checkpoint:**
+`_measure()`/`_pct()` computed `Number(value)` and checked
+`Number.isFinite(n)` — but `Number(null) === 0`, a genuinely finite number,
+so a `null` value (the exact "not charted" signal this whole mechanism
+exists to produce) would have rendered as `"0%"` instead of `"—"`. Both now
+check `value == null` before calling `Number()`. This was latent before
+(nothing in the app produced an explicit `null` measure value until this
+checkpoint), but it is now load-bearing, so it's fixed here rather than
+left for a future caller to rediscover.
+
+**UX.** Two new option groups on the primary-metric picker, "Penalties" and
+"Special Teams" (`StudyScreen.MEASURE_LENSES`), alongside the existing
+"Coaching metrics"/"Advanced" — literal football labels
+("Punt Net Avg (yds)", "Field Goal Rate", "Offensive Penalty Yards"), not
+implementation ids. New dimensions folded into the existing
+`DIMENSION_GROUPS` ("Outcome & risk" gains `penaltyTiming`; "Special Teams"
+gains `specialTeamsUnit`/`specialTeamsModifier`). The "Plays" column is now
+denominator-aware: a measure whose true eligible count differs from the
+group's raw sample (e.g. Field Goal Rate inside a "Special Teams" unit group
+of 14 plays, only 2 of them FG attempts) discloses `"2 of 14"` instead of
+silently implying the rate was computed over every play in the row — a
+NO-OP for every measure that predates this checkpoint (the "N of M" logic
+only activates when a measure explicitly declares its own denominator).
+Every new measure rides the SAME `run()`/`compare()`/pivot/save-view/
+Save-to-Plan machinery as the pre-existing flat measures — comparisons
+(game/season/recent/prior/date-range) work for free, with zero new code,
+because they're the same measures on the same engine.
+
+**Known limitations, disclosed rather than left implicit:**
+1. **Pivot (cross-tab) mode's "Plays" cells still show the group's raw
+   sample, not a measure-specific denominator.** Pivot was already generic
+   over any flat measure before this checkpoint; the new denominator-aware
+   Plays column was only wired into the primary query/compare table rows,
+   not pivot cells. The pivot VALUES themselves are correct (same
+   `readMeasures()` path); only the disclosed sample count in a pivot cell
+   can still read the group's raw count rather than the measure's own
+   eligible count.
+2. **`penaltyAcceptedOffense`/`penaltyAcceptedDefense`/
+   `penaltyAcceptedSpecialTeams` and their yards siblings answer "penalties
+   on offensive/defensive/ST snaps," not "penalties WE committed on
+   offense/defense."** `phase` is the foul's own side-of-ball, independent of
+   `team` (who was charged) — combining a `penaltyPhase` breakdown with an
+   explicit `penaltyTeam` filter in the Filters panel gives the full cross;
+   the standalone phase-only measures are intentionally the broader,
+   honestly-named question.
+3. **A cross-game, multi-record correctness trap was found and fixed during
+   this build, not caught by review:** hand-tracing the fixture's own
+   expected values against the byTeam bucket math initially predicted
+   `subjectAccepted===2`/`opponentAccepted===2` for a cohort with one
+   offsetting pair; the actual, correct answer is 1/1 (only the genuinely
+   `accepted` record on each side counts — the offsetting pair contributes a
+   `fouls` count but not an `accepted` count). The test assertion was wrong,
+   not the code; caught by running the harness and re-deriving the expected
+   value by hand against the real classification rules before "fixing" it.
+   Recorded here because it's the kind of arithmetic slip a reviewer should
+   specifically re-verify, not wave through because the harness is green.
+
+**Files changed:** `js/penalty-model.js` (`summarize()` — `bucket()` helper,
+`noPlay`, `automaticFirstDowns`, `byTeam`, `byPhase`, all additive);
+`js/stats-engine.js` (`_specialTeamsStats()` — additive fields in both
+branches, described above); `js/analytics-registry.js` (`penalties` block
+registered; `penaltyTiming`/`specialTeamsUnit`/`specialTeamsModifier`
+dimensions; ~50 new measures; `readMeasures()`'s `zeroDenominatorPath`
+coercion); `js/study-screen.js` (new dimension/measure ids folded into
+existing lists/groups; `_measureDenominatorText()`; the `_measure()`/`_pct()`
+null-handling fix; `_lowerIsBetter()` extended for the unambiguous
+team-scoped penalty/coverage measures); `tools/e2e-study-penalties-st.mjs`
+(NEW, 18/18 — the ten required proof categories); `tools/e2e-study-screen.mjs`
+(one pre-existing assertion updated for the picker's new optgroup labels —
+a real, reviewed addition, not a weakened check); `tools/parity-golden/
+synthetic-edge.json` (regenerated — see below).
+
+**Parity — regenerated and audited, not masked.** The additive StatsEngine
+fields changed `stats.compute()`'s OUTPUT SHAPE even where no play in the
+fixture exercises new behavior (the legacy branch's new `blocks`/`tries`/
+`onside` nulls are unconditional), so the committed golden needed
+regeneration. A dedicated diff script confirmed **every scope's diff is
+exactly 20 additions, 0 value changes** — every existing key byte-identical,
+every new key exactly one of the fields listed above with the expected
+value (`0` for a real legacy zero, `null` for a structurally-inapplicable
+concept). `mavericks-6game.json` (local, gitignored, the coach's real
+season) regenerated on the same machine on the identical additive basis —
+not committed, per existing convention.
+
+**Verification:**
+- `node tools/e2e-study-penalties-st.mjs` — **18/18**, NEW. Covers all ten
+  required proof categories: every penalty disposition
+  (accepted/declined/offsetting/unresolved/no-play) distinct and correctly
+  classified; team/unit perspective with a hand-verified offsetting-pair
+  non-double-count case; accepted-only yards; every Special Teams phase
+  including the literal XP/2-Pt split; tries isolated from FG counts on a
+  fixture where all three coexist; missing structured data never renders as
+  zero (two DISTINCT cases proven separately — a structured cohort with a
+  real zero vs. a cohort with no structured data at all); metric refs
+  exactly equal Watch-film refs (both a penalty-dimension row and a
+  Special-Teams-phase row, driven through the real UI with
+  `filmNavigation.watch` stubbed); composite refs survive a bare play id
+  (`1`) reused across two different games; game-vs-season comparison
+  computed through the identical `run()` call shape on both sides
+  (independently verified: 10 vs 20, delta −10).
+- `node tools/e2e-analytics-registry.mjs` — **33/33** (unchanged count from
+  before this checkpoint's harden-test addition — the pre-existing "every
+  ready measure resolves to a defined value" assertion picked up all ~50 new
+  measures automatically and passed without modification, confirming every
+  new measure resolves to a real value or an honest `null`, never
+  `undefined`, against the harness's own mixed fixture).
+- `node tools/e2e-study-query.mjs` **48/48**, `node tools/e2e-study-screen.mjs`
+  **99/99** (was 98; the one picker-label assertion updated, described
+  above), `node tools/e2e-parity.mjs` **2/2**, `node tools/e2e-penalty-
+  contract.mjs` **7/7**, `node tools/e2e-special-teams-contract.mjs`
+  **20/20**, `node tools/e2e-analytics-metrics.mjs` **28/28**,
+  `node tools/e2e-native-reports.mjs` **76/76** — all unchanged or
+  confirming zero regression on the surfaces this checkpoint's formula
+  additions touch or sit beside.
+- Full canonical gate (`bash tools/run-gate.sh`): **87 harnesses | 87 green
+  | 0 skipped | 0 failed** (was 86 before this checkpoint's one new
+  harness), including `e2e-realdata.mjs` **13/13** against the coach's real
+  season and `e2e-tag-projform.mjs` **54/54** (the harness whose intermittent
+  crash was closed at `9c1b90a`, immediately prior to this checkpoint —
+  confirmed still clean here, not re-litigated).
+
+**Commit:** `9f355eb` on `claude/football-film-analyzer-GRiCW`.
+
+**Handoff to Codex for independent adversarial review.** Highest-value places
+to look first, in order: (a) the `byTeam`/`byPhase` independent-classification
+claim in `PenaltyModel.summarize()` — confirm no cohort/filter shape can
+still cause an offsetting pair or a multi-foul play to double-count either
+bucket, beyond the one case this checkpoint's own harness exercises; (b) the
+`zeroDenominatorPath` mechanism in `readMeasures()` — confirm it truly never
+mutates `stats` and that every rate measure prone to the "0 on empty
+denominator" StatsEngine behavior is covered (the list is hand-maintained,
+not derived, so a future rate field could be missed); (c) whether the
+`_measure()`/`_pct()` null-handling fix should also be applied anywhere else
+in the codebase with the identical `Number(value)` + `isFinite` pattern
+(the fix here was scoped to what this checkpoint's own new code touches, not
+a codebase-wide sweep); (d) the pivot known-limitation (#1 above) — confirm
+it's genuinely non-blocking (values correct, only the disclosed sample count
+imprecise) rather than a masked correctness gap. No installer, package, tag,
+or deploy is authorized from this checkpoint.
+
 ### CODEX REPAIR - e2e-tag-projform intermittent CLOSED (2026-08-15)
 
 **Root cause fixed.** The harness wrapped synchronous chip clicks, tag writes,
