@@ -14,6 +14,107 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the `c936899` re-review findings — AWAITING RE-REVIEW (2026-08-14)
+
+**Builder: Claude. Repairs both open findings from Codex's second CHANGES
+REQUESTED verdict on `c936899` (recorded below at `fdf4920`).** Both verified
+against source and reproduced before touching anything.
+
+**1. [P1, closed] `refs` could open more (or fewer) clips than the metric's
+own denominator counted.** The first repair (`c936899`) fixed the
+*identity* half of finding #2 — an unresolvable play now fails loudly
+instead of vanishing — but not the *eligibility* half: `metric()` still
+resolved refs from the RAW caller cohort while `denominator` came from each
+metric's own eligible/legacy SUBSET of it. In honest mode (the default) an
+ineligible play was correctly excluded from `denominator` but its
+perfectly-valid `__gid`/`id` still produced a ref, so a `denominator: 1`
+result could carry two refs. Root-caused and fixed at the source: every
+metric's `compute()` (via the shared `eligibleRate()`/`yardsPerPlayCompute()`
+drivers) now also returns `refSource` — the EXACT play list that produced
+`denominator` — and `metric()` resolves refs from `refSource`, never the raw
+cohort. `resolveRefs` was also hardened to catch the sibling case Codex
+named in the same finding: a **duplicate** composite ref (two distinct
+`refSource` entries resolving to the identical `gameId::playId`) now fails
+loudly by default too, exactly like an unresolvable one, instead of
+silently collapsing via `Set` dedup with no accounting. Together this makes
+`refs.length + unlinkedCount === denominator` a genuine, always-true
+invariant of the contract, not just true by coincidence on easy fixtures.
+`defensivePerformance`'s legacy calls are unaffected numerically — with
+`missingAsZero: true` (which it always passes), `refSource === cohort`
+always, so `resolveRefs` receives exactly what it always received for that
+caller; the fix only changes behavior in honest mode, which
+`defensivePerformance` never uses.
+- **2. [P2, closed] Metric construction still had two owners.** The first
+  repair gave `AnalyticsRegistry.metricsEngine()` its own construction site
+  (closing the *original* finding #4) — but `StatsEngine.
+  defensivePerformance()` still built a second, structurally-identical
+  `AnalyticsMetrics` binding independently, so Study's and Reports' engines
+  could still drift onto two different objects with nothing to catch it.
+  Fixed by moving construction to a single new `StatsEngine.metricsEngine()`
+  method (StatsEngine already owns every instance method the binding
+  needs — `_isSuccessfulPlay`, `_isSuccessfulPlayEligible`,
+  `_buildCutFilter`, and the constructor's private `this._metricsEngine`
+  cache), called by both `defensivePerformance()` and
+  `AnalyticsRegistry.metricsEngine()` (now a one-line delegate). Verified by
+  a direct identity assertion (`registry.metricsEngine() ===
+  registry.stats.metricsEngine()`), not just "both construct with the same
+  deps shape" — the two consumers now resolve to the literal same object.
+
+**Files changed:** `js/analytics-metrics.js` (`resolveRefs` renamed
+parameter to `refSource` and gained duplicate-ref detection;
+`eligibleRate`/`yardsPerPlayCompute` return `refSource`; `metric()` resolves
+refs from it); `js/stats-engine.js` (new `metricsEngine()` method,
+`defensivePerformance()` now calls `this.metricsEngine()` instead of
+constructing its own); `js/analytics-registry.js` (`metricsEngine()` is now
+a one-line delegate to `this.stats.metricsEngine()`; the now-unused
+`AnalyticsMetrics` import removed); `tools/e2e-analytics-metrics.mjs`
+(24→28: the decisive "ineligible-but-resolvable play must not leak a second
+ref" case, an ineligible-malformed-play case, duplicate-ref throw + compat
++ invariant checks); `tools/e2e-analytics-registry.mjs` (27→28: direct
+`registry.metricsEngine() === registry.stats.metricsEngine()` identity
+check).
+
+**Verification:**
+- `node tools/e2e-analytics-metrics.mjs` — **28/28** (was 24; +4, all on
+  finding #1: the decisive one-play/one-ref case, the ineligible-malformed-
+  play case, duplicate-ref fail-loud, duplicate-ref compat-mode + invariant).
+- `node tools/e2e-analytics-registry.mjs` — **28/28** (was 27; +1, the
+  one-owner identity check).
+- `node tools/e2e-study-query.mjs` — **41/41**, unchanged — `runMetrics`'s
+  default (`allowUnlinkedPlays: false`) still doesn't throw on the real
+  fixture, confirming its cohorts were already fully eligible/resolvable/
+  duplicate-free; nothing needed to change here.
+- `node tools/e2e-native-reports.mjs` — **76/76**, unchanged — confirms
+  `defensivePerformance`'s numeric output is still byte-identical (reasoned
+  above: legacy-mode `refSource === cohort` always, so nothing changed for
+  that caller).
+- `node tools/e2e-parity.mjs` — **2/2**, unchanged.
+- Full canonical gate (`bash tools/run-gate.sh`): **86 harnesses | 86 green
+  | 0 skipped | 0 failed** — same count as the prior repair, zero drops.
+- **Mutation-verified**, all three on this repair's own new logic: (1)
+  reverting `metric()` to resolve refs from the raw cohort instead of
+  `refSource` reds exactly the two eligibility-vs-refs tests (the decisive
+  case and the ineligible-malformed-play case), restored → green; (2)
+  disabling the duplicate-ref detection block in `resolveRefs` reds exactly
+  the two duplicate-ref tests, restored → green; (3) reverting
+  `AnalyticsRegistry.metricsEngine()` to construct its own binding again
+  (structurally identical to the shared one) reds exactly the one-owner
+  identity test, restored → green.
+
+**Windows ACL diagnosis:** repository permissions are healthy: the user,
+SYSTEM, and Administrators have full control, and Codex sandbox identities have
+modify access. The failure occurs before an ordinary process starts, inside
+Codex's Windows sandbox helper while it applies temporary deny-read ACLs. It is
+not a project ACL defect; do not rewrite repository permissions. Normal patching
+remains preferred, with an explicitly unsandboxed patch process used only as the
+narrow fallback for this tool-runtime failure.
+
+### ▶ CODEX REPAIR of the analytics architecture cleanup — AWAITING RE-REVIEW (2026-08-14)
+
+**Builder: Claude. Repairs all five findings from Codex's CHANGES REQUESTED
+review of `b5c24f8`.** All five were verified against source before touching
+anything — none were taken on report.
+
 ### ? CODEX RE-REVIEW of `c936899` - CHANGES REQUESTED (2026-08-14)
 
 **Reviewer: Codex. Range: `c936899^..c936899`.** The polarity,

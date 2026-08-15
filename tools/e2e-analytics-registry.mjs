@@ -73,13 +73,16 @@ const result = await page.evaluate(() => {
     penaltyRulings: registry.values('penaltyRuling', play),
     penaltyCounts: registry.values('penaltyPlayCounts', play),
     ref: registry.playRef(play),
-    // Codex review, 2026-08-14, finding #4: AnalyticsRegistry is the ONE
-    // place that constructs a correctly-bound AnalyticsMetrics instance --
-    // no consumer should re-derive the isSuccessfulPlay/isEligiblePlay/
-    // buildCutFilter binding a second time. Confirm it's real (computes a
-    // metric over an ad-hoc cohort, not just returns an object) and stable
-    // (repeat calls return the SAME instance, not a fresh rebuild each time).
+    // Codex review, 2026-08-14, finding #4 then finding #2 (re-review):
+    // StatsEngine.metricsEngine() is now the SOLE construction site --
+    // AnalyticsRegistry.metricsEngine() is a thin delegate, not a second
+    // independent cache. Confirm it's real (computes a metric over an
+    // ad-hoc cohort, not just returns an object), stable (repeat calls
+    // return the SAME instance), AND literally the SAME object Reports'
+    // defensivePerformance() resolves via registry.stats.metricsEngine() --
+    // not a structurally-identical but distinct second copy.
     metricsEngineSame: registry.metricsEngine() === registry.metricsEngine(),
+    metricsEngineIsStatsEngineOwned: registry.metricsEngine() === registry.stats.metricsEngine(),
     metricsEngineStopRate: registry.metricsEngine().metric([play], 'stopRate'),
     selected: registry.readMeasures(stats, ['plays', 'successRate', 'epaPerPlay']),
     unresolvedMeasures,
@@ -121,6 +124,7 @@ if (!result.missing) {
   'Structured penalty dimensions preserve every foul on the play');
   ok(result.ref === 'g2::7', 'Composite play reference is gameId::playId');
   ok(result.metricsEngineSame, 'AnalyticsRegistry.metricsEngine() returns the SAME bound instance on repeat calls, not a fresh rebuild');
+  ok(result.metricsEngineIsStatsEngineOwned, 'AnalyticsRegistry.metricsEngine() IS StatsEngine.metricsEngine() -- one owner, not a structurally-identical second copy (Codex re-review finding #2)');
   ok(result.metricsEngineStopRate.id === 'stopRate' && result.metricsEngineStopRate.polarity === 'higher'
     && typeof result.metricsEngineStopRate.value === 'number' && result.metricsEngineStopRate.denominator === 1,
     'AnalyticsRegistry.metricsEngine() computes a real ad-hoc-cohort metric, not a stand-in object', JSON.stringify(result.metricsEngineStopRate));

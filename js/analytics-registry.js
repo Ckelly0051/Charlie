@@ -7,7 +7,6 @@
  */
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
-import { AnalyticsMetrics } from './analytics-metrics.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -154,28 +153,26 @@ export class AnalyticsRegistry {
   }
 
   /**
-   * The ONE place that constructs a correctly-bound `AnalyticsMetrics`
-   * instance for this registry's own `StatsEngine` (Codex review, 2026-08-14,
-   * finding #4: two competing metric registries). `readMeasures()`/`values()`
-   * remain the canonical path for measures/dimensions that already have a
-   * field inside `StatsEngine.compute()`'s output for a given cohort;
-   * `metricsEngine()` is the canonical path for ad-hoc-cohort metrics
-   * (yardsPerPlay/stopRate and their offense/defense-framed siblings) that
-   * `compute()` has no single field for -- see the `deferred(...)` reasons
-   * above, both of which point here. A consumer should get its engine from
-   * here rather than re-deriving the `deps` binding a second time.
+   * `readMeasures()`/`values()` remain the canonical path for measures/
+   * dimensions that already have a field inside `StatsEngine.compute()`'s
+   * output for a given cohort; `metricsEngine()` is the canonical path for
+   * ad-hoc-cohort metrics (yardsPerPlay/stopRate and their offense/
+   * defense-framed siblings) that `compute()` has no single field for -- see
+   * the `deferred(...)` reasons above, both of which point here.
+   *
+   * Delegates to `StatsEngine.metricsEngine()` rather than constructing its
+   * own `AnalyticsMetrics` binding. Repair, 2026-08-14 (Codex re-review,
+   * finding #2): the FIRST fix for "two competing metric registries" gave
+   * `AnalyticsRegistry` its own construction site, cached here, while
+   * `StatsEngine.defensivePerformance()` still built a structurally-identical
+   * SECOND copy independently -- so Study and Reports could still drift onto
+   * two different engines with nothing to catch it. `StatsEngine` is now the
+   * sole owner (it already has to hold every instance method the binding
+   * needs); this method is a thin pass-through so existing callers
+   * (`StudyQuery._metricsEngine()`) don't have to change.
    */
   metricsEngine() {
-    if (!this._metrics) {
-      const SE = this._SE;
-      this._metrics = new AnalyticsMetrics({
-        isRun: SE.isRun, isPass: SE.isPass, hasResult: SE.hasResult,
-        isSuccessfulPlay: p => this.stats._isSuccessfulPlay(p),
-        isEligiblePlay: p => this.stats._isSuccessfulPlayEligible(p),
-        buildCutFilter: (type, val) => this.stats._buildCutFilter(type, val),
-      });
-    }
-    return this._metrics;
+    return this.stats.metricsEngine();
   }
 
   listDimensions() { return [...this._dimensionMap.values()]; }

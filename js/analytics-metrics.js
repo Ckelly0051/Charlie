@@ -80,9 +80,9 @@
  * "success" is inherently the offense's), and each is exactly the complement
  * of the other over the same underlying classification.
  *
- * FILM-COHORT HONESTY (Codex review, 2026-08-14, finding #2): a play that
- * counts toward the numerator/denominator but cannot produce a composite ref
- * used to silently vanish from `refs` -- "N% based on D plays" could open
+ * FILM-COHORT HONESTY (Codex review, 2026-08-14, finding #2, TWICE): a play
+ * that counts toward the numerator/denominator but cannot produce a composite
+ * ref used to silently vanish from `refs` -- "N% based on D plays" could open
  * fewer than D clips with no signal that happened. The default now FAILS
  * LOUDLY the moment that happens (`allowUnlinkedPlays: false`, matching
  * `compositeRef`'s existing fail-loud contract for direct callers).
@@ -91,6 +91,23 @@
  * let one malformed play fail an entire report -- even there, `unlinkedCount`
  * is always reported in the contract, so the gap is visible rather than
  * silently absorbed, and `state` becomes `'partial-film'` to say so.
+ *
+ * The first attempt at this closed the identity half but not the eligibility
+ * half: `metric()` resolved refs from the ORIGINAL cohort passed in, while
+ * `denominator` came from each metric's own eligible/legacy SUBSET of that
+ * cohort -- so in honest mode (the default) an ineligible play was correctly
+ * excluded from `denominator` but its ref still landed in `refs`, and a
+ * one-play denominator could open two clips. Fixed by having every metric's
+ * `compute()` also return `refSource` -- the EXACT play list that produced
+ * `denominator` -- and resolving refs from THAT, never from the raw cohort.
+ * `resolveRefs` also now counts a DUPLICATE composite ref (two entries in
+ * `refSource` resolving to the same `gameId::playId`) the same way as an
+ * unresolvable one: it fails loudly by default, and under
+ * `allowUnlinkedPlays: true` it increments `unlinkedCount` and excludes the
+ * duplicate from `refs` rather than silently collapsing it via `Set`
+ * dedup with no accounting. This makes `refs.length + unlinkedCount ===
+ * denominator` an INVARIANT, always -- every play the denominator counted
+ * either produced a ref or was counted as unlinked; none can vanish silently.
  *
  * Composite refs use the SAME `${gameId}::${playId}` contract as
  * `AnalyticsRegistry.playRef` / the historical `defensivePerformance`
@@ -119,27 +136,43 @@ export function compositeRef(play, context = {}) {
   return `${gameId}::${play.id}`;
 }
 
-/** Resolves composite refs for a whole cohort. Default
+/** Resolves composite refs for the EXACT play list that produced a metric's
+ *  `denominator` (`refSource`, never the raw caller-supplied cohort -- see
+ *  the module docblock's "FILM-COHORT HONESTY" section). Default
  *  (`allowUnlinkedPlays: false`) throws the instant a play cannot produce a
- *  ref, so a metric's `count`/`denominator` can never silently outrun its
- *  `refs`. `allowUnlinkedPlays: true` preserves `defensivePerformance`'s
- *  historical silent-skip behavior, but still reports how many plays were
- *  skipped via `unlinkedCount` rather than hiding it. */
-function resolveRefs(cohort, context, allowUnlinkedPlays) {
+ *  ref OR produces one already seen (a duplicate composite ref -- two
+ *  entries resolving to the same film clip), so `refs.length + unlinkedCount`
+ *  always equals `refSource.length`, and a metric's `count`/`denominator`
+ *  can never silently outrun its `refs`. `allowUnlinkedPlays: true` preserves
+ *  `defensivePerformance`'s historical closure (never fail the whole report
+ *  over one bad play), but still reports every unresolvable/duplicate case
+ *  via `unlinkedCount` rather than a bare `Set` dedup hiding it. */
+function resolveRefs(refSource, context, allowUnlinkedPlays) {
+  const seen = new Set();
   const refs = [];
   let unlinkedCount = 0;
-  for (const p of cohort) {
+  for (const p of refSource) {
     const gameId = p?.__gid ?? context.gameId ?? context.game;
-    if (gameId == null || gameId === '' || p?.id == null) {
+    const unresolvable = gameId == null || gameId === '' || p?.id == null;
+    if (unresolvable) {
       unlinkedCount++;
       if (!allowUnlinkedPlays) {
         throw new Error('AnalyticsMetrics: cohort contains a play with no resolvable gameId/id (pass allowUnlinkedPlays:true to preserve legacy silent-omission behavior)');
       }
       continue;
     }
-    refs.push(`${gameId}::${p.id}`);
+    const ref = `${gameId}::${p.id}`;
+    if (seen.has(ref)) {
+      unlinkedCount++;
+      if (!allowUnlinkedPlays) {
+        throw new Error('AnalyticsMetrics: cohort contains a duplicate composite play reference (pass allowUnlinkedPlays:true to preserve legacy silent-collapse behavior)');
+      }
+      continue;
+    }
+    seen.add(ref);
+    refs.push(ref);
   }
-  return { refs: [...new Set(refs)].sort(), unlinkedCount };
+  return { refs: refs.sort(), unlinkedCount };
 }
 
 function yards(p) {
@@ -166,12 +199,15 @@ function rateResult(count, denominator, eligible = denominator) {
  * mode `classify` runs against the FULL cohort, so an ineligible play (e.g.
  * no tagged yardage) falls through to whatever default its own classifier
  * uses (`yards(p) || 0` inside `isExplosive`/`isNegative`/`isHavoc`) --
- * exactly reproducing the pre-fix formula.
+ * exactly reproducing the pre-fix formula. Returns `refSource` alongside the
+ * rate fields: the EXACT play list `denominator` was computed from, so
+ * `metric()` can resolve film refs from that same set rather than the raw
+ * cohort (see the module docblock's "FILM-COHORT HONESTY" section).
  */
 function eligibleRate(cohort, isEligible, classify, missingAsZero) {
   const eligible = cohort.filter(isEligible);
   const source = missingAsZero ? cohort : eligible;
-  return rateResult(source.filter(classify).length, source.length, eligible.length);
+  return { ...rateResult(source.filter(classify).length, source.length, eligible.length), refSource: source };
 }
 
 const isExplosive = deps => p => {
@@ -186,13 +222,12 @@ const isHavoc = deps => p =>
   || ((yards(p) || 0) < 0 && !deps.hasResult(p, 'Penalty') && !deps.hasResult(p, 'Kneel') && !deps.hasResult(p, 'Spike'));
 
 function yardsPerPlayCompute(cohort, missingAsZero) {
-  const eligible = cohort.filter(hasYardage).length;
-  const denominator = missingAsZero ? cohort.length : eligible;
-  if (!denominator) return { value: null, count: 0, eligible, denominator: 0 };
-  const total = missingAsZero
-    ? cohort.reduce((sum, p) => sum + (yards(p) || 0), 0)
-    : cohort.filter(hasYardage).reduce((sum, p) => sum + yards(p), 0);
-  return { value: +(total / denominator).toFixed(1), count: total, eligible, denominator };
+  const eligiblePlays = cohort.filter(hasYardage);
+  const source = missingAsZero ? cohort : eligiblePlays;
+  const denominator = source.length;
+  if (!denominator) return { value: null, count: 0, eligible: eligiblePlays.length, denominator: 0, refSource: source };
+  const total = source.reduce((sum, p) => sum + (yards(p) || 0), 0);
+  return { value: +(total / denominator).toFixed(1), count: total, eligible: eligiblePlays.length, denominator, refSource: source };
 }
 
 /**
@@ -342,8 +377,11 @@ export class AnalyticsMetrics {
     const def = METRICS[metricId];
     if (!def) throw new Error(`Unknown analytics metric: ${metricId}`);
     const list = cohort || [];
-    const { value, count, eligible, denominator } = def.compute(list, this._deps, options);
-    const { refs, unlinkedCount } = resolveRefs(list, context, !!options.allowUnlinkedPlays);
+    const { value, count, eligible, denominator, refSource } = def.compute(list, this._deps, options);
+    // Refs MUST resolve from refSource -- the exact play list that produced
+    // `denominator` -- never from `list` (the raw caller cohort), or an
+    // ineligible play excluded from the denominator could still open film.
+    const { refs, unlinkedCount } = resolveRefs(refSource, context, !!options.allowUnlinkedPlays);
     const minSample = options.minSample || 0;
     let state = 'ok';
     if (denominator === 0) state = 'unavailable';

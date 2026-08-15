@@ -86,6 +86,16 @@ test('stopRate/successRate exclude a play with no tagged down/distance/yardage f
   assert.equal(stop.eligible, 1, 'only the fully-tagged play is eligible');
   assert.equal(stop.denominator, 1, 'the untagged play must not silently inflate the denominator via a fabricated default');
 });
+test('Codex finding #1 (repair 2): a "1 play" denominator can never open more than 1 clip -- the ineligible play\'s ref must NOT leak into refs even though it has a perfectly resolvable __gid/id', () => {
+  const cohort = [
+    play(1, 'gA', { down: '1', distance: '10', yardage: '6' }), // eligible
+    play(2, 'gA', { down: '', distance: '', yardage: '' }),     // ineligible, but fully resolvable (__gid/id present)
+  ];
+  const stop = metrics.metric(cohort, 'stopRate');
+  assert.equal(stop.denominator, 1);
+  assert.deepEqual(stop.refs, ['gA::1'], 'must be exactly one ref -- the ineligible play\'s valid __gid/id must not add a second');
+  assert.equal(stop.refs.length, stop.denominator, 'refs.length must equal denominator when nothing is unlinked');
+});
 test('a short-circuit result (Touchdown/Good/No Good/1st-Down-custom) is eligible even with no down/distance/yardage tagged', () => {
   const cohort = [play(1, 'gA', { down: '', distance: '', yardage: '', result: 'Touchdown' })];
   const stop = metrics.metric(cohort, 'stopRate');
@@ -159,9 +169,16 @@ test('minSample is a per-metric denominator check, not a raw-cohort-size check -
 
 console.log('\n== Finding 2: metric and film cohorts cannot silently disagree ==');
 test('by default, a play with no resolvable id/game FAILS LOUDLY instead of silently vanishing from refs', () => {
-  const malformed = { id: 5, tags: { unit: 'offense' } }; // no __gid
-  const cohort = [play(1, 'gA', {}), malformed];
+  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', yardage: '2' } }; // real data, no __gid -- must be ELIGIBLE so it actually reaches ref resolution
+  const cohort = [play(1, 'gA', { yardage: '6' }), malformed];
   assert.throws(() => metrics.metric(cohort, 'stopRate'), /allowUnlinkedPlays/);
+});
+test('an INELIGIBLE malformed play never reaches ref resolution at all -- excluded from denominator, so its bad ref cannot even trigger the throw', () => {
+  const malformed = { id: 5, tags: { unit: 'offense' } }; // no down/distance/yardage, no __gid
+  const cohort = [play(1, 'gA', { yardage: '6' }), malformed];
+  const result = metrics.metric(cohort, 'stopRate'); // must NOT throw
+  assert.equal(result.denominator, 1, 'only the eligible play counts');
+  assert.deepEqual(result.refs, ['gA::1']);
 });
 test('allowUnlinkedPlays:true preserves the legacy silent-omission behavior AND reports unlinkedCount, never hiding the gap', () => {
   const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', yardage: '2' } }; // real data, no __gid
@@ -222,10 +239,23 @@ test('two games sharing the same bare play id resolve to distinct composite refs
   assert.deepEqual(result.refs, ['gA::5', 'gB::5']);
   assert.equal(result.denominator, 2, 'both plays are counted -- the collision is a ref-identity problem, not a data-loss one');
 });
-test('refs are deduped and sorted', () => {
-  const cohort = [play(9, 'gB', {}), play(2, 'gA', {}), play(9, 'gB', {})]; // id 9/gB present twice
-  const result = metrics.metric(cohort, 'stopRate', {}, { allowUnlinkedPlays: true });
+test('refs come back sorted', () => {
+  const cohort = [play(9, 'gB', { yardage: '4' }), play(2, 'gA', { yardage: '3' })];
+  const result = metrics.metric(cohort, 'yardsPerPlay');
   assert.deepEqual(result.refs, ['gA::2', 'gB::9']);
+});
+test('a genuine duplicate composite ref (two entries resolving to the same clip) FAILS LOUDLY by default, matching an unresolvable ref', () => {
+  const cohort = [play(9, 'gB', { yardage: '4' }), play(9, 'gB', { yardage: '4' })]; // same id, same game -- twice
+  assert.throws(() => metrics.metric(cohort, 'yardsPerPlay'), /duplicate composite play reference/);
+});
+test('allowUnlinkedPlays:true excludes a duplicate from refs and counts it -- never silently keeps one copy while the denominator counts two', () => {
+  const cohort = [play(9, 'gB', { yardage: '4' }), play(9, 'gB', { yardage: '4' }), play(2, 'gA', { yardage: '3' })];
+  const result = metrics.metric(cohort, 'yardsPerPlay', {}, { allowUnlinkedPlays: true });
+  assert.equal(result.denominator, 3, 'all three plays still count toward the value');
+  assert.deepEqual(result.refs, ['gA::2', 'gB::9'], 'the duplicate contributes exactly one ref, not two, not zero');
+  assert.equal(result.unlinkedCount, 1, 'the second gB::9 occurrence is the one unresolved-for-film play');
+  assert.equal(result.refs.length + result.unlinkedCount, result.denominator, 'invariant: refs + unlinked always equals denominator');
+  assert.equal(result.state, 'partial-film');
 });
 
 console.log(`\n== RESULT: ${passed} passed, ${process.exitCode ? 1 : 0} failed ==`);

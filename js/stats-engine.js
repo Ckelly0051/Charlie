@@ -986,6 +986,28 @@ export class StatsEngine {
    * Defensive plays describe the opponent's offense, so offensive playType,
    * run/pass, down, distance and yardage are the dimensions being defended.
    */
+  /**
+   * The ONE shared `AnalyticsMetrics` instance bound to THIS StatsEngine,
+   * constructed once and lazily reused by every caller. Before this,
+   * `defensivePerformance()` (Reports) and `AnalyticsRegistry.metricsEngine()`
+   * (Study) each built their OWN `deps` binding independently -- structurally
+   * identical today, but two separate hand-written copies that could drift
+   * apart on the next edit with nothing to catch it (Codex review, 2026-08-14,
+   * finding #2: two competing metric-engine owners). `AnalyticsRegistry.
+   * metricsEngine()` now delegates here rather than constructing its own.
+   */
+  metricsEngine() {
+    if (!this._metricsEngine) {
+      this._metricsEngine = new AnalyticsMetrics({
+        isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult,
+        isSuccessfulPlay: p => this._isSuccessfulPlay(p),
+        isEligiblePlay: p => this._isSuccessfulPlayEligible(p),
+        buildCutFilter: (type, val) => this._buildCutFilter(type, val),
+      });
+    }
+    return this._metricsEngine;
+  }
+
   defensivePerformance(plays, gameLabels = {}) {
     const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
     const yards = p => parseInt(p.tags.yardage, 10) || 0;
@@ -1003,11 +1025,7 @@ export class StatsEngine {
     // dropped from `refs` rather than failing the whole report
     // (`allowUnlinkedPlays`) -- both opt-ins, never the new module's honest
     // default; see analytics-metrics.js's docblock for why.
-    const metrics = new AnalyticsMetrics({
-      isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult,
-      isSuccessfulPlay: p => this._isSuccessfulPlay(p),
-      isEligiblePlay: p => this._isSuccessfulPlayEligible(p),
-    });
+    const metrics = this.metricsEngine();
     const legacyOptions = { missingAsZero: true, allowUnlinkedPlays: true };
     const summarize = (name, cohort) => {
       const n = cohort.length;
