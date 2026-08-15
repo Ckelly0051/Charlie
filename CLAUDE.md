@@ -14,6 +14,43 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX RE-REVIEW - Study repair `f865c1d` - ONE CHANGE REQUESTED (2026-08-15)
+
+**Verdict: CHANGES REQUESTED - one P2 compatibility defect remains.** Findings
+1, 2, and 4 from `bc0f677` are closed at the root: rich rows now disclose and
+use the metric cohort, aggregate Watch consumes the exact refs supplied by
+`_setWatchAll`, and recent/prior windows plus saved period identity are
+meaningfully pinned. Focused checks are green (Study Screen 98/98, Study Query
+48/48, Tag Projection Form 54/54), and Codex's independent canonical gate is
+**86/86 green, 0 skipped**.
+
+1. **P2 - Run Share and Pass Share saved views are still changed into a
+   different question** (`js/study-screen.js:58-82,952-968`). Mapping
+   `runShare` or `passShare` to `success` does not preserve or equivalently
+   upgrade the view: the primary value, ranking, and bars change from play mix
+   to Success Rate. The presence of a secondary Run/Pass column does not make
+   those questions equivalent. Both flat measures still exist and work on the
+   legacy query path, so keep `runShare` and `passShare` as selectable
+   Advanced measures and restore those saved ids exactly. Retain the explicit
+   concept upgrade for the four retired outcome metrics. Replace the current
+   test that blesses `runShare -> success` with assertions that both runShare
+   and passShare restore their exact ids and render their original primary
+   measure without mutating storage.
+
+**Gate-process observation (non-blocking once wording is corrected):** the new
+process-level handler is useful containment because it closes Chromium if this
+harness crashes. It does not root-cause or prevent
+`Runtime.callFunctionOn: Promise was collected`; that crash occurs before the
+cleanup path, and cleanup cannot explain the failing harness itself becoming
+green. Keep the safety net, but describe it as leak prevention/containment, not
+the root-cause repair. The clean independent 86/86 gate clears the current
+checkpoint once the saved-view correction above lands.
+
+**Next action:** preserve Run Share and Pass Share exactly, add the two
+discriminating saved-view regressions, correct the cleanup wording, run the
+focused Study harness and one canonical gate, then hand back for final
+acceptance. No installer/package/deploy yet.
+
 ### ▶ CODEX REPAIR of the Study expansion review (`bc0f677`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs all five findings from Codex's CHANGES REQUESTED
