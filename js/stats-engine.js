@@ -1336,45 +1336,73 @@ export class StatsEngine {
     const getPlay = x => x.p;
     if (structured.length) {
       const rows = unit => structured.filter(x => x.st.unit === unit);
-      const avg = (arr, get) => { const values = arr.map(get).filter(Number.isFinite); return values.length ? +(values.reduce((s, x) => s + x, 0) / values.length).toFixed(1) : null; };
+      // Codex re-review finding #2: `avg()` silently excludes a row missing
+      // its own measurement (e.g. a punt with no charted hang time) from the
+      // CALCULATION, but every caller kept pointing that measure's `refs` at
+      // the full row group -- so the displayed count/refs included plays the
+      // average itself never touched. `avgStat` returns the mean AND the
+      // exact eligible rows that produced it, so refs can never claim more
+      // (or fewer) plays than the number was actually computed from.
+      const avgStat = (arr, get) => {
+        const eligible = arr.filter(x => Number.isFinite(get(x)));
+        const value = eligible.length ? +(eligible.reduce((s, x) => s + get(x), 0) / eligible.length).toFixed(1) : null;
+        return { value, refs: StatsEngine._refsOf(eligible, getPlay) };
+      };
       const puntRows = rows('punt');
       const koRows = rows('kickoff');
       const fgRows = rows('fieldGoal').filter(x => x.st.attemptType === 'fieldGoal');
       const made = x => x.st.outcome.status === 'good' && x.st.outcome.score === 'fieldGoal';
       const puntReturnedRows = puntRows.filter(x => x.st.outcome.status === 'returned');
+      const puntGross = avgStat(puntRows, x => x.st.kick.distance);
+      const puntNet = avgStat(puntRows, x => SpecialTeamsModel.netYards(x.st));
+      const puntHang = avgStat(puntRows, x => x.st.kick.hangTime);
+      const puntRetAllowed = avgStat(puntReturnedRows, x => x.st.return.yards);
       const punts = {
         n: puntRows.length,
-        grossAvg: avg(puntRows, x => x.st.kick.distance),
-        netAvg: avg(puntRows, x => SpecialTeamsModel.netYards(x.st)),
-        hangAvg: avg(puntRows, x => x.st.kick.hangTime),
+        grossAvg: puntGross.value,
+        netAvg: puntNet.value,
+        hangAvg: puntHang.value,
         tbPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'touchback').length / puntRows.length * 100) : 0,
         // Study expansion Phase 2: fair-catch rate and coverage (return-allowed)
         // for punts, mirroring what kickoffs already computed -- punt coverage
         // was previously invisible outside the netAvg composite.
         fairCatchPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'fairCatch').length / puntRows.length * 100) : 0,
         blocked: puntRows.filter(x => x.st.outcome.status === 'blocked').length,
-        retAllowedAvg: avg(puntReturnedRows, x => x.st.return.yards),
+        retAllowedAvg: puntRetAllowed.value,
         refs: {
           all: StatsEngine._refsOf(puntRows, getPlay),
           blocked: StatsEngine._refsOf(puntRows.filter(x => x.st.outcome.status === 'blocked'), getPlay),
           returned: StatsEngine._refsOf(puntReturnedRows, getPlay),
+          // Each average's OWN eligible cohort -- may be narrower than `all`
+          // when a row is missing that specific measurement.
+          grossAvg: puntGross.refs, netAvg: puntNet.refs, hangAvg: puntHang.refs,
+          retAllowedAvg: puntRetAllowed.refs,
         },
       };
       const onsideRows = koRows.filter(x => x.st.isOnside);
+      const onsideRecoveredRows = onsideRows.filter(x => x.st.outcome.recoveredBy === 'subject');
       const koReturnedRows = koRows.filter(x => x.st.outcome.status === 'returned');
+      const koAvg = avgStat(koRows, x => x.st.kick.distance);
+      const koRetAllowed = avgStat(koReturnedRows, x => x.st.return.yards);
       const kickoffs = {
         n: koRows.length,
-        avg: avg(koRows, x => x.st.kick.distance),
+        avg: koAvg.value,
         tbPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'touchback').length / koRows.length * 100) : 0,
         fairCatchPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'fairCatch').length / koRows.length * 100) : 0,
-        retAllowedAvg: avg(koReturnedRows, x => x.st.return.yards),
+        retAllowedAvg: koRetAllowed.value,
         // isOnside is a structured modifier (not a separate unit) -- 'recovered'
         // counts only a SUBJECT recovery (the point of an onside attempt).
-        onside: { n: onsideRows.length, recovered: onsideRows.filter(x => x.st.outcome.recoveredBy === 'subject').length },
+        onside: { n: onsideRows.length, recovered: onsideRecoveredRows.length },
         refs: {
           all: StatsEngine._refsOf(koRows, getPlay),
           returned: StatsEngine._refsOf(koReturnedRows, getPlay),
           onside: StatsEngine._refsOf(onsideRows, getPlay),
+          // Codex re-review finding #3: "Onside Kicks Recovered" is a strict
+          // SUBSET of `onside` (attempted) -- its own refs, not the full
+          // attempt list, so Watch can't surface a failed-recovery clip under
+          // a "Recovered" row.
+          onsideRecovered: StatsEngine._refsOf(onsideRecoveredRows, getPlay),
+          avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs,
         },
       };
       const fgMadeRows = fgRows.filter(made);
@@ -1396,7 +1424,11 @@ export class StatsEngine {
         const muffedRows = arr.filter(x => x.st.outcome.status === 'muffed');
         return {
           n: arr.length,
-          avg: avg(attempts, x => x.st.return.yards),
+          // `attempts` is already the exact eligible (finite-yardage) set, so
+          // avgStat's internal filter is a no-op here -- reused for the mean,
+          // its own `.refs` discarded since `refs.attempts` below already
+          // covers the identical cohort.
+          avg: avgStat(attempts, x => x.st.return.yards).value,
           long: attempts.length ? Math.max(...attempts.map(x => x.st.return.yards)) : 0,
           // Exact denominator for `long`/`avg` -- distinct from `n` (every ST
           // play of this unit, including fair catches/touchbacks/muffs with no
@@ -1424,44 +1456,62 @@ export class StatsEngine {
     const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
     const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good');
     const refsOf = rows => StatsEngine._refsOf(rows);
+    // Codex re-review finding #2, legacy branch: same fix as the structured
+    // branch above -- `avg()` drops a row with no charted measurement from
+    // the calculation, so its refs must drop that row too rather than
+    // pointing at the full, coarser row set.
+    const avgStat = (arr, get) => {
+      const eligible = arr.filter(p => get(p) != null);
+      const value = eligible.length ? +(eligible.reduce((s, p) => s + get(p), 0) / eligible.length).toFixed(1) : null;
+      return { value, refs: refsOf(eligible) };
+    };
 
     const pp = by('Punt');
     const puntReturnedRows = pp.filter(p => p.tags.kickOutcome === 'Returned');
+    const puntGross = avgStat(pp, p => num(p.tags.kickDistance));
+    // Standard net punt: gross − return − 20 yards for a touchback (the ball
+    // comes out to the 20), so a touchback no longer reads as a full-net punt.
+    const puntNet = avgStat(pp, p => { const d = num(p.tags.kickDistance); return d == null ? null : d - (num(p.tags.returnYards) || 0) - (p.tags.kickOutcome === 'Touchback' ? 20 : 0); });
+    const puntHang = avgStat(pp, p => num(p.tags.hangTime));
+    const puntRetAllowed = avgStat(puntReturnedRows, p => num(p.tags.returnYards));
     const punts = {
       n: pp.length,
-      grossAvg: avg(pp, p => num(p.tags.kickDistance)),
-      // Standard net punt: gross − return − 20 yards for a touchback (the ball
-      // comes out to the 20), so a touchback no longer reads as a full-net punt.
-      netAvg: avg(pp, p => { const d = num(p.tags.kickDistance); return d == null ? null : d - (num(p.tags.returnYards) || 0) - (p.tags.kickOutcome === 'Touchback' ? 20 : 0); }),
-      hangAvg: avg(pp, p => num(p.tags.hangTime)),
+      grossAvg: puntGross.value,
+      netAvg: puntNet.value,
+      hangAvg: puntHang.value,
       tbPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Touchback').length / pp.length * 100) : 0,
       // Study expansion Phase 2: legacy `kickOutcome` already carries 'Fair
       // Catch'/'Returned' -- reused, never reinterpreted, matching the same
       // fields the structured branch now computes.
       fairCatchPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Fair Catch').length / pp.length * 100) : 0,
       blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
-      retAllowedAvg: avg(puntReturnedRows, p => num(p.tags.returnYards)),
+      retAllowedAvg: puntRetAllowed.value,
       refs: {
         all: refsOf(pp),
         blocked: refsOf(pp.filter(p => p.tags.kickOutcome === 'Blocked')),
         returned: refsOf(puntReturnedRows),
+        grossAvg: puntGross.refs, netAvg: puntNet.refs, hangAvg: puntHang.refs,
+        retAllowedAvg: puntRetAllowed.refs,
       },
     };
     const ko = by('Kickoff');
     const koReturnedRows = ko.filter(p => p.tags.kickOutcome === 'Returned');
+    const koAvg = avgStat(ko, p => num(p.tags.kickDistance));
+    const koRetAllowed = avgStat(koReturnedRows, p => num(p.tags.returnYards));
     const kickoffs = {
       n: ko.length,
-      avg: avg(ko, p => num(p.tags.kickDistance)),
+      avg: koAvg.value,
       tbPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Touchback').length / ko.length * 100) : 0,
       fairCatchPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Fair Catch').length / ko.length * 100) : 0,
-      retAllowedAvg: avg(koReturnedRows, p => num(p.tags.returnYards)),
+      retAllowedAvg: koRetAllowed.value,
       // Legacy charted an onside kick as its OWN stType ('Onside'), never as a
       // Kickoff modifier -- a structurally different shape than the new model's
       // isOnside flag, so it is not derivable from `by('Kickoff')` here. Stays
       // an honest null rather than a guessed zero (see the fair-catch/muffed
       // reuse above for the contrast: those DO reuse real legacy vocabulary).
       onside: { n: null, recovered: null },
-      refs: { all: refsOf(ko), returned: refsOf(koReturnedRows), onside: [] },
+      refs: { all: refsOf(ko), returned: refsOf(koReturnedRows), onside: [], onsideRecovered: [],
+        avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs },
     };
     const fgp = by('Field Goal');
     const fgMade = fgp.filter(made);

@@ -1138,7 +1138,17 @@
        "g1::16"
       ],
       "blocked": [],
-      "returned": []
+      "returned": [],
+      "grossAvg": [
+       "g1::16"
+      ],
+      "netAvg": [
+       "g1::16"
+      ],
+      "hangAvg": [
+       "g1::16"
+      ],
+      "retAllowedAvg": []
      }
     },
     "kickoffs": {
@@ -1154,7 +1164,10 @@
      "refs": {
       "all": [],
       "returned": [],
-      "onside": []
+      "onside": [],
+      "onsideRecovered": [],
+      "avg": [],
+      "retAllowedAvg": []
      }
     },
     "fg": {
@@ -3891,7 +3904,11 @@
        "refs": {
         "all": [],
         "blocked": [],
-        "returned": []
+        "returned": [],
+        "grossAvg": [],
+        "netAvg": [],
+        "hangAvg": [],
+        "retAllowedAvg": []
        }
       },
       "kickoffs": {
@@ -3907,7 +3924,10 @@
        "refs": {
         "all": [],
         "returned": [],
-        "onside": []
+        "onside": [],
+        "onsideRecovered": [],
+        "avg": [],
+        "retAllowedAvg": []
        }
       },
       "fg": {
@@ -5400,7 +5420,17 @@
        "g1::16"
       ],
       "blocked": [],
-      "returned": []
+      "returned": [],
+      "grossAvg": [
+       "g1::16"
+      ],
+      "netAvg": [
+       "g1::16"
+      ],
+      "hangAvg": [
+       "g1::16"
+      ],
+      "retAllowedAvg": []
      }
     },
     "kickoffs": {
@@ -5416,7 +5446,10 @@
      "refs": {
       "all": [],
       "returned": [],
-      "onside": []
+      "onside": [],
+      "onsideRecovered": [],
+      "avg": [],
+      "retAllowedAvg": []
      }
     },
     "fg": {
@@ -7492,7 +7525,11 @@
        "refs": {
         "all": [],
         "blocked": [],
-        "returned": []
+        "returned": [],
+        "grossAvg": [],
+        "netAvg": [],
+        "hangAvg": [],
+        "retAllowedAvg": []
        }
       },
       "kickoffs": {
@@ -7508,7 +7545,10 @@
        "refs": {
         "all": [],
         "returned": [],
-        "onside": []
+        "onside": [],
+        "onsideRecovered": [],
+        "avg": [],
+        "retAllowedAvg": []
        }
       },
       "fg": {
@@ -8586,7 +8626,11 @@
      "refs": {
       "all": [],
       "blocked": [],
-      "returned": []
+      "returned": [],
+      "grossAvg": [],
+      "netAvg": [],
+      "hangAvg": [],
+      "retAllowedAvg": []
      }
     },
     "kickoffs": {
@@ -8602,7 +8646,10 @@
      "refs": {
       "all": [],
       "returned": [],
-      "onside": []
+      "onside": [],
+      "onsideRecovered": [],
+      "avg": [],
+      "retAllowedAvg": []
      }
     },
     "fg": {
@@ -9948,7 +9995,11 @@
        "refs": {
         "all": [],
         "blocked": [],
-        "returned": []
+        "returned": [],
+        "grossAvg": [],
+        "netAvg": [],
+        "hangAvg": [],
+        "retAllowedAvg": []
        }
       },
       "kickoffs": {
@@ -9964,7 +10015,10 @@
        "refs": {
         "all": [],
         "returned": [],
-        "onside": []
+        "onside": [],
+        "onsideRecovered": [],
+        "avg": [],
+        "retAllowedAvg": []
        }
       },
       "fg": {

@@ -254,7 +254,14 @@ export class StudyQuery {
     const b = this.run({ plays: against, dimension, measures, filters, minSample, context });
     const aMap = new Map(a.groups.map(g => [g.value, g]));
     const bMap = new Map(b.groups.map(g => [g.value, g]));
-    const blank = () => ({ sampleSize: 0, belowMinSample: minSample > 0, matchingPlayIds: [], measures: {} });
+    // Codex re-review finding #1: `blank()` and the constructed row sides
+    // below used to omit `measureRefs`, so `run()`'s per-measure eligible
+    // refs (added for the FIRST review's finding #1) never survived into a
+    // comparison -- `study-screen.js`'s `_groupRefs` had nothing to read but
+    // `matchingPlayIds`, silently falling back to the group's broader raw
+    // sample for every comparison Watch action. `measureRefs` now carries
+    // through both sides exactly as `run()` produced it.
+    const blank = () => ({ sampleSize: 0, belowMinSample: minSample > 0, matchingPlayIds: [], measures: {}, measureRefs: {} });
     const values = [...new Set([...aMap.keys(), ...bMap.keys()])].sort();
     const rows = values.map(value => {
       const ga = aMap.get(value) || blank();
@@ -266,8 +273,8 @@ export class StudyQuery {
       }
       return {
         value,
-        a: { sampleSize: ga.sampleSize, belowMinSample: ga.belowMinSample, matchingPlayIds: ga.matchingPlayIds, measures: ga.measures },
-        b: { sampleSize: gb.sampleSize, belowMinSample: gb.belowMinSample, matchingPlayIds: gb.matchingPlayIds, measures: gb.measures },
+        a: { sampleSize: ga.sampleSize, belowMinSample: ga.belowMinSample, matchingPlayIds: ga.matchingPlayIds, measures: ga.measures, measureRefs: ga.measureRefs },
+        b: { sampleSize: gb.sampleSize, belowMinSample: gb.belowMinSample, matchingPlayIds: gb.matchingPlayIds, measures: gb.measures, measureRefs: gb.measureRefs },
         deltas, sampleDelta: ga.sampleSize - gb.sampleSize,
       };
     });

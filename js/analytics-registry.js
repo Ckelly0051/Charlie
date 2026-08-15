@@ -242,20 +242,29 @@ export class AnalyticsRegistry {
       // sibling measures sharing one denominator (e.g. every `punts.*` field
       // dividing by the same punt-row count) correctly share one refs array.
       ready('stPuntCount', 'Punts', ['specialTeams', 'punts', 'n'], 'StatsEngine._specialTeamsStats().punts.n', { refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
-      ready('stPuntGrossAvg', 'Punt Gross Avg (yds)', ['specialTeams', 'punts', 'grossAvg'], 'StatsEngine._specialTeamsStats().punts.grossAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
-      ready('stPuntNetAvg', 'Punt Net Avg (yds)', ['specialTeams', 'punts', 'netAvg'], 'StatsEngine._specialTeamsStats().punts.netAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
-      ready('stPuntHangAvg', 'Punt Hang Time (sec)', ['specialTeams', 'punts', 'hangAvg'], 'StatsEngine._specialTeamsStats().punts.hangAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
+      // Codex re-review finding #2: an average's own eligible cohort can be
+      // NARROWER than `refs.all` when a row is missing that specific
+      // measurement (a punt with no charted hang time still counts toward
+      // `n`/`tbPct`, but not toward `hangAvg`). Each average now points at
+      // its own `refs.<field>` -- the exact rows StatsEngine actually
+      // divided by -- rather than the full row group.
+      ready('stPuntGrossAvg', 'Punt Gross Avg (yds)', ['specialTeams', 'punts', 'grossAvg'], 'StatsEngine._specialTeamsStats().punts.grossAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'grossAvg'] }),
+      ready('stPuntNetAvg', 'Punt Net Avg (yds)', ['specialTeams', 'punts', 'netAvg'], 'StatsEngine._specialTeamsStats().punts.netAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'netAvg'] }),
+      ready('stPuntHangAvg', 'Punt Hang Time (sec)', ['specialTeams', 'punts', 'hangAvg'], 'StatsEngine._specialTeamsStats().punts.hangAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'hangAvg'] }),
       ready('stPuntTouchbackPct', 'Punt Touchback Rate', ['specialTeams', 'punts', 'tbPct'], 'StatsEngine._specialTeamsStats().punts.tbPct', { zeroDenominatorPath: ['specialTeams', 'punts', 'n'], denominatorMeasure: 'stPuntCount', refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
       ready('stPuntFairCatchPct', 'Punt Fair Catch Rate', ['specialTeams', 'punts', 'fairCatchPct'], 'StatsEngine._specialTeamsStats().punts.fairCatchPct', { zeroDenominatorPath: ['specialTeams', 'punts', 'n'], denominatorMeasure: 'stPuntCount', refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
       ready('stPuntBlocked', 'Punts Blocked', ['specialTeams', 'punts', 'blocked'], 'StatsEngine._specialTeamsStats().punts.blocked', { refsPath: ['specialTeams', 'punts', 'refs', 'blocked'] }),
-      ready('stPuntReturnAllowedAvg', 'Punt Return Allowed (yds)', ['specialTeams', 'punts', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().punts.retAllowedAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'returned'] }),
+      ready('stPuntReturnAllowedAvg', 'Punt Return Allowed (yds)', ['specialTeams', 'punts', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().punts.retAllowedAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'retAllowedAvg'] }),
       ready('stKickoffCount', 'Kickoffs', ['specialTeams', 'kickoffs', 'n'], 'StatsEngine._specialTeamsStats().kickoffs.n', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'all'] }),
-      ready('stKickoffAvg', 'Kickoff Avg (yds)', ['specialTeams', 'kickoffs', 'avg'], 'StatsEngine._specialTeamsStats().kickoffs.avg', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'all'] }),
+      ready('stKickoffAvg', 'Kickoff Avg (yds)', ['specialTeams', 'kickoffs', 'avg'], 'StatsEngine._specialTeamsStats().kickoffs.avg', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'avg'] }),
       ready('stKickoffTouchbackPct', 'Kickoff Touchback Rate', ['specialTeams', 'kickoffs', 'tbPct'], 'StatsEngine._specialTeamsStats().kickoffs.tbPct', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'n'], denominatorMeasure: 'stKickoffCount', refsPath: ['specialTeams', 'kickoffs', 'refs', 'all'] }),
       ready('stKickoffFairCatchPct', 'Kickoff Fair Catch Rate', ['specialTeams', 'kickoffs', 'fairCatchPct'], 'StatsEngine._specialTeamsStats().kickoffs.fairCatchPct', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'n'], denominatorMeasure: 'stKickoffCount', refsPath: ['specialTeams', 'kickoffs', 'refs', 'all'] }),
-      ready('stKickoffReturnAllowedAvg', 'Kickoff Return Allowed (yds)', ['specialTeams', 'kickoffs', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().kickoffs.retAllowedAvg', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'returned'] }),
+      ready('stKickoffReturnAllowedAvg', 'Kickoff Return Allowed (yds)', ['specialTeams', 'kickoffs', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().kickoffs.retAllowedAvg', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'retAllowedAvg'] }),
       ready('stKickoffOnsideAtt', 'Onside Kicks Attempted', ['specialTeams', 'kickoffs', 'onside', 'n'], 'StatsEngine._specialTeamsStats().kickoffs.onside.n -- structured data only', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'onside'] }),
-      ready('stKickoffOnsideRecovered', 'Onside Kicks Recovered', ['specialTeams', 'kickoffs', 'onside', 'recovered'], 'StatsEngine._specialTeamsStats().kickoffs.onside.recovered', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'onside', 'n'], denominatorMeasure: 'stKickoffOnsideAtt', refsPath: ['specialTeams', 'kickoffs', 'refs', 'onside'] }),
+      // Codex re-review finding #3: "Recovered" is a strict SUBSET of
+      // "Attempted" -- it must not share the attempted-cohort's refs, or a
+      // failed-recovery clip opens under a Watch labeled "Recovered".
+      ready('stKickoffOnsideRecovered', 'Onside Kicks Recovered', ['specialTeams', 'kickoffs', 'onside', 'recovered'], 'StatsEngine._specialTeamsStats().kickoffs.onside.recovered', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'onside', 'n'], denominatorMeasure: 'stKickoffOnsideAtt', refsPath: ['specialTeams', 'kickoffs', 'refs', 'onsideRecovered'] }),
       ready('stFieldGoalAtt', 'Field Goals Attempted', ['specialTeams', 'fg', 'att'], 'StatsEngine._specialTeamsStats().fg.att', { refsPath: ['specialTeams', 'fg', 'refs', 'all'] }),
       ready('stFieldGoalMade', 'Field Goals Made', ['specialTeams', 'fg', 'made'], 'StatsEngine._specialTeamsStats().fg.made', { refsPath: ['specialTeams', 'fg', 'refs', 'made'] }),
       ready('stFieldGoalPct', 'Field Goal Rate', ['specialTeams', 'fg', 'pct'], 'StatsEngine._specialTeamsStats().fg.pct', { zeroDenominatorPath: ['specialTeams', 'fg', 'att'], denominatorMeasure: 'stFieldGoalAtt', refsPath: ['specialTeams', 'fg', 'refs', 'all'] }),

@@ -72,6 +72,11 @@ await page.evaluate(async () => {
     { id: 17, timestamp: t(64), tags: { unit: 'special' }, specialTeams: { unit: 'try', attemptType: 'extraPoint', result: 'converted', outcome: { score: 'extraPoint', scoredBy: 'subject' } } },
     { id: 18, timestamp: t(68), tags: { unit: 'special' }, specialTeams: { unit: 'try', attemptType: 'twoPoint', result: 'converted', outcome: { score: 'twoPoint', scoredBy: 'subject' } } },
     { id: 19, timestamp: t(72), tags: { unit: 'special' }, specialTeams: { unit: 'try', attemptType: 'extraPoint', result: 'failed' } },
+    // Codex re-review finding #3: a SECOND onside attempt that FAILS to
+    // recover (opponent recovers) -- id7 above is a subject recovery, so
+    // without this play "attempted" and "recovered" would be the same
+    // single-play set and could never discriminate the fix.
+    { id: 20, timestamp: t(76), tags: { unit: 'special' }, specialTeams: { unit: 'kickoff', kick: { distance: 10 }, isOnside: true, outcome: { status: 'recovered', recoveredBy: 'opponent' } } },
   ];
   const g2 = store.addGame({ id: 'g-pen-st-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
     { id: 1, timestamp: t(0), tags: { unit: 'offense', formation: 'Ace', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' },
@@ -144,6 +149,22 @@ const direct = await page.evaluate(() => {
   const fg = run(game1, 'unit', ['stFieldGoalAtt', 'stFieldGoalMade', 'stExtraPointAtt', 'stExtraPointMade', 'stTwoPointAtt', 'stTwoPointMade']);
   const fgSpecial = fg.groups.find(g => g.value === 'special')?.measures || {};
 
+  // Codex re-review finding #2: punt hang time is charted on ONLY id10 (id11
+  // fairCatch and id12 blocked both omit `kick.hangTime` entirely). The
+  // average must be computed AND film-linked from that single eligible play,
+  // never all 3 punts.
+  const g1Stats = app.stats.compute(game1);
+  const puntHangRefs = app.analyticsRegistry.readRefs(g1Stats, 'stPuntHangAvg');
+  const puntHangValue = app.analyticsRegistry.readMeasures(g1Stats, ['stPuntHangAvg']).stPuntHangAvg;
+
+  // Codex re-review finding #3: id7 is a subject-recovered onside kick, id20
+  // (added for this repair) is a SEPARATE onside attempt the opponent
+  // recovered. "Attempted" must open both; "Recovered" must open only id7 --
+  // never id20's failed recovery.
+  const onsideAttRefs = app.analyticsRegistry.readRefs(g1Stats, 'stKickoffOnsideAtt');
+  const onsideRecoveredRefs = app.analyticsRegistry.readRefs(g1Stats, 'stKickoffOnsideRecovered');
+  const onsideRecoveredValue = app.analyticsRegistry.readMeasures(g1Stats, ['stKickoffOnsideAtt', 'stKickoffOnsideRecovered']);
+
   // 6: missing structured data. Two DISTINCT cases, deliberately not conflated:
   //  (a) a structured cohort that genuinely tracked zero punts -- the rate
   //      field's own denominator (punts.n) is 0, so the registry's
@@ -173,6 +194,13 @@ const direct = await page.evaluate(() => {
   const compareResult = study.compare({ base: game1, against: season, dimension: 'penaltyTeam', measures: ['penaltyYardsSubject'] });
   const compareRow = compareResult.rows.find(row => row.value === 'subject');
 
+  // Codex re-review finding #1, direct: compare()'s row sides must carry
+  // measureRefs through from run(), not just matchingPlayIds. Use the exact
+  // reviewer-cited shape (a measure whose eligible cohort is narrower than
+  // the group's raw sample) grouped by 'unit' and compared game-vs-season.
+  const stCompare = study.compare({ base: game1, against: season, dimension: 'unit', measures: ['stFieldGoalAtt'] });
+  const stCompareRow = stCompare.rows.find(row => row.value === 'special');
+
   return {
     rulingCounts,
     subjectYards: subjectGroup?.measures.penaltyYardsSubject,
@@ -190,6 +218,13 @@ const direct = await page.evaluate(() => {
     compareA: compareRow?.a.measures.penaltyYardsSubject,
     compareB: compareRow?.b.measures.penaltyYardsSubject,
     compareDelta: compareRow?.deltas.penaltyYardsSubject,
+    puntHangRefs: (puntHangRefs || []).slice().sort(),
+    puntHangValue,
+    onsideAttRefs: (onsideAttRefs || []).slice().sort(),
+    onsideRecoveredRefs: (onsideRecoveredRefs || []).slice().sort(),
+    onsideRecoveredValue,
+    stCompareARefs: (stCompareRow?.a.measureRefs?.stFieldGoalAtt || []).slice().sort(),
+    stCompareAMatching: (stCompareRow?.a.matchingPlayIds || []).slice().sort(),
     subjectFouls: subjectFouls?.measures.penaltyFouls,
     subjectFoulsMatchingPlays: subjectFoulsMatchingPlays.slice().sort(),
     subjectFoulsRefs: subjectFoulsRefs.slice().sort(),
@@ -219,6 +254,24 @@ ok(direct.fgSpecial.stFieldGoalAtt === 2 && direct.fgSpecial.stFieldGoalMade ===
   && direct.fgSpecial.stExtraPointAtt === 2 && direct.fgSpecial.stExtraPointMade === 1
   && direct.fgSpecial.stTwoPointAtt === 1 && direct.fgSpecial.stTwoPointMade === 1,
   'Tries (XP/2-Pt) never fold into Field Goal attempted/made counts', JSON.stringify(direct.fgSpecial));
+
+// ---- Codex re-review finding #2: average denominators match their refs ----
+ok(direct.puntHangValue === 4.2,
+  'Punt Hang Time averages only the 1 punt (id10) that actually charted a hang time', String(direct.puntHangValue));
+ok(direct.puntHangRefs.join(',') === 'g-pen-st-1::10',
+  'Codex re-review finding #2: Punt Hang Time refs open exactly the 1 play the average was computed from -- not all 3 punts, 2 of which never charted a hang time', JSON.stringify(direct.puntHangRefs));
+
+// ---- Codex re-review finding #3: "Recovered" refs exclude a failed recovery
+ok(direct.onsideRecoveredValue.stKickoffOnsideAtt === 2 && direct.onsideRecoveredValue.stKickoffOnsideRecovered === 1,
+  'Onside Kicks Attempted counts both attempts; Recovered counts only the subject recovery', JSON.stringify(direct.onsideRecoveredValue));
+ok(direct.onsideAttRefs.join(',') === 'g-pen-st-1::20,g-pen-st-1::7' && direct.onsideRecoveredRefs.join(',') === 'g-pen-st-1::7',
+  'Codex re-review finding #3: "Onside Kicks Recovered" opens only the subject-recovered attempt (id7) -- never id20, whose recovery the opponent won', JSON.stringify({ att: direct.onsideAttRefs, recovered: direct.onsideRecoveredRefs }));
+
+// ---- Codex re-review finding #1, direct: compare() threads measureRefs ----
+ok(direct.stCompareAMatching.length === 15,
+  'Precondition: the "special" group\'s raw matchingPlayIds (game1 side) is the full 15-play unit sample, broader than the FG-rate measure\'s own eligible cohort', JSON.stringify(direct.stCompareAMatching));
+ok(direct.stCompareARefs.join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
+  'Codex re-review finding #1: compare()\'s row carries the measure\'s own eligible refs (the 2 FG-attempt plays), not the group\'s broader 15-play matchingPlayIds', JSON.stringify(direct.stCompareARefs));
 
 ok(direct.g2PuntRate.stPuntTouchbackPct == null && direct.g2PuntRate.stPuntCount === 0,
   'A structured cohort with zero punts nulls the touchback RATE (never "0%") while the raw punt COUNT stays a real, informative 0', JSON.stringify(direct.g2PuntRate));
@@ -290,6 +343,29 @@ watch = await page.evaluate(async () => {
 });
 ok(watch.length === 1 && watch[0].refs.sort().join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
   'Codex review finding #1: Watch on the "special" unit row plays exactly the 2 FG-attempt plays that produced Field Goal Rate, not all 14 Special Teams plays in that unit group', JSON.stringify(watch));
+
+// ---- Codex re-review finding #1: the SAME check, but in COMPARE mode -------
+watch = await page.evaluate(async () => {
+  const app = window.app;
+  const original = app.filmNavigation.watch;
+  const calls = [];
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
+  document.querySelector('#wsStudyMeasure').value = 'stFieldGoalAtt';
+  document.querySelector('#wsStudyMeasure').dispatchEvent(new Event('change', { bubbles: true }));
+  document.querySelector('#wsStudyDimension').value = 'unit';
+  document.querySelector('#wsStudyDimension').dispatchEvent(new Event('change', { bubbles: true }));
+  document.querySelector('#wsStudyCompare').value = 'season';
+  document.querySelector('#wsStudyCompare').dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  const rowIndex = [...document.querySelectorAll('.ws-study-row-compare > strong')].findIndex(el => el.textContent === 'special');
+  document.querySelector(`[data-study-row="${rowIndex}"]`)?.click();
+  document.querySelector('#wsStudyCompare').value = '';
+  document.querySelector('#wsStudyCompare').dispatchEvent(new Event('change', { bubbles: true }));
+  app.filmNavigation.watch = original;
+  return calls;
+});
+ok(watch.length === 1 && watch[0].refs.sort().join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
+  'Codex re-review finding #1: in COMPARE mode (game vs season), Watch on the "special" row still plays exactly the 2 FG-attempt plays -- compare() no longer drops measureRefs and falls back to the 15-play raw group sample', JSON.stringify(watch));
 
 // ---- UI-level: measure lens groups exist, denominator honesty, no-zero -----
 let ui = await page.evaluate(() => {
