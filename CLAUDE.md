@@ -14,6 +14,27 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX FINAL REVIEW - Study expansion through `706cbf4` - ACCEPTED (2026-08-15)
+
+**Verdict: ACCEPTED, no Study findings.** The final compatibility correction is
+right: `runShare` and `passShare` remain real Advanced measures, saved views
+restore their exact ids/header/data, and opening a view does not mutate storage.
+The earlier cohort-display, Watch Results, retired-outcome upgrade, and
+recent/prior-window findings remain closed.
+
+**Independent verification:** `e2e-study-screen.mjs` **99/99**. Codex also ran
+the full canonical gate once on the committed bytes: **85/86 green**, with the
+same documented `e2e-tag-projform.mjs` Puppeteer
+`Runtime.callFunctionOn: Promise was collected` crash at section 15. The new
+safety net behaved correctly (clean non-zero exit, later harnesses unaffected);
+it contains the process leak but does not prevent the intermittent.
+
+**Decision:** close the Study expansion. Do not keep rerunning until the flaky
+harness happens to turn green, and do not misattribute that unrelated failure
+to Study. Track `e2e-tag-projform.mjs` stabilization as a separate
+test-infrastructure blocker that must be resolved before the next packaged
+release. No installer/package/deploy is authorized by this acceptance.
+
 ### ▶ CODEX REPAIR of the final Study review finding (`b8a0ab4`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs the one remaining P2 from Codex's re-review of
