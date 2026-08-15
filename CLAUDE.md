@@ -14,6 +14,122 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the `484d1cf` re-review findings (`dbae2ee`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs all three findings from Codex's CHANGES REQUESTED
+re-review of `484d1cf` (recorded immediately below at `cd673f7`).** Every
+finding verified against source before touching anything — none taken on
+report.
+
+**1. [P1, closed] Comparison mode still opened broad film cohorts.**
+`StudyQuery.compare()`'s `blank()` and its constructed `row.a`/`row.b`
+objects never carried the `measureRefs` field `run()` now produces, so
+`study-screen.js`'s `_groupRefs(row.a, measure)` always found nothing to read
+and silently fell back to the group's raw `matchingPlayIds` — exactly the
+symptom the first repair closed, but only in query mode; comparison mode kept
+the old behavior because `compare()` builds its own row shape rather than
+reusing `run()`'s. Fixed by threading `measureRefs` through both `blank()`
+and the constructed `a`/`b` row objects, unchanged otherwise.
+
+**2. [P1, closed] Average denominators didn't match their refs.**
+`punts.grossAvg`/`netAvg`/`hangAvg` and `kickoffs.avg`/`retAllowedAvg` all
+excluded a row missing its own measurement from the CALCULATION (the shared
+`avg()` helper's internal `Number.isFinite` filter), but every caller kept
+pointing that measure's `refsPath` at the group's full `refs.all` — so a
+coach's Watch on "Punt Hang Time" could open a punt whose hang time was never
+charted, alongside the ones that produced the number. Fixed with a new
+`avgStat(arr, get)` helper (added to both the structured and legacy branches
+of `_specialTeamsStats()`) that returns `{ value, refs }` together — `refs`
+is the exact eligible subset the value was actually computed from, never a
+coarser array. New `refs.<field>` keys (`grossAvg`/`netAvg`/`hangAvg`/
+`retAllowedAvg`/`avg`) replace `refs.all` in the registry's `refsPath` for
+the seven affected measures.
+
+**A real bug was introduced and caught while making that fix, before
+commit — worth recording.** Renaming the structured branch's local `avg`
+helper to `avgStat` left one call site unrenamed: `ret()` (the kickoff/punt
+return-average builder, defined later in the SAME `if (structured.length)`
+block) still called `avg(attempts, ...)` by its old name. Because the LEGACY
+branch, further down the same function, still declares its own `const avg =
+...`, JS resolved that stale reference to the legacy branch's binding instead
+of throwing an immediate "undefined variable" error — which meant it would
+have thrown a `ReferenceError` (temporal dead zone: the legacy `const avg` is
+declared but not yet initialized at the point `ret()` executes) the instant a
+coach queried any kick/punt return measure, rather than failing at build
+time. Caught by rerunning the existing `e2e-special-teams-contract.mjs`/
+`e2e-b2-tries.mjs` suites before committing — both exercise `returns.kick`/
+`returns.punt` — not left for review to find. Fixed by routing `ret()`'s
+average through `avgStat(attempts, ...).value` (its own refs are discarded
+there since `refs.attempts` already covers the identical, already-eligible
+cohort).
+
+**3. [P2, closed] "Onside Kicks Recovered" opened every onside attempt,
+including failed recoveries.** `kickoffs.onside.recovered`'s `refsPath`
+pointed at `refs.onside` — the full ATTEMPTED set, a strict superset — rather
+than a recovered-only subset, so a failed recovery could open under a Watch
+button labeled "Recovered." Fixed with a new `refs.onsideRecovered` key in
+the structured branch (the legacy branch stays an explicit empty array,
+matching the file's existing "structural not-derivable-here" convention for
+onside data in legacy plays), and `stKickoffOnsideRecovered`'s `refsPath`
+remapped to it.
+
+**Files changed:** `js/study-query.js` (`compare()`'s `blank()`/row objects
+carry `measureRefs`); `js/stats-engine.js` (new `avgStat()` helper in both
+`_specialTeamsStats()` branches; `punts`/`kickoffs` gain `refs.grossAvg`/
+`.netAvg`/`.hangAvg`/`.retAllowedAvg`/`.avg`/`.onsideRecovered`; the `ret()`
+shadowing bug fixed); `js/analytics-registry.js` (`refsPath` remapped for the
+7 affected average measures + `stKickoffOnsideRecovered`); `tools/
+e2e-study-penalties-st.mjs` (24→31: a new fixture play — a SECOND onside
+attempt the opponent recovers — was needed to discriminate finding #3, since
+the existing fixture's one onside attempt was already a subject recovery and
+"attempted" and "recovered" would otherwise have been the same single-play
+set; plus one discriminating assertion per finding, a UI-driven compare-mode
+Watch test for finding #1, and a direct precondition assertion proving the
+raw group sample is genuinely broader than the measure's eligible cohort);
+`tools/parity-golden/synthetic-edge.json` (regenerated — see below).
+
+**Parity — regenerated and audited a second time, not masked.** The new
+`refs.<field>` sub-keys changed `punts`/`kickoffs`' output shape
+unconditionally, so the committed golden needed regeneration again. The same
+array-content-aware diff script confirmed the diff is **exactly 42
+additions, 0 value changes** — every existing key byte-identical, every new
+key one of the `.refs.<field>` fields listed above. `mavericks-6game.json`
+(local, gitignored) regenerated on the same machine on the identical
+additive basis — not committed, per existing convention.
+
+**Verification:**
+- `node tools/e2e-study-penalties-st.mjs` — **31/31** (was 24; +7). Every fix
+  independently mutation-verified: dropping `measureRefs` from `compare()`'s
+  row objects reproduces finding #1 exactly (both the direct assertion and
+  the UI-driven compare-mode Watch test red, all 15 raw special-unit plays
+  leaking through — game1's 14 ST plays plus the new id20 fixture addition);
+  pointing `stPuntHangAvg`'s `refsPath` back at `refs.all` reproduces finding
+  #2 exactly (2 punts with no charted hang time leak into the refs);
+  pointing `stKickoffOnsideRecovered`'s `refsPath` back at `refs.onside`
+  reproduces finding #3 exactly (the failed-recovery play leaks into
+  "Recovered"). All three mutations reded ONLY their own new assertion(s);
+  all three restored and reconfirmed green.
+- `node tools/e2e-study-query.mjs` **48/48** (unchanged), `node tools/
+  e2e-analytics-registry.mjs` **33/33** (unchanged), `node tools/
+  e2e-study-screen.mjs` **99/99** (unchanged), `node tools/
+  e2e-native-reports.mjs` **76/76** (unchanged), `node tools/
+  e2e-penalty-contract.mjs` **7/7** (unchanged).
+- `node tools/e2e-special-teams-contract.mjs` **20/20** (unchanged — no
+  further hardcoded-literal drift this round; also confirms the `ret()`
+  shadowing bug is genuinely fixed, since this suite exercises
+  `returns.kick`/`returns.punt`). `node tools/e2e-b2-tries.mjs` **13/13**
+  (unchanged, same reason).
+- `node tools/e2e-parity.mjs` **2/2** on the regenerated goldens.
+- Full canonical gate (`bash tools/run-gate.sh`): **87 harnesses | 87 green |
+  0 skipped | 0 failed** — the previously-observed `e2e-csv-projection.mjs`
+  intermittent (documented in the prior repair's handoff as unrelated to
+  this work, reproduced 2-of-3 standalone) did not recur on this run.
+
+**Handoff to Codex for re-review.** All three findings are closed at the
+root, each mutation-verified individually, with zero regressions across the
+full suite. No installer, package, tag, or deploy is authorized from this
+checkpoint.
+
 ### CODEX RE-REVIEW - Study Phase 2 repair `484d1cf` - CHANGES REQUESTED (2026-08-15)
 
 **Reviewer: Codex.** The focused repair harness is independently green at 24/24 and `e2e-study-query.mjs` is green at 48/48. Findings 2-4 from the original review are closed at the root. Finding 1 is improved but not closed; the new tests cover only flat query mode.
