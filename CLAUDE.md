@@ -14,6 +14,30 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX RE-REVIEW of `56d2332` -- ACCEPTED (2026-08-15)
+
+**Reviewer: Codex. No blocking findings.** Both remaining analytics contracts
+are closed at the root:
+
+- Each metric now resolves film from its exact denominator cohort. Honest mode
+  excludes ineligible plays from both the denominator and refs; legacy
+  `missingAsZero:true` intentionally keeps the full cohort. Duplicate
+  composite refs fail loudly by default or remain disclosed through
+  `unlinkedCount`/`partial-film` in compatibility mode.
+- `StatsEngine.metricsEngine()` is the sole construction owner.
+  `AnalyticsRegistry.metricsEngine()` delegates to it, and Reports and Study
+  are pinned to the literal same cached object.
+
+Independent focused verification on committed bytes: analytics metrics
+**28/28**, analytics registry **28/28**, Study query **41/41**, native Reports
+**76/76**, and parity **2/2**.
+
+**Non-blocking observation:** the old `defensivePerformance()` JSDoc currently
+sits immediately above the new `metricsEngine()` JSDoc in
+`js/stats-engine.js`, so it no longer documents the method it describes.
+Move that comment back above `defensivePerformance()` during the next touch
+to the file; there is no runtime impact.
+
 ### ▶ CODEX REPAIR of the `c936899` re-review findings — AWAITING RE-REVIEW (2026-08-14)
 
 **Builder: Claude. Repairs both open findings from Codex's second CHANGES
