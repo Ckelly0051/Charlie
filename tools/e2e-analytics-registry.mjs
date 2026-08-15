@@ -73,6 +73,22 @@ const result = await page.evaluate(() => {
     penaltyRulings: registry.values('penaltyRuling', play),
     penaltyCounts: registry.values('penaltyPlayCounts', play),
     ref: registry.playRef(play),
+    // Study expansion (2026-08-15): fieldZone is now 'ready', unit-agnostic --
+    // both an offensive AND a defensive snap at the same yard line resolve to
+    // the same band, and the SAME six-band convention the Play Call report's
+    // Field Position dimension already uses (StatsEngine._fieldZone).
+    fieldZoneAvailability: registry.getDimension('fieldZone')?.availability,
+    fieldZoneBands: [
+      { yardLine: 5, fieldSide: 'own', unit: 'offense' },   // absYL 5 -> Backed up
+      { yardLine: 25, fieldSide: 'own', unit: 'offense' },  // absYL 25 -> Own 11-39
+      { yardLine: 50, fieldSide: 'own', unit: 'offense' },  // absYL 50 -> Midfield
+      { yardLine: 30, fieldSide: 'opp', unit: 'offense' },  // absYL 70 -> Opp 40-20
+      { yardLine: 15, fieldSide: 'opp', unit: 'defense' },  // absYL 85 -> Red zone
+      { yardLine: 3, fieldSide: 'opp', unit: 'defense' },   // absYL 97 -> Goal line
+    ].map(t => registry.values('fieldZone', { id: 1, __gid: 'gz', tags: t })[0]),
+    fieldZoneNoYardage: registry.values('fieldZone', { id: 2, __gid: 'gz', tags: { unit: 'offense' } }),
+    scoreSituationDeferred: registry.getDimension('scoreSituation')?.availability,
+    scoreSituationThrows: (() => { try { registry.values('scoreSituation', play); return false; } catch { return true; } })(),
     // Codex review, 2026-08-14, finding #4 then finding #2 (re-review):
     // StatsEngine.metricsEngine() is now the SOLE construction site --
     // AnalyticsRegistry.metricsEngine() is a thin delegate, not a second
@@ -123,6 +139,12 @@ if (!result.missing) {
     && JSON.stringify(result.penaltyCounts) === JSON.stringify(['No play','Play counts']),
   'Structured penalty dimensions preserve every foul on the play');
   ok(result.ref === 'g2::7', 'Composite play reference is gameId::playId');
+  ok(result.fieldZoneAvailability === 'ready', 'fieldZone is a real ready dimension, not deferred (Study expansion)');
+  ok(JSON.stringify(result.fieldZoneBands) === JSON.stringify(['Backed up', 'Own 11–39', 'Midfield', 'Opp 40–20', 'Red zone', 'Goal line']),
+    'fieldZone buckets all six bands correctly, unit-agnostic (offense AND defense snaps both resolve)', JSON.stringify(result.fieldZoneBands));
+  ok(JSON.stringify(result.fieldZoneNoYardage) === JSON.stringify([]), 'fieldZone is empty (not a fabricated zone) for a play with no tagged field position');
+  ok(result.scoreSituationDeferred === 'requires-context', 'scoreSituation remains explicitly deferred -- no per-play score reconstruction exists yet');
+  ok(result.scoreSituationThrows, 'scoreSituation fails loudly rather than fabricating game-state context');
   ok(result.metricsEngineSame, 'AnalyticsRegistry.metricsEngine() returns the SAME bound instance on repeat calls, not a fresh rebuild');
   ok(result.metricsEngineIsStatsEngineOwned, 'AnalyticsRegistry.metricsEngine() IS StatsEngine.metricsEngine() -- one owner, not a structurally-identical second copy (Codex re-review finding #2)');
   ok(result.metricsEngineStopRate.id === 'stopRate' && result.metricsEngineStopRate.polarity === 'higher'

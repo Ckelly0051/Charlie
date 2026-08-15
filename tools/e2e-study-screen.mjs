@@ -29,14 +29,19 @@ await page.evaluate(async () => {
   const store = app.storage.seasonStore;
   const g1 = store.activeGame();
   g1.id = 'g-study-1'; g1.name = 'Week 1 vs Rivals'; g1.gameInfo = { opponent: 'Rivals', date: '2026-09-01' };
+  // Study expansion (2026-08-15): distance is real, tagged data on every play
+  // -- AnalyticsMetrics' honest eligibility (`_isSuccessfulPlayEligible`)
+  // requires yardage + down + distance to compute successRate/stopRate; an
+  // omitted distance is exactly the "insufficient data" case the coaching
+  // metrics are built to disclose, not a fixture convenience to skip.
   g1.plays = [
-    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', custom: [] } },
-    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Ace', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', custom: [] } },
-    { id: 3, timestamp: { start: 10, end: 14 }, tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Ace', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', distance: '4', custom: [] } },
+    { id: 3, timestamp: { start: 10, end: 14 }, tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', distance: '7', custom: [] } },
   ];
   const g2 = store.addGame({ id: 'g-study-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
-    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', custom: [] } },
-    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', distance: '2', custom: [] } },
   ] });
   store.data.activeGameId = g1.id;
   app.storage._clearForNewGame();
@@ -90,13 +95,19 @@ await page.select('#wsStudyUnit', 'defense');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(/0 matching plays/.test(r.summary) && r.groups.length === 0, 'Unit filter is ANDed into the selected football question', JSON.stringify(r));
 
+// Study expansion (2026-08-15): a coaching metric (offense/defense pair) must
+// never guess a framing from a blank unit -- it fails closed with a visible
+// prompt instead. This is the non-negotiable itself under test, not a gap.
 await page.select('#wsStudyUnit', '');
-await page.select('#wsStudyMeasure', 'negativeRate');
-r = await page.evaluate(() => ({ header: document.querySelector('#wsStudyMetricHead')?.textContent }));
-ok(r.header === 'Negative Play Rate', 'Primary metric selection uses registry measure labels', JSON.stringify(r));
-r = await page.evaluate(() => ({ kpis: document.querySelectorAll('.ws-study-kpis>div').length, bars: document.querySelectorAll('.ws-study-bar-row').length, linked: !!document.querySelector('.ws-study-bar-row[data-study-row]'), mix: document.querySelector('.ws-study-kpis>div:nth-child(3) strong')?.textContent, highest: document.querySelector('.ws-study-kpis>div:nth-child(2) span')?.textContent, aria: document.querySelector('.ws-study-bar-row')?.getAttribute('aria-label'), decorative: document.querySelector('.ws-study-bar-row i')?.getAttribute('aria-hidden') }));
+await page.select('#wsStudyMeasure', 'negative');
+r = await page.evaluate(() => ({ promptVisible: !document.querySelector('#wsStudyUnitPrompt')?.hidden, rows: document.querySelectorAll('.ws-study-row').length, watchDisabled: document.querySelector('[data-study-action="watch-all"]')?.disabled }));
+ok(r.promptVisible && r.rows === 0 && r.watchDisabled, 'A coaching metric fails closed with a visible unit prompt rather than guessing a framing', JSON.stringify(r));
+await page.select('#wsStudyUnit', 'offense');
+r = await page.evaluate(() => ({ header: document.querySelector('#wsStudyMetricHead')?.textContent, promptHidden: document.querySelector('#wsStudyUnitPrompt')?.hidden }));
+ok(r.header === 'Negative Play Rate' && r.promptHidden, 'Choosing a unit resolves the exact offense-framed metric id and clears the prompt', JSON.stringify(r));
+r = await page.evaluate(() => ({ kpis: document.querySelectorAll('.ws-study-kpis>div').length, bars: document.querySelectorAll('.ws-study-bar-row').length, linked: !!document.querySelector('.ws-study-bar-row[data-study-row]'), mix: document.querySelector('.ws-study-kpis>div:nth-child(3) strong')?.textContent, best: document.querySelector('.ws-study-kpis>div:nth-child(2) span')?.textContent, aria: document.querySelector('.ws-study-bar-row')?.getAttribute('aria-label'), decorative: document.querySelector('.ws-study-bar-row i')?.getAttribute('aria-hidden') }));
 const mixTotal = (r.mix?.match(/[\d.]+/g) || []).reduce((sum, value) => sum + Number(value), 0);
-ok(r.kpis === 3 && r.bars > 0 && r.linked && mixTotal <= 100.01 && /^Highest /.test(r.highest) && /Watch .* film/.test(r.aria) && r.decorative === 'true', 'Study renders accurate, accessible KPI and film-linked effectiveness visuals', JSON.stringify(r));
+ok(r.kpis === 3 && r.bars > 0 && r.linked && mixTotal <= 100.01 && /^Best /.test(r.best) && /Watch .* film/.test(r.aria) && r.decorative === 'true', 'Study renders accurate, accessible KPI and film-linked effectiveness visuals for a coaching metric', JSON.stringify(r));
 await page.select('#wsStudyCompare', 'season');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, compareRows: document.querySelectorAll('.ws-study-row-compare').length, scopeDisabled: document.querySelector('#wsStudyScope')?.disabled, watch: document.querySelector('[data-study-action="watch-all"]')?.textContent }));
 ok(/2 vs 4 plays/.test(r.summary) && r.compareRows >= 3 && r.scopeDisabled && /Watch current game/.test(r.watch), 'Game-versus-season comparison renders aligned groups', JSON.stringify(r));
@@ -326,10 +337,10 @@ ok(noSeasonPlan===null,'Exact-target Plan save fails closed when no season is op
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 const savedId = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]')[0]?.id || '');
 await page.click('[data-study-action="clear-filters"]');
-await page.select('#wsStudyMeasure', 'successRate');
+await page.select('#wsStudyMeasure', 'yards');
 await page.select('#wsStudySaved', savedId);
 r = await page.evaluate(() => ({ chips: document.querySelectorAll('.ws-study-filter-chip').length, metric: document.querySelector('#wsStudyMeasure')?.value, compare: document.querySelector('#wsStudyCompare')?.value, from: document.querySelector('#wsStudyDateFrom')?.value, to: document.querySelector('#wsStudyDateTo')?.value, deleteEnabled: !document.querySelector('[data-study-action="delete-view"]')?.disabled }));
-ok(r.chips === 1 && r.metric === 'negativeRate' && r.compare === 'rangePrior' && r.from === '2026-09-08' && r.to === '2026-09-08' && r.deleteEnabled, 'Loading a saved view restores filters, metric, comparison, and dates', JSON.stringify(r));
+ok(r.chips === 1 && r.metric === 'negative' && r.compare === 'rangePrior' && r.from === '2026-09-08' && r.to === '2026-09-08' && r.deleteEnabled, 'Loading a saved view restores filters, metric, comparison, and dates', JSON.stringify(r));
 await page.click('[data-study-action="delete-view"]');
 r = await page.evaluate(() => ({ options: document.querySelectorAll('#wsStudySaved option').length, stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length }));
 ok(r.options === 1 && r.stored === 0, 'Saved views can be deleted intentionally', JSON.stringify(r));
@@ -549,13 +560,18 @@ await page.evaluate(() => {
   window.app.storage.commitActive();                                                // refs into one row's click is undetectable (only one group exists)
   return window.app.workspaceShell.show('study');
 });
-// Reset every filter/scope/unit/compare knob this shared page has accumulated
-// from earlier sections in this file — this check must isolate the dimension
-// selector itself, not depend on incidentally-clean leftover state.
+// Reset every filter/scope/unit/measure/compare knob this shared page has
+// accumulated from earlier sections in this file — this check must isolate
+// the dimension selector itself, not depend on incidentally-clean leftover
+// state. Measure resets to a LEGACY flat id specifically: this section tests
+// dimension reachability with Unit blank, and a rich coaching-metric measure
+// fails closed (no rows at all) with no unit chosen -- that is correct
+// product behavior, but it would starve this dimension check of any row.
 if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) {
   await page.click('[data-study-action="clear-filters"]');
 }
 await page.select('#wsStudyUnit', '');
+await page.select('#wsStudyMeasure', 'epaPerPlay');
 await page.select('#wsStudyCompare', '');
 await page.select('#wsStudyScope', 'season');
 r = await page.evaluate(() => ({
@@ -735,7 +751,7 @@ const picker = await page.evaluate(() => {
     column: read('wsStudyColumn'),
     measure: read('wsStudyMeasure'),
     dimensionIds: StudyScreen.DIMENSIONS,
-    measureIds: StudyScreen.MEASURES.filter(id => id !== 'sampleSize'),
+    measureIds: StudyScreen.SELECTABLE_METRICS,
     declaredDefault: StudyScreen.DEFAULT_DIMENSION,
     defaultDimension: (() => {
       const probe = document.createElement('div');
@@ -754,8 +770,13 @@ const picker = await page.evaluate(() => {
 ok(picker.defaultDimension === 'formation' && picker.declaredDefault === 'formation',
   'Study still opens on Formation after the pickers were grouped',
   JSON.stringify({ selected: picker.defaultDimension, declared: picker.declaredDefault }));
-ok(picker.measure.groups.join(',') === 'Efficiency,Explosiveness,Tendencies,Risk',
-  'The Study metric picker groups measures by lens', picker.measure.groups.join(','));
+// Study expansion (2026-08-15): the lens grouping changed shape -- the picker
+// now leads with the five offense/defense coaching-metric pairs (the primary
+// non-negotiable of this increment) and keeps the registry-only flat measures
+// as a distinct "Advanced" group, rather than the four football-question
+// lenses this list used before the metric set itself was redesigned.
+ok(picker.measure.groups.join(',') === 'Coaching metrics,Advanced',
+  'The Study metric picker groups coaching metrics ahead of advanced measures', picker.measure.groups.join(','));
 ok(picker.dimension.groups.length === 7 && picker.dimension.groups[0] === 'Situation'
   && !picker.dimension.groups.includes('Other'),
   'Study dimensions are grouped by football category with none left unclassified', JSON.stringify(picker.dimension.groups));

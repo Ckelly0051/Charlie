@@ -113,7 +113,9 @@ const result = await page.evaluate((fixture) => {
 
   // Guards.
   const unknownThrows = (() => { try { study.run({ plays, dimension: 'nope' }); return false; } catch { return true; } })();
-  const deferredThrows = (() => { try { study.run({ plays, dimension: 'fieldZone' }); return false; } catch { return true; } })();
+  // fieldZone graduated to 'ready' in the Study expansion (2026-08-15);
+  // scoreSituation is the dimension that remains deliberately deferred now.
+  const deferredThrows = (() => { try { study.run({ plays, dimension: 'scoreSituation' }); return false; } catch { return true; } })();
   const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formation' }); return false; } catch { return true; } })();
 
   // Finding 1: the new dimensions must ROUTE THROUGH the report cut (film-link
@@ -149,6 +151,38 @@ const result = await page.evaluate((fixture) => {
   const honestYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay');
   const legacyYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay', {}, { missingAsZero: true });
 
+  // compareMetrics() — Study expansion (2026-08-15): the runMetrics() sibling
+  // of compare(). Same game-1-vs-season cohorts as the existing compare()
+  // assertion below, so its 'Trips' row can be checked against the SAME
+  // per-scope golden drilldowns -- proving compareMetrics() is genuinely
+  // additive (compare() is untouched) and film-linked exactly like compare().
+  const cmpMetrics = study.compareMetrics({
+    base: g1Plays, against: plays, dimension: 'formation', metricIds: ['stopRate', 'yardsAllowedPerPlay'],
+    labels: { base: 'Game 1', against: 'Season' },
+  });
+  const cmpMetricsTrips = cmpMetrics.rows.find(r => r.value === 'Trips');
+  // A metric whose value is genuinely missing on one side must not produce a
+  // fabricated delta. 'Flexbone' is the SAME g2-only, base-empty formation
+  // already used and verified below for compare()'s own cmpFlexbone case.
+  const cmpMetricsFlexbone = cmpMetrics.rows.find(r => r.value === 'Flexbone');
+  // The decisive case for the delta-safety gate: an impossibly high minSample
+  // forces BOTH sides into state:'insufficient' while denominator > 0 still
+  // gives each a REAL numeric value (unlike Flexbone's denominator:0 -- where
+  // value is null anyway, so a naive `value != null` guard alone would still
+  // pass). Only the explicit ok/partial-film state check can catch this.
+  const cmpMetricsInsufficient = study.compareMetrics({
+    base: g1Plays, against: plays, dimension: 'formation', metricIds: ['stopRate'], minSample: 1000,
+    labels: { base: 'Game 1', against: 'Season' },
+  });
+  const cmpMetricsTripsInsufficient = cmpMetricsInsufficient.rows.find(r => r.value === 'Trips');
+
+  // fieldZone — Study expansion (2026-08-15): a real, ready, unit-agnostic
+  // dimension. Query it directly (not through DIMENSION_CUT/golden parity,
+  // since it is a genuinely new query surface with no existing report
+  // drilldown to match) and confirm it groups + film-links like any other
+  // ready dimension.
+  const fieldZoneQ = study.run({ plays, dimension: 'fieldZone', measures: ['sampleSize'] });
+
   return {
     grouped, playCount: plays.length,
     dimCut: { qbAlignment: DC.qbAlignment, coverageFamily: DC.coverageFamily },
@@ -171,6 +205,22 @@ const result = await page.evaluate((fixture) => {
       matchingPlayIds: richTrips.matchingPlayIds,
     } : null,
     honestYpp, legacyYpp,
+    cmpMetricsMeta: { aTotal: cmpMetrics.a.total, bTotal: cmpMetrics.b.total, aLabel: cmpMetrics.a.label, bLabel: cmpMetrics.b.label },
+    cmpMetricsTrips: cmpMetricsTrips ? {
+      aStopRate: cmpMetricsTrips.a.metrics.stopRate, bStopRate: cmpMetricsTrips.b.metrics.stopRate,
+      deltaStopRate: cmpMetricsTrips.deltas.stopRate,
+    } : null,
+    cmpMetricsFlexbone: cmpMetricsFlexbone ? {
+      aState: cmpMetricsFlexbone.a.metrics.stopRate?.state, bState: cmpMetricsFlexbone.b.metrics.stopRate?.state,
+      deltaStopRate: cmpMetricsFlexbone.deltas.stopRate,
+    } : null,
+    cmpMetricsTripsInsufficient: cmpMetricsTripsInsufficient ? {
+      aState: cmpMetricsTripsInsufficient.a.metrics.stopRate?.state, aValue: cmpMetricsTripsInsufficient.a.metrics.stopRate?.value,
+      bState: cmpMetricsTripsInsufficient.b.metrics.stopRate?.state, bValue: cmpMetricsTripsInsufficient.b.metrics.stopRate?.value,
+      deltaStopRate: cmpMetricsTripsInsufficient.deltas.stopRate,
+    } : null,
+    fieldZoneGroups: fieldZoneQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize })),
+    fieldZoneTotal: fieldZoneQ.total,
   };
 }, syntheticEdge());
 
@@ -248,7 +298,7 @@ if (!result.missing) {
   ok(result.wildBelow === true && result.wildSample === 1 && result.minWarn.some(w => /Wildcat/.test(w)), 'Small samples are flagged + warned, not dropped', JSON.stringify({ warn: result.minWarn, s: result.wildSample }));
   ok(JSON.stringify(result.resultTdIds) === JSON.stringify(['g1::7']), 'Non-cut dimension (result) still groups and film-links', JSON.stringify(result.resultTdIds));
   ok(result.unknownThrows, 'Unknown Study dimension fails loudly');
-  ok(result.deferredThrows, 'requires-context dimension (fieldZone) refuses to query');
+  ok(result.deferredThrows, 'requires-context dimension (scoreSituation) refuses to query');
 
   // 4. Two-cohort comparison (game vs season).
   const gm = result.cmpMeta;
@@ -286,6 +336,38 @@ if (!result.missing) {
     && result.honestYpp.denominator !== result.legacyYpp.denominator,
     'runMetrics({missingAsZero}) genuinely changes the divisor -- exact denominators/values on a fixture proven to differ, not just <=',
     JSON.stringify({ honest: result.honestYpp, legacy: result.legacyYpp }));
+
+  // 6. compareMetrics() — Study expansion, additive runMetrics() sibling of compare().
+  ok(result.cmpMetricsMeta.aTotal === result.cmpMeta.aTotal && result.cmpMetricsMeta.bTotal === result.cmpMeta.bTotal,
+    'compareMetrics() groups over the SAME two cohorts as compare()', JSON.stringify({ cm: result.cmpMetricsMeta, c: result.cmpMeta }));
+  ok(!!result.cmpMetricsTrips && !!result.cmpTrips
+    && JSON.stringify(result.cmpMetricsTrips.aStopRate.refs) === JSON.stringify(result.cmpTrips.aIds)
+    && JSON.stringify(result.cmpMetricsTrips.bStopRate.refs) === JSON.stringify(result.cmpTrips.bIds),
+    'compareMetrics() per-metric refs equal compare()\'s already golden-verified matchingPlayIds for the same rows',
+    JSON.stringify({ cm: result.cmpMetricsTrips, c: result.cmpTrips }));
+  ok(typeof result.cmpMetricsTrips.deltaStopRate === 'number' && Number.isFinite(result.cmpMetricsTrips.deltaStopRate),
+    'compareMetrics() computes a real numeric delta when both sides have usable data', JSON.stringify(result.cmpMetricsTrips));
+  ok(!!result.cmpMetricsFlexbone
+    // A wholly-missing group has an empty metrics object (matching compare()'s
+    // own blank() convention for the flat-measures shape) -- aState is
+    // undefined, not a padded 'unavailable' contract.
+    && result.cmpMetricsFlexbone.aState === undefined && result.cmpMetricsFlexbone.bState === 'ok'
+    && result.cmpMetricsFlexbone.deltaStopRate === null,
+    'compareMetrics() never fabricates a delta when one side is unavailable (Flexbone: base empty, against present) -- stays null, not a guessed number',
+    JSON.stringify(result.cmpMetricsFlexbone));
+  ok(!!result.cmpMetricsTripsInsufficient
+    && result.cmpMetricsTripsInsufficient.aState === 'insufficient' && result.cmpMetricsTripsInsufficient.bState === 'insufficient'
+    && typeof result.cmpMetricsTripsInsufficient.aValue === 'number' && typeof result.cmpMetricsTripsInsufficient.bValue === 'number'
+    && result.cmpMetricsTripsInsufficient.deltaStopRate === null,
+    'compareMetrics() never fabricates a delta from two insufficient-sample values, even though both carry real numbers',
+    JSON.stringify(result.cmpMetricsTripsInsufficient));
+
+  // 7. fieldZone — real, ready, groups + film-links like any other dimension.
+  ok(result.fieldZoneGroups.length > 0 && result.fieldZoneGroups.every(g => g.sampleSize > 0),
+    'fieldZone groups the real season fixture into real, non-empty bands', JSON.stringify(result.fieldZoneGroups));
+  ok(result.fieldZoneGroups.reduce((sum, g) => sum + g.sampleSize, 0) <= result.fieldZoneTotal,
+    'fieldZone group sample sizes never exceed the queried cohort total (single-value dimension, no double count)',
+    JSON.stringify({ groups: result.fieldZoneGroups, total: result.fieldZoneTotal }));
 }
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));

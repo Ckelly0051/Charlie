@@ -7,7 +7,12 @@ export class StudyScreen {
     // coach could not select either dimension in Study at all. Positioned next to
     // their structural counterpart (qbAlignment after formation, coverageFamily
     // after coverage), mirroring the Film Room column placement.
-    return ['playCall', 'playConcept', 'formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'quarter',
+    // Study expansion (2026-08-15): fieldZone joins the list now that it is a
+    // real 'ready' registry dimension (was deferred -- see analytics-registry.js).
+    // scoreSituation is NOT added: it remains deliberately deferred (no
+    // per-play score-at-snap reconstruction exists), so it is honestly absent
+    // rather than offered and silently unusable.
+    return ['playCall', 'playConcept', 'formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
       'playDir', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore',
@@ -25,25 +30,57 @@ export class StudyScreen {
   }
 
   /**
-   * AX-7 — the five lenses, applied to the metric picker.
+   * Study expansion (2026-08-15) -- core coaching analysis. Five football
+   * concepts, each an offense-produced/defense-allowed pair sharing one
+   * AnalyticsMetrics formula (see analytics-metrics.js's "POLARITY IS PER
+   * UNIT" docblock). A coach never picks "successRate" and gets a universal
+   * higher-is-better number regardless of who's on the field -- picking a
+   * CONCEPT plus a Unit resolves the ONE correct, unambiguous metric id, via
+   * `_richMetricId()`. This deliberately REPLACES the old unit-blind
+   * `successRate`/`explosiveRate`/`negativeRate`/`havocRate` selector entries
+   * (still present in `MEASURES` above for `run()`/`compare()`'s own
+   * backward-compatible flat contract, which stays byte-unchanged) --
+   * offense/defense framing was exactly the bug this pairing fixes.
+   */
+  static get RICH_METRIC_PAIRS() {
+    return {
+      success: { offense: 'successRate', defense: 'stopRate', name: 'Success Rate' },
+      yards: { offense: 'yardsPerPlay', defense: 'yardsAllowedPerPlay', name: 'Yards / Play' },
+      explosive: { offense: 'explosiveRate', defense: 'explosivesAllowedRate', name: 'Explosive Rate' },
+      negative: { offense: 'negativeRate', defense: 'negativeRateForced', name: 'Negative Play Rate' },
+      havoc: { offense: 'havocRateAllowed', defense: 'havocRate', name: 'Havoc' },
+    };
+  }
+  static get RICH_METRIC_IDS() { return Object.keys(StudyScreen.RICH_METRIC_PAIRS); }
+  /** The flat, registry-backed measures still selectable alongside the rich
+   *  concepts -- no AnalyticsMetrics equivalent exists for these, so they
+   *  stay on the original `run()`/`compare()` path untouched. */
+  static get LEGACY_SELECTABLE_MEASURES() { return ['epaPerPlay', 'touchdowns', 'turnovers']; }
+  static get SELECTABLE_METRICS() { return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.LEGACY_SELECTABLE_MEASURES]; }
+  static get DEFAULT_METRIC() { return 'success'; }
+  /** Study opens already answering the coach's own offense -- a concrete,
+   *  useful default, not a guess made during computation. The coach can
+   *  clear it to "All units" at any time; this only affects the INITIAL
+   *  control value, never overrides an explicit selection. */
+  static get DEFAULT_UNIT() { return 'offense'; }
+
+  /**
+   * AX-7 — the lenses applied to the primary-metric picker.
    *
-   * A coach picking a primary metric is asking a football question, and the
-   * five questions are Efficiency, Explosiveness, Situational, Tendencies and
-   * Risk. Situational is a SCOPE rather than a metric, so it has no entry
-   * here; it is expressed through the dimension and filters instead.
-   *
-   * Grouping does NOT preserve overall option order — a group has to gather
-   * its members — so anything that depended on "the first option" has to be
-   * pinned explicitly. `_bind()` restores the historical default dimension for
-   * exactly that reason. Option VALUES are untouched, so every saved view and
-   * every query is byte-identical.
+   * Study expansion (2026-08-15): the picker's option SET changed from the
+   * old unit-blind flat measures to `SELECTABLE_METRICS` (the five rich
+   * offense/defense concept pairs plus the three legacy flat measures with
+   * no AnalyticsMetrics equivalent). Grouping does NOT preserve overall
+   * option order, so anything that depended on "the first option" has to be
+   * pinned explicitly -- `_bind()` restores the historical default for
+   * exactly that reason (now `DEFAULT_METRIC`, 'success'). Option VALUES for
+   * the legacy three are untouched, so a saved view referencing them is
+   * still byte-identical.
    */
   static get MEASURE_LENSES() {
     return [
-      { name: 'Efficiency', ids: ['successRate', 'epaPerPlay'] },
-      { name: 'Explosiveness', ids: ['explosiveRate', 'touchdowns'] },
-      { name: 'Tendencies', ids: ['runShare', 'passShare'] },
-      { name: 'Risk', ids: ['negativeRate', 'turnovers', 'havocRate'] },
+      { name: 'Coaching metrics', ids: StudyScreen.RICH_METRIC_IDS },
+      { name: 'Advanced', ids: StudyScreen.LEGACY_SELECTABLE_MEASURES },
     ];
   }
 
@@ -56,7 +93,7 @@ export class StudyScreen {
    */
   static get DIMENSION_GROUPS() {
     return [
-      { name: 'Situation', ids: ['down', 'distance', 'quarter', 'drive', 'hash'] },
+      { name: 'Situation', ids: ['down', 'distance', 'fieldZone', 'quarter', 'drive', 'hash'] },
       { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formation', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'playDir', 'playType', 'runPass'] },
       { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
       { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
@@ -104,16 +141,19 @@ export class StudyScreen {
       StudyScreen.DIMENSION_GROUPS,
       id => this.app.analyticsRegistry.getDimension(id)?.name,
     );
-    const measures = this._groupedOptions(
-      StudyScreen.MEASURES.filter(id => id !== 'sampleSize'),
-      StudyScreen.MEASURE_LENSES,
-      id => this.app.analyticsRegistry.getMeasure(id)?.name,
-    );
+    // Study expansion: metric name lookup checks RICH_METRIC_PAIRS first --
+    // those five ids are not registry measures at all (they resolve to a
+    // DIFFERENT registry measure id per unit at query time), so
+    // analyticsRegistry.getMeasure() would return nothing for them.
+    const metricName = id => StudyScreen.RICH_METRIC_PAIRS[id]?.name || this.app.analyticsRegistry.getMeasure(id)?.name;
+    const measures = this._groupedOptions(StudyScreen.SELECTABLE_METRICS, StudyScreen.MEASURE_LENSES, metricName);
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
-      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">&mdash;</option>${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">&mdash;</option>${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="recent">Recent vs prior period</option><option value="rangePrior">Date range vs prior</option></select></label><label id="wsStudyPeriodWrap" hidden>Period size<select id="wsStudyPeriodGames"><option value="2">2 games</option><option value="3" selected>3 games</option><option value="5">5 games</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
-      <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div><div class="ws-study-visuals" id="wsStudyVisuals"></div>
+      <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div>
+      <div class="ws-study-unit-prompt" id="wsStudyUnitPrompt" hidden>Choose <strong>Offense</strong> or <strong>Defense</strong> in Unit to see this coaching metric — production and prevention are different questions, so this metric is never guessed from a blank unit.</div>
+      <div class="ws-study-visuals" id="wsStudyVisuals"></div>
       <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span id="wsStudyMetricHead">Success</span><span>Run / Pass</span><span id="wsStudyDeltaHead">Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
     // AX-7: a <select> with no explicit value selects its FIRST option, and
     // grouping moved which option that is. Study has always opened on
@@ -123,6 +163,12 @@ export class StudyScreen {
     if (dimensionSelect && StudyScreen.DIMENSIONS.includes(StudyScreen.DEFAULT_DIMENSION)) {
       dimensionSelect.value = StudyScreen.DEFAULT_DIMENSION;
     }
+    const measureSelect = host.querySelector('#wsStudyMeasure');
+    if (measureSelect && StudyScreen.SELECTABLE_METRICS.includes(StudyScreen.DEFAULT_METRIC)) {
+      measureSelect.value = StudyScreen.DEFAULT_METRIC;
+    }
+    const unitSelect = host.querySelector('#wsStudyUnit');
+    if (unitSelect) unitSelect.value = StudyScreen.DEFAULT_UNIT;
     this._bind();
     this._loadViews();
     this._renderFilters();
@@ -189,6 +235,7 @@ export class StudyScreen {
       measure: this._control('wsStudyMeasure').value,
       minSample: Number(this._control('wsStudyMin').value) || 0,
       compare: this._control('wsStudyCompare').value,
+      periodGames: Number(this._control('wsStudyPeriodGames')?.value) || 3,
       dateFrom: this._control('wsStudyDateFrom').value,
       dateTo: this._control('wsStudyDateTo').value,
       filters: this.filters.map(filter => ({ dimension: filter.dimension, values: filter.values.slice() })),
@@ -204,29 +251,82 @@ export class StudyScreen {
     const dated = games.filter(game => /^\d{4}-\d{2}-\d{2}$/.test(game?.gameInfo?.date || ''));
     const rangeGames = dated.filter(game => (!state.dateFrom || game.gameInfo.date >= state.dateFrom) && (!state.dateTo || game.gameInfo.date <= state.dateTo));
     const beforeRange = state.dateFrom ? dated.filter(game => game.gameInfo.date < state.dateFrom) : [];
+    // Recent N vs prior N: a pure season-chronology window (sorted by the
+    // SAME date field `dated`/`rangeGames` already sort on), deliberately
+    // independent of which game happens to be "active" in the UI -- more
+    // useful for a coach reviewing trends regardless of what they have open.
+    const chronological = dated.slice().sort((a, b) => a.gameInfo.date.localeCompare(b.gameInfo.date));
+    const periodN = Math.max(1, Number(state.periodGames) || 3);
+    const recentGames = chronological.slice(-periodN);
+    const priorPeriodGames = chronological.slice(Math.max(0, chronological.length - 2 * periodN), chronological.length - periodN);
     return {
       game: stamp(active), season: games.flatMap(stamp),
       prior: games.filter(game => String(game.id) !== activeId).flatMap(stamp),
       range: rangeGames.flatMap(stamp), beforeRange: beforeRange.flatMap(stamp),
+      recent: recentGames.flatMap(stamp), priorPeriod: priorPeriodGames.flatMap(stamp),
       activeName: active ? this._gameName(active) : 'Current game',
       rangeName: this._rangeLabel(state.dateFrom, state.dateTo),
+      recentName: `Last ${recentGames.length} game${recentGames.length === 1 ? '' : 's'}`,
+      priorPeriodName: `Prior ${priorPeriodGames.length} game${priorPeriodGames.length === 1 ? '' : 's'}`,
     };
+  }
+
+  /** Resolves the active rich concept's UNIT-CORRECT AnalyticsMetrics id, or
+   *  null when the coach hasn't picked a unit yet (a coaching metric is never
+   *  guessed from a blank/ambiguous unit -- see `RICH_METRIC_PAIRS`'s docblock). */
+  _richMetricId(state) {
+    const pair = StudyScreen.RICH_METRIC_PAIRS[state.measure];
+    if (!pair) return null;
+    return pair[state.unit] || null;
   }
 
   render() {
     if (!this.host) return;
     const state = this._state();
     const sets = this._playSets(state);
-    const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
-    const args = { dimension: state.dimension, measures: StudyScreen.MEASURES, filters, minSample: state.minSample };
+    const pair = StudyScreen.RICH_METRIC_PAIRS[state.measure];
+    const metricId = this._richMetricId(state);
     this._control('wsStudyScope').disabled = !!state.compare;
     this._syncRangeControls(state);
+    const periodWrap = this._control('wsStudyPeriodWrap');
+    if (periodWrap) periodWrap.hidden = state.compare !== 'recent';
+    const promptEl = this._control('wsStudyUnitPrompt');
+    // A coaching metric needs an explicit Offense/Defense unit to resolve an
+    // unambiguous id -- fail closed with a visible prompt rather than
+    // guessing a framing (product non-negotiable: never treat one metric
+    // direction as universally good or bad).
+    if (pair && !metricId) {
+      promptEl.hidden = false;
+      this.rows = []; this._saveCohorts = [];
+      this._control('wsStudyVisuals').innerHTML = '';
+      this._control('wsStudySummary').innerHTML = '';
+      this._control('wsStudyRows').innerHTML = '';
+      this._renderWarnings([]);
+      this._setWatchAll([]);
+      return;
+    }
+    if (promptEl) promptEl.hidden = true;
+    // Pivot (cross-tab) mode stays legacy-measures-only this checkpoint --
+    // disclosed known limitation, not silently broken. Selecting a coaching
+    // metric clears any pivot column rather than running a query the cell
+    // renderer can't yet express with per-cell honest state.
+    const columnSelect = this._control('wsStudyColumn');
+    if (columnSelect) {
+      columnSelect.disabled = !!pair;
+      if (pair && columnSelect.value) columnSelect.value = '';
+    }
+    if (pair) { this._renderRich(state, sets, metricId, pair); return; }
+
+    const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
+    const args = { dimension: state.dimension, measures: StudyScreen.MEASURES, filters, minSample: state.minSample };
     let result;
     try {
       result = state.compare
         ? state.compare === 'rangePrior'
           ? this.app.study.compare({ ...args, base: sets.range, against: sets.beforeRange, labels: { base: sets.rangeName, against: 'Prior dated games' } })
-          : this.app.study.compare({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
+          : state.compare === 'recent'
+            ? this.app.study.compare({ ...args, base: sets.recent, against: sets.priorPeriod, labels: { base: sets.recentName, against: sets.priorPeriodName } })
+            : this.app.study.compare({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
         : this.app.study.run({ ...args, plays: sets[state.scope] });
     } catch (error) {
       this.rows = [];
@@ -382,7 +482,173 @@ export class StudyScreen {
       return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${this._deltaClass(measure, delta)}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
     this._renderCompareVisuals(rows, measure, result.a.label, result.b.label);
-    this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : 'Watch current game');
+    // Study expansion (2026-08-15): 'recent' (last-N-games vs prior-N-games)
+    // is a new compare mode with no current game involved -- give it its own
+    // label rather than falling into the misleading 'Watch current game'.
+    this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : compareMode === 'recent' ? 'Watch recent period' : 'Watch current game');
+  }
+
+  /**
+   * Study expansion (2026-08-15) -- core coaching analysis. Dispatches a
+   * coaching-metric (rich) query/comparison through `runMetrics()`/
+   * `compareMetrics()` instead of `run()`/`compare()`'s flat-measures path.
+   * `pair` is the resolved `{offense, defense, name}` entry from
+   * `RICH_METRIC_PAIRS`; `metricId` is already the unit-resolved
+   * AnalyticsMetrics id (never guessed -- `render()` already fails closed
+   * before calling this if it couldn't resolve one).
+   */
+  _renderRich(state, sets, metricId, pair) {
+    const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
+    const args = { dimension: state.dimension, metricIds: [metricId], filters, minSample: state.minSample };
+    this._control('wsStudyMetricHead').textContent = pair.name;
+    // Unlike legacy's fixed measure set, a coaching-metric query has no second
+    // metric to fill this column -- leave the header blank rather than
+    // duplicating the primary metric's name over an empty cell.
+    this._control('wsStudyDeltaHead').textContent = state.compare ? 'Delta' : '';
+    let result;
+    try {
+      result = state.compare
+        ? state.compare === 'rangePrior'
+          ? this.app.study.compareMetrics({ ...args, base: sets.range, against: sets.beforeRange, labels: { base: sets.rangeName, against: 'Prior dated games' } })
+          : state.compare === 'recent'
+            ? this.app.study.compareMetrics({ ...args, base: sets.recent, against: sets.priorPeriod, labels: { base: sets.recentName, against: sets.priorPeriodName } })
+            : this.app.study.compareMetrics({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
+        : this.app.study.runMetrics({ ...args, plays: sets[state.scope] });
+    } catch (error) {
+      this.rows = [];
+      this._saveCohorts = [];
+      this._control('wsStudyVisuals').innerHTML = '';
+      this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this query.')}</div>`;
+      return;
+    }
+    if (state.compare) this._renderRichCompare(result, metricId, state.measure, pair, state.compare);
+    else this._renderRichQuery(result, metricId, state.measure, pair, state.scope, sets);
+    this._renderWarnings(result.warnings || []);
+  }
+
+  _renderRichQuery(result, metricId, conceptKey, pair, scope, sets) {
+    const groups = result.groups.filter(g => g.sampleSize > 0);
+    // Watch actions use the METRIC's OWN refs, never the group's broader
+    // matchingPlayIds -- a group's sample can exceed what THIS metric's own
+    // eligible denominator counted (analytics-metrics.js's contract), and
+    // opening extra film for a smaller number is the exact defect this
+    // product's film-parity rule forbids.
+    this.rows = groups.map(g => ({ label: g.value, refs: g.metrics[metricId]?.refs || [] }));
+    const scopeLabel = scope === 'game' ? 'current game' : scope === 'range' ? sets.rangeName : scope === 'recent' ? sets.recentName : 'full season';
+    const metricRefs = [...new Set(groups.flatMap(g => g.metrics[metricId]?.refs || []))];
+    this._saveCohorts = [{ id: 'result', label: scopeLabel, refs: metricRefs }];
+    this._control('wsStudySummary').innerHTML = `<strong>${metricRefs.length} matching play${metricRefs.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${this._esc(scopeLabel)}</span>`;
+    this._control('wsStudyRows').innerHTML = groups.length ? groups.map((g, index) => {
+      const m = g.metrics[metricId];
+      const mix = this._runPassForRefs(g.matchingPlayIds);
+      return `<div class="ws-study-row${this._richStateClass(m)}"><strong>${this._esc(g.value)}</strong><span>${g.sampleSize}</span><span>${this._richDisplay(conceptKey, m)}${this._richStateBadge(m)}</span><span>${this._pct(mix.run)} / ${this._pct(mix.pass)}</span><span></span><button class="ws-btn ws-small" data-study-row="${index}" ${(m?.refs?.length) ? '' : 'disabled'}>Watch</button></div>`;
+    }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
+    this._renderRichQueryVisuals(groups, metricId, conceptKey, pair, metricRefs);
+    this._setWatchAll(metricRefs);
+  }
+
+  _renderRichCompare(result, metricId, conceptKey, pair, compareMode) {
+    const rows = result.rows.filter(row => row.a.sampleSize > 0 || row.b.sampleSize > 0);
+    const aRefs = [...new Set(rows.flatMap(row => row.a.metrics[metricId]?.refs || []))];
+    const bRefs = [...new Set(rows.flatMap(row => row.b.metrics[metricId]?.refs || []))];
+    const bothRefs = [...new Set([...aRefs, ...bRefs])];
+    this._saveCohorts = [
+      { id: 'base', label: result.a.label, refs: aRefs },
+      { id: 'against', label: result.b.label, refs: bRefs },
+      { id: 'both', label: 'Both cohorts', refs: bothRefs },
+    ];
+    this.rows = rows.map(row => {
+      const aMetricRefs = row.a.metrics[metricId]?.refs || [];
+      return { label: row.value, refs: aMetricRefs.length ? aMetricRefs : (row.b.metrics[metricId]?.refs || []) };
+    });
+    this._control('wsStudySummary').innerHTML = `<strong>${aRefs.length} vs ${bRefs.length} plays</strong><span>${this._esc(result.a.label)} compared with ${this._esc(result.b.label)}</span>`;
+    this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
+      const ma = row.a.metrics[metricId], mb = row.b.metrics[metricId];
+      const delta = row.deltas[metricId];
+      const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._richNumber(conceptKey, delta)}`;
+      const favorable = this._richFavorable(ma || mb, delta);
+      const deltaClass = delta == null || delta === 0 ? '' : favorable ? 'is-positive' : 'is-negative';
+      const mixA = this._runPassForRefs(row.a.matchingPlayIds), mixB = this._runPassForRefs(row.b.matchingPlayIds);
+      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._richDisplay(conceptKey, ma)}${this._richStateBadge(ma)} / ${this._richDisplay(conceptKey, mb)}${this._richStateBadge(mb)}</span><span>${this._pct(mixA.run)} / ${this._pct(mixB.run)}</span><span class="${deltaClass}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
+    }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
+    this._renderRichCompareVisuals(rows, metricId, conceptKey, pair, result.a.label, result.b.label);
+    // Matches the legacy _renderCompare watch-label convention exactly (same
+    // three labels for the same three compare modes), not a rich-mode
+    // reinvention of it.
+    this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : compareMode === 'recent' ? 'Watch recent period' : 'Watch current game');
+  }
+
+  _renderRichQueryVisuals(groups, metricId, conceptKey, pair, refs) {
+    const host = this._control('wsStudyVisuals');
+    if (!groups.length) { host.innerHTML = ''; return; }
+    const usable = g => { const m = g.metrics[metricId]; return m && (m.state === 'ok' || m.state === 'partial-film'); };
+    const usableGroups = groups.filter(usable);
+    // Polarity-aware ranking (product requirement: "use metric polarity for
+    // ranking and delta treatment"): a lower-is-better metric's BEST group is
+    // its LOWEST value, not a blind descending sort. Polarity is read
+    // directly off any real result for this metric id -- fixed per id, never
+    // guessed.
+    const polarity = usableGroups[0]?.metrics[metricId]?.polarity || 'higher';
+    const dir = polarity === 'higher' ? -1 : 1;
+    const ranked = usableGroups.slice().sort((a, b) => dir * ((Number(a.metrics[metricId].value) || 0) - (Number(b.metrics[metricId].value) || 0)));
+    const HEADLINE_MIN_N = 4;
+    const eligible = ranked.filter(g => (g.metrics[metricId].denominator || 0) >= HEADLINE_MIN_N);
+    const top = eligible[0] || null;
+    const max = Math.max(1, ...ranked.map(g => Math.abs(Number(g.metrics[metricId].value) || 0)));
+    const bars = ranked.slice(0, 8).map(g => {
+      const index = groups.indexOf(g);
+      const m = g.metrics[metricId];
+      const value = Number(m.value) || 0;
+      const width = Math.max(2, Math.round(Math.abs(value) / max * 100));
+      return `<button class="ws-study-bar-row" data-study-row="${index}" aria-label="Watch ${this._esc(g.value)} film"><span>${this._esc(g.value)}</span><i aria-hidden="true"><b style="width:${width}%"></b></i><strong>${this._richDisplay(conceptKey, m)}</strong></button>`;
+    }).join('');
+    const mix = this._runPassForRefs(refs);
+    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${refs.length}</strong></div><div><span>Best ${this._esc(pair.name)}</span>${top
+      ? `<strong>${this._esc(top.value)}</strong><small>${this._richDisplay(conceptKey, top.metrics[metricId])} · ${top.metrics[metricId].denominator} snaps</small>`
+      : `<strong>—</strong><small>no group with ${HEADLINE_MIN_N}+ eligible snaps</small>`}</div><div><span>Run / Pass</span><strong>${this._pct(mix.run)} / ${this._pct(mix.pass)}</strong><small>${mix.classified} classified plays</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(pair.name)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
+  }
+
+  _renderRichCompareVisuals(rows, metricId, conceptKey, pair, aLabel, bLabel) {
+    const host = this._control('wsStudyVisuals');
+    if (!rows.length) { host.innerHTML = ''; return; }
+    const withDelta = rows.filter(row => row.deltas[metricId] != null);
+    const ranked = withDelta.slice().sort((a, b) => Math.abs(Number(b.deltas[metricId]) || 0) - Math.abs(Number(a.deltas[metricId]) || 0));
+    const max = Math.max(1, ...ranked.map(row => Math.abs(Number(row.deltas[metricId]) || 0)));
+    const bars = ranked.slice(0, 8).map(row => {
+      const index = rows.indexOf(row);
+      const delta = Number(row.deltas[metricId]) || 0;
+      const width = Math.max(2, Math.round(Math.abs(delta) / max * 50));
+      const favorable = this._richFavorable(row.a.metrics[metricId] || row.b.metrics[metricId], delta);
+      return `<button class="ws-study-delta-row ${favorable ? 'is-favorable' : delta ? 'is-unfavorable' : ''}" data-study-row="${index}" aria-label="Watch ${this._esc(row.value)} film"><span>${this._esc(row.value)}</span><i aria-hidden="true"><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong>${delta > 0 ? '+' : ''}${this._richNumber(conceptKey, delta)}</strong></button>`;
+    }).join('');
+    host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes — ${this._esc(pair.name)}</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
+  }
+
+  /** Row/state CSS treatment for a metric result -- 'insufficient' reuses the
+   *  existing .is-small dimming; 'unavailable' renders as '—' via
+   *  `_richDisplay` already, so it needs no extra class. */
+  _richStateClass(m) { return m?.state === 'insufficient' ? ' is-small' : ''; }
+  _richStateBadge(m) {
+    if (!m) return '';
+    if (m.state === 'unavailable') return ' <small class="ws-study-state">No data</small>';
+    if (m.state === 'insufficient') return ' <small class="ws-study-state">Low sample</small>';
+    if (m.state === 'partial-film') return ` <small class="ws-study-state">Partial film · ${m.unlinkedCount} unlinked</small>`;
+    return '';
+  }
+  /** yards/play is a mean, not a rate -- no percent suffix. Every other
+   *  coaching concept is a rate. */
+  _richNumber(conceptKey, n) { return conceptKey === 'yards' ? this._number(n) : `${this._number(n)}%`; }
+  _richDisplay(conceptKey, m) {
+    if (!m || m.value == null) return '—';
+    const n = Number(m.value);
+    return Number.isFinite(n) ? this._richNumber(conceptKey, n) : '—';
+  }
+  /** Polarity comes directly off the metric's OWN contract (fixed per
+   *  AnalyticsMetrics id), never a hardcoded universal list -- the exact
+   *  correctness gap the offense/defense metric pairing exists to close. */
+  _richFavorable(m, delta) {
+    if (!m || delta == null || delta === 0) return false;
+    return m.polarity === 'higher' ? delta > 0 : delta < 0;
   }
 
   _renderWarnings(warnings) {
@@ -544,7 +810,11 @@ export class StudyScreen {
   _saveToPlan() {
     const state = this._state();
     const dimensionName = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
-    const measureName = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+    // Rich concept ids ('success'/'yards'/...) are not registry measure ids --
+    // they resolve to a different registry measure per unit at query time
+    // (see `_richMetricId`) -- so the lookup must check RICH_METRIC_PAIRS
+    // first, matching `mount()`'s metricName resolver.
+    const measureName = StudyScreen.RICH_METRIC_PAIRS[state.measure]?.name || this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
     const cohorts = this._saveCohorts.filter(cohort => cohort.refs.length).map(cohort => ({
       ...cohort,
       item: this.app.studyPlan.finding({
@@ -614,9 +884,11 @@ export class StudyScreen {
     this._control('wsStudyDimension').value = view.state.dimension;
     this._control('wsStudyScope').value = view.state.scope;
     this._control('wsStudyUnit').value = view.state.unit;
-    this._control('wsStudyMeasure').value = view.state.measure || 'successRate';
+    this._control('wsStudyMeasure').value = view.state.measure || StudyScreen.DEFAULT_METRIC;
     this._control('wsStudyMin').value = String(view.state.minSample);
     this._control('wsStudyCompare').value = view.state.compare === true ? 'season' : (view.state.compare || '');
+    const periodControl = this._control('wsStudyPeriodGames');
+    if (periodControl) periodControl.value = String(view.state.periodGames || 3);
     this._control('wsStudyDateFrom').value = view.state.dateFrom || '';
     this._control('wsStudyDateTo').value = view.state.dateTo || '';
     this.filters = Array.isArray(view.state.filters) ? view.state.filters

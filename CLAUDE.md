@@ -14,6 +14,191 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — Study expansion: core coaching analysis — AWAITING CODEX REVIEW (2026-08-15)
+
+**Builder: Claude. Baseline: `de7a469` (the accepted analytics-metrics foundation).
+Scope: coach-facing Study only — no new metric engine, no formula
+reimplementation in the UI.** Study now answers the five coaching questions
+directly: what did our offense produce vs. what did our defense allow/prevent,
+across game/season/recent/prior/date-range comparisons, broken down by any
+registry dimension including field zone, with every number honestly disclosed
+and every result launching the exact film that produced it.
+
+**1. Explicit offense/defense metric pairs (`js/study-screen.js`
+`RICH_METRIC_PAIRS`).** Five football concepts, each backed by one shared
+AnalyticsMetrics formula whose only difference is polarity, resolved to the
+correct unit-specific id at query time:
+```js
+success:   { offense: 'successRate',           defense: 'stopRate' }
+yards:     { offense: 'yardsPerPlay',           defense: 'yardsAllowedPerPlay' }
+explosive: { offense: 'explosiveRate',          defense: 'explosivesAllowedRate' }
+negative:  { offense: 'negativeRate',           defense: 'negativeRateForced' }
+havoc:     { offense: 'havocRateAllowed',       defense: 'havocRate' }
+```
+`_richMetricId(state)` resolves `pair[state.unit]`; **when Unit is blank the
+metric resolves to `null` and `render()` fails closed with a visible prompt
+("Choose Offense or Defense…") instead of guessing a framing** — the
+non-negotiable literally enforced, not just documented. The three flat
+registry measures with no AnalyticsMetrics equivalent (`epaPerPlay`,
+`touchdowns`, `turnovers`) remain selectable and untouched, still routed
+through the original `run()`/`compare()` engine.
+
+**2. Six comparison scopes**, all reusing the existing `StudyQuery` engine:
+current game, full season, date range, game-vs-season, game-vs-prior-games,
+date-range-vs-prior — plus two new ones this checkpoint adds:
+- **Recent-N vs prior-N games** (`state.compare === 'recent'`, a new
+  `#wsStudyPeriodGames` selector, 2/3/5-game windows). `_playSets()` sorts
+  every dated game chronologically once and slices two adjacent, non-
+  overlapping windows — deliberately independent of which game is "active",
+  since a coach reviewing trend direction wants season chronology, not
+  today's game.
+- Every compare mode now works for BOTH the legacy flat-measure path and the
+  new coaching-metric path, via the new `StudyQuery.compareMetrics()`
+  (mirrors `compare()`, drives `runMetrics()` per side, computes a delta
+  **only** when both sides have `state:'ok'|'partial-film'` — never fabricates
+  a delta from an unavailable or insufficient-sample side, even when the raw
+  number exists).
+
+**3. Field Zone is now a real dimension.** `StatsEngine._fieldZone(tags)` is
+extracted from the pre-existing closure inside `_playCallAnalysis()` (was
+private/duplicated; now one canonical method, refactor confirmed behavior-
+preserving via parity 2/2 and native-reports 76/76) and registered `ready` in
+`AnalyticsRegistry` (was `deferred`) — unit-agnostic, six bands (Backed up /
+Own 11–39 / Midfield / Opp 40–20 / Red zone / Goal line). `scoreSituation`
+stays deliberately `deferred`: no per-play score-at-snap reconstruction exists
+anywhere in the codebase (score is only ever a replayed running total, never
+attached per play), and approximating one risks fabricating game-state
+context — disclosed as a known limitation, not silently built around.
+Personnel/down/distance/quarter/hash were already `ready` and unchanged.
+
+**4. Visual, film-linked results, not prose.** Every rich-metric query renders
+three KPI tiles (matching plays, "Best `<metric>`" with a real ≥4-snap
+eligibility gate — honestly says "no group with 4+ eligible snaps" rather than
+crowning a one-play winner) plus a ranked, **polarity-aware** bar chart:
+`_renderRichQueryVisuals` reads `metric.polarity` directly off the live result
+(never a hardcoded higher/lower list) to rank ascending for a lower-is-better
+metric like Yards Allowed/Play, descending for a higher-is-better one like
+Success Rate. Compare mode renders the same accessible delta-bar treatment the
+legacy path already had, now keyed off `compareMetrics()`'s per-side metric
+objects.
+
+**5. Exact film parity, the non-negotiable.** Every clickable row/bar/point
+uses **the metric's own `refs`**, never the group's broader
+`matchingPlayIds` — `analytics-metrics.js`'s contract already established that
+a metric's eligible denominator can be smaller than its cohort's raw sample
+(e.g. a play missing distance is ineligible for Success Rate but still counted
+in the group's raw play count), so `_renderRichQuery`/`_renderRichCompare`
+resolve Watch actions from `g.metrics[metricId].refs`/
+`row.a.metrics[metricId].refs` specifically. Per-metric state
+(`ok`/`insufficient`/`unavailable`/`partial-film`) renders as an inline badge
+next to the value (`_richStateBadge`) — insufficient sample dims the row
+(reusing the existing `.is-small` convention), unavailable shows "No data",
+partial-film discloses the exact unlinked count. **Missing data never renders
+as zero.**
+
+**6. Existing product behavior preserved.** Saved views (`_saveView`/
+`_applyView`) now round-trip `periodGames` and fall back to the new
+`DEFAULT_METRIC` ('success') instead of the retired `'successRate'` string;
+Save-to-Plan's measure-name lookup checks `RICH_METRIC_PAIRS` first so a
+saved coaching-metric finding gets a real label ("Negative Play Rate") instead
+of its raw internal id. Advanced Reports, filters, pivot mode (deliberately
+**legacy-measures-only this checkpoint** — selecting a rich metric disables
+and clears the pivot column rather than running a query the per-cell renderer
+can't yet express honestly; disclosed limitation, not silently broken), and
+Study-to-Plan are all unchanged in mechanism. No season data, tag, film path,
+storage, CSV, or report formula changed.
+
+**Files changed:** `js/study-screen.js` (the bulk of the work — new
+`RICH_METRIC_PAIRS`/`RICH_METRIC_IDS`/`LEGACY_SELECTABLE_MEASURES`/
+`SELECTABLE_METRICS`/`DEFAULT_METRIC`/`DEFAULT_UNIT` statics, rewritten
+`MEASURE_LENSES`, `fieldZone` added to `DIMENSIONS`/`DIMENSION_GROUPS`,
+`_richMetricId`, `render()`'s fail-closed dispatch, `_renderRich`/
+`_renderRichQuery`/`_renderRichCompare`/`_renderRichQueryVisuals`/
+`_renderRichCompareVisuals`/`_richStateClass`/`_richStateBadge`/
+`_richNumber`/`_richDisplay`/`_richFavorable`, recent/prior-period cohort
+math in `_playSets`, mount-time Unit default); `js/study-query.js`
+(`compareMetrics()`, new method, mirrors `compare()`); `js/stats-engine.js`
+(`_fieldZone` extracted from `_playCallAnalysis`'s inline closure);
+`js/analytics-registry.js` (`fieldZone` promoted to `ready`, `scoreSituation`
+reason string clarified); `css/study-screen.css` (state-badge styling,
+unit-prompt panel, a `[hidden]` specificity fix for the new period-size
+selector — the same class of defect `.ws-study-range` already guarded
+against); `tools/e2e-study-query.mjs` (41→48: `compareMetrics()` parity/
+delta/null-delta/insufficient-state coverage, `fieldZone` grouping);
+`tools/e2e-analytics-registry.mjs` (28→33: `fieldZone` six-band + empty-value
+coverage, `scoreSituation` still-deferred coverage); `tools/e2e-study-screen.mjs`
+(rewrote the sections that assumed the old unit-blind flat measure set —
+fixture plays gained real `distance` tags since AnalyticsMetrics' honest
+eligibility needs down+distance+yardage, not just yardage; added the new
+unit-prompt fail-closed assertion; updated the measure-picker lens-grouping
+and id-set assertions to the new shape).
+
+**Verification:**
+- `node tools/e2e-study-query.mjs` — **48/48** (was 41; +7, all
+  `compareMetrics()`/`fieldZone` coverage).
+- `node tools/e2e-analytics-registry.mjs` — **33/33** (was 28; +5, `fieldZone`
+  + `scoreSituation` coverage).
+- `node tools/e2e-analytics-metrics.mjs` — **28/28**, unchanged — confirms the
+  metrics engine itself was not touched, only consumed.
+- `node tools/e2e-native-reports.mjs` — **76/76**, unchanged — confirms the
+  `_fieldZone` extraction changed no Reports output.
+- `node tools/e2e-parity.mjs` — **2/2** (7 scopes/625 drilldowns, real
+  six-game season), unchanged — confirms nothing in this checkpoint moved an
+  analytics formula.
+- `node tools/e2e-study-screen.mjs` — **81/81** (was ~66 before the rewrite;
+  net new coverage on top of every pre-existing assertion, each rewritten
+  section re-verified against the new behavior it now actually exercises —
+  see "Files changed" for exactly what moved and why).
+- Full canonical gate (`bash tools/run-gate.sh`): **86 harnesses | 85 green |
+  0 skipped | 1 failed** — `e2e-tag-projform.mjs` only, the documented
+  pre-existing puppeteer "Promise was collected" intermittent (unrelated file,
+  untouched by this checkpoint); re-run standalone immediately after: **54/54
+  green**, matching the exact pattern this file has recorded for that flake
+  since 2026-08-05.
+- Visual check: captured the existing `tools/e2e-study-screen.mjs` screenshot
+  set (1280×800 desktop, 390×844 mobile — the harness's own established
+  capture points) with the query view, compare view, and both KPI/bar-chart
+  states populated. No clipping, no overflow; the new state badges and unit
+  prompt read consistently with the existing lower-third/hairline-join design
+  language (verified against `css/study-screen.css`'s S6-6d design rules,
+  which this checkpoint extends rather than reinvents).
+
+**Known limitations, disclosed rather than left implicit:**
+1. **Pivot (cross-tab) mode stays legacy-measures-only.** Selecting a rich
+   coaching metric clears and disables the "Then by" column rather than
+   running a query the per-cell renderer can't yet express with honest
+   per-cell state (insufficient/unavailable/partial-film). The pivot's
+   per-cell honest-state rendering is real follow-up work, not done here.
+2. **`scoreSituation` remains deferred.** No per-play score-at-snap
+   reconstruction exists in the codebase; building an honest one is out of
+   this checkpoint's scope and is not silently approximated.
+3. **Query-mode's "Delta" table column is intentionally blank** for a rich
+   metric (the header clears to empty rather than duplicating the metric
+   name over an empty cell) — unlike the legacy flat-measure query view,
+   which fills that column with a second fixed metric (Explosive Rate).
+   There is no natural "second metric" in a single-selected-concept design;
+   filling it with something would be inventing data to fill space.
+
+**Codex review handoff:** the highest-leverage things to re-check first are
+(a) `_richMetricId`'s fail-closed behavior — confirm no code path can reach
+`_renderRich`/`_renderRichQuery`/`_renderRichCompare` with a null metric id;
+(b) that every Watch action genuinely resolves refs from the metric's own
+`refs`, never the group's `matchingPlayIds` or `sampleSize` (grep confirms
+`g.metrics[metricId]?.refs`/`row.a.metrics[metricId]?.refs` are the only
+sources feeding `this.rows`/`_saveCohorts` in the new render paths); (c)
+`compareMetrics()`'s delta-safety guarantee — its own docblock states a delta
+is "only ever computed between two genuinely `ok` values"; mutation-verified
+during this build by removing the state-gate on the delta computation, which
+reds exactly the two insufficient/unavailable-delta tests in
+`e2e-study-query.mjs` and no others, then restored; (d) whether the
+`_renderRichQueryVisuals` polarity-
+based ranking is correct for all five metric pairs (spot-check
+`havocRateAllowed`/`havocRate` specifically — the one pair where "offense"
+and "defense" use two DIFFERENT registry ids that are not simple mirrors of
+each other, per `analytics-metrics.js`'s "POLARITY IS PER UNIT" docblock).
+No installer, package, tag, or deploy is authorized from this checkpoint —
+Codex review and the coach's visual pass come first, per the governing brief.
+
 ### CODEX RE-REVIEW of `56d2332` -- ACCEPTED (2026-08-15)
 
 **Reviewer: Codex. No blocking findings.** Both remaining analytics contracts

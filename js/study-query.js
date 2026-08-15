@@ -224,4 +224,67 @@ export class StudyQuery {
       warnings: [...a.warnings.map(w => `${labels.base || 'A'}: ${w}`), ...b.warnings.map(w => `${labels.against || 'B'}: ${w}`)],
     };
   }
+
+  /**
+   * compareMetrics({ base, against, dimension, metricIds?, filters?, minSample?,
+   *                  context?, labels?, missingAsZero?, allowUnlinkedPlays? })
+   *
+   * Study expansion (2026-08-15) -- the `runMetrics()` sibling of `compare()`,
+   * additive next to it exactly the way `runMetrics()` was additive next to
+   * `run()`. Runs the SAME two-cohort comparison, but each side's measures are
+   * the full AnalyticsMetrics contract (value/count/eligible/denominator/
+   * polarity/state/refs) instead of a flat number, so a comparison can show
+   * "insufficient"/"unavailable"/"partial-film" honestly per side per metric,
+   * and a delta is only ever computed between two genuinely `ok` values.
+   *
+   * `refs` on each side are that metric's OWN film cohort (not the group's
+   * broader `matchingPlayIds`) -- the exact contract `metric()` already
+   * guarantees; this method does not re-derive or widen it.
+   *
+   *   -> { dimension, metricIds, minSample,
+   *        a: { label, total }, b: { label, total },
+   *        rows: [{ value, a:{sampleSize,belowMinSample,matchingPlayIds,metrics},
+   *                 b:{…}, deltas:{metricId:number|null} }],
+   *        warnings }
+   */
+  compareMetrics({ base, against, dimension, metricIds = [], filters = [], minSample = 0, context = {}, labels = {}, missingAsZero = false, allowUnlinkedPlays = false } = {}) {
+    if (!Array.isArray(base) || !Array.isArray(against)) {
+      throw new TypeError('StudyQuery.compareMetrics requires base and against play arrays');
+    }
+    const runArgs = { dimension, metricIds, filters, minSample, context, missingAsZero, allowUnlinkedPlays };
+    const a = this.runMetrics({ ...runArgs, plays: base });
+    const b = this.runMetrics({ ...runArgs, plays: against });
+    const aMap = new Map(a.groups.map(g => [g.value, g]));
+    const bMap = new Map(b.groups.map(g => [g.value, g]));
+    const blank = () => ({ sampleSize: 0, belowMinSample: minSample > 0, matchingPlayIds: [], metrics: {} });
+    const values = [...new Set([...aMap.keys(), ...bMap.keys()])].sort();
+    const rows = values.map(value => {
+      const ga = aMap.get(value) || blank();
+      const gb = bMap.get(value) || blank();
+      const deltas = {};
+      for (const id of metricIds) {
+        const ma = ga.metrics[id], mb = gb.metrics[id];
+        // A delta is only ever computed between two genuinely usable values --
+        // 'ok' or 'partial-film' both carry a real number; 'insufficient' and
+        // 'unavailable' do not, and must not silently produce a delta against
+        // a value the coach was never shown as trustworthy.
+        const na = ma && (ma.state === 'ok' || ma.state === 'partial-film') ? ma.value : null;
+        const nb = mb && (mb.state === 'ok' || mb.state === 'partial-film') ? mb.value : null;
+        deltas[id] = (na === null || nb === null) ? null : Number((na - nb).toFixed(4));
+      }
+      return {
+        value,
+        a: { sampleSize: ga.sampleSize, belowMinSample: ga.belowMinSample, matchingPlayIds: ga.matchingPlayIds, metrics: ga.metrics },
+        b: { sampleSize: gb.sampleSize, belowMinSample: gb.belowMinSample, matchingPlayIds: gb.matchingPlayIds, metrics: gb.metrics },
+        deltas, sampleDelta: ga.sampleSize - gb.sampleSize,
+      };
+    });
+    return {
+      dimension, metricIds: metricIds.slice(), minSample,
+      a: { label: labels.base || 'A', total: a.total },
+      b: { label: labels.against || 'B', total: b.total },
+      rows,
+      warnings: [...a.warnings.map(w => `${labels.base || 'A'}: ${w}`), ...b.warnings.map(w => `${labels.against || 'B'}: ${w}`)],
+    };
+  }
 }

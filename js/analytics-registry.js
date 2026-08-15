@@ -56,9 +56,26 @@ export class AnalyticsRegistry {
       ready('unit', 'Unit', p => [p?.tags?.unit || 'offense'], 'legacy blank => offense'),
       ready('down', 'Down', tag('down'), 'play.tags.down'),
       ready('distance', 'Distance', tag('distance'), 'play.tags.distance'),
-      deferred('fieldZone', 'Field Zone', 'No shared production field-zone bucketing function'),
+      // Study expansion (2026-08-15): the "no shared bucketing function"
+      // reason is now stale -- StatsEngine._fieldZone() (extracted from the
+      // Play Call report's own Field Position dimension, so this is the SAME
+      // six-band convention a coach already sees there: Backed up / Own
+      // 11-39 / Midfield / Opp 40-20 / Red zone / Goal line) is that shared
+      // function. Deliberately unit-agnostic -- it reads only the play's own
+      // tagged field position, so it is equally meaningful grouping our
+      // offense's production or our defense's field-position situation
+      // (e.g. "how did our defense perform with the opponent in OUR red
+      // zone"). The caller's `unit` filter decides which snaps it applies to.
+      ready('fieldZone', 'Field Zone', p => this._one(this.stats._fieldZone(p?.tags || {})), 'StatsEngine._fieldZone'),
       ready('hash', 'Hash', tag('hash'), 'play.tags.hash'),
-      deferred('scoreSituation', 'Score Situation', 'Requires score-at-play context and canonical buckets'),
+      // scoreSituation stays deferred, deliberately: there is no per-play
+      // score-at-snap reconstruction anywhere in this codebase today (the
+      // scoreboard is a running total replayed from tagged scoring plays,
+      // never attached to an individual play), and inventing score context
+      // from incomplete charted data is exactly what this project's data
+      // honesty rule forbids. Building a real per-play score-differential
+      // deriver is its own reviewed unit, not a few lines here.
+      deferred('scoreSituation', 'Score Situation', 'Requires a per-play score-at-snap reconstruction, which does not exist yet -- see the fieldZone comment above for why this is not silently approximated'),
       // E3: pre-snap look dimensions read the PROJECTED view (legacy alignment/
       // family lifted into their own dimensions), never raw tags — see
       // StatsEngine.proj / GRIDIRON-IQ-TAG-MODEL.md §5. qbAlignment/coverageFamily

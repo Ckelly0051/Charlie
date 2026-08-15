@@ -447,6 +447,24 @@ export class StatsEngine {
     return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
   }
 
+  /** Canonical six-band field-zone bucketer, extracted from the closure that
+   *  had lived only inside `_playCallAnalysis()` -- the SAME bucketing this
+   *  app already used for the Play Call report's Field Position dimension,
+   *  now the single source of truth for any consumer that needs it
+   *  (Study expansion, 2026-08-15). Unit-agnostic: it reads only the play's
+   *  own tagged field position, so it is equally meaningful on an offensive
+   *  or a defensive snap -- the caller decides which unit's plays to bucket. */
+  _fieldZone(tags) {
+    const yard = this._absYardLine(tags);
+    if (yard === null) return '';
+    if (yard <= 10) return 'Backed up';
+    if (yard <= 39) return 'Own 11–39';
+    if (yard <= 59) return 'Midfield';
+    if (yard <= 79) return 'Opp 40–20';
+    if (yard <= 94) return 'Red zone';
+    return 'Goal line';
+  }
+
   _isSuccessfulPlay(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
@@ -817,16 +835,9 @@ export class StatsEngine {
     })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
 
     const dirVsStrength = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
-    const fieldZone = play => {
-      const yard = this._absYardLine(play.tags);
-      if (yard === null) return '';
-      if (yard <= 10) return 'Backed up';
-      if (yard <= 39) return 'Own 11–39';
-      if (yard <= 59) return 'Midfield';
-      if (yard <= 79) return 'Opp 40–20';
-      if (yard <= 94) return 'Red zone';
-      return 'Goal line';
-    };
+    // Delegates to the extracted `_fieldZone()` (Study expansion, 2026-08-15)
+    // -- was a private copy of the same six-band logic; now the one source.
+    const fieldZone = play => this._fieldZone(play.tags);
     const dimensions = [
       { id: 'downDistance', label: 'Down & Distance', values: play => { const key = this._ddKey(play.tags); return key ? this._ddPretty(key) : ''; } },
       { id: 'formation', label: 'Formation', values: play => StatsEngine.splitFormations(StatsEngine.proj(play).formation) },

@@ -138,3 +138,28 @@
 .ws-study-range>span,.ws-study-range>small,.ws-pivot-caption{
   color:var(--gi-11);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
 }
+
+/* Study expansion (2026-08-15) — coaching-metric additions.
+   `#wsStudyPeriodWrap` is a <label> living inside `.ws-study-query`, which
+   sets `label{display:grid}` at (0,1,1) -- higher specificity than the UA
+   `[hidden]{display:none}` at (0,1,0), the exact defect `.ws-study-range`
+   already had to guard against above. Without this override the "hidden"
+   period-size selector would render as an empty grid cell instead of
+   disappearing. */
+#wsStudyPeriodWrap[hidden]{display:none}
+
+/* The unit-prompt is informational (a coach hasn't finished the question
+   yet), not a warning about a failed query -- neutral tone, not amber. */
+.ws-study-unit-prompt{
+  padding:var(--gi-4x);border:1px solid var(--gi-6);border-left:3px solid var(--gi-los);
+  background:var(--gi-2);color:var(--gi-11);font:var(--gi-text-caption);margin-bottom:var(--gi-3x)
+}
+.ws-study-unit-prompt[hidden]{display:none}
+.ws-study-unit-prompt strong{color:var(--gi-12);font-weight:700}
+
+/* Per-metric state disclosure ('Low sample' / 'No data' / 'Partial film …')
+   -- reuses the row's existing muted/amber vocabulary rather than inventing
+   a new palette. Never a color-only signal: the text itself names the state. */
+.ws-study-state{display:inline-block;margin-left:6px;color:var(--ws-amber);font-size:11px;
+  text-transform:uppercase;letter-spacing:.02em;font-weight:700;white-space:nowrap}
+.ws-study-row.is-small .ws-study-state{color:var(--ws-text-soft)}
