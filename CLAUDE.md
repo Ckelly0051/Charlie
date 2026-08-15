@@ -14,6 +14,147 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the Study Phase 2 review (`484d1cf`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs all four findings from Codex's CHANGES REQUESTED
+review of `9f355eb` (recorded immediately below at `02e85d3`).** Every finding
+verified against source before touching anything — none taken on report.
+
+**1. [P1, closed] Watch opened the wrong film cohort.** A rich row could
+disclose an honest eligible denominator ("2 of 14") while still wiring
+Watch/bars/pivot to the group's broader raw `matchingPlayIds` — the reviewer's
+exact example, `unit=special` with `stFieldGoalPct`, displayed two FG attempts
+then opened all 14 Special Teams plays. Fixed at the root: every measure with a
+real eligible-cohort concept now carries a `refsPath` in `AnalyticsRegistry` —
+the SAME row selection each existing formula already computes, never a
+duplicated rule. `PenaltyModel.summarize()` and `StatsEngine`'s
+`_conversionStats()`/`_specialTeamsStats()` (both structured and legacy
+branches) now carry a parallel `refs` structure alongside every count/rate they
+already return, via new `StatsEngine._compositeRef()`/`_refsOf()` helpers and
+`PenaltyModel._refs()`. New `AnalyticsRegistry.readRefs()` resolves it;
+`StudyQuery.run()` threads a per-measure `measureRefs` map through each group
+(`compare()` inherits it automatically, since it calls `run()` twice); a new
+`study-screen.js` helper, `_groupRefs(group, measure)`, is the single seam
+every render path (`_renderQuery`, `_renderCompare`, `_renderPivot`) now goes
+through — falling back to `matchingPlayIds` for any measure without a
+`refsPath`, i.e. every pre-existing measure, fully backward compatible. This
+also closes the Phase 2 build's own disclosed "pivot Plays cells still show the
+raw sample" limitation as a side effect, since pivot's displayed counts now
+derive from the same refs arrays.
+
+**2. [P1, closed] Record-valued penalty dimensions leaked sibling fouls.**
+`penaltyTeam`/`penaltyFoul`/`penaltyRuling`/`penaltyPhase` selected whole
+plays, then a generic (non-team-scoped) measure summed every penalty record on
+those plays — including a sibling record belonging to another team/category on
+a multi-foul play (an offsetting pair). Fixed with record-scoped aggregation:
+new `StudyQuery._recordScopedPlays(groupPlays, dimension, value)` synthesizes
+shallow play copies whose `.penalties` array is pre-filtered to only the
+records matching the group's own dimension value, via a new
+`StudyQuery.PENALTY_RECORD_FILTER` map, before `stats.compute()` runs for that
+group's measures. `matchingPlayIds` (the film refs) deliberately stay derived
+from the REAL, unfiltered play set — every one of those plays genuinely
+carries a qualifying record, so its film ref belongs in the row regardless of
+sibling records; only the computed VALUE is scoped. Reproduced on this
+checkpoint's own fixture (not the reviewer's literal numbers, since the
+regression harness's fixture already had a third genuine subject-team record):
+`penaltyTeam=subject` correctly matches 3 plays (P1 accepted, P3 declined, P4
+offsetting), and the generic `penaltyFouls` measure now reports exactly 3 — the
+row's own subject-team records — never 4, which is what summing every record on
+those 3 plays (including P4's sibling opponent-side offsetting foul) would
+produce.
+
+**3. [P1, closed] `penaltyTiming` fabricated timing the model does not
+contain.** `GRIDIRON-IQ-PENALTY-MODEL.md` §5 defines `phase` as the charged
+team's side of the ball (or `deadBall` for after-the-play responsibility) —
+explicitly NOT a timing field — and §6 lists pre-snap vs. live-ball as
+deferred roadmap work, "once foul metadata supports that grouping." The
+dimension is removed entirely: the `AnalyticsRegistry` entry, its
+`DIMENSIONS`/`DIMENSION_GROUPS` list entries in `study-screen.js`. A comment at
+the removal site in `analytics-registry.js` cites the model doc's exact
+section numbers and states this must not be reintroduced without a real
+timing field.
+
+**4. [P2, closed] Neutral measures received misleading favorable/unfavorable
+coloring.** `_lowerIsBetter()`'s boolean meant every unlisted measure defaulted
+to higher-is-better, including neutral penalty counts and context-dependent
+Special Teams rates (punt touchback rate, named explicitly by the reviewer, is
+not universally higher-is-better). Replaced with `_measurePolarity(measure)`
+returning `'higher'`/`'lower'`/`'neutral'` via two explicit
+`HIGHER_IS_BETTER_MEASURES`/`LOWER_IS_BETTER_MEASURES` Sets, defaulting to
+`'neutral'` (no color) for anything unlisted. Fixed at BOTH call sites that
+shared the old boolean default — the row's `_deltaClass` and the bar's
+`_deltaVisualClass`, the latter having independently inlined the identical bug
+rather than sharing the row's logic.
+
+**Files changed:** `js/penalty-model.js` (`summarize()` gains a `refs`
+sub-object on every bucket, byte-identical on every pre-existing field);
+`js/stats-engine.js` (`_conversionStats()`/`_specialTeamsStats()` gain `refs`
+in both structured and legacy branches, via new `_compositeRef`/`_refsOf`
+helpers); `js/analytics-registry.js` (`refsPath` on ~50 Phase 2 measures, new
+`readRefs()`, `penaltyTiming` deleted with an explanatory comment);
+`js/study-query.js` (`PENALTY_RECORD_FILTER`, `_recordScopedPlays()`,
+`measureRefs` threaded through `run()`); `js/study-screen.js` (`_groupRefs()`
+threaded through every render path; `_measurePolarity`/`_isFavorableDelta`/
+`_deltaClass`/`_deltaVisualClass` replace the boolean `_lowerIsBetter`;
+`penaltyTiming` removed from `DIMENSIONS`/`DIMENSION_GROUPS`);
+`tools/e2e-study-penalties-st.mjs` (18→24, one new discriminating assertion
+per finding); `tools/e2e-special-teams-contract.mjs` and
+`tools/e2e-b2-tries.mjs` (two pre-existing `assert.deepEqual` literals
+extended with the new additive `refs` shape — both fixtures build bare play
+objects with no `__gid`, so their refs are honestly empty arrays, not a
+defect); `tools/parity-golden/synthetic-edge.json` (regenerated — see below).
+
+**Parity — regenerated and audited, not masked.** The additive `refs` fields
+changed `stats.compute()`'s output shape unconditionally (every
+`conversions.xp`/`.two` and `specialTeams.{punts,kickoffs,fg,blocks,tries,
+returns.kick,returns.punt}` bucket gained a `refs` key), so the committed
+golden needed regeneration. A dedicated diff script (array-content-aware, not
+a naive stringify) confirmed the diff is **exactly 54 additions, 0 value
+changes** — every existing key byte-identical, every new key one of the
+`.refs` fields listed above. `mavericks-6game.json` (local, gitignored, the
+coach's real season) regenerated on the same machine on the identical additive
+basis — not committed, per existing convention.
+
+**Verification:**
+- `node tools/e2e-study-penalties-st.mjs` — **24/24** (was 18; +6 — one
+  discriminating assertion per finding, plus a paired refs-vs-value assertion
+  for finding #1 and a matching-plays-vs-measureRefs assertion for finding #2).
+  Every fix independently mutation-verified: forcing `_groupRefs` to ignore
+  `measureRefs` reproduces finding #1 exactly (all 14 ST plays leak through a
+  2-play FG-rate Watch); disabling `_recordScopedPlays` reproduces finding #2
+  exactly (3 genuine records inflate to 4, including P4's opponent-side
+  sibling); reintroducing a stub `penaltyTiming` registry dimension reproduces
+  finding #3's exact detection; forcing `_measurePolarity` back to the old
+  higher-only default reproduces finding #4's exact symptom
+  (`is-negative`/`is-unfavorable` coloring a neutral -1 delta). All four
+  mutations reded ONLY their own new assertion, nothing else; all four
+  restored and reconfirmed green.
+- `node tools/e2e-analytics-registry.mjs` **33/33** (unchanged — confirms
+  `penaltyTiming`'s removal dropped no other assertion), `node tools/
+  e2e-study-query.mjs` **48/48** (unchanged), `node tools/e2e-study-screen.mjs`
+  **99/99** (unchanged), `node tools/e2e-native-reports.mjs` **76/76**
+  (unchanged), `node tools/e2e-penalty-contract.mjs` **7/7** (unchanged).
+- `node tools/e2e-special-teams-contract.mjs` **20/20** (was 18; +2 from
+  extending the two additive-shape literals). `node tools/e2e-b2-tries.mjs`
+  **13/13** (was 12; +1, same reason).
+- `node tools/e2e-parity.mjs` **2/2** on the regenerated goldens (3
+  scopes/189 drilldowns synthetic, 7 scopes/625 drilldowns real six-game).
+- Full canonical gate (`bash tools/run-gate.sh`): **87 harnesses | 87 green |
+  0 skipped | 0 failed**. One intermittent surfaced and was investigated
+  during this checkpoint's gate runs rather than waved off:
+  `e2e-csv-projection.mjs`'s `Runtime.callFunctionOn: Promise was collected`.
+  That file has **zero references** to any file this checkpoint touched, and
+  3 standalone reruns on unmodified code reproduced this project's
+  long-documented pre-existing Puppeteer/CDP crash rate (2 of 3 crashed, 1
+  clean) — the identical signature this file has recorded intermittently on
+  `e2e-tag-projform.mjs` and others since 2026-08-05. Not caused by this
+  checkpoint; the final full-gate run completed 87/87 clean.
+
+**Handoff to Codex for re-review.** All four findings are closed at the root,
+each mutation-verified individually, with zero regressions across the full
+suite. No installer, package, tag, or deploy is authorized from this
+checkpoint.
+
 ### CODEX REVIEW - Study Phase 2 `9f355eb` - CHANGES REQUESTED (2026-08-15)
 
 **Reviewer: Codex.** Reviewed code `9f355eb` and handoff `6096300` against the approved penalty model and Study's exact-film contract. The focused harness is independently green at 18/18, but its assertions do not cover these failures. No full gate was rerun because the checkpoint has blocking correctness findings.
