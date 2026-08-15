@@ -797,6 +797,166 @@ ok(picker.dimension.ungrouped.length === 0 && picker.column.ungrouped.join(',') 
   'Only the column picker\'s explicit "no second dimension" option sits outside a group',
   JSON.stringify({ dimension: picker.dimension.ungrouped, column: picker.column.ungrouped }));
 
+console.log('\n== Review repair (bc0f677): eligible-cohort parity, watch-all leak, legacy views, recent/prior windows ==');
+await page.setViewport({ width: 1280, height: 800 });
+await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: 'Recent Windows', team: 'Mavericks', year: '2026' });
+  const store = app.storage.seasonStore;
+  const g1 = store.activeGame();
+  g1.id = 'g-recent-1'; g1.name = 'Week 1'; g1.gameInfo = { opponent: 'Foxes', date: '2026-08-01' };
+  const play = (id, down, distance, yardage, formation = 'Trips') => ({
+    id, timestamp: { start: 0, end: 4 },
+    tags: { unit: 'offense', formation, runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage, down, ...(distance != null ? { distance } : {}), custom: [] },
+  });
+  g1.plays = [play(1, '1', '10', '6')];
+  store.addGame({ id: 'g-recent-2', name: 'Week 2', status: 'active', gameInfo: { opponent: 'Week 2', date: '2026-08-08' }, plays: [play(1, '2', '6', '4')] });
+  store.addGame({ id: 'g-recent-3', name: 'Week 3', status: 'active', gameInfo: { opponent: 'Week 3', date: '2026-08-15' }, plays: [play(1, '1', '10', '9')] });
+  store.addGame({ id: 'g-recent-4', name: 'Week 4', status: 'active', gameInfo: { opponent: 'Week 4', date: '2026-08-22' }, plays: [play(1, '2', '8', '3')] });
+  // A DISTINCT formation, appearing only here -- reproduces finding #2 (an
+  // against-only group in a "Game vs prior games" comparison must never
+  // leak into a "Watch current game" click).
+  store.addGame({ id: 'g-recent-5', name: 'Week 5', status: 'active', gameInfo: { opponent: 'Week 5', date: '2026-08-29' }, plays: [play(1, '1', '10', '5', 'Ace')] });
+  // The ACTIVE game. Play 2 omits `distance` -- ineligible for successRate/
+  // stopRate (reproduces finding #1: a grouped play the metric excludes must
+  // not inflate Plays/Run-Pass or leak into Watch while still counting
+  // toward the group's raw sample).
+  const g6 = store.addGame({ id: 'g-recent-6', name: 'Week 6', status: 'active', gameInfo: { opponent: 'Week 6', date: '2026-09-05' }, plays: [play(1, '1', '10', '7'), play(2, '2', null, '2')] });
+  store.data.activeGameId = g6.id;
+  app.storage._clearForNewGame();
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('study');
+  window.__reviewWatchCalls = [];
+  app.filmNavigation.watch = async (refs, options) => { window.__reviewWatchCalls.push({ refs: [...refs], label: options?.label }); return { completed: true }; };
+});
+
+await page.select('#wsStudyCompare', '');
+await page.select('#wsStudyUnit', 'offense');
+await page.select('#wsStudyMeasure', 'success');
+await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyScope', 'game');
+r = await page.evaluate(() => {
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Trips');
+  const cells = row ? [...row.querySelectorAll('span')].map(el => el.textContent.trim()) : [];
+  return { plays: cells[0] || '', metric: cells[1] || '', runPass: cells[2] || '' };
+});
+ok(r.plays === '1 of 2', 'Finding #1: Plays discloses eligible-of-raw when a grouped play is ineligible for the selected metric', JSON.stringify(r));
+ok(r.runPass === '100% / 0%', 'Finding #1: Run/Pass is computed from the metric\'s own eligible cohort, not the group\'s broader raw sample', JSON.stringify(r));
+await page.evaluate(() => {
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Trips');
+  row?.querySelector('[data-study-row]')?.click();
+});
+r = await page.evaluate(() => window.__reviewWatchCalls.at(-1));
+ok(r.refs.length === 1 && r.refs[0] === 'g-recent-6::1',
+  'Finding #1: the row\'s Watch action opens exactly the metric-eligible play, excluding the ineligible sibling counted in Plays', JSON.stringify(r));
+
+await page.select('#wsStudyCompare', 'prior');
+r = await page.evaluate(() => [...document.querySelectorAll('.ws-study-row-compare > strong')].map(el => el.textContent));
+ok(r.includes('Ace'), 'Finding #2 fixture (rich path): "Game vs prior games" includes an against-only group (Ace)', JSON.stringify(r));
+await page.click('[data-study-action="watch-all"]');
+r = await page.evaluate(() => window.__reviewWatchCalls.at(-1));
+ok(!r.refs.includes('g-recent-5::1') && r.refs.includes('g-recent-6::1') && !r.refs.includes('g-recent-6::2'),
+  'Finding #2 (rich path): "Watch current game" never leaks the against-only comparison row, and still excludes the ineligible play', JSON.stringify(r));
+
+await page.select('#wsStudyMeasure', 'epaPerPlay');
+r = await page.evaluate(() => [...document.querySelectorAll('.ws-study-row-compare > strong')].map(el => el.textContent));
+ok(r.includes('Ace'), 'Finding #2 fixture (legacy flat-measure path): the against-only group exists there too', JSON.stringify(r));
+await page.click('[data-study-action="watch-all"]');
+r = await page.evaluate(() => window.__reviewWatchCalls.at(-1));
+ok(!r.refs.includes('g-recent-5::1') && r.refs.includes('g-recent-6::1') && r.refs.includes('g-recent-6::2'),
+  'Finding #2 (legacy path): "Watch current game" never leaks the against-only comparison row on the flat-measure compare path either', JSON.stringify(r));
+
+const legacyViewRaw = await page.evaluate(async () => {
+  const key = 'ffa_study_views_v1';
+  const before = JSON.parse(localStorage.getItem(key) || '[]');
+  const legacyViews = [
+    { id: 'legacy-success-rate', name: 'Old formation view', state: { dimension: 'formation', column: '', scope: 'game', unit: 'offense', measure: 'successRate', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
+    { id: 'legacy-run-share', name: 'Old run share view', state: { dimension: 'formation', column: '', scope: 'season', unit: '', measure: 'runShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
+  ];
+  localStorage.setItem(key, JSON.stringify([...before, ...legacyViews]));
+  window.app.studyScreen._loadViews();
+  return localStorage.getItem(key);
+});
+await page.select('#wsStudySaved', 'legacy-success-rate');
+r = await page.evaluate(() => ({ measure: document.querySelector('#wsStudyMeasure')?.value, header: document.querySelector('#wsStudyMetricHead')?.textContent, promptHidden: document.querySelector('#wsStudyUnitPrompt')?.hidden }));
+ok(r.measure === 'success' && r.header === 'Success Rate' && r.promptHidden,
+  'Finding #3: a retired flat id (successRate) upgrades to its coaching-metric concept, resolved by the view\'s own saved Unit -- not guessed', JSON.stringify(r));
+await page.select('#wsStudySaved', 'legacy-run-share');
+r = await page.evaluate(() => ({ measure: document.querySelector('#wsStudyMeasure')?.value, promptVisible: !document.querySelector('#wsStudyUnitPrompt')?.hidden, rows: document.querySelectorAll('.ws-study-row').length }));
+ok(r.measure === 'success' && r.promptVisible && r.rows === 0,
+  'Finding #3: a retired id with no metric equivalent (runShare) upgrades to the default concept and still fails closed on a blank saved Unit', JSON.stringify(r));
+r = await page.evaluate(() => localStorage.getItem('ffa_study_views_v1'));
+ok(r === legacyViewRaw, 'Finding #3: opening a legacy saved view never rewrites it in storage', JSON.stringify({ changed: r !== legacyViewRaw }));
+
+// The legacy-view applies above left Unit at whatever each saved view
+// stored (blank, for the run-share view) -- reset explicitly rather than
+// inherit it, the same way every other section in this file states its
+// own control values instead of relying on leftover state.
+await page.select('#wsStudyUnit', 'offense');
+await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyMeasure', 'success');
+await page.select('#wsStudyCompare', 'recent');
+await page.select('#wsStudyPeriodGames', '2');
+await new Promise(resolve => setTimeout(resolve, 100));
+r = await page.evaluate(() => ({
+  periodVisible: !document.querySelector('#wsStudyPeriodWrap')?.hidden,
+  summary: document.querySelector('#wsStudySummary')?.textContent,
+}));
+ok(r.periodVisible && /Last 2 games/.test(r.summary) && /Prior 2 games/.test(r.summary),
+  'Finding #4: the recent/prior period selector is visible and both window labels state their size', JSON.stringify(r));
+r = await page.evaluate(() => {
+  const cohorts = window.app.studyScreen._saveCohorts;
+  const gamesOf = refs => [...new Set(refs.map(ref => ref.split('::')[0]))].sort();
+  return {
+    base: gamesOf(cohorts.find(c => c.id === 'base')?.refs || []),
+    against: gamesOf(cohorts.find(c => c.id === 'against')?.refs || []),
+  };
+});
+ok(JSON.stringify(r.base) === JSON.stringify(['g-recent-5', 'g-recent-6']) && JSON.stringify(r.against) === JSON.stringify(['g-recent-3', 'g-recent-4']),
+  'Finding #4: at period=2 the recent and prior windows are the two ADJACENT, non-overlapping 2-game blocks -- games 1-2 excluded from both', JSON.stringify(r));
+
+await page.select('#wsStudyPeriodGames', '5');
+await new Promise(resolve => setTimeout(resolve, 100));
+r = await page.evaluate(() => {
+  const cohorts = window.app.studyScreen._saveCohorts;
+  const gamesOf = refs => [...new Set(refs.map(ref => ref.split('::')[0]))].sort();
+  const summary = document.querySelector('#wsStudySummary')?.textContent || '';
+  return {
+    base: gamesOf(cohorts.find(c => c.id === 'base')?.refs || []),
+    against: gamesOf(cohorts.find(c => c.id === 'against')?.refs || []),
+    singular: /Prior 1 game\b/.test(summary) && !/Prior 1 games/.test(summary),
+  };
+});
+ok(JSON.stringify(r.base) === JSON.stringify(['g-recent-2', 'g-recent-3', 'g-recent-4', 'g-recent-5', 'g-recent-6']) && JSON.stringify(r.against) === JSON.stringify(['g-recent-1']),
+  'Finding #4: an undersized season clamps the prior window honestly (1 available game, not a fabricated 5) instead of erroring', JSON.stringify(r));
+ok(r.singular, 'Finding #4: the clamped single-game prior window uses honest singular wording ("Prior 1 game")', JSON.stringify(r));
+
+await page.select('#wsStudyPeriodGames', '2');
+await new Promise(resolve => setTimeout(resolve, 100));
+const storedBeforeSave = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length);
+// Dispatched directly on the button rather than page.click()'s coordinate hit
+// test: the earlier legacy-view-upgrade toasts (finding #3) can still be
+// fading over this exact corner of the screen, and a coordinate click lands
+// on the toast instead of the button -- a real, reproduced flake (2 of 3
+// runs), not a timing guess. A direct `.click()` still bubbles through the
+// same delegated `_bind()` listener as a real click.
+await page.evaluate(() => document.querySelector('[data-study-action="save"]').click());
+await page.select('#wsStudyPeriodGames', '5');
+await new Promise(resolve => setTimeout(resolve, 100));
+await page.evaluate(() => document.querySelector('[data-study-action="save"]').click());
+r = await page.evaluate(() => ({
+  stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length,
+  names: [...document.querySelectorAll('#wsStudySaved option')].map(o => o.textContent),
+}));
+ok(r.stored === storedBeforeSave + 2, 'Finding #4: a 2-game and a 5-game recent comparison save as two DISTINCT views, not an overwrite', JSON.stringify(r));
+ok(r.names.some(n => n.includes('Recent 2 vs prior 2')) && r.names.some(n => n.includes('Recent 5 vs prior 5')),
+  'Finding #4: saved-view names distinguish the 2-game and 5-game recent comparisons', JSON.stringify(r.names));
+
+const twoGameOption = await page.evaluate(() => [...document.querySelectorAll('#wsStudySaved option')].find(o => o.textContent.includes('Recent 2 vs prior 2'))?.value);
+await page.select('#wsStudySaved', twoGameOption);
+r = await page.evaluate(() => ({ period: document.querySelector('#wsStudyPeriodGames')?.value, compare: document.querySelector('#wsStudyCompare')?.value }));
+ok(r.period === '2' && r.compare === 'recent', 'Finding #4: restoring a saved recent-comparison view round-trips its exact period size', JSON.stringify(r));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

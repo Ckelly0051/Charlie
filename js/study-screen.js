@@ -58,6 +58,31 @@ export class StudyScreen {
   static get LEGACY_SELECTABLE_MEASURES() { return ['epaPerPlay', 'touchdowns', 'turnovers']; }
   static get SELECTABLE_METRICS() { return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.LEGACY_SELECTABLE_MEASURES]; }
   static get DEFAULT_METRIC() { return 'success'; }
+  /**
+   * Review fix (bc0f677 finding #3): a saved view created before this
+   * checkpoint may store one of the six retired unit-blind flat ids
+   * (`successRate`/`explosiveRate`/`negativeRate`/`havocRate`/`runShare`/
+   * `passShare`) -- none of those are `<option>` values in `#wsStudyMeasure`
+   * any more, so assigning one directly leaves the select blank. This is an
+   * explicit, disclosed UPGRADE to the equivalent coaching-metric CONCEPT,
+   * never a guess of offense vs defense: the coach's already-saved Unit
+   * value (part of the same view, untouched by this map) still resolves the
+   * exact framing via `_richMetricId`, and an ambiguous/blank saved Unit
+   * still fails closed with the unit prompt exactly as it does for a newly
+   * built query. `runShare`/`passShare` have no metric equivalent at all
+   * (they measured play-type mix, not success/failure) -- they land on the
+   * same `DEFAULT_METRIC` a genuinely-missing measure already falls back to,
+   * and the coach's original run/pass question is still answered by every
+   * row's own Run/Pass column regardless of which metric leads it. Applying
+   * this map only changes the LIVE control value; it never rewrites the
+   * saved view in storage, so opening an old view is never itself a mutation.
+   */
+  static get LEGACY_MEASURE_UPGRADE() {
+    return {
+      successRate: 'success', explosiveRate: 'explosive', negativeRate: 'negative', havocRate: 'havoc',
+      runShare: 'success', passShare: 'success',
+    };
+  }
   /** Study opens already answering the coach's own offense -- a concrete,
    *  useful default, not a guess made during computation. The coach can
    *  clear it to "All units" at any time; this only affects the INITIAL
@@ -131,6 +156,12 @@ export class StudyScreen {
     this._bound = false;
     this._pendingPlanItems = [];
     this._saveCohorts = [];
+    // Review fix (2026-08-15, bc0f677 finding #2): the exact cohort/label the
+    // "Watch results" button represents, set only by `_setWatchAll`. The click
+    // handler consumes THESE fields -- never `this.rows` -- so the button can
+    // never open a wider cohort than what it displays (see `_setWatchAll`).
+    this._watchAllRefs = [];
+    this._watchAllLabel = 'Watch results';
   }
 
   mount(host) {
@@ -207,7 +238,13 @@ export class StudyScreen {
       if (action === 'plan-picker-cancel') this._closePlanPicker();
       if (action === 'plan-picker-save') this._confirmPlanPicker();
       if (action === 'delete-view') this._deleteView();
-      if (action === 'watch-all') this.app.filmNavigation.watch(this.rows.flatMap(r => r.refs), { label: 'Study results' });
+      // Review fix (bc0f677 finding #2): consume the exact refs/label
+      // `_setWatchAll` last stored -- reconstructing from `this.rows` leaked
+      // an against-only comparison row's refs into a "Watch current game"
+      // click, since a compare row falls back to its against-side refs when
+      // its base side is empty (correct for THAT row's own Watch button, but
+      // wrong once flattened across every row for the aggregate action).
+      if (action === 'watch-all') this.app.filmNavigation.watch(this._watchAllRefs, { label: this._watchAllLabel });
       if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
       if (action === 'clear-filters') { this.filters = []; this._renderFilters(); this.render(); }
       const removeFilter = e.target.closest('[data-study-filter-remove]')?.dataset.studyFilterRemove;
@@ -540,8 +577,14 @@ export class StudyScreen {
     this._control('wsStudySummary').innerHTML = `<strong>${metricRefs.length} matching play${metricRefs.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${this._esc(scopeLabel)}</span>`;
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((g, index) => {
       const m = g.metrics[metricId];
-      const mix = this._runPassForRefs(g.matchingPlayIds);
-      return `<div class="ws-study-row${this._richStateClass(m)}"><strong>${this._esc(g.value)}</strong><span>${g.sampleSize}</span><span>${this._richDisplay(conceptKey, m)}${this._richStateBadge(m)}</span><span>${this._pct(mix.run)} / ${this._pct(mix.pass)}</span><span></span><button class="ws-btn ws-small" data-study-row="${index}" ${(m?.refs?.length) ? '' : 'disabled'}>Watch</button></div>`;
+      // Review fix (bc0f677 finding #1): Plays and Run/Pass must come from
+      // the SAME cohort as the metric value and the Watch action -- the
+      // metric's own eligible `refs`, never the group's broader raw sample
+      // (`g.sampleSize`/`g.matchingPlayIds`). A play the metric excluded as
+      // ineligible must not silently inflate the row's other columns while
+      // being absent from the film the row's own Watch button opens.
+      const mix = this._runPassForRefs(m?.refs || []);
+      return `<div class="ws-study-row${this._richStateClass(m)}"><strong>${this._esc(g.value)}</strong><span>${this._metricPlaysText(m, g.sampleSize)}</span><span>${this._richDisplay(conceptKey, m)}${this._richStateBadge(m)}</span><span>${this._pct(mix.run)} / ${this._pct(mix.pass)}</span><span></span><button class="ws-btn ws-small" data-study-row="${index}" ${(m?.refs?.length) ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
     this._renderRichQueryVisuals(groups, metricId, conceptKey, pair, metricRefs);
     this._setWatchAll(metricRefs);
@@ -568,8 +611,11 @@ export class StudyScreen {
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._richNumber(conceptKey, delta)}`;
       const favorable = this._richFavorable(ma || mb, delta);
       const deltaClass = delta == null || delta === 0 ? '' : favorable ? 'is-positive' : 'is-negative';
-      const mixA = this._runPassForRefs(row.a.matchingPlayIds), mixB = this._runPassForRefs(row.b.matchingPlayIds);
-      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._richDisplay(conceptKey, ma)}${this._richStateBadge(ma)} / ${this._richDisplay(conceptKey, mb)}${this._richStateBadge(mb)}</span><span>${this._pct(mixA.run)} / ${this._pct(mixB.run)}</span><span class="${deltaClass}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
+      // Review fix (bc0f677 finding #1): same principle as the query-mode
+      // row -- Plays and Run/Pass come from each side's own metric refs, not
+      // the broader `row.a/b.sampleSize`/`matchingPlayIds`.
+      const mixA = this._runPassForRefs(ma?.refs || []), mixB = this._runPassForRefs(mb?.refs || []);
+      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${this._metricPlaysText(ma, row.a.sampleSize)} / ${this._metricPlaysText(mb, row.b.sampleSize)}</span><span>${this._richDisplay(conceptKey, ma)}${this._richStateBadge(ma)} / ${this._richDisplay(conceptKey, mb)}${this._richStateBadge(mb)}</span><span>${this._pct(mixA.run)} / ${this._pct(mixB.run)}</span><span class="${deltaClass}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
     this._renderRichCompareVisuals(rows, metricId, conceptKey, pair, result.a.label, result.b.label);
     // Matches the legacy _renderCompare watch-label convention exactly (same
@@ -628,6 +674,15 @@ export class StudyScreen {
    *  existing .is-small dimming; 'unavailable' renders as '—' via
    *  `_richDisplay` already, so it needs no extra class. */
   _richStateClass(m) { return m?.state === 'insufficient' ? ' is-small' : ''; }
+  /** Review fix (bc0f677 finding #1): the Plays column must report the SAME
+   *  cohort the metric was actually computed over, never the group's wider
+   *  raw sample -- disclosed explicitly ("7 of 10") whenever eligibility
+   *  excluded a play, rather than silently swapping in a smaller number with
+   *  no explanation (the per-metric state badge already names why). */
+  _metricPlaysText(m, rawSampleSize) {
+    const denom = m?.denominator ?? 0;
+    return denom === rawSampleSize ? String(denom) : `${denom} of ${rawSampleSize}`;
+  }
   _richStateBadge(m) {
     if (!m) return '';
     if (m.state === 'unavailable') return ' <small class="ws-study-state">No data</small>';
@@ -659,6 +714,10 @@ export class StudyScreen {
 
   _setWatchAll(refs, label = 'Watch results') {
     const unique = [...new Set(refs)];
+    // The single source of truth for the "Watch results" click -- see the
+    // constructor comment and the `watch-all` action handler in `_bind()`.
+    this._watchAllRefs = unique;
+    this._watchAllLabel = label;
     const button = this.host.querySelector('[data-study-action="watch-all"]');
     button.disabled = !unique.length;
     button.textContent = unique.length ? `${label} · ${unique.length}` : label;
@@ -797,10 +856,19 @@ export class StudyScreen {
   _saveView() {
     const state = this._state();
     const dimension = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
-    const comparison = state.compare === 'rangePrior' ? 'Range vs prior' : state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season' : state.scope === 'game' ? 'Current game' : state.scope === 'range' ? 'Date range' : 'Season';
+    // Review fix (bc0f677 finding #4): 'recent' had no comparison-label case
+    // and fell through to the (irrelevant, disabled-during-compare) scope
+    // branch; a 2-game and a 5-game recent comparison must read as distinct
+    // questions, both in the visible name and in the dedup identity below.
+    const comparison = state.compare === 'rangePrior' ? 'Range vs prior'
+      : state.compare === 'recent' ? `Recent ${state.periodGames} vs prior ${state.periodGames}`
+      : state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season'
+      : state.scope === 'game' ? 'Current game' : state.scope === 'range' ? 'Date range' : 'Season';
     const name = `${dimension} · ${comparison}${state.unit ? ` · ${state.unit}` : ''}${state.filters.length ? ` · ${state.filters.length} filter${state.filters.length === 1 ? '' : 's'}` : ''}`;
     const views = this._views();
-    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${state.dateFrom}|${state.dateTo}|${JSON.stringify(state.filters)}`;
+    // periodGames included so a 2-game and a 5-game recent-comparison view
+    // (otherwise identical) never collide and silently overwrite each other.
+    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${state.periodGames}|${state.dateFrom}|${state.dateTo}|${JSON.stringify(state.filters)}`;
     const next = [...views.filter(view => view.id !== id), { id, name, state }].slice(-12);
     try { localStorage.setItem('ffa_study_views_v1', JSON.stringify(next)); }
     catch { this.app.tagger.toast?.('Could not save this Study view'); return; }
@@ -884,7 +952,19 @@ export class StudyScreen {
     this._control('wsStudyDimension').value = view.state.dimension;
     this._control('wsStudyScope').value = view.state.scope;
     this._control('wsStudyUnit').value = view.state.unit;
-    this._control('wsStudyMeasure').value = view.state.measure || StudyScreen.DEFAULT_METRIC;
+    // Review fix (bc0f677 finding #3): a retired flat measure id upgrades to
+    // its equivalent concept (see LEGACY_MEASURE_UPGRADE); a genuinely
+    // unknown/missing id falls back to the stated default, same as before.
+    // Never guesses a unit -- the view's own saved Unit (set above) still
+    // governs whether the coaching metric resolves or fails closed.
+    const savedMeasure = view.state.measure;
+    const upgraded = StudyScreen.SELECTABLE_METRICS.includes(savedMeasure)
+      ? savedMeasure
+      : (StudyScreen.LEGACY_MEASURE_UPGRADE[savedMeasure] || StudyScreen.DEFAULT_METRIC);
+    this._control('wsStudyMeasure').value = upgraded;
+    if (savedMeasure && upgraded !== savedMeasure) {
+      this.app.tagger.toast?.(`Upgraded this saved view's metric to ${StudyScreen.RICH_METRIC_PAIRS[upgraded]?.name || upgraded}`);
+    }
     this._control('wsStudyMin').value = String(view.state.minSample);
     this._control('wsStudyCompare').value = view.state.compare === true ? 'season' : (view.state.compare || '');
     const periodControl = this._control('wsStudyPeriodGames');

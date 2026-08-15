@@ -37,6 +37,25 @@ const ok = (cond, label, extra = '') => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+// Review fix (bc0f677 finding #5): this file has no try/finally anywhere --
+// a mid-run crash (this harness's documented intermittent
+// "Runtime.callFunctionOn: Promise was collected" CDP disconnect included)
+// previously skipped the unconditional `browser.close()` at EOF entirely,
+// leaking this harness's own Chrome process into whatever ran after it in
+// the full gate sequence. A safety net at the process level closes it on
+// ANY unhandled rejection or exception, regardless of where in the 500+
+// lines of sequential top-level code it originates, while still exiting
+// non-zero so run-gate.sh's failure detection is unaffected.
+let closing = false;
+const closeAndExit = async (label, err) => {
+  if (closing) return;
+  closing = true;
+  console.error(`${label}:`, err?.stack || err?.message || err);
+  try { await browser.close(); } catch {}
+  process.exit(1);
+};
+process.on('unhandledRejection', err => closeAndExit('UNHANDLED REJECTION', err));
+process.on('uncaughtException', err => closeAndExit('UNCAUGHT EXCEPTION', err));
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];

@@ -14,6 +14,144 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the Study expansion review (`bc0f677`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs all five findings from Codex's CHANGES REQUESTED
+review of `098ea6a` (recorded below at `bc0f677`).** Every finding was verified
+against source before touching anything, per this project's standing discipline
+— none were taken on report.
+
+**1. [P1, closed] A rich Study row mixed three different cohorts.** The metric
+value and Watch action used the metric's own eligible `refs`, but the displayed
+**Plays** count used the group's broader raw `sampleSize` and **Run/Pass** used
+the group's broader raw `matchingPlayIds` — a row could say "10 plays," compute
+the metric from 7 eligible ones, and open film for only those 7, with nothing
+explaining the gap. Fixed at the root in both `_renderRichQuery` and
+`_renderRichCompare`: Plays now renders the metric's own `denominator`, via a
+new `_metricPlaysText(m, rawSampleSize)` helper that discloses `"7 of 10"`
+whenever eligibility excluded a play (plain `"10"` when nothing was excluded —
+never a silently swapped-in smaller number with no explanation), and Run/Pass
+is computed from `_runPassForRefs(m.refs)` instead of the raw group refs, on
+both sides of a comparison row.
+- **2. [P1, closed] "Watch results" could leak the comparison cohort.**
+  `_setWatchAll(refs, label)` only ever updated the button's text/disabled
+  state; the click handler independently reconstructed its play list from
+  `this.rows.flatMap(r => r.refs)` — and a compare row falls back to its
+  against-side refs when its base side is empty (correct for *that row's own*
+  Watch button), so an against-only group's refs leaked into a "Watch current
+  game" / "Watch recent period" click once every row was flattened together.
+  Fixed by making `_setWatchAll` the single source of truth: it now stores
+  `this._watchAllRefs`/`this._watchAllLabel`, and the `watch-all` click handler
+  consumes exactly those fields instead of re-deriving anything from
+  `this.rows`. This also fixes a second, related defect the review didn't name
+  explicitly: the click handler had hardcoded `label: 'Study results'`
+  regardless of what the button actually displayed — it now passes the real
+  label too.
+- **3. [P2, closed] Pre-expansion saved Study views broke on load.** A view
+  saved before this checkpoint could store one of six retired unit-blind flat
+  ids (`successRate`/`explosiveRate`/`negativeRate`/`havocRate`/`runShare`/
+  `passShare`); none exist as `<option>` values in `#wsStudyMeasure` any more,
+  so assigning one directly left the select blank. New
+  `StudyScreen.LEGACY_MEASURE_UPGRADE` map performs an explicit, disclosed
+  upgrade to the equivalent coaching-metric concept (`successRate`→`success`,
+  `explosiveRate`→`explosive`, etc.); `runShare`/`passShare` have no metric
+  equivalent at all (they measured play-type mix, not success/failure) and land
+  on `DEFAULT_METRIC`, same as a genuinely-missing measure already did. Critically,
+  **this never guesses offense vs. defense** — the view's own already-saved Unit
+  value (untouched by this map) still resolves the exact framing via
+  `_richMetricId`, and an ambiguous/blank saved Unit still fails closed with the
+  visible unit prompt exactly as a newly-built query does. Applying the upgrade
+  only changes the live control value; `_applyView` never rewrites the view in
+  `localStorage`, so opening a legacy view is never itself a mutation (verified
+  directly — see tests below).
+- **4. [P2, closed] Recent-vs-prior had no end-to-end proof, and saved-view
+  identity didn't distinguish period sizes.** `_saveView()`'s comparison-label
+  ternary had no case for `state.compare === 'recent'` and fell through to the
+  (irrelevant, disabled-during-compare) scope branch; and its dedup `id` string
+  never included `state.periodGames`, so a 2-game and a 5-game recent comparison
+  (otherwise identical) collided and the second save silently overwrote the
+  first. Both fixed: the comparison label now reads `"Recent 2 vs prior 2"` /
+  `"Recent 5 vs prior 5"`, and `periodGames` is part of the dedup id. A full new
+  discriminating test section (below) exercises the actual windowing math,
+  saved-view round-trip, and an undersized season.
+- **5. [Release gate, closed] The full canonical gate was red at
+  `e2e-tag-projform.mjs`** (`ProtocolError: Runtime.callFunctionOn: Promise was
+  collected`, section 15), reproducibly under the full 86-harness sequence while
+  passing 54/54 standalone. Investigated rather than re-labeled: the file had
+  **no `try`/`finally` anywhere** in its 520 lines of sequential top-level code,
+  so a mid-run crash (this one included) skipped the unconditional
+  `browser.close()` at end-of-file entirely, leaking that harness's own Chrome
+  process into whatever ran after it — a real hygiene gap independent of the
+  crash's ultimate trigger. Added a process-level safety net
+  (`process.on('unhandledRejection'|'uncaughtException', …)`) that closes the
+  browser and exits non-zero on ANY failure, regardless of where in the file it
+  originates, so `run-gate.sh`'s pass/fail detection is unaffected either way.
+
+**Files changed:** `js/study-screen.js` (`_metricPlaysText` new helper;
+`_renderRichQuery`/`_renderRichCompare` read Plays/Run-Pass from the metric's
+own denominator/refs; `_watchAllRefs`/`_watchAllLabel` instance fields, set only
+by `_setWatchAll`, consumed only by the `watch-all` click handler;
+`LEGACY_MEASURE_UPGRADE` static map; `_applyView`'s measure assignment routes
+through it with a toast disclosing the upgrade; `_saveView`'s comparison label
+and dedup id both account for `recent`/`periodGames`); `tools/e2e-tag-projform.mjs`
+(process-level `browser.close()` safety net, no behavior change); `tools/
+e2e-study-screen.mjs` (new "Review repair" section, 17 assertions: eligible-cohort
+Plays/Run-Pass/Watch parity on a fixture with a deliberately ineligible sibling
+play; an against-only comparison group proven non-leaking on **both** the rich
+and legacy compare paths; two injected legacy saved views proving the upgrade
+map, the blank-unit fail-closed case, and no-mutation-on-open; a six-game
+chronological fixture proving the recent/prior windows are exactly adjacent and
+non-overlapping at period=2, honestly clamped at period=5 with singular
+"Prior 1 game" wording, and that two different period sizes save as genuinely
+distinct, individually-restorable views).
+
+**Verification:**
+- `node tools/e2e-study-screen.mjs` — **98/98** (was 81; +17, all from this
+  repair — see above).
+- `node tools/e2e-study-query.mjs` **48/48**, `node tools/e2e-analytics-registry.mjs`
+  **33/33**, `node tools/e2e-analytics-metrics.mjs` **28/28**,
+  `node tools/e2e-native-reports.mjs` **76/76**, `node tools/e2e-parity.mjs`
+  **2/2**, `node tools/e2e-study-plan.mjs` **14/14**, `node tools/e2e-plan-export.mjs`
+  **22/22** — all unchanged, confirming this repair touched no analytics
+  formula, no report, and no film-link contract outside Study's own rendering.
+- **Mutation-verified both P1 fixes.** Reverting the Plays/Run-Pass source back
+  to the group's raw `sampleSize`/`matchingPlayIds` reds exactly the two finding-1
+  assertions with clear evidence (`{"plays":"2",...}` instead of `"1 of 2"`).
+  Reverting the `watch-all` handler back to `this.rows.flatMap(...)` +
+  hardcoded `'Study results'` reds exactly the two finding-2 assertions (rich
+  and legacy paths independently), with the leaked `g-recent-5::1` ref visible
+  in the evidence. Both restored and reconfirmed green afterward.
+- **Full canonical gate (`bash tools/run-gate.sh`), run TWICE independently
+  after the process-safety-net fix: 86 harnesses | 86 green | 0 skipped | 0
+  failed both times**, `e2e-tag-projform.mjs` completing cleanly inside the full
+  sequence (not just standalone) on both runs. This is the first time this exact
+  gate has completed 86/86 in one sequential pass since the intermittent was
+  first documented; recorded as evidence, not as a claim that the underlying
+  Puppeteer/Windows mechanism is fully understood — the process-safety-net fix
+  addresses a real hygiene gap (a crash previously leaked its own browser
+  process) but the root trigger of the original CDP disconnect was not
+  independently isolated beyond that.
+
+**One test-construction defect found and fixed during this repair, disclosed
+rather than silently corrected:** the new "two distinct saved views" assertion
+was itself flaky on first write — 2 of 3 runs failed with the period=2 save
+silently missing. Root-caused (not guessed): a toast from an earlier assertion
+in the same section (`_applyView`'s new upgrade-disclosure toast, this very
+repair's own finding-3 fix) was still visible over the "Save view" button's
+screen coordinates when Puppeteer's coordinate-based `page.click()` fired,
+so the click landed on the toast instead of the button. Fixed by dispatching
+the click directly on the button element (`page.evaluate(() => …click())`,
+which still bubbles through the same delegated listener as a real click)
+instead of racing the toast's fade timer. Confirmed clean on 5 consecutive
+standalone runs after the fix.
+
+**Codex re-review handoff:** the four Study-code findings and their tests are
+independent of each other and can be checked in any order; the fifth (gate
+stability) is now evidenced by two consecutive clean 86/86 runs rather than
+argued from documentation of the historical intermittent. No installer,
+package, tag, or deploy is authorized from this repair — same governing brief
+as the original checkpoint.
+
 ### CODEX REVIEW - Study expansion `098ea6a` - CHANGES REQUESTED (2026-08-15)
 
 **Verdict: CHANGES REQUESTED.** The new analytics/query foundation is additive and
