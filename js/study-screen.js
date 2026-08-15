@@ -54,33 +54,38 @@ export class StudyScreen {
   static get RICH_METRIC_IDS() { return Object.keys(StudyScreen.RICH_METRIC_PAIRS); }
   /** The flat, registry-backed measures still selectable alongside the rich
    *  concepts -- no AnalyticsMetrics equivalent exists for these, so they
-   *  stay on the original `run()`/`compare()` path untouched. */
-  static get LEGACY_SELECTABLE_MEASURES() { return ['epaPerPlay', 'touchdowns', 'turnovers']; }
+   *  stay on the original `run()`/`compare()` path untouched.
+   *  Review fix (b8a0ab4): `runShare`/`passShare` are real, working measures
+   *  on that legacy path -- there is no reason to retire them, and doing so
+   *  silently changed a coach's saved play-mix question into a different one
+   *  (Success Rate) on reopen. They belong here, restorable exactly, same as
+   *  `epaPerPlay`/`touchdowns`/`turnovers`. */
+  static get LEGACY_SELECTABLE_MEASURES() { return ['runShare', 'passShare', 'epaPerPlay', 'touchdowns', 'turnovers']; }
   static get SELECTABLE_METRICS() { return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.LEGACY_SELECTABLE_MEASURES]; }
   static get DEFAULT_METRIC() { return 'success'; }
   /**
-   * Review fix (bc0f677 finding #3): a saved view created before this
-   * checkpoint may store one of the six retired unit-blind flat ids
-   * (`successRate`/`explosiveRate`/`negativeRate`/`havocRate`/`runShare`/
-   * `passShare`) -- none of those are `<option>` values in `#wsStudyMeasure`
+   * Review fix (bc0f677 finding #3, narrowed by b8a0ab4): a saved view
+   * created before this checkpoint may store one of the four retired
+   * unit-blind OUTCOME ids (`successRate`/`explosiveRate`/`negativeRate`/
+   * `havocRate`) -- none of those are `<option>` values in `#wsStudyMeasure`
    * any more, so assigning one directly leaves the select blank. This is an
    * explicit, disclosed UPGRADE to the equivalent coaching-metric CONCEPT,
    * never a guess of offense vs defense: the coach's already-saved Unit
    * value (part of the same view, untouched by this map) still resolves the
    * exact framing via `_richMetricId`, and an ambiguous/blank saved Unit
    * still fails closed with the unit prompt exactly as it does for a newly
-   * built query. `runShare`/`passShare` have no metric equivalent at all
-   * (they measured play-type mix, not success/failure) -- they land on the
-   * same `DEFAULT_METRIC` a genuinely-missing measure already falls back to,
-   * and the coach's original run/pass question is still answered by every
-   * row's own Run/Pass column regardless of which metric leads it. Applying
-   * this map only changes the LIVE control value; it never rewrites the
-   * saved view in storage, so opening an old view is never itself a mutation.
+   * built query. `runShare`/`passShare` are deliberately NOT in this map --
+   * they measure play-type mix, not success/failure, so "upgrading" one to
+   * Success Rate would answer a different coaching question, not the same
+   * one better. They are real `LEGACY_SELECTABLE_MEASURES` entries instead
+   * (see above) and a saved view referencing either restores EXACTLY.
+   * Applying this map only changes the LIVE control value; it never rewrites
+   * the saved view in storage, so opening an old view is never itself a
+   * mutation.
    */
   static get LEGACY_MEASURE_UPGRADE() {
     return {
       successRate: 'success', explosiveRate: 'explosive', negativeRate: 'negative', havocRate: 'havoc',
-      runShare: 'success', passShare: 'success',
     };
   }
   /** Study opens already answering the coach's own offense -- a concrete,

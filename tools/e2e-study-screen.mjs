@@ -872,6 +872,7 @@ const legacyViewRaw = await page.evaluate(async () => {
   const legacyViews = [
     { id: 'legacy-success-rate', name: 'Old formation view', state: { dimension: 'formation', column: '', scope: 'game', unit: 'offense', measure: 'successRate', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
     { id: 'legacy-run-share', name: 'Old run share view', state: { dimension: 'formation', column: '', scope: 'season', unit: '', measure: 'runShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
+    { id: 'legacy-pass-share', name: 'Old pass share view', state: { dimension: 'formation', column: '', scope: 'season', unit: '', measure: 'passShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
   ];
   localStorage.setItem(key, JSON.stringify([...before, ...legacyViews]));
   window.app.studyScreen._loadViews();
@@ -880,11 +881,19 @@ const legacyViewRaw = await page.evaluate(async () => {
 await page.select('#wsStudySaved', 'legacy-success-rate');
 r = await page.evaluate(() => ({ measure: document.querySelector('#wsStudyMeasure')?.value, header: document.querySelector('#wsStudyMetricHead')?.textContent, promptHidden: document.querySelector('#wsStudyUnitPrompt')?.hidden }));
 ok(r.measure === 'success' && r.header === 'Success Rate' && r.promptHidden,
-  'Finding #3: a retired flat id (successRate) upgrades to its coaching-metric concept, resolved by the view\'s own saved Unit -- not guessed', JSON.stringify(r));
+  'Finding #3: a retired outcome id (successRate) upgrades to its coaching-metric concept, resolved by the view\'s own saved Unit -- not guessed', JSON.stringify(r));
+// Re-review (b8a0ab4): runShare/passShare are real, working measures on the
+// legacy query path -- upgrading either into Success Rate would answer a
+// DIFFERENT coaching question (play-type mix vs. success/failure), not the
+// same one better. Both must restore EXACTLY, proven independently.
 await page.select('#wsStudySaved', 'legacy-run-share');
-r = await page.evaluate(() => ({ measure: document.querySelector('#wsStudyMeasure')?.value, promptVisible: !document.querySelector('#wsStudyUnitPrompt')?.hidden, rows: document.querySelectorAll('.ws-study-row').length }));
-ok(r.measure === 'success' && r.promptVisible && r.rows === 0,
-  'Finding #3: a retired id with no metric equivalent (runShare) upgrades to the default concept and still fails closed on a blank saved Unit', JSON.stringify(r));
+r = await page.evaluate(() => ({ measure: document.querySelector('#wsStudyMeasure')?.value, header: document.querySelector('#wsStudyMetricHead')?.textContent, rows: document.querySelectorAll('.ws-study-row').length }));
+ok(r.measure === 'runShare' && r.header === 'Run Share' && r.rows > 0,
+  'Finding #3 (b8a0ab4): a saved Run Share view restores its EXACT measure and renders real data, never upgraded to a different question', JSON.stringify(r));
+await page.select('#wsStudySaved', 'legacy-pass-share');
+r = await page.evaluate(() => ({ measure: document.querySelector('#wsStudyMeasure')?.value, header: document.querySelector('#wsStudyMetricHead')?.textContent, rows: document.querySelectorAll('.ws-study-row').length }));
+ok(r.measure === 'passShare' && r.header === 'Pass Share' && r.rows > 0,
+  'Finding #3 (b8a0ab4): a saved Pass Share view restores its EXACT measure and renders real data, never upgraded to a different question', JSON.stringify(r));
 r = await page.evaluate(() => localStorage.getItem('ffa_study_views_v1'));
 ok(r === legacyViewRaw, 'Finding #3: opening a legacy saved view never rewrites it in storage', JSON.stringify({ changed: r !== legacyViewRaw }));
 

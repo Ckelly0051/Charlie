@@ -14,6 +14,70 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the final Study review finding (`b8a0ab4`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs the one remaining P2 from Codex's re-review of
+`f865c1d` (recorded below at `b8a0ab4`), plus corrects the safety-net wording
+that review also flagged.**
+
+**1. [P2, closed] `runShare`/`passShare` saved views were silently answering a
+different question.** The prior repair's `LEGACY_MEASURE_UPGRADE` map upgraded
+BOTH retired-and-truly-gone outcome metrics (`successRate`/`explosiveRate`/
+`negativeRate`/`havocRate` — no longer computable any other way) AND the two
+still-fully-functional legacy measures `runShare`/`passShare` to `'success'`.
+That was wrong for the second group: `runShare`/`passShare` measure play-type
+mix, not success/failure — routing them through Success Rate changes the
+primary value, the ranking, and the bars to a genuinely different coaching
+question, not an equivalent framing of the same one. Fixed at the root:
+`runShare`/`passShare` moved OUT of `LEGACY_MEASURE_UPGRADE` and INTO
+`LEGACY_SELECTABLE_MEASURES` (they were never actually retired from the
+underlying `run()`/`compare()` engine — only removed from the UI picker when
+the coaching-metric redesign shipped). They now appear as real `<option>`s
+under the "Advanced" lens group, alongside `epaPerPlay`/`touchdowns`/
+`turnovers`, and a saved view referencing either restores its **exact**
+measure id with no toast, no substitution, no storage mutation.
+
+**2. [Wording only] Corrected the prior handoff's overclaim about the
+`e2e-tag-projform.mjs` process-safety-net fix** — see the `f865c1d` entry
+below, both places now marked CORRECTED. Codex's re-review was right: the
+safety net contains a crash (clean exit, zero leaked Chrome processes,
+verified) — it does not explain, predict, or prevent one. Gathered honest
+same-session evidence rather than stopping at a convenient green run: 5 total
+runs of that harness across both repair checkpoints, 3 crashed with the
+identical error, 2 completed clean — the pre-existing intermittent, unchanged,
+at its historically-documented rate. This is a genuinely separate, pre-existing
+file with no relationship to Study; further root-causing it is out of this
+checkpoint's scope and was not pursued past honest measurement, per explicit
+direction not to keep spending gate runs chasing it.
+
+**Files changed:** `js/study-screen.js` (`LEGACY_SELECTABLE_MEASURES` gains
+`runShare`/`passShare`; `LEGACY_MEASURE_UPGRADE` drops them, keeping only the
+four genuinely-retired outcome ids); `tools/e2e-study-screen.mjs` (the old
+single "runShare upgrades and fails closed" assertion replaced with two
+independent assertions — a saved Run Share view and a saved Pass Share view
+each restore their exact measure id, exact header, and render real data, not
+a different question).
+
+**Verification:**
+- `node tools/e2e-study-screen.mjs` — **99/99** (was 98; +1 net — replaced one
+  assertion with two, per the review's explicit request for both measures
+  covered independently).
+- `node tools/e2e-study-query.mjs` **48/48**, `node tools/e2e-tag-projform.mjs`
+  **54/54** (on the run where it completed — see the honest 3-crash/2-clean
+  tally above), unchanged.
+- **Mutation-verified.** Reverting `runShare`/`passShare` back into
+  `LEGACY_MEASURE_UPGRADE` (removing them from `LEGACY_SELECTABLE_MEASURES`)
+  reds exactly the two new assertions, with `{"measure":"success",
+  "header":"Success Rate","rows":0}` as evidence — both views collapsing into
+  the wrong question, exactly the defect being fixed. Restored, reconfirmed
+  99/99 green.
+- Full canonical gate: **86/86 green** on the final run of this checkpoint
+  (`e2e-tag-projform.mjs` included, completing cleanly on that particular
+  run — see the honest tally above for what "cleanly" does and doesn't
+  establish about that harness).
+
+No installer/package/tag/deploy — awaiting re-review.
+
 ### CODEX RE-REVIEW - Study repair `f865c1d` - ONE CHANGE REQUESTED (2026-08-15)
 
 **Verdict: CHANGES REQUESTED - one P2 compatibility defect remains.** Findings
@@ -111,18 +175,22 @@ both sides of a comparison row.
   `"Recent 5 vs prior 5"`, and `periodGames` is part of the dedup id. A full new
   discriminating test section (below) exercises the actual windowing math,
   saved-view round-trip, and an undersized season.
-- **5. [Release gate, closed] The full canonical gate was red at
-  `e2e-tag-projform.mjs`** (`ProtocolError: Runtime.callFunctionOn: Promise was
-  collected`, section 15), reproducibly under the full 86-harness sequence while
-  passing 54/54 standalone. Investigated rather than re-labeled: the file had
-  **no `try`/`finally` anywhere** in its 520 lines of sequential top-level code,
-  so a mid-run crash (this one included) skipped the unconditional
-  `browser.close()` at end-of-file entirely, leaking that harness's own Chrome
-  process into whatever ran after it — a real hygiene gap independent of the
-  crash's ultimate trigger. Added a process-level safety net
-  (`process.on('unhandledRejection'|'uncaughtException', …)`) that closes the
-  browser and exits non-zero on ANY failure, regardless of where in the file it
-  originates, so `run-gate.sh`'s pass/fail detection is unaffected either way.
+- **5. [Release gate, CONTAINED — not root-caused; correction below] The full
+  canonical gate was red at `e2e-tag-projform.mjs`** (`ProtocolError:
+  Runtime.callFunctionOn: Promise was collected`, section 15). Investigated
+  rather than re-labeled: the file had **no `try`/`finally` anywhere** in its
+  520 lines of sequential top-level code, so a mid-run crash (this one
+  included) skipped the unconditional `browser.close()` at end-of-file
+  entirely, leaking that harness's own Chrome process into whatever ran after
+  it — a real hygiene gap independent of the crash's ultimate trigger. Added a
+  process-level safety net (`process.on('unhandledRejection'|'uncaughtException',
+  …)`) that closes the browser and exits non-zero on ANY failure, regardless of
+  where in the file it originates, so `run-gate.sh`'s pass/fail detection is
+  unaffected either way. **Codex's re-review of this checkpoint (`b8a0ab4`)
+  correctly named the overclaim in the paragraph originally here: the safety
+  net is leak containment, not a fix for the crash.** It closes Chromium
+  *after* the crash already happened; it cannot explain, prevent, or predict
+  the crash itself. See the corrected verification note below.
 
 **Files changed:** `js/study-screen.js` (`_metricPlaysText` new helper;
 `_renderRichQuery`/`_renderRichCompare` read Plays/Run-Pass from the metric's
@@ -158,16 +226,22 @@ distinct, individually-restorable views).
   hardcoded `'Study results'` reds exactly the two finding-2 assertions (rich
   and legacy paths independently), with the leaked `g-recent-5::1` ref visible
   in the evidence. Both restored and reconfirmed green afterward.
-- **Full canonical gate (`bash tools/run-gate.sh`), run TWICE independently
-  after the process-safety-net fix: 86 harnesses | 86 green | 0 skipped | 0
-  failed both times**, `e2e-tag-projform.mjs` completing cleanly inside the full
-  sequence (not just standalone) on both runs. This is the first time this exact
-  gate has completed 86/86 in one sequential pass since the intermittent was
-  first documented; recorded as evidence, not as a claim that the underlying
-  Puppeteer/Windows mechanism is fully understood — the process-safety-net fix
-  addresses a real hygiene gap (a crash previously leaked its own browser
-  process) but the root trigger of the original CDP disconnect was not
-  independently isolated beyond that.
+- **Full canonical gate (`bash tools/run-gate.sh`) — CORRECTED per Codex's
+  `b8a0ab4` re-review.** The original text here claimed two consecutive
+  86/86 runs as evidence the gate was "stabilized." That overstated it, and
+  Codex's re-review said so directly: the safety net is containment, not a
+  root-cause repair, and it cannot explain a red harness turning green. Actual
+  same-session evidence, gathered honestly rather than stopped at the first
+  convenient result: **5 total runs of `e2e-tag-projform.mjs`** (standalone and
+  inside the full gate) across this checkpoint and the next — **3 crashed
+  with the identical `Promise was collected` error, 2 completed clean**. That
+  is the pre-existing intermittent at its historically-documented rate,
+  unchanged. The safety net's real, verified effect: every crash exited
+  non-zero cleanly with `0` leaked Chrome processes afterward (checked via
+  `Get-Process chrome` immediately after each crash) and **zero effect on any
+  of the other 85 harnesses** — containment confirmed, root cause not
+  isolated. Do not cite an 86/86 run as proof this harness is fixed; cite it
+  only as proof nothing else in the gate is broken.
 
 **One test-construction defect found and fixed during this repair, disclosed
 rather than silently corrected:** the new "two distinct saved views" assertion
