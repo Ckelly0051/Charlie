@@ -14,6 +14,20 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX REVIEW - Study Phase 2 `9f355eb` - CHANGES REQUESTED (2026-08-15)
+
+**Reviewer: Codex.** Reviewed code `9f355eb` and handoff `6096300` against the approved penalty model and Study's exact-film contract. The focused harness is independently green at 18/18, but its assertions do not cover these failures. No full gate was rerun because the checkpoint has blocking correctness findings.
+
+1. **[P1] Flat Study measures open the broader dimension cohort, not the metric's eligible film cohort.** `StudyQuery.run()` creates `matchingPlayIds` from every play matching the row dimension, while `readMeasures()` may calculate a rate over a narrower denominator. `_renderQuery()` can disclose `2 of 14` but wires row Watch and Watch Results to all 14 plays. Example: `unit=special` with `stFieldGoalPct` displays two FG attempts, then opens every Special Teams play. The harness avoids this by changing the dimension to `specialTeamsUnit`, making its FG row already narrow. Required: expose and use exact metric-eligible composite refs for rows, bars, Watch Results, compare, and pivot; derive displayed denominators from that same contract.
+
+2. **[P1] Record-valued penalty dimensions leak sibling fouls into row metrics.** `penaltyTeam`, `penaltyFoul`, `penaltyRuling`, and `penaltyPhase` select whole plays, then recompute each measure over every penalty record on those plays. In the fixture, `penaltyTeam=subject` contains play 1 plus offsetting play 4. `penaltyFouls` therefore returns three records (including the opponent's offsetting foul), although only two records belong to the subject row. `PenaltyModel.byTeam` is correct, but the unrestricted picker bypasses it for generic/mismatched measures. The test checks the row's two play refs, not its foul total. Required: record-aware scoped aggregation retaining original play refs, or prevent combinations whose record population differs from the row.
+
+3. **[P1] `penaltyTiming` fabricates timing the model does not contain.** The approved contract defines `phase` as the charged team's role or `deadBall` for after-the-play responsibility, and explicitly defers pre-snap vs live-ball until metadata supports it. The new dimension treats every `deadBall` as pre-snap and every role-valued record as live-ball. Remove/defer it until an explicit timing field exists; do not infer timing from `phase`.
+
+4. **[P2] Measures described as neutral are colored favorable/unfavorable.** `_lowerIsBetter()` is boolean, so every unlisted measure becomes higher-is-better. Phase-scoped penalty counts/yards, raw foul counts, punt counts, and other neutral/context-dependent measures get green for positive deltas and red for negative ones. Add explicit `higher`/`lower`/`neutral` polarity metadata and audit Special Teams rates individually; punt touchback rate, for example, is not universally higher-is-better.
+
+**Sound pieces:** additive StatsEngine parity, XP/2-point/FG isolation, null-on-zero-denominator coercion, literal Special Teams labels, accepted-only penalty yards, and composite refs. Findings 1-3 block acceptance; finding 4 must close before this comparison UI is coach-facing.
+
 ### ▶ BUILT — Study expansion Phase 2: Penalties + Special Teams — AWAITING CODEX REVIEW (2026-08-15)
 
 **Builder: Claude. Baseline: `9c1b90a` (the accepted Study coaching-analysis
