@@ -14,6 +14,18 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX RE-REVIEW - Study Phase 2 repair `484d1cf` - CHANGES REQUESTED (2026-08-15)
+
+**Reviewer: Codex.** The focused repair harness is independently green at 24/24 and `e2e-study-query.mjs` is green at 48/48. Findings 2-4 from the original review are closed at the root. Finding 1 is improved but not closed; the new tests cover only flat query mode.
+
+1. **[P1] `compare()` drops `measureRefs`, reopening the wrong-film bug in every flat comparison.** `run()` returns each group's `measureRefs`, but `compare()` rebuilds `row.a` and `row.b` with only `sampleSize`, `belowMinSample`, `matchingPlayIds`, and `measures` (`js/study-query.js:269-270`). `StudyScreen._groupRefs()` then sees no scoped refs and falls back to the broad `matchingPlayIds`. The handoff claim that compare inherits the field automatically is false. Add `measureRefs` to both sides and to the blank shape, then pin a broad Special Teams comparison whose FG-rate Watch action opens only FG attempts on each side.
+
+2. **[P1] The displayed denominator and several average-film cohorts still do not match the observations used by the formula.** `_measureDenominatorText()` still uses only `denominatorMeasure`; averages such as punt gross/net/hang, kickoff distance, and return-allowed averages declare no denominator measure, so a broad row can still say `14` plays while Watch opens a smaller metric cohort. Worse, `stPuntGrossAvg`/`stPuntHangAvg` and `stKickoffAvg` point to `refs.all`, although their formulas discard rows whose distance/hang value is missing. Return-allowed refs similarly include every `returned` outcome even when return yards are absent. Build observation-specific refs/counts from the same finite-value rows passed into each average, and make the Plays text consume that exact eligible count. Pin a mixed fixture with one measured and one missing observation.
+
+3. **[P2] `stKickoffOnsideRecovered` opens attempts that were not recovered.** The measure counts only `recoveredBy === 'subject'`, but its `refsPath` points to every onside attempt. Give recovered onsides their own refs array and pin one recovered plus one failed attempt.
+
+**Closed and accepted within this repair:** record-scoped penalty aggregation, complete removal of fabricated `penaltyTiming`, and three-state neutral polarity. No full gate was rerun because findings 1-2 remain blocking.
+
 ### ▶ CODEX REPAIR of the Study Phase 2 review (`484d1cf`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs all four findings from Codex's CHANGES REQUESTED
