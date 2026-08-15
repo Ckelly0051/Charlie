@@ -15,8 +15,8 @@ export class StudyScreen {
     return ['playCall', 'playConcept', 'formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
       'playDir', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
-      'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore',
-      'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
+      'specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier',
+      'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyTiming', 'penaltyPlayCounts',
       'customTag', 'customField'];
   }
 
@@ -26,7 +26,43 @@ export class StudyScreen {
   static get MEASURES() {
     return ['sampleSize', 'successRate', 'runShare', 'passShare',
       'explosiveRate', 'negativeRate', 'turnovers', 'touchdowns', 'havocRate',
-      'epaPerPlay'];
+      'epaPerPlay',
+      ...StudyScreen.PENALTY_MEASURE_IDS, ...StudyScreen.SPECIAL_TEAMS_MEASURE_IDS];
+  }
+
+  /**
+   * Study expansion Phase 2 (penalties + Special Teams). Both lists ride the
+   * SAME `run()`/`compare()`/`readMeasures()` path every existing flat
+   * measure already uses (never AnalyticsMetrics' offense/defense-polarity
+   * `runMetrics()`/`compareMetrics()` -- that machinery exists specifically
+   * for the five RICH_METRIC_PAIRS concepts, and penalties/Special Teams
+   * aren't that shape). Comparisons, saved views, pivot, and Save-to-Plan all
+   * work for these automatically because they're the same measures, not a
+   * parallel system.
+   */
+  static get PENALTY_MEASURE_IDS() {
+    return [
+      'penaltyFlaggedPlays', 'penaltyFouls', 'penaltyAccepted', 'penaltyDeclined',
+      'penaltyOffsetting', 'penaltyUnresolved', 'penaltyNoPlay', 'penaltyAutomaticFirstDowns',
+      'penaltyYardsSubject', 'penaltyYardsOpponent',
+      'penaltyAcceptedSubject', 'penaltyAcceptedOpponent',
+      'penaltyAcceptedOffense', 'penaltyAcceptedDefense', 'penaltyAcceptedSpecialTeams',
+      'penaltyYardsOffense', 'penaltyYardsDefense',
+    ];
+  }
+  static get SPECIAL_TEAMS_MEASURE_IDS() {
+    return [
+      'stPuntCount', 'stPuntGrossAvg', 'stPuntNetAvg', 'stPuntHangAvg', 'stPuntTouchbackPct',
+      'stPuntFairCatchPct', 'stPuntBlocked', 'stPuntReturnAllowedAvg',
+      'stKickoffCount', 'stKickoffAvg', 'stKickoffTouchbackPct', 'stKickoffFairCatchPct',
+      'stKickoffReturnAllowedAvg', 'stKickoffOnsideAtt', 'stKickoffOnsideRecovered',
+      'stFieldGoalAtt', 'stFieldGoalMade', 'stFieldGoalPct', 'stFieldGoalLong',
+      'stFieldGoalBlockSnaps', 'stFieldGoalBlocked', 'stTryDownsCount',
+      'stExtraPointAtt', 'stExtraPointMade', 'stExtraPointPct',
+      'stTwoPointAtt', 'stTwoPointMade', 'stTwoPointPct',
+      'stKickReturnCount', 'stKickReturnAvg', 'stKickReturnLong', 'stKickReturnTD', 'stKickReturnMuffed',
+      'stPuntReturnCount', 'stPuntReturnAvg', 'stPuntReturnLong', 'stPuntReturnTD', 'stPuntReturnMuffed',
+    ];
   }
 
   /**
@@ -61,7 +97,13 @@ export class StudyScreen {
    *  (Success Rate) on reopen. They belong here, restorable exactly, same as
    *  `epaPerPlay`/`touchdowns`/`turnovers`. */
   static get LEGACY_SELECTABLE_MEASURES() { return ['runShare', 'passShare', 'epaPerPlay', 'touchdowns', 'turnovers']; }
-  static get SELECTABLE_METRICS() { return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.LEGACY_SELECTABLE_MEASURES]; }
+  // Study expansion Phase 2: penalty/Special Teams measures are selectable
+  // primary metrics too -- they ride the same picker + lens grouping as the
+  // legacy flat measures above, not a separate control.
+  static get SELECTABLE_METRICS() {
+    return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.LEGACY_SELECTABLE_MEASURES,
+      ...StudyScreen.PENALTY_MEASURE_IDS, ...StudyScreen.SPECIAL_TEAMS_MEASURE_IDS];
+  }
   static get DEFAULT_METRIC() { return 'success'; }
   /**
    * Review fix (bc0f677 finding #3, narrowed by b8a0ab4): a saved view
@@ -111,6 +153,8 @@ export class StudyScreen {
     return [
       { name: 'Coaching metrics', ids: StudyScreen.RICH_METRIC_IDS },
       { name: 'Advanced', ids: StudyScreen.LEGACY_SELECTABLE_MEASURES },
+      { name: 'Penalties', ids: StudyScreen.PENALTY_MEASURE_IDS },
+      { name: 'Special Teams', ids: StudyScreen.SPECIAL_TEAMS_MEASURE_IDS },
     ];
   }
 
@@ -126,8 +170,8 @@ export class StudyScreen {
       { name: 'Situation', ids: ['down', 'distance', 'fieldZone', 'quarter', 'drive', 'hash'] },
       { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formation', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'playDir', 'playType', 'runPass'] },
       { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
-      { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
-      { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore'] },
+      { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyTiming', 'penaltyPlayCounts'] },
+      { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier'] },
       { name: 'Players', ids: ['unit', 'playerRole', 'grade'] },
       { name: 'Custom', ids: ['customTag', 'customField'] },
     ];
@@ -397,7 +441,7 @@ export class StudyScreen {
     this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${this._esc(scopeLabel)}</span>`;
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((group, index) => {
       const m = group.measures;
-      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
+      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${this._esc(this._measureDenominatorText(measure, m, group.sampleSize))}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
     this._renderQueryVisuals(groups, measure, matching);
     this._setWatchAll(matching);
@@ -521,7 +565,8 @@ export class StudyScreen {
     this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
       const delta = row.deltas[measure];
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
-      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${this._deltaClass(measure, delta)}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
+      const plays = `${this._esc(this._measureDenominatorText(measure, row.a.measures, row.a.sampleSize))} / ${this._esc(this._measureDenominatorText(measure, row.b.measures, row.b.sampleSize))}`;
+      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${plays}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${this._deltaClass(measure, delta)}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
     this._renderCompareVisuals(rows, measure, result.a.label, result.b.label);
     // Study expansion (2026-08-15): 'recent' (last-N-games vs prior-N-games)
@@ -795,7 +840,16 @@ export class StudyScreen {
     return { run: classified ? run / classified * 100 : 0, pass: classified ? pass / classified * 100 : 0, classified };
   }
 
-  _lowerIsBetter(measure) { return ['negativeRate', 'turnovers'].includes(measure); }
+  _lowerIsBetter(measure) {
+    // Study expansion Phase 2: only measures UNAMBIGUOUSLY scoped to "us" are
+    // marked here -- `byPhase` (offense/defense/special) classifies which
+    // SNAP a foul happened on, not which team was charged, so those measures
+    // stay at the neutral default rather than guessing a favorable direction.
+    return ['negativeRate', 'turnovers',
+      'penaltyYardsSubject', 'penaltyAcceptedSubject',
+      'stPuntBlocked', 'stKickReturnMuffed', 'stPuntReturnMuffed',
+      'stKickoffReturnAllowedAvg', 'stPuntReturnAllowedAvg'].includes(measure);
+  }
   _isFavorableDelta(measure, delta) { return delta !== 0 && (this._lowerIsBetter(measure) ? delta < 0 : delta > 0); }
   _deltaClass(measure, delta) { return !delta ? '' : this._isFavorableDelta(measure, delta) ? 'is-positive' : 'is-negative'; }
 
@@ -996,13 +1050,43 @@ export class StudyScreen {
   }
 
   _gameName(game) { return game.name || game.gameInfo?.projectName || game.gameInfo?.opponent || 'Current game'; }
-  _pct(value) { const n = Number(value); return Number.isFinite(n) ? `${this._number(n)}%` : '—'; }
+  // `value == null` MUST be checked before `Number()` -- `Number(null) === 0`,
+  // a genuinely finite number, so a bare `Number.isFinite` guard alone treats
+  // an honest "not charted" `null` (Study expansion Phase 2's
+  // `zeroDenominatorPath` coercion in analytics-registry.js) as a real zero
+  // and renders "0%" instead of "-". `undefined` was already caught
+  // (`Number(undefined)` is `NaN`); `null` needed the same explicit catch.
+  _pct(value) { if (value == null) return '—'; const n = Number(value); return Number.isFinite(n) ? `${this._number(n)}%` : '—'; }
   _measure(id, value, suffix = true) {
+    if (value == null) return '—';
     const n = Number(value);
     if (!Number.isFinite(n)) return '—';
-    if (['successRate', 'runShare', 'passShare', 'explosiveRate', 'negativeRate', 'havocRate'].includes(id)) return `${this._number(n)}${suffix ? '%' : ' pts'}`;
+    const pctMeasures = ['successRate', 'runShare', 'passShare', 'explosiveRate', 'negativeRate', 'havocRate',
+      'stPuntTouchbackPct', 'stPuntFairCatchPct', 'stKickoffTouchbackPct', 'stKickoffFairCatchPct',
+      'stFieldGoalPct', 'stExtraPointPct', 'stTwoPointPct'];
+    if (pctMeasures.includes(id)) return `${this._number(n)}${suffix ? '%' : ' pts'}`;
     if (id === 'epaPerPlay') return this._number(n);
     return this._number(n);
+  }
+
+  /**
+   * Study expansion Phase 2 -- denominator honesty for the "Plays" column.
+   * Most measures (touchdowns, EPA, run/pass share...) are meaningfully
+   * described by the group's raw play count, unchanged, so this is a no-op
+   * for every measure that predates this checkpoint. A measure that declares
+   * `denominatorMeasure` (a FG%/XP%/touchback% etc. whose real eligible count
+   * is smaller than the group's raw plays -- e.g. 3 FG attempts inside a
+   * 45-play "3rd Down" group) instead shows that exact count, disclosing the
+   * gap ("3 of 45") rather than implying the rate was computed over every
+   * play in the row.
+   */
+  _measureDenominatorText(measure, m, rawSampleSize) {
+    const entry = this.app.analyticsRegistry.getMeasure(measure);
+    const denomId = entry?.denominatorMeasure;
+    if (!denomId) return String(rawSampleSize);
+    const denomValue = m?.[denomId];
+    if (denomValue == null) return 'Not charted';
+    return Number(denomValue) === Number(rawSampleSize) ? String(denomValue) : `${denomValue} of ${rawSampleSize}`;
   }
   _number(value) { return Number(value).toFixed(1).replace(/\.0$/, ''); }
   _esc(value) { return String(value ?? '').replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }

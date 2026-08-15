@@ -1313,13 +1313,25 @@ export class StatsEngine {
         netAvg: avg(puntRows, x => SpecialTeamsModel.netYards(x.st)),
         hangAvg: avg(puntRows, x => x.st.kick.hangTime),
         tbPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'touchback').length / puntRows.length * 100) : 0,
+        // Study expansion Phase 2: fair-catch rate and coverage (return-allowed)
+        // for punts, mirroring what kickoffs already computed -- punt coverage
+        // was previously invisible outside the netAvg composite.
+        fairCatchPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'fairCatch').length / puntRows.length * 100) : 0,
         blocked: puntRows.filter(x => x.st.outcome.status === 'blocked').length,
+        retAllowedAvg: avg(puntRows.filter(x => x.st.outcome.status === 'returned'), x => x.st.return.yards),
       };
       const kickoffs = {
         n: koRows.length,
         avg: avg(koRows, x => x.st.kick.distance),
         tbPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'touchback').length / koRows.length * 100) : 0,
+        fairCatchPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'fairCatch').length / koRows.length * 100) : 0,
         retAllowedAvg: avg(koRows.filter(x => x.st.outcome.status === 'returned'), x => x.st.return.yards),
+        // isOnside is a structured modifier (not a separate unit) -- 'recovered'
+        // counts only a SUBJECT recovery (the point of an onside attempt).
+        onside: (() => {
+          const onsideRows = koRows.filter(x => x.st.isOnside);
+          return { n: onsideRows.length, recovered: onsideRows.filter(x => x.st.outcome.recoveredBy === 'subject').length };
+        })(),
       };
       const fg = {
         att: fgRows.length,
@@ -1334,7 +1346,17 @@ export class StatsEngine {
       const ret = unit => {
         const arr = rows(unit);
         const attempts = arr.filter(x => x.st.return.attempted === true && Number.isFinite(x.st.return.yards));
-        return { n: arr.length, avg: avg(attempts, x => x.st.return.yards), long: attempts.length ? Math.max(...attempts.map(x => x.st.return.yards)) : 0, td: arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject').length };
+        return {
+          n: arr.length,
+          avg: avg(attempts, x => x.st.return.yards),
+          long: attempts.length ? Math.max(...attempts.map(x => x.st.return.yards)) : 0,
+          // Exact denominator for `long`/`avg` -- distinct from `n` (every ST
+          // play of this unit, including fair catches/touchbacks/muffs with no
+          // usable return yardage).
+          attempts: attempts.length,
+          td: arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject').length,
+          muffed: arr.filter(x => x.st.outcome.status === 'muffed').length,
+        };
       };
       const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
       const blocks = rows('fieldGoalBlock');
@@ -1354,14 +1376,26 @@ export class StatsEngine {
       netAvg: avg(pp, p => { const d = num(p.tags.kickDistance); return d == null ? null : d - (num(p.tags.returnYards) || 0) - (p.tags.kickOutcome === 'Touchback' ? 20 : 0); }),
       hangAvg: avg(pp, p => num(p.tags.hangTime)),
       tbPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Touchback').length / pp.length * 100) : 0,
+      // Study expansion Phase 2: legacy `kickOutcome` already carries 'Fair
+      // Catch'/'Returned' -- reused, never reinterpreted, matching the same
+      // fields the structured branch now computes.
+      fairCatchPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Fair Catch').length / pp.length * 100) : 0,
       blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
+      retAllowedAvg: avg(pp.filter(p => p.tags.kickOutcome === 'Returned'), p => num(p.tags.returnYards)),
     };
     const ko = by('Kickoff');
     const kickoffs = {
       n: ko.length,
       avg: avg(ko, p => num(p.tags.kickDistance)),
       tbPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Touchback').length / ko.length * 100) : 0,
+      fairCatchPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Fair Catch').length / ko.length * 100) : 0,
       retAllowedAvg: avg(ko.filter(p => p.tags.kickOutcome === 'Returned'), p => num(p.tags.returnYards)),
+      // Legacy charted an onside kick as its OWN stType ('Onside'), never as a
+      // Kickoff modifier -- a structurally different shape than the new model's
+      // isOnside flag, so it is not derivable from `by('Kickoff')` here. Stays
+      // an honest null rather than a guessed zero (see the fair-catch/muffed
+      // reuse above for the contrast: those DO reuse real legacy vocabulary).
+      onside: { n: null, recovered: null },
     };
     const fgp = by('Field Goal');
     const fg = {
@@ -1376,10 +1410,23 @@ export class StatsEngine {
     const ret = (type) => {
       const arr = by(type);
       const yds = arr.map(p => num(p.tags.returnYards)).filter(x => x != null);
-      return { n: arr.length, avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null, long: yds.length ? Math.max(...yds) : 0, td: arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length };
+      return {
+        n: arr.length,
+        avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null,
+        long: yds.length ? Math.max(...yds) : 0,
+        attempts: yds.length,
+        td: arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
+        muffed: arr.filter(p => p.tags.kickOutcome === 'Muffed').length,
+      };
     };
     const returns = { kick: ret('Kick Return'), punt: ret('Punt Return') };
-    return { punts, kickoffs, fg, returns, hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n) };
+    // Legacy has no dedicated "field goal block unit" or "try" charting
+    // concept (a blocked FG is just kickOutcome:'Blocked' on the kicking
+    // team's own attempt; a legacy 2-Pt/XP play never distinguished a block
+    // unit). Present as explicit nulls, not omitted keys and not fabricated
+    // zeros, so every registered measure resolves to a real value (a
+    // structural "not derivable here", not a silent "zero of these happened").
+    return { punts, kickoffs, fg, returns, blocks: { n: null, blocked: null }, tries: { n: null }, hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n) };
   }
 
   _renderSpecialTeams(stats) {

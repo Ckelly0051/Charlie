@@ -1122,13 +1122,20 @@
      "netAvg": 42,
      "hangAvg": 4.1,
      "tbPct": 0,
-     "blocked": 0
+     "fairCatchPct": 0,
+     "blocked": 0,
+     "retAllowedAvg": null
     },
     "kickoffs": {
      "n": 0,
      "avg": null,
      "tbPct": 0,
-     "retAllowedAvg": null
+     "fairCatchPct": 0,
+     "retAllowedAvg": null,
+     "onside": {
+      "n": null,
+      "recovered": null
+     }
     },
     "fg": {
      "att": 1,
@@ -1148,14 +1155,25 @@
       "n": 0,
       "avg": null,
       "long": 0,
-      "td": 0
+      "attempts": 0,
+      "td": 0,
+      "muffed": 0
      },
      "punt": {
       "n": 0,
       "avg": null,
       "long": 0,
-      "td": 0
+      "attempts": 0,
+      "td": 0,
+      "muffed": 0
      }
+    },
+    "blocks": {
+     "n": null,
+     "blocked": null
+    },
+    "tries": {
+     "n": null
     },
     "hasData": true
    },
@@ -3812,13 +3830,20 @@
        "netAvg": null,
        "hangAvg": null,
        "tbPct": 0,
-       "blocked": 0
+       "fairCatchPct": 0,
+       "blocked": 0,
+       "retAllowedAvg": null
       },
       "kickoffs": {
        "n": 0,
        "avg": null,
        "tbPct": 0,
-       "retAllowedAvg": null
+       "fairCatchPct": 0,
+       "retAllowedAvg": null,
+       "onside": {
+        "n": null,
+        "recovered": null
+       }
       },
       "fg": {
        "att": 0,
@@ -3832,14 +3857,25 @@
         "n": 0,
         "avg": null,
         "long": 0,
-        "td": 0
+        "attempts": 0,
+        "td": 0,
+        "muffed": 0
        },
        "punt": {
         "n": 0,
         "avg": null,
         "long": 0,
-        "td": 0
+        "attempts": 0,
+        "td": 0,
+        "muffed": 0
        }
+      },
+      "blocks": {
+       "n": null,
+       "blocked": null
+      },
+      "tries": {
+       "n": null
       },
       "hasData": false
      },
@@ -5260,13 +5296,20 @@
      "netAvg": 42,
      "hangAvg": 4.1,
      "tbPct": 0,
-     "blocked": 0
+     "fairCatchPct": 0,
+     "blocked": 0,
+     "retAllowedAvg": null
     },
     "kickoffs": {
      "n": 0,
      "avg": null,
      "tbPct": 0,
-     "retAllowedAvg": null
+     "fairCatchPct": 0,
+     "retAllowedAvg": null,
+     "onside": {
+      "n": null,
+      "recovered": null
+     }
     },
     "fg": {
      "att": 1,
@@ -5286,14 +5329,25 @@
       "n": 0,
       "avg": null,
       "long": 0,
-      "td": 0
+      "attempts": 0,
+      "td": 0,
+      "muffed": 0
      },
      "punt": {
       "n": 0,
       "avg": null,
       "long": 0,
-      "td": 0
+      "attempts": 0,
+      "td": 0,
+      "muffed": 0
      }
+    },
+    "blocks": {
+     "n": null,
+     "blocked": null
+    },
+    "tries": {
+     "n": null
     },
     "hasData": true
    },
@@ -7289,13 +7343,20 @@
        "netAvg": null,
        "hangAvg": null,
        "tbPct": 0,
-       "blocked": 0
+       "fairCatchPct": 0,
+       "blocked": 0,
+       "retAllowedAvg": null
       },
       "kickoffs": {
        "n": 0,
        "avg": null,
        "tbPct": 0,
-       "retAllowedAvg": null
+       "fairCatchPct": 0,
+       "retAllowedAvg": null,
+       "onside": {
+        "n": null,
+        "recovered": null
+       }
       },
       "fg": {
        "att": 0,
@@ -7309,14 +7370,25 @@
         "n": 0,
         "avg": null,
         "long": 0,
-        "td": 0
+        "attempts": 0,
+        "td": 0,
+        "muffed": 0
        },
        "punt": {
         "n": 0,
         "avg": null,
         "long": 0,
-        "td": 0
+        "attempts": 0,
+        "td": 0,
+        "muffed": 0
        }
+      },
+      "blocks": {
+       "n": null,
+       "blocked": null
+      },
+      "tries": {
+       "n": null
       },
       "hasData": false
      },
@@ -8324,13 +8396,20 @@
      "netAvg": null,
      "hangAvg": null,
      "tbPct": 0,
-     "blocked": 0
+     "fairCatchPct": 0,
+     "blocked": 0,
+     "retAllowedAvg": null
     },
     "kickoffs": {
      "n": 0,
      "avg": null,
      "tbPct": 0,
-     "retAllowedAvg": null
+     "fairCatchPct": 0,
+     "retAllowedAvg": null,
+     "onside": {
+      "n": null,
+      "recovered": null
+     }
     },
     "fg": {
      "att": 0,
@@ -8344,14 +8423,25 @@
       "n": 0,
       "avg": null,
       "long": 0,
-      "td": 0
+      "attempts": 0,
+      "td": 0,
+      "muffed": 0
      },
      "punt": {
       "n": 0,
       "avg": null,
       "long": 0,
-      "td": 0
+      "attempts": 0,
+      "td": 0,
+      "muffed": 0
      }
+    },
+    "blocks": {
+     "n": null,
+     "blocked": null
+    },
+    "tries": {
+     "n": null
     },
     "hasData": false
    },
@@ -9627,13 +9717,20 @@
        "netAvg": null,
        "hangAvg": null,
        "tbPct": 0,
-       "blocked": 0
+       "fairCatchPct": 0,
+       "blocked": 0,
+       "retAllowedAvg": null
       },
       "kickoffs": {
        "n": 0,
        "avg": null,
        "tbPct": 0,
-       "retAllowedAvg": null
+       "fairCatchPct": 0,
+       "retAllowedAvg": null,
+       "onside": {
+        "n": null,
+        "recovered": null
+       }
       },
       "fg": {
        "att": 0,
@@ -9647,14 +9744,25 @@
         "n": 0,
         "avg": null,
         "long": 0,
-        "td": 0
+        "attempts": 0,
+        "td": 0,
+        "muffed": 0
        },
        "punt": {
         "n": 0,
         "avg": null,
         "long": 0,
-        "td": 0
+        "attempts": 0,
+        "td": 0,
+        "muffed": 0
        }
+      },
+      "blocks": {
+       "n": null,
+       "blocked": null
+      },
+      "tries": {
+       "n": null
       },
       "hasData": false
      },

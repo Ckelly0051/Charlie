@@ -100,11 +100,49 @@ export class AnalyticsRegistry {
       ready('specialTeamsOutcome', 'Special Teams Outcome', p => { const event = special(p); return this._one(event?.result || event?.outcome.status); }, 'SpecialTeamsModel.normalize.result | outcome.status'),
       ready('specialTeamsRole', 'Special Teams Role', p => this._one(special(p)?.subjectRole), 'SpecialTeamsModel.normalize.subjectRole'),
       ready('specialTeamsScore', 'Special Teams Score', p => this._one(special(p)?.outcome.score), 'SpecialTeamsModel.normalize.outcome.score'),
+      // Study expansion Phase 2: literal football phase labels for the coach
+      // ("Extra Point" / "Two-Point Try"), not the internal `unit` id -- the
+      // try contract keeps XP and 2-Pt on ONE structural unit
+      // (try/tryDefense) distinguished only by `attemptType`, so a raw `unit`
+      // dimension can never separate them. Additive alongside
+      // `specialTeamsPhase` (unchanged) so no existing saved view/filter using
+      // the raw unit id is affected.
+      ready('specialTeamsUnit', 'Special Teams Phase', p => {
+        const event = special(p);
+        if (!event) return [];
+        if (event.unit === 'try' || event.unit === 'tryDefense') {
+          return [event.attemptType === 'twoPoint' ? 'Two-Point Try' : event.attemptType === 'extraPoint' ? 'Extra Point' : 'Try (Unspecified)'];
+        }
+        const label = {
+          kickoff: 'Kickoff', kickoffReturn: 'Kick Return', punt: 'Punt', puntReturn: 'Punt Return',
+          fieldGoal: 'Field Goal', fieldGoalBlock: 'Field Goal Block',
+        }[event.unit];
+        return label ? [label] : [];
+      }, 'SpecialTeamsModel.normalize.unit (literal label, try split by attemptType)'),
+      ready('specialTeamsModifier', 'Special Teams Modifier', p => {
+        const event = special(p);
+        if (!event) return [];
+        const mods = [];
+        if (event.isOnside) mods.push('Onside');
+        if (event.isFake) mods.push('Fake');
+        return mods;
+      }, 'SpecialTeamsModel.normalize.isOnside|isFake', { multi: true }),
       ready('penaltyTeam', 'Penalty Charged To', p => penalties(p).map(item => item.team), 'PenaltyModel.normalizeList.team', { multi: true }),
       ready('penaltyFoul', 'Penalty Foul', p => penalties(p).map(item => item.foul).filter(Boolean), 'PenaltyModel.normalizeList.foul', { multi: true }),
       ready('penaltyRuling', 'Penalty Ruling', p => penalties(p).map(item => item.disposition), 'PenaltyModel.normalizeList.disposition', { multi: true }),
       ready('penaltyPhase', 'Penalty Phase', p => penalties(p).map(item => item.phase), 'PenaltyModel.normalizeList.phase', { multi: true }),
       ready('penaltyPlayCounts', 'Penalty Play Counts', p => penalties(p).map(item => item.playCounts === true ? 'Play counts' : item.playCounts === false ? 'No play' : 'Unknown'), 'PenaltyModel.normalizeList.playCounts', { multi: true }),
+      // Study expansion Phase 2: "pre-snap vs live-ball" is only as granular as
+      // the STORED model supports -- PenaltyModel.PHASES has no separate
+      // pre-snap concept, but 'deadBall' already means exactly that (the ball
+      // was not live: false start, delay of game, illegal formation, etc.),
+      // while offense/defense/special phases are all fouls committed DURING a
+      // live snap. This relabels the existing enum; it never guesses a timing
+      // the coach didn't chart. 'unknown' phase intentionally emits no value
+      // here (penaltyPhase already offers an explicit 'unknown' bucket).
+      ready('penaltyTiming', 'Penalty Timing', p => penalties(p).map(item =>
+        item.phase === 'deadBall' ? 'Dead ball' : ['offense', 'defense', 'special'].includes(item.phase) ? 'Live ball' : null
+      ).filter(Boolean), "PenaltyModel.normalizeList.phase ('deadBall' vs offense|defense|special)", { multi: true }),
       ready('customTag', 'Custom Tag', p => (p?.tags?.custom || []).filter(Boolean).map(String), 'play.tags.custom', { multi: true }),
       ready('customField', 'Custom Field', p => pairs(p?.tags?.customFields), 'play.tags.customFields', { multi: true }),
       ready('result', 'Result', p => SE.splitResults(p?.tags?.result), 'StatsEngine.splitResults', { multi: true }),
@@ -147,6 +185,90 @@ export class AnalyticsRegistry {
       ready('epaPerPlay', 'EPA / Play', ['advanced', 'perPlay'], 'AdvancedMetrics.summarize'),
       ready('sampleSize', 'Sample Size', ['allPlays'], 'StatsEngine.compute().allPlays'),
       deferred('dataCompleteness', 'Data Completeness', 'No canonical production completeness measure'),
+
+      // ---- Study expansion Phase 2: Penalties -----------------------------
+      // All read PenaltyModel.summarize()'s output off StatsEngine.compute()
+      // -- no formula is reimplemented here. `stats.penalties` is only
+      // present when the cohort has real records (PenaltyModel's own
+      // `hasData` gate), so an empty cohort resolves every one of these to
+      // `undefined` -- rendered as "Not charted", never a fabricated zero.
+      // Counts are genuine denominators on their own (0 declined penalties is
+      // real information); only the YARDS totals carry the accepted-only
+      // rule, enforced inside PenaltyModel itself, never re-derived here.
+      ready('penaltyFlaggedPlays', 'Flagged Plays', ['penalties', 'flaggedPlays'], 'PenaltyModel.summarize().flaggedPlays'),
+      ready('penaltyFouls', 'Penalty Fouls (All)', ['penalties', 'fouls'], 'PenaltyModel.summarize().fouls'),
+      ready('penaltyAccepted', 'Penalties Accepted (All)', ['penalties', 'accepted'], 'PenaltyModel.summarize().accepted'),
+      ready('penaltyDeclined', 'Penalties Declined', ['penalties', 'declined'], 'PenaltyModel.summarize().declined'),
+      ready('penaltyOffsetting', 'Penalties Offsetting', ['penalties', 'offsetting'], 'PenaltyModel.summarize().offsetting'),
+      ready('penaltyUnresolved', 'Penalties Unresolved', ['penalties', 'incomplete'], 'PenaltyModel.summarize().incomplete -- missing team, ruling, or foul'),
+      ready('penaltyNoPlay', 'No-Play / Retry Penalties', ['penalties', 'noPlay'], 'PenaltyModel.summarize().noPlay -- playCounts:false, any disposition'),
+      ready('penaltyAutomaticFirstDowns', 'Penalty First Downs', ['penalties', 'automaticFirstDowns'], 'PenaltyModel.summarize().automaticFirstDowns -- accepted only'),
+      ready('penaltyYardsSubject', 'Penalty Yards — Us', ['penalties', 'subjectYards'], 'PenaltyModel.summarize().subjectYards -- accepted enforcement only'),
+      ready('penaltyYardsOpponent', 'Penalty Yards — Opponent', ['penalties', 'opponentYards'], 'PenaltyModel.summarize().opponentYards -- accepted enforcement only'),
+      // Team/unit-scoped variants read PenaltyModel's own byTeam/byPhase
+      // buckets -- each is classified from ONLY that team's/phase's own
+      // records, so grouping the cohort by an unrelated dimension (e.g.
+      // Formation) can never let a play's OTHER penalty (a different team or
+      // phase on the same play, as in an offsetting foul) inflate these.
+      ready('penaltyAcceptedSubject', 'Penalties Accepted — Us', ['penalties', 'byTeam', 'subject', 'accepted'], 'PenaltyModel.summarize().byTeam.subject.accepted'),
+      ready('penaltyAcceptedOpponent', 'Penalties Accepted — Opponent', ['penalties', 'byTeam', 'opponent', 'accepted'], 'PenaltyModel.summarize().byTeam.opponent.accepted'),
+      ready('penaltyAcceptedOffense', 'Offensive Penalties Accepted', ['penalties', 'byPhase', 'offense', 'accepted'], 'PenaltyModel.summarize().byPhase.offense.accepted'),
+      ready('penaltyAcceptedDefense', 'Defensive Penalties Accepted', ['penalties', 'byPhase', 'defense', 'accepted'], 'PenaltyModel.summarize().byPhase.defense.accepted'),
+      ready('penaltyAcceptedSpecialTeams', 'Special Teams Penalties Accepted', ['penalties', 'byPhase', 'special', 'accepted'], 'PenaltyModel.summarize().byPhase.special.accepted'),
+      ready('penaltyYardsOffense', 'Offensive Penalty Yards', ['penalties', 'byPhase', 'offense', 'yards'], 'PenaltyModel.summarize().byPhase.offense.yards -- accepted only'),
+      ready('penaltyYardsDefense', 'Defensive Penalty Yards', ['penalties', 'byPhase', 'defense', 'yards'], 'PenaltyModel.summarize().byPhase.defense.yards -- accepted only'),
+
+      // ---- Study expansion Phase 2: Special Teams --------------------------
+      // Every measure below reads StatsEngine._specialTeamsStats()'s existing
+      // output (`stats.specialTeams`, always present) or `stats.conversions`
+      // (the accepted try contract, unchanged) -- no formula duplicated.
+      // `zeroDenominatorPath`/`denominatorMeasure` mark the handful of RATE
+      // fields whose underlying StatsEngine computation intentionally stays
+      // `0` (not `null`) on an empty cohort, to preserve every EXISTING
+      // Reports consumer's byte-identical output; `readMeasures()` below
+      // coerces those specific measures to `null` here instead, so Study
+      // never shows "0%" when the true answer is "never charted".
+      ready('stPuntCount', 'Punts', ['specialTeams', 'punts', 'n'], 'StatsEngine._specialTeamsStats().punts.n'),
+      ready('stPuntGrossAvg', 'Punt Gross Avg (yds)', ['specialTeams', 'punts', 'grossAvg'], 'StatsEngine._specialTeamsStats().punts.grossAvg'),
+      ready('stPuntNetAvg', 'Punt Net Avg (yds)', ['specialTeams', 'punts', 'netAvg'], 'StatsEngine._specialTeamsStats().punts.netAvg'),
+      ready('stPuntHangAvg', 'Punt Hang Time (sec)', ['specialTeams', 'punts', 'hangAvg'], 'StatsEngine._specialTeamsStats().punts.hangAvg'),
+      ready('stPuntTouchbackPct', 'Punt Touchback Rate', ['specialTeams', 'punts', 'tbPct'], 'StatsEngine._specialTeamsStats().punts.tbPct', { zeroDenominatorPath: ['specialTeams', 'punts', 'n'], denominatorMeasure: 'stPuntCount' }),
+      ready('stPuntFairCatchPct', 'Punt Fair Catch Rate', ['specialTeams', 'punts', 'fairCatchPct'], 'StatsEngine._specialTeamsStats().punts.fairCatchPct', { zeroDenominatorPath: ['specialTeams', 'punts', 'n'], denominatorMeasure: 'stPuntCount' }),
+      ready('stPuntBlocked', 'Punts Blocked', ['specialTeams', 'punts', 'blocked'], 'StatsEngine._specialTeamsStats().punts.blocked'),
+      ready('stPuntReturnAllowedAvg', 'Punt Return Allowed (yds)', ['specialTeams', 'punts', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().punts.retAllowedAvg'),
+      ready('stKickoffCount', 'Kickoffs', ['specialTeams', 'kickoffs', 'n'], 'StatsEngine._specialTeamsStats().kickoffs.n'),
+      ready('stKickoffAvg', 'Kickoff Avg (yds)', ['specialTeams', 'kickoffs', 'avg'], 'StatsEngine._specialTeamsStats().kickoffs.avg'),
+      ready('stKickoffTouchbackPct', 'Kickoff Touchback Rate', ['specialTeams', 'kickoffs', 'tbPct'], 'StatsEngine._specialTeamsStats().kickoffs.tbPct', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'n'], denominatorMeasure: 'stKickoffCount' }),
+      ready('stKickoffFairCatchPct', 'Kickoff Fair Catch Rate', ['specialTeams', 'kickoffs', 'fairCatchPct'], 'StatsEngine._specialTeamsStats().kickoffs.fairCatchPct', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'n'], denominatorMeasure: 'stKickoffCount' }),
+      ready('stKickoffReturnAllowedAvg', 'Kickoff Return Allowed (yds)', ['specialTeams', 'kickoffs', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().kickoffs.retAllowedAvg'),
+      ready('stKickoffOnsideAtt', 'Onside Kicks Attempted', ['specialTeams', 'kickoffs', 'onside', 'n'], 'StatsEngine._specialTeamsStats().kickoffs.onside.n -- structured data only'),
+      ready('stKickoffOnsideRecovered', 'Onside Kicks Recovered', ['specialTeams', 'kickoffs', 'onside', 'recovered'], 'StatsEngine._specialTeamsStats().kickoffs.onside.recovered', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'onside', 'n'], denominatorMeasure: 'stKickoffOnsideAtt' }),
+      ready('stFieldGoalAtt', 'Field Goals Attempted', ['specialTeams', 'fg', 'att'], 'StatsEngine._specialTeamsStats().fg.att'),
+      ready('stFieldGoalMade', 'Field Goals Made', ['specialTeams', 'fg', 'made'], 'StatsEngine._specialTeamsStats().fg.made'),
+      ready('stFieldGoalPct', 'Field Goal Rate', ['specialTeams', 'fg', 'pct'], 'StatsEngine._specialTeamsStats().fg.pct', { zeroDenominatorPath: ['specialTeams', 'fg', 'att'], denominatorMeasure: 'stFieldGoalAtt' }),
+      ready('stFieldGoalLong', 'Longest Field Goal (yds)', ['specialTeams', 'fg', 'long'], 'StatsEngine._specialTeamsStats().fg.long', { zeroDenominatorPath: ['specialTeams', 'fg', 'made'], denominatorMeasure: 'stFieldGoalMade' }),
+      ready('stFieldGoalBlockSnaps', 'FG Block Unit Snaps', ['specialTeams', 'blocks', 'n'], 'StatsEngine._specialTeamsStats().blocks.n -- structured data only'),
+      ready('stFieldGoalBlocked', 'Field Goals Blocked (Our Block Unit)', ['specialTeams', 'blocks', 'blocked'], 'StatsEngine._specialTeamsStats().blocks.blocked -- structured data only'),
+      ready('stTryDownsCount', 'Try Downs Charted', ['specialTeams', 'tries', 'n'], 'StatsEngine._specialTeamsStats().tries.n -- structured data only'),
+      // Tries stay isolated from FG/offensive efficiency: these read the
+      // accepted `conversions.xp`/`conversions.two` contract directly
+      // (StatsEngine._conversionStats), never the FG measures above.
+      ready('stExtraPointAtt', 'Extra Points Attempted', ['conversions', 'xp', 'att'], 'StatsEngine._conversionStats().xp.att'),
+      ready('stExtraPointMade', 'Extra Points Made', ['conversions', 'xp', 'made'], 'StatsEngine._conversionStats().xp.made'),
+      ready('stExtraPointPct', 'Extra Point Rate', ['conversions', 'xp', 'pct'], 'StatsEngine._conversionStats().xp.pct', { zeroDenominatorPath: ['conversions', 'xp', 'att'], denominatorMeasure: 'stExtraPointAtt' }),
+      ready('stTwoPointAtt', 'Two-Point Tries Attempted', ['conversions', 'two', 'att'], 'StatsEngine._conversionStats().two.att'),
+      ready('stTwoPointMade', 'Two-Point Tries Made', ['conversions', 'two', 'made'], 'StatsEngine._conversionStats().two.made'),
+      ready('stTwoPointPct', 'Two-Point Conversion Rate', ['conversions', 'two', 'pct'], 'StatsEngine._conversionStats().two.pct', { zeroDenominatorPath: ['conversions', 'two', 'att'], denominatorMeasure: 'stTwoPointAtt' }),
+      ready('stKickReturnCount', 'Kick Returns', ['specialTeams', 'returns', 'kick', 'n'], 'StatsEngine._specialTeamsStats().returns.kick.n'),
+      ready('stKickReturnAvg', 'Kick Return Avg (yds)', ['specialTeams', 'returns', 'kick', 'avg'], 'StatsEngine._specialTeamsStats().returns.kick.avg'),
+      ready('stKickReturnLong', 'Longest Kick Return (yds)', ['specialTeams', 'returns', 'kick', 'long'], 'StatsEngine._specialTeamsStats().returns.kick.long', { zeroDenominatorPath: ['specialTeams', 'returns', 'kick', 'attempts'] }),
+      ready('stKickReturnTD', 'Kick Return TDs', ['specialTeams', 'returns', 'kick', 'td'], 'StatsEngine._specialTeamsStats().returns.kick.td'),
+      ready('stKickReturnMuffed', 'Kickoffs Muffed', ['specialTeams', 'returns', 'kick', 'muffed'], 'StatsEngine._specialTeamsStats().returns.kick.muffed'),
+      ready('stPuntReturnCount', 'Punt Returns', ['specialTeams', 'returns', 'punt', 'n'], 'StatsEngine._specialTeamsStats().returns.punt.n'),
+      ready('stPuntReturnAvg', 'Punt Return Avg (yds)', ['specialTeams', 'returns', 'punt', 'avg'], 'StatsEngine._specialTeamsStats().returns.punt.avg'),
+      ready('stPuntReturnLong', 'Longest Punt Return (yds)', ['specialTeams', 'returns', 'punt', 'long'], 'StatsEngine._specialTeamsStats().returns.punt.long', { zeroDenominatorPath: ['specialTeams', 'returns', 'punt', 'attempts'] }),
+      ready('stPuntReturnTD', 'Punt Return TDs', ['specialTeams', 'returns', 'punt', 'td'], 'StatsEngine._specialTeamsStats().returns.punt.td'),
+      ready('stPuntReturnMuffed', 'Punts Muffed', ['specialTeams', 'returns', 'punt', 'muffed'], 'StatsEngine._specialTeamsStats().returns.punt.muffed'),
     ];
   }
 
@@ -157,7 +279,13 @@ export class AnalyticsRegistry {
       'bigPlays', 'individuals', 'drives', 'situational', 'efficiency',
       'personnel', 'advanced', 'defensive', 'gameFlow', 'conversions',
       'specialTeams', 'scoreboard', 'hash', 'personnelSituation',
-      'frontCoverageCombos', 'playAction', 'dirMotion', 'takeaways'
+      'frontCoverageCombos', 'playAction', 'dirMotion', 'takeaways',
+      // Study expansion Phase 2: 'penalties' is CONDITIONALLY present on
+      // compute()'s output (only when PenaltyModel.summarize() found real
+      // records), so readBlocks()/readMeasures() on a clean cohort correctly
+      // resolve undefined for it -- the same honest "not charted" signal
+      // every other measure renders as '-', not a fabricated empty object.
+      'penalties'
     ].map(id => ({ id, name: id, availability: 'ready', path: [id], canonical: `StatsEngine.compute().${id}` }));
   }
 
@@ -214,7 +342,19 @@ export class AnalyticsRegistry {
       const entry = this.getMeasure(id);
       if (!entry) throw new Error(`Unknown analytics measure: ${id}`);
       if (entry.availability !== 'ready') throw new Error(`Analytics measure requires context: ${id}`);
-      const value = this._readPath(stats, entry.path);
+      let value = this._readPath(stats, entry.path);
+      // Study expansion Phase 2 honesty coercion: a handful of pre-existing
+      // StatsEngine rate fields (touchback%, fair-catch%, FG%, XP%, 2-Pt%)
+      // intentionally return a literal `0` -- not `null` -- when their own
+      // denominator is empty, because Reports has depended on that exact
+      // shape since before this checkpoint and changing it there risks a
+      // real regression on a surface this checkpoint does not touch. A
+      // measure declares `zeroDenominatorPath` to opt THIS reader (Study,
+      // via run()/compare()) into the honest reading instead: "never
+      // charted" renders as null (-> '-' in the UI), not a misleading "0%".
+      // This never mutates `stats` and never touches the StatsEngine field
+      // Reports itself reads.
+      if (entry.zeroDenominatorPath && !this._readPath(stats, entry.zeroDenominatorPath)) value = null;
       out[id] = id === 'sampleSize' && Array.isArray(value) ? value.length : value;
     }
     return out;

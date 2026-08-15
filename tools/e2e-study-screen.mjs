@@ -775,8 +775,12 @@ ok(picker.defaultDimension === 'formation' && picker.declaredDefault === 'format
 // non-negotiable of this increment) and keeps the registry-only flat measures
 // as a distinct "Advanced" group, rather than the four football-question
 // lenses this list used before the metric set itself was redesigned.
-ok(picker.measure.groups.join(',') === 'Coaching metrics,Advanced',
-  'The Study metric picker groups coaching metrics ahead of advanced measures', picker.measure.groups.join(','));
+// Phase 2 (2026-08-15): "Penalties" and "Special Teams" are added AFTER
+// those two, their own literal-labeled lenses -- the coaching-metric and
+// legacy groups keep their exact prior order and option sets, so this is a
+// real addition, not a reshuffle of what already worked.
+ok(picker.measure.groups.join(',') === 'Coaching metrics,Advanced,Penalties,Special Teams',
+  'The Study metric picker groups coaching metrics ahead of advanced measures, with Penalties/Special Teams as their own lenses', picker.measure.groups.join(','));
 ok(picker.dimension.groups.length === 7 && picker.dimension.groups[0] === 'Situation'
   && !picker.dimension.groups.includes('Other'),
   'Study dimensions are grouped by football category with none left unclassified', JSON.stringify(picker.dimension.groups));

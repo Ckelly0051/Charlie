@@ -67,6 +67,18 @@ export class PenaltyModel {
     return situation;
   }
 
+  /**
+   * Study expansion Phase 2 (penalties + Special Teams): `bucket()` is the
+   * ONE classification formula, applied to the full record set for the
+   * top-level fields (byte-identical to the pre-Phase-2 inline computation)
+   * and to team/phase SUBSETS for `byTeam`/`byPhase` -- so "penalties we
+   * committed on defense" is never approximated by filtering the COHORT and
+   * re-summing every record on those plays (which would double-count a play
+   * carrying both a subject and an opponent penalty, e.g. offsetting fouls).
+   * `byTeam`/`byPhase` are keyed by every value in TEAMS/PHASES, including
+   * 'unknown', so an unresolved team/phase is visible as its own bucket
+   * rather than silently absorbed into another team's count.
+   */
   static summarize(plays) {
     const records = [];
     let flaggedPlays = 0;
@@ -75,17 +87,38 @@ export class PenaltyModel {
       if (penalties.length) flaggedPlays++;
       penalties.forEach(penalty => records.push({ play, penalty }));
     }
-    const accepted = records.filter(row => row.penalty.disposition === 'accepted');
-    const yards = team => accepted.filter(row => row.penalty.team === team).reduce((sum, row) => sum + (row.penalty.yards || 0), 0);
+    const bucket = rows => {
+      const accepted = rows.filter(row => row.penalty.disposition === 'accepted');
+      return {
+        fouls: rows.length,
+        accepted: accepted.length,
+        declined: rows.filter(row => row.penalty.disposition === 'declined').length,
+        offsetting: rows.filter(row => row.penalty.disposition === 'offsetting').length,
+        incomplete: rows.filter(row => row.penalty.disposition === 'unknown' || row.penalty.team === 'unknown' || !row.penalty.foul).length,
+        // A "no play" foul (playCounts:false) is disposition-independent --
+        // it's a fact about the down, not about who was charged or whether
+        // the penalty was accepted/declined.
+        noPlay: rows.filter(row => row.penalty.playCounts === false).length,
+        // Only an ACCEPTED foul can actually gift a first down.
+        automaticFirstDowns: accepted.filter(row => row.penalty.automaticFirstDown === true).length,
+        yards: accepted.reduce((sum, row) => sum + (row.penalty.yards || 0), 0),
+      };
+    };
+    const all = bucket(records);
+    const yardsByTeam = team => bucket(records.filter(row => row.penalty.team === team)).yards;
     return {
       flaggedPlays,
-      fouls: records.length,
-      accepted: accepted.length,
-      declined: records.filter(row => row.penalty.disposition === 'declined').length,
-      offsetting: records.filter(row => row.penalty.disposition === 'offsetting').length,
-      incomplete: records.filter(row => row.penalty.disposition === 'unknown' || row.penalty.team === 'unknown' || !row.penalty.foul).length,
-      subjectYards: yards('subject'),
-      opponentYards: yards('opponent'),
+      fouls: all.fouls,
+      accepted: all.accepted,
+      declined: all.declined,
+      offsetting: all.offsetting,
+      incomplete: all.incomplete,
+      noPlay: all.noPlay,
+      automaticFirstDowns: all.automaticFirstDowns,
+      subjectYards: yardsByTeam('subject'),
+      opponentYards: yardsByTeam('opponent'),
+      byTeam: Object.fromEntries([...this.TEAMS].map(team => [team, bucket(records.filter(row => row.penalty.team === team))])),
+      byPhase: Object.fromEntries([...this.PHASES].map(phase => [phase, bucket(records.filter(row => row.penalty.phase === phase))])),
       records,
       hasData: records.length > 0,
     };
