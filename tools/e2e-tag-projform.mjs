@@ -25,6 +25,12 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    same id. Every section below re-fetches its play via t.getPlay(id) FRESH,
    inside the SAME evaluate call it acts on it.
 
+   All tag clicks, history restores, and form reloads asserted below are
+   synchronous production operations. Keep those page.evaluate callbacks
+   synchronous too: double-requestAnimationFrame waits previously left a
+   remote Promise alive across the CDP boundary, and Chromium intermittently
+   collected it before Puppeteer received the result.
+
    Run after build: npm run build && node tools/e2e-tag-projform.mjs */
 import puppeteer from 'puppeteer';
 
@@ -37,15 +43,9 @@ const ok = (cond, label, extra = '') => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-// Review fix (bc0f677 finding #5): this file has no try/finally anywhere --
-// a mid-run crash (this harness's documented intermittent
-// "Runtime.callFunctionOn: Promise was collected" CDP disconnect included)
-// previously skipped the unconditional `browser.close()` at EOF entirely,
-// leaking this harness's own Chrome process into whatever ran after it in
-// the full gate sequence. A safety net at the process level closes it on
-// ANY unhandled rejection or exception, regardless of where in the 500+
-// lines of sequential top-level code it originates, while still exiting
-// non-zero so run-gate.sh's failure detection is unaffected.
+// This file has no enclosing try/finally, so keep the process-level safety
+// net even though the collected-Promise trigger is gone. Any future unexpected
+// failure must close this harness's Chromium process and still exit non-zero.
 let closing = false;
 const closeAndExit = async (label, err) => {
   if (closing) return;
@@ -128,7 +128,7 @@ ok(!r.coverageValues.some(v => ['Man', 'Zone', 'Match'].includes(v)), 'Coverage 
 ok(JSON.stringify(r.coverageFamilyValues) === JSON.stringify(['Man', 'Zone', 'Match']), 'Coverage Family offers exactly the three family values');
 
 console.log('\n== 4. Explicit commit PROMOTES the sibling, ONE undoable transaction — Formation (multi-select) ==');
-r = await page.evaluate(async (ids) => {
+r = await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
   t.selectPlay(ids.legacyFormation);
   hist.reset();
@@ -136,15 +136,12 @@ r = await page.evaluate(async (ids) => {
   // Formation is MULTI-select. Turning the ONLY active chip ('Trips', seeded
   // from the projected view) off is a genuine, single explicit commit.
   document.querySelector('#tagFormation .pick[data-value="Trips"]').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const play = t.getPlay(ids.legacyFormation);
   const afterCommit = { formation: play.tags.formation, qbAlignment: play.tags.qbAlignment, entries: hist.stack.length - depth0 };
   hist.undo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p1 = t.getPlay(ids.legacyFormation);
   const afterUndo = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
   hist.redo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p2 = t.getPlay(ids.legacyFormation);
   const afterRedo = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
   return { afterCommit, afterUndo, afterRedo };
@@ -155,24 +152,22 @@ ok(r.afterUndo.formation === 'Shotgun + Trips' && (r.afterUndo.qbAlignment || ''
 ok(r.afterRedo.formation === '' && r.afterRedo.qbAlignment === 'Shotgun', 'REDO restores the primary AND the promoted sibling TOGETHER', JSON.stringify(r.afterRedo));
 
 console.log('\n== 5. The SAME promotion for the Coverage/Coverage Family pair (single-select) ==');
-r = await page.evaluate(async (ids) => {
+r = await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
   t.selectPlay(ids.legacyCoverage);
   hist.reset();
   document.querySelector('#tagCoverage .pick[data-value="Cover 3"]').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const play = t.getPlay(ids.legacyCoverage);
   return { coverage: play.tags.coverage, coverageFamily: play.tags.coverageFamily, entries: hist.stack.length };
 }, IDS);
 ok(r.coverage === 'Cover 3' && r.coverageFamily === 'Man' && r.entries === 1, 'explicit Coverage commit promotes the derived Coverage Family in the SAME single transaction', JSON.stringify(r));
 
 console.log('\n== 6. An EXISTING explicit sibling is NEVER overwritten (requirement #4) ==');
-r = await page.evaluate(async (ids) => {
+r = await page.evaluate((ids) => {
   const t = window.app.tagger;
   t.selectPlay(ids.explicitWins);
   const before = JSON.parse(JSON.stringify(t.getPlay(ids.explicitWins).tags));
   document.querySelector('#tagFormation .pick[data-value="Trips"]').click();   // ADDS to the existing 'Bunch' (multi-select)
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const play = t.getPlay(ids.explicitWins);
   const untouchedKeys = Object.keys(before).every(k => k === 'formation' || JSON.stringify(play.tags[k]) === JSON.stringify(before[k]));
   return { formation: play.tags.formation, qbAlignment: play.tags.qbAlignment, untouchedKeys };
@@ -181,11 +176,10 @@ ok(r.formation === 'Bunch + Trips' && r.qbAlignment === 'Pistol', 'adding a stru
 ok(r.untouchedKeys, 'no field OTHER than formation changed — a genuine field-level merge, not a bulk rewrite', JSON.stringify(r));
 
 console.log('\n== 7. Clearing a value is INTENTIONAL, not a silent revert (requirement #5) ==');
-r = await page.evaluate(async (ids) => {
+r = await page.evaluate((ids) => {
   const t = window.app.tagger;
   t.selectPlay(ids.explicitWins);   // qbAlignment currently 'Pistol' from section 6
   document.querySelector('#tagQbAlignment .pick[data-value="Pistol"]').click();   // re-tap active chip = clear
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const play = t.getPlay(ids.explicitWins);
   return { qbAlignment: play.tags.qbAlignment, activeChips: [...document.querySelectorAll('#tagQbAlignment .pick.active')].length };
 }, IDS);
@@ -198,14 +192,13 @@ console.log('\n== 7b. Clearing a LEGACY-DERIVED sibling STRIPS the primary too �
 // project()'s precedence falls back to the still-embedded token whenever the
 // sibling is blank, so the clear looked like it worked in the moment, then
 // silently reappeared the next time the play was opened.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9108;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Shotgun + Wing-T' } };
   t.plays.push(play);
   t.selectPlay(id);   // seeds QB Alignment 'Shotgun' from the DERIVED projected value (nothing stored yet)
   document.querySelector('#tagQbAlignment .pick[data-value="Shotgun"]').click();   // re-tap the derived-active chip = explicit clear
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterCommit = t.getPlay(id);
   const rawAfterCommit = { formation: afterCommit.tags.formation, qbAlignment: afterCommit.tags.qbAlignment };
   // Re-visit: select the play again fresh, as if the coach came back to it —
@@ -228,7 +221,7 @@ console.log('\n== 7c. Coverage Family DERIVED clear strips Coverage too — the 
 // (`primaryKey === 'coverage'` -> return '' instead of filter-and-rejoin).
 // This also proves the undo/redo pairing Codex asked for on this branch,
 // mirroring section 4's Formation undo/redo but for the reverse (clear) case.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const id = 9113;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'defense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], coverage: 'Man' } };
@@ -237,17 +230,14 @@ r = await page.evaluate(async () => {
   hist.reset();
   const depth0 = hist.stack.length;
   document.querySelector('#tagCoverageFamily .pick[data-value="Man"]').click();   // re-tap the derived-active chip = explicit clear
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterCommit = t.getPlay(id);
   const commitResult = { coverage: afterCommit.tags.coverage, coverageFamily: afterCommit.tags.coverageFamily, entries: hist.stack.length - depth0 };
 
   hist.undo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p1 = t.getPlay(id);
   const afterUndo = { coverage: p1.tags.coverage, coverageFamily: p1.tags.coverageFamily };
 
   hist.redo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p2 = t.getPlay(id);
   const afterRedo = { coverage: p2.tags.coverage, coverageFamily: p2.tags.coverageFamily };
 
@@ -268,16 +258,14 @@ ok((r.afterRedo.coverage || '') === '' && (r.afterRedo.coverageFamily || '') ===
 ok((r.revisitCoverageFamily || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit after the undo/redo cycle — Man does not silently reappear', JSON.stringify(r));
 
 console.log('\n== 8. Formation / QB Alignment / Coverage Call / Coverage Family round-trip INDEPENDENTLY (requirement #6) ==');
-r = await page.evaluate(async (ids) => {
+r = await page.evaluate((ids) => {
   const t = window.app.tagger;
   t.selectPlay(ids.modern);
   document.querySelector('#tagBackfield .pick[data-value="Split"]').click();   // edit an UNRELATED field
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const off = t.getPlay(ids.modern);
   const offAfter = { formation: off.tags.formation, qbAlignment: off.tags.qbAlignment, backfield: off.tags.backfield };
   t.selectPlay(ids.modernDef);
   document.querySelector('#tagBlitz .pick[data-value="Edge"]').click();        // edit an UNRELATED field
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const def = t.getPlay(ids.modernDef);
   const defAfter = { coverage: def.tags.coverage, coverageFamily: def.tags.coverageFamily, blitz: def.tags.blitz };
   return { offAfter, defAfter };
@@ -292,7 +280,7 @@ console.log('\n== 9. Save & Next (the explicit-save gesture) canonicalizes an UN
 // Coverage/Coverage Family chip) left with its legacy token still embedded and
 // its sibling still un-promoted, so it could never leave the (Lane R) "Legacy
 // tags to review" list, whose exit condition is exactly this explicit save.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const legacyId = 9109;
   const legacy = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Ace' } };
@@ -307,17 +295,14 @@ r = await page.evaluate(async () => {
   hist.reset();
   const depth0 = hist.stack.length;
   document.getElementById('btnTagSaveNext').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterCommit = t.getPlay(legacyId);
   const commitResult = { formation: afterCommit.tags.formation, qbAlignment: afterCommit.tags.qbAlignment, entries: hist.stack.length - depth0 };
 
   hist.undo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p1 = t.getPlay(legacyId);
   const afterUndo = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
 
   hist.redo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p2 = t.getPlay(legacyId);
   const afterRedo = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
   const legacyResult = commitResult;
@@ -331,7 +316,6 @@ r = await page.evaluate(async () => {
   hist.reset();
   const depthBefore = hist.stack.length;
   document.getElementById('btnTagSaveNext').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterClean = t.getPlay(cleanId);
   return {
     legacyResult, afterUndo, afterRedo,
@@ -353,7 +337,7 @@ console.log('\n== 9b. Filtered cut-up navigation does NOT trigger the canonicali
 // Simulate an active cut-up (stub next() so this stays a pure canonicalization
 // check, no video required) and prove an untouched legacy play is left
 // exactly as it was while a cut-up owns navigation.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9111;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Bunch' } };
@@ -364,7 +348,6 @@ r = await page.evaluate(async () => {
   cutup.next = () => {};   // stub — no real cut-up queue is needed for this check
   cutup.active = true;
   document.getElementById('btnTagSaveNext').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   cutup.active = false;
   cutup.next = realNext;
   const after = t.getPlay(id);
@@ -379,7 +362,7 @@ console.log('\n== 10. "New Drive" writes ONLY Drive Number — a legacy sibling 
 // field-level-merge violation regardless of the promote guard it also had.
 // The fix: New Drive now commits ONLY driveNumber via the same single-field
 // _saveField path every other field's own change listener uses.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9106;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Shotgun + Twins' } };
@@ -387,7 +370,6 @@ r = await page.evaluate(async () => {
   t.selectPlay(id);
   const before = JSON.parse(JSON.stringify(t.getPlay(id).tags));
   document.getElementById('btnNewDrive').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const after = t.getPlay(id);
   // Codex e0ab568 re-review item #3: compare the UNION of keys on both sides,
   // not just Object.keys(before) — the original check could only detect a
@@ -435,7 +417,7 @@ console.log('\n== 13. E4-2: explicit Formation commit PROMOTES Backfield (Empty)
 // Backfield relationship (Empty). A legacy play stores "Ace + Empty" with a
 // blank backfield; turning off Formation's only OTHER structural chip must
 // promote 'Empty' into Backfield in the SAME commit as the Formation write.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const id = 9114;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty' } };
@@ -444,15 +426,12 @@ r = await page.evaluate(async () => {
   hist.reset();
   const depth0 = hist.stack.length;
   document.querySelector('#tagFormation .pick[data-value="Ace"]').click();   // turn off the only active structural chip
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterCommit = t.getPlay(id);
   const commitResult = { formation: afterCommit.tags.formation, backfield: afterCommit.tags.backfield, entries: hist.stack.length - depth0 };
   hist.undo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p1 = t.getPlay(id);
   const afterUndo = { formation: p1.tags.formation, backfield: p1.tags.backfield };
   hist.redo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p2 = t.getPlay(id);
   const afterRedo = { formation: p2.tags.formation, backfield: p2.tags.backfield };
   return { commitResult, afterUndo, afterRedo };
@@ -467,7 +446,7 @@ console.log('\n== 14. E4-2: explicit Backfield commit PROMOTES QB Alignment (Pis
 // QB Alignment, for Pistol) at once. A legacy play stores backfield='Pistol'
 // with a blank qbAlignment; explicitly committing a NEW Backfield value must
 // promote qbAlignment='Pistol' in the SAME commit.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const id = 9115;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], backfield: 'Pistol' } };
@@ -476,15 +455,12 @@ r = await page.evaluate(async () => {
   hist.reset();
   const depth0 = hist.stack.length;
   document.querySelector('#tagBackfield .pick[data-value="Diamond"]').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterCommit = t.getPlay(id);
   const commitResult = { backfield: afterCommit.tags.backfield, qbAlignment: afterCommit.tags.qbAlignment, entries: hist.stack.length - depth0 };
   hist.undo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p1 = t.getPlay(id);
   const afterUndo = { backfield: p1.tags.backfield, qbAlignment: p1.tags.qbAlignment };
   hist.redo();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const p2 = t.getPlay(id);
   const afterRedo = { backfield: p2.tags.backfield, qbAlignment: p2.tags.qbAlignment };
   return { commitResult, afterUndo, afterRedo };
@@ -499,14 +475,13 @@ console.log('\n== 15. E4-2: clearing a DERIVED Backfield (Empty from Formation) 
 // shows 'Empty' derived from Formation's embedded token; clearing it directly
 // must strip 'Empty' out of Formation's raw value, or the clear would not
 // stick on the next read.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9116;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Wing-T + Empty' } };
   t.plays.push(play);
   t.selectPlay(id);   // Backfield chip shows 'Empty' derived (nothing stored yet)
   document.querySelector('#tagBackfield .pick[data-value="Empty"]').click();   // re-tap the derived-active chip = explicit clear
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterCommit = t.getPlay(id);
   const rawAfterCommit = { formation: afterCommit.tags.formation, backfield: afterCommit.tags.backfield };
   t.selectPlay(id);   // re-visit
@@ -531,7 +506,7 @@ console.log('\n== 16. E4-2 review fix: "Pistol backfield + Empty formation" surv
 // SAME commit regardless, so the information vanished from BOTH fields at
 // once. Fixed via TagProjection._ownStructuralValue, which strips backfield's
 // OWN qbAlignment-relationship token before checking blankness.
-r = await page.evaluate(async () => {
+r = await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const SE = window.app.stats.constructor;
   const mk = (id) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } });
@@ -544,7 +519,6 @@ r = await page.evaluate(async () => {
   t.selectPlay(idA);
   hist.reset();
   document.querySelector('#tagFormation .pick[data-value="Ace"]').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterA = t.getPlay(idA);
   const resultA = { formation: afterA.tags.formation, backfield: afterA.tags.backfield, qbAlignment: afterA.tags.qbAlignment };
 
@@ -555,7 +529,6 @@ r = await page.evaluate(async () => {
   const beforeB = SE.proj(playB);
   t.selectPlay(idB);
   document.getElementById('btnTagSaveNext').click();
-  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterB = t.getPlay(idB);
   const resultB = { formation: afterB.tags.formation, backfield: afterB.tags.backfield, qbAlignment: afterB.tags.qbAlignment };
 

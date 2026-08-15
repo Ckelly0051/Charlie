@@ -14,6 +14,26 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX REPAIR - e2e-tag-projform intermittent CLOSED (2026-08-15)
+
+**Root cause fixed.** The harness wrapped synchronous chip clicks, tag writes,
+undo/redo restores, and form reloads in `page.evaluate(async ...)` and then held
+the remote evaluation open for two `requestAnimationFrame` callbacks after each
+action. Those waits observed no production async contract; they only left a
+remote Promise alive across the Puppeteer/CDP boundary. Under pressure Chromium
+intermittently collected that Promise before `Runtime.callFunctionOn` returned,
+usually surfacing at section 15.
+
+**Repair:** all affected callbacks are synchronous and the artificial frame waits
+are removed. The process-level browser cleanup safety net remains as defense in
+depth for unrelated future crashes. Production code and assertions are unchanged.
+
+**Proof:** focused harness **54/54**, followed by **10/10 consecutive fresh-
+Chromium runs** (Claude's last measurement was 3 crashes in 5 runs), then the
+canonical gate **86/86 green, 0 skipped, 0 failed**. This closes the separate
+test-infrastructure blocker recorded by the Study acceptance below. No package,
+installer, tag, or deployment was produced.
+
 ### CODEX FINAL REVIEW - Study expansion through `706cbf4` - ACCEPTED (2026-08-15)
 
 **Verdict: ACCEPTED, no Study findings.** The final compatibility correction is
