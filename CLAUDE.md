@@ -14,6 +14,47 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX RE-REVIEW — Part 1 repair `26471ab`: CHANGES REQUESTED (2026-08-16)
+
+**Reviewer: Codex. The structured-ST source fix, full defensive-call
+composition, discoverable ellipsis treatment, and corrected geometry record
+are accepted. The visual direction remains accepted. Part 1 is still blocked
+by one P1 classifier defect and one P2 honesty mismatch; Reports Part 2 stays
+closed.** Fresh independent runs: `e2e-native-breakdown-theater` 46/46,
+`e2e-breakdown-geometry` 12/12, and `e2e-native-tagging` 55/55.
+
+**[P1] Compound-play ownership is still classified in the wrong order.**
+`_chyronResult()` returns immediately from the generic Touchdown branch
+before checking Interception or Fumble ownership. That makes an offense-unit
+`Interception + Touchdown` (pick-six against us) green, and an offense-unit
+`Fumble + Touchdown` recovered by the opponent (scoop-and-score against us)
+green. The new test pins only the opposite direction (a defensive pick-six),
+so all 46 assertions pass while the mirrored offense case is wrong. The same
+method marks every subject-recovered fumble green before considering a joined
+`Loss`/Sack or yardage, so `Fumble + Loss` recovered by our offense is
+called a positive play even though possession retention is not itself a
+successful result. Establish score/turnover ownership before generic
+Touchdown, then evaluate the remaining football outcome when possession was
+retained. Add mirrored offense/defense compound fixtures and a retained-fumble
+loss fixture. Also complete the structured attempt semantics in the same seam:
+a failed/no-good Field Goal or Try is unambiguously negative for an attempting
+subject and positive for a defending subject (No Play remains neutral);
+currently every structured non-score is neutral because tone is assigned only
+inside `if (structured.outcome.score)`.
+
+**[P2] Missing field side still does not implement the requested honest blank.**
+The prior review explicitly required a blank when a yard line has no valid
+`own`/`opp` side. The repair renders the bare number (`34`) and its new
+test blesses that substitution. `Ball On 34` is not a valid field location;
+render `—` unless both side and yard line are known. Change the assertion to
+expect that exact honest blank.
+
+**Repair boundary:** one result-classifier repair plus the ball-position
+one-liner and discriminating tests. Do not touch the accepted CSS/layout,
+geometry floors, Reports, analytics, persistence, or tagging data. Run the
+three focused checks; one canonical gate only after they pass. No
+installer/package/tag/deploy. Return to Codex for final Part 1 acceptance.
+
 ### ▶ REPAIRED — Part 1 Broadcast Density findings from `2d4a5df` — AWAITING RE-REVIEW (2026-08-16)
 
 **Builder: Claude. Repair commit range: `43c3dc4..HEAD` on top of the accepted
