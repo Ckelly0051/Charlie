@@ -70,12 +70,20 @@ export class TeamHubScreen {
       const allSeasons = await this._storage().listSeasons();
       const seasons = teams.length ? registry.seasonsForTeam(allSeasons, activeTeamId) : [];
       const currentSeasonId = this._store()?.currentSeasonId || '';
-      const rows = await Promise.all(seasons.map(season => this._seasonRow(season, currentSeasonId)));
+      // Season rows render immediately from list metadata (name, counts,
+      // current) so a large library or a slow film check never blocks Team
+      // Hub from appearing. Film health resolves in the background per row
+      // (S8-1) — every row starts 'checking' and is patched in place once its
+      // real status is known, instead of a permanent, honest-sounding-but-
+      // wrong "not checked" placeholder that never resolves for a season the
+      // coach has not personally reopened this session.
+      const rows = seasons.map(season => this._seasonRowShell(season, currentSeasonId));
       const items = teams.length ? registry.checklistItems(seasons) : [];
       const doneCount = items.filter(item => item.done).length;
       const checklist = { items, doneCount, visible: !!teams.length && !!items.length && doneCount < items.length && !registry.checklistDismissed() };
       if (token !== this._loadToken) return false;
       this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, checklist, error: '' });
+      this._verifyFilmHealth(rows, currentSeasonId, token);
       return true;
     } catch (error) {
       if (token !== this._loadToken) return false;
@@ -84,37 +92,69 @@ export class TeamHubScreen {
     }
   }
 
-  async _seasonRow(meta, currentSeasonId) {
+  _seasonRowShell(meta, currentSeasonId) {
     const current = String(meta.id) === String(currentSeasonId);
     const live = current ? this._store()?.data : null;
     const games = live?.games || null;
     const gameCount = games ? games.length : Number(meta.games) || 0;
     const playCount = games ? games.reduce((sum, game) => sum + (game.plays?.length || 0), 0) : Number(meta.plays) || 0;
-    // J6 — "Open to check film" described an app action and named film, when
-    // the subject of the row is the season and this cell is a STATE. It also
-    // read as a second command competing with the real Open button beside
-    // it. Film health for a closed season genuinely is not known until it is
-    // opened, so the honest label says that rather than instructing.
-    let film = { state: 'checking', label: current ? 'Checking film status' : 'Film status not checked', expected: 0, found: 0, missing: 0 };
-    if (games) film = await this._aggregateFilm(games);
     return {
       id: String(meta.id), name: meta.name || 'Untitled Season', year: meta.year || '', level: meta.level || '',
       team: meta.team || '', gameCount, playCount, current, isDemo: this._storage().isDemoSeason(meta.id) || meta.isDemo || meta.kind === 'demo',
-      lastOpened: meta.lastOpened || meta.openedAt || meta.created || '', film,
+      lastOpened: meta.lastOpened || meta.openedAt || meta.created || '',
+      // The honest transient — real state is filled in by _verifyFilmHealth.
+      // Never "not checked": that reads as an error/unlinked state rather
+      // than "verification is in progress right now."
+      film: { state: 'checking', label: 'Checking film…', expected: 0, found: 0, missing: 0 },
     };
   }
 
+  /** Resolves each row's real film state in the background and patches it
+   *  into _state.seasons as each one completes — never blocking the initial
+   *  render. `token` is the load() call this verification belongs to: a
+   *  season/team switch calls load() again, bumping _loadToken, and every
+   *  check below this closure was already committed to reads against by
+   *  the time that happens; the guard makes a stale check's late-arriving
+   *  patch a silent no-op instead of overwriting a newer render with an
+   *  answer about a season the coach has since navigated away from. */
+  _verifyFilmHealth(rows, currentSeasonId, token) {
+    rows.forEach(async row => {
+      const games = String(row.id) === String(currentSeasonId)
+        ? (this._store()?.data?.games || null)
+        : await this._peekGames(row.id);
+      if (token !== this._loadToken) return;
+      const film = await this._aggregateFilm(games);
+      if (token !== this._loadToken) return;
+      this._set({ seasons: this._state.seasons.map(season => String(season.id) === String(row.id) ? { ...season, film } : season) });
+    });
+  }
+
+  /** Read-only peek at a non-active season's games, for film verification
+   *  only — never opens the season, never touches currentSeasonId, and never
+   *  writes anything (SeasonStore.peekSeason/StorageBackend.peekSeason are
+   *  both read-only). Canonical film-health data source stays
+   *  WorkspaceContext.filmHealth(); this only supplies the games array a
+   *  non-current season doesn't have loaded into memory. */
+  async _peekGames(seasonId) {
+    try { const data = await this._store()?.peekSeason?.(seasonId); return data?.games || null; }
+    catch (e) { return null; }
+  }
+
   async _aggregateFilm(games) {
+    // Peek failed (unreadable file, race with a delete) — stay honest rather
+    // than claim "no film linked" for a season we could not actually read.
+    if (!Array.isArray(games)) return { state: 'checking', label: 'Checking film…', expected: 0, found: 0, missing: 0 };
     if (!games.length) return { state: 'none', label: 'No games yet', expected: 0, found: 0, missing: 0 };
     const health = await Promise.all(games.map(game => this.app.workspace.filmHealth(game).catch(() => ({ state: 'missing', expected: 0, found: 0, missing: 0 }))));
     const expected = health.reduce((sum, item) => sum + (item.expected || 0), 0);
     const found = health.reduce((sum, item) => sum + (item.found || (item.ready ? item.expected || 0 : 0)), 0);
     const missing = health.reduce((sum, item) => sum + (item.missing || 0), 0);
+    const gamesLinked = health.filter(item => item.ready).length;
     if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing };
-    if (health.some(item => item.state === 'unauthorized' || item.action === 'reconnect')) return { state: 'missing', label: 'Reconnect film', expected, found, missing };
-    if (missing || health.some(item => item.state === 'missing')) return { state: 'partial', label: `${missing || Math.max(0, expected - found)} clips missing`, expected, found, missing };
+    if (health.some(item => item.state === 'unauthorized' || item.action === 'reconnect')) return { state: 'missing', label: 'Film needs attention', expected, found, missing };
+    if (missing || health.some(item => item.state === 'missing')) return { state: 'partial', label: `${gamesLinked} of ${games.length} game${games.length === 1 ? '' : 's'} linked`, expected, found, missing };
     if (health.every(item => item.ready)) return { state: 'ready', label: 'Film linked', expected, found: expected, missing: 0 };
-    return { state: 'checking', label: 'Checking film status', expected, found, missing };
+    return { state: 'checking', label: 'Checking film…', expected, found, missing };
   }
 
   close() { return this.app.workspaceShell?.closeTeamHub?.(); }

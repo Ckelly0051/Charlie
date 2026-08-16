@@ -14,6 +14,187 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — S8 repair checkpoint: film-health verify, Study Unit context, Then By for coaching metrics, ST spot geometry — AWAITING CODEX REVIEW (2026-08-16)
+
+**Builder: Claude. Baseline: `29d9873` (the `1.12.0-53` Study beta version/build
+checkpoint). One repair checkpoint, four independent coach-reported items, no
+version bump, no installer, no tag, no deploy, no production data touched.**
+
+**1. Home/Team Hub film-health auto-verify.** The season row's film state was
+permanently stuck on the literal string `"Film status not checked"` for every
+season that was not the currently-open one — and because this app is
+deliberately library-first (`app.js`'s `initLibrary()` never auto-opens a
+season at boot; every launch lands on Team Hub with nothing "current"), that
+was *every* season, *every* time the app opened, including ones with fully
+linked film. Root cause: `TeamHubScreen._seasonRow` only computed real
+aggregate film health when a season matched `currentSeasonId`; every other row
+kept the static placeholder forever, since nothing ever re-checked it.
+
+Fixed with a new read-only backend primitive, **`StorageBackend.peekSeason(id)`**
+(`BrowserBackend`/`TauriBackend`, plus the base-class stub and a
+`SeasonStore.peekSeason(id)` wrapper) — reads an *arbitrary* season's stored
+data by id without ever touching `currentId`/`setCurrentSeason`, so it cannot
+race a concurrent `openSeasonById()` navigation. `TeamHubScreen.load()` now
+renders season rows **immediately** from list metadata (name/counts/current)
+with an honest transient `{state:'checking', label:'Checking film…'}`, then
+resolves every row's real film health in the **background**
+(`_verifyFilmHealth`) — for the active season, from the already-loaded
+`store.data.games`; for every other season, via `peekSeason` + the existing
+per-game `WorkspaceContext.filmHealth()` (no second film-health
+implementation). Each row is patched into the live state as its own check
+resolves, guarded by the existing `_loadToken` staleness token so a
+season/team switch (which calls `load()` again) makes any still-running check
+from the prior `load()` a silent no-op instead of overwriting a newer render.
+`_aggregateFilm` now also distinguishes a genuine unreadable-peek case
+(`Array.isArray(games)` false) from a season honestly having zero games, and
+its partial-film label reads `"N of M games linked"` (game-level, matching the
+spec's example) instead of a clip count.
+
+**2. Study Unit is now context-aware.** A coach could pick `Break Down By:
+Special Teams Unit` while `Unit` still read `Offense` and silently get zero
+rows — the six Special Teams dimensions (`specialTeamsPhase`/`specialTeamsUnit`/
+`specialTeamsOutcome`/`specialTeamsRole`/`specialTeamsScore`/
+`specialTeamsModifier`) only ever produce values on `unit:'special'` plays
+(`SpecialTeamsModel.normalize(p.specialTeams)` is null for every other play).
+New `StudyScreen.UNIT_FORCED_DIMENSIONS` + `_requiredUnit(state)` (checked
+against both the primary "Break down by" dimension and the "Then by" pivot
+column) auto-selects Unit to Special Teams the instant one of those six is
+chosen, visibly **disabled** (`.is-unit-forced`, dashed-border muted styling)
+with a `title` explaining why. The coach's own prior manual value is
+remembered on the control (`dataset.priorUnit`) and restored the instant the
+dimension goes back to being cross-unit. **Deliberately NOT locked:**
+Formation, Play Type, Front, Coverage, Blitz, Play Call, and every other
+dimension — these are genuinely chartable from *either* side of the ball (the
+redesign's own dual "Offense Faced"/"Defense Faced" charting model, and the
+opponent-scout "your defensive snaps = their offense" convention already
+documented in this file), so locking them would be wrong, not helpful.
+Player-role Unit disabling (a pre-existing, unrelated mechanism) is
+untouched — the new logic is skipped entirely whenever `state.playerRole` is set.
+
+**3. Then By (pivot/cross-tab) now works for modern coaching metrics.** It was
+unconditionally disabled the instant a `RICH_METRIC_PAIRS` concept (Success
+Rate, Yards/Play, Explosive/Negative/Havoc) was selected — a real, live
+limitation, not a bug, but one the coach explicitly asked to see completed
+rather than removed. New `StudyScreen._renderRichPivot(state, sets, metricId,
+pair)` is structurally the same row/column/cell algorithm as the existing
+legacy `_renderPivot` (same `_pivotValues` helper, same one-`run`-call-per-
+column-value shape, same escaped composite-key separator convention, same
+`ws-pivot*` CSS) — the only difference is that every cell calls
+`StudyQuery.runMetrics()` instead of `run()`, so a cell carries the *full*
+AnalyticsMetrics contract (`value`/`state`/`polarity`/`refs`/`denominator`)
+instead of a flat number. Cell rendering reuses the exact same
+`_richDisplay`/`_metricPlaysText` helpers the one-dimensional rich rows
+already use — **no formula is reimplemented and no ref is reconstructed**;
+every cell's Watch action opens precisely that cell's own `metric().refs`,
+never a broader group sample. `ok`/insufficient/unavailable/partial-film all
+render distinctly (a compact inline suffix on the plays count — `"· low
+sample"`, `"· no data"`, `"· N unlinked"` — matching the legacy pivot's own
+`"· low sample"` convention rather than the roomier single-dimension row
+layout's separate badge, since a pivot cell is meant to be compact). Empty
+cells (`is-none`, zero matching plays) render with no button at all and
+unavailable/zero-ref cells render a `disabled` button — neither can open film.
+
+Genuinely incompatible combinations are now **actively disabled with a
+visible reason** rather than silently ignored: comparing two cohorts (compare
+mode already owns the two-cohort view — a pivot needs one cohort) disables
+`#wsStudyColumn` and shows a new `#wsStudyColumnHint` `<small>` explaining why,
+for **both** the legacy and rich paths (previously the legacy path let the
+coach leave a pivot column selected during compare mode with zero explanation
+that it was being ignored — this closes that silent gap too, not just the
+rich-metric one). Pivoting a dimension against itself remains excluded exactly
+as before (`state.column !== state.dimension`). Every *other* two-dimension
+combination — Formation × Down, Play Type × Field Zone, Formation × Strength,
+Front × Coverage, Special Teams Unit × Outcome, etc. — is permitted, because
+AnalyticsMetrics' own honest per-cell state disclosure is precisely what makes
+an a-priori compatibility list unnecessary. No new sort UI was added: the
+legacy pivot has never had interactive column-header sorting either (rows/
+columns are pre-sorted by value/frequency), so the rich pivot inherits the
+identical, already-"practical" ordering — nothing to preserve that doesn't
+already exist. Ordinary one-dimensional rich queries/comparisons, saved views,
+player mode, and Save to Plan are all untouched (`_renderRichPivot` populates
+`this.rows`/`this._saveCohorts` in the same shape `_renderRich` already does,
+so `_saveToPlan`/the Watch-all button work unmodified).
+
+**4. Special Teams Possession spot / End spot geometry.** `.gi-tag-spot`'s
+yard-line input column was `minmax(80px,1fr)` — inside the two-column
+charting deck that `1fr` could stretch to 150px+ of empty box around a
+2-digit number. Bounded to `minmax(56px,72px)`, centered text, `align-items:
+center` so the Own/Opp chip row and the input line up; the chip buttons
+themselves get `min-width:44px` so Own/Opp read as one matched, stable-width
+pair on **both** Possession spot and End spot (same shared class, so they can
+never drift from each other) instead of each auto-sizing independently to its
+own text metrics. Touch targets are unaffected — the pre-existing
+`@media(pointer:coarse)` 44px rule already covers `.gi-tag-chips button`
+generically.
+
+**Files changed:** `js/storage-backend.js` (`peekSeason` base stub +
+`BrowserBackend`/`TauriBackend` implementations); `js/season-store.js`
+(`SeasonStore.peekSeason` wrapper); `js/team-hub-screen.js` (`load()` two-phase
+render, `_seasonRowShell`, `_verifyFilmHealth`, `_peekGames`, `_aggregateFilm`
+rewritten); `js/study-screen.js` (`UNIT_FORCED_DIMENSIONS`, `_requiredUnit`,
+`render()`'s unit-forcing block and Then-By compatibility/dispatch block,
+new `_renderRichPivot`, `#wsStudyColumnHint` markup); `css/native-tagging.css`
+(`.gi-tag-spot` compact geometry); `css/study-screen.css` (`.is-unit-forced`,
+`.ws-study-query label small`); `tools/e2e-native-team-hub.mjs` (+5 assertions:
+resolved film state, pending "Checking film…" state, resolved-after-pending,
+stale-token guard — the existing broken-placeholder assertion was corrected
+in place, not just extended); `tools/e2e-study-screen.mjs` (new "S8-2 Study
+Unit is context-aware" section, 8 assertions; new "S8-3 Then By for modern
+coaching metrics" section, 5 assertions); `tools/e2e-native-tagging.mjs` (new
+"4b. Special Teams Possession/End spot geometry" section, 5 assertions).
+
+**Verification (focused only, per this checkpoint's explicit scope — no full
+canonical gate, no installer):**
+- `node tools/e2e-native-team-hub.mjs` — **27/27** (was 22 before this
+  checkpoint's corrections/additions).
+- `node tools/e2e-study-screen.mjs` — **112/112** (was 99 before this
+  checkpoint's additions), including the pre-existing S6-2 legacy-pivot
+  section unchanged and green alongside the new S8-2/S8-3 sections.
+- `node tools/e2e-native-tagging.mjs` — **55/55** (was 50 before this
+  checkpoint's addition).
+- Fresh `npm run build` (Vite) completed clean before every run above; all
+  three harnesses ran against that exact rebuilt bundle.
+
+**Known limitations, disclosed rather than left implicit:**
+1. **Team Hub's film-health peek is not itself min-sample-gated or cached
+   across repeated `load()` calls within a session** — every Team Hub visit
+   re-peeks every non-active season's data from disk/localStorage. For a
+   coach with a handful of seasons (the realistic case — one per year) this
+   is cheap; it was not engineered against a hypothetical large multi-season
+   library, since none is documented as existing.
+2. **Saved Study views still do not round-trip the "Then by" pivot column**
+   (`_saveView`'s dedup id and `_applyView`'s restore both predate this
+   checkpoint and were never touched) — a saved view reopens on the correct
+   primary dimension/metric/unit but always with Then By blank. This is a
+   **pre-existing gap in the legacy pivot too**, not introduced or worsened
+   here; fixing it was out of this checkpoint's scope (`_saveView`/
+   `_applyView` were not touched at all).
+3. **`_saveToPlan`'s recorded dimension name does not mention the pivot's
+   second ("Then by") dimension** — same pre-existing scope boundary as #2;
+   `_saveToPlan` was not modified.
+4. **No new interactive column/row header sorting was added to either pivot
+   path** — matches the explicit instruction to support sorting "where the
+   existing pivot supports it," and the existing pivot has never supported
+   it (rows/columns are pre-sorted by value/frequency, not click-to-sort).
+
+**Handoff to Codex for independent review.** Highest-value places to look
+first, in order: (a) `_verifyFilmHealth`'s staleness-token guard — confirm a
+season/team switch mid-check genuinely cannot patch a stale row (the new
+"stale load token" test forces this directly rather than racing real timers,
+worth re-deriving independently); (b) `peekSeason`'s TauriBackend
+implementation — confirm it truly never touches `this.currentId` under any
+code path, since a concurrent real `openSeasonById()` racing a peek is the
+one scenario no headless BrowserBackend-only harness can fully exercise; (c)
+`_requiredUnit`'s exact dimension list — confirm no other registry dimension
+is *actually* single-unit-only in a way `UNIT_FORCED_DIMENSIONS` misses (the
+six Special Teams ids were derived by tracing `special(p) =
+SpecialTeamsModel.normalize(p?.specialTeams)`'s null-for-non-ST-plays
+behavior in `analytics-registry.js`, not guessed); (d) `_renderRichPivot`'s
+reuse claim — confirm no metric formula or ref-resolution logic was
+duplicated rather than delegated to `StudyQuery.runMetrics()`/
+`AnalyticsMetrics.metric()`. No installer, package, tag, or deploy is
+authorized from this checkpoint.
+
 ### ▶ INTEGRATED STUDY BETA — `1.12.0-53` INSTALLER READY FOR COACH SMOKE (2026-08-15)
 
 **Local unsigned build, not a tag or published release.** Source commit

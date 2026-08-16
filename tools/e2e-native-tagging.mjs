@@ -217,6 +217,27 @@ ok(state.tryPlay?.unit==='try'&&state.tryPlay?.attemptType==='twoPoint'&&state.t
 ok(state.player==='22'&&state.notes==='Punt return right','Roster quick-pick and notes write the selected play',JSON.stringify({player:state.player,notes:state.notes}));
 ok(Object.values(state.calls).every(v=>v===1),'Diagram and OCR commands reach canonical owners exactly once',JSON.stringify(state.calls));
 
+console.log('\n== 4b. Special Teams Possession/End spot geometry (S8-4) ==');
+await page.evaluate(()=>{const t=window.app.tagger;const punt=t.plays.find(p=>p.specialTeams?.unit==='punt');if(punt)t.selectPlay(punt.id);});
+await new Promise(r=>setTimeout(r,80));
+state=await page.evaluate(()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  const measure=label=>{
+    const field=[...root.querySelectorAll('[data-native-choice]')].find(el=>el.dataset.nativeChoice===label);
+    const spot=field?.querySelector('.gi-tag-spot');
+    if(!spot)return null;
+    const input=spot.querySelector('input');
+    const chips=[...spot.querySelectorAll('.gi-tag-chips button')];
+    return {inputWidth:Math.round(input.getBoundingClientRect().width),chipWidths:chips.map(b=>Math.round(b.getBoundingClientRect().width)),chipLabels:chips.map(b=>b.textContent.trim())};
+  };
+  return {possession:measure('Possession spot'),end:measure('End spot')};
+});
+ok(!!state.possession&&!!state.end,'Punt exposes both Possession spot and End spot controls',JSON.stringify(state));
+ok(state.possession?.inputWidth<=90&&state.end?.inputWidth<=90,'The yard-line input is compact, not the old stretched oversized empty box',JSON.stringify(state));
+ok(JSON.stringify(state.possession?.chipLabels)==='["Own","Opp"]'&&Math.abs(state.possession.chipWidths[0]-state.possession.chipWidths[1])<=2,'Own and Opp render at identical, stable widths on Possession spot',JSON.stringify(state.possession));
+ok(JSON.stringify(state.end?.chipLabels)==='["Own","Opp"]'&&Math.abs(state.end.chipWidths[0]-state.end.chipWidths[1])<=2,'Own and Opp render at identical, stable widths on End spot',JSON.stringify(state.end));
+ok(Math.abs((state.possession?.inputWidth||0)-(state.end?.inputWidth||0))<=2,'Possession spot and End spot share the same compact yard-line width',JSON.stringify(state));
+
 console.log('\n== 6. Charting deck density, type ownership and Coverage Call ==');
 // to two rows in the 420px deck, every group body carried 12px top / 16px
 // bottom, and titles were condensed 700 (not an embedded Plex weight, so it

@@ -262,6 +262,32 @@ export class StudyScreen {
   }
 
   /**
+   * S8-2: dimensions whose values exist ONLY on `unit:'special'` plays.
+   * Selecting one while Unit reads Offense/Defense/blank always empties the
+   * result -- the exact silent dead-end reported for "Break Down By: Special
+   * Teams Unit" + "Unit: Offense". Every OTHER dimension (Formation, Play
+   * Type, Front, Coverage, Blitz, ...) is genuinely chartable from more than
+   * one unit's snap -- the redesign's own dual-charting model, where an
+   * offensive snap can carry "Defense Faced" and a defensive snap can carry
+   * "Offense Faced" (see the DIMENSION_GROUPS comment and CLAUDE.md's
+   * already-played opponent-scout shortcut) -- so none of those are ever
+   * forced, per the product rule that a dimension must never be locked
+   * merely because it is MOSTLY tagged from one side of the ball.
+   */
+  static get UNIT_FORCED_DIMENSIONS() {
+    return {
+      specialTeamsPhase: 'special', specialTeamsUnit: 'special', specialTeamsOutcome: 'special',
+      specialTeamsRole: 'special', specialTeamsScore: 'special', specialTeamsModifier: 'special',
+    };
+  }
+
+  /** The unit a dimension currently in play (Break down by, or the pivot's
+   *  Then by column) requires, or '' when neither axis is unit-specific. */
+  _requiredUnit(state) {
+    return StudyScreen.UNIT_FORCED_DIMENSIONS[state.dimension] || StudyScreen.UNIT_FORCED_DIMENSIONS[state.column] || '';
+  }
+
+  /**
    * Build grouped <option> markup. Anything a group list forgets still ships,
    * under "Other" — a dimension must never become unreachable because someone
    * added it to DIMENSIONS and not to a group. That silent-drop is exactly how
@@ -312,7 +338,7 @@ export class StudyScreen {
     const metricName = id => StudyScreen.RICH_METRIC_PAIRS[id]?.name || this.app.analyticsRegistry.getMeasure(id)?.name;
     const measures = this._groupedOptions(StudyScreen.SELECTABLE_METRICS, StudyScreen.MEASURE_LENSES, metricName);
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
-      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">&mdash;</option>${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="recent">Recent vs prior period</option><option value="rangePrior">Date range vs prior</option></select></label><label id="wsStudyPeriodWrap" hidden>Period size<select id="wsStudyPeriodGames"><option value="2">2 games</option><option value="3" selected>3 games</option><option value="5">5 games</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">&mdash;</option>${dimensions}</select><small id="wsStudyColumnHint" hidden></small></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="recent">Recent vs prior period</option><option value="rangePrior">Date range vs prior</option></select></label><label id="wsStudyPeriodWrap" hidden>Period size<select id="wsStudyPeriodGames"><option value="2">2 games</option><option value="3" selected>3 games</option><option value="5">5 games</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-players" id="wsStudyPlayers"><strong>Players</strong><label>Role<select id="wsStudyPlayerRole"><option value="">Not a player question</option>${Object.entries(StudyScreen.PLAYER_ROLES).map(([id, role]) => `<option value="${this._esc(id)}">${this._esc(role.name)}</option>`).join('')}</select></label><label>Player<select id="wsStudyPlayer" disabled><option value="">Every player (leaderboard)</option></select></label><label>Player metric<select id="wsStudyPlayerMetric" disabled></select></label><small id="wsStudyPlayerHint">Choose a role to compare players, or pick one player and break them down by the field above.</small></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
@@ -533,7 +559,38 @@ export class StudyScreen {
     // true inside the player branch, or leaving Players mode would leave
     // Unit stuck disabled.
     const unitControl = this._control('wsStudyUnit');
-    if (unitControl) unitControl.disabled = !!state.playerRole;
+    // S8-2: a dimension in UNIT_FORCED_DIMENSIONS (currently the whole
+    // Special Teams family) only ever produces values on unit:'special'
+    // plays, so Unit is force-selected to it -- visibly, disabled, and
+    // muted -- rather than left for the coach to discover by getting a
+    // silently empty table (the reported "Break Down By: Special Teams
+    // Unit" + "Unit: Offense" -> zero rows dead end). Skipped entirely in
+    // player mode, which already owns disabling Unit below for its own,
+    // unrelated reason (E4/Codex finding #1) -- player-role Unit behavior is
+    // explicitly out of scope here. The coach's own manual choice is
+    // remembered on the control itself (data-prior-unit) and restored the
+    // instant the dimension (or pivot column) goes back to being
+    // cross-unit, so a forced selection can never quietly keep narrowing an
+    // unrelated later query.
+    const requiredUnit = state.playerRole ? '' : this._requiredUnit(state);
+    if (unitControl && !state.playerRole) {
+      if (requiredUnit) {
+        if (unitControl.dataset.forced !== '1') unitControl.dataset.priorUnit = unitControl.value;
+        unitControl.dataset.forced = '1';
+        if (unitControl.value !== requiredUnit) unitControl.value = requiredUnit;
+        state.unit = requiredUnit;
+      } else if (unitControl.dataset.forced === '1') {
+        unitControl.value = unitControl.dataset.priorUnit || '';
+        delete unitControl.dataset.forced;
+        delete unitControl.dataset.priorUnit;
+        state.unit = unitControl.value;
+      }
+    }
+    if (unitControl) {
+      unitControl.disabled = !!state.playerRole || !!requiredUnit;
+      unitControl.classList.toggle('is-unit-forced', !!requiredUnit);
+      unitControl.title = requiredUnit ? 'Set automatically -- this dimension only has values on Special Teams plays' : '';
+    }
     // Study Phase 3: a player question takes over the primary metric picker
     // entirely (dispatched before RICH_METRIC_PAIRS resolution, so a
     // leftover "Success Rate" selection from before the coach picked a role
@@ -575,16 +632,34 @@ export class StudyScreen {
       return;
     }
     if (promptEl) promptEl.hidden = true;
-    // Pivot (cross-tab) mode stays legacy-measures-only this checkpoint --
-    // disclosed known limitation, not silently broken. Selecting a coaching
-    // metric clears any pivot column rather than running a query the cell
-    // renderer can't yet express with per-cell honest state.
+    // S8-3: Then By (cross-tab) now works for modern coaching metrics too --
+    // it is no longer legacy-measures-only. It stays genuinely incompatible
+    // with exactly two things, same as the legacy path always required:
+    // comparing two cohorts (compare mode already owns the two-cohort view;
+    // a pivot needs one cohort) and pivoting a dimension against itself (a
+    // degenerate cross-tab with one column). Every OTHER two-dimension
+    // combination is permitted for a coaching metric, because
+    // AnalyticsMetrics' own ok/insufficient/unavailable/partial-film states
+    // (proven at the one-dimensional level already) are exactly what let a
+    // sparse or empty cell disclose itself honestly instead of needing to be
+    // forbidden in advance.
     const columnSelect = this._control('wsStudyColumn');
+    const columnHint = this._control('wsStudyColumnHint');
+    const pivotBlocked = !!state.compare;
+    const pivotReason = pivotBlocked ? "Then By is unavailable while comparing two cohorts -- choose a single scope to cross-tab." : '';
     if (columnSelect) {
-      columnSelect.disabled = !!pair;
-      if (pair && columnSelect.value) columnSelect.value = '';
+      columnSelect.disabled = pivotBlocked;
+      columnSelect.title = pivotReason;
+      if (pivotBlocked && columnSelect.value) columnSelect.value = '';
     }
-    if (pair) { this._renderRich(state, sets, metricId, pair); return; }
+    if (columnHint) { columnHint.hidden = !pivotReason; columnHint.textContent = pivotReason; }
+    if (pair) {
+      const pivotOn = !state.compare && state.column && state.column !== state.dimension;
+      this.host.classList.toggle('is-pivot', !!pivotOn);
+      if (pivotOn) { this._renderRichPivot(state, sets, metricId, pair); return; }
+      this._renderRich(state, sets, metricId, pair);
+      return;
+    }
 
     const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
     const args = { dimension: state.dimension, measures: StudyScreen.MEASURES, filters, minSample: state.minSample };
@@ -951,6 +1026,108 @@ export class StudyScreen {
       return `<button class="ws-study-delta-row ${favorable ? 'is-favorable' : delta ? 'is-unfavorable' : ''}" data-study-row="${index}" aria-label="Watch ${this._esc(row.value)} film"><span>${this._esc(row.value)}</span><i aria-hidden="true"><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong>${delta > 0 ? '+' : ''}${this._richNumber(conceptKey, delta)}</strong></button>`;
     }).join('');
     host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes — ${this._esc(pair.name)}</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
+  }
+
+  /**
+   * S8-3: Then By (cross-tab) for a modern coaching metric. Structurally the
+   * same shape as `_renderPivot` (row totals, column totals, and ONE
+   * `runMetrics()` call per column value -- reusing exactly the algorithm
+   * `_renderPivot`/`_pivotValues` already use for the legacy path, not a
+   * parallel invention) but every cell reads the full AnalyticsMetrics
+   * contract (`value`/`state`/`polarity`/`refs`) via `StudyQuery.runMetrics()`
+   * instead of `run()`'s flat per-measure number, so a cell can honestly say
+   * `ok` / a real zero / `insufficient` / `unavailable` / `partial-film`
+   * instead of only ever a number or a blank. No formula is reimplemented
+   * here and no ref is reconstructed: every cell's value/eligibility/refs
+   * come straight off the same `metric()` contract already proven at the
+   * one-dimensional level (`_renderRichQuery`), via the same
+   * `_richDisplay`/`_richStateClass`/`_richStateBadge`/`_metricPlaysText`
+   * helpers those rows already use.
+   */
+  _renderRichPivot(state, sets, metricId, pair) {
+    const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
+    const plays = sets[state.scope] || [];
+    const args = { dimension: state.dimension, metricIds: [metricId], filters, minSample: state.minSample };
+    let rowResult, colResult;
+    try {
+      rowResult = this.app.study.runMetrics({ ...args, plays });
+      colResult = this.app.study.runMetrics({ ...args, dimension: state.column, plays });
+    } catch (error) {
+      this.rows = [];
+      this._saveCohorts = [];
+      this._control('wsStudyVisuals').innerHTML = '';
+      this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this question.')}</div>`;
+      return;
+    }
+    const colValues = this._pivotValues(state.column, plays);
+    const rowGroups = rowResult.groups.filter(g => g.sampleSize > 0);
+    const colTotals = new Map(colResult.groups.map(g => [String(g.value), g]));
+
+    const cells = new Map();
+    for (const value of colValues) {
+      let res;
+      try { res = this.app.study.runMetrics({ ...args, plays, filters: [...args.filters, { dimension: state.column, values: [value] }] }); }
+      catch { continue; }
+      // Same escaped-NUL separator convention as _renderPivot -- see its
+      // comment on why this is written as an escape, not a literal byte.
+      for (const group of res.groups) cells.set(`${group.value}\u0000${value}`, group);
+    }
+
+    this.rows = [];
+    const addTarget = (label, refs) => { const i = this.rows.length; this.rows.push({ label, refs }); return i; };
+    const conceptKey = state.measure;
+    // A compact inline suffix on the plays count, matching the legacy
+    // pivot's own "· low sample" convention exactly, rather than the roomier
+    // one-dimensional row layout's separate <small> badge -- a pivot cell is
+    // meant to be compact, and cramming a text badge into every cell of a
+    // dense grid would defeat that. Every non-'ok' AnalyticsMetrics state
+    // still gets an honest, distinct label; only the presentation differs.
+    const cellHtml = (m, refs, label, sampleSize, extraClass = '') => {
+      const idx = addTarget(label, refs);
+      const stateSuffix = m?.state === 'unavailable' ? ' · no data'
+        : m?.state === 'insufficient' ? ' · low sample'
+        : m?.state === 'partial-film' ? ` · ${m.unlinkedCount} unlinked` : '';
+      const dim = (m?.state === 'insufficient' || m?.state === 'unavailable') ? ' is-small' : '';
+      return `<td class="ws-pivot-cell${extraClass}${dim}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch ${this._esc(label)}, ${refs.length} play${refs.length === 1 ? '' : 's'}" ${refs.length ? '' : 'disabled'}><span class="ws-pivot-value">${this._richDisplay(conceptKey, m)}</span><span class="ws-pivot-n">${this._metricPlaysText(m, sampleSize)}${stateSuffix}</span></button></td>`;
+    };
+
+    const head = [`<th scope="col" class="ws-pivot-corner">${this._esc(this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension)}</th>`]
+      .concat(colValues.map(value => `<th scope="col">${this._esc(value)}</th>`))
+      .concat(`<th scope="col" class="ws-pivot-total">Total</th>`).join('');
+
+    const body = rowGroups.map(group => {
+      const rowLabel = String(group.value);
+      const tds = colValues.map(value => {
+        const cell = cells.get(`${rowLabel}\u0000${value}`);
+        const m = cell?.metrics[metricId];
+        if (!cell || !cell.sampleSize || !m) return `<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span><span class="ws-pivot-n">no plays</span></td>`;
+        return cellHtml(m, m.refs || [], `${rowLabel} · ${value}`, cell.sampleSize);
+      }).join('');
+      const rowMetric = group.metrics[metricId];
+      const totalTd = cellHtml(rowMetric, rowMetric?.refs || [], rowLabel, group.sampleSize, ' ws-pivot-total');
+      return `<tr><th scope="row">${this._esc(rowLabel)}</th>${tds}${totalTd}</tr>`;
+    }).join('');
+
+    const footCells = colValues.map(value => {
+      const total = colTotals.get(String(value));
+      const m = total?.metrics[metricId];
+      if (!total || !total.sampleSize || !m) return '<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span></td>';
+      return cellHtml(m, m.refs || [], String(value), total.sampleSize);
+    }).join('');
+
+    const matching = [...new Set(rowGroups.flatMap(group => group.metrics[metricId]?.refs || []))];
+    const grandIdx = addTarget('All matching plays', matching);
+    const scopeLabel = state.scope === 'game' ? 'current game' : state.scope === 'range' ? sets.rangeName : 'full season';
+    this._saveCohorts = [{ id: 'result', label: scopeLabel, refs: matching }];
+    this._control('wsStudyMetricHead').textContent = pair.name;
+    this._control('wsStudyDeltaHead').textContent = '';
+    this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension)} × ${this._esc(this.app.analyticsRegistry.getDimension(state.column)?.name || state.column)} · ${this._esc(scopeLabel)}</span>`;
+    this._control('wsStudyRows').innerHTML = rowGroups.length && colValues.length
+      ? `<div class="ws-pivot-scroll"><table class="ws-pivot"><caption class="ws-pivot-caption">${this._esc(pair.name)} — every cell plays its own eligible film</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot><tr><th scope="row">All</th>${footCells}<td class="ws-pivot-cell ws-pivot-total"><button type="button" class="ws-pivot-btn" data-study-row="${grandIdx}" aria-label="Watch all ${matching.length} matching plays"><span class="ws-pivot-value">${matching.length}</span><span class="ws-pivot-n">plays</span></button></td></tr></tfoot></table></div>`
+      : '<div class="ws-study-empty">No plays match this question.</div>';
+    this._control('wsStudyVisuals').innerHTML = '';
+    this._renderWarnings([...(rowResult.warnings || []), ...(colResult.warnings || [])]);
+    this._setWatchAll(matching);
   }
 
   // ---- Study Phase 3: player performance -------------------------------

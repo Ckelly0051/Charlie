@@ -117,8 +117,45 @@ await page.click('[data-hub-team="mavericks"]');
 await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
 r = await page.evaluate(() => ({ rows: document.querySelectorAll('[data-season-id]').length, current: !!document.querySelector('[data-season-id].is-current') }));
 ok(r.rows === 1 && !r.current, 'Switching back shows only that team seasons without implicitly opening one', JSON.stringify(r));
-ok(await page.$eval('[data-season-id] .gi-hub-film', node => node.textContent.trim() === 'Film status not checked'),
-  'Closed-season film health names the subject instead of showing an ambiguous status');
+// S8-1: a closed (non-current) season's film health is now verified in the
+// background against its OWN stored data via SeasonStore.peekSeason, instead
+// of being stuck on a permanent "Film status not checked" placeholder. This
+// season's one auto-seeded game has no film at all, so it honestly resolves
+// to "No film linked" rather than staying an ambiguous non-answer.
+await page.waitForFunction(() => document.querySelector('[data-season-id] .gi-hub-film')?.textContent.trim() === 'No film linked', { timeout: 5000 });
+ok(true, 'Closed-season film health resolves to a real aggregate instead of a permanent "not checked" placeholder');
+
+r = await page.evaluate(async () => {
+  const store = window.app.storage.seasonStore;
+  const hub = window.app.teamHubScreen;
+  const realPeek = store.peekSeason.bind(store);
+  // Never resolves: reproduces the moment verification is genuinely pending.
+  store.peekSeason = () => new Promise(() => {});
+  await hub.load();
+  const pendingLabel = document.querySelector('[data-season-id] .gi-hub-film')?.textContent.trim();
+  store.peekSeason = realPeek;
+  await hub.load();   // restore real (resolving) state before continuing the journey
+  await new Promise(resolve => setTimeout(resolve, 30));
+  const resolvedLabel = document.querySelector('[data-season-id] .gi-hub-film')?.textContent.trim();
+  return { pendingLabel, resolvedLabel };
+});
+ok(/Checking film/.test(r.pendingLabel), 'A season row reads an honest "Checking film…" state while verification is pending, never "not checked"', JSON.stringify(r));
+ok(r.resolvedLabel === 'No film linked', 'The pending state resolves to a real aggregate once verification completes', JSON.stringify(r));
+
+r = await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  const before = JSON.stringify(hub._state.seasons.map(s => ({ id: s.id, film: s.film })));
+  const staleToken = hub._loadToken - 1;   // guaranteed to disagree with the live _loadToken
+  const rigged = async () => ({ state: 'none', label: 'STALE ANSWER SHOULD NEVER APPEAR', expected: 0, found: 0, missing: 0 });
+  const real = hub._aggregateFilm.bind(hub);
+  hub._aggregateFilm = rigged;
+  hub._verifyFilmHealth(hub._state.seasons, hub._state.currentSeasonId, staleToken);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  hub._aggregateFilm = real;
+  const after = JSON.stringify(hub._state.seasons.map(s => ({ id: s.id, film: s.film })));
+  return { before, after };
+});
+ok(r.before === r.after, 'A film check run under a stale load token cannot patch the live season list', JSON.stringify(r));
 
 await page.click('[data-hub-open-season]');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');

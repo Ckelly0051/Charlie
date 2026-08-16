@@ -338,6 +338,16 @@ export class SeasonStore {
   /** List all seasons in the library (metas only — does not load any). */
   async listSeasons() { return this.backend.listSeasons(); }
 
+  /** Read-only peek at ANY season's full data by id, without opening it or
+   *  touching currentSeasonId. For callers that need real game/film data for
+   *  a season that is not the active one (e.g. Team Hub's film verification)
+   *  and must not disturb navigation or risk a race with a concurrent open. */
+  async peekSeason(id) {
+    if (!id) return null;
+    try { return (await this.backend.peekSeason?.(id)) || null; }
+    catch (e) { return null; }
+  }
+
   /**
    * Create a brand-new season from {name, team, year, level}, make it current,
    * and seed it with one empty game. Returns the library meta.

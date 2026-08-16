@@ -635,6 +635,50 @@ ok(famClicked && JSON.stringify(r.refs) === JSON.stringify(r.registryRefs) && r.
 
 await page.select('#wsStudyDimension', 'formation');
 
+console.log('\n== S8-2 Study Unit is context-aware for unit-specific dimensions ==');
+// Reproduce the exact reported dead end: Break Down By a Special-Teams-only
+// dimension while Unit still reads Offense from an earlier query.
+await page.evaluate(() => {
+  const store = window.app.storage.seasonStore;
+  const g1 = store.data.games.find(g => g.id === 'g-study-1');
+  g1.plays.push(
+    { id: 90, timestamp: { start: 60, end: 64 }, tags: { unit: 'special' }, specialTeams: { unit: 'kickoff', kick: { distance: 55 }, outcome: { status: 'touchback' } } },
+    { id: 91, timestamp: { start: 65, end: 69 }, tags: { unit: 'special' }, specialTeams: { unit: 'punt', kick: { distance: 40 }, outcome: { status: 'downed' } } },
+  );
+});
+if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) await page.click('[data-study-action="clear-filters"]');
+await page.select('#wsStudyScope', 'season');
+await page.select('#wsStudyCompare', '');
+await page.select('#wsStudyColumn', '');
+await page.select('#wsStudyUnit', 'offense');
+await page.select('#wsStudyDimension', 'specialTeamsPhase');
+r = await page.evaluate(() => ({
+  unitValue: document.querySelector('#wsStudyUnit')?.value,
+  unitDisabled: document.querySelector('#wsStudyUnit')?.disabled,
+  unitForced: document.querySelector('#wsStudyUnit')?.classList.contains('is-unit-forced'),
+  groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent),
+}));
+ok(r.unitValue === 'special' && r.unitDisabled && r.unitForced,
+  'Selecting "Special Teams Unit" auto-selects Unit=Special Teams, visibly disabled and muted', JSON.stringify(r));
+ok(r.groups.includes('kickoff') && r.groups.includes('punt'),
+  'The forced unit produces real results instead of the old silent zero-row dead end (Unit: Offense + a Special Teams dimension)', JSON.stringify(r));
+
+await page.select('#wsStudyDimension', 'formation');
+r = await page.evaluate(() => ({
+  unitValue: document.querySelector('#wsStudyUnit')?.value,
+  unitDisabled: document.querySelector('#wsStudyUnit')?.disabled,
+  unitForced: document.querySelector('#wsStudyUnit')?.classList.contains('is-unit-forced'),
+}));
+ok(r.unitValue === 'offense' && !r.unitDisabled && !r.unitForced,
+  "Switching back to a cross-unit dimension immediately re-enables Unit and restores the coach's own prior choice", JSON.stringify(r));
+
+for (const crossUnitDim of ['formation', 'playType', 'defFront', 'coverage', 'blitz']) {
+  await page.select('#wsStudyDimension', crossUnitDim);
+  const state = await page.$eval('#wsStudyUnit', el => ({ disabled: el.disabled, forced: el.classList.contains('is-unit-forced') }));
+  ok(!state.disabled && !state.forced, `"${crossUnitDim}" is meaningful from more than one unit and never locks Unit`, JSON.stringify(state));
+}
+await page.select('#wsStudyDimension', 'formation');
+
 console.log('\n== S6-2 Study pivot: any dimension x any dimension, every cell a cut-up ==');
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyScope', 'season');
@@ -733,6 +777,78 @@ await page.select('#wsStudyColumn', '');
 await new Promise(res => setTimeout(res, 300));
 r = await page.evaluate(() => ({ pivot: !!document.querySelector('.ws-pivot'), rows: document.querySelectorAll('.ws-study-row').length }));
 ok(!r.pivot && r.rows > 0, 'Clearing the second dimension returns the single-list view unchanged', JSON.stringify(r));
+
+console.log('\n== S8-3 Then By for modern coaching metrics ==');
+if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) await page.click('[data-study-action="clear-filters"]');
+await page.select('#wsStudyMeasure', 'success');
+await page.select('#wsStudyUnit', 'offense');
+await page.select('#wsStudyCompare', '');
+await page.select('#wsStudyScope', 'season');
+await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyColumn', 'down');
+await new Promise(res => setTimeout(res, 400));
+r = await page.evaluate(() => {
+  const table = document.querySelector('.ws-pivot');
+  const cells = [...document.querySelectorAll('.ws-pivot tbody .ws-pivot-cell')];
+  const withButtons = cells.filter(td => td.querySelector('.ws-pivot-btn'));
+  return {
+    hasTable: !!table,
+    caption: document.querySelector('.ws-pivot-caption')?.textContent || '',
+    cells: cells.length, withButtons: withButtons.length,
+    hasPercent: withButtons.some(td => /%/.test(td.querySelector('.ws-pivot-value')?.textContent || '')),
+  };
+});
+ok(r.hasTable && r.cells > 0 && r.withButtons > 0, 'Then By renders a cross-tab for a modern coaching metric (Formation x Down, Success Rate)', JSON.stringify(r));
+ok(/Success Rate/.test(r.caption) && r.hasPercent, "Cross-tab cells show the coaching metric's own value, not a flat measure", JSON.stringify(r));
+
+// The exact eligible refs, verified against an INDEPENDENT runMetrics() call
+// with the same row+column filters -- never reconstructed by the renderer,
+// same standard the legacy pivot's own registry-recomputation check above uses.
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const captured = [];
+  const real = app.filmNavigation.watch.bind(app.filmNavigation);
+  app.filmNavigation.watch = async (refs, opts) => { captured.push({ refs: [...refs], label: opts?.label }); return { ok: true }; };
+  const btn = document.querySelector('.ws-pivot tbody .ws-pivot-cell:not(.is-none) .ws-pivot-btn');
+  btn?.click();
+  await new Promise(res => setTimeout(res, 200));
+  app.filmNavigation.watch = real;
+  const [rowValue, colValue] = (captured[0]?.label || '').split(' · ');
+  const games = app.storage.seasonStore.data.games;
+  const plays = games.flatMap(g => (g.plays || []).map(p => ({ ...p, __gid: String(g.id) })));
+  const independent = app.study.runMetrics({
+    plays, dimension: 'formation', metricIds: ['successRate'],
+    filters: [{ dimension: 'unit', values: ['offense'] }, { dimension: 'down', values: [colValue] }],
+  });
+  const group = independent.groups.find(g => String(g.value) === rowValue);
+  return { got: (captured[0]?.refs || []).slice().sort(), expected: (group?.metrics?.successRate?.refs || []).slice().sort(), rowValue, colValue };
+});
+ok(r.got.length > 0 && JSON.stringify(r.got) === JSON.stringify(r.expected),
+  "A modern-metric pivot cell plays exactly that metric's own eligible refs, independently recomputed", JSON.stringify(r));
+
+// Comparison is the one genuine incompatibility -- Then By must disable with
+// a visible reason (not just a hover title), never silently ignore the
+// selection or leave the coach guessing why the control went grey.
+await page.select('#wsStudyCompare', 'season');
+await new Promise(res => setTimeout(res, 300));
+r = await page.evaluate(() => ({
+  disabled: document.getElementById('wsStudyColumn')?.disabled,
+  value: document.getElementById('wsStudyColumn')?.value,
+  hintHidden: document.getElementById('wsStudyColumnHint')?.hidden,
+  hintText: document.getElementById('wsStudyColumnHint')?.textContent || '',
+  pivotVisible: !!document.querySelector('.ws-pivot'),
+}));
+ok(!!r.disabled && !r.value && !r.hintHidden && r.hintText.length > 0 && !r.pivotVisible,
+  'Then By disables with a visible reason during comparison, the one genuine incompatibility', JSON.stringify(r));
+await page.select('#wsStudyCompare', '');
+await new Promise(res => setTimeout(res, 300));
+r = await page.evaluate(() => ({ disabled: document.getElementById('wsStudyColumn')?.disabled, hintHidden: document.getElementById('wsStudyColumnHint')?.hidden }));
+ok(!r.disabled && r.hintHidden, 'Then By re-enables the instant comparison is cleared', JSON.stringify(r));
+
+await page.select('#wsStudyColumn', '');
+await page.select('#wsStudyUnit', '');
+await page.select('#wsStudyMeasure', 'epaPerPlay');
+await new Promise(res => setTimeout(res, 200));
 
 // ===== AX-7: Study asks in lenses and categories, not one flat list ========
 const picker = await page.evaluate(() => {

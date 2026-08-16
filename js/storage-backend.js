@@ -48,6 +48,13 @@ export class StorageBackend {
   // ---- canonical season (scoped to currentId) ----
   async loadSeason() { return null; }
   async saveSeason(_data) {}
+  // Read-only peek at an ARBITRARY season's data by id, never touching
+  // currentId/setCurrentSeason. Exists so a caller (e.g. Team Hub's season
+  // list) can compute something like film health for a season that is not
+  // the one currently open, without disturbing navigation state or risking a
+  // race with a concurrent openSeasonById(). Never call saveSeason/persist
+  // against the result — it is a snapshot, not a live-editable copy.
+  async peekSeason(_id) { return null; }
 
   // ---- backup ring (scoped to currentId) ----
   async listBackups() { return []; }            // [{id,t,label,seasonName,games,plays}]
@@ -223,6 +230,11 @@ export class BrowserBackend extends StorageBackend {
   async loadSeason() {
     if (!this.currentId) return null;
     try { return JSON.parse(localStorage.getItem(this._seasonKey(this.currentId)) || 'null'); }
+    catch (e) { return null; }
+  }
+  async peekSeason(id) {
+    if (!id) return null;
+    try { return JSON.parse(localStorage.getItem(this._seasonKey(id)) || 'null'); }
     catch (e) { return null; }
   }
   async saveSeason(data) {
@@ -595,6 +607,20 @@ export class TauriBackend extends StorageBackend {
       catch (e) { console.warn('catalog load failed; JSON fallback', e); }
     }
     if (await this._exists(this._seasonFile(this.currentId))) return this._readJson(this._seasonFile(this.currentId));
+    return null;
+  }
+  // Same read as loadSeason(), parameterized by id instead of this.currentId,
+  // and never mutates this.currentId — a real navigation could be resolving
+  // setCurrentSeason(id) concurrently, and stomping it here would silently
+  // redirect the coach's Open click. Read-only; no write path exists for it.
+  async peekSeason(id) {
+    if (!this._ok() || !id) return null;
+    const cp = await this._ensureCatalog();
+    if (cp) {
+      try { const r = await cp.loadSeason(id); if (r && r.data) return r.data; }
+      catch (e) {}
+    }
+    if (await this._exists(this._seasonFile(id))) return this._readJson(this._seasonFile(id));
     return null;
   }
   async saveSeason(data) {
