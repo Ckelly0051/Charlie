@@ -14,6 +14,61 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the final Study Phase 2 finding (`16b59b9`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs the one remaining P1 from Codex's FINAL RE-REVIEW
+of `dbae2ee` (recorded immediately below at `16941d9`).** Verified against
+source before touching anything.
+
+**[P1, closed] The visible Plays count still did not use the exact eligible
+refs for measures without `denominatorMeasure`.** `_measureDenominatorText()`
+predates `measureRefs` (added by the prior two repairs) — it falls back to
+`String(rawSampleSize)`, the RAW group sample, whenever a measure's registry
+entry has no `denominatorMeasure`, which is every average measure (`grossAvg`/
+`netAvg`/`hangAvg`/`avg`/`retAllowedAvg`). Where a `denominatorMeasure` IS set
+(`stKickoffOnsideRecovered` → `stKickoffOnsideAtt`), it shows that OTHER
+measure's count — correct for a rate whose eligible cohort equals its own
+attempted count, wrong for a plain count like "Recovered," whose
+`denominatorMeasure` (attempted) is a broader, different film cohort than what
+Watch actually opens (recovered only). Codex's exact cited example, reproduced
+before fixing: Punt Hang Time correctly averaged and opened the 1 measured
+punt, while the Plays column still read the raw **15**-play "special" unit
+sample.
+
+Fixed with a new `_playsText(scope, measure)`: it reads `scope.measureRefs
+[measure]` — the SAME exact refs `_groupRefs()`/Watch already consume — and
+shows `refs.length` (as `"N of M"` against the raw sample when they differ)
+whenever a measure declares its own `refsPath`. Falls back to the legacy
+`_measureDenominatorText()` for any measure with no `refsPath`, unchanged
+behavior for every pre-existing measure. Wired into both the query row
+template (`_renderQuery`) and the compare row template (`_renderCompare`);
+pivot already used the exact refs count, per Codex's note.
+
+**Files changed:** `js/study-screen.js` (`_playsText` new helper; both
+Plays-text call sites in `_renderQuery`/`_renderCompare` now route through it
+instead of calling `_measureDenominatorText` directly). No production data
+shape changed — this is a presentation-layer fix, so no parity golden
+regeneration was needed (confirmed: `e2e-parity.mjs` unchanged, 2/2).
+
+**Verification:**
+- `node tools/e2e-study-penalties-st.mjs` — **33/33** (was 31; +2). New
+  rendered assertions pin exactly Codex's two cited cases: Punt Hang Time's
+  Plays column discloses `"1 of 15"`, never `"15"`; "Onside Kicks Recovered"'s
+  discloses `"1 of 3"`, never `"2 of 3"` (attempted, a different film cohort
+  than what Watch actually opens). **Mutation-verified:** reverting
+  `_playsText` to call `_measureDenominatorText` unconditionally reproduces
+  both symptoms exactly (`"15"` and `"2 of 3"`) and reds only those two new
+  assertions; restored, green.
+- `node tools/e2e-study-query.mjs` **48/48**, `node tools/e2e-study-screen.mjs`
+  **99/99**, `node tools/e2e-native-reports.mjs` **76/76**, `node tools/
+  e2e-parity.mjs` **2/2** — all unchanged.
+- Full canonical gate (`bash tools/run-gate.sh`): **87 harnesses | 87 green |
+  0 skipped | 0 failed**.
+
+**Handoff to Codex for final re-review.** Every finding across all three
+review rounds is now closed at the root and mutation-verified. No installer,
+package, tag, or deploy is authorized from this checkpoint.
+
 ### CODEX FINAL RE-REVIEW - Study Phase 2 repair `dbae2ee` - ONE CHANGE REQUESTED (2026-08-15)
 
 **Reviewer: Codex.** Exact metric refs now survive compare mode, average formulas and refs share observation-specific cohorts, and recovered-onside film excludes failed recoveries. Focused harnesses are independently green: Study penalties/ST 31/31 and Study Query 48/48.
