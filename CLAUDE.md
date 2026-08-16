@@ -14,6 +14,177 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the Study Phase 3 review (`82f910b`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs all five findings from Codex's CHANGES REQUESTED
+review of `b846684` (recorded immediately below at `82f910b`).** Every finding
+verified against source before touching anything — none taken on report; each
+was reproduced (via a direct Node script for #2, via source-reading for #1/#3/
+#4/#5) before being fixed.
+
+**1. [P1, closed] Non-offense roles were empty from the untouched default
+state.** `_renderPlayers` appended `{dimension:'unit', values:[state.unit]}`
+to every player query, and `#wsStudyUnit` defaults to Offense
+(`DEFAULT_UNIT`) at mount — a coach who picks Tackler/Kicker/Returner without
+ever touching Unit got a silently empty leaderboard, because their plays are
+`unit:'defense'`/`'special'` and every role dimension already carries its
+own unit-appropriate gate. Fixed at the root: the generic Unit filter is no
+longer applied to a player question at all (`baseFilters = state.filters`,
+dropping the unit clause entirely), and `#wsStudyUnit` is now explicitly
+**disabled** while a player role is active — unconditionally both ways
+(mirrors the existing `measureSelect.disabled = !!state.playerRole` pattern),
+so leaving Players mode correctly re-enables it. A disabled control reads
+honestly to the coach as "not narrowing your answer," rather than silently
+ignored while still interactive.
+
+**2. [P1, closed] The shared made/score classifiers failed three supported
+football shapes.** Reproduced all three exactly as Codex described via a
+direct Node script against the committed classes before fixing:
+`{fakePassMade:false, legacyFgMade:false, structuredReturnHasTd:false}`.
+- **Fake pass completion:** `isMadeAttempt` branched on the mere *presence*
+  of `p.specialTeams` data, so a fake FG whose holder threw a real completed
+  pass was judged by the kick-specific `outcome.status==='good'` instead of
+  the ordinary `tags.result` every other pass uses — a fake attempt that
+  never kicks has no meaningful kick status to read. Fixed: the structured
+  branch now requires `structured && !structured.isFake`; a fake ST play
+  falls through to the same `tags.result` check as any ordinary pass, exactly
+  the reasoning `countsFootballRoles` already uses to admit a fake into the
+  passer/receiver cohort in the first place.
+- **Legacy field goal:** the legacy (no-structured-data) branch checked only
+  `Gain`/`Touchdown`/`No Gain` — the pass-completion vocabulary — and never
+  recognized the pre-Special-Teams-model `tags.result:'Good'` convention
+  (`_conversionStats`' own `made()` closure, stats-engine.js ~line 1296,
+  already reads `hasResult(p,'Good') || p.tags.kickOutcome==='Good'` for
+  exactly this case). Fixed by mirroring that exact existing precedent rather
+  than inventing a new one: `isMadeAttempt`'s legacy branch now also checks
+  `hasResult(play,'Good')` and `play.tags.kickOutcome==='Good'`.
+- **Structured return touchdown:** the `touchdowns` metric was purely
+  `tags.result`-based, so a structured kickoff/punt return event scoring via
+  `outcome.score==='touchdown'` was invisible unless the coach redundantly
+  copied 'Touchdown' into legacy `tags.result` too — the review's exact point
+  that the shipped fixture's green assertion was vacuous, since it happened
+  to make that redundant copy. Fixed with a new `StatsEngine.
+  isScoredTouchdown(play, hasResult)` static (same branch shape as
+  `isMadeAttempt`: genuine non-fake structured event reads
+  `outcome.score==='touchdown'`; everything else — including a fake ST
+  play — reads `tags.result` as before), wired as a new `isScoredTouchdown`
+  dep and used by the `touchdowns` metric. ballCarrier/passer/receiver are
+  unaffected (their plays never carry `specialTeams` data, so they fall
+  straight to the unchanged legacy check).
+- Re-ran the exact reproduction script after both fixes:
+  `{fakePassMade:true, legacyFgMade:true, structuredReturnHasTd:true}`.
+
+**3. [P1, closed] Save View did not round-trip a player question.**
+`_state()` had always captured `playerRole`/`player`/`playerMetric` inside the
+saved `state` object, but `_saveView`'s dedup `id` and visible `name` never
+accounted for them (so a player question and an ordinary query — or two
+distinct player questions — could collide and silently overwrite each other),
+and `_applyView` never wrote the three fields back onto their controls (so a
+saved player view reopened as whatever ordinary query happened to be sitting
+in Dimension/Unit/Measure). Fixed: `_saveView`'s `id` now includes all three
+fields; its `name` builds a player-specific label (`"{Role} — {Metric}
+{(#player)?} · {comparison}"`) instead of the irrelevant
+Dimension/Unit/filter-count string when a role is active. `_applyView` now
+restores the role (rebuilding the Player/Metric option lists via
+`_syncPlayerControls` for the saved role's season-wide pool, then applying the
+exact saved player/metric values on top) — and, critically, **explicitly
+clears** the role control when the saved view has none, so a stale
+role selection left over from browsing can't hijack an ordinary saved query
+(`render()` dispatches on `playerRole` first).
+
+**4. [P1, closed] Save to Plan recorded the wrong player-query metadata.**
+`_saveToPlan` unconditionally used `state.dimension`/`state.measure` — for a
+player question, `state.measure` is the disabled-but-not-cleared leftover
+value from before the role was picked, and `state.dimension` is only
+meaningful once a specific player is chosen (single-player breakdown). Refs
+were always correct (built from `_saveCohorts`, which player mode's own
+render already populates honestly), but the **label and stored query** could
+read "Formation — Success Rate" for a Tackler/Sacks finding. Fixed:
+`_saveToPlan` now mirrors `_renderPlayers`' own dimension/metric resolution —
+leaderboard mode passes `dimensionName: roleConfig.name` /
+`measureName: <role-scoped metric label>` / `dimension: roleConfig.dimension`
+/ `measure: <resolved metric id>`; single-player breakdown passes a
+composed `"{Role} #{player} by {breakdown dimension name}"` label with the
+breakdown dimension as `dimension`. Non-player saves are byte-identical to
+before (same fields, same resolution).
+
+**5. [P2, closed] The leaderboard wasn't ranked and the controls had no
+CSS.** `_renderPlayersQuery` used `result.groups`' raw registry-value order
+(numeric jersey order, an accident of `_distinct`'s `[...set].sort()`), never
+sorted by the chosen metric, despite the original handoff calling it "ranked."
+Fixed with a polarity-aware sort read directly off the metric's own
+`.polarity` field on the AnalyticsMetrics contract (never guessed or
+hardcoded per metric id) — higher-is-better descends, lower-is-better
+ascends, a `null`/unavailable value always sorts to the bottom regardless of
+direction, and ties keep their original (numeric jersey) order since
+`Array.prototype.sort` is stable (ES2019+). `.ws-study-players` had zero CSS
+rules anywhere in the codebase; it now shares `.ws-study-range`'s layout
+(structurally the same shape: a leading `<strong>` label, several field
+`<label>`s, a trailing `<small>` hint) in `css/study-screen.css`, including
+the design-system lower-third label treatment and mobile stacking — added in
+**both** the base layer and the later "S6-6d design rules last" layer (the
+file's own documented rule: a `.ws-study-*` selector must appear in this
+second layer to actually win the cascade, since `study-screen.css` loads
+after the shell).
+
+**Files changed:** `js/study-screen.js` (`render()`'s player-mode branch
+disables/re-enables `#wsStudyUnit` unconditionally; `_renderPlayers`'s
+`baseFilters` drops the unit clause; `_saveView`'s `id`/`name` account for
+player state; `_applyView` restores/clears the three player controls;
+`_saveToPlan` resolves player-specific dimension/measure metadata;
+`_renderPlayersQuery` sorts `groups` by polarity-aware metric value before
+rendering); `js/stats-engine.js` (`isMadeAttempt`'s structured branch now
+excludes fakes and its legacy branch gains the `Good`/`kickOutcome`
+convention; new `isScoredTouchdown` static; both wired into `metricsEngine()`
+deps); `js/analytics-metrics.js` (`touchdowns` metric now calls
+`deps.isScoredTouchdown` instead of a bare `hasResult(p,'Touchdown')`;
+`isScoredTouchdown` added to the required deps list); `css/study-screen.css`
+(new `.ws-study-players` base rules + extended into the four existing
+selector groups that already style `.ws-study-range` the same way);
+`tools/e2e-analytics-metrics.mjs` (shared `deps` object gains
+`isScoredTouchdown`); `tools/e2e-study-players.mjs` (20→37 assertions — see
+below).
+
+**Verification:**
+- `node tools/e2e-study-players.mjs` — **37/37** (was 20; +17, one or more
+  discriminating assertions per finding). New coverage: all six roles
+  produce non-empty leaderboards under the genuinely untouched default state
+  (`#wsStudyUnit` never once set anywhere in the file, confirmed still
+  reading `'offense'` throughout); three isolated fake-pass/legacy-FG/
+  structured-return-TD precision checks with exact value AND exact composite
+  ref assertions, using fresh player numbers so they can't perturb the
+  existing #7/#9/#3 precision checks; a saved leaderboard view, a saved
+  single-player breakdown view, and an ordinary saved view all round-trip
+  exactly and don't collide on identity, with the ordinary-view case
+  specifically proving a stale role selection gets cleared rather than
+  hijacking the reopened query; Save to Plan's pending item inspected
+  directly for `label`/`query.dimension`/`query.measure` on a Tackler/Sacks
+  finding; a higher-is-better metric (Tackles) ranks descending and a
+  lower-is-better metric (Yards Allowed/Play) ranks ascending on the SAME
+  three players with hand-computed season-wide values, proving the ranking
+  is genuinely polarity-aware rather than always-descending; a computed-style
+  check on the Players band (padding, border, the lower-third label's
+  `background-image` gradient, sized selects) proving the CSS genuinely
+  applies rather than sitting dead in the cascade.
+- Full regression suite unchanged: `e2e-analytics-metrics` **28/28**,
+  `e2e-analytics-registry` **33/33**, `e2e-study-query` **48/48**,
+  `e2e-native-reports` **76/76**, `e2e-season-tab` **169/169**,
+  `e2e-special-teams-contract` **20/20**, `e2e-b2-tries` **13/13**,
+  `e2e-study-screen` **99/99**, `e2e-study-penalties-st` **33/33**,
+  `e2e-parity` **2/2**, `e2e-study-plan` **14/14**, `e2e-plan-export`
+  **22/22** — confirming `isScoredTouchdown`'s new dep and `isMadeAttempt`'s
+  rewritten branch are behavior-preserving for every pre-existing consumer.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 88 green |
+  0 skipped | 0 failed** — the previously-observed `e2e-csv-projection.mjs`
+  intermittent (documented in the prior checkpoint's handoff as unrelated,
+  reproduced 1-of-2 crashes standalone on unmodified code) completed clean on
+  this run; not re-litigated as fixed, just honestly not observed this time.
+
+**Handoff to Codex for re-review.** All five findings are closed at the root,
+each independently reproduced before being fixed, with zero regressions
+across the full suite. No installer, package, tag, or deploy is authorized
+from this checkpoint.
+
 ### CODEX REVIEW - Study Phase 3 Player Performance b846684 - CHANGES REQUESTED (2026-08-15)
 
 **Verdict: CHANGES REQUESTED.** The shared metric/query architecture, player-role dimensions, grade eligibility, comparison cohort separation, composite refs, and XSS boundary are sound. The focused harness is green at **20/20**, but it clears the generic Unit control before player mode and duplicates structured Special Teams truth into legacy tags. Those choices hide real default-path and football-model defects. No production files changed in this review.

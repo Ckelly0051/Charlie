@@ -448,9 +448,13 @@ const METRICS = {
   // "unavailable".
   touchdowns: {
     // Reused for ball carrier/passer/receiver/returner touchdown counts --
-    // one classification, four roles.
+    // one classification, four roles. `deps.isScoredTouchdown` (Codex
+    // review, 2026-08-15, finding #2) reads a structured event's own
+    // `outcome.score === 'touchdown'` for a genuine kick/return event --
+    // without it a structured return touchdown was invisible unless the
+    // coach redundantly copied 'Touchdown' into legacy tags.result too.
     polarity: MetricPolarity.HIGHER, countMetric: true,
-    compute(cohort, deps) { return countResult(cohort, p => deps.hasResult(p, 'Touchdown')); },
+    compute(cohort, deps) { return countResult(cohort, p => deps.isScoredTouchdown(p)); },
   },
   completions: {
     // Reused for passer "Completions", receiver "Receptions", and kicker
@@ -529,7 +533,7 @@ export class AnalyticsMetrics {
    *   `StatsEngine.isMadeAttempt`'s own comment.
    */
   constructor(deps = {}) {
-    const required = ['isRun', 'isPass', 'hasResult', 'isSuccessfulPlay', 'isEligiblePlay', 'splitPlayers', 'isMadeAttempt'];
+    const required = ['isRun', 'isPass', 'hasResult', 'isSuccessfulPlay', 'isEligiblePlay', 'splitPlayers', 'isMadeAttempt', 'isScoredTouchdown'];
     for (const key of required) {
       if (typeof deps[key] !== 'function') throw new TypeError(`AnalyticsMetrics requires deps.${key}`);
     }

@@ -518,6 +518,22 @@ export class StudyScreen {
     const sets = this._playSets(state);
     const measureSelect = this._control('wsStudyMeasure');
     if (measureSelect) measureSelect.disabled = !!state.playerRole;
+    // Codex review finding #1: the generic Unit control defaults to Offense
+    // (DEFAULT_UNIT) and picking a player role never touches it, so
+    // `_renderPlayers`' old unit-filter injection silently zeroed
+    // Tackler/Kicker/Returner from the coach's very first click -- the
+    // player harness masked this by clearing Unit before testing. Each role
+    // dimension already carries its own unit-appropriate gate
+    // (ballCarrier/passer/receiver via countsFootballRoles+isRun/isPass;
+    // tackler via unit==='defense'; kicker/returner via the structured
+    // Special Teams event), so Unit is disabled -- not merely ignored --
+    // for a player question: a coach reading a disabled control has no
+    // reason to think it's still narrowing their answer. Set unconditionally
+    // both ways (mirrors measureSelect immediately above), never only set
+    // true inside the player branch, or leaving Players mode would leave
+    // Unit stuck disabled.
+    const unitControl = this._control('wsStudyUnit');
+    if (unitControl) unitControl.disabled = !!state.playerRole;
     // Study Phase 3: a player question takes over the primary metric picker
     // entirely (dispatched before RICH_METRIC_PAIRS resolution, so a
     // leftover "Success Rate" selection from before the coach picked a role
@@ -995,7 +1011,15 @@ export class StudyScreen {
     this._control('wsStudyVisuals').innerHTML = '';
     const usingPlayer = !!state.player;
     const dimension = usingPlayer ? state.dimension : roleConfig.dimension;
-    const baseFilters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
+    // Codex review finding #1: the generic Unit filter is deliberately NOT
+    // applied to a player question -- each role dimension already carries
+    // its own unit-appropriate gate (see PLAYER_ROLES' comment and each
+    // playerXxx dimension's own comment in analytics-registry.js), and
+    // `#wsStudyUnit` is disabled in render() precisely so a stale Offense
+    // default (DEFAULT_UNIT) can never silently zero out Tackler/Kicker/
+    // Returner. `state.filters` (the coach's own explicit Filters panel
+    // entries) still apply -- only the generic Unit control is excluded.
+    const baseFilters = state.filters;
     const filters = usingPlayer ? [...baseFilters, { dimension: roleConfig.dimension, values: [state.player] }] : baseFilters;
     const args = { dimension, metricIds: [metric], filters, minSample: state.minSample, gradeRole: roleConfig.gradeRole || undefined };
     let result;
@@ -1025,7 +1049,24 @@ export class StudyScreen {
   }
 
   _renderPlayersQuery(result, metric, label, context) {
+    // Codex review finding #5: a leaderboard that isn't ranked is a table,
+    // not a leaderboard. Sorted polarity-aware (a lower-is-better metric
+    // like Yards Allowed ranks ascending) using the metric's own `polarity`
+    // field straight off the AnalyticsMetrics contract -- never guessed or
+    // hardcoded per metric id. A group whose value is null (unavailable/no
+    // real data) sorts to the bottom regardless of direction, rather than
+    // interleaving misleadingly with real numbers. `Array.prototype.sort` is
+    // stable (ES2019+), so ties keep the dimension's own order (numeric
+    // jersey number) as an honest, non-arbitrary secondary sort.
     const groups = result.groups.filter(g => g.sampleSize > 0);
+    const polarity = groups.find(g => g.metrics[metric]?.polarity)?.metrics[metric]?.polarity || 'higher';
+    groups.sort((a, b) => {
+      const av = a.metrics[metric]?.value, bv = b.metrics[metric]?.value;
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return polarity === 'lower' ? av - bv : bv - av;
+    });
     // Same film-parity rule as _renderRichQuery: Watch/refs come from the
     // METRIC's own eligible refs, never the group's broader raw sample.
     this.rows = groups.map(g => ({ label: label(g.value), refs: g.metrics[metric]?.refs || [] }));
@@ -1320,11 +1361,24 @@ export class StudyScreen {
       : state.compare === 'recent' ? `Recent ${state.periodGames} vs prior ${state.periodGames}`
       : state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season'
       : state.scope === 'game' ? 'Current game' : state.scope === 'range' ? 'Date range' : 'Season';
-    const name = `${dimension} · ${comparison}${state.unit ? ` · ${state.unit}` : ''}${state.filters.length ? ` · ${state.filters.length} filter${state.filters.length === 1 ? '' : 's'}` : ''}`;
+    // Codex review finding #3: a player question's saved NAME must describe
+    // what it actually asks (role + player metric, optionally the specific
+    // player), never the "Break down by"/Unit/Measure controls -- those are
+    // either disabled placeholders (Measure) or repurposed for a different
+    // purpose (Dimension, only meaningful in single-player breakdown mode).
+    const roleConfig = state.playerRole ? StudyScreen.PLAYER_ROLES[state.playerRole] : null;
+    const playerMetric = roleConfig ? (state.playerMetric && roleConfig.metrics.includes(state.playerMetric) ? state.playerMetric : roleConfig.metrics[0]) : null;
+    const playerMetricLabel = roleConfig ? (StudyScreen.PLAYER_METRIC_LABELS[state.playerRole]?.[playerMetric] || playerMetric) : null;
+    const name = roleConfig
+      ? `${roleConfig.name} — ${playerMetricLabel}${state.player ? ` (#${state.player})` : ''} · ${comparison}`
+      : `${dimension} · ${comparison}${state.unit ? ` · ${state.unit}` : ''}${state.filters.length ? ` · ${state.filters.length} filter${state.filters.length === 1 ? '' : 's'}` : ''}`;
     const views = this._views();
     // periodGames included so a 2-game and a 5-game recent-comparison view
     // (otherwise identical) never collide and silently overwrite each other.
-    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${state.periodGames}|${state.dateFrom}|${state.dateTo}|${JSON.stringify(state.filters)}`;
+    // playerRole/player/playerMetric included so a player question and an
+    // ordinary query (or two distinct player questions) never collide on
+    // identity -- Codex review finding #3.
+    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${state.periodGames}|${state.dateFrom}|${state.dateTo}|${JSON.stringify(state.filters)}|${state.playerRole}|${state.player}|${state.playerMetric}`;
     const next = [...views.filter(view => view.id !== id), { id, name, state }].slice(-12);
     try { localStorage.setItem('ffa_study_views_v1', JSON.stringify(next)); }
     catch { this.app.tagger.toast?.('Could not save this Study view'); return; }
@@ -1333,17 +1387,44 @@ export class StudyScreen {
   }
   _saveToPlan() {
     const state = this._state();
-    const dimensionName = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
-    // Rich concept ids ('success'/'yards'/...) are not registry measure ids --
-    // they resolve to a different registry measure per unit at query time
-    // (see `_richMetricId`) -- so the lookup must check RICH_METRIC_PAIRS
-    // first, matching `mount()`'s metricName resolver.
-    const measureName = StudyScreen.RICH_METRIC_PAIRS[state.measure]?.name || this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+    // Codex review finding #4: a player question actually queries a
+    // role-specific dimension (or, in single-player breakdown, the "Break
+    // down by" dimension filtered to that player) with the player metric --
+    // NOT `state.dimension`/`state.measure`, which for a player question are
+    // either a stale carryover from before the role was picked (measure is
+    // disabled but its value isn't cleared) or repurposed for a different
+    // job (dimension, only meaningful once a specific player is chosen).
+    // Saving a Tackler/Sacks leaderboard finding with the raw fields would
+    // have recorded "Formation - Success Rate" -- refs were correct, but the
+    // label and the stored query metadata described a different question
+    // entirely. Mirrors `_renderPlayers`' own dimension/metric resolution so
+    // the saved finding always matches what was actually queried.
+    const roleConfig = state.playerRole ? StudyScreen.PLAYER_ROLES[state.playerRole] : null;
+    let dimensionName, measureName, dimensionId, measureId;
+    if (roleConfig) {
+      const usingPlayer = !!state.player;
+      const metric = state.playerMetric && roleConfig.metrics.includes(state.playerMetric) ? state.playerMetric : roleConfig.metrics[0];
+      dimensionId = usingPlayer ? state.dimension : roleConfig.dimension;
+      measureId = metric;
+      measureName = StudyScreen.PLAYER_METRIC_LABELS[state.playerRole]?.[metric] || metric;
+      dimensionName = usingPlayer
+        ? `${roleConfig.name} #${state.player} by ${this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension}`
+        : roleConfig.name;
+    } else {
+      dimensionId = state.dimension;
+      measureId = state.measure;
+      dimensionName = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
+      // Rich concept ids ('success'/'yards'/...) are not registry measure ids
+      // -- they resolve to a different registry measure per unit at query
+      // time (see `_richMetricId`) -- so the lookup must check
+      // RICH_METRIC_PAIRS first, matching `mount()`'s metricName resolver.
+      measureName = StudyScreen.RICH_METRIC_PAIRS[state.measure]?.name || this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+    }
     const cohorts = this._saveCohorts.filter(cohort => cohort.refs.length).map(cohort => ({
       ...cohort,
       item: this.app.studyPlan.finding({
         dimensionName, measureName, scopeLabel: cohort.label,
-        dimension: state.dimension, measure: state.measure, scope: state.scope,
+        dimension: dimensionId, measure: measureId, scope: state.scope,
         compare: state.compare || null, cohort: cohort.id, refs: cohort.refs,
       }),
     }));
@@ -1431,6 +1512,32 @@ export class StudyScreen {
       .filter(filter => this.app.analyticsRegistry.getDimension(filter.dimension)?.availability === 'ready')
       .map(filter => ({ dimension: filter.dimension, values: (filter.values || []).map(String) })) : [];
     this._renderFilters();
+    // Codex review finding #3: `_state()` has always captured playerRole/
+    // player/playerMetric, but this restore never wrote them back onto the
+    // three player controls -- a saved player question silently reopened as
+    // whatever ordinary query happened to be sitting in the Dimension/Unit/
+    // Measure controls. `_syncPlayerControls` rebuilds the Player/Metric
+    // option lists for the saved role (its player pool is season-wide, so
+    // stable across saves/reloads); the exact saved values are then applied
+    // on top rather than trusted to survive `resetPlayer`/`resetMetric`'s
+    // own stale-value-preservation logic, which exists for the live
+    // role-change handler, not a full-state restore. A view saved WITHOUT a
+    // player role explicitly clears the role control, in case a player
+    // question happened to be open when this ordinary view was selected --
+    // render()'s player-question dispatch checks playerRole first, so a
+    // stale leftover role would otherwise hijack an ordinary saved query.
+    const playerRoleControl = this._control('wsStudyPlayerRole');
+    if (playerRoleControl) {
+      const savedRole = view.state.playerRole || '';
+      playerRoleControl.value = savedRole;
+      this._syncPlayerControls(savedRole, { resetPlayer: true, resetMetric: true });
+      if (savedRole) {
+        const playerControl = this._control('wsStudyPlayer');
+        if (playerControl) playerControl.value = view.state.player || '';
+        const metricControl = this._control('wsStudyPlayerMetric');
+        if (metricControl) metricControl.value = view.state.playerMetric || '';
+      }
+    }
     this.render();
   }
   _syncDeleteView() {

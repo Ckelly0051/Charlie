@@ -1024,6 +1024,10 @@ export class StatsEngine {
         // comment for why one function safely covers both a completed pass
         // and a made structured kick).
         isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult),
+        // "Did this play score a touchdown", structured or legacy -- see
+        // StatsEngine.isScoredTouchdown's own comment (Codex review,
+        // 2026-08-15, finding #2).
+        isScoredTouchdown: p => StatsEngine.isScoredTouchdown(p, StatsEngine.hasResult),
       });
     }
     return this._metricsEngine;
@@ -2378,20 +2382,49 @@ export class StatsEngine {
 
   /** Study Phase 3: "this attempt succeeded" -- the concept AnalyticsMetrics'
    *  `completionRate`/`completions` reuse across three genuinely different
-   *  attempt shapes (a completed pass, a made field goal). A completed pass
-   *  has no `specialTeams` data at all, so its success signal is
-   *  `tags.result` (Gain/Touchdown/No Gain -- the same three-result check
-   *  `_individualStats` already uses for receptions); a structured kick
-   *  attempt has no meaningful `tags.result` at all -- its success signal is
-   *  the structured event's own `outcome.status === 'good'`, the SAME field
-   *  `_specialTeamsStats`' `fgRows`/`made()` already read (stats-engine.js
-   *  ~1358-1359). Branches on which data shape is present rather than
-   *  blending them, matching this file's existing structured/legacy
-   *  quarantine discipline elsewhere. */
+   *  attempt shapes (a completed pass, a made field goal, a legacy-tagged
+   *  field goal). Mirrors the branch structure `_conversionStats`' own
+   *  `made()` closure already established (stats-engine.js's
+   *  `_conversionStats`, ~line 1296) rather than inventing a new one:
+   *  - A genuine (non-fake) structured kick event's success signal is its
+   *    own `outcome.status === 'good'`, the SAME field `_specialTeamsStats`'
+   *    `fgRows`/`made()` already reads.
+   *  - A FAKE special-teams play (Codex review, 2026-08-15, finding #2) is a
+   *    real snap dressed as a kick -- `outcome.status` describes the kick
+   *    that never happened, not the play that did. It is judged by the SAME
+   *    tags.result signal as any ordinary pass/run
+   *    (`countsFootballRoles`already admits a fake into the passer/receiver
+   *    cohort on this same reasoning; this closes the matching classifier
+   *    gap for whether that credited attempt was MADE).
+   *  - No structured data at all is a legacy play -- its signal is
+   *    `tags.result` (Gain/Touchdown/No Gain for a pass, OR the legacy
+   *    Good/kickOutcome convention `_conversionStats` already reads for a
+   *    pre-Special-Teams-model field goal/XP/2-Pt). Codex review finding
+   *    #2 caught this branch missing 'Good' entirely, which made every
+   *    legacy-tagged field goal silently report 0% Field Goal Rate. */
   static isMadeAttempt(play, hasResult) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
-    if (structured) return structured.outcome?.status === 'good';
-    return hasResult(play, 'Gain') || hasResult(play, 'Touchdown') || hasResult(play, 'No Gain');
+    if (structured && !structured.isFake) return structured.outcome?.status === 'good';
+    return hasResult(play, 'Gain') || hasResult(play, 'Touchdown') || hasResult(play, 'No Gain')
+      || hasResult(play, 'Good') || play?.tags?.kickOutcome === 'Good';
+  }
+
+  /** Study Phase 3 (Codex review, 2026-08-15, finding #2): "did this play
+   *  score a touchdown", structured or legacy -- the raw-count sibling of
+   *  `isMadeAttempt`, reused by AnalyticsMetrics' `touchdowns` metric across
+   *  ballCarrier/passer/receiver/returner. A genuine (non-fake) structured
+   *  event's own `outcome.score === 'touchdown'` is the SAME field
+   *  `_conversionStats`' `made()` reads for a scored-by-type check; without
+   *  it, a structured kick/punt return touchdown was invisible unless the
+   *  coach redundantly copied 'Touchdown' into the legacy multi-select
+   *  `tags.result` too. A fake ST play (no real kick to grade) and every
+   *  ordinary offensive play fall through to the same `tags.result` check
+   *  `touchdowns` already used before this fix -- no regression for
+   *  ballCarrier/passer/receiver, whose plays never carry structured data. */
+  static isScoredTouchdown(play, hasResult) {
+    const structured = SpecialTeamsModel.normalize(play?.specialTeams);
+    if (structured && !structured.isFake) return structured.outcome?.score === 'touchdown';
+    return hasResult(play, 'Touchdown');
   }
 
   _individualStats(plays) {

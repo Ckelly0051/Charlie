@@ -141,7 +141,36 @@ const direct = await page.evaluate(() => {
   const zeroSacks = run(game1, 'playerTackler', ['sacksMade']);
   const t44Sacks = groupFor(zeroSacks, '44');
 
+  // Codex review finding #2: three supported football shapes the shared
+  // made/score classifiers must handle. Fresh player numbers (#77/#99/#33)
+  // and play ids so these isolated cohorts cannot perturb #7/#9/#3's own
+  // precision checks above.
+  const stamp = (id, tags, specialTeams) => ({ id, __gid: 'g-players-1', tags, specialTeams });
+  // 2a. A fake FG whose holder threw a completed pass. No kick was ever
+  // attempted -- outcome.status describes the fake's own (non-kick) result,
+  // never 'good'. The completion signal must be the ordinary tags.result,
+  // exactly like any other pass.
+  const fakePass = stamp(90, { unit: 'special', runPass: 'Pass', result: 'Gain', yardage: '12', players: { passer: '77' } },
+    { unit: 'fieldGoal', isFake: true, attemptType: 'fieldGoal', outcome: { status: 'returned', score: null, scoredBy: null } });
+  const fakePassResult = run([fakePass], 'playerPasser', ['completions']);
+  const fakePasser = groupFor(fakePassResult, '77');
+  // 2b. A legacy field goal with NO structured specialTeams data at all --
+  // tags.result:'Good' is the pre-Special-Teams-model "made" convention
+  // (_conversionStats' own legacy fallback).
+  const legacyFg = stamp(91, { unit: 'special', stType: 'Field Goal', result: 'Good', players: { kicker: '99' } });
+  const legacyFgResult = run([legacyFg], 'playerKicker', ['completions']);
+  const legacyKicker = groupFor(legacyFgResult, '99');
+  // 2c. A structured return touchdown with NO redundant legacy tags.result
+  // copy -- the coach relied on the structured outcome.score alone.
+  const structTd = stamp(92, { unit: 'special', players: { returner: '33' } },
+    { unit: 'puntReturn', return: { attempted: true, yards: 75 }, outcome: { status: 'returned', score: 'touchdown', scoredBy: 'subject' } });
+  const structTdResult = run([structTd], 'playerReturner', ['touchdowns']);
+  const structReturner = groupFor(structTdResult, '33');
+
   return {
+    fakePassMade: fakePasser?.metrics.completions?.value === 1 && JSON.stringify(fakePasser.metrics.completions.refs) === JSON.stringify(['g-players-1::90']),
+    legacyFgMade: legacyKicker?.metrics.completions?.value === 1 && JSON.stringify(legacyKicker.metrics.completions.refs) === JSON.stringify(['g-players-1::91']),
+    structuredReturnHasTd: structReturner?.metrics.touchdowns?.value === 1 && JSON.stringify(structReturner.metrics.touchdowns.refs) === JSON.stringify(['g-players-1::92']),
     carrier22YPP: carrier22?.metrics.yardsPerPlay,
     tackler22Count: tackler22?.metrics.tackles,
     t5: { tackles: t5?.metrics.tackles, solo: t5?.metrics.soloTackles, assist: t5?.metrics.assistedTackles, sacks: t5?.metrics.sacksMade, tfl: t5?.metrics.tfl },
@@ -190,13 +219,38 @@ ok(direct.insufficient.state === 'insufficient' && direct.insufficient.denom ===
 ok(direct.zeroSacks.state === 'ok' && direct.zeroSacks.value === 0,
   'A genuine zero sub-count (#44 has zero sacks) reports state:"ok", never "unavailable" -- an honest zero is not the same as no data', JSON.stringify(direct.zeroSacks));
 
-// ---- UI-driven: role/player/metric controls, Watch parity, XSS safety -----
-// Clear the generic "Unit" filter -- it defaults to Offense (DEFAULT_UNIT),
-// which would silently exclude every defense-tagged tackler play from every
-// UI-driven query below. Each player role already carries its own
-// unit-appropriate gate internally (see the dimension comments in
-// analytics-registry.js); the generic Unit control is orthogonal to that.
-await page.select('#wsStudyUnit', '');
+ok(direct.fakePassMade, 'Codex review finding #2a: a completed fake-FG pass counts as a completion (judged by tags.result, not the kick-specific outcome.status)', JSON.stringify(direct.fakePassMade));
+ok(direct.legacyFgMade, 'Codex review finding #2b: a legacy field goal with tags.result:"Good" and no structured data counts as made', JSON.stringify(direct.legacyFgMade));
+ok(direct.structuredReturnHasTd, 'Codex review finding #2c: a structured return touchdown counts without a redundant legacy tags.result copy', JSON.stringify(direct.structuredReturnHasTd));
+
+// ---- Codex review finding #1: the untouched default journey -----------
+// #wsStudyUnit is NEVER touched here -- it must still be sitting at its
+// pristine DEFAULT_UNIT ('offense') mount-time value, exactly as a coach who
+// opens Study and clicks straight into a player role would find it. Every
+// one of the six roles must still produce real, non-empty results.
+const defaultJourney = await page.evaluate(async () => {
+  const app = window.app;
+  const select = (id, value) => { const el = document.getElementById(id); el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); };
+  const roles = ['ballCarrier', 'passer', 'receiver', 'tackler', 'kicker', 'returner'];
+  const out = {};
+  for (const role of roles) {
+    select('wsStudyPlayerRole', role);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    out[role] = {
+      unitValue: document.getElementById('wsStudyUnit')?.value,
+      unitDisabled: document.getElementById('wsStudyUnit')?.disabled,
+      rows: [...document.querySelectorAll('.ws-study-row')].length,
+    };
+  }
+  return { unitAtMount: out.ballCarrier.unitValue, out };
+});
+ok(defaultJourney.unitAtMount === 'offense', 'The generic Unit control is genuinely untouched at its DEFAULT_UNIT value throughout this journey (the exact regression the harness previously masked)', JSON.stringify(defaultJourney.unitAtMount));
+for (const role of ['ballCarrier', 'passer', 'receiver', 'tackler', 'kicker', 'returner']) {
+  const r = defaultJourney.out[role];
+  ok(r.unitDisabled === true && r.rows > 0,
+    `Codex review finding #1: role "${role}" produces a non-empty leaderboard under the UNTOUCHED default Unit=Offense state, with Unit visibly disabled`, JSON.stringify(r));
+}
+
 await page.select('#wsStudyPlayerRole', 'ballCarrier');
 await page.select('#wsStudyPlayerMetric', 'avgGrade');
 let r = await page.evaluate(() => {
@@ -343,6 +397,111 @@ ok(JSON.stringify(refMutation.mutatedRefs) === JSON.stringify(['g-players-1::1',
   'Mutation proof: swapping the film-ref source to the group\'s raw sample leaks the blank-grade play into Watch', JSON.stringify(refMutation.mutatedRefs));
 ok(JSON.stringify(refMutation.restoredRefs) === JSON.stringify(['g-players-1::1', 'g-players-1::2']),
   'Restoring the real render method brings Watch back to exactly the metric\'s eligible refs', JSON.stringify(refMutation.restoredRefs));
+
+// ---- Codex review finding #5: leaderboard ranking, polarity-aware ---------
+await page.select('#wsStudyPlayerRole', 'tackler');
+await page.select('#wsStudyPlayer', '');
+await page.select('#wsStudyScope', 'season');
+await page.select('#wsStudyPlayerMetric', 'tackles');
+let ranking = await page.evaluate(() => window.app.studyScreen.rows.map(row => row.label));
+ok(ranking.length === 3 && /#5\b/.test(ranking[0]) && /#22\b/.test(ranking[1]) && /#44\b/.test(ranking[2]),
+  'Codex review finding #5: a higher-is-better metric (Tackles, season scope: #5=4, #22=1, #44=1) ranks descending with a stable tie order', JSON.stringify(ranking));
+await page.select('#wsStudyPlayerMetric', 'yardsAllowedPerPlay');
+ranking = await page.evaluate(() => window.app.studyScreen.rows.map(row => row.label));
+ok(ranking.length === 3 && /#44\b/.test(ranking[0]) && /#5\b/.test(ranking[1]) && /#22\b/.test(ranking[2]),
+  'Codex review finding #5: ranking is genuinely polarity-aware -- a lower-is-better metric (Yards Allowed/Play: #44=-2.0, #5=-1.0, #22=+1.0) ranks ascending, not always-descending', JSON.stringify(ranking));
+
+// ---- Codex review finding #5: the Players controls carry real styling -----
+const styleCheck = await page.evaluate(() => {
+  const container = document.getElementById('wsStudyPlayers');
+  const strong = container?.querySelector('strong');
+  const select = container?.querySelector('select');
+  const cs = getComputedStyle(container);
+  const strongCs = strong ? getComputedStyle(strong) : null;
+  const selectCs = select ? getComputedStyle(select) : null;
+  return {
+    paddingTop: cs.paddingTop, borderBottomWidth: cs.borderBottomWidth,
+    // --gi-lower-third-fill is a linear-gradient (design-system/tokens.css),
+    // which lands in the computed `background-image`, not `background-color`
+    // -- checking backgroundColor here would report transparent even though
+    // the gradient genuinely applies.
+    strongBgImage: strongCs?.backgroundImage, strongPaddingLeft: strongCs?.paddingLeft,
+    selectBorder: selectCs?.borderTopWidth, selectHeight: selectCs?.height,
+  };
+});
+ok(styleCheck.paddingTop !== '0px' && styleCheck.borderBottomWidth !== '0px'
+  && styleCheck.strongBgImage !== 'none' && styleCheck.strongPaddingLeft !== '0px'
+  && styleCheck.selectBorder !== '0px' && styleCheck.selectHeight === '34px',
+  'Codex review finding #5: the Players band carries real, non-default computed styling -- padding, border, lower-third label background, sized selects', JSON.stringify(styleCheck));
+
+// ---- Codex review finding #3: Save View round-trips a player question -----
+await page.select('#wsStudyPlayerRole', 'tackler');
+await page.select('#wsStudyPlayer', '');
+await page.select('#wsStudyPlayerMetric', 'sacksMade');
+await page.select('#wsStudyScope', 'game');
+await page.click('[data-study-action="save"]');
+const savedPlayerViewId = await page.evaluate(() => document.getElementById('wsStudySaved').value);
+// A second, distinct player question (single-player breakdown, different
+// player and dimension) must save as a genuinely SEPARATE view.
+await page.select('#wsStudyPlayer', '5');
+await page.select('#wsStudyDimension', 'down');
+await page.click('[data-study-action="save"]');
+const savedBreakdownViewId = await page.evaluate(() => document.getElementById('wsStudySaved').value);
+// Navigate completely away: clear the player role and open an ordinary rich
+// coaching-metric query on a different unit/scope, before reopening either
+// saved player view.
+await page.select('#wsStudyPlayerRole', '');
+await page.select('#wsStudyUnit', 'offense');
+await page.select('#wsStudyMeasure', 'yards');
+await page.select('#wsStudyScope', 'season');
+await page.select('#wsStudySaved', savedPlayerViewId);
+let restored = await page.evaluate(() => ({
+  role: document.getElementById('wsStudyPlayerRole').value,
+  player: document.getElementById('wsStudyPlayer').value,
+  metric: document.getElementById('wsStudyPlayerMetric').value,
+  scope: document.getElementById('wsStudyScope').value,
+  rows: window.app.studyScreen.rows.length,
+}));
+ok(savedPlayerViewId !== savedBreakdownViewId
+  && restored.role === 'tackler' && restored.player === '' && restored.metric === 'sacksMade' && restored.scope === 'game' && restored.rows > 0,
+  'Codex review finding #3: a saved leaderboard player view round-trips role/player/metric exactly, and two distinct player questions save as distinct views', JSON.stringify({ savedPlayerViewId, savedBreakdownViewId, restored }));
+await page.select('#wsStudySaved', savedBreakdownViewId);
+restored = await page.evaluate(() => ({
+  role: document.getElementById('wsStudyPlayerRole').value,
+  player: document.getElementById('wsStudyPlayer').value,
+  dimension: document.getElementById('wsStudyDimension').value,
+}));
+ok(restored.role === 'tackler' && restored.player === '5' && restored.dimension === 'down',
+  'Codex review finding #3: a saved single-player breakdown view restores its role, exact player, and breakdown dimension', JSON.stringify(restored));
+// An ordinary (non-player) view must also still round-trip, and opening it
+// must clear a stale player-role selection rather than let it hijack the
+// query (render() dispatches on playerRole first).
+await page.select('#wsStudyPlayerRole', '');
+await page.select('#wsStudyMeasure', 'success');
+await page.select('#wsStudyUnit', 'offense');
+await page.select('#wsStudyScope', 'game');
+await page.click('[data-study-action="save"]');
+const savedOrdinaryId = await page.evaluate(() => document.getElementById('wsStudySaved').value);
+await page.select('#wsStudyPlayerRole', 'tackler'); // leave a stale role selected
+await page.select('#wsStudySaved', savedOrdinaryId);
+restored = await page.evaluate(() => ({ role: document.getElementById('wsStudyPlayerRole').value, measure: document.getElementById('wsStudyMeasure').value }));
+ok(restored.role === '' && restored.measure === 'success',
+  'Codex review finding #3: opening an ordinary saved view clears a stale player-role selection rather than letting it hijack the query', JSON.stringify(restored));
+
+// ---- Codex review finding #4: Save to Plan records the real player metadata
+await page.select('#wsStudyPlayerRole', 'tackler');
+await page.select('#wsStudyPlayer', '');
+await page.select('#wsStudyPlayerMetric', 'sacksMade');
+await page.select('#wsStudyScope', 'game');
+const planMeta = await page.evaluate(() => {
+  const studyScreen = window.app.studyScreen;
+  studyScreen._saveToPlan();
+  const item = studyScreen._pendingPlanItems?.[0]?.item;
+  studyScreen._closePlanPicker();
+  return item ? { label: item.label, dimension: item.query.dimension, measure: item.query.measure } : null;
+});
+ok(planMeta && /^Tackler\s*—\s*Sacks/.test(planMeta.label) && planMeta.dimension === 'playerTackler' && planMeta.measure === 'sacksMade',
+  'Codex review finding #4: Save to Plan records the real player role/metric ("Tackler - Sacks"), never a stale Formation/Success Rate label', JSON.stringify(planMeta));
 
 // ---- no page errors ---------------------------------------------------------
 ok(errors.length === 0, 'No page errors', errors.join('\n'));
