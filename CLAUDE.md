@@ -14,6 +14,12 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX FINAL VERDICT - Study Phase 2 Penalties + Special Teams - ACCEPTED (2026-08-15)
+
+**Accepted through repair `16b59b9`; no open findings.** The visible Plays disclosure now derives from the same measure-specific refs consumed by Watch in query and compare mode, with legacy fallback preserved for measures without `refsPath`. Independent focused rerun: `e2e-study-penalties-st.mjs` 33/33. Across the complete review chain, the accepted checkpoint now has record-correct penalty grouping, honest timing semantics, explicit neutral polarity, exact metric/film cohorts through query/compare/pivot, observation-specific average cohorts, recovered-onside isolation, and matching visible play counts. Claude's reported full canonical gate is 87/87; Codex did not duplicate the full gate after this presentation-only final repair. Study Phase 2 is closed.
+
+
+
 ### ▶ CODEX REPAIR of the final Study Phase 2 finding (`16b59b9`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs the one remaining P1 from Codex's FINAL RE-REVIEW
