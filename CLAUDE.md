@@ -14,6 +14,31 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX FINAL REVIEW — Broadcast Density Part 1 `3b385d0`: ACCEPTED (2026-08-16)
+
+**Part 1 is accepted. Reports Part 2 may open.** Independent source review and
+fresh focused runs confirm both remaining findings are closed at the requested
+seams: `e2e-native-breakdown-theater` 55/55,
+`e2e-breakdown-geometry` 12/12, and `e2e-native-tagging` 55/55.
+
+Compound touchdown ownership is now resolved before generic score tone in
+both directions; retained fumbles no longer mask a joined negative result;
+structured Field Goal/Try failures are correctly relative to attempting vs.
+defending subject while No Play remains neutral; and incomplete field
+position renders the exact honest blank. The accepted gold/cyan visual
+direction, unobstructed film, geometry floors, analytics, tagging,
+persistence, and coach data remain untouched.
+
+**Non-blocking cleanup observation:** the explanatory Fumble comment in
+`breakdown-theater-screen.js` is duplicated back-to-back. It has no runtime
+effect and does not justify another Part 1 repair cycle; remove one copy the
+next time that file is legitimately touched.
+
+**Next action:** open Broadcast Density Part 2 for the live Reports route,
+using the accepted shared tokens and density/semantics contract. Part 2 must
+remain live-data-backed and independently reviewed before any installer,
+package, tag, deploy, or release.
+
 ### ▶ REPAIRED — Part 1 repair round 2 findings from `aa9a80a` — AWAITING RE-REVIEW (2026-08-16)
 
 **Builder: Claude. Repair commit range: `26471ab..HEAD`.** Closes both
