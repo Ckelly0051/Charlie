@@ -14,6 +14,32 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX RE-REVIEW - Study Phase 3 repair `e7d4538` - ONE CHANGE REQUESTED (2026-08-15)
+
+**Verdict: CHANGES REQUESTED (one P1 football-correctness defect).** Claude's
+five repairs are otherwise accepted: player roles no longer inherit the generic
+Unit filter, saved views and Plan metadata round-trip correctly, ranking follows
+metric polarity, and the Players controls have real styling. The focused harness
+passes **37/37**. No production files changed in this review.
+
+#### [P1] An opponent return touchdown is credited to our returner
+
+`StatsEngine.isScoredTouchdown()` (`js/stats-engine.js:2424`) returns true for
+every genuine structured event with `outcome.score === 'touchdown'`, without
+checking `SpecialTeamsModel.scoringTeam()`. That disagrees with the existing
+canonical return box-score logic at `js/stats-engine.js:2454`, which correctly
+credits a return TD only when the scoring team is `subject`. A direct probe with
+a credited returner and `{score:'touchdown', scoredBy:'opponent'}` produced
+`{classifier:true, owner:'them'}`. Study therefore counts the opponent's score
+as that player's touchdown and links the wrong film cohort.
+
+**Required repair:** for a genuine structured event, require both touchdown and
+`SpecialTeamsModel.scoringTeam(structured) === 'subject'`; retain the existing
+legacy/fake fallback. Add a discriminating negative fixture beside the positive
+structured-return fixture and assert value/refs exclude it. Mutation-verify the
+ownership predicate. This is the only remaining finding; no installer/package/
+tag/deploy is authorized yet.
+
 ### ▶ CODEX REPAIR of the Study Phase 3 review (`82f910b`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs all five findings from Codex's CHANGES REQUESTED
