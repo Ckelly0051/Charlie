@@ -4,10 +4,15 @@ Three art directions for the two flagship screens, built as real HTML/CSS, from
 the coach's real season. **Nothing here is production code.** No application
 module, token file, or season byte was touched.
 
-Open **`index.html`** to switch among all six. Chrome blocks `file://` iframes, so
-either serve the folder (`python -m http.server 4180`) or open the six files
-directly — the comparison page says so itself if the frame is blocked. The PNGs in
-`captures/` need no server.
+**Double-click `index.html`.** It switches among all six, toggles first-screen vs
+full-page, and links straight to the live HTML for whichever comp is showing.
+Keyboard: `1`/`2`/`3` direction, `R`/`B` screen, `F` view.
+
+It is built on the PNG captures rather than iframes on purpose — Chrome refuses to
+let a `file://` page frame another `file://` page, so an iframe version only works
+behind a server and shows an error otherwise. Images have no such restriction.
+Verified in Chrome over `file://`: all 12 direction × screen × view combinations
+load, zero failed requests.
 
 | | Reports Overview | Break Down |
 |---|---|---|

@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GridIron IQ Visual Reset</title>
 <style>
+/* Built on the PNG captures, not iframes: Chrome refuses to let a file:// page
+   frame another file:// page, so an iframe version only works behind a server.
+   Images have no such restriction — this page works on a double-click. */
 :root{
   --bg:#0F1216; --panel:#171B21; --panel-2:#1D222A; --line:#262C35;
   --ink:#E6EAEF; --ink-2:#98A3AF; --ink-3:#68737F;
@@ -12,16 +15,16 @@
   --sans:"Segoe UI",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);
-  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
 
-header{padding:14px 22px 0;flex:none}
+header{padding:16px 22px 0}
 .eb{font:600 10px var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3)}
 h1{margin:6px 0 3px;font:600 21px/1.15 var(--sans);letter-spacing:-.015em}
-header p{margin:0;font-size:12.5px;color:var(--ink-3);max-width:78ch}
+header p{margin:0;font-size:12.5px;color:var(--ink-3);max-width:80ch}
 
-.ctl{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:14px 22px 13px;flex:none}
+.ctl{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:14px 22px 12px;
+  position:sticky;top:0;background:var(--bg);z-index:5}
 .grp{display:inline-flex;background:var(--panel);border-radius:3px;padding:2px}
 .grp button{font:600 12px var(--sans);border:0;background:transparent;color:var(--ink-3);
   padding:8px 15px;border-radius:2px;cursor:pointer;white-space:nowrap;display:flex;
@@ -30,27 +33,27 @@ header p{margin:0;font-size:12.5px;color:var(--ink-3);max-width:78ch}
 .grp button[data-dir="premium-sports-ops"] i{background:var(--a)}
 .grp button[data-dir="broadcast-analytics"] i{background:var(--b)}
 .grp button[data-dir="tactical-workstation"] i{background:var(--c)}
-.grp button.on{background:var(--panel-2);color:var(--ink);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.grp button.on{background:var(--panel-2);color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.live{font:600 12px var(--sans);color:var(--ink-2);text-decoration:none;background:var(--panel);
+  border-radius:3px;padding:8px 14px}
+.live:hover{background:var(--panel-2);color:var(--ink)}
 .hint{font-size:11.5px;color:var(--ink-3);margin-left:auto}
-kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;
-  padding:2px 6px;color:var(--ink-2)}
+kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;padding:2px 6px;color:var(--ink-2)}
 
-.thesis{padding:0 22px 12px;flex:none}
+.thesis{padding:0 22px 14px}
 .thesis div{display:none;font-size:12.5px;color:var(--ink-2);max-width:96ch;
   border-left:3px solid var(--line);padding-left:12px}
 .thesis div.on{display:block}
 .thesis div b{color:var(--ink)}
-.thesis div.t-premium-sports-ops{border-left-color:var(--a)}
-.thesis div.t-broadcast-analytics{border-left-color:var(--b)}
-.thesis div.t-tactical-workstation{border-left-color:var(--c)}
+.t-premium-sports-ops{border-left-color:var(--a)!important}
+.t-broadcast-analytics{border-left-color:var(--b)!important}
+.t-tactical-workstation{border-left-color:var(--c)!important}
 
-.stage{flex:1;min-height:0;padding:0 22px 20px}
-.frame{width:100%;height:100%;border:0;background:#000;border-radius:3px;
+.stage{padding:0 22px 34px}
+.shot{width:100%;display:block;border-radius:3px;background:#000;
   box-shadow:0 2px 8px rgba(0,0,0,.4),0 16px 44px -22px rgba(0,0,0,.9)}
-.fallback{display:none;padding:16px 18px;background:var(--panel);border-radius:3px;
-  font-size:12.5px;color:var(--ink-2);line-height:1.55}
-.fallback code{background:var(--panel-2);padding:2px 6px;border-radius:2px;font-size:11.5px}
+.cap{display:flex;gap:12px;align-items:baseline;font-size:11.5px;color:var(--ink-3);padding:9px 2px 0}
+.cap b{color:var(--ink-2);font-weight:600}
 </style>
 </head>
 <body>
@@ -60,7 +63,7 @@ kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;
   <h1>Three directions, two screens, one real game</h1>
   <p>Every comp is built from the same real content — Week 1 vs St. Peter Lutheran Patriots (41–0, 67 plays)
      for Reports, and Play 80 of Week 5 vs OL Lakes Lakers for Break Down. No number, label, or football term
-     has been changed between directions. What changes is only how it is composed.</p>
+     changes between directions. Only the composition does.</p>
 </header>
 
 <div class="ctl">
@@ -73,70 +76,85 @@ kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;
     <button class="on" data-screen="reports">Reports Overview</button>
     <button data-screen="breakdown">Break Down</button>
   </div>
-  <span class="hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> direction · <kbd>R</kbd><kbd>B</kbd> screen</span>
+  <div class="grp" id="views">
+    <button class="on" data-view="fold">First screen</button>
+    <button data-view="full">Full page</button>
+  </div>
+  <a class="live" id="open" href="#" target="_blank">Open live HTML ↗</a>
+  <span class="hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> direction · <kbd>R</kbd><kbd>B</kbd> screen · <kbd>F</kbd> view</span>
 </div>
 
 <div class="thesis">
   <div class="on t-premium-sports-ops"><b>The coordinator's binder.</b> Layered dark surfaces with real
     elevation, a continuous team-colour spine, and one typographic rule that carries meaning: measured data
-    is set in sans with tabular figures, the app's own interpretation is set in serif italic. Separation is
-    depth, never a border.</div>
+    is sans with tabular figures, the app's own interpretation is serif italic. Separation is depth, never
+    a border.</div>
   <div class="t-broadcast-analytics"><b>The truck.</b> Flat on-air graphics on stage black — no elevation,
     no cards. Condensed caps carry every structure. A hard colour post heads each module and says whose ball
-    it is: gold offence, cyan defence, bone game-level. On Break Down the play state becomes a real lower-third,
-    below the picture, never over it.</div>
+    it is: gold offence, cyan defence, bone game-level. On Break Down the play state becomes a real
+    lower-third, below the picture, never over it.</div>
   <div class="t-tactical-workstation"><b>The instrument.</b> No cards at all — one machined panel divided by
-    1px grooves, each cell carrying a hairline top highlight so separation reads as material. Every numeral is
-    monospaced, so data reads as a readout. It fits the same report in <b>1,527px</b> where the other two need
-    2,364 and 2,261.</div>
+    1px grooves, each cell carrying a hairline top highlight so separation reads as material. Every numeral
+    is monospaced, so data reads as a readout. It fits the same report in <b>1,527px</b> where the other two
+    need 2,364 and 2,261.</div>
 </div>
 
 <div class="stage">
-  <iframe class="frame" id="f" title="Comp preview"></iframe>
-  <div class="fallback" id="fb">
-    <p><b>The browser is blocking the inline preview.</b> That happens when this page is opened straight from
-      disk with <code>file://</code> — Chrome will not let a local page frame another local page.</p>
-    <p>Open the comps directly instead, or serve the folder:
-      <code>python -m http.server 4180</code> then visit <code>http://127.0.0.1:4180/</code>.
-      The full-size PNGs in <code>captures/</code> need no server at all.</p>
-  </div>
+  <img class="shot" id="shot" alt="">
+  <div class="cap"><b id="capName"></b><span id="capNote"></span></div>
 </div>
 
 <script>
-const f = document.getElementById('f');
-const fb = document.getElementById('fb');
-let dir = 'premium-sports-ops', screen = 'reports';
+const dirsEl = document.getElementById('dirs');
+const screensEl = document.getElementById('screens');
+const viewsEl = document.getElementById('views');
+const shot = document.getElementById('shot');
+const openLink = document.getElementById('open');
+const capName = document.getElementById('capName');
+const capNote = document.getElementById('capNote');
+
+const NAME = {
+  'premium-sports-ops':'A · Premium Sports Operations',
+  'broadcast-analytics':'B · Broadcast Analytics',
+  'tactical-workstation':'C · Modern Tactical Workstation',
+};
+const HEIGHT = {
+  'premium-sports-ops':{reports:2364,breakdown:900},
+  'broadcast-analytics':{reports:2261,breakdown:900},
+  'tactical-workstation':{reports:1527,breakdown:900},
+};
+let dir = 'premium-sports-ops', screen = 'reports', view = 'fold';
 
 function paint(){
-  f.src = `${dir}/${screen}.html`;
-  document.querySelectorAll('#dirs button').forEach(b =>
-    b.classList.toggle('on', b.dataset.dir === dir));
-  document.querySelectorAll('#screens button').forEach(b =>
-    b.classList.toggle('on', b.dataset.screen === screen));
+  const suffix = view === 'fold' ? '-fold' : '';
+  shot.src = `captures/${dir}-${screen}${suffix}.png`;
+  shot.alt = `${NAME[dir]} — ${screen === 'reports' ? 'Reports Overview' : 'Break Down'}`;
+  openLink.href = `${dir}/${screen}.html`;
+  capName.textContent = shot.alt;
+  const h = HEIGHT[dir][screen];
+  capNote.textContent = view === 'fold'
+    ? `First screen · 1440 × 900 · full page is ${h.toLocaleString()}px`
+    : `Full page · 1440 × ${h.toLocaleString()}`;
+  for (const b of dirsEl.children) b.classList.toggle('on', b.dataset.dir === dir);
+  for (const b of screensEl.children) b.classList.toggle('on', b.dataset.screen === screen);
+  for (const b of viewsEl.children) b.classList.toggle('on', b.dataset.view === view);
   document.querySelectorAll('.thesis div').forEach(d =>
     d.classList.toggle('on', d.classList.contains('t-' + dir)));
 }
-document.getElementById('dirs').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (b) { dir = b.dataset.dir; paint(); }
-});
-document.getElementById('screens').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (b) { screen = b.dataset.screen; paint(); }
-});
+
+dirsEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) { dir = b.dataset.dir; paint(); } });
+screensEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) { screen = b.dataset.screen; paint(); } });
+viewsEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) { view = b.dataset.view; paint(); } });
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   const order = ['premium-sports-ops','broadcast-analytics','tactical-workstation'];
   if (k >= '1' && k <= '3') { dir = order[+k - 1]; paint(); }
-  if (k === 'r') { screen = 'reports'; paint(); }
-  if (k === 'b') { screen = 'breakdown'; paint(); }
-});
-
-// If the frame cannot load (file:// restriction), say so plainly rather than
-// showing an empty black rectangle the coach has to diagnose.
-f.addEventListener('load', () => {
-  let ok = true;
-  try { ok = !!f.contentDocument && f.contentDocument.body.childElementCount > 0; }
-  catch (err) { ok = false; }
-  if (!ok) { f.style.display = 'none'; fb.style.display = 'block'; }
+  else if (k === 'r') { screen = 'reports'; paint(); }
+  else if (k === 'b') { screen = 'breakdown'; paint(); }
+  else if (k === 'f') { view = view === 'fold' ? 'full' : 'fold'; paint(); }
 });
 paint();
 </script>
