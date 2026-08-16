@@ -14,6 +14,97 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ INTEGRATED STUDY BETA — `1.12.0-53` INSTALLER READY FOR COACH SMOKE (2026-08-15)
+
+**Local unsigned build, not a tag or published release.** Source commit
+`6a24a45` (Study Phases 1–3 fully accepted — Codex's final verdict on Phase 3
+Player Performance is recorded immediately below). Version bumped to
+`1.12.0-53` across all four owners (`js/app.js` `APP_VERSION`, `src-tauri/
+Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.lock`) — verified
+identical across all four before building. No production code, schema,
+season data, or film path changed in this checkpoint; this is a
+version/build/docs-only release step.
+
+**Installers (unsigned, local — do not publish):**
+- NSIS: `C:\Users\charl\Charlie\src-tauri\target\release\bundle\nsis\GridIron IQ_1.12.0-53_x64-setup.exe`
+  — SHA-256 `C020B325725F19F005D81454BEFFC82DA61C7A1DDBCFEA3EEBD180A95D789D19`
+- MSI: `C:\Users\charl\Charlie\src-tauri\target\release\bundle\msi\GridIron IQ_1.12.0-53_x64_en-US.msi`
+  — SHA-256 `DD5D51DCE1A7FF5C787ECB4B1973B23F8C8FB4E176D14053B4EE37346F3F4EB6`
+
+Built via `cargo tauri build --no-sign` from a clean `dist/` (removed before
+`npm run build`, fresh asset hashes confirmed in the Vite output — not a
+reused bundle). `cargo` compiled `gridiron-iq v1.12.0-53` cleanly.
+
+**Gate evidence — stated precisely, not implied.** The full canonical gate
+was run on this exact source tree **before** the version bump, at commit
+`bfdbb0d`/`6a24a45` (the accepted Study Phase 3 checkpoint): **88 harnesses |
+87 green | 0 skipped | 1 failed** — `e2e-csv-projection.mjs` only, the
+documented pre-existing Puppeteer `Runtime.callFunctionOn: Promise was
+collected` intermittent (a file this checkpoint's entire Study range never
+touches); rerun standalone immediately after and confirmed clean, **22/22**.
+**The gate was NOT re-run after the version bump** — the coach directed
+skipping that rerun since it had just completed on the identical source
+seconds earlier, and the only changes since are four version-string edits
+(`js/app.js`, `Cargo.toml`, `tauri.conf.json`, `Cargo.lock`), verified
+identical across all four owners, which the gate's own `e2e-p0-exit.mjs`
+composition check already covers structurally. No functional code differs
+between the gated tree and this build.
+
+**Scope of the integrated Study beta (all Codex-accepted):**
+- **Phase 1 — core coaching analysis.** Five offense/defense metric pairs
+  (Success/Yards/Explosive/Negative/Havoc Rate) sharing one formula per
+  concept, resolved to the correct unit at query time; six comparison scopes
+  including current-game, full-season, and recent-N-vs-prior-N; Field Zone as
+  a real dimension; polarity-aware ranked visuals; every result film-linked
+  to the metric's own exact eligible refs, never a group's broader raw sample.
+- **Phase 2 — Penalties + Special Teams.** Every penalty disposition
+  (accepted/declined/offsetting/unresolved/no-play) with accepted-only yards;
+  record-scoped aggregation so sibling fouls on a multi-foul play never leak
+  across team/unit rows; every Special Teams phase including the XP/2-Pt try
+  split, tries isolated from ordinary FG/offensive stats; honest
+  null-not-zero disclosure for uncharted structured data; the displayed
+  "Plays" count is now derived from the exact same refs Watch opens, in both
+  query and compare mode.
+- **Phase 3 — Player Performance Analysis.** Six player-role dimensions
+  (ball carrier, passer, receiver, tackler, kicker, returner) built entirely
+  on the existing `AnalyticsMetrics`/`StudyQuery` engine — no parallel
+  player-stat formula. Leaderboard mode (ranked, polarity-aware) or
+  single-player breakdown reusing the existing "Break down by" control;
+  shared-tackle solo/assist credit matches `_individualStats`' own rule;
+  blank grades excluded from grade denominators; structured Special Teams
+  "made"/"scored" classifiers correctly resolve fake-play, legacy, and
+  opponent-scored shapes (the last repair closed a defect where an
+  opponent-scored return touchdown could have been credited to our own
+  returner and linked the wrong film).
+- **Cross-cutting.** Saved Study views round-trip every mode including player
+  questions (leaderboard and single-player breakdown) without colliding with
+  ordinary saved views; Save to Plan records the actual queried
+  dimension/metric and exact film cohort for every mode, including player
+  questions; every Watch action (per-row and the aggregate "Watch results")
+  consumes only the metric's own eligible composite refs.
+
+**Coach smoke checklist** (installed build, real six-game season — do not
+report PASS on synthetic/demo data):
+1. Open Study using the real six-game season.
+2. Verify Offense and Defense coaching metrics produce credible values.
+3. Run current-game, full-season, and recent-vs-prior comparisons.
+4. Query penalties and Special Teams; confirm the displayed Plays count
+   matches exactly what Watch film opens.
+5. Test all six player roles: ball carrier, passer, receiver, tackler,
+   kicker, returner.
+6. Confirm leaderboard ordering (ranked, not registry order) and that each
+   row's Watch action opens that player's own film only.
+7. Save a player view (either leaderboard or single-player breakdown), leave
+   Study, reopen the saved view, and confirm it restores exactly.
+8. Save one Study result to Plan and verify its label and film cohort in the
+   Plan workspace.
+9. Confirm ordinary Break Down, Reports, Plan, linked film, and existing
+   season data all remain intact and unaffected.
+
+**Explicitly not done in this checkpoint:** no tag, no published/stable
+release, no GitHub Pages deploy, no production/coach data touched or
+migrated. This installer is for the coach's own installed smoke only.
+
 ### CODEX FINAL RE-REVIEW - Study Phase 3 Player Performance - ACCEPTED (2026-08-15)
 
 **Verdict: ACCEPTED, no remaining findings.** Re-reviewed `bfdbb0d` against
