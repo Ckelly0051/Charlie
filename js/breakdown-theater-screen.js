@@ -188,14 +188,14 @@ export class BreakdownTheaterScreen {
     const ordinal = ({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || '';
     const situation = ordinal ? ordinal + (tags.distance ? ` & ${tags.distance}` : '') : '—';
 
-    // A field side other than exactly 'own'/'opp' must never be presented as
-    // 'Own' — that invents territory nobody charted. Show the bare yard line
-    // instead, which is honest about what's actually known.
+    // A yard line with no valid own/opp side is not a valid field location —
+    // "Ball On 34" invents territory nobody charted, and so does defaulting
+    // to 'Own'. The honest state is a blank; both side AND yard line must be
+    // known before this cell shows anything but '—'.
     const yardLine = String(tags.yardLine || '').trim();
-    const ball = !yardLine ? '—'
-      : (tags.fieldSide === 'own' || tags.fieldSide === 'opp')
-        ? `${tags.fieldSide === 'opp' ? 'Opp' : 'Own'} ${yardLine}`
-        : yardLine;
+    const ball = yardLine && (tags.fieldSide === 'own' || tags.fieldSide === 'opp')
+      ? `${tags.fieldSide === 'opp' ? 'Opp' : 'Own'} ${yardLine}`
+      : '—';
     const hash = tags.hash || '—';
 
     const joined = (...values) => values.filter(Boolean).join(' · ') || '—';
@@ -276,16 +276,18 @@ export class BreakdownTheaterScreen {
     const offense = unit === 'offense';
     const defense = unit === 'defense';
 
-    // Touchdown and Safety flip meaning by unit, and a defensive Touchdown
-    // needs its own takeaway check — a pick-six or scoop-and-score is a
-    // defensive SUCCESS, not the "opponent scored on us" case a bare
-    // Touchdown normally is on a defense-unit play.
+    // Touchdown ownership must be established BEFORE generic Touchdown tone,
+    // never after — an offense-unit "Interception + Touchdown" is a pick-six
+    // THROWN BY our own offense (their defense scored, bad for us), and an
+    // offense-unit "Fumble + Touchdown" recovered by the opponent is a
+    // scoop-and-score against us — both must read red, not a blind "any
+    // Touchdown on offense is green." _touchdownScorer resolves who actually
+    // crossed the goal line; only when no turnover drove the score does it
+    // fall back to the plain per-unit reading (our offense drove and scored;
+    // their offense scored on our defense).
     if (has('Touchdown')) {
-      if (offense) return { result: text, resultTone: 'pos' };
-      if (defense) {
-        const defensiveScore = has('Interception') || StatsEngine.isFumbleRecovered(play);
-        return { result: text, resultTone: defensiveScore ? 'pos' : 'neg' };
-      }
+      const scorer = this._touchdownScorer(play, tags, unit);
+      return { result: text, resultTone: scorer === 'subject' ? 'pos' : scorer === 'opponent' ? 'neg' : '' };
     }
     if (has('Safety')) {
       if (offense) return { result: text, resultTone: 'neg' };
@@ -293,20 +295,62 @@ export class BreakdownTheaterScreen {
     }
     if (has('Good')) return { result: text, resultTone: defense ? 'neg' : 'pos' };
     if (has('No Good')) return { result: text, resultTone: defense ? 'pos' : 'neg' };
-    if (has('Sack')) return { result: text, resultTone: offense ? 'neg' : defense ? 'pos' : '' };
     if (has('Interception')) return { result: text, resultTone: offense ? 'neg' : defense ? 'pos' : '' };
+    // A fumble the OPPONENT recovered is an unambiguous turnover against the
+    // offense — settle that before evaluating anything else. A fumble the
+    // SUBJECT recovered only means possession was retained; retention is NOT
+    // itself a successful result and must not short-circuit past Sack/Loss
+    // below, or a joined "Fumble + Loss" recovered by our own offense reads
+    // as a positive play when the offense still lost yardage on the snap.
+    // A fumble the OPPONENT recovered is an unambiguous turnover against the
+    // offense — settle that before evaluating anything else. A fumble the
+    // SUBJECT recovered only means possession was retained; retention is NOT
+    // itself a successful result and must not short-circuit past Sack/Loss
+    // below, or a joined "Fumble + Loss" recovered by our own offense reads
+    // as a positive play when the offense still lost yardage on the snap.
+    if (has('Fumble') && StatsEngine.isFumbleLost(play) && offense) {
+      return { result: text, resultTone: 'neg' };
+    }
+    if (has('Sack')) return { result: text, resultTone: offense ? 'neg' : defense ? 'pos' : '' };
+    if (has('Loss')) return { result: text, resultTone: offense ? 'neg' : defense ? 'pos' : '' };
     if (has('Fumble')) {
-      // Ownership, never a blanket "Fumble is bad" — a fumble the subject
-      // recovered is good regardless of unit; one the opponent recovered is
-      // only a clear loss when it happened on the charted offense's own
-      // snap. Everything else (unresolved, or their own fumble on a
-      // defense-unit play) stays neutral rather than guessing.
+      // Possession was retained (or recovery is genuinely unresolved) and
+      // nothing above marked the play bad — a clean recovered fumble is a
+      // real positive; an unresolved recovery stays honestly neutral rather
+      // than guessing which side ended up with the ball.
       if (StatsEngine.isFumbleRecovered(play)) return { result: text, resultTone: 'pos' };
-      if (StatsEngine.isFumbleLost(play) && offense) return { result: text, resultTone: 'neg' };
       return { result: text, resultTone: '' };
     }
-    if (has('Loss')) return { result: text, resultTone: offense ? 'neg' : defense ? 'pos' : '' };
     return { result: text, resultTone: '' };
+  }
+
+  /**
+   * Who actually crossed the goal line on a Touchdown result — 'subject' (the
+   * charted team's own side scored) or 'opponent' (a turnover run back
+   * against the charted unit). Resolved from the SAME ownership fields the
+   * rest of the app already trusts (StatsEngine.hasResult, tags.fumbleRecovery)
+   * rather than the charted unit alone, because the charted unit only tells
+   * you whose snap it was, not who ended the play with the ball.
+   */
+  _touchdownScorer(play, tags, unit) {
+    const has = value => StatsEngine.hasResult(play, value);
+    if (has('Interception')) {
+      // The intercepting side is whoever did NOT throw the pass: on an
+      // offense-unit play our own offense threw it, so the opponent's
+      // defense made the pick; on a defense-unit play the opponent threw it,
+      // so the subject's defense made the pick.
+      return unit === 'offense' ? 'opponent' : unit === 'defense' ? 'subject' : null;
+    }
+    if (has('Fumble')) {
+      // fumbleRecovery already names the team that ended up with the ball,
+      // independent of unit — the same field StatsEngine.isFumbleRecovered/
+      // isFumbleLost read. A genuinely unresolved recovery stays unresolved.
+      const recovery = tags.fumbleRecovery;
+      return recovery === 'subject' ? 'subject' : recovery === 'opponent' ? 'opponent' : null;
+    }
+    // No turnover drove this score — an ordinary drive continuation: our
+    // offense scored, or the opponent's offense scored on our defense.
+    return unit === 'offense' ? 'subject' : unit === 'defense' ? 'opponent' : null;
   }
 
   _chyronSpecialResult(play) {
@@ -332,6 +376,20 @@ export class BreakdownTheaterScreen {
       scoreLabel = ST_SCORE_LABELS[structured.outcome.score] || structured.outcome.score;
       const scorer = SpecialTeamsModel.scoringTeam(structured);
       resultTone = scorer === 'subject' ? 'pos' : scorer === 'opponent' ? 'neg' : '';
+    } else {
+      // No score is not automatically neutral — a missed/blocked Field Goal
+      // or a failed Try is unambiguously negative for the attempting subject
+      // and positive for the defending subject. No Play (a genuine non-
+      // attempt, e.g. a negated snap) stays honestly neutral, never guessed
+      // either way — the same "unresolved stays unresolved" discipline the
+      // offense/defense fumble branch already follows.
+      const failed = isTry
+        ? structured.result === 'failed'
+        : structured.outcome.status === 'noGood' || structured.outcome.status === 'blocked';
+      if (failed) {
+        resultTone = structured.subjectRole === 'attempting' ? 'neg'
+          : structured.subjectRole === 'defending' ? 'pos' : '';
+      }
     }
     const text = outcomeLabel && scoreLabel ? `${outcomeLabel} · ${scoreLabel}`
       : outcomeLabel || scoreLabel || '—';

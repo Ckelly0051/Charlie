@@ -117,6 +117,33 @@ state = await page.evaluate(() => {
   const fumbleUnknown = c({ ...base, tags: { unit: 'offense', result: 'Fumble', yardage: '0', fumbleRecovery: '' } });
   const fumbleSubjectRecovered = c({ ...base, tags: { unit: 'offense', result: 'Fumble', yardage: '0', fumbleRecovery: 'subject' } });
   const fumbleOpponentRecovered = c({ ...base, tags: { unit: 'offense', result: 'Fumble', yardage: '0', fumbleRecovery: 'opponent' } });
+  // Possession retained on a fumble is NOT itself a successful result — a
+  // joined "Fumble + Loss" recovered by our own offense must still read the
+  // Loss, not the recovery.
+  const fumbleSubjectRecoveredLoss = c({ ...base, tags: { unit: 'offense', result: 'Fumble + Loss', yardage: '4', fumbleRecovery: 'subject' } });
+
+  // Codex re-review (aa9a80a): compound-outcome ownership must be resolved
+  // BEFORE generic Touchdown tone, mirrored on BOTH units — the first repair
+  // only pinned the defensive direction (defPickSix above), leaving the
+  // offense direction (a pick-six or scoop-and-score AGAINST us) unproven.
+  const offPickSixAgainstUs = c({ ...base, tags: { unit: 'offense', result: 'Interception + Touchdown', yardage: '-58' } });
+  const offScoopAndScoreAgainstUs = c({ ...base, tags: { unit: 'offense', result: 'Fumble + Touchdown', yardage: '0', fumbleRecovery: 'opponent' } });
+  const defOpponentScoopAndScore = c({ ...base, tags: { unit: 'defense', result: 'Fumble + Touchdown', yardage: '0', fumbleRecovery: 'opponent' } });
+
+  // Structured Special Teams: a failed attempt is not automatically neutral
+  // just because it produced no score — it is negative for the attempting
+  // subject and positive for the defending subject; a genuine No Play stays
+  // neutral, never guessed either way.
+  const stMissedFieldGoal = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'fieldGoal', outcome: { status: 'noGood' } } });
+  const stBlockedByUs = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'fieldGoalBlock', outcome: { status: 'blocked' } } });
+  const stFailedTry = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'try', attemptType: 'twoPoint', result: 'failed' } });
+  const stStoppedTheirTry = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'tryDefense', attemptType: 'extraPoint', result: 'failed' } });
+  const stNoPlayTry = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'try', attemptType: 'extraPoint', result: 'noPlay' } });
 
   // Honesty gaps: field side must never be invented, and the defensive call
   // must compose Front + Coverage Call + Coverage Family + Blitz in full.
@@ -133,6 +160,13 @@ state = await page.evaluate(() => {
     defTdAgainst: defTdAgainst.resultTone, defPickSix: defPickSix.resultTone,
     fumbleUnknown: fumbleUnknown.resultTone, fumbleSubjectRecovered: fumbleSubjectRecovered.resultTone,
     fumbleOpponentRecovered: fumbleOpponentRecovered.resultTone,
+    fumbleSubjectRecoveredLoss: fumbleSubjectRecoveredLoss.resultTone,
+    offPickSixAgainstUs: offPickSixAgainstUs.resultTone,
+    offScoopAndScoreAgainstUs: offScoopAndScoreAgainstUs.resultTone,
+    defOpponentScoopAndScore: defOpponentScoopAndScore.resultTone,
+    stMissedFieldGoal: stMissedFieldGoal.resultTone, stBlockedByUs: stBlockedByUs.resultTone,
+    stFailedTry: stFailedTry.resultTone, stStoppedTheirTry: stStoppedTheirTry.resultTone,
+    stNoPlayTry: stNoPlayTry.resultTone,
     missingFieldSide: missingFieldSide.ball,
     fullDefCall: fullDefCall.ourValue,
   };
@@ -154,7 +188,20 @@ ok(state.defPickSix === 'pos', 'A defensive pick-six is positive, not treated as
 ok(state.fumbleUnknown === '', 'A fumble with unresolved recovery stays neutral rather than guessing bad');
 ok(state.fumbleSubjectRecovered === 'pos', 'A fumble recovered by the subject is positive');
 ok(state.fumbleOpponentRecovered === 'neg', 'A fumble lost to the opponent on an offense-unit play is negative');
-ok(state.missingFieldSide === '34', 'A yard line with no valid field side renders honestly, never invented as Own', JSON.stringify(state.missingFieldSide));
+ok(state.fumbleSubjectRecoveredLoss === 'neg',
+  'Retaining a fumble is not itself a success -- "Fumble + Loss" recovered by our own offense still reads the Loss', JSON.stringify(state.fumbleSubjectRecoveredLoss));
+ok(state.offPickSixAgainstUs === 'neg',
+  'An offense-unit "Interception + Touchdown" (a pick-six thrown by our own offense) is negative, not green', JSON.stringify(state.offPickSixAgainstUs));
+ok(state.offScoopAndScoreAgainstUs === 'neg',
+  'An offense-unit "Fumble + Touchdown" recovered by the opponent (scoop-and-score against us) is negative, not green', JSON.stringify(state.offScoopAndScoreAgainstUs));
+ok(state.defOpponentScoopAndScore === 'neg',
+  'A defense-unit "Fumble + Touchdown" the opponent kept and scored on is negative for our defense', JSON.stringify(state.defOpponentScoopAndScore));
+ok(state.stMissedFieldGoal === 'neg', 'A missed Field Goal is negative for the attempting subject, not neutral', JSON.stringify(state.stMissedFieldGoal));
+ok(state.stBlockedByUs === 'pos', 'A Field Goal we blocked is positive for the defending subject, not neutral', JSON.stringify(state.stBlockedByUs));
+ok(state.stFailedTry === 'neg', 'A failed Try is negative for the attempting subject, not neutral', JSON.stringify(state.stFailedTry));
+ok(state.stStoppedTheirTry === 'pos', 'Stopping the opponent\'s Try is positive for the defending subject, not neutral', JSON.stringify(state.stStoppedTheirTry));
+ok(state.stNoPlayTry === '', 'A structured Try ruled No Play stays honestly neutral', JSON.stringify(state.stNoPlayTry));
+ok(state.missingFieldSide === '—', 'A yard line with no valid field side renders the honest blank, never a bare number', JSON.stringify(state.missingFieldSide));
 ok(state.fullDefCall === '4-3 · Cover 3 · Zone · Edge',
   'The defensive call composes Front + Coverage Call + Coverage Family + Blitz in full', JSON.stringify(state.fullDefCall));
 

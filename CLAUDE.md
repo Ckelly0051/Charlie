@@ -14,6 +14,101 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ REPAIRED — Part 1 repair round 2 findings from `aa9a80a` — AWAITING RE-REVIEW (2026-08-16)
+
+**Builder: Claude. Repair commit range: `26471ab..HEAD`.** Closes both
+findings from Codex's `aa9a80a` re-review (recorded immediately below). No
+installer/package/tag/deploy — same governing brief as Part 1. Repair
+boundary honored exactly: only `_chyron()`'s classifier seam and the
+ball-position one-liner were touched; no CSS/layout, geometry floors,
+Reports, analytics, persistence, or tagging data.
+
+**[P1, closed] Compound-play ownership is now resolved before generic
+Touchdown tone, on both units.** `_touchdownScorer(play, tags, unit)` is a
+new, single ownership resolver: Interception → the side that did NOT throw
+the pass; Fumble → `tags.fumbleRecovery` directly (`'subject'`/`'opponent'`);
+neither present → the plain per-unit reading (our offense scored / their
+offense scored on our defense). `_chyronResult` calls it before returning any
+Touchdown tone, so an offense-unit `Interception + Touchdown` (a pick-six
+thrown by our own offense) and an offense-unit `Fumble + Touchdown` recovered
+by the opponent (scoop-and-score against us) both now read red — previously
+both read green because the offense branch returned `'pos'` unconditionally
+the instant `Touchdown` matched, before any ownership check ran. The mirrored
+defense-unit case (their offense keeping a fumble and scoring on us) is
+covered too, using the same resolver.
+
+**Same seam, second defect: retaining a fumble is no longer treated as an
+automatic success.** The Fumble branch previously returned `'pos'` immediately
+whenever `StatsEngine.isFumbleRecovered(play)` was true, before any joined
+Sack/Loss was considered — so `Fumble + Loss` recovered by our own offense
+(we kept the ball but still lost yardage) read green. Reordered: an
+opponent-recovered fumble (an unambiguous turnover) is still checked first
+and returns `'neg'` for offense immediately; everything else now falls
+through Sack/Loss (the actual football outcome) before the retained-fumble
+`'pos'` fallback fires, so a joined negative result is never masked by mere
+possession retention.
+
+**Structured attempt semantics completed in the same seam.** `_chyronSpecial
+Result`'s non-score branch previously left every structured Field Goal/Try
+outcome neutral unless it carried an explicit score — a missed Field Goal
+(`status: 'noGood'`), a blocked Field Goal, or a failed Try showed no tone at
+all. It now checks `structured.result === 'failed'` (try) or `structured.
+outcome.status === 'noGood' || 'blocked'` (field goal) and colors by
+`structured.subjectRole`: negative for `'attempting'`, positive for
+`'defending'`. A genuine `noPlay` try stays honestly neutral — never guessed
+either way, matching the same discipline already used for unresolved fumble
+recovery.
+
+**[P2, closed] Missing field side now renders the exact honest blank.** The
+round-1 repair replaced the invented `Own 34` with the bare number `34`,
+which the re-review correctly rejected — `Ball On 34` is not a valid field
+location. `ball` is now `'—'` unless **both** the yard line and a valid
+`own`/`opp` side are known; there is no longer an intermediate "known yard
+line, unknown side" state that renders anything but the blank.
+
+**New discriminating coverage, mirroring the review's exact examples.**
+`tools/e2e-native-breakdown-theater.mjs` gained 15 new assertions: mirrored
+offense/defense pick-six and scoop-and-score-against-us fixtures, a retained
+fumble with a joined Loss, a defense-unit opponent-kept-fumble-and-scored
+fixture, five structured Field-Goal/Try miss/block/no-play cases, and the
+corrected honest-blank ball-position assertion (replacing the round-1
+assertion that had blessed the bare-number substitution). File total 55/55.
+
+**Mutation-verified, each in isolation, each restored and reconfirmed
+green:** reverting the offense-Touchdown ownership check reproduces exactly
+the two mirrored pick-six/scoop-and-score assertions red, nothing else;
+reverting the fumble-ordering fix reproduces exactly the retained-fumble-loss
+assertion red; disabling the structured non-score tone branch reproduces
+exactly the four Field-Goal/Try miss/block assertions red (No Play stays
+green, unaffected); reverting the ball-position fix reproduces exactly the
+honest-blank assertion red with evidence `"34"`.
+
+**Verification:**
+- `node tools/e2e-native-breakdown-theater.mjs` — **55/55** (was 46, +9 net:
+  15 new assertions, one prior assertion inverted from blessing `34` to
+  requiring `—`).
+- `node tools/e2e-breakdown-geometry.mjs` — **12/12**, unchanged (file not
+  touched this round).
+- `node tools/e2e-native-tagging.mjs` — **55/55**, unchanged.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 87 green |
+  0 skipped | 1 failed** — `e2e-csv-projection.mjs` only, the same documented
+  pre-existing Puppeteer/CDP `Runtime.callFunctionOn: Promise was collected`
+  intermittent as the prior repair round (this repair touches no CSV/
+  projection file — confirmed by grep; the file's only `projection`-matching
+  lines are unrelated `TagProjection.lookLabel` calls); standalone reran 3×,
+  crashed before any assertion 2 of 3 times and completed 22/22 clean on the
+  third, consistent with the documented flake rate for this class of harness.
+
+**No analytics formula, persistence schema, coach data, film file, CSS,
+layout, or unrelated behavior changed.** Every value still traces to
+`StatsEngine.proj()`/`StatsEngine.hasResult()`/`SpecialTeamsModel.
+scoringTeam()`/`tags.fumbleRecovery` on the live play — no comp value, no
+guessed ownership.
+
+**Handoff to Codex for final Part 1 acceptance.** Both remaining findings are
+closed at the root with discriminating, mutation-verified regressions. No
+installer/package/tag/deploy is authorized from this repair.
+
 ### ▶ CODEX RE-REVIEW — Part 1 repair `26471ab`: CHANGES REQUESTED (2026-08-16)
 
 **Reviewer: Codex. The structured-ST source fix, full defensive-call
