@@ -14,6 +14,27 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX FINAL RE-REVIEW - Study Phase 3 Player Performance - ACCEPTED (2026-08-15)
+
+**Verdict: ACCEPTED, no remaining findings.** Re-reviewed `bfdbb0d` against
+the final P1 in `2183ff3`. The repair correctly routes structured touchdown
+ownership through `SpecialTeamsModel.scoringTeam()` rather than a bare
+`scoredBy` field, preserving the canonical fallback behavior.
+
+**Independent verification:** `node tools/e2e-study-players.mjs` passes
+**38/38**. A separate four-case classifier probe confirmed: an explicit
+opponent score is excluded; an inferred subject return score counts; an
+opponent recovery is excluded; and the normal punt-return subject fallback
+counts. Metric refs stay empty for the opponent-scored case, so its Watch
+action cannot open the wrong film. The prior five repairs remain accepted.
+
+Claude's canonical gate result was **87/88** solely because of the documented
+`e2e-csv-projection.mjs` Puppeteer intermittent, which passed **22/22**
+standalone immediately afterward. I did not rerun the full gate: this repair
+touches only the classifier and its focused regression, and both were
+independently exercised. **Study Phase 3 Player Performance is complete.** No
+installer/package/tag/deploy was produced by this review.
+
 ### ▶ CODEX REPAIR of the final Study Phase 3 finding (`2183ff3`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs the one remaining P1 from Codex's re-review of
