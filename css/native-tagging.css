@@ -14,7 +14,10 @@
 }
 .gi-unit-switch button:last-child{border-right:0}
 .gi-unit-switch button:hover{background:var(--gi-4);color:var(--gi-12)}
-.gi-unit-switch button.is-active{background:var(--gi-los);color:var(--gi-on-solid)}
+.gi-unit-switch button.is-active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+/* Defense is the one unit whose active state marks defensive CONTEXT, not
+   just a selection — it takes cyan; Offense/Special Teams stay gold. */
+.gi-unit-switch button[data-unit="defense"].is-active{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-unit-switch button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .gi-tag-subject{grid-column:1/-1;margin:0;color:var(--gi-warn);font:var(--gi-text-caption)}
 .gi-tag-hint{margin:var(--gi-1x) 0 0;color:var(--gi-11);font:var(--gi-text-caption)}
@@ -51,11 +54,13 @@
   display:inline-flex;align-items:center;min-height:22px;
   margin:-1px 0;padding:0 22px 0 10px;
   background:var(--gi-3);color:var(--gi-12);
-  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
+  /* Broadcast Density: same lower-third shape, gold-leading fill reassigned
+     locally — --gi-lower-third-fill itself is untouched for Reports/Study. */
+  clip-path:var(--gi-lower-third);background:var(--gi-bd-lower-third-fill);
   font:700 11.5px/1 var(--gi-cond);letter-spacing:var(--gi-track-label);
   text-transform:uppercase;
 }
-.gi-tag-group[open]>summary strong{background:var(--gi-9);color:var(--gi-on-solid)}
+.gi-tag-group[open]>summary strong{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-tag-group>summary{padding-left:0;gap:var(--gi-2x)}
 .gi-tag-group[open]>summary{background:var(--gi-2)}
 .gi-tag-group>summary i{margin-right:10px}
@@ -73,13 +78,13 @@
 
 /* 3 — one action means done. */
 .gi-tag-nav button[data-tag-save],.gi-tag-nav .is-primary{
-  background:var(--gi-first-down);border-color:var(--gi-first-down);
-  color:var(--gi-1);font-weight:700;
+  background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);
+  color:var(--gi-bd-gold-ink);font-weight:700;
 }
 .gi-tag-nav button[data-tag-save]:hover,.gi-tag-nav .is-primary:hover{filter:brightness(1.08)}
 
 .gi-tag-field{display:grid;gap:5px;min-width:0}.gi-tag-field-label{display:flex;align-items:baseline;gap:6px;color:var(--gi-11);font:700 11.5px var(--gi-sans);text-transform:uppercase}.gi-tag-field-label small{color:var(--gi-9);font:500 12px var(--gi-sans);text-transform:none}.gi-tag-field-label button{margin-left:auto;border:0;background:transparent;color:var(--gi-9);font:600 11.5px var(--gi-sans)}
-.gi-tag-chips{display:flex;flex-wrap:wrap;gap:4px}.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,.gi-tag-custom button,.gi-player-quick button{min-height:30px;padding:0 9px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-11);font:600 12px var(--gi-sans)}.gi-tag-chips button:hover,.gi-tag-add:hover,.gi-native-form>button:hover,.gi-tag-custom button:hover,.gi-player-quick button:hover{border-color:var(--gi-9);background:var(--gi-4)}.gi-tag-chips button.is-active,.gi-player-quick button.is-active{border-color:var(--gi-9);background:var(--gi-9);color:var(--gi-on-solid)}
+.gi-tag-chips{display:flex;flex-wrap:wrap;gap:4px}.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,.gi-tag-custom button,.gi-player-quick button{min-height:30px;padding:0 9px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-11);font:600 12px var(--gi-sans)}.gi-tag-chips button:hover,.gi-tag-add:hover,.gi-native-form>button:hover,.gi-tag-custom button:hover,.gi-player-quick button:hover{border-color:var(--gi-9);background:var(--gi-4)}.gi-tag-chips button.is-active,.gi-player-quick button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-tag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px}.gi-tag-input{display:grid;gap:4px;color:var(--gi-10);font:700 12px var(--gi-sans);text-transform:uppercase}.gi-tag-input input,.gi-tag-input select,.gi-tag-input textarea{width:100%;min-height:32px;padding:6px 8px}.gi-tag-input textarea{min-height:58px;resize:vertical}
 /* G12 — the grade select was pinned at 70px, which after its padding and native
    arrow left ~40px of text room and rendered "Grade" as "Grad". A control is
@@ -91,7 +96,7 @@
 .gi-player-quick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:3px;max-height:98px;overflow-y:auto;padding-top:2px;scrollbar-width:thin;scrollbar-color:var(--gi-7) transparent}
 .gi-player-quick button{min-height:28px;padding:0 2px;border:1px solid var(--gi-6);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-12);font:650 12px/1 var(--gi-mono);font-variant-numeric:var(--gi-num-feat);cursor:pointer}
 .gi-player-quick button:hover{border-color:var(--gi-9);background:var(--gi-4)}
-.gi-player-quick button.is-active{background:var(--gi-los);border-color:var(--gi-los);color:var(--gi-on-solid)}
+.gi-player-quick button.is-active{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-penalty-card{display:grid;gap:6px;padding:7px;border-left:3px solid var(--gi-first-down);background:var(--gi-1)}.gi-penalty-card header,.gi-penalty-situation header{display:flex;align-items:center;justify-content:space-between}.gi-penalty-card .gi-is-risk{min-height:30px;border:1px solid var(--gi-danger-border);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-turnover)}.gi-penalty-situation{display:grid;gap:7px;padding:8px;border-top:1px solid var(--gi-6)}
 .gi-tag-warning{margin:0;padding:7px;border-left:3px solid var(--gi-first-down);background:var(--gi-3);color:var(--gi-11);font-size:12px}.gi-tag-warning p{margin:2px 0}
 .gi-tag-check{display:flex;align-items:center;gap:7px;min-height:32px;color:var(--gi-11);font-size:12px}.gi-tag-check input{width:18px;height:18px;accent-color:var(--gi-9)}.gi-tag-toggles{display:flex;flex-wrap:wrap;gap:12px;padding:0 4px}
@@ -134,7 +139,7 @@
    the play is finished, and first-down yellow means achieved everywhere else in
    the system. Confirmed keeps system-health green — "saved" is a system fact,
    not a football one. */
-.gi-tag-nav .is-primary{border-color:var(--gi-first-down);background:var(--gi-first-down);color:var(--gi-1);font-weight:700}
+.gi-tag-nav .is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:700}
 .gi-tag-nav .is-primary:hover{filter:brightness(1.08)}
 .gi-tag-nav .is-primary.is-confirmed{border-color:var(--gi-ok);background:var(--gi-ok);color:var(--gi-1)}
 
@@ -205,7 +210,7 @@
 .gi-play-call-entry .gi-play-call-clear{color:var(--gi-10)}
 .gi-play-call-quick,.gi-play-call-defaults{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
 .gi-play-call-quick button{min-height:28px}
-.gi-play-call-quick button.is-active{border-color:var(--gi-9);background:var(--gi-9);color:var(--gi-on-solid)}
+.gi-play-call-quick button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-play-call-defaults{color:var(--gi-10);font:500 11.5px var(--gi-sans)}
 .gi-play-call-defaults>span{font-weight:700;text-transform:uppercase}
 .gi-play-call-defaults em{padding:3px 6px;border-left:2px solid var(--gi-first-down);background:var(--gi-3);color:var(--gi-11);font-style:normal}
@@ -216,3 +221,33 @@
 .gi-tag-group-body{padding:8px var(--gi-4x)}
 .gi-play-call>.gi-tag-field-label{display:flex;align-items:center}
 .gi-play-call-library{margin-left:auto;border:0;background:transparent;color:var(--gi-los);font:600 12px var(--gi-sans);cursor:pointer}
+
+/* ══ Broadcast Density Part 1 — DESIGN RULES LAST ══════════════════════════
+   Placed at the end, matching this file's own established convention (see the
+   S6-5b comment above): a rule that loses on source order is invisible.
+
+   THE GROUP RAIL. The hairline-join redesign removed borders entirely in
+   favour of a 1px background gap between groups, which is right for
+   separation but leaves no room to say "this group is defensive
+   information" the way the accepted comp's cyan rail does. A 3px LEFT border
+   is additive to that gap, not a return to bordered cards — three sides stay
+   at 0. Default is bone (neutral module identity); any group actually
+   showing defensive scheme fields (Front, Coverage) takes cyan, whether it's
+   the primary thing being charted (Our/Opponent Defensive Call) or the
+   secondary one (Defense Faced) — both are defensive context. */
+.gi-tag-group{border-left:3px solid var(--gi-bd-bone)}
+.gi-tag-group:has([data-native-field="defFront"]),
+.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
+/* The plate itself follows the rail: a defensive group's OPEN title reads
+   cyan (identity), not gold (which stays reserved for the value a coach just
+   picked, everywhere else in the deck). */
+.gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,
+.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{
+  background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink);
+}
+
+/* Play-call quick-pick chips sat at 28px, 2px under the 30px desktop chip
+   floor — the roster jersey-number picker is a documented, deliberate
+   exception to that floor (S6 J4, a coach's own request); this is not that
+   control, it is an ordinary selection chip and gets the ordinary floor. */
+.gi-play-call-quick button{min-height:30px}

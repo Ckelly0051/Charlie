@@ -130,12 +130,25 @@ const geometryAt = async (width, height) => {
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
 };
+// Broadcast Density Part 1 (CLAUDE.md, 2026-08-16) adds a REQUIRED live
+// below-film lower-third — the brief's own words: "Add the information strip
+// below the video." A fixed-height row below the stage necessarily takes some
+// picture height from the stage's minmax(...,1fr) row; there is no amount of
+// padding-trimming that makes a visible, legible strip cost zero pixels.
+// These floors were re-measured on the accepted composition (chyron included,
+// trimmed to its tightest legible padding) rather than silently lowered: the
+// picture STILL materially exceeds the 1060x596 legacy baseline at 1440x900
+// (was ~1112x596 pre-lower-third per S5a; now ~1121x631 with it) and still
+// preserves a large 1080p/4K budget at 1920x1080 (~1441x811). Floors sit a
+// small margin below the measured values so normal rendering variance can't
+// flake this assertion; they must NOT be lowered further without the same
+// kind of honest re-measurement and a documented reason.
 const desktop = await geometryAt(1440, 900);
-ok(desktop.picture[0] >= 1200 && desktop.picture[1] >= 675,
-  '1440 theater materially exceeds the measured 1060x596 legacy working picture', JSON.stringify(desktop));
+ok(desktop.picture[0] >= 1100 && desktop.picture[1] >= 615,
+  '1440 theater materially exceeds the legacy working picture with the Broadcast Density lower-third included', JSON.stringify(desktop));
 const wide = await geometryAt(1920, 1080);
-ok(wide.picture[0] >= 1500 && wide.picture[1] >= 840,
-  'Wide theater preserves a large ordinary pixel budget for 1080p and 4K film', JSON.stringify(wide));
+ok(wide.picture[0] >= 1400 && wide.picture[1] >= 795,
+  'Wide theater preserves a large ordinary pixel budget for 1080p and 4K film with the lower-third included', JSON.stringify(wide));
 ok(desktop.contained && wide.contained,
   'Desktop theater keeps transport, strip, and play actions inside the working viewport', JSON.stringify({ desktop, wide }));
 const tablet = await geometryAt(768, 1024);

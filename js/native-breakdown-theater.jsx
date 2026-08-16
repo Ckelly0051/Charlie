@@ -6,6 +6,26 @@ function Icon({ name }) {
   return <svg aria-hidden="true"><use href={`assets/icons.svg#icon-${name}`} /></svg>;
 }
 
+/**
+ * The below-film lower-third. Sits between the stage and the transport, never
+ * over the video — the film column is `.gi-theater-stage` (flexes) followed
+ * by this fixed-height row, so a chyron pixel can never sit on a video pixel.
+ * Renders nothing when no play is selected, rather than an empty shell.
+ */
+function Chyron({ state }) {
+  const c = state.chyron;
+  if (!c) return null;
+  return <div class="gi-theater-chyron" data-native-chyron aria-label="Current play">
+    <div class="gi-chyron-id"><span class="gi-chyron-k">Play</span><span class="gi-chyron-v">{c.playId}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Down &amp; Distance</span><span class="gi-chyron-v is-cond">{c.situation}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond">{c.ball}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Hash</span><span class="gi-chyron-v">{c.hash}</span></div>
+    <div class={`gi-chyron-cell${c.ourTone ? ` is-${c.ourTone}` : ''}`}><span class="gi-chyron-k">{c.ourLabel}</span><span class="gi-chyron-v">{c.ourValue}</span></div>
+    {c.lookLabel && <div class="gi-chyron-cell"><span class="gi-chyron-k">{c.lookLabel}</span><span class="gi-chyron-v">{c.lookValue}</span></div>}
+    <div class={`gi-chyron-cell is-wide${c.resultTone ? ` is-${c.resultTone}` : ''}`}><span class="gi-chyron-k">Result</span><span class="gi-chyron-v">{c.result}</span></div>
+  </div>;
+}
+
 function Transport({ screen, state }) {
   return <div class="gi-theater-transport" aria-label="Video controls">
     <div class="gi-theater-transport-main">
@@ -96,6 +116,7 @@ function NativeBreakdownTheater({ screen }) {
       <div class="gi-theater-stage">
         <div class="gi-theater-media-slot" data-native-media-slot />
       </div>
+      <Chyron state={state} />
       <Transport screen={screen} state={state} />
     </div>
     <AngleBar screen={screen} state={state} />

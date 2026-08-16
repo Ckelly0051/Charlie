@@ -162,6 +162,38 @@
   --gi-enter:260ms cubic-bezier(.16,1,.3,1);
 
   --gi-focus:0 0 0 2px var(--gi-1),0 0 0 4px var(--gi-los);
+
+  /* ── BROADCAST DENSITY (accepted production direction, 2026-08-16) ────────
+   * Additive to everything above — nothing here replaces --gi-los/
+   * --gi-first-down, which existing routes (Reports, Study, Plan, Home) still
+   * consume for "current"/"achieved". Part 1 wires these into Break Down only;
+   * a route that never references a --gi-bd-* token is visually unchanged.
+   *
+   * GOLD = active context: a selected chip/value, the active tab or route, the
+   *        play a coach is on, the primary commit action.
+   * CYAN = defensive context: the module identity for defensive information —
+   *        a rail, a heading, the Defense unit toggle — never a selection state.
+   * BONE = neutral module identity, the default when a module is neither the
+   *        active selection nor specifically defensive.
+   * Reused, not reinvented: --gi-ok/--gi-turnover remain the good/critical
+   * pair (a saved state, a takeaway, a loss) — this block does not duplicate
+   * them under a new name. */
+  --gi-bd-gold:#d9a21a;
+  --gi-bd-gold-ink:#14100a;
+  --gi-bd-cyan:#12a9cb;
+  --gi-bd-cyan-ink:#03151a;
+  --gi-bd-bone:#4a5765;
+  --gi-bd-stage:#06080b;
+  /* Football identifiers and section labels — the condensed role. Values,
+   * controls, and body copy use --gi-sans (see the Part 1 contract in
+   * CLAUDE.md for why Segoe UI's ROLE is fulfilled by the already-embedded
+   * Plex faces rather than an unbundled system font). */
+  --gi-bd-cond:var(--gi-cond);
+  /* A gold-leading lower-third fill, parallel to --gi-lower-third-fill but
+   * never assigned to that shared token — Reports and Study read the blue
+   * one today and must keep doing so until Part 2 migrates them. */
+  --gi-bd-lower-third-fill:linear-gradient(90deg,var(--gi-bd-gold) 0 3px,var(--gi-4) 3px,var(--gi-3) 55%);
+  --gi-bd-lower-third-fill-cyan:linear-gradient(90deg,var(--gi-bd-cyan) 0 3px,var(--gi-4) 3px,var(--gi-3) 55%);
 }
 @media (pointer:coarse){ :root{ --gi-hit:44px; --gi-control:44px; --gi-row:48px; } }
 @media (prefers-reduced-motion:reduce){ :root{ --gi-quick:0ms; --gi-ease:0ms; --gi-enter:0ms; } }

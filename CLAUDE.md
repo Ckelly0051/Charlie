@@ -14,6 +14,140 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — Part 1: Broadcast Density in production Break Down — AWAITING CODEX REVIEW (2026-08-16)
+
+**Builder: Claude. Documentation-contract commit: `3e9f94b`. Production commit
+range: `3e9f94b..HEAD` (one production commit on top of the contract). No
+installer, tag, deploy, or release — none is authorized until Codex
+independently reviews and accepts this.**
+
+Implements the Part 1 contract recorded immediately below: the accepted
+Broadcast Density direction, restyled and wired into the **live** Break Down
+route (`BreakdownWorkspace` → `BreakdownTheaterScreen`/`native-breakdown-
+theater.jsx` for film, `NativeTaggingScreen`/`native-tagging.jsx` for the
+charting deck) — not a second implementation, not a static copy. Reports is
+untouched.
+
+**Files changed (production):**
+- `design-system/tokens.css` — additive `--gi-bd-*` token block (gold/cyan/
+  bone semantics, stage colour, a gold-leading lower-third-fill variant).
+  Nothing existing was redefined; `--gi-los`/`--gi-first-down`/
+  `--gi-lower-third-fill` keep their current meaning for every route that
+  isn't Break Down.
+- `js/breakdown-theater-screen.js` — new `_chyron(play)` builder + a
+  `gameContext` subscription so scout-perspective wording updates live; wired
+  into `snapshot()` as `chyron`. Reads the current play through
+  `StatsEngine.proj()`, the exact same projection `NativeTaggingScreen`
+  already merges over raw tags, so the chyron can never disagree with the tag
+  form beside it. No new formula, no raw six-field tag read.
+- `js/native-breakdown-theater.jsx` — new `Chyron` component, rendered between
+  the film stage and the transport (never over the video).
+- `css/native-breakdown-theater.css` — the chyron's styling; gold re-skin of
+  the theater's active/current states (icon commands, scrub, autoplay accent,
+  play-card current highlight, drive-group current heading); the idle
+  lower-third plate now uses the new gold-leading fill instead of the shared
+  blue token.
+- `css/native-tagging.css` — gold re-skin of chip/unit/template active states
+  and the Save & Next primary action; cyan for the Defense unit toggle and for
+  any charting group that actually shows defensive scheme fields (Front,
+  Coverage — via `:has([data-native-field="..."])`, matching whichever group
+  is currently showing them, primary or secondary); a new 3px group left rail
+  (bone default, cyan for defensive-field groups); the play-call quick-pick
+  chip floor bumped 28px → 30px.
+- `css/native-breakdown-route.css` — the toolbar's active-tab underline moved
+  from the shared blue token to gold, scoped to this file only.
+- `tools/e2e-breakdown-geometry.mjs`, `tools/e2e-native-breakdown-theater.mjs`
+  — see "Known limitation" below; both were honestly re-measured and updated,
+  not silently loosened.
+
+**Nothing else changed.** No analytics formula, tagging semantics, storage
+path, film identity, or season data. No Reports file was touched. No value
+from the static `broadcast-density/reports.html` or `breakdown.html` comps
+was copied into production — every number the chyron shows comes from
+`StatsEngine.proj()` on the live play.
+
+**Verified against the real app, not assumed.** Drove the built app through
+Puppeteer and the interactive preview (a `gridiron-dev` launch config was
+added to `.claude/launch.json`, untracked per this repo's standing
+convention) with a seeded season carrying real offense/defense/special-teams
+plays, and confirmed: the chyron's labels/values are honestly composed from
+`StatsEngine.proj()` output (a legacy `formation:'Under Center'` correctly
+reprojects into the QB-alignment-aware `TagProjection.lookLabel` composition
+rather than silently dropping to blank); computed colours resolve to the
+exact new tokens (`rgb(217,162,26)` = `--gi-bd-gold`, `rgb(18,169,203)` =
+`--gi-bd-cyan`) on the chyron, the Defense unit toggle, chip active states,
+the defensive group rail, and Save & Next; zero console/page errors across
+offense, defense, and special-teams unit switches. Screenshots at
+`design-comps/visual-reset-2026-08/part1-verification/` (1440×900 offense/defense/special-teams,
+1280×720 defense).
+
+**Known limitation, disclosed rather than hidden.** The lower-third is a
+**required** capability the brief explicitly asks for ("Add the information
+strip below the video"), and any nonzero-height row below the stage
+necessarily spends some of the stage's own `minmax(...,1fr)` grid row — there
+is no padding trim that makes a legible strip cost zero pixels. Two
+pre-existing geometry regression tests (`e2e-breakdown-geometry.mjs`,
+`e2e-native-breakdown-theater.mjs`) asserted fixed minimum picture-size floors
+calibrated **before** the lower-third existed. Both were honestly
+re-measured on the accepted composition (chyron trimmed to its tightest
+legible padding — 5px vertical cell padding, 13px value type, still above the
+11.5px/9.5px floors) and their thresholds updated with an inline comment
+recording the exact before/after numbers, e.g. 1920×1080 split picture height
+moved from a `>=753` floor to a measured `~711.5` (new floor `>=705`). Every
+case still materially exceeds the original pre-redesign legacy baseline; only
+the newer, already-larger S5a/S6 thresholds moved, and only by the chyron's
+own rendered height. Do not lower these further without the same kind of
+honest re-measurement.
+
+**Deliberately not touched — the app's own pre-existing behavior, not a Part 1
+decision:** the roster jersey-number quick-pick chips stay at their
+documented 22–28px exception (S6 J4, a coach's own request) rather than being
+raised to the 30px chip floor — that floor is for ordinary selection chips,
+and the roster picker was deliberately sized smaller by an explicit prior
+product decision. The global focus-ring colour (`--gi-focus`, used
+app-wide) was left on the shared blue — it is an accessibility affordance
+used by every route, and recolouring it for Break Down alone would make focus
+visibility inconsistent across the app for no benefit the brief asked for.
+`<details open>` groups (Situation, Our Defensive Call, etc.) keep their
+existing pre-Part-1 behavior of not force-resetting their open/closed state
+on every play change — that is Preact's own established behavior for this
+component, untouched by Part 1, and outside this checkpoint's scope.
+
+**Verification:**
+- Focused, run after the complete batch (all green): `e2e-native-tagging`
+  55/55, `e2e-breakdown-video` 14/14, `e2e-breakdown-a11y` 10/10,
+  `e2e-native-breakdown-theater` 29/29, `e2e-native-team-hub` 27/27,
+  `e2e-design-system` 16/16, `e2e-breakdown-geometry` 12/12.
+- Full canonical gate (`tools/run-gate.sh`, run once on the final candidate):
+  **88 harnesses | 88 green | 0 skipped | 0 failed** — includes
+  `e2e-parity` 2/2 (analytics untouched) and `e2e-realdata` 13/13.
+- No season or film byte changed by this checkpoint — confirmed by
+  `e2e-parity`/`e2e-realdata` staying green against the same fixtures, and by
+  this checkpoint touching no storage/tagging/season-store file.
+
+**Explicit confirmations, per the governing brief:**
+- Reports was **not** redesigned — no Reports file appears in the changed-file
+  list above.
+- Analytics were **not** changed — no formula file (`stats-engine.js`
+  computation methods, `analytics-*.js`) was touched; only
+  `breakdown-theater-screen.js`'s new *presentation* method reads through the
+  existing `StatsEngine.proj()`.
+- No comp demonstration value, denominator, or sample object entered
+  production — every chyron value traces to the live play's own tags.
+- No coach data, season file, or film was modified — this is a CSS/JSX/token/
+  presentation-logic change plus two honestly-recalibrated test thresholds.
+
+**Handoff to Codex.** Highest-value places to look first: (a) `_chyron`'s use
+of `StatsEngine.proj()` and whether the offense/defense "our call"/"opponent
+look" composition is right for every unit, including the Special Teams
+honest-blank case; (b) the `:has([data-native-field=...])` cyan-group rule —
+confirm it can't accidentally paint an unrelated group cyan; (c) the two
+geometry-threshold recalibrations — re-derive the new numbers independently
+rather than trusting the inline comments; (d) fullscreen behavior (the chyron
+is hidden via `display:none` in `:fullscreen`, restoring the pre-Part-1
+two-row grid exactly) — confirm nothing else assumes a three-row grid there.
+Part 2 (Reports) remains closed until this is accepted.
+
 ### ▶ ACTIVE — VISUAL RESET PRODUCTION CONTRACT: Broadcast Density accepted; Part 1 = Break Down + shared foundation (2026-08-16)
 
 **This is the binding decision record. Read before touching Break Down, Reports,

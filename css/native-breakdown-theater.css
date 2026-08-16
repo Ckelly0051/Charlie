@@ -5,7 +5,7 @@
 }
 .gi-theater-player {
   min-width: 0; min-height: 0; overflow: hidden;
-  display: grid; grid-template-rows: minmax(280px, 1fr) auto;
+  display: grid; grid-template-rows: minmax(280px, 1fr) auto auto;
   background: var(--gi-film);
 }
 .gi-theater-stage {
@@ -34,12 +34,52 @@
 }
 .gi-theater-player:fullscreen .gi-theater-stage,
 .gi-theater-player:-webkit-full-screen .gi-theater-stage { padding: 0; }
+/* Fullscreen keeps its existing two-row contract (stage, transport) exactly
+   as before this change — display:none removes the chyron from grid flow
+   entirely rather than requiring a third fullscreen row. */
+.gi-theater-player:fullscreen .gi-theater-chyron,
+.gi-theater-player:-webkit-full-screen .gi-theater-chyron { display: none; }
 .gi-theater-player:fullscreen #videoContainer.gi-native-video,
 .gi-theater-player:-webkit-full-screen #videoContainer.gi-native-video {
   width: 100%; height: 100%; max-width: none; max-height: none; border: 0;
 }
 .gi-theater-player:fullscreen .angle-wrapper,
 .gi-theater-player:-webkit-full-screen .angle-wrapper { min-width: 0; min-height: 0; }
+/* ── Broadcast Density Part 1 — the below-film lower-third ──────────────────
+ * Gold marks the play identity (the ONE thing every cell agrees is "current").
+ * The cell carrying our defensive call gets the cyan defensive-context rule;
+ * everything else stays neutral so the strip reads as information, not paint. */
+.gi-theater-chyron {
+  min-width: 0; display: flex; align-items: stretch;
+  background: var(--gi-bd-stage); border-top: 2px solid var(--gi-bd-gold);
+}
+.gi-chyron-id, .gi-chyron-cell {
+  padding: 5px 14px; display: flex; flex-direction: column; justify-content: center;
+  border-right: 1px solid var(--gi-6);
+}
+.gi-chyron-cell.is-wide { flex: 1; border-right: 0; }
+.gi-chyron-id { background: var(--gi-bd-gold); color: var(--gi-bd-gold-ink); }
+.gi-chyron-id .gi-chyron-k { opacity: .75; }
+.gi-chyron-k {
+  font: 700 9.5px/1 var(--gi-bd-cond); font-stretch: 87.5%; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--gi-11);
+}
+.gi-chyron-id .gi-chyron-k { color: inherit; }
+.gi-chyron-v {
+  margin-top: 3px; font: 600 13px/1 var(--gi-sans); color: var(--gi-12);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gi-chyron-id .gi-chyron-v { font: 700 21px/1 var(--gi-bd-cond); font-stretch: 75%; }
+.gi-chyron-v.is-cond { font-family: var(--gi-bd-cond); font-stretch: 87.5%; font-weight: 700; }
+.gi-chyron-cell.is-def .gi-chyron-v { color: var(--gi-bd-cyan); }
+.gi-chyron-cell.is-off .gi-chyron-v { color: var(--gi-bd-gold); }
+.gi-chyron-cell.is-pos .gi-chyron-v { color: var(--gi-ok); }
+.gi-chyron-cell.is-neg .gi-chyron-v { color: var(--gi-turnover); }
+@media (max-width: 800px) {
+  .gi-theater-chyron { flex-wrap: wrap; }
+  .gi-chyron-id, .gi-chyron-cell { flex: 1 1 45%; min-width: 130px; }
+}
+
 .gi-theater-transport, .gi-theater-anglebar, .gi-theater-actions {
   min-width: 0; border-top: 1px solid var(--gi-6); background: var(--gi-1);
 }
@@ -63,7 +103,7 @@
   background: var(--gi-4); border-color: var(--gi-8);
 }
 .gi-play-command:hover { background: var(--gi-on-solid); }
-.gi-icon-command.is-active { color: var(--gi-on-solid); background: var(--gi-9); border-color: var(--gi-9); }
+.gi-icon-command.is-active { color: var(--gi-bd-gold-ink); background: var(--gi-bd-gold); border-color: var(--gi-bd-gold); }
 .gi-icon-command:focus-visible, .gi-play-command:focus-visible, .gi-theater-command:focus-visible,
 .gi-theater-actions button:focus-visible, .gi-play-card:focus-visible, .gi-theater-scrub:focus-visible,
 .gi-breakdown-theater select:focus-visible, .gi-breakdown-theater input:focus-visible {
@@ -75,7 +115,7 @@
 }
 .gi-theater-scrub {
   min-width: 80px; flex: 1; height: var(--gi-hit); margin: 0 var(--gi-1x);
-  accent-color: var(--gi-los); cursor: pointer;
+  accent-color: var(--gi-bd-gold); cursor: pointer;
 }
 .gi-breakdown-theater select, .gi-theater-anglebar input {
   min-height: var(--gi-hit); border: 1px solid var(--gi-7); border-radius: var(--gi-radius);
@@ -134,7 +174,7 @@
 .gi-play-card.is-score::before { background: var(--gi-first-down); }
 .gi-play-card.is-turnover::before { background: var(--gi-turnover); }
 .gi-play-card:hover { background: var(--gi-4); border-color: var(--gi-8); }
-.gi-play-card.is-current { background: var(--gi-5); border-color: var(--gi-los); box-shadow: inset 0 -2px var(--gi-los); }
+.gi-play-card.is-current { background: var(--gi-5); border-color: var(--gi-bd-gold); box-shadow: inset 0 -2px var(--gi-bd-gold); }
 .gi-play-card > span { color: var(--gi-11); font: 500 8px/1 var(--gi-mono); letter-spacing: .05em; text-transform: uppercase; }
 .gi-play-card > strong { font: 700 14px/1 var(--gi-cond); font-variant-numeric: var(--gi-num-feat); white-space: nowrap; }
 .gi-play-card > small {
@@ -149,12 +189,12 @@
 .gi-theater-actions-primary, .gi-theater-actions-risk { display: flex; align-items: center; gap: var(--gi-1x); }
 .gi-theater-actions-risk { margin-left: auto; }
 .gi-theater-actions button { padding: 0 var(--gi-2x); white-space: nowrap; }
-.gi-theater-actions button.is-active { color: var(--gi-1); background: var(--gi-first-down); border-color: var(--gi-first-down); }
+.gi-theater-actions button.is-active { color: var(--gi-bd-gold-ink); background: var(--gi-bd-gold); border-color: var(--gi-bd-gold); }
 .gi-autoplay-toggle {
   min-height: var(--gi-hit); display: inline-flex; align-items: center; gap: var(--gi-1x);
   color: var(--gi-11); font-size: 11px; white-space: nowrap; cursor: pointer;
 }
-.gi-autoplay-toggle input { accent-color: var(--gi-los); }
+.gi-autoplay-toggle input { accent-color: var(--gi-bd-gold); }
 @media (max-width: 800px) {
   .gi-breakdown-theater {
     --gi-hit: 44px; --gi-control: 44px;
@@ -193,14 +233,17 @@
   display: inline-flex; align-items: center; height: auto; min-height: 18px;
   margin: 0 0 var(--gi-1x); padding: 0 17px 0 7px;
   background: var(--gi-3); color: var(--gi-12);
-  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
+  /* Broadcast Density: the SAME lower-third shape, a gold-leading fill instead
+     of the shared blue --gi-lower-third-fill token — reassigned locally so
+     Reports/Study, which still read that shared token, are unaffected. */
+  clip-path:var(--gi-lower-third);background:var(--gi-bd-lower-third-fill);
   font: var(--gi-text-eyebrow); letter-spacing: var(--gi-track-label);
   text-transform: uppercase;
 }
-/* The drive the coach is inside takes the accent, matching the lens plate in
-   Reports — the current thing is blue everywhere in this product. */
+/* The drive the coach is inside takes gold — play identity, per the
+   Broadcast Density rule, scoped to this file only. */
 .gi-drive-group:has(.gi-play-card.is-current) h3 {
-  background: var(--gi-los); color: var(--gi-on-solid);
+  background: var(--gi-bd-gold); color: var(--gi-bd-gold-ink);
 }
 
 /* The S6-4e sweep covered 16 stylesheets and missed this file,

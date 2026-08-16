@@ -1,4 +1,5 @@
 import { TagProjection } from './tag-projection.js';
+import { StatsEngine } from './stats-engine.js';
 import { mountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
 
 /**
@@ -51,6 +52,11 @@ export class BreakdownTheaterScreen {
       .forEach(event => this.app.multiAngle?.on(event, () => this._publish()));
     document.addEventListener('fullscreenchange', () => this._publish());
     document.addEventListener('webkitfullscreenchange', () => this._publish());
+    // The lower-third's "Our.../Opponent..." labels depend on scout
+    // perspective, which is edited from Game Settings while Break Down stays
+    // mounted — without this the chyron would show stale wording until the
+    // next play/game event happened to fire.
+    this.app.gameContext?.subscribe?.(() => this._publish());
   }
 
   mount(host) {
@@ -138,6 +144,7 @@ export class BreakdownTheaterScreen {
       loopMode: vc?.loopMode || '',
       currentPlayId: current?.id ?? null,
       currentLabel: current ? this._cardLabel(current) : 'No play selected',
+      chyron: this._chyron(current),
       plays: (tagger?.plays || []).map(play => this._playView(play)),
       groups: this._driveGroups(tagger?.plays || []),
       stripCollapsed: this.stripCollapsed,
@@ -151,6 +158,80 @@ export class BreakdownTheaterScreen {
         name: multi?.angle2Name || '',
         offset: Number(multi?.offset) || 0,
       },
+    };
+  }
+
+  /**
+   * The live below-film lower-third (Broadcast Density Part 1). Reads exactly
+   * the current play's real tags through StatsEngine.proj — the same
+   * projection NativeTaggingScreen.snapshot() merges over raw tags — so the
+   * chyron can never show a value that disagrees with the tag form beside it.
+   * Nothing here is inferred: an uncharted field renders the honest '—'
+   * placeholder, never a guess.
+   */
+  _chyron(play) {
+    if (!play) return null;
+    const raw = play.tags || {};
+    const projected = StatsEngine.proj ? StatsEngine.proj(play) : {};
+    const tags = { ...raw, ...projected };
+    const unit = tags.unit || 'offense';
+    const scout = (this.app.storage?.gameInfo || {}).perspective === 'scout';
+
+    const down = String(tags.down || '');
+    const ordinal = ({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || '';
+    const situation = ordinal ? ordinal + (tags.distance ? ` & ${tags.distance}` : '') : '—';
+
+    const yardLine = String(tags.yardLine || '').trim();
+    const ball = yardLine ? `${tags.fieldSide === 'opp' ? 'Opp' : 'Own'} ${yardLine}` : '—';
+    const hash = tags.hash || '—';
+
+    const joined = (...values) => values.filter(Boolean).join(' · ') || '—';
+    // The offensive "look" composes qbAlignment + formation — the same
+    // canonical composition TagProjection.lookLabel already provides and this
+    // file already uses for play-strip card labels — so a legacy value like
+    // formation:'Under Center' (reprojected to qbAlignment by StatsEngine.proj,
+    // leaving formation blank) still reads as a real look instead of vanishing.
+    const offenseLook = joined(TagProjection.lookLabel(tags), tags.playType);
+    // Coverage has the identical legacy shape: a shell (Cover 0-6) or, for
+    // older data, a family value (Man/Zone/Match) that proj() moves into
+    // coverageFamily. Prefer the shell, fall back to the family so neither
+    // representation reads as uncharted.
+    const defenseCall = joined(tags.defFront, tags.coverage || tags.coverageFamily);
+    let ourLabel, ourValue, ourTone, lookLabel, lookValue;
+    if (unit === 'special') {
+      ourLabel = 'Special Teams';
+      ourValue = tags.stType || '—';
+      ourTone = '';
+      lookLabel = '';
+      lookValue = '';
+    } else if (unit === 'defense') {
+      ourLabel = scout ? 'Opponent Defensive Call' : 'Our Defensive Call';
+      ourValue = defenseCall;
+      ourTone = 'def';
+      lookLabel = 'Offense Faced';
+      lookValue = offenseLook;
+    } else {
+      ourLabel = scout ? 'Opponent Offensive Look' : 'Our Offensive Look';
+      ourValue = offenseLook;
+      ourTone = 'off';
+      lookLabel = 'Defense Faced';
+      lookValue = defenseCall;
+    }
+
+    const resultRaw = tags.result || tags.kickOutcome || '';
+    const rawYards = String(tags.yardage ?? '').trim();
+    const yards = rawYards ? `${Number(rawYards) > 0 ? '+' : ''}${rawYards}` : '';
+    const lowerResult = resultRaw.toLowerCase();
+    const resultTone = /touchdown|good/.test(lowerResult) ? 'pos'
+      : /interception|fumble|sack|loss/.test(lowerResult) ? 'neg' : '';
+
+    return {
+      playId: play.id,
+      situation, ball, hash,
+      ourLabel, ourValue, ourTone,
+      lookLabel, lookValue,
+      result: resultRaw ? (yards ? `${resultRaw}: ${yards}` : resultRaw) : '—',
+      resultTone,
     };
   }
 
