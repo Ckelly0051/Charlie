@@ -14,6 +14,40 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX REVIEW - Study Phase 3 Player Performance b846684 - CHANGES REQUESTED (2026-08-15)
+
+**Verdict: CHANGES REQUESTED.** The shared metric/query architecture, player-role dimensions, grade eligibility, comparison cohort separation, composite refs, and XSS boundary are sound. The focused harness is green at **20/20**, but it clears the generic Unit control before player mode and duplicates structured Special Teams truth into legacy tags. Those choices hide real default-path and football-model defects. No production files changed in this review.
+
+#### [P1] Non-offense roles are empty from the normal default state
+
+Study opens with Unit = Offense. Selecting Tackler, Kicker, or Returner does not change or override it, and _renderPlayers appends that stale unit filter at js/study-screen.js:998. The test masks this by clearing Unit first. Player role must establish its canonical unit or player mode must deliberately ignore the generic Unit filter. Pin the untouched default journey for all six roles.
+
+#### [P1] The shared made/score classifiers fail three supported football shapes
+
+StatsEngine.isMadeAttempt branches on the mere presence of structured Special Teams data (js/stats-engine.js:2391), while touchdowns only read legacy tags.result (js/analytics-metrics.js:449-459). Direct probes on committed bytes returned {fakePassMade:false, legacyFgMade:false, structuredReturnHasTd:false}: a completed fake pass is not a completion; a legacy Good field goal is not made; a structured return TD is not counted unless redundantly copied into tags.result. The current return fixture makes that redundant copy, so its green assertion is vacuous for the structured contract. Fix the classification by role/event shape and add exact-value plus exact-ref tests for fake pass completion, legacy made/missed FG, and structured return TD without a legacy result tag.
+
+#### [P1] Save View does not round-trip player questions
+
+_state captures playerRole, player, and playerMetric, but _saveView omits them from identity/name (js/study-screen.js:1312-1328) and _applyView never restores them (js/study-screen.js:1405-1434). A saved player view reopens as a different ordinary query, and distinct player questions can collide. Preserve legacy views while round-tripping leaderboard and single-player views.
+
+#### [P1] Save to Plan records the wrong player-query metadata
+
+_saveToPlan always uses state.dimension and state.measure (js/study-screen.js:1334-1351). Player mode actually uses a role-specific dimension and playerMetric, so refs are correct but the label/query can say Formation - Success Rate for Tackler - Sacks. Save the real player question and pin both Plan label/query and refs.
+
+#### [P2] The leaderboard is not ranked and the controls are unstyled
+
+_renderPlayersQuery emits registry value order at js/study-screen.js:1028 rather than sorting by metric and polarity, despite the handoff calling it ranked. Also, ws-study-players has no CSS rule anywhere. Add honest ranking with stable ties and a compact responsive design-system treatment; do not broaden this into a Study redesign.
+
+#### Independent verification
+
+- node tools/e2e-study-players.mjs: **20/20**, zero page errors.
+- Direct StatsEngine probe confirmed all three classifier failures above.
+- Source trace confirmed player state is omitted from saved-view identity/restore and Plan metadata.
+- Worktree remained clean except standing untracked .claude/ and scratchpad/.
+
+**Repair gate:** failing-first regressions for all findings; focused player, Study screen/query/metrics/registry, Special Teams/try, parity, then one full canonical gate. No installer/package/tag/deploy. Return to Codex for re-review.
+
+
 ### ▶ BUILT — Study expansion Phase 3: Player Performance Analysis — AWAITING CODEX REVIEW (2026-08-15)
 
 **Builder: Claude. Baseline: `61e1caf` (Study Phase 2 accepted, final Codex
