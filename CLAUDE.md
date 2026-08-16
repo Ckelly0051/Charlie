@@ -14,6 +14,70 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REVIEW — Part 1 Broadcast Density `43c3dc4`: CHANGES REQUESTED (2026-08-16)
+
+**Reviewer: Codex. Visual direction accepted; Part 1 is not yet accepted and
+Part 2 Reports remains closed.** Independent review included source tracing,
+all four committed screenshots, and fresh runs of `e2e-native-breakdown-
+theater` (29/29), `e2e-breakdown-geometry` (12/12), and
+`e2e-native-tagging` (55/55). The gold/cyan hierarchy, lower-third placement,
+charting density, and unobstructed-film composition are materially better and
+should not be redesigned. The failures are in the new lower-third's data and
+semantic contract, plus one test-record accuracy issue.
+
+**[P1] The lower-third ignores canonical structured Special Teams data.**
+`BreakdownTheaterScreen._chyron()` reads only `play.tags.stType` and
+`play.tags.kickOutcome`. The live native editor writes the accepted model to
+`play.specialTeams` through `SpecialTeamsModel`; it does not mirror the unit,
+result, status, or score back into those legacy fields. A newly charted Punt,
+Kick Return, Try, etc. can therefore show `Special Teams —` and `Result —`
+while the adjacent live form correctly shows the structured event. The
+committed ST screenshot exercises the compatibility-only legacy path (its form
+even says the legacy details are uncharted), so it does not prove the current
+workflow. Fix the chyron to normalize/read `play.specialTeams` first, use the
+canonical coach-facing unit labels and structured outcome/result, and use
+`stType`/`kickOutcome` only when no structured event exists. Add a
+discriminating structured-ST regression; the current focused harnesses contain
+no chyron-content assertions.
+
+**[P1] Result status colours are not football-relative and are sometimes
+plainly inverted.** The new regex marks every `Touchdown` or string containing
+`Good` green, and every Interception/Fumble/Sack/Loss red. Consequently `No
+Good` is green; a defensive interception, sack, or tackle for loss is red; an
+opponent touchdown on a defensive snap is green; and a fumble is called bad
+without checking recovery ownership. The committed defense screenshots visibly
+show a defensive `Loss` in red. This violates the binding rule that green/red
+mean genuinely good/bad. Replace substring colouring with unit- and
+ownership-aware semantics using existing canonical owners (including
+`SpecialTeamsModel.scoringTeam()` for structured ST), and leave ambiguous
+outcomes neutral. Pin offense, defense, structured-ST, `No Good`, and ambiguous
+fumble cases in the focused test.
+
+**[P2] Two smaller honesty/completeness gaps sit in the same builder.** Ball
+position currently turns any side other than exact `opp` into `Own`; with a
+yard line and missing/invalid side it must render an honest blank rather than
+invent possession territory. The defensive-call composition also drops
+Coverage Family whenever a coverage shell exists and omits Blitz entirely,
+even though the strip is labeled as the complete defensive call. Compose Front
++ Coverage Call + optional Coverage Family + Blitz, with the full value
+available when the visual cell ellipsizes.
+
+**[P2] The geometry checks pass, but part of their permanent record is
+mathematically false.** `e2e-breakdown-geometry.mjs` records the old 1440 split
+floor as `963x542`, the new measurement as about `945x531.5`, then names the
+new `930x525` assertion "meets or exceeds the legacy film picture" and says
+every case still exceeds that baseline. It does not. The modest reduction is a
+reasonable disclosed cost of the accepted lower-third; the problem is the
+test/docs claiming the opposite. Rename the assertions/comments to describe
+the accepted post-chyron picture budget, explicitly record the small reduction,
+and remove the statement that only height moved (the 16:9-reported width moved
+with it). Do not lower the numeric floors further.
+
+**Repair boundary:** do not revisit the accepted visual direction or Reports.
+Repair `_chyron()` at the canonical data seams, add focused semantic tests,
+correct the geometry wording/record, run the focused checks, then one canonical
+gate. No installer/package/tag/deploy. Return to Codex for re-review.
+
 ### ▶ BUILT — Part 1: Broadcast Density in production Break Down — AWAITING CODEX REVIEW (2026-08-16)
 
 **Builder: Claude. Documentation-contract commit: `3e9f94b`. Production commit
