@@ -230,6 +230,40 @@ function yardsPerPlayCompute(cohort, missingAsZero) {
   return { value: +(total / denominator).toFixed(1), count: total, eligible: eligiblePlays.length, denominator, refSource: source };
 }
 
+/** Study Phase 3: "this attempt succeeded", reused across completionRate/
+ *  completions for passer, receiver, AND kicker. A completed pass has no
+ *  `specialTeams` data -- its signal is `tags.result` (the SAME three-result
+ *  check `StatsEngine._individualStats` already uses to decide whether a pass
+ *  counts as a reception). A structured kick attempt has no meaningful
+ *  `tags.result` at all -- its signal is the structured event's own
+ *  `outcome.status === 'good'`. `deps.isMadeAttempt` (bound in
+ *  `StatsEngine.metricsEngine()`) branches on which shape is present rather
+ *  than this module importing SpecialTeamsModel directly, preserving this
+ *  file's deliberate independence from other engine modules. */
+function isComplete(deps, p) {
+  return deps.isMadeAttempt(p);
+}
+
+/**
+ * Study Phase 3: raw-count driver, the counting sibling of `rateResult`. A
+ * player measure like "Solo Tackles" or "Touchdowns" is not a rate over the
+ * cohort -- it IS the cohort (or an exact sub-filter of it), and there is no
+ * meaningful percentage to display. Unlike `rateResult`, `denominator` is set
+ * to the MATCHED count itself, not the cohort size: `refs` must describe
+ * exactly the matched plays (never a coarser set), so denominator has to
+ * equal that same number to preserve the `refs.length + unlinkedCount ===
+ * denominator` invariant `metric()` establishes for every metric family.
+ * `eligible` stays the cohort's own size (how many role-credited plays this
+ * player actually had) -- `metric()`'s `countMetric` branch reads THIS field
+ * for its min-sample/unavailable checks (see the field's own comment there),
+ * so a real, honest zero sub-count is never misreported as "insufficient" or
+ * "unavailable" -- only an EMPTY cohort (no opportunities at all) is.
+ */
+function countResult(cohort, classify) {
+  const matched = cohort.filter(classify);
+  return { value: matched.length, count: matched.length, eligible: cohort.length, denominator: matched.length, refSource: matched };
+}
+
 /**
  * Metric definitions. Each `compute(cohort, deps, options)` returns the
  * pre-rounded `{ value, count, eligible, denominator }` for a cohort that is
@@ -316,6 +350,159 @@ const METRICS = {
       return yardsPerPlayCompute(cohort, missingAsZero);
     },
   },
+
+  // ---- Study Phase 3: player performance ------------------------------
+  // Every metric below operates on an ALREADY player+role-scoped cohort --
+  // "plays where jersey #22 is the credited ballCarrier/passer/receiver/
+  // tackler/kicker/returner" -- produced by AnalyticsRegistry's
+  // playerBallCarrier/playerPasser/playerReceiver/playerTackler/
+  // playerKicker/playerReturner dimensions (analytics-registry.js). A metric
+  // here never re-derives "is this player credited" -- that gate lives once,
+  // in the dimension's own value extractor, built on StatsEngine.
+  // effectivePlayers()/countsFootballRoles() -- it only classifies WITHIN
+  // whatever cohort it is handed, matching this module's existing design
+  // principle ("a metric definition never has to know how it was selected").
+  //
+  // `successRate`/`explosiveRate`/`negativeRate`/`yardsPerPlay` above are
+  // REUSED AS-IS for ball carrier Success Rate/Explosive Rate/Negative Rate/
+  // Yards-per-Carry -- a run-play cohort scoped to one ball carrier makes
+  // "yards per play" exactly "yards per carry", no new formula needed.
+  // `stopRate`/`yardsAllowedPerPlay` are likewise reused as-is for a
+  // tackler's "plays involving them" Stop Rate/Yards Allowed.
+  completionRate: {
+    // Reused for passer "Completion Rate" (cohort = every dropback, attempts
+    // + sacks -- see playerPasser's dimension comment), receiver "Catch Rate"
+    // (cohort = targets, never contains a sack), and kicker "Field Goal %"
+    // (cohort = FG attempts, never contains a sack) -- one formula, three
+    // coach-facing names resolved by the caller (study-screen.js). A sack is
+    // explicitly excluded from ELIGIBLE (not just from completions): a sack
+    // is not a pass "attempt" by the official football definition, so it
+    // must not lower a passer's completion rate the way an incompletion
+    // would. This exclusion is a no-op for receiver/kicker cohorts, which
+    // never contain a sack play to begin with.
+    polarity: MetricPolarity.HIGHER,
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return eligibleRate(cohort, p => !deps.hasResult(p, 'Sack'), p => isComplete(deps, p), missingAsZero);
+    },
+  },
+  yardsPerReception: {
+    // "Per reception," not "per target": averages only over the completed
+    // subset of whatever cohort is passed, reusing `yardsPerPlayCompute`'s
+    // exact avg-yards driver on that pre-filtered subset -- an incomplete
+    // target has no yards to average in.
+    polarity: MetricPolarity.HIGHER,
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return yardsPerPlayCompute(cohort.filter(p => isComplete(deps, p)), missingAsZero);
+    },
+  },
+  yardsPerAttempt: {
+    // Passer "Yards/Attempt": explicitly excludes sacks from BOTH the
+    // numerator and the denominator (a sack is not a pass attempt, and its
+    // negative yardage is not "passing yardage"), unlike the generic
+    // `yardsPerPlay` this checkpoint reuses as-is for ball-carrier ("Yards/
+    // Carry") and receiver ("Yards/Target") cohorts, neither of which ever
+    // contains a sack play. This is the one player metric NOT reused
+    // verbatim across roles, because Y/A's sack-exclusion is specific to the
+    // passer's broadened (attempts + sacks) dimension cohort.
+    polarity: MetricPolarity.HIGHER,
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return yardsPerPlayCompute(cohort.filter(p => !deps.hasResult(p, 'Sack')), missingAsZero);
+    },
+  },
+  // Blank grades are ineligible, not zero (Study Phase 3 requirement): each
+  // of the three grade metrics below excludes a play whose `tags.grades
+  // [gradeRole]` is not a real number, including a genuine 0 grade counting
+  // as REAL data (`typeof g === 'number'`, never `g || fallback`).
+  avgGrade: {
+    polarity: MetricPolarity.HIGHER,
+    compute(cohort, _deps, { gradeRole, missingAsZero = false } = {}) {
+      if (!gradeRole) throw new Error('avgGrade requires options.gradeRole');
+      const grade = p => { const g = p?.tags?.grades?.[gradeRole]; return typeof g === 'number' && Number.isFinite(g) ? g : null; };
+      const eligible = cohort.filter(p => grade(p) != null);
+      const source = missingAsZero ? cohort : eligible;
+      const denominator = source.length;
+      if (!denominator) return { value: null, count: 0, eligible: eligible.length, denominator: 0, refSource: source };
+      const total = source.reduce((sum, p) => sum + (grade(p) ?? 0), 0);
+      return { value: +(total / denominator).toFixed(2), count: total, eligible: eligible.length, denominator, refSource: source };
+    },
+  },
+  positiveGradeRate: {
+    polarity: MetricPolarity.HIGHER,
+    compute(cohort, _deps, { gradeRole, missingAsZero = false } = {}) {
+      if (!gradeRole) throw new Error('positiveGradeRate requires options.gradeRole');
+      const grade = p => { const g = p?.tags?.grades?.[gradeRole]; return typeof g === 'number' && Number.isFinite(g) ? g : null; };
+      return eligibleRate(cohort, p => grade(p) != null, p => grade(p) > 0, missingAsZero);
+    },
+  },
+  negativeGradeRate: {
+    polarity: MetricPolarity.LOWER,
+    compute(cohort, _deps, { gradeRole, missingAsZero = false } = {}) {
+      if (!gradeRole) throw new Error('negativeGradeRate requires options.gradeRole');
+      const grade = p => { const g = p?.tags?.grades?.[gradeRole]; return typeof g === 'number' && Number.isFinite(g) ? g : null; };
+      return eligibleRate(cohort, p => grade(p) != null, p => grade(p) < 0, missingAsZero);
+    },
+  },
+  // Raw counts -- `countMetric: true` opts into `metric()`'s count-aware
+  // state derivation (see `countResult`'s comment and `metric()` below): a
+  // real, honest zero sub-count is never reported as "insufficient" or
+  // "unavailable".
+  touchdowns: {
+    // Reused for ball carrier/passer/receiver/returner touchdown counts --
+    // one classification, four roles.
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => deps.hasResult(p, 'Touchdown')); },
+  },
+  completions: {
+    // Reused for passer "Completions", receiver "Receptions", and kicker
+    // "Field Goals Made" -- the raw-count sibling of `completionRate`.
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => isComplete(deps, p)); },
+  },
+  interceptionsThrown: {
+    polarity: MetricPolarity.LOWER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => deps.hasResult(p, 'Interception')); },
+  },
+  sacksTaken: {
+    // Offense-framed: sacks a passer's own cohort absorbed. Same
+    // classification as `sacksMade`; opposite polarity (see `sacksMade`).
+    polarity: MetricPolarity.LOWER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => deps.hasResult(p, 'Sack')); },
+  },
+  sacksMade: {
+    // Defense-framed: sacks a tackler's own cohort produced. Identical
+    // formula to `sacksTaken`; higher is better (a defender's own sack).
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => deps.hasResult(p, 'Sack')); },
+  },
+  tackles: {
+    // The cohort itself (every play in a tackler's cohort is a tackle by
+    // construction), offered as a selectable metric for UI uniformity with
+    // every other player measure rather than a special-cased "just read
+    // sampleSize" row.
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort) { return countResult(cohort, () => true); },
+  },
+  soloTackles: {
+    // Shared/solo credit uses the SAME rule `StatsEngine._individualStats`
+    // already applies (tacklerIds.length on the play, not this specific
+    // player's identity -- the play is only in this cohort because this
+    // player IS one of the credited tacklers, so the total count on the play
+    // alone determines solo vs. shared for them).
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => deps.splitPlayers(p?.tags?.players?.tackler).length === 1); },
+  },
+  assistedTackles: {
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort, deps) { return countResult(cohort, p => deps.splitPlayers(p?.tags?.players?.tackler).length > 1); },
+  },
+  tfl: {
+    // Excludes sacks, matching the team-level/box-score TFL definition
+    // exactly (StatsEngine._individualStats' tacklers[id].tfl).
+    polarity: MetricPolarity.HIGHER, countMetric: true,
+    compute(cohort, deps) {
+      return countResult(cohort, p => !deps.hasResult(p, 'Sack') && (parseInt(p?.tags?.yardage, 10) || 0) < 0);
+    },
+  },
 };
 
 export class AnalyticsMetrics {
@@ -332,9 +519,17 @@ export class AnalyticsMetrics {
    *   `cohortByCut` can reuse the EXACT existing report drilldown predicates
    *   (multi-value overlap included) rather than re-deriving them. Only
    *   required if `cohortByCut` is actually called.
+   * @param {function} deps.splitPlayers - `StatsEngine.splitPlayers` (static).
+   *   Study Phase 3: lets `soloTackles`/`assistedTackles` re-derive a play's
+   *   own tackler list to classify solo vs. shared credit.
+   * @param {function} deps.isMadeAttempt - `p => StatsEngine.isMadeAttempt(p,
+   *   StatsEngine.hasResult)`. Study Phase 3: "this attempt succeeded",
+   *   branching between a completed-pass check (`tags.result`) and a
+   *   structured kick's `outcome.status === 'good'` -- see
+   *   `StatsEngine.isMadeAttempt`'s own comment.
    */
   constructor(deps = {}) {
-    const required = ['isRun', 'isPass', 'hasResult', 'isSuccessfulPlay', 'isEligiblePlay'];
+    const required = ['isRun', 'isPass', 'hasResult', 'isSuccessfulPlay', 'isEligiblePlay', 'splitPlayers', 'isMadeAttempt'];
     for (const key of required) {
       if (typeof deps[key] !== 'function') throw new TypeError(`AnalyticsMetrics requires deps.${key}`);
     }
@@ -372,6 +567,8 @@ export class AnalyticsMetrics {
    *     ref rather than silently omitting it.
    *   - `minSample` (default 0) -- when > 0 and `denominator` is positive but
    *     below it, `state` becomes `'insufficient'` instead of `'ok'`.
+   *   - `gradeRole` -- required by the grade metrics (avgGrade/
+   *     positiveGradeRate/negativeGradeRate): which `tags.grades` key to read.
    */
   metric(cohort, metricId, context = {}, options = {}) {
     const def = METRICS[metricId];
@@ -383,9 +580,18 @@ export class AnalyticsMetrics {
     // ineligible play excluded from the denominator could still open film.
     const { refs, unlinkedCount } = resolveRefs(refSource, context, !!options.allowUnlinkedPlays);
     const minSample = options.minSample || 0;
+    // Study Phase 3: a `countMetric` (a raw count like "Solo Tackles", not a
+    // rate) has no meaningful "0 denominator = no data" reading -- its
+    // `denominator` IS the matched sub-count, so a real, honest 0 (e.g. a
+    // tackler with zero sacks) would otherwise report `state:'unavailable'`
+    // and hide a legitimate zero exactly the way this project's honesty rule
+    // forbids in the opposite direction (never show missing data as zero).
+    // Count metrics instead gate on `eligible` -- the cohort's own size, i.e.
+    // whether this player had ANY role-credited plays at all to count from.
+    const gate = def.countMetric ? eligible : denominator;
     let state = 'ok';
-    if (denominator === 0) state = 'unavailable';
-    else if (minSample > 0 && denominator < minSample) state = 'insufficient';
+    if (gate === 0) state = 'unavailable';
+    else if (minSample > 0 && gate < minSample) state = 'insufficient';
     else if (unlinkedCount > 0) state = 'partial-film';
     return { id: metricId, value, count, eligible, denominator, polarity: def.polarity, state, unlinkedCount, refs };
   }

@@ -205,15 +205,22 @@ export class StudyQuery {
    * `run()` and `compare()` are UNCHANGED by this addition -- per the bounded
    * analytics-architecture-cleanup scope, Study's current screen is not
    * redesigned to consume this yet.
+   *
+   * `gradeRole` (Study Phase 3, additive): forwarded into every metric()
+   * call's `options` alongside the rest of `metricOptions` -- required only
+   * by the three grade metrics (avgGrade/positiveGradeRate/
+   * negativeGradeRate), which need to know which `tags.grades` key to read.
+   * `undefined` for every existing caller, so this is a no-op for every
+   * pre-Phase-3 query.
    */
-  runMetrics({ plays, dimension, metricIds = [], filters = [], minSample = 0, context = {}, missingAsZero = false, allowUnlinkedPlays = false } = {}) {
+  runMetrics({ plays, dimension, metricIds = [], filters = [], minSample = 0, context = {}, missingAsZero = false, allowUnlinkedPlays = false, gradeRole } = {}) {
     if (!Array.isArray(plays)) throw new TypeError('StudyQuery.runMetrics requires a plays array');
     if (!this.registry.getDimension(dimension)) throw new Error(`Unknown Study dimension: ${dimension}`);
     if (this.registry.getDimension(dimension).availability !== 'ready') {
       throw new Error(`Study dimension requires context: ${dimension}`);
     }
     const metricsEngine = this._metricsEngine();
-    const metricOptions = { missingAsZero, allowUnlinkedPlays, minSample };
+    const metricOptions = { missingAsZero, allowUnlinkedPlays, minSample, gradeRole };
     const cohort = this._cohort(plays, filters, context);
     const values = this._distinct(cohort, dimension, context);
     const warnings = [];
@@ -309,11 +316,11 @@ export class StudyQuery {
    *                 b:{…}, deltas:{metricId:number|null} }],
    *        warnings }
    */
-  compareMetrics({ base, against, dimension, metricIds = [], filters = [], minSample = 0, context = {}, labels = {}, missingAsZero = false, allowUnlinkedPlays = false } = {}) {
+  compareMetrics({ base, against, dimension, metricIds = [], filters = [], minSample = 0, context = {}, labels = {}, missingAsZero = false, allowUnlinkedPlays = false, gradeRole } = {}) {
     if (!Array.isArray(base) || !Array.isArray(against)) {
       throw new TypeError('StudyQuery.compareMetrics requires base and against play arrays');
     }
-    const runArgs = { dimension, metricIds, filters, minSample, context, missingAsZero, allowUnlinkedPlays };
+    const runArgs = { dimension, metricIds, filters, minSample, context, missingAsZero, allowUnlinkedPlays, gradeRole };
     const a = this.runMetrics({ ...runArgs, plays: base });
     const b = this.runMetrics({ ...runArgs, plays: against });
     const aMap = new Map(a.groups.map(g => [g.value, g]));

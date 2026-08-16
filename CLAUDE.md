@@ -14,6 +14,238 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — Study expansion Phase 3: Player Performance Analysis — AWAITING CODEX REVIEW (2026-08-15)
+
+**Builder: Claude. Baseline: `61e1caf` (Study Phase 2 accepted, final Codex
+verdict recorded). Scope: turn existing player attribution + individual-stat
+calculations into film-linked Study questions across games, seasons, date
+ranges, and recent-vs-prior comparisons — no rebuilt box-score tables, no
+parallel player-stat formula.**
+
+**Architecture — reuse, not reimplementation.** Every player metric rides the
+existing `AnalyticsMetrics`/`StudyQuery.runMetrics()`/`compareMetrics()`
+engine from the RICH_METRIC_PAIRS work. Six new `AnalyticsRegistry`
+dimensions (`playerBallCarrier`/`playerPasser`/`playerReceiver`/
+`playerTackler`/`playerKicker`/`playerReturner`) each emit **bare jersey
+numbers** (never roster labels — labeling is deferred to the UI layer per
+rule #7) via a new `_playerRoleValues(role, gate)` extractor built on two new
+`StatsEngine` statics extracted from `_individualStats`'s own inline logic,
+never re-derived:
+- `StatsEngine.effectivePlayers(play)` — merges `tags.players` with
+  structured Special Teams role attribution (kicker/punter/returner/blocker/
+  recoverer), the SAME merge `_individualStats` already performs.
+- `StatsEngine.countsFootballRoles(play)` — the fake-ST-vs-ordinary-ST gate
+  for ball-carrier/passer/receiver crediting, also extracted verbatim.
+- `StatsEngine.isMadeAttempt(play, hasResult)` — new, "this attempt
+  succeeded," reused across `completionRate`/`completions` for passer,
+  receiver, **and** kicker. A completed pass has no `specialTeams` data, so
+  its signal is `tags.result` (Gain/Touchdown/No Gain — the same three-result
+  check `_individualStats` already uses); a structured kick attempt has no
+  meaningful `tags.result` at all, so its signal is the structured event's own
+  `outcome.status === 'good'` — the SAME field `_specialTeamsStats`' `fgRows`/
+  `made()` already reads. Branches on which data shape is present rather than
+  blending them, matching this file's existing structured/legacy quarantine
+  discipline. **Found and fixed during this build, not shipped broken:** the
+  first version of `completionRate`/`completions` read only `tags.result`,
+  which made Field Goal % silently always report 0% (a real correctness bug,
+  caught by this checkpoint's own test before commit, not by a later review).
+
+**AnalyticsMetrics additions** (`js/analytics-metrics.js`): a new
+`countResult(cohort, classify)` driver for raw-count metrics (Tackles,
+Touchdowns, Sacks, TFL, ...) where `denominator = matched.length` (not
+`cohort.length`), preserving the `refs.length + unlinkedCount === denominator`
+invariant; a new `countMetric: true` flag that changes `metric()`'s state-gate
+from `denominator` to `eligible`, so a real zero sub-count (0 sacks) reports
+`state:'ok'`, never `'unavailable'`. 13 new metric definitions: `completionRate`
+(reused for passer/receiver/kicker), `yardsPerReception`, `yardsPerAttempt`
+(passer-specific — see below), `avgGrade`/`positiveGradeRate`/
+`negativeGradeRate` (require `options.gradeRole`, throw if absent; blank
+grades excluded from the denominator via `typeof g === 'number' &&
+Number.isFinite(g)`, never `g || fallback`, so a genuine `0` grade counts as
+real data), and 9 `countMetric` raw counts (`touchdowns`/`completions`/
+`interceptionsThrown`/`sacksTaken`/`sacksMade`/`tackles`/`soloTackles`/
+`assistedTackles`/`tfl`).
+
+**The passer cohort deliberately widens beyond "attempts."**
+`playerPasser`'s dimension gate includes every dropback (official attempts —
+complete/incomplete/intercepted — **plus sacks**), not attempts alone. This
+is a considered decision, not an oversight: it's the only way "Sacks Taken"
+has a cohort to count from at all, it makes Success Rate correctly include
+sacks (real football convention — a sack is a failed dropback, not an
+excluded one, which is also a more honest formula than the original
+attempts-only design), and it makes a graded sack visible to Avg Grade. The
+two metrics for which sacks must NOT count — `completionRate` and the new
+`yardsPerAttempt` (a dedicated metric, since generic `yardsPerPlay` is reused
+verbatim for ball-carrier/receiver and must stay untouched) — each explicitly
+exclude `hasResult(p,'Sack')` from their own eligible/denominator internally,
+so the exclusion travels with the metric, not with a narrower cohort.
+
+**UX** (`js/study-screen.js`): a new "Players" band (`#wsStudyPlayers`) with
+Role/Player/Metric selects. Two modes, both routing through the existing
+generic query engine:
+- **Leaderboard** (player blank): groups by the role's own dimension — one
+  row per credited player, ranked by the chosen metric.
+- **Single-player breakdown** (player selected): groups by the EXISTING
+  "Break down by" control (`#wsStudyDimension`) instead — Formation, Down,
+  Play Call, anything already in `DIMENSION_GROUPS` — with the player added
+  as an ordinary filter on their role dimension. This satisfies "add a
+  second breakdown dimension" from the spec without a dedicated second
+  picker: the coach's existing control is reused unmodified.
+
+Choosing a role disables the primary metric picker and the pivot ("Then by")
+column (Players is pivot-incompatible, same disclosed-limitation shape as the
+existing rich-metric pivot exclusion) but leaves "Break down by" enabled for
+exactly the reuse above. `PLAYER_ROLES`/`PLAYER_METRIC_LABELS`/
+`PLAYER_METRIC_FORMAT` are role-scoped coach-facing name/format maps (e.g.
+`yardsPerPlay` → "Yards / Carry" for ballCarrier, "Yards / Attempt" resolves
+to the dedicated `yardsPerAttempt` id for passer, "Yards / Target" for
+receiver — one formula, several coaching questions, resolved by the caller
+per rule #2). Roster labels (`app.roster.getLabel(num)` → `"#22 Smith"`)
+apply only to the leaderboard's own row values (bare jersey numbers straight
+off the player dimension); single-player breakdown groups by an ordinary
+football dimension whose values are already coach-facing text. `_renderPlayers
+Query`/`_renderPlayersCompare` are new, separate render methods (deliberately
+NOT threaded into the six existing generic render functions, to avoid
+blast-radius risk on already-reviewed code) that reuse only the safe generic
+helpers (`_richStateClass`, `_metricPlaysText`, `_richStateBadge`,
+`_richFavorable`, `_setWatchAll`). Watch (both per-row and the aggregate
+"Watch results" action) resolves refs from `g.metrics[metric].refs` — the
+metric's own eligible refs — never the group's broader raw `matchingPlayIds`,
+matching the film-cohort-honesty rule the rest of Study already enforces.
+
+**Special Teams scope, deliberately minimal and disclosed.** Kicker is
+Field-Goal-only (no punting); Returner is touchdowns-only (no return-yardage
+average, since return yards live on a structurally different field,
+`play.specialTeams.return.yards`, than what these metrics read). Both reuse
+`completionRate`/`completions`/`touchdowns` — no duplicate kick/return
+formula, per rule #6. No grade metrics for kicker/returner (`gradeRole:null`
+in `PLAYER_ROLES`) — the tag model has no `tags.grades.kicker`/`.returner`
+key.
+
+**Explicit non-scope, per the spec.** No leading/trailing, score
+differential, two-minute, or other score-aware game-state analysis;
+`scoreSituation` remains deferred. Quarter, down/distance, field zone, drive,
+and the existing period comparisons remain available since they're already
+canonically derived — unchanged.
+
+**Files changed:** `js/stats-engine.js` (`effectivePlayers`/
+`countsFootballRoles`/`isMadeAttempt` new statics; `_individualStats`'s
+opening lines refactored to use the first two — verified byte-identical
+output; `metricsEngine()` deps gain `splitPlayers`/`isMadeAttempt`);
+`js/analytics-metrics.js` (`countResult` driver; `countMetric` state-gate;
+13 new metric definitions; `isComplete` rewritten to delegate to
+`deps.isMadeAttempt`; `isMadeAttempt` added to the required deps list);
+`js/analytics-registry.js` (6 new player dimensions + `_playerRoleValues`
+helper; `playerPasser`'s gate broadened to include sacks, with the reasoning
+recorded directly in the dimension's own comment); `js/study-query.js`
+(`runMetrics()`/`compareMetrics()` gain a `gradeRole` passthrough option);
+`js/study-screen.js` (`PLAYER_ROLES`/`PLAYER_METRIC_LABELS`/
+`PLAYER_METRIC_FORMAT` statics; the `.ws-study-players` band; `_state()`
+gains `playerRole`/`player`/`playerMetric`; `_syncPlayerControls()`;
+`render()`'s player-question early dispatch; `_renderPlayers`/
+`_renderPlayersQuery`/`_renderPlayersCompare`/`_playerNumber`/
+`_playerDisplay` new methods); `tools/e2e-analytics-metrics.mjs` and
+`tools/e2e-study-players.mjs` (new, 20/20 — see below).
+
+**Verification:**
+- `node tools/e2e-study-players.mjs` — **NEW, 20/20.** Covers every item in
+  the spec's required list: one player (#22) credited as both ballCarrier
+  and tackler from the same play set; shared vs. solo tackles matching
+  `_individualStats`' own credit rule (#5 gets 2 solo + 1 shared + 1 sack + 1
+  TFL from a shared-tackle play; #44 gets 1 shared + 1 TFL from the same
+  play); a blank grade (id3, no `grades.ballCarrier` key at all) excluded
+  from `avgGrade`'s denominator (averages 2 of 3 plays, not 3); the
+  broadened passer cohort (Completion Rate/Yards-per-Attempt exclude a sack,
+  Success Rate and a graded sack's Avg Grade include it); kicker/returner
+  correctly reusing `completionRate`/`touchdowns` (the `isMadeAttempt` fix,
+  proven directly); two games reusing bare play id `1`, resolving to distinct
+  composite refs at season scope; an insufficient sample (`minSample:5`
+  against a real denominator of 4) reporting `state:'insufficient'` with a
+  real nonzero value, never a fabricated/nulled zero; a genuine zero
+  sub-count (#44, zero sacks) reporting `state:'ok'`, never `'unavailable'`;
+  every required role present on the picker; role selection disabling the
+  primary metric/pivot pickers; per-row Watch and the aggregate "Watch
+  results" action both consuming exactly the metric's own eligible refs
+  (proven on Avg Grade, where the blank-grade play is excluded from both);
+  a stored-XSS roster name (`<img src=x onerror=...>`) rendering as inert
+  text, payload never executing; single-player breakdown correctly reusing
+  the existing "Break down by" control filtered to that player; comparison
+  mode (game vs. prior games) keeping #22's refs correctly separate and
+  player-specific on both cohorts; and two mutation proofs (below).
+- **Mutation-verified, both seams named by the spec.** (1) Player-role
+  eligibility: `AnalyticsRegistry`'s dimension entries are `Object.freeze()`-d
+  (`_index()`), so the correct mutation technique is replacing the
+  `_dimensionMap` entry, not reassigning a property on the frozen object —
+  swapping `playerTackler`'s entry for one whose `values()` always returns
+  `[]` collapses the tackler leaderboard from 3 groups to 0; restoring it
+  brings all 3 back. (2) Film-ref seam: temporarily overriding
+  `StudyScreen.prototype._renderPlayersQuery` to consume a group's raw
+  `matchingPlayIds` instead of the metric's own `refs` leaks the blank-grade
+  play into Watch (3 refs instead of 2); restoring the real method brings it
+  back to exactly 2. **A construction pitfall worth recording:** the first
+  attempt at mutation (1) used `dim.values = () => []` directly on the
+  object returned by `getDimension()`, which silently no-ops under
+  `Object.freeze()` in the sloppy-mode context `page.evaluate()` compiles
+  callbacks in — no throw, no visible failure, just a mutation that never
+  took effect. Caught by adding a per-play diagnostic loop before trusting
+  the (accidentally passing) single-play probe, which had coincidentally
+  tested a non-tackler play that returns `[]` either way.
+- `node tools/e2e-analytics-metrics.mjs` **28/28** (unchanged count — the 13
+  new metrics ride the existing suite's shared `deps` object, updated with
+  `isMadeAttempt`), `node tools/e2e-analytics-registry.mjs` **33/33**
+  (unchanged — confirms the 6 new dimensions are additive), `node tools/
+  e2e-study-query.mjs` **48/48**, `node tools/e2e-native-reports.mjs`
+  **76/76**, `node tools/e2e-season-tab.mjs` **169/169**, `node tools/
+  e2e-special-teams-contract.mjs` **20/20**, `node tools/e2e-b2-tries.mjs`
+  **13/13**, `node tools/e2e-study-screen.mjs` **99/99**, `node tools/
+  e2e-study-penalties-st.mjs` **33/33** — all unchanged, confirming
+  `isMadeAttempt`'s rewrite of `isComplete` is behavior-preserving for every
+  pre-existing consumer (none of these suites' fixtures exercise a
+  structured Special Teams play through `completionRate`/`completions`,
+  since those metrics are new to this checkpoint — the unchanged counts
+  confirm zero regression on everything that predates it).
+- `node tools/e2e-parity.mjs` **2/2** (7 scopes, 625 drilldowns, real
+  six-game season) — unchanged, confirming this checkpoint added no new
+  `stats.compute()` output shape and moved no existing analytics formula.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 87 green |
+  0 skipped | 1 failed** — `e2e-csv-projection.mjs` only, the documented
+  pre-existing Puppeteer/CDP `Runtime.callFunctionOn: Promise was collected`
+  intermittent (this file touches CSV import/projection, nothing this
+  checkpoint changed); reproduced the exact signature standalone — 22/22
+  clean on one run, the identical crash on the next, on **unmodified**
+  code — matching this project's long-documented flake rate for this class
+  of harness since 2026-08-05. Not caused by this checkpoint.
+
+**Known limitations, disclosed rather than left implicit:**
+1. **Kicker is Field-Goal-only; no punting analysis.** A punter role exists
+   structurally in `effectivePlayers()`'s merge but has no `PLAYER_ROLES`
+   entry — punt distance/hang-time/net averages are real Phase 2 team-level
+   Special Teams measures already in Study, just not yet exposed per-punter.
+2. **Returner has no return-yardage average.** Return yards live on
+   `play.specialTeams.return.yards`, a field none of this checkpoint's
+   metrics read (`yards()` in analytics-metrics.js reads `tags.yardage`
+   only). Adding a returner yards-per-return metric needs either a bridging
+   read or a dedicated metric — deliberately deferred rather than silently
+   built wrong.
+3. **No pivot (cross-tab) mode for Players**, matching the existing
+   rich-metric pivot exclusion — selecting a player role disables "Then by."
+4. **Players has no visual bar-chart/KPI-tile treatment** (the
+   `_renderRichQueryVisuals` equivalent) — table rows only this checkpoint.
+
+**Codex review handoff:** highest-value places to look first, in order: (a)
+the `playerPasser` dimension's broadened (attempts + sacks) cohort and
+whether `completionRate`/`yardsPerAttempt`'s sack-exclusion is airtight for
+every reuse (receiver/kicker cohorts never contain a sack to begin with, so
+the exclusion is a no-op there — confirm that reasoning holds); (b) the
+`countMetric`/`countResult` state-gate change to `metric()` — confirm it
+cannot regress any of the five pre-existing rate metrics that don't set
+`countMetric` (their gate stays `denominator`, unchanged); (c) whether
+`_renderPlayersQuery`/`_renderPlayersCompare` genuinely never diverge from
+the film-cohort-honesty rule the six pre-existing render paths already
+enforce, now that they're separate methods rather than threaded through the
+existing ones; (d) the two disclosed Special Teams scope limitations above.
+No installer, package, tag, or deploy is authorized from this checkpoint.
+
 ### CODEX FINAL VERDICT - Study Phase 2 Penalties + Special Teams - ACCEPTED (2026-08-15)
 
 **Accepted through repair `16b59b9`; no open findings.** The visible Plays disclosure now derives from the same measure-specific refs consumed by Watch in query and compare mode, with legacy fallback preserved for measures without `refsPath`. Independent focused rerun: `e2e-study-penalties-st.mjs` 33/33. Across the complete review chain, the accepted checkpoint now has record-correct penalty grouping, honest timing semantics, explicit neutral polarity, exact metric/film cohorts through query/compare/pivot, observation-specific average cohorts, recovered-onside isolation, and matching visible play counts. Claude's reported full canonical gate is 87/87; Codex did not duplicate the full gate after this presentation-only final repair. Study Phase 2 is closed.

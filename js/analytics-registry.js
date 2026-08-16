@@ -96,6 +96,71 @@ export class AnalyticsRegistry {
       ready('blitz', 'Blitz / Pressure', p => SE.splitBlitzes(p?.tags?.blitz), 'StatsEngine.splitBlitzes', { multi: true }),
       ready('playerRole', 'Player Role', p => pairs(p?.tags?.players, true), 'StatsEngine.splitPlayers', { multi: true }),
       ready('grade', 'Grade', p => pairs(p?.tags?.grades), 'play.tags.grades', { multi: true }),
+      // ---- Study Phase 3: player performance -------------------------
+      // Each dimension's VALUE is the bare jersey number -- a stable,
+      // unambiguous grouping key -- never a coach-facing label; study-
+      // screen.js resolves "#22 Smith" via the roster at render time (per
+      // the checkpoint's requirement that internal values like
+      // `ballCarrier=22` never reach the coach directly). `_playerRoleValues`
+      // reads through `StatsEngine.effectivePlayers` (the same structured+
+      // legacy merge `_individualStats` performs) and `SE.splitPlayers` (the
+      // same multi-value split every tackler-crediting consumer already
+      // uses), gated to exactly the plays each role's existing box-score
+      // aggregation already counts -- `StatsEngine.countsFootballRoles` for
+      // the offense roles (excludes an ordinary Special Teams play; admits a
+      // fake), `unit === 'defense'` for tackler, per `_individualStats`.
+      ready('playerBallCarrier', 'Ball Carrier',
+        this._playerRoleValues('ballCarrier', p => SE.countsFootballRoles(p) && SE.isRun(p)),
+        'StatsEngine.effectivePlayers.ballCarrier (run plays)', { multi: true }),
+      // Passer's gate is EVERY dropback this passer is credited on --
+      // official attempts (complete/incomplete/intercepted) PLUS sacks. A
+      // sack is not a pass "attempt" by the official football definition
+      // (see completionRate's/yardsPerAttempt's own sack-exclusion in
+      // analytics-metrics.js, which keep completion rate and yards/attempt
+      // honest over this broader cohort), but it belongs in the cohort for
+      // three reasons that would otherwise be unreachable: "Sacks Taken" has
+      // nowhere to count from if sacks are excluded from the passer's own
+      // cohort entirely; Success Rate is conventionally computed over every
+      // dropback INCLUDING sacks (a sack is a failed play, not an excluded
+      // one); and a coach may grade a passer's decision-making on a sack
+      // (holding the ball too long) -- excluding it would make that grade
+      // invisible to Avg Grade.
+      ready('playerPasser', 'Passer',
+        this._playerRoleValues('passer', p => SE.countsFootballRoles(p) && SE.isPass(p)
+          && (SE.hasResult(p, 'Gain') || SE.hasResult(p, 'Touchdown') || SE.hasResult(p, 'No Gain') || SE.hasResult(p, 'Incomplete') || SE.hasResult(p, 'Interception') || SE.hasResult(p, 'Sack'))),
+        'StatsEngine.effectivePlayers.passer (dropbacks: attempts + sacks)', { multi: true }),
+      // Receiver is gated on EVERY pass thrown their way, complete or not --
+      // unlike _individualStats' box score (which only ever credited a
+      // receiver on a completion, with no "target" concept at all), this is
+      // the honest cohort "Targets" needs to answer as its own question.
+      ready('playerReceiver', 'Receiver (Targets)',
+        this._playerRoleValues('receiver', p => SE.countsFootballRoles(p) && SE.isPass(p)),
+        'StatsEngine.effectivePlayers.receiver (pass targets, complete or not)', { multi: true }),
+      ready('playerTackler', 'Tackler',
+        this._playerRoleValues('tackler', p => (p?.tags?.unit || 'offense') === 'defense'),
+        'StatsEngine.effectivePlayers.tackler (defensive snaps)', { multi: true }),
+      // Special Teams player analysis stays deliberately minimal (Study
+      // Phase 3 scope): Field Goal only for kicker (a clean make/miss
+      // binary, already well-modeled), kick/punt return only for returner.
+      // Punting and return-yardage averages are NOT exposed here -- their
+      // yardage lives on `play.specialTeams.return.yards`, a different field
+      // than the `tags.yardage` every AnalyticsMetrics yardage metric reads,
+      // and bridging that is out of this checkpoint's scope (disclosed as a
+      // known limitation in the Phase 3 handoff, not silently omitted).
+      ready('playerKicker', 'Kicker (Field Goal)',
+        this._playerRoleValues('kicker', p => {
+          const event = special(p);
+          if (event) return event.unit === 'fieldGoal' && event.attemptType === 'fieldGoal' && !event.isFake;
+          return p?.tags?.stType === 'Field Goal';
+        }),
+        'StatsEngine.effectivePlayers.kicker (field goal attempts)', { multi: true }),
+      ready('playerReturner', 'Returner',
+        this._playerRoleValues('returner', p => {
+          const event = special(p);
+          if (event) return ['kickoffReturn', 'puntReturn'].includes(event.unit);
+          return (p?.tags?.stType || '').includes('Return');
+        }),
+        'StatsEngine.effectivePlayers.returner (kick/punt returns)', { multi: true }),
       ready('specialTeamsPhase', 'Special Teams Unit', p => this._one(special(p)?.unit), 'SpecialTeamsModel.normalize.unit'),
       ready('specialTeamsOutcome', 'Special Teams Outcome', p => { const event = special(p); return this._one(event?.result || event?.outcome.status); }, 'SpecialTeamsModel.normalize.result | outcome.status'),
       ready('specialTeamsRole', 'Special Teams Role', p => this._one(special(p)?.subjectRole), 'SpecialTeamsModel.normalize.subjectRole'),
@@ -313,6 +378,17 @@ export class AnalyticsRegistry {
 
   _one(value) {
     return value == null || value === '' ? [] : [String(value)];
+  }
+
+  /** Study Phase 3: a dimension value-extractor for one player role --
+   *  returns the credited jersey #(s) for `role` when `gate(play)` passes,
+   *  else `[]`. `gate` decides whether this play even counts for the role
+   *  (e.g. run plays only for ballCarrier); the split itself always reuses
+   *  `StatsEngine.splitPlayers` over `StatsEngine.effectivePlayers(play)`
+   *  [role] -- one merge, one split, six roles. */
+  _playerRoleValues(role, gate) {
+    const SE = this._SE;
+    return p => (gate(p) ? SE.splitPlayers(SE.effectivePlayers(p)[role]) : []);
   }
 
   _readPath(source, path) {

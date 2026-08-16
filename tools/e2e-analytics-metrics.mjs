@@ -34,7 +34,7 @@ const isSuccessfulPlay = p => StatsEngine.prototype._isSuccessfulPlay.call({}, p
 const isEligiblePlay = p => StatsEngine.prototype._isSuccessfulPlayEligible.call({}, p);
 const buildCutFilter = (type, val) => StatsEngine.prototype._buildCutFilter.call({}, type, val);
 
-const deps = { isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, isSuccessfulPlay, isEligiblePlay, buildCutFilter };
+const deps = { isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, isSuccessfulPlay, isEligiblePlay, buildCutFilter, splitPlayers: StatsEngine.splitPlayers, isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult) };
 const metrics = new AnalyticsMetrics(deps);
 
 const play = (id, gid, tags = {}) => ({

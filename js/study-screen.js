@@ -159,6 +159,90 @@ export class StudyScreen {
   }
 
   /**
+   * Study Phase 3: Player Performance. A dedicated two-step picker (Role,
+   * then a role-scoped Metric) rather than one more entry in the primary
+   * metric dropdown -- the metric VOCABULARY genuinely differs per role
+   * (Completion Rate means nothing for a Tackler; Solo Tackles means nothing
+   * for a Passer), so a flat combined list would either mix unrelated
+   * questions or need per-role filtering logic duplicated at render time.
+   * Each role names: its AnalyticsRegistry player dimension (built on
+   * StatsEngine.effectivePlayers/splitPlayers/countsFootballRoles -- see
+   * analytics-registry.js), the AnalyticsMetrics metric ids it may select
+   * (every one already defined in analytics-metrics.js -- five of them,
+   * successRate/yardsPerPlay/explosiveRate/negativeRate/stopRate/
+   * yardsAllowedPerPlay, are the EXACT SAME formulas team-level Study
+   * concepts already use, reused as-is over a player-scoped cohort), and
+   * whether that role has a `tags.grades` key at all (kicker/returner do
+   * not -- the tag form never exposed a grade control for them, matching
+   * `StatsEngine._individualStats`, so their metric lists omit the three
+   * grade metrics rather than offering a control that can never resolve).
+   */
+  static get PLAYER_ROLES() {
+    return {
+      ballCarrier: {
+        name: 'Ball Carrier', dimension: 'playerBallCarrier', gradeRole: 'ballCarrier',
+        metrics: ['successRate', 'yardsPerPlay', 'explosiveRate', 'negativeRate', 'avgGrade', 'positiveGradeRate', 'negativeGradeRate'],
+      },
+      passer: {
+        name: 'Passer', dimension: 'playerPasser', gradeRole: 'passer',
+        // yardsPerAttempt (not yardsPerPlay) -- the passer's cohort includes
+        // sacks (see playerPasser's dimension comment), and Y/A must exclude
+        // them from both numerator and denominator; see yardsPerAttempt's
+        // own comment in analytics-metrics.js.
+        metrics: ['completionRate', 'yardsPerAttempt', 'completions', 'touchdowns', 'interceptionsThrown', 'sacksTaken', 'successRate', 'avgGrade', 'positiveGradeRate', 'negativeGradeRate'],
+      },
+      receiver: {
+        name: 'Receiver', dimension: 'playerReceiver', gradeRole: 'receiver',
+        metrics: ['completionRate', 'yardsPerPlay', 'yardsPerReception', 'completions', 'touchdowns', 'explosiveRate', 'avgGrade', 'positiveGradeRate', 'negativeGradeRate'],
+      },
+      tackler: {
+        name: 'Tackler', dimension: 'playerTackler', gradeRole: 'tackler',
+        metrics: ['tackles', 'soloTackles', 'assistedTackles', 'tfl', 'sacksMade', 'stopRate', 'yardsAllowedPerPlay', 'avgGrade', 'positiveGradeRate', 'negativeGradeRate'],
+      },
+      // Special Teams stays deliberately minimal -- see analytics-registry.js's
+      // playerKicker/playerReturner comment for the disclosed scope limit
+      // (Field Goal only, no punting or return-yardage averages this
+      // checkpoint). No grade metrics: kicker/returner have no `tags.grades`
+      // key in the tag model.
+      kicker: { name: 'Kicker (FG)', dimension: 'playerKicker', gradeRole: null, metrics: ['completions', 'completionRate'] },
+      returner: { name: 'Returner', dimension: 'playerReturner', gradeRole: null, metrics: ['touchdowns'] },
+    };
+  }
+
+  /** Coach-facing metric names, per role -- the SAME underlying metric id
+   *  (e.g. `yardsPerPlay`, `completionRate`, `completions`) is deliberately
+   *  reused across roles (one formula, several coaching questions), so the
+   *  DISPLAY name is resolved here rather than baked into the metric id.
+   *  Tackler's stopRate/yardsAllowedPerPlay are named "...(plays involving)"
+   *  -- a Study Phase 3 requirement: never imply one player solely caused a
+   *  team-level defensive result. */
+  static get PLAYER_METRIC_LABELS() {
+    return {
+      ballCarrier: {
+        successRate: 'Success Rate', yardsPerPlay: 'Yards / Carry', explosiveRate: 'Explosive Rate',
+        negativeRate: 'Negative Play Rate', avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
+      },
+      passer: {
+        completionRate: 'Completion Rate', yardsPerAttempt: 'Yards / Attempt', completions: 'Completions',
+        touchdowns: 'Touchdowns', interceptionsThrown: 'Interceptions', sacksTaken: 'Sacks Taken',
+        successRate: 'Success Rate', avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
+      },
+      receiver: {
+        completionRate: 'Catch Rate', yardsPerPlay: 'Yards / Target', yardsPerReception: 'Yards / Reception',
+        completions: 'Receptions', touchdowns: 'Touchdowns', explosiveRate: 'Explosive Rate',
+        avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
+      },
+      tackler: {
+        tackles: 'Tackles', soloTackles: 'Solo Tackles', assistedTackles: 'Assisted Tackles', tfl: 'TFL',
+        sacksMade: 'Sacks', stopRate: 'Stop Rate (plays involving)', yardsAllowedPerPlay: 'Yards Allowed (plays involving)',
+        avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
+      },
+      kicker: { completions: 'Field Goals Made', completionRate: 'Field Goal %' },
+      returner: { touchdowns: 'Return Touchdowns' },
+    };
+  }
+
+  /**
    * Dimensions are the axes a question is broken down BY, not the question
    * itself, so they are grouped by football category rather than forced into
    * the five lenses — calling a coverage shell an "Efficiency" dimension would
@@ -229,6 +313,7 @@ export class StudyScreen {
     const measures = this._groupedOptions(StudyScreen.SELECTABLE_METRICS, StudyScreen.MEASURE_LENSES, metricName);
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
       <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">&mdash;</option>${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="recent">Recent vs prior period</option><option value="rangePrior">Date range vs prior</option></select></label><label id="wsStudyPeriodWrap" hidden>Period size<select id="wsStudyPeriodGames"><option value="2">2 games</option><option value="3" selected>3 games</option><option value="5">5 games</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-players" id="wsStudyPlayers"><strong>Players</strong><label>Role<select id="wsStudyPlayerRole"><option value="">Not a player question</option>${Object.entries(StudyScreen.PLAYER_ROLES).map(([id, role]) => `<option value="${this._esc(id)}">${this._esc(role.name)}</option>`).join('')}</select></label><label>Player<select id="wsStudyPlayer" disabled><option value="">Every player (leaderboard)</option></select></label><label>Player metric<select id="wsStudyPlayerMetric" disabled></select></label><small id="wsStudyPlayerHint">Choose a role to compare players, or pick one player and break them down by the field above.</small></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
       <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div>
@@ -274,6 +359,13 @@ export class StudyScreen {
         const filter = this.filters[Number(e.target.dataset.studyFilterValue)];
         if (filter && e.target.value && !filter.values.includes(e.target.value)) filter.values.push(e.target.value);
         this._renderFilters(); this.render();
+      } else if (e.target.id === 'wsStudyPlayerRole') {
+        // A new role has its own metric vocabulary and player pool -- both
+        // selections from the PREVIOUS role are stale (a passer's jersey #
+        // is meaningless once "Tackler" is chosen), so reset rather than
+        // silently carry over a value that no longer means what it used to.
+        this._syncPlayerControls(e.target.value, { resetPlayer: true, resetMetric: true });
+        this.render();
       } else if (e.target.matches('select,input')) {
         if (e.target.id === 'wsStudyScope' || e.target.id === 'wsStudyDateFrom' || e.target.id === 'wsStudyDateTo') this._renderFilters();
         this.render();
@@ -325,7 +417,51 @@ export class StudyScreen {
       dateFrom: this._control('wsStudyDateFrom').value,
       dateTo: this._control('wsStudyDateTo').value,
       filters: this.filters.map(filter => ({ dimension: filter.dimension, values: filter.values.slice() })),
+      // Study Phase 3.
+      playerRole: this._control('wsStudyPlayerRole')?.value || '',
+      player: this._control('wsStudyPlayer')?.value || '',
+      playerMetric: this._control('wsStudyPlayerMetric')?.value || '',
     };
+  }
+
+  /**
+   * Study Phase 3: repopulates the Player-metric and Player pickers for the
+   * newly chosen role. The Player list is built from the FULL SEASON (not
+   * the current scope) so choosing a game/date-range scope afterward never
+   * silently empties or reshuffles the coach's player selection -- a coach
+   * picking "#22 Smith" expects that choice to survive switching from
+   * Current game to Full season, not to be quietly reset because #22 has no
+   * plays yet within whatever the scope happened to be at pick time.
+   */
+  _syncPlayerControls(role, { resetPlayer = false, resetMetric = false } = {}) {
+    const metricSelect = this._control('wsStudyPlayerMetric');
+    const playerSelect = this._control('wsStudyPlayer');
+    if (!metricSelect || !playerSelect) return;
+    const roleConfig = StudyScreen.PLAYER_ROLES[role];
+    if (!roleConfig) {
+      metricSelect.innerHTML = '';
+      metricSelect.disabled = true;
+      playerSelect.innerHTML = '<option value="">Every player (leaderboard)</option>';
+      playerSelect.disabled = true;
+      return;
+    }
+    const labels = StudyScreen.PLAYER_METRIC_LABELS[role] || {};
+    const prevMetric = metricSelect.value;
+    metricSelect.innerHTML = roleConfig.metrics.map(id => `<option value="${this._esc(id)}">${this._esc(labels[id] || id)}</option>`).join('');
+    metricSelect.disabled = false;
+    if (!resetMetric && roleConfig.metrics.includes(prevMetric)) metricSelect.value = prevMetric;
+
+    const seasonPlays = this._playSets().season;
+    const seen = new Set();
+    for (const play of seasonPlays) {
+      for (const num of this.app.analyticsRegistry.values(roleConfig.dimension, play)) seen.add(num);
+    }
+    const numbers = [...seen].sort((a, b) => (Number(a) - Number(b)) || String(a).localeCompare(String(b)));
+    const prevPlayer = playerSelect.value;
+    playerSelect.innerHTML = '<option value="">Every player (leaderboard)</option>'
+      + numbers.map(num => `<option value="${this._esc(num)}">${this._esc(this.app.roster.getLabel(num))}</option>`).join('');
+    playerSelect.disabled = false;
+    if (!resetPlayer && numbers.includes(prevPlayer)) playerSelect.value = prevPlayer;
   }
 
   _playSets(state = this._state()) {
@@ -368,8 +504,39 @@ export class StudyScreen {
 
   render() {
     if (!this.host) return;
+    // Restoring a saved view (or a fresh mount) can set #wsStudyPlayerRole's
+    // raw value before its dependent Metric/Player <select>s have ever been
+    // populated -- _syncPlayerControls is normally only called from the
+    // role-change handler, so catch the "role already set, options still
+    // empty" case here too, without disturbing whatever value is already
+    // sitting in either control.
+    const roleSelect = this._control('wsStudyPlayerRole');
+    if (roleSelect && roleSelect.value && this._control('wsStudyPlayerMetric')?.options.length === 0) {
+      this._syncPlayerControls(roleSelect.value, { resetPlayer: false, resetMetric: false });
+    }
     const state = this._state();
     const sets = this._playSets(state);
+    const measureSelect = this._control('wsStudyMeasure');
+    if (measureSelect) measureSelect.disabled = !!state.playerRole;
+    // Study Phase 3: a player question takes over the primary metric picker
+    // entirely (dispatched before RICH_METRIC_PAIRS resolution, so a
+    // leftover "Success Rate" selection from before the coach picked a role
+    // can never silently apply). "Then by" (pivot) is Players-incompatible,
+    // same disclosed-limitation shape as the existing rich-metric pivot
+    // exclusion below; "Break down by" stays enabled -- Players REUSES it as
+    // the optional second breakdown dimension once a specific player is chosen.
+    if (state.playerRole) {
+      const promptEl = this._control('wsStudyUnitPrompt');
+      if (promptEl) promptEl.hidden = true;
+      const columnSelect = this._control('wsStudyColumn');
+      if (columnSelect) { columnSelect.disabled = true; if (columnSelect.value) columnSelect.value = ''; }
+      this._control('wsStudyScope').disabled = !!state.compare;
+      this._syncRangeControls(state);
+      const periodWrap = this._control('wsStudyPeriodWrap');
+      if (periodWrap) periodWrap.hidden = state.compare !== 'recent';
+      this._renderPlayers(state, sets);
+      return;
+    }
     const pair = StudyScreen.RICH_METRIC_PAIRS[state.measure];
     const metricId = this._richMetricId(state);
     this._control('wsStudyScope').disabled = !!state.compare;
@@ -768,6 +935,136 @@ export class StudyScreen {
       return `<button class="ws-study-delta-row ${favorable ? 'is-favorable' : delta ? 'is-unfavorable' : ''}" data-study-row="${index}" aria-label="Watch ${this._esc(row.value)} film"><span>${this._esc(row.value)}</span><i aria-hidden="true"><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong>${delta > 0 ? '+' : ''}${this._richNumber(conceptKey, delta)}</strong></button>`;
     }).join('');
     host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes — ${this._esc(pair.name)}</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
+  }
+
+  // ---- Study Phase 3: player performance -------------------------------
+  /** How each player metric's raw number should be displayed. Unlike the
+   *  five RICH_METRIC_PAIRS concepts (always a rate or always yards, decided
+   *  by one binary), player metrics span four genuinely different shapes:
+   *  rates (Success/Completion/Catch/Explosive/Negative/Stop/Grade rates),
+   *  yards-per-X means, a -2..+2 grade average, and raw counts (Tackles,
+   *  Touchdowns, Interceptions, ...) that must never carry a decimal or a
+   *  percent sign. */
+  static get PLAYER_METRIC_FORMAT() {
+    return {
+      successRate: 'pct', completionRate: 'pct', explosiveRate: 'pct', negativeRate: 'pct',
+      stopRate: 'pct', positiveGradeRate: 'pct', negativeGradeRate: 'pct',
+      yardsPerPlay: 'yards', yardsAllowedPerPlay: 'yards', yardsPerReception: 'yards', yardsPerAttempt: 'yards',
+      avgGrade: 'grade',
+      completions: 'count', touchdowns: 'count', interceptionsThrown: 'count', sacksTaken: 'count',
+      sacksMade: 'count', tackles: 'count', soloTackles: 'count', assistedTackles: 'count', tfl: 'count',
+    };
+  }
+  _playerNumber(metric, n) {
+    const format = StudyScreen.PLAYER_METRIC_FORMAT[metric] || 'count';
+    if (format === 'pct') return `${this._number(n)}%`;
+    if (format === 'grade') return (Math.round(Number(n) * 100) / 100).toFixed(2);
+    if (format === 'count') return String(Math.round(Number(n)));
+    return this._number(n);
+  }
+  _playerDisplay(metric, m) {
+    if (!m || m.value == null) return '—';
+    const n = Number(m.value);
+    return Number.isFinite(n) ? this._playerNumber(metric, n) : '—';
+  }
+
+  /**
+   * Dispatched from `render()` whenever a player role is chosen. Two shapes,
+   * decided by whether a SPECIFIC player is selected:
+   *  - Leaderboard (`state.player` blank): groups by the role's OWN
+   *    AnalyticsRegistry dimension (`playerBallCarrier` etc.) -- one row per
+   *    credited player, ranked by the chosen metric.
+   *  - Single-player breakdown (`state.player` set): groups by the EXISTING
+   *    "Break down by" dimension instead (Formation, Play Call, Down &
+   *    Distance, anything already in DIMENSION_GROUPS), with the player
+   *    added as an ordinary filter on their role dimension -- this is how
+   *    "add a second breakdown dimension" is satisfied without a second,
+   *    Players-specific dimension picker: the coach's existing "Break down
+   *    by" control is reused, unmodified, for exactly this purpose.
+   * Both paths go through `runMetrics()`/`compareMetrics()` -- the SAME
+   * AnalyticsMetrics-backed query engine RICH_METRIC_PAIRS already uses --
+   * never a bespoke aggregation written here.
+   */
+  _renderPlayers(state, sets) {
+    const roleConfig = StudyScreen.PLAYER_ROLES[state.playerRole];
+    if (!roleConfig) return;
+    const metric = state.playerMetric && roleConfig.metrics.includes(state.playerMetric) ? state.playerMetric : roleConfig.metrics[0];
+    const metricLabel = StudyScreen.PLAYER_METRIC_LABELS[state.playerRole]?.[metric] || metric;
+    this._control('wsStudyMetricHead').textContent = metricLabel;
+    this._control('wsStudyDeltaHead').textContent = state.compare ? 'Delta' : '';
+    this._control('wsStudyVisuals').innerHTML = '';
+    const usingPlayer = !!state.player;
+    const dimension = usingPlayer ? state.dimension : roleConfig.dimension;
+    const baseFilters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
+    const filters = usingPlayer ? [...baseFilters, { dimension: roleConfig.dimension, values: [state.player] }] : baseFilters;
+    const args = { dimension, metricIds: [metric], filters, minSample: state.minSample, gradeRole: roleConfig.gradeRole || undefined };
+    let result;
+    try {
+      result = state.compare
+        ? state.compare === 'rangePrior'
+          ? this.app.study.compareMetrics({ ...args, base: sets.range, against: sets.beforeRange, labels: { base: sets.rangeName, against: 'Prior dated games' } })
+          : state.compare === 'recent'
+            ? this.app.study.compareMetrics({ ...args, base: sets.recent, against: sets.priorPeriod, labels: { base: sets.recentName, against: sets.priorPeriodName } })
+            : this.app.study.compareMetrics({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
+        : this.app.study.runMetrics({ ...args, plays: sets[state.scope] });
+    } catch (error) {
+      this.rows = [];
+      this._saveCohorts = [];
+      this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this player question.')}</div>`;
+      return;
+    }
+    // Roster labels ("#22 Smith") only apply to the LEADERBOARD's own row
+    // values -- those are bare jersey #s straight off the player dimension.
+    // The single-player breakdown groups by an ordinary football dimension
+    // (Formation, Down, ...), whose values are already coach-facing text.
+    const label = value => (usingPlayer ? String(value) : this.app.roster.getLabel(value));
+    const context = usingPlayer ? ` for ${this._esc(this.app.roster.getLabel(state.player))}` : '';
+    if (state.compare) this._renderPlayersCompare(result, metric, state.compare, label, context);
+    else this._renderPlayersQuery(result, metric, label, context);
+    this._renderWarnings(result.warnings || []);
+  }
+
+  _renderPlayersQuery(result, metric, label, context) {
+    const groups = result.groups.filter(g => g.sampleSize > 0);
+    // Same film-parity rule as _renderRichQuery: Watch/refs come from the
+    // METRIC's own eligible refs, never the group's broader raw sample.
+    this.rows = groups.map(g => ({ label: label(g.value), refs: g.metrics[metric]?.refs || [] }));
+    const metricRefs = [...new Set(groups.flatMap(g => g.metrics[metric]?.refs || []))];
+    this._saveCohorts = [{ id: 'result', label: this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension), refs: metricRefs }];
+    this._control('wsStudySummary').innerHTML = `<strong>${metricRefs.length} matching play${metricRefs.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)}${context}</span>`;
+    this._control('wsStudyRows').innerHTML = groups.length ? groups.map((g, index) => {
+      const m = g.metrics[metric];
+      const mix = this._runPassForRefs(m?.refs || []);
+      return `<div class="ws-study-row${this._richStateClass(m)}"><strong>${this._esc(label(g.value))}</strong><span>${this._metricPlaysText(m, g.sampleSize)}</span><span>${this._playerDisplay(metric, m)}${this._richStateBadge(m)}</span><span>${this._pct(mix.run)} / ${this._pct(mix.pass)}</span><span></span><button class="ws-btn ws-small" data-study-row="${index}" ${(m?.refs?.length) ? '' : 'disabled'}>Watch</button></div>`;
+    }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
+    this._setWatchAll(metricRefs);
+  }
+
+  _renderPlayersCompare(result, metric, compareMode, label, context) {
+    const rows = result.rows.filter(row => row.a.sampleSize > 0 || row.b.sampleSize > 0);
+    const aRefs = [...new Set(rows.flatMap(row => row.a.metrics[metric]?.refs || []))];
+    const bRefs = [...new Set(rows.flatMap(row => row.b.metrics[metric]?.refs || []))];
+    const bothRefs = [...new Set([...aRefs, ...bRefs])];
+    this._saveCohorts = [
+      { id: 'base', label: result.a.label, refs: aRefs },
+      { id: 'against', label: result.b.label, refs: bRefs },
+      { id: 'both', label: 'Both cohorts', refs: bothRefs },
+    ];
+    this.rows = rows.map(row => {
+      const aMetricRefs = row.a.metrics[metric]?.refs || [];
+      return { label: label(row.value), refs: aMetricRefs.length ? aMetricRefs : (row.b.metrics[metric]?.refs || []) };
+    });
+    this._control('wsStudySummary').innerHTML = `<strong>${aRefs.length} vs ${bRefs.length} plays</strong><span>${this._esc(result.a.label)} compared with ${this._esc(result.b.label)}${context}</span>`;
+    this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
+      const ma = row.a.metrics[metric], mb = row.b.metrics[metric];
+      const delta = row.deltas[metric];
+      const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._playerNumber(metric, delta)}`;
+      const favorable = this._richFavorable(ma || mb, delta);
+      const deltaClass = delta == null || delta === 0 ? '' : favorable ? 'is-positive' : 'is-negative';
+      const mixA = this._runPassForRefs(ma?.refs || []), mixB = this._runPassForRefs(mb?.refs || []);
+      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(label(row.value))}</strong><span>${this._metricPlaysText(ma, row.a.sampleSize)} / ${this._metricPlaysText(mb, row.b.sampleSize)}</span><span>${this._playerDisplay(metric, ma)}${this._richStateBadge(ma)} / ${this._playerDisplay(metric, mb)}${this._richStateBadge(mb)}</span><span>${this._pct(mixA.run)} / ${this._pct(mixB.run)}</span><span class="${deltaClass}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
+    }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
+    this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : compareMode === 'recent' ? 'Watch recent period' : 'Watch current game');
   }
 
   /** Row/state CSS treatment for a metric result -- 'insufficient' reuses the

@@ -1014,6 +1014,16 @@ export class StatsEngine {
         isSuccessfulPlay: p => this._isSuccessfulPlay(p),
         isEligiblePlay: p => this._isSuccessfulPlayEligible(p),
         buildCutFilter: (type, val) => this._buildCutFilter(type, val),
+        // Study Phase 3: player performance metrics (soloTackles/
+        // assistedTackles) need to re-derive a play's own tackler list to
+        // classify solo vs. shared credit -- reusing the same static every
+        // other player-attribution consumer uses, never a second parser.
+        splitPlayers: StatsEngine.splitPlayers,
+        // "This attempt succeeded" reused across completionRate/completions
+        // for passer/receiver/kicker (see StatsEngine.isMadeAttempt's own
+        // comment for why one function safely covers both a completed pass
+        // and a made structured kick).
+        isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult),
       });
     }
     return this._metricsEngine;
@@ -2339,6 +2349,51 @@ export class StatsEngine {
     return { working: working.slice(0, 5), fix: fix.slice(0, 5) };
   }
 
+  /** Study Phase 3: `tags.players` merged with any structured Special Teams
+   *  role attribution (kicker/punter/returner/blocker/recoverer), exactly the
+   *  merge `_individualStats` already performed inline. Extracted so a
+   *  second consumer (AnalyticsRegistry's player dimensions) reads player
+   *  attribution through the SAME merge rather than re-deriving it -- the
+   *  two can never drift apart on a future Special Teams change. */
+  static effectivePlayers(play) {
+    const structured = SpecialTeamsModel.normalize(play?.specialTeams);
+    const structuredPlayers = Object.fromEntries(Object.entries(structured?.players || {})
+      .filter(([, value]) => String(value || '').trim()));
+    return { ...(play?.tags?.players || {}), ...structuredPlayers };
+  }
+
+  /** Study Phase 3: whether a play's football-role attribution (ball
+   *  carrier/passer/receiver) should count at all -- extracted from
+   *  `_individualStats`'s inline gate so AnalyticsRegistry's player
+   *  dimensions apply the EXACT same rule, not a hand-copied one. A fake
+   *  Special Teams play (a run/pass dressed as a kick) counts; an ordinary
+   *  kick/punt/return does not, since those plays' "ball carrier" is the
+   *  kicker/returner, tracked separately. */
+  static countsFootballRoles(play) {
+    const structured = SpecialTeamsModel.normalize(play?.specialTeams);
+    return structured
+      ? structured.isFake
+      : (play?.tags?.unit || 'offense') !== 'special' || StatsEngine.isRun(play) || StatsEngine.isPass(play);
+  }
+
+  /** Study Phase 3: "this attempt succeeded" -- the concept AnalyticsMetrics'
+   *  `completionRate`/`completions` reuse across three genuinely different
+   *  attempt shapes (a completed pass, a made field goal). A completed pass
+   *  has no `specialTeams` data at all, so its success signal is
+   *  `tags.result` (Gain/Touchdown/No Gain -- the same three-result check
+   *  `_individualStats` already uses for receptions); a structured kick
+   *  attempt has no meaningful `tags.result` at all -- its success signal is
+   *  the structured event's own `outcome.status === 'good'`, the SAME field
+   *  `_specialTeamsStats`' `fgRows`/`made()` already read (stats-engine.js
+   *  ~1358-1359). Branches on which data shape is present rather than
+   *  blending them, matching this file's existing structured/legacy
+   *  quarantine discipline elsewhere. */
+  static isMadeAttempt(play, hasResult) {
+    const structured = SpecialTeamsModel.normalize(play?.specialTeams);
+    if (structured) return structured.outcome?.status === 'good';
+    return hasResult(play, 'Gain') || hasResult(play, 'Touchdown') || hasResult(play, 'No Gain');
+  }
+
   _individualStats(plays) {
     const rushers = {};
     const passers = {};
@@ -2349,18 +2404,14 @@ export class StatsEngine {
 
     plays.forEach(p => {
       const structured = SpecialTeamsModel.normalize(p.specialTeams);
-      const structuredPlayers = Object.fromEntries(Object.entries(structured?.players || {})
-        .filter(([, value]) => String(value || '').trim()));
-      const players = { ...(p.tags.players || {}), ...structuredPlayers };
+      const players = StatsEngine.effectivePlayers(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
-      const countsFootballRoles = structured
-        ? structured.isFake
-        : (p.tags.unit || 'offense') !== 'special' || isRun || isPass;
+      const countsFootballRoles = StatsEngine.countsFootballRoles(p);
 
       // --- Special teams ---
       const structuredReturn = structured && ['kickoffReturn','puntReturn'].includes(structured.unit);
