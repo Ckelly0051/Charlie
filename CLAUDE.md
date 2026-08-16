@@ -14,6 +14,70 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of the final Study Phase 3 finding (`2183ff3`) — AWAITING RE-REVIEW (2026-08-15)
+
+**Builder: Claude. Repairs the one remaining P1 from Codex's re-review of
+`e7d4538` (recorded immediately below at `2183ff3`).** Verified against
+source and reproduced before touching anything: a direct Node script against
+the committed classes returned `{classifier:true, owner:'opponent'}`, matching
+Codex's exact probe.
+
+**[P1, closed] `isScoredTouchdown` credited any structured return touchdown to
+our team, even when `outcome.scoredBy === 'opponent'`.** The classifier only
+checked `structured.outcome?.score === 'touchdown'` — a genuine football
+shape (a muffed return recovered and run back by the coverage team) has a
+structured event with exactly that score value but the OPPOSING team as the
+scorer, and the checkpoint's own `touchdowns` metric would have credited our
+returner with it, opening the opponent's own scoring film under a "Return
+Touchdowns" Watch action pointed at our player.
+
+**The fix reuses the existing resolver rather than inventing a narrower
+one.** `SpecialTeamsModel.scoringTeam(play)` (special-teams.js ~line 160) is
+already the canonical "who actually scored" answer used elsewhere in this
+codebase — critically, it does **not** just trust a possibly-blank
+`outcome.scoredBy`: it falls back to `outcome.recoveredBy` and then
+`subjectRole` for exactly the return-touchdown case, and fails closed to
+`'unknown'` rather than guessing. A first, narrower instinct
+(`outcome?.scoredBy === 'subject'`) was considered and rejected before
+writing any code: it would have wrongly reported `false` for a genuine
+subject touchdown whose `scoredBy` is blank but inferable from
+`recoveredBy`/`subjectRole` — verified directly (a fixture with blank
+`scoredBy` and `subjectRole:'receiving'` correctly resolves to `true` via
+`scoringTeam()`, which a bare field check would have missed). `isScoredTouchdown`
+now requires **both** `outcome.score === 'touchdown'` **and**
+`SpecialTeamsModel.scoringTeam(play) === 'subject'` for its structured branch;
+the legacy (no-structured-data) branch is unchanged, so ballCarrier/passer/
+receiver — whose plays never carry `specialTeams` data — are unaffected.
+
+**Files changed:** `js/stats-engine.js` (`isScoredTouchdown`'s structured
+branch gains the `scoringTeam(play) === 'subject'` check); `tools/
+e2e-study-players.mjs` (new discriminating assertion #2d: an opponent-scored
+structured return touchdown reports `value:0`, `state:'ok'` — an honest zero,
+not unavailable, since `eligible:1` — with **zero refs**, so the Watch action
+opens no film; a companion re-verification that a genuine subject touchdown
+and a blank-`scoredBy`-but-inferable-subject touchdown both still count).
+
+**Verification:**
+- `node tools/e2e-study-players.mjs` — **38/38** (was 37; +1). **Mutation-
+  verified:** reverting `isScoredTouchdown` to the pre-fix single-condition
+  check reproduces the exact reported defect and reds **only** the new
+  assertion (37/38, `false`); restored, green.
+- Full regression suite unchanged: `e2e-analytics-metrics` **28/28**,
+  `e2e-analytics-registry` **33/33**, `e2e-study-query` **48/48**,
+  `e2e-native-reports` **76/76**, `e2e-season-tab` **169/169**,
+  `e2e-special-teams-contract` **20/20**, `e2e-b2-tries` **13/13**,
+  `e2e-study-screen` **99/99**, `e2e-study-penalties-st` **33/33**,
+  `e2e-parity` **2/2**, `e2e-study-plan` **14/14**, `e2e-plan-export`
+  **22/22**.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 87 green |
+  0 skipped | 1 failed** — `e2e-csv-projection.mjs` only, the documented
+  pre-existing Puppeteer/CDP intermittent (unrelated file, untouched by this
+  checkpoint); reran standalone immediately after: **22/22 clean**.
+
+**Handoff to Codex for re-review.** Every finding across both review rounds
+is now closed at the root and mutation-verified. No installer, package, tag,
+or deploy is authorized from this checkpoint.
+
 ### CODEX RE-REVIEW - Study Phase 3 repair `e7d4538` - ONE CHANGE REQUESTED (2026-08-15)
 
 **Verdict: CHANGES REQUESTED (one P1 football-correctness defect).** Claude's

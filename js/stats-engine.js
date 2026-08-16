@@ -2409,21 +2409,41 @@ export class StatsEngine {
       || hasResult(play, 'Good') || play?.tags?.kickOutcome === 'Good';
   }
 
-  /** Study Phase 3 (Codex review, 2026-08-15, finding #2): "did this play
-   *  score a touchdown", structured or legacy -- the raw-count sibling of
-   *  `isMadeAttempt`, reused by AnalyticsMetrics' `touchdowns` metric across
-   *  ballCarrier/passer/receiver/returner. A genuine (non-fake) structured
-   *  event's own `outcome.score === 'touchdown'` is the SAME field
-   *  `_conversionStats`' `made()` reads for a scored-by-type check; without
-   *  it, a structured kick/punt return touchdown was invisible unless the
-   *  coach redundantly copied 'Touchdown' into the legacy multi-select
-   *  `tags.result` too. A fake ST play (no real kick to grade) and every
-   *  ordinary offensive play fall through to the same `tags.result` check
-   *  `touchdowns` already used before this fix -- no regression for
-   *  ballCarrier/passer/receiver, whose plays never carry structured data. */
+  /** Study Phase 3 (Codex review, 2026-08-15, finding #2): "did WE score a
+   *  touchdown on this play", structured or legacy -- the raw-count sibling
+   *  of `isMadeAttempt`, reused by AnalyticsMetrics' `touchdowns` metric
+   *  across ballCarrier/passer/receiver/returner. A genuine (non-fake)
+   *  structured event's own `outcome.score === 'touchdown'` is the SAME
+   *  field `_conversionStats`' `made()` reads for a scored-by-type check;
+   *  without it, a structured kick/punt return touchdown was invisible
+   *  unless the coach redundantly copied 'Touchdown' into the legacy
+   *  multi-select `tags.result` too. A fake ST play (no real kick to grade)
+   *  and every ordinary offensive play fall through to the same
+   *  `tags.result` check `touchdowns` already used before this fix -- no
+   *  regression for ballCarrier/passer/receiver, whose plays never carry
+   *  structured data.
+   *
+   *  Codex re-review, 2026-08-15, one remaining P1: `score === 'touchdown'`
+   *  alone says a touchdown happened on the play, not WHO scored it -- a
+   *  muffed return recovered and run back by the coverage team is a
+   *  structured event with `score:'touchdown', scoredBy:'opponent'`, and the
+   *  original check credited it to OUR returner anyway (direct probe:
+   *  `{classifier:true, owner:'opponent'}`). Ownership must be resolved the
+   *  SAME way every other structured-score consumer already does --
+   *  `SpecialTeamsModel.scoringTeam(play)`, which does not just trust a
+   *  blank `outcome.scoredBy`: it falls back to `outcome.recoveredBy` and
+   *  then `subjectRole` for exactly this return-touchdown case (see
+   *  `scoringTeam`'s own comment, special-teams.js ~line 160), and fails
+   *  closed to `'unknown'` rather than guessing. Reusing it here (instead of
+   *  a bare `scoredBy === 'subject'` check) means a touchdown whose
+   *  ownership `scoringTeam` can already infer from `recoveredBy`/
+   *  `subjectRole` alone still counts, while a genuinely ambiguous one
+   *  correctly counts for nobody. */
   static isScoredTouchdown(play, hasResult) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
-    if (structured && !structured.isFake) return structured.outcome?.score === 'touchdown';
+    if (structured && !structured.isFake) {
+      return structured.outcome?.score === 'touchdown' && SpecialTeamsModel.scoringTeam(play) === 'subject';
+    }
     return hasResult(play, 'Touchdown');
   }
 

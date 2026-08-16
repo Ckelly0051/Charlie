@@ -166,11 +166,29 @@ const direct = await page.evaluate(() => {
     { unit: 'puntReturn', return: { attempted: true, yards: 75 }, outcome: { status: 'returned', score: 'touchdown', scoredBy: 'subject' } });
   const structTdResult = run([structTd], 'playerReturner', ['touchdowns']);
   const structReturner = groupFor(structTdResult, '33');
+  // 2d (Codex re-review, 2026-08-15, one remaining P1): a structured return
+  // touchdown SCORED BY THE OPPONENT (a muffed return recovered and run back
+  // by the coverage team -- our returner #34 is genuinely credited on this
+  // snap, but the touchdown is theirs, not ours). Direct probe on the
+  // pre-fix code returned {classifier:true, owner:'opponent'} -- our
+  // returner was credited with the opponent's own score, and the metric's
+  // refs would have opened that play under a "Return Touchdowns" Watch
+  // button, linking the wrong film to the wrong player.
+  const theirTd = stamp(93, { unit: 'special', players: { returner: '34' } },
+    { unit: 'puntReturn', return: { attempted: true, yards: -5 }, outcome: { status: 'returned', score: 'touchdown', scoredBy: 'opponent' } });
+  const theirTdResult = run([theirTd], 'playerReturner', ['touchdowns']);
+  const theirReturner = groupFor(theirTdResult, '34');
 
   return {
     fakePassMade: fakePasser?.metrics.completions?.value === 1 && JSON.stringify(fakePasser.metrics.completions.refs) === JSON.stringify(['g-players-1::90']),
     legacyFgMade: legacyKicker?.metrics.completions?.value === 1 && JSON.stringify(legacyKicker.metrics.completions.refs) === JSON.stringify(['g-players-1::91']),
     structuredReturnHasTd: structReturner?.metrics.touchdowns?.value === 1 && JSON.stringify(structReturner.metrics.touchdowns.refs) === JSON.stringify(['g-players-1::92']),
+    // countResult's denominator is the MATCHED count (0, since nothing
+    // qualifies as our touchdown), never the raw cohort size -- `eligible`
+    // (1, our returner's one genuinely credited play) is what state:'ok'
+    // gates on, so this is an honest zero, not a missing-data unavailable.
+    opponentTdNotCredited: theirReturner?.metrics.touchdowns?.value === 0 && theirReturner?.metrics.touchdowns?.state === 'ok'
+      && theirReturner?.metrics.touchdowns?.eligible === 1 && JSON.stringify(theirReturner?.metrics.touchdowns?.refs) === JSON.stringify([]),
     carrier22YPP: carrier22?.metrics.yardsPerPlay,
     tackler22Count: tackler22?.metrics.tackles,
     t5: { tackles: t5?.metrics.tackles, solo: t5?.metrics.soloTackles, assist: t5?.metrics.assistedTackles, sacks: t5?.metrics.sacksMade, tfl: t5?.metrics.tfl },
@@ -222,6 +240,7 @@ ok(direct.zeroSacks.state === 'ok' && direct.zeroSacks.value === 0,
 ok(direct.fakePassMade, 'Codex review finding #2a: a completed fake-FG pass counts as a completion (judged by tags.result, not the kick-specific outcome.status)', JSON.stringify(direct.fakePassMade));
 ok(direct.legacyFgMade, 'Codex review finding #2b: a legacy field goal with tags.result:"Good" and no structured data counts as made', JSON.stringify(direct.legacyFgMade));
 ok(direct.structuredReturnHasTd, 'Codex review finding #2c: a structured return touchdown counts without a redundant legacy tags.result copy', JSON.stringify(direct.structuredReturnHasTd));
+ok(direct.opponentTdNotCredited, 'Codex re-review finding #2d: a structured return touchdown SCORED BY THE OPPONENT is never credited to our returner, and opens no film under their Watch action (score-owner resolved via SpecialTeamsModel.scoringTeam, not a bare outcome.score check)', JSON.stringify(direct.opponentTdNotCredited));
 
 // ---- Codex review finding #1: the untouched default journey -----------
 // #wsStudyUnit is NEVER touched here -- it must still be sitting at its
