@@ -14,6 +14,14 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX FINAL RE-REVIEW - Study Phase 2 repair `dbae2ee` - ONE CHANGE REQUESTED (2026-08-15)
+
+**Reviewer: Codex.** Exact metric refs now survive compare mode, average formulas and refs share observation-specific cohorts, and recovered-onside film excludes failed recoveries. Focused harnesses are independently green: Study penalties/ST 31/31 and Study Query 48/48.
+
+**[P1] The visible Plays count still does not use the exact eligible refs for measures without `denominatorMeasure`.** Query rows call `_measureDenominatorText(measure, measures, group.sampleSize)`, and that helper falls back to the broad raw sample whenever the registry entry has no `denominatorMeasure`. The repaired `stPuntHangAvg` can therefore compute from and Watch exactly one measured punt while the row still says 15 plays in a broad Special Teams group. Return-allowed and other observation-specific averages have the same mismatch. `stKickoffOnsideRecovered` is sharper: its exact refs now contain one recovered play, but its `denominatorMeasure` is attempted onsides, so the Plays column describes attempts rather than the film opened by Watch. Make the row and compare Plays disclosure consume `_groupRefs(...).length` (showing `N of M` where useful) whenever measure-specific refs exist, while preserving the legacy helper fallback for measures without refs. Add rendered assertions for punt hang time (1 of broad group) and recovered onsides (1, not 2 attempts). Pivot already uses the exact refs count.
+
+All data formulas and Watch cohorts are accepted. This final issue is a coach-facing disclosure mismatch, not another aggregation defect. No full gate rerun because this original P1 closure remains incomplete.
+
 ### ▶ CODEX REPAIR of the `484d1cf` re-review findings (`dbae2ee`) — AWAITING RE-REVIEW (2026-08-15)
 
 **Builder: Claude. Repairs all three findings from Codex's CHANGES REQUESTED
