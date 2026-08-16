@@ -14,6 +14,87 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ ACTIVE — VISUAL RESET PRODUCTION CONTRACT: Broadcast Density accepted; Part 1 = Break Down + shared foundation (2026-08-16)
+
+**This is the binding decision record. Read before touching Break Down, Reports,
+or `design-system/tokens.css`.**
+
+1. **Broadcast Density is the accepted production direction** — see the
+   `broadcast-density` comp entry immediately below, commit `4c84823`.
+2. **Broadcast Analytics owns the visual language**: stage-black grounds, hard
+   colour posts, condensed-caps identifiers, unmistakable selected states, the
+   below-film lower-third.
+3. **Tactical Workstation owns the density target**: geometry-driven density,
+   no wasted padding, no page-level scroll on the common charting workflow.
+4. **Premium Sports Operations is a restraint reference only** — its elevation
+   language and serif-italic interpretation marks do not enter production.
+5. **Production implementation is split in two:**
+   - **Part 1** — Break Down plus the shared visual primitives every later
+     route will reuse (surfaces, gold/cyan/status semantics, type roles, tabs,
+     buttons, chips, section rails, numerals, interaction states).
+   - **Part 2** — Reports, opened only after Part 1 is independently accepted
+     by Codex.
+6. **No architectural prerequisite remains before Part 1.** The native Break
+   Down route (`BreakdownWorkspace` → `BreakdownTheaterScreen` +
+   `NativeTaggingScreen`) is already the production surface; Part 1 restyles
+   and extends it in place.
+7. **The static Reports comp (`broadcast-density/reports.html`) contains
+   inconsistent demonstration values and is a visual reference only** — it was
+   built to prove density and hierarchy, not to be read as a source of truth
+   for any number.
+8. **No comp value, denominator, formula, insight, or sample object may enter
+   production.** Every value Part 1 or Part 2 renders must come from the live
+   season/game/play data through the existing owners (`StatsEngine.proj`,
+   `TagProjection`, the tagger, `gameContext`) — never copied from the comp's
+   markup.
+9. **Existing analytics, tagging, storage, film identity, and season data
+   remain unchanged.** This is a presentation and interaction-shell change
+   only.
+10. **No installer, tag, deploy, or release before independent Codex review**
+    of Part 1.
+
+**Part 1 requirements, condensed from the governing brief (full detail in the
+brief itself, not reproduced here — this is the record of what was decided,
+not a copy of the spec):**
+
+- Implement the Broadcast Density comp's layout in the *live* Break Down route
+  using existing controllers/state — not a second implementation, not
+  disconnected visual copies of live controls.
+- **Film stays completely unobstructed** — no control, lower-third, or
+  decoration may cover a video pixel; aspect ratio, playback quality,
+  fullscreen, drawing tools, multi-angle, Film Focus, autoplay-next, seeking
+  and keyboard controls all survive unchanged.
+- **A live lower-third below the video** (never over it) showing play number,
+  down & distance, ball position, hash, our call for the selected unit,
+  opponent look, and result/yardage — sourced from the current play's real
+  tags, updating immediately on play/game/unit/scout-perspective/tag changes,
+  with honest blank states, never inferring uncharted football information.
+- The complete existing tagging workflow survives: offense/defense/special
+  teams, self/opponent scout, situation, calls and opponent looks, play &
+  result, player attribution, penalties, special-teams detail, custom
+  fields/libraries, play-call library/templates, Same as Last, Save & Next,
+  Previous, Clear Tags, Delete, undo/redo.
+- At 1440×900 the common defensive workflow (situation, defensive call, play &
+  result, pinned Save & Next) fits with no page-level scrolling.
+- Type/control floors: body ≥ 11.5px, micro-labels ≥ 9.5px, chips ≥ 30px tall
+  on desktop, no thin/glowing/blurred/over-condensed body copy, density comes
+  from geometry and padding — never from shrinking type below the floor.
+- **Adaptation, disclosed rather than silently substituted:** the brief
+  specifies Segoe UI for values/controls and a condensed face for labels. The
+  production app has a standing, documented decision (`tokens.css`) to embed
+  real webfonts — IBM Plex Sans / Sans Condensed / Mono — specifically so
+  rendering never depends on which OS is running it. Segoe UI is not bundled
+  and isn't present outside Windows. Part 1 fulfills the *role* Segoe UI is
+  asked to play (a readable, non-condensed UI face for values and controls)
+  with the already-embedded **IBM Plex Sans**, and the condensed-label role
+  with the already-embedded **IBM Plex Sans Condensed**. This preserves the
+  system's own cross-platform guarantee instead of quietly breaking it.
+- Shared tokens are additive (`--gi-bd-*` in `design-system/tokens.css`),
+  wired into Break Down's own stylesheets only. Reports and every other route
+  keep reading the existing `--gi-los`/`--gi-first-down` semantics untouched
+  until Part 2 explicitly migrates them — this is what keeps Part 1 from
+  silently restyling unrelated screens.
+
 ### ▶ VISUAL RESET — REVISED DIRECTION: BROADCAST DENSITY (B language, C density) (2026-08-16)
 
 **Design checkpoint only. No production code, token, module, version, installer,

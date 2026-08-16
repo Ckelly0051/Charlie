@@ -12,6 +12,18 @@ This is a batched audit. Do not ship one-off styling releases from individual
 screenshots. Structural findings are resolved at their owning milestone; shared
 analytics presentation is resolved as one system.
 
+### ▶ SUPERSEDING — Visual Reset production contract (2026-08-16)
+
+**The findings below (UX-1 through AX-7) are the pre-reset design record.** The
+coach has since selected **Broadcast Density** as the accepted visual direction
+(comps at `design-comps/visual-reset-2026-08/broadcast-density/`, commit
+`4c84823`) and production implementation is underway. The binding contract —
+what's decided, what Part 1 covers, what Part 2 covers, and the guardrails — is
+recorded in **`CLAUDE.md`**, at the top of the changelog. Read that entry before
+resuming any item below; several of these findings (UX-1 video framing, AX-1
+Reports hierarchy, the charting density items) are superseded or subsumed by
+the visual reset rather than independently active.
+
 ### ▶ CHARTING CLOSEOUT RESOLVED — `1.12.0-43` (2026-08-09)
 
 The coach-approved charting batch is complete and gated (82/82, +15 assertions,
