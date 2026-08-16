@@ -14,6 +14,70 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ VISUAL RESET COMPS — three directions × two screens, awaiting coach selection (2026-08-16)
+
+**Design checkpoint only. No production code, token, module, version, installer,
+tag, deploy, or season byte was touched.** Deliverables are isolated in
+`design-comps/visual-reset-2026-08/`; the canonical gate was deliberately not run,
+per the brief.
+
+**What exists.** Six real HTML/CSS treatments — Reports Overview and Break Down in
+each of three directions — plus `index.html` (a switcher across all six with
+keyboard shortcuts), `README.md` (theses, palettes, retained/revised/rejected,
+implementation implications), `capture.mjs`, and twelve PNGs in `captures/`
+(a `-fold.png` at exactly 1440×900 and a full-page capture per comp).
+
+- **A · Premium Sports Operations** — layered dark surfaces with real elevation and
+  **no module borders**; a sticky 320px answer rail on a team-colour spine. Its one
+  aesthetic risk: measured data is sans/tabular, the app's own *interpretation*
+  (Game Plan) is **Georgia italic** — typography marking the line between what was
+  counted and what the product concluded.
+- **B · Broadcast Analytics** — flat on-air graphics on stage black, Bahnschrift
+  condensed caps, and a hard 4px **colour post** heading each module that says whose
+  ball it is (gold offence / cyan defence). Break Down's play state is a real
+  broadcast lower-third **below** the picture, never over it.
+- **C · Modern Tactical Workstation** — **no cards at all**: one machined panel split
+  by 1px grooves, every numeral monospaced.
+
+**Two measured results, not claims.** C's Reports fits identical content in
+**1,527px** vs 2,364 (A) and 2,261 (B) — 35% less scrolling. C's Break Down fits the
+**entire** defensive call (situation, 16 fronts, 7 coverages, family, blitz,
+run/pass, direction, 9 play types) with **no scrolling**, Save & Next pinned.
+
+**Real content throughout.** Week 1 vs St. Peter Lutheran (41–0, 67 plays) for
+Reports; Week 5 vs OL Lakes Lakers Play 80 (3rd & 19, Maverick/Cover 3, Run Outside,
+Loss −1) for Break Down. No value was invented or made more flattering; honest
+states like "3rd & short — no data" are carried verbatim.
+
+**Colour was computed, not eyeballed.** Every categorical palette passes the
+`dataviz` validator (lightness band, chroma floor, protan/deutan/tritan ΔE,
+normal-vision floor, contrast) against its own dark surface. **A finding worth
+carrying into production: three categorical series fails in all three directions** —
+a green third breaks the chroma floor, a purple third breaks CVD against cyan. So
+each direction ships exactly two categorical hues and the phase split
+(29 O / 20 D / 18 ST) is a **sequential ramp**, which is what it actually is.
+Warm-run / cool-pass is retained as meaning.
+
+**Verified.** `capture.mjs` asserts per comp: no page-level horizontal overflow, no
+element spilling past the viewport, no text clipped by its own box — **all six
+clean**. All six were then inspected by eye, which found and drove five fixes the
+automated checks could not see: Broadcast's scorebug pushed `41` and `0` far enough
+apart that they stopped reading as a score; its KPI label/value/sub rendered inline
+(spans with no `display:block`); Tactical's Coverage-Family/Blitz row was misaligned
+and its Play Type ran past the fold (so the no-scroll claim was false until fixed);
+Premium's nav rail had ~580px of dead space (now a live section index); and the film
+stand-in rendered as haze rather than a frame grab.
+
+**One honest disclosure.** The film plate is a **CSS-composed stand-in**, not a real
+frame, because `7477fe2` already committed real team-film frames once and these
+captures are committed too. Every comp references
+`design-comps/visual-reset-2026-08/assets/film-frame.jpg` and falls back to the
+stand-in when it is absent, so dropping a real frame there needs no code change;
+that path is gitignored. Play metadata around the film is entirely real.
+
+**Next:** the coach selects or combines a direction. Production visual
+implementation does not begin before that.
+
 ### ▶ BUILT — S8 repair checkpoint: film-health verify, Study Unit context, Then By for coaching metrics, ST spot geometry — AWAITING CODEX REVIEW (2026-08-16)
 
 **Builder: Claude. Baseline: `29d9873` (the `1.12.0-53` Study beta version/build

@@ -38,3 +38,5 @@ _shots-*/
 AGENTS.md
 tmpdur.mjs
 tools/.tmp-*
+# Real film frames are never committed (see design-comps README).
+design-comps/**/assets/film-frame.*

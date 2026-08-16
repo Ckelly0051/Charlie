@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Premium Sports Operations — Reports Overview</title>
+<style>
+/* ═══ DIRECTION A · PREMIUM SPORTS OPERATIONS ═══════════════════════════════
+   Thesis: the coordinator's Sunday-night binder rendered as software.
+   Warm-dark layered surfaces with genuine elevation, a continuous team-color
+   spine, and a typographic split between MEASURED data (sans, tabular) and
+   INTERPRETED judgment (serif italic). No borders on modules — separation is
+   elevation. Real values from Week 1 vs St. Peter Lutheran Patriots.
+   ═════════════════════════════════════════════════════════════════════════ */
+:root{
+  --ground:#0F151C; --surface:#161E28; --raised:#1D2733; --sunken:#0B1016;
+  --line:#26323F; --line-soft:#1E2833;
+  --ink:#E9EEF4; --ink-2:#9AA8B8; --ink-3:#66748A;
+  --team:#3B6FD4;                     /* Mavericks identity — spine only */
+  --run:#BE8420; --pass:#4A7FD4;      /* categorical · validated dark band */
+  --seq-1:#20344E; --seq-2:#2C5183; --seq-3:#3A6FB5; --seq-4:#4A7FD4;
+  --good:#4E9366; --watch:#B9702F; --crit:#C05553;
+  --sans:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --disp:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --judge:Georgia,"Times New Roman",serif;
+  --r:3px;
+  --lift:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.34), 0 8px 22px -12px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--ink);font:14px/1.45 var(--sans);
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.n{font-variant-numeric:tabular-nums}
+
+/* ── app chrome ─────────────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:212px 1fr;min-height:100vh}
+.rail{background:var(--sunken);padding:16px 0 0;display:flex;flex-direction:column;gap:2px}
+.mark{padding:0 18px 18px;display:flex;flex-direction:column;gap:2px}
+.mark b{font:700 15px/1 var(--disp);letter-spacing:-.02em}
+.mark b i{color:var(--team);font-style:normal}
+.mark span{font-size:11px;color:var(--ink-3)}
+.team{margin:0 12px 14px;padding:11px 12px;background:var(--surface);border-radius:var(--r);
+  border-left:3px solid var(--team);display:flex;flex-direction:column;gap:2px}
+.team strong{font:600 13px/1.2 var(--sans)}
+.team span{font-size:11px;color:var(--ink-3);line-height:1.3}
+.nav{display:flex;flex-direction:column;gap:1px;padding:0 12px}
+.nav a{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:var(--r);
+  color:var(--ink-2);text-decoration:none;font-size:13px}
+.nav a i{width:14px;text-align:center;font-style:normal;opacity:.6;font-size:12px}
+.nav a.on{background:var(--raised);color:var(--ink);font-weight:600;box-shadow:var(--lift)}
+.nav a.on i{opacity:1;color:var(--team)}
+.rail-foot{margin-top:auto;padding:14px 20px;font-size:11px;color:var(--ink-3);
+  display:flex;align-items:center;gap:7px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--good)}
+/* This report runs past 2300px. The rail had five nav items and ~580px of
+   nothing under them, so it carries the section index — real navigation for a
+   long document, not filler. */
+.jump{margin:22px 12px 0;padding-top:16px;border-top:1px solid var(--line-soft)}
+.jump-h{font:600 9.5px var(--sans);letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 11px 8px}
+.jump a{display:flex;align-items:center;gap:9px;padding:5px 11px;border-radius:var(--r);
+  color:var(--ink-2);text-decoration:none;font-size:12px}
+.jump a:hover{background:var(--surface);color:var(--ink)}
+.jump a.on{color:var(--ink);font-weight:600}
+.jump a.on::before{content:"";width:2px;height:12px;background:var(--team);
+  margin-left:-11px;margin-right:9px;border-radius:1px}
+.jump a em{margin-left:auto;font-style:normal;font-size:10.5px;color:var(--ink-3)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:14px;padding:11px 22px;background:var(--sunken)}
+.crumb{font-size:12px;color:var(--ink-3);display:flex;gap:7px;align-items:center}
+.crumb b{color:var(--ink-2);font-weight:500}
+.crumb .cur{color:var(--ink);font-weight:600}
+.top .sp{margin-left:auto}
+.pill{font-size:11px;font-weight:600;padding:4px 9px;border-radius:2px;
+  background:rgba(78,147,102,.14);color:var(--good);display:inline-flex;gap:6px;align-items:center}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--good)}
+.tbtn{font:500 12px var(--sans);color:var(--ink-2);background:var(--surface);
+  border:0;border-radius:var(--r);padding:5px 10px;cursor:pointer}
+
+/* ── page head ──────────────────────────────────────────────────────────── */
+.head{padding:20px 22px 0;display:flex;align-items:flex-end;gap:20px}
+.eyebrow{font:600 10.5px/1 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.head h1{margin:7px 0 4px;font:600 27px/1.1 var(--disp);letter-spacing:-.022em}
+.head p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.head .sp{margin-left:auto;display:flex;gap:8px}
+.btn{font:600 12px var(--sans);border:0;border-radius:var(--r);padding:8px 13px;cursor:pointer;
+  background:var(--raised);color:var(--ink);box-shadow:var(--lift)}
+.btn.pri{background:var(--team);color:#fff}
+
+.seg{display:inline-flex;background:var(--sunken);border-radius:var(--r);padding:2px;margin:16px 22px 0}
+.seg button{font:600 12px var(--sans);border:0;background:transparent;color:var(--ink-3);
+  padding:6px 15px;border-radius:2px;cursor:pointer}
+.seg button.on{background:var(--raised);color:var(--ink);box-shadow:var(--lift)}
+
+.tabs{display:flex;gap:2px;padding:14px 22px 0;overflow-x:auto}
+.tabs button{font:500 12.5px var(--sans);border:0;background:transparent;color:var(--ink-3);
+  padding:8px 13px;border-radius:var(--r) var(--r) 0 0;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:var(--surface);color:var(--ink);font-weight:600;
+  box-shadow:0 -2px 0 var(--team) inset}
+
+/* ── body: asymmetric answer rail + detail column ───────────────────────── */
+.body{display:grid;grid-template-columns:320px 1fr;gap:18px;padding:16px 22px 30px;
+  align-items:start;background:var(--surface);margin:0;flex:1}
+
+/* the spine — signature element */
+.answer{position:sticky;top:14px;padding-left:17px;display:flex;flex-direction:column;gap:13px}
+.answer::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;
+  background:linear-gradient(180deg,var(--team),rgba(59,111,212,.15));border-radius:2px}
+.spine-tag{position:relative;font:600 10px/1 var(--sans);letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);margin-left:-17px;padding-left:17px}
+.spine-tag::before{content:"";position:absolute;left:-4px;top:2px;width:11px;height:5px;
+  background:var(--team);border-radius:1px}
+
+.score{background:var(--raised);border-radius:var(--r);padding:15px 16px 13px;box-shadow:var(--lift)}
+.score-row{display:flex;align-items:baseline;gap:12px}
+.score-row .us{font:600 42px/1 var(--disp);letter-spacing:-.035em}
+.score-row .dash{color:var(--ink-3);font-size:20px}
+.score-row .them{font:400 42px/1 var(--disp);letter-spacing:-.035em;color:var(--ink-3)}
+.score-row .res{margin-left:auto;font:600 11px var(--sans);letter-spacing:.1em;
+  color:var(--good);text-transform:uppercase}
+.score-names{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-top:5px}
+.qtr{width:100%;border-collapse:collapse;margin-top:12px;font-size:11.5px}
+.qtr th{font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:right;padding:0 0 5px}
+.qtr th:first-child{text-align:left}
+.qtr td{padding:4px 0;text-align:right;color:var(--ink-2);border-top:1px solid var(--line-soft)}
+.qtr td:first-child{text-align:left;color:var(--ink);font-weight:500}
+.qtr td:last-child{color:var(--ink);font-weight:600}
+
+.kstack{display:flex;flex-direction:column;gap:1px;background:var(--line-soft);
+  border-radius:var(--r);overflow:hidden;box-shadow:var(--lift)}
+.k{background:var(--raised);padding:10px 14px;display:flex;align-items:center;gap:12px}
+.k .lbl{font:600 10px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);flex:1}
+.k .val{font:600 19px/1 var(--disp);letter-spacing:-.02em}
+.k .sub{font-size:10.5px;color:var(--ink-3);min-width:64px;text-align:right}
+
+.phase{background:var(--raised);border-radius:var(--r);padding:13px 15px;box-shadow:var(--lift)}
+.phase-h{font:600 10px var(--sans);letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:9px}
+.phase-bar{display:flex;height:9px;border-radius:2px;overflow:hidden;gap:2px;background:var(--sunken)}
+.phase-bar i{display:block}
+.phase-leg{display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--ink-2)}
+.phase-leg span{display:flex;align-items:center;gap:6px}
+.phase-leg em{width:8px;height:8px;border-radius:1px;font-style:normal}
+.phase-leg b{color:var(--ink);font-weight:600}
+
+.detail{display:flex;flex-direction:column;gap:16px;min-width:0}
+.mod{background:var(--raised);border-radius:var(--r);box-shadow:var(--lift);overflow:hidden}
+.mod-h{display:flex;align-items:center;gap:10px;padding:12px 16px 0}
+.mod-h h2{margin:0;font:600 12.5px var(--sans);letter-spacing:.02em}
+.mod-h .note{font-size:11px;color:var(--ink-3);margin-left:auto}
+.mod-b{padding:12px 16px 15px}
+
+/* glance strip */
+.glance{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line-soft)}
+.g{background:var(--raised);padding:11px 13px 12px}
+.g .lbl{font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.g .val{font:600 23px/1.1 var(--disp);letter-spacing:-.025em;margin-top:5px}
+.g .sub{font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.g.link .sub{color:var(--team)}
+
+/* box score pair */
+.boxes{display:grid;grid-template-columns:1fr 1fr 132px;gap:1px;background:var(--line-soft)}
+.box{background:var(--raised);padding:12px 16px 14px}
+.box h3{margin:0 0 9px;font:600 10.5px var(--sans);letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-3)}
+.stat{display:flex;justify-content:space-between;padding:3.5px 0;font-size:12.5px;
+  border-bottom:1px solid var(--line-soft)}
+.stat:last-child{border:0}
+.stat span{color:var(--ink-2)}
+.stat b{font-weight:600}
+.donut{background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:9px}
+.donut-leg{display:flex;flex-direction:column;gap:5px;font-size:11px;width:100%}
+.donut-leg span{display:flex;align-items:center;gap:7px;color:var(--ink-2)}
+.donut-leg em{width:8px;height:8px;border-radius:1px;font-style:normal;flex:none}
+.donut-leg b{margin-left:auto;color:var(--ink);font-weight:600}
+
+/* lenses */
+.lenses{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line-soft)}
+.lens{background:var(--raised);padding:12px 13px 13px;display:flex;flex-direction:column;gap:9px}
+.lens-h{font:600 9.5px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+.lens-h.acc{color:var(--team)}
+.mini{display:flex;flex-direction:column;gap:2px}
+.mini .v{font:600 17px/1 var(--disp);letter-spacing:-.02em}
+.mini .l{font-size:10.5px;color:var(--ink-2)}
+.mini .s{font-size:10px;color:var(--ink-3)}
+.mini.dim .v{color:var(--ink-3)}
+.lens-link{margin-top:auto;font-size:10.5px;color:var(--team);text-decoration:none}
+
+/* game plan — the serif-italic judgment voice */
+.plan{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft)}
+.plan-col{background:var(--raised);padding:13px 16px 15px}
+.plan-col h3{margin:0 0 10px;font:600 10.5px var(--sans);letter-spacing:.11em;text-transform:uppercase}
+.plan-col.good h3{color:var(--good)}
+.plan-col.work h3{color:var(--watch)}
+.pl{display:flex;gap:9px;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+.pl:last-child{border:0}
+.pl i{font-style:normal;font-size:11px;flex:none;margin-top:2px}
+.plan-col.good .pl i{color:var(--good)}
+.plan-col.work .pl i{color:var(--watch)}
+.pl p{margin:0;font:italic 13px/1.42 var(--judge);color:var(--ink-2)}
+.pl p b{font-family:var(--sans);font-style:normal;font-weight:600;font-size:12px;color:var(--ink)}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  text-align:right;padding:0 0 7px;white-space:nowrap}
+.tbl th:first-child{text-align:left}
+.tbl td{padding:6px 0;text-align:right;border-top:1px solid var(--line-soft);color:var(--ink-2)}
+.tbl td:first-child{text-align:left;color:var(--ink);font-weight:500}
+.tbl td b{color:var(--ink);font-weight:600}
+.tbl .rp{width:190px;padding-right:16px}
+.rpbar{display:flex;height:8px;border-radius:2px;overflow:hidden;gap:2px;background:var(--sunken)}
+.rpbar i{display:block;position:relative}
+.rpbar i.r{background:var(--run)}
+.rpbar i.p{background:var(--pass)}
+.rplab{font-size:9.5px;color:var(--ink-3);margin-top:3px;display:flex;justify-content:space-between}
+
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft)}
+.split3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft)}
+
+/* drives timeline */
+.tl{display:flex;flex-direction:column;gap:2px}
+.tl-q{font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);margin:8px 0 3px}
+.tl-q:first-child{margin-top:0}
+.dr{display:flex;align-items:center;gap:11px;padding:4px 0;font-size:11.5px}
+.dr .id{width:34px;color:var(--ink-3);font-size:10.5px}
+.dr .track{flex:1;height:9px;background:var(--sunken);border-radius:2px;overflow:hidden}
+.dr .track i{display:block;height:100%;border-radius:2px}
+.dr .meta{width:158px;color:var(--ink-2);font-size:11px}
+.dr .out{width:52px;text-align:right;font-weight:600;font-size:10.5px;letter-spacing:.06em}
+.dr .out.td{color:var(--good)}
+.dr .out.ot{color:var(--ink-3)}
+
+.pen-tbl td:first-child{color:var(--ink-2);font-weight:400}
+.foot-note{font-size:11px;color:var(--ink-3);padding:0 16px 14px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ rail ═══ -->
+  <aside class="rail">
+    <div class="mark"><b>GRIDIRON <i>IQ</i></b><span>Film analysis</span></div>
+    <div class="team"><strong>Mavericks</strong><span>2025 St. Joseph Mavericks · JV</span></div>
+    <nav class="nav">
+      <a href="#"><i>⌂</i>Home</a>
+      <a href="#"><i>▸</i>Break Down</a>
+      <a href="#"><i>▦</i>Study</a>
+      <a class="on" href="#"><i>▥</i>Reports</a>
+      <a href="#"><i>▤</i>Plan</a>
+    </nav>
+    <div class="jump">
+      <div class="jump-h">In this report</div>
+      <a class="on" href="#">Game at a glance</a>
+      <a href="#">Box score<em>2</em></a>
+      <a href="#">Key metrics<em>5</em></a>
+      <a href="#">Game plan<em>10</em></a>
+      <a href="#">Down &amp; distance</a>
+      <a href="#">Drives<em>8</em></a>
+      <a href="#">Big plays<em>8</em></a>
+      <a href="#">Penalties<em>2</em></a>
+    </div>
+    <div class="rail-foot"><span class="dot"></span>Season ready</div>
+  </aside>
+
+  <!-- ═══ main ═══ -->
+  <div class="main">
+    <div class="top">
+      <div class="crumb"><b>Mavericks</b>›<b>2025 St. Joseph Mavericks · JV</b>›<span class="cur">Week 1 vs St. Peter Lutheran Patriots</span></div>
+      <div class="sp"></div>
+      <span class="pill">Film linked</span>
+      <button class="tbtn">Settings</button>
+      <button class="tbtn">More</button>
+    </div>
+
+    <div class="head">
+      <div>
+        <div class="eyebrow">Reports · Our game</div>
+        <h1>Week 1 vs St. Peter Lutheran Patriots</h1>
+        <p>2025 St. Joseph Mavericks · JV — 67 plays · every highlighted row links to film</p>
+      </div>
+      <div class="sp">
+        <button class="btn">Scout opponent</button>
+        <button class="btn pri">Export</button>
+      </div>
+    </div>
+
+    <div class="seg"><button class="on">Our game</button><button>Opponent scout</button></div>
+
+    <div class="tabs">
+      <button class="on">Overview</button><button>Offense</button><button>Defense</button>
+      <button>Special Teams</button><button>Players</button><button>Self-Scout</button>
+      <button>Season</button><button>Matchup</button>
+    </div>
+
+    <div class="body">
+
+      <!-- ── answer rail (sticky, spine) ── -->
+      <div class="answer">
+        <div class="spine-tag">Final</div>
+        <div class="score">
+          <div class="score-row">
+            <span class="us n">41</span><span class="dash">–</span><span class="them n">0</span>
+            <span class="res">Win</span>
+          </div>
+          <div class="score-names"><span>Mavericks</span><span>St. Peter Lutheran</span></div>
+          <table class="qtr">
+            <tr><th>Quarter</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>F</th></tr>
+            <tr><td>Mavericks</td><td>7</td><td>20</td><td>7</td><td>7</td><td>41</td></tr>
+            <tr><td>St. Peter</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          </table>
+        </div>
+
+        <div class="spine-tag">The five numbers</div>
+        <div class="kstack">
+          <div class="k"><span class="lbl">Total plays</span><span class="val n">67</span><span class="sub">67 charted</span></div>
+          <div class="k"><span class="lbl">Success rate</span><span class="val n">68%</span><span class="sub">offense</span></div>
+          <div class="k"><span class="lbl">Yards / play</span><span class="val n">10.3</span><span class="sub">289 total</span></div>
+          <div class="k"><span class="lbl">Explosives</span><span class="val n">9</span><span class="sub">32% rate</span></div>
+          <div class="k"><span class="lbl">Turnovers</span><span class="val n">0</span><span class="sub">0 giveaways</span></div>
+        </div>
+
+        <div class="spine-tag">Snaps by phase</div>
+        <div class="phase">
+          <div class="phase-h">67 charted</div>
+          <div class="phase-bar">
+            <i style="flex:29;background:var(--seq-4)"></i>
+            <i style="flex:20;background:var(--seq-3)"></i>
+            <i style="flex:18;background:var(--seq-2)"></i>
+          </div>
+          <div class="phase-leg">
+            <span><em style="background:var(--seq-4)"></em>Offense <b class="n">29</b></span>
+            <span><em style="background:var(--seq-3)"></em>Defense <b class="n">20</b></span>
+            <span><em style="background:var(--seq-2)"></em>ST <b class="n">18</b></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── detail column ── -->
+      <div class="detail">
+
+        <div class="mod">
+          <div class="glance">
+            <div class="g"><div class="lbl">Off. plays</div><div class="val n">28</div><div class="sub">of 43 charted</div></div>
+            <div class="g"><div class="lbl">Yds / play</div><div class="val n">10.3</div><div class="sub">289 total</div></div>
+            <div class="g"><div class="lbl">Success</div><div class="val n">68%</div><div class="sub">28 plays</div></div>
+            <div class="g link"><div class="lbl">Explosives</div><div class="val n">9</div><div class="sub">Watch them →</div></div>
+            <div class="g link"><div class="lbl">Plays for loss</div><div class="val n">2</div><div class="sub">Watch them →</div></div>
+            <div class="g link"><div class="lbl">Third down</div><div class="val n">2/3</div><div class="sub">Watch them →</div></div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="boxes">
+            <div class="box">
+              <h3>Rushing</h3>
+              <div class="stat"><span>Attempts</span><b class="n">25</b></div>
+              <div class="stat"><span>Yards</span><b class="n">255</b></div>
+              <div class="stat"><span>Average</span><b class="n">10.2</b></div>
+              <div class="stat"><span>Longest</span><b class="n">43</b></div>
+              <div class="stat"><span>Touchdowns</span><b class="n">6</b></div>
+              <div class="stat"><span>First downs</span><b class="n">13</b></div>
+              <div class="stat"><span>Fumbles</span><b class="n">0</b></div>
+            </div>
+            <div class="box">
+              <h3>Passing</h3>
+              <div class="stat"><span>Comp / Att</span><b class="n">2/3</b></div>
+              <div class="stat"><span>Comp %</span><b class="n">66.7%</b></div>
+              <div class="stat"><span>Yards</span><b class="n">34</b></div>
+              <div class="stat"><span>Y/A</span><b class="n">11.3</b></div>
+              <div class="stat"><span>Touchdowns</span><b class="n">0</b></div>
+              <div class="stat"><span>Interceptions</span><b class="n">0</b></div>
+              <div class="stat"><span>Sacks / Yds</span><b class="n">0/0</b></div>
+              <div class="stat"><span>Longest</span><b class="n">23</b></div>
+              <div class="stat"><span>First downs</span><b class="n">2</b></div>
+            </div>
+            <div class="donut">
+              <svg width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="289 total yards: 255 rush, 34 pass">
+                <circle cx="48" cy="48" r="38" fill="none" stroke="#0B1016" stroke-width="13"/>
+                <circle cx="48" cy="48" r="38" fill="none" stroke="var(--run)" stroke-width="13"
+                  stroke-dasharray="210.6 28.1" stroke-dashoffset="0" transform="rotate(-90 48 48)" stroke-linecap="butt"/>
+                <circle cx="48" cy="48" r="38" fill="none" stroke="var(--pass)" stroke-width="13"
+                  stroke-dasharray="26.1 212.6" stroke-dashoffset="-212.6" transform="rotate(-90 48 48)" stroke-linecap="butt"/>
+                <text x="48" y="45" text-anchor="middle" fill="#E9EEF4" font-family="Segoe UI Variable Display,Segoe UI" font-size="21" font-weight="600">289</text>
+                <text x="48" y="59" text-anchor="middle" fill="#66748A" font-family="Segoe UI" font-size="8.5" letter-spacing="1">YARDS</text>
+              </svg>
+              <div class="donut-leg">
+                <span><em style="background:var(--run)"></em>Rush<b class="n">255</b></span>
+                <span><em style="background:var(--pass)"></em>Pass<b class="n">34</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="lenses">
+            <div class="lens">
+              <div class="lens-h acc">Efficiency</div>
+              <div class="mini"><span class="v n">68%</span><span class="l">Success rate</span><span class="s">28 plays</span></div>
+              <div class="mini"><span class="v n">10.3</span><span class="l">Yds / play</span><span class="s">289 total</span></div>
+              <div class="mini"><span class="v n">67%</span><span class="l">Third down</span><span class="s">2/3</span></div>
+              <div class="mini"><span class="v n">4.5</span><span class="l">Pts / drive</span><span class="s">8 drives</span></div>
+              <a class="lens-link" href="#">Offense report →</a>
+            </div>
+            <div class="lens">
+              <div class="lens-h acc">Explosiveness</div>
+              <div class="mini"><span class="v n">32%</span><span class="l">Explosive rate</span><span class="s">9 plays</span></div>
+              <div class="mini"><span class="v n">43 yd</span><span class="l">Longest run</span><span class="s">25 run plays</span></div>
+              <div class="mini"><span class="v n">23 yd</span><span class="l">Longest pass</span><span class="s">3 pass plays</span></div>
+              <div class="mini"><span class="v n">8</span><span class="l">Big plays</span><span class="s">20+ yds / TD</span></div>
+              <a class="lens-link" href="#">Offense report →</a>
+            </div>
+            <div class="lens">
+              <div class="lens-h acc">Situational</div>
+              <div class="mini"><span class="v n">8</span><span class="l">Red zone</span><span class="s">75% success</span></div>
+              <div class="mini"><span class="v n">1</span><span class="l">Goal line</span><span class="s">0% success</span></div>
+              <div class="mini"><span class="v n">2</span><span class="l">3rd &amp; long</span><span class="s">50% success</span></div>
+              <div class="mini dim"><span class="v">—</span><span class="l">3rd &amp; short</span><span class="s">no data</span></div>
+              <div class="mini"><span class="v n">2</span><span class="l">Backed up</span><span class="s">0% success</span></div>
+            </div>
+            <div class="lens">
+              <div class="lens-h acc">Tendencies</div>
+              <div class="mini"><span class="v n">89%</span><span class="l">Run rate</span><span class="s">25 R / 3 P</span></div>
+              <div class="mini"><span class="v">Power-I</span><span class="l">Top formation</span><span class="s">18 snaps · 67%</span></div>
+              <div class="mini"><span class="v n">12</span><span class="l">Top personnel</span><span class="s">16 snaps · 63%</span></div>
+              <a class="lens-link" href="#">Self-scout →</a>
+            </div>
+            <div class="lens">
+              <div class="lens-h acc">Negative plays</div>
+              <div class="mini"><span class="v n">2</span><span class="l">7% of plays</span><span class="s">&nbsp;</span></div>
+              <div class="mini"><span class="v n">0</span><span class="l">Turnovers</span></div>
+              <div class="mini"><span class="v n">2</span><span class="l">Plays for loss</span><span class="s">2 runs</span></div>
+              <div class="mini"><span class="v n">0</span><span class="l">Penalties</span></div>
+              <a class="lens-link" href="#">Defense report →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- game plan: computed data in sans, coach judgment in serif italic -->
+        <div class="mod">
+          <div class="mod-h"><h2>Game plan</h2><span class="note">Interpretation, not measurement</span></div>
+          <div class="mod-b" style="padding-bottom:0"></div>
+          <div class="plan">
+            <div class="plan-col good">
+              <h3>Strengths</h3>
+              <div class="pl"><i>✓</i><p><b>Power-I</b> — 67% success across 18 plays, 10.2 average.</p></div>
+              <div class="pl"><i>✓</i><p><b>Cover 3</b> — 100% stop rate, 0.0 average allowed on 15 plays.</p></div>
+              <div class="pl"><i>✓</i><p><b>Maverick + Cover 3</b> — 100% stop rate, 0 average over 15 snaps. Keep calling it.</p></div>
+              <div class="pl"><i>✓</i><p><b>32.1% explosive rate</b> on 9 plays — you are hitting the big shots.</p></div>
+              <div class="pl"><i>✓</i><p><b>Ace</b> — 67% success across 9 plays, 11.0 average.</p></div>
+            </div>
+            <div class="plan-col work">
+              <h3>Needs work</h3>
+              <div class="pl"><i>▲</i><p><b>Power-I is 83% run.</b> Add a pass concept to keep the defense honest.</p></div>
+              <div class="pl"><i>▲</i><p><b>Middle hash is 88% run</b> across 17 plays — predictable.</p></div>
+              <div class="pl"><i>▲</i><p><b>Ace is 100% run.</b> Add a pass concept to keep the defense honest.</p></div>
+              <div class="pl"><i>▲</i><p><b>When you motion, you run 100% of the time</b> over 8 plays — motion is a tell.</p></div>
+              <div class="pl"><i>▲</i><p><b>Left hash is 100% run</b> across 7 snaps — predictable.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="split2">
+          <div class="mod">
+            <div class="mod-h"><h2>Down &amp; distance</h2><span class="note">15 first downs · 3rd 2/3 · 4th 0/0</span></div>
+            <div class="mod-b">
+              <table class="tbl">
+                <tr><th>Down</th><th class="rp">Run / Pass</th><th>Plays</th><th>Avg</th><th>Conv</th></tr>
+                <tr><td>1st</td><td class="rp"><div class="rpbar"><i class="r" style="flex:87"></i><i class="p" style="flex:13"></i></div><div class="rplab"><span>87% run</span><span>13% pass</span></div></td><td>16</td><td>11.8</td><td><b>50.0%</b></td></tr>
+                <tr><td>2nd</td><td class="rp"><div class="rpbar"><i class="r" style="flex:87"></i><i class="p" style="flex:13"></i></div><div class="rplab"><span>87% run</span><span>13% pass</span></div></td><td>8</td><td>6.4</td><td><b>62.5%</b></td></tr>
+                <tr><td>3rd</td><td class="rp"><div class="rpbar"><i class="r" style="flex:100"></i></div><div class="rplab"><span>100% run</span><span></span></div></td><td>3</td><td>16.3</td><td><b>66.7%</b></td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="mod">
+            <div class="mod-h"><h2>By distance</h2></div>
+            <div class="mod-b">
+              <table class="tbl">
+                <tr><th>Situation</th><th>#</th><th>Avg</th><th>Succ</th><th>Conv</th></tr>
+                <tr><td>1st &amp; Long</td><td>16</td><td>11.8</td><td>75.0%</td><td><b>50.0%</b></td></tr>
+                <tr><td>2nd &amp; Short</td><td>1</td><td>2.0</td><td>100.0%</td><td><b>100.0%</b></td></tr>
+                <tr><td>2nd &amp; Medium</td><td>4</td><td>5.8</td><td>50.0%</td><td><b>50.0%</b></td></tr>
+                <tr><td>2nd &amp; Long</td><td>3</td><td>8.7</td><td>66.7%</td><td><b>66.7%</b></td></tr>
+                <tr><td>3rd &amp; Medium</td><td>1</td><td>42.0</td><td>100.0%</td><td><b>100.0%</b></td></tr>
+                <tr><td>3rd &amp; Long</td><td>2</td><td>3.3</td><td>50.0%</td><td><b>50.0%</b></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="mod-h"><h2>Drives</h2><span class="note">One row per possession · click a drive to watch it</span></div>
+          <div class="mod-b">
+            <div class="glance" style="grid-template-columns:repeat(5,1fr);margin:-12px -16px 14px">
+              <div class="g"><div class="lbl">Scoring</div><div class="val n">6/8</div></div>
+              <div class="g"><div class="lbl">Pts / drive</div><div class="val n">4.5</div></div>
+              <div class="g"><div class="lbl">3 &amp; out</div><div class="val n">2</div></div>
+              <div class="g"><div class="lbl">Avg plays</div><div class="val n">3.5</div></div>
+              <div class="g"><div class="lbl">Avg yards</div><div class="val n">36.1</div></div>
+            </div>
+            <div class="tl">
+              <div class="tl-q">Q1</div>
+              <div class="dr"><span class="id">Dr 1</span><span class="track"><i style="width:70%;background:var(--good)"></i></span><span class="meta">Opp 42 · 3 pl · +42 yd</span><span class="out td">TD</span></div>
+              <div class="dr"><span class="id">Dr 2</span><span class="track"><i style="width:98%;background:var(--good)"></i></span><span class="meta">Own 38 · 5 pl · +59 yd</span><span class="out td">TD</span></div>
+              <div class="tl-q">Q2</div>
+              <div class="dr"><span class="id">Dr 3</span><span class="track"><i style="width:10%;background:var(--ink-3)"></i></span><span class="meta">Opp 2 · 1 pl · +6 yd</span><span class="out ot">OTHER</span></div>
+              <div class="dr"><span class="id">Dr 4</span><span class="track"><i style="width:85%;background:var(--good)"></i></span><span class="meta">Own 50 · 5 pl · +51 yd</span><span class="out td">TD</span></div>
+              <div class="dr"><span class="id">Dr 5</span><span class="track"><i style="width:63%;background:var(--good)"></i></span><span class="meta">Opp 37 · 5 pl · +38 yd</span><span class="out td">TD</span></div>
+              <div class="tl-q">Q3</div>
+              <div class="dr"><span class="id">Dr 6</span><span class="track"><i style="width:100%;background:var(--good)"></i></span><span class="meta">Own 40 · 5 pl · +60 yd</span><span class="out td">TD</span></div>
+              <div class="tl-q">Q4</div>
+              <div class="dr"><span class="id">Dr 7</span><span class="track"><i style="width:71%;background:var(--good)"></i></span><span class="meta">Opp 43 · 1 pl · +43 yd</span><span class="out td">TD</span></div>
+              <div class="dr"><span class="id">Dr 8</span><span class="track"><i style="width:7%;background:var(--crit)"></i></span><span class="meta">Opp 48 · 3 pl · −4 yd</span><span class="out ot">OTHER</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="split2">
+          <div class="mod">
+            <div class="mod-h"><h2>Big plays</h2><span class="note">20+ yards &amp; touchdowns</span></div>
+            <div class="mod-b">
+              <table class="tbl">
+                <tr><th>Play</th><th style="text-align:left">Type</th><th style="text-align:left">Result</th><th>Yds</th></tr>
+                <tr><td>Play 8</td><td style="text-align:left">Run Outside</td><td style="text-align:left">Gain</td><td><b>28</b></td></tr>
+                <tr><td>Play 10</td><td style="text-align:left">Run Outside</td><td style="text-align:left">Gain + TD</td><td><b>8</b></td></tr>
+                <tr><td>Play 21</td><td style="text-align:left">Run Inside</td><td style="text-align:left">Gain + TD</td><td><b>42</b></td></tr>
+                <tr><td>Play 31</td><td style="text-align:left">Medium Pass</td><td style="text-align:left">Gain</td><td><b>23</b></td></tr>
+                <tr><td>Play 34</td><td style="text-align:left">Run Outside</td><td style="text-align:left">Gain + TD</td><td><b>5</b></td></tr>
+                <tr><td>Play 41</td><td style="text-align:left">Run Outside</td><td style="text-align:left">Gain + TD</td><td><b>7</b></td></tr>
+                <tr><td>Play 49</td><td style="text-align:left">Run Inside</td><td style="text-align:left">Gain + TD</td><td><b>10</b></td></tr>
+                <tr><td>Play 59</td><td style="text-align:left">Run Outside</td><td style="text-align:left">Gain + TD</td><td><b>43</b></td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="mod">
+            <div class="mod-h"><h2>Penalties</h2><span class="note">Accepted enforcement only</span></div>
+            <div class="mod-b">
+              <div class="glance" style="grid-template-columns:repeat(4,1fr);margin:-12px -16px 14px">
+                <div class="g"><div class="lbl">Flagged</div><div class="val n">2</div><div class="sub">2 foul records</div></div>
+                <div class="g"><div class="lbl">Accepted</div><div class="val n">2</div><div class="sub">0 dec · 0 off</div></div>
+                <div class="g"><div class="lbl">Our yards</div><div class="val n">10</div></div>
+                <div class="g"><div class="lbl">Opp yards</div><div class="val n">0</div></div>
+              </div>
+              <table class="tbl pen-tbl">
+                <tr><th>Foul</th><th>Records</th><th>Accepted yards</th></tr>
+                <tr><td>Offside</td><td>1</td><td><b>5</b></td></tr>
+                <tr><td>False Start</td><td>1</td><td><b>5</b></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
