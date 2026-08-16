@@ -396,6 +396,34 @@ const specialRow = ui.rows.find(r => r.group === 'special');
 ok(!!specialRow && /^\d+ of \d+$/.test(specialRow.plays),
   'A rate measure with its own denominator discloses "N of M" in the Plays column rather than the raw group sample', JSON.stringify(specialRow));
 
+// ---- Codex re-review (16941d9): Plays discloses the EXACT film cohort, ----
+// ---- not the raw group and not an unrelated attempted-event denominator --
+await page.select('#wsStudyDimension', 'unit');
+await page.select('#wsStudyMeasure', 'stPuntHangAvg');
+ui = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('.ws-study-row')].map(row => ({
+    group: row.querySelector('strong')?.textContent,
+    plays: row.querySelectorAll('span')[0]?.textContent,
+  }));
+  return { rows };
+});
+const puntHangSpecialRow = ui.rows.find(r => r.group === 'special');
+ok(puntHangSpecialRow?.plays === '1 of 15',
+  'Codex re-review: Punt Hang Time\'s Plays column discloses "1 of 15" (the exact measured punt) rather than the raw 15-play "special" unit sample', JSON.stringify(puntHangSpecialRow));
+
+await page.select('#wsStudyDimension', 'specialTeamsUnit');
+await page.select('#wsStudyMeasure', 'stKickoffOnsideRecovered');
+ui = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('.ws-study-row')].map(row => ({
+    group: row.querySelector('strong')?.textContent,
+    plays: row.querySelectorAll('span')[0]?.textContent,
+  }));
+  return { rows };
+});
+const onsideKickoffRow = ui.rows.find(r => r.group === 'Kickoff');
+ok(onsideKickoffRow?.plays === '1 of 3',
+  'Codex re-review: "Onside Kicks Recovered"\'s Plays column discloses "1 of 3" (the exact recovered play, out of 3 Kickoff-unit plays) -- never "2" (attempted onsides, a different film cohort than what Watch opens)', JSON.stringify(onsideKickoffRow));
+
 // A cohort with zero XP attempts anywhere (down/distance dimension, a bucket
 // with no special-teams plays at all) must render the rate as "-", not "0%".
 await page.select('#wsStudyDimension', 'down');

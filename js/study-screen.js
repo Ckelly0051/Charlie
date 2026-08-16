@@ -447,6 +447,30 @@ export class StudyScreen {
     return scoped != null ? scoped : group.matchingPlayIds;
   }
 
+  /**
+   * Codex re-review finding: the displayed Plays count must derive from the
+   * measure's own exact refs (the same `_groupRefs` every Watch action
+   * already consumes) whenever they exist -- never the raw group sample, and
+   * never an unrelated `denominatorMeasure` that answers a different
+   * question than "how many clips does Watch open." The prior mechanism
+   * (`_measureDenominatorText`, still used as the fallback below) predates
+   * `measureRefs` and reads `denominatorMeasure` off the SAME group's
+   * `measures` map -- correct for a RATE whose eligible cohort equals its
+   * own attempted count, but wrong for a plain COUNT like "Onside Kicks
+   * Recovered", whose `denominatorMeasure` (attempted onsides) is a larger,
+   * different set than what Watch actually opens (recovered onsides only).
+   * Falls back to `_measureDenominatorText` for any measure with no
+   * `refsPath` -- unchanged behavior for every pre-existing measure.
+   */
+  _playsText(scope, measure) {
+    const refs = scope?.measureRefs?.[measure];
+    if (refs != null) {
+      const raw = scope.sampleSize;
+      return refs.length === raw ? String(refs.length) : `${refs.length} of ${raw}`;
+    }
+    return this._measureDenominatorText(measure, scope?.measures, scope?.sampleSize);
+  }
+
   _renderQuery(result, scope, measure, rangeName) {
     const groups = result.groups.filter(group => group.sampleSize > 0);
     const matching = [...new Set(groups.flatMap(group => this._groupRefs(group, measure)))];
@@ -457,7 +481,7 @@ export class StudyScreen {
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((group, index) => {
       const m = group.measures;
       const refs = this._groupRefs(group, measure);
-      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${this._esc(this._measureDenominatorText(measure, m, group.sampleSize))}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${refs.length ? '' : 'disabled'}>Watch</button></div>`;
+      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${this._esc(this._playsText(group, measure))}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${refs.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
     this._renderQueryVisuals(groups, measure, matching);
     this._setWatchAll(matching);
@@ -591,7 +615,7 @@ export class StudyScreen {
     this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
       const delta = row.deltas[measure];
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
-      const plays = `${this._esc(this._measureDenominatorText(measure, row.a.measures, row.a.sampleSize))} / ${this._esc(this._measureDenominatorText(measure, row.b.measures, row.b.sampleSize))}`;
+      const plays = `${this._esc(this._playsText(row.a, measure))} / ${this._esc(this._playsText(row.b, measure))}`;
       return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${plays}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${this._deltaClass(measure, delta)}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
     this._renderCompareVisuals(rows, measure, result.a.label, result.b.label);
