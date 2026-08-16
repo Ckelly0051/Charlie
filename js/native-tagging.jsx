@@ -185,8 +185,11 @@ function Penalties({screen, state}) {
   </Group>;
 }
 
-const ST_UNITS = [['kickoff','Kickoff'],['kickoffReturn','Kick Return'],['punt','Punt'],['puntReturn','Punt Return'],['fieldGoal','Field Goal / XP'],['fieldGoalBlock','Field Goal Block'],['try','Try'],['tryDefense','Defending a Try']];
-const ST_OUTCOMES = {
+// Exported so the theater chyron (breakdown-theater-screen.js) can compose the
+// live lower-third from these SAME canonical coach-facing labels instead of a
+// second, independently-drifting copy of the vocabulary.
+export const ST_UNITS = [['kickoff','Kickoff'],['kickoffReturn','Kick Return'],['punt','Punt'],['puntReturn','Punt Return'],['fieldGoal','Field Goal / XP'],['fieldGoalBlock','Field Goal Block'],['try','Try'],['tryDefense','Defending a Try']];
+export const ST_OUTCOMES = {
   kickoff:[['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['outOfBounds','Out of Bounds'],['recovered','Recovered']],
   kickoffReturn:[['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['muffed','Muffed'],['outOfBounds','Out of Bounds']],
   punt:[['returned','Returned'],['fairCatch','Fair Catch'],['downed','Downed'],['outOfBounds','Out of Bounds'],['touchback','Touchback'],['blocked','Blocked'],['muffed','Muffed']],
@@ -207,6 +210,8 @@ function Spot({label, code, spot, screen}) {
   </div></div>;
 }
 
+export const TRY_RESULT_LABELS = { converted: 'Converted', failed: 'Failed', noPlay: 'No Play / Retry' };
+
 function TryEditor({screen, state, st}) {
   const subject = state.perspective === 'scout' ? 'Scouted team' : 'Our team';
   const other = state.perspective === 'scout' ? 'Other team' : 'Opponent';
@@ -216,7 +221,7 @@ function TryEditor({screen, state, st}) {
   const noPlayMismatch = state.penalties.some(p => p.playCounts === false) && st.result !== 'noPlay';
   return <>
     <Choice label="Attempt" value={st.attemptType} options={[['extraPoint','Kick XP'],['twoPoint','Two-Point']]} choose={v => screen.specialAction('tryAttempt',v)}/>
-    <Choice label="Official result" value={st.result} options={[['converted','Converted'],['failed','Failed'],['noPlay','No Play / Retry']]} choose={v => screen.specialAction('tryResult',v)}/>
+    <Choice label="Official result" value={st.result} options={Object.entries(TRY_RESULT_LABELS)} choose={v => screen.specialAction('tryResult',v)}/>
     <div class="gi-tag-field"><div class="gi-tag-field-label"><span>What happened</span><small>optional</small></div><div class="gi-tag-chips">
       {[['badSnap','Bad Snap'],['blocked','Blocked'],['defensiveReturn','Defensive Return']].map(([v,l]) =>
         <button type="button" key={v} class={st.events[v] ? 'is-active' : ''} onClick={() => screen.specialAction('tryEvent',v)}>{l}</button>)}

@@ -37,35 +37,44 @@ const measure=async(width,height,focus)=>{
 // Broadcast Density Part 1 (CLAUDE.md, 2026-08-16) adds a REQUIRED live
 // below-film lower-third between the stage and the transport. A visible,
 // legible strip necessarily spends some of the stage's minmax(...,1fr) row —
-// there is no padding trim that makes it free. The height floors below were
-// re-measured on the accepted composition (chyron included, trimmed to its
-// tightest legible padding), not silently lowered: every split/focus case
-// still materially exceeds the pre-lower-third legacy baseline recorded here
-// historically (963x542 / 1338x753 split, 1159x652 / 1479x832 focus); only
-// the HEIGHT floors move, by roughly the chyron's own rendered height, and
-// each with a documented before/after. Do not lower these further without
-// the same honest re-measurement.
+// there is no padding trim that makes it free.
+//
+// CORRECTED (Codex review 2026-08-16, commit 2d4a5df): the first version of
+// this comment claimed every case "still materially exceeds" the
+// pre-lower-third legacy baseline. That is false and the review named the
+// exact contradiction — 945x531.5 does not exceed 963x542. The accepted
+// lower-third costs a modest, real amount of picture; that is a disclosed
+// cost of the accepted composition, not a regression, but it must be
+// recorded as what it is. Also note (per the same review): media.width
+// below is the 16:9-CORRECTED PICTURE width
+// (Math.min(media.width, media.height*16/9)), so a height loss from the
+// chyron proportionally reduces the reported width too in every case below —
+// it is not only the height that moved.
+//
+// Measured before (pre-lower-third, S5a) -> after (accepted composition):
+//   1440 split:       963x542   -> ~945x531.5
+//   1920 split:      1338x753   -> ~1265x711.5
+//   1440 Film Focus:  1159x652  -> ~1116x627.5
+//   1920 Film Focus:  1479x832  -> ~1436x807.5
+// The floors below assert the ACCEPTED post-chyron picture budget (a small
+// margin under the measured values so normal rendering variance can't flake
+// this), not "still beats legacy" — do not lower them further without the
+// same kind of honest re-measurement, and do not re-inflate the wording to
+// claim they exceed the pre-lower-third numbers again.
 console.log('\n== 1. Default split improves film without crowding charting ==');
 let state=await measure(1440,900,false);
-// was >=963x542 pre-lower-third; measured ~945x531.5 with it.
-ok(state.media.width>=930&&state.media.height>=525,'1440 split meets or exceeds the legacy film picture with the lower-third included',JSON.stringify(state));
+ok(state.media.width>=930&&state.media.height>=525,'1440 split meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 963x542)',JSON.stringify(state));
 ok(state.deck.width>=420&&state.deck.width<=501&&state.tagOverflow<=1,'1440 charting deck remains usable at its bounded width',JSON.stringify(state));
 ok(state.overlap===0&&state.overflow<=1,'1440 split never overlays film or overflows the page',JSON.stringify(state));
 state=await measure(1920,1080,false);
-// was >=1338x753 pre-lower-third; measured ~1265x711.5 with it. media.width
-// here is the 16:9-corrected PICTURE width, so a height loss from the chyron
-// proportionally reduces the reported width too — both floors move together.
-ok(state.media.width>=1250&&state.media.height>=705,'1920 split meets or exceeds the legacy film picture with the lower-third included',JSON.stringify(state));
+ok(state.media.width>=1250&&state.media.height>=705,'1920 split meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 1338x753)',JSON.stringify(state));
 ok(state.deck.width>=420&&state.deck.width<=501&&state.overlap===0,'1920 keeps a bounded non-overlay charting deck',JSON.stringify(state));
 console.log('\n== 2. Film Focus is explicit, larger, and durable ==');
 state=await measure(1440,900,true);
-// was >=1159x652 pre-lower-third; measured ~1116x627.5 with it (both floors
-// move together — see the 1920-split comment above for why).
-ok(state.media.width>=1100&&state.media.height>=620,'1440 Film Focus meets or exceeds the standalone-theater picture with the lower-third included',JSON.stringify(state));
+ok(state.media.width>=1100&&state.media.height>=620,'1440 Film Focus meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 1159x652)',JSON.stringify(state));
 ok(state.deck.display==='none'&&state.overlap===0&&state.focus==='true'&&state.stored==='1','Film Focus removes the deck from layout and persists its state',JSON.stringify(state));
 state=await measure(1920,1080,true);
-// was >=1479x832 pre-lower-third; measured ~1436x807.5 with it.
-ok(state.media.width>=1420&&state.media.height>=800,'1920 Film Focus meets or exceeds the standalone-theater picture with the lower-third included',JSON.stringify(state));
+ok(state.media.width>=1420&&state.media.height>=800,'1920 Film Focus meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 1479x832)',JSON.stringify(state));
 await page.evaluate(async()=>{app.workspaceShell.disable();app.workspaceShell.enable();await app.workspaceShell.show('breakdown')});
 state=await page.evaluate(()=>({focus:document.querySelector('[data-bd-film-focus]')?.getAttribute('aria-pressed'),deck:getComputedStyle(document.querySelector('.gi-breakdown-deck')).display,stored:localStorage.getItem('ffa_breakdown_film_focus')}));
 ok(state.focus==='true'&&state.deck==='none'&&state.stored==='1','Film Focus survives a shell teardown and remount',JSON.stringify(state));

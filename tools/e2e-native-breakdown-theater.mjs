@@ -76,6 +76,88 @@ ok(state.collapsed && state.hidden && state.expanded === 'false',
   'Coach can collapse the play strip to trade navigation for film pixels', JSON.stringify(state));
 await page.click('[aria-label="Show play strip"]');
 
+// == 1b. Chyron data and semantic contract (Codex review 2d4a5df) ==========
+// Direct, discriminating assertions against _chyron() itself — none of the
+// existing focused harnesses had any chyron-content assertion at all, which
+// is exactly how a structured-ST blank and inverted result colours shipped
+// unnoticed. Each case below is a hand-built play object, not driven through
+// the UI, because the contract being pinned is the pure data/colour mapping,
+// not rendering.
+console.log('\n== 1b. Chyron data and semantic contract ==');
+state = await page.evaluate(() => {
+  const screen = window.app.breakdownTheater;
+  const c = play => screen._chyron(play);
+  const base = { id: 1, notes: '', analysis: null };
+
+  // Structured Special Teams must be read first — a coach who charts through
+  // the live structured editor must never see a blank lower-third just
+  // because legacy stType/kickOutcome were never written.
+  const puntDowned = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'punt', outcome: { status: 'downed' } } });
+  const stTouchdownOurs = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'kickoffReturn', outcome: { status: 'returned', score: 'touchdown', scoredBy: 'subject' } } });
+  const stTouchdownTheirs = c({ ...base, tags: { unit: 'special' },
+    specialTeams: { unit: 'kickoff', outcome: { status: 'returned', score: 'touchdown', scoredBy: 'opponent' } } });
+  const stLegacyFallback = c({ ...base, tags: { unit: 'special', stType: 'Punt', result: 'Punt' } });
+
+  // Offense/defense football-relative colour: green/red mean genuinely
+  // good/bad for the CHARTED unit's own job, not a blind substring match.
+  const offTd = c({ ...base, tags: { unit: 'offense', result: 'Touchdown', yardage: '22' } });
+  const offInt = c({ ...base, tags: { unit: 'offense', result: 'Interception', yardage: '0' } });
+  const offNoGood = c({ ...base, tags: { unit: 'offense', result: 'No Good', yardage: '0' } });
+  const defLoss = c({ ...base, tags: { unit: 'defense', result: 'Loss', yardage: '3' } });
+  const defSack = c({ ...base, tags: { unit: 'defense', result: 'Sack', yardage: '6' } });
+  const defInt = c({ ...base, tags: { unit: 'defense', result: 'Interception', yardage: '0' } });
+  // Opponent offense scores on our defense — genuinely bad for the defense.
+  const defTdAgainst = c({ ...base, tags: { unit: 'defense', result: 'Touchdown', yardage: '18' } });
+  // A pick-six charted on defense is a defensive success, not a defeat.
+  const defPickSix = c({ ...base, tags: { unit: 'defense', result: 'Interception + Touchdown', yardage: '0' } });
+
+  // Fumbles: ownership-aware, never a blanket "Fumble is bad".
+  const fumbleUnknown = c({ ...base, tags: { unit: 'offense', result: 'Fumble', yardage: '0', fumbleRecovery: '' } });
+  const fumbleSubjectRecovered = c({ ...base, tags: { unit: 'offense', result: 'Fumble', yardage: '0', fumbleRecovery: 'subject' } });
+  const fumbleOpponentRecovered = c({ ...base, tags: { unit: 'offense', result: 'Fumble', yardage: '0', fumbleRecovery: 'opponent' } });
+
+  // Honesty gaps: field side must never be invented, and the defensive call
+  // must compose Front + Coverage Call + Coverage Family + Blitz in full.
+  const missingFieldSide = c({ ...base, tags: { unit: 'offense', yardLine: '34' } });
+  const fullDefCall = c({ ...base, tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 3', coverageFamily: 'Zone', blitz: 'Edge' } });
+
+  return {
+    puntDowned: { ourValue: puntDowned.ourValue, result: puntDowned.result },
+    stTouchdownOurs: { tone: stTouchdownOurs.resultTone, result: stTouchdownOurs.result },
+    stTouchdownTheirs: { tone: stTouchdownTheirs.resultTone },
+    stLegacyFallback: { ourValue: stLegacyFallback.ourValue },
+    offTd: offTd.resultTone, offInt: offInt.resultTone, offNoGood: offNoGood.resultTone,
+    defLoss: defLoss.resultTone, defSack: defSack.resultTone, defInt: defInt.resultTone,
+    defTdAgainst: defTdAgainst.resultTone, defPickSix: defPickSix.resultTone,
+    fumbleUnknown: fumbleUnknown.resultTone, fumbleSubjectRecovered: fumbleSubjectRecovered.resultTone,
+    fumbleOpponentRecovered: fumbleOpponentRecovered.resultTone,
+    missingFieldSide: missingFieldSide.ball,
+    fullDefCall: fullDefCall.ourValue,
+  };
+});
+ok(state.puntDowned.ourValue === 'Punt' && state.puntDowned.result === 'Downed',
+  'Structured Special Teams reads play.specialTeams, not blank legacy fields', JSON.stringify(state.puntDowned));
+ok(state.stTouchdownOurs.tone === 'pos' && /Touchdown/.test(state.stTouchdownOurs.result),
+  'Structured ST scored by the subject colours positive via SpecialTeamsModel.scoringTeam', JSON.stringify(state.stTouchdownOurs));
+ok(state.stTouchdownTheirs.tone === 'neg', 'Structured ST scored by the opponent colours negative', JSON.stringify(state.stTouchdownTheirs));
+ok(state.stLegacyFallback.ourValue === 'Punt', 'Legacy stType is used only when no structured event exists', JSON.stringify(state.stLegacyFallback));
+ok(state.offTd === 'pos', 'Offense Touchdown is positive');
+ok(state.offInt === 'neg', 'Offense Interception is negative');
+ok(state.offNoGood === 'neg', '"No Good" is negative, not the inverted green from the original defect');
+ok(state.defLoss === 'pos', 'Defense Loss (a tackle for loss) is positive, not the inverted red from the original defect');
+ok(state.defSack === 'pos', 'Defense Sack is positive');
+ok(state.defInt === 'pos', 'Defense Interception is positive');
+ok(state.defTdAgainst === 'neg', 'A plain opponent Touchdown against our defense is negative');
+ok(state.defPickSix === 'pos', 'A defensive pick-six is positive, not treated as a Touchdown allowed');
+ok(state.fumbleUnknown === '', 'A fumble with unresolved recovery stays neutral rather than guessing bad');
+ok(state.fumbleSubjectRecovered === 'pos', 'A fumble recovered by the subject is positive');
+ok(state.fumbleOpponentRecovered === 'neg', 'A fumble lost to the opponent on an offense-unit play is negative');
+ok(state.missingFieldSide === '34', 'A yard line with no valid field side renders honestly, never invented as Own', JSON.stringify(state.missingFieldSide));
+ok(state.fullDefCall === '4-3 · Cover 3 · Zone · Edge',
+  'The defensive call composes Front + Coverage Call + Coverage Family + Blitz in full', JSON.stringify(state.fullDefCall));
+
 console.log('\n== 2. Native commands drive canonical controllers ==');
 await page.click('[data-native-play-id="7"]');
 state = await page.evaluate(() => ({ current: window.app.tagger.currentPlayId,
@@ -135,20 +217,30 @@ const geometryAt = async (width, height) => {
 // below the video." A fixed-height row below the stage necessarily takes some
 // picture height from the stage's minmax(...,1fr) row; there is no amount of
 // padding-trimming that makes a visible, legible strip cost zero pixels.
-// These floors were re-measured on the accepted composition (chyron included,
-// trimmed to its tightest legible padding) rather than silently lowered: the
-// picture STILL materially exceeds the 1060x596 legacy baseline at 1440x900
-// (was ~1112x596 pre-lower-third per S5a; now ~1121x631 with it) and still
-// preserves a large 1080p/4K budget at 1920x1080 (~1441x811). Floors sit a
-// small margin below the measured values so normal rendering variance can't
-// flake this assertion; they must NOT be lowered further without the same
-// kind of honest re-measurement and a documented reason.
+//
+// CORRECTED (Codex review of 2d4a5df caught the same class of false claim in
+// the sibling e2e-breakdown-geometry.mjs; fixed here for consistency rather
+// than leaving an identical inaccuracy uncorrected two files over). The
+// original comment here compared the post-chyron picture against an
+// unrelated, much older, much smaller historical number (1060x596, from a
+// pre-S5a UX-1 investigation) and called that "still materially exceeds" —
+// true of that stale figure, but not an honest description of what this
+// FILE's own pre-Part-1 threshold actually was. This file's threshold before
+// Part 1 was >=1200x675 (desktop) / >=1500x840 (wide); the measured picture
+// with the required lower-third is smaller than both, a real and modest
+// reduction, same as the split/focus cases in e2e-breakdown-geometry.mjs.
+//
+//   1440 desktop: was >=1200x675 -> measured ~1121x631
+//   1920 wide:    was >=1500x840 -> measured ~1441x811
+// Floors below assert the accepted post-chyron picture budget with a small
+// safety margin, not "still exceeds legacy" — do not lower them further
+// without the same kind of honest re-measurement.
 const desktop = await geometryAt(1440, 900);
 ok(desktop.picture[0] >= 1100 && desktop.picture[1] >= 615,
-  '1440 theater materially exceeds the legacy working picture with the Broadcast Density lower-third included', JSON.stringify(desktop));
+  '1440 theater meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-Part-1 1200x675)', JSON.stringify(desktop));
 const wide = await geometryAt(1920, 1080);
 ok(wide.picture[0] >= 1400 && wide.picture[1] >= 795,
-  'Wide theater preserves a large ordinary pixel budget for 1080p and 4K film with the lower-third included', JSON.stringify(wide));
+  '1920 theater meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-Part-1 1500x840)', JSON.stringify(wide));
 ok(desktop.contained && wide.contained,
   'Desktop theater keeps transport, strip, and play actions inside the working viewport', JSON.stringify({ desktop, wide }));
 const tablet = await geometryAt(768, 1024);

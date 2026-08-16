@@ -15,14 +15,17 @@ function Icon({ name }) {
 function Chyron({ state }) {
   const c = state.chyron;
   if (!c) return null;
+  // title exposes the full value when the cell ellipsizes — a coach can
+  // still read a long custom Front/Coverage/Front+Blitz combination that
+  // doesn't fit the fixed-width cell.
   return <div class="gi-theater-chyron" data-native-chyron aria-label="Current play">
     <div class="gi-chyron-id"><span class="gi-chyron-k">Play</span><span class="gi-chyron-v">{c.playId}</span></div>
-    <div class="gi-chyron-cell"><span class="gi-chyron-k">Down &amp; Distance</span><span class="gi-chyron-v is-cond">{c.situation}</span></div>
-    <div class="gi-chyron-cell"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond">{c.ball}</span></div>
-    <div class="gi-chyron-cell"><span class="gi-chyron-k">Hash</span><span class="gi-chyron-v">{c.hash}</span></div>
-    <div class={`gi-chyron-cell${c.ourTone ? ` is-${c.ourTone}` : ''}`}><span class="gi-chyron-k">{c.ourLabel}</span><span class="gi-chyron-v">{c.ourValue}</span></div>
-    {c.lookLabel && <div class="gi-chyron-cell"><span class="gi-chyron-k">{c.lookLabel}</span><span class="gi-chyron-v">{c.lookValue}</span></div>}
-    <div class={`gi-chyron-cell is-wide${c.resultTone ? ` is-${c.resultTone}` : ''}`}><span class="gi-chyron-k">Result</span><span class="gi-chyron-v">{c.result}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Down &amp; Distance</span><span class="gi-chyron-v is-cond" title={c.situation}>{c.situation}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond" title={c.ball}>{c.ball}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Hash</span><span class="gi-chyron-v" title={c.hash}>{c.hash}</span></div>
+    <div class={`gi-chyron-cell${c.ourTone ? ` is-${c.ourTone}` : ''}`}><span class="gi-chyron-k">{c.ourLabel}</span><span class="gi-chyron-v" title={c.ourValue}>{c.ourValue}</span></div>
+    {c.lookLabel && <div class="gi-chyron-cell"><span class="gi-chyron-k">{c.lookLabel}</span><span class="gi-chyron-v" title={c.lookValue}>{c.lookValue}</span></div>}
+    <div class={`gi-chyron-cell is-wide${c.resultTone ? ` is-${c.resultTone}` : ''}`}><span class="gi-chyron-k">Result</span><span class="gi-chyron-v" title={c.result}>{c.result}</span></div>
   </div>;
 }
 

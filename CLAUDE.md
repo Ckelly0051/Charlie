@@ -14,6 +14,117 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ REPAIRED — Part 1 Broadcast Density findings from `2d4a5df` — AWAITING RE-REVIEW (2026-08-16)
+
+**Builder: Claude. Repair commit range: `43c3dc4..HEAD` on top of the accepted
+documentation contract `3e9f94b`.** Closes all four findings from Codex's
+`2d4a5df` CHANGES REQUESTED review (recorded immediately below). No
+installer/package/tag/deploy — same governing brief as Part 1 itself. Part 2
+Reports remains closed until Codex accepts this repair.
+
+**[P1, closed] The lower-third now reads canonical structured Special Teams
+data first.** `_chyron()` composes the ST unit label and result through
+`SpecialTeamsModel.normalize(play.specialTeams)` — unit label from the shared
+`ST_UNITS` vocabulary (now exported from `native-tagging.jsx` so the theater
+and the live editor read the identical coach-facing labels, never a second
+copy), outcome/try-result text from the shared `ST_OUTCOMES`/new
+`TRY_RESULT_LABELS` maps, and score text from `SpecialTeamsModel.
+scoringTeam()`. Legacy `stType`/`kickOutcome` are used **only** when
+`play.specialTeams` has no structured event — the exact fallback order the
+review asked for. New `_chyronSpecialResult()` isolates this from the
+offense/defense result path. Verified live: a freshly charted structured punt
+(downed) and a structured kick-return touchdown both populate correctly where
+they previously showed `Special Teams —`.
+
+**[P1, closed] Result tone is now unit-relative and football-correct, not a
+substring match.** New `_chyronResult(play, tags, unit)` classifies via
+`StatsEngine.hasResult()` (handles the multi-select `" + "`-joined result
+field correctly, so a pick-six or scoop-and-score isn't missed) and colors by
+whether the outcome is genuinely good/bad **for the charted unit's own
+objective** — not by matching a substring against a hardcoded good/bad word
+list. Defense: a Sack/Loss/Interception/Touchdown-against is green (defense
+succeeded); an opponent's converted kick (`Good`) is red for defense, a missed
+kick (`No Good`) is green for defense. Offense: the same events invert.
+Ambiguous fumbles are the deliberately honest case —
+`StatsEngine.isFumbleRecovered(play)` (fumbleRecovery === 'subject') is green,
+`isFumbleLost(play)` on offense is red, and a genuinely unresolved
+`fumbleRecovery` renders with **no tone at all** rather than guessing.
+Verified live: defensive Sack is now green (was red), offense `No Good` is now
+red (was green), a defensive pick-six (`Interception + Touchdown`) reads green
+distinct from a plain opponent touchdown-against.
+
+**[P2, closed] Three honesty/completeness gaps fixed in the same builder.**
+Ball position now renders an honest blank (`—`) when the yard line exists but
+the side is neither `'own'` nor `'opp'`, instead of defaulting to "Own" and
+inventing possession territory. The Defensive Call cell composes Front +
+Coverage Call + Coverage Family (when present) + Blitz (when present) — never
+drops Coverage Family just because a shell exists, and Blitz is no longer
+omitted from the strip labeled as the complete defensive call. Every chyron
+cell (`Down & Distance`, `Ball On`, `Hash`, the our-call/opponent-look cell,
+`Result`) now carries a `title` attribute with the full unclipped value, so a
+long custom Front/Coverage/Blitz combination remains discoverable via hover
+when the fixed-width cell ellipsizes it visually.
+
+**[P2, closed] Geometry documentation corrected to state the true
+before/after relationship, not a false one.** Both
+`tools/e2e-breakdown-geometry.mjs` and `tools/e2e-native-breakdown-theater.mjs`
+previously claimed the post-chyron picture "still materially exceeds" the
+pre-lower-third baseline — mathematically false for every one of the four
+measured cases (all four are honest reductions, e.g. 945×531.5 < 963×542, the
+exact contradiction the review cited by line number). Both files' comments
+and assertion labels now state the correct relationship: a small, disclosed
+reduction from the pre-lower-third baseline, with all four honest
+before→after numbers recorded inline. **Numeric floors were NOT lowered
+further** — only the prose/labels were corrected to match what the numbers
+already say. `e2e-native-breakdown-theater.mjs` had the identical false-claim
+pattern in its own geometry comment (not explicitly named by the review,
+since it cited only the other file) — corrected in the same pass rather than
+left standing, with the true pre-Part-1 baseline (1200×675 / 1500×840)
+re-derived from `git show 43c3dc4^` rather than trusted from memory.
+
+**New discriminating regression coverage, per the review's explicit
+instruction.** `tools/e2e-native-breakdown-theater.mjs` gained a new section
+("1b. Chyron data and semantic contract") — 15 new assertions calling
+`_chyron()` directly on hand-built play fixtures: structured ST punt/downed,
+structured ST touchdown scored by subject vs. opponent, legacy ST fallback
+with no structured data, offense Touchdown/Interception/No-Good, defense
+Loss/Sack/Interception/Touchdown-against/pick-six, an ambiguous fumble
+(no tone), a subject-recovered fumble (green), an opponent-recovered fumble
+(red on offense), a missing field side (honest blank), and full defensive
+call composition (Front + Coverage + Family + Blitz all present). File total
+46/46.
+
+**Verification:**
+- `node tools/e2e-native-breakdown-theater.mjs` — **46/46** (was 29, +17 net:
+  15 new chyron-semantic assertions + 2 geometry-label corrections with no
+  assertion count change).
+- `node tools/e2e-breakdown-geometry.mjs` — **12/12**, unchanged assertion
+  count, corrected labels/comments only.
+- `node tools/e2e-native-tagging.mjs` — **55/55**, unchanged — confirms the
+  shared `ST_UNITS`/`ST_OUTCOMES`/`TRY_RESULT_LABELS` export change is
+  behavior-preserving for the live editor.
+- Live visual re-verification against the running dev app (5 targeted
+  screenshots, `design-comps/visual-reset-2026-08/part1-verification/
+  repair/`): defensive Sack green (was red), structured ST punt/downed
+  correctly populated (was blank), structured ST kick-return touchdown green
+  (subject-scored), offense `No Good` red (was green), defensive pick-six
+  green and visibly distinct from a plain touchdown-against.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 87 green |
+  0 skipped | 1 failed** — `e2e-csv-projection.mjs` only, the documented
+  pre-existing Puppeteer/CDP `Runtime.callFunctionOn: Promise was collected`
+  intermittent (this repair touches no CSV/projection file — confirmed by
+  grep); rerun standalone immediately after: **22/22 clean**.
+
+**No analytics formula, persistence schema, coach data, film file, or
+unrelated behavior changed.** Every value the corrected chyron shows still
+traces to `StatsEngine.proj()`/`SpecialTeamsModel.normalize()` on the live
+play — no comp value entered production, same as Part 1's original
+confirmation.
+
+**Handoff to Codex for re-review.** All four findings are closed at the root
+with a discriminating regression per finding, not just a symptom patch. No
+installer/package/tag/deploy is authorized from this repair.
+
 ### ▶ CODEX REVIEW — Part 1 Broadcast Density `43c3dc4`: CHANGES REQUESTED (2026-08-16)
 
 **Reviewer: Codex. Visual direction accepted; Part 1 is not yet accepted and
