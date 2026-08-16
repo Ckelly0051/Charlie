@@ -14,6 +14,60 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ VISUAL RESET — REVISED DIRECTION: BROADCAST DENSITY (B language, C density) (2026-08-16)
+
+**Design checkpoint only. No production code, token, module, version, installer,
+tag, deploy, or season byte was touched.** New comps live in
+`design-comps/visual-reset-2026-08/broadcast-density/`; the canonical gate was
+deliberately not run, per the brief.
+
+After reviewing the three original directions the coach selected **B · Broadcast
+Analytics as the primary visual language, with C · Tactical Workstation's density
+as the target**, A used only as a restraint reference. Two revised comps were
+built: `reports.html` and `breakdown.html`, same real game data, same 1440×900.
+
+**Three rules separate this from the original B**, each of them a direct answer to
+a note in the brief:
+1. **Gold demoted to active context.** Originally a gold colour post headed every
+   module. Gold now marks only the headline number, the live tab/route, the
+   selected chip, the play identity, offensive series, and the commit action.
+   Module rails default to **bone**, cyan means defence, green/red mean genuinely
+   good/bad. Roughly a third of the original gold coverage.
+2. **Condensed reserved for labels and football identifiers.** Bahnschrift caps
+   carry nav, section labels, the scorebug and `3rd & 19`. Every value, table
+   cell, control and sentence is **Segoe UI ≥ 11.5px**, tabular figures.
+   Micro-labels were measured **up** from 8.5px to 9.5px specifically because the
+   brief rules out tiny condensed body text — and the resulting 8px overflow was
+   paid for out of chrome padding, never out of control size.
+3. **Density from geometry, not from shrinking targets.** Chips stay ≥ 30px on a
+   real grid; the space comes from group padding, label rhythm and chrome.
+
+**Two measured results, not claims.** Reports fits in **1,223px** — below C's
+1,527 and 46% shorter than the original B's 2,261, while carrying a phase
+production table the other three don't have. Break Down fits the **entire**
+charting form with **no scrolling at all** (situation, 16 fronts, 7 coverages,
+family, blitz, run/pass, direction, 9 play types), Save & Next pinned, film
+**1015×560** and unobstructed. The original B scrolled on that screen.
+
+**A real bug found by eye, not by the checks.** The Down & Distance run/pass
+sparkbars rendered as solid black blocks. Cause was a pure cascade collision: the
+markup used `class="bar"`, and the top nav's own `.bar` rule paints
+`background:#000; padding:0 16px`, which `td .bar` never overrode. Renamed to
+`.mix` with a comment explaining why. **Worth carrying into production** — it is
+invisible in a diff and the automated geometry checks passed clean while the
+chart was wrong. Same class as the source-order defects recorded earlier in this
+file.
+
+**Verified.** `broadcast-density/capture.mjs` asserts per comp: no page-level
+horizontal overflow, no element past the viewport, no text clipped by its own box
+— both clean. A separate probe measured the charting form's scroll overflow
+directly (0px) rather than eyeballing the capture. `index.html` gains this as a
+fourth direction; all **16** direction × screen × view combinations were
+confirmed to load in real Chrome over `file://` with zero failed requests.
+
+**Next:** the coach reviews the two revised screens. Production visual
+implementation does not begin before a direction is accepted.
+
 ### ▶ VISUAL RESET COMPS — three directions × two screens, awaiting coach selection (2026-08-16)
 
 **Design checkpoint only. No production code, token, module, version, installer,

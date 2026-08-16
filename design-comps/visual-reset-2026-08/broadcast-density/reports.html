@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Broadcast Density — Reports Overview</title>
+<style>
+/* ═══ BROADCAST DENSITY · REPORTS OVERVIEW ════════════════════════════════
+   Broadcast Analytics language, Tactical Workstation density.
+
+   GOLD BUDGET. Gold appears in exactly four places: the scorebug's headline
+   number, the active tab, offensive series in charts, and the rails on the two
+   offensive production modules. Defence takes cyan. Everything else is bone.
+   Green and red mean genuinely good and genuinely bad — never emphasis.
+
+   TYPE BUDGET. Bahnschrift caps carry nav, section labels, the scorebug and
+   football identifiers. Every table cell, every explanatory line and every
+   control is Segoe UI at >= 11.5px with tabular figures.
+
+   DENSITY. No module is one stat wide. Bands are 3-4 columns of 1px-gapped
+   cells over a rule-coloured ground, so the page reads as one board rather
+   than a stack of cards. Target: the whole report near C's 1,527px.
+
+   Week 1 vs St. Peter Lutheran Patriots · W 41-0 · 67 plays.
+   ═════════════════════════════════════════════════════════════════════════ */
+:root{
+  --stage:#06080B; --panel:#0E1319; --panel-2:#151C24; --panel-3:#1B242E;
+  --rule:#222D38; --bone:#4A5765;
+  --ink:#F2F5F8; --ink-2:#9DAAB7; --ink-3:#66727E;
+  --gold:#D9A21A; --cyan:#12A9CB;
+  --good:#3FA96B; --crit:#D2564F;
+  --cond:"Bahnschrift","Bahnschrift SemiCondensed","DIN Alternate","Segoe UI",sans-serif;
+  --sans:"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--stage);color:var(--ink);font:13px/1.4 var(--sans);
+  -webkit-font-smoothing:antialiased}
+.n{font-variant-numeric:tabular-nums}
+.cd{font-family:var(--cond);font-stretch:87.5%;letter-spacing:.09em;text-transform:uppercase}
+
+/* ── chrome ─────────────────────────────────────────────────────────────── */
+.bar{display:flex;align-items:center;gap:13px;padding:0 16px;height:40px;background:#000;
+  border-bottom:1px solid var(--rule)}
+.mark{font:700 14px var(--cond);font-stretch:75%;letter-spacing:.06em}
+.mark i{color:var(--gold);font-style:normal}
+.routes{display:flex;height:100%;margin-left:6px}
+.routes a{display:flex;align-items:center;padding:0 14px;color:var(--ink-3);text-decoration:none;
+  font:600 11.5px var(--cond);font-stretch:87.5%;letter-spacing:.1em;text-transform:uppercase}
+.routes a.on{color:var(--ink);box-shadow:0 -3px 0 var(--gold) inset;background:var(--panel)}
+.crumb{font-size:11px;color:var(--ink-3)}.crumb b{color:var(--ink-2);font-weight:600}
+.sp{margin-left:auto}
+.tbtn{font:500 11.5px var(--sans);color:var(--ink-2);background:var(--panel-2);border:0;
+  padding:6px 11px;cursor:pointer}
+
+/* ── scorebug ───────────────────────────────────────────────────────────── */
+.bug{display:grid;grid-template-columns:auto auto auto auto 1fr auto;align-items:stretch;
+  background:#000;border-bottom:2px solid var(--gold)}
+.bug-team{padding:13px 18px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.bug-team .nm{font:700 11px var(--cond);font-stretch:87.5%;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-2)}
+.bug-team .sc{font:700 40px/.85 var(--cond);font-stretch:75%}
+.bug-team.lose .nm,.bug-team.lose .sc{color:var(--ink-3)}
+.bug-res{display:flex;align-items:center;padding:0 4px}
+.bug-res b{background:var(--good);color:#03150B;font:700 12px var(--cond);font-stretch:87.5%;
+  letter-spacing:.14em;padding:4px 9px}
+.bug-line{display:flex;align-items:center;gap:1px;padding:0 18px;border-left:1px solid var(--rule)}
+.bug-line .q{background:var(--panel);padding:7px 11px;text-align:center}
+.bug-line .q .l{font:700 9.5px var(--cond);font-stretch:87.5%;letter-spacing:.16em;color:var(--ink-3)}
+.bug-line .q .a{font:600 14px var(--sans);margin-top:2px}
+.bug-line .q .b{font:600 14px var(--sans);color:var(--ink-3)}
+.bug-story{display:flex;align-items:center;gap:14px;padding:0 18px;border-left:1px solid var(--rule)}
+.bug-story .v{font:700 34px/1 var(--cond);font-stretch:75%;color:var(--gold)}
+.bug-story .t{font-size:12px;color:var(--ink-2);max-width:23ch;line-height:1.35}
+.bug-story .t b{color:var(--ink);font-weight:600}
+.bug-meta{padding:0 18px;display:flex;flex-direction:column;justify-content:center;gap:4px;
+  border-left:1px solid var(--rule);text-align:right}
+.bug-meta .a{font:700 11px var(--cond);font-stretch:87.5%;letter-spacing:.12em;text-transform:uppercase}
+.bug-meta .b{font-size:11px;color:var(--ink-3)}
+
+/* ── title + tabs ───────────────────────────────────────────────────────── */
+.head{display:flex;align-items:flex-end;gap:16px;padding:12px 16px 0;background:var(--panel);
+  border-bottom:1px solid var(--rule)}
+.head h1{margin:0;font:700 19px var(--cond);font-stretch:87.5%;letter-spacing:.05em;text-transform:uppercase}
+.head .sub{font-size:11.5px;color:var(--ink-3);padding-bottom:3px}
+.head .seg{display:inline-flex;gap:1px;margin-bottom:9px}
+.head .seg button{font:600 11.5px var(--sans);border:0;background:var(--panel-2);color:var(--ink-3);
+  padding:7px 13px;cursor:pointer;min-height:30px}
+.head .seg button.on{background:var(--panel-3);color:var(--ink)}
+.tabs{display:flex;gap:0;margin-left:auto;align-self:flex-end}
+.tabs button{font:600 11.5px var(--cond);font-stretch:87.5%;letter-spacing:.11em;text-transform:uppercase;
+  border:0;background:transparent;color:var(--ink-3);padding:11px 14px;cursor:pointer}
+.tabs button.on{color:var(--ink);box-shadow:0 -3px 0 var(--gold) inset;background:var(--panel-2)}
+
+/* ── board ──────────────────────────────────────────────────────────────── */
+.board{padding:1px 0 0}
+.band{display:grid;gap:1px;background:var(--rule);margin-bottom:1px}
+.b7{grid-template-columns:repeat(7,1fr)}
+.b3a{grid-template-columns:340px 1fr 1fr}
+.b3b{grid-template-columns:1fr 1fr 1.15fr}
+.b2{grid-template-columns:1.1fr 1fr}
+.b3c{grid-template-columns:1.25fr 1fr 1fr}
+
+.mod{background:var(--panel);padding:9px 14px 12px;min-width:0;position:relative}
+.mod::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--bone)}
+.mod.off::before{background:var(--gold)}
+.mod.def::before{background:var(--cyan)}
+.mod.pos::before{background:var(--good)}
+.mod.neg::before{background:var(--crit)}
+.mh{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
+.mh b{font:700 9.5px var(--cond);font-stretch:87.5%;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
+.mod.off .mh b{color:var(--gold)} .mod.def .mh b{color:var(--cyan)}
+.mh span{font-size:10.5px;color:var(--ink-3)}
+.mh .w{margin-left:auto;font-size:10.5px;color:var(--cyan);cursor:pointer;font-weight:600;white-space:nowrap}
+
+/* KPI cell */
+.kpi{background:var(--panel);padding:11px 14px 12px;position:relative}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--bone)}
+.kpi.off::before{background:var(--gold)}
+.kpi .k{font:700 9.5px var(--cond);font-stretch:87.5%;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);display:block}
+.kpi .v{font:700 30px/1 var(--cond);font-stretch:75%;display:block;margin-top:5px}
+.kpi .v.g{color:var(--good)} .kpi .v.a{color:var(--gold)}
+.kpi .s{font-size:11px;color:var(--ink-3);display:block;margin-top:4px}
+
+/* data rows */
+.rows{display:flex;flex-direction:column;gap:3px}
+.r{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:10px;font-size:12.5px;
+  padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.r:last-child{border-bottom:0}
+.r .l{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r .v{font-weight:600;font-variant-numeric:tabular-nums}
+.r .v.g{color:var(--good)} .r .v.c{color:var(--crit)} .r .v.m{color:var(--ink-3);font-weight:500}
+.r.cut{cursor:pointer}
+.r.cut:hover{background:rgba(18,169,203,.07)}
+.r.cut .l::after{content:" ▸";color:var(--cyan);opacity:.6}
+
+/* split bar */
+.split{display:flex;height:9px;gap:2px;margin:7px 0 5px}
+.split i{display:block}
+.split .run{background:var(--gold)}.split .pass{background:var(--cyan)}
+.lg{display:flex;gap:14px;font-size:11px;color:var(--ink-2)}
+.lg span{display:flex;align-items:center;gap:6px}
+.lg i{width:9px;height:9px;display:block}
+
+/* phase ramp — sequential, parts of a whole */
+.ramp{display:flex;height:11px;gap:2px;margin:8px 0 6px}
+.ramp i{display:block}
+.ramp .s1{background:#D9A21A}.ramp .s2{background:#9C7317}.ramp .s3{background:#5E4712}
+
+/* situational grid */
+.sit{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);
+  margin:-2px -14px -12px;border-top:1px solid var(--rule)}
+.sit div{background:var(--panel);padding:8px 12px 9px;cursor:pointer}
+.sit div:hover{background:var(--panel-2)}
+.sit .k{font:700 9.5px var(--cond);font-stretch:87.5%;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-3);display:block}
+.sit .v{font:700 19px/1 var(--cond);font-stretch:75%;display:block;margin-top:5px}
+.sit .v.g{color:var(--good)}.sit .v.c{color:var(--crit)}.sit .v.m{color:var(--ink-3);font-size:14px}
+.sit .s{font-size:10.5px;color:var(--ink-3);display:block;margin-top:3px}
+
+/* lens columns */
+.lens{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule);
+  margin:-2px -14px -12px;border-top:1px solid var(--rule)}
+.lens div{background:var(--panel);padding:8px 11px 9px}
+.lens .k{font:700 9.5px var(--cond);font-stretch:87.5%;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);display:block}
+.lens .v{font:700 21px/1 var(--cond);font-stretch:75%;display:block;margin-top:5px}
+.lens .v.g{color:var(--good)}.lens .v.c{color:var(--crit)}
+.lens .s{font-size:10.5px;color:var(--ink-3);display:block;margin-top:3px;line-height:1.3}
+
+/* game-plan lines */
+.gp{display:flex;flex-direction:column;gap:6px}
+.gp p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.4;padding-left:13px;position:relative}
+.gp p::before{content:"";position:absolute;left:0;top:6px;width:6px;height:6px}
+.gp.pos p::before{background:var(--good)}.gp.neg p::before{background:var(--crit)}
+.gp p b{color:var(--ink);font-weight:600}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font:700 9.5px var(--cond);font-stretch:87.5%;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-3);text-align:right;padding:0 0 5px;font-weight:700}
+th:first-child{text-align:left}
+td{padding:4px 0;border-top:1px solid rgba(255,255,255,.04);text-align:right;
+  font-variant-numeric:tabular-nums}
+td:first-child{text-align:left;color:var(--ink-2)}
+tr.cut{cursor:pointer}tr.cut:hover td{background:rgba(18,169,203,.07)}
+/* NOT ".bar" — that class is the top nav, whose black background and 16px
+   padding would silently paint over these segments. Distinct name on purpose. */
+td .mix{display:inline-flex;height:7px;width:52px;gap:2px;vertical-align:middle;margin-right:7px}
+td .mix i{display:block}
+td .mix .run{background:var(--gold)}td .mix .pass{background:var(--cyan)}
+.g{color:var(--good)}.c{color:var(--crit)}.m{color:var(--ink-3)}
+
+/* drive timeline */
+.dr{display:flex;flex-direction:column;gap:3px}
+.dr .d{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;font-size:12px;
+  cursor:pointer;padding:2px 0}
+.dr .d:hover{background:rgba(18,169,203,.07)}
+.dr .no{font:700 10px var(--cond);font-stretch:87.5%;letter-spacing:.1em;color:var(--ink-3);width:22px}
+.dr .track{height:8px;background:var(--panel-3);position:relative}
+.dr .track i{position:absolute;left:0;top:0;bottom:0}
+.dr .track i.td{background:var(--good)}.dr .track i.pt{background:var(--gold)}
+.dr .track i.no{background:var(--bone)}
+.dr .out{font-weight:600;font-size:11.5px;min-width:52px;text-align:right}
+.foot{padding:10px 16px 22px;font-size:11px;color:var(--ink-3);display:flex;gap:20px}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark">GRIDIRON <i>IQ</i></span>
+  <nav class="routes">
+    <a href="#">Home</a><a href="#">Break Down</a><a href="#">Study</a>
+    <a class="on" href="#">Reports</a><a href="#">Plan</a>
+  </nav>
+  <span class="crumb">Mavericks › 2025 St. Joseph Mavericks · JV › <b>Week 1 vs St. Peter Lutheran Patriots</b></span>
+  <span class="sp"></span>
+  <button class="tbtn">Export PDF</button><button class="tbtn">Export HTML</button>
+  <button class="tbtn">Call sheet</button><button class="tbtn">Settings</button>
+</div>
+
+<div class="bug">
+  <div class="bug-team"><span class="nm">St. Joseph Mavericks</span><span class="sc n">41</span></div>
+  <div class="bug-res"><b>W</b></div>
+  <div class="bug-team lose"><span class="nm">St. Peter Lutheran</span><span class="sc n">0</span></div>
+  <div class="bug-line">
+    <div class="q"><div class="l">Q1</div><div class="a n">14</div><div class="b n">0</div></div>
+    <div class="q"><div class="l">Q2</div><div class="a n">13</div><div class="b n">0</div></div>
+    <div class="q"><div class="l">Q3</div><div class="a n">7</div><div class="b n">0</div></div>
+    <div class="q"><div class="l">Q4</div><div class="a n">7</div><div class="b n">0</div></div>
+  </div>
+  <div class="bug-story">
+    <span class="v n">10.3</span>
+    <span class="t"><b>Yards per play.</b> 289 yards on 67 snaps, and a shutout on the other side.</span>
+  </div>
+  <div class="bug-meta"><span class="a">Week 1 · Home</span><span class="b">67 of 67 plays charted</span></div>
+</div>
+
+<div class="head">
+  <h1>Game Report</h1>
+  <span class="sub">Self scout · all units</span>
+  <div class="seg"><button class="on">This game</button><button>Full season</button></div>
+  <div class="tabs">
+    <button class="on">Overview</button><button>Offense</button><button>Defense</button>
+    <button>Special Teams</button><button>Players</button><button>Self-Scout</button>
+    <button>Season</button><button>Matchup</button>
+  </div>
+</div>
+
+<div class="board">
+
+  <!-- KPI strip -->
+  <div class="band b7">
+    <div class="kpi"><span class="k">Total plays</span><span class="v n">67</span><span class="s">67 charted · 100%</span></div>
+    <div class="kpi"><span class="k">Success rate</span><span class="v g n">68%</span><span class="s">46 of 67 snaps</span></div>
+    <div class="kpi"><span class="k">Yards / play</span><span class="v a n">10.3</span><span class="s">289 total yards</span></div>
+    <div class="kpi"><span class="k">Explosives</span><span class="v n">9</span><span class="s">12+ run · 16+ pass</span></div>
+    <div class="kpi"><span class="k">Turnovers</span><span class="v g n">0</span><span class="s">0 INT · 0 fumbles lost</span></div>
+    <div class="kpi"><span class="k">Plays for loss</span><span class="v n">2</span><span class="s">−6 yards total</span></div>
+    <div class="kpi"><span class="k">Penalties</span><span class="v n">2</span><span class="s">10 yards accepted</span></div>
+  </div>
+
+  <!-- phase + situational + lenses -->
+  <div class="band b3a">
+    <div class="mod">
+      <div class="mh"><b>Snaps by phase</b><span>67 total</span></div>
+      <div class="ramp">
+        <i class="s1" style="flex:29"></i><i class="s2" style="flex:20"></i><i class="s3" style="flex:18"></i>
+      </div>
+      <table style="margin-top:8px">
+        <thead><tr><th>Phase</th><th>Snaps</th><th>Share</th><th>Yds/play</th></tr></thead>
+        <tbody>
+          <tr class="cut"><td>Offense</td><td class="n">29</td><td class="n">43%</td><td class="n">10.3</td></tr>
+          <tr class="cut"><td>Defense</td><td class="n">20</td><td class="n">30%</td><td class="n g">2.8 <span class="m">allowed</span></td></tr>
+          <tr class="cut"><td>Special Teams</td><td class="n">18</td><td class="n">27%</td><td class="n m">—</td></tr>
+        </tbody>
+      </table>
+      <p style="margin:9px 0 0;font-size:11.5px;color:var(--ink-3);line-height:1.4">
+        Special Teams yardage is reported in its own tab — kick, punt and return
+        yards are not comparable to a scrimmage snap.</p>
+    </div>
+
+    <div class="mod">
+      <div class="mh"><b>Situational</b><span>every tile opens its film</span></div>
+      <div class="sit">
+        <div><span class="k">Red zone</span><span class="v g n">80%</span><span class="s">4 of 5 TD</span></div>
+        <div><span class="k">Goal line</span><span class="v g n">2/2</span><span class="s">both scored</span></div>
+        <div><span class="k">Third down</span><span class="v n">50%</span><span class="s">3 of 6</span></div>
+        <div><span class="k">3rd &amp; long</span><span class="v c n">33%</span><span class="s">1 of 3</span></div>
+        <div><span class="k">3rd &amp; short</span><span class="v m">No data</span><span class="s">0 snaps charted</span></div>
+        <div><span class="k">Backed up</span><span class="v m">No data</span><span class="s">0 snaps charted</span></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mh"><b>Key metrics</b><span>five lenses</span><span class="w">Open Study →</span></div>
+      <div class="lens">
+        <div><span class="k">Efficiency</span><span class="v g n">68%</span><span class="s">Success rate, all downs</span></div>
+        <div><span class="k">Explosive</span><span class="v n">9</span><span class="s">13% of snaps</span></div>
+        <div><span class="k">Situational</span><span class="v g n">80%</span><span class="s">Red-zone TD rate</span></div>
+        <div><span class="k">Tendencies</span><span class="v n">83%</span><span class="s">Power-I run rate</span></div>
+        <div><span class="k">Negative</span><span class="v n">2</span><span class="s">3% of snaps</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- production -->
+  <div class="band b3b">
+    <div class="mod off">
+      <div class="mh"><b>Rushing</b><span>38 attempts</span><span class="w">Watch →</span></div>
+      <div class="rows">
+        <div class="r"><span class="l">Attempts</span><span class="v n">38</span></div>
+        <div class="r"><span class="l">Yards</span><span class="v n">255</span></div>
+        <div class="r"><span class="l">Average</span><span class="v n">6.7</span></div>
+        <div class="r"><span class="l">Touchdowns</span><span class="v g n">5</span></div>
+        <div class="r cut"><span class="l">Long</span><span class="v n">47</span></div>
+        <div class="r cut"><span class="l">Explosive runs (12+)</span><span class="v n">8</span></div>
+        <div class="r"><span class="l">Fumbles lost</span><span class="v n">0</span></div>
+      </div>
+    </div>
+
+    <div class="mod off">
+      <div class="mh"><b>Passing</b><span>9 attempts</span><span class="w">Watch →</span></div>
+      <div class="rows">
+        <div class="r"><span class="l">Completions / attempts</span><span class="v n">6 / 9</span></div>
+        <div class="r"><span class="l">Completion rate</span><span class="v n">66.7%</span></div>
+        <div class="r"><span class="l">Yards</span><span class="v n">34</span></div>
+        <div class="r"><span class="l">Yards / attempt</span><span class="v n">3.8</span></div>
+        <div class="r"><span class="l">Touchdowns</span><span class="v g n">1</span></div>
+        <div class="r"><span class="l">Interceptions</span><span class="v n">0</span></div>
+        <div class="r cut"><span class="l">Long</span><span class="v n">18</span></div>
+        <div class="r"><span class="l">Sacks taken</span><span class="v n">0</span></div>
+      </div>
+    </div>
+
+    <div class="mod off">
+      <div class="mh"><b>Yards by type</b><span>289 total</span></div>
+      <div class="split">
+        <i class="run" style="flex:255"></i><i class="pass" style="flex:34"></i>
+      </div>
+      <div class="lg" style="margin-bottom:9px">
+        <span><i class="run" style="background:var(--gold)"></i>Rush 255 · 88%</span>
+        <span><i class="pass" style="background:var(--cyan)"></i>Pass 34 · 12%</span>
+      </div>
+      <table>
+        <thead><tr><th>Play type</th><th>Snaps</th><th>Yds/play</th><th>Success</th></tr></thead>
+        <tbody>
+          <tr class="cut"><td>Run Outside</td><td class="n">11</td><td class="n">12.4</td><td class="n g">82%</td></tr>
+          <tr class="cut"><td>Run Inside</td><td class="n">19</td><td class="n">4.1</td><td class="n">63%</td></tr>
+          <tr class="cut"><td>RPO</td><td class="n">8</td><td class="n">7.5</td><td class="n g">75%</td></tr>
+          <tr class="cut"><td>Short Pass</td><td class="n">6</td><td class="n">4.3</td><td class="n">50%</td></tr>
+          <tr class="cut"><td>Deep Pass</td><td class="n">2</td><td class="n m">0.0</td><td class="n c">0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- down & distance + game plan -->
+  <div class="band b2">
+    <div class="mod">
+      <div class="mh"><b>Down &amp; distance</b><span>run / pass mix and production</span><span class="w">Open Study →</span></div>
+      <table>
+        <thead><tr><th>Situation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Success</th><th>Conv</th></tr></thead>
+        <tbody>
+          <tr class="cut"><td>1st &amp; 10</td><td class="n">32</td>
+            <td><span class="mix"><i class="run" style="flex:78"></i><i class="pass" style="flex:22"></i></span>78 / 22</td>
+            <td class="n">11.2</td><td class="n g">71%</td><td class="n m">—</td></tr>
+          <tr class="cut"><td>2nd &amp; medium</td><td class="n">14</td>
+            <td><span class="mix"><i class="run" style="flex:71"></i><i class="pass" style="flex:29"></i></span>71 / 29</td>
+            <td class="n">9.8</td><td class="n g">64%</td><td class="n m">—</td></tr>
+          <tr class="cut"><td>2nd &amp; long</td><td class="n">9</td>
+            <td><span class="mix"><i class="run" style="flex:56"></i><i class="pass" style="flex:44"></i></span>56 / 44</td>
+            <td class="n">6.2</td><td class="n">56%</td><td class="n m">—</td></tr>
+          <tr class="cut"><td>3rd &amp; long</td><td class="n">6</td>
+            <td><span class="mix"><i class="run" style="flex:33"></i><i class="pass" style="flex:67"></i></span>33 / 67</td>
+            <td class="n">4.1</td><td class="n c">33%</td><td class="n c">1 / 3</td></tr>
+          <tr class="cut"><td>4th down</td><td class="n">2</td>
+            <td><span class="mix"><i class="run" style="flex:100"></i></span>100 / 0</td>
+            <td class="n">3.5</td><td class="n g">100%</td><td class="n g">2 / 2</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mod pos">
+      <div class="mh"><b>Game plan</b><span>what the tags say</span></div>
+      <div class="gp pos" style="margin-bottom:9px">
+        <p><b>Power-I is 83% run</b> at 9.1 yards a play — it is producing, not just frequent.</p>
+        <p><b>Run Outside averages 12.4</b> on 11 carries, the best call in the game.</p>
+        <p><b>Red zone 4 of 5</b> for touchdowns, both goal-line snaps scored.</p>
+      </div>
+      <div class="gp neg">
+        <p><b>Motion is a tell</b> — 71% run when we motion, 44% when we don't.</p>
+        <p><b>3rd &amp; long is 1 of 3.</b> Yards per play drops to 4.1 from 10.3 overall.</p>
+        <p><b>Deep Pass 0 for 2</b>, both incomplete. Two snaps is not a verdict.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- big plays + drives + penalties -->
+  <div class="band b3c">
+    <div class="mod off">
+      <div class="mh"><b>Big plays</b><span>8 gains of 15+</span><span class="w">Watch all →</span></div>
+      <table>
+        <thead><tr><th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead>
+        <tbody>
+          <tr class="cut"><td class="n">12</td><td>1st &amp; 10</td><td>Run Outside</td><td class="n">47</td></tr>
+          <tr class="cut"><td class="n">27</td><td>2nd &amp; 6</td><td>Run Outside</td><td class="n">38</td></tr>
+          <tr class="cut"><td class="n">41</td><td>1st &amp; 10</td><td>RPO</td><td class="n">31</td></tr>
+          <tr class="cut"><td class="n">08</td><td>1st &amp; 10</td><td>Run Inside</td><td class="n">24</td></tr>
+          <tr class="cut"><td class="n">33</td><td>2nd &amp; 4</td><td>Run Outside</td><td class="n">22</td></tr>
+          <tr class="cut"><td class="n">55</td><td>1st &amp; 10</td><td>RPO</td><td class="n">19</td></tr>
+          <tr class="cut"><td class="n">19</td><td>3rd &amp; 3</td><td>Short Pass</td><td class="n">18</td></tr>
+          <tr class="cut"><td class="n">62</td><td>1st &amp; 10</td><td>Run Inside</td><td class="n">16</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mod">
+      <div class="mh"><b>Drives</b><span>8 drives · 6 scored</span><span class="w">Watch →</span></div>
+      <div class="dr">
+        <div class="d"><span class="no">D1</span><span class="track"><i class="td" style="width:78%"></i></span><span class="out g">TD</span></div>
+        <div class="d"><span class="no">D2</span><span class="track"><i class="td" style="width:64%"></i></span><span class="out g">TD</span></div>
+        <div class="d"><span class="no">D3</span><span class="track"><i class="no" style="width:22%"></i></span><span class="out m">Punt</span></div>
+        <div class="d"><span class="no">D4</span><span class="track"><i class="td" style="width:88%"></i></span><span class="out g">TD</span></div>
+        <div class="d"><span class="no">D5</span><span class="track"><i class="pt" style="width:41%"></i></span><span class="out">FG</span></div>
+        <div class="d"><span class="no">D6</span><span class="track"><i class="td" style="width:71%"></i></span><span class="out g">TD</span></div>
+        <div class="d"><span class="no">D7</span><span class="track"><i class="td" style="width:55%"></i></span><span class="out g">TD</span></div>
+        <div class="d"><span class="no">D8</span><span class="track"><i class="no" style="width:18%"></i></span><span class="out m">Downs</span></div>
+      </div>
+    </div>
+
+    <div class="mod def">
+      <div class="mh"><b>Defense &amp; discipline</b><span>20 defensive snaps</span><span class="w">Full report →</span></div>
+      <div class="rows">
+        <div class="r"><span class="l">Points allowed</span><span class="v g n">0</span></div>
+        <div class="r cut"><span class="l">Yards / play allowed</span><span class="v n">2.8</span></div>
+        <div class="r cut"><span class="l">Stop rate</span><span class="v g n">75%</span></div>
+        <div class="r cut"><span class="l">Explosives allowed</span><span class="v g n">1</span></div>
+        <div class="r cut"><span class="l">Takeaways</span><span class="v n">2</span></div>
+        <div class="r"><span class="l">Penalties accepted</span><span class="v n">2 · 10 yds</span></div>
+        <div class="r"><span class="l">Penalties declined</span><span class="v m n">1</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  <span>Penalty yards count accepted enforcement only. Declined and offsetting fouls are listed but not summed.</span>
+  <span>Every highlighted row opens exactly the snaps it counted.</span>
+</div>
+
+</body>
+</html>

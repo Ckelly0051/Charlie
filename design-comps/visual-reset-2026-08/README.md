@@ -19,6 +19,7 @@ load, zero failed requests.
 | **A · Premium Sports Operations** | `premium-sports-ops/reports.html` | `premium-sports-ops/breakdown.html` |
 | **B · Broadcast Analytics** | `broadcast-analytics/reports.html` | `broadcast-analytics/breakdown.html` |
 | **C · Modern Tactical Workstation** | `tactical-workstation/reports.html` | `tactical-workstation/breakdown.html` |
+| **B+C · Broadcast Density** *(revised)* | `broadcast-density/reports.html` | `broadcast-density/breakdown.html` |
 
 `captures/` holds two PNGs per comp: `-fold.png` is exactly 1440×900 (what the
 coach sees before scrolling — the honest comparison) and the un-suffixed file is
@@ -114,6 +115,44 @@ wins on tables, forms and scanning.
     coverages, family, blitz, run/pass, direction, all 9 play types — **with no
     scrolling at all**, Save & Next pinned. That is the direct win for repeated
     charting.
+
+## B+C · Broadcast Density  ◀ revised direction, built after the first review
+
+**Thesis — the truck, run at instrument density.** B owns the visual language;
+C owns the density target; A is used only as a restraint reference. This is not a
+three-way blend: nothing of A's elevation or C's monospace appears here.
+
+Three rules separate it from the original B:
+
+1. **Gold is active context, not a coat of paint.** In B, a colour post headed every
+   module. Here gold marks only the headline number, the live tab/route, the selected
+   chip, the play identity, offensive series in charts, and the commit action. Module
+   rails default to **bone**; cyan means defence; green and red mean genuinely good and
+   genuinely bad. On Break Down that is roughly a third of B's gold coverage.
+2. **Condensed is for labels and football identifiers only.** Bahnschrift caps carry
+   nav, section labels, the scorebug and `3rd & 19`. Every value, table cell, control
+   and sentence is **Segoe UI** at ≥ 11.5px with tabular figures. Micro-labels are
+   9.5px, not the 8.5px the other three use — measured up specifically because the
+   brief rules out tiny condensed body text.
+3. **Density comes from geometry, never from shrinking targets.** Chips stay ≥ 30px
+   on a real grid. The space is won back from group padding, label rhythm and chrome.
+
+**Two measured results:**
+
+- **Reports fits in 1,223px** — below C's 1,527 and 46% shorter than the original B's
+  2,261, carrying the same content plus a phase-production table the others don't have.
+  Scoreboard, seven KPIs, phase split, all six situational tiles, the five lenses, and
+  the start of the production layer are all above the fold.
+- **Break Down fits the entire form with no scrolling at all** — situation, 16 fronts,
+  7 coverages, family, blitz, run/pass, direction and all 9 play types, with Save &
+  Next pinned and film at 1015×560, unobstructed. The original B scrolled here.
+
+**One real bug this pass caught by eye.** The Down & Distance run/pass sparkbars
+rendered as black blocks: the markup used `class="bar"`, which the top nav's own
+`.bar` rule paints `background:#000; padding:0 16px`, and `td .bar` never overrode
+either. Renamed to `.mix`, with a comment saying why. Worth carrying into production —
+it is a pure cascade collision, invisible in a diff and invisible to the geometry
+checks, which passed clean while the chart was wrong.
 
 ---
 

@@ -33,6 +33,7 @@ header p{margin:0;font-size:12.5px;color:var(--ink-3);max-width:80ch}
 .grp button[data-dir="premium-sports-ops"] i{background:var(--a)}
 .grp button[data-dir="broadcast-analytics"] i{background:var(--b)}
 .grp button[data-dir="tactical-workstation"] i{background:var(--c)}
+.grp button[data-dir="broadcast-density"] i{background:var(--b);box-shadow:0 0 0 1px var(--c)}
 .grp button.on{background:var(--panel-2);color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 .live{font:600 12px var(--sans);color:var(--ink-2);text-decoration:none;background:var(--panel);
   border-radius:3px;padding:8px 14px}
@@ -71,6 +72,7 @@ kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;padd
     <button class="on" data-dir="premium-sports-ops"><i></i>A · Premium Sports Ops</button>
     <button data-dir="broadcast-analytics"><i></i>B · Broadcast Analytics</button>
     <button data-dir="tactical-workstation"><i></i>C · Tactical Workstation</button>
+    <button data-dir="broadcast-density"><i></i>B+C · Broadcast Density</button>
   </div>
   <div class="grp" id="screens">
     <button class="on" data-screen="reports">Reports Overview</button>
@@ -81,7 +83,7 @@ kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;padd
     <button data-view="full">Full page</button>
   </div>
   <a class="live" id="open" href="#" target="_blank">Open live HTML ↗</a>
-  <span class="hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> direction · <kbd>R</kbd><kbd>B</kbd> screen · <kbd>F</kbd> view</span>
+  <span class="hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> direction · <kbd>R</kbd><kbd>B</kbd> screen · <kbd>F</kbd> view</span>
 </div>
 
 <div class="thesis">
@@ -97,6 +99,12 @@ kbd{font:600 10.5px var(--sans);background:var(--panel-2);border-radius:2px;padd
     1px grooves, each cell carrying a hairline top highlight so separation reads as material. Every numeral
     is monospaced, so data reads as a readout. It fits the same report in <b>1,527px</b> where the other two
     need 2,364 and 2,261.</div>
+  <div class="t-broadcast-density"><b>The truck, run at instrument density.</b> B's football identity —
+    scorebug, colour posts, condensed caps, hard selected states — rebuilt on C's geometry. Gold is demoted to
+    active context only: the headline number, the live tab, offensive series, the selected chip. Condensed is
+    reserved for labels and football identifiers; every value, control and sentence is Segoe UI. Reports fits
+    in <b>1,223px</b>; Break Down fits the entire defensive call <b>and</b> the play &amp; result group with
+    <b>no scrolling at all</b>.</div>
 </div>
 
 <div class="stage">
@@ -117,11 +125,13 @@ const NAME = {
   'premium-sports-ops':'A · Premium Sports Operations',
   'broadcast-analytics':'B · Broadcast Analytics',
   'tactical-workstation':'C · Modern Tactical Workstation',
+  'broadcast-density':'B+C · Broadcast Density',
 };
 const HEIGHT = {
   'premium-sports-ops':{reports:2364,breakdown:900},
   'broadcast-analytics':{reports:2261,breakdown:900},
   'tactical-workstation':{reports:1527,breakdown:900},
+  'broadcast-density':{reports:1223,breakdown:900},
 };
 let dir = 'premium-sports-ops', screen = 'reports', view = 'fold';
 
@@ -150,8 +160,8 @@ viewsEl.addEventListener('click', e => {
   const b = e.target.closest('button'); if (b) { view = b.dataset.view; paint(); } });
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  const order = ['premium-sports-ops','broadcast-analytics','tactical-workstation'];
-  if (k >= '1' && k <= '3') { dir = order[+k - 1]; paint(); }
+  const order = ['premium-sports-ops','broadcast-analytics','tactical-workstation','broadcast-density'];
+  if (k >= '1' && k <= '4') { dir = order[+k - 1]; paint(); }
   else if (k === 'r') { screen = 'reports'; paint(); }
   else if (k === 'b') { screen = 'breakdown'; paint(); }
   else if (k === 'f') { view = view === 'fold' ? 'full' : 'fold'; paint(); }
