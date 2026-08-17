@@ -14,6 +14,26 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ PAUSED - FUTURE VISUAL RECOMPOSITION (2026-08-17)
+
+The functional Broadcast Density work remains accepted, but the coach and
+Codex have **revoked the creative-redesign claim** after inspecting the live
+real-data screens. The current Reports implementation is still substantially
+the legacy spreadsheet composition with a new accent palette. Do not continue
+visual implementation, commit the current dirty visual experiment, run a gate,
+or package an installer until usage resets and the coach explicitly resumes it.
+
+The binding future plan is `GRIDIRON-IQ-VISUAL-RECOMPOSITION-PLAN.md`. It makes
+Codex the creative/layout owner, Claude the implementation owner, and the coach
+the visual approver through the **Charlie Gate**. Reports Overview is first and
+must be judged with current-vs-comp-vs-live first-fold/full-page captures before
+any visual commit. A palette/type/spacing pass with unchanged composition fails.
+
+Current uncommitted production files belong to Claude's visual experiment:
+`css/native-reports.css`, `design-system/tokens.css`, `js/reports-screen.js`,
+and `js/stats-engine.js`. Preserve them exactly; do not reset, commit, or build
+on them without an explicit decision after the pause.
+
 ### ▶ MILESTONE INSTALLER — `1.12.0-54` BUILT, AWAITING COACH SMOKE (2026-08-17)
 
 **Broadcast Density (Part 1 Break Down + Part 2 Reports) is code-accepted by
