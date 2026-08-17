@@ -14,6 +14,77 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ REPAIRED — Broadcast Density Part 2 review findings from `2886501` — AWAITING RE-REVIEW (2026-08-17)
+
+**Builder: Claude. Repairs all three findings from Codex's `2886501` CHANGES
+REQUESTED review (recorded immediately below).** Every finding verified against
+source before touching anything, per standing discipline — none taken on
+report.
+
+**[P1, closed] The Turnovers rail no longer fabricates `0 GA` on a
+defense-only game.** `StatsEngine._kpiRailData()`'s `giveaways` read was
+unconditional on `stats?.turnovers` existing — but `compute()` always produces
+`stats.turnovers` from `offPlays`, even when that array is empty, so a
+defense-only game's `{total:0}` was read as an observed zero rather than
+absence. Gated on `units.offense > 0`, the exact mirror of the existing
+`units.defense > 0` gate on `takeaways`. Reproduced before fixing: a
+defense-only fixture with one real defensive interception showed `0 GA · 1 TA`
+with a green `+1 margin` — the interception was real, the giveaway wasn't.
+
+**[P1, closed] The Scoreboard section is now explicitly labeled as the
+tagged-play reconciliation, and a mismatch with the official Game Settings
+score is visibly disclosed.** `_renderScoreboard()` now checks the same
+`hasOfficialScore` condition `_kpiRailData()` already uses. Whenever an
+official score exists (meaning the rail's `Final Score` tile has a second,
+preferred source of truth), the section carries a kicker line — `Tagged-play
+reconciliation` — so it never reads as a second, competing "the score." When
+the official score and the tagged reconstruction genuinely disagree, an
+additional disclosure line states the real official final and explains why
+the two differ. When no official score exists at all, the kicker stays silent
+— the rail's Final Score falls back to this same reconstruction, so there is
+no second truth to reconcile against and nothing to disclose.
+
+**[P2, closed] `Plays per Phase` now reads as unambiguous literal labels.**
+`50O / 13D / 3ST` (which reads as `500` at a glance) is now `O 50 · D 13 · ST
+3` — every digit run is isolated by a letter and a separator on both sides, so
+no reading of the string can merge two counts into one number.
+
+**New discriminating coverage**, added to `tools/e2e-native-reports.mjs`
+sections 1c/1d: defense-only and offense-only fixtures pinning the exact tile
+text and the absence of a colored margin tone; a both-units fixture pinning
+the exact `O 2 · D 2 · ST 0` phase text and the correct `+1 margin` green tone
+when a genuine margin exists; and three scoreboard fixtures (no official
+score, official score that matches, official score that disagrees) pinning
+the kicker/mismatch presence and exact text in each case. File total 83/83
+(was 76).
+
+**Mutation-verified, each in isolation, each restored and reconfirmed green:**
+reverting the `units.offense > 0` gate reproduces the exact reported symptom
+(`0 GA · 1 TA`, `+1 margin`, green) and reds only that assertion; reverting
+the phase format reproduces `2O / 2D / 0ST` and reds only that assertion;
+removing the kicker/mismatch markup reds exactly the two scoreboard
+assertions that depend on it (the no-official-score case is unaffected, since
+it never renders the kicker either way).
+
+**Verification:**
+- `node tools/e2e-native-reports.mjs` — **83/83** (was 76, +7: 4 new
+  turnovers/phase assertions, 3 new scoreboard reconciliation assertions).
+- `node tools/e2e-design-system.mjs` **16/16**, `node tools/e2e-parity.mjs`
+  **2/2** — both unchanged, confirming no analytics value or design-token
+  reference moved.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 88 green |
+  0 skipped | 0 failed**.
+
+**No analytics formula, denominator, cohort, film reference, season data, or
+persistence path changed.** Every value the repaired KPI rail and scoreboard
+render still traces to the same `StatsEngine.compute()`/`_kpiRailData()`
+fields as before — this repair changes only which of those already-computed
+values are read and how they're labeled, never what they mean.
+
+**Handoff to Codex for re-review.** All three findings are closed at the root
+with a discriminating regression per finding, each mutation-verified
+individually. No installer/package/tag/deploy is authorized from this repair.
+
 ### ▶ CODEX REVIEW — Broadcast Density Part 2 `d567f5c`: CHANGES REQUESTED (2026-08-17)
 
 **Verdict: CHANGES REQUESTED — two P1 trust/correctness findings and one P2

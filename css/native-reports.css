@@ -860,6 +860,24 @@
 .gi-reports-rail .gi-kpi.is-pos .gi-kpi-value{color:var(--gi-ok)}
 .gi-reports-rail .gi-kpi.is-neg .gi-kpi-value{color:var(--gi-turnover)}
 
+/* Scoreboard reconciliation label -- Codex review of `d567f5c` (2026-08-17):
+   the rail's Final Score tile and this section's own tagged-play total could
+   read as two unlabeled competing truths. The kicker marks this section as
+   the tagged-play detail whenever the rail has a different (official) source
+   to prefer; the mismatch line only appears when the two actually disagree,
+   using the same danger tokens the failure alert already owns for "this
+   needs the coach's attention," not a new semantic. */
+.gi-reports .scoreboard-kicker{
+  margin:0 0 var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);
+  text-transform:uppercase;letter-spacing:var(--gi-track-label)
+}
+.gi-reports .scoreboard-kicker.is-mismatch{color:var(--gi-danger-border)}
+.gi-reports .scoreboard-mismatch{
+  margin:var(--gi-3x) 0 0;padding:var(--gi-2x) var(--gi-3x);
+  border-left:3px solid var(--gi-danger-border);background:var(--gi-danger-surface);
+  color:var(--gi-12);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
+}
+
 /* ── DENSITY: two-column tab content ─────────────────────────────────────
    [data-native-main-report] was a strict single column -- every module ran
    the full width of the route, one after another, however short its own

@@ -170,7 +170,10 @@ export class ReportsScreen {
     const esc = Charts._esc;
     const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
     const score = data.finalScore ? `${data.finalScore.us}–${data.finalScore.them}` : '—';
-    const phase = `${data.units.offense}O / ${data.units.defense}D / ${data.units.special}ST`;
+    // Codex review of `d567f5c` (2026-08-17): "50O / 13D / 3ST" reads as
+    // "500 / 13D / 3ST" at a glance, worse on mobile. Unambiguous literal
+    // labels instead -- no digit run is ever adjacent to another digit.
+    const phase = `O ${data.units.offense} · D ${data.units.defense} · ST ${data.units.special}`;
     const success = data.successRate != null ? `${Math.round(parseFloat(data.successRate))}%` : '—';
     // Turnovers must say both directions -- giving the ball away and taking
     // it away are opposite outcomes and neither is honest alone on a rail

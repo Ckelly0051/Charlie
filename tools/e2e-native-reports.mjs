@@ -195,6 +195,161 @@ ok(result.hidden === false && !result.hasScoreboardData && result.scoreValue ===
   'The rail shows the official Game Settings score when no scoring play is tagged, instead of a blank dash',
   JSON.stringify(result));
 
+console.log('\n== 1c. Turnovers tile never claims an uncharted side, and Plays per Phase reads unambiguously ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  const play = (id, unit, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit, custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  const readRail = () => {
+    const rail = document.querySelector('[data-reports-rail]');
+    const tiles = [...(rail?.querySelectorAll('.gi-kpi') || [])];
+    const findTile = label => tiles.find(t => t.querySelector('.gi-kpi-label')?.textContent === label);
+    const to = findTile('Turnovers');
+    const ph = findTile('Plays per Phase');
+    return {
+      toPresent: !!to,
+      tone: to ? (to.classList.contains('is-pos') ? 'pos' : to.classList.contains('is-neg') ? 'neg' : '') : null,
+      toValue: to?.querySelector('.gi-kpi-value')?.textContent || null,
+      toSub: to?.querySelector('.gi-kpi-sub')?.textContent || null,
+      phaseValue: ph?.querySelector('.gi-kpi-value')?.textContent || null,
+    };
+  };
+  const load = async (id, plays) => {
+    app.storage.seasonStore.data.games = [{
+      id, name: id, nextId: plays.length + 1,
+      gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+      plays,
+    }];
+    app.storage.seasonStore.data.activeGameId = id;
+    app.storage._loadActiveGame();
+    await app.workspaceShell.show('reports');
+    app.reportsScreen.selectTab('overview');
+    await new Promise(r => setTimeout(r, 200));
+    return readRail();
+  };
+  // Codex review of `d567f5c` (2026-08-17): stats.turnovers is unconditionally
+  // produced by compute() from offPlays even when offPlays is empty, so a
+  // defense-only game's `{total:0}` was read as an observed giveaway count
+  // instead of "nothing charted" -- a fabricated "0 GA" plus a colored margin
+  // on a game where the offense was never charted.
+  const defenseOnly = await load('g-def-only', [
+    play(1, 'defense', { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { tackler: '21' } }),
+    play(2, 'defense', { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '3', down: '1', distance: '10' }),
+  ]);
+  // The mirrored case: an offense-only game with a real giveaway.
+  const offenseOnly = await load('g-off-only', [
+    play(1, 'offense', { formation: 'Trips', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { passer: '12' } }),
+    play(2, 'offense', { formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' }),
+  ]);
+  // Both units charted, with a genuine net margin -- 1 giveaway, 2 takeaways
+  // -- plus the exact "O 2 · D 2 · ST 0" phrasing for Plays per Phase, which
+  // replaces the "50O / 13D / 3ST" reading that looked like "500" at a glance.
+  const both = await load('g-both', [
+    play(1, 'offense', { formation: 'Trips', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { passer: '12' } }),
+    play(2, 'defense', { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { tackler: '21' } }),
+    play(3, 'defense', { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Pass', playType: 'Short Pass', result: 'Fumble', fumbleRecovery: 'subject', yardage: '2', down: '3', distance: '4', players: { tackler: '55' } }),
+    play(4, 'offense', { formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' }),
+  ]);
+  return { defenseOnly, offenseOnly, both };
+});
+ok(result.defenseOnly.toPresent && result.defenseOnly.toValue === '1 TA' && result.defenseOnly.toSub === 'no offensive snaps charted' && !result.defenseOnly.tone,
+  'A defense-only game shows only takeaways, never a fabricated "0 GA" or a colored margin', JSON.stringify(result.defenseOnly));
+ok(result.offenseOnly.toPresent && result.offenseOnly.toValue === '1 GA' && result.offenseOnly.toSub === 'no defensive snaps charted' && !result.offenseOnly.tone,
+  'An offense-only game shows only giveaways, never a fabricated "0 TA" or a colored margin', JSON.stringify(result.offenseOnly));
+ok(result.both.toPresent && result.both.toValue === '1 GA · 2 TA' && result.both.tone === 'pos' && result.both.toSub === '+1 margin',
+  'Both units charted with a genuine takeaway margin colors green and states the real margin', JSON.stringify(result.both));
+ok(result.both.phaseValue === 'O 2 · D 2 · ST 0',
+  'Plays per Phase reads as unambiguous literal labels, never a digit run that could be misread as one number', JSON.stringify(result.both));
+
+console.log('\n== 1d. The Scoreboard section is labeled as the tagged-play detail, and a mismatch with the official score is disclosed ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  const play = (id, unit, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit, custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  const readBoard = () => {
+    const kicker = document.querySelector('.gi-reports .scoreboard-kicker');
+    const mismatch = document.querySelector('.gi-reports .scoreboard-mismatch');
+    return {
+      kickerPresent: !!kicker,
+      kickerIsMismatch: !!kicker?.classList.contains('is-mismatch'),
+      kickerText: kicker?.textContent || null,
+      mismatchPresent: !!mismatch,
+      mismatchText: mismatch?.textContent || null,
+    };
+  };
+  const load = async (id, gameInfo, plays) => {
+    app.storage.seasonStore.data.games = [{ id, name: id, nextId: plays.length + 1, gameInfo, plays }];
+    app.storage.seasonStore.data.activeGameId = id;
+    app.storage._loadActiveGame();
+    await app.workspaceShell.show('reports');
+    app.reportsScreen.selectTab('overview');
+    await new Promise(r => setTimeout(r, 200));
+    return readBoard();
+  };
+  const tdPlay = play(1, 'offense', { formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '20', down: '1', distance: '10' });
+  // No official score at all -- the rail's Final Score falls back to this
+  // same tagged reconstruction, so there is no second truth to reconcile
+  // against and the kicker must stay silent rather than add noise.
+  const noOfficial = await load('g-no-official', { opponent: 'Wildcats', perspective: 'self' }, [tdPlay]);
+  // Official score present and genuinely agrees with the tagged reconstruction
+  // (6-0) -- the section is still explicitly labeled as the tagged-play
+  // detail (a second source of truth exists, even though it agrees today),
+  // but no disagreement exists to disclose.
+  const matches = await load('g-matches', { opponent: 'Wildcats', perspective: 'self', scoreUs: 6, scoreThem: 0 }, [tdPlay]);
+  // Codex review of `d567f5c` (2026-08-17): the committed proof showed
+  // "Final Score 41-0" in the rail beside "Scoreboard 39-12" in this section,
+  // with nothing explaining the discrepancy. Official 21-14 against a tagged
+  // reconstruction of 6-0 must now be visibly disclosed as a mismatch.
+  const mismatch = await load('g-mismatch', { opponent: 'Wildcats', perspective: 'self', scoreUs: 21, scoreThem: 14 }, [tdPlay]);
+  return { noOfficial, matches, mismatch };
+});
+ok(!result.noOfficial.kickerPresent && !result.noOfficial.mismatchPresent,
+  'With no official score to reconcile against, the section stays silent rather than labeling itself against nothing', JSON.stringify(result.noOfficial));
+ok(result.matches.kickerPresent && !result.matches.kickerIsMismatch && !result.matches.mismatchPresent,
+  'When the official score exists and agrees, the section is labeled a reconciliation but discloses no disagreement', JSON.stringify(result.matches));
+ok(result.mismatch.kickerPresent && result.mismatch.kickerIsMismatch
+  && result.mismatch.mismatchPresent && /21–14/.test(result.mismatch.mismatchText || ''),
+  'When the official score disagrees with the tagged reconstruction, the mismatch is visibly disclosed with the real official final', JSON.stringify(result.mismatch));
+
+// 1c/1d swapped in their own minimal fixtures game-by-game; every later
+// section in this file continues building on the original two-game g-self/
+// g-scout fixture from section 1, so it is restored here byte-identical
+// before that continuation resumes.
+await page.evaluate(async () => {
+  const app = window.app;
+  const play = (id, unit, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit, custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  app.storage.seasonStore.data.games = [
+    {
+      id: 'g-self', name: 'Week 1 vs Wildcats', nextId: 4,
+      gameInfo: { opponent: 'Wildcats', perspective: 'self', scoreUs: 21, scoreThem: 14 },
+      plays: [
+        play(1, 'offense', { formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
+        play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
+        play(3, 'special', { stType: 'Kickoff', kickOutcome: 'Returned', kickDistance: '55', returnYards: '18' }),
+      ],
+    },
+    {
+      id: 'g-scout', name: 'Wildcats vs Knights', nextId: 4,
+      gameInfo: { opponent: 'Wildcats', perspective: 'scout' },
+      plays: [
+        play(1, 'offense', { formation: 'Bunch', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
+        play(2, 'defense', { defFront: '3-3-5', coverage: 'Cover 1', blitz: 'Edge' }),
+        play(3, 'special', { stType: 'Punt', kickOutcome: 'Returned', kickDistance: '42', returnYards: '6' }),
+      ],
+    },
+  ];
+  app.storage.seasonStore.data.activeGameId = 'g-self';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+});
+
 console.log('\n== 2. Every self report is reachable without changing season data ==');
 result = await page.evaluate(() => {
   const app = window.app;

@@ -3300,9 +3300,17 @@ export class StatsEngine {
     // `stats` object -- giveaways from the offense turnover count, takeaways
     // from the defensive turnover count -- so this composes them rather than
     // deriving anything new. `null` (not 0) when the relevant unit has no
-    // plays at all, so an offense-only game doesn't claim "0 takeaways" for a
-    // defense that was never charted.
-    const giveaways = stats?.turnovers ? stats.turnovers.total : null;
+    // plays at all, so a defense-only game doesn't claim "0 giveaways" for an
+    // offense that was never charted, and an offense-only game doesn't claim
+    // "0 takeaways" for a defense that was never charted.
+    //
+    // Codex review of `d567f5c` (2026-08-17) caught the first half of this
+    // missing: `stats.turnovers` is unconditionally produced by compute() from
+    // `offPlays` even when that array is empty, so a defense-only game's
+    // `{total:0}` was being read as an observed zero rather than absence.
+    // Gated the same way takeaways already were, on the unit actually having
+    // plays.
+    const giveaways = (units.offense > 0 && stats?.turnovers) ? stats.turnovers.total : null;
     const takeaways = (units.defense > 0 && stats?.defensive) ? stats.defensive.turnovers : null;
     return {
       totalPlays, playsCharted, units,
@@ -3334,6 +3342,19 @@ export class StatsEngine {
     const winColor = '#22c55e', loseColor = '#ef4444', tieColor = 'var(--text)';
     const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
     const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
+    // Codex review of `d567f5c` (2026-08-17): the persistent rail's "Final
+    // Score" tile prefers the official Game Settings score (_kpiRailData);
+    // this section always reconstructs from tagged scoring plays instead. The
+    // committed proof showed both rendering different, unlabeled numbers on
+    // the same screen -- "Final Score 41-0" beside "Scoreboard 39-12" -- with
+    // nothing explaining the discrepancy. The rail stays the one authoritative
+    // displayed final; this section is explicitly labeled as the tagged-play
+    // detail/reconciliation whenever a second source of truth exists at all,
+    // and visibly discloses when the two disagree rather than presenting two
+    // silent competing truths.
+    const gi = window.app?.storage?.gameInfo || {};
+    const hasOfficialScore = gi.scoreUs !== '' && gi.scoreUs != null && gi.scoreThem !== '' && gi.scoreThem != null;
+    const officialMismatch = hasOfficialScore && (Number(gi.scoreUs) !== sb.us || Number(gi.scoreThem) !== sb.them);
 
     // Per-quarter table. Show all four quarters (zeros included) so the row
     // reads like a real scoreboard; points from plays with no quarter tag go
@@ -3366,6 +3387,7 @@ export class StatsEngine {
     // reads every time they open the report.
     return `
           <div class="scoreboard-main">
+            ${hasOfficialScore ? `<p class="scoreboard-kicker${officialMismatch ? ' is-mismatch' : ''}">Tagged-play reconciliation${officialMismatch ? ' — does not match the official final' : ''}</p>` : ''}
             <div class="scoreboard-final">
               <div class="scoreboard-team">
                 <div class="scoreboard-name">${team}</div>
@@ -3377,6 +3399,7 @@ export class StatsEngine {
                 <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
               </div>
             </div>
+            ${officialMismatch ? `<p class="scoreboard-mismatch">Official final in Game Settings is <strong>${gi.scoreUs}–${gi.scoreThem}</strong>. This reconciliation reflects only the scoring plays currently tagged — chart the rest to bring it in line.</p>` : ''}
             ${qTable}
             <details class="scoreboard-note">
               <summary>How this score is tracked</summary>
