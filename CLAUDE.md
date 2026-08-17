@@ -14,6 +14,55 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REVIEW — Broadcast Density Part 2 `d567f5c`: CHANGES REQUESTED (2026-08-17)
+
+**Verdict: CHANGES REQUESTED — two P1 trust/correctness findings and one P2
+readability finding.** The visual direction is materially stronger: gold/cyan
+context is coherent with Part 1, the major desktop tabs are denser, the
+defensive hierarchy reads clearly, and the committed responsive matrix shows
+no page-level horizontal overflow. Independent focused verification is green:
+`e2e-native-reports` 76/76, `e2e-design-system` 16/16, `e2e-parity` 2/2, and
+`e2e-realdata` 13/13. Analytics values and representative film refs did not
+move. No installer/package/tag/deploy is authorized yet.
+
+**[P1] The new Turnovers rail fabricates `0 GA` when no offense was charted.**
+`StatsEngine.compute()` always creates `stats.turnovers` from `offPlays`, even
+when that array is empty, so `stats-engine.js:_kpiRailData()` line 3305 treats
+the resulting `{total:0}` as observed data. A defense-only game therefore takes
+the both-sides branch in `reports-screen.js` and can display `0 GA · N TA`
+plus a colored margin, contradicting the new comment and disclosure contract.
+Gate giveaways on `units.offense > 0` exactly as takeaways are gated on
+`units.defense > 0`, and add discriminating offense-only and defense-only rail
+tests (including absence of margin tone when either side is uncharted).
+
+**[P1] The redesigned headline presents two contradictory final scores on the
+same screen.** The committed 1440x900 Overview proof prominently shows `Final
+Score 41–0` in the persistent rail and `Scoreboard 39–12` immediately below.
+The rail intentionally prefers Game Settings while the scoreboard intentionally
+reconstructs tagged scoring, but the UI labels both as the game's score without
+explaining the distinction. This is a trust failure in the flagship report even
+if the underlying pre-existing sources are behaving as coded. Establish one
+authoritative displayed final score. If tagged scoring remains useful, label it
+explicitly as a reconciliation/detail surface and visibly disclose a mismatch;
+never present two unlabeled competing truths. Add a test where official and
+tag-derived scores disagree.
+
+**[P2] `Plays per Phase` is visually ambiguous in the accepted display face.**
+The committed desktop and mobile proofs render `50O / 13D / 3ST` so the first
+token reads as `500`; on mobile it also wraps awkwardly. Use unambiguous literal
+labels in the available tile, such as `O 50 · D 13 · ST 3`, or a compact
+three-column treatment. Pin the exact accessible text and verify it stays on a
+stable layout at 390px.
+
+**Independent visual judgment:** this is a real improvement, not merely a
+recolor. Offense, Overview, Players, Season, and Self-Scout use the available
+width more effectively; Defense correctly spends width to avoid clipping. The
+multi-column approach is acceptable for this checkpoint, but the disclosed
+121px internal Defensive Analytics overflow remains product debt and should not
+be normalized as an end-state. Repair only the three findings above, rerun the
+focused Reports/design/parity/real-data checks, then return to Codex for
+re-review.
+
 ### ▶ BUILT — Broadcast Density Part 2: production Reports redesign — AWAITING CODEX REVIEW (2026-08-17)
 
 **Builder: Claude. Baseline: `5567e11` (Part 1 accepted). No installer/package/
