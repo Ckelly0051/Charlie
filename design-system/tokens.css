@@ -194,6 +194,14 @@
    * one today and must keep doing so until Part 2 migrates them. */
   --gi-bd-lower-third-fill:linear-gradient(90deg,var(--gi-bd-gold) 0 3px,var(--gi-4) 3px,var(--gi-3) 55%);
   --gi-bd-lower-third-fill-cyan:linear-gradient(90deg,var(--gi-bd-cyan) 0 3px,var(--gi-4) 3px,var(--gi-3) 55%);
+  /* The neutral default. Reports Part 2 review (2026-08-17): gold was applied
+   * to EVERY section header regardless of whether the section was offensive,
+   * defensive, or neutral -- painting a "genuine signal" color on everything
+   * makes it decoration, not signal, exactly the opposite of the comp's own
+   * stated gold budget ("gold appears in exactly four places... everything
+   * else is bone"). Bone is now the default; gold/cyan are earned per
+   * offense/defense context only. */
+  --gi-bd-lower-third-fill-bone:linear-gradient(90deg,var(--gi-bd-bone) 0 3px,var(--gi-4) 3px,var(--gi-3) 55%);
 }
 @media (pointer:coarse){ :root{ --gi-hit:44px; --gi-control:44px; --gi-row:48px; } }
 @media (prefers-reduced-motion:reduce){ :root{ --gi-quick:0ms; --gi-ease:0ms; --gi-enter:0ms; } }

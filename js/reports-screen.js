@@ -169,11 +169,30 @@ export class ReportsScreen {
     if (!data || !data.totalPlays) { rail.hidden = true; return; }
     const esc = Charts._esc;
     const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
+    // A raw-HTML variant for the one tile whose value needs real markup
+    // (the phase segments below), not another escaped string.
+    const tileHtml = (label, valueHtml, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${valueHtml}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
     const score = data.finalScore ? `${data.finalScore.us}–${data.finalScore.them}` : '—';
     // Codex review of `d567f5c` (2026-08-17): "50O / 13D / 3ST" reads as
     // "500 / 13D / 3ST" at a glance, worse on mobile. Unambiguous literal
     // labels instead -- no digit run is ever adjacent to another digit.
-    const phase = `O ${data.units.offense} · D ${data.units.defense} · ST ${data.units.special}`;
+    //
+    // Coach (2026-08-17): the "O 29 · D 20 · ST 18" middot spacing read
+    // uneven. Root cause: `font-variant-numeric:tabular-nums` fixes DIGIT
+    // width but not the surrounding letters/dot/spaces, so a literal
+    // "O 29 · D 20" string has no consistent rhythm -- each segment's own
+    // proportional width differs from the tabular numbers inside it. Real
+    // markup with flex `gap` and a CSS-drawn separator replaces the manual
+    // spaces so the rhythm is even by construction, not by eyeballed spacing.
+    //
+    // Coach (2026-08-17, Charlie Gate): the pipe-joined single line clipped
+    // to "O:29 | D:20 | ST:1..." -- text-based nowrap layout can always run
+    // out of horizontal room at some tile width. Three fixed mini-columns
+    // instead: label stacked above its number, using vertical space rather
+    // than horizontal, so it cannot clip regardless of tile width -- there
+    // is no overflow/ellipsis in this layout for a value to be lost to.
+    const phaseCol = (label, n) => `<div class="gi-kpi-phase-col"><span class="gi-kpi-phase-l">${esc(label)}</span><span class="gi-kpi-phase-n">${esc(String(n))}</span></div>`;
+    const phase = `<div class="gi-kpi-phase">${phaseCol('OFF', data.units.offense)}${phaseCol('DEF', data.units.defense)}${phaseCol('ST', data.units.special)}</div>`;
     const success = data.successRate != null ? `${Math.round(parseFloat(data.successRate))}%` : '—';
     // Turnovers must say both directions -- giving the ball away and taking
     // it away are opposite outcomes and neither is honest alone on a rail
@@ -198,7 +217,7 @@ export class ReportsScreen {
       tile('Final Score', score),
       tile('Total Plays', data.totalPlays),
       tile('Plays Charted', data.playsCharted, `of ${data.totalPlays}`),
-      tile('Plays per Phase', phase),
+      tileHtml('Plays per Phase', phase),
       // Coach: "on-schedule" is commentary, not a definitional label.
       tile('Success Rate', success, 'offense'),
       turnoverTile,
@@ -628,7 +647,19 @@ export class ReportsScreen {
     const answerCell = answer => answer
       ? `<button type="button" class="gi-def-answer" data-defense-refs="${esc(answer.refs.join(','))}" data-cut-label="${esc(answer.name)} answer"><strong>${esc(answer.name)}</strong><span>${answer.stopRate}% stop · ${answer.yardsPerPlay.toFixed(1)} yds/play · ${answer.n} snaps</span></button>`
       : '<span class="gi-def-no-sample">Not enough snaps</span>';
-    const answerRows = report.answers.map(row => `<tr><td><strong>${esc(row.playType)}</strong><small>${row.n} snaps</small></td><td>${answerCell(row.front)}</td><td>${answerCell(row.coverage)}</td><td>${answerCell(row.pressure)}</td></tr>`).join('');
+    // Charlie Gate finding #5: a Best Calls table dominated by "Not enough
+    // snaps" rows is a large decision table mostly reporting the absence of
+    // a decision. Qualified rows (at least one real front/coverage/pressure
+    // answer) lead the table; opponent play types with NO qualified answer
+    // at all collapse behind one disclosure line instead of one dead row
+    // each. No row is hidden that has anything to show -- a row with even a
+    // single real answer still renders normally.
+    const qualifiedAnswers = report.answers.filter(row => row.front || row.coverage || row.pressure);
+    const emptyAnswers = report.answers.filter(row => !row.front && !row.coverage && !row.pressure);
+    const answerRows = qualifiedAnswers.map(row => `<tr><td><strong>${esc(row.playType)}</strong><small>${row.n} snaps</small></td><td>${answerCell(row.front)}</td><td>${answerCell(row.coverage)}</td><td>${answerCell(row.pressure)}</td></tr>`).join('');
+    const answerEmptyNote = emptyAnswers.length
+      ? `<p class="viz-caption">${emptyAnswers.length} more opponent play type${emptyAnswers.length === 1 ? '' : 's'} (${emptyAnswers.map(row => esc(row.playType)).join(', ')}) didn't have enough snaps for a best-answer call yet.</p>`
+      : '';
     const gameRows = report.byGame.map(row => `<tr ${filmAttrs(row, `${row.name} defense`)}><td><strong>${esc(row.name)}</strong></td><td>${row.n}</td><td>${row.yardsPerPlay.toFixed(1)}</td><td>${row.stopRate}%</td><td>${row.explosives}</td><td>${row.havoc}</td><td>${row.touchdowns}</td></tr>`).join('');
     const sitRows = report.situations.map(row => `<tr ${filmAttrs(row, `${row.name} defense`)}><td><strong>${esc(row.name)}</strong></td><td>${row.n}</td><td>${row.yardsPerPlay.toFixed(1)}</td><td>${row.stopRate}%</td><td>${row.explosiveRate}%</td><td>${row.havocRate}%</td></tr>`).join('');
     const scopedStats = engine.compute(scoped);
@@ -637,10 +668,16 @@ export class ReportsScreen {
       <div class="gi-def-toolbar"><div class="gi-def-scope" role="group" aria-label="Defense report scope"><button type="button" data-defense-scope="season" class="${this.defenseScope === 'season' ? 'active' : ''}">Full season</button><button type="button" data-defense-scope="game" class="${this.defenseScope === 'game' ? 'active' : ''}">Current game</button></div><button class="btn btn-sm" id="btnExportDef">Export Report</button></div>
       <section class="stats-section"><h3>Defensive Performance</h3><div class="gi-def-kpis">${metric('Defensive Snaps', report.total)}${metric('Yards / Play Allowed', report.summary.yardsPerPlay.toFixed(1))}${metric('Stop Rate', pct(report.summary.stopRate))}${metric('Explosives Allowed', report.summary.explosives, `${report.summary.explosiveRate}%`)}${metric('3rd Down Stop Rate', pct(report.thirdDownStopRate))}${metric('Red Zone TD Rate', pct(report.redZoneTdRate))}${metric('Takeaways', report.takeaways)}${metric('Havoc Rate', pct(report.summary.havocRate))}</div></section>
       <section class="stats-section"><h3>Opponent Offense by Play Type</h3><div class="gi-def-type-totals">${typeSummaryHtml}</div><div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-type"><thead><tr><th>Play Run Against Us</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive Rate</th><th>Havoc Rate</th><th>TD Allowed</th></tr></thead><tbody>${typeRows}</tbody></table></div></section>
-      ${answerRows ? `<section class="stats-section"><h3>Best Calls by Opponent Play Type</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers"><thead><tr><th>Opponent Play Type</th><th>Best Front</th><th>Best Coverage</th><th>Blitz Decision</th></tr></thead><tbody>${answerRows}</tbody></table></div></section>` : ''}
-      <div class="gi-def-split"><section class="stats-section"><h3>Game Trend</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full"><thead><tr><th>Game</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead><tbody>${gameRows}</tbody></table></div></section><section class="stats-section"><h3>Situational Defense</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full"><thead><tr><th>Situation</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th></tr></thead><tbody>${sitRows}</tbody></table></div></section></div>
+      ${qualifiedAnswers.length ? `<section class="stats-section"><h3>Best Calls by Opponent Play Type</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers"><thead><tr><th>Opponent Play Type</th><th>Best Front</th><th>Best Coverage</th><th>Blitz Decision</th></tr></thead><tbody>${answerRows}</tbody></table></div>${answerEmptyNote}</section>` : (answerEmptyNote ? `<section class="stats-section"><h3>Best Calls by Opponent Play Type</h3>${answerEmptyNote}</section>` : '')}
+      <!-- Charlie Gate finding #4: pairing Game Trend with the taller
+           Situational Defense table in a fixed two-column row left the
+           shorter side (usually Game Trend -- one row per game, often just
+           1-6 rows) with a large empty half-panel below it. Stacked full
+           width instead; each table is exactly as tall as its own content. -->
+      <section class="stats-section"><h3>Game Trend</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full"><thead><tr><th>Game</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead><tbody>${gameRows}</tbody></table></div></section>
+      <section class="stats-section"><h3>Situational Defense</h3><div class="gi-def-table-wrap"><table class="stats-table stats-table-full"><thead><tr><th>Situation</th><th>Snaps</th><th>Yds/Play</th><th>Stop Rate</th><th>Explosive</th><th>Havoc</th></tr></thead><tbody>${sitRows}</tbody></table></div></section>
       <section class="stats-section"><h3>Scheme Detail</h3>${engine._renderDefensive(scopedStats)}</section>
-      ${engine._defScoutBlock(defScout, false)}
+      ${engine._defScoutBlock(defScout, false, true)}
     </div>`;
   }
   _playersHtml(stats) {

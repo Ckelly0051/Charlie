@@ -808,10 +808,14 @@
 @media(max-width:560px){.gi-def-toolbar{align-items:stretch;flex-direction:column}.gi-def-scope{display:grid;grid-template-columns:1fr 1fr}.gi-def-kpi{min-height:76px}.gi-def-kpi strong{font-size:24px}.gi-def-type-totals{grid-template-columns:1fr}}
 
 /* ══════════════════════════════════════════════════════════════════════════
-   BROADCAST DENSITY — PART 2 (2026-08-17). Applies the accepted Part 1
-   gold/cyan/green/red language (design-system/tokens.css --gi-bd-*) to the
-   live Reports route, and compacts the tab-content column so a coach scrolls
-   far less without any text shrinking below the accepted floor.
+   BROADCAST DENSITY — PART 2, REVISION 2 (2026-08-17). The first pass painted
+   the SAME gold lower-third pill onto every section header regardless of
+   whether the section was offensive, defensive, or neutral -- which makes
+   gold decoration instead of signal, exactly opposite the comp's own stated
+   rule: "gold appears in exactly four places... everything else is bone."
+   Coach's direct verdict on that pass: it did not look like the comps, and
+   the multi-column reflow (removed further below) made it worse. This
+   revision keeps gold/cyan scarce and earned, and drops the column reflow.
 
    Placed last per this file's own standing discipline (H9/S6-5b/G5): a later
    same-specificity rule wins, so anything meant to be final goes at the end.
@@ -822,35 +826,60 @@
 
 /* Gold is the active-route/headline accent, replacing the shared blue this
    route inherited from the generic design system. Cyan marks the defensive
-   scope control specifically. */
+   scope control specifically. Both are single, deliberate uses -- not a
+   repaint of every interactive element. */
 .gi-reports-segment button.is-active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-reports-tab.active{border-bottom-color:var(--gi-bd-gold)}
 .gi-reports .gi-subtab.active{border-bottom-color:var(--gi-bd-gold)}
 .gi-reports .gi-def-scope button.active{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 
-/* Lower-third plates: the gold-leading fill instead of the shared blue
-   gradient. The accent lens/board title -- the one number the coach is
-   actually reading right now -- keeps a solid fill, now gold instead of the
-   generic accent blue. */
+/* Lower-third plates: BONE by default. This is the entire fix for the
+   "yellow overpaint" finding -- every ordinary section header (Formation
+   Tendencies, Team Profile, Personnel Groupings, Yards by Type, all of them)
+   now carries the same restrained neutral leading-line, exactly like the
+   comp's ".mh b{color:var(--ink-2)}" default. Gold/cyan are applied ONLY to
+   sections that are actually offense/defense content, below. */
 .gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4,
 .gi-reports .stats-section h4,.gi-reports .stats-section h5,
 .gi-reports .viz-section h4,.gi-reports .ss-section h4{
+  background:var(--gi-bd-lower-third-fill-bone);
+}
+/* The one board title a coach is actively reading (the lens board's own
+   heading) keeps a solid gold fill -- this is one of the comp's four
+   budgeted gold uses, not a section header in the ordinary sense. */
+.gi-reports .gi-lens-board>h3{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+
+/* Offense/defense context, earned per tab. Every section header inside the
+   Offense tab genuinely IS offensive production data, so the whole pane
+   takes the gold leading-line; Defense takes cyan. This is what the comp
+   means by "the rails on the two offensive production modules" -- applied
+   at the pane level here since every module in these two tabs already
+   carries that exact meaning, rather than hand-tagging each one. */
+.gi-reports [data-native-main-report][data-pane="offense"] .stats-section>h3,
+.gi-reports [data-native-main-report][data-pane="offense"] .stats-section h4,
+.gi-reports [data-native-main-report][data-pane="offense"] .stats-section h5{
   background:var(--gi-bd-lower-third-fill);
 }
-.gi-reports .gi-lens-head h4,.gi-reports .gi-lens-board>h3{
-  background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
-
-/* Offense/defense context rails on the two unit-scoped tabs, and the
-   matchup answer heads that already carry an off/def distinction (they used
-   the generic categorical green/violet pair before this -- neither read as
-   "ours" vs "theirs"). Scoped to data-pane so no unrelated tab is touched. */
+.gi-reports [data-native-main-report][data-pane="defense"] .stats-section>h3,
+.gi-reports [data-native-main-report][data-pane="defense"] .stats-section h4,
+.gi-reports [data-native-main-report][data-pane="defense"] .stats-section h5{
+  background:var(--gi-bd-lower-third-fill-cyan);
+}
 .gi-reports [data-native-main-report][data-pane="offense"]{border-left:3px solid var(--gi-bd-gold)}
 .gi-reports [data-native-main-report][data-pane="defense"]{border-left:3px solid var(--gi-bd-cyan)}
 .gi-reports .gi-mh-off{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-reports .gi-mh-def{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-reports .gi-def-kpis,.gi-reports .gi-def-type-totals{background:var(--gi-bd-cyan)}
 
-/* KPI rail: a gold top edge marks it as the persistent headline strip. The
+/* Run/pass identity, scoped to Reports only (the app-wide --gi-run/--gi-pass
+   tokens stay whatever Break Down and every other route already use --
+   this does not touch them). Run is offense production, pass is offense
+   production through the air; the comp uses gold/cyan for exactly this
+   split, not a third unrelated categorical pair. */
+.gi-reports{--gi-run:var(--gi-bd-gold);--gi-pass:var(--gi-bd-cyan)}
+
+/* KPI rail: a gold top edge marks it as the persistent headline strip -- one
+   of the comp's four budgeted gold uses (the scorebug), not a repaint. The
    Turnovers tile is the one rail metric with a genuine verdict -- green when
    takeaways exceed giveaways, red the other way -- reusing the exact
    --gi-ok/--gi-turnover pair the Part 1 chyron already established for
@@ -859,6 +888,58 @@
 .gi-reports-rail{border-top:2px solid var(--gi-bd-gold)}
 .gi-reports-rail .gi-kpi.is-pos .gi-kpi-value{color:var(--gi-ok)}
 .gi-reports-rail .gi-kpi.is-neg .gi-kpi-value{color:var(--gi-turnover)}
+
+/* The KPI hero row (persistent rail AND every per-tab hero, e.g. Offense's
+   Success Rate/Explosive/Plays for Loss/Yds-play/Run rate strip) was CSS
+   Grid with repeat(auto-fit, minmax(...)) -- the column COUNT is fixed by
+   the container's own width across the WHOLE grid, so when 5 items wrap to
+   4-then-1, the second row's unused columns from the FIRST row's shape stay
+   reserved and render as a large empty box beside the lone 5th item. This is
+   exactly the bug the coach saw. Flexbox does not reserve a track for
+   content that doesn't exist -- the same fix already proven on the AX-7
+   lens board (".gi-lens-grid{display:flex;flex-wrap:wrap}") -- so a leftover
+   item on its own row grows to fill it instead of leaving a hole. */
+.gi-reports .gi-hero{display:flex;flex-wrap:wrap}
+.gi-reports .gi-hero .gi-kpi{flex:1 1 150px;min-width:0}
+
+/* Plays per Phase -- "OFF 29  DEF 20  ST 18" as three fixed mini-columns,
+   label stacked above its number. Charlie Gate (2026-08-17): the previous
+   pipe-joined single line clipped ST's value at some tile widths -- any
+   nowrap text layout can run out of horizontal room. A 3-column grid using
+   vertical stacking cannot clip: each column gets an equal, guaranteed
+   share of the tile's width regardless of what the numbers are. */
+.gi-reports .gi-kpi-phase{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:100%}
+.gi-reports .gi-kpi-phase-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.gi-reports .gi-kpi-phase-l{font:700 9.5px/1 var(--gi-sans);letter-spacing:.04em;color:var(--gi-11);text-transform:uppercase}
+.gi-reports .gi-kpi-phase-n{margin-top:2px;font-family:var(--gi-cond);font-size:20px;line-height:1;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
+@media(max-width:700px){.gi-reports .gi-kpi-phase-n{font-size:17px}}
+
+/* Charlie Gate finding #7: "entire green table rows... look like status
+   logs." Root cause -- .ss-verdict-dominant/-effective/-exploitable is ONE
+   class used for two different jobs: the small badge span (which SHOULD be
+   colored) and the whole <tr> (which picked up the badge's own 18%-alpha
+   fill across its full width, reading as a solid wash on a wide table).
+   Same bug in both the offensive Top Tells table and the Defensive
+   Tendency Tells table (both render through .ss-tells). Keep green/red on
+   the badge and a thin row-edge only, per the review's exact instruction. */
+.gi-reports .ss-tells tr.ss-verdict-dominant,
+.gi-reports .ss-tells tr.ss-verdict-effective,
+.gi-reports .ss-tells tr.ss-verdict-exploitable{background:transparent}
+.gi-reports .ss-tells tr.ss-verdict-dominant td:first-child{box-shadow:inset 3px 0 0 rgba(34,197,94,.6)}
+.gi-reports .ss-tells tr.ss-verdict-effective td:first-child{box-shadow:inset 3px 0 0 rgba(245,158,11,.6)}
+.gi-reports .ss-tells tr.ss-verdict-exploitable td:first-child{box-shadow:inset 3px 0 0 rgba(239,68,68,.6)}
+
+/* Charlie Gate finding #2: Self-Scout must genuinely lead with performance,
+   not just move the Predictability number a few rows down while the rest
+   of the page stays tendency content. This divider marks where performance
+   ends and tendency/predictability detail begins -- visually lighter than
+   a .stats-section heading so it reads as a group label, not a module. */
+.gi-reports .ss-tier-divider{
+  margin:var(--gi-6x) 0 0;padding:var(--gi-3x) var(--gi-5x) var(--gi-1x);
+  color:var(--gi-11);font:700 10.5px/1 var(--gi-sans);
+  letter-spacing:var(--gi-track-label);text-transform:uppercase;
+  border-top:1px solid var(--gi-6);
+}
 
 /* Scoreboard reconciliation label -- Codex review of `d567f5c` (2026-08-17):
    the rail's Final Score tile and this section's own tagged-play total could
@@ -878,88 +959,14 @@
   color:var(--gi-12);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
 }
 
-/* ── DENSITY: two-column tab content ─────────────────────────────────────
-   [data-native-main-report] was a strict single column -- every module ran
-   the full width of the route, one after another, however short its own
-   content. A CSS Grid pairing was tried and reverted once already (see the
-   H14/J13 comments above): the row track sizes to its tallest child even
-   with align-items:start, so a short module paired with a tall one just
-   left dead space in its own column, which is a worse defect than scrolling.
-   Multi-column layout (`columns`) does not have that failure mode -- the
-   browser balances content across the columns by actual height, so a short
-   module and a tall module never leave a track-sized gap. Each module is
-   kept intact with break-inside:avoid-column; a module that genuinely needs
-   the full width (a wide table, a heat map, a 5-across lens/KPI row) spans
-   both columns explicitly rather than being squeezed into one. */
-.gi-reports [data-native-main-report]{
-  display:block;column-width:440px;column-gap:1px;column-rule:1px solid var(--gi-6);
-  background:transparent;border-right:0;
-}
-.gi-reports [data-native-main-report]>.stats-section,
-.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-toolbar,
-.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section,
-.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-split{
-  break-inside:avoid-column;border-bottom:1px solid var(--gi-6);
-}
-.gi-reports [data-native-main-report]>.stats-section:last-child,
-.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section:last-child{border-bottom:0}
-/* .gi-defense-report is the Defense tab's single top-level child, so the
-   OUTER multi-column context (which only ever splits when there is more than
-   one item to balance) squeezes a lone block-level child to one column's own
-   width instead of the full measure -- span:all here first, before this
-   element becomes ITS OWN nested multi-column container for its children. */
-.gi-reports [data-native-main-report]>.gi-defense-report{
-  column-span:all;column-width:440px;column-gap:1px;column-rule:1px solid var(--gi-6);
-}
-/* Content that genuinely needs the full measure rather than a ~440px column:
-   multi-column internal grids (scoreboard, team detail, lens board, answer
-   grid, play calls, team profile) and content whose own shape needs real
-   width to read (heat maps, tendency matrices, field zones). Deliberately
-   NOT every section with a table -- an ordinary 4-8 column table (Down &
-   Distance, Big Plays, Drives, Hash Tendencies...) reads fine at column
-   width and pairing them is the whole point; a blanket :has(.stats-table-
-   full) rule was tried first and spanned nearly every section on Overview,
-   measured directly (getComputedStyle().columnSpan) to still be full-width
-   after the "fix" -- caught by inspection, not assumed. */
-.gi-reports [data-native-main-report]>.stats-section:has(.hm-field-wrap),
-.gi-reports [data-native-main-report]>.stats-section:has(.tm-wrap),
-.gi-reports [data-native-main-report]>.stats-section:has(.gi-zones),
-.gi-reports [data-native-main-report]>.stats-section:has(.gi-lens-grid),
-.gi-reports [data-native-main-report]>.stats-section:has(.scoreboard-layout),
-/* The Big 6/12 core-calls table and the Self-Scout Top Tells table are both
-   wide multi-column tables (measured: their content overflowed a ~440px
-   column, scrollWidth exceeding clientWidth by 100-270px). */
-.gi-reports [data-native-main-report]>.stats-section:has(.bt-table),
-.gi-reports [data-native-main-report]>.stats-section:has(.ss-tells),
-/* Any section that already manages its OWN internal two/three-column split
-   (Play Direction + Motion, By Formation + By Down & Distance, ...) must get
-   the full outer measure so that existing pairing isn't squeezed a second
-   time by the new outer columns -- measured directly: By Formation clipped
-   270px when left to a single outer column. */
-.gi-reports [data-native-main-report]>.stats-section.stats-two-col,
-.gi-reports [data-native-main-report]>.stats-section.stats-three-col,
-/* The shared defensive self-scout block (used at the bottom of both the
-   Defense tab and the Self-Scout tab) is internally dense enough on its own
-   -- measured overflowing ~100px when squeezed into one outer column. */
-.gi-reports [data-native-main-report]>.stats-section.ss-def-section,
-.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section.ss-def-section,
-/* These carry their grid class directly on the .stats-section element
-   itself (verified against the exact template strings in stats-engine.js /
-   reports-screen.js) -- :has() cannot match an element against itself, so
-   these MUST be plain compound selectors, not :has(). */
-.gi-reports [data-native-main-report]>.stats-section.gi-play-calls,
-.gi-reports [data-native-main-report]>.stats-section.gi-team-profile,
-.gi-reports [data-native-main-report]>.stats-section.gi-team-detail,
-.gi-reports [data-native-main-report]>.stats-section.gi-answer-grid,
-.gi-reports [data-native-main-report]>.stats-section.ss-performance,
-.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section:has(.gi-def-type-totals),
-.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section:has(.gi-def-answers),
-.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-split,
-.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-split+.stats-section,
-.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-toolbar{
-  column-span:all;
-}
-@media(max-width:1099px){
-  .gi-reports [data-native-main-report],
-  .gi-reports [data-native-main-report]>.gi-defense-report{column-width:auto;columns:1}
-}
+/* The Part 2 first pass compacted [data-native-main-report] into a CSS
+   multi-column reflow. Reverted per direct coach verdict -- the reflow was
+   the second half of "this doesn't look like the comps," and the comp
+   itself does not use browser-balanced multi-column layout at all; it uses
+   explicit grid BANDS with a deliberate column count per section (the
+   .band/.b7/.b3a/.b2 classes in the comp file). Ordinary single-column flow
+   is restored here as the safe baseline; composing real grid bands for
+   Overview/Offense/Defense/Self-Scout is the next, separate pass -- this
+   revision's job was closing the trust/correctness findings and stopping
+   the failed treatment, not shipping a second unreviewed layout experiment
+   in the same commit. */

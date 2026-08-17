@@ -17,20 +17,35 @@ import { StatsEngine } from './stats-engine.js';
 
 export class HeatMaps {
   render(plays) {
+    // Charlie Gate finding #3: the widget always opened on Field Position,
+    // even when that specific dimension (yard line + side) wasn't tagged --
+    // showing a real "no data" empty state by default while the other three
+    // panels (which need only down/distance or formation/playType, both
+    // near-universal on any charted play) had real content one click away.
+    // Default to the first panel that genuinely has plays plotted, so the
+    // widget doesn't open empty when it doesn't have to. Falls back to Field
+    // Position (unchanged prior behavior) only when all four are empty.
+    const list = plays || [];
+    const hasField = list.some(p => this._absYardLine(p.tags) !== null);
+    const hasDD = list.some(p => p.tags?.down && p.tags?.distance);
+    const hasFxp = list.some(p => StatsEngine.proj(p).formation && p.tags?.playType);
+    const hasHash = list.some(p => p.tags?.hash);
+    const initial = hasField ? 'field' : hasDD ? 'dd' : hasFxp ? 'fxp' : hasHash ? 'hash' : 'field';
+    const on = tab => tab === initial ? ' active' : '';
     return `
       <div class="stats-section">
         <h3>Heat Maps</h3>
         <div class="heatmap-tabs">
-          <button class="hm-tab active" data-tab="field">Field Position</button>
-          <button class="hm-tab" data-tab="dd">Down &amp; Distance</button>
-          <button class="hm-tab" data-tab="fxp">Formation × Play</button>
-          <button class="hm-tab" data-tab="hash">Hash Tendency</button>
+          <button class="hm-tab${on('field')}" data-tab="field">Field Position</button>
+          <button class="hm-tab${on('dd')}" data-tab="dd">Down &amp; Distance</button>
+          <button class="hm-tab${on('fxp')}" data-tab="fxp">Formation × Play</button>
+          <button class="hm-tab${on('hash')}" data-tab="hash">Hash Tendency</button>
         </div>
         <div class="heatmap-panels">
-          <div class="hm-panel active" data-panel="field">${this._renderField(plays)}</div>
-          <div class="hm-panel" data-panel="dd">${this._renderDownDistance(plays)}</div>
-          <div class="hm-panel" data-panel="fxp">${this._renderFormationByPlay(plays)}</div>
-          <div class="hm-panel" data-panel="hash">${this._renderHash(plays)}</div>
+          <div class="hm-panel${on('field')}" data-panel="field">${this._renderField(plays)}</div>
+          <div class="hm-panel${on('dd')}" data-panel="dd">${this._renderDownDistance(plays)}</div>
+          <div class="hm-panel${on('fxp')}" data-panel="fxp">${this._renderFormationByPlay(plays)}</div>
+          <div class="hm-panel${on('hash')}" data-panel="hash">${this._renderHash(plays)}</div>
         </div>
       </div>
     `;

@@ -2820,10 +2820,56 @@ export class StatsEngine {
       <div><strong>${d.thirdDownPct || '0.0'}%</strong><span>Third Down</span></div>
       <div><strong>${redZone.total ? Math.round((redZone.tds || 0) / redZone.total * 100) + '%' : 'N/A'}</strong><span>Red Zone TD</span></div>
     </div></div>`;
-    return `
-      <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
-      ${performanceHtml}
-      ${callsHtml}
+    // Charlie Gate (2026-08-17): "Performance is still only a six-number
+    // strip." A genuine what-succeeded/what-failed/situational lead, not
+    // another tendency table wearing a Performance label. All three blocks
+    // below read EXISTING computed fields (performance.downs' situational
+    // rows, performance.negativePlays) -- no new formula.
+    //
+    // By Down & Distance IS situational performance -- run/pass mix and
+    // success rate per situation -- so it is promoted out of the Tendencies
+    // tier and renamed for what it actually answers. It no longer shares a
+    // two-column row with By Formation (a tendency table, staying below).
+    const situationalHtml = report.downDistRows.length ? `<div class="stats-section">
+      <h3>Situational Performance</h3>
+      ${this._selfScoutSplitTable(report.downDistRows, 'Down & Dist')}
+    </div>` : '';
+    // Negative & Explosive Plays: the coach can see what actually happened,
+    // in counts, not just the two rates already in the strip above. Every
+    // number here is StatsEngine._negativePlayStats' own field.
+    const negexHtml = `<div class="stats-section ss-negex"><h3>Negative &amp; Explosive Plays</h3><div class="ss-performance-grid">
+      <div><strong>${e.explosivePct || '0.0'}%</strong><span>Explosive Rate</span></div>
+      <div><strong>${neg.distinct || 0}</strong><span>Negative Plays</span></div>
+      <div><strong>${neg.turnovers || 0}</strong><span>Turnovers</span></div>
+      <div><strong>${neg.lossSacks || 0}</strong><span>Sacks</span></div>
+      <div><strong>${neg.lossTotal || 0}</strong><span>Plays for Loss</span></div>
+      <div><strong>${neg.penalties || 0}</strong><span>Penalties</span></div>
+    </div></div>`;
+    // Tier 2: tendencies and predictability, clearly separated and demoted.
+    // Top Tells/Recommendations stay first in this tier -- they are the
+    // actionable output; the raw split tables and the map are the detail
+    // those tells were built from, and Predictability closes the tier as
+    // one combined module (meter immediately followed by its own map),
+    // matching the coach's explicit "one secondary module near the bottom".
+    const tendenciesHtml = `
+      <div class="ss-tier-divider"><span>Tendencies &amp; Predictability</span></div>
+      <div class="stats-section">
+        <h3>Top Tells${StatsEngine.defMark('tell')}</h3>
+        ${this._selfScoutTellsTable(report.tells)}
+      </div>
+      ${report.recommendations.length ? `<div class="stats-section">
+        <h3>Recommendations</h3>
+        <ul class="ss-recs">${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+      </div>` : ''}
+      ${report.formationRows.length ? `<div class="stats-section">
+        <h3>By Formation</h3>
+        ${this._selfScoutSplitTable(report.formationRows, 'Formation')}
+      </div>` : ''}
+      ${report.personnelRows.length ? `<div class="stats-section">
+        <h3>By Personnel</h3>
+        ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
+      </div>` : ''}
+      ${this._renderPersonnelDiversity(report.personnelDiversity)}
       <div class="stats-section ss-predictability">
         <h3>Predictability (${report.totalPlays} run/pass plays)${StatsEngine.defMark("predictability")}</h3>
         <div class="ss-meter-wrap">
@@ -2833,46 +2879,36 @@ export class StatsEngine {
         </div>
         <p class="viz-caption">Predictability index = (average largest run/pass share − 50) × 2, weighted by sample. 0 = balanced, 100 = one-dimensional.</p>
       </div>
-      <div class="stats-section">
-        <h3>Top Tells${StatsEngine.defMark('tell')}</h3>
-        ${this._selfScoutTellsTable(report.tells)}
-      </div>
       ${this._renderSelfScoutMatrix(report.matrix)}
-      ${report.recommendations.length ? `<div class="stats-section">
-        <h3>Recommendations</h3>
-        <ul class="ss-recs">${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
-      </div>` : ''}
-      <div class="stats-section stats-two-col">
-        <div>
-          <h3>By Formation</h3>
-          ${this._selfScoutSplitTable(report.formationRows, 'Formation')}
-        </div>
-        <div>
-          <h3>By Down &amp; Distance</h3>
-          ${this._selfScoutSplitTable(report.downDistRows, 'Down & Dist')}
-        </div>
-      </div>
-      ${report.personnelRows.length ? `<div class="stats-section">
-        <h3>By Personnel</h3>
-        ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
-      </div>` : ''}
-      ${this._renderPersonnelDiversity(report.personnelDiversity)}
       ${report.insights.length ? `<div class="stats-section ss-insights-section">
         <h3>Film Room Insights</h3>
         <div class="ss-insights">${report.insights.map(ins => `<div class="ss-insight ss-insight-${ins.type}">
           <span class="ss-insight-tag ss-tag-${ins.type}">${ins.tag}</span>
           <span class="ss-insight-text">${ins.text}</span>
         </div>`).join('')}</div>
-      </div>` : ''}
+      </div>` : ''}`;
+    return `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
+      ${performanceHtml}
+      ${situationalHtml}
+      ${callsHtml}
+      ${negexHtml}
+      ${tendenciesHtml}
       ${this._defScoutBlock(defScout)}`;
   }
 
   /** Render the defensive self-scout section, or its diagnostic empty state.
    *  Single source for the "sufficient? section : empty" decision so the
    *  several call sites can't drift. showEmpty=false suppresses the empty
-   *  state where another section already explains the gap (the Defense tab). */
-  _defScoutBlock(ds, showEmpty = true) {
-    if (ds && !ds.insufficient) return this._renderDefScoutSection(ds);
+   *  state where another section already explains the gap (the Defense tab).
+   *  hideKpis=true drops the internal Stop Rate/Yards Allowed/Havoc/Sacks/
+   *  TFL/Takeaways strip -- Charlie Gate finding #6: the Defense tab already
+   *  shows that exact set two sections above (Defensive Performance), so
+   *  repeating it inside Defensive Self-Scout was pure duplication there.
+   *  The Self-Scout tab has no other defensive summary on the page, so it
+   *  keeps the strip (the default). */
+  _defScoutBlock(ds, showEmpty = true, hideKpis = false) {
+    if (ds && !ds.insufficient) return this._renderDefScoutSection(ds, hideKpis);
     return showEmpty ? this._defScoutEmptyState(ds) : '';
   }
 
@@ -3168,9 +3204,12 @@ export class StatsEngine {
 
   _renderAdvanced(stats) {
     const a = stats.advanced;
-    if (!a || !a.count) {
-      return `<div class="stats-section"><h3>Expected Points (EPA)</h3><p style="opacity:.6">Tag down, distance, yard line and result on plays to see EPA.</p></div>`;
-    }
+    // Charlie Gate finding #3: an empty EPA section still cost a full
+    // section's worth of vertical space for one sentence saying there's
+    // nothing to show. Collapse it completely instead -- the coach already
+    // sees "no data" states elsewhere (Best Calls, Heat Maps) where a
+    // partial answer exists; here there is no partial answer at all.
+    if (!a || !a.count) return '';
     const W = 600, H = 160, P = 30;
     const n = a.curve.length;
     const vals = a.curve.map(c => c.cum);
@@ -3399,7 +3438,6 @@ export class StatsEngine {
                 <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
               </div>
             </div>
-            ${officialMismatch ? `<p class="scoreboard-mismatch">Official final in Game Settings is <strong>${Charts._esc(String(gi.scoreUs))}–${Charts._esc(String(gi.scoreThem))}</strong>. This reconciliation reflects only the scoring plays currently tagged — review them for a missing, extra, or mistagged score.</p>` : ''}
             ${qTable}
             <details class="scoreboard-note">
               <summary>How this score is tracked</summary>
@@ -3733,14 +3771,26 @@ export class StatsEngine {
 
     const panel = (title, note, body) => body
       ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
+    // A panel without the outer .stats-section wrapper, for pairing two
+    // panels inside one shared section below.
+    const panelInner = (title, note, body) => body
+      ? `<div><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
+
+    // Charlie Gate finding #3: "the histogram and distance-to-go chart can
+    // share a row." Both are compact single charts with no reason to each
+    // claim a full-width section -- paired here the same way Situational
+    // pairs its scorecard with its by-quarter table (.stats-two-col).
+    const histBody = dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '';
+    const scatterBody = Charts.scatter(points, { label: 'Yards gained by distance to go' });
+    const distanceRow = (histBody || scatterBody) ? `<div class="stats-section stats-two-col">
+      ${panelInner('Yards gained per play, distribution', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`, histBody)}
+      ${panelInner('Yards gained vs distance to go', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.', scatterBody)}
+    </div>` : '';
 
     return `
       ${panel('Formation frequency and success rate', 'Bar = snap share; fill = success rate. Success: 50% on 1st, 70% on 2nd, conversion on 3rd/4th. Faded = fewer than 3 snaps.',
         Charts.rampBars(formations))}
-      ${panel('Yards gained per play, distribution', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`,
-        dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '')}
-      ${panel('Yards gained vs distance to go', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.',
-        Charts.scatter(points, { label: 'Yards gained by distance to go' }))}
+      ${distanceRow}
       ${panel('Success Rate by Field Position', 'Success rate by field position; empty zones have no charted snaps.',
         Charts.zoneStrip(zones))}
       ${panel('Run/pass split and success rate by down', 'Run/pass split and success rate by down.',
@@ -6412,14 +6462,14 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       </div>`;
   }
 
-  _renderDefScoutSection(ds) {
+  _renderDefScoutSection(ds, hideKpis = false) {
     const mc = StatsEngine._meterColor(ds.predictability);
     const computed = this.compute();
     const d = computed.defensive || {};
     const defPlays = computed.defPlays || [];
     const stopRate = defPlays.length ? Math.round(defPlays.filter(play => !this._isSuccessfulPlay(play)).length / defPlays.length * 100) : 0;
     const yppAllowed = defPlays.length ? (defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage) || 0), 0) / defPlays.length).toFixed(1) : '0.0';
-    const performanceHtml = `<div class="ss-performance-grid is-defense">
+    const performanceHtml = hideKpis ? '' : `<div class="ss-performance-grid is-defense">
       <div><strong>${stopRate}%</strong><span>Stop Rate</span></div>
       <div><strong>${yppAllowed}</strong><span>Yards Allowed / Play</span></div>
       <div><strong>${d.havocRate || '0.0'}%</strong><span>Havoc Rate</span></div>
