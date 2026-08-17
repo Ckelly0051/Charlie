@@ -14,25 +14,37 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
-### ▶ PAUSED - FUTURE VISUAL RECOMPOSITION (2026-08-17)
+### ▶ STILL PAUSED - the `ef04732` visual experiment is committed but REJECTED (2026-08-17)
 
-The functional Broadcast Density work remains accepted, but the coach and
-Codex have **revoked the creative-redesign claim** after inspecting the live
-real-data screens. The current Reports implementation is still substantially
-the legacy spreadsheet composition with a new accent palette. Do not continue
-visual implementation, commit the current dirty visual experiment, run a gate,
-or package an installer until usage resets and the coach explicitly resumes it.
+**The Broadcast Density Reports creative milestone remains rejected/paused —
+committing the experiment did not accept it.** The functional work remains
+accepted, but the coach and Codex's revocation of the creative-redesign claim
+(below) still stands. `ef04732` exists only so the dirty visual-experiment
+tree that had accumulated since the pause is preserved in git history instead
+of sitting as an uncommitted working copy — it is explicitly labeled in its
+own commit message as an **incomplete visual experiment, not an accepted
+step**, and covers: the gold/cyan semantic-scoping fix, the KPI hero/phase-tile
+layout fixes, the Self-Scout Performance/Tendencies two-tier restructure, the
+histogram/scatter pairing, EPA collapse-when-empty, Heat Maps smart-default-tab,
+the Defense tab dead-space and Best-Calls fixes, the tells-table color-wash
+fix, removal of the red scoreboard-mismatch paragraph, and a version bump to
+`1.12.0-55` with a local unsigned installer built from it — none of it
+gated, none of it reviewed by Codex, all of it done at the coach's explicit
+"no gate" direction while working through iterative screenshot review
+("Charlie Gate") rather than the canonical process.
 
-The binding future plan is `GRIDIRON-IQ-VISUAL-RECOMPOSITION-PLAN.md`. It makes
-Codex the creative/layout owner, Claude the implementation owner, and the coach
-the visual approver through the **Charlie Gate**. Reports Overview is first and
-must be judged with current-vs-comp-vs-live first-fold/full-page captures before
-any visual commit. A palette/type/spacing pass with unchanged composition fails.
+**The governing next step remains `GRIDIRON-IQ-VISUAL-RECOMPOSITION-PLAN.md`**,
+referenced from the original pause commit `037b53d` — not a continuation of
+`ef04732`. That plan makes Codex the creative/layout owner, Claude the
+implementation owner, and the coach the visual approver through the **Charlie
+Gate**. Reports Overview is first and must be judged with
+current-vs-comp-vs-live first-fold/full-page captures before any visual
+commit is treated as accepted. A palette/type/spacing pass with unchanged
+composition still fails that standard.
 
-Current uncommitted production files belong to Claude's visual experiment:
-`css/native-reports.css`, `design-system/tokens.css`, `js/reports-screen.js`,
-and `js/stats-engine.js`. Preserve them exactly; do not reset, commit, or build
-on them without an explicit decision after the pause.
+Do not build on `ef04732`, treat it as accepted, run a gate against it as if
+it were reviewed, or package a coach-facing release from it without an
+explicit decision to resume and re-ground in the recomposition plan.
 
 ### ▶ MILESTONE INSTALLER — `1.12.0-54` BUILT, AWAITING COACH SMOKE (2026-08-17)
 
