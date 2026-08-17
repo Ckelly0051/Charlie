@@ -1,0 +1,181 @@
+{
+  "heights": {
+    "overview-1440x900": {
+      "scrollHeight": 4738,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "offense-1440x900": {
+      "scrollHeight": 5001,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "defense-1440x900": {
+      "scrollHeight": 3924,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "special-1440x900": {
+      "scrollHeight": 909,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "players-1440x900": {
+      "scrollHeight": 1196,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "selfscout-1440x900": {
+      "scrollHeight": 3905,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "season-1440x900": {
+      "scrollHeight": 4264,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "matchup-1440x900": {
+      "scrollHeight": 2406,
+      "clientHeight": 846,
+      "overflowX": 0
+    },
+    "overview-390x844": {
+      "scrollHeight": 8806,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "offense-390x844": {
+      "scrollHeight": 6285,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "defense-390x844": {
+      "scrollHeight": 4893,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "special-390x844": {
+      "scrollHeight": 1256,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "players-390x844": {
+      "scrollHeight": 1414,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "selfscout-390x844": {
+      "scrollHeight": 5348,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "season-390x844": {
+      "scrollHeight": 7306,
+      "clientHeight": 734,
+      "overflowX": 0
+    },
+    "matchup-390x844": {
+      "scrollHeight": 4962,
+      "clientHeight": 734,
+      "overflowX": 0
+    }
+  },
+  "metrics": {
+    "overview": "SCOREBOARD\nUS\n39\n–\nST. PETER LUTHERAN\n12\n\tQ1\tQ2\tQ3\tQ4\tN/Q\tFINAL\nUs\t12\t6\t6\t6\t9\t39\nSt. Peter Lutheran\t0\t6\t6\t0\t0\t12\n\nN/Q = scoring plays with no Quarter tag.\n\nHOW THIS SCORE IS TRACKED\nGAME AT A GLANCE\nOFFENSIVE PLAYS\n50\nof 63 charted\nYDS / PLAY\n7.8\n391 total\nSUCCESS RATE\n64%\nEXPLOSIVES\n11\nwatch them\nPLAYS FOR LOSS\n6\nwatch them\nTHIRD DOWN\n7/12\nwatch them\n\n1 turnover charted\n\nRUSHING\nAttempts\t25\nYards\t189\nAverage\t7.6\nLongest\t18\nTouchdowns\t2\nFirst Downs\t13\nFumbles\t0\nPASSING\nComp/Att\t21/22\nComp %\t95.5%\nYards\t202\nYPA\t9.2\nTouchdowns\t3\nInterceptions\t1\nSacks / Yds\t0 / 0\nLongest\t18\nFirst Downs\t14\nYARDS BY TYPE\n391\nRush Yards\n189\nPass Yards\n202\nKEY METRICS\nEFFICIENCY\nSUCCESS RATE\n64%\nYDS / PLAY\n7.8\n391 total\nTHIRD DOWN\n58%\n7/12\nPTS / DRIVE\n2.5\n12 drives\nOffense report →\nEXPLOSIVENESS\nEXPLOSIVE RATE\n22%\n11 plays\nLONGEST RUN\n18 yd\n25 run plays\nLONGEST PASS\n18 yd\n25 pass plays\nBIG PLAYS\n5\n20+ yds/TD\nOffense report →\nSITUATIONAL\nRED ZONE\n—\nno data\nGOAL LINE\n—\nno data\n3RD & LONG\n8\n38% success\n3RD & SHORT\n4\n100% success\nBACKED UP\n—\nno data\nTENDENCIES\nRUN RATE\n50%\n25R / 25P\nTOP FORMATION\nTrips\n9 snaps · 67%\nTOP PERSONNEL\n11\n25 snaps · 60%\nSelf-scout →\nNEGATIVE PLAYS\n8\n16% of plays\nTurnovers\n1\nPlays for Loss\n6\nRuns\n3\nPasses\n3\nPenalties\n1\nDefense report →\nGAME PLAN\nSTRENGTHS\nWing-T\n: 88% success (8 plays, 7.5 avg)\nTrips\n: 67% success (9 plays, 9.3 avg)\nAce\n: 56% success (9 plays, 6.8 avg)\nBunch\n: 63% success (8 plays, 7.6 avg)\nDoubles\n: 63% success (8 plays, 8.4 avg)\nNEEDS WORK\nTrips\nis 100% pass — mix in a draw or screen\nAce\nis 100% run — add a pass concept to keep the defense honest\nWing-T\nis 100% pass — mix in a draw or screen\nBunch\nis 100% run — add a pass concept to keep the defense honest\nDoubles\nis 100% run — add a pass concept to keep the defense honest\nDOWN & DISTANCE\nFIRST DOWNS\n27\n58%\n3rd Down 7/12\n42%\n4th Down 5/12\nDOWN\tPLAYS\tRUN / PASS\tAVG YDS\tCONV %\n1st\t13\t\n92%\n\t8.0\t53.8%\n2nd\t13\t\n92%\n\t8.2\t61.5%\n3rd\t12\t\n100%\n\t8.2\t58.3%\n4th\t12\t\n100%\n\t6.9\t41.7%\nBY DISTANCE\nSITUATION\t#\tRUN / PASS\tAVG\tSUCC %\tCONV %\n1st & Short\t4\t\n100%\n\t14.5\t100.0%\t100.0%\n1st & Medium\t4\t\n100%\n\t6.5\t75.0%\t50.0%\n1st & Long\t5\t\n20%\n80%\n\t4.0\t60.0%\t20.0%\n2nd & Short\t4\t\n100%\n\t10.5\t100.0%\t100.0%\n2nd & Medium\t4\t\n100%\n\t10.0\t100.0%\t75.0%\n2nd & Long\t5\t\n80%\n20%\n\t4.8\t40.0%\t20.0%\n3rd & Short\t4\t\n100%\n\t10.0\t100.0%\t100.0%\n3rd & Long\t8\t\n100%\n\t7.3\t37.5%\t37.5%\n4th & Medium\t4\t\n100%\n\t9.3\t75.0%\t75.0%\n4th & Long\t8\t\n100%\n\t5.8\t25.0%\t25.0%\nDRIVES\nSCORING\n5/12\nPTS/DRIVE\n2.5\n3 & OUT\n4\nAVG PLAYS\n4.2\nAVG YARDS\n32.6\n12\nTD\n5\nOther\n6\nTurnover\n1\nEFFICIENCY\n64%\nSuccess Rate\n60%\nRun Success\n68%\nPass Success\nEXPLOSIVE\n11\n22.0% (run 12+/pass 16+)\nPLAYS FOR LOSS\n6\n12.0% of plays\nBY DOWN\n\nRun/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.\n\n1ST DOWN\n77%\n13 snaps\n2ND DOWN\n77%\n13 snaps\n3RD DOWN\n58%\n12 snaps\n4TH DOWN\n42%\n12 snaps\nBIG PLAYS (20+ YARDS & TDS)\nPLAY\tTYPE\tRESULT\tYARDS\nPlay 1\tRun Inside\tTouchdown\t18\nPlay 19\tRun Inside\tTouchdown\t18\nPlay 28\tDeep Pass\tTouchdown\t18\nPlay 37\tRun Inside\tTouchdown\t18\nPlay 46\tDeep Pass\tTouchdown\t18\nGAME TIMELINE\n\nOne row per possession, grouped by quarter. ● scored · ✕ turnover · ▲ explosive play. Click a drive to watch it.\n\nQ1\nDr 1\n●\n▲\n1pl · +18yd\nTD\nQ2\nDr 2\n6pl · +23yd\nOTHER\nQ1\nDr 3\n6pl · +67yd\nOTHER\nDr 4\n●\n▲\n3pl · +27yd\nTD\nDr 5\n●\n▲\n7pl · +70yd\nTD\nDr 6\n3pl · +5yd\nOTHER\nDr 7\n3pl · +9yd\nOTHER\nDr 8\n●\n▲\n1pl · +18yd\nTD\nQ2\nDr 9\n●\n▲\n7pl · +69yd\nTD\nQ3\nDr 10\n2pl · +13yd\nOTHER\nQ1\nDr 11\n✕\n10pl · +72yd\nTURNOVER\nQ4\nDr 12\n1pl · +0yd\nOTHER\nCumulative yards\n391 total\nPENALTIES\nFLAGGED PLAYS\n1\n1 foul record\nACCEPTED\n1\n0 declined · 0 offsetting\nSUBJECT YARDS\n10\naccepted enforcement only\nOPPONENT YARDS\n0\naccepted enforcement only\nFOUL\tRECORDS\tACCEPTED YARDS\nHolding\t1\t10",
+    "offense": "SUCCESS RATE\n64%\nEXPLOSIVE\n22%\n11 plays\nPLAYS FOR LOSS\n12%\n6 plays\nYDS / PLAY\n7.8\n50 plays\nRUN RATE\n50%\n25R / 25P\nFORMATION FREQUENCY AND SUCCESS RATE\n\nBar = snap share; fill = success rate. Success: 50% on 1st, 70% on 2nd, conversion on 3rd/4th. Faded = fewer than 3 snaps.\n\nTrips\n9\n67%\nAce\n9\n56%\nWing-T\n8\n88%\nBunch\n8\n63%\nDoubles\n8\n63%\nYARDS GAINED PER PLAY, DISTRIBUTION\n\nX = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, 7.8 yards.\n\nLoss\n0\n1–3\n4–6\n7–10\n11–15\n16–20\n20+\nYARDS GAINED VS DISTANCE TO GO\n\nX = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.\n\nDistance to go →\nRun\nPass\nRUN/PASS SPLIT AND SUCCESS RATE BY DOWN\n\nRun/pass split and success rate by down.\n\n1ST DOWN\n77%\n13 snaps\n2ND DOWN\n77%\n13 snaps\n3RD DOWN\n58%\n12 snaps\n4TH DOWN\n42%\n12 snaps\nTEAM PROFILE\n\nThis game vs. our season average.\n\nEfficiency\nExplosiveness\nThird down\nYards / play\nBall security\nMETRIC\tTHIS GAME\tSEASON AVG\tSEASON BEST\nEfficiency\t64%\t64%\t64 ★\nExplosiveness\t22%\t22%\t22 ★\nThird down\t58%\t58%\t58.3 ★\nYards / play\t7.8\t7.9\t8.1\nBall security\t16%\t16%\t≤ 16 ★\nPLAY-ACTION\nPA RATE\n32.0%\n8 of dropbacks\nPA COMP%\n87.5%\nPA YPA\n8.4\nSTRAIGHT YPA\n8.1\nFORMATION\tPA PLAYS\tAVG\tSUCCESS%\nDoubles\t8\t8.4\t63%\nFORMATION TENDENCIES\n50.0% Run\n50.0% Pass\nRUN PASS\nN\nSUCC\nAVG\nTrips\n9\n67%\n9.3y\nAce\n9\n56%\n6.8y\nWing-T\n8\n88%\n7.5y\nBunch\n8\n63%\n7.6y\nDoubles\n8\n63%\n8.4y\nPLAY TYPE BREAKDOWN\nRUN PASS\nN\nSUCC\nAVG\nRun Inside\n9\n67%\n9.3y\nShort Pass\n9\n78%\n6.7y\nRun Outside\n8\n63%\n7.6y\nDeep Pass\n8\n63%\n7.6y\nPlay Action\n8\n63%\n8.4y\nScreen\n8\n50%\n7.3y\nTHE “BIG 6” — OUR OFFENSE'S CORE TENDENCIES\n\nSnaps sorted by frequency; click any column or row to sort. Click any row to watch the film.\n\nFORMATION\tQB ALIGN\tBACKFIELD\tSTRENGTH\tMOTION\tPLAY\tN\tSUCCESS\tAVG\tRUN%\nTrips\t—\tSingle\t—\t—\tRun Inside\t8\t75%\t10.5\t0%\nAce\t—\tI\t—\t—\tRun Outside\t8\t63%\t7.6\t100%\nWing-T\t—\tSingle\t—\t—\tShort Pass\t8\t88%\t7.5\t0%\nBunch\t—\tI\t—\t—\tDeep Pass\t8\t63%\t7.6\t100%\nDoubles\t—\tI\t—\t—\tPlay Action\t8\t63%\t8.4\t100%\n—\t—\tSingle\t—\t—\tScreen\t8\t50%\t7.3\t0%\nTrips\t—\tSingle\t—\t—\tShort Pass\t1\t0%\t0.0\t0%\nAce\t—\tI\t—\t—\tRun Inside\t1\t0%\t0.0\t100%\nPERSONNEL GROUPINGS\nRUN PASS\nN\nSUCC\nAVG\n11\n25\n60%\n7.6y\n21\n25\n68%\n8.1y\nBACKFIELD & STRENGTHBACKFIELD\nRUN PASS\nN\nSUCC\nAVG\nSingle\n25\n68%\n8.1y\nI\n25\n60%\n7.6y\nPERSONNEL × SITUATION\nPERSONNEL\tSITUATION\tPLAYS\tRUN / PASS\tRUN%\tAVG\tSUCCESS%\n21\t1st Down\t13\t\n92%\n\t8%\t8.0\t77%\n11\t4th Down\t12\t\n100%\n\t100%\t6.9\t42%\n11\t2nd & Long\t9\t\n89%\n\t89%\t7.1\t67%\n21\t3rd & Long\t8\t\n100%\n\t0%\t7.3\t38%\n11\t2nd & Short\t4\t\n100%\n\t100%\t10.5\t100%\n21\t3rd & Short\t4\t\n100%\n\t0%\t10.0\t100%\nTENDENCY MATRIX\nRows:\nFormation\nQB Alignment\nBackfield\nStrength\nPlay Type\nDown\nDistance\nPersonnel\nDef Front\nCoverage\nCoverage Family\nHash\nDirection\nMotion\nQuarter\nRun / Pass\nDirection vs Strength\nDirection vs Hash\n×\nCols:\nFormation\nQB Alignment\nBackfield\nStrength\nPlay Type\nDown\nDistance\nPersonnel\nDef Front\nCoverage\nCoverage Family\nHash\nDirection\nMotion\nQuarter\nRun / Pass\nDirection vs Strength\nDirection vs Hash\nCell: count · run/pass split · success% · avg yards\n ≥50% success\n ≤30% success\n\n42 of 50 plays charted on both axes · 8 omitted (blank on Formation or Down)\n\nFORMATION \\ DOWN\t2\t4\t1\t3\nTrips\t\n1\n0R/100P\n0% · 0.0y\n\t—\t\n4\n0R/100P\n100% · 14.5y\n\t\n4\n0R/100P\n50% · 6.5y\n\nAce\t\n4\n100R/0P\n100% · 10.5y\n\t\n4\n100R/0P\n25% · 4.8y\n\t\n1\n100R/0P\n0% · 0.0y\n\t—\nWing-T\t—\t—\t\n4\n0R/100P\n75% · 5.0y\n\t\n4\n0R/100P\n100% · 10.0y\n\nBunch\t\n4\n100R/0P\n50% · 6.0y\n\t\n4\n100R/0P\n75% · 9.3y\n\t—\t—\nDoubles\t\n4\n100R/0P\n100% · 10.0y\n\t\n4\n100R/0P\n25% · 6.8y\n\t—\t—\nSITUATIONAL\nSITUATION\t#\tYDS\tAVG\tSUCC%\tTD\n3rd & Long\t8\t58\t7.3\t38%\t1\n3rd & Short\t4\t40\t10.0\t100%\t0\nBY QUARTER\nQ\tPLAYS\tYDS\tTD\nQ1\t12\t104\t2\nQ2\t13\t106\t1\nQ3\t12\t98\t1\nQ4\t13\t83\t1\nHEAT MAPS\nField Position\nDown & Distance\nFormation × Play\nHash Tendency\n\nNo plays have field position tagged. Tag yard line + side in the Play Tagger to populate this view.\n\nVISUALIZATIONS\nBY QUARTER\nRUN\nPASS · AVG YDS\nQ1\n8.7 yd\n12\nQ2\n8.2 yd\n13\nQ3\n8.2 yd\n12\nQ4\n6.4 yd\n13\nEXPECTED POINTS (EPA)\n\nTag down, distance, yard line and resu",
+    "defense": "Full season\nCurrent game\nExport Report\nDEFENSIVE PERFORMANCE\nDEFENSIVE SNAPS\n26\nYARDS / PLAY ALLOWED\n6.8\nSTOP RATE\n61.5%\nEXPLOSIVES ALLOWED\n6\n23.1%\n3RD DOWN STOP RATE\n75%\nRED ZONE TD RATE\nN/A\nTAKEAWAYS\n2\nHAVOC RATE\n23.1%\nOPPONENT OFFENSE BY PLAY TYPE\nALL RUNS\n12 snaps\n7.3 yds/play · 66.7% stop · 33.3% explosive\nALL PASSES\n14 snaps\n6.5 yds/play · 57.1% stop · 14.3% explosive\nPLAY RUN AGAINST US\tSNAPS\tYDS/PLAY\tSTOP RATE\tEXPLOSIVE RATE\tHAVOC RATE\tTD ALLOWED\nDeep Pass\t6\t10.8\t33.3%\t66.7%\t33.3%\t2\nPlay Action\t4\t4.0\t100%\t0%\t0%\t0\nRun Inside\t4\t15.8\t0%\t50%\t0%\t2\nRun Outside\t4\t1.5\t100%\t0%\t50%\t0\nScreen\t4\t7.0\t50%\t0%\t0%\t0\nShort Pass\t4\t0.0\t100%\t0%\t50%\t0\nBEST CALLS BY OPPONENT PLAY TYPE\nOPPONENT PLAY TYPE\tBEST FRONT\tBEST COVERAGE\tBLITZ DECISION\nAll Runs\n12 snaps\n\t\n4-2-5\n66.7% stop · 7.3 yds/play · 12 snaps\n\t\nCover 3\n66.7% stop · 7.3 yds/play · 12 snaps\n\t\nNo Blitz\n66.7% stop · 7.3 yds/play · 12 snaps\n\nAll Passes\n14 snaps\n\t\n4-2-5\n57.1% stop · 6.5 yds/play · 14 snaps\n\t\nCover 3\n57.1% stop · 6.5 yds/play · 14 snaps\n\t\nNo Blitz\n57.1% stop · 6.5 yds/play · 14 snaps\n\nRun Inside\n4 snaps\n\t\n4-2-5\n0% stop · 15.8 yds/play · 4 snaps\n\t\nCover 3\n0% stop · 15.8 yds/play · 4 snaps\n\t\nNo Blitz\n0% stop · 15.8 yds/play · 4 snaps\n\nRun Outside\n4 snaps\n\t\n4-2-5\n100% stop · 1.5 yds/play · 4 snaps\n\t\nCover 3\n100% stop · 1.5 yds/play · 4 snaps\n\t\nNo Blitz\n100% stop · 1.5 yds/play · 4 snaps\n\nScreen\n4 snaps\n\t\n4-2-5\n50% stop · 7.0 yds/play · 4 snaps\n\t\nCover 3\n50% stop · 7.0 yds/play · 4 snaps\n\t\nNo Blitz\n50% stop · 7.0 yds/play · 4 snaps\n\nShort Pass\n4 snaps\n\t\n4-2-5\n100% stop · 0.0 yds/play · 4 snaps\n\t\nCover 3\n100% stop · 0.0 yds/play · 4 snaps\n\t\nNo Blitz\n100% stop · 0.0 yds/play · 4 snaps\n\nDeep Pass\n6 snaps\n\t\n4-2-5\n33.3% stop · 10.8 yds/play · 6 snaps\n\t\nCover 3\n33.3% stop · 10.8 yds/play · 6 snaps\n\t\nNo Blitz\n33.3% stop · 10.8 yds/play · 6 snaps\n\nPlay Action\n4 snaps\n\t\n4-2-5\n100% stop · 4.0 yds/play · 4 snaps\n\t\nCover 3\n100% stop · 4.0 yds/play · 4 snaps\n\t\nNo Blitz\n100% stop · 4.0 yds/play · 4 snaps\nGAME TREND\nGAME\tSNAPS\tYDS/PLAY\tSTOP RATE\tEXPLOSIVE\tHAVOC\tTD\nWeek 1 vs St. Peter Lutheran\t13\t6.6\t61.5%\t3\t3\t2\nWeek 2 vs Holy Family\t13\t7.1\t61.5%\t3\t3\t2\nSITUATIONAL DEFENSE\nSITUATION\tSNAPS\tYDS/PLAY\tSTOP RATE\tEXPLOSIVE\tHAVOC\n1st Down\t6\t7.3\t33.3%\t0%\t0%\n2nd Down\t6\t6.2\t66.7%\t33.3%\t33.3%\n3rd Down\t8\t5.9\t75%\t25%\t50%\n4th Down\t6\t8.3\t66.7%\t33.3%\t0%\n3rd & Short\t2\t-4.0\t100%\t0%\t100%\n3rd & Long\t6\t9.2\t66.7%\t33.3%\t33.3%\nSCHEME DETAIL\nDEFENSIVE ANALYTICS\n23%\nHavoc Rate (6)\nSACKS\n0\n0 yds\nTFL\n4\nTURNOVERS\n2\n2 INT / 0 FR\nBLITZ RATE\n0.0%\n0 plays\nBLITZ HAVOC\n0.0%\nFORCED INC\n0\n3-AND-OUTS\n2\nDEFENSIVE FRONT BREAKDOWN\nFRONT\t#\tRUN/PASS\tYDS\tAVG\tSTOP%i\tHAVOC%i\n4-2-5\t26\t12/14\t178\t6.8\t62%\t23%\nCOVERAGE BREAKDOWN\nCOVERAGE\t#\tCOMP\tINC\tINT\tSACK\tYDS\tAVG\tSTOP%\nCover 3\t26\t20\t0\t2\t0\t178\t6.8\t62%\nEARLY DOWNS (10)\nFRONT\t#\t%\n4-2-5\t10\t100%\nPASSING DOWNS (16)\nFRONT\t#\t%\n4-2-5\t16\t100%\nDEFENSIVE SELF-SCOUT\n26 defensive plays\n62%\nSTOP RATE\n6.6\nYARDS ALLOWED / PLAY\n23.1%\nHAVOC RATE\n0\nSACKS\n2\nTFL\n1\nTAKEAWAYS\nPredictability: 100/100 (Very Predictable)\n4-2-5: 4-2-5 100% is predictable but working — 62% stop rate, 23% havoc. The alignment is earning its keep.\n4-2-5: Cover 3 100% is predictable but working — 62% stop rate, 23% havoc. The alignment is earning its keep.\nCover 3: 4-2-5 100% is predictable but working — 62% stop rate, 23% havoc. The alignment is earning its keep.\nDEFENSIVE TENDENCY TELLS\nSITUATION\tTYPE\tTELL\tLEAN\tSTOP%\tHAVOC%\tASSESSMENT\tN\n4-2-5\tvs Front\tFront\t4-2-5 100%\t62%\t23%\t▲ Dominant\t26\n4-2-5\tvs Front\tCoverage\tCover 3 100%\t62%\t23%\t▲ Dominant\t26\nCover 3\tvs Coverage\tFront\t4-2-5 100%\t62%\t23%\t▲ Dominant\t26\nCover 3\tvs Coverage\tCoverage\tCover 3 100%\t62%\t23%\t▲ Dominant\t26\n3rd & Long\tDown & Dist\tFront\t4-2-5 100%\t67%\t33%\t▲ Dominant\t6\n3rd & Long\tDown & Dist\tCoverage\tCover 3 100%\t67%\t33%\t▲ Dominant\t6\n4th & Long\tDown & Dist\tFront\t4-2-5 100%\t100%\t0%\t▲ Dominant\t4\n4th & Long\tDown & Dist\tCoverage\tCover 3 100%\t100%\t0%\t▲ Dominant\t4\nSCHEME BY SITUATION\nSITUATION\t#\tTOP FRONT\tTOP COVERAGE\tBLITZ%\tSTOP%\tHAVOC%\tAVG YDS\n3rd & Long\t6\t4-2-5 100%\tCover 3 100%\t",
+    "special": "SPECIAL TEAMS\nPUNTS\n1\n38 gross · 38 net · —s hang · 0% TB\nFIELD GOALS\n1/1\n100% · long 31 · 30-39 1/1\nKICK RETURNS\n1\n— avg · long 0 · 1 TD\nRETURN GAME\nPLAYER\tRET\tYDS\tAVG\tLONG\tTD\n#9\t1\t62\t62.0\t62\t1\nKICKING / PUNTING\nPLAYER\tFG (M/A)\tPUNTS\tPUNT AVG\n#7\t1/1\t—\t—",
+    "players": "INDIVIDUAL RUSHING\nPLAYER\tATT\tYDS\tAVG\tLONG\tTD\tFUM\tGRADE\n#22\t30\t231\t7.7\t18\t3\t0\t—\nINDIVIDUAL PASSING\nPLAYER\tC/A\tPCT\tYDS\tTD\tINT\tSCK\tGRADE\n#12\t0/1\t0.0%\t0\t0\t1\t0\t—\nINDIVIDUAL TACKLES\nPLAYER\tTKL\tSOLO\tAST\tSACK\tTFL\tINT\tFR\tGRADE\n#55\t60\t60\t0\t0\t8\t0\t0\t—\n#21\t1\t1\t0\t0\t0\t1\t0\t—\nRETURN GAME\nPLAYER\tRET\tYDS\tAVG\tLONG\tTD\n#9\t1\t62\t62.0\t62\t1\nKICKING / PUNTING\nPLAYER\tFG (M/A)\tPUNTS\tPUNT AVG\n#7\t1/1\t—\t—",
+    "selfscout": "Export Report\nOFFENSIVE PERFORMANCE\n64.0%\nSUCCESS RATE\n7.8\nYARDS / PLAY\n22.0%\nEXPLOSIVE RATE\n12.0%\nNEGATIVE PLAYS\n58.3%\nTHIRD DOWN\nN/A\nRED ZONE TD\nPREDICTABILITY (50 RUN/PASS PLAYS)\ni\n96/100\nVERY PREDICTABLE\n\nPredictability index = (average largest run/pass share − 50) × 2, weighted by sample. 0 = balanced, 100 = one-dimensional.\n\nTOP TELLS\ni\nSITUATION\tTYPE\tTENDENCY\tAVG\tSUCC%\tASSESSMENT\tN\n3rd & Long\tDown & Dist\tPass 100%\t7.3\t38%\t▼ Exploitable\t8\n4th & Long\tDown & Dist\tRun 100%\t5.8\t25%\t▼ Exploitable\t8\nAce on 4th & Long\tFormation × Down\tRun 100%\t4.8\t25%\t▼ Exploitable\t4\nDoubles on 4th & Long\tFormation × Down\tRun 100%\t6.8\t25%\t▼ Exploitable\t4\nFrom Single backfield\tBackfield\tPass 100%\t8.1\t68%\t▲ Dominant\t25\nFrom I backfield\tBackfield\tRun 100%\t7.6\t60%\t▲ Dominant\t25\n11 personnel\tPersonnel\tRun 96%\t7.9\t63%\t▲ Dominant\t25\n21 personnel\tPersonnel\tPass 96%\t8.4\t71%\t▲ Dominant\t25\nFrom Trips\tFormation\tPass 100%\t9.3\t67%\t▲ Dominant\t9\nFrom Ace\tFormation\tRun 100%\t6.8\t56%\t▲ Dominant\t9\nWing-T on 1st & Long\tFormation × Down\tPass 100%\t5\t75%\t▬ Effective\t4\nFrom Wing-T\tFormation\tPass 100%\t7.5\t88%\t▲ Dominant\t8\nPREDICTABILITY MAP — FORMATION × SITUATION\n\nRows = formation. Columns = situation. Cell = snap count, run/pass split, success rate and average yards. Offensive snaps with a run/pass classification only. Predictable, not working is the one to fix: a lean a DC can key that also sits below your 67% average success. Predictable, but working is a strength, not a leak. Balanced gives nothing away. Fewer than 3 plays is marked low and left uncoloured — too few snaps to call a tendency. Empty spots read No data. Click any cell to watch those plays.\n\nFORMATION \\ SITUATION\t1ST\t2ND & SHORT\t2ND & MED\t2ND & LONG\t3RD & SHORT\t3RD & LONG\t4TH\nTRIPS N=9\t\nPass 100%\nn=4\n\tNo data\tNo data\t\nPass 100%\nn=1 · low\n\tNo data\t\nPass 100%\nn=4\n\tNo data\nACE N=9\t\nRun 100%\nn=1 · low\n\t\nRun 100%\nn=4\n\tNo data\tNo data\tNo data\tNo data\t\nRun 100%\nn=4\n\nWING-T N=8\t\nPass 100%\nn=4\n\tNo data\tNo data\tNo data\t\nPass 100%\nn=4\n\tNo data\tNo data\nBUNCH N=8\tNo data\tNo data\tNo data\t\nRun 100%\nn=4\n\tNo data\tNo data\t\nRun 100%\nn=4\n\nDOUBLES N=8\tNo data\tNo data\t\nRun 100%\nn=4\n\tNo data\tNo data\tNo data\t\nRun 100%\nn=4\nRECOMMENDATIONS\n4 exploitable tendencies — these situations are both predictable and underperforming. A prepared DC will take away your lean.\n3rd & Long: you pass 100% (n=8) at 7.3 yds/38% success — the lean isn't paying off, and a DC keys pass — drops into coverage and sits on the sticks. Add a draw, QB run, or screen off the same formation.\n4th & Long: you run 100% (n=8) at 5.8 yds/25% success — the lean isn't paying off, and a DC keys run — loads the box and cheats a safety down. Add play-action, a quick throw, or a screen off the same look.\n2 more situations lean the same way (Ace on 4th & Long, Doubles on 4th & Long). One constraint call answers all of them.\nWing-T on 1st & Long: your pass lean (100%) is productive at 5 yds/75% success, but a DC keys pass — drops into coverage and sits on the sticks. Carry one constraint (a draw, QB run, or screen off the same formation) per game to hold them honest.\nFrom Single backfield: you pass 100% and it's working — 8.1 yds, 68% success, 3 TDs. Keep riding it. The tendency is a feature, not a bug.\nFrom I backfield: you run 100% and it's working — 7.6 yds, 60% success, 2 TDs. Keep riding it. The tendency is a feature, not a bug.\n11 personnel: you run 96% and it's working — 7.9 yds, 63% success, 2 TDs. Keep riding it. The tendency is a feature, not a bug.\nBY FORMATION\nFORMATION\t#\tRUN\tPASS\tR AVG\tP AVG\tSUCC%\tTELL\nTrips\t9\t0%\t100%\t0\t9.3\t67%\tPass 100%\nAce\t9\t100%\t0%\t6.8\t0\t56%\tRun 100%\nWing-T\t8\t0%\t100%\t0\t7.5\t88%\tPass 100%\nBunch\t8\t100%\t0%\t7.6\t0\t63%\tRun 100%\nDoubles\t8\t100%\t0%\t8.4\t0\t63%\tRun 100%\nBY DOWN & DISTANCE\nDOWN & DIST\t#\tRUN\tPASS\tR AVG\tP AVG\tSUCC%\tTELL\n3rd & Long\t8\t0%\t100%\t0\t7.3\t38%\tPass 100%\n4th & Long\t8\t100%\t0%\t5.8\t0\t25%\tRun 100%\n1st & Long\t5\t20%\t80%\t0\t5\t60%\tPass 80%\n2nd & Long\t5\t80%\t20%\t6\t0\t40%\tRun 80%\n1st & Short\t4\t0%\t100%\t0\t14.5\t100%\tPass 100%\n2nd & Short\t4\t100%\t0",
+    "season": "GAMES\n2\nRECORD\n2-0\nPOINTS FOR / AGAINST\n69-14\nPOINT DIFFERENTIAL\n+55\nSUCCESS RATE\n64.0%\nTOUCHDOWNS\n10\n4R / 6P\nTURNOVER MARGIN\n0\n2 takeaways / 2 giveaways\nRUN RATE\n50%\n50R / 50P\nYARDS BY TYPE\n797\n48% rush · 52% pass\nOverview\nOffense\nDefense\nSpecial Teams\nPlayers\nSelf-Scout\nTrends\nRUSHING\nAttempts\t50\nYards\t384\nAverage\t7.7\nLongest\t21\nTouchdowns\t4\nFirst Downs\t26\nFumbles\t0\nPASSING\nComp/Att\t42/44\nComp %\t95.5%\nYards\t413\nYPA\t9.4\nTouchdowns\t6\nInterceptions\t2\nSacks / Yds\t0 / 0\nLongest\t21\nFirst Downs\t28\nYARDS BY TYPE\n797\nRush Yards\n384\nPass Yards\n413\nKEY METRICS\nEFFICIENCY\nSUCCESS RATE\n64%\nYDS / PLAY\n8.0\n797 total\nTHIRD DOWN\n58%\n14/24\nPTS / DRIVE\n2.5\n24 drives\nOffense report →\nEXPLOSIVENESS\nEXPLOSIVE RATE\n22%\n22 plays\nLONGEST RUN\n21 yd\n50 run plays\nLONGEST PASS\n21 yd\n50 pass plays\nBIG PLAYS\n10\n20+ yds/TD\nOffense report →\nSITUATIONAL\nRED ZONE\n—\nno data\nGOAL LINE\n—\nno data\n3RD & LONG\n16\n38% success\n3RD & SHORT\n8\n100% success\nBACKED UP\n—\nno data\nTENDENCIES\nRUN RATE\n50%\n50R / 50P\nTOP FORMATION\nTrips\n18 snaps · 67%\nTOP PERSONNEL\n11\n50 snaps · 60%\nSelf-scout →\nNEGATIVE PLAYS\n16\n16% of plays\nTurnovers\n2\nPlays for Loss\n12\nRuns\n6\nPasses\n6\nPenalties\n2\nDefense report →\nGAME PLAN\nSTRENGTHS\nWing-T\n: 88% success (16 plays, 7.5 avg)\nTrips\n: 67% success (18 plays, 9.8 avg)\nBunch\n: 63% success (16 plays, 8.0 avg)\nDoubles\n: 63% success (16 plays, 8.4 avg)\nAce\n: 56% success (18 plays, 6.8 avg)\nNEEDS WORK\n8 three-and-outs\nin 24 drives — too many stalled possessions\nTrips\nis 100% pass — mix in a draw or screen\nAce\nis 100% run — add a pass concept to keep the defense honest\nWing-T\nis 100% pass — mix in a draw or screen\nBunch\nis 100% run — add a pass concept to keep the defense honest\nDOWN & DISTANCE\nFIRST DOWNS\n54\n58%\n3rd Down 14/24\n42%\n4th Down 10/24\nDOWN\tPLAYS\tRUN / PASS\tAVG YDS\tCONV %\n1st\t26\t\n92%\n\t8.2\t53.8%\n2nd\t26\t\n92%\n\t8.3\t61.5%\n3rd\t24\t\n100%\n\t8.3\t58.3%\n4th\t24\t\n100%\n\t7.0\t41.7%\nBY DISTANCE\nSITUATION\t#\tRUN / PASS\tAVG\tSUCC %\tCONV %\n1st & Short\t8\t\n100%\n\t15.3\t100.0%\t100.0%\n1st & Medium\t8\t\n100%\n\t6.5\t75.0%\t50.0%\n1st & Long\t10\t\n20%\n80%\n\t4.0\t60.0%\t20.0%\n2nd & Short\t8\t\n100%\n\t10.5\t100.0%\t100.0%\n2nd & Medium\t8\t\n100%\n\t10.0\t100.0%\t75.0%\n2nd & Long\t10\t\n80%\n20%\n\t5.1\t40.0%\t20.0%\n3rd & Short\t8\t\n100%\n\t10.0\t100.0%\t100.0%\n3rd & Long\t16\t\n100%\n\t7.4\t37.5%\t37.5%\n4th & Medium\t8\t\n100%\n\t9.6\t75.0%\t75.0%\n4th & Long\t16\t\n100%\n\t5.8\t25.0%\t25.0%\nDRIVES\nSCORING\n10/24\nPTS/DRIVE\n2.5\n3 & OUT\n8\nAVG PLAYS\n4.2\nAVG YARDS\n33.2\n24\nTD\n10\nOther\n12\nTurnover\n2\nEFFICIENCY\n64%\nSuccess Rate\n60%\nRun Success\n68%\nPass Success\nEXPLOSIVE\n22\n22.0% (run 12+/pass 16+)\nPLAYS FOR LOSS\n12\n12.0% of plays\nBY DOWN\n\nRun/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.\n\n1ST DOWN\n77%\n26 snaps\n2ND DOWN\n77%\n26 snaps\n3RD DOWN\n58%\n24 snaps\n4TH DOWN\n42%\n24 snaps\nBIG PLAYS (20+ YARDS & TDS)\nPLAY\tTYPE\tRESULT\tYARDS\nPlay 1\tRun Inside\tTouchdown\t18\nPlay 19\tRun Inside\tTouchdown\t18\nPlay 28\tDeep Pass\tTouchdown\t18\nPlay 37\tRun Inside\tTouchdown\t18\nPlay 46\tDeep Pass\tTouchdown\t18\nPlay 101\tRun Inside\tTouchdown\t21\nPlay 119\tRun Inside\tTouchdown\t21\nPlay 128\tDeep Pass\tTouchdown\t21\nPlay 137\tRun Inside\tTouchdown\t21\nPlay 146\tDeep Pass\tTouchdown\t21\nSITUATIONAL SCORECARD\n\nThird down, red zone, goal line, backed up and third-and-long conversion rates across the season.\n\n3RD DOWN\n58%\n14/24\n4TH DOWN\n42%\n10/24\nRED ZONE TD\n0%\n0/0 trips\nEXPLOSIVE\n22%\n22 plays\nPTS / DRIVE\n2.5\n10/24 scored\n3-AND-OUT\n33%\n8 of 24\nTURNOVERS & SCORING\nTURNOVER MARGIN\n0\n2 takeaways · 2 giveaways\nSCORING BY QUARTER\nUs Opp\nQ1\n24\nQ2\n12\n12\nQ3\n12\n12\nQ4\n12\nPENALTIES\nFLAGGED PLAYS\n2\n2 foul records\nACCEPTED\n2\n0 declined · 0 offsetting\nSUBJECT YARDS\n20\naccepted enforcement only\nOPPONENT YARDS\n0\naccepted enforcement only\nFOUL\tRECORDS\tACCEPTED YARDS\nHolding\t2\t20",
+    "matchup": "MATCHUP —\nSt. Peter Lutheran (48 D / 13 O)\nHoly Family (48 D / 13 O)\nGames Charted: 1 · Offensive Snaps: 13 · Defensive Snaps: 48\nOFFENSE VS ST. PETER LUTHERAN DEFENSE\nOUR OFFENSE\nEFFICIENCY\n64%\nSuccess Rate\n60%\nRun Success\n68%\nPass Success\nEXPLOSIVE\n22\n22.0% (run 12+/pass 16+)\nPLAYS FOR LOSS\n12\n12.0% of plays\nFORMATION TENDENCIES\n50.0% Run\n50.0% Pass\nRUN PASS\nN\nSUCC\nAVG\nTrips\n18\n67%\n9.8y\nAce\n18\n56%\n6.8y\nWing-T\n16\n88%\n7.5y\nBunch\n16\n63%\n8.0y\nDoubles\n16\n63%\n8.4y\nPLAY TYPE BREAKDOWN\nRUN PASS\nN\nSUCC\nAVG\nRun Inside\n18\n67%\n9.8y\nShort Pass\n18\n78%\n6.7y\nRun Outside\n16\n63%\n7.6y\nDeep Pass\n16\n63%\n8.0y\nPlay Action\n16\n63%\n8.4y\nScreen\n16\n50%\n7.3y\nST. PETER LUTHERAN DEFENSE\nDEFENSIVE ANALYTICS\n13%\nHavoc Rate (6)\nSACKS\n0\n0 yds\nTFL\n6\nTURNOVERS\n0\n0 INT / 0 FR\nBLITZ RATE\n0.0%\n0 plays\nBLITZ HAVOC\n0.0%\nFORCED INC\n0\n3-AND-OUTS\n3\nDEFENSIVE FRONT BREAKDOWN\nFRONT\t#\tRUN/PASS\tYDS\tAVG\tSTOP%i\tHAVOC%i\n4-2-5\t48\t24/24\t391\t8.1\t33%\t13%\nCOVERAGE BREAKDOWN\nCOVERAGE\t#\tCOMP\tINC\tINT\tSACK\tYDS\tAVG\tSTOP%\nCover 3\t48\t42\t0\t0\t0\t391\t8.1\t33%\nEARLY DOWNS (20)\nFRONT\t#\t%\n4-2-5\t20\t100%\nPASSING DOWNS (28)\nFRONT\t#\t%\n4-2-5\t28\t100%\nDEFENSE VS ST. PETER LUTHERAN OFFENSE\nOUR DEFENSE\nDEFENSIVE ANALYTICS\n23%\nHavoc Rate (6)\nSACKS\n0\n0 yds\nTFL\n4\nTURNOVERS\n2\n2 INT / 0 FR\nBLITZ RATE\n0.0%\n0 plays\nBLITZ HAVOC\n0.0%\nFORCED INC\n0\n3-AND-OUTS\n2\nDEFENSIVE FRONT BREAKDOWN\nFRONT\t#\tRUN/PASS\tYDS\tAVG\tSTOP%i\tHAVOC%i\n4-2-5\t26\t12/14\t178\t6.8\t62%\t23%\nCOVERAGE BREAKDOWN\nCOVERAGE\t#\tCOMP\tINC\tINT\tSACK\tYDS\tAVG\tSTOP%\nCover 3\t26\t20\t0\t2\t0\t178\t6.8\t62%\nEARLY DOWNS (10)\nFRONT\t#\t%\n4-2-5\t10\t100%\nPASSING DOWNS (16)\nFRONT\t#\t%\n4-2-5\t16\t100%\nST. PETER LUTHERAN OFFENSE\nEFFICIENCY\n39%\nSuccess Rate\n33%\nRun Success\n43%\nPass Success\nEXPLOSIVE\n3\n23.1% (run 12+/pass 16+)\nPLAYS FOR LOSS\n2\n15.4% of plays\nFORMATION TENDENCIES\n46.2% Run\n53.8% Pass\nRUN PASS\nN\nSUCC\nAVG\nBunch\n2\n100%\n15.5y\nWing-T\n2\n0%\n0.0y\nAce\n2\n0%\n1.5y\nTrips\n2\n100%\n15.0y\nDoubles\n2\n0%\n4.0y\nPLAY TYPE BREAKDOWN\nRUN PASS\nN\nSUCC\nAVG\nDeep Pass\n3\n67%\n10.3y\nScreen\n2\n50%\n7.0y\nShort Pass\n2\n0%\n0.0y\nRun Outside\n2\n0%\n1.5y\nRun Inside\n2\n100%\n15.0y\nPlay Action\n2\n0%\n4.0y"
+  },
+  "spot": {
+    "overviewKpi": [
+      {
+        "label": "Final Score",
+        "value": "41–0"
+      },
+      {
+        "label": "Total Plays",
+        "value": "66"
+      },
+      {
+        "label": "Plays Charted",
+        "value": "66"
+      },
+      {
+        "label": "Plays per Phase",
+        "value": "50O / 13D / 3ST"
+      },
+      {
+        "label": "Success Rate",
+        "value": "64%"
+      },
+      {
+        "label": "Flagged plays",
+        "value": "1"
+      },
+      {
+        "label": "Accepted",
+        "value": "1"
+      },
+      {
+        "label": "Subject yards",
+        "value": "10"
+      },
+      {
+        "label": "Opponent yards",
+        "value": "0"
+      }
+    ],
+    "overviewSourceTotalPlays": 66,
+    "overviewSourceCharted": 66,
+    "offenseFirstCellText": "Efficiency",
+    "defenseKpi": [
+      {
+        "label": "Defensive Snaps",
+        "value": "26"
+      },
+      {
+        "label": "Yards / Play Allowed",
+        "value": "6.8"
+      },
+      {
+        "label": "Stop Rate",
+        "value": "61.5%"
+      },
+      {
+        "label": "Explosives Allowed",
+        "value": "6"
+      }
+    ],
+    "specialHasContent": true,
+    "playersHasContent": true,
+    "selfScoutFirstPerf": "64.0%",
+    "seasonHasContent": true,
+    "matchupHasContent": true,
+    "sourceSuccessRate": "64.0",
+    "sourceTurnoversGiveaway": 1,
+    "sourceTurnoversTakeaway": 1,
+    "sourceTotalPlays": 50
+  },
+  "filmRefs": [
+    {
+      "refs": [
+        "gmsx93cficebd7::1",
+        "gmsx93cficebd7::7",
+        "gmsx93cficebd7::13",
+        "gmsx93cficebd7::19",
+        "gmsx93cficebd7::31",
+        "gmsx93cficebd7::37",
+        "gmsx93cficebd7::43",
+        "gmsx93cficebd7::49",
+        "gmsx93cficebd7::61"
+      ],
+      "label": "Trips"
+    }
+  ],
+  "errors": []
+}

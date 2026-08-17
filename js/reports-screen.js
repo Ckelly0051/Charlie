@@ -168,10 +168,29 @@ export class ReportsScreen {
     const data = stats?._kpiRailData?.(stats.compute());
     if (!data || !data.totalPlays) { rail.hidden = true; return; }
     const esc = Charts._esc;
-    const tile = (label, value, sub) => `<div class="gi-kpi"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
+    const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
     const score = data.finalScore ? `${data.finalScore.us}–${data.finalScore.them}` : '—';
     const phase = `${data.units.offense}O / ${data.units.defense}D / ${data.units.special}ST`;
     const success = data.successRate != null ? `${Math.round(parseFloat(data.successRate))}%` : '—';
+    // Turnovers must say both directions -- giving the ball away and taking
+    // it away are opposite outcomes and neither is honest alone on a rail
+    // that also carries defensive plays-per-phase. Tone (green/red) is only
+    // ever the genuine net margin; a side with nothing charted is disclosed
+    // rather than guessed as zero, and never colored either way.
+    let turnoverTile = '';
+    if (data.turnovers) {
+      const { giveaways, takeaways } = data.turnovers;
+      if (giveaways != null && takeaways != null) {
+        const margin = takeaways - giveaways;
+        turnoverTile = tile('Turnovers', `${giveaways} GA · ${takeaways} TA`,
+          margin > 0 ? `+${margin} margin` : margin < 0 ? `${margin} margin` : 'even margin',
+          margin > 0 ? 'pos' : margin < 0 ? 'neg' : '');
+      } else if (giveaways != null) {
+        turnoverTile = tile('Turnovers', `${giveaways} GA`, 'no defensive snaps charted');
+      } else {
+        turnoverTile = tile('Turnovers', `${takeaways} TA`, 'no offensive snaps charted');
+      }
+    }
     rail.innerHTML = [
       tile('Final Score', score),
       tile('Total Plays', data.totalPlays),
@@ -179,6 +198,7 @@ export class ReportsScreen {
       tile('Plays per Phase', phase),
       // Coach: "on-schedule" is commentary, not a definitional label.
       tile('Success Rate', success, 'offense'),
+      turnoverTile,
     ].join('');
     rail.hidden = false;
   }

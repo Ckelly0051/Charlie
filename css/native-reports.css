@@ -806,3 +806,142 @@
 .gi-defense-report .stats-section .stats-section{margin:0;padding:0;border:0;background:transparent}
 @media(max-width:900px){.gi-def-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gi-def-split{grid-template-columns:1fr}}
 @media(max-width:560px){.gi-def-toolbar{align-items:stretch;flex-direction:column}.gi-def-scope{display:grid;grid-template-columns:1fr 1fr}.gi-def-kpi{min-height:76px}.gi-def-kpi strong{font-size:24px}.gi-def-type-totals{grid-template-columns:1fr}}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BROADCAST DENSITY — PART 2 (2026-08-17). Applies the accepted Part 1
+   gold/cyan/green/red language (design-system/tokens.css --gi-bd-*) to the
+   live Reports route, and compacts the tab-content column so a coach scrolls
+   far less without any text shrinking below the accepted floor.
+
+   Placed last per this file's own standing discipline (H9/S6-5b/G5): a later
+   same-specificity rule wins, so anything meant to be final goes at the end.
+   --gi-los/--gi-first-down/--gi-lower-third-fill themselves are UNTOUCHED —
+   every other route keeps reading them exactly as before; only Reports'
+   OWN selectors are re-pointed at the additive --gi-bd-* tokens here.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Gold is the active-route/headline accent, replacing the shared blue this
+   route inherited from the generic design system. Cyan marks the defensive
+   scope control specifically. */
+.gi-reports-segment button.is-active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-reports-tab.active{border-bottom-color:var(--gi-bd-gold)}
+.gi-reports .gi-subtab.active{border-bottom-color:var(--gi-bd-gold)}
+.gi-reports .gi-def-scope button.active{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+
+/* Lower-third plates: the gold-leading fill instead of the shared blue
+   gradient. The accent lens/board title -- the one number the coach is
+   actually reading right now -- keeps a solid fill, now gold instead of the
+   generic accent blue. */
+.gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4,
+.gi-reports .stats-section h4,.gi-reports .stats-section h5,
+.gi-reports .viz-section h4,.gi-reports .ss-section h4{
+  background:var(--gi-bd-lower-third-fill);
+}
+.gi-reports .gi-lens-head h4,.gi-reports .gi-lens-board>h3{
+  background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+
+/* Offense/defense context rails on the two unit-scoped tabs, and the
+   matchup answer heads that already carry an off/def distinction (they used
+   the generic categorical green/violet pair before this -- neither read as
+   "ours" vs "theirs"). Scoped to data-pane so no unrelated tab is touched. */
+.gi-reports [data-native-main-report][data-pane="offense"]{border-left:3px solid var(--gi-bd-gold)}
+.gi-reports [data-native-main-report][data-pane="defense"]{border-left:3px solid var(--gi-bd-cyan)}
+.gi-reports .gi-mh-off{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-reports .gi-mh-def{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-reports .gi-def-kpis,.gi-reports .gi-def-type-totals{background:var(--gi-bd-cyan)}
+
+/* KPI rail: a gold top edge marks it as the persistent headline strip. The
+   Turnovers tile is the one rail metric with a genuine verdict -- green when
+   takeaways exceed giveaways, red the other way -- reusing the exact
+   --gi-ok/--gi-turnover pair the Part 1 chyron already established for
+   is-pos/is-neg, so the two Broadcast Density surfaces agree on what green
+   and red mean. A side with nothing charted carries neither class. */
+.gi-reports-rail{border-top:2px solid var(--gi-bd-gold)}
+.gi-reports-rail .gi-kpi.is-pos .gi-kpi-value{color:var(--gi-ok)}
+.gi-reports-rail .gi-kpi.is-neg .gi-kpi-value{color:var(--gi-turnover)}
+
+/* ── DENSITY: two-column tab content ─────────────────────────────────────
+   [data-native-main-report] was a strict single column -- every module ran
+   the full width of the route, one after another, however short its own
+   content. A CSS Grid pairing was tried and reverted once already (see the
+   H14/J13 comments above): the row track sizes to its tallest child even
+   with align-items:start, so a short module paired with a tall one just
+   left dead space in its own column, which is a worse defect than scrolling.
+   Multi-column layout (`columns`) does not have that failure mode -- the
+   browser balances content across the columns by actual height, so a short
+   module and a tall module never leave a track-sized gap. Each module is
+   kept intact with break-inside:avoid-column; a module that genuinely needs
+   the full width (a wide table, a heat map, a 5-across lens/KPI row) spans
+   both columns explicitly rather than being squeezed into one. */
+.gi-reports [data-native-main-report]{
+  display:block;column-width:440px;column-gap:1px;column-rule:1px solid var(--gi-6);
+  background:transparent;border-right:0;
+}
+.gi-reports [data-native-main-report]>.stats-section,
+.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-toolbar,
+.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section,
+.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-split{
+  break-inside:avoid-column;border-bottom:1px solid var(--gi-6);
+}
+.gi-reports [data-native-main-report]>.stats-section:last-child,
+.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section:last-child{border-bottom:0}
+/* .gi-defense-report is the Defense tab's single top-level child, so the
+   OUTER multi-column context (which only ever splits when there is more than
+   one item to balance) squeezes a lone block-level child to one column's own
+   width instead of the full measure -- span:all here first, before this
+   element becomes ITS OWN nested multi-column container for its children. */
+.gi-reports [data-native-main-report]>.gi-defense-report{
+  column-span:all;column-width:440px;column-gap:1px;column-rule:1px solid var(--gi-6);
+}
+/* Content that genuinely needs the full measure rather than a ~440px column:
+   multi-column internal grids (scoreboard, team detail, lens board, answer
+   grid, play calls, team profile) and content whose own shape needs real
+   width to read (heat maps, tendency matrices, field zones). Deliberately
+   NOT every section with a table -- an ordinary 4-8 column table (Down &
+   Distance, Big Plays, Drives, Hash Tendencies...) reads fine at column
+   width and pairing them is the whole point; a blanket :has(.stats-table-
+   full) rule was tried first and spanned nearly every section on Overview,
+   measured directly (getComputedStyle().columnSpan) to still be full-width
+   after the "fix" -- caught by inspection, not assumed. */
+.gi-reports [data-native-main-report]>.stats-section:has(.hm-field-wrap),
+.gi-reports [data-native-main-report]>.stats-section:has(.tm-wrap),
+.gi-reports [data-native-main-report]>.stats-section:has(.gi-zones),
+.gi-reports [data-native-main-report]>.stats-section:has(.gi-lens-grid),
+.gi-reports [data-native-main-report]>.stats-section:has(.scoreboard-layout),
+/* The Big 6/12 core-calls table and the Self-Scout Top Tells table are both
+   wide multi-column tables (measured: their content overflowed a ~440px
+   column, scrollWidth exceeding clientWidth by 100-270px). */
+.gi-reports [data-native-main-report]>.stats-section:has(.bt-table),
+.gi-reports [data-native-main-report]>.stats-section:has(.ss-tells),
+/* Any section that already manages its OWN internal two/three-column split
+   (Play Direction + Motion, By Formation + By Down & Distance, ...) must get
+   the full outer measure so that existing pairing isn't squeezed a second
+   time by the new outer columns -- measured directly: By Formation clipped
+   270px when left to a single outer column. */
+.gi-reports [data-native-main-report]>.stats-section.stats-two-col,
+.gi-reports [data-native-main-report]>.stats-section.stats-three-col,
+/* The shared defensive self-scout block (used at the bottom of both the
+   Defense tab and the Self-Scout tab) is internally dense enough on its own
+   -- measured overflowing ~100px when squeezed into one outer column. */
+.gi-reports [data-native-main-report]>.stats-section.ss-def-section,
+.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section.ss-def-section,
+/* These carry their grid class directly on the .stats-section element
+   itself (verified against the exact template strings in stats-engine.js /
+   reports-screen.js) -- :has() cannot match an element against itself, so
+   these MUST be plain compound selectors, not :has(). */
+.gi-reports [data-native-main-report]>.stats-section.gi-play-calls,
+.gi-reports [data-native-main-report]>.stats-section.gi-team-profile,
+.gi-reports [data-native-main-report]>.stats-section.gi-team-detail,
+.gi-reports [data-native-main-report]>.stats-section.gi-answer-grid,
+.gi-reports [data-native-main-report]>.stats-section.ss-performance,
+.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section:has(.gi-def-type-totals),
+.gi-reports [data-native-main-report]>.gi-defense-report>.stats-section:has(.gi-def-answers),
+.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-split,
+.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-split+.stats-section,
+.gi-reports [data-native-main-report]>.gi-defense-report>.gi-def-toolbar{
+  column-span:all;
+}
+@media(max-width:1099px){
+  .gi-reports [data-native-main-report],
+  .gi-reports [data-native-main-report]>.gi-defense-report{column-width:auto;columns:1}
+}

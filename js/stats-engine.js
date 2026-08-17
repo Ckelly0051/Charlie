@@ -3295,10 +3295,20 @@ export class StatsEngine {
     const hasOfficialScore = gi.scoreUs !== '' && gi.scoreUs != null && gi.scoreThem !== '' && gi.scoreThem != null;
     const finalScore = hasOfficialScore ? { us: gi.scoreUs, them: gi.scoreThem }
       : ((sb && sb.hasData) ? { us: sb.us, them: sb.them } : null);
+    // Broadcast Density Part 2: the rail is silent on turnovers entirely.
+    // Both directions already exist as computed values elsewhere in this same
+    // `stats` object -- giveaways from the offense turnover count, takeaways
+    // from the defensive turnover count -- so this composes them rather than
+    // deriving anything new. `null` (not 0) when the relevant unit has no
+    // plays at all, so an offense-only game doesn't claim "0 takeaways" for a
+    // defense that was never charted.
+    const giveaways = stats?.turnovers ? stats.turnovers.total : null;
+    const takeaways = (units.defense > 0 && stats?.defensive) ? stats.defensive.turnovers : null;
     return {
       totalPlays, playsCharted, units,
       finalScore,
       successRate: stats?.efficiency?.successRate,
+      turnovers: (giveaways != null || takeaways != null) ? { giveaways, takeaways } : null,
     };
   }
 

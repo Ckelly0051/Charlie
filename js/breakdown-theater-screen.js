@@ -302,12 +302,6 @@ export class BreakdownTheaterScreen {
     // itself a successful result and must not short-circuit past Sack/Loss
     // below, or a joined "Fumble + Loss" recovered by our own offense reads
     // as a positive play when the offense still lost yardage on the snap.
-    // A fumble the OPPONENT recovered is an unambiguous turnover against the
-    // offense — settle that before evaluating anything else. A fumble the
-    // SUBJECT recovered only means possession was retained; retention is NOT
-    // itself a successful result and must not short-circuit past Sack/Loss
-    // below, or a joined "Fumble + Loss" recovered by our own offense reads
-    // as a positive play when the offense still lost yardage on the snap.
     if (has('Fumble') && StatsEngine.isFumbleLost(play) && offense) {
       return { result: text, resultTone: 'neg' };
     }

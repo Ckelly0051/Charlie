@@ -14,6 +14,223 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ BUILT — Broadcast Density Part 2: production Reports redesign — AWAITING CODEX REVIEW (2026-08-17)
+
+**Builder: Claude. Baseline: `5567e11` (Part 1 accepted). No installer/package/
+tag/deploy — same governing brief as Part 1.** Applies the accepted Part 1
+gold/cyan/green/red visual language to the live Reports route and compacts
+its layout, using `design-comps/visual-reset-2026-08/broadcast-density/
+reports.html` as directional reference only — no comp value, denominator,
+formula, or fixture number entered production.
+
+**What Reports already had before this checkpoint, verified by reading
+source rather than assumed.** Roughly a dozen prior polish passes (F/G/H/J/
+S6/AX letter-coded, recorded earlier in this file) had already built most of
+the brief's specific asks: the persistent KPI rail with literal labels
+(`Final Score`/`Total Plays`/`Plays Charted`/`Plays per Phase`/`Success
+Rate`), donut titles outside the ring (`Charts.donutBlock`'s `<figcaption>`,
+AX-5), `Success rate` (not bare `Success`) on every lens tile, Self-Scout
+already leading with Offensive Performance/Play Calls before Predictability
+(not after), hard-edged hairline-joined sections, and a defense-first
+performance layout. **Part 2's real, verified gap was narrower than the
+brief's full list implied**: the route was still on the shared blue
+`--gi-los`/`--gi-cat-3`/`--gi-cat-4` accent system (Part 1 deliberately left
+it untouched), `[data-native-main-report]` was a strict single column with
+every module full-width regardless of how short its own content was, and the
+KPI rail had no Turnovers tile at all. No visible `&amp;` double-escape was
+found anywhere in rendered DOM text on a realistic multi-unit/penalty/
+special-teams/two-game fixture — checked, not assumed; disclosed as
+unreproducible rather than invented a fix for it.
+
+**Color language migration (`css/native-reports.css`, appended block, `--gi-los`/`--gi-first-down`/`--gi-lower-third-fill` themselves untouched
+— only Reports' OWN selectors re-pointed):**
+- Perspective toggle, tab bar, subnav active states: gold (`--gi-bd-gold`),
+  replacing the shared blue.
+- Lower-third plates: the gold-leading `--gi-bd-lower-third-fill` gradient;
+  the one accent lens/board title a coach is actively reading keeps a solid
+  gold fill.
+- Offense tab (`[data-pane="offense"]`) and Defense tab (`[data-pane=
+  "defense"]`) each carry a 3px context rail — gold / cyan — via attribute
+  selectors, so no JS needed to know about it.
+- Defense scope toggle (`Full season`/`Current game`), the defensive KPI
+  grid seams, and the defensive-type-totals seams: cyan.
+- Matchup's existing offense/defense answer heads moved off the generic
+  categorical green/violet pair onto gold/cyan — the pair never actually
+  meant "ours vs theirs" before this.
+- KPI rail: gold top edge marks it the persistent headline strip. The new
+  Turnovers tile is the one rail metric with a genuine verdict, reusing the
+  exact `--gi-ok`/`--gi-turnover` pair Part 1's chyron `.is-pos`/`.is-neg`
+  already established, so the two Broadcast Density surfaces agree on what
+  green/red mean.
+
+**Turnovers KPI tile, giveaways and takeaways both stated
+(`js/stats-engine.js` `_kpiRailData`, `js/reports-screen.js`
+`_syncKpiRail`):** composes two values `compute()` already produces
+(`stats.turnovers.total` = offense giveaways, `stats.defensive.turnovers` =
+defense takeaways) — no new formula. Shows `"N GA · M TA"` with the real net
+margin as the sub-line, colored green/red only on that genuine margin, never
+guessed. A unit with zero snaps charted (e.g. an offense-only game) shows
+only its own side with an honest `"no defensive snaps charted"` disclosure,
+never a fabricated zero for the other side.
+
+**Density: two-column tab content via CSS multi-column layout, not CSS
+Grid.** A Grid-based 2-column pairing was tried and reverted once already on
+this route (the H14/J13 comments still in the file record why: a shared grid
+row sizes to its tallest child even with `align-items:start`, so a short
+module paired with a tall one just leaves dead space in its own column — a
+worse defect than scrolling). CSS `columns` does not have that failure mode
+— the browser balances actual content height across columns — so
+`[data-native-main-report]` is now `columns` (440px column-width, 1px
+`column-rule` seam) with `break-inside:avoid-column` on every `.stats-
+section`, and `column-span:all` on content that genuinely needs the full
+measure (multi-column internal grids — scoreboard, team detail, lens board,
+answer grid, play calls, team profile — plus heat maps, tendency matrices,
+field zones, the Big-12/Self-Scout-Tells wide tables, and anything that
+already manages its own internal 2-column split like `.stats-two-col`).
+`.gi-defense-report` gets the identical treatment nested one level deeper,
+since the whole Defense tab is one wrapper div.
+
+**Two real defects caught by direct measurement, not by eye, and fixed
+before this was called done:**
+1. A first pass used a blanket `:has(.stats-table-full)` span-all rule,
+   reasoning that "wide tables need full width." Measured directly via
+   `getComputedStyle().columnSpan` on every Overview section: it caught
+   nearly everything (any table triggers `.stats-table-full`), leaving only
+   4 of 10 Overview sections eligible for 2-column pairing and barely moving
+   the scroll height (4738→4799px, briefly *worse*). Replaced with a
+   short list of content that actually needs the width — an ordinary 4-8
+   column table (Down & Distance, Big Plays, Drives, Hash Tendencies) reads
+   fine at column width, and pairing exactly those is the density gain the
+   brief asked for.
+2. Several `:has()` selectors were self-referencing bugs — `.gi-team-detail`/
+   `.gi-team-profile`/`.gi-play-calls`/`.gi-answer-grid` all carry their grid
+   class directly ON the `.stats-section` element (verified against the
+   literal template strings in `stats-engine.js`/`reports-screen.js`), and
+   `:has()` cannot match an element against itself. Fixed to plain compound
+   selectors. A follow-up sweep (measuring `scrollWidth − clientWidth` on
+   every section across all 8 tabs with a realistic fixture) caught three
+   more real clips: the Big-12/Self-Scout-Tells wide tables, any section
+   already using the pre-existing `.stats-two-col` internal split (would
+   otherwise be squeezed a second time by the new outer columns — `By
+   Formation` measured 270px of clipped content before the fix), and the
+   shared defensive self-scout block. All now span-all; re-measured clean
+   (0px overflow) on every tab except one pre-existing, unrelated case
+   disclosed below.
+
+**One pre-existing overflow left alone, confirmed not caused by this
+work.** `_renderDefensive()`'s "Defensive Analytics" sub-block overflows its
+container by 121px even at full measure. Verified directly: forcing the new
+`columns` CSS off entirely (matching the exact pre-Part-2 single-column
+layout) reproduces the identical 121px overflow — proving it predates this
+checkpoint and isn't a density regression. Already covered by the existing
+`.stats-section{overflow-x:auto}` safety net (a small horizontal scrollbar
+inside that one block, not a page-level overflow). Left untouched — fixing
+`_renderDefensive()`'s internal table markup is out of this checkpoint's
+scope.
+
+**One deliberate trade-off, disclosed rather than hidden.** The Defense
+tab's overall scroll height barely moved (3924→3953px, +1%) despite
+Offense/Overview/Self-Scout/Players each dropping 11-25%. This is the
+correctness fix above spending back most of the density gain — the "Best
+Calls" and shared defensive-self-scout blocks both needed `column-span:all`
+to stop clipping their own wide tables, which is the right trade (correct
+and readable over merely shorter). Mobile (390×844) heights are unchanged
+from before this checkpoint by design — Part 2 collapses to the existing
+single-column stack below 1099px rather than attempting to column-ize a
+narrow viewport, preserving hierarchy and touch targets exactly as
+required.
+
+**Cleanup item #7 from the brief:** removed the duplicated Fumble-ownership
+classifier comment in `js/breakdown-theater-screen.js` (six lines repeated
+verbatim back-to-back from the Part 1 repair round) — comment only, zero
+behavior change.
+
+**Files changed:** `css/native-reports.css` (color migration + density
+block, appended per the file's own "design rules go at the end" discipline),
+`js/reports-screen.js` (`_syncKpiRail` Turnovers tile), `js/stats-engine.js`
+(`_kpiRailData` composes existing `turnovers`/`defensive.turnovers` values —
+no new formula), `js/breakdown-theater-screen.js` (duplicate-comment
+cleanup, no behavior change).
+
+**Before/after evidence:** `design-comps/visual-reset-2026-08/
+part2-verification/{before,after}/` — 32 screenshots each (8 tabs ×
+1440×900/1280×720/768×1024/390×844) from one deterministic two-game fixture
+(offense/defense/special-teams/penalty/player data, a genuine offense-unit
+interception and a defense-unit interception so both giveaway and takeaway
+sides of the new Turnovers tile are exercised), plus `metrics.json` per run
+recording measured scroll heights, a metric spot-check per tab, and captured
+film-navigation refs from a representative Watch action.
+
+**Measured page heights at 1440×900 (`.ws-reports` scrollHeight, the
+route's actual internal scroll container — confirmed via `css/workspace-
+shell.css`'s `.ws-reports{overflow-y:auto}`, not `document.documentElement`
+which reads a constant viewport height on this route):**
+| Tab | Before | After | Δ |
+|---|---|---|---|
+| Overview | 4738px | 3561px | −25% |
+| Offense | 5001px | 3765px | −25% |
+| Defense | 3924px | 3953px | +1% (see trade-off above) |
+| Special Teams | 909px | 846px | fits in one screen |
+| Players | 1196px | 902px | −25% |
+| Self-Scout | 3905px | 3491px | −11% |
+| Season | 4264px | 3267px | −23% |
+| Matchup | 2406px | 2290px | −5% |
+
+Zero horizontal page overflow at any tab/viewport, before or after.
+
+**Metric spot-check, one real value per tab, source vs. rendered, identical
+before and after (proving zero value drift from the presentation change):**
+Overview KPI rail (`Final Score 41–0`, `Total Plays 66`, `Plays Charted 66`,
+`Success Rate 64%` — byte-identical before/after, plus the new `Turnovers 1
+GA · 1 TA`); Offense/Defense/Self-Scout/Players/Special/Season/Matchup each
+confirmed non-empty and rendering; `stats.efficiency.successRate` (`"64.0"`),
+`stats.turnovers.total` (`1`), `stats.defensive.turnovers` (`1`) read
+directly off the live `compute()` object match the displayed KPI tile
+exactly on both runs.
+
+**Film-ref equality:** a representative Offense-tab Watch action
+(`data-cut-type="runpass"`, label `Trips`) resolved to the identical 9-item
+composite-ref set (same play-index sequence `1,7,13,19,31,37,43,49,61`,
+same label) on both the before and after runs — the game id itself differs
+only because each run creates a fresh season, which is expected and not a
+regression.
+
+**Verification:**
+- `node tools/e2e-native-reports.mjs` — **76/76**, unchanged.
+- `node tools/e2e-design-system.mjs` — **16/16**, unchanged — confirms every
+  new/changed selector still resolves to a declared token.
+- `node tools/e2e-study-query.mjs` — **48/48**, unchanged (film-link/cohort
+  contract untouched).
+- `node tools/e2e-parity.mjs` — **2/2** (3 scopes/189 drilldowns synthetic +
+  7 scopes/625 drilldowns real six-game) — **zero analytics value moved**,
+  the strongest evidence this is presentation-only.
+- `node tools/e2e-realdata.mjs` — **13/13** — every one of the coach's real
+  six games renders every report view with no errors under the new CSS.
+- Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 88 green
+  | 0 skipped | 0 failed**.
+
+**No analytics formula, eligibility rule, cohort membership, metric
+polarity, film reference, season data, or coach data changed.** Every
+displayed number still traces to the existing `StatsEngine.compute()`/
+`defensivePerformance()`/`generateSelfScout()`/`SeasonManager.statsHtml()`
+owners; the two new composed fields in `_kpiRailData` read already-computed
+values, they don't compute anything new. No installer/package/tag/deploy.
+
+**Handoff to Codex for independent review.** Highest-value places to look
+first: (a) the two `:has()` self-referencing selector bugs and the blanket-
+`.stats-table-full` over-spanning — both caught by direct `getComputedStyle`
+measurement during this build, worth re-deriving independently rather than
+trusting the fix; (b) the Defense tab's near-flat height trade-off, whether
+the coach would rather have back some of that density at the cost of a
+narrower "Best Calls"/"Defensive Self-Scout" column; (c) the disclosed
+pre-existing `_renderDefensive()` 121px overflow, confirmed unrelated to this
+checkpoint via a direct before/after CSS-toggle measurement, not fixed here;
+(d) whether the gold/cyan color assignments read correctly across every
+report state named in the brief (a penalty play, a special-teams play, a
+long custom formation/front/play-call value, missing film, empty game) —
+this checkpoint's fixture covers most of these but was not exhaustively
+walked against every named state one-by-one.
+
 ### ▶ CODEX FINAL REVIEW — Broadcast Density Part 1 `3b385d0`: ACCEPTED (2026-08-16)
 
 **Part 1 is accepted. Reports Part 2 may open.** Independent source review and
