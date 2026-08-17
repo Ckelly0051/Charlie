@@ -305,7 +305,13 @@ result = await page.evaluate(async () => {
   // with nothing explaining the discrepancy. Official 21-14 against a tagged
   // reconstruction of 6-0 must now be visibly disclosed as a mismatch.
   const mismatch = await load('g-mismatch', { opponent: 'Wildcats', perspective: 'self', scoreUs: 21, scoreThem: 14 }, [tdPlay]);
-  return { noOfficial, matches, mismatch };
+  // Codex re-review of `8f32fb6` (2026-08-17): gi.scoreUs/scoreThem are
+  // interpolated into the mismatch paragraph. That field is importable season
+  // data, not app-generated, so an untrusted season file can carry an HTML
+  // payload there instead of a number -- confirm it renders as inert text.
+  window.__xssFired = false;
+  const xss = await load('g-xss', { opponent: 'Wildcats', perspective: 'self', scoreUs: '<img src=x onerror="window.__xssFired=true">', scoreThem: 0 }, [tdPlay]);
+  return { noOfficial, matches, mismatch, xss, xssFired: window.__xssFired, xssHasImg: !!document.querySelector('.gi-reports .scoreboard-mismatch img') };
 });
 ok(!result.noOfficial.kickerPresent && !result.noOfficial.mismatchPresent,
   'With no official score to reconcile against, the section stays silent rather than labeling itself against nothing', JSON.stringify(result.noOfficial));
@@ -314,6 +320,11 @@ ok(result.matches.kickerPresent && !result.matches.kickerIsMismatch && !result.m
 ok(result.mismatch.kickerPresent && result.mismatch.kickerIsMismatch
   && result.mismatch.mismatchPresent && /21–14/.test(result.mismatch.mismatchText || ''),
   'When the official score disagrees with the tagged reconstruction, the mismatch is visibly disclosed with the real official final', JSON.stringify(result.mismatch));
+ok(/review them/i.test(result.mismatch.mismatchText || '') && !/chart the rest/i.test(result.mismatch.mismatchText || ''),
+  'The mismatch copy points the coach at reviewing the tagged scoring plays, not an assumed missing play', JSON.stringify(result.mismatch.mismatchText));
+ok(!result.xssFired && !result.xssHasImg && result.xss.mismatchPresent
+  && result.xss.mismatchText.includes('<img src=x'),
+  'An untrusted official score value renders as inert text, never executable markup', JSON.stringify({ xssFired: result.xssFired, xssHasImg: result.xssHasImg, text: result.xss.mismatchText }));
 
 // 1c/1d swapped in their own minimal fixtures game-by-game; every later
 // section in this file continues building on the original two-game g-self/

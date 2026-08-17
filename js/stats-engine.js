@@ -3399,7 +3399,7 @@ export class StatsEngine {
                 <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
               </div>
             </div>
-            ${officialMismatch ? `<p class="scoreboard-mismatch">Official final in Game Settings is <strong>${gi.scoreUs}–${gi.scoreThem}</strong>. This reconciliation reflects only the scoring plays currently tagged — chart the rest to bring it in line.</p>` : ''}
+            ${officialMismatch ? `<p class="scoreboard-mismatch">Official final in Game Settings is <strong>${Charts._esc(String(gi.scoreUs))}–${Charts._esc(String(gi.scoreThem))}</strong>. This reconciliation reflects only the scoring plays currently tagged — review them for a missing, extra, or mistagged score.</p>` : ''}
             ${qTable}
             <details class="scoreboard-note">
               <summary>How this score is tracked</summary>

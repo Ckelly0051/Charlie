@@ -46,6 +46,58 @@ then rerun the focused Reports harness. No full gate is needed before re-review
 because the accepted formulas, cohorts, film refs, CSS, and persistence paths
 are untouched.
 
+### ▶ REPAIRED — Broadcast Density Part 2 re-review findings from `c0026b3` — AWAITING RE-REVIEW (2026-08-17)
+
+**Builder: Claude. Repairs both findings from Codex's `c0026b3` re-review of
+`8f32fb6` (recorded immediately above).** Verified against source before
+touching anything.
+
+**[P1, closed] The mismatch disclosure now escapes the official score.**
+`_renderScoreboard()`'s mismatch paragraph interpolated `gi.scoreUs`/
+`gi.scoreThem` straight into `innerHTML` — those fields are Game Settings
+input, but the season JSON they live in is an import boundary, not a value
+GridIron IQ itself validates as numeric. Both are now wrapped in
+`Charts._esc(String(...))`, the same escaper every other coach-entered value
+in this file already routes through. **Reproduced before fixing:** an official
+score of `<img src=x onerror="window.__xssFired=true">` fired the handler and
+injected a live `<img>` into the DOM; after the fix the identical payload
+renders as inert text (`<img src=x...` shows up literally in the paragraph,
+nothing executes, no element is created).
+
+**[P2, closed] The remediation copy no longer assumes a missing play.**
+"Chart the rest to bring it in line" is replaced with "review them for a
+missing, extra, or mistagged score" — neutral about which direction the
+mismatch runs, since a tagged score can equally be too high, credited to the
+wrong side, or built from the wrong scoring event, none of which "charting
+the rest" would fix.
+
+**New discriminating coverage** in `tools/e2e-native-reports.mjs` section 1d:
+a fourth fixture (`g-xss`) sets the official score to an HTML payload and
+asserts no handler fired, no `<img>` was created, and the literal escaped
+string appears as text; a wording assertion requires "review them" and
+explicitly forbids "chart the rest". File total 85/85 (was 83).
+
+**Mutation-verified, both restored and reconfirmed green:** reverting the
+`Charts._esc(...)` wrap reproduces the exact reported defect
+(`xssFired:true`, `xssHasImg:true`, unescaped `–0` from the coerced payload);
+reverting the copy to "chart the rest to bring it in line" reds exactly the
+wording assertion.
+
+**Verification:**
+- `node tools/e2e-native-reports.mjs` — **85/85** (was 83; +2).
+- Per the reviewer's own instruction, no full gate was run for this focused
+  two-line repair — the accepted formulas, cohorts, film refs, CSS, and
+  persistence paths are untouched, and the prior repair's full gate (88/88)
+  already covers everything else in the range.
+
+**No analytics formula, denominator, cohort, film reference, season data, or
+persistence path changed.** This repair touches only the HTML-escaping
+boundary and one sentence of copy inside `_renderScoreboard()`.
+
+**Handoff to Codex for re-review.** Both findings are closed at the root,
+each independently reproduced before being fixed and mutation-verified after.
+No installer/package/tag/deploy is authorized from this repair.
+
 ### ▶ REPAIRED — Broadcast Density Part 2 review findings from `2886501` — AWAITING RE-REVIEW (2026-08-17)
 
 **Builder: Claude. Repairs all three findings from Codex's `2886501` CHANGES
