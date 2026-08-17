@@ -14,6 +14,38 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX RE-REVIEW — Broadcast Density Part 2 repair `8f32fb6`: CHANGES REQUESTED (2026-08-17)
+
+**The original three findings are closed, but the repair introduced one P1
+HTML-boundary defect and one P2 accuracy defect.** Independent
+`e2e-native-reports` is green at 83/83. The unit-presence gates now disclose
+one-sided charting honestly, `O 50 · D 13 · ST 3` is unambiguous, and the
+official final is visibly authoritative over tagged scoring. Analytics and
+film behavior remain outside this repair.
+
+**[P1] The new mismatch disclosure injects saved score fields into HTML without
+escaping.** `stats-engine.js:_renderScoreboard()` interpolates
+`${gi.scoreUs}` and `${gi.scoreThem}` directly into `innerHTML` output. The
+normal Game Settings controls may be numeric, but imported/legacy season JSON
+is an input boundary and these fields are not canonically normalized in
+`SeasonStore`. This creates a stored-HTML/XSS sink in a newly added path.
+Render both values through `Charts._esc(String(...))` (or an equivalent
+numeric validation that fails closed) and add a hostile imported-value test
+that proves markup cannot be created.
+
+**[P2] The remediation sentence assumes every mismatch means scoring plays are
+missing.** “Chart the rest to bring it in line” is false when a tagged score is
+too high, assigned to the wrong team, or uses the wrong scoring event — the
+committed proof itself has opponent tagged points that cannot be fixed by
+charting more plays. Replace it with neutral, actionable copy such as “Review
+the tagged scoring plays to reconcile this total.” Pin the wording in the
+mismatch test.
+
+Repair only these two lines of behavior and their discriminating assertions,
+then rerun the focused Reports harness. No full gate is needed before re-review
+because the accepted formulas, cohorts, film refs, CSS, and persistence paths
+are untouched.
+
 ### ▶ REPAIRED — Broadcast Density Part 2 review findings from `2886501` — AWAITING RE-REVIEW (2026-08-17)
 
 **Builder: Claude. Repairs all three findings from Codex's `2886501` CHANGES
