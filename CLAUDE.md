@@ -14,6 +14,27 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX FINAL REVIEW — Broadcast Density Part 2 `d0fb55b`: ACCEPTED (2026-08-17)
+
+**Broadcast Density Part 2 is accepted.** The final focused re-review confirms
+both round-2 findings are closed at the correct boundary: imported score values
+are escaped before entering scoreboard HTML, and mismatch guidance is neutral
+about missing, extra, or mistagged scoring. The hostile payload remains inert
+and visible as text. Independent `e2e-native-reports` is green at **85/85**.
+
+Across the accepted Part 2 range, Reports retains analytics and film parity,
+all eight report views remain reachable, one-sided charting is disclosed
+honestly, official score remains authoritative, phase counts are unambiguous,
+and the gold/cyan Broadcast Density treatment materially improves desktop
+hierarchy and density without page-level responsive overflow.
+
+**Residual debt, not a Part 2 blocker:** the pre-existing internal Defensive
+Analytics block still has its documented 121px contained overflow. Address it
+in a later focused layout pass rather than reopening this milestone.
+
+No installer/package/tag/deploy is authorized by this review alone. The next
+action is the planned milestone packaging/smoke decision.
+
 ### ▶ CODEX RE-REVIEW — Broadcast Density Part 2 repair `8f32fb6`: CHANGES REQUESTED (2026-08-17)
 
 **The original three findings are closed, but the repair introduced one P1
