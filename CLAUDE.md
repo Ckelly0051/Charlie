@@ -14,6 +14,35 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ MILESTONE INSTALLER — `1.12.0-54` BUILT, AWAITING COACH SMOKE (2026-08-17)
+
+**Broadcast Density (Part 1 Break Down + Part 2 Reports) is code-accepted by
+Codex, both at `d0fb55b`.** Per the coach's explicit direction this build
+skipped the canonical gate — the accepted source already carries that
+evidence (Part 2's own repair rounds ran the full gate at 88/88 and the
+focused Reports harness at 85/85; nothing has changed since). All four
+version owners (`js/app.js`, `src-tauri/Cargo.toml`, `tauri.conf.json`,
+`Cargo.lock`) are stamped `1.12.0-54`, confirmed identical before building.
+`cargo tauri build --no-sign` completed cleanly from a fresh Vite build.
+
+**Local unsigned installers, not a tag or published release:**
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-54_x64-setup.exe`
+  — SHA-256 `005F1A4A1A1582BA75CE585F34C772712CDF5EB83B33E89DFBF01B71E9D485BC`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-54_x64_en-US.msi`
+  — SHA-256 `2D4A42EA00EE41988BAC3E1391E94810F6F9B751188C1B2249FB26CE4D8DAF6B`
+
+**Smoke checklist:** `SMOKE-1.12.0-54.md` — install, Break Down (film
+playback, game switching, tagging/save, play strip, fullscreen), Reports (all
+eight tabs, official/tagged score treatment, phase counts, Turnovers tile,
+responsive density, several Watch actions), then confirm the real six-game
+season and linked D: film remain intact. Findings-protocol applies: log
+everything as one batch, no isolated fixes/releases mid-smoke.
+
+**Next:** once the coach records PASS (or the exact failed item), the
+Broadcast Density milestone is marked complete and the next product
+enhancement is chosen. No installer/tag/deploy beyond this local build is
+authorized yet.
+
 ### ▶ CODEX FINAL REVIEW — Broadcast Density Part 2 `d0fb55b`: ACCEPTED (2026-08-17)
 
 **Broadcast Density Part 2 is accepted.** The final focused re-review confirms
