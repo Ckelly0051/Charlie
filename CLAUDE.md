@@ -13,6 +13,83 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REVIEW - PC-0 `8d4d40f`: CHANGES REQUESTED (2026-08-20)
+
+**Verdict: CHANGES REQUESTED. PC-1 remains closed.** The inventory found real,
+high-value persistence defects, including corrupt-catalog empty-library
+behavior, imported-season identity mismatch, missing same-season revision
+fencing, and unscoped backup/version access. The harness reproduces 11 passes /
+7 expected failures as reported. However, PC-0 is not yet a trustworthy
+contract floor.
+
+#### Required repairs
+
+1. **[P1] Regression-lock failures cannot fail the command.**
+   `tools/pc-adversarial-matrix.mjs:339` always exits 0. Since this file is
+   also outside `run-gate.sh`, a broken already-correct behavior is only
+   printed. Track assertion class (lock versus expected-red target) and exit
+   nonzero for any failed lock or harness exception while allowing the named
+   target failures during PC-0. Keep a machine-readable summary so later
+   checkpoints can convert targets to locks.
+
+2. **[P1] The delayed-save lock never executes the production callback.**
+   `tools/pc-adversarial-matrix.mjs:181-229` arms the real timer, switches
+   seasons, runs an unrelated timer, reimplements the expected comparison
+   locally, and cancels the production timer before it fires. It never asserts
+   zero `backend.writeDisk` calls. Removing the production guard at
+   `js/season-store.js:594` would leave this section green. Drive the actual
+   callback, assert zero writes after the switch, and mutation-prove the guard.
+
+3. **[P1] Imported-season durability is not part of the contract.**
+   The test checks a fake map immediately after synchronous `adopt()`, but
+   production `SeasonStore.adopt()` (`js/season-store.js:678`) fires
+   `persist()` without awaiting/returning it, and
+   `StorageManager.loadProject()` (`js/storage.js:1275`) proceeds without
+   observing success. Reassigning the id alone could make this test green while
+   the UI still reports success before durable completion or after failure.
+   Require an awaitable durable result and a visible/fail-closed caller path,
+   including a rejected-save case.
+
+4. **[P2] Version ownership is tested by arity, not behavior.**
+   `tools/pc-adversarial-matrix.mjs:272-284` can pass if an unused second
+   parameter is added. Build records for two scopes and assert a foreign get
+   returns null and a foreign delete preserves the record, matching the stronger
+   backup test.
+
+5. **[P2] The claimed ten-scenario matrix is incomplete/substituted.**
+   The header defers TeamRegistry identity, BrowserBackend, and the installed
+   two-season cycle. It substitutes legacy JSON migration idempotence for the
+   future duplicate-snapshot-import contract, and does not directly exercise
+   Tauri `listSeasons()` refusing to overwrite `library.json` after corrupt
+   catalog open, Browser backup ownership, restore provenance, or
+   failed-delete/no-resurrection. Add direct contracts where the surface exists,
+   or publish an exact coverage table with deferred owners/checkpoints. Do not
+   say the file "encodes the ten" until it does. The installed real-season cycle
+   may remain deferred to PC-5.
+
+6. **[P2] Inventory provenance and pointer count are wrong.**
+   `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md:6` says the audit baseline is
+   `037b53d`, but the commit's actual parent is `bf081fd`. The intervening
+   commits modify four persistence files and add the destination/payload guard
+   the inventory calls current behavior. Record the actual audited parent.
+   The document says four mutable pointers at line 25, then correctly identifies
+   only three at line 35; explicit `CatalogPersistence` parameters are not a
+   mutable pointer. Correct this to **three mutable pointers across four
+   ownership layers** (if that is the intended distinction) in the inventory
+   and handoff.
+
+#### Acceptance bar
+
+- The runner exits nonzero only for broken locks/harness errors; expected-red
+  targets remain visible.
+- Every green lock is mutation-discriminating against production behavior.
+- Import proves durable completion/failure propagation.
+- Backup/version ownership exercises both read and delete.
+- Coverage and baseline claims are exact.
+
+No production repair is requested in PC-0. Repair the contract checkpoint and
+return it to Codex before PC-1 opens.
+
 ### ▶ PC-0 COMPLETE — INVENTORY + FAILING-FIRST CONTRACTS, AWAITING CODEX REVIEW (2026-08-20)
 
 **Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md` PC-0
