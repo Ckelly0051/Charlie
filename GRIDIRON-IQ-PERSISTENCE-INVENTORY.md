@@ -3,18 +3,24 @@
 **Status:** PC-0 deliverable — inventory + failing-first contracts only. **No
 production behavior was changed to produce this document.** Every finding
 below is a read of the source as it exists on `claude/football-film-analyzer-GRiCW`
-at commit `037b53d` (the plan's application baseline for this checkpoint).
+at commit `bf081fd` (this checkpoint's actual parent — corrected per Codex's
+`529d8ae` review; `037b53d` was four commits stale and predates two
+persistence-affecting commits, `8408986` and `bf081fd` itself, whose
+destination/payload guards and catalog-truth recovery this inventory's own
+findings already assume are in place).
 
 **Companion test file:** `tools/pc-adversarial-matrix.mjs` — a standalone Node
 harness (NOT part of `tools/e2e-*.mjs`, and therefore not swept into
 `tools/run-gate.sh` or CI) that encodes the ten adversarial-matrix scenarios
-from `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`. Some of its assertions are
-**intentionally red today** — that is the point of "failing-first": they
-describe the invariant-compliant target behavior, fail against current code
-where a real gap exists, and are expected to turn green checkpoint by
-checkpoint (PC-1 through PC-4). Run it with `node tools/pc-adversarial-matrix.mjs`.
-Its own result line reports pass/fail counts per item, not a single gate
-verdict — read the per-item output, don't just check the exit code.
+from `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`, plus a coverage table
+naming exactly how each of the ten is proven (direct section, an existing
+harness, or an explicitly deferred owner/checkpoint). Every assertion is
+tagged **LOCK** (already-correct behavior; must stay green — a red lock fails
+the process, exit code nonzero) or **TARGET** (an intentional failing-first
+contract; expected red until its named checkpoint, and does not affect the
+exit code). Run it with `node tools/pc-adversarial-matrix.mjs`; a clean exit
+(code 0) means no lock has regressed, not that every scenario is solved —
+still read the per-item output to see which targets remain open.
 
 ---
 
@@ -22,15 +28,17 @@ verdict — read the per-item output, don't just check the exit code.
 
 The plan's Invariant #3 ("No mutable global current-season pointer may choose
 a write destination") first requires knowing how many such pointers exist.
-There are **four**, not one, and they are kept in sync only by calling
-convention, never by construction:
+There are **three mutable pointers, across four ownership layers** — the
+fourth layer, `CatalogPersistence`, is correctly explicit (see below) and is
+not a pointer at all. They are kept in sync only by calling convention, never
+by construction:
 
-| Pointer | Lives on | Set by | Read by |
-|---|---|---|---|
-| `SeasonStore.currentSeasonId` | `js/season-store.js:32` | `openSeason`/`createSeason`/`deleteSeason`/`closeSeason` | `commitActive`, `_autoSave`, `_maybeSnapshot`, `_flushDeferredSnapshot`, `isDemoSeason`, `undoRemoveGame`, version-manager `_key()` |
-| `StorageBackend.currentId` (base class field, used by both `BrowserBackend` and `TauriBackend`) | `js/storage-backend.js:35` | `setCurrentSeason(id)` — called once per season transition from `SeasonStore` | every canonical/backup/film method on the backend that doesn't take an explicit id (`loadSeason`, `saveSeason`, `createBackup`, `listBackups`, `getBackup`, `deleteBackup`, `_filmsDir`, `importFilm`, `filmUrl`, `deleteFilm`, `managedGameDir`, `listFilmFiles`) |
-| `SqlCatalog.currentId` | `js/sql-catalog.js:34` | `setCurrentSeason(id)` — called by `CatalogPersistence` immediately before each backup/version op, and internally as a fallback inside `saveSeason`/`loadSeason` | `createBackup`, `listBackups`, `_pruneBackups`, `deleteSeason` (only to null itself out) |
-| `CatalogPersistence` has **no pointer of its own** — it always threads an explicit `id`/`seasonId` parameter into every method. This is the correct shape; see §3. | — | — | — |
+| Layer | Pointer? | Lives on | Set by | Read by |
+|---|---|---|---|---|
+| `SeasonStore` | **mutable pointer** — `currentSeasonId` | `js/season-store.js:32` | `openSeason`/`createSeason`/`deleteSeason`/`closeSeason` | `commitActive`, `_autoSave`, `_maybeSnapshot`, `_flushDeferredSnapshot`, `isDemoSeason`, `undoRemoveGame`, version-manager `_key()` |
+| `StorageBackend` (base class field, used by both `BrowserBackend` and `TauriBackend`) | **mutable pointer** — `currentId` | `js/storage-backend.js:35` | `setCurrentSeason(id)` — called once per season transition from `SeasonStore` | every canonical/backup/film method on the backend that doesn't take an explicit id (`loadSeason`, `saveSeason`, `createBackup`, `listBackups`, `getBackup`, `deleteBackup`, `_filmsDir`, `importFilm`, `filmUrl`, `deleteFilm`, `managedGameDir`, `listFilmFiles`) |
+| `SqlCatalog` | **mutable pointer** — `currentId` | `js/sql-catalog.js:34` | `setCurrentSeason(id)` — called by `CatalogPersistence` immediately before each backup/version op, and internally as a fallback inside `saveSeason`/`loadSeason` | `createBackup`, `listBackups`, `_pruneBackups`, `deleteSeason` (only to null itself out) |
+| `CatalogPersistence` | **not a pointer** — no mutable field of its own | — | — | always threads an explicit `id`/`seasonId` **parameter** into every method call; this is the correct shape, and the model the four other layers should be pulled toward, not a fourth instance of the problem |
 
 Three real pointers, two of them ambient/implicit (`StorageBackend.currentId`,
 `SqlCatalog.currentId`) rather than parameters. `SeasonStore.currentSeasonId`
@@ -288,7 +296,9 @@ suggestion) or fence this some other way.
 
 ### 3.3 — Backup and version reads/deletes have no season/game ownership check, at both storage layers
 
-Confirmed independently in both backends:
+Confirmed independently in both backends, and each is now backed by a
+runnable reproduction in `tools/pc-adversarial-matrix.mjs` (sections 5/6, 7,
+and 11), not source-reading alone:
 
 - `BrowserBackend.getBackup(id)` / `deleteBackup(id)` (`js/storage-backend.js:323-327`) —
   IndexedDB lookups by bare `id`, no `record.seasonId === this.currentId` check.
@@ -303,7 +313,10 @@ tokens), so today this is only exploitable if a caller supplies an id that
 was **listed under a different season than the one currently scoped** — which
 requires either a stale UI reference (season switched between listing and
 clicking) or a caller bug. `SeasonStore.restoreBackup(id)` inherits whichever
-of these two backends is active, with no additional check of its own.
+of these two backends is active, with no additional check of its own —
+reproduced directly in `tools/pc-adversarial-matrix.mjs` section 12: a
+backup id belonging to season B, restored while scoped to season A, lands
+season B's data in season A's live state.
 `CatalogPersistence.getBackup(id, backupId)`/`deleteBackup(id, backupId)`
 call `this.catalog.setCurrentSeason(id)` immediately before delegating to
 `SqlCatalog.getBackup(backupId)`/`deleteBackup(backupId)` — but since those

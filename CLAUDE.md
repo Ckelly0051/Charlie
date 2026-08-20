@@ -13,6 +13,99 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-0 REPAIRED — all six `529d8ae` findings closed, AWAITING RE-REVIEW (2026-08-20)
+
+**Builder: Claude. Repairs every item in Codex's `529d8ae` CHANGES REQUESTED
+review (recorded immediately below).** Each finding was verified against
+source before being fixed, none taken on report.
+
+1. **[P1] Exit code now reflects lock health.** Every assertion is tagged
+   `lock` (already-correct; must stay green) or `target` (intentional
+   failing-first contract). `process.exit()` is now `(failLock > 0 ||
+   crashed) ? 1 : 0` — a target failure alone no longer masks anything, and a
+   broken lock or an uncaught exception both fail the process. A
+   machine-readable `{"locks":{...},"targets":{...},"crashed":...}` line is
+   printed alongside the human-readable result.
+2. **[P1] The delayed-save lock now drives the real production callback.**
+   Section 4 temporarily replaces `globalThis.setTimeout` to CAPTURE the
+   exact closure `SeasonStore._scheduleDiskWrite()` registers, then invokes
+   that captured callback directly — a positive case first (same season →
+   exactly one real write, proving the mechanism isn't vacuous), then the
+   negative case (season switched before firing → zero writes). **Mutation-
+   verified against production, not just described:** temporarily removed
+   the `if (this.currentSeasonId !== sid) return;` guard in
+   `js/season-store.js`, reran — the negative-case assertion reds with
+   `[{"target":"Season-B","id":"Season-A"}]` (Season A's data landing in
+   Season B's slot) and the harness's own exit code correctly flips to `1`.
+   Restored immediately after (`git status`/`git diff` confirm the file is
+   byte-identical to committed); reran clean.
+3. **[P1] Import durability is now part of the contract, not just the id.**
+   Section 3 splits into two cases: (A) today's real bug — the destination id
+   is never reassigned, so the import is silently rejected; (B) even with a
+   correct id, `adopt()` must return something a caller can `await`, and a
+   REJECTED durable write (simulated: `saveSeason` returns `false`) must be
+   visibly reported, not silently accepted. Both are red today — reassigning
+   the id alone can no longer satisfy this contract.
+4. **[P2] Version ownership is now tested by behavior, not arity.** Section 7
+   builds two real scoped version records via `SqlCatalog.saveVersion` for
+   two different `(seasonId, gameId)` pairs and asserts a foreign
+   `getVersion` returns nothing and a foreign `deleteVersion` preserves the
+   record — same shape as the backup test, genuinely exercising read+delete
+   isolation instead of checking `getVersion.length >= 2`.
+5. **[P2] The ten-item matrix now has an exact, printed coverage table.**
+   Every one of the plan's ten adversarial-matrix items is mapped to: a
+   direct section in this file, an existing harness that already covers it
+   (`tools/e2e-catalog-persistence.mjs` for delete-fails durability — not
+   duplicated here), or an explicit deferred owner/checkpoint with a stated
+   reason (TauriBackend's Tauri-fs-plugin dependency defers the
+   `listSeasons()` call site itself to a future browser-level harness or
+   PC-5; the general PC-3 snapshot-import envelope doesn't exist in
+   production yet, so section 8 is honestly relabeled as testing its closest
+   current analog — JSON→catalog migration idempotence — not substituted
+   silently). Three genuinely new direct contracts were added rather than
+   only documented: TeamRegistry-style peek-never-mutates-identity (section
+   10, using a hand-built fake `app`/`seasonStore` with `openSeason`/
+   `setCurrentSeason` spies — both report zero calls), a stale-JSON-sidecar-
+   ignored-when-SQLite-is-healthy case distinct from outright corruption
+   (section 9), BrowserBackend's own cross-season backup leak (section 11,
+   via a ~40-line in-memory `indexedDB` shim mirroring this project's
+   existing "inject a fake fs" pattern rather than reimplementing
+   `BrowserBackend`), and `SeasonStore.restoreBackup()`'s exposure to the
+   same wrong-id case one layer above the storage backends (section 12).
+6. **[P2] Inventory citations corrected.** `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md`
+   now cites `bf081fd` as the audited baseline (the true parent — `037b53d`
+   was four commits stale) and states **three mutable pointers across four
+   ownership layers** (`SeasonStore.currentSeasonId`, `StorageBackend.currentId`,
+   `SqlCatalog.currentId`; `CatalogPersistence`'s per-call explicit parameters
+   are the fourth layer and correctly not a pointer), replacing the
+   internally-inconsistent "four pointers" claim.
+
+**Two real bugs were found and fixed in the test harness itself while
+repairing it, disclosed rather than silently corrected:** (a) the fake
+`indexedDB.transaction()` shim originally returned a different object than
+the one it attached `.oncomplete` to internally, which hung the whole script
+on an unsettled promise — found by running it, not by inspection; (b)
+section 11's first draft asserted `stillThere !== null`, but
+`BrowserBackend.getBackup()`'s not-found path can return `undefined` rather
+than `null` (a real quirk in `_tx()`'s `out.result` normalization on a
+miss), which made a genuinely-leaking cross-season delete read as a false
+PASS — caught by writing an isolated reproduction script when the full-suite
+result didn't match a standalone repro of the same two calls, not by trusting
+the first green result. Fixed by using loose `== null`/`!= null` checks,
+matching how the rest of the app treats "not found." Both are recorded
+because they are exactly the "check narrower than its name" failure class
+this codebase's own history warns about repeatedly, and this file is not
+exempt from it.
+
+**Verification on final bytes:** `node tools/pc-adversarial-matrix.mjs` — 16/16
+locks green, 2/13 targets green (11 intentionally red), exit code 0.
+`node --check tools/pc-adversarial-matrix.mjs` clean. No production file
+differs from `8d4d40f` — only the inventory doc and the test harness changed.
+
+**Handoff to Codex for re-review.** No production repair is authorized or
+attempted in this checkpoint, per the plan's own PC-0 boundary. PC-1 remains
+closed until this repair is accepted.
+
 ### CODEX REVIEW - PC-0 `8d4d40f`: CHANGES REQUESTED (2026-08-20)
 
 **Verdict: CHANGES REQUESTED. PC-1 remains closed.** The inventory found real,
