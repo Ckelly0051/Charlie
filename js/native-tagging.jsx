@@ -312,7 +312,9 @@ function NativeTagging({screen}) {
   const chips = (field,label,options,hint,library) => <Chips screen={screen} field={field} label={label} options={options} value={state.values[field]} hint={hint} library={library}/>;
   return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging>
     <header class="gi-tag-context">
-      <div class="gi-tag-title"><span class="gi-eyebrow">Charting</span><h2>{state.currentPlayId == null ? 'SELECT A PLAY' : `PLAY ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
+      <div class="gi-tag-title">
+        <div class="gi-tag-play-identity"><span class="gi-eyebrow">Charting</span><h2>{state.currentPlayId == null ? 'SELECT A PLAY' : `PLAY ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
+      </div>
       {/* F2c — one click, not two. Unit is the single most-used control on this
           screen and a dropdown made every change a two-step. F2a's perspective
           control is gone entirely (it is derived from unit + whose film this

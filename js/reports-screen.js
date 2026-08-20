@@ -163,9 +163,11 @@ export class ReportsScreen {
   _syncKpiRail() {
     const rail = this.host?.querySelector('[data-reports-rail]');
     if (!rail) return;
-    if (this._mode !== 'main' || this.perspective !== 'self' || this.activeTab === 'season') { rail.hidden = true; return; }
     const stats = this.app.stats;
     const data = stats?._kpiRailData?.(stats.compute());
+    this._syncScorebug(data);
+    if (this._mode !== 'main' || this.perspective !== 'self'
+      || this.activeTab === 'season' || this.activeTab === 'overview') { rail.hidden = true; return; }
     if (!data || !data.totalPlays) { rail.hidden = true; return; }
     const esc = Charts._esc;
     const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
@@ -223,6 +225,35 @@ export class ReportsScreen {
       turnoverTile,
     ].join('');
     rail.hidden = false;
+  }
+
+  _syncScorebug(data) {
+    const bug = this.host?.querySelector('[data-reports-scorebug]');
+    if (!bug) return;
+    const visible = this._mode === 'main' && this.perspective === 'self'
+      && this.activeTab === 'overview' && data?.totalPlays;
+    if (!visible) { bug.hidden = true; return; }
+    const esc = Charts._esc;
+    const game = this.app.storage?.gameInfo || {};
+    const context = this.app.workspace?.snapshot?.() || {};
+    const computed = this.app.stats.compute();
+    const tagged = computed.scoreboard || {};
+    const scoreUs = game.scoreUs !== '' && game.scoreUs != null ? game.scoreUs : (tagged.us || 0);
+    const scoreThem = game.scoreThem !== '' && game.scoreThem != null ? game.scoreThem : (tagged.them || 0);
+    const team = context.team?.name || game.teamName || 'Our Team';
+    const opponent = game.opponent || 'Opponent';
+    const result = Number(scoreUs) > Number(scoreThem) ? 'W' : Number(scoreUs) < Number(scoreThem) ? 'L' : 'T';
+    const quarters = ['Q1', 'Q2', 'Q3', 'Q4'].map(q => `<div class="gi-scorebug-quarter"><span>${q}</span><b>${tagged.byQuarter?.[q]?.us || 0}</b><i>${tagged.byQuarter?.[q]?.them || 0}</i></div>`).join('');
+    const offense = computed.offPlays?.length || 0;
+    const yards = (computed.rushing?.yards || 0) + (computed.passing?.yards || 0);
+    const ypp = offense ? (yards / offense).toFixed(1) : '—';
+    bug.innerHTML = `<div class="gi-scorebug-team"><span>${esc(team)}</span><strong>${esc(String(scoreUs))}</strong></div>
+      <div class="gi-scorebug-result is-${result.toLowerCase()}">${result}</div>
+      <div class="gi-scorebug-team is-opponent"><span>${esc(opponent)}</span><strong>${esc(String(scoreThem))}</strong></div>
+      <div class="gi-scorebug-line">${quarters}</div>
+      <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play.</b> ${yards} yards on ${offense} offensive snaps.</span></div>
+      <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
+    bug.hidden = false;
   }
 
   _syncHeader() {
@@ -516,36 +547,165 @@ export class ReportsScreen {
   }
 
   _overviewHtml(stats) {
-    const s = this.app.stats;
     if (!stats.allPlays) return this._emptyHtml();
-    return `
+    return `<div class="gi-overview-board">
+      ${this._overviewKpisHtml(stats)}
+      <div class="gi-overview-band gi-overview-band-3 gi-overview-phase">
+        ${this._overviewPhaseHtml(stats)}
+        ${this._overviewSituationalHtml(stats)}
+        ${this._overviewKeyMetricsHtml(stats)}
+      </div>
+      <div class="gi-overview-band gi-overview-band-3 gi-overview-production">
+        ${this._overviewRushingHtml(stats)}
+        ${this._overviewPassingHtml(stats)}
+        ${this._overviewYardsHtml(stats)}
+      </div>
+      <div class="gi-overview-band gi-overview-band-2 gi-overview-decisions">
+        ${this._overviewDownDistanceHtml(stats)}
+        ${this._overviewGamePlanHtml(stats)}
+      </div>
+      <div class="gi-overview-band gi-overview-band-3 gi-overview-support">
+        ${this._overviewBigPlaysHtml(stats)}
+        ${this._overviewDrivesHtml(stats)}
+        ${this._overviewDefenseHtml(stats)}
+      </div>
+    </div>`;
+  }
 
-      ${s._renderGameHeader(stats)}
-      ${s._renderTeamStats(stats)}
-      ${s._renderLensBoard(stats)}
-      ${s._renderTakeaways(stats)}
-      ${s._renderDownAnalysis(stats)}
-      ${/* H14/C — this pairing was wrong FOUR times, always the same
-            mechanism: CSS Grid makes a ROW as tall as its tallest column, and
-            `align-items:start` only stops the SHORT column from being
-            STRETCHED to fill that height — it cannot stop the row itself from
-            CLAIMING the space, so the leftover always lands as a visible
-            empty rectangle. Every reshuffle of which two sections share a row
-            (Drives+[Efficiency,ByDown,BigPlays] stack, then
-            Drives+[Efficiency,ByDown] stack, then Drives+Efficiency alone)
-            closed part of the gap and left a smaller one — coach's word was
-            "has to be fixed", not "smaller", and real game data will always
-            vary the exact height of every section, so no fixed pairing is
-            safe against reopening this on a different season. Every section
-            here now runs full width, one after another. A shorter section is
-            simply shorter — there is no partner row for it to leave empty
-            space in. */''}
-      ${s._renderDrives(stats)}
-      ${s._renderEfficiency(stats)}
-      ${s._renderByDownPanel(stats)}
-      ${s._renderBigPlays(stats)}
-      ${s._renderGameTimeline(stats)}
-      ${s._renderPenalties(stats)}`;
+  _overviewKpisHtml(stats) {
+    const totalYards = stats.rushing.yards + stats.passing.yards;
+    const yardsPerPlay = stats.offPlays.length ? (totalYards / stats.offPlays.length).toFixed(1) : '—';
+    const penalty = stats.penalties || {};
+    const giveaways = stats.turnovers?.giveaways ?? stats.offenseTurnovers ?? 0;
+    const kpi = (label, value, sub, cls = '') => `<div class="gi-overview-kpi ${cls}"><span>${Charts._esc(label)}</span><strong>${Charts._esc(String(value))}</strong><small>${Charts._esc(sub)}</small></div>`;
+    return `<div class="gi-overview-kpis">
+      ${kpi('Total plays', stats.allPlays, `${stats.allPlays} charted · 100%`)}
+      ${kpi('Success rate', `${stats.efficiency.successRate}%`, `${stats.efficiency.successfulPlays || 0} successful snaps`, 'is-good')}
+      ${kpi('Yards / play', yardsPerPlay, `${totalYards} total yards`, 'is-gold')}
+      ${kpi('Explosives', stats.efficiency.explosivePlays, `${stats.efficiency.explosivePct}% of snaps`)}
+      ${kpi('Turnovers', giveaways, 'giveaways')}
+      ${kpi('Plays for loss', stats.efficiency.negativePlays, `${stats.efficiency.negativePct}% of snaps`)}
+      ${kpi('Penalties', penalty.hasData ? penalty.accepted : 0, penalty.hasData ? `${penalty.subjectYards} yards accepted` : 'none charted')}
+    </div>`;
+  }
+
+  _overviewModule(title, meta, body, cls = '') {
+    return `<section class="gi-overview-module ${cls}"><header><strong>${Charts._esc(title)}</strong>${meta ? `<span>${Charts._esc(meta)}</span>` : ''}</header>${body}</section>`;
+  }
+
+  _overviewRows(rows) {
+    return `<div class="gi-overview-rows">${rows.map(([label, value, cls = '']) => `<div><span>${Charts._esc(label)}</span><strong class="${cls}">${Charts._esc(String(value))}</strong></div>`).join('')}</div>`;
+  }
+
+  _overviewPhaseHtml(stats) {
+    const off = stats.offPlays.length;
+    const def = stats.defPlays.length;
+    const special = Math.max(0, stats.allPlays - off - def);
+    const total = Math.max(1, off + def + special);
+    const offYards = stats.rushing.yards + stats.passing.yards;
+    const defYards = stats.defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage, 10) || 0), 0);
+    const row = (label, count, ypp, cls) => `<tr class="${cls}"><td>${label}</td><td>${count}</td><td>${Math.round(count / total * 100)}%</td><td>${count ? ypp : '—'}</td></tr>`;
+    return this._overviewModule('Snaps by phase', `${off + def + special} total`, `
+      <div class="gi-phase-ramp"><i style="--n:${off}"></i><i style="--n:${def}"></i><i style="--n:${special}"></i></div>
+      <table><thead><tr><th>Phase</th><th>Snaps</th><th>Share</th><th>Yds/play</th></tr></thead><tbody>
+        ${row('Offense', off, off ? (offYards / off).toFixed(1) : '—', 'is-offense')}
+        ${row('Defense', def, def ? `${(defYards / def).toFixed(1)} allowed` : '—', 'is-defense')}
+        ${row('Special Teams', special, '—', 'is-special')}
+      </tbody></table>`);
+  }
+
+  _overviewSituationalHtml(stats) {
+    const tile = (label, item, type, value, sub) => {
+      const attrs = item.total ? ` class="cut-row" data-cut-type="${type}" data-cut-val="${value}" data-cut-label="${label} — ${item.total} plays"` : '';
+      return `<div${attrs}><span>${label}</span><strong>${item.total ? `${item.successPct}%` : '—'}</strong><small>${item.total ? sub(item) : 'No data'}</small></div>`;
+    };
+    const s = stats.situational;
+    const third = stats.downs.byDown?.['3'] || { total: 0, conversionPct: 0 };
+    return this._overviewModule('Situational', 'each tile opens film', `<div class="gi-overview-tiles">
+      ${tile('Red zone', s.redZone, 'situation', 'redZone', item => `${item.tds} TD · ${item.total} snaps`)}
+      ${tile('Goal line', s.goalLine, 'situation', 'goalLine', item => `${item.tds} TD · ${item.total} snaps`)}
+      <div${third.total ? ` class="cut-row" data-cut-type="down" data-cut-val="3" data-cut-label="Third down — ${third.total} plays"` : ''}><span>Third down</span><strong>${third.total ? `${third.conversionPct}%` : '—'}</strong><small>${third.total ? stats.downs.thirdDownConv : 'No data'}</small></div>
+      ${tile('3rd & long', s.thirdLong, 'situation', 'thirdLong', item => `${item.successes} of ${item.total}`)}
+      ${tile('3rd & short', s.thirdShort, 'situation', 'thirdShort', item => `${item.successes} of ${item.total}`)}
+      ${tile('Backed up', s.backedUp, 'situation', 'backedUp', item => `${item.successes} of ${item.total}`)}
+    </div>`);
+  }
+
+  _overviewKeyMetricsHtml(stats) {
+    const topFormation = stats.tendencies.formationList?.[0];
+    const redZone = stats.situational.redZone;
+    const metrics = [
+      ['Efficiency', `${stats.efficiency.successRate}%`, 'Success rate'],
+      ['Explosive', stats.efficiency.explosivePlays, `${stats.efficiency.explosivePct}% of snaps`],
+      ['Situational', redZone.total ? `${redZone.successPct}%` : '—', redZone.total ? 'Red-zone success' : 'No red-zone snaps'],
+      ['Tendencies', topFormation ? `${Math.round(topFormation.runs / topFormation.count * 100)}%` : '—', topFormation ? `${topFormation.name} run rate` : 'No formation sample'],
+      ['Negative', stats.efficiency.negativePlays, `${stats.efficiency.negativePct}% of snaps`],
+      ['Points / drive', stats.drives.pointsPerDrive, `${stats.drives.scoringDrives} of ${stats.drives.total} scored`],
+    ];
+    return this._overviewModule('Key metrics', 'five coaching lenses', `<div class="gi-overview-lenses">${metrics.map(([label, value, sub]) => `<div><span>${label}</span><strong>${value}</strong><small>${sub}</small></div>`).join('')}</div>`, 'is-lenses');
+  }
+
+  _overviewRushingHtml(stats) {
+    const r = stats.rushing;
+    return this._overviewModule('Rushing', `${r.attempts} attempts`, this._overviewRows([
+      ['Attempts', r.attempts], ['Yards', r.yards], ['Average', r.average], ['Touchdowns', r.touchdowns, 'is-good'], ['Longest', r.longest], ['First downs', r.firstDowns], ['Fumbles', r.fumbles],
+    ]), 'is-offense');
+  }
+
+  _overviewPassingHtml(stats) {
+    const p = stats.passing;
+    return this._overviewModule('Passing', `${p.attempts} attempts`, this._overviewRows([
+      ['Completions / attempts', `${p.completions} / ${p.attempts}`], ['Completion rate', `${p.completionPct}%`], ['Yards', p.yards], ['Yards / attempt', p.average], ['Touchdowns', p.touchdowns, 'is-good'], ['Interceptions', p.interceptions], ['Longest', p.longest], ['Sacks taken', p.sacks],
+    ]), 'is-offense');
+  }
+
+  _overviewYardsHtml(stats) {
+    const total = stats.rushing.yards + stats.passing.yards;
+    const playTypes = (stats.tendencies.playTypeList || []).slice(0, 5);
+    const rows = playTypes.map(row => `<tr class="cut-row" data-cut-type="playType" data-cut-val="${Charts._esc(row.name)}" data-cut-label="${Charts._esc(row.name)} — ${row.count} plays"><td>${Charts._esc(row.name)}</td><td>${row.count}</td><td>${row.avg}</td><td>${row.successPct}%</td></tr>`).join('');
+    return this._overviewModule('Yards by type', `${total} total`, `
+      <div class="gi-yards-split"><i style="--n:${Math.max(0, stats.rushing.yards)}"></i><i style="--n:${Math.max(0, stats.passing.yards)}"></i></div>
+      <div class="gi-yards-legend"><span>Rush ${stats.rushing.yards}</span><span>Pass ${stats.passing.yards}</span></div>
+      <table><thead><tr><th>Play type</th><th>Snaps</th><th>Yds/play</th><th>Success</th></tr></thead><tbody>${rows}</tbody></table>`, 'is-offense');
+  }
+
+  _overviewDownDistanceHtml(stats) {
+    // Overview follows the approved broadcast-density composition. Keep the
+    // five highest-priority situations here; the full table remains in the
+    // detailed offense report.
+    const buckets = (stats.downs.ddBuckets || []).slice(0, 5);
+    const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+    const rows = buckets.map(row => `<tr class="cut-row" data-cut-type="dd" data-cut-val="${row.down}|${row.bucket}" data-cut-label="${labels[row.down]} & ${row.bucket} — ${row.count} plays"><td>${labels[row.down]} &amp; ${row.bucket}</td><td>${row.count}</td><td><span class="gi-mini-mix"><i style="--n:${row.runPct}"></i><i style="--n:${row.passPct}"></i></span>${row.runPct} / ${row.passPct}</td><td>${row.avgYards}</td><td>${row.succPct}%</td><td>${row.convPct}%</td></tr>`).join('');
+    return this._overviewModule('Down & distance', 'run/pass mix and production', `<table><thead><tr><th>Situation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Success</th><th>Conv</th></tr></thead><tbody>${rows}</tbody></table>`);
+  }
+
+  _overviewGamePlanHtml(stats) {
+    const t = stats.takeaways || {};
+    const list = (items, cls) => `<div class="gi-overview-plan ${cls}">${(items || []).slice(0, 3).map(item => `<p${item.cut ? ` class="cut-row" data-cut-type="${item.cut[0]}" data-cut-val="${Charts._esc(item.cut[1])}" data-cut-label="Game plan"` : ''}>${Charts._esc(item.text)}</p>`).join('')}</div>`;
+    return this._overviewModule('Game plan', 'what the tags say', `${list(t.working, 'is-good')}${list(t.fix, 'is-fix')}`, 'is-plan');
+  }
+
+  _overviewBigPlaysHtml(stats) {
+    const rows = (stats.bigPlays || []).slice(0, 8).map(play => `<tr class="gi-overview-play" data-overview-play-id="${play.id}"><td>${play.id}</td><td>${Charts._esc(this.app.stats.constructor.situationLabel(play) || '—')}</td><td>${Charts._esc(play.type || '—')}</td><td>${play.yards}</td></tr>`).join('');
+    return this._overviewModule('Big plays', `${stats.bigPlays.length} total`, `<table><thead><tr><th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>${rows}</tbody></table>`, 'is-offense');
+  }
+
+  _overviewDrivesHtml(stats) {
+    const drives = stats.drives?.list || [];
+    const max = Math.max(1, ...drives.map(drive => Math.abs(drive.yards)));
+    const rows = drives.slice(0, 8).map(drive => `<div class="drive-row gi-overview-drive" data-drive-ids="${(drive.playIds || []).join(',')}"><span>D${drive.number}</span><i><b style="--w:${Math.max(6, Math.round(Math.abs(drive.yards) / max * 100))}%"></b></i><small>${drive.outcome}</small></div>`).join('');
+    return this._overviewModule('Drives', `${drives.length} drives · ${stats.drives.scoringDrives} scored`, `<div class="gi-overview-drives">${rows}</div>`);
+  }
+
+  _overviewDefenseHtml(stats) {
+    const def = stats.defPlays.length;
+    const yards = stats.defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage, 10) || 0), 0);
+    const stops = stats.defPlays.filter(play => !this.app.stats._isSuccessfulPlay(play)).length;
+    const explosives = stats.defPlays.filter(play => { const y = parseInt(play.tags.yardage, 10) || 0; return this.app.stats.constructor.isRun(play) ? y >= 12 : y >= 16; }).length;
+    const penalties = stats.penalties || {};
+    return this._overviewModule('Defense & discipline', `${def} defensive snaps`, this._overviewRows([
+      ['Yards / play allowed', def ? (yards / def).toFixed(1) : '—'], ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'], ['Explosives allowed', explosives, explosives ? '' : 'is-good'], ['Takeaways', stats.defensive.turnovers], ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'], ['Penalties declined', penalties.hasData ? penalties.declined : '0'],
+    ]), 'is-defense');
   }
 
   _offenseHtml(stats) {
@@ -796,6 +956,11 @@ export class ReportsScreen {
           const ids = new Set((row.dataset.driveIds || '').split(',').filter(Boolean));
           if (ids.size) stats._watchPlays(play => ids.has(String(play.id)), row.querySelector('.drive-num')?.textContent || 'Drive');
         });
+      });
+      root.querySelectorAll('[data-overview-play-id]').forEach(row => {
+        const id = String(row.dataset.overviewPlayId || '');
+        if (id) this._makeFilmControl(row, () => stats._watchPlays(
+          play => String(play.id) === id, `Play ${id}`));
       });
     } else {
       // Existing tag filters operate on the active game's tagger and would be

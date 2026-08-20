@@ -35,33 +35,46 @@ function ExportMenu({ screen }) {
 
 function NativeReportsRoute({ screen }) {
   return <section class="gi-reports" id="statsDashboard" aria-labelledby="giReportsTitle" data-native-reports>
-    <header class="gi-reports-head" data-reports-main-chrome>
-      <div class="gi-reports-title-block">
+    <div class="gi-reports-scorebug" data-reports-scorebug hidden></div>
+    <div class="gi-reports-reporthead" data-reports-main-chrome>
+      <header class="gi-reports-head">
+        <div class="gi-reports-title-block">
         {/* F5 — the eyebrow was hardcoded "Self scout" and stayed that way while
             the route showed the opponent scout. It follows the perspective. */}
         <span class="gi-reports-eyebrow" data-reports-eyebrow>Reports</span>
         <h1 id="giReportsTitle" data-reports-title>Reports</h1>
         <p data-reports-context>Every number links to its film.</p>
+        </div>
+      </header>
+
+      <div class="gi-reports-model">
+        <span>Perspective</span>
+        <div class="gi-reports-segment" role="group" aria-label="Report perspective">
+          <button type="button" class="is-active" data-report-perspective="self" aria-pressed="true" onClick={() => screen.show()}>Our game</button>
+          <button type="button" data-report-perspective="opponent" aria-pressed="false" onClick={() => screen.scoutOpponent()}>Opponent scout</button>
+        </div>
+        <label class="gi-reports-opponent" data-reports-opponent hidden>
+          <span>Team</span>
+          <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
+        </label>
       </div>
+
+      <nav class="gi-reports-tabs stats-tabs" aria-label="Report sections">
+        {REPORT_TABS.map(([id, label]) => <button
+          key={id}
+          type="button"
+          class={`gi-reports-tab stats-tab${screen.activeTab === id ? ' active' : ''}`}
+          data-report-tab={id}
+          data-tab={id}
+          aria-current={screen.activeTab === id ? 'page' : undefined}
+          onClick={() => screen.selectTab(id)}
+        >{label}</button>)}
+      </nav>
+
       <div class="gi-reports-actions">
         <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
         <ExportMenu screen={screen} />
       </div>
-    </header>
-
-    <div class="gi-reports-model" data-reports-main-chrome>
-      <span>Perspective</span>
-      <div class="gi-reports-segment" role="group" aria-label="Report perspective">
-        <button type="button" class="is-active" data-report-perspective="self" aria-pressed="true" onClick={() => screen.show()}>Our game</button>
-        <button type="button" data-report-perspective="opponent" aria-pressed="false" onClick={() => screen.scoutOpponent()}>Opponent scout</button>
-      </div>
-      {/* F3: every charted opponent has a scout report, so every charted
-          opponent is selectable here — not just the active game's. */}
-      <label class="gi-reports-opponent" data-reports-opponent hidden>
-        <span>Team</span>
-        <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
-      </label>
-
     </div>
 
     {/* Reports redesign — the persistent KPI rail. Carries across every game-
@@ -80,18 +93,6 @@ function NativeReportsRoute({ screen }) {
         after _syncKpiRail() hid it. _syncKpiRail() is this element's sole
         owner. */}
     <div class="gi-hero gi-reports-rail" data-reports-rail hidden></div>
-
-    <nav class="gi-reports-tabs stats-tabs" aria-label="Report sections" data-reports-main-chrome>
-      {REPORT_TABS.map(([id, label]) => <button
-        key={id}
-        type="button"
-        class={`gi-reports-tab stats-tab${screen.activeTab === id ? ' active' : ''}`}
-        data-report-tab={id}
-        data-tab={id}
-        aria-current={screen.activeTab === id ? 'page' : undefined}
-        onClick={() => screen.selectTab(id)}
-      >{label}</button>)}
-    </nav>
 
     <div class="gi-reports-special-head" hidden data-reports-special-chrome>
       <button type="button" class="gi-reports-back" onClick={() => screen.show()}><Icon name="prev-clip" />Back to reports</button>

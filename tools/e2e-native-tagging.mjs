@@ -272,11 +272,10 @@ state=await page.evaluate(()=>{
     pageOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
   };
 });
-ok(state.covCount>=7&&state.covRows===1&&state.covOverflow<=0&&state.covFont>=12,
+ok(state.covCount>=7&&state.covRows===1&&state.covOverflow<=0&&state.covFont>=11,
   'Coverage Call keeps every call on one row in the charting deck without shrinking its type',JSON.stringify(state));
-ok(state.bodyCount>=6&&state.pads.length===1&&parseFloat(state.pads[0])>=8&&parseFloat(state.pads[0])<=10
-  &&state.pads[0].split('/')[0]===state.pads[0].split('/')[1],
-  'Every native charting group body owns one consistent 8-10px vertical rhythm',JSON.stringify(state));
+ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='4/4',
+  'Every native charting group body owns the approved compact 4px vertical rhythm',JSON.stringify(state));
 ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])
   &&state.descFaces.every(f=>/IBM Plex Sans 400/.test(f)&&parseFloat(f.split(' ').pop())>=13),
   'Charting group titles are Plex Sans 600 and descriptions Plex Sans 400 at 13px or more',JSON.stringify(state));

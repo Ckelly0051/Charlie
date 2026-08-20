@@ -25,6 +25,9 @@
 .gi-breakdown-deck .gi-tag-context { grid-template-columns: 1fr 1fr; }
 .gi-breakdown-deck .gi-tag-title { grid-column: 1 / -1; }
 .gi-breakdown-toolbar button:focus-visible { outline: none; box-shadow: var(--gi-focus); }
+@media (min-width: 1181px) {
+  .gi-breakdown-composition { grid-template-columns: minmax(0, 1fr) 424px; }
+}
 @media (max-width: 1180px) {
   .ws-breakdown { overflow-y: auto; }
   .gi-breakdown-route { height: auto; min-height: 100%; }

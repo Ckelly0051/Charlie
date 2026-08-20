@@ -257,3 +257,12 @@
 .gi-play-card > small { font: var(--gi-text-caption); color: var(--gi-12); }
 .gi-drive-strip > header { font: var(--gi-text-label); letter-spacing: var(--gi-track-label); }
 .gi-theater-anglebar, .gi-autoplay-toggle { font-size: 11.5px; }
+
+/* Broadcast Density: keep six nearby plays visible at a 1440px workstation.
+   Cards stay fixed-width so content and selection never reflow the strip. */
+@media (min-width: 1181px) {
+  .gi-drive-scroll { gap: 4px; }
+  .gi-drive-group { padding-left: 4px; }
+  .gi-drive-group > div { gap: 4px; }
+  .gi-play-card { flex-basis: 160px; width: 160px; padding-inline: 9px 6px; }
+}

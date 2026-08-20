@@ -184,6 +184,21 @@
   --gi-bd-cyan-ink:#03151a;
   --gi-bd-bone:#4a5765;
   --gi-bd-stage:#06080b;
+  /* Approved broadcast-density Reports palette. Keeping these values as
+   * named tokens preserves the canonical comp without route-local colors. */
+  --gi-bd-score:#000;
+  --gi-bd-score-ink:#03150b;
+  --gi-bd-panel:#0e1319;
+  --gi-bd-control:#151c24;
+  --gi-bd-control-active:#1b242e;
+  --gi-bd-line:#222d38;
+  --gi-bd-muted:#66727e;
+  --gi-bd-copy:#9daab7;
+  --gi-bd-strong:#f2f5f8;
+  --gi-bd-win:#3fa96b;
+  --gi-bd-loss:#d2564f;
+  --gi-bd-draw:#4a5765;
+  --gi-bd-gold-surface:#5e4712;
   /* Football identifiers and section labels — the condensed role. Values,
    * controls, and body copy use --gi-sans (see the Part 1 contract in
    * CLAUDE.md for why Segoe UI's ROLE is fulfilled by the already-embedded

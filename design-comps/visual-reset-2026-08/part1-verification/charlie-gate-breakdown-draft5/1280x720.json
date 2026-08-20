@@ -1,0 +1,53 @@
+{
+  "overflow": false,
+  "route": {
+    "x": 0,
+    "y": 54,
+    "width": 1280,
+    "height": 666,
+    "top": 54,
+    "right": 1280,
+    "bottom": 720,
+    "left": 0
+  },
+  "deck": {
+    "x": 856,
+    "y": 99,
+    "width": 424,
+    "height": 621,
+    "top": 99,
+    "right": 1280,
+    "bottom": 720,
+    "left": 856
+  },
+  "stage": {
+    "x": 0,
+    "y": 99,
+    "width": 855,
+    "height": 367.5,
+    "top": 99,
+    "right": 855,
+    "bottom": 466.5,
+    "left": 0
+  },
+  "chyron": {
+    "x": 0,
+    "y": 466.5,
+    "width": 855,
+    "height": 45.5,
+    "top": 466.5,
+    "right": 855,
+    "bottom": 512,
+    "left": 0
+  },
+  "strip": {
+    "x": 0,
+    "y": 558,
+    "width": 855,
+    "height": 122,
+    "top": 558,
+    "right": 855,
+    "bottom": 680,
+    "left": 0
+  }
+}

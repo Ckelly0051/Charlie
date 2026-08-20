@@ -65,10 +65,21 @@ const res = await page.evaluate(async () => {
   ];
   const exportedUnits = sm.tagger.plays.map(p => p.tags.unit);
 
+  // Capture the export synchronously. Blob.text() inside page.evaluate is subject
+  // to a Chromium "Promise was collected" intermittent that tests the browser's
+  // Blob reader rather than GridIron IQ's CSV contract.
+  const NativeBlob = window.Blob;
   let blob = null;
-  sm._download = (b) => { blob = b; };
-  sm.exportCsv();
-  const csv = await blob.text();
+  window.Blob = class TestBlob {
+    constructor(parts, options = {}) { this.parts = parts; this.type = options.type || ''; }
+  };
+  try {
+    sm._download = (b) => { blob = b; };
+    sm.exportCsv();
+  } finally {
+    window.Blob = NativeBlob;
+  }
+  const csv = blob.parts.map(part => String(part)).join('');
 
   // Parse the CSV back through the app's own parser so the assertions read cells,
   // not substrings (a substring match would pass on a value in the WRONG column).

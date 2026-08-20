@@ -14,6 +14,50 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CURRENT - CHARLIE GATE VISUAL RECOMPOSITION SHIPPED LOCALLY; `1.12.0-56` READY FOR COACH SMOKE (2026-08-20)
+
+The coach has approved the real-app Reports Overview and Break Down visual
+recomposition. This explicitly resumes and supersedes the rejected `ef04732`
+experiment described below. The approved milestone is a composition change,
+not another palette pass: Reports is rebuilt into dense broadcast-style bands,
+and Break Down uses a compact aligned charting deck while preserving an
+unobstructed film surface.
+
+**Approved evidence:**
+- Reports: `design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4/1440x900-overview.png`
+- Break Down: `design-comps/visual-reset-2026-08/part1-verification/charlie-gate-breakdown-draft5/1440x900.png`
+
+**Release result:** the canonical gate is **88/88 green, 0 skipped, 0 failed**
+on the packaged source. The previously intermittent CSV projection harness was
+hardened to capture its synchronous export synchronously instead of awaiting
+Chromium's occasionally collected `Blob.text()` promise; it passes 22/22 both
+standalone and in the full gate. The unsigned desktop build completed from a
+fresh Vite bundle.
+
+**Local installers:**
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-56_x64-setup.exe`
+  - SHA-256 `886760A3EED871E7F5A88864B76427B26CED757F4406FAEEEE43CFC8E3AD55AB`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-56_x64_en-US.msi`
+  - SHA-256 `E3000B82F4F26358E27C081972ECF1E45AF6434CA8212C58570D7AF3D0283CB5`
+- Coach checklist: `SMOKE-1.12.0-56.md`
+
+**Release boundary:** presentation/composition only. Analytics formulas, film
+cohorts, season/play data, persistence, and linked-film paths are unchanged.
+No GitHub tag or stable release is created by this milestone.
+
+**Next UX repair, intentionally not mixed into this release:** linked-film
+storage correctly supports one machine-wide root such as `D:\Football\Film`
+and arbitrarily nested per-game folders such as
+`Year\Team\Game Film`. The current Settings affordance is misleading: clicking
+the already-selected **Use existing library** mode launches the root-changing
+picker, while the correct per-game **Link** action is visually subordinate.
+Repair this as a focused settings batch: keep the selected mode tile inert,
+reserve root mutation for the explicit **Change root** command, promote
+**Link game folder**, start that picker inside the root, and confirm the full
+linked path plus "nothing copied." Do not change storage semantics or migrate
+any saved paths.
+
+
 ### ▶ STILL PAUSED - the `ef04732` visual experiment is committed but REJECTED (2026-08-17)
 
 **The Broadcast Density Reports creative milestone remains rejected/paused —
@@ -13966,3 +14010,35 @@ These are validated high-impact features, deferred until the core UX is polished
    needs a dedicated Hudl-format CSV writer for export, plus handling of every
    Hudl export variant (Exchange, Reports, ODK encoding, yardage sign
    conventions, formation vocabulary mapping). GameStrat's business model.
+# ▶ CHARLIE GATE — REPORTS APPROVED; BREAK DOWN VISUAL PASS OPEN (2026-08-20)
+
+## Approved and protected
+
+- The Reports Overview visual reset is coach-approved at:
+  `design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4/1440x900-overview.png`.
+- Its production changes remain local and intentionally uncommitted in:
+  `css/native-reports.css`, `js/native-reports.jsx`, and `js/reports-screen.js`.
+- Do not reset, discard, separately commit, package, or push those changes. Reports and Break Down ship as one reviewed visual milestone after the Break Down Charlie Gate passes.
+
+## Active work — Break Down
+
+The approved canonical composition is:
+
+- `design-comps/visual-reset-2026-08/broadcast-density/breakdown.html`
+- `design-comps/visual-reset-2026-08/broadcast-density/captures/breakdown-fold.png`
+
+This is a composition migration, not a color pass. The first viewport must read as one dense football workstation:
+
+1. Film owns the flexible left stage; charting uses a fixed, compact right deck.
+2. The film frame, lower-third, transport, and six-play strip are visible together at 1440x900.
+3. The right deck exposes the useful charting controls without decorative whitespace or undersized controls.
+4. Gold marks active offensive/current context only; cyan marks defensive context; neutral surfaces carry structure.
+5. Geometry, alignment, hierarchy, whitespace, and first-viewport usefulness must match the approved comp closely. Merely recoloring the current layout fails this checkpoint.
+6. Film remains unobstructed. No control, border, overlay, or transform may cover or resample the media surface.
+7. Validate at 1440x900 and 1280x720, including no clipping, overlap, or page-level horizontal overflow.
+
+## Gate and release rule
+
+- Keep visual iterations local and uncommitted.
+- Show the coach a real-app screenshot for PASS / REVISE / REJECT before a commit.
+- After Break Down passes, commit and push the approved Reports + Break Down work together, run focused checks and one canonical full gate, then package only if requested.

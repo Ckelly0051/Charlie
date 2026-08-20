@@ -62,7 +62,7 @@ let state = await page.evaluate(() => {
     internal: document.querySelector('[data-drive-scroll]').scrollWidth > document.querySelector('[data-drive-scroll]').clientWidth,
     pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
 });
-ok(state.widths.length === 1 && state.widths[0] === 220, 'Play cards use one stable, intentionally wide footprint', JSON.stringify(state));
+ok(state.widths.length === 1 && state.widths[0] === 160, 'Play cards use the approved compact, stable footprint', JSON.stringify(state));
 ok(state.fits && /Interception \+ Touchdown: -12/.test(state.text || ''), 'Long football copy is complete and not clipped', JSON.stringify(state));
 ok(state.internal && !state.pageOverflow, 'High play counts scroll inside the strip without page overflow', JSON.stringify(state));
 

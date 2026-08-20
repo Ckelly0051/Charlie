@@ -100,21 +100,15 @@ ok(state.seasonFilmRows > 0 && state.gameScopedLeaks === 0,
   'H16: every clickable season row films the SEASON, not the active game only',
   JSON.stringify({ seasonFilmRows: state.seasonFilmRows, gameScopedLeaks: state.gameScopedLeaks }));
 
-// Reports redesign (item A) regression: the persistent game-scope KPI rail
-// must hide on the Season tab, which carries its own equivalent hero. Found
-// by screenshot review, not by any prior harness — every existing assertion
-// reached the Season tab via a single click from a fresh route, which never
-// exercised _setChrome()'s render-pass side effect of unconditionally
-// re-revealing every `data-reports-main-chrome` node (the rail used to be
-// one) on the very next render. A second tab switch reproduces it.
-const railHidden = () => document.querySelector('[data-reports-rail]')?.hidden;
-const railOnSeason = await page.evaluate(railHidden);
+// Approved broadcast-density chrome: Season owns its own aggregate header.
+// Returning to Overview reveals the scorebug while the retired KPI rail stays hidden.
+const railOnSeason = await page.evaluate(() => document.querySelector('[data-reports-rail]')?.hidden);
 await page.click('[data-report-tab="overview"]');
-await page.waitForFunction(() => !document.querySelector('[data-reports-rail]')?.hidden);
-const railOnOverview = await page.evaluate(railHidden);
-ok(railOnSeason === true && railOnOverview === false,
-  'The persistent KPI rail hides on the Season tab and reappears when switching back to Overview',
-  JSON.stringify({ railOnSeason, railOnOverview }));
+await page.waitForFunction(() => !document.querySelector('[data-reports-scorebug]')?.hidden);
+const overviewChrome = await page.evaluate(() => ({ railHidden: document.querySelector('[data-reports-rail]')?.hidden, scorebugVisible: !document.querySelector('[data-reports-scorebug]')?.hidden }));
+ok(railOnSeason === true && overviewChrome.railHidden === true && overviewChrome.scorebugVisible,
+  'Season hides game chrome; Overview restores the approved scorebug without reviving the retired KPI rail',
+  JSON.stringify({ railOnSeason, overviewChrome }));
 const diffAt = [...Array(Math.max(state.data.length, fixture.before.length)).keys()]
   .find(index => state.data[index] !== fixture.before[index]);
 ok(state.data === fixture.before, 'Opening and reading season analytics leaves canonical season bytes unchanged',
