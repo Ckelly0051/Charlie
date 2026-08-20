@@ -13,11 +13,78 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
-### NEXT - DESKTOP PERSISTENCE CONVERGENCE (2026-08-20)
+### ▶ PC-0 COMPLETE — INVENTORY + FAILING-FIRST CONTRACTS, AWAITING CODEX REVIEW (2026-08-20)
 
-The next milestone is fully specified in `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`. Claude owns execution, beginning with **PC-0 only**: inventory every persistence route and build failing-first identity/lifecycle contracts before changing production behavior. Commit, push, update this handoff, and stop for Codex review after each checkpoint.
+**Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md` PC-0
+only.** Per the plan's own boundary, **no production behavior was changed** —
+this checkpoint is inventory + tests only. Two new files, nothing else touched:
 
-Binding boundaries: SQLite becomes the desktop app's sole live season authority; all identity-bearing operations become explicit; JSON is recovery/export only; BrowserBackend and film files are out of scope. Do not delete, move, rewrite, retire, or migrate any live data, legacy sidecar, snapshot, forensic backup, or film without the coach's explicit confirmation.
+- `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` — every desktop persistence path
+  (list/load/peek/save/autosave/backup/restore/import/delete/recovery/
+  shutdown), classified against the plan's eight invariants, plus a mapped
+  count of every mutable "current season" pointer in the codebase (there are
+  **four**, not one: `SeasonStore.currentSeasonId`, `StorageBackend.currentId`,
+  `SqlCatalog.currentId`, and `CatalogPersistence`'s own correctly-explicit
+  per-call `id` parameters).
+- `tools/pc-adversarial-matrix.mjs` — a standalone Node harness (deliberately
+  **not** named `tools/e2e-*.mjs`, so it is not swept into `tools/run-gate.sh`
+  or CI, which both require every harness green) encoding the plan's ten
+  adversarial-matrix scenarios as real, runnable assertions against current
+  source. Run: `node tools/pc-adversarial-matrix.mjs`. Result on current
+  source: **11 passed, 7 failed** — every failure is an intentional
+  failing-first target contract, every pass is a regression-lock on behavior
+  already correct.
+
+**Highest-severity finding, reproduced not assumed (inventory §3.0):** a
+corrupt on-disk catalog (`seasons/library.db`) does **not** fail visibly.
+`CatalogPersistence._ensureLoaded()` catches the open failure and silently
+substitutes a fresh, empty in-memory database; `reconcileFallbacks()` then
+reports zero seasons with no exception; `TauriBackend.listSeasons()`
+unconditionally overwrites `library.json` with that empty result — even in
+the same call where `_recoverFromMirror()` had just successfully repopulated
+the list from the Documents mirror moments earlier. Reproduced directly with
+real `sql.js` + a fake fs: save a real season, corrupt the "on-disk" bytes,
+open a fresh session against them — `reconcileFallbacks()` returns `[]` with
+no exception while the season's own `season.json` fallback sits fully intact
+and unconsulted the entire time. The existing `catalogOnDisk && !cp` fail-closed
+check (already correct — see below) only covers "the wasm engine failed to
+load," one layer above where this corruption is silently absorbed.
+
+**Six further confirmed, reproduced gaps** (each has a red assertion in the
+harness): importing a season file is rejected by the desktop
+destination/payload guard because `SeasonStore.adopt()` never reassigns the
+imported payload's id to the destination library slot before persisting
+(§3.1); no revision fencing exists for two overlapping saves to the *same*
+season, so whichever completes last wins regardless of which was logically
+newer (§3.2); `SqlCatalog.getBackup`/`deleteBackup` have no `season_id` filter
+at all, so a backup id from one season is readable and deletable while scoped
+to a different season (§3.3); `SqlCatalog.getVersion`/`deleteVersion` have the
+identical shape (currently unreachable — no UI wires them yet — but must be
+fixed before PC-2 wires them up).
+
+**What is already correct and should not be re-derived in PC-1/PC-2**
+(inventory §4, each locked by a green assertion in the harness): destination/
+payload id agreement on `saveSeason`/`createBackup` already fails closed with
+zero writes; `commitActive()`'s `_loadedGameId` guard already prevents the
+cross-game corruption class the prior P0 incident was rooted in; season-switch
+fencing on both debounced-save paths already pins and rechecks the owning
+season id at fire time; `TeamRegistry.recoverFromWipe()` already uses
+`peekSeason` exclusively and never touches the mutable pointer;
+`VersionManager.restore(id)`'s explicit `seasonId`/`gameId` stamp-and-check is
+the best-designed identity pattern in the codebase and should be the model
+PC-1's "Explicit Identity API" generalizes from rather than inventing a new
+shape; season-delete failure already leaves the season fully durable with no
+resurrection risk.
+
+**Scope discipline:** no season/game/play data, film path, film file, schema,
+migration, or unrelated file was touched. Nothing was deleted, moved,
+retired, or rewritten. The scratch reproduction script used to verify §3.0
+before writing it up lives only in the gitignored `scratchpad/` and is not
+part of this commit.
+
+**Next action:** Codex independently reviews this PC-0 checkpoint. PC-1
+("Explicit Identity API") does not begin until that review completes, per the
+plan's handoff protocol.
 
 ### CURRENT - REPORTS VISUAL REPAIR; `1.12.0-58` INSTALLER (2026-08-20)
 
