@@ -242,13 +242,13 @@ export class ReportsScreen {
     const scoreThem = game.scoreThem !== '' && game.scoreThem != null ? game.scoreThem : (tagged.them || 0);
     const team = context.team?.name || game.teamName || 'Our Team';
     const opponent = game.opponent || 'Opponent';
-    const result = Number(scoreUs) > Number(scoreThem) ? 'W' : Number(scoreUs) < Number(scoreThem) ? 'L' : 'T';
+
     const quarters = ['Q1', 'Q2', 'Q3', 'Q4'].map(q => `<div class="gi-scorebug-quarter"><span>${q}</span><b>${tagged.byQuarter?.[q]?.us || 0}</b><i>${tagged.byQuarter?.[q]?.them || 0}</i></div>`).join('');
     const offense = computed.offPlays?.length || 0;
     const yards = (computed.rushing?.yards || 0) + (computed.passing?.yards || 0);
     const ypp = offense ? (yards / offense).toFixed(1) : '—';
     bug.innerHTML = `<div class="gi-scorebug-team"><span>${esc(team)}</span><strong>${esc(String(scoreUs))}</strong></div>
-      <div class="gi-scorebug-result is-${result.toLowerCase()}">${result}</div>
+
       <div class="gi-scorebug-team is-opponent"><span>${esc(opponent)}</span><strong>${esc(String(scoreThem))}</strong></div>
       <div class="gi-scorebug-line">${quarters}</div>
       <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play.</b> ${yards} yards on ${offense} offensive snaps.</span></div>
@@ -564,10 +564,12 @@ export class ReportsScreen {
         ${this._overviewDownDistanceHtml(stats)}
         ${this._overviewGamePlanHtml(stats)}
       </div>
-      <div class="gi-overview-band gi-overview-band-3 gi-overview-support">
+      <div class="gi-overview-band gi-overview-support">
         ${this._overviewBigPlaysHtml(stats)}
-        ${this._overviewDrivesHtml(stats)}
-        ${this._overviewDefenseHtml(stats)}
+        <div class="gi-overview-support-stack">
+          ${this._overviewDrivesHtml(stats)}
+          ${this._overviewDefenseHtml(stats)}
+        </div>
       </div>
     </div>`;
   }
@@ -681,12 +683,17 @@ export class ReportsScreen {
 
   _overviewGamePlanHtml(stats) {
     const t = stats.takeaways || {};
-    const list = (items, cls) => `<div class="gi-overview-plan ${cls}">${(items || []).slice(0, 3).map(item => `<p${item.cut ? ` class="cut-row" data-cut-type="${item.cut[0]}" data-cut-val="${Charts._esc(item.cut[1])}" data-cut-label="Game plan"` : ''}>${Charts._esc(item.text)}</p>`).join('')}</div>`;
+    const plainText = value => String(value || '').replace(/<[^>]+>/g, '');
+    const list = (items, cls) => `<div class="gi-overview-plan ${cls}">${(items || []).slice(0, 3).map(item => `<p${item.cut ? ` class="cut-row" data-cut-type="${item.cut[0]}" data-cut-val="${Charts._esc(item.cut[1])}" data-cut-label="Game plan"` : ''}>${Charts._esc(plainText(item.text))}</p>`).join('')}</div>`;
     return this._overviewModule('Game plan', 'what the tags say', `${list(t.working, 'is-good')}${list(t.fix, 'is-fix')}`, 'is-plan');
   }
 
   _overviewBigPlaysHtml(stats) {
-    const rows = (stats.bigPlays || []).slice(0, 8).map(play => `<tr class="gi-overview-play" data-overview-play-id="${play.id}"><td>${play.id}</td><td>${Charts._esc(this.app.stats.constructor.situationLabel(play) || '—')}</td><td>${Charts._esc(play.type || '—')}</td><td>${play.yards}</td></tr>`).join('');
+    const playsById = new Map((stats.offPlays || []).map(play => [String(play.id), play]));
+    const rows = (stats.bigPlays || []).slice(0, 8).map(play => {
+      const source = playsById.get(String(play.id));
+      return `<tr class="gi-overview-play" data-overview-play-id="${play.id}"><td>${play.id}</td><td>${Charts._esc(this.app.stats.constructor.situationLabel(source) || '—')}</td><td>${Charts._esc(play.type || '—')}</td><td>${play.yards}</td></tr>`;
+    }).join('');
     return this._overviewModule('Big plays', `${stats.bigPlays.length} total`, `<table><thead><tr><th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>${rows}</tbody></table>`, 'is-offense');
   }
 

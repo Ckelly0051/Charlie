@@ -1126,14 +1126,15 @@
 /* CHARLIE GATE — APPROVED COMP IS CANON
    These values intentionally mirror broadcast-density/reports.html. */
 .gi-reports .gi-reports-scorebug{
-  display:grid;grid-template-columns:auto auto auto auto 1fr auto;align-items:stretch;
+  display:grid;grid-template-columns:auto auto auto 1fr auto;align-items:stretch;
   background:var(--gi-bd-score);border-bottom:2px solid var(--gi-bd-gold)
 }
 .gi-reports .gi-reports-scorebug[hidden]{display:none}
 .gi-reports .gi-scorebug-team{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:9px 16px}
 .gi-reports .gi-scorebug-team span{color:var(--gi-bd-copy);font:700 11px/1.2 var(--gi-cond);letter-spacing:.14em;text-transform:uppercase}
 .gi-reports .gi-scorebug-team strong{color:var(--gi-bd-strong);font:700 35px/.88 var(--gi-cond)}
-.gi-reports .gi-scorebug-team.is-opponent span,.gi-reports .gi-scorebug-team.is-opponent strong{color:var(--gi-bd-muted)}
+.gi-reports .gi-scorebug-team.is-opponent span{color:var(--gi-bd-copy)}
+.gi-reports .gi-scorebug-team.is-opponent strong{color:var(--gi-bd-strong)}
 .gi-reports .gi-scorebug-result{align-self:center;margin:0 4px;padding:4px 9px;background:var(--gi-bd-win);color:var(--gi-bd-score-ink);font:700 12px/1 var(--gi-cond);letter-spacing:.14em}
 .gi-reports .gi-scorebug-result.is-l{background:var(--gi-bd-loss);color:var(--gi-on-solid)}
 .gi-reports .gi-scorebug-result.is-t{background:var(--gi-bd-draw);color:var(--gi-on-solid)}
@@ -1185,9 +1186,11 @@
 .gi-reports .gi-overview-band{display:grid;gap:1px;margin:0 0 4px;background:var(--bd-rule);border:0}
 .gi-reports .gi-overview-band:last-child{margin-bottom:0}
 .gi-reports .gi-overview-phase{grid-template-columns:340px 1fr 1fr}
-.gi-reports .gi-overview-production{grid-template-columns:1fr 1fr 1.15fr}
+.gi-reports .gi-overview-production{grid-template-columns:1fr 1fr 1.15fr;align-items:start}
 .gi-reports .gi-overview-decisions{grid-template-columns:1.1fr 1fr}
-.gi-reports .gi-overview-support{grid-template-columns:1.25fr 1fr 1fr}
+.gi-reports .gi-overview-support{grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);align-items:start}
+.gi-reports .gi-overview-support-stack{display:grid;gap:1px;min-width:0;background:var(--bd-rule)}
+.gi-reports .gi-overview-support-stack>.gi-overview-module{border:0}
 .gi-reports .gi-overview-module{min-width:0;padding:8px 12px 10px;background:var(--bd-panel);border:0;position:relative}
 .gi-reports .gi-overview-phase>.gi-overview-module{display:flex;flex-direction:column}
 .gi-reports .gi-overview-phase>.gi-overview-module>table,

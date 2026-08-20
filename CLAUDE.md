@@ -13,6 +13,24 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### NEXT - DESKTOP PERSISTENCE CONVERGENCE (2026-08-20)
+
+The next milestone is fully specified in `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`. Claude owns execution, beginning with **PC-0 only**: inventory every persistence route and build failing-first identity/lifecycle contracts before changing production behavior. Commit, push, update this handoff, and stop for Codex review after each checkpoint.
+
+Binding boundaries: SQLite becomes the desktop app's sole live season authority; all identity-bearing operations become explicit; JSON is recovery/export only; BrowserBackend and film files are out of scope. Do not delete, move, rewrite, retire, or migrate any live data, legacy sidecar, snapshot, forensic backup, or film without the coach's explicit confirmation.
+
+### CURRENT - REPORTS VISUAL REPAIR; `1.12.0-58` INSTALLER (2026-08-20)
+
+The coach's post-recovery Reports findings are repaired as one focused presentation batch: the decorative W/L/T score badge is removed; both scores retain full readable contrast; Big Plays resolves Situation from each real play; Game Plan strips generated markup before rendering; Rushing/Passing no longer stretch to match a taller sibling; and Big Plays/Drives/Defense now use a dense support-band composition instead of three equal-height panels with large blank areas.
+
+Verification intentionally follows the coach's requested release cadence: fresh Vite build plus focused native Reports harness **62/62 green** and a real rendered screenshot inspection. The full canonical gate was explicitly waived for this presentation-only candidate.
+
+**Installers:**
+- NSIS: src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-58_x64-setup.exe
+  - SHA-256 F3069B2030222BEDC2C2EBE17B1F09D33E845764D003B685428EAF1A7FDD0181
+- MSI: src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-58_x64_en-US.msi
+  - SHA-256 A87FC620990293874E53AA48F21C5B35D753A2D967C7308DD9A06B2AA58B2A87
+- Coach checklist: SMOKE-1.12.0-58.md
 ### CURRENT - P0 DATA-INTEGRITY INCIDENT REPAIRED; `1.12.0-57` INSTALLER READY (2026-08-20)
 
 **Incident:** installing/opening `1.12.0-56` made the coach's 2025 JV season appear gone and duplicated Varsity metadata in the Team Hub. The season and film were not deleted. The canonical SQLite catalog still contained the intact JV season (6 games / 440 plays) and Varsity season (2 games / 50 plays); legacy `season.json`/`library.json` sidecars had been cross-wired.
