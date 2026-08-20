@@ -193,7 +193,8 @@ r = await page.evaluate(async () => {
   const keys = ['ffa_teams', 'ffa_team_profile', 'ffa_active_team_id'];
   const saved = Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)]));
   const realList = app.storage.seasonStore.listSeasons.bind(app.storage.seasonStore);
-  const realBackend = app.storage.seasonStore.backend;
+  const realPeek = app.storage.seasonStore.peekSeason.bind(app.storage.seasonStore);
+  const backendIdBefore = app.storage.seasonStore.backend.currentSeason?.() || null;
   try {
     keys.forEach(k => localStorage.removeItem(k));
     // Two teams' worth of season files survive on disk; identity is wiped.
@@ -201,10 +202,7 @@ r = await page.evaluate(async () => {
       { id: 'a1', teamId: 'jv-2025', name: 'JV 2025', openedAt: 200 },
       { id: 'b1', teamId: 'varsity-2025', name: 'Varsity 2025', openedAt: 100 },
     ]);
-    app.storage.seasonStore.backend = {
-      setCurrentSeason() {},
-      async loadSeason() { return { teamProfile: { teamName: 'Recovered', jerseyColor: 'gold' }, roster: [{ num: '1' }] }; },
-    };
+    app.storage.seasonStore.peekSeason = async () => ({ teamProfile: { teamName: 'Recovered', jerseyColor: 'gold' }, roster: [{ num: '1' }] });
     const recovered = await reg.recoverFromWipe();
     const teams = reg.teams();
     return {
@@ -217,10 +215,11 @@ r = await page.evaluate(async () => {
         [{ id: 'a1', teamId: 'jv-2025' }, { id: 'b1', teamId: 'varsity-2025' }], 'jv-2025').map(s => s.id),
       // Identity intact must be left alone.
       secondPass: await reg.recoverFromWipe(),
+      backendIdUnchanged: (app.storage.seasonStore.backend.currentSeason?.() || null) === backendIdBefore,
     };
   } finally {
     app.storage.seasonStore.listSeasons = realList;
-    app.storage.seasonStore.backend = realBackend;
+    app.storage.seasonStore.peekSeason = realPeek;
     keys.forEach(k => saved[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, saved[k]));
   }
 });
@@ -231,6 +230,7 @@ ok(r.seasonsVisible.join(',') === 'a1',
 ok(r.names[0] === 'Recovered' && r.active === 'jv-2025',
   'Recovery restores the team name and profile from the season files', JSON.stringify(r));
 ok(r.secondPass === false, 'Recovery is a no-op when identity is already intact', JSON.stringify(r));
+ok(r.backendIdUnchanged === true, 'Post-wipe recovery never mutates the backend active-season pointer', JSON.stringify(r));
 
 console.log('\n== 7. Checklist truth ==');
 r = await page.evaluate(() => {

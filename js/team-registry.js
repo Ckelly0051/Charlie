@@ -200,10 +200,10 @@ export class TeamRegistry {
       if (!store) return false;
       const metas = await store.listSeasons();
       if (!metas || !metas.length) return false;                // true first run
-      const backend = store.backend;
-      const prevId = store.currentSeasonId || null;
+      // Recovery is read-only. Never borrow the backend's mutable currentId;
+      // an autosave during that window could route one season into another.
       const peek = async (id) => {
-        try { backend.setCurrentSeason(id); return await backend.loadSeason(); }
+        try { return await store.peekSeason(id); }
         catch (e) { return null; }
       };
       const newestFirst = metas.slice().sort((a, b) =>
@@ -219,8 +219,7 @@ export class TeamRegistry {
       const teams = [];
       const rosters = {};
       const playbooks = {};
-      try {
-        for (const [tid, group] of groups) {
+      for (const [tid, group] of groups) {
           let profile = null, roster = null, playbook = null;
           for (const m of group) {                 // newest first wins per durable field
             const data = await peek(m.id);
@@ -234,10 +233,7 @@ export class TeamRegistry {
           const id = tid || this.newTeamId(name, teams.map(t => t.id));
           teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
           if (roster !== null) rosters[id] = roster;
-          if (playbook !== null) playbooks[id] = playbook;
-        }
-      } finally {
-        backend.setCurrentSeason(prevId);
+        if (playbook !== null) playbooks[id] = playbook;
       }
       if (!teams.length) return false;
       this.saveTeams(teams);

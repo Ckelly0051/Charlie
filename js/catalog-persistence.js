@@ -60,8 +60,13 @@ export class CatalogPersistence {
    */
   async saveSeason(id, data) {
     if (!id || !data || !Array.isArray(data.games)) return false;
+    // A save has exactly one owner. Allowing the scoped backend id and the
+    // payload id to disagree can split one logical save across two seasons:
+    // SqlCatalog keys by data.id while the JSON fallback keys by `id`.
+    // Fail before opening or writing either store.
+    if (data.id && String(data.id) !== String(id)) return false;
     await this._ensureLoaded();
-    data.id = data.id || id;
+    data.id = id;
     this.catalog.setCurrentSeason(id);
     if (!this.catalog.saveSeason(data)) return false;
     let okDb = false;
@@ -70,6 +75,28 @@ export class CatalogPersistence {
     try { await this.fs.writeJson(id, data); } catch (e) {}
     if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
     return okDb;
+  }
+
+  /** Canonical library metadata. The catalog, not library.json, owns truth. */
+  async listSeasons() {
+    await this._ensureLoaded();
+    return this.catalog.listSeasons();
+  }
+
+  /** Rebuild JSON safety copies from the canonical catalog once per session. */
+  async reconcileFallbacks() {
+    if (this._fallbacksReconciled) return this.listSeasons();
+    await this._ensureLoaded();
+    const metas = this.catalog.listSeasons();
+    for (const meta of metas) {
+      let data = null;
+      try { data = this.catalog.loadSeason(meta.id); } catch (e) { data = null; }
+      if (!data || String(data.id || '') !== String(meta.id)) continue;
+      try { await this.fs.writeJson(meta.id, data); } catch (e) {}
+      if (this.fs.writeMirror) { try { await this.fs.writeMirror(meta.id, data); } catch (e) {} }
+    }
+    this._fallbacksReconciled = true;
+    return metas;
   }
 
   /**
@@ -96,6 +123,16 @@ export class CatalogPersistence {
       return { data: json, source: 'json' };
     }
     return null;
+  }
+
+  async touchOpened(id) {
+    if (!id) return false;
+    await this._ensureLoaded();
+    try {
+      this.catalog.touchOpened(id);
+      await this.fs.writeDb(this.catalog.toBytes());
+      return true;
+    } catch (e) { return false; }
   }
 
   /**

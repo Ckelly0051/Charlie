@@ -507,6 +507,20 @@ export class TauriBackend extends StorageBackend {
       const recovered = await this._recoverFromMirror();
       if (recovered.length) lib = recovered;
     }
+    const catalogOnDisk = await this._exists('seasons/library.db');
+    const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
+    if (cp) {
+      try {
+        // SQLite is canonical. Rebuild the legacy index and JSON safety copies
+        // from it so stale sidecars can never hide or rename a surviving season.
+        lib = await cp.reconcileFallbacks();
+        await this._writeLib(lib);
+      } catch (e) {
+        console.error('catalog library reconciliation failed', e);
+        throw e;
+      }
+    }
     return lib.slice().sort((a, b) =>
       String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
   }
@@ -568,7 +582,9 @@ export class TauriBackend extends StorageBackend {
 
   async deleteSeason(id) {
     if (!this._ok()) return;
+    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) return false;
     if (cp) {
       let ok = false;
       try { ok = await cp.deleteSeason(id); } catch (e) { ok = false; }
@@ -593,18 +609,28 @@ export class TauriBackend extends StorageBackend {
   }
 
   async touchOpened(id) {
+    const catalogOnDisk = await this._exists('seasons/library.db');
+    const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) return false;
+    if (cp && !(await cp.touchOpened(id))) return false;
     const lib = await this._readLib();
     const e = lib.find(s => s.id === id);
     if (e) { e.lastOpened = new Date().toISOString(); await this._writeLib(lib); }
+    return true;
   }
 
   // ---- canonical (scoped to currentId) ----
   async loadSeason() {
     if (!this._ok() || !this.currentId) return null;
+    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
     if (cp) {
       try { const r = await cp.loadSeason(this.currentId); if (r && r.data) return r.data; }
-      catch (e) { console.warn('catalog load failed; JSON fallback', e); }
+      catch (e) {
+        console.error('catalog load failed; stale JSON fallback blocked', e);
+        throw e;
+      }
     }
     if (await this._exists(this._seasonFile(this.currentId))) return this._readJson(this._seasonFile(this.currentId));
     return null;
@@ -615,17 +641,31 @@ export class TauriBackend extends StorageBackend {
   // redirect the coach's Open click. Read-only; no write path exists for it.
   async peekSeason(id) {
     if (!this._ok() || !id) return null;
+    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
     if (cp) {
       try { const r = await cp.loadSeason(id); if (r && r.data) return r.data; }
-      catch (e) {}
+      catch (e) {
+        console.error('catalog peek failed; stale JSON fallback blocked', e);
+        throw e;
+      }
     }
     if (await this._exists(this._seasonFile(id))) return this._readJson(this._seasonFile(id));
     return null;
   }
   async saveSeason(data) {
     if (!this._ok() || !this.currentId) return false;
+    if (!data || (data.id && String(data.id) !== String(this.currentId))) {
+      console.error('Blocked cross-season save', { destinationId: this.currentId, payloadId: data && data.id });
+      return false;
+    }
+    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) {
+      console.error('Blocked JSON fallback write because the canonical catalog exists but is unavailable');
+      return false;
+    }
     if (cp) {
       // CatalogPersistence writes db (canonical) + season.json + Documents mirror,
       // and returns TRUE only when the canonical db write is durable. The json
@@ -637,7 +677,10 @@ export class TauriBackend extends StorageBackend {
         await this._touchMeta(data);
         return okDb;
       }
-      catch (e) { console.warn('catalog save threw; JSON path', e); }
+      catch (e) {
+        console.error('catalog save threw; fallback write blocked', e);
+        return false;
+      }
     }
     try {
       await this._ensureSeasonDir(this.currentId);
@@ -656,8 +699,9 @@ export class TauriBackend extends StorageBackend {
   // The browser bundle stays sql.js-free: the wasm is a desktop-only Tauri
   // resource, lazy-loaded here on first use.
   _sqlFlag() {
-    try { return typeof localStorage !== 'undefined' && localStorage.getItem('ffa_sql_catalog') === '1'; }
-    catch (e) { return false; }
+    // Tauri's catalog is the shipped canonical store. A localStorage flag must
+    // never demote durable SQLite data to stale JSON sidecars.
+    return true;
   }
 
   async _loadSqlEngine() {
@@ -715,28 +759,38 @@ export class TauriBackend extends StorageBackend {
     return this._catalogInit;
   }
   async _touchMeta(data) {
+    if (!data || (data.id && String(data.id) !== String(this.currentId))) return false;
     const lib = await this._readLib();
     const i = lib.findIndex(s => s.id === this.currentId);
     if (i < 0) return;
     const m = this._seasonMeta(this.currentId, data);
     lib[i] = { ...lib[i], ...m, created: lib[i].created, lastOpened: lib[i].lastOpened };
     await this._writeLib(lib);
+    return true;
   }
 
   // ---- backup ring (scoped to currentId) ----
   async createBackup(data, label) {
     if (!this._ok() || !this.currentId) return null;
+    if (!data || (data.id && String(data.id) !== String(this.currentId))) {
+      console.error('Blocked cross-season backup', { destinationId: this.currentId, payloadId: data && data.id });
+      return null;
+    }
     const json = JSON.stringify(data);
     if (this._lastBackupJson && this._lastBackupJson === json) return null;
-    // Flag-ON: restore points are rows in the shared library db (no per-season
-    // backup JSON file). Falls through to the file ring if the catalog is off or
-    // the db write throws — never lose a restore point.
+    // Restore points are rows in the shared library db. Legacy JSON backups
+    // remain readable, but new writes never bypass an existing catalog.
+    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
+    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
     if (cp) {
       try {
         const bid = await cp.createBackup(this.currentId, data, label || 'Save');
         if (bid) { const meta = this._meta(data, label); meta.id = bid; this._lastBackupJson = json; return meta; }
-      } catch (e) { console.warn('catalog backup failed; JSON ring', e); }
+      } catch (e) {
+        console.error('catalog backup failed; JSON ring write blocked', e);
+        return null;
+      }
     }
     await this._ensureSeasonDir(this.currentId);
     const id = `season_${this._tsSlug()}.json`;

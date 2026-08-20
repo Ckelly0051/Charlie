@@ -13,6 +13,19 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CURRENT - P0 DATA-INTEGRITY INCIDENT REPAIRED; `1.12.0-57` INSTALLER READY (2026-08-20)
+
+**Incident:** installing/opening `1.12.0-56` made the coach's 2025 JV season appear gone and duplicated Varsity metadata in the Team Hub. The season and film were not deleted. The canonical SQLite catalog still contained the intact JV season (6 games / 440 plays) and Varsity season (2 games / 50 plays); legacy `season.json`/`library.json` sidecars had been cross-wired.
+
+**Root cause:** a Tauri save could hold destination `currentId=JV` while receiving a Varsity payload. `SqlCatalog.saveSeason(data)` keyed the canonical row by `data.id`, while the JSON sidecar and library metadata were keyed by `currentId`. One logical save therefore wrote to two season identities. `TeamRegistry.recoverFromWipe()` also borrowed the backend's mutable current-season pointer while inspecting other seasons, creating the divergence window. The legacy UI shell had been removed, but these legacy JSON persistence fallbacks had not; shell removal alone did not eliminate storage dual ownership.
+
+**Recovery performed before code changes:** the app was closed; a full 11.4 GB forensic copy was created at `incident-backups/season-id-crosswrite-20260820-134920` (gitignored); live `library.db` matched the backup SHA-256; `tools/recover-catalog-library.mjs` then rebuilt `season.json`, the Documents mirror, and `library.json` from SQLite without touching film. Final dry-run confirms JV 6/440 and Varsity 2/50.
+
+**Structural repair:** saves and backups now reject destination/payload ID mismatches before any write; registry recovery uses read-only `SeasonStore.peekSeason()` and never mutates the active backend scope; SQLite is always canonical in Tauri and cannot be disabled by a lost localStorage flag; Tauri refuses list/load/peek/save/delete/backup operations when an existing catalog cannot be initialized, rather than silently demoting via localStorage or direct JSON writes; the catalog orchestrator retains its explicit missing/corrupt-database recovery path. Startup reconciles legacy sidecars from SQLite. The exact incident is pinned by zero-write regressions.
+
+**Verification:** focused catalog persistence 56/56, catalog backend 7/7, team registry 21/21; final canonical gate **88/88 green, 0 skipped, 0 failed** on the packaged bytes. Unsigned NSIS and MSI installers built successfully. NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-57_x64-setup.exe` (SHA-256 `BEFB33A4C1ABE00E8747E4057EEC96FB6DACFD543AB283915979B48230D2DE8B`). MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-57_x64_en-US.msi` (SHA-256 `B3D18E7630DF61582FAC42786E1A7937720C7FC97AF7319656A8771F20E25F4A`). No data migration or film deletion is part of this release.
+
+**Required coach smoke after install:** Team Hub must show both seasons; JV opens with 6 games/440 plays and Varsity with 2 games/50 plays; switching JV -> Varsity -> JV must preserve identity, counts, tags, reports, and linked film. Do not proceed to feature/design work until this passes.
 
 ### CURRENT - CHARLIE GATE VISUAL RECOMPOSITION SHIPPED LOCALLY; `1.12.0-56` READY FOR COACH SMOKE (2026-08-20)
 

@@ -286,5 +286,34 @@ const refA = await refRoundTrip(seasonA());
     'C2: a missing db recovers the linked metadata from the json safety copy (never downgrades to managed)', JSON.stringify(healed?.source));
 }
 
+// ---- 14. Cross-season destination/payload mismatch fails before ALL writes --
+// Exact field incident: a stale backend currentId pointed at JV while the live
+// payload was Varsity. The old code saved Varsity in SQLite but overwrote JV's
+// season.json and library metadata. No store may receive a byte on mismatch.
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveSeason('s1', seasonA());
+  const dbBefore = Array.from(fs.state.db || []);
+  const jsonBefore = clone(fs.state.json.get('s1'));
+  const mismatch = await cp.saveSeason('s1', seasonB());
+  ok(mismatch === false, 'cross-season save is rejected');
+  ok(deepEq(Array.from(fs.state.db || []), dbBefore), 'rejected save writes zero canonical db bytes');
+  ok(deepEq(fs.state.json.get('s1'), jsonBefore) && !fs.state.json.has('s2'), 'rejected save writes zero JSON sidecar bytes');
+  ok(!fs.state.mirror.has('s2'), 'rejected save writes zero mirror bytes');
+}
+
+// ---- 15. Canonical catalog repairs a misrouted sidecar + lists teamId -------
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const a = seasonA(); a.teamId = 'jv-team';
+  await cp.saveSeason('s1', a);
+  fs.state.json.set('s1', clone(seasonB())); // recreate the field corruption
+  const metas = await cp.reconcileFallbacks();
+  ok(metas.some(m => m.id === 's1' && m.teamId === 'jv-team'), 'canonical season list preserves teamId for Team Hub filtering');
+  ok(fs.state.json.get('s1')?.id === 's1' && fs.state.json.get('s1')?.seasonName === 'Alpha', 'catalog reconciliation repairs a cross-wired JSON sidecar');
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

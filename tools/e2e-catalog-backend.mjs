@@ -56,6 +56,13 @@ const result = await page.evaluate(async () => {
     const { be } = makeBackend({ saveSeason: async () => true, deleteSeason: async () => true });
     out.saveTrue = await be.saveSeason({ id: 's1', games: [] });
   }
+  // 1c. A stale backend scope must never route a different season payload.
+  {
+    let calls = 0;
+    const { be } = makeBackend({ saveSeason: async () => { calls++; return true; }, deleteSeason: async () => true });
+    out.crossSave = await be.saveSeason({ id: 's2', games: [] });
+    out.crossSaveCalls = calls;
+  }
   // 2. deleteSeason RETAINS files + library entry AND returns false when the
   //    catalog delete fails (the false surfaces to a coach-facing toast upstream).
   {
@@ -99,6 +106,7 @@ const result = await page.evaluate(async () => {
 
 ok(result.saveFalse === false, 'saveSeason propagates a canonical db-write FAILURE (not reported as success)', JSON.stringify(result.saveFalse));
 ok(result.saveTrue === true, 'saveSeason reports success when the catalog save succeeds');
+ok(result.crossSave === false && result.crossSaveCalls === 0, 'cross-season payload is blocked before catalog or fallback writes', JSON.stringify(result));
 ok(result.delFailRemoves === 0 && result.delFailLibKept === true && result.delFailRet === false, 'a FAILED catalog delete retains files + library entry AND returns false (for a toast)', JSON.stringify(result));
 ok(result.delOkRemoves >= 1 && result.delOkLibDropped === true && result.delOkRet === true, 'a DURABLE catalog delete removes files + library entry AND returns true');
 ok(result.bkId === 'bk_1' && result.bkCatId === 's1' && result.bkList === true && result.bkGot === true && result.bkDeleted === true, 'backup ring delegates to the catalog (create/list/get/delete) when flag-ON', JSON.stringify(result));

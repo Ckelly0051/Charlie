@@ -307,14 +307,18 @@ export class SqlCatalog {
 
   // ---- library (multi-season) ----------------------------------------------
   listSeasons() {
-    return this._all(`SELECT id,name,team,year,level,is_demo,kind,games_count,plays_count,created,updated,last_opened
+    return this._all(`SELECT id,name,team,year,level,is_demo,kind,games_count,plays_count,created,updated,last_opened,body_json
                       FROM seasons ORDER BY COALESCE(last_opened, updated, created) DESC`)
-      .map(r => ({
-        id: r.id, name: r.name || r.team || 'Untitled Season', team: r.team || '', year: r.year || '', level: r.level || '',
-        games: r.games_count || 0, plays: r.plays_count || 0,
-        created: r.created || '', updated: r.updated || '', lastOpened: r.last_opened || '',
-        isDemo: !!r.is_demo, kind: r.kind || '',
-      }));
+      .map(r => {
+        let body = {};
+        try { body = JSON.parse(r.body_json || '{}') || {}; } catch (e) {}
+        return {
+          id: r.id, name: r.name || r.team || 'Untitled Season', team: r.team || '', year: r.year || '', level: r.level || '',
+          teamId: body.teamId || '', games: r.games_count || 0, plays: r.plays_count || 0,
+          created: r.created || '', updated: r.updated || '', lastOpened: r.last_opened || '',
+          isDemo: !!r.is_demo, kind: r.kind || '',
+        };
+      });
   }
 
   createSeason(meta) {
