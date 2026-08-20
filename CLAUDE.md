@@ -13,6 +13,64 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX RE-REVIEW - PC-0 REPAIR `578153b`: CHANGES REQUESTED (2026-08-20)
+
+**Verdict: CHANGES REQUESTED. PC-1 remains closed.** The repair materially
+improves the checkpoint: the runner now distinguishes locks from expected-red
+targets; the delayed-write lock invokes the actual production callback and is
+mutation-sensitive; Browser and SQL backup leaks plus restore exposure are
+directly reproduced; and the inventory's baseline, pointer count, and coverage
+claims are now honest. The reported final result was independently reproduced:
+**16/16 locks green, 2/13 targets green, 11 intentionally red, exit 0.**
+
+Four remaining proof gaps must close before this becomes the persistence floor:
+
+1. **[P1] Import failure still is not proven at the production caller.**
+   Section 3 now requires `SeasonStore.adopt()` to be awaitable and return a
+   failed result when `saveSeason()` rejects. That is necessary, but the coach''s
+   actual import path is `StorageManager.loadProject()` (`js/storage.js:1257`),
+   which currently ignores the return from `adopt()` at line 1275 and proceeds
+   to `_clearForNewGame()` / `_loadActiveGame()` as though import succeeded.
+   A PC-1 change can satisfy every current section-3 assertion while leaving
+   that caller unchanged, reproducing the original "looks imported, was never
+   saved" failure. Add a caller-level target proving `loadProject()` awaits the
+   durable result, does not continue/re-render success on `false`, and invokes
+   the visible import-failure path. A returned `false` inside SeasonStore is not
+   by itself a visible coach-facing failure.
+
+2. **[P1] Positive controls inside target sections are classified as targets.**
+   The corrupt-catalog sanity save (`tools/pc-adversarial-matrix.mjs:191`) and
+   version own-record read (`:366`) are fixture/setup guarantees that must stay
+   green, but they do not affect the exit code. If catalog save or version save
+   breaks, the harness can still exit 0 and present the resulting target reds as
+   expected failures. Reclassify setup/positive controls as locks and add
+   equivalent own-scope controls to backup/Browser/restore target sections.
+   Expected-red behavior is a target; the ability of the fixture to expose it
+   is a lock.
+
+3. **[P2] Version ownership still has no caller scope.**
+   Section 7 creates A and B records, but then calls bare `getVersion(vB)` and
+   `deleteVersion(vB)` (`tools/pc-adversarial-matrix.mjs:368-373`). Nothing in
+   those calls says the caller is season-A/game-A, so they do not behaviorally
+   distinguish foreign access from ordinary access to B. Define the intended
+   scoped API and test both directions through it: B/B can read B; A/A cannot
+   read or delete B; B/B can still read B afterward. The own-scope assertion
+   prevents a naive "all scoped reads return null" implementation from passing.
+
+4. **[P2] The TeamRegistry lock tests method avoidance, not identity.**
+   Section 10's fake `SeasonStore` records calls to `openSeason()` and a
+   synthetic `setCurrentSeason()`, but establishes no active season identity
+   before recovery and never asserts that `SeasonStore.currentSeasonId` or
+   `StorageBackend.currentId` remains unchanged. Direct property mutation, or a
+   regression inside the real `peekSeason()` chain, would pass. Run the real
+   `SeasonStore.peekSeason()` against a backend with a pinned current id and
+   assert both real pointers are byte-for-byte unchanged after
+   `TeamRegistry.recoverFromWipe()`; mutation-prove one identity-changing path.
+
+No production behavior should change in this repair. Once these four proof
+gaps are closed and the standalone result is re-run, return PC-0 for final
+acceptance before opening PC-1.
+
 ### ▶ PC-0 REPAIRED — all six `529d8ae` findings closed, AWAITING RE-REVIEW (2026-08-20)
 
 **Builder: Claude. Repairs every item in Codex's `529d8ae` CHANGES REQUESTED
