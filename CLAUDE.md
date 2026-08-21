@@ -13,6 +13,127 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-1 — EXPLICIT IDENTITY API BUILT, AWAITING CODEX REVIEW (2026-08-21)
+
+**Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md` PC-1
+only** ("Require explicit ids at persistence boundaries. Validate destination/
+payload/catalog/revision identity together. Remove mutable backend scope as a
+write destination. Make read-only peeks provably side-effect-free."). Closes
+the two concrete findings PC-0's inventory (§3.1, §3.3) and adversarial matrix
+(`tools/pc-adversarial-matrix.mjs`, sections 3, 3b, 5/6, 7, 11, 12 — all six
+were explicitly labeled `[TARGET, checkpoint: PC-1]`) scoped to this
+checkpoint. §3.2 (same-season revision fencing) is a separate design decision
+with no matrix section of its own — **explicitly NOT addressed here**, left
+open and disclosed in the inventory doc rather than silently skipped.
+
+**§3.1 — import identity, closed.** `SeasonStore.adopt(parsed)`
+(`js/season-store.js`) is now `async`: it reassigns the imported payload's own
+`id` to `this.currentSeasonId` (the destination library slot) before
+normalize/persist — without this, an imported file's own id almost never
+matched the destination, and the existing destination/payload guard
+(`saveSeason`) silently rejected the write while the UI proceeded as though
+the import had succeeded. `adopt()` now returns `{ ok, data }`, awaitable,
+instead of firing `persist()` and discarding the result. The real caller,
+`StorageManager.loadProject()` (`js/storage.js:1257`), awaits it and — on
+`result.ok === false` — toasts `Import failed — the season could not be
+saved. Nothing on screen changed.` and returns, instead of unconditionally
+calling `_clearForNewGame()`/`_loadActiveGame()`.
+
+**§3.3 — backup/version ownership, closed for backups at both backends,
+closed for the new scoped version seam, disclosed-dormant for the legacy
+unscoped version methods.** `BrowserBackend.getBackup(id)`/`deleteBackup(id)`
+and `SqlCatalog.getBackup(id)`/`deleteBackup(id)` now refuse a record whose
+owning season differs from the caller's current scope — the SqlCatalog half
+reuses the exact implicit-`this.currentId` pattern `saveSeason`/`createBackup`
+already established, so **zero caller signatures changed anywhere in the
+app** (`CatalogPersistence.getBackup(id, backupId)`/`deleteBackup(id,
+backupId)` already call `setCurrentSeason(id)` immediately before delegating
+— that call was previously a no-op for exactly these two operations, and now
+isn't). `SeasonStore.restoreBackup(id)` needed **zero new code of its own** —
+it is `await this.backend.getBackup(id)` then bails on falsy, so it is
+protected transitively now that both backends are scoped. One disclosed
+exception: `BrowserBackend.deleteSeason()`'s own cleanup sweep bypasses the
+new public `deleteBackup()` and deletes directly via `_tx`, since that sweep
+legitimately removes every backup for a season being deleted, which is very
+often not `this.currentId`.
+
+`SqlCatalog.getVersionScoped(seasonId, gameId, id)`/`deleteVersionScoped(...)`
+are new, with `CatalogPersistence` wrappers — implementing, ahead of schedule,
+the exact production contract PC-0 round-3's repair (`f7c09a3`) named for
+PC-2. They take **explicit** `(seasonId, gameId)` parameters rather than
+`this.currentId`, since they have zero existing callers to stay compatible
+with. **The legacy bare `getVersion(id)`/`deleteVersion(id)` were deliberately
+NOT deleted or scoped** — grep-confirmed zero production callers anywhere in
+`js/` (only the pre-existing, unrelated `tools/e2e-catalog-versions.mjs`
+exercises their plain CRUD/eviction behavior, which has no ownership
+dimension), so closing this dormant gap would mean rewriting an unrelated,
+already-correct test fixture for zero live-vulnerability benefit. PC-2 must
+wire `VersionManager` onto the new **scoped** seam, never the legacy one.
+
+**Test harness updated to match, not left stale.** `tools/pc-adversarial-
+matrix.mjs`: sections 3, 3b, 5/6, 11, and 12, plus four of section 7's six
+assertions, are reclassified `[TARGET]` → `[LOCK]` now that they pass against
+real production code. Section 3b — the caller-level `StorageManager.
+loadProject()` proof — was rewritten rather than just re-labeled: its old
+fixture's "sanity" check assumed the durable write fails *because of* the
+id-mismatch bug this checkpoint fixes, so under the fix it was passing for
+the wrong reason (the import now genuinely succeeds). It now simulates a
+durable-write failure for a genuine EXTERNAL reason (disk full, catalog
+rejected the write) on an already-open season, explicitly proving isolation
+from the id-mismatch bug (`idMatches:true` yet `ok:false`), and adds a
+second case proving the same real caller correctly proceeds when the write
+genuinely succeeds — so the failure-path assertions cannot pass merely by
+`loadProject()` refusing every import unconditionally. Section 12
+(`SeasonStore.restoreBackup`) was rewritten from a fully hand-rolled fake
+backend whose own code comment said it "mirrors today's real bug: no
+ownership check" — meaning it could never exercise the real fix one layer
+down — into a real `BrowserBackend` wired to a real `SeasonStore` (same
+indexedDB shim section 11 already uses), proving the full integrated stack.
+Section 7 keeps two assertions honestly `[TARGET]`, red, against the
+disclosed dormant legacy methods, explicitly labeled as not scheduled for any
+checkpoint rather than implying PC-2 will close them.
+
+**Verification:** `node tools/pc-adversarial-matrix.mjs` — **40/40 locks
+green, 0/4 targets green (4 intentionally red: 2 corrupt-catalog PC-2 items
+unchanged from PC-0, 2 disclosed dormant legacy version methods)**, exit 0.
+Six of the highest-risk new guards mutation-verified individually — each
+mutation reproduces the original defect and reds exactly its own
+assertion(s), confirmed via `git status`/`git diff` byte-identical after
+restore: `SqlCatalog.getBackup`/`deleteBackup`'s `season_id` filter;
+`getVersionScoped`/`deleteVersionScoped`'s ownership filter;
+`BrowserBackend.getBackup`'s `seasonId` check (reproduces the leak in section
+11 directly **and** section 12 transitively — `restoreBackup` silently
+overwriting season A's live data with season B's, proving section 12 is
+genuinely wired to the real fix and not a fixture that could drift from it);
+and `SeasonStore.adopt()`'s id-reassignment (reproduces the original bug in
+both section 3 and section 3b, with 3b's sanity check correctly detecting the
+reintroduced id-mismatch — proving that isolation is real, not accidental).
+Full canonical gate (`bash tools/run-gate.sh`): **88 harnesses | 88 green | 0
+skipped | 0 failed**, including `e2e-catalog-persistence` (56/56),
+`e2e-catalog-backend` (7/7), `e2e-catalog-versions` (10/10, unchanged — the
+legacy methods' plain CRUD/eviction behavior is untouched), `e2e-catalog-
+fuzzer`, `e2e-team-registry` (21/21), `e2e-integrity`, and `e2e-realdata`
+(15/15, real coach season) — zero regressions anywhere in the suite.
+
+**Invariant #3 note for the reviewer.** The backup-scoping fix reads
+`this.currentId`/`this.currentSeasonId` as an ownership **filter** on a
+read/delete-by-id, not as the thing that **chooses a write destination** —
+the destination is still set explicitly by the caller via
+`setCurrentSeason(id)` before the call, the identical shape PC-0 already
+accepted for `saveSeason`/`createBackup`. Worth confirming independently that
+this reading is right and that it doesn't reopen invariant #3 in spirit.
+
+**Scope discipline:** no film path, film file, season/game/play data, schema,
+migration, or unrelated file touched. Nothing deleted, moved, retired, or
+rewritten outside the five files named above plus the test harness and the
+two inventory sections. `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §3.1 and §3.3
+are updated to record closure with the real code/proof; §3.2 is explicitly
+flagged as untouched.
+
+**Next action:** Codex independently reviews this PC-1 checkpoint. PC-2
+("SQLite-Only Live Desktop Persistence") does not begin until that review
+completes, per the plan's own handoff protocol.
+
 ### CODEX RE-REVIEW - PC-0 ROUND-3 REPAIR `80418eb`: ACCEPTED (2026-08-20)
 
 **Verdict: ACCEPTED, no findings. PC-0 is complete and PC-1 may open.**

@@ -227,58 +227,58 @@ findings below — a corrupt catalog file currently has a plausible path to
 making a coach's real, undamaged seasons disappear from the library screen
 and then persisting that disappearance to `library.json`.
 
-### 3.1 — `SeasonStore.adopt()` does not reassign the imported payload's id, so importing a season file is silently rejected by the desktop save guard
+### 3.1 — CLOSED, PC-1 — `SeasonStore.adopt()` reassigns the imported payload's id and reports genuine durable success/failure
 
-`StorageManager.loadProject(file)` (`js/storage.js:1257`), on a season-shaped
-file (`Array.isArray(parsed.games)`):
+**Fixed and mutation-verified.** `SeasonStore.adopt(parsed)` (`js/season-store.js`)
+is now `async` and, before normalizing, reassigns the imported payload's own
+`id` to `this.currentSeasonId` — the destination library slot — so the
+destination/payload guard the backends already enforce (Invariant #2) sees a
+match instead of a false cross-season write attempt:
+
+```js
+async adopt(parsed) {
+  if (parsed && Array.isArray(parsed.games)) {
+    this.data = this._normalize({ ...parsed, id: this.currentSeasonId });
+  } else if (parsed && Array.isArray(parsed.plays)) {
+    this.data = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
+  } else {
+    return { ok: false, data: null };
+  }
+  const ok = await this.persist();
+  return { ok: ok !== false, data: this.data };
+}
+```
+
+`adopt()` is now awaitable and returns `{ ok, data }` instead of the previous
+fire-and-forget `this.persist()` whose result went nowhere. The real caller,
+`StorageManager.loadProject()` (`js/storage.js:1257`), awaits it and bails
+visibly on a genuine durable-write failure instead of proceeding as though the
+import succeeded:
 
 ```js
 if (!this.seasonStore.hasCurrent()) {
-  await this.seasonStore.createSeason({ name: ..., teamId: ... });   // allocates a FRESH id
+  await this.seasonStore.createSeason({ name: ..., teamId: ... });
 }
-this.seasonStore.adopt(parsed);   // parsed still carries its ORIGINAL id
+const result = await this.seasonStore.adopt(parsed);
+if (!result || result.ok === false) {
+  this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+  return;
+}
+this._clearForNewGame();
+this._loadActiveGame();
 ```
 
-`SeasonStore.adopt(parsed)` (`js/season-store.js:678`):
-
-```js
-adopt(parsed) {
-  if (parsed && Array.isArray(parsed.games)) this.data = this._normalize(parsed);
-  ...
-  this.persist();
-}
-```
-
-`_normalize()` never touches `d.id`. So after `adopt()`, `this.data.id` is
-whatever id the *imported file* originally carried — not the id
-`createSeason()` just allocated (or the id of whatever season was already
-open, in the far more common case of importing while a season is active).
-
-`persist()` calls `this.backend.saveSeason(this.data)`. On desktop,
-`TauriBackend.saveSeason` is:
-
-```js
-if (!data || (data.id && String(data.id) !== String(this.currentId))) {
-  console.error('Blocked cross-season save', ...);
-  return false;
-}
-```
-
-`data.id` (the imported file's original id) almost never equals
-`this.currentId` (the destination season). **The save is rejected — zero
-writes — and the coach sees a misleading toast** (`onPersistError` fires:
-"⚠ Save failed — browser storage may be full."), which is the wrong
-diagnosis for what actually happened. The import UI proceeds to
-`_clearForNewGame(); _loadActiveGame();` regardless, so the season *looks*
-imported in the running app but was never durably saved.
-
-This is exactly the behavior Invariant #2 asks for at the storage-backend
-layer (destination/payload mismatch → zero writes) — the guard is doing its
-job correctly. The bug is one layer up: nothing in the import path reassigns
-the payload's identity to the destination before calling `persist()`. This is
-squarely PC-1 scope ("Explicit Identity API... validate destination/payload...
-identity together") and is recorded here as a real, reproducible defect, not
-a hypothetical.
+Proven at both layers by `tools/pc-adversarial-matrix.mjs` — section 3 drives
+`SeasonStore.adopt()` directly (destination-id honored; awaitable result;
+rejected-write visibly reported); section 3b drives the REAL
+`StorageManager.loadProject()` (not a fake) through a minimal platform shim,
+isolating a genuine external durable-write failure (disk full, catalog
+rejected the write) from the id-mismatch bug this finding describes, and
+proving both the failure path (editor not torn down, no re-render, a visible
+toast) and the success path (an import that genuinely persists is loaded)
+through the one real caller. All assertions in both sections are `[LOCK]`.
+Mutation-verified: reverting the id reassignment in `adopt()` reproduces the
+original defect exactly and reds both sections; restored, clean.
 
 ### 3.2 — No revision fencing for two overlapping saves to the *same* season
 
@@ -294,65 +294,114 @@ clause names as in-scope. PC-1/PC-4 should decide whether to add a monotonic
 revision counter to `SeasonStore.data` (comparable to the plan's own
 suggestion) or fence this some other way.
 
-### 3.3 — Backup and version reads/deletes have no season/game ownership check, at both storage layers
+**Not addressed by the PC-1 pass that closed §3.1/§3.3 below.** This finding
+has no corresponding section in `tools/pc-adversarial-matrix.mjs` — it is a
+design decision (whether/how to add revision fencing across the whole data
+model), not a scoped identity-mismatch bug with a small, contained fix like
+those two. It remains open and undecided.
 
-Confirmed independently in both backends, and each is now backed by a
-runnable reproduction in `tools/pc-adversarial-matrix.mjs` (sections 5/6, 7,
-and 11), not source-reading alone:
+### 3.3 — CLOSED (backup), PARTIAL (version), PC-1 — backup/version reads/deletes are now season/game-scoped at every live storage layer
 
-- `BrowserBackend.getBackup(id)` / `deleteBackup(id)` (`js/storage-backend.js:323-327`) —
-  IndexedDB lookups by bare `id`, no `record.seasonId === this.currentId` check.
-- `SqlCatalog.getBackup(id)` / `deleteBackup(id)` (`js/sql-catalog.js:370-371`) —
-  `WHERE id = ?` with no `season_id` predicate.
-- `SqlCatalog.getVersion(id)` / `deleteVersion(id)` (`js/sql-catalog.js:399-400`) —
-  same shape, no `season_id`/`game_id` predicate. Currently unreachable (no
-  caller), but part of the surface PC-2 wires up.
+**Backup ownership is closed at both backends.** `BrowserBackend.getBackup(id)`/
+`deleteBackup(id)` (`js/storage-backend.js`) now refuse a record whose stored
+`seasonId` does not equal `this.currentId` (a loose `== null` check covers
+`_tx`'s `undefined`-on-miss quirk, so a genuine miss and a foreign-season hit
+are both treated as "not found"):
 
-Backup/version ids are globally unique (monotonic timestamps or generated
-tokens), so today this is only exploitable if a caller supplies an id that
-was **listed under a different season than the one currently scoped** — which
-requires either a stale UI reference (season switched between listing and
-clicking) or a caller bug. `SeasonStore.restoreBackup(id)` inherits whichever
-of these two backends is active, with no additional check of its own —
-reproduced directly in `tools/pc-adversarial-matrix.mjs` section 12: a
-backup id belonging to season B, restored while scoped to season A, lands
-season B's data in season A's live state.
-`CatalogPersistence.getBackup(id, backupId)`/`deleteBackup(id, backupId)`
-call `this.catalog.setCurrentSeason(id)` immediately before delegating to
-`SqlCatalog.getBackup(backupId)`/`deleteBackup(backupId)` — but since those
-two `SqlCatalog` methods never consult `this.currentId`, that call is a
-no-op for exactly the two operations where it would matter most.
-
-This is the concrete, currently-real instance of the adversarial matrix's
-"Backup, restore, or import carries the wrong id: rejected before mutation."
-Today it is accepted, not rejected.
-
-**Intended production contract for PC-2 (repair of Codex's `f7c09a3`
-finding).** An earlier draft of `tools/pc-adversarial-matrix.mjs` composed the
-version-ownership check itself, inside the test file, out of the one
-already-scope-aware primitive (`listVersions`) — which meant its four
-"ownership" assertions exercised the test's own logic, not production, and
-would have stayed green even if a real PC-2 implementation shipped broken.
-That has been removed. The contract PC-2 must implement instead, named
-explicitly so the harness can call it directly and stay honestly red until it
-exists:
-
-```
-SqlCatalog.getVersionScoped(seasonId, gameId, id)
-  -> the version's stored body if it belongs to (seasonId, gameId), else null.
-
-SqlCatalog.deleteVersionScoped(seasonId, gameId, id)
-  -> true if a version owned by (seasonId, gameId) was deleted; false
-     (no-op — nothing deleted) if the id belongs to a different scope.
+```js
+async getBackup(id) {
+  const rec = await this._tx('backups', 'readonly', os => os.get(id));
+  if (rec == null || rec.seasonId !== this.currentId) return null;
+  return rec.data;
+}
+async deleteBackup(id) {
+  const rec = await this._tx('backups', 'readonly', os => os.get(id));
+  if (rec == null || rec.seasonId !== this.currentId) return false;
+  await this._tx('backups', 'readwrite', os => os.delete(id));
+  return true;
+}
 ```
 
-The existing unscoped `getVersion(id)`/`deleteVersion(id)` may remain for any
-caller that hasn't migrated, but no coach-reachable path may rely on them
-once these two exist. `tools/pc-adversarial-matrix.mjs` section 7 calls these
-two exact method names on a real `SqlCatalog` instance and reports each of
-its four assertions honestly `unavailable`/red today (the methods don't
-exist); once PC-2 adds them to `js/sql-catalog.js`, those four assertions
-exercise the real implementation with no further change to the test file.
+`SqlCatalog.getBackup(id)`/`deleteBackup(id)` (`js/sql-catalog.js`) now scope
+by `this.currentId`, reusing the same implicit-pointer pattern
+`saveSeason`/`createBackup` already established — `CatalogPersistence.
+getBackup(id, backupId)`/`deleteBackup(id, backupId)` already call
+`this.catalog.setCurrentSeason(id)` immediately before delegating, so this
+scoping is exact with **zero caller-signature changes** anywhere in the app:
+
+```js
+getBackup(id) { const r = this._get('SELECT body_json FROM backups WHERE id = ? AND season_id = ?', [id, this.currentId]); return r ? JSON.parse(r.body_json) : null; }
+deleteBackup(id) { this._run('DELETE FROM backups WHERE id = ? AND season_id = ?', [id, this.currentId]); }
+```
+
+`SeasonStore.restoreBackup(id)` has no ownership logic of its own — it is
+`await this.backend.getBackup(id)`, then bails if that returns falsy
+(`js/season-store.js:623-636`) — so it is protected **transitively**, with
+zero new code in `restoreBackup` itself, now that both backends beneath it
+are scoped correctly.
+
+One documented exception, not a gap: `BrowserBackend.deleteSeason()`'s own
+backup-cleanup sweep (which legitimately removes every backup belonging to a
+season being deleted, not necessarily `this.currentId`) bypasses the new
+public `deleteBackup()` and operates directly on the `_tx` layer instead —
+the one caller for whom "scoped to the currently active season" is the wrong
+question to ask.
+
+Proven in `tools/pc-adversarial-matrix.mjs` sections 5/6 (SqlCatalog), 11
+(BrowserBackend), and 12 (`SeasonStore.restoreBackup`, now driven through a
+real `BrowserBackend` rather than a fixture that modeled the old bug) — all
+`[LOCK]`. Mutation-verified individually: removing the `season_id`/`seasonId`
+filter at either backend reproduces the original leak and reds its own
+section; removing it at `BrowserBackend.getBackup` alone additionally reds
+section 12 transitively (proving `restoreBackup`'s protection is real and not
+independently re-implemented), reproducing the exact original symptom —
+`restoreBackup()` silently overwriting season A's live data with season B's.
+All restored, clean.
+
+**Version ownership is closed at the new scoped seam; the legacy unscoped
+methods are a disclosed, intentionally-dormant gap.** `SqlCatalog` now has
+`getVersionScoped(seasonId, gameId, id)`/`deleteVersionScoped(seasonId,
+gameId, id)`, with `CatalogPersistence` wrapping both — the exact contract
+this section previously specified as PC-2's job, implemented ahead of
+schedule as part of closing this finding:
+
+```js
+getVersionScoped(seasonId, gameId, id) {
+  const r = this._get('SELECT body_json FROM versions WHERE id = ? AND season_id = ? AND game_id = ?', [String(id), seasonId, gameId]);
+  return r ? JSON.parse(r.body_json) : null;
+}
+deleteVersionScoped(seasonId, gameId, id) {
+  const owned = !!this._get('SELECT id FROM versions WHERE id = ? AND season_id = ? AND game_id = ?', [String(id), seasonId, gameId]);
+  if (owned) this._run('DELETE FROM versions WHERE id = ?', [String(id)]);
+  return owned;
+}
+```
+
+These take **explicit** `(seasonId, gameId)` parameters rather than trusting
+an ambient `this.currentId` — they are brand-new methods with no existing
+caller to preserve compatibility with, so there is no reason to repeat the
+implicit-pointer pattern used for backups. Proven in
+`tools/pc-adversarial-matrix.mjs` section 7 (`[LOCK]`): B/B reads its own
+version through the scoped seam; A/A is refused both read and delete; B/B can
+STILL read its own version afterward (rules out an always-null
+implementation). Mutation-verified: removing the ownership filter reds all
+three of those assertions and reproduces `deleteVersionScoped` actually
+deleting a foreign record; restored, clean.
+
+**The legacy bare `getVersion(id)`/`deleteVersion(id)` remain unscoped and
+vulnerable, deliberately.** Grep-confirmed zero callers anywhere in `js/` —
+`CatalogPersistence.getVersion`/`deleteVersion` delegate to them but are
+themselves never called from production code; `VersionManager` is not wired
+to SqlCatalog at all yet (a separate, already-documented deferred item). They
+were not deleted because `tools/e2e-catalog-versions.mjs` (an existing,
+unrelated, already-passing regression suite) exercises their plain CRUD/
+eviction behavior directly with no ownership dimension — deleting them would
+force rewriting that fixture for zero live-vulnerability benefit, since no
+production path can reach this shape unscoped today. `tools/
+pc-adversarial-matrix.mjs` section 7 keeps two `[TARGET]` assertions pinned
+red against this exact gap, explicitly labeled as a disclosed, dormant,
+not-scheduled item rather than a PC-2 checkpoint — **PC-2 must wire
+`VersionManager` onto the scoped seam, never the legacy bare methods.**
 
 ### 3.4 — No shutdown flush path exists anywhere in the app
 

@@ -674,12 +674,34 @@ export class SeasonStore {
     window.ffaSaveBlob(blob, name);
   }
 
-  /** Adopt a parsed object (season or legacy single game) as the season. */
-  adopt(parsed) {
-    if (parsed && Array.isArray(parsed.games)) this.data = this._normalize(parsed);
-    else if (parsed && Array.isArray(parsed.plays)) this.data = this._normalize({ games: [this.gameFromLegacy(parsed)] });
-    else return null;
-    this.persist();
-    return this.data;
+  /**
+   * Adopt a parsed object (season or legacy single game) as the season.
+   *
+   * PC-1: two fixes to the identity/durability contract (documented in
+   * GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
+   *   1. The imported payload's own `id` (whatever machine/season it came
+   *      from) is reassigned to `this.currentSeasonId` -- the destination
+   *      library slot -- BEFORE normalize/persist. Without this, an imported
+   *      file whose id differs from the destination is silently rejected by
+   *      the very destination/payload guard `saveSeason()` already enforces
+   *      (`data.id !== this.currentId`), and the import looked like it
+   *      worked while nothing was ever durably saved.
+   *   2. `adopt()` is now `async` and returns `{ ok, data }` -- awaitable, so
+   *      a caller can observe genuine durable success/failure instead of the
+   *      previous fire-and-forget `this.persist()` whose result went nowhere.
+   *
+   * Returns `{ ok: false, data: null }` for an unrecognized shape (no season
+   * open, or a payload with neither `.games` nor `.plays`).
+   */
+  async adopt(parsed) {
+    if (parsed && Array.isArray(parsed.games)) {
+      this.data = this._normalize({ ...parsed, id: this.currentSeasonId });
+    } else if (parsed && Array.isArray(parsed.plays)) {
+      this.data = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
+    } else {
+      return { ok: false, data: null };
+    }
+    const ok = await this.persist();
+    return { ok: ok !== false, data: this.data };
   }
 }

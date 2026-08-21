@@ -211,10 +211,14 @@ export class BrowserBackend extends StorageBackend {
   async deleteSeason(id) {
     try { localStorage.removeItem(this._seasonKey(id)); } catch (e) {}
     this._writeLib(this._readLib().filter(s => s.id !== id));
-    // Drop this season's backups.
+    // Drop this season's backups. Deletes directly via _tx rather than the
+    // public deleteBackup(id) below: this sweep legitimately removes EVERY
+    // backup owned by `id`, which is very often NOT this.currentId (deleting
+    // a non-active season from the library while a different one is open) --
+    // the public method's own-scope check would wrongly refuse most of these.
     try {
       const all = await this._tx('backups', 'readonly', os => os.getAll());
-      for (const r of (all || [])) if (r && r.seasonId === id) await this.deleteBackup(r.id);
+      for (const r of (all || [])) if (r && r.seasonId === id) await this._tx('backups', 'readwrite', os => os.delete(r.id));
     } catch (e) {}
     if (this.currentId === id) this.currentId = null;
     return true;
@@ -320,11 +324,22 @@ export class BrowserBackend extends StorageBackend {
       .map(({ data, ...meta }) => meta)
       .sort((a, b) => b.id - a.id);
   }
+  // PC-1: scoped to this.currentId, the same destination pointer createBackup
+  // already validates against -- a backup id listed under a DIFFERENT season
+  // can no longer be read or deleted just by knowing its id. Use `== null`
+  // rather than `!==`: a real miss can surface as `undefined` (see _tx's
+  // out.result handling), and both mean "not found" here.
   async getBackup(id) {
     const rec = await this._tx('backups', 'readonly', os => os.get(id));
-    return rec ? rec.data : null;
+    if (rec == null || rec.seasonId !== this.currentId) return null;
+    return rec.data;
   }
-  async deleteBackup(id) { await this._tx('backups', 'readwrite', os => os.delete(id)); }
+  async deleteBackup(id) {
+    const rec = await this._tx('backups', 'readonly', os => os.get(id));
+    if (rec == null || rec.seasonId !== this.currentId) return false;
+    await this._tx('backups', 'readwrite', os => os.delete(id));
+    return true;
+  }
   async _prune() {
     const metas = await this.listBackups();              // newest first, this season
     const extra = metas.slice(this.RETENTION);

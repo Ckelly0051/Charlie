@@ -279,7 +279,7 @@ flush();
 //    Repair of 529d8ae finding 3: reassigning the id alone must not be
 //    sufficient to satisfy this contract.
 // ============================================================================
-section('3. Importing a season file must persist under the destination id, awaitably, and fail visibly on a rejected write [TARGET, checkpoint: PC-1]');
+section('3. Importing a season file must persist under the destination id, awaitably, and fail visibly on a rejected write [LOCK, closed PC-1]');
 {
   // Case A: today's real bug -- the destination id is never reassigned.
   const fsA = makeFs();
@@ -303,7 +303,7 @@ section('3. Importing a season file must persist under the destination id, await
   const importedFile = season('original-machine-id-xyz', 'Imported Season'); // a real exported season.json carries ITS OWN id
   storeA.adopt(importedFile);
   await new Promise(r => setTimeout(r, 0)); // let any fire-and-forgotten persist() settle
-  ok('target', fsA.state.json.has(recA.id), 'the imported season is durably saved under the destination library id',
+  ok('lock', fsA.state.json.has(recA.id), 'the imported season is durably saved under the destination library id',
     fsA.state.json.has(recA.id) ? '' : `nothing was written under '${recA.id}'; adopt() left data.id='${storeA.data.id}', destination was '${recA.id}'`);
 
   // Case B: even a future id-reassignment fix must not be satisfiable by a
@@ -326,11 +326,11 @@ section('3. Importing a season file must persist under the destination id, await
   const importedFile2 = season(recB.id, 'Imported Season 2'); // id already correct -- isolates THIS finding from Case A's
   const result = storeB.adopt(importedFile2);
   const awaitable = result && typeof result.then === 'function';
-  ok('target', awaitable, "adopt() returns an awaitable result so a caller can observe durable success/failure (today it returns 'this.data' synchronously; persist() is fired-and-forgotten inside it)",
+  ok('lock', awaitable, "adopt() returns an awaitable result so a caller can observe durable success/failure (today it returns 'this.data' synchronously; persist() is fired-and-forgotten inside it)",
     awaitable ? '' : `adopt() returned a plain, non-awaitable value (typeof ${typeof result})`);
   if (awaitable) {
     const outcome = await result;
-    ok('target', outcome === false || (outcome && outcome.ok === false),
+    ok('lock', outcome === false || (outcome && outcome.ok === false),
       'a rejected durable save on import is visibly reported as a failure, not silently treated as success',
       `outcome was ${JSON.stringify(outcome)}`);
   }
@@ -338,18 +338,27 @@ section('3. Importing a season file must persist under the destination id, await
 flush();
 
 // ============================================================================
-// 3b. TARGET — new: proves the finding at the REAL production caller, not
-//     just inside SeasonStore. Repair of 6ed3bb1 finding 1: a PC-1 change
-//     could satisfy every section-3 assertion above while leaving
-//     StorageManager.loadProject() (js/storage.js:1257) unchanged, which
-//     currently ignores adopt()'s result and proceeds to _clearForNewGame()/
-//     _loadActiveGame() as though the import succeeded. This constructs a
-//     REAL StorageManager (not a fake) via a minimal platform shim
-//     (window/document/FileReader/alert -- the same "fake the platform, not
-//     the code under test" discipline as the indexedDB/localStorage shims
-//     above) and drives its actual loadProject() method.
+// 3b. LOCK (closed PC-1) -- proves the finding at the REAL production caller,
+//     not just inside SeasonStore. Section 3 proved adopt() itself is fixed
+//     (destination-id reassignment + awaitable durable result); this section
+//     proves StorageManager.loadProject() (js/storage.js:1257) actually
+//     CONSUMES that result rather than proceeding as though every import
+//     succeeded. This constructs a REAL StorageManager (not a fake) via a
+//     minimal platform shim (window/document/FileReader/alert -- the same
+//     "fake the platform, not the code under test" discipline as the
+//     indexedDB/localStorage shims above) and drives its actual
+//     loadProject() method.
+//
+//     Deliberately isolated from finding 3a: with the id-reassignment fix in
+//     place, a destination/payload id mismatch can no longer be the reason a
+//     write fails, so this fixture instead simulates a genuine EXTERNAL
+//     durable-write failure (disk full, catalog rejected the write) on an
+//     ALREADY-open season being overwritten by import -- the failure a caller
+//     can still hit even after 3a is fixed. Both a failure case and a
+//     success case are driven through the same real caller, so this cannot
+//     pass merely by loadProject() refusing every import unconditionally.
 // ============================================================================
-section('3b. StorageManager.loadProject() must not proceed as though import succeeded when the durable save failed [TARGET, checkpoint: PC-1]');
+section('3b. StorageManager.loadProject() must not proceed as though import succeeded when the durable save failed [LOCK, closed PC-1]');
 {
   if (!globalThis.window) globalThis.window = globalThis;
   if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -362,50 +371,75 @@ section('3b. StorageManager.loadProject() must not proceed as though import succ
   }
   const { StorageManager } = await import('../js/storage.js');
 
-  const noopEmitter = { on() {}, off() {} };
-  const vc = { ...noopEmitter, paused: true };
-  const tagger = { ...noopEmitter, plays: [], toast() {} };
-  const canvas = { ...noopEmitter, annotations: [] };
-  const sm = new StorageManager(vc, tagger, canvas);
+  function makeHarness(saveSeasonImpl) {
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const toasts = [];
+    const tagger = { ...noopEmitter, plays: [], toast(msg, dur) { toasts.push({ msg, dur }); } };
+    const canvas = { ...noopEmitter, annotations: [] };
+    const sm = new StorageManager(vc, tagger, canvas);
 
-  const writes = [];
-  let importFailureNotified = false;
-  const backend = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
-    async createSeason(meta) { return { id: 'lib-imported', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
-    async loadSeason() { return null; },
-    // Real destination/payload semantics (matches TauriBackend.saveSeason):
-    // the create-season save (correct id) succeeds; the import save (id
-    // never reassigned by adopt() -- finding 3a above) fails. Isolates that
-    // THIS test is proving the CALLER never checks that failure, not
-    // re-proving the id-mismatch bug itself.
-    async saveSeason(data) {
-      const okWrite = !!(data && data.id === this.currentId);
-      writes.push({ id: data && data.id, ok: okWrite });
-      return okWrite;
-    },
-    async touchOpened() {},
-    diskStatus() { return { bound: false }; },
-  };
-  const store = new SeasonStore(backend);
-  store.onPersistError = () => { importFailureNotified = true; };
-  sm.seasonStore = store; // the real constructor's own SeasonStore is discarded in favor of this controllable one
+    const writes = [];
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async createSeason(meta) { return { id: 'lib-imported', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
+      async loadSeason() { return null; },
+      async saveSeason(data) {
+        const idMatches = !!(data && data.id === this.currentId);
+        const ok = saveSeasonImpl(idMatches);
+        writes.push({ id: data && data.id, idMatches, ok });
+        return ok;
+      },
+      async touchOpened() {},
+      diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    // A season is ALREADY open before the import (the realistic case this
+    // finding targets: importing a replacement file into the current
+    // editor) -- isolates loadProject()'s own no-current-season bootstrap
+    // branch (createSeason-on-first-import) from the behavior under test.
+    store.currentSeasonId = 'lib-imported';
+    backend.setCurrentSeason('lib-imported');
+    store.data = store._empty();
+    store.data.id = 'lib-imported';
+    sm.seasonStore = store; // the real constructor's own SeasonStore is discarded in favor of this controllable one
 
-  let clearCalled = false, loadCalled = false;
-  sm._clearForNewGame = () => { clearCalled = true; };
-  sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+    let clearCalled = false, loadCalled = false;
+    sm._clearForNewGame = () => { clearCalled = true; };
+    sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+    return { sm, writes, toasts, get clearCalled() { return clearCalled; }, get loadCalled() { return loadCalled; } };
+  }
 
-  const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season'); // a real exported file carries ITS OWN id
-  const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
-  sm.loadProject(fakeFile);
-  await new Promise(r => setTimeout(r, 50)); // settle the fake FileReader's microtask + adopt()'s fire-and-forgotten persist
+  // Case A: the durable write genuinely fails for an external reason, even
+  // though the destination/payload id is correct (proving this is NOT a
+  // re-test of 3a's id-mismatch bug).
+  const failing = makeHarness(() => false);
+  const importedSeasonJsonA = season('original-machine-id-xyz', 'Imported Season'); // a real exported file carries ITS OWN id
+  const fakeFileA = { name: 'imported.json', __text: JSON.stringify(importedSeasonJsonA) };
+  failing.sm.loadProject(fakeFileA);
+  await new Promise(r => setTimeout(r, 50)); // settle the fake FileReader's microtask + adopt()'s awaited persist
 
-  ok('target', writes.some(w => w.id === 'original-machine-id-xyz' && !w.ok), 'sanity: the import save genuinely failed (same destination/payload gap as finding 3a)', JSON.stringify(writes));
-  ok('target', importFailureNotified === false, "loadProject() surfaces the durable-write failure to the coach BEFORE declaring success (today onPersistError fires internally but nothing in loadProject() checks it)",
-    importFailureNotified ? 'the internal failure signal fired, but loadProject() ignored it and proceeded anyway (see the next two assertions)' : '');
-  ok('target', clearCalled === false, "loadProject() does not tear down the current editor for a failed import (today it calls _clearForNewGame() unconditionally)", `clearCalled=${clearCalled}`);
-  ok('target', loadCalled === false, "loadProject() does not re-render as though the import succeeded on a failed durable save (today it calls _loadActiveGame() unconditionally)", `loadCalled=${loadCalled}`);
+  ok('lock', failing.writes.some(w => w.idMatches && !w.ok),
+    'sanity: the import save was attempted under the CORRECT destination id (proving isolation from 3a) and still failed for an external reason',
+    JSON.stringify(failing.writes));
+  ok('lock', failing.clearCalled === false, 'loadProject() does not tear down the current editor for a failed import', `clearCalled=${failing.clearCalled}`);
+  ok('lock', failing.loadCalled === false, 'loadProject() does not re-render as though the import succeeded on a failed durable save', `loadCalled=${failing.loadCalled}`);
+  ok('lock', failing.toasts.some(t => /import failed/i.test(t.msg)), 'loadProject() surfaces the durable-write failure to the coach with a visible toast',
+    JSON.stringify(failing.toasts));
+
+  // Case B: the same caller, the same shape of file, but the durable write
+  // GENUINELY succeeds -- proves the failure guard above is not simply
+  // refusing every import unconditionally.
+  const succeeding = makeHarness(() => true);
+  const importedSeasonJsonB = season('original-machine-id-xyz', 'Imported Season 2');
+  const fakeFileB = { name: 'imported2.json', __text: JSON.stringify(importedSeasonJsonB) };
+  succeeding.sm.loadProject(fakeFileB);
+  await new Promise(r => setTimeout(r, 50));
+
+  ok('lock', succeeding.clearCalled === true && succeeding.loadCalled === true,
+    'loadProject() proceeds to load the imported season once the durable write genuinely succeeds',
+    `clearCalled=${succeeding.clearCalled} loadCalled=${succeeding.loadCalled}`);
 }
 flush();
 
@@ -467,7 +501,7 @@ flush();
 // 5/6. TARGET — "Backup, restore, or import carries the wrong id: rejected
 //      before mutation." (backup half). Inventory Sec 3.3.
 // ============================================================================
-section('5/6. A backup id from a DIFFERENT season must be rejected, not silently served or deleted (SqlCatalog) [TARGET, checkpoint: PC-1]');
+section('5/6. A backup id from a DIFFERENT season must be rejected, not silently served or deleted (SqlCatalog) [LOCK, closed PC-1]');
 {
   const cat = new SqlCatalog(SQL);
   await cat.open();
@@ -486,13 +520,13 @@ section('5/6. A backup id from a DIFFERENT season must be rejected, not silently
 
   cat.setCurrentSeason('season-A');
   const leaked = cat.getBackup(bId);
-  ok('target', leaked === null, 'getBackup(id) scoped to season-A refuses a backup id that belongs to season-B',
+  ok('lock', leaked === null, 'getBackup(id) scoped to season-A refuses a backup id that belongs to season-B',
     leaked ? `returned season data for '${leaked.seasonName}' instead of null` : '');
 
   cat.deleteBackup(bId);
   cat.setCurrentSeason('season-B');
   const stillThere = cat.getBackup(bId);
-  ok('target', stillThere !== null, "deleteBackup(id) scoped to season-A must NOT delete season-B's backup",
+  ok('lock', stillThere !== null, "deleteBackup(id) scoped to season-A must NOT delete season-B's backup",
     stillThere ? '' : "season-B's backup was deleted by a call scoped to season-A");
   cat.close();
 }
@@ -503,7 +537,7 @@ flush();
 //    records, foreign get/delete), not by function arity. Repair of 529d8ae
 //    finding 4.
 // ============================================================================
-section('7. A saved-point (version) id from a DIFFERENT season/game must be rejected [TARGET, checkpoint: PC-2 wiring]');
+section('7. Version ownership: the scoped production seam is closed (LOCK, PC-1); the legacy bare getVersion/deleteVersion remain a disclosed, dormant, unscoped fallback with zero production callers (TARGET, not scheduled -- see comment)');
 {
   const cat = new SqlCatalog(SQL);
   await cat.open();
@@ -514,31 +548,37 @@ section('7. A saved-point (version) id from a DIFFERENT season/game must be reje
   // real ownership check (Codex 6ed3bb1 finding 2).
   ok('lock', !!cat.getVersion(vA), 'positive control: a version genuinely exists and reads back for its own scope');
 
-  // Raw layer: SqlCatalog.getVersion/deleteVersion have no scope parameter at
-  // all today, so a bare id trivially crosses season/game boundaries.
+  // DISCLOSED, DORMANT LEGACY FALLBACK -- deliberately NOT closed this
+  // checkpoint. SqlCatalog.getVersion(id)/deleteVersion(id) (the bare,
+  // unscoped originals) have ZERO callers anywhere in js/ today (grep-
+  // verified) -- CatalogPersistence.getVersion/deleteVersion delegate to
+  // them but are themselves never called; the only live production path is
+  // the new getVersionScoped/deleteVersionScoped seam proven below. They are
+  // intentionally left in place rather than deleted, because
+  // tools/e2e-catalog-versions.mjs (an existing, unrelated, already-passing
+  // regression suite) exercises their plain CRUD/eviction behavior directly
+  // and has no ownership dimension to it -- deleting them would force
+  // rewriting that file's fixture for zero live-vulnerability benefit, since
+  // nothing in production can reach this path unscoped. This is a real,
+  // permanently-disclosed gap in a dormant method, not a scheduled PC-2 item
+  // -- PC-2 wires VersionManager onto the SCOPED seam, not this one.
   const leaked = cat.getVersion(vB);
-  ok('target', leaked === null, "getVersion(id) refuses a version id that belongs to a different season/game scope (today it has NO scope parameter at all)",
+  ok('target', leaked === null, "getVersion(id) refuses a version id that belongs to a different season/game scope (legacy unscoped method, zero production callers, deliberately not closed)",
     leaked ? `returned '${leaked.seasonName}' instead of null` : '');
   cat.deleteVersion(vB);
   const stillThere = cat.getVersion(vB);
-  ok('target', stillThere !== null, "deleteVersion(id) must not delete a version outside the caller's scope",
+  ok('target', stillThere !== null, "deleteVersion(id) must not delete a version outside the caller's scope (legacy unscoped method, zero production callers, deliberately not closed)",
     stillThere ? '' : "season-B/game-B's version was deleted while nominally acting on season-A/game-A");
 
-  // INTENDED PRODUCTION CONTRACT for PC-2 (repair of f7c09a3 finding 1 --
-  // does NOT exist in production today, and this section must NOT implement
-  // it itself). SqlCatalog must add:
+  // PRODUCTION CONTRACT, CLOSED PC-1 (js/sql-catalog.js, js/catalog-persistence.js):
   //   getVersionScoped(seasonId, gameId, id)    -> the version's body if it
   //     belongs to (seasonId, gameId), else null.
   //   deleteVersionScoped(seasonId, gameId, id) -> true if a version owned by
   //     (seasonId, gameId) was deleted; false (no-op, nothing deleted)
   //     otherwise.
   // The four assertions below call EXACTLY those method names on the real
-  // SqlCatalog instance. Today neither method exists, so `callScoped` reports
-  // `available:false` and every assertion is honestly red -- not because the
-  // ownership check failed, but because the seam PC-2 must build is absent.
-  // This file contains NO local implementation of the ownership logic: once
-  // PC-2 adds these two methods to js/sql-catalog.js, these four assertions
-  // exercise that real code with no further change needed here.
+  // SqlCatalog instance. This file contains NO local implementation of the
+  // ownership logic -- it exercises the real production seam directly.
   const vB2 = cat.saveVersion('season-B', 'game-B', { label: 'B point 2', time: new Date().toISOString(), manual: true, playCount: 1, data: { seasonName: 'B second record' } });
   const callScoped = (methodName, ...args) => {
     const fn = cat[methodName];
@@ -546,20 +586,20 @@ section('7. A saved-point (version) id from a DIFFERENT season/game must be reje
     try { return { available: true, result: fn.apply(cat, args) }; }
     catch (e) { return { available: true, threw: true, message: e && e.message }; }
   };
-  const unavailable = (r) => `SqlCatalog.${r.name} does not exist yet -- PC-2 has not implemented the scoped seam`;
+  const unavailable = (r) => `SqlCatalog.${r.name} does not exist -- the PC-1 scoped seam is missing/regressed`;
 
   let r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-B', 'game-B', vB2) };
-  ok('target', r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
+  ok('lock', r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
     'B/B (correctly scoped) can read its own version through the production getVersionScoped seam',
     r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
 
   r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-A', 'game-A', vB2) };
-  ok('target', r.available && !r.threw && r.result === null,
+  ok('lock', r.available && !r.threw && r.result === null,
     "A/A (foreign) cannot read season-B/game-B's version through the production getVersionScoped seam",
     r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
 
   r = { name: 'deleteVersionScoped', ...callScoped('deleteVersionScoped', 'season-A', 'game-A', vB2) };
-  ok('target', r.available && !r.threw && r.result === false,
+  ok('lock', r.available && !r.threw && r.result === false,
     "A/A (foreign) cannot delete season-B/game-B's version through the production deleteVersionScoped seam",
     r.available ? (r.threw ? r.message : `deleted=${r.result}`) : unavailable(r));
 
@@ -567,7 +607,7 @@ section('7. A saved-point (version) id from a DIFFERENT season/game must be reje
   // production seam -- rules out a naive "every scoped read returns null"
   // implementation, which would otherwise satisfy the two checks above for free.
   r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-B', 'game-B', vB2) };
-  ok('target', r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
+  ok('lock', r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
     'B/B can STILL read its own version through getVersionScoped after the rejected A/A attempt (rules out an always-null implementation)',
     r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
   cat.close();
@@ -680,7 +720,7 @@ flush();
 // 11. TARGET — the BrowserBackend twin of section 5/6: "Browser backup
 //     ownership" was named as an omission in 529d8ae finding 5.
 // ============================================================================
-section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER backend too, not just SqlCatalog [TARGET, checkpoint: PC-1]');
+section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER backend too, not just SqlCatalog [LOCK, closed PC-1]');
 {
   installFakeIndexedDB();
   const backend = new BrowserBackend();
@@ -697,52 +737,54 @@ section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER
   // (a real quirk of _tx's out.result normalization on a miss), not
   // strictly `null` as its own doc comment promises -- use a loose/"is
   // this absent" check so that quirk doesn't mask the real assertion.
-  ok('target', leaked == null, "BrowserBackend.getBackup(id) scoped to season-A refuses a backup id that belongs to season-B",
+  ok('lock', leaked == null, "BrowserBackend.getBackup(id) scoped to season-A refuses a backup id that belongs to season-B",
     leaked != null ? `returned season data for '${leaked.seasonName}' instead of nothing` : '');
 
   await backend.deleteBackup(bId);
   backend.setCurrentSeason('season-B');
   const stillThere = await backend.getBackup(bId);
-  ok('target', stillThere != null, "BrowserBackend.deleteBackup(id) scoped to season-A must NOT delete season-B's backup",
+  ok('lock', stillThere != null, "BrowserBackend.deleteBackup(id) scoped to season-A must NOT delete season-B's backup",
     stillThere != null ? '' : "season-B's backup was deleted by a call scoped to season-A");
 }
 flush();
 
 // ============================================================================
-// 12. TARGET — new: the SeasonStore-level consequence of the same bug.
+// 12. LOCK (closed PC-1) — the SeasonStore-level consequence of the same bug.
 //     "restore provenance" (named as omitted in 529d8ae finding 5).
+//
+//     Rewritten for PC-1: the original fixture built a fully hand-rolled fake
+//     backend whose getBackup(id) was DELIBERATELY written to mirror "today's
+//     real bug: no ownership check against this.currentId" -- so it could
+//     never exercise the real fix landing one layer down in
+//     BrowserBackend.getBackup(). SeasonStore.restoreBackup(id) has no
+//     ownership logic of its own; it is `await this.backend.getBackup(id)`
+//     then bails if that returns falsy -- so it is protected transitively,
+//     with ZERO new code in restoreBackup itself, once the backend beneath it
+//     is scoped correctly (confirmed by reading js/season-store.js:623-636).
+//     This now drives the REAL BrowserBackend (same indexedDB shim as
+//     section 11) through a REAL SeasonStore, proving the full integrated
+//     stack rather than a fixture that could drift from what the backend
+//     actually does.
 // ============================================================================
-section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to a different season, not just the storage layer beneath it [TARGET, checkpoint: PC-1]");
+section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to a different season, not just the storage layer beneath it [LOCK, closed PC-1]");
 {
-  const recordsBySeasonId = new Map(); // models the SAME unscoped-by-id lookup SqlCatalog/BrowserBackend have today
-  const backend = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
-    async createSeason(meta) { return { id: meta.name, name: meta.name, team: '', year: '', level: '', games: 0, plays: 0 }; },
-    async loadSeason() { return null; },
-    async saveSeason(data) { return true; },
-    async touchOpened() {},
-    diskStatus() { return { bound: false }; },
-    async createBackup(data, label) { const id = 'bk_' + Math.random().toString(36).slice(2, 8); recordsBySeasonId.set(id, clone(data)); return { id }; },
-    // Mirrors today's real bug: no ownership check against this.currentId.
-    async getBackup(id) { return recordsBySeasonId.has(id) ? clone(recordsBySeasonId.get(id)) : null; },
-  };
+  installFakeIndexedDB();
+  const backend = new BrowserBackend();
   const store = new SeasonStore(backend);
 
   const recA = await backend.createSeason({ name: 'Season-A' });
   store.currentSeasonId = recA.id; backend.setCurrentSeason(recA.id);
-  store.data = store._empty(); store.data.id = recA.id;
+  store.data = store._empty(); store.data.id = recA.id; store.data.seasonName = 'Season A live data';
 
   const recB = await backend.createSeason({ name: 'Season-B' });
   store.currentSeasonId = recB.id; backend.setCurrentSeason(recB.id);
-  store.data = store._empty(); store.data.id = recB.id;
-  store.data.seasonName = 'Season B live data';
+  store.data = store._empty(); store.data.id = recB.id; store.data.seasonName = 'Season B live data';
   const bBackupId = (await backend.createBackup(clone(store.data), 'B point')).id;
 
   // LOCK: own-scope positive control -- restoring season-B's OWN backup while
-  // still scoped to season-B must genuinely work, or the cross-season target
-  // red below could be "achieved" by a broken restoreBackup entirely rather
-  // than a real ownership gap (Codex 6ed3bb1 finding 2).
+  // still scoped to season-B must genuinely work, or the cross-season lock
+  // below could be "achieved" by a broken restoreBackup entirely rather than
+  // a real ownership gap (Codex 6ed3bb1 finding 2).
   store.data.seasonName = 'mutated before restore';
   const selfRestored = await store.restoreBackup(bBackupId);
   ok('lock', selfRestored && selfRestored.seasonName === 'Season B live data', 'positive control: season-B, scoped to itself, can restore its own backup', JSON.stringify(selfRestored));
@@ -753,7 +795,7 @@ section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to 
 
   const restored = await store.restoreBackup(bBackupId);
   const stillA = store.data.seasonName === 'Season A live data' && store.data.id === recA.id;
-  ok('target', restored === null || stillA,
+  ok('lock', restored === null && stillA,
     "restoreBackup() refuses a backup id belonging to a different season instead of overwriting the current one with it",
     `restoreBackup returned ${restored ? JSON.stringify({ id: restored.id, name: restored.seasonName }) : 'null'}, live data is now ${JSON.stringify({ id: store.data.id, name: store.data.seasonName })}`);
 }

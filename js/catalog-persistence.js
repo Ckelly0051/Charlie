@@ -237,6 +237,23 @@ export class CatalogPersistence {
     try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
   }
 
+  // PC-1: explicit-identity contract for version ownership (documented in
+  // GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Threads seasonId/gameId
+  // straight through to SqlCatalog -- no ambient currentId, no scope call.
+  async getVersionScoped(seasonId, gameId, id) {
+    if (!seasonId || !gameId || id == null) return null;
+    await this._ensureLoaded();
+    try { return this.catalog.getVersionScoped(seasonId, gameId, id); } catch (e) { return null; }
+  }
+  async deleteVersionScoped(seasonId, gameId, id) {
+    if (!seasonId || !gameId || id == null) return false;
+    await this._ensureLoaded();
+    let owned = false;
+    try { owned = this.catalog.deleteVersionScoped(seasonId, gameId, id); } catch (e) { return false; }
+    if (owned) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
+    return owned;
+  }
+
   /**
    * One-time migration (A3 increment 3): import the coach's existing per-season
    * `season.json` files into the shared library db on first flag-on. Idempotent —

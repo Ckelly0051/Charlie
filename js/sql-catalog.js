@@ -367,8 +367,14 @@ export class SqlCatalog {
     return this._all('SELECT id,t,label,games_count,plays_count,season_name FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId])
       .map(r => ({ id: r.id, t: r.t, label: r.label, seasonName: r.season_name || '', games: r.games_count || 0, plays: r.plays_count || 0 }));
   }
-  getBackup(id) { const r = this._get('SELECT body_json FROM backups WHERE id = ?', [id]); return r ? JSON.parse(r.body_json) : null; }
-  deleteBackup(id) { this._run('DELETE FROM backups WHERE id = ?', [id]); }
+  // PC-1: scoped to this.currentId (the caller's own destination season --
+  // the same pointer saveSeason/createBackup already validate against), so a
+  // backup id that was listed under a DIFFERENT season can no longer be read
+  // or deleted just by knowing its id. CatalogPersistence.getBackup/deleteBackup
+  // already call setCurrentSeason(seasonId) immediately before reaching here,
+  // so this scoping is exact with no caller change required.
+  getBackup(id) { const r = this._get('SELECT body_json FROM backups WHERE id = ? AND season_id = ?', [id, this.currentId]); return r ? JSON.parse(r.body_json) : null; }
+  deleteBackup(id) { this._run('DELETE FROM backups WHERE id = ? AND season_id = ?', [id, this.currentId]); }
   _pruneBackups() {
     const ids = this._all('SELECT id FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId]).map(r => r.id);
     ids.slice(this.RETENTION).forEach(id => this._run('DELETE FROM backups WHERE id = ?', [id]));
@@ -398,6 +404,23 @@ export class SqlCatalog {
   }
   getVersion(id) { const r = this._get('SELECT body_json FROM versions WHERE id = ?', [String(id)]); return r ? JSON.parse(r.body_json) : null; }
   deleteVersion(id) { this._run('DELETE FROM versions WHERE id = ?', [String(id)]); }
+
+  // PC-1: the explicit-identity contract for version ownership (documented in
+  // GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Unlike getBackup/deleteBackup
+  // above, this takes EXPLICIT seasonId/gameId parameters rather than trusting
+  // the ambient this.currentId -- these are new methods with no existing
+  // caller to preserve compatibility with, so there is no reason to repeat the
+  // implicit-pointer pattern here. The legacy bare getVersion(id)/deleteVersion(id)
+  // remain for any caller that has not migrated to the scoped seam.
+  getVersionScoped(seasonId, gameId, id) {
+    const r = this._get('SELECT body_json FROM versions WHERE id = ? AND season_id = ? AND game_id = ?', [String(id), seasonId, gameId]);
+    return r ? JSON.parse(r.body_json) : null;
+  }
+  deleteVersionScoped(seasonId, gameId, id) {
+    const owned = !!this._get('SELECT id FROM versions WHERE id = ? AND season_id = ? AND game_id = ?', [String(id), seasonId, gameId]);
+    if (owned) this._run('DELETE FROM versions WHERE id = ?', [String(id)]);
+    return owned;
+  }
   _pruneVersions(seasonId, gameId) {
     const rows = this._all('SELECT id, manual FROM versions WHERE season_id = ? AND game_id = ? ORDER BY t ASC', [seasonId, gameId]);
     let over = rows.length - this.VMAX;

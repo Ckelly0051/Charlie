@@ -1272,7 +1272,14 @@ export class StorageManager {
             teamId: (() => { try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (err2) { return ''; } })(),
           });
         }
-        this.seasonStore.adopt(parsed);
+        // PC-1: adopt() is now awaitable and reports genuine durable
+        // success/failure (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
+        // a rejected write must never be presented as a successful import.
+        const result = await this.seasonStore.adopt(parsed);
+        if (!result || result.ok === false) {
+          this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+          return;
+        }
         this._clearForNewGame();
         this._loadActiveGame();
       } else if (parsed && Array.isArray(parsed.plays)) {
