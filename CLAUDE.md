@@ -13,6 +13,81 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REPAIR of the PC-1 re-review (`95e28c9`) — AWAITING RE-REVIEW (2026-08-21)
+
+**Builder: Claude. Repairs the final remaining P0 from Codex's `95e28c9`
+CHANGES REQUESTED review of `697dea8` (recorded immediately below).**
+Verified against source before touching anything, per standing discipline —
+not taken on report.
+
+**Root cause, confirmed exactly as the review describes it.**
+`SeasonStore.createUnclaimedSeasonIfEmpty()` — the guarded scaffold-claim
+method from the prior repair round — still called `this.persist()`
+fire-and-forget, never awaited, immediately after claiming the blank
+scaffold as current. `StorageManager.loadProject()` then immediately calls
+`adopt()`, which performs its OWN save (awaited) to the exact same season
+id, carrying the real imported payload. Both calls ultimately reach
+`backend.saveSeason(seasonId, data)` for the identical id, with nothing
+ordering them against each other — and without PC-4's revision fencing
+(still explicitly deferred, §3.2), whichever call's own internal chain of
+awaits happens to resolve last wins. A fire-and-forget call starting first
+carries no guarantee of finishing first, so the blank scaffold's write could
+silently complete after and overwrite the successfully imported season.
+
+**Fixed exactly as the review prescribed: the redundant call is removed,
+not raced.** `createUnclaimedSeasonIfEmpty()`'s one caller
+(`loadProject()`'s first-run bootstrap) always calls `adopt()` immediately
+afterward, and `adopt()`'s own save is an UPSERT that creates the season's
+body row itself — it has no dependency on a pre-existing one, so persisting
+the blank scaffold first bought nothing for this specific call path.
+`SeasonStore.createSeason()` (the deliberate "New Season" action) correctly
+keeps its own `persist()` call unchanged, since that IS the season a coach
+using that action might genuinely leave untagged and needs a durable body
+for — this asymmetry is exactly why `createUnclaimedSeasonIfEmpty()` was
+built as a separate method in the prior round rather than a flag on
+`createSeason()`.
+
+```js
+// js/season-store.js
+async createUnclaimedSeasonIfEmpty(meta) {
+  this.cancelPendingDiskWrite();
+  const rec = await this._createSeasonRecordOnly(meta);
+  if (!rec) return { rec: null, claimed: false };
+  if (this.hasCurrent()) return { rec, claimed: false };
+  this._adoptSeasonRecord(rec, meta);
+  return { rec, claimed: true };   // no this.persist() -- adopt()'s own save is the only canonical write needed
+}
+```
+
+**The discriminating test the review explicitly asked for** is
+`tools/pc-adversarial-matrix.mjs` section 3g: a real `StorageManager`
+first-run import with `backend.saveSeason` instrumented to record every
+call. Asserts exactly one call total, and that its content carries the
+imported payload's own game id (`'g1'`, from the shared `season()` fixture)
+rather than a blank scaffold's freshly-generated one — plus a control
+confirming the successful import still reloads the editor normally.
+Mutation-verified: reintroducing the removed `this.persist()` call
+reproduces exactly two `saveSeason` calls (the first carrying the blank
+scaffold's randomly-generated game id, never `'g1'`), reddening exactly the
+two new count/content assertions while the reload control stays green.
+Restored, clean.
+
+**Verification:** `node tools/pc-adversarial-matrix.mjs` — **77/77 locks
+green** (up from 73), 0/4 targets green (4 intentionally red, unchanged PC-2
+items), exit 0. Full canonical gate (`bash tools/run-gate.sh`): **88
+harnesses | 88 green | 0 skipped | 0 failed**.
+
+**Scope discipline:** no film path, film file, season/game/play data,
+schema, migration, or unrelated file touched. `GRIDIRON-IQ-PERSISTENCE-
+INVENTORY.md` gains §3.1f; §3.2 (revision fencing) remains explicitly
+untouched, still deferred to PC-4. Per the review, once this is accepted PC-1
+closes and PC-2 + PC-3 combine into one milestone/review cycle — that
+combination decision belongs to the coach/reviewer and is not made
+unilaterally here.
+
+**Next action:** Codex independently re-reviews this repair. If accepted,
+PC-1 closes and the combined PC-2+PC-3 milestone may open.
+
 ### CODEX RE-REVIEW — PC-1 repair 697dea8: CHANGES REQUESTED (2026-08-21)
 
 **Verdict: CHANGES REQUESTED on one final P0 write-order defect.** The two

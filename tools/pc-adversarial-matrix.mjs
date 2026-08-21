@@ -244,6 +244,28 @@
       destSeasonId reload gate reproduces the stale-success reload firing on
       B exactly.
 
+   REPAIR of `95e28c9` (the final remaining P0, verified against source
+   before being changed, not taken on report):
+
+   1. [P0] Section 3g is new. Root cause (js/season-store.js): even after the
+      3f repair, `createUnclaimedSeasonIfEmpty()` still called `this.persist()`
+      (fire-and-forget, never awaited) immediately after claiming the blank
+      scaffold as current -- a SEPARATE, unfenced write to the SAME season id
+      that `loadProject()`'s immediately-following `adopt()` call also awaits
+      its own save to. With no PC-4 revision fencing, nothing orders the two
+      `backend.saveSeason()` calls against each other; the blank scaffold's
+      write, despite starting first, has no guarantee of finishing first, and
+      could silently overwrite the successfully imported season. Fixed by
+      removing the call entirely: this method's one caller always calls
+      adopt() immediately afterward, which durably UPSERTs the real payload to
+      this exact id with no dependency on a pre-existing body row, so
+      persisting the blank scaffold first bought nothing. First-run import now
+      performs exactly ONE canonical write, containing the imported payload.
+      Mutation-verified: reintroducing the removed `this.persist()` call
+      reproduces exactly two `saveSeason` calls, the first carrying a
+      randomly-generated blank-scaffold game id (never `g1`), reds exactly the
+      two new content/count assertions.
+
    Deliberately NOT named tools/e2e-*.mjs: tools/run-gate.sh and CI glob that
    pattern and require every harness green. This file's target-contract
    sections are supposed to be red until their checkpoint lands. Fold it into
@@ -1022,6 +1044,87 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
 flush();
 
 // ============================================================================
+// 3g. LOCK (closed PC-1, repair of Codex `95e28c9`, the final remaining P0)
+//     -- "First-run import launches two saves to the same season: an
+//     unawaited blank scaffold save, and the actual imported-season save.
+//     Without PC-4 revision fencing, the blank save can finish last and
+//     overwrite the successfully imported season." Root cause:
+//     SeasonStore.createUnclaimedSeasonIfEmpty() called this.persist()
+//     (fire-and-forget, unawaited) immediately after claiming the blank
+//     scaffold as current; StorageManager.loadProject() then immediately
+//     called adopt(), which performs its OWN awaited save to the SAME
+//     season id. Nothing fenced the two backend.saveSeason() calls against
+//     each other, so whichever one's own internal chain of awaits happened
+//     to resolve LAST would win -- and a fire-and-forget call starting
+//     first has no guarantee of finishing first.
+//
+//     Fixed by removing the redundant scaffold persist entirely rather than
+//     trying to make the two writes race correctly: this method's one
+//     caller (loadProject()'s first-run bootstrap) always calls adopt()
+//     immediately afterward, which durably UPSERTs the real imported
+//     payload to this exact id -- no pre-existing body row is needed. This
+//     section proves the exact contract the review asked for: first-run
+//     import now performs exactly ONE canonical (backend.saveSeason) write,
+//     and that one write contains the imported payload, never a blank
+//     scaffold shape.
+// ============================================================================
+section('3g. First-run import performs exactly one canonical write, and it contains the imported payload, never a blank scaffold [LOCK, closed PC-1]');
+{
+  if (!globalThis.window) globalThis.window = globalThis;
+  if (!globalThis.document) globalThis.document = { getElementById: () => null };
+  if (!globalThis.alert) globalThis.alert = () => {};
+  if (!globalThis.FileReader || !globalThis.__pcFakeFileReaderInstalled) {
+    globalThis.FileReader = class {
+      readAsText(file) { queueMicrotask(() => { if (this.onload) this.onload({ target: { result: file.__text } }); }); }
+    };
+    globalThis.__pcFakeFileReaderInstalled = true;
+  }
+  const { StorageManager } = await import('../js/storage.js');
+  const noopEmitter = { on() {}, off() {} };
+  const vc = { ...noopEmitter, paused: true };
+  const toasts = [];
+  const tagger = { ...noopEmitter, plays: [], toast(msg, dur) { toasts.push({ msg, dur }); } };
+  const canvas = { ...noopEmitter, annotations: [] };
+  const sm = new StorageManager(vc, tagger, canvas);
+
+  const saveCalls = [];
+  const backend = {
+    currentId: null, RETENTION: 25,
+    setCurrentSeason(id) { this.currentId = id; },
+    async createSeason(meta) { return { id: 'lib-fresh-scaffold', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
+    async loadSeason() { return null; },
+    async saveSeason(seasonId, data) { saveCalls.push({ seasonId, data: clone(data) }); return true; },
+    async touchOpened() {},
+    diskStatus() { return { bound: false }; },
+  };
+  const store = new SeasonStore(backend);
+  ok('lock', !store.hasCurrent(), 'sanity: no season is open before the first-run import begins');
+  sm.seasonStore = store;
+
+  let clearCalled = false, loadCalled = false;
+  sm._clearForNewGame = () => { clearCalled = true; };
+  sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+
+  // The imported payload's own game carries id 'g1' (via the shared season()
+  // fixture) -- a structural marker distinguishing it from a blank scaffold,
+  // whose game id is freshly generated by _empty()/_newId() and can never
+  // equal 'g1'.
+  const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season');
+  const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
+  sm.loadProject(fakeFile);
+  await new Promise(r => setTimeout(r, 30));
+
+  ok('lock', saveCalls.length === 1,
+    'first-run import performs exactly ONE canonical (backend.saveSeason) write -- no separate unawaited scaffold-body save races against it (reproduced before this fix: two calls, the second an unawaited blank-scaffold persist with nothing ordering it against the real import write)',
+    JSON.stringify(saveCalls.map(c => ({ seasonId: c.seasonId, gameIds: (c.data.games || []).map(g => g.id) }))));
+  ok('lock', !!(saveCalls[0] && saveCalls[0].data.games && saveCalls[0].data.games[0] && saveCalls[0].data.games[0].id === 'g1'),
+    "that one write contains the imported payload (game id 'g1'), never a blank scaffold shape",
+    JSON.stringify(saveCalls[0] && (saveCalls[0].data.games || []).map(g => g.id)));
+  ok('lock', clearCalled === true && loadCalled === true, 'the successful first-run import still reloads the editor normally, exactly as before this fix');
+}
+flush();
+
+// ============================================================================
 // 4. LOCK — "Delayed save for season A completes after switching to B: zero
 //    writes to B." Repair of 529d8ae finding 2: drives the REAL callback.
 // ============================================================================
@@ -1398,7 +1501,7 @@ console.log('== ADVERSARIAL MATRIX COVERAGE (all ten plan items) ==');
 const coverage = [
   ['Destination id differs from payload id: zero writes.', 'DIRECT — section 1'],
   ['Delayed save for season A completes after switching to B: zero writes to B.', 'DIRECT — section 4'],
-  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 3c (import, first-run scaffold rollback), 3d (import racing a concurrent season switch, both the already-open and first-run-scaffold cases), 3e (a rejected canonical write is atomic across json/mirror/in-memory-catalog), 3f (a season switch racing the scaffold\'s own creation await, and a stale-but-successful import never reloading a different season\'s editor), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
+  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 3c (import, first-run scaffold rollback), 3d (import racing a concurrent season switch, both the already-open and first-run-scaffold cases), 3e (a rejected canonical write is atomic across json/mirror/in-memory-catalog), 3f (a season switch racing the scaffold\'s own creation await, and a stale-but-successful import never reloading a different season\'s editor), 3g (first-run import performs exactly one canonical write, never a racing blank-scaffold write), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
   ['TeamRegistry peeks do not alter active identity.', 'DIRECT — section 10'],
   ['SQLite is corrupt, locked, or unavailable: visible failure, no fallback authority.', 'DIRECT (CatalogPersistence layer) — section 2. The TauriBackend.listSeasons() call site that consumes this result requires the real Tauri fs plugin and cannot run in plain Node; deferred to a browser-level e2e harness with a fake window.__TAURI__ shim, owner PC-2, or the PC-5 installed smoke.'],
   ['Stale JSON/library sidecars disagree with SQLite: ignored by normal startup.', 'DIRECT — section 9'],

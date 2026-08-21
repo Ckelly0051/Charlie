@@ -663,6 +663,64 @@ the editor firing as if the import succeeded, no failure toast); removing the
 `destSeasonId` reload gate reproduces the stale-success reload firing on B
 exactly, isolated to that one assertion. Both restored, clean.
 
+### 3.1f — CLOSED, PC-1 (repair of Codex `95e28c9`) — first-run import performs exactly one canonical write; the redundant unfenced scaffold save is removed rather than raced
+
+**§3.1e closed the two ownership races Codex named — a switch racing the
+scaffold's own creation, and a stale-but-successful import reloading the
+wrong editor. Codex's final re-review found one more defect underneath both
+fixes: even with ownership correctly resolved, the first-run bootstrap still
+launched TWO writes to the SAME season id, with nothing fencing them against
+each other.**
+
+`SeasonStore.createUnclaimedSeasonIfEmpty()` (§3.1e) called `this.persist()`
+— fire-and-forget, never awaited — immediately after claiming the blank
+scaffold as current. `StorageManager.loadProject()` then immediately called
+`adopt()`, which performs its OWN save (**awaited** this time) to the exact
+same season id, carrying the real imported payload. Both calls ultimately
+reach `backend.saveSeason(seasonId, data)` for the identical id, and nothing
+orders them against one another. Without PC-4's revision fencing (§3.2,
+still explicitly deferred), whichever call's own internal chain of awaits
+happens to resolve **last** wins — and a fire-and-forget call starting first
+carries no guarantee of finishing first. The blank scaffold's save could
+complete after the real import's save and silently overwrite it.
+
+**Fixed by removing the call, not by trying to race it correctly.** The
+`persist()` call inside `createUnclaimedSeasonIfEmpty()` bought nothing for
+its one caller: `loadProject()`'s bootstrap always calls `adopt()`
+immediately afterward, and `adopt()`'s own save is an UPSERT
+(`INSERT ... ON CONFLICT DO UPDATE` in `SqlCatalog.saveSeason`; a plain
+`setItem`/`writeJson` overwrite in `BrowserBackend`/`TauriBackend`) that
+creates the season's body row itself — it has no dependency on a
+pre-existing one. `SeasonStore.createSeason()` (the deliberate "New Season"
+action) correctly KEEPS its own `persist()` call, since that IS the season a
+coach might genuinely leave untagged and needs a durable body for; this
+distinction is exactly why `createUnclaimedSeasonIfEmpty()` remained a
+separate method rather than a flag on `createSeason()` (§3.1e).
+
+```js
+// js/season-store.js
+async createUnclaimedSeasonIfEmpty(meta) {
+  this.cancelPendingDiskWrite();
+  const rec = await this._createSeasonRecordOnly(meta);
+  if (!rec) return { rec: null, claimed: false };
+  if (this.hasCurrent()) return { rec, claimed: false };
+  this._adoptSeasonRecord(rec, meta);
+  // no this.persist() here anymore -- adopt()'s own save is the only
+  // canonical write this bootstrap path ever needs.
+  return { rec, claimed: true };
+}
+```
+
+Proven by `tools/pc-adversarial-matrix.mjs` section 3g, `[LOCK]`: a real
+`StorageManager` first-run import, with `backend.saveSeason` instrumented to
+record every call. Asserts exactly one call total, and that its content
+carries the imported payload's own game id (`'g1'`, from the shared `season()`
+fixture) rather than a blank scaffold's freshly-generated one. Mutation-
+verified: reintroducing the removed `this.persist()` call reproduces exactly
+two `saveSeason` calls — the first carrying the blank scaffold's randomly-
+generated game id, never `'g1'` — reddening exactly the two new count/content
+assertions while the reload-still-happens control stays green.
+
 ### 3.2 — No revision fencing for two overlapping saves to the *same* season
 
 Every existing safeguard (§2 "autosave" row) fences against a **season

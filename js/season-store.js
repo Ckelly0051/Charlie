@@ -413,6 +413,29 @@ export class SeasonStore {
    * owns cleaning it up (via deleteSeason(rec.id), which is itself safely
    * scoped to that id) when `claimed` is false. `claimed` is true only when
    * live state now genuinely points at it.
+   *
+   * PC-1 repair (Codex review of 697dea8, the final remaining P0):
+   * deliberately does NOT persist the blank claimed record. createSeason()
+   * (above) persists its blank state because that IS the season a coach
+   * using the deliberate "New Season" action may genuinely leave untagged --
+   * without it, the only durable trace would be the library meta `rec`, with
+   * no season.json/db body to reopen. This method's sole caller
+   * (StorageManager.loadProject()'s first-run import bootstrap) ALWAYS calls
+   * adopt() immediately afterward, which durably persists the REAL imported
+   * payload to this exact id moments later -- an UPSERT that creates the
+   * body row itself, with no dependency on a pre-existing one. Persisting
+   * the blank body here first bought nothing for this caller and cost a
+   * genuine correctness hazard without revision fencing (PC-4, not yet
+   * built): a fire-and-forget save of blank data and adopt()'s later
+   * AWAITED save of the real data both target the SAME id with nothing
+   * ordering them against each other, so the blank write could complete
+   * AFTER the real one and silently overwrite the successfully imported
+   * season. Reproduced directly before this fix by holding both saveSeason
+   * calls on independently controllable pending Promises and resolving the
+   * scaffold's LAST: the final canonical body held the blank scaffold's
+   * shape, not the imported one. Removing this call closes the class
+   * entirely for this path rather than requiring the two writes to somehow
+   * race correctly.
    */
   async createUnclaimedSeasonIfEmpty(meta) {
     this.cancelPendingDiskWrite();
@@ -420,7 +443,6 @@ export class SeasonStore {
     if (!rec) return { rec: null, claimed: false };
     if (this.hasCurrent()) return { rec, claimed: false };   // someone else opened/created a season meanwhile
     this._adoptSeasonRecord(rec, meta);
-    this.persist();
     return { rec, claimed: true };
   }
 
