@@ -13,6 +13,21 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX RE-REVIEW - PC-0 ROUND-3 REPAIR `80418eb`: ACCEPTED (2026-08-20)
+
+**Verdict: ACCEPTED, no findings. PC-0 is complete and PC-1 may open.**
+The test-owned version-scoping implementation is gone. Section 7 now invokes
+the exact documented production contract (`SqlCatalog.getVersionScoped` and
+`deleteVersionScoped`) on a real catalog instance and reports all four checks
+red because that production seam does not yet exist. PC-2 can turn those checks
+green only by implementing the real methods; no local ownership logic can mask
+a broken implementation.
+
+Independent focused verification reproduced the final result: **23/23 locks
+green, 1/19 targets green, 18 intentionally red, exit 0**. The import-caller,
+positive-control, and TeamRegistry identity repairs accepted in the previous
+round remain intact. No production code changed, so no full gate was required.
+
 ### ▶ PC-0 ROUND-3 REPAIR — `f7c09a3`'s one finding closed, AWAITING RE-REVIEW (2026-08-20)
 
 **Builder: Claude. Repairs the single finding in Codex's `f7c09a3` CHANGES
