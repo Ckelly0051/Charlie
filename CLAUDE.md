@@ -13,6 +13,59 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REVIEW - PC-1 `090d4ab`: CHANGES REQUESTED (2026-08-21)
+
+**Verdict: CHANGES REQUESTED. PC-2 remains closed.** The scoped backup/version
+queries and caller-level import error handling are useful repairs, but PC-1 is
+not transaction-safe and does not yet deliver the binding Explicit Identity API.
+
+1. **[P0] A failed import still replaces live memory and writes the failed
+   payload to the desktop sidecar.** `SeasonStore.adopt()` assigns normalized
+   imported data to `this.data` before awaiting `persist()`. When canonical
+   persistence returns false, it returns `{ok:false}` without restoring the
+   previous season. `persist()` also calls `_scheduleDiskWrite()` before the
+   canonical result resolves. Desktop `diskStatus().bound` is always true, so
+   the timer captures the imported payload and later calls `writeDisk()`;
+   `TauriBackend.writeDisk()` mirrors the payload even if its internal
+   `saveSeason()` returns false. The new caller test uses `bound:false`, so it
+   cannot detect either mutation.
+
+   Independent direct reproduction on committed production classes returned:
+   `ok:false`, live season name `Imported`, and one sidecar write containing
+   `Imported`. The toast saying “Nothing on screen changed” is therefore false;
+   a later action can persist the failed import, and the recovery mirror can be
+   overwritten despite canonical rejection.
+
+   **Required:** make import atomic. Preserve and restore the complete prior
+   store state on failure (and roll back a destination created solely for a
+   failed first-run import). Schedule no disk/mirror write until canonical save
+   succeeds. Add a bound-disk regression proving: rejected import leaves live
+   store byte-identical, performs zero sidecar/mirror writes after the timer is
+   fired, leaves the editor untouched, and reports failure. Keep the successful
+   control.
+
+2. **[P1] PC-1’s binding explicit-identity boundary was not implemented.** The
+   plan requires explicit season ids at desktop persistence boundaries and says
+   no mutable current-season pointer may choose a write destination. Yet the
+   shared/Tauri APIs remain `loadSeason()`, `saveSeason(data)`,
+   `createBackup(data, label)`, `listBackups()`, `getBackup(id)`,
+   `deleteBackup(id)`, and `writeDisk(data, opts)`, all scoped through ambient
+   `currentId`. The commit adds ownership filters but preserves the architecture
+   PC-1 exists to remove. `CatalogPersistence` already has explicit-id methods;
+   the unsafe scope remains above and below that seam.
+
+   **Required:** complete PC-1 before PC-2. Thread an explicit `seasonId`
+   through every identity-sensitive desktop load/save/backup/restore/import/
+   delete/disk boundary, and validate explicit destination, payload id, and
+   stored owner before mutation. Browser behavior may remain semantically
+   unchanged, but shared callers must pass identity explicitly. Add adversarial
+   checks proving an incorrect ambient pointer cannot redirect an operation and
+   an explicit-id/payload mismatch performs zero canonical and sidecar writes.
+
+Revision fencing remains correctly deferred to PC-4. No full gate was run after
+these source-level blockers and the direct reproduction; the focused matrix’s
+green count does not cover them.
+
 ### ▶ PC-1 — EXPLICIT IDENTITY API BUILT, AWAITING CODEX REVIEW (2026-08-21)
 
 **Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md` PC-1
