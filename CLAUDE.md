@@ -13,6 +13,63 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-0 REPAIR ROUND 2 — all four `6ed3bb1` findings closed, AWAITING RE-REVIEW (2026-08-20)
+
+**Builder: Claude. Repairs every item in Codex's `6ed3bb1` CHANGES REQUESTED
+re-review (recorded immediately below).** Each finding verified against
+source before being fixed; no production behavior changed.
+
+1. **[P1] Import failure is now proven at the production caller.** New
+   section 3b constructs a genuine `StorageManager` — not a fake — via a
+   minimal `window`/`document`/`FileReader`/`alert` platform shim (prototyped
+   standalone in `scratchpad/proto-loadproject.mjs` before integrating, to
+   avoid repeating "bug found late" from the last round) and drives its real
+   `StorageManager.loadProject()`. Confirms the exact reported failure:
+   `_clearForNewGame()`/`_loadActiveGame()` both fire even though the import
+   save genuinely failed and the internal `onPersistError` signal fired —
+   `loadProject()` never checks it. Isolated cleanly from the already-covered
+   id-reassignment bug: the fake backend's `saveSeason` uses real
+   destination/payload semantics, so the create-season write succeeds and
+   only the import write fails, for the same reason section 3 already names.
+2. **[P1] Setup/positive controls reclassified from target to lock.** The
+   corrupt-catalog sanity save and the version own-record read were both
+   `target` — meaning a broken fixture could exit 0 behind an "expected red"
+   label. Both are now `lock`, and three NEW own-scope positive controls were
+   added as locks alongside the existing cross-season target checks in
+   sections 5/6, 11, and 12 (e.g. "season-B, scoped to itself, can restore
+   its own backup") — proving the fixture itself is sound, independent of
+   the vulnerability the target assertion demonstrates.
+3. **[P2] Version ownership now tested through a modeled scoped API.**
+   `SqlCatalog.getVersion`/`deleteVersion` have no scope parameter to test
+   "through" at all, so section 7 composes the ownership check PC-2 must add
+   out of the one version primitive that IS already scope-aware —
+   `listVersions(seasonId, gameId)` — and proves all three directions: B/B
+   reads its own version; A/A is refused both read and delete; B/B can
+   STILL read its own version afterward (the decisive check ruling out a
+   naive "every scoped read returns null" implementation).
+4. **[P2] The TeamRegistry lock now proves real identity, not method
+   avoidance.** Section 10 constructs a REAL `SeasonStore` (only the backend
+   beneath it is faked), pins both `store.currentSeasonId` and
+   `store.backend.currentId` to an already-active season before recovery
+   runs, and asserts both are byte-for-byte unchanged afterward. **Mutation-
+   verified against production:** temporarily made the real
+   `SeasonStore.peekSeason()` also set `this.currentSeasonId = id` as a side
+   effect (the exact regression class Codex named), reran — the
+   `currentSeasonId` assertion reds with `before='already-active-season',
+   after='s2'` while the sibling `backend.currentId` assertion correctly
+   stays green, proving the two checks are independently meaningful rather
+   than redundant. Restored immediately after (`git diff` confirms
+   byte-identical); reran clean.
+
+**Verification on final bytes:** `node tools/pc-adversarial-matrix.mjs` —
+**23/23 locks green, 5/19 targets green (14 intentionally red), exit 0.**
+`node --check` clean. No production file differs from `578153b` — only the
+test harness changed this round; the inventory doc needed no further
+correction.
+
+**Handoff to Codex for re-review.** No production repair is authorized in
+this checkpoint. PC-1 remains closed until this repair is accepted.
+
 ### CODEX RE-REVIEW - PC-0 REPAIR `578153b`: CHANGES REQUESTED (2026-08-20)
 
 **Verdict: CHANGES REQUESTED. PC-1 remains closed.** The repair materially

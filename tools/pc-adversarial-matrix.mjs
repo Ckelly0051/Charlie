@@ -1,9 +1,10 @@
 /* PC-0 ADVERSARIAL MATRIX — GridIron IQ Desktop Persistence Convergence -------
    Encodes the ten adversarial-matrix scenarios from
    GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md as runnable Node assertions
-   against CURRENT (pre-PC-1) source, per Codex's `529d8ae` review of the
-   first version of this file. Read GRIDIRON-IQ-PERSISTENCE-INVENTORY.md
-   alongside this file for the "why" behind each section.
+   against CURRENT (pre-PC-1) source, repaired across two rounds of Codex
+   review (`529d8ae`, then `6ed3bb1` on the round-1 repair). Read
+   GRIDIRON-IQ-PERSISTENCE-INVENTORY.md alongside this file for the "why"
+   behind each section.
 
    REPAIR of `529d8ae` (all six required items, verified against source
    before being changed, none taken on report):
@@ -54,6 +55,50 @@
       mutable pointers (SeasonStore.currentSeasonId, StorageBackend.currentId,
       SqlCatalog.currentId) plus CatalogPersistence's correctly-explicit
       per-call id parameters, which are not a fourth pointer.
+
+   REPAIR of `6ed3bb1` (all four required items, verified against source
+   before being changed, none taken on report):
+
+   1. [P1] Import failure is now proven at the REAL production caller, not
+      just inside SeasonStore. New section 3b constructs a genuine
+      `StorageManager` (via a minimal window/document/FileReader/alert
+      platform shim -- the same "fake the platform, never the code under
+      test" discipline as the indexedDB/localStorage shims below) and drives
+      its actual `loadProject()`. Proves the destination/payload guard
+      correctly rejects the import save, that the failure signal fires
+      internally, and that `loadProject()` still calls `_clearForNewGame()`/
+      `_loadActiveGame()` unconditionally -- reproducing the exact "looks
+      imported, was never saved" failure Codex described.
+   2. [P1] Positive/setup controls inside target sections are now correctly
+      classified as LOCKS, not targets: the corrupt-catalog sanity save
+      (section 2), the version own-record read (section 7), and three new
+      own-scope reads added specifically for this repair (section 5/6's
+      "season-B can read its own backup", section 11's BrowserBackend twin,
+      and section 12's "season-B can restore its own backup"). A broken
+      fixture can no longer hide behind an "expected red" label and still
+      exit 0.
+   3. [P2] Version ownership (section 7) now ALSO tests through a modeled
+      scoped API built from the one already-scope-aware version primitive
+      that exists today (`SqlCatalog.listVersions(seasonId, gameId)`), since
+      the real `getVersion`/`deleteVersion` have no scope parameter to test
+      "through" at all. Proves all three directions Codex named: B/B reads
+      its own version; A/A is refused both read and delete; B/B can STILL
+      read its own version afterward -- the last of which specifically rules
+      out a naive "every scoped read returns null" implementation from
+      trivially satisfying the first two.
+   4. [P2] The TeamRegistry lock (section 10) now constructs a REAL
+      `SeasonStore` (only the underlying backend is faked) with BOTH mutable
+      pointers (`store.currentSeasonId`, `store.backend.currentId`) pinned to
+      an already-active season before recovery runs, and asserts both are
+      byte-for-byte unchanged afterward -- not just that certain method names
+      were avoided. Mutation-verified against production: temporarily made
+      the real `SeasonStore.peekSeason()` also set `this.currentSeasonId =
+      id` as a side effect (simulating exactly the regression class Codex
+      named), reran -- the pointer-identity assertion reds with
+      `before='already-active-season', after='s2'` while the sibling backend-
+      pointer assertion correctly stays green (proving the two checks are
+      independently meaningful, not redundant); restored (`git diff` confirms
+      byte-identical), reran clean.
 
    Deliberately NOT named tools/e2e-*.mjs: tools/run-gate.sh and CI glob that
    pattern and require every harness green. This file's target-contract
@@ -188,7 +233,11 @@ section('2. Corrupt catalog must fail visibly, never silently report empty [TARG
   const fs = makeFs();
   const cp1 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   await cp1.saveSeason('real-season', season('real-season', 'Real Season With Real Games'));
-  ok('target', (await cp1.listSeasons()).some(s => s.id === 'real-season'), 'sanity: the season is genuinely saved before corruption');
+  // LOCK, not target: this is the fixture's own positive control. If catalog
+  // save is broken, this must fail LOUDLY (exit nonzero) rather than being
+  // absorbed as one more "expected red" inside a target section -- Codex
+  // 6ed3bb1 finding 2.
+  ok('lock', (await cp1.listSeasons()).some(s => s.id === 'real-season'), 'positive control: the season is genuinely saved before corruption is introduced');
 
   fs.state.db = new Uint8Array([1, 2, 3, 4, 5]); // simulates on-disk corruption / a torn write
 
@@ -269,6 +318,78 @@ section('3. Importing a season file must persist under the destination id, await
 flush();
 
 // ============================================================================
+// 3b. TARGET — new: proves the finding at the REAL production caller, not
+//     just inside SeasonStore. Repair of 6ed3bb1 finding 1: a PC-1 change
+//     could satisfy every section-3 assertion above while leaving
+//     StorageManager.loadProject() (js/storage.js:1257) unchanged, which
+//     currently ignores adopt()'s result and proceeds to _clearForNewGame()/
+//     _loadActiveGame() as though the import succeeded. This constructs a
+//     REAL StorageManager (not a fake) via a minimal platform shim
+//     (window/document/FileReader/alert -- the same "fake the platform, not
+//     the code under test" discipline as the indexedDB/localStorage shims
+//     above) and drives its actual loadProject() method.
+// ============================================================================
+section('3b. StorageManager.loadProject() must not proceed as though import succeeded when the durable save failed [TARGET, checkpoint: PC-1]');
+{
+  if (!globalThis.window) globalThis.window = globalThis;
+  if (!globalThis.document) globalThis.document = { getElementById: () => null };
+  if (!globalThis.alert) globalThis.alert = () => {};
+  if (!globalThis.FileReader || !globalThis.__pcFakeFileReaderInstalled) {
+    globalThis.FileReader = class {
+      readAsText(file) { queueMicrotask(() => { if (this.onload) this.onload({ target: { result: file.__text } }); }); }
+    };
+    globalThis.__pcFakeFileReaderInstalled = true;
+  }
+  const { StorageManager } = await import('../js/storage.js');
+
+  const noopEmitter = { on() {}, off() {} };
+  const vc = { ...noopEmitter, paused: true };
+  const tagger = { ...noopEmitter, plays: [], toast() {} };
+  const canvas = { ...noopEmitter, annotations: [] };
+  const sm = new StorageManager(vc, tagger, canvas);
+
+  const writes = [];
+  let importFailureNotified = false;
+  const backend = {
+    currentId: null, RETENTION: 25,
+    setCurrentSeason(id) { this.currentId = id; },
+    async createSeason(meta) { return { id: 'lib-imported', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
+    async loadSeason() { return null; },
+    // Real destination/payload semantics (matches TauriBackend.saveSeason):
+    // the create-season save (correct id) succeeds; the import save (id
+    // never reassigned by adopt() -- finding 3a above) fails. Isolates that
+    // THIS test is proving the CALLER never checks that failure, not
+    // re-proving the id-mismatch bug itself.
+    async saveSeason(data) {
+      const okWrite = !!(data && data.id === this.currentId);
+      writes.push({ id: data && data.id, ok: okWrite });
+      return okWrite;
+    },
+    async touchOpened() {},
+    diskStatus() { return { bound: false }; },
+  };
+  const store = new SeasonStore(backend);
+  store.onPersistError = () => { importFailureNotified = true; };
+  sm.seasonStore = store; // the real constructor's own SeasonStore is discarded in favor of this controllable one
+
+  let clearCalled = false, loadCalled = false;
+  sm._clearForNewGame = () => { clearCalled = true; };
+  sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+
+  const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season'); // a real exported file carries ITS OWN id
+  const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
+  sm.loadProject(fakeFile);
+  await new Promise(r => setTimeout(r, 50)); // settle the fake FileReader's microtask + adopt()'s fire-and-forgotten persist
+
+  ok('target', writes.some(w => w.id === 'original-machine-id-xyz' && !w.ok), 'sanity: the import save genuinely failed (same destination/payload gap as finding 3a)', JSON.stringify(writes));
+  ok('target', importFailureNotified === false, "loadProject() surfaces the durable-write failure to the coach BEFORE declaring success (today onPersistError fires internally but nothing in loadProject() checks it)",
+    importFailureNotified ? 'the internal failure signal fired, but loadProject() ignored it and proceeded anyway (see the next two assertions)' : '');
+  ok('target', clearCalled === false, "loadProject() does not tear down the current editor for a failed import (today it calls _clearForNewGame() unconditionally)", `clearCalled=${clearCalled}`);
+  ok('target', loadCalled === false, "loadProject() does not re-render as though the import succeeded on a failed durable save (today it calls _loadActiveGame() unconditionally)", `loadCalled=${loadCalled}`);
+}
+flush();
+
+// ============================================================================
 // 4. LOCK — "Delayed save for season A completes after switching to B: zero
 //    writes to B." Repair of 529d8ae finding 2: drives the REAL callback.
 // ============================================================================
@@ -337,6 +458,11 @@ section('5/6. A backup id from a DIFFERENT season must be rejected, not silently
 
   cat.setCurrentSeason('season-B');
   const bId = cat.createBackup(season('season-B', 'Bravo Backup', { games: [mkGame('gB')] }), 'B point');
+  // LOCK: own-scope positive control -- B/B must be able to read its own
+  // backup, or the cross-season target reds below could be "achieved" by a
+  // broken createBackup/getBackup pair rather than a real ownership gap
+  // (Codex 6ed3bb1 finding 2).
+  ok('lock', cat.getBackup(bId)?.seasonName === 'Bravo Backup', "positive control: season-B, scoped to itself, can read its own backup");
 
   cat.setCurrentSeason('season-A');
   const leaked = cat.getBackup(bId);
@@ -363,16 +489,46 @@ section('7. A saved-point (version) id from a DIFFERENT season/game must be reje
   await cat.open();
   const vA = cat.saveVersion('season-A', 'game-A', { label: 'A point', time: new Date().toISOString(), manual: true, playCount: 3, data: { seasonName: 'A secret data' } });
   const vB = cat.saveVersion('season-B', 'game-B', { label: 'B point', time: new Date().toISOString(), manual: true, playCount: 5, data: { seasonName: 'B secret data' } });
-  ok('target', !!cat.getVersion(vA), 'sanity: a version genuinely exists and reads back for its own scope');
+  // LOCK: positive control -- own-scope reads must keep working, or the
+  // target reds below could be "achieved" by a broken save/read, not by a
+  // real ownership check (Codex 6ed3bb1 finding 2).
+  ok('lock', !!cat.getVersion(vA), 'positive control: a version genuinely exists and reads back for its own scope');
 
-  const leaked = cat.getVersion(vB); // no scope argument exists to even attempt "season-A/game-A" with
+  // Raw layer: SqlCatalog.getVersion/deleteVersion have no scope parameter at
+  // all today, so a bare id trivially crosses season/game boundaries.
+  const leaked = cat.getVersion(vB);
   ok('target', leaked === null, "getVersion(id) refuses a version id that belongs to a different season/game scope (today it has NO scope parameter at all)",
     leaked ? `returned '${leaked.seasonName}' instead of null` : '');
-
   cat.deleteVersion(vB);
   const stillThere = cat.getVersion(vB);
   ok('target', stillThere !== null, "deleteVersion(id) must not delete a version outside the caller's scope",
     stillThere ? '' : "season-B/game-B's version was deleted while nominally acting on season-A/game-A");
+
+  // Modeled intended API (Codex 6ed3bb1 finding 3): SqlCatalog has no scoped
+  // get/delete today, so this composes the ownership check PC-2 must add out
+  // of the ONE version primitive that IS already scope-aware --
+  // listVersions(seasonId, gameId). This is not a claim that the wrapper
+  // below exists in production; it is the exact behavior PC-2's real
+  // implementation is required to satisfy, proven against real saved rows.
+  const vB2 = cat.saveVersion('season-B', 'game-B', { label: 'B point 2', time: new Date().toISOString(), manual: true, playCount: 1, data: { seasonName: 'B second record' } });
+  const scopedGetVersion = (seasonId, gameId, versionId) =>
+    cat.listVersions(seasonId, gameId).some(v => String(v.id) === String(versionId)) ? cat.getVersion(versionId) : null;
+  const scopedDeleteVersion = (seasonId, gameId, versionId) => {
+    const owned = cat.listVersions(seasonId, gameId).some(v => String(v.id) === String(versionId));
+    if (owned) cat.deleteVersion(versionId);
+    return owned;
+  };
+  const bbReadsB = scopedGetVersion('season-B', 'game-B', vB2);
+  ok('target', bbReadsB && bbReadsB.seasonName === 'B second record', 'B/B (correctly scoped) can read its own version through the intended ownership check', JSON.stringify(bbReadsB));
+  const aaReadsB = scopedGetVersion('season-A', 'game-A', vB2);
+  ok('target', aaReadsB === null, 'A/A (foreign) cannot read season-B/game-B\'s version through the intended ownership check', JSON.stringify(aaReadsB));
+  const aaDeletedB = scopedDeleteVersion('season-A', 'game-A', vB2);
+  ok('target', aaDeletedB === false, 'A/A (foreign) cannot delete season-B/game-B\'s version through the intended ownership check', `deleted=${aaDeletedB}`);
+  // The decisive check: B/B must STILL read it afterward -- this is what
+  // rules out a naive "every scoped read returns null" implementation, which
+  // would otherwise pass the two assertions immediately above for free.
+  const bbStillReadsB = scopedGetVersion('season-B', 'game-B', vB2);
+  ok('target', bbStillReadsB && bbStillReadsB.seasonName === 'B second record', 'B/B can STILL read its own version after the rejected A/A attempt (rules out an always-null implementation)', JSON.stringify(bbStillReadsB));
   cat.close();
 }
 flush();
@@ -428,8 +584,6 @@ flush();
 section('10. TeamRegistry.recoverFromWipe() never mutates active season identity while inspecting seasons [LOCK]');
 {
   installFakeLocalStorage();
-  const openSeasonCalls = [];
-  const setCurrentSeasonCalls = [];
   const fakeSeasons = [
     { id: 's1', name: 'Mavericks 2025', teamId: '', created: 100 },
     { id: 's2', name: 'Mavericks 2024', teamId: '', created: 50 },
@@ -438,26 +592,45 @@ section('10. TeamRegistry.recoverFromWipe() never mutates active season identity
     s1: { teamProfile: { teamName: 'Mavericks', jerseyColor: 'red' }, roster: [{ num: 1 }], games: [] },
     s2: { teamProfile: { teamName: 'Mavericks', jerseyColor: 'red' }, roster: [], games: [] },
   };
-  const fakeSeasonStore = {
+  const setCurrentSeasonCalls = [];
+  // A REAL SeasonStore, not a fake seasonStore-shaped object, so
+  // recoverFromWipe() exercises the actual SeasonStore.peekSeason() chain
+  // (Codex 6ed3bb1 finding 4). Only the underlying backend is faked.
+  const backend = {
+    currentId: 'already-active-season', RETENTION: 25,
+    setCurrentSeason(id) { setCurrentSeasonCalls.push(id); this.currentId = id; },
     async listSeasons() { return fakeSeasons; },
     async peekSeason(id) { return fakeSeasonData[id] || null; },
-    // Spies: recoverFromWipe() must NEVER call these -- they are the mutable-
-    // identity operations peekSeason exists specifically to avoid.
-    async openSeason(id) { openSeasonCalls.push(id); },
-    setCurrentSeason(id) { setCurrentSeasonCalls.push(id); },
   };
+  const store = new SeasonStore(backend);
+  // Pin BOTH real mutable pointers to an already-active season BEFORE
+  // recovery runs, modeling the real scenario: localStorage identity keys
+  // were wiped, but a season is already loaded in memory from before the
+  // wipe was detected. Recovery inspecting OTHER seasons must not disturb it.
+  store.currentSeasonId = 'already-active-season';
+
+  const openSeasonCalls = [];
+  const realOpenSeason = store.openSeason.bind(store);
+  store.openSeason = async (id) => { openSeasonCalls.push(id); return realOpenSeason(id); };
+
   const fakeApp = {
-    storage: { seasonStore: fakeSeasonStore, isDemoSeason: () => false },
+    storage: { seasonStore: store, isDemoSeason: () => false },
     roster: { players: [], _load() {}, renderList() {}, renderQuickPick() {} },
     playbook: null,
   };
   const registry = new TeamRegistry({ app: () => fakeApp });
 
-  ok('lock', registry.teams().length === 0 && !registry.hasTeam(), 'sanity: identity is genuinely wiped before recovery runs');
+  ok('lock', registry.teams().length === 0 && !registry.hasTeam(), 'sanity: localStorage identity is genuinely wiped before recovery runs');
+  const beforeSeasonStoreId = store.currentSeasonId;
+  const beforeBackendId = store.backend.currentId;
   const recovered = await registry.recoverFromWipe();
   ok('lock', recovered === true, 'recovery succeeds against seasons that still exist on disk', `recovered=${recovered}`);
-  ok('lock', openSeasonCalls.length === 0, 'recoverFromWipe() never calls seasonStore.openSeason (would mutate active identity)', JSON.stringify(openSeasonCalls));
-  ok('lock', setCurrentSeasonCalls.length === 0, 'recoverFromWipe() never calls seasonStore.setCurrentSeason directly', JSON.stringify(setCurrentSeasonCalls));
+  ok('lock', openSeasonCalls.length === 0, 'recoverFromWipe() never calls the real SeasonStore.openSeason (would mutate active identity)', JSON.stringify(openSeasonCalls));
+  ok('lock', setCurrentSeasonCalls.length === 0, 'recoverFromWipe() never calls backend.setCurrentSeason directly', JSON.stringify(setCurrentSeasonCalls));
+  // The decisive check Codex named: not "was a suspicious method avoided" but
+  // "is the real identity byte-for-byte the same afterward."
+  ok('lock', store.currentSeasonId === beforeSeasonStoreId, 'SeasonStore.currentSeasonId is byte-for-byte unchanged after recoverFromWipe()', `before='${beforeSeasonStoreId}', after='${store.currentSeasonId}'`);
+  ok('lock', store.backend.currentId === beforeBackendId, 'StorageBackend.currentId is byte-for-byte unchanged after recoverFromWipe()', `before='${beforeBackendId}', after='${store.backend.currentId}'`);
   ok('lock', registry.hasTeam() && registry.teamProfile().teamName === 'Mavericks', 'identity is genuinely rebuilt from the peeked season data', JSON.stringify(registry.teamProfile()));
 }
 flush();
@@ -474,6 +647,8 @@ section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER
   await backend.createBackup(season('season-A', 'Alpha'), 'A point');
   backend.setCurrentSeason('season-B');
   const bId = (await backend.createBackup(season('season-B', 'Bravo'), 'B point')).id;
+  // LOCK: own-scope positive control (Codex 6ed3bb1 finding 2).
+  ok('lock', (await backend.getBackup(bId))?.seasonName === 'Bravo', 'positive control: season-B, scoped to itself, can read its own BrowserBackend backup');
 
   backend.setCurrentSeason('season-A');
   const leaked = await backend.getBackup(bId);
@@ -523,6 +698,14 @@ section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to 
   store.data.seasonName = 'Season B live data';
   const bBackupId = (await backend.createBackup(clone(store.data), 'B point')).id;
 
+  // LOCK: own-scope positive control -- restoring season-B's OWN backup while
+  // still scoped to season-B must genuinely work, or the cross-season target
+  // red below could be "achieved" by a broken restoreBackup entirely rather
+  // than a real ownership gap (Codex 6ed3bb1 finding 2).
+  store.data.seasonName = 'mutated before restore';
+  const selfRestored = await store.restoreBackup(bBackupId);
+  ok('lock', selfRestored && selfRestored.seasonName === 'Season B live data', 'positive control: season-B, scoped to itself, can restore its own backup', JSON.stringify(selfRestored));
+
   // Switch back to A, then attempt to restore B's backup id while scoped to A.
   store.currentSeasonId = recA.id; backend.setCurrentSeason(recA.id);
   store.data = store._empty(); store.data.id = recA.id; store.data.seasonName = 'Season A live data';
@@ -551,7 +734,7 @@ console.log('== ADVERSARIAL MATRIX COVERAGE (all ten plan items) ==');
 const coverage = [
   ['Destination id differs from payload id: zero writes.', 'DIRECT — section 1'],
   ['Delayed save for season A completes after switching to B: zero writes to B.', 'DIRECT — section 4'],
-  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
+  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
   ['TeamRegistry peeks do not alter active identity.', 'DIRECT — section 10'],
   ['SQLite is corrupt, locked, or unavailable: visible failure, no fallback authority.', 'DIRECT (CatalogPersistence layer) — section 2. The TauriBackend.listSeasons() call site that consumes this result requires the real Tauri fs plugin and cannot run in plain Node; deferred to a browser-level e2e harness with a fake window.__TAURI__ shim, owner PC-2, or the PC-5 installed smoke.'],
   ['Stale JSON/library sidecars disagree with SQLite: ignored by normal startup.', 'DIRECT — section 9'],
