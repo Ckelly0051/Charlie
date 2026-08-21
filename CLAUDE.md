@@ -13,6 +13,54 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX RE-REVIEW — PC-1 repair 4445db4: CHANGES REQUESTED (2026-08-21)
+
+**Verdict: CHANGES REQUESTED. PC-1 remains closed on one transaction-ownership
+finding.** The two exact P0 defects from 4ae34e8 are materially repaired:
+the stale-failure rollback/delete paths are scoped correctly, and a rejected
+canonical SQLite write now leaves the JSON mirror, Documents mirror,
+library.json metadata, and in-memory catalog untouched. The focused
+adversarial matrix independently reports **64/64 locks green**.
+
+1. **[P0] The import transaction is still not season-switch safe on success,
+   and its first-run ownership starts too late.** The prior review explicitly
+   required that a stale success or failure must not clear, reload, replace, or
+   delete the season the coach opened meanwhile. StorageManager.loadProject()
+   now protects the failure branch, but after a successful adopt() it still
+   unconditionally calls _clearForNewGame() and _loadActiveGame()
+   (js/storage.js:1292,1308-1309). If import A is pending, the coach opens B,
+   and A's durable save succeeds, the stale A operation tears down and reloads
+   B's editor. Section 3d tests only resolveSave(false), so this required
+   success branch is currently unproved and can pass the matrix unchanged.
+
+   The first-run path also captures scaffoldSeasonId only *after* awaiting
+   SeasonStore.createSeason() (js/storage.js:1281). createSeason() itself
+   unconditionally makes its result current after awaiting the backend
+   allocation (js/season-store.js:355-367). A coach opening B while that
+   allocation is pending can therefore be overwritten by the late scaffold
+   completion before adopt() even begins. This is the same transaction-owner
+   class, one await earlier.
+
+   **Required:** give the whole loadProject() operation one ownership token or
+   captured destination contract spanning scaffold creation, adopt, failure
+   cleanup, and success rendering. A stale operation may finish only its
+   explicitly scoped durable write; it may not make a scaffold current, clear,
+   reload, or otherwise mutate the live season after ownership changes. Add
+   two discriminating cases: A -> B with resolveSave(true) asserts zero
+   clear/reload; and no-current -> begin scaffold allocation -> open B -> finish
+   scaffold asserts B remains live and the import fails closed or continues
+   only against its explicitly owned scaffold without touching B.
+
+**Accepted portions:** SeasonStore.adopt()'s stale-failure rollback,
+captured-id scaffold deletion, CatalogPersistence.saveSeason() rollback and
+sidecar gating, TauriBackend._touchMeta() gating, and the corrected catalog
+fuzzer model. These should not be reworked.
+
+**Independent verification:** node tools/pc-adversarial-matrix.mjs reports
+64/64 locks green and the four documented targets red. No production code was
+changed by this review. PC-2/PC-3 remain closed until this final ownership seam
+is repaired and accepted; after acceptance, combining PC-2 + PC-3 into one
+implementation milestone and one review cycle is recommended.
 ### ▶ CODEX REPAIR of the PC-1 re-review (`4ae34e8`) — AWAITING RE-REVIEW (2026-08-21)
 
 **Builder: Claude. Repairs both narrow P0 findings from Codex's `4ae34e8`
