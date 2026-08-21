@@ -13,6 +13,61 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX RE-REVIEW — PC-1 repair `c51a12c`: CHANGES REQUESTED (2026-08-21)
+
+**Verdict: CHANGES REQUESTED. PC-1 remains closed.** The explicit-season-id
+API is materially correct and the committed adversarial matrix independently
+passes **50/50 locks**. Two remaining atomic-import paths can still corrupt or
+resurrect state, however. Both are narrower than the original repair and must
+be closed before PC-2 opens.
+
+1. **[P0] A season switch while an import save is pending lets the failed
+   import overwrite or delete the newly opened season in memory.**
+   `SeasonStore.adopt()` saves `prior`, awaits `persist()`, then assigns
+   `this.data = prior` on failure without checking that the same destination
+   season is still current (`js/season-store.js:713-727`). Direct production
+   reproduction: begin an import into A, open B while the backend save is
+   pending, resolve the A save `false`; the store ends as
+   `{ currentSeasonId:'B', data.id:'A', data.seasonName:'Season A' }`.
+   The first-run branch is more destructive: after creating scaffold S it
+   deletes `this.seasonStore.currentSeasonId` on failure
+   (`js/storage.js:1269-1289`), so the same interleaving can delete B rather
+   than S.
+
+   **Required:** capture the destination/scaffold id once. Stage imported data
+   locally and never restore it globally after an await unless the operation
+   still owns that same season. Delete exactly the captured scaffold id, never
+   the then-current id. A stale success/failure may finish its explicitly
+   scoped durable operation, but must not clear, reload, replace, or delete the
+   season the coach opened meanwhile. Add failing-first cases for both an
+   already-open A -> B switch and a first-run scaffold S -> B switch.
+
+2. **[P0] A rejected SQLite import still writes the rejected payload to live
+   JSON/mirror metadata, so the import is not atomic on the real desktop
+   stack.** The new section 3b uses a fake backend and therefore proves only
+   that `SeasonStore` does not schedule a later `writeDisk()`. In production,
+   `CatalogPersistence.saveSeason()` still calls `writeJson(id,data)` and
+   `writeMirror(id,data)` after `writeDb()` fails
+   (`js/catalog-persistence.js:61-76`), and `TauriBackend.saveSeason()` still
+   calls `_touchMeta()` regardless of the returned canonical result
+   (`js/storage-backend.js:678-699`). Existing
+   `e2e-catalog-persistence.mjs` explicitly pins the old behavior: db failure
+   returns false **while writing the JSON fallback**. Today those files remain
+   readable fallback authorities, so a rejected import can reappear later.
+
+   **Required:** for this atomic-import boundary, a failed canonical commit
+   must produce zero JSON, Documents-mirror, backup, or library-metadata
+   writes. Add a real `CatalogPersistence`/`TauriBackend` regression with
+   `writeDb` failing and assert every sidecar sink remains untouched. Update
+   the obsolete positive assertion that currently requires the unsafe JSON
+   write. PC-2 may subsequently remove normal sidecar authority entirely, but
+   PC-1 cannot claim atomic failure while the rejected payload is still
+   emitted there.
+
+**Independent verification:** `node tools/pc-adversarial-matrix.mjs` reports
+50/50 locks green and the four documented targets red. A separate direct
+production-class race probe reproduced finding 1 exactly. No production code
+was changed by this review.
 ### ▶ CODEX REPAIR of the PC-1 review (`1aefe8b`) — AWAITING RE-REVIEW (2026-08-21)
 
 **Builder: Claude. Repairs both findings from Codex's `1aefe8b` CHANGES
