@@ -1,6 +1,6 @@
 # GridIron IQ Desktop Persistence Convergence
 
-**Status:** NEXT MILESTONE - Claude executes; Codex independently reviews each checkpoint.
+**Status:** PC-0 and PC-1 accepted. Combined PC-2+PC-3 is open — Claude executes; Codex independently reviews the combined checkpoint.
 
 ## Objective
 
@@ -25,11 +25,14 @@ Inventory every desktop persistence path and every use of mutable `currentId`: l
 ### PC-1 - Explicit Identity API
 Require explicit ids at persistence boundaries. Validate destination/payload/catalog/revision identity together. Remove mutable backend scope as a write destination. Make read-only peeks provably side-effect-free.
 
-### PC-2 - SQLite-Only Live Desktop Persistence
-Remove normal Tauri JSON/library writes and reads that can override the catalog. Team Hub season listing and season load come from SQLite. Desktop catalog failure remains visible and fail-closed. BrowserBackend stays unchanged.
+### PC-2+PC-3 - SQLite Authority + Recovery Snapshots (Combined Milestone)
+Implement and review these together so removing JSON as a live authority and introducing its deliberate recovery replacement land atomically, with no unsafe gap between checkpoints.
 
-### PC-3 - Recovery And Export Snapshots
-Define a versioned snapshot envelope containing season id, revision, timestamp, game/play counts, and checksum. Generate it only after a successful SQLite commit or explicit export. Recovery scans snapshots, previews differences, asks for confirmation, then imports into SQLite. Never auto-import merely because app data appears empty.
+**SQLite-only live desktop persistence:** remove normal Tauri JSON/library writes and reads that can override the catalog. Team Hub season listing and season load come from SQLite. Desktop catalog failure remains visible and fail-closed. BrowserBackend stays unchanged.
+
+**Recovery and export snapshots:** define a versioned snapshot envelope containing season id, revision, timestamp, game/play counts, and checksum. Generate it only after a successful SQLite commit or explicit export. Recovery scans snapshots, previews differences, asks for confirmation, then imports into SQLite. Never auto-import merely because app data appears empty.
+
+**Acceptance boundary:** one builder checkpoint, one independent review, and no intermediate installer. The combined change must prove both halves together: normal startup has exactly one live authority, while recovery remains explicit, previewed, confirmed, identity-checked, and non-destructive.
 
 ### PC-4 - Revision-Fenced Autosave And Lifecycle Audit
 Capture season id and revision when work is scheduled. Reject stale saves after season switch, reload, undo/redo, restore, or a newer commit. Audit Team Hub, game/team/season switch, backup/restore, import, delete, and shutdown.

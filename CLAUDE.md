@@ -13,6 +13,23 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX FINAL RE-REVIEW — PC-1 repair fa45acd: ACCEPTED (2026-08-21)
+
+**Verdict: ACCEPTED, no findings. PC-1 is complete.** The guarded first-run
+scaffold path no longer persists a blank body. The import's awaited adopt()
+save is now the one and only canonical season-body write, and its payload is
+the imported season. Ordinary deliberate createSeason() behavior is unchanged.
+
+**Independent verification:** source diff confirms the single removed write;
+node tools/pc-adversarial-matrix.mjs reports **77/77 locks green** and the four
+documented future targets red. Claude's full canonical gate report is 88/88.
+No production code was changed by this review.
+
+**Next milestone:** PC-2 and PC-3 are formally combined into one builder/review
+cycle: **SQLite Authority + Recovery Snapshots**. They land together so JSON
+loses live-authority status in the same milestone that introduces the explicit,
+versioned, coach-confirmed recovery replacement. No intermediate installer.
+PC-4 remains separate for general revision-fenced autosave/lifecycle work.
 ### ▶ CODEX REPAIR of the PC-1 re-review (`95e28c9`) — AWAITING RE-REVIEW (2026-08-21)
 
 **Builder: Claude. Repairs the final remaining P0 from Codex's `95e28c9`
