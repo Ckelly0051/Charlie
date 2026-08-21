@@ -118,6 +118,54 @@ export function CreateSeasonForm({ teamName, onSubmit, onCancel }) {
   </form>;
 }
 
+/* PC-3 explicit recovery (Convergence Plan Invariant #6): the coach-triggered
+   preview-and-confirm replacement for the removed automatic mirror import.
+   `candidates` is the already-fetched scanRecoverableSeasons() result --
+   fetched once by the screen before this opens, never re-fetched here, so
+   the list a coach reviews cannot silently change mid-decision. Every row's
+   own Recover click re-validates and re-confirms at the point of action
+   (onRecover), never trusting this snapshot as authorization by itself. */
+function RecoverCandidate({ candidate, onRecover }) {
+  const [state, setState] = useState('idle'); // idle | confirming | busy | error
+  const [error, setError] = useState('');
+  const label = candidate.valid ? 'Recoverable'
+    : candidate.reason === 'legacy-unenveloped' ? 'Legacy backup (unverified)'
+    : `Not recoverable (${candidate.reason || 'unreadable'})`;
+  const disabled = !candidate.valid && candidate.reason !== 'legacy-unenveloped';
+  const run = async (confirmOverwrite) => {
+    setState('busy'); setError('');
+    const result = await onRecover(candidate, confirmOverwrite);
+    if (!result?.ok) { setState('error'); setError(result?.reason === 'exists' ? 'Already in your library.' : (result?.message || 'Could not recover this season.')); return; }
+    setState('recovered');
+  };
+  const click = () => { if (candidate.existsInCatalog) setState('confirming'); else run(false); };
+  return <article class={`gi-hub-recover-row is-${candidate.valid ? 'valid' : 'invalid'}`}>
+    <div class="gi-hub-recover-main">
+      <strong>{candidate.name}</strong>
+      <small>{[candidate.team, `${candidate.gameCount} game${candidate.gameCount === 1 ? '' : 's'}`, `${candidate.playCount} play${candidate.playCount === 1 ? '' : 's'}`, formatDate(candidate.timestamp)].filter(Boolean).join(' · ')}</small>
+      <span class={`gi-hub-recover-state is-${candidate.valid ? 'ok' : 'warn'}`}>{label}</span>
+    </div>
+    {state === 'confirming'
+      ? <div class="gi-hub-recover-confirm">
+          <p>A season with this id is already in your library. Recovering will overwrite it.</p>
+          <button onClick={() => setState('idle')}>Cancel</button>
+          <button class="is-danger" onClick={() => run(true)}>Overwrite and recover</button>
+        </div>
+      : <div class="gi-hub-recover-actions">
+          {state === 'recovered' ? <span class="gi-hub-recover-done">Recovered</span>
+            : <button disabled={disabled || state === 'busy'} onClick={click}>{state === 'busy' ? 'Recovering…' : candidate.existsInCatalog ? 'Recover (overwrite)' : 'Recover'}</button>}
+          {error && <p class="gi-hub-error" role="alert">{error}</p>}
+        </div>}
+  </article>;
+}
+
+export function RecoverSeasonsForm({ candidates, onRecover }) {
+  return <div class="gi-hub-dialog-form gi-hub-recover-list">
+    <p>These are Documents-mirror recovery snapshots found on this machine. Recovering imports one into your live season catalog. This never happens automatically.</p>
+    {candidates.map(candidate => <RecoverCandidate key={candidate.id} candidate={candidate} onRecover={onRecover} />)}
+  </div>;
+}
+
 function FirstTeam({ screen }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -191,6 +239,7 @@ function NativeTeamHub({ screen }) {
       <div><span class="gi-hub-kicker">Team / Season workspace</span><h1 id="giHubTitle">{active?.teamName || state.profile.teamName || 'Team Hub'}</h1><p>Choose the program and season. Games open from Home.</p></div>
       <div class="gi-hub-head-actions">
         {state.currentSeasonId && <button onClick={() => screen.close()}>Back</button>}
+        {screen.canRecoverSeasons() && <button data-native-hub-recover onClick={event => screen.recoverSeasons(event.currentTarget)}>Recover seasons</button>}
         <button id="btnNativeTeamFilmSettings" onClick={event => screen.openSettings(event.currentTarget)}>Team &amp; Film Settings</button>
       </div>
     </header>

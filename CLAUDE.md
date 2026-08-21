@@ -13,6 +13,120 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-2+PC-3 — SQLITE AUTHORITY + RECOVERY SNAPSHOTS BUILT, AWAITING CODEX REVIEW (2026-08-21)
+
+**Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`'s
+combined PC-2+PC-3 checkpoint** ("SQLite-only live desktop persistence" +
+"Recovery and export snapshots"), landed together in one builder checkpoint
+per the plan's own acceptance boundary. Full findings, code excerpts, and
+before/after tables are in `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §6 — this
+entry is the handoff summary.
+
+**§3.0 closed — the most severe finding on record.** `CatalogPersistence.
+_ensureLoaded()` now distinguishes "bytes exist but fail to open" (real
+corruption — throws) from "no bytes ever existed" (fresh install — opens
+clean). The throw propagates uncaught through `reconcileFallbacks()`/
+`loadSeason()`/`peekSeason()`, so a corrupt on-disk catalog can never again be
+silently reported as "zero seasons" while a recoverable copy sits unconsulted.
+`WorkspaceShell.refreshHome()`'s own `listSeasons().catch(()=>[])` swallow —
+which would have rendered a genuine catalog failure as an ordinary empty
+season list — is fixed to surface a distinct, honestly-worded error state
+instead ("this is a read failure, not an empty library... do not create a new
+season yet"); `TeamHubScreen.load()` already handled this correctly and needed
+no change.
+
+**JSON retired as a live read/write authority everywhere (Invariant #5).**
+`CatalogPersistence.saveSeason`/`reconcileFallbacks` no longer write
+`season.json` at all — only the canonical db and a best-effort Documents-
+mirror recovery snapshot. `loadSeason` is db-only; a missing db row returns
+`null`, never resurrected from a stale sidecar. `TauriBackend.loadSeason`/
+`peekSeason`/`saveSeason`/`deleteSeason`/`touchOpened`/`createBackup` all fail
+closed unconditionally the moment the catalog itself cannot be opened (`!cp`),
+not just when a db file already exists but won't open — no method silently
+falls back to a JSON read or write. `migrateJsonSeasons()`'s one-time legacy
+bootstrap read is the sole, disclosed, deliberate exception.
+
+**§2 "recovery" row closed — Invariant #6, "never auto-import merely because
+app data appears empty."** `TauriBackend._recoverFromMirror()`'s automatic
+call inside `listSeasons()` is removed entirely, replaced by two explicit
+methods: `scanRecoverableSeasons()` (preview only, writes nothing) and
+`recoverSeasonFromMirror(id, {confirmOverwrite})` (the confirmed one-way
+import, re-validating at the point of action, refusing an existing-season
+conflict unless the coach has explicitly agreed). Both are threaded through
+`SeasonStore`/`StorageManager` with the established thin-delegation shape.
+
+**A real, coach-facing UI, not just a backend API.** Team Hub gains a
+"Recover seasons" command, visible only when the active backend genuinely
+supports the flow (`canRecoverSeasons()`, mirroring the existing
+`canOpenDataDir()` capability-check pattern — absent on `BrowserBackend`).
+Clicking it opens a dialog (`RecoverSeasonsForm`/`RecoverCandidate` in
+`js/native-team-hub.jsx`) listing every scanned candidate with an honest
+validity state; an invalid candidate's control is disabled; a candidate that
+already exists in the live catalog requires an explicit second-click
+"Overwrite and recover" naming the conflict before anything imports; an empty
+scan shows a plain-language message naming what was searched.
+
+**Versioned snapshot envelope** — new `js/snapshot-envelope.js`
+(`SnapshotEnvelope`), pure, DOM-free, zero external dependencies (a
+dependency-free two-lane FNV-1a checksum over a deterministic stringify).
+`wrap()` produces `{envelopeVersion, seasonId, revision, timestamp,
+gameCount, playCount, checksum, data}`; `unwrap()` validates identity, counts,
+AND checksum together, returning a named failure reason
+(`checksum-mismatch`/`count-mismatch`/`identity-mismatch`/
+`legacy-unenveloped`/etc.) rather than ever guessing or throwing. Wired into
+`TauriBackend._mirrorToDocuments()`, generated only after a successful
+canonical commit, exactly matching the plan's own wording.
+
+**Disclosed, not silently skipped:** the quick-switch popover's own separate
+`listSeasons().catch(()=>[])` swallow site is left unchanged (a lower-stakes
+secondary surface where the primary Home/Team Hub error states above already
+surface a genuine failure loudly); `createSeason()`'s direct `library.json`
+meta-stub write is unchanged (narrow id/meta allocation, reconciled against
+catalog truth on the next `listSeasons()`, out of this checkpoint's scope);
+PC-4's revision-fenced autosave staleness rejection remains fully untouched —
+the envelope's `revision` field is explicitly a recency marker for recovery
+comparison only, not that checkpoint's strict per-write counter.
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — **79/79 locks
+green**, section 2 ("SQLite is corrupt, locked, or unavailable") promoted
+from `[TARGET, checkpoint: PC-2]` to `[LOCK, closed PC-2]`; the two remaining
+red targets are the pre-existing, disclosed, out-of-scope legacy
+version-scope methods, unrelated to this checkpoint. `node tools/
+e2e-catalog-persistence.mjs` — **60/60** (was 56), including a new structural
+proof that `fs.writeJson` is never called across the entire run of every
+scenario in the file. `node tools/e2e-catalog-backend.mjs` — **19/19** (was
+12), including a new section proving the `TauriBackend` fail-closed guards
+against a genuinely-failed `_loadSqlEngine()` (not merely a bypassed
+`_ensureCatalog`), with zero sidecar writes across all six operations.
+`node tools/e2e-catalog-fuzzer.mjs` — **640 ops clean** (its final-reopen
+check was corrected to compare against the fuzzer's own tracked model instead
+of `fs.state.json`, which is never populated now). `node tools/
+e2e-snapshot-envelope.mjs` — **NEW, 21/21**. `node tools/
+e2e-native-mirror-recovery.mjs` — **NEW, 11/11**, driving the full coach-facing
+recovery UI through real clicks in a real browser (capability-gated button
+absence/presence, empty-scan messaging, three candidate states rendered
+correctly, the invalid candidate's disabled control, the valid candidate
+recovering on one click, the conflicting candidate proven to NOT import until
+the explicit second confirmation, and the recovered season proven to actually
+appear in Team Hub's live list afterward). Every production fix in this
+checkpoint was independently mutation-verified: reverting each in isolation
+reproduces its exact original symptom and reds exactly the assertion(s) built
+to catch it, confirmed restored and reconfirmed green afterward. Full
+canonical gate (`bash tools/run-gate.sh`): **90 harnesses | 90 green | 0
+skipped | 0 failed** (was 88; +2 new harness files), including
+`e2e-realdata.mjs` (15/15, the real six-game coach season) and
+`e2e-workspace-shell.mjs`/`e2e-native-team-hub.mjs`/`e2e-onboarding.mjs`
+(76/27/32, confirming the new UI and error-state changes regress nothing).
+
+**Scope discipline:** no film path, film file, season/game/play data, schema,
+migration, or unrelated file touched. PC-4's revision-fencing work is
+explicitly untouched. No installer, package, tag, or release — per the plan's
+"no intermediate installer" boundary.
+
+**Next action:** Codex independently reviews this combined PC-2+PC-3
+checkpoint. PC-4 (revision-fenced autosave and lifecycle audit) does not open
+until this review completes, per the plan's own handoff protocol.
+
 ### CODEX FINAL RE-REVIEW — PC-1 repair fa45acd: ACCEPTED (2026-08-21)
 
 **Verdict: ACCEPTED, no findings. PC-1 is complete.** The guarded first-run

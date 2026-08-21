@@ -391,18 +391,19 @@ section('1. Destination id differs from payload id: zero writes [LOCK]');
 flush();
 
 // ============================================================================
-// 2. TARGET — "SQLite is corrupt, locked, or unavailable: visible failure, no
-//    fallback authority." Inventory Sec 3.0, the most severe finding.
+// 2. LOCK — "SQLite is corrupt, locked, or unavailable: visible failure, no
+//    fallback authority." Inventory Sec 3.0, the most severe finding on
+//    record. CLOSED at PC-2: CatalogPersistence._ensureLoaded() now
+//    distinguishes "bytes exist but failed to open" (throws) from "no bytes
+//    ever existed" (opens clean); the throw propagates through
+//    reconcileFallbacks()/loadSeason() uncaught, so a corrupt on-disk
+//    catalog can never be silently reported as "zero seasons."
 // ============================================================================
-section('2. Corrupt catalog must fail visibly, never silently report empty [TARGET, checkpoint: PC-2]');
+section('2. Corrupt catalog must fail visibly, never silently report empty [LOCK, closed PC-2]');
 {
   const fs = makeFs();
   const cp1 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   await cp1.saveSeason('real-season', season('real-season', 'Real Season With Real Games'));
-  // LOCK, not target: this is the fixture's own positive control. If catalog
-  // save is broken, this must fail LOUDLY (exit nonzero) rather than being
-  // absorbed as one more "expected red" inside a target section -- Codex
-  // 6ed3bb1 finding 2.
   ok('lock', (await cp1.listSeasons()).some(s => s.id === 'real-season'), 'positive control: the season is genuinely saved before corruption is introduced');
 
   fs.state.db = new Uint8Array([1, 2, 3, 4, 5]); // simulates on-disk corruption / a torn write
@@ -411,11 +412,17 @@ section('2. Corrupt catalog must fail visibly, never silently report empty [TARG
   let threw = false, result = null;
   try { result = await cp2.reconcileFallbacks(); }
   catch (e) { threw = true; }
-  ok('target', threw, 'a corrupt on-disk catalog surfaces a VISIBLE failure (throws) instead of silently opening empty',
+  ok('lock', threw, 'a corrupt on-disk catalog surfaces a VISIBLE failure (throws) instead of silently opening empty',
     threw ? '' : `reconcileFallbacks() returned ${JSON.stringify(result)} with no exception`);
-  ok('target', fs.state.json.has('real-season') && (threw || (result && result.length > 0)),
-    'the real season is never reported as absent while its season.json fallback is intact',
-    `json fallback present=${fs.state.json.has('real-season')}, reconcileFallbacks length=${result ? result.length : 'n/a'}`);
+  // PC-2: season.json is retired as a live authority, so the real season's
+  // recoverable evidence now lives ONLY in the Documents-mirror recovery
+  // snapshot (never in an app-data season.json fallback that no longer
+  // exists). The decisive claim is unchanged in spirit -- the real season is
+  // never reported as absent while an intact recovery copy of it exists --
+  // just retargeted to the surviving sidecar.
+  ok('lock', fs.state.mirror.has('real-season') && threw,
+    'the real season is never reported as absent while its Documents-mirror recovery snapshot is intact',
+    `mirror snapshot present=${fs.state.mirror.has('real-season')}, threw=${threw}`);
 }
 flush();
 
@@ -877,14 +884,16 @@ section('3e. A rejected canonical (db) write produces zero json, mirror, or in-m
     "the in-memory catalog rolls back on a writeDb failure -- a later load on the same instance does not read the rejected payload back out of memory (a same-session, faster-than-disk variant of the resurrection hazard)",
     JSON.stringify(reload));
 
-  // Successful control: the same mechanism genuinely writes json + mirror
-  // when the canonical save legitimately succeeds, on a FRESH instance so the
-  // prior failed attempt cannot leave any state behind to fake this.
+  // Successful control: the same mechanism genuinely writes the mirror when
+  // the canonical save legitimately succeeds, on a FRESH instance so the
+  // prior failed attempt cannot leave any state behind to fake this. PC-2:
+  // season.json is never written by any path, including this one -- pinned
+  // explicitly here rather than assumed.
   const fs2 = makeFs();
   const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: fs2 });
   const okDb2 = await cp2.saveSeason('s2', season('s2', 'Legitimate Save'));
-  ok('lock', okDb2 === true && fs2.state.json.has('s2') && fs2.state.mirror.has('s2'),
-    'a SUCCESSFUL canonical save still writes json + mirror, proving the gate above is not simply disabling the sidecar writes entirely',
+  ok('lock', okDb2 === true && !fs2.state.json.has('s2') && fs2.state.mirror.has('s2'),
+    'a SUCCESSFUL canonical save writes the mirror only -- season.json is never written (PC-2), proving the gate above is not simply disabling every sidecar write entirely',
     JSON.stringify({ okDb2, json: fs2.state.json.has('s2'), mirror: fs2.state.mirror.has('s2') }));
 }
 flush();
@@ -1503,7 +1512,7 @@ const coverage = [
   ['Delayed save for season A completes after switching to B: zero writes to B.', 'DIRECT — section 4'],
   ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 3c (import, first-run scaffold rollback), 3d (import racing a concurrent season switch, both the already-open and first-run-scaffold cases), 3e (a rejected canonical write is atomic across json/mirror/in-memory-catalog), 3f (a season switch racing the scaffold\'s own creation await, and a stale-but-successful import never reloading a different season\'s editor), 3g (first-run import performs exactly one canonical write, never a racing blank-scaffold write), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
   ['TeamRegistry peeks do not alter active identity.', 'DIRECT — section 10'],
-  ['SQLite is corrupt, locked, or unavailable: visible failure, no fallback authority.', 'DIRECT (CatalogPersistence layer) — section 2. The TauriBackend.listSeasons() call site that consumes this result requires the real Tauri fs plugin and cannot run in plain Node; deferred to a browser-level e2e harness with a fake window.__TAURI__ shim, owner PC-2, or the PC-5 installed smoke.'],
+  ['SQLite is corrupt, locked, or unavailable: visible failure, no fallback authority.', 'CLOSED PC-2, at both layers: section 2 here (CatalogPersistence, the corrupt-bytes case) and tools/e2e-catalog-backend.mjs section 5 (TauriBackend, a genuinely-failed-to-init catalog, driven through a fake window.__TAURI__ shim and be._loadSqlEngine override rather than plain Node, since this call site needs a real fs).'],
   ['Stale JSON/library sidecars disagree with SQLite: ignored by normal startup.', 'DIRECT — section 9'],
   ['Delete fails: season remains durable and cannot resurrect from a stale sidecar.', 'COVERED BY EXISTING SUITE — tools/e2e-catalog-persistence.mjs already asserts this exact scenario ("the on-disk db was never mutated by the failed delete"); not duplicated here.'],
   ['Duplicate snapshot import: no duplicate season and no silent overwrite.', 'PARTIAL / RELABELED — section 8 tests JSON-to-catalog migration idempotence, the closest existing analog. The general PC-3 snapshot-import/recovery envelope ("scans snapshots, previews differences, asks for confirmation, then imports") does not exist in production yet; the real contract is deferred to PC-3, where it will get its own direct test against the real envelope.'],

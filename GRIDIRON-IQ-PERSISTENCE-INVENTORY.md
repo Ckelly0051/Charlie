@@ -903,3 +903,220 @@ To keep later checkpoints from re-deriving ground already covered:
   the preview-then-confirm shape PC-3 requires — named in §2's "recovery" row.
 - Any change to film paths or files (explicitly out of scope for the whole
   plan, per its "Out Of Scope" section).
+
+---
+
+## 6. PC-2+PC-3 checkpoint — SQLite Authority + Recovery Snapshots (2026-08-21)
+
+**Combined milestone, per the coach/reviewer's own combination decision
+recorded in `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`.** Both halves are
+implemented, tested, and cross-verified together in one builder checkpoint, as
+the plan's acceptance boundary requires ("one builder checkpoint, one
+independent review, and no intermediate installer").
+
+### §3.0 — CLOSED. Corrupt catalog now fails visibly; JSON is no longer a
+### competing read/write authority anywhere.
+
+`CatalogPersistence._ensureLoaded()` now distinguishes "bytes exist on disk
+but fail to open" (genuine corruption — **must throw**) from "no bytes have
+ever existed" (a fresh install — safe to open clean):
+
+```js
+async _ensureLoaded() {
+  if (this._loaded && this.catalog.db) return;
+  let bytes = null;
+  try { bytes = await this.fs.readDb(); } catch (e) { bytes = null; }
+  if (bytes && bytes.length) {
+    await this.catalog.open(bytes);   // real bytes that fail to open MUST throw
+  } else {
+    await this.catalog.open();        // nothing has ever existed to be corrupted
+  }
+  this._loaded = true;
+}
+```
+
+The throw now propagates uncaught through `reconcileFallbacks()`/
+`loadSeason()`/`peekSeason()` (both at the `CatalogPersistence` layer and, via
+the corresponding `TauriBackend` guards described below, at the desktop
+backend layer). `listSeasons()`'s prior silent-overwrite compound bug (§3.0's
+original text above) is closed at the root: with the throw now real, the
+"unconditionally overwrite `library.json` with the reconciled empty result"
+step never executes on a corrupt catalog — the caller sees a thrown error
+instead. `TeamHubScreen.load()` already had a correct outer `try/catch`
+converting any thrown `listSeasons()` error into a visible `status:'error'`
+UI state (verified against source, not assumed); `WorkspaceShell.refreshHome()`
+did NOT — it silently swallowed the error into an empty season list, which
+would have rendered as "you have no seasons" on a genuinely corrupt catalog.
+Fixed: `refreshHome()` now threads a `seasonsFailed` flag through to
+`_renderSeasons()`, which renders a distinct, honestly-worded error state
+("Seasons could not be loaded... this is a read failure, not an empty
+library... do not create a new season yet") instead of the ordinary
+zero-seasons empty state. The quick-switch popover's own separate
+`listSeasons().catch(()=>[])` swallow site was deliberately left alone — it is
+a secondary, lower-stakes surface (a dropdown "Other seasons" list) where the
+primary Team Hub/Home surfaces above it already surface the real failure
+loudly; disclosed here rather than silently left unaudited.
+
+**Removing JSON as a live read/write authority (Invariant #5), completed at
+every identity-sensitive boundary — every method re-verified against source,
+not assumed from the pattern of the first one fixed:**
+
+| Method | Before | After |
+|---|---|---|
+| `CatalogPersistence.saveSeason` | wrote db + `season.json` + Documents mirror, gated on db success | writes db + Documents mirror ONLY — `writeJson` call deleted entirely |
+| `CatalogPersistence.reconcileFallbacks` | rewrote `season.json` for every season | rewrites the Documents mirror for every season only |
+| `CatalogPersistence.loadSeason` | fell back to reading `season.json` and silently re-migrated it into the db on a missing db row | db-only; a missing row returns `null` — genuinely unavailable, never resurrected from a stale sidecar |
+| `_catalogFs()` (the injected fs adapter) | exposed `writeJson` | `writeJson` removed from the interface entirely — `readJson` survives ONLY for `migrateJsonSeasons()`'s one-time legacy bootstrap read |
+| `TauriBackend.loadSeason`/`peekSeason` | fell back to reading `season.json` directly when `catalogOnDisk && !cp` | throw unconditionally on any `!cp` (catalog genuinely unavailable for ANY reason, not just "a db file exists but won't open") — no JSON read fallback |
+| `TauriBackend.saveSeason` | fell back to writing `season.json` directly on `!cp` | returns `false` unconditionally on `!cp` — no JSON write fallback |
+| `TauriBackend.deleteSeason`/`touchOpened` | `catalogOnDisk && !cp` guard (a catalog that never got the chance to have a db file yet could silently proceed) | unconditional `!cp` guard — fails closed the moment the catalog itself cannot be opened, regardless of whether a db file exists yet |
+| `TauriBackend.createBackup` | fell back to writing a NEW legacy `season_<ts>.json` restore-point file when `!cp` | returns `null` unconditionally on `!cp` — no new legacy-format file is ever created as a fallback. `listBackups`/`getBackup`/`deleteBackup` deliberately keep reading PRE-EXISTING legacy restore-point files by id-shape routing (a genuinely different identifier namespace, not the same authority competing with the catalog) — this is a considered, disclosed exception, not an oversight |
+| `TauriBackend.listSeasons` | `catalogOnDisk && !cp` guard, plus an unconditional automatic `_recoverFromMirror()` call whenever `library.json` was empty | unconditional `!cp` guard; the automatic mirror-recovery call is REMOVED entirely (see the Invariant #6 section below) |
+
+**Fail-closed proof, at both layers.** `tools/e2e-catalog-persistence.mjs`
+(60 assertions, was 56) proves the `CatalogPersistence` layer directly,
+including a new structural proof (`anyJsonWriteEverSeen`) that `fs.writeJson`
+is never called across the entire run of every scenario in the file, not just
+spot-checked per assertion. `tools/e2e-catalog-backend.mjs` (19 assertions,
+was 12) adds a new section 5 proving the `TauriBackend` layer specifically:
+with `_loadSqlEngine` forced to genuinely fail (not merely bypassed via a
+test's own `be._catalog` injection, as every prior section in that file does),
+`loadSeason`/`peekSeason` throw, `saveSeason`/`deleteSeason`/`touchOpened`
+return `false`, `createBackup` returns `null`, and — the decisive structural
+check — zero `writeTextFile`/`writeFile` calls happen across all six
+operations, proving no sidecar write fires as a substitute authority. Both
+new production fixes (the `_ensureLoaded` corrupt-bytes throw, and the removed
+json-fallback-and-self-heal in `loadSeason`) were independently
+mutation-verified: reverting each in isolation reproduces the exact original
+symptom and reds exactly the assertion(s) built to catch it, confirmed via
+`git diff`-equivalent restoration and a clean rerun afterward.
+
+`tools/pc-adversarial-matrix.mjs` section 2 ("SQLite is corrupt, locked, or
+unavailable: visible failure, no fallback authority") is promoted from
+`[TARGET, checkpoint: PC-2]` to `[LOCK, closed PC-2]`, now **79/79 locks
+green**. Its second assertion is retargeted from checking a `season.json`
+fallback (which no longer exists) to checking the Documents-mirror recovery
+snapshot instead — the underlying claim ("the real season is never reported
+as absent while an intact recovery copy exists") is preserved, just pointed
+at the surviving sidecar. Section 3b's "a SUCCESSFUL canonical save still
+writes json + mirror" assertion is corrected to "writes the mirror only —
+season.json is never written," matching the new contract exactly. The two
+pre-existing `[TARGET]` legacy-version-scope assertions (§2's "version
+history" row above) remain deliberately untouched and red — out of scope for
+this checkpoint, unrelated to SQLite authority or recovery snapshots.
+
+### §2 "recovery" row — CLOSED. The automatic mirror-import is replaced by an
+### explicit, previewed, confirmed, identity-checked flow (Invariant #6).
+
+`TauriBackend._recoverFromMirror()`'s automatic call inside `listSeasons()`
+(triggered merely because `library.json` was empty) is **removed entirely** —
+exactly the "never auto-import merely because app data appears empty" pattern
+Invariant #6 forbids. It is replaced by two new explicit, coach-triggered
+methods, both threaded through `SeasonStore`/`StorageManager` with the same
+thin-delegation shape every other backend capability already uses:
+
+- **`scanRecoverableSeasons()`** (step 1, the preview) — reads every
+  Documents-mirror snapshot, validates each through the new
+  `SnapshotEnvelope.unwrap()` contract (below), and returns preview records
+  only. **Writes nothing** — no catalog write, no `library.json` write, no
+  season import. A legacy pre-envelope bare `season.json` mirror file is
+  reported as `valid:false, reason:'legacy-unenveloped'` with its raw data
+  attached (visible, not silently invisible) rather than either accepted
+  unconditionally or hidden from the list entirely.
+- **`recoverSeasonFromMirror(id, { confirmOverwrite })`** (step 2, the
+  confirmed import) — re-reads and re-validates the ONE candidate at the
+  point of action (never trusts a cached scan result as authorization by
+  itself), then imports it through the SAME canonical `saveSeason()` write
+  path every other write uses, so destination/payload identity agreement and
+  atomicity apply unchanged. Refuses a season id that already exists live
+  UNLESS the caller explicitly passes `confirmOverwrite:true` — a flag that
+  may only be set after the coach has seen and agreed to the exact conflict a
+  UI previewed.
+
+**Coach-facing UI, built and end-to-end tested, not just a backend API with no
+way to trigger it.** Team Hub gains a "Recover seasons" command
+(`data-native-hub-recover`), visible only when the active backend genuinely
+supports the flow (`SeasonStore.canRecoverSeasons()`, mirroring the existing
+`canOpenDataDir()` capability-check pattern — absent on `BrowserBackend`,
+present on `TauriBackend`). Clicking it fetches the scan ONCE and hands the
+result to a dialog (`RecoverSeasonsForm` in `js/native-team-hub.jsx`) that
+renders every candidate as its own row with name/team/counts/timestamp and an
+honest validity state; an invalid candidate's Recover control is disabled; a
+candidate that already exists in the live catalog requires an explicit
+second-click "Overwrite and recover" confirmation naming the conflict before
+anything is imported; a genuinely empty scan shows a plain-language message
+naming what was searched, never a blank dialog. `tools/e2e-native-mirror-recovery.mjs`
+(new, 11/11) drives this through real clicks in a real browser: the button is
+proven genuinely absent (not hidden) on `BrowserBackend`; appears once a
+desktop-shaped backend is injected; the empty-scan message renders; three
+real candidates (valid, conflicting, invalid) render as distinct rows; the
+invalid candidate's control is disabled; the valid candidate recovers on one
+click with no overwrite flag; the conflicting candidate is proven to NOT call
+`recoverSeasonFromMirror` on the first click (only after the explicit
+overwrite confirmation, with `confirmOverwrite:true` proven present on that
+second call specifically); and the recovered season is proven to actually
+appear in Team Hub's live season list afterward, not just a UI status flag.
+The overwrite-confirmation gate was independently mutation-verified: removing
+it collapses the "Overwrite and recover" UI step entirely and the test times
+out waiting for text that would then never appear — a hard, unambiguous
+failure signature, not a soft assertion mismatch.
+
+### Versioned snapshot envelope (the PC-3 checkpoint's other explicit
+### requirement: "season id, revision, timestamp, game/play counts, and
+### checksum")
+
+New `js/snapshot-envelope.js` (`SnapshotEnvelope`), pure and DOM-free, zero
+external dependencies (this codebase's standing "no external libraries"
+rule) — a dependency-free two-lane FNV-1a checksum over a deterministic
+(key-order-independent) stringify. `wrap(seasonId, data)` produces
+`{envelopeVersion, seasonId, revision, timestamp, gameCount, playCount,
+checksum, data}`; `unwrap(raw)` validates every declared field against the
+enclosed data and returns `{ok:true, envelope}` only when identity, counts,
+AND checksum all agree, or `{ok:false, reason}` naming exactly which check
+failed (`not-an-object` / `legacy-unenveloped` / `unsupported-version` /
+`malformed` / `count-mismatch` / `identity-mismatch` / `checksum-mismatch`) —
+never throws on any input, malformed or otherwise. `revision` defaults to the
+season's own `updated` timestamp; it is explicitly documented as a RECENCY
+MARKER for the recovery preview to compare against, not the strict
+per-write monotonic counter PC-4's revision-fenced-autosave work introduces —
+that remains out of this checkpoint's scope, as the plan requires.
+
+Wired into `TauriBackend._mirrorToDocuments()` — both the live mirror file and
+the timestamped backup-snapshot file are now written in the envelope format,
+generated only after a successful canonical (SQLite) commit, exactly matching
+"generate it only after a successful SQLite commit or explicit export."
+`tools/e2e-snapshot-envelope.mjs` (new, 21/21, pure Node) proves: a
+well-formed wrap; a genuine round-trip through `JSON.stringify`/`parse`
+validates `ok:true`; tampered content is caught by checksum mismatch; a lied
+declared count is caught independent of the checksum; an identity mismatch
+(`envelope.seasonId` disagreeing with `data.id`) is caught independent of the
+checksum; a bare legacy pre-envelope `season.json` is recognized (not
+silently accepted, not silently invisible); garbage input of every shape
+never throws; an unsupported future envelope version is refused; a malformed
+envelope missing required fields is refused; the checksum is genuinely
+key-order-independent AND content-sensitive (two different seasons never
+collide, and a single deep-field change moves the checksum). The
+checksum/identity validation logic was independently mutation-verified:
+disabling both checks reproduces exactly two false-positive `ok:true` results
+on tampered/mismatched input, reddening exactly the two assertions built to
+catch that class.
+
+### Explicitly disclosed, not silently left for later
+
+- **The quick-switch popover's `listSeasons().catch(()=>[])` swallow site**
+  (`workspace-shell.js`, the "Other seasons" quick-switch menu) is left
+  unchanged — a secondary, lower-stakes UI surface where the primary Home/Team
+  Hub error states already surface a genuine catalog failure loudly.
+- **`createSeason()`'s own direct `library.json` write** (allocating a fresh
+  season id + meta stub, before any body data exists) was NOT changed in this
+  checkpoint. It is narrow in scope (id/meta allocation only, reconciled
+  against catalog truth on the very next `listSeasons()` call) and touching it
+  risks a larger blast radius than this checkpoint's stated scope covers —
+  disclosed as a considered non-change, not an oversight.
+- **PC-4's revision-fenced autosave staleness rejection remains fully out of
+  scope.** The envelope's `revision` field is a recency marker for recovery
+  comparison only, explicitly not the strict per-write monotonic counter that
+  checkpoint introduces.
+- **The film-storage layout is unchanged.** No film path, film file, or
+  managed-copy behavior was touched by this checkpoint, per the plan's
+  Invariant #8 and "Out Of Scope" section.

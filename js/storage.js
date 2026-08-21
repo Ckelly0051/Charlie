@@ -193,6 +193,24 @@ export class StorageManager {
     return seasons;
   }
 
+  /** Whether this backend supports the PC-3 recovery flow (desktop only). */
+  canRecoverSeasons() { return this.seasonStore.canRecoverSeasons(); }
+
+  /** PC-3 explicit recovery, step 1: preview candidates from the Documents
+   *  mirror. Never automatic (Invariant #6) -- only ever called from a
+   *  coach-initiated action. */
+  async scanRecoverableSeasons() { return this.seasonStore.scanRecoverableSeasons(); }
+
+  /** PC-3 explicit recovery, step 2: the confirmed import. On success,
+   *  refreshes the season list cache the same way listSeasons() does, so a
+   *  caller's next render sees the newly-recovered season without a second
+   *  round-trip. */
+  async recoverSeasonFromMirror(id, opts) {
+    const result = await this.seasonStore.recoverSeasonFromMirror(id, opts);
+    if (result && result.ok) { try { await this.listSeasons(); } catch (e) {} }
+    return result;
+  }
+
   /** Open an existing season and restore its active game into the app. */
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }

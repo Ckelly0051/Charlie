@@ -193,6 +193,46 @@ const result = await page.evaluate(async () => {
     out.writeDiskOkRet = await be.writeDisk('s1', { id: 's1', games: [] }, { snapshot: false, label: 'test' });
     out.writeDiskOkMirrorWrites = mirrorWrites.filter(w => w.baseDir === be.mirrorDir).length;
   }
+  // 5. PC-2 (Invariant #4/#5): when the catalog GENUINELY cannot be opened --
+  //    not "no db file exists yet", but _ensureCatalog() itself returning
+  //    null (the SQL engine failed to load) -- every identity-sensitive
+  //    method fails CLOSED. No method may silently fall back to reading or
+  //    writing any season.json/library.json sidecar as a substitute
+  //    authority. Unlike sections 1-4b above, this does NOT bypass
+  //    _ensureCatalog via be._catalog -- it forces the REAL init path to
+  //    fail, so this exercises the actual guard this checkpoint changed.
+  {
+    const be = new TauriBackend();
+    const fsCalls = [];
+    be.fs = {
+      exists: async (p) => { fsCalls.push(['exists', p]); return false; }, // no season.json / library.db on disk
+      readTextFile: async (p) => { fsCalls.push(['readTextFile', p]); return '{}'; },
+      writeTextFile: async (p) => { fsCalls.push(['writeTextFile', p]); },
+      remove: async (p) => { fsCalls.push(['remove', p]); },
+      mkdir: async () => {},
+      writeFile: async (p) => { fsCalls.push(['writeFile', p]); },
+      readFile: async () => new Uint8Array(),
+    };
+    be.baseDir = 14; be.mirrorDir = undefined; be.currentId = 's1';
+    be._loadSqlEngine = async () => null; // simulate: the wasm resource genuinely failed to load
+    try { localStorage.setItem('ffa_sql_catalog', '1'); } catch (e) {}
+
+    let loadThrew = false, peekThrew = false;
+    try { await be.loadSeason('s1'); } catch (e) { loadThrew = true; }
+    try { await be.peekSeason('s1'); } catch (e) { peekThrew = true; }
+    out.failClosedLoadThrows = loadThrew;
+    out.failClosedPeekThrows = peekThrew;
+    out.failClosedSaveRet = await be.saveSeason('s1', { id: 's1', seasonName: 'Should Never Persist', games: [] });
+    out.failClosedDeleteRet = await be.deleteSeason('s1');
+    out.failClosedTouchRet = await be.touchOpened('s1');
+    out.failClosedBackupRet = await be.createBackup('s1', { id: 's1', games: [] }, 'x');
+    // The decisive check: across every one of the six operations above, the
+    // fake fs must never have been asked to write a season.json/library.json
+    // sidecar as a substitute authority. A single writeTextFile/writeFile
+    // targeting a season/library path would mean a fallback fired.
+    out.failClosedNoSidecarWrites = fsCalls.filter(([op]) => op === 'writeTextFile' || op === 'writeFile').length;
+    out.failClosedCalls = fsCalls.map(c => c[0]);
+  }
   return out;
 });
 
@@ -209,6 +249,13 @@ ok(result.writeDiskFailedRet === false && result.writeDiskFailedMirrorWrites ===
   'writeDisk() gates the snapshot backup AND the Documents-mirror write on the canonical saveSeason() succeeding -- a rejected canonical save produces zero mirror/backup writes', JSON.stringify(result));
 ok(result.writeDiskOkRet === true && result.writeDiskOkMirrorWrites === 1,
   'a SUCCESSFUL canonical save still writes exactly one Documents-mirror copy, proving the gate above is not simply disabling the mirror entirely', JSON.stringify(result));
+ok(result.failClosedLoadThrows === true, 'PC-2: loadSeason() throws a visible failure when the catalog genuinely cannot be opened (no JSON fallback)', JSON.stringify(result.failClosedLoadThrows));
+ok(result.failClosedPeekThrows === true, 'PC-2: peekSeason() throws a visible failure when the catalog genuinely cannot be opened (no JSON fallback)', JSON.stringify(result.failClosedPeekThrows));
+ok(result.failClosedSaveRet === false, 'PC-2: saveSeason() refuses (false) when the catalog genuinely cannot be opened (no JSON fallback write)', JSON.stringify(result.failClosedSaveRet));
+ok(result.failClosedDeleteRet === false, 'PC-2: deleteSeason() refuses (false) when the catalog genuinely cannot be opened', JSON.stringify(result.failClosedDeleteRet));
+ok(result.failClosedTouchRet === false, 'PC-2: touchOpened() refuses (false) when the catalog genuinely cannot be opened', JSON.stringify(result.failClosedTouchRet));
+ok(result.failClosedBackupRet === null, 'PC-2: createBackup() refuses (null) when the catalog genuinely cannot be opened (no legacy JSON restore-point file is created as a fallback)', JSON.stringify(result.failClosedBackupRet));
+ok(result.failClosedNoSidecarWrites === 0, 'PC-2: none of the six fail-closed operations above ever wrote a season.json/library.json/backup-file sidecar as a substitute authority', JSON.stringify(result.failClosedCalls));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

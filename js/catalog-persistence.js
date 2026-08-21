@@ -1,23 +1,33 @@
 /**
- * CatalogPersistence — the A3 dual-write orchestrator that makes the SQLite
- * catalog the CANONICAL season store while keeping JSON as a self-healing
- * fallback. It owns ONLY the orchestration (which store wins, when to migrate,
- * best-effort mirror); ALL filesystem access is INJECTED, so the whole risky
- * canonical-write path is unit-tested in Node (tools/e2e-catalog-persistence.mjs)
- * with a fake fs + real sql.js — the Tauri desktop glue that supplies the real
- * `fs` adapter + lazy-loads the wasm is the only piece left for a manual smoke.
+ * CatalogPersistence — the orchestrator that makes the SQLite catalog the
+ * ONE canonical season store on desktop (PC-2). It owns ONLY the
+ * orchestration (which store wins, one-time legacy migration, the
+ * recovery-snapshot mirror); ALL filesystem access is INJECTED, so the
+ * whole canonical-write path is unit-tested in Node
+ * (tools/e2e-catalog-persistence.mjs) with a fake fs + real sql.js — the
+ * Tauri desktop glue that supplies the real `fs` adapter + lazy-loads the
+ * wasm is the only piece left for a manual smoke.
  *
- * MODEL: one library-wide catalog db (all seasons; the plan's `seasons/library.db`)
- * held open in memory; every save re-exports its bytes to disk AND dual-writes the
- * per-season `season.json` (app-data) + best-effort Documents mirror. This is the
- * committed migration OFF the JSON-blob-per-season model (structurally kills the
- * v1.10.7 film-index wipe) — the flag + dual-write gate only the TIMING of the
- * safe cutover (drop the JSON dual-write after a stable release), never whether.
+ * MODEL: one library-wide catalog db (all seasons; the plan's
+ * `seasons/library.db`) held open in memory; every save re-exports its
+ * bytes to disk. This is the completed migration OFF the JSON-blob-per-
+ * season model (structurally kills the v1.10.7 film-index wipe class).
  *
- * LOAD PREFERENCE (self-healing): db → json. A missing/corrupt db falls back to
- * the season.json and RE-MIGRATES it into the db, so the next load is canonical
- * again (lesson #19/#21: reversible + self-healing). A load never throws — a bad
- * db degrades to json; a bad json returns null, never a half-state.
+ * PC-2 (Invariant #5): per-season app-data `season.json` is RETIRED as a
+ * live authority entirely -- no method here reads or writes it as part of
+ * normal operation any more. The one exception is `migrateJsonSeasons()`,
+ * a one-time bootstrap read of PRE-EXISTING legacy files on first catalog
+ * init, which exists specifically to consume them once and then never
+ * need them again. The Documents mirror survives, but only in a
+ * downgraded role: a recovery SNAPSHOT written after a successful
+ * canonical commit, never read back by a normal load. Recovering a season
+ * that exists only in a mirror snapshot is the explicit, previewed,
+ * confirmed PC-3 recovery flow -- never an automatic fallback here.
+ *
+ * A load with no matching db row returns null. It is not a "degrade to a
+ * weaker source" -- the season is genuinely unavailable through normal
+ * operation, exactly as Invariant #4 requires ("if it cannot initialize,
+ * the desktop app fails closed; it must not silently fall back").
  *
  *   const cp = new CatalogPersistence({ catalog, fs });   // catalog = opened SqlCatalog
  *   await cp.saveSeason(id, seasonObject);
@@ -26,44 +36,60 @@
  * Injected `fs` adapter (all async, all best-effort-safe for the caller):
  *   readDb()            -> Uint8Array | null   (the shared library db bytes)
  *   writeDb(bytes)      -> void                (canonical write)
- *   readJson(id)        -> object | null       (per-season fallback)
- *   writeJson(id, data) -> void                (per-season fallback write)
- *   writeMirror(id,data)-> void  (optional)    (Documents mirror; may throw — swallowed)
+ *   readJson(id)        -> object | null       (legacy one-time migration read only)
+ *   writeMirror(id,data)-> void  (optional)    (Documents recovery snapshot; may throw — swallowed)
  */
 export class CatalogPersistence {
   constructor({ catalog, fs }) {
     if (!catalog || typeof catalog.saveSeason !== 'function') throw new TypeError('CatalogPersistence requires a SqlCatalog');
-    if (!fs || typeof fs.readDb !== 'function' || typeof fs.writeDb !== 'function') throw new TypeError('CatalogPersistence requires an fs adapter (readDb/writeDb/readJson/writeJson)');
+    if (!fs || typeof fs.readDb !== 'function' || typeof fs.writeDb !== 'function') throw new TypeError('CatalogPersistence requires an fs adapter (readDb/writeDb, plus readJson for legacy migration)');
     this.catalog = catalog;
     this.fs = fs;
     this._loaded = false;   // has the shared db been opened from disk this session?
   }
 
-  /** Open the shared library db from disk once (or a fresh db if none/corrupt). */
+  /**
+   * Open the shared library db from disk once. A genuinely fresh install (no
+   * bytes on disk at all) opens a clean db. Bytes that exist but fail to open
+   * MUST throw -- never be silently swapped for an empty db.
+   *
+   * PC-2 fix (Inventory Sec 3.0, the most severe finding on record): this
+   * used to catch ANY open() failure -- including real on-disk corruption --
+   * and silently substitute a fresh empty db. reconcileFallbacks() then
+   * reported zero seasons with no exception, and TauriBackend.listSeasons()
+   * would overwrite library.json with that wrongly-empty result, even in the
+   * same call where _recoverFromMirror() had just correctly repopulated it
+   * from the Documents mirror moments earlier -- the real season's own
+   * season.json fallback sat fully intact, unconsulted, the entire time.
+   * That contradicts Invariant #4 ("SQLite is the desktop live store; if it
+   * cannot initialize, the desktop app fails closed; it must not silently
+   * fall back"). A season whose db cannot be read must surface as a VISIBLE
+   * failure so recovery can be offered, never as "there are no seasons."
+   */
   async _ensureLoaded() {
     if (this._loaded && this.catalog.db) return;
     let bytes = null;
     try { bytes = await this.fs.readDb(); } catch (e) { bytes = null; }
-    try {
-      await this.catalog.open(bytes && bytes.length ? bytes : undefined);
-    } catch (e) {
-      // Corrupt db bytes — start clean; the per-season json fallback re-migrates.
-      await this.catalog.open();
+    if (bytes && bytes.length) {
+      await this.catalog.open(bytes);   // real bytes that fail to open MUST throw
+    } else {
+      await this.catalog.open();        // nothing has ever existed to be corrupted
     }
     this._loaded = true;
   }
 
   /**
-   * Canonical save: upsert the season into the shared db, export the db bytes to
-   * disk, then dual-write season.json (fallback) + best-effort Documents mirror.
+   * Canonical save: upsert the season into the shared db, export the db bytes
+   * to disk, then write the best-effort Documents-mirror recovery snapshot.
    * Returns true on a successful canonical (db) write.
    *
    * PC-1 repair (Codex review of c51a12c, finding 2): a REJECTED canonical
    * write ("okDb" false because the disk writeDb() call failed) previously
-   * still wrote the rejected payload to `season.json` and the Documents
-   * mirror unconditionally -- so a rejected import could reappear later
-   * from either readable sidecar authority. Both writes now happen ONLY
-   * after the canonical db write is confirmed durable.
+   * still wrote the rejected payload to a sidecar unconditionally -- so a
+   * rejected import could reappear later from a readable fallback. The
+   * mirror write now happens ONLY after the canonical db write is confirmed
+   * durable. (PC-2 additionally retires the `season.json` half of that old
+   * dual-write entirely -- see the class doc comment above.)
    *
    * A writeDb failure also left `this.catalog`'s IN-MEMORY sql.js state
    * committed to the rejected data while on-disk bytes stayed unchanged --
@@ -106,10 +132,14 @@ export class CatalogPersistence {
       }
       return false;
     }
-    // Fallback + mirror are the safety net; write them ONLY once the canonical
-    // db write is confirmed durable -- never let a rejected payload reach a
-    // readable sidecar authority.
-    try { await this.fs.writeJson(id, data); } catch (e) {}
+    // PC-2: season.json under app-data is retired as a live authority
+    // (Invariant #5) -- it sat beside library.db on the same disk and
+    // supplied zero recovery benefit that the db itself didn't already
+    // have, while giving a rejected/stale write a second readable place to
+    // resurrect from. The Documents mirror survives as the ONLY sidecar,
+    // and only in its role as a PC-3 recovery SNAPSHOT (never consulted by
+    // a normal load) -- written only once the canonical db write is
+    // confirmed durable, same as before.
     if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
     return true;
   }
@@ -120,25 +150,41 @@ export class CatalogPersistence {
     return this.catalog.listSeasons();
   }
 
-  /** Rebuild JSON safety copies from the canonical catalog once per session. */
+  /**
+   * Rebuild the Documents recovery-mirror snapshots from the canonical
+   * catalog once per session. PC-2: no longer writes app-data season.json
+   * (Invariant #5 -- see saveSeason's comment); the mirror is the only
+   * sidecar this produces, and only as a PC-3 recovery snapshot.
+   */
   async reconcileFallbacks() {
     if (this._fallbacksReconciled) return this.listSeasons();
     await this._ensureLoaded();
     const metas = this.catalog.listSeasons();
-    for (const meta of metas) {
-      let data = null;
-      try { data = this.catalog.loadSeason(meta.id); } catch (e) { data = null; }
-      if (!data || String(data.id || '') !== String(meta.id)) continue;
-      try { await this.fs.writeJson(meta.id, data); } catch (e) {}
-      if (this.fs.writeMirror) { try { await this.fs.writeMirror(meta.id, data); } catch (e) {} }
+    if (this.fs.writeMirror) {
+      for (const meta of metas) {
+        let data = null;
+        try { data = this.catalog.loadSeason(meta.id); } catch (e) { data = null; }
+        if (!data || String(data.id || '') !== String(meta.id)) continue;
+        try { await this.fs.writeMirror(meta.id, data); } catch (e) {}
+      }
     }
     this._fallbacksReconciled = true;
     return metas;
   }
 
   /**
-   * Load preferring the canonical db; fall back to season.json and re-migrate it
-   * into the db so the next load is canonical. Returns { data, source } or null.
+   * Load from the canonical db only. Returns { data, source: 'db' } or null.
+   *
+   * PC-2: season.json is no longer read here as a live fallback authority
+   * (Invariant #5). A normal load reading json and silently splicing it
+   * back into the db is exactly the "JSON competing with the catalog for
+   * write authority" pattern this checkpoint removes -- it means a stale
+   * or rejected sidecar file could resurrect a season into the canonical
+   * store with no coach visibility or confirmation. A season absent from
+   * the db is genuinely not loadable during normal operation; recovering
+   * one from a legacy season.json or a Documents-mirror snapshot is now
+   * the explicit, previewed, confirmed PC-3 recovery flow, never an
+   * automatic side effect of opening a season.
    */
   async loadSeason(id) {
     if (!id) return null;
@@ -146,19 +192,7 @@ export class CatalogPersistence {
     try {
       const fromDb = this.catalog.loadSeason(id);
       if (fromDb && Array.isArray(fromDb.games)) return { data: fromDb, source: 'db' };
-    } catch (e) { /* fall through to json */ }
-    let json = null;
-    try { json = await this.fs.readJson(id); } catch (e) { json = null; }
-    if (json && Array.isArray(json.games)) {
-      // Self-heal: migrate the json back into the canonical db for next time.
-      try {
-        json.id = json.id || id;
-        this.catalog.setCurrentSeason(id);
-        this.catalog.importSeasonJson(json);
-        await this.fs.writeDb(this.catalog.toBytes());
-      } catch (e) {}
-      return { data: json, source: 'json' };
-    }
+    } catch (e) { /* not found / unreadable -- genuinely absent */ }
     return null;
   }
 
@@ -177,8 +211,8 @@ export class CatalogPersistence {
    * db delete is durable on disk. On a writeDb failure the season has been
    * dropped from the in-memory catalog but NOT from disk — we re-sync memory to
    * disk (reopen from the unchanged bytes) so there is no split-brain, and return
-   * FALSE so the caller keeps the season.json / Documents mirror safety copies
-   * (deleting them against a stale on-disk db would let the season resurrect).
+   * FALSE so the caller keeps the Documents-mirror safety copy in place
+   * (deleting it against a stale on-disk db would let the season resurrect).
    */
   async deleteSeason(id) {
     await this._ensureLoaded();

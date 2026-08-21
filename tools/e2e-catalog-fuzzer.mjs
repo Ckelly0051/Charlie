@@ -1,20 +1,22 @@
-/* CATALOG PERSISTENCE FUZZER (Node) — the lesson-#19 stress harness for the A3
-   canonical store. Fuzzes RANDOM sequences of save / load / delete / migrate over
-   many seasons in one shared library db, with injected disk faults (writeDb /
-   readDb failures), and re-checks INVARIANTS after EVERY op:
+/* CATALOG PERSISTENCE FUZZER (Node) — the lesson-#19 stress harness for the
+   ONE canonical SQLite store (PC-2). Fuzzes RANDOM sequences of save / load /
+   delete / migrate over many seasons in one shared library db, with injected
+   disk faults (writeDb / readDb failures), and re-checks INVARIANTS after
+   EVERY op:
      - LOSSLESS: every alive season loads with its exact game/play shape.
      - ISOLATION: no season's games/plays bleed into another (the corruption sig).
-     - ATOMIC save failure (PC-1 repair, Codex review c51a12c/4ae34e8 finding 2):
-       saveSeason returns false AND performs zero writes anywhere -- the season
-       stays at whatever it was before the attempt (a prior version, or absent),
-       never the rejected payload. This inverts the file's original invariant
-       here ("the season is still loadable via the json safety copy" after a
-       failed save) -- that described the exact bug: a faulted save used to
-       still write the json fallback and leave the in-memory catalog committed
-       to the rejected payload.
-     - NO RESURRECTION on a failed delete: deleteSeason returns false, the season
-       is retained (db + json kept), never half-deleted.
+     - ATOMIC save failure: saveSeason returns false AND performs zero writes
+       anywhere (mirror, in-memory catalog) when writeDb() fails, and rolls
+       the in-memory catalog back to its pre-attempt snapshot -- the model
+       stays at whatever it was BEFORE this attempt, never the rejected
+       payload.
+     - NO RESURRECTION on a failed delete: deleteSeason returns false, the
+       season is retained (db kept), never half-deleted.
      - DURABLE delete removes it; a later reopen never revives it.
+     - PC-2: season.json is asserted to be a permanent, structural non-
+       authority -- the reopen check compares against the fuzzer's own MODEL
+       (built from real op outcomes), not against `fs.state.json`, since
+       json is never written by any code path any more.
    Deterministic (fixed seeds) so a failure reproduces. Pure — no bundle, no DOM;
    exercises the ACCEPTED persistence code without changing it.
 
@@ -137,14 +139,15 @@ async function fuzzOne(seed, ops) {
     catch (e) { console.error('OP LOG:\n' + log.slice(-12).join('\n')); throw e; }
   }
   // Final: reopen from the on-disk db (fresh session) and re-verify the durable set.
+  // PC-2: the db is the ONLY canonical store now, so the model built up from
+  // real op outcomes IS the ground truth to check reopen against -- json is
+  // never written, so it can no longer stand in for "is this alive".
   const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   for (const id of ids) {
     const r = await cp2.loadSeason(id);
     const got = r ? shape(r.data) : null;
-    // After reopen, a season present in json (dual-write safety) must still load;
-    // a durably-deleted season (json removed) must be gone.
-    if (fs.state.json.has(id)) assert.ok(got, `seed ${seed}: reopen lost season ${id} that still has a json copy`);
-    else assert.strictEqual(got, null, `seed ${seed}: reopen revived durably-deleted season ${id}`);
+    const want = model.get(id) || null;
+    assert.deepStrictEqual(got, want, `seed ${seed}: reopen mismatch for ${id}\n got=${JSON.stringify(got)}\n want=${JSON.stringify(want)}`);
   }
 }
 

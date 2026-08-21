@@ -1,5 +1,6 @@
 import { SqlCatalog } from './sql-catalog.js';
 import { CatalogPersistence } from './catalog-persistence.js';
+import { SnapshotEnvelope } from './snapshot-envelope.js';
 
 /**
  * StorageBackend — the seam between the app and *where bytes live*.
@@ -521,37 +522,48 @@ export class TauriBackend extends StorageBackend {
     if (!this._ok()) return [];
     await this._migrateLegacy();
     let lib = await this._readLib();
-    // If the library is empty (fresh install, or app data was deleted), try to
-    // rebuild it from the durable Documents mirror so a coach's seasons come
-    // back automatically instead of looking permanently lost.
-    if (lib.length === 0) {
-      const recovered = await this._recoverFromMirror();
-      if (recovered.length) lib = recovered;
-    }
-    const catalogOnDisk = await this._exists('seasons/library.db');
+    // PC-3 (Invariant #6): an empty library no longer AUTO-triggers a
+    // Documents-mirror import. "Never auto-import merely because app data
+    // appears empty" -- a wiped library.json is exactly as likely to mean
+    // "the coach genuinely has no seasons yet" as "app data was deleted",
+    // and importing without asking risked resurrecting a season the coach
+    // no longer wants, or double-creating one they're mid-recreating.
+    // scanRecoverableSeasons()/recoverSeasonFromMirror() below are the
+    // explicit, previewed, confirmed replacement -- reachable from a coach
+    // action (e.g. a Team Hub "Scan for recoverable seasons" command), not
+    // from this normal listing path.
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
-    if (cp) {
-      try {
-        // SQLite is canonical. Rebuild the legacy index and JSON safety copies
-        // from it so stale sidecars can never hide or rename a surviving season.
-        lib = await cp.reconcileFallbacks();
-        await this._writeLib(lib);
-      } catch (e) {
-        console.error('catalog library reconciliation failed', e);
-        throw e;
-      }
+    if (!cp) throw new Error('The canonical season catalog could not be opened. No fallback authority is allowed.');
+    try {
+      // SQLite is canonical. Rebuild the legacy index and Documents-mirror
+      // recovery snapshots from it so a stale sidecar can never hide or
+      // rename a surviving season.
+      lib = await cp.reconcileFallbacks();
+      await this._writeLib(lib);
+    } catch (e) {
+      console.error('catalog library reconciliation failed', e);
+      throw e;
     }
     return lib.slice().sort((a, b) =>
       String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
   }
 
   /**
-   * Rebuild the library + per-season files from the Documents mirror. Called
-   * when the app-data library is empty (e.g. after "Delete application data").
-   * Copies each mirrored season.json back into app data and returns the lib.
+   * PC-3 explicit recovery: STEP 1, the scan. Reads every Documents-mirror
+   * snapshot, validates its SnapshotEnvelope (identity/counts/checksum),
+   * and returns PREVIEW records only -- WRITES NOTHING, imports nothing,
+   * touches neither the SQLite catalog nor library.json. This is the
+   * "previews the action" half of Invariant #6; the coach reviews this
+   * list before anything is recovered. A legacy pre-envelope bare
+   * season.json is reported as `valid:false, reason:'legacy-unenveloped'`
+   * with its raw data attached, so it is visible rather than silently
+   * skipped -- but it still requires the same explicit confirmation to
+   * import as anything else.
+   *
+   * Returns: [{ id, valid, reason?, name, team, gameCount, playCount,
+   *             revision, timestamp, existsInCatalog }]
    */
-  async _recoverFromMirror() {
+  async scanRecoverableSeasons() {
     if (this.mirrorDir === undefined) return [];
     const root = `${this.MIRROR_ROOT}/seasons`;
     let dirs = [];
@@ -559,28 +571,90 @@ export class TauriBackend extends StorageBackend {
       if (!(await this.fs.exists(root, { baseDir: this.mirrorDir }))) return [];
       dirs = (await this.fs.readDir(root, { baseDir: this.mirrorDir })).filter(e => e.isDirectory);
     } catch (e) { return []; }
-    const lib = [];
+    let liveIds = new Set();
+    try {
+      const cp = await this._ensureCatalog();
+      if (cp) liveIds = new Set((await cp.listSeasons()).map(s => String(s.id)));
+    } catch (e) {}
+    const out = [];
     for (const d of dirs) {
       const id = d.name;
       const file = `${root}/${id}/season.json`;
-      let data = null;
+      let raw = null;
       try {
         if (await this.fs.exists(file, { baseDir: this.mirrorDir }))
-          data = JSON.parse(await this.fs.readTextFile(file, { baseDir: this.mirrorDir }));
-      } catch (e) {}
-      if (!data || !Array.isArray(data.games)) continue;
-      // Restore the canonical app-data copy so normal load/save works.
-      try {
-        await this._ensureSeasonDir(id);
-        await this._writeJson(this._seasonFile(id), data);
-      } catch (e) {}
-      const meta = this._seasonMeta(id, data);
-      meta.created = new Date().toISOString();
-      meta.lastOpened = meta.created;
-      lib.push(meta);
+          raw = JSON.parse(await this.fs.readTextFile(file, { baseDir: this.mirrorDir }));
+      } catch (e) { raw = null; }
+      if (!raw) continue;
+      const result = SnapshotEnvelope.unwrap(raw);
+      const existsInCatalog = liveIds.has(String(id));
+      if (result.ok) {
+        const envelope = result.envelope;
+        out.push({
+          id, valid: true, name: envelope.data.seasonName || id,
+          team: (envelope.data.teamProfile && envelope.data.teamProfile.teamName) || '',
+          gameCount: envelope.gameCount, playCount: envelope.playCount,
+          revision: envelope.revision, timestamp: envelope.timestamp, existsInCatalog,
+        });
+      } else if (result.reason === 'legacy-unenveloped' && result.data) {
+        out.push({
+          id, valid: false, reason: result.reason, name: result.data.seasonName || id,
+          team: result.data.teamProfile && result.data.teamProfile.teamName || '',
+          gameCount: Array.isArray(result.data.games) ? result.data.games.length : 0,
+          playCount: (result.data.games || []).reduce((n, g) => n + (Array.isArray(g.plays) ? g.plays.length : 0), 0),
+          revision: null, timestamp: null, existsInCatalog,
+        });
+      } else {
+        out.push({ id, valid: false, reason: result.reason, name: id, team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog });
+      }
     }
-    if (lib.length) { try { await this._writeLib(lib); } catch (e) {} }
-    return lib;
+    return out;
+  }
+
+  /**
+   * PC-3 explicit recovery: STEP 2, the confirmed import. Re-reads and
+   * re-validates the ONE candidate at the point of action (never trusts a
+   * cached scan result) and imports it into the SQLite catalog through
+   * the SAME canonical saveSeason() write path every other write uses --
+   * so destination/payload identity agreement and atomicity apply
+   * unchanged. Refuses a season id that already exists live UNLESS the
+   * caller explicitly passes `confirmOverwrite:true`, which the coach
+   * must have already agreed to after seeing scanRecoverableSeasons()'s
+   * preview -- this method performs no UI confirmation of its own.
+   * Fails closed if SQLite cannot be opened; never falls back to writing
+   * app-data season.json directly.
+   */
+  async recoverSeasonFromMirror(id, { confirmOverwrite = false } = {}) {
+    if (!this._ok() || !id || this.mirrorDir === undefined) return { ok: false, reason: 'unavailable' };
+    const root = `${this.MIRROR_ROOT}/seasons`;
+    const file = `${root}/${id}/season.json`;
+    let raw = null;
+    try {
+      if (await this.fs.exists(file, { baseDir: this.mirrorDir }))
+        raw = JSON.parse(await this.fs.readTextFile(file, { baseDir: this.mirrorDir }));
+    } catch (e) { raw = null; }
+    if (!raw) return { ok: false, reason: 'not-found' };
+    const result = SnapshotEnvelope.unwrap(raw);
+    const data = result.ok ? result.envelope.data : (result.reason === 'legacy-unenveloped' ? result.data : null);
+    if (!data || !Array.isArray(data.games)) return { ok: false, reason: result.reason || 'malformed' };
+    data.id = id;
+    const cp = await this._ensureCatalog();
+    if (!cp) return { ok: false, reason: 'catalog-unavailable' };
+    let exists = false;
+    try { exists = (await cp.listSeasons()).some(s => String(s.id) === String(id)); } catch (e) {}
+    if (exists && !confirmOverwrite) return { ok: false, reason: 'exists', existsInCatalog: true };
+    let okDb = false;
+    try { okDb = await cp.saveSeason(id, data); } catch (e) { okDb = false; }
+    if (!okDb) return { ok: false, reason: 'save-failed' };
+    // Same incremental library.json update saveSeason()'s normal caller uses.
+    // If the id was genuinely new (not already in library.json), the
+    // caller's next listSeasons() reconciles the full index from the
+    // catalog, which now correctly includes it.
+    try { await this._touchMeta(id, data); } catch (e) {}
+    if (!(await this._readLib()).some(s => s.id === id)) {
+      try { const lib = await this._readLib(); lib.push(this._seasonMeta(id, data)); await this._writeLib(lib); } catch (e) {}
+    }
+    return { ok: true, id, gameCount: data.games.length, playCount: data.games.reduce((n, g) => n + (Array.isArray(g.plays) ? g.plays.length : 0), 0) };
   }
 
   async createSeason(meta) {
@@ -603,17 +677,14 @@ export class TauriBackend extends StorageBackend {
 
   async deleteSeason(id) {
     if (!this._ok()) return;
-    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) return false;
-    if (cp) {
-      let ok = false;
-      try { ok = await cp.deleteSeason(id); } catch (e) { ok = false; }
-      // Retain the season.json + Documents mirror + library entry until the
-      // canonical db delete is DURABLE — otherwise a stale on-disk db could
-      // resurrect the season with its safety copies already gone.
-      if (!ok) { console.warn('catalog delete failed; retaining season + JSON/mirror', id); return false; }
-    }
+    if (!cp) { console.error('Blocked delete: the canonical season catalog could not be opened.'); return false; }
+    let ok = false;
+    try { ok = await cp.deleteSeason(id); } catch (e) { ok = false; }
+    // Retain the season dir + Documents mirror + library entry until the
+    // canonical db delete is DURABLE — otherwise a stale on-disk db could
+    // resurrect the season with its safety copies already gone.
+    if (!ok) { console.warn('catalog delete failed; retaining season + mirror', id); return false; }
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
     try {
       if (this.mirrorDir !== undefined) {
@@ -630,31 +701,25 @@ export class TauriBackend extends StorageBackend {
   }
 
   async touchOpened(id) {
-    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) return false;
-    if (cp && !(await cp.touchOpened(id))) return false;
+    if (!cp) return false;
+    if (!(await cp.touchOpened(id))) return false;
     const lib = await this._readLib();
     const e = lib.find(s => s.id === id);
     if (e) { e.lastOpened = new Date().toISOString(); await this._writeLib(lib); }
     return true;
   }
 
-  // ---- canonical (PC-1: explicit seasonId, mirrors peekSeason's shape) ----
+  // ---- canonical (PC-1: explicit seasonId; PC-2: SQLite-only, no JSON fallback) ----
   async loadSeason(seasonId) {
     if (!this._ok() || !seasonId) return null;
-    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
-    if (cp) {
-      try { const r = await cp.loadSeason(seasonId); if (r && r.data) return r.data; }
-      catch (e) {
-        console.error('catalog load failed; stale JSON fallback blocked', e);
-        throw e;
-      }
+    if (!cp) throw new Error('The canonical season catalog could not be opened. No fallback authority is allowed.');
+    try { const r = await cp.loadSeason(seasonId); return r ? r.data : null; }
+    catch (e) {
+      console.error('catalog load failed', e);
+      throw e;
     }
-    if (await this._exists(this._seasonFile(seasonId))) return this._readJson(this._seasonFile(seasonId));
-    return null;
   }
   // Same read as loadSeason(), parameterized by id instead of this.currentId,
   // and never mutates this.currentId — a real navigation could be resolving
@@ -662,18 +727,13 @@ export class TauriBackend extends StorageBackend {
   // redirect the coach's Open click. Read-only; no write path exists for it.
   async peekSeason(id) {
     if (!this._ok() || !id) return null;
-    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
-    if (cp) {
-      try { const r = await cp.loadSeason(id); if (r && r.data) return r.data; }
-      catch (e) {
-        console.error('catalog peek failed; stale JSON fallback blocked', e);
-        throw e;
-      }
+    if (!cp) throw new Error('The canonical season catalog could not be opened. No fallback authority is allowed.');
+    try { const r = await cp.loadSeason(id); return r ? r.data : null; }
+    catch (e) {
+      console.error('catalog peek failed', e);
+      throw e;
     }
-    if (await this._exists(this._seasonFile(id))) return this._readJson(this._seasonFile(id));
-    return null;
   }
   async saveSeason(seasonId, data) {
     if (!this._ok() || !seasonId) return false;
@@ -681,47 +741,37 @@ export class TauriBackend extends StorageBackend {
       console.error('Blocked cross-season save', { destinationId: seasonId, payloadId: data && data.id });
       return false;
     }
-    const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) {
-      console.error('Blocked JSON fallback write because the canonical catalog exists but is unavailable');
+    if (!cp) {
+      console.error('Blocked save: the canonical season catalog could not be opened. No fallback authority is allowed.');
       return false;
     }
-    if (cp) {
-      // CatalogPersistence writes db (canonical) + season.json + Documents mirror,
-      // and returns TRUE only when the canonical db write is durable. Since the
-      // PC-1 repair, CatalogPersistence.saveSeason() itself now gates its json/
-      // mirror sidecar writes on that same durable result, so `okDb` genuinely
-      // means "nothing was written anywhere for this attempt" when false —
-      // _touchMeta() (library.json metadata) must be gated on it too, or a
-      // rejected import's name/counts would still advance the library index
-      // even though every other sidecar correctly stayed untouched.
-      try {
-        const okDb = await cp.saveSeason(seasonId, data);
-        if (okDb) await this._touchMeta(seasonId, data);
-        return okDb;
-      }
-      catch (e) {
-        console.error('catalog save threw; fallback write blocked', e);
-        return false;
-      }
-    }
+    // CatalogPersistence writes the db (canonical) + the best-effort Documents
+    // recovery-mirror snapshot, and returns TRUE only when the canonical db
+    // write is durable. _touchMeta() (library.json metadata) is gated on that
+    // same durable result, or a rejected import's name/counts would still
+    // advance the library index even though the canonical write correctly
+    // rejected it.
     try {
-      await this._ensureSeasonDir(seasonId);
-      await this._writeJson(this._seasonFile(seasonId), data);
-      await this._touchMeta(seasonId, data);
-      return true;
-    } catch (e) { return false; }
+      const okDb = await cp.saveSeason(seasonId, data);
+      if (okDb) await this._touchMeta(seasonId, data);
+      return okDb;
+    }
+    catch (e) {
+      console.error('catalog save threw', e);
+      return false;
+    }
   }
 
-  // ---- SQLite catalog (A3 desktop canonical) — flag-gated + FAIL-SAFE --------
-  // Behind localStorage `ffa_sql_catalog` (default OFF). When enabled, season
-  // load/save/delete delegate to CatalogPersistence: the SQLite catalog becomes
-  // canonical, dual-writing season.json + the Documents mirror, with a self-
-  // healing JSON fallback. ANY failure — the wasm won't load, a runtime error —
-  // silently keeps the EXISTING JSON path, so the feature can never lose a save.
-  // The browser bundle stays sql.js-free: the wasm is a desktop-only Tauri
-  // resource, lazy-loaded here on first use.
+  // ---- SQLite catalog (desktop canonical, PC-2: the ONLY authority) --------
+  // Behind localStorage `ffa_sql_catalog` (always true -- see _sqlFlag()).
+  // Season load/save/delete/backup delegate to CatalogPersistence: the
+  // SQLite catalog is the ONE canonical desktop store. Per Invariant #4/#5,
+  // this is fail-closed, not fail-safe: if the catalog cannot be opened for
+  // ANY reason (missing wasm resource, corrupt db bytes, a runtime error),
+  // the affected operation refuses rather than silently falling back to a
+  // JSON sidecar. The browser bundle stays sql.js-free: the wasm is a
+  // desktop-only Tauri resource, lazy-loaded here on first use.
   _sqlFlag() {
     // Tauri's catalog is the shipped canonical store. A localStorage flag must
     // never demote durable SQLite data to stale JSON sidecars.
@@ -754,13 +804,16 @@ export class TauriBackend extends StorageBackend {
     }
   }
 
+  // PC-2: `writeJson` is deliberately ABSENT from this interface -- per-season
+  // app-data season.json is retired as a live write authority (Invariant #5).
+  // `readJson` survives ONLY for CatalogPersistence.migrateJsonSeasons()'s
+  // one-time bootstrap read of pre-existing legacy files.
   _catalogFs() {
     const dbPath = 'seasons/library.db';
     return {
       readDb: async () => { try { if (await this._exists(dbPath)) return await this.fs.readFile(dbPath, { baseDir: this.baseDir }); } catch (e) {} return null; },
       writeDb: async (bytes) => { try { await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true }); } catch (e) {} await this.fs.writeFile(dbPath, bytes, { baseDir: this.baseDir }); },
       readJson: async (id) => this._readJson(this._seasonFile(id)),
-      writeJson: async (id, data) => { await this._ensureSeasonDir(id); await this._writeJson(this._seasonFile(id), data); },
       writeMirror: async (id, data) => { await this._mirrorToDocuments(id, data); },
     };
   }
@@ -802,30 +855,27 @@ export class TauriBackend extends StorageBackend {
     }
     const json = JSON.stringify(data);
     if (this._lastBackupJson && this._lastBackupJson === json) return null;
-    // Restore points are rows in the shared library db. Legacy JSON backups
-    // remain readable, but new writes never bypass an existing catalog.
-    const catalogOnDisk = await this._exists('seasons/library.db');
+    // PC-2: restore points are rows in the shared library db, the ONE
+    // authority for a NEW backup write. Pre-existing legacy season_<ts>.json
+    // restore-point files remain READABLE (listBackups/getBackup/deleteBackup
+    // route by id shape, unconditionally on catalog availability -- a
+    // genuinely legacy id is a different identifier namespace, not the same
+    // authority competing), but this method never creates a new one as a
+    // fallback: a catalog that cannot be opened means the restore point is
+    // not created at all, never silently downgraded to a file.
     const cp = await this._ensureCatalog();
-    if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
-    if (cp) {
-      try {
-        const bid = await cp.createBackup(seasonId, data, label || 'Save');
-        if (bid) { const meta = this._meta(data, label); meta.id = bid; this._lastBackupJson = json; return meta; }
-      } catch (e) {
-        console.error('catalog backup failed; JSON ring write blocked', e);
-        return null;
-      }
+    if (!cp) {
+      console.error('Blocked backup: the canonical season catalog could not be opened.');
+      return null;
     }
-    await this._ensureSeasonDir(seasonId);
-    const id = `season_${this._tsSlug()}.json`;
-    const meta = this._meta(data, label);
-    meta.id = id;
-    const payload = JSON.stringify({ ...meta, data }, null, 2);
-    try { await this.fs.writeTextFile(`${this._backupsDir(seasonId)}/${id}`, payload, { baseDir: this.baseDir }); }
-    catch (e) { return null; }
-    this._lastBackupJson = json;
-    await this._prune(seasonId);
-    return meta;
+    try {
+      const bid = await cp.createBackup(seasonId, data, label || 'Save');
+      if (bid) { const meta = this._meta(data, label); meta.id = bid; this._lastBackupJson = json; return meta; }
+      return null;
+    } catch (e) {
+      console.error('catalog backup failed', e);
+      return null;
+    }
   }
   async listBackups(seasonId) {
     if (!this._ok() || !seasonId) return [];
@@ -1205,18 +1255,28 @@ export class TauriBackend extends StorageBackend {
    * Mirror the season (and, on snapshots, a backup) to the Documents folder.
    * Best-effort: a failure here must never block the canonical app-data save.
    * PC-1: explicit seasonId, no ambient this.currentId.
+   *
+   * PC-3: the live mirror file is now a versioned SnapshotEnvelope, not a
+   * bare season object -- id/count/checksum are declared alongside the
+   * data so the explicit recovery scan can validate a candidate BEFORE
+   * importing it (Invariant #6), without first having to trust-and-parse
+   * the whole body. This mirror is written only from the canonical-commit
+   * path (CatalogPersistence.saveSeason/reconcileFallbacks, and
+   * writeDisk() below after its own saveSeason() succeeds) -- never
+   * speculatively, matching Invariant #5.
    */
   async _mirrorToDocuments(seasonId, data, opts = {}) {
     if (!this._ok() || !seasonId || this.mirrorDir === undefined) return;
     try {
+      const envelope = SnapshotEnvelope.wrap(seasonId, data);
       await this.fs.mkdir(this._mirrorSeasonDir(seasonId), { baseDir: this.mirrorDir, recursive: true });
-      await this.fs.writeTextFile(this._mirrorSeasonFile(seasonId), JSON.stringify(data, null, 2), { baseDir: this.mirrorDir });
+      await this.fs.writeTextFile(this._mirrorSeasonFile(seasonId), JSON.stringify(envelope, null, 2), { baseDir: this.mirrorDir });
       if (opts.snapshot) {
         const bdir = this._mirrorBackupsDir(seasonId);
         await this.fs.mkdir(bdir, { baseDir: this.mirrorDir, recursive: true });
         const id = `season_${this._tsSlug()}.json`;
         const meta = this._meta(data, opts.label); meta.id = id;
-        await this.fs.writeTextFile(`${bdir}/${id}`, JSON.stringify({ ...meta, data }, null, 2), { baseDir: this.mirrorDir });
+        await this.fs.writeTextFile(`${bdir}/${id}`, JSON.stringify({ ...meta, envelope }, null, 2), { baseDir: this.mirrorDir });
         await this._pruneMirror(seasonId);
       }
     } catch (e) { /* mirror is best-effort */ }

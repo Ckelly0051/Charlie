@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, ConfirmDeleteForm } from './native-team-hub.jsx';
+import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -284,6 +284,41 @@ export class TeamHubScreen {
       await this.app.workspaceShell.show('home');
       return { ok: true };
     } catch (error) { return { ok: false, message: String(error?.message || 'The season could not be created.') }; }
+  }
+
+  /** PC-3 (Convergence Plan Invariant #6): desktop-only capability check for
+   *  the explicit recovery flow. Read synchronously by the JSX render, so
+   *  it must not be async. */
+  canRecoverSeasons() { return !!this._storage()?.canRecoverSeasons?.(); }
+
+  /** PC-3 explicit recovery: fetch the preview ONCE, hand it to a dialog the
+   *  coach reviews and confirms per-row. Never auto-imports (Invariant #6).
+   *  Each row's own confirmed recovery reloads Team Hub so the newly
+   *  recovered season appears immediately. */
+  async recoverSeasons(invoker) {
+    const candidates = await this._storage().scanRecoverableSeasons();
+    if (!candidates.length) {
+      await this.overlays.dialog({
+        title: 'No recoverable seasons found', returnFocus: invoker,
+        message: 'No Documents-mirror recovery snapshots were found on this machine.',
+        actions: [{ key: 'ok', label: 'Got it', default: true }],
+      }).result;
+      return false;
+    }
+    const handle = this.overlays.dialog({
+      id: 'team-hub-recover-seasons', title: 'Recover seasons', returnFocus: invoker,
+      actions: [{ key: 'close', label: 'Close', default: true }],
+      content: h(RecoverSeasonsForm, {
+        candidates,
+        onRecover: async (candidate, confirmOverwrite) => {
+          const result = await this._storage().recoverSeasonFromMirror(candidate.id, { confirmOverwrite });
+          if (result?.ok) await this.load();
+          return result;
+        },
+      }),
+    });
+    await handle.result;
+    return true;
   }
 
   async openSeason(id) {

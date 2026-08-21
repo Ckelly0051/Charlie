@@ -338,6 +338,32 @@ export class SeasonStore {
   /** List all seasons in the library (metas only — does not load any). */
   async listSeasons() { return this.backend.listSeasons(); }
 
+  /** Whether this backend supports the PC-3 recovery flow at all (desktop
+   *  only — BrowserBackend has no Documents-mirror concept). Mirrors the
+   *  existing canOpenDataDir() capability-check pattern. */
+  canRecoverSeasons() { return typeof this.backend.scanRecoverableSeasons === 'function'; }
+
+  /** PC-3 explicit recovery, step 1 (Invariant #6): preview candidates from
+   *  the Documents-mirror recovery snapshots. WRITES NOTHING. Not every
+   *  backend implements this (BrowserBackend has no Documents mirror
+   *  concept), so this feature-detects and returns [] rather than throwing
+   *  on a backend that simply doesn't support recovery scanning. */
+  async scanRecoverableSeasons() {
+    try { return (await this.backend.scanRecoverableSeasons?.()) || []; }
+    catch (e) { return []; }
+  }
+
+  /** PC-3 explicit recovery, step 2: the confirmed one-way import of ONE
+   *  candidate into the canonical SQLite catalog. `confirmOverwrite` must
+   *  only ever be true after the coach has explicitly agreed, having seen
+   *  scanRecoverableSeasons()'s own preview of the conflict — this method
+   *  performs no confirmation UI of its own. */
+  async recoverSeasonFromMirror(id, opts) {
+    if (typeof this.backend.recoverSeasonFromMirror !== 'function') return { ok: false, reason: 'unsupported' };
+    try { return await this.backend.recoverSeasonFromMirror(id, opts); }
+    catch (e) { return { ok: false, reason: 'error', message: String(e?.message || e) }; }
+  }
+
   /** Read-only peek at ANY season's full data by id, without opening it or
    *  touching currentSeasonId. For callers that need real game/film data for
    *  a season that is not the active one (e.g. Team Hub's film verification)
