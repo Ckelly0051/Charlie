@@ -45,9 +45,15 @@ export class StorageBackend {
   async deleteSeason(_id) {}
   async touchOpened(_id) {}                         // bump lastOpened in the index
 
-  // ---- canonical season (scoped to currentId) ----
-  async loadSeason() { return null; }
-  async saveSeason(_data) {}
+  // ---- canonical season (PC-1: explicit seasonId, never ambient currentId) --
+  // Every identity-sensitive method below takes seasonId as an EXPLICIT first
+  // parameter. Callers (SeasonStore) always pass this.currentSeasonId; the
+  // ambient this.currentId/setCurrentSeason() pointer is never consulted by
+  // these methods and can no longer choose a write destination on its own
+  // (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). currentId/setCurrentSeason
+  // remain for the out-of-scope film/linked-film surfaces (invariant #8).
+  async loadSeason(_seasonId) { return null; }
+  async saveSeason(_seasonId, _data) { return false; }
   // Read-only peek at an ARBITRARY season's data by id, never touching
   // currentId/setCurrentSeason. Exists so a caller (e.g. Team Hub's season
   // list) can compute something like film health for a season that is not
@@ -56,11 +62,11 @@ export class StorageBackend {
   // against the result — it is a snapshot, not a live-editable copy.
   async peekSeason(_id) { return null; }
 
-  // ---- backup ring (scoped to currentId) ----
-  async listBackups() { return []; }            // [{id,t,label,seasonName,games,plays}]
-  async getBackup(_id) { return null; }          // full season data
-  async createBackup(_data, _label) { return null; }
-  async deleteBackup(_id) {}
+  // ---- backup ring (explicit seasonId) ----
+  async listBackups(_seasonId) { return []; }            // [{id,t,label,seasonName,games,plays}]
+  async getBackup(_seasonId, _backupId) { return null; }  // full season data
+  async createBackup(_seasonId, _data, _label) { return null; }
+  async deleteBackup(_seasonId, _backupId) {}
 
   // ---- durable disk (optional) ----
   supportsDisk() { return false; }
@@ -69,7 +75,7 @@ export class StorageBackend {
   async restoreDiskBinding() { return false; }
   async forgetDisk() {}
   /** Write the live file (+ a snapshot file when snapshot:true). */
-  async writeDisk(_data, _opts) { return false; }
+  async writeDisk(_seasonId, _data, _opts) { return false; }
 
   // ---- persistent film library (desktop only) ----
   supportsFilm() { return false; }
@@ -230,10 +236,10 @@ export class BrowserBackend extends StorageBackend {
     if (e) { e.lastOpened = new Date().toISOString(); this._writeLib(lib); }
   }
 
-  // ---- canonical (scoped to currentId) ----
-  async loadSeason() {
-    if (!this.currentId) return null;
-    try { return JSON.parse(localStorage.getItem(this._seasonKey(this.currentId)) || 'null'); }
+  // ---- canonical (PC-1: explicit seasonId) ----
+  async loadSeason(seasonId) {
+    if (!seasonId) return null;
+    try { return JSON.parse(localStorage.getItem(this._seasonKey(seasonId)) || 'null'); }
     catch (e) { return null; }
   }
   async peekSeason(id) {
@@ -241,19 +247,19 @@ export class BrowserBackend extends StorageBackend {
     try { return JSON.parse(localStorage.getItem(this._seasonKey(id)) || 'null'); }
     catch (e) { return null; }
   }
-  async saveSeason(data) {
-    if (!this.currentId) return false;
-    try { localStorage.setItem(this._seasonKey(this.currentId), JSON.stringify(data)); }
+  async saveSeason(seasonId, data) {
+    if (!seasonId) return false;
+    try { localStorage.setItem(this._seasonKey(seasonId), JSON.stringify(data)); }
     catch (e) { return false; }   // quota — the disk/backup ring is the durable copy
-    this._touchMeta(data);
+    this._touchMeta(seasonId, data);
     return true;
   }
   /** Refresh the index entry (counts, name, updated) after a save. */
-  _touchMeta(data) {
+  _touchMeta(seasonId, data) {
     const lib = this._readLib();
-    const i = lib.findIndex(s => s.id === this.currentId);
+    const i = lib.findIndex(s => s.id === seasonId);
     if (i < 0) return;
-    const m = this._seasonMeta(this.currentId, data);
+    const m = this._seasonMeta(seasonId, data);
     // Don't let a blank data.seasonName overwrite a name the user set on the
     // library entry (createSeason meta) with the derived 'Untitled'/team fallback.
     if (!(data && data.seasonName) && lib[i].name) m.name = lib[i].name;
@@ -296,13 +302,13 @@ export class BrowserBackend extends StorageBackend {
     }));
   }
 
-  // ---- backup ring (scoped to currentId via seasonId field) ----
-  async createBackup(data, label) {
-    if (!this.currentId) return null;
+  // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
+  async createBackup(seasonId, data, label) {
+    if (!seasonId) return null;
     const json = JSON.stringify(data);
-    const recent = await this.listBackups();
+    const recent = await this.listBackups(seasonId);
     if (recent.length) {
-      const last = await this.getBackup(recent[0].id);
+      const last = await this.getBackup(seasonId, recent[0].id);
       if (last && JSON.stringify(last) === json) return null;
     }
     // Monotonic id: two backups in the same millisecond (a forced "Before X"
@@ -311,39 +317,39 @@ export class BrowserBackend extends StorageBackend {
     // eating exactly the restore point the coach might need.
     const id = Math.max(Date.now(), (this._lastBackupId || 0) + 1);
     this._lastBackupId = id;
-    const rec = { id, seasonId: this.currentId, ...this._meta(data, label), data: JSON.parse(json) };
+    const rec = { id, seasonId, ...this._meta(data, label), data: JSON.parse(json) };
     await this._tx('backups', 'readwrite', os => os.put(rec, id));
-    await this._prune();
+    await this._prune(seasonId);
     const { data: _omit, ...meta } = rec;
     return meta;
   }
-  async listBackups() {
+  async listBackups(seasonId) {
     const all = await this._tx('backups', 'readonly', os => os.getAll());
     return (all || [])
-      .filter(r => r && r.seasonId === this.currentId)
+      .filter(r => r && r.seasonId === seasonId)
       .map(({ data, ...meta }) => meta)
       .sort((a, b) => b.id - a.id);
   }
-  // PC-1: scoped to this.currentId, the same destination pointer createBackup
-  // already validates against -- a backup id listed under a DIFFERENT season
-  // can no longer be read or deleted just by knowing its id. Use `== null`
-  // rather than `!==`: a real miss can surface as `undefined` (see _tx's
-  // out.result handling), and both mean "not found" here.
-  async getBackup(id) {
+  // A backup id listed under a DIFFERENT season can no longer be read or
+  // deleted just by knowing its id -- the caller's own explicit seasonId is
+  // the only source of scope. Use `== null` rather than `!==`: a real miss
+  // can surface as `undefined` (see _tx's out.result handling), and both
+  // mean "not found" here.
+  async getBackup(seasonId, id) {
     const rec = await this._tx('backups', 'readonly', os => os.get(id));
-    if (rec == null || rec.seasonId !== this.currentId) return null;
+    if (rec == null || rec.seasonId !== seasonId) return null;
     return rec.data;
   }
-  async deleteBackup(id) {
+  async deleteBackup(seasonId, id) {
     const rec = await this._tx('backups', 'readonly', os => os.get(id));
-    if (rec == null || rec.seasonId !== this.currentId) return false;
+    if (rec == null || rec.seasonId !== seasonId) return false;
     await this._tx('backups', 'readwrite', os => os.delete(id));
     return true;
   }
-  async _prune() {
-    const metas = await this.listBackups();              // newest first, this season
+  async _prune(seasonId) {
+    const metas = await this.listBackups(seasonId);       // newest first, this season
     const extra = metas.slice(this.RETENTION);
-    for (const m of extra) await this.deleteBackup(m.id);
+    for (const m of extra) await this.deleteBackup(seasonId, m.id);
   }
 
   // ---- disk (File System Access API) ----
@@ -392,14 +398,14 @@ export class BrowserBackend extends StorageBackend {
     return (await this.dirHandle.requestPermission(opts)) === 'granted';
   }
 
-  async writeDisk(data, opts = {}) {
+  async writeDisk(seasonId, data, opts = {}) {
     if (!this.dirHandle || this._writing) return false;
     if (!(await this._dirPermitted(!!opts.prompt))) return false;
     this._writing = true;
     try {
       const json = JSON.stringify(data, null, 2);
       // Per-season filename so multiple seasons don't overwrite one file.
-      const base = this.slugify(data.seasonName || this.currentId || 'season');
+      const base = this.slugify(data.seasonName || seasonId || 'season');
       await this._writeInto(this.dirHandle, `${base}.json`, json);
       if (opts.snapshot) {
         const backups = await this.dirHandle.getDirectoryHandle('backups', { create: true });
@@ -634,20 +640,20 @@ export class TauriBackend extends StorageBackend {
     return true;
   }
 
-  // ---- canonical (scoped to currentId) ----
-  async loadSeason() {
-    if (!this._ok() || !this.currentId) return null;
+  // ---- canonical (PC-1: explicit seasonId, mirrors peekSeason's shape) ----
+  async loadSeason(seasonId) {
+    if (!this._ok() || !seasonId) return null;
     const catalogOnDisk = await this._exists('seasons/library.db');
     const cp = await this._ensureCatalog();
     if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
     if (cp) {
-      try { const r = await cp.loadSeason(this.currentId); if (r && r.data) return r.data; }
+      try { const r = await cp.loadSeason(seasonId); if (r && r.data) return r.data; }
       catch (e) {
         console.error('catalog load failed; stale JSON fallback blocked', e);
         throw e;
       }
     }
-    if (await this._exists(this._seasonFile(this.currentId))) return this._readJson(this._seasonFile(this.currentId));
+    if (await this._exists(this._seasonFile(seasonId))) return this._readJson(this._seasonFile(seasonId));
     return null;
   }
   // Same read as loadSeason(), parameterized by id instead of this.currentId,
@@ -669,10 +675,10 @@ export class TauriBackend extends StorageBackend {
     if (await this._exists(this._seasonFile(id))) return this._readJson(this._seasonFile(id));
     return null;
   }
-  async saveSeason(data) {
-    if (!this._ok() || !this.currentId) return false;
-    if (!data || (data.id && String(data.id) !== String(this.currentId))) {
-      console.error('Blocked cross-season save', { destinationId: this.currentId, payloadId: data && data.id });
+  async saveSeason(seasonId, data) {
+    if (!this._ok() || !seasonId) return false;
+    if (!data || (data.id && String(data.id) !== String(seasonId))) {
+      console.error('Blocked cross-season save', { destinationId: seasonId, payloadId: data && data.id });
       return false;
     }
     const catalogOnDisk = await this._exists('seasons/library.db');
@@ -688,8 +694,8 @@ export class TauriBackend extends StorageBackend {
       // match it — but PROPAGATE the canonical result so SeasonStore's persist
       // warning fires on a real db failure instead of a false success.
       try {
-        const okDb = await cp.saveSeason(this.currentId, data);
-        await this._touchMeta(data);
+        const okDb = await cp.saveSeason(seasonId, data);
+        await this._touchMeta(seasonId, data);
         return okDb;
       }
       catch (e) {
@@ -698,9 +704,9 @@ export class TauriBackend extends StorageBackend {
       }
     }
     try {
-      await this._ensureSeasonDir(this.currentId);
-      await this._writeJson(this._seasonFile(this.currentId), data);
-      await this._touchMeta(data);
+      await this._ensureSeasonDir(seasonId);
+      await this._writeJson(this._seasonFile(seasonId), data);
+      await this._touchMeta(seasonId, data);
       return true;
     } catch (e) { return false; }
   }
@@ -752,7 +758,7 @@ export class TauriBackend extends StorageBackend {
       writeDb: async (bytes) => { try { await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true }); } catch (e) {} await this.fs.writeFile(dbPath, bytes, { baseDir: this.baseDir }); },
       readJson: async (id) => this._readJson(this._seasonFile(id)),
       writeJson: async (id, data) => { await this._ensureSeasonDir(id); await this._writeJson(this._seasonFile(id), data); },
-      writeMirror: async (_id, data) => { await this._mirrorToDocuments(data); },
+      writeMirror: async (id, data) => { await this._mirrorToDocuments(id, data); },
     };
   }
 
@@ -773,22 +779,22 @@ export class TauriBackend extends StorageBackend {
     })();
     return this._catalogInit;
   }
-  async _touchMeta(data) {
-    if (!data || (data.id && String(data.id) !== String(this.currentId))) return false;
+  async _touchMeta(seasonId, data) {
+    if (!data || (data.id && String(data.id) !== String(seasonId))) return false;
     const lib = await this._readLib();
-    const i = lib.findIndex(s => s.id === this.currentId);
+    const i = lib.findIndex(s => s.id === seasonId);
     if (i < 0) return;
-    const m = this._seasonMeta(this.currentId, data);
+    const m = this._seasonMeta(seasonId, data);
     lib[i] = { ...lib[i], ...m, created: lib[i].created, lastOpened: lib[i].lastOpened };
     await this._writeLib(lib);
     return true;
   }
 
-  // ---- backup ring (scoped to currentId) ----
-  async createBackup(data, label) {
-    if (!this._ok() || !this.currentId) return null;
-    if (!data || (data.id && String(data.id) !== String(this.currentId))) {
-      console.error('Blocked cross-season backup', { destinationId: this.currentId, payloadId: data && data.id });
+  // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
+  async createBackup(seasonId, data, label) {
+    if (!this._ok() || !seasonId) return null;
+    if (!data || (data.id && String(data.id) !== String(seasonId))) {
+      console.error('Blocked cross-season backup', { destinationId: seasonId, payloadId: data && data.id });
       return null;
     }
     const json = JSON.stringify(data);
@@ -800,40 +806,40 @@ export class TauriBackend extends StorageBackend {
     if (catalogOnDisk && !cp) throw new Error('The canonical season catalog could not be opened. No fallback writes are allowed.');
     if (cp) {
       try {
-        const bid = await cp.createBackup(this.currentId, data, label || 'Save');
+        const bid = await cp.createBackup(seasonId, data, label || 'Save');
         if (bid) { const meta = this._meta(data, label); meta.id = bid; this._lastBackupJson = json; return meta; }
       } catch (e) {
         console.error('catalog backup failed; JSON ring write blocked', e);
         return null;
       }
     }
-    await this._ensureSeasonDir(this.currentId);
+    await this._ensureSeasonDir(seasonId);
     const id = `season_${this._tsSlug()}.json`;
     const meta = this._meta(data, label);
     meta.id = id;
     const payload = JSON.stringify({ ...meta, data }, null, 2);
-    try { await this.fs.writeTextFile(`${this._backupsDir(this.currentId)}/${id}`, payload, { baseDir: this.baseDir }); }
+    try { await this.fs.writeTextFile(`${this._backupsDir(seasonId)}/${id}`, payload, { baseDir: this.baseDir }); }
     catch (e) { return null; }
     this._lastBackupJson = json;
-    await this._prune();
+    await this._prune(seasonId);
     return meta;
   }
-  async listBackups() {
-    if (!this._ok() || !this.currentId) return [];
+  async listBackups(seasonId) {
+    if (!this._ok() || !seasonId) return [];
     // Merge the canonical db ring with any legacy backup JSON files, so flipping
     // the catalog flag on never hides restore points created under the file ring.
     const cp = await this._ensureCatalog();
     let fromDb = [];
-    if (cp) { try { fromDb = await cp.listBackups(this.currentId); } catch (e) {} }
-    await this._ensureSeasonDir(this.currentId);
+    if (cp) { try { fromDb = await cp.listBackups(seasonId); } catch (e) {} }
+    await this._ensureSeasonDir(seasonId);
     const out = [];
     let entries = [];
-    try { entries = await this.fs.readDir(this._backupsDir(this.currentId), { baseDir: this.baseDir }); } catch (e) { entries = []; }
+    try { entries = await this.fs.readDir(this._backupsDir(seasonId), { baseDir: this.baseDir }); } catch (e) { entries = []; }
     const reads = [];
     for (const e of entries) {
       if (e.isDirectory || !/^season_.*\.json$/.test(e.name || '')) continue;
       reads.push(
-        this.fs.readTextFile(`${this._backupsDir(this.currentId)}/${e.name}`, { baseDir: this.baseDir })
+        this.fs.readTextFile(`${this._backupsDir(seasonId)}/${e.name}`, { baseDir: this.baseDir })
           .then(text => {
             const rec = JSON.parse(text);
             out.push({ id: e.name, t: rec.t, label: rec.label, seasonName: rec.seasonName, games: rec.games, plays: rec.plays });
@@ -848,36 +854,36 @@ export class TauriBackend extends StorageBackend {
   }
   // Restore points from the db ring carry catalog ids; legacy file backups are
   // `season_<ts>.json`. Route each read/delete by that id shape.
-  async getBackup(id) {
-    if (!this._ok() || !this.currentId) return null;
+  async getBackup(seasonId, id) {
+    if (!this._ok() || !seasonId) return null;
     if (!/^season_.*\.json$/.test(id)) {
       const cp = await this._ensureCatalog();
-      if (cp) { try { return await cp.getBackup(this.currentId, id); } catch (e) {} }
+      if (cp) { try { return await cp.getBackup(seasonId, id); } catch (e) {} }
       return null;
     }
-    try { return JSON.parse(await this.fs.readTextFile(`${this._backupsDir(this.currentId)}/${id}`, { baseDir: this.baseDir })).data; }
+    try { return JSON.parse(await this.fs.readTextFile(`${this._backupsDir(seasonId)}/${id}`, { baseDir: this.baseDir })).data; }
     catch (e) { return null; }
   }
-  async deleteBackup(id) {
-    if (!this._ok() || !this.currentId) return;
+  async deleteBackup(seasonId, id) {
+    if (!this._ok() || !seasonId) return;
     if (!/^season_.*\.json$/.test(id)) {
       const cp = await this._ensureCatalog();
-      if (cp) { try { await cp.deleteBackup(this.currentId, id); } catch (e) {} }
+      if (cp) { try { await cp.deleteBackup(seasonId, id); } catch (e) {} }
       return;
     }
-    try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
+    try { await this.fs.remove(`${this._backupsDir(seasonId)}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
   }
-  async _prune() {
-    if (!this.currentId) return;
+  async _prune(seasonId) {
+    if (!seasonId) return;
     let entries = [];
-    try { entries = await this.fs.readDir(this._backupsDir(this.currentId), { baseDir: this.baseDir }); } catch (e) { return; }
+    try { entries = await this.fs.readDir(this._backupsDir(seasonId), { baseDir: this.baseDir }); } catch (e) { return; }
     const names = entries
       .filter(e => !e.isDirectory && /^season_.*\.json$/.test(e.name || ''))
       .map(e => e.name)
       .sort();
     const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
     for (const n of extra) {
-      try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
+      try { await this.fs.remove(`${this._backupsDir(seasonId)}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
     }
   }
 
@@ -1195,33 +1201,34 @@ export class TauriBackend extends StorageBackend {
   /**
    * Mirror the season (and, on snapshots, a backup) to the Documents folder.
    * Best-effort: a failure here must never block the canonical app-data save.
+   * PC-1: explicit seasonId, no ambient this.currentId.
    */
-  async _mirrorToDocuments(data, opts = {}) {
-    if (!this._ok() || !this.currentId || this.mirrorDir === undefined) return;
+  async _mirrorToDocuments(seasonId, data, opts = {}) {
+    if (!this._ok() || !seasonId || this.mirrorDir === undefined) return;
     try {
-      await this.fs.mkdir(this._mirrorSeasonDir(this.currentId), { baseDir: this.mirrorDir, recursive: true });
-      await this.fs.writeTextFile(this._mirrorSeasonFile(this.currentId), JSON.stringify(data, null, 2), { baseDir: this.mirrorDir });
+      await this.fs.mkdir(this._mirrorSeasonDir(seasonId), { baseDir: this.mirrorDir, recursive: true });
+      await this.fs.writeTextFile(this._mirrorSeasonFile(seasonId), JSON.stringify(data, null, 2), { baseDir: this.mirrorDir });
       if (opts.snapshot) {
-        const bdir = this._mirrorBackupsDir(this.currentId);
+        const bdir = this._mirrorBackupsDir(seasonId);
         await this.fs.mkdir(bdir, { baseDir: this.mirrorDir, recursive: true });
         const id = `season_${this._tsSlug()}.json`;
         const meta = this._meta(data, opts.label); meta.id = id;
         await this.fs.writeTextFile(`${bdir}/${id}`, JSON.stringify({ ...meta, data }, null, 2), { baseDir: this.mirrorDir });
-        await this._pruneMirror();
+        await this._pruneMirror(seasonId);
       }
     } catch (e) { /* mirror is best-effort */ }
   }
 
-  async _pruneMirror() {
-    if (!this.currentId) return;
+  async _pruneMirror(seasonId) {
+    if (!seasonId) return;
     try {
-      const entries = await this.fs.readDir(this._mirrorBackupsDir(this.currentId), { baseDir: this.mirrorDir });
+      const entries = await this.fs.readDir(this._mirrorBackupsDir(seasonId), { baseDir: this.mirrorDir });
       const names = entries
         .filter(e => !e.isDirectory && /^season_.*\.json$/.test(e.name || ''))
         .map(e => e.name).sort();
       const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
       for (const n of extra) {
-        try { await this.fs.remove(`${this._mirrorBackupsDir(this.currentId)}/${n}`, { baseDir: this.mirrorDir }); } catch (e) {}
+        try { await this.fs.remove(`${this._mirrorBackupsDir(seasonId)}/${n}`, { baseDir: this.mirrorDir }); } catch (e) {}
       }
     } catch (e) {}
   }
@@ -1243,11 +1250,19 @@ export class TauriBackend extends StorageBackend {
     return dir;
   }
 
-  async writeDisk(data, opts = {}) {
-    const ok = await this.saveSeason(data);
-    if (opts.snapshot) await this.createBackup(data, opts.label);
-    await this._mirrorToDocuments(data, opts);
-    if (ok) this._lastWrite = Date.now();
+  // PC-1: the canonical write is the gate for BOTH the snapshot backup and
+  // the Documents mirror. Previously the mirror wrote unconditionally, so a
+  // rejected canonical save (wrong destination/payload id, disk full,
+  // catalog unavailable) still landed the rejected data in the recovery
+  // mirror -- reproduced directly before this fix: a rejected import
+  // returned ok:false yet still produced one Documents-mirror write
+  // containing the rejected season name.
+  async writeDisk(seasonId, data, opts = {}) {
+    const ok = await this.saveSeason(seasonId, data);
+    if (!ok) return false;
+    if (opts.snapshot) await this.createBackup(seasonId, data, opts.label);
+    await this._mirrorToDocuments(seasonId, data, opts);
+    this._lastWrite = Date.now();
     return ok;
   }
 }

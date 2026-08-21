@@ -40,7 +40,7 @@ export class SeasonStore {
   async load() {
     if (!this.currentSeasonId) return null;
     let parsed = null;
-    try { parsed = await this.backend.loadSeason(); } catch (e) {}
+    try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
     return this.data;
   }
@@ -374,7 +374,7 @@ export class SeasonStore {
     this.backend.setCurrentSeason(id);
     this.currentSeasonId = id;
     let parsed = null;
-    try { parsed = await this.backend.loadSeason(); } catch (e) {}
+    try { parsed = await this.backend.loadSeason(id); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
     this.data.id = id;
     try { await this.backend.touchOpened(id); } catch (e) {}
@@ -561,17 +561,24 @@ export class SeasonStore {
 
   persist() {
     this._stripStAlignmentBeforeSave();
+    const seasonId = this.currentSeasonId;
     // Return the durable result while preserving fire-and-forget callers.
     // Storage transactions must not announce success until the canonical
     // season bytes are actually accepted.
-    const saved = Promise.resolve(this.backend.saveSeason(this.data))
+    const saved = Promise.resolve(this.backend.saveSeason(seasonId, this.data))
       .then(ok => {
         if (ok === false) { this._persistFailed(); return false; }
         this._persistWarned = false;
+        // PC-1: only arm the debounced disk/mirror sync AFTER the canonical
+        // save is confirmed durable. Scheduling it unconditionally (as this
+        // used to) meant a REJECTED canonical save still armed a timer that
+        // wrote the rejected payload to the Documents mirror 2.5s later,
+        // independent of the canonical result -- reproduced directly before
+        // this fix (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
+        this._scheduleDiskWrite();
         return true;
       })
       .catch(() => { this._persistFailed(); return false; });
-    this._scheduleDiskWrite();
     return saved;
   }
 
@@ -586,13 +593,14 @@ export class SeasonStore {
     clearTimeout(this._diskTimer);
     const snap = JSON.parse(JSON.stringify(this.data));   // freeze the payload
     // Pin the owning season: writeDisk resolves the TARGET at fire time (via
-    // backend.currentId), so a debounce surviving a season switch would write
-    // this frozen payload into the NEXT season's file. Transitions also cancel
-    // the timer (cancelPendingDiskWrite); the pin covers any path that forgets.
+    // the explicit id captured here, not backend.currentId), so a debounce
+    // surviving a season switch would write this frozen payload into the
+    // NEXT season's file. Transitions also cancel the timer
+    // (cancelPendingDiskWrite); the pin covers any path that forgets.
     const sid = this.currentSeasonId;
     this._diskTimer = setTimeout(() => {
       if (this.currentSeasonId !== sid) return;
-      this.backend.writeDisk(snap, { snapshot: false }).catch(() => {});
+      this.backend.writeDisk(sid, snap, { snapshot: false }).catch(() => {});
     }, 2500);
   }
 
@@ -607,21 +615,22 @@ export class SeasonStore {
   /** Take a restore point: a disk snapshot (if bound) + an in-app ring entry. */
   async snapshot(label) {
     this._stripStAlignmentBeforeSave();
+    const seasonId = this.currentSeasonId;
     const data = JSON.parse(JSON.stringify(this.data));
     if (this.backend.diskStatus().bound) {
-      await this.backend.writeDisk(data, { snapshot: true, label });
+      await this.backend.writeDisk(seasonId, data, { snapshot: true, label });
     }
-    return this.backend.createBackup(data, label);
+    return this.backend.createBackup(seasonId, data, label);
   }
 
-  listBackups() { return this.backend.listBackups(); }
+  listBackups() { return this.backend.listBackups(this.currentSeasonId); }
 
   /**
    * Restore a previous save. The current state is snapshotted first, so a
    * restore is itself undoable — you can never strand yourself on bad data.
    */
   async restoreBackup(id) {
-    const data = await this.backend.getBackup(id);
+    const data = await this.backend.getBackup(this.currentSeasonId, id);
     if (!data || !Array.isArray(data.games)) return null;
     const safetyId = await this.snapshot('Before restore');
     if (!safetyId) return null;
@@ -649,7 +658,7 @@ export class SeasonStore {
   async bindDisk() {
     this._stripStAlignmentBeforeSave();
     const ok = await this.backend.bindDisk();
-    if (ok) await this.backend.writeDisk(JSON.parse(JSON.stringify(this.data)), { snapshot: true, label: 'Backup folder linked', prompt: true });
+    if (ok) await this.backend.writeDisk(this.currentSeasonId, JSON.parse(JSON.stringify(this.data)), { snapshot: true, label: 'Backup folder linked', prompt: true });
     return ok;
   }
   async forgetDisk() { return this.backend.forgetDisk(); }
@@ -657,13 +666,14 @@ export class SeasonStore {
   /** Explicit "Save Season": canonical + live disk write + a labelled snapshot. */
   async saveNow(label) {
     this._stripStAlignmentBeforeSave();
-    await this.backend.saveSeason(this.data);
+    const seasonId = this.currentSeasonId;
+    await this.backend.saveSeason(seasonId, this.data);
     const data = JSON.parse(JSON.stringify(this.data));
     let wroteDisk = false;
     if (this.diskStatus().bound) {
-      wroteDisk = await this.backend.writeDisk(data, { snapshot: true, label: label || 'Manual save', prompt: true });
+      wroteDisk = await this.backend.writeDisk(seasonId, data, { snapshot: true, label: label || 'Manual save', prompt: true });
     }
-    await this.backend.createBackup(data, label || 'Manual save');
+    await this.backend.createBackup(seasonId, data, label || 'Manual save');
     return wroteDisk;
   }
 
@@ -677,7 +687,7 @@ export class SeasonStore {
   /**
    * Adopt a parsed object (season or legacy single game) as the season.
    *
-   * PC-1: two fixes to the identity/durability contract (documented in
+   * PC-1: three fixes to the identity/durability contract (documented in
    * GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
    *   1. The imported payload's own `id` (whatever machine/season it came
    *      from) is reassigned to `this.currentSeasonId` -- the destination
@@ -689,19 +699,33 @@ export class SeasonStore {
    *   2. `adopt()` is now `async` and returns `{ ok, data }` -- awaitable, so
    *      a caller can observe genuine durable success/failure instead of the
    *      previous fire-and-forget `this.persist()` whose result went nowhere.
+   *   3. ATOMIC: the prior live `this.data` is preserved and restored on a
+   *      rejected persist, mirroring restoreBackup()'s own rollback shape.
+   *      Previously `this.data` was overwritten BEFORE persist() was even
+   *      awaited, so a rejected import still replaced the live in-memory
+   *      season -- reproduced directly before this fix: `ok:false` alongside
+   *      the live season name changing to the imported (rejected) value.
    *
    * Returns `{ ok: false, data: null }` for an unrecognized shape (no season
-   * open, or a payload with neither `.games` nor `.plays`).
+   * open, or a payload with neither `.games` nor `.plays`) -- `this.data` is
+   * never touched in that case either.
    */
   async adopt(parsed) {
+    const prior = this.data;
+    let next;
     if (parsed && Array.isArray(parsed.games)) {
-      this.data = this._normalize({ ...parsed, id: this.currentSeasonId });
+      next = this._normalize({ ...parsed, id: this.currentSeasonId });
     } else if (parsed && Array.isArray(parsed.plays)) {
-      this.data = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
+      next = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
     } else {
       return { ok: false, data: null };
     }
+    this.data = next;
     const ok = await this.persist();
-    return { ok: ok !== false, data: this.data };
+    if (ok === false) {
+      this.data = prior;               // roll back the live in-memory mutation
+      return { ok: false, data: prior };
+    }
+    return { ok: true, data: this.data };
   }
 }

@@ -205,12 +205,12 @@ await testAsync('canonical persist, reopen, snapshot, and restore keep the event
   let canonical = null;
   const backups = new Map();
   const backend = {
-    saveSeason: async data => { canonical = JSON.parse(JSON.stringify(data)); return true; },
-    loadSeason: async () => JSON.parse(JSON.stringify(canonical)),
+    saveSeason: async (_seasonId, data) => { canonical = JSON.parse(JSON.stringify(data)); return true; },
+    loadSeason: async (_seasonId) => JSON.parse(JSON.stringify(canonical)),
     diskStatus: () => ({ bound: false }),
-    createBackup: async data => { const id = `b${backups.size + 1}`; backups.set(id, JSON.parse(JSON.stringify(data))); return id; },
-    getBackup: async id => JSON.parse(JSON.stringify(backups.get(id))),
-    listBackups: async () => [],
+    createBackup: async (_seasonId, data) => { const id = `b${backups.size + 1}`; backups.set(id, JSON.parse(JSON.stringify(data))); return id; },
+    getBackup: async (_seasonId, id) => JSON.parse(JSON.stringify(backups.get(id))),
+    listBackups: async (_seasonId) => [],
   };
   const first = new SeasonStore(backend);
   first.currentSeasonId = 's1';

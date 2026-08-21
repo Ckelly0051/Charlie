@@ -1059,7 +1059,7 @@ r = await page.evaluate(async () => {
   const b = await sm.createSeason({ name: 'RaceBravo', team: 'B' });
   await sm.openSeasonById(a.id);
   const origLoad = store.backend.loadSeason.bind(store.backend);
-  store.backend.loadSeason = async function () { await new Promise(rs => setTimeout(rs, 1600)); return origLoad(); };
+  store.backend.loadSeason = async function (seasonId) { await new Promise(rs => setTimeout(rs, 1600)); return origLoad(seasonId); };
   tagger._emit('play-updated', tagger.plays[0]);          // arms the 1s autosave
   const opening = sm.openSeasonById(b.id);
   await new Promise(rs => setTimeout(rs, 1250));          // the window where the autosave used to fire

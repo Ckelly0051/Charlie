@@ -247,7 +247,7 @@ test('17b · (E1-R6) carry does NOT leak onto a special-teams target', () => {
 test('17c · _normalize preserves legacy custom tags through save/reopen', async () => {
   const saved = [];
   const backend = {
-    saveSeason: data => { saved.push(JSON.parse(JSON.stringify(data))); return true; },
+    saveSeason: (_seasonId, data) => { saved.push(JSON.parse(JSON.stringify(data))); return true; },
     diskStatus: () => ({ bound: false }),
   };
   const store = new SeasonStore(backend);
@@ -314,7 +314,7 @@ test('18c · (E2-R3) persist() strips ST alignment before saving — structural 
   // through.
   const saved = [];
   const backend = {
-    saveSeason: (d) => { saved.push(JSON.parse(JSON.stringify(d))); return true; },
+    saveSeason: (_seasonId, d) => { saved.push(JSON.parse(JSON.stringify(d))); return true; },
     diskStatus: () => ({ bound: false }),
   };
   const store = new SeasonStore(backend);

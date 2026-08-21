@@ -1266,17 +1266,28 @@ export class StorageManager {
         // the desktop app into a fresh web app): there's no current season,
         // so register a library entry first — adopt() persists into the
         // CURRENT season's slot and silently went nowhere without one.
+        let createdFreshSeason = false;
         if (!this.seasonStore.hasCurrent()) {
-          await this.seasonStore.createSeason({
+          const rec = await this.seasonStore.createSeason({
             name: parsed.seasonName || String(file.name || 'Imported Season').replace(/\.json$/i, ''),
             teamId: (() => { try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (err2) { return ''; } })(),
           });
+          createdFreshSeason = !!rec;
         }
-        // PC-1: adopt() is now awaitable and reports genuine durable
+        // PC-1: adopt() is now awaitable, atomic, and reports genuine durable
         // success/failure (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
-        // a rejected write must never be presented as a successful import.
+        // a rejected write must never be presented as a successful import,
+        // and the live editor/store must be byte-identical to before this
+        // attempt on failure.
         const result = await this.seasonStore.adopt(parsed);
         if (!result || result.ok === false) {
+          // A destination season created SOLELY for this failed import is now
+          // an orphaned, empty library entry with no purpose — roll it back
+          // rather than leaving the coach a phantom season they never asked
+          // for and that has no data.
+          if (createdFreshSeason && this.seasonStore.currentSeasonId) {
+            try { await this.seasonStore.deleteSeason(this.seasonStore.currentSeasonId); } catch (err3) {}
+          }
           this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
           return;
         }

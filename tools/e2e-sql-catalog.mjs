@@ -123,9 +123,8 @@ ok(cat2.loadSeason('sea_synth') === null && gLeft === 0 && pLeft === 0 && cLeft 
 // 6. library ops + backups
 const rec = cat2.createSeason({ name: 'Fresh', team: 'Mavericks', year: '2025', level: 'V' });
 ok(rec && rec.id && cat2.listSeasons().some(s => s.id === rec.id && s.name === 'Fresh'), 'createSeason + listSeasons');
-cat2.setCurrentSeason('sea_noclip');
-const bkId = cat2.createBackup(norm(noClipSeason), 'test point');
-ok(cat2.listBackups().some(b => b.id === bkId) && deepEq(cat2.getBackup(bkId), norm(noClipSeason)), 'backup ring create/list/get round-trips');
+const bkId = cat2.createBackup('sea_noclip', norm(noClipSeason), 'test point');
+ok(cat2.listBackups('sea_noclip').some(b => b.id === bkId) && deepEq(cat2.getBackup('sea_noclip', bkId), norm(noClipSeason)), 'backup ring create/list/get round-trips');
 
 // 7. the coach's REAL recovered season (when present) — realistic round-trip
 const REAL = 'C:/Users/charl/AppData/Roaming/com.gridironiq.app/seasons/2026-varsity-demo/season.json';

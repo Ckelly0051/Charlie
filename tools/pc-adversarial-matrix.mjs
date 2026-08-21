@@ -120,6 +120,50 @@
       two methods, at which point they exercise the real implementation with
       no further change to this file.
 
+   PC-1 (`090d4ab`) closed sections 3, 3b, 5/6, 11, 12 and four of section 7's
+   six assertions -- reclassified TARGET -> LOCK, since they now pass against
+   real production code (SeasonStore.adopt()'s id-reassignment/awaitability;
+   SqlCatalog/BrowserBackend backup ownership scoping; the new
+   getVersionScoped/deleteVersionScoped seam). Section 7's two legacy bare
+   getVersion/deleteVersion assertions stay TARGET, deliberately, disclosed as
+   a dormant gap with zero production callers rather than a scheduled item.
+
+   REPAIR of `1aefe8b` (both required items, verified against source before
+   being changed, not taken on report):
+
+   1. [P0] Section 3b was rewritten, not just relabeled. The PC-1 version used
+      `bound:false`, so it could not observe either mutation Codex's direct
+      reproduction found: a rejected import replacing the live in-memory
+      season, and one Documents-mirror write landing the rejected payload on
+      disk. Root cause (fixed in js/season-store.js and
+      js/storage-backend.js): `SeasonStore.adopt()` mutated `this.data` before
+      awaiting `persist()`, with no rollback on failure; `persist()` armed
+      `_scheduleDiskWrite()` unconditionally, before the canonical save result
+      was known; `TauriBackend.writeDisk()` called `_mirrorToDocuments()`/
+      `createBackup()` regardless of whether its own internal `saveSeason()`
+      succeeded. Section 3b now uses `bound:true` and the same real-callback-
+      capture technique section 4 already established, so it can prove --
+      not assume -- zero armed timers and zero disk/mirror writes on a
+      rejected import, plus a successful-import control proving the same
+      mechanism genuinely writes when the save legitimately succeeds. New
+      section 3c proves the second half of the finding: a destination season
+      created solely for a failed first-run import (StorageManager.
+      loadProject()'s no-current-season bootstrap branch) is rolled back
+      (deleted), not left as an orphaned empty library entry.
+   2. [P1] Every identity-sensitive method on StorageBackend/BrowserBackend/
+      TauriBackend (loadSeason/saveSeason/createBackup/listBackups/getBackup/
+      deleteBackup/writeDisk) now takes seasonId as an explicit, required
+      first parameter -- SeasonStore, the sole caller anywhere in js/, passes
+      this.currentSeasonId explicitly at every call site. SqlCatalog's backup
+      methods are also explicit-seasonId now, closing the "below the
+      [CatalogPersistence] seam" half Codex named specifically. Sections 5/6
+      and 11 were extended to pin an incorrect ambient this.currentId cannot
+      redirect a read/write scoped elsewhere by an explicit argument;
+      tools/e2e-catalog-backend.mjs proves the same directly against the real
+      TauriBackend, plus two new assertions proving TauriBackend.writeDisk()
+      gates the snapshot backup and Documents mirror on the canonical save
+      succeeding.
+
    Deliberately NOT named tools/e2e-*.mjs: tools/run-gate.sh and CI glob that
    pattern and require every harness green. This file's target-contract
    sections are supposed to be red until their checkpoint lands. Fold it into
@@ -287,10 +331,10 @@ section('3. Importing a season file must persist under the destination id, await
     currentId: null, RETENTION: 25,
     setCurrentSeason(id) { this.currentId = id; },
     async createSeason(meta) { return { id: 'lib-' + Math.random().toString(36).slice(2, 8), name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
-    async loadSeason() { return fsA.state.json.get(this.currentId) || null; },
-    async saveSeason(data) {
-      if (!data || (data.id && String(data.id) !== String(this.currentId))) return false;
-      fsA.state.json.set(this.currentId, clone(data));
+    async loadSeason(seasonId) { return fsA.state.json.get(seasonId) || null; },
+    async saveSeason(seasonId, data) {
+      if (!data || (data.id && String(data.id) !== String(seasonId))) return false;
+      fsA.state.json.set(seasonId, clone(data));
       return true;
     },
     async touchOpened() {},
@@ -314,8 +358,8 @@ section('3. Importing a season file must persist under the destination id, await
     currentId: null, RETENTION: 25,
     setCurrentSeason(id) { this.currentId = id; },
     async createSeason(meta) { return { id: 'lib-' + Math.random().toString(36).slice(2, 8), name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
-    async loadSeason() { return null; },
-    async saveSeason(_data) { return false; }, // simulates a genuine durable-write failure (disk full, catalog down, etc.)
+    async loadSeason(_seasonId) { return null; },
+    async saveSeason(_seasonId, _data) { return false; }, // simulates a genuine durable-write failure (disk full, catalog down, etc.)
     async touchOpened() {},
     diskStatus() { return { bound: false }; },
   };
@@ -338,16 +382,29 @@ section('3. Importing a season file must persist under the destination id, await
 flush();
 
 // ============================================================================
-// 3b. LOCK (closed PC-1) -- proves the finding at the REAL production caller,
-//     not just inside SeasonStore. Section 3 proved adopt() itself is fixed
-//     (destination-id reassignment + awaitable durable result); this section
-//     proves StorageManager.loadProject() (js/storage.js:1257) actually
-//     CONSUMES that result rather than proceeding as though every import
-//     succeeded. This constructs a REAL StorageManager (not a fake) via a
-//     minimal platform shim (window/document/FileReader/alert -- the same
-//     "fake the platform, not the code under test" discipline as the
-//     indexedDB/localStorage shims above) and drives its actual
-//     loadProject() method.
+// 3b. LOCK (closed PC-1, repair of Codex `1aefe8b` finding 1) -- proves the
+//     finding at the REAL production caller, not just inside SeasonStore.
+//     Section 3 proved adopt() itself is fixed (destination-id reassignment +
+//     awaitable durable result); this section proves StorageManager.
+//     loadProject() (js/storage.js:1257) actually CONSUMES that result rather
+//     than proceeding as though every import succeeded, AND that the whole
+//     import is ATOMIC end to end: a rejected save must never mutate the live
+//     in-memory store, and must never arm the debounced disk/Documents-mirror
+//     write that would otherwise land the rejected payload on disk 2.5s
+//     later. This constructs a REAL StorageManager (not a fake) via a minimal
+//     platform shim (window/document/FileReader/alert -- the same "fake the
+//     platform, not the code under test" discipline as the indexedDB/
+//     localStorage shims above) and drives its actual loadProject() method.
+//
+//     `1aefe8b` finding 1, reproduced independently before this fix, verbatim:
+//     "A rejected import still replaces the live in-memory season and writes
+//     the failed payload to the desktop sidecar... the new caller test uses
+//     bound:false, so it cannot detect either mutation." This section fixes
+//     both root causes (js/season-store.js adopt()/persist()) and uses
+//     bound:true plus the SAME real-callback-capture technique section 4
+//     already established for _scheduleDiskWrite(), so the disk/mirror timer
+//     is genuinely reachable and this can prove it is never armed -- not
+//     merely assumed to be safe because the fixture never exercised it.
 //
 //     Deliberately isolated from finding 3a: with the id-reassignment fix in
 //     place, a destination/payload id mismatch can no longer be the reason a
@@ -355,10 +412,11 @@ flush();
 //     durable-write failure (disk full, catalog rejected the write) on an
 //     ALREADY-open season being overwritten by import -- the failure a caller
 //     can still hit even after 3a is fixed. Both a failure case and a
-//     success case are driven through the same real caller, so this cannot
-//     pass merely by loadProject() refusing every import unconditionally.
+//     success case are driven through the same real caller, with the success
+//     case proving the timer/mirror mechanism is genuinely alive (not merely
+//     silent because everything in the fixture is broken).
 // ============================================================================
-section('3b. StorageManager.loadProject() must not proceed as though import succeeded when the durable save failed [LOCK, closed PC-1]');
+section('3b. StorageManager.loadProject() must be atomic: no live mutation, no disk/mirror write, and a visible failure when the durable save is rejected [LOCK, closed PC-1]');
 {
   if (!globalThis.window) globalThis.window = globalThis;
   if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -370,6 +428,7 @@ section('3b. StorageManager.loadProject() must not proceed as though import succ
     globalThis.__pcFakeFileReaderInstalled = true;
   }
   const { StorageManager } = await import('../js/storage.js');
+  const deepEq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
   function makeHarness(saveSeasonImpl) {
     const noopEmitter = { on() {}, off() {} };
@@ -380,19 +439,25 @@ section('3b. StorageManager.loadProject() must not proceed as though import succ
     const sm = new StorageManager(vc, tagger, canvas);
 
     const writes = [];
+    const diskWrites = [];
     const backend = {
       currentId: null, RETENTION: 25,
       setCurrentSeason(id) { this.currentId = id; },
       async createSeason(meta) { return { id: 'lib-imported', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
       async loadSeason() { return null; },
-      async saveSeason(data) {
-        const idMatches = !!(data && data.id === this.currentId);
+      async saveSeason(seasonId, data) {
+        const idMatches = !!(data && data.id === seasonId);
         const ok = saveSeasonImpl(idMatches);
         writes.push({ id: data && data.id, idMatches, ok });
         return ok;
       },
       async touchOpened() {},
-      diskStatus() { return { bound: false }; },
+      // PC-1: must be bound:true -- Codex's exact finding 1 was that a
+      // bound:false fixture cannot observe either mutation this section
+      // exists to prove is now impossible.
+      diskStatus() { return { bound: true }; },
+      async writeDisk(seasonId, data, opts) { diskWrites.push({ seasonId, id: data && data.id, snapshot: !!(opts && opts.snapshot) }); return true; },
+      async createBackup() { return null; },
     };
     const store = new SeasonStore(backend);
     // A season is ALREADY open before the import (the realistic case this
@@ -403,43 +468,133 @@ section('3b. StorageManager.loadProject() must not proceed as though import succ
     backend.setCurrentSeason('lib-imported');
     store.data = store._empty();
     store.data.id = 'lib-imported';
+    store.data.seasonName = 'Original Live Season';
     sm.seasonStore = store; // the real constructor's own SeasonStore is discarded in favor of this controllable one
 
     let clearCalled = false, loadCalled = false;
     sm._clearForNewGame = () => { clearCalled = true; };
     sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
-    return { sm, writes, toasts, get clearCalled() { return clearCalled; }, get loadCalled() { return loadCalled; } };
+    return { sm, store, writes, diskWrites, toasts, get clearCalled() { return clearCalled; }, get loadCalled() { return loadCalled; } };
+  }
+
+  // Drives one full import attempt, capturing every _scheduleDiskWrite()
+  // timer armed during it (the real 2.5s debounce, matched by delay), then
+  // FIRES each captured timer exactly as the real debounce eventually would
+  // -- so "zero sidecar/mirror writes" is proven by actually letting the
+  // timer window elapse, not assumed from the timer never being armed.
+  async function runImport(saveSeasonImpl, fileSeasonName) {
+    const h = makeHarness(saveSeasonImpl);
+    const priorSnapshot = clone(h.store.data);
+    const importedSeasonJson = season('original-machine-id-xyz', fileSeasonName); // a real exported file carries ITS OWN id
+    const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
+
+    const realSetTimeout = globalThis.setTimeout;
+    const capturedTimers = [];
+    globalThis.setTimeout = (fn, ms) => { if (ms === 2500) { capturedTimers.push(fn); return 0; } return realSetTimeout(fn, ms); };
+    h.sm.loadProject(fakeFile);
+    await new Promise(r => realSetTimeout(r, 50)); // settle the fake FileReader's microtask + adopt()'s awaited persist
+    globalThis.setTimeout = realSetTimeout;
+
+    capturedTimers.forEach(fn => fn());   // let the debounce window fully elapse
+    return { ...h, priorSnapshot, timersArmed: capturedTimers.length };
   }
 
   // Case A: the durable write genuinely fails for an external reason, even
   // though the destination/payload id is correct (proving this is NOT a
   // re-test of 3a's id-mismatch bug).
-  const failing = makeHarness(() => false);
-  const importedSeasonJsonA = season('original-machine-id-xyz', 'Imported Season'); // a real exported file carries ITS OWN id
-  const fakeFileA = { name: 'imported.json', __text: JSON.stringify(importedSeasonJsonA) };
-  failing.sm.loadProject(fakeFileA);
-  await new Promise(r => setTimeout(r, 50)); // settle the fake FileReader's microtask + adopt()'s awaited persist
+  const failing = await runImport(() => false, 'Imported Season');
 
   ok('lock', failing.writes.some(w => w.idMatches && !w.ok),
     'sanity: the import save was attempted under the CORRECT destination id (proving isolation from 3a) and still failed for an external reason',
     JSON.stringify(failing.writes));
+  ok('lock', deepEq(failing.store.data, failing.priorSnapshot),
+    'a rejected import leaves the live in-memory store byte-identical to before the attempt (reproduced before this fix: live season name changed to the rejected payload\'s)',
+    `live data is now ${JSON.stringify(failing.store.data)}`);
+  ok('lock', failing.timersArmed === 0,
+    'a rejected import never arms the debounced disk/Documents-mirror write timer',
+    `armed=${failing.timersArmed}`);
+  ok('lock', failing.diskWrites.length === 0,
+    'a rejected import performs zero sidecar/mirror writes even after the debounce window has fully elapsed (reproduced before this fix: one mirror write containing the rejected payload)',
+    JSON.stringify(failing.diskWrites));
   ok('lock', failing.clearCalled === false, 'loadProject() does not tear down the current editor for a failed import', `clearCalled=${failing.clearCalled}`);
   ok('lock', failing.loadCalled === false, 'loadProject() does not re-render as though the import succeeded on a failed durable save', `loadCalled=${failing.loadCalled}`);
   ok('lock', failing.toasts.some(t => /import failed/i.test(t.msg)), 'loadProject() surfaces the durable-write failure to the coach with a visible toast',
     JSON.stringify(failing.toasts));
 
-  // Case B: the same caller, the same shape of file, but the durable write
-  // GENUINELY succeeds -- proves the failure guard above is not simply
-  // refusing every import unconditionally.
-  const succeeding = makeHarness(() => true);
-  const importedSeasonJsonB = season('original-machine-id-xyz', 'Imported Season 2');
-  const fakeFileB = { name: 'imported2.json', __text: JSON.stringify(importedSeasonJsonB) };
-  succeeding.sm.loadProject(fakeFileB);
-  await new Promise(r => setTimeout(r, 50));
+  // Case B: the SUCCESSFUL control -- same caller, same shape of file, but
+  // the durable write genuinely succeeds. Proves the failure guards above are
+  // not simply refusing every import unconditionally, AND that the timer/
+  // mirror mechanism genuinely fires and writes when the save is legitimate
+  // (so the "zero writes" result above isn't vacuously true because nothing
+  // in this fixture can ever write at all).
+  const succeeding = await runImport(() => true, 'Imported Season 2');
 
   ok('lock', succeeding.clearCalled === true && succeeding.loadCalled === true,
     'loadProject() proceeds to load the imported season once the durable write genuinely succeeds',
     `clearCalled=${succeeding.clearCalled} loadCalled=${succeeding.loadCalled}`);
+  ok('lock', succeeding.timersArmed === 1,
+    'a SUCCESSFUL import arms exactly one debounced disk/Documents-mirror write', `armed=${succeeding.timersArmed}`);
+  ok('lock', succeeding.diskWrites.length === 1 && succeeding.diskWrites[0].id === 'lib-imported',
+    'firing that timer performs exactly one disk/mirror write, matching the durably-saved season',
+    JSON.stringify(succeeding.diskWrites));
+}
+flush();
+
+// ============================================================================
+// 3c. LOCK (closed PC-1, repair of Codex `1aefe8b` finding 1, second half) --
+//     "roll back a destination created solely for a failed first-run
+//     import." Section 3b exercises the already-open-season path exclusively
+//     (hasCurrent() true throughout); this section exercises the OTHER
+//     branch of StorageManager.loadProject() -- a genuine first-run import
+//     with no season open, where loadProject() calls seasonStore.
+//     createSeason() to bootstrap a destination BEFORE adopt() runs. If that
+//     import then fails, the freshly-created season is an orphaned, empty,
+//     purposeless library entry -- it must be deleted, not left behind.
+// ============================================================================
+section('3c. A first-run import that creates its own destination season rolls that season back on a rejected durable save [LOCK, closed PC-1]');
+{
+  const { StorageManager } = await import('../js/storage.js');   // globals from section 3b already installed
+  const noopEmitter = { on() {}, off() {} };
+  const vc = { ...noopEmitter, paused: true };
+  const toasts = [];
+  const tagger = { ...noopEmitter, plays: [], toast(msg, dur) { toasts.push({ msg, dur }); } };
+  const canvas = { ...noopEmitter, annotations: [] };
+  const sm = new StorageManager(vc, tagger, canvas);
+
+  const seasons = new Map();   // models the library: id -> meta
+  const backend = {
+    currentId: null, RETENTION: 25,
+    setCurrentSeason(id) { this.currentId = id; },
+    async createSeason(meta) {
+      const rec = { id: 'lib-fresh-' + Math.random().toString(36).slice(2, 8), name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 };
+      seasons.set(rec.id, rec);
+      return rec;
+    },
+    async deleteSeason(id) { return seasons.delete(id); },
+    async loadSeason(_seasonId) { return null; },
+    async saveSeason(_seasonId, _data) { return false; },   // the import's durable write always fails
+    async touchOpened() {},
+    diskStatus() { return { bound: false }; },
+  };
+  const store = new SeasonStore(backend);
+  ok('lock', !store.hasCurrent(), 'sanity: no season is open before the first-run import (hasCurrent() is false)');
+  sm.seasonStore = store;
+
+  let clearCalled = false, loadCalled = false;
+  sm._clearForNewGame = () => { clearCalled = true; };
+  sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+
+  const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season');
+  const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
+  sm.loadProject(fakeFile);
+  await new Promise(r => setTimeout(r, 50));
+
+  ok('lock', seasons.size === 0,
+    'the destination season created solely for this failed import is rolled back (deleted), not left as an orphaned empty library entry',
+    `seasons remaining: ${JSON.stringify([...seasons.keys()])}`);
+  ok('lock', !store.hasCurrent(), 'the store returns to its pre-import state: no season open', `currentSeasonId=${store.currentSeasonId}`);
+  ok('lock', clearCalled === false && loadCalled === false, 'loadProject() never proceeds to load a season that was never durably saved', `clearCalled=${clearCalled} loadCalled=${loadCalled}`);
+  ok('lock', toasts.some(t => /import failed/i.test(t.msg)), 'the coach still sees the failure toast', JSON.stringify(toasts));
 }
 flush();
 
@@ -454,11 +609,11 @@ section('4. A delayed disk write scheduled for season A must not land on season 
     currentId: null, RETENTION: 25,
     setCurrentSeason(id) { this.currentId = id; },
     async createSeason(meta) { return { id: meta.name, name: meta.name, team: '', year: '', level: '', games: 0, plays: 0 }; },
-    async loadSeason() { return null; },
-    async saveSeason(_data) { return true; },
+    async loadSeason(_seasonId) { return null; },
+    async saveSeason(_seasonId, _data) { return true; },
     async touchOpened() {},
     diskStatus() { return { bound: true }; }, // must be bound, or _scheduleDiskWrite no-ops before arming anything
-    async writeDisk(data) { writes.push({ target: this.currentId, id: data && data.id }); return true; },
+    async writeDisk(seasonId, data) { writes.push({ target: seasonId, id: data && data.id }); return true; },
   };
   const store = new SeasonStore(backend);
   const realSetTimeout = globalThis.setTimeout;
@@ -510,23 +665,26 @@ section('5/6. A backup id from a DIFFERENT season must be rejected, not silently
   cat.setCurrentSeason('season-B');
   cat.saveSeason(season('season-B', 'Bravo', { games: [mkGame('gB')] }));
 
-  cat.setCurrentSeason('season-B');
-  const bId = cat.createBackup(season('season-B', 'Bravo Backup', { games: [mkGame('gB')] }), 'B point');
+  const bId = cat.createBackup('season-B', season('season-B', 'Bravo Backup', { games: [mkGame('gB')] }), 'B point');
   // LOCK: own-scope positive control -- B/B must be able to read its own
   // backup, or the cross-season target reds below could be "achieved" by a
   // broken createBackup/getBackup pair rather than a real ownership gap
   // (Codex 6ed3bb1 finding 2).
-  ok('lock', cat.getBackup(bId)?.seasonName === 'Bravo Backup', "positive control: season-B, scoped to itself, can read its own backup");
+  ok('lock', cat.getBackup('season-B', bId)?.seasonName === 'Bravo Backup', "positive control: season-B, scoped to itself, can read its own backup");
 
-  cat.setCurrentSeason('season-A');
-  const leaked = cat.getBackup(bId);
-  ok('lock', leaked === null, 'getBackup(id) scoped to season-A refuses a backup id that belongs to season-B',
+  // PC-1: an explicit seasonId argument -- not this.currentId -- is what
+  // determines scope now. Deliberately point the ambient pointer at the
+  // WRONG season (season-A) while still passing 'season-A' explicitly, so
+  // this proves the explicit id is what refuses the read, not a coincidence
+  // of whatever the ambient pointer happened to hold.
+  cat.setCurrentSeason('WRONG-AMBIENT-SEASON');
+  const leaked = cat.getBackup('season-A', bId);
+  ok('lock', leaked === null, 'getBackup(seasonId, id) scoped to season-A refuses a backup id that belongs to season-B, regardless of the ambient pointer',
     leaked ? `returned season data for '${leaked.seasonName}' instead of null` : '');
 
-  cat.deleteBackup(bId);
-  cat.setCurrentSeason('season-B');
-  const stillThere = cat.getBackup(bId);
-  ok('lock', stillThere !== null, "deleteBackup(id) scoped to season-A must NOT delete season-B's backup",
+  cat.deleteBackup('season-A', bId);
+  const stillThere = cat.getBackup('season-B', bId);
+  ok('lock', stillThere !== null, "deleteBackup(seasonId, id) scoped to season-A must NOT delete season-B's backup",
     stillThere ? '' : "season-B's backup was deleted by a call scoped to season-A");
   cat.close();
 }
@@ -724,26 +882,26 @@ section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER
 {
   installFakeIndexedDB();
   const backend = new BrowserBackend();
-  backend.setCurrentSeason('season-A');
-  await backend.createBackup(season('season-A', 'Alpha'), 'A point');
-  backend.setCurrentSeason('season-B');
-  const bId = (await backend.createBackup(season('season-B', 'Bravo'), 'B point')).id;
+  await backend.createBackup('season-A', season('season-A', 'Alpha'), 'A point');
+  const bId = (await backend.createBackup('season-B', season('season-B', 'Bravo'), 'B point')).id;
   // LOCK: own-scope positive control (Codex 6ed3bb1 finding 2).
-  ok('lock', (await backend.getBackup(bId))?.seasonName === 'Bravo', 'positive control: season-B, scoped to itself, can read its own BrowserBackend backup');
+  ok('lock', (await backend.getBackup('season-B', bId))?.seasonName === 'Bravo', 'positive control: season-B, scoped to itself, can read its own BrowserBackend backup');
 
-  backend.setCurrentSeason('season-A');
-  const leaked = await backend.getBackup(bId);
+  // PC-1: an incorrect ambient this.currentId ('WRONG-AMBIENT-SEASON', neither
+  // season-A nor season-B) must not be able to redirect the read -- only the
+  // explicit seasonId argument decides scope.
+  backend.currentId = 'WRONG-AMBIENT-SEASON';
+  const leaked = await backend.getBackup('season-A', bId);
   // BrowserBackend.getBackup's not-found path can surface as `undefined`
   // (a real quirk of _tx's out.result normalization on a miss), not
   // strictly `null` as its own doc comment promises -- use a loose/"is
   // this absent" check so that quirk doesn't mask the real assertion.
-  ok('lock', leaked == null, "BrowserBackend.getBackup(id) scoped to season-A refuses a backup id that belongs to season-B",
+  ok('lock', leaked == null, "BrowserBackend.getBackup(seasonId, id) scoped to season-A refuses a backup id that belongs to season-B, regardless of the ambient pointer",
     leaked != null ? `returned season data for '${leaked.seasonName}' instead of nothing` : '');
 
-  await backend.deleteBackup(bId);
-  backend.setCurrentSeason('season-B');
-  const stillThere = await backend.getBackup(bId);
-  ok('lock', stillThere != null, "BrowserBackend.deleteBackup(id) scoped to season-A must NOT delete season-B's backup",
+  await backend.deleteBackup('season-A', bId);
+  const stillThere = await backend.getBackup('season-B', bId);
+  ok('lock', stillThere != null, "BrowserBackend.deleteBackup(seasonId, id) scoped to season-A must NOT delete season-B's backup",
     stillThere != null ? '' : "season-B's backup was deleted by a call scoped to season-A");
 }
 flush();
@@ -779,7 +937,7 @@ section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to 
   const recB = await backend.createSeason({ name: 'Season-B' });
   store.currentSeasonId = recB.id; backend.setCurrentSeason(recB.id);
   store.data = store._empty(); store.data.id = recB.id; store.data.seasonName = 'Season B live data';
-  const bBackupId = (await backend.createBackup(clone(store.data), 'B point')).id;
+  const bBackupId = (await backend.createBackup(recB.id, clone(store.data), 'B point')).id;
 
   // LOCK: own-scope positive control -- restoring season-B's OWN backup while
   // still scoped to season-B must genuinely work, or the cross-season lock

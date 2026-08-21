@@ -176,12 +176,15 @@ export class CatalogPersistence {
   // re-exports the db bytes so the ring is durable; a write failure is swallowed
   // (best-effort, like the mirror) — a lost restore point never blocks a save, and
   // the canonical season data is unaffected. Each op pins the season scope first.
+  // PC-1: pass id straight through to the catalog's own explicit-seasonId
+  // methods -- no setCurrentSeason() call needed. Closes the "below the
+  // seam" half of the explicit-identity finding (js/sql-catalog.js now
+  // never consults this.currentId for any of these four ops).
   async createBackup(id, data, label) {
     if (!id || !data) return null;
     await this._ensureLoaded();
-    this.catalog.setCurrentSeason(id);
     let bid = null;
-    try { bid = this.catalog.createBackup(data, label || 'Save'); }
+    try { bid = this.catalog.createBackup(id, data, label || 'Save'); }
     catch (e) { return null; }
     try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
     return bid;
@@ -189,20 +192,17 @@ export class CatalogPersistence {
   async listBackups(id) {
     if (!id) return [];
     await this._ensureLoaded();
-    this.catalog.setCurrentSeason(id);
-    try { return this.catalog.listBackups(); } catch (e) { return []; }
+    try { return this.catalog.listBackups(id); } catch (e) { return []; }
   }
   async getBackup(id, backupId) {
     if (!id || !backupId) return null;
     await this._ensureLoaded();
-    this.catalog.setCurrentSeason(id);
-    try { return this.catalog.getBackup(backupId); } catch (e) { return null; }
+    try { return this.catalog.getBackup(id, backupId); } catch (e) { return null; }
   }
   async deleteBackup(id, backupId) {
     if (!id || !backupId) return;
     await this._ensureLoaded();
-    this.catalog.setCurrentSeason(id);
-    try { this.catalog.deleteBackup(backupId); } catch (e) { return; }
+    try { this.catalog.deleteBackup(id, backupId); } catch (e) { return; }
     try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
   }
 

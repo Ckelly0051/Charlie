@@ -354,29 +354,31 @@ export class SqlCatalog {
   /** Import an existing season.json (post-_normalize) into the catalog. Idempotent per id. */
   importSeasonJson(seasonObj) { return this.saveSeason(seasonObj); }
 
-  // ---- backup ring (scoped to currentId) -----------------------------------
-  createBackup(data, label) {
+  // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
+  // Every method below takes seasonId as an explicit first parameter. The
+  // caller (CatalogPersistence) passes it straight through -- it no longer
+  // needs to call setCurrentSeason() before reaching any of these, closing
+  // the "below the seam" half of the explicit-identity requirement (the
+  // "above" half is CatalogPersistence itself, already explicit since A3).
+  createBackup(seasonId, data, label) {
     const id = this._newId('bk');
     this._run('INSERT INTO backups (id,season_id,t,label,games_count,plays_count,season_name,body_json) VALUES (?,?,?,?,?,?,?,?)',
-      [id, this.currentId, new Date().toISOString(), label || 'Save',
+      [id, seasonId, new Date().toISOString(), label || 'Save',
        (data.games || []).length, SqlCatalog._countPlays(data), data.seasonName || '', JSON.stringify(data)]);
-    this._pruneBackups();
+    this._pruneBackups(seasonId);
     return id;
   }
-  listBackups() {
-    return this._all('SELECT id,t,label,games_count,plays_count,season_name FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId])
+  listBackups(seasonId) {
+    return this._all('SELECT id,t,label,games_count,plays_count,season_name FROM backups WHERE season_id = ? ORDER BY t DESC', [seasonId])
       .map(r => ({ id: r.id, t: r.t, label: r.label, seasonName: r.season_name || '', games: r.games_count || 0, plays: r.plays_count || 0 }));
   }
-  // PC-1: scoped to this.currentId (the caller's own destination season --
-  // the same pointer saveSeason/createBackup already validate against), so a
-  // backup id that was listed under a DIFFERENT season can no longer be read
-  // or deleted just by knowing its id. CatalogPersistence.getBackup/deleteBackup
-  // already call setCurrentSeason(seasonId) immediately before reaching here,
-  // so this scoping is exact with no caller change required.
-  getBackup(id) { const r = this._get('SELECT body_json FROM backups WHERE id = ? AND season_id = ?', [id, this.currentId]); return r ? JSON.parse(r.body_json) : null; }
-  deleteBackup(id) { this._run('DELETE FROM backups WHERE id = ? AND season_id = ?', [id, this.currentId]); }
-  _pruneBackups() {
-    const ids = this._all('SELECT id FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId]).map(r => r.id);
+  // A backup id that was listed under a DIFFERENT season can no longer be
+  // read or deleted just by knowing its id -- the caller's own explicit
+  // seasonId is the only source of scope, never an ambient pointer.
+  getBackup(seasonId, id) { const r = this._get('SELECT body_json FROM backups WHERE id = ? AND season_id = ?', [id, seasonId]); return r ? JSON.parse(r.body_json) : null; }
+  deleteBackup(seasonId, id) { this._run('DELETE FROM backups WHERE id = ? AND season_id = ?', [id, seasonId]); }
+  _pruneBackups(seasonId) {
+    const ids = this._all('SELECT id FROM backups WHERE season_id = ? ORDER BY t DESC', [seasonId]).map(r => r.id);
     ids.slice(this.RETENTION).forEach(id => this._run('DELETE FROM backups WHERE id = ?', [id]));
   }
 

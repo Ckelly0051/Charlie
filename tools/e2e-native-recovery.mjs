@@ -17,7 +17,7 @@ let r=await page.evaluate(()=>({seasonCopy:document.querySelector('[data-setting
 ok(/WHOLE SEASON/.test(r.seasonCopy)&&/CURRENT GAME/.test(r.seasonCopy)&&/Restores every game/.test(r.seasonCopy)&&/Restores only the open game/.test(r.seasonCopy)&&!r.legacy,'Recovery distinguishes durable whole-season restore points from current-game versions',JSON.stringify(r));
 
 await page.click('[aria-label="Restore point label"]');for(const ch of 'Before re-tag'){await page.keyboard.type(ch,{delay:15});}await page.click('[data-settings-panel="recovery"] .gi-settings-section:first-child .gi-settings-primary');await page.waitForFunction(()=>[...document.querySelectorAll('[data-season-restore] strong')].some(el=>el.textContent==='Before re-tag'));
-r=await page.evaluate(async()=>({points:await window.app.storage.seasonStore.listBackups(),canonical:await window.app.storage.seasonStore.backend.loadSeason()}));
+r=await page.evaluate(async()=>({points:await window.app.storage.seasonStore.listBackups(),canonical:await window.app.storage.seasonStore.backend.loadSeason(window.app.storage.seasonStore.currentSeasonId)}));
 ok(r.points.some(p=>p.label==='Before re-tag')&&r.canonical.games.length===2,'Create restore point persists a real two-game season snapshot',JSON.stringify(r.points));
 const baselineId=await page.$eval('[data-season-restore]',el=>el.dataset.seasonRestore);
 
@@ -26,13 +26,13 @@ await page.click(`[data-season-restore="${baselineId}"] button`);await page.wait
 r=await page.evaluate(()=>{const panel=document.querySelector('[data-overlay-action="cancel"]')?.closest('.gi-overlay-panel');return{title:panel?.querySelector('h2')?.textContent||'',text:panel?.textContent||'',focused:document.activeElement?.dataset.overlayAction};});
 ok(/Restore this season/.test(r.title)&&/Every game/.test(r.text)&&/reversible/.test(r.text)&&r.focused==='cancel','Season restore names its full impact and defaults focus away from the destructive action',JSON.stringify(r));
 await page.click('[data-overlay-action="restore"]');await page.waitForFunction(()=>window.app.storage.seasonStore.data.games.every(g=>g.plays[0].notes.startsWith('baseline')));
-r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore,canonical=await store.backend.loadSeason(),points=await store.listBackups();return{live:store.data.games.map(g=>g.plays[0].notes),canonical:canonical.games.map(g=>g.plays[0].notes),safety:points.some(p=>p.label==='Before restore'),active:window.app.tagger.plays[0].notes};});
+r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore,canonical=await store.backend.loadSeason(store.currentSeasonId),points=await store.listBackups();return{live:store.data.games.map(g=>g.plays[0].notes),canonical:canonical.games.map(g=>g.plays[0].notes),safety:points.some(p=>p.label==='Before restore'),active:window.app.tagger.plays[0].notes};});
 ok(JSON.stringify(r.live)==='["baseline-a","baseline-b"]'&&JSON.stringify(r.canonical)===JSON.stringify(r.live)&&r.safety&&r.active==='baseline-a','Season restore updates every game, reloads the active editor, persists canonical bytes, and saves the prior state',JSON.stringify(r));
 
 // A failed canonical save must leave both the live season and stored season on the pre-restore state.
 await page.evaluate(async()=>{const app=window.app,store=app.storage.seasonStore;app.tagger.plays[0].notes='keep-a';app.storage.commitActive();store.data.games.find(g=>g.id==='g-b').plays[0].notes='keep-b';await store.persist();window.__restoreSave=store.backend.saveSeason.bind(store.backend);store.backend.saveSeason=async()=>false;});
 await page.click(`[data-season-restore="${baselineId}"] button`);await page.waitForSelector('[data-overlay-action="restore"]');await page.click('[data-overlay-action="restore"]');await new Promise(resolve=>setTimeout(resolve,250));
-r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore;store.backend.saveSeason=window.__restoreSave;const canonical=await store.backend.loadSeason();return{live:store.data.games.map(g=>g.plays[0].notes),canonical:canonical.games.map(g=>g.plays[0].notes),active:window.app.tagger.plays[0].notes,toasts:[...document.querySelectorAll('[role="status"]')].map(el=>el.textContent)};});
+r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore;store.backend.saveSeason=window.__restoreSave;const canonical=await store.backend.loadSeason(store.currentSeasonId);return{live:store.data.games.map(g=>g.plays[0].notes),canonical:canonical.games.map(g=>g.plays[0].notes),active:window.app.tagger.plays[0].notes,toasts:[...document.querySelectorAll('[role="status"]')].map(el=>el.textContent)};});
 ok(JSON.stringify(r.live)==='["keep-a","keep-b"]'&&JSON.stringify(r.canonical)===JSON.stringify(r.live)&&r.active==='keep-a','Failed season restore rolls back in memory, keeps canonical storage unchanged, and never reloads stale backup data',JSON.stringify(r));
 
 // Quick versions stay scoped to the open game.
@@ -44,7 +44,7 @@ ok(r.a==='keep-a'&&r.b==='keep-b'&&r.other.length===0,'Game version restore chan
 
 await page.evaluate(async()=>{const app=window.app,store=app.storage.seasonStore;app.tagger.plays[0].notes='keep-version-failure';app.storage.commitActive();await store.persist();window.__versionSave=store.backend.saveSeason.bind(store.backend);store.backend.saveSeason=async()=>false;});
 await page.click(`[data-game-version="${versionId}"] button`);await new Promise(resolve=>setTimeout(resolve,250));
-r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore;store.backend.saveSeason=window.__versionSave;const canonical=await store.backend.loadSeason();return{live:window.app.tagger.plays[0].notes,stored:store.data.games.find(g=>g.id==='g-a').plays[0].notes,canonical:canonical.games.find(g=>g.id==='g-a').plays[0].notes};});
+r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore;store.backend.saveSeason=window.__versionSave;const canonical=await store.backend.loadSeason(store.currentSeasonId);return{live:window.app.tagger.plays[0].notes,stored:store.data.games.find(g=>g.id==='g-a').plays[0].notes,canonical:canonical.games.find(g=>g.id==='g-a').plays[0].notes};});
 ok(r.live==='keep-version-failure'&&r.stored===r.live&&r.canonical===r.live,'Failed game-version restore keeps the live game and canonical season on the pre-restore state',JSON.stringify(r));
 
 await page.evaluate(()=>window.app.settingsScreen.close('done'));await page.waitForFunction(()=>document.activeElement?.id==='recovery-invoker');ok(await page.evaluate(()=>document.activeElement?.id==='recovery-invoker'),'Closing Recovery restores its invoking control');

@@ -227,58 +227,156 @@ findings below — a corrupt catalog file currently has a plausible path to
 making a coach's real, undamaged seasons disappear from the library screen
 and then persisting that disappearance to `library.json`.
 
-### 3.1 — CLOSED, PC-1 — `SeasonStore.adopt()` reassigns the imported payload's id and reports genuine durable success/failure
+### 3.1 — CLOSED, PC-1 (repair of Codex `1aefe8b` finding 1) — import is now atomic: destination-correct, durably awaitable, and non-mutating on failure
 
-**Fixed and mutation-verified.** `SeasonStore.adopt(parsed)` (`js/season-store.js`)
-is now `async` and, before normalizing, reassigns the imported payload's own
-`id` to `this.currentSeasonId` — the destination library slot — so the
-destination/payload guard the backends already enforce (Invariant #2) sees a
-match instead of a false cross-season write attempt:
+**First PC-1 pass fixed id-reassignment and awaitability but NOT atomicity —
+Codex's `1aefe8b` review caught this with a direct reproduction: `ok:false`
+alongside the live in-memory season changing to the rejected payload's name,
+plus one Documents-mirror write containing that rejected payload.** Root
+cause, confirmed by reading source before touching anything: `adopt()`
+assigned the imported data to `this.data` *before* awaiting `persist()`, with
+no rollback on failure; and `persist()` called `_scheduleDiskWrite()`
+unconditionally, before the canonical `saveSeason()` result was known — so a
+rejected canonical save still armed the 2.5s debounce timer, which then wrote
+the rejected payload to the Documents mirror regardless. Both are now fixed:
 
 ```js
+// js/season-store.js
 async adopt(parsed) {
+  const prior = this.data;
+  let next;
   if (parsed && Array.isArray(parsed.games)) {
-    this.data = this._normalize({ ...parsed, id: this.currentSeasonId });
+    next = this._normalize({ ...parsed, id: this.currentSeasonId });
   } else if (parsed && Array.isArray(parsed.plays)) {
-    this.data = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
+    next = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
   } else {
     return { ok: false, data: null };
   }
+  this.data = next;
   const ok = await this.persist();
-  return { ok: ok !== false, data: this.data };
+  if (ok === false) {
+    this.data = prior;                 // roll back the live in-memory mutation
+    return { ok: false, data: prior };
+  }
+  return { ok: true, data: this.data };
+}
+
+persist() {
+  ...
+  const saved = Promise.resolve(this.backend.saveSeason(seasonId, this.data))
+    .then(ok => {
+      if (ok === false) { this._persistFailed(); return false; }
+      this._persistWarned = false;
+      this._scheduleDiskWrite();       // only armed AFTER the canonical save is confirmed durable
+      return true;
+    })
+    .catch(() => { this._persistFailed(); return false; });
+  return saved;
 }
 ```
 
-`adopt()` is now awaitable and returns `{ ok, data }` instead of the previous
-fire-and-forget `this.persist()` whose result went nowhere. The real caller,
-`StorageManager.loadProject()` (`js/storage.js:1257`), awaits it and bails
-visibly on a genuine durable-write failure instead of proceeding as though the
-import succeeded:
+`TauriBackend.writeDisk()` (`js/storage-backend.js`) was independently
+broken the same way — it called `saveSeason()`, then unconditionally called
+`createBackup()`/`_mirrorToDocuments()` regardless of whether that internal
+`saveSeason()` succeeded. Fixed as defense-in-depth (any caller of
+`writeDisk` directly, not just the `_scheduleDiskWrite` debounce, is now
+covered):
 
 ```js
+async writeDisk(seasonId, data, opts = {}) {
+  const ok = await this.saveSeason(seasonId, data);
+  if (!ok) return false;
+  if (opts.snapshot) await this.createBackup(seasonId, data, opts.label);
+  await this._mirrorToDocuments(seasonId, data, opts);
+  this._lastWrite = Date.now();
+  return ok;
+}
+```
+
+The second half of Codex's finding — "roll back a destination created
+solely for a failed first-run import" — is closed at `StorageManager.
+loadProject()` (`js/storage.js:1257`): when no season was open, `loadProject`
+calls `seasonStore.createSeason()` to bootstrap a destination before
+`adopt()` runs; if that import then fails, the freshly-created (now
+orphaned, empty) season is deleted rather than left behind:
+
+```js
+let createdFreshSeason = false;
 if (!this.seasonStore.hasCurrent()) {
-  await this.seasonStore.createSeason({ name: ..., teamId: ... });
+  const rec = await this.seasonStore.createSeason({ name: ..., teamId: ... });
+  createdFreshSeason = !!rec;
 }
 const result = await this.seasonStore.adopt(parsed);
 if (!result || result.ok === false) {
+  if (createdFreshSeason && this.seasonStore.currentSeasonId) {
+    try { await this.seasonStore.deleteSeason(this.seasonStore.currentSeasonId); } catch (e) {}
+  }
   this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
   return;
 }
-this._clearForNewGame();
-this._loadActiveGame();
 ```
 
-Proven at both layers by `tools/pc-adversarial-matrix.mjs` — section 3 drives
-`SeasonStore.adopt()` directly (destination-id honored; awaitable result;
-rejected-write visibly reported); section 3b drives the REAL
-`StorageManager.loadProject()` (not a fake) through a minimal platform shim,
-isolating a genuine external durable-write failure (disk full, catalog
-rejected the write) from the id-mismatch bug this finding describes, and
-proving both the failure path (editor not torn down, no re-render, a visible
-toast) and the success path (an import that genuinely persists is loaded)
-through the one real caller. All assertions in both sections are `[LOCK]`.
-Mutation-verified: reverting the id reassignment in `adopt()` reproduces the
-original defect exactly and reds both sections; restored, clean.
+Proven end to end by `tools/pc-adversarial-matrix.mjs`, all `[LOCK]`:
+section 3 (`SeasonStore.adopt()` directly — destination-id honored, awaitable
+result, rejected-write visibly reported); section 3b (the REAL
+`StorageManager.loadProject()`, `bound:true` this time per Codex's exact
+critique of the prior `bound:false` fixture — live store byte-identical after
+a rejection, zero debounce timers armed, zero disk/mirror writes even after
+the timer window is manually fired, editor untouched, visible toast, **plus**
+the successful control proving the mechanism genuinely writes when the save
+legitimately succeeds); section 3c (the first-run/no-current-season branch —
+the orphaned season is deleted, the store returns to "nothing open").
+Mutation-verified individually: reverting the `adopt()` rollback, the
+`persist()` disk-write-timing fix, the `writeDisk()` mirror gate, and the
+`loadProject()` season-rollback each reproduce their exact original defect
+(including the literal `Imported Season` live-name and one-mirror-write
+symptoms Codex's own reproduction reported) and red exactly their own
+section; all restored, clean.
+
+### 3.1b — CLOSED, PC-1 (repair of Codex `1aefe8b` finding 2) — explicit identity threaded through the whole desktop persistence API, both above and below the `CatalogPersistence` seam
+
+**Codex's second finding: the shared/Tauri APIs (`loadSeason()`,
+`saveSeason(data)`, `createBackup(data, label)`, `listBackups()`,
+`getBackup(id)`, `deleteBackup(id)`, `writeDisk(data, opts)`) remained scoped
+through ambient `this.currentId`, even though `CatalogPersistence` was
+already explicit — "the unsafe scope remains above and below that seam."**
+Every one of those methods, in the `StorageBackend` base class, `BrowserBackend`,
+and `TauriBackend`, now takes `seasonId` as an **explicit, required first
+parameter**; none of them consult `this.currentId`/`setCurrentSeason()` to
+choose a destination or scope any more. `SeasonStore` (the sole caller of
+these methods anywhere in `js/` — verified by grep) passes
+`this.currentSeasonId` explicitly at every call site (`persist()`, `load()`,
+`openSeason()`, `snapshot()`, `listBackups()`, `restoreBackup()`, `bindDisk()`,
+`saveNow()`, `_scheduleDiskWrite()`'s captured callback).
+
+"Below the seam" — `SqlCatalog`'s backup methods (`createBackup`,
+`listBackups`, `getBackup`, `deleteBackup`) — are also now explicit-`seasonId`,
+so `CatalogPersistence`'s own wrappers no longer call `setCurrentSeason()`
+before delegating to them at all:
+
+```js
+// js/sql-catalog.js
+getBackup(seasonId, id) { const r = this._get('SELECT body_json FROM backups WHERE id = ? AND season_id = ?', [id, seasonId]); return r ? JSON.parse(r.body_json) : null; }
+```
+
+`SqlCatalog.saveSeason(data)`/`loadSeason(id)` needed no change — they
+already preferred an explicit id (`data.id || this.currentId`, and a plain
+`id` parameter respectively) over the ambient pointer; `this.currentId`
+remains only as harmless delete-time bookkeeping there. `currentId`/
+`setCurrentSeason` remain on `StorageBackend`/`TauriBackend` for the
+out-of-scope film/linked-film surfaces (Invariant #8) and for `_touchMeta`'s
+library-index bookkeeping, which is not itself a write-destination choice.
+
+**"An incorrect ambient pointer cannot redirect an operation" is now a
+provable, tested claim, not an assumption.** `tools/e2e-catalog-backend.mjs`
+drives the real `TauriBackend` with `be.currentId` deliberately pinned to a
+season that matches neither the explicit destination nor the payload, and
+confirms the explicit argument alone decides the target for both
+`saveSeason` and `getBackup`; `tools/pc-adversarial-matrix.mjs` sections 5/6
+and 11 do the same for `SqlCatalog` and `BrowserBackend` directly. Every
+mutation restoring an ambient-`this.currentId` read in place of the explicit
+parameter was verified to reproduce the exact regression and red exactly its
+own assertion.
 
 ### 3.2 — No revision fencing for two overlapping saves to the *same* season
 

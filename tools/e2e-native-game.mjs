@@ -62,7 +62,7 @@ await page.click('[data-native-game-form] .gi-game-actions .is-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]') && !window.app.gameScreen.handle);
 r = await page.evaluate(async firstId => {
   const store = window.app.storage.seasonStore, active = store.activeGame();
-  const durable = await store.backend.loadSeason();
+  const durable = await store.backend.loadSeason(store.currentSeasonId);
   return { calls: window.__nativeGamePersistCalls, games: store.data.games.length,
     activeId: active.id, firstIntact: JSON.stringify(store.data.games.find(g => g.id === firstId).plays),
     info: active.gameInfo, durableInfo: durable.games.find(g => g.id === active.id)?.gameInfo,

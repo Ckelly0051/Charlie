@@ -13,6 +13,125 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REPAIR of the PC-1 review (`1aefe8b`) — AWAITING RE-REVIEW (2026-08-21)
+
+**Builder: Claude. Repairs both findings from Codex's `1aefe8b` CHANGES
+REQUESTED review of `090d4ab` (recorded immediately below).** Both verified
+against source before touching anything, per standing discipline — neither
+taken on report. Both reproduced (finding 1 by direct source-reading, finding
+2 by a caller-graph sweep) before any fix was written.
+
+**Finding 1 — atomic import. CLOSED.** Verified against source before fixing:
+`SeasonStore.adopt()` assigned the imported payload to `this.data`
+unconditionally, before `persist()` was even awaited, with no rollback on
+failure; `persist()` called `_scheduleDiskWrite()` unconditionally too,
+before the canonical `saveSeason()` result was known, so a rejected canonical
+save still armed the 2.5s debounce timer that would write the rejected
+payload to the Documents mirror. `TauriBackend.writeDisk()` had the identical
+defect independently — it called `_mirrorToDocuments()`/`createBackup()`
+regardless of whether its own internal `saveSeason()` succeeded. All three
+fixed:
+
+- `SeasonStore.adopt(parsed)` now preserves `prior = this.data` and restores
+  it on a rejected persist, mirroring the rollback shape `restoreBackup()`
+  already used.
+- `SeasonStore.persist()` now calls `_scheduleDiskWrite()` only inside the
+  success branch of the canonical `saveSeason()` promise, never before it
+  resolves.
+- `TauriBackend.writeDisk(seasonId, data, opts)` now returns `false`
+  immediately if its own internal `saveSeason()` fails, before touching
+  `createBackup`/`_mirrorToDocuments` at all.
+- `StorageManager.loadProject()` now tracks whether it created a fresh
+  destination season for a first-run import (no season was open) and rolls
+  that season back (`seasonStore.deleteSeason(...)`) if the import that was
+  its whole purpose then fails — closing Codex's exact second half: "roll
+  back a destination created solely for a failed first-run import."
+
+**Finding 2 — explicit identity API. CLOSED.** Verified with a full caller-graph
+sweep (grep across every `.js`/`.mjs` file, not assumed): `SeasonStore` is the
+**sole** caller of `StorageBackend`'s identity-sensitive methods anywhere in
+`js/`. Every one of `loadSeason`, `saveSeason`, `createBackup`, `listBackups`,
+`getBackup`, `deleteBackup`, `writeDisk` — on the `StorageBackend` base class,
+`BrowserBackend`, and `TauriBackend` — now takes `seasonId` as an **explicit,
+required first parameter**; none of them read `this.currentId`/
+`setCurrentSeason()` to choose a destination or scope any more. `SeasonStore`
+passes `this.currentSeasonId` explicitly at every one of its own call sites
+(`persist()`, `load()`, `openSeason()`, `snapshot()`, `listBackups()`,
+`restoreBackup()`, `bindDisk()`, `saveNow()`, and the captured
+`_scheduleDiskWrite()` timer callback).
+
+"Above and below the [`CatalogPersistence`] seam" (Codex's exact phrase) is
+now both closed: `TauriBackend` passes the received explicit `seasonId`
+straight through to `CatalogPersistence`'s already-explicit methods (the
+"above" half); `SqlCatalog`'s own backup methods (`createBackup`,
+`listBackups`, `getBackup`, `deleteBackup`) are now ALSO explicit-`seasonId`,
+so `CatalogPersistence`'s wrappers no longer call `setCurrentSeason()` before
+delegating to them at all (the "below" half). `SqlCatalog.saveSeason`/
+`loadSeason` needed no change — they already preferred an explicit id over
+the ambient pointer. `currentId`/`setCurrentSeason` remain on the backends
+for the explicitly out-of-scope film/linked-film surfaces (Invariant #8) and
+`_touchMeta`'s library-index bookkeeping — neither chooses a persistence
+write destination.
+
+**"An incorrect ambient pointer cannot redirect an operation" is now a
+provable, tested claim.** `tools/e2e-catalog-backend.mjs` (extended, 11/11)
+drives the real `TauriBackend` with `be.currentId` deliberately pinned to a
+season matching neither the explicit destination nor the payload, and proves
+the explicit argument alone decides the target for `saveSeason` and
+`getBackup`. `tools/pc-adversarial-matrix.mjs` sections 5/6 and 11 do the
+same directly against `SqlCatalog` and `BrowserBackend`. New section 3b
+(rewritten, not just relabeled — Codex's own critique was that the prior
+version used `bound:false` and "cannot detect either mutation") now uses
+`bound:true` and the SAME real-callback-capture technique section 4 already
+established for `_scheduleDiskWrite()`, so it can prove — not assume — that a
+rejected import leaves the live store byte-identical, arms zero debounce
+timers, performs zero disk/mirror writes even after the timer window is
+manually fired, leaves the editor untouched, and reports failure with a
+visible toast; a companion successful-import control proves the same
+mechanism genuinely writes when the save legitimately succeeds. New section
+3c drives the first-run/no-current-season branch specifically, proving the
+orphaned scaffold season is deleted and the store returns to "nothing open."
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — **50/50 locks
+green, 0/4 targets green (4 intentionally red: 2 PC-2 corrupt-catalog items
+unchanged, 2 disclosed dormant legacy version methods)**, exit 0 — up from
+40/40 locks before this repair, all ten new/rewritten assertions in sections
+3b and 3c. `node tools/e2e-catalog-backend.mjs` — **11/11** (was 9; +2 new
+`writeDisk` mirror-gating assertions). Nine of the highest-risk new/changed
+guards mutation-verified individually, each reproducing its exact original
+defect (including the literal `Imported Season` live-name-change and
+one-mirror-write symptoms from Codex's own reproduction) and reddening
+exactly its own assertion(s), confirmed restored via `git diff` byte-identical:
+`adopt()`'s rollback; `persist()`'s disk-write-timing gate; `TauriBackend.
+writeDisk()`'s mirror/backup gate; `StorageManager.loadProject()`'s fresh-
+season rollback; `TauriBackend.saveSeason`'s ambient-pointer-cannot-redirect
+guard (reverted to read `this.currentId`, reproduced the exact
+`ambientSaveOk:false` false-negative). Full canonical gate
+(`bash tools/run-gate.sh`): **88 harnesses | 88 green | 0 skipped | 0
+failed**, including `e2e-catalog-persistence` (56/56), `e2e-catalog-backend`
+(11/11), `e2e-catalog-versions` (10/10, unchanged), `e2e-catalog-fuzzer`,
+`e2e-sql-catalog`/`e2e-sql-fuzzer` (both directly exercise the new
+`SqlCatalog` explicit-id backup signatures), `e2e-team-registry` (21/21),
+`e2e-integrity` (the cross-game corruption fuzzer, 12 seeds × 80 ops clean
+against the new `persist()`/`adopt()`/`writeDisk` timing), and `e2e-realdata`
+(15/15, real coach season) — zero regressions anywhere in the suite.
+
+**Scope discipline:** no film path, film file, season/game/play data, schema,
+migration, or unrelated file touched. Every non-`SeasonStore` caller of a
+changed method signature was found and updated: `tools/e2e-sql-catalog.mjs`,
+`tools/e2e-sql-fuzzer.mjs` (raw `SqlCatalog` backup calls), `tools/
+e2e-catalog-backend.mjs` (raw `TauriBackend` calls, extended with the new
+ambient-pointer and `writeDisk` tests), `tools/e2e-game-context.mjs`,
+`tools/e2e-native-game.mjs`, `tools/e2e-native-recovery.mjs` (4 call sites),
+`tools/e2e-integrity.mjs` (all `backend.loadSeason()` calls now pass the
+season id explicitly) — confirmed via a full-codebase grep, not assumed.
+`GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §3.1 is rewritten (the prior text
+described the now-superseded first PC-1 pass) and a new §3.1b documents the
+explicit-identity threading; §3.2 remains explicitly untouched.
+
+**Next action:** Codex independently re-reviews this repair. PC-2 does not
+open until this repair is accepted, per the plan's handoff protocol.
+
 ### CODEX REVIEW - PC-1 `090d4ab`: CHANGES REQUESTED (2026-08-21)
 
 **Verdict: CHANGES REQUESTED. PC-2 remains closed.** The scoped backup/version

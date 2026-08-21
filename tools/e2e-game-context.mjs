@@ -90,7 +90,7 @@ r = await page.evaluate(async () => {
   const afterSave = app.gameContext.snapshot().direction;
   app.storage.commitActive();
   await app.storage.seasonStore.persist();
-  const durable = await app.storage.seasonStore.backend.loadSeason();
+  const durable = await app.storage.seasonStore.backend.loadSeason(app.storage.seasonStore.currentSeasonId);
   const active = durable.games.find(g => g.id === app.storage.seasonStore.data.activeGameId);
   return { afterSet, afterSave, durable: active?.gameInfo?.direction };
 });

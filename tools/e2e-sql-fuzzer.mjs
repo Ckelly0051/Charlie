@@ -84,9 +84,8 @@ async function campaign(seedTruthA, seedTruthB, seed, nOps) {
     if (!check(tag)) { cat.close(); return; }
   }
   // restore-from-backup round-trips
-  cat.setCurrentSeason(A.id);
-  const bk = cat.createBackup(norm(A), 'fuzz point');
-  const restored = cat.getBackup(bk);
+  const bk = cat.createBackup(A.id, norm(A), 'fuzz point');
+  const restored = cat.getBackup(A.id, bk);
   ok(deepEq(restored, norm(A)), `seed ${seed}: backup restore round-trips`);
   cat.close();
   pass++;

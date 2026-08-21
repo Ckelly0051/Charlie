@@ -40,7 +40,7 @@ await page.evaluate(() => {
     isLinkedDirAllowed: () => true,
     importFilm: async () => { state.imported++; },
     diskStatus: () => ({ bound: false }),
-    saveSeason: async data => { state.saveAttempts++; if (!state.saveOk) return false; state.saved = structuredClone(data); return true; },
+    saveSeason: async (_seasonId, data) => { state.saveAttempts++; if (!state.saveOk) return false; state.saved = structuredClone(data); return true; },
     createBackup: async () => true,
     listSeasons: async () => [],
   };

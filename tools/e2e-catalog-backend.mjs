@@ -1,5 +1,6 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* A3 TauriBackend delegation regression (Codex review, flag-ON failure paths).
+/* A3 TauriBackend delegation regression (Codex review, flag-ON failure paths),
+   extended for PC-1's explicit-identity API (js/storage-backend.js).
    The flag-OFF 33/33 suite never exercises these because BrowserBackend is the
    headless default. Here we construct a TauriBackend in-page with a FAKE
    window.__TAURI__ fs + an INJECTED fake catalog, so the delegation contract is
@@ -8,7 +9,13 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
         that returns false must NOT be reported as success.
      2. deleteSeason() must RETAIN the season.json / mirror / library entry when
         the catalog delete fails (else a stale db resurrects a season whose safety
-        copies are gone), and only remove them when the delete is durable. */
+        copies are gone), and only remove them when the delete is durable.
+     3. PC-1: every identity-sensitive method (saveSeason/createBackup/listBackups/
+        getBackup/deleteBackup) now takes seasonId as an EXPLICIT first parameter.
+        An incorrect ambient this.currentId must not be able to redirect an
+        operation the caller explicitly scoped elsewhere -- proven directly by
+        pointing be.currentId at the WRONG season while passing the correct
+        explicit id, and confirming the explicit id wins. */
 import puppeteer from 'puppeteer';
 
 let pass = 0, fail = 0;
@@ -49,19 +56,31 @@ const result = await page.evaluate(async () => {
   // 1. saveSeason propagates a canonical FAILURE.
   {
     const { be } = makeBackend({ saveSeason: async () => false, deleteSeason: async () => true });
-    out.saveFalse = await be.saveSeason({ id: 's1', games: [] });
+    out.saveFalse = await be.saveSeason('s1', { id: 's1', games: [] });
   }
   // 1b. saveSeason reports success when the catalog succeeds.
   {
     const { be } = makeBackend({ saveSeason: async () => true, deleteSeason: async () => true });
-    out.saveTrue = await be.saveSeason({ id: 's1', games: [] });
+    out.saveTrue = await be.saveSeason('s1', { id: 's1', games: [] });
   }
-  // 1c. A stale backend scope must never route a different season payload.
+  // 1c. An explicit destination and a mismatched payload id must never route
+  //     to the catalog, regardless of what be.currentId happens to hold.
   {
     let calls = 0;
     const { be } = makeBackend({ saveSeason: async () => { calls++; return true; }, deleteSeason: async () => true });
-    out.crossSave = await be.saveSeason({ id: 's2', games: [] });
+    out.crossSave = await be.saveSeason('s1', { id: 's2', games: [] });
     out.crossSaveCalls = calls;
+  }
+  // 1d. PC-1: an INCORRECT ambient this.currentId must not be able to redirect
+  //     the operation. be.currentId is deliberately set to a season neither the
+  //     explicit destination nor the payload names; the explicit destination id
+  //     alone must decide where the write lands.
+  {
+    let seenId = null;
+    const { be } = makeBackend({ saveSeason: async (id) => { seenId = id; return true; }, deleteSeason: async () => true });
+    be.currentId = 'WRONG-AMBIENT-SEASON';
+    out.ambientSaveOk = await be.saveSeason('s1', { id: 's1', games: [] });
+    out.ambientSaveSeenId = seenId;
   }
   // 2. deleteSeason RETAINS files + library entry AND returns false when the
   //    catalog delete fails (the false surfaces to a coach-facing toast upstream).
@@ -92,24 +111,86 @@ const result = await page.evaluate(async () => {
       deleteBackup: async (id, bid) => { const i = ring.indexOf(bid); if (i >= 0) ring.splice(i, 1); },
     };
     const { be } = makeBackend(cat);
-    const meta = await be.createBackup({ id: 's1', seasonName: 'X', games: [{ plays: [{}, {}] }] }, 'Point A');
+    // be.currentId is deliberately left at its makeBackend default ('s1') for
+    // this positive case, but every call below passes 's1' EXPLICITLY -- the
+    // ambient-pointer-cannot-redirect variant right after this one proves the
+    // explicit id is what actually matters, not the ambient value agreeing.
+    const meta = await be.createBackup('s1', { id: 's1', seasonName: 'X', games: [{ plays: [{}, {}] }] }, 'Point A');
     out.bkId = meta && meta.id;                       // 'bk_1'
     out.bkCatId = created && created.id;              // 's1'
-    out.bkList = (await be.listBackups()).some(b => b.id === 'bk_1');
-    const got = await be.getBackup('bk_1');
+    out.bkList = (await be.listBackups('s1')).some(b => b.id === 'bk_1');
+    const got = await be.getBackup('s1', 'bk_1');
     out.bkGot = got && got.seasonName === 'restored';
-    await be.deleteBackup('bk_1');
+    await be.deleteBackup('s1', 'bk_1');
     out.bkDeleted = ring.length === 0;
+  }
+  // 3b. PC-1: an incorrect ambient this.currentId must not redirect a backup
+  //     read either -- getBackup('s2', ...) must reach the catalog scoped to
+  //     's2' even though be.currentId is deliberately pinned to 's1'.
+  {
+    let seenScope = null;
+    const cat = {
+      saveSeason: async () => true, deleteSeason: async () => true,
+      createBackup: async () => null, listBackups: async () => [],
+      getBackup: async (id, bid) => { seenScope = id; return { seasonName: `restored-${id}`, games: [] }; },
+      deleteBackup: async () => {},
+    };
+    const { be } = makeBackend(cat);   // makeBackend pins be.currentId = 's1'
+    const got = await be.getBackup('s2', 'bk_1');
+    out.ambientBkScope = seenScope;                 // must be 's2', not 's1'
+    out.ambientBkName = got && got.seasonName;       // 'restored-s2'
+  }
+  // 4. PC-1 (repair of Codex 1aefe8b finding 1): writeDisk() must gate BOTH
+  //    the snapshot backup and the Documents-mirror write on the canonical
+  //    saveSeason() succeeding. Reproduced directly before this fix:
+  //    writeDisk() called _mirrorToDocuments() unconditionally, so a
+  //    REJECTED canonical save still landed the rejected payload in the
+  //    recovery mirror. be.mirrorDir is given a distinct, defined baseDir
+  //    value (1, vs be.baseDir=14) so mirror writes can be isolated from the
+  //    unrelated library.json write by the baseDir they're tagged with.
+  {
+    const mirrorWrites = [];
+    let catalogBackupCalled = false;
+    const cat = {
+      saveSeason: async () => false, deleteSeason: async () => true,
+      createBackup: async () => { catalogBackupCalled = true; return 'bk_should_not_happen'; },
+    };
+    const { be } = makeBackend(cat);
+    be.mirrorDir = 1;
+    const origWriteTextFile = be.fs.writeTextFile;
+    be.fs.writeTextFile = async (path, txt, opts) => { mirrorWrites.push({ path, baseDir: opts && opts.baseDir }); return origWriteTextFile(path, txt, opts); };
+    out.writeDiskFailedRet = await be.writeDisk('s1', { id: 's1', games: [] }, { snapshot: true, label: 'test' });
+    out.writeDiskFailedMirrorWrites = mirrorWrites.filter(w => w.baseDir === be.mirrorDir).length;
+    out.writeDiskFailedCatalogBackup = catalogBackupCalled;
+  }
+  // 4b. The successful control -- writeDisk() DOES write the mirror when the
+  //     canonical save genuinely succeeds, proving the gate above is not
+  //     simply disabling the mirror unconditionally.
+  {
+    const mirrorWrites = [];
+    const cat = { saveSeason: async () => true, deleteSeason: async () => true, createBackup: async () => 'bk_1' };
+    const { be } = makeBackend(cat);
+    be.mirrorDir = 1;
+    const origWriteTextFile = be.fs.writeTextFile;
+    be.fs.writeTextFile = async (path, txt, opts) => { mirrorWrites.push({ path, baseDir: opts && opts.baseDir }); return origWriteTextFile(path, txt, opts); };
+    out.writeDiskOkRet = await be.writeDisk('s1', { id: 's1', games: [] }, { snapshot: false, label: 'test' });
+    out.writeDiskOkMirrorWrites = mirrorWrites.filter(w => w.baseDir === be.mirrorDir).length;
   }
   return out;
 });
 
 ok(result.saveFalse === false, 'saveSeason propagates a canonical db-write FAILURE (not reported as success)', JSON.stringify(result.saveFalse));
 ok(result.saveTrue === true, 'saveSeason reports success when the catalog save succeeds');
-ok(result.crossSave === false && result.crossSaveCalls === 0, 'cross-season payload is blocked before catalog or fallback writes', JSON.stringify(result));
+ok(result.crossSave === false && result.crossSaveCalls === 0, 'an explicit destination id and a mismatched payload id are blocked before catalog or fallback writes', JSON.stringify(result));
+ok(result.ambientSaveOk === true && result.ambientSaveSeenId === 's1', 'an incorrect ambient this.currentId cannot redirect saveSeason -- the explicit destination id alone chooses the target', JSON.stringify(result));
 ok(result.delFailRemoves === 0 && result.delFailLibKept === true && result.delFailRet === false, 'a FAILED catalog delete retains files + library entry AND returns false (for a toast)', JSON.stringify(result));
 ok(result.delOkRemoves >= 1 && result.delOkLibDropped === true && result.delOkRet === true, 'a DURABLE catalog delete removes files + library entry AND returns true');
-ok(result.bkId === 'bk_1' && result.bkCatId === 's1' && result.bkList === true && result.bkGot === true && result.bkDeleted === true, 'backup ring delegates to the catalog (create/list/get/delete) when flag-ON', JSON.stringify(result));
+ok(result.bkId === 'bk_1' && result.bkCatId === 's1' && result.bkList === true && result.bkGot === true && result.bkDeleted === true, 'backup ring delegates to the catalog (create/list/get/delete) with an explicit seasonId when flag-ON', JSON.stringify(result));
+ok(result.ambientBkScope === 's2' && result.ambientBkName === 'restored-s2', 'an incorrect ambient this.currentId cannot redirect getBackup -- the explicit seasonId argument alone chooses the scope', JSON.stringify(result));
+ok(result.writeDiskFailedRet === false && result.writeDiskFailedMirrorWrites === 0 && result.writeDiskFailedCatalogBackup === false,
+  'writeDisk() gates the snapshot backup AND the Documents-mirror write on the canonical saveSeason() succeeding -- a rejected canonical save produces zero mirror/backup writes', JSON.stringify(result));
+ok(result.writeDiskOkRet === true && result.writeDiskOkMirrorWrites === 1,
+  'a SUCCESSFUL canonical save still writes exactly one Documents-mirror copy, proving the gate above is not simply disabling the mirror entirely', JSON.stringify(result));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
