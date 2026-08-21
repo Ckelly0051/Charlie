@@ -13,6 +13,57 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REVIEW - PC-2+PC-3 3b70fab: CHANGES REQUESTED (2026-08-21)
+
+**Verdict:** the architecture is moving in the right direction, and the focused
+suites independently reran green (pc-adversarial-matrix 79/79 locks,
+snapshot-envelope 21/21, native recovery 11/11, catalog persistence 60/60,
+catalog backend 19/19). However, PC-4 remains **blocked** by four untested
+fail-open paths:
+
+1. **[P0] An unreadable/locked catalog is still treated as a fresh install.**
+   TauriBackend._catalogFs().readDb() catches both exists() and readFile()
+   failures and returns null (js/storage-backend.js:814), and
+   CatalogPersistence._ensureLoaded() independently catches readDb() and also
+   converts it to null (js/catalog-persistence.js:71-76). The latter then opens
+   a clean empty database. listSeasons() can consequently reconcile that
+   false-empty catalog and write an empty library.json. The new test covers
+   corrupt bytes, but not the plan's explicitly named locked or unavailable
+   cases. Only a positively-proven missing file may open a fresh database; any
+   existence/read error must throw visibly. Add a failing-first real seam test:
+   existing catalog + readFile rejection => visible failure, zero clean-db open,
+   zero library/mirror writes.
+
+2. **[P1] Recovery does not bind the filesystem candidate id to the envelope.**
+   scanRecoverableSeasons() uses the directory name as id, while
+   SnapshotEnvelope.unwrap() validates only envelope.seasonId === data.id.
+   recoverSeasonFromMirror() then assigns data.id = id after checksum and
+   identity validation (js/storage-backend.js:637-640). A valid season-A
+   envelope placed under the season-B directory can therefore be presented as
+   B and overwrite B after its identity is rewritten post-validation. Require
+   directory id === envelope.seasonId === data.id, never rewrite identity, and
+   prove A-under-B is invalid with zero writes even when overwrite is true.
+
+3. **[P1] A failed conflict check defaults to "no conflict" and can bypass the
+   second confirmation.** Both scan and recovery swallow cp.listSeasons()
+   failures (js/storage-backend.js:574-578,643-645) and default to an empty
+   live-id set / exists=false. Recovery must fail closed when it cannot prove
+   whether the destination exists. Add a test where listing fails but saving
+   would succeed: recovery must refuse and perform zero writes, not overwrite on
+   the one-click path.
+
+4. **[P1] Legacy checksum-free snapshots are labeled invalid but remain
+   importable.** The UI deliberately enables legacy-unenveloped candidates
+   (js/native-team-hub.jsx:131-156), and the backend accepts their raw payload
+   and rewrites its id (js/storage-backend.js:637-640). This contradicts the
+   handoff's claim that invalid candidates are disabled and the binding envelope
+   contract. Keep legacy files visible, but disable recovery here; any legacy
+   migration belongs in the permissioned PC-5 migration flow (or needs a
+   separately approved, stronger confirmation contract). Add a UI/backend test
+   proving a legacy candidate cannot invoke a canonical write.
+
+No production files were changed in this review. PC-2+PC-3 is not accepted and
+PC-4 must not open until these four repairs are independently re-reviewed.
 ### ▶ PC-2+PC-3 — SQLITE AUTHORITY + RECOVERY SNAPSHOTS BUILT, AWAITING CODEX REVIEW (2026-08-21)
 
 **Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`'s

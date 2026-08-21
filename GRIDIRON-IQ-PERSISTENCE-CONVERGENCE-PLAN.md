@@ -1,6 +1,6 @@
 # GridIron IQ Desktop Persistence Convergence
 
-**Status:** PC-0 and PC-1 accepted. Combined PC-2+PC-3 is open — Claude executes; Codex independently reviews the combined checkpoint.
+**Status:** PC-0 and PC-1 accepted. Combined PC-2+PC-3 3b70fab has **CHANGES REQUESTED** from Codex (2026-08-21); PC-4 remains blocked. See the top of CLAUDE.md for the four required repairs.
 
 ## Objective
 
