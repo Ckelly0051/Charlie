@@ -1266,13 +1266,23 @@ export class StorageManager {
         // the desktop app into a fresh web app): there's no current season,
         // so register a library entry first — adopt() persists into the
         // CURRENT season's slot and silently went nowhere without one.
-        let createdFreshSeason = false;
+        //
+        // PC-1 repair (finding 1, second half): the rollback below used to
+        // re-read `this.seasonStore.currentSeasonId` AFTER the adopt() await
+        // to decide what to delete. If the coach switched to a season B
+        // while this import's save was pending, that re-read returns B's id
+        // -- so a failed import could delete the season the coach had since
+        // opened, instead of the orphaned scaffold this call created. The
+        // scaffold's id is now captured ONCE, synchronously, right after
+        // createSeason() resolves, and that captured id is what gets
+        // deleted -- never a value re-read after any later await.
+        let scaffoldSeasonId = null;
         if (!this.seasonStore.hasCurrent()) {
           const rec = await this.seasonStore.createSeason({
             name: parsed.seasonName || String(file.name || 'Imported Season').replace(/\.json$/i, ''),
             teamId: (() => { try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (err2) { return ''; } })(),
           });
-          createdFreshSeason = !!rec;
+          scaffoldSeasonId = (rec && rec.id) || null;
         }
         // PC-1: adopt() is now awaitable, atomic, and reports genuine durable
         // success/failure (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
@@ -1284,9 +1294,13 @@ export class StorageManager {
           // A destination season created SOLELY for this failed import is now
           // an orphaned, empty library entry with no purpose — roll it back
           // rather than leaving the coach a phantom season they never asked
-          // for and that has no data.
-          if (createdFreshSeason && this.seasonStore.currentSeasonId) {
-            try { await this.seasonStore.deleteSeason(this.seasonStore.currentSeasonId); } catch (err3) {}
+          // for and that has no data. deleteSeason() is itself scoped to the
+          // id it's given (it only clears the live editor if that id is
+          // still the ambient current season), so deleting the captured
+          // scaffold id here is safe regardless of what the coach has since
+          // opened — it can never touch a season the coach is now viewing.
+          if (scaffoldSeasonId) {
+            try { await this.seasonStore.deleteSeason(scaffoldSeasonId); } catch (err3) {}
           }
           this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
           return;

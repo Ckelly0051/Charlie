@@ -4,8 +4,14 @@
    readDb failures), and re-checks INVARIANTS after EVERY op:
      - LOSSLESS: every alive season loads with its exact game/play shape.
      - ISOLATION: no season's games/plays bleed into another (the corruption sig).
-     - NO DATA LOSS on a failed save: saveSeason returns false, but the season is
-       still loadable (the json safety copy).
+     - ATOMIC save failure (PC-1 repair, Codex review c51a12c/4ae34e8 finding 2):
+       saveSeason returns false AND performs zero writes anywhere -- the season
+       stays at whatever it was before the attempt (a prior version, or absent),
+       never the rejected payload. This inverts the file's original invariant
+       here ("the season is still loadable via the json safety copy" after a
+       failed save) -- that described the exact bug: a faulted save used to
+       still write the json fallback and leave the in-memory catalog committed
+       to the rejected payload.
      - NO RESURRECTION on a failed delete: deleteSeason returns false, the season
        is retained (db + json kept), never half-deleted.
      - DURABLE delete removes it; a later reopen never revives it.
@@ -90,9 +96,18 @@ async function fuzzOne(seed, ops) {
       const okSave = await cp.saveSeason(id, data);
       fs.state.writeDbFail = false;
       log.push(`op${n} SAVE ${id} v${v} fault=${fault} shape=${JSON.stringify(shape(data))}`);
-      // Whether the db write faulted or not, the season is loadable in-session
-      // (memory holds it + json safety copy), so the model advances to the new shape.
-      model.set(id, shape(data));
+      // PC-1 repair (Codex review c51a12c/4ae34e8, finding 2): a faulted save
+      // is now ATOMIC -- CatalogPersistence.saveSeason() performs ZERO writes
+      // anywhere (json, mirror, in-memory catalog) when writeDb() fails, and
+      // rolls the in-memory catalog back to its pre-attempt snapshot. So the
+      // model must stay at whatever it was BEFORE this attempt (a prior
+      // successful shape, or absent if this is the season's first-ever save)
+      // -- only a genuinely successful save advances it. This inverts the
+      // prior assumption here ("whether the db write faulted or not... the
+      // model advances to the new shape"), which described the exact bug:
+      // a faulted save used to still write the json fallback and leave the
+      // in-memory catalog committed to the rejected payload.
+      if (!fault) model.set(id, shape(data));
       if (fault) assert.strictEqual(okSave, false, `seed ${seed} op ${n}: faulted save must report false`);
       else assert.strictEqual(okSave, true, `seed ${seed} op ${n}: clean save must report true`);
     } else if (op < 0.75) {

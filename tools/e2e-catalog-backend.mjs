@@ -15,7 +15,11 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
         An incorrect ambient this.currentId must not be able to redirect an
         operation the caller explicitly scoped elsewhere -- proven directly by
         pointing be.currentId at the WRONG season while passing the correct
-        explicit id, and confirming the explicit id wins. */
+        explicit id, and confirming the explicit id wins.
+     4. PC-1 repair (Codex review c51a12c/4ae34e8, finding 2): a rejected
+        canonical save must not advance library.json metadata either --
+        saveSeason() used to call _touchMeta() unconditionally regardless of
+        the canonical result. */
 import puppeteer from 'puppeteer';
 
 let pass = 0, fail = 0;
@@ -57,6 +61,19 @@ const result = await page.evaluate(async () => {
   {
     const { be } = makeBackend({ saveSeason: async () => false, deleteSeason: async () => true });
     out.saveFalse = await be.saveSeason('s1', { id: 's1', games: [] });
+  }
+  // 1e. PC-1 (repair of Codex 4ae34e8 finding 2): a rejected canonical save
+  //     must not advance library.json metadata either. Reproduced directly
+  //     before this fix: saveSeason() called _touchMeta() unconditionally,
+  //     regardless of the canonical result, so a rejected import's name/
+  //     counts still landed in the library index.
+  {
+    const { be, calls } = makeBackend({ saveSeason: async () => false, deleteSeason: async () => true });
+    const before = JSON.stringify(calls.lib);
+    await be.saveSeason('s1', { id: 's1', seasonName: 'Rejected Import', games: [] });
+    out.rejectedSaveLibUnchanged = JSON.stringify(calls.lib) === before;
+    out.rejectedSaveLibBefore = before;
+    out.rejectedSaveLibAfter = JSON.stringify(calls.lib);
   }
   // 1b. saveSeason reports success when the catalog succeeds.
   {
@@ -180,6 +197,7 @@ const result = await page.evaluate(async () => {
 });
 
 ok(result.saveFalse === false, 'saveSeason propagates a canonical db-write FAILURE (not reported as success)', JSON.stringify(result.saveFalse));
+ok(result.rejectedSaveLibUnchanged === true, 'a rejected canonical save performs zero library.json metadata writes -- _touchMeta() is gated on the canonical result, not called unconditionally', JSON.stringify({ before: result.rejectedSaveLibBefore, after: result.rejectedSaveLibAfter }));
 ok(result.saveTrue === true, 'saveSeason reports success when the catalog save succeeds');
 ok(result.crossSave === false && result.crossSaveCalls === 0, 'an explicit destination id and a mismatched payload id are blocked before catalog or fallback writes', JSON.stringify(result));
 ok(result.ambientSaveOk === true && result.ambientSaveSeenId === 's1', 'an incorrect ambient this.currentId cannot redirect saveSeason -- the explicit destination id alone chooses the target', JSON.stringify(result));

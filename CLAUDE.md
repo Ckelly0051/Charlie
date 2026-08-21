@@ -13,6 +13,119 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REPAIR of the PC-1 re-review (`4ae34e8`) — AWAITING RE-REVIEW (2026-08-21)
+
+**Builder: Claude. Repairs both narrow P0 findings from Codex's `4ae34e8`
+CHANGES REQUESTED re-review of `c51a12c` (recorded immediately below).** Both
+verified against source before touching anything, per standing discipline —
+neither taken on report. The adversarial matrix's own reproduction was
+confirmed directly (both A -> B and S -> B cases) before either fix was
+written.
+
+**Finding 1 — season-switch race. CLOSED.** `SeasonStore.adopt()`'s rollback
+(`this.data = prior`) ran unconditionally on a rejected save, with no check
+that the store still owned the season it started with — so a season switch
+landing inside the pending `await this.persist()` window let a stale
+rejection clobber whatever the coach had since opened. `StorageManager.
+loadProject()`'s first-run scaffold-delete branch had the identical shape:
+it re-read `this.seasonStore.currentSeasonId` **after** the `adopt()` await
+to decide what to delete, so the same interleaving could delete the season
+the coach opened meanwhile instead of the orphaned scaffold. Both fixed by
+capturing the destination/scaffold id **once, synchronously, before any
+await**, and gating every later live-store mutation on the store still
+owning that captured id:
+
+- `SeasonStore.adopt(parsed)` captures `destSeasonId = this.currentSeasonId`
+  up front; a `stillOwns()` check (`this.currentSeasonId === destSeasonId`)
+  gates both the initial stage and the failure rollback, so a stale
+  operation's own durable write still completes or fails as scoped, but
+  never touches the live store if the coach has since switched away.
+- `SeasonStore.persist()`/`_scheduleDiskWrite()`/`_stripStAlignmentBeforeSave()`
+  each gained an optional explicit `seasonId`/`data` parameter (defaulting to
+  ambient state, so every pre-existing caller is byte-unchanged) so
+  `adopt()`'s own save and debounced disk-sync always target the season it
+  captured, never whatever is ambiently current by the time they run.
+- `StorageManager.loadProject()` now captures `scaffoldSeasonId` right after
+  `createSeason()` resolves and deletes exactly that id on failure — never a
+  value re-read off `this.seasonStore.currentSeasonId` after the `adopt()`
+  await.
+
+**Finding 2 — sidecar-write atomicity. CLOSED.** `CatalogPersistence.
+saveSeason()` wrote `season.json` and the Documents mirror unconditionally
+after a `writeDb()` rejection, gated on nothing; `TauriBackend.saveSeason()`
+called `_touchMeta()` (library.json) regardless of the canonical result. A
+`writeDb()` failure also left the in-memory `SqlCatalog` committed to the
+rejected payload while on-disk bytes stayed untouched — a split-brain
+`deleteSeason()` in the same file already defended against for deletes, but
+`saveSeason()` never did. Both fixed:
+
+- `CatalogPersistence.saveSeason()` now snapshots pre-mutation catalog bytes
+  before mutating, and on a `writeDb()` failure closes and reopens the
+  catalog from that snapshot (mirroring `deleteSeason()`'s exact rollback
+  shape) before returning `false` — so the in-memory catalog can no longer
+  diverge from disk, and the json/mirror writes now run only in the success
+  branch, after `writeDb()` is confirmed durable.
+- `TauriBackend.saveSeason()` gates `_touchMeta()` on the canonical result
+  (`if (okDb) await this._touchMeta(...)`), closing the last unconditional
+  sidecar write.
+
+**Test files updated to match.** `tools/pc-adversarial-matrix.mjs` gained
+section 3d (season-switch race, both A -> B and S -> B, driving a genuinely
+held-pending `saveSeason()` Promise so a real switch can land inside the
+window — sections 3/3b/3c's fixtures all resolve on the same microtask turn
+and could never exercise this) and section 3e (a real `CatalogPersistence` +
+`SqlCatalog` driven through a genuine `writeDb()` failure, proving zero
+json/mirror writes and in-memory-catalog rollback, plus a successful-save
+control). `tools/e2e-catalog-persistence.mjs` section 6 is inverted — it
+previously **required** the unsafe json write ("db-write failure ... still
+writes the json fallback (no data loss)"), which was the exact bug dressed
+up as a passing test; it now requires zero writes anywhere plus the
+in-memory-rollback proof. `tools/e2e-catalog-backend.mjs` gained a direct
+assertion (1e) that `_touchMeta()` is never called on a rejected save,
+against the real built bundle. `tools/e2e-catalog-fuzzer.mjs` — a
+pre-existing 16-seed x 40-op random fuzzer, untouched by this repair's scope
+but broken by the production fix — initially failed (`seed 1 op 6: season A
+mismatch`) because its own model asserted the OLD contract ("whether the db
+write faulted or not... the model advances to the new shape"); its model is
+corrected to advance only on a genuinely successful save, then independently
+confirmed the fix clean across all 640 ops and independently reproduced the
+regression under the same mutation used elsewhere.
+
+**Mutation-verified, all four fixes, each restored and reconfirmed clean
+afterward:** forcing `adopt()`'s `stillOwns()` to always return `true`
+reproduces Codex's exact cited symptom
+(`{"currentSeasonId":"B","data":{"id":"A","seasonName":"Season A"}}`);
+reverting the scaffold-id capture to re-read `this.seasonStore.currentSeasonId`
+after the await reproduces exactly "deletes B rather than S"
+(`deletedIds: ["B"]`); removing `CatalogPersistence.saveSeason()`'s rollback/
+gating reproduces the json write, the mirror write, and the in-memory-catalog
+resurrection, caught independently by `pc-adversarial-matrix.mjs` section 3e,
+`e2e-catalog-persistence.mjs` section 6, **and** `e2e-catalog-fuzzer.mjs`;
+removing `TauriBackend.saveSeason()`'s `_touchMeta()` gate reproduces the
+library.json leak, caught by `e2e-catalog-backend.mjs`'s new assertion.
+
+**Verification:** `node tools/pc-adversarial-matrix.mjs` — **64/64 locks
+green** (up from 50), 0/4 targets green (4 intentionally red, unchanged PC-2
+items), exit 0. Full canonical gate (`bash tools/run-gate.sh`): **88
+harnesses | 88 green | 0 skipped | 0 failed**, including
+`e2e-catalog-persistence.mjs` (61/61), `e2e-catalog-backend.mjs` (12/12),
+`e2e-catalog-fuzzer.mjs` (16 seeds x 40 ops clean), `e2e-integrity.mjs` (35s,
+clean), and `e2e-realdata.mjs` (23s, clean, real coach season).
+
+**Scope discipline:** no film path, film file, season/game/play data, schema,
+migration, or unrelated file touched. `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md`
+gains §3.1c (season-switch atomicity) and §3.1d (sidecar-write atomicity);
+§3.2 (revision fencing) remains explicitly untouched, deferred to PC-4 per
+Codex's own review.
+
+**On the reviewer's recommendation to combine PC-2 + PC-3 into one milestone
+and review cycle:** noted, decision deferred to the coach/reviewer — no
+scope change made unilaterally here. This repair closes exactly the two
+findings named in `4ae34e8`.
+
+**Next action:** Codex independently re-reviews this repair. PC-2 does not
+open until this repair is accepted, per the plan's handoff protocol.
+
 ### CODEX RE-REVIEW — PC-1 repair `c51a12c`: CHANGES REQUESTED (2026-08-21)
 
 **Verdict: CHANGES REQUESTED. PC-1 remains closed.** The explicit-season-id

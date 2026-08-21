@@ -8,8 +8,11 @@
    Checks: lossless db round-trip across a reopen; two seasons isolated in one
    shared db; a MISSING db falls back to season.json AND self-heals (re-migrates
    into the db so the next load is canonical); a CORRUPT db degrades to json
-   without throwing; the Documents mirror is best-effort; a db-write failure
-   surfaces false yet still leaves the json safety net; delete removes the season.
+   without throwing; the Documents mirror is best-effort; a db-write failure is
+   ATOMIC (zero json/mirror/in-memory-catalog writes -- section 6, PC-1 repair
+   of Codex review c51a12c/4ae34e8 finding 2; this used to require the json
+   fallback write on a rejected save, which was the exact bug); delete removes
+   the season.
 
    Run:  node tools/e2e-catalog-persistence.mjs */
 import initSqlJs from 'sql.js';
@@ -113,12 +116,44 @@ const refA = await refRoundTrip(seasonA());
   ok(okDb === true && !!fs.state.db && fs.state.json.has('s1') && !fs.state.mirror.has('s1'), 'a Documents-mirror failure never blocks the canonical save');
 }
 
-// ---- 6. db-write failure surfaces false but keeps the json safety net ------
+// ---- 6. db-write failure is ATOMIC: zero json/mirror/in-memory writes -----
+// PC-1 repair (Codex review of c51a12c, finding 2): this assertion USED to
+// require the json fallback write on a rejected canonical save ("no data
+// loss") -- that was the exact bug. A rejected canonical write must produce
+// ZERO writes anywhere: not json, not the Documents mirror, and the
+// in-memory catalog itself must roll back rather than staying committed to
+// the rejected payload (which a same-session load could read straight back
+// out of memory, even with disk completely untouched).
 {
   const fs = makeFs();
   fs.state.writeDbFail = true;
-  const okDb = await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).saveSeason('s1', seasonA());
-  ok(okDb === false && fs.state.json.has('s1') && !fs.state.db, 'a db-write failure returns false yet still writes the json fallback (no data loss)');
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const okDb = await cp.saveSeason('s1', seasonA());
+  ok(okDb === false, 'a db-write failure returns false', String(okDb));
+  ok(!fs.state.db, 'no db bytes were written on a db-write failure');
+  ok(!fs.state.json.has('s1'),
+    'a db-write failure performs ZERO writes to the json fallback (reproduced before this fix: the rejected payload was written to season.json unconditionally)',
+    JSON.stringify([...fs.state.json.keys()]));
+  ok(!fs.state.mirror.has('s1'),
+    'a db-write failure performs ZERO writes to the Documents mirror',
+    JSON.stringify([...fs.state.mirror.keys()]));
+
+  // The in-memory catalog must not diverge from disk either. Flip the
+  // failure off and load on the SAME instance: since s1 was never actually
+  // saved, this must return null, not the staged-then-rejected payload.
+  fs.state.writeDbFail = false;
+  const reload = await cp.loadSeason('s1');
+  ok(reload === null,
+    'the in-memory catalog rolls back on a writeDb failure -- a later load on the same instance never reads the rejected payload back out of memory',
+    JSON.stringify(reload));
+
+  // Successful control, fresh instance: the same mechanism genuinely writes
+  // json + mirror once the canonical save legitimately succeeds, proving the
+  // gate above is not simply disabling the sidecar writes entirely.
+  const fs2 = makeFs();
+  const okDb2 = await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: fs2 }).saveSeason('s2', seasonB());
+  ok(okDb2 === true && fs2.state.json.has('s2') && fs2.state.mirror.has('s2'),
+    'a successful canonical save still writes json + mirror', JSON.stringify({ okDb2, json: fs2.state.json.has('s2'), mirror: fs2.state.mirror.has('s2') }));
 }
 
 // ---- 7. delete removes the season -----------------------------------------

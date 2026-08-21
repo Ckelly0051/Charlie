@@ -378,6 +378,178 @@ mutation restoring an ambient-`this.currentId` read in place of the explicit
 parameter was verified to reproduce the exact regression and red exactly its
 own assertion.
 
+### 3.1c — CLOSED, PC-1 (repair of Codex `4ae34e8` finding 1) — a season switch while an import save is pending can no longer restore or delete the wrong season in memory
+
+**Codex's re-review of the first `1aefe8b` repair found a narrower race the
+first pass never tested: switching seasons WHILE an import's save is still
+pending.** Direct reproduction quoted from the review: *"begin an import into
+A, open B while the backend save is pending, resolve the A save `false`; the
+store ends as `{ currentSeasonId:'B', data.id:'A', data.seasonName:'Season
+A' }`."* Root cause: `adopt()`'s rollback (`this.data = prior`) ran
+unconditionally on a rejected save, with no check that the store still owned
+the season it started with — by the time the pending save resolved, the coach
+could already be looking at a completely different, freshly-opened season,
+and the rollback silently clobbered it. The first-run branch
+(`StorageManager.loadProject()`, `js/storage.js:1269-1289`) had the identical
+shape but was more destructive: on failure it deleted
+`this.seasonStore.currentSeasonId`, re-read AFTER the `adopt()` await — so
+the same interleaving deleted whichever season the coach had opened in the
+meantime, not the orphaned scaffold season the import itself created.
+
+Both fixed by capturing the destination/scaffold id **once, synchronously,
+before any await**, and gating every later live-store mutation on the store
+still owning that same id:
+
+```js
+// js/season-store.js
+async adopt(parsed) {
+  const destSeasonId = this.currentSeasonId;   // captured once, before any await
+  const prior = this.data;
+  let next;
+  if (parsed && Array.isArray(parsed.games)) {
+    next = this._normalize({ ...parsed, id: destSeasonId });
+  } else if (parsed && Array.isArray(parsed.plays)) {
+    next = this._normalize({ id: destSeasonId, games: [this.gameFromLegacy(parsed)] });
+  } else {
+    return { ok: false, data: null };
+  }
+  const stillOwns = () => this.currentSeasonId === destSeasonId;
+  if (stillOwns()) this.data = next;
+  const ok = await this.persist(destSeasonId, next);   // explicit id, never ambient
+  if (ok === false) {
+    if (stillOwns()) this.data = prior;   // roll back ONLY if we still own this season
+    return { ok: false, data: prior };
+  }
+  return { ok: true, data: stillOwns() ? this.data : next };
+}
+```
+
+`persist()`, `_scheduleDiskWrite()`, and `_stripStAlignmentBeforeSave()` were
+each given an optional explicit `seasonId`/`data` parameter (defaulting to
+the ambient `this.currentSeasonId`/`this.data`, so every pre-existing ambient
+caller — autosave, `saveNow()`, `bindDisk()` — is byte-unchanged) so
+`adopt()`'s own save and its debounced disk-sync always target the season it
+captured, never whatever the store has since switched to.
+
+```js
+// js/storage.js — loadProject()'s first-run branch
+let scaffoldSeasonId = null;
+if (!this.seasonStore.hasCurrent()) {
+  const rec = await this.seasonStore.createSeason({ name: ..., teamId: ... });
+  scaffoldSeasonId = (rec && rec.id) || null;   // captured once, right after creation
+}
+const result = await this.seasonStore.adopt(parsed);
+if (!result || result.ok === false) {
+  if (scaffoldSeasonId) {
+    try { await this.seasonStore.deleteSeason(scaffoldSeasonId); } catch (e) {}
+  }
+  this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+  return;
+}
+```
+
+`SeasonStore.deleteSeason(id)` itself only tears down the live editor when
+`this.currentSeasonId === id` (unchanged, pre-existing behavior), so deleting
+the captured scaffold id is safe regardless of what the coach has opened
+since — it can never touch a season the coach is now viewing.
+
+Proven by `tools/pc-adversarial-matrix.mjs` section 3d, `[LOCK]`, covering
+**both** cases Codex named explicitly: (i) an already-open season A being
+overwritten by an import while the coach switches to B before A's save
+resolves, and (ii) a genuine first-run import that creates a fresh scaffold
+season S while the coach opens B before S's import resolves. Both drive a
+real unresolved `Promise` for `saveSeason()` so a genuine season switch can
+land inside the pending window, rather than relying on synchronous fixture
+resolution the way sections 3/3b/3c's fixtures do. Mutation-verified: forcing
+`stillOwns()` to always return `true` reproduces exactly Codex's cited
+symptom (`{"currentSeasonId":"B","data":{"id":"A","seasonName":"Season A"}}`)
+in case (i); reverting the scaffold-id capture to re-read
+`this.seasonStore.currentSeasonId` after the await reproduces exactly the
+"deletes B rather than S" symptom in case (ii) (`deletedIds: ["B"]`). Both
+restored and reconfirmed clean.
+
+### 3.1d — CLOSED, PC-1 (repair of Codex `4ae34e8` finding 2) — a rejected canonical (db) write is now atomic across every sidecar sink, including the in-memory catalog itself
+
+**Codex's re-review found the first repair's own new atomicity proof
+(section 3b) could not have caught this: it used a fake `SeasonStore`-level
+backend, so it could only prove `SeasonStore` doesn't SCHEDULE a later
+`writeDisk()` — it never drove a real `CatalogPersistence` through an actual
+`writeDb()` failure.** In production, `CatalogPersistence.saveSeason()`
+(`js/catalog-persistence.js:61-76`) still wrote `season.json` and the
+Documents mirror unconditionally after a `writeDb()` rejection, and
+`TauriBackend.saveSeason()` (`js/storage-backend.js:678-699`) still called
+`_touchMeta()` (advancing `library.json`) regardless of the canonical
+result. Worse, `tools/e2e-catalog-persistence.mjs`'s own section 6 assertion
+**required** the unsafe json write — *"a db-write failure returns false yet
+still writes the json fallback (no data loss)"* — the exact bug, dressed up
+as a passing test.
+
+Root cause: `saveSeason()` mutates the in-memory `SqlCatalog` (commits the
+new season into the sql.js db object), THEN attempts `writeDb()` (exporting
+bytes to disk). If `writeDb()` fails, the in-memory catalog is left committed
+to the new data while on-disk bytes are unchanged — a split-brain — and the
+json/mirror writes ran anyway, gated on nothing. `deleteSeason()` in the same
+file already defended against the identical hazard for deletes (snapshot
+pre-mutation bytes, reopen the catalog from them on a `writeDb` failure);
+`saveSeason()` now does the same, closing a class the original code had only
+half-fixed:
+
+```js
+// js/catalog-persistence.js
+async saveSeason(id, data) {
+  ...
+  let snapshot = null;
+  try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+  data.id = id;
+  this.catalog.setCurrentSeason(id);
+  if (!this.catalog.saveSeason(data)) return false;
+  let okDb = false;
+  try { await this.fs.writeDb(this.catalog.toBytes()); okDb = true; } catch (e) { okDb = false; }
+  if (!okDb) {
+    // Re-sync memory to the pre-mutation snapshot -- no split-brain, and a
+    // rejected payload cannot be read back out of the in-memory catalog
+    // either, not just off disk.
+    try {
+      this.catalog.close();
+      await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+      this._loaded = true;
+    } catch (e2) { this._loaded = false; try { await this._ensureLoaded(); } catch (e3) {} }
+    return false;
+  }
+  // Fallback + mirror write ONLY once the canonical db write is confirmed durable.
+  try { await this.fs.writeJson(id, data); } catch (e) {}
+  if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
+  return true;
+}
+```
+
+`TauriBackend.saveSeason()` gates `_touchMeta()` on the same `okDb` result:
+
+```js
+const okDb = await cp.saveSeason(seasonId, data);
+if (okDb) await this._touchMeta(seasonId, data);
+return okDb;
+```
+
+Proven by three independent harnesses, all mutation-verified against the
+original defect: `tools/pc-adversarial-matrix.mjs` section 3e (real
+`CatalogPersistence` + real `SqlCatalog`, `[LOCK]`) — zero json writes, zero
+mirror writes, and a same-session `loadSeason()` on the same instance after
+the failure correctly returns `null` rather than reading the rejected
+payload straight back out of memory; a successful-save control on a fresh
+instance proves the gate isn't just disabling the sidecar writes entirely.
+`tools/e2e-catalog-persistence.mjs` section 6, rewritten (was the file
+requiring the unsafe write; now requires the opposite, plus the in-memory
+rollback proof). `tools/e2e-catalog-backend.mjs` (new assertion 1e) proves
+`TauriBackend.saveSeason()`'s own `_touchMeta()` gate directly against the
+built bundle. `tools/e2e-catalog-fuzzer.mjs` — a PRE-EXISTING 16-seed × 40-op
+random fuzzer — initially failed against this fix (`seed 1 op 6: season A
+mismatch`) because its own model asserted the OLD, buggy contract ("whether
+the db write faulted or not... the model advances to the new shape"); its
+model is corrected to advance only on a genuinely successful save, and it
+was then used to independently confirm the fix (640 ops clean) and to
+independently reproduce the regression under mutation.
+
 ### 3.2 — No revision fencing for two overlapping saves to the *same* season
 
 Every existing safeguard (§2 "autosave" row) fences against a **season

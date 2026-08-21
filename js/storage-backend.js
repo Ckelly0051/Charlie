@@ -689,13 +689,16 @@ export class TauriBackend extends StorageBackend {
     }
     if (cp) {
       // CatalogPersistence writes db (canonical) + season.json + Documents mirror,
-      // and returns TRUE only when the canonical db write is durable. The json
-      // safety copy is written either way, so the library metadata may advance to
-      // match it — but PROPAGATE the canonical result so SeasonStore's persist
-      // warning fires on a real db failure instead of a false success.
+      // and returns TRUE only when the canonical db write is durable. Since the
+      // PC-1 repair, CatalogPersistence.saveSeason() itself now gates its json/
+      // mirror sidecar writes on that same durable result, so `okDb` genuinely
+      // means "nothing was written anywhere for this attempt" when false —
+      // _touchMeta() (library.json metadata) must be gated on it too, or a
+      // rejected import's name/counts would still advance the library index
+      // even though every other sidecar correctly stayed untouched.
       try {
         const okDb = await cp.saveSeason(seasonId, data);
-        await this._touchMeta(seasonId, data);
+        if (okDb) await this._touchMeta(seasonId, data);
         return okDb;
       }
       catch (e) {

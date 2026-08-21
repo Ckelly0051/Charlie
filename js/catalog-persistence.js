@@ -57,6 +57,23 @@ export class CatalogPersistence {
    * Canonical save: upsert the season into the shared db, export the db bytes to
    * disk, then dual-write season.json (fallback) + best-effort Documents mirror.
    * Returns true on a successful canonical (db) write.
+   *
+   * PC-1 repair (Codex review of c51a12c, finding 2): a REJECTED canonical
+   * write ("okDb" false because the disk writeDb() call failed) previously
+   * still wrote the rejected payload to `season.json` and the Documents
+   * mirror unconditionally -- so a rejected import could reappear later
+   * from either readable sidecar authority. Both writes now happen ONLY
+   * after the canonical db write is confirmed durable.
+   *
+   * A writeDb failure also left `this.catalog`'s IN-MEMORY sql.js state
+   * committed to the rejected data while on-disk bytes stayed unchanged --
+   * a split-brain, and a faster/same-session variant of the exact defect
+   * being fixed here: a later `loadSeason(id)` on this same catalog
+   * instance would read the rejected data straight back out of memory, with
+   * no disk resurrection required at all. `deleteSeason()` below already
+   * defends against this identical hazard by snapshotting pre-mutation
+   * bytes and reopening the catalog from them on a writeDb failure; this
+   * save path now does the same.
    */
   async saveSeason(id, data) {
     if (!id || !data || !Array.isArray(data.games)) return false;
@@ -66,15 +83,35 @@ export class CatalogPersistence {
     // Fail before opening or writing either store.
     if (data.id && String(data.id) !== String(id)) return false;
     await this._ensureLoaded();
+    let snapshot = null;
+    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
     data.id = id;
     this.catalog.setCurrentSeason(id);
     if (!this.catalog.saveSeason(data)) return false;
     let okDb = false;
     try { await this.fs.writeDb(this.catalog.toBytes()); okDb = true; } catch (e) { okDb = false; }
-    // Fallback + mirror are the safety net; never let them mask the canonical result.
+    if (!okDb) {
+      // The on-disk db is unchanged (write failed); re-sync memory to it so
+      // the in-memory catalog cannot diverge from disk, mirroring
+      // deleteSeason()'s own rollback shape. A failed canonical commit must
+      // produce zero writes anywhere -- json, mirror, or the in-memory
+      // catalog itself.
+      try {
+        this.catalog.close();
+        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+        this._loaded = true;
+      } catch (e2) {
+        this._loaded = false;
+        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+      }
+      return false;
+    }
+    // Fallback + mirror are the safety net; write them ONLY once the canonical
+    // db write is confirmed durable -- never let a rejected payload reach a
+    // readable sidecar authority.
     try { await this.fs.writeJson(id, data); } catch (e) {}
     if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
-    return okDb;
+    return true;
   }
 
   /** Canonical library metadata. The catalog, not library.json, owns truth. */

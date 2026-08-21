@@ -164,6 +164,52 @@
       gates the snapshot backup and Documents mirror on the canonical save
       succeeding.
 
+   REPAIR of `4ae34e8` (both required items, verified against source before
+   being changed, not taken on report):
+
+   1. [P0] Section 3d is new -- proves a season switch WHILE an import save is
+      pending never restores or deletes the wrong season, in both cases Codex
+      named: an already-open A -> B switch racing adopt()'s own rollback, and
+      a first-run scaffold S -> B switch racing StorageManager.loadProject()'s
+      scaffold-delete cleanup. Neither case was reachable by sections 3/3b/3c,
+      whose fake backends all resolve saveSeason() on the same microtask turn
+      the test drives -- there was never a real window for a concurrent switch
+      to land inside the pending save. This section holds saveSeason() pending
+      via a real unresolved Promise, drives a genuine season switch through
+      it, then resolves the stale save and asserts the live store still shows
+      exactly what the coach switched to. Root cause (js/season-store.js
+      adopt()/persist()/_scheduleDiskWrite(), js/storage.js loadProject()):
+      `destSeasonId`/the scaffold's own id are now captured ONCE, synchronously,
+      before any await, and every later mutation of the live store or delete
+      call uses that captured id -- never a value re-read off
+      `this.currentSeasonId` after the await, which by then could name
+      whatever season the coach has since opened. Reproduced directly before
+      this fix, matching Codex's exact report: the store ended as
+      `{ currentSeasonId:'B', data.id:'A', data.seasonName:'Season A' }`.
+   2. [P1] Section 3e is new -- drives the REAL CatalogPersistence + SqlCatalog
+      through a genuine writeDb() failure (section 3b's fake backend could
+      only prove SeasonStore doesn't SCHEDULE a later writeDisk(); it never
+      touched the real class where the actual defect lived) and proves every
+      sidecar sink -- season.json, the Documents mirror, and the in-memory
+      catalog itself -- performs zero writes on a rejected canonical save.
+      Root cause (js/catalog-persistence.js saveSeason()): the json/mirror
+      writes ran unconditionally after `writeDb()`, gated on nothing; a
+      writeDb() failure also left the in-memory sql.js catalog committed to
+      the rejected payload while on-disk bytes stayed untouched (a same-
+      session, faster-than-disk variant of the identical resurrection
+      hazard), with no rollback -- unlike deleteSeason() in the same file,
+      which already snapshots pre-mutation bytes and reopens from them on a
+      writeDb failure. saveSeason() now does the same. js/storage-backend.js
+      TauriBackend.saveSeason() also called `_touchMeta()` (library.json)
+      unconditionally regardless of the canonical result; it is now gated on
+      `okDb`, pinned directly by a new tools/e2e-catalog-backend.mjs
+      assertion. tools/e2e-catalog-persistence.mjs section 6's own assertion
+      previously REQUIRED the unsafe json write ("db-write failure ... still
+      writes the json fallback (no data loss)") -- that was the exact bug
+      dressed up as a passing test; it is now inverted to require zero writes
+      anywhere, plus the in-memory-rollback proof and a successful-save
+      control.
+
    Deliberately NOT named tools/e2e-*.mjs: tools/run-gate.sh and CI glob that
    pattern and require every harness green. This file's target-contract
    sections are supposed to be red until their checkpoint lands. Fold it into
@@ -197,11 +243,11 @@ const clone = x => JSON.parse(JSON.stringify(x));
 const SQL = await initSqlJs();
 
 function makeFs() {
-  const state = { db: null, json: new Map(), mirror: new Map() };
+  const state = { db: null, json: new Map(), mirror: new Map(), writeDbFail: false };
   return {
     state,
     readDb: async () => state.db,
-    writeDb: async (bytes) => { state.db = bytes.slice ? bytes.slice() : new Uint8Array(bytes); },
+    writeDb: async (bytes) => { if (state.writeDbFail) throw new Error('db write down'); state.db = bytes.slice ? bytes.slice() : new Uint8Array(bytes); },
     readJson: async (id) => state.json.has(id) ? clone(state.json.get(id)) : null,
     writeJson: async (id, data) => { state.json.set(id, clone(data)); },
     writeMirror: async (id, data) => { state.mirror.set(id, clone(data)); },
@@ -599,6 +645,195 @@ section('3c. A first-run import that creates its own destination season rolls th
 flush();
 
 // ============================================================================
+// 3d. LOCK (closed PC-1, repair of Codex `4ae34e8` finding 1) -- "A season
+//     switch while an import save is pending can restore or delete the wrong
+//     season in memory." Sections 3/3b/3c prove adopt()/loadProject() are
+//     atomic and durable IN ISOLATION; none of their backends leave a real
+//     window for a concurrent switch to land inside the pending save (3b/3c's
+//     saveSeason() resolves on the SAME microtask turn the test drives). This
+//     section deliberately holds saveSeason() pending via a real unresolved
+//     Promise, drives a genuine season switch through it, and only then
+//     resolves the save -- proving both cases Codex named explicitly:
+//     (i) an already-open season A being overwritten by an import, while the
+//         coach switches to B before A's save resolves (adopt()'s own
+//         rollback branch);
+//     (ii) a genuine first-run import that creates a fresh scaffold season S,
+//          while the coach opens B before S's import resolves -- the more
+//          destructive half, since the OLD code re-read
+//          `this.seasonStore.currentSeasonId` (by then 'B') to decide what
+//          to delete on failure, instead of the scaffold id it actually
+//          created (StorageManager.loadProject()).
+//
+//     Reproduced directly before this fix, verbatim from Codex's review:
+//     "begin an import into A, open B while the backend save is pending,
+//     resolve the A save false; the store ends as { currentSeasonId:'B',
+//     data.id:'A', data.seasonName:'Season A' }."
+// ============================================================================
+section('3d. A season switch while an import save is pending never restores or deletes the wrong season in memory [LOCK, closed PC-1]');
+{
+  // -- (i) already-open A -> B switch, adopt()'s own rollback -------------
+  {
+    let resolveSave;
+    const savePromise = new Promise(res => { resolveSave = res; });
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
+      async saveSeason() { return savePromise; },   // the import's durable write for A stays pending
+      async touchOpened() {},
+      diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+
+    const importedFile = season('A', 'Imported'); // a real exported file, id already matches A (isolates this from 3a)
+    const adoptPromise = store.adopt(importedFile);   // begins the import into A; blocks on savePromise
+
+    // The coach switches to B WHILE the import save is still pending.
+    await store.openSeason('B');
+    ok('lock', store.currentSeasonId === 'B' && store.data.id === 'B',
+      "sanity: the coach genuinely switched to season B while A's import save was still pending",
+      JSON.stringify({ currentSeasonId: store.currentSeasonId, dataId: store.data && store.data.id }));
+
+    resolveSave(false);   // the pending import into A now resolves as a rejected durable write
+    const result = await adoptPromise;
+
+    ok('lock', result && result.ok === false, "the stale import into A still reports its own genuine failure",
+      JSON.stringify(result && { ok: result.ok }));
+    ok('lock', store.currentSeasonId === 'B' && store.data && store.data.id === 'B' && store.data.seasonName === 'Season B',
+      "the store still shows season B -- the stale rejected import into A never restored A's stale data over B's live season (reproduced before this fix: currentSeasonId stayed 'B' while data.id/seasonName silently became A's)",
+      JSON.stringify({ currentSeasonId: store.currentSeasonId, data: store.data && { id: store.data.id, seasonName: store.data.seasonName } }));
+  }
+
+  // -- (ii) first-run scaffold S -> B switch, loadProject()'s scaffold-delete
+  {
+    if (!globalThis.window) globalThis.window = globalThis;
+    if (!globalThis.document) globalThis.document = { getElementById: () => null };
+    if (!globalThis.alert) globalThis.alert = () => {};
+    if (!globalThis.FileReader || !globalThis.__pcFakeFileReaderInstalled) {
+      globalThis.FileReader = class {
+        readAsText(file) { queueMicrotask(() => { if (this.onload) this.onload({ target: { result: file.__text } }); }); }
+      };
+      globalThis.__pcFakeFileReaderInstalled = true;
+    }
+    const { StorageManager } = await import('../js/storage.js');
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const toasts = [];
+    const tagger = { ...noopEmitter, plays: [], toast(msg, dur) { toasts.push({ msg, dur }); } };
+    const canvas = { ...noopEmitter, annotations: [] };
+    const sm = new StorageManager(vc, tagger, canvas);
+
+    let resolveSave;
+    const savePromise = new Promise(res => { resolveSave = res; });
+    const seasons = new Map();
+    const deletedIds = [];
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async createSeason(meta) {
+        const rec = { id: 'lib-fresh-scaffold', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 };
+        seasons.set(rec.id, rec);
+        return rec;
+      },
+      async deleteSeason(id) { deletedIds.push(id); return seasons.delete(id); },
+      async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
+      async saveSeason() { return savePromise; },   // the scaffold import's durable write stays pending
+      async touchOpened() {},
+      diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    ok('lock', !store.hasCurrent(), 'sanity: no season is open before the first-run import (hasCurrent() is false)');
+    sm.seasonStore = store;
+
+    let clearCalled = false, loadCalled = false;
+    sm._clearForNewGame = () => { clearCalled = true; };
+    sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+
+    const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season');
+    const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
+    sm.loadProject(fakeFile);   // creates scaffold S, begins adopt(), blocks on savePromise
+    await new Promise(r => setTimeout(r, 20));   // let the FileReader microtask + createSeason() settle
+
+    ok('lock', seasons.has('lib-fresh-scaffold'),
+      'sanity: the orphaned scaffold season genuinely exists before the coach switches away');
+
+    // The coach opens season B WHILE the scaffold's import save is still pending.
+    await store.openSeason('B');
+    ok('lock', store.currentSeasonId === 'B' && store.data.id === 'B',
+      "sanity: the coach genuinely opened season B while the scaffold's import save was still pending");
+
+    resolveSave(false);   // the pending scaffold import now resolves as a rejected durable write
+    await new Promise(r => setTimeout(r, 20));
+
+    ok('lock', deletedIds.length === 1 && deletedIds[0] === 'lib-fresh-scaffold',
+      "the rollback deletes exactly the captured scaffold id, never the season the coach opened meanwhile (reproduced before this fix: re-reading currentSeasonId after the await would have named 'B')",
+      JSON.stringify(deletedIds));
+    ok('lock', store.currentSeasonId === 'B' && store.data && store.data.id === 'B' && store.data.seasonName === 'Season B',
+      'the store still shows season B untouched -- the failed scaffold import never cleared, reloaded, or replaced it',
+      JSON.stringify({ currentSeasonId: store.currentSeasonId, data: store.data && { id: store.data.id, seasonName: store.data.seasonName } }));
+    ok('lock', clearCalled === false && loadCalled === false,
+      'the stale first-run import never re-renders the editor as though it succeeded', `clearCalled=${clearCalled} loadCalled=${loadCalled}`);
+  }
+}
+flush();
+
+// ============================================================================
+// 3e. LOCK (closed PC-1, repair of Codex `4ae34e8` finding 2) -- "A rejected
+//     SQLite import still writes the rejected payload to live JSON/mirror
+//     metadata, so the import is not atomic on the real desktop stack."
+//     Section 3b proved SeasonStore does not SCHEDULE a later writeDisk()
+//     after a rejected save; it never drove a REAL CatalogPersistence through
+//     an actual writeDb() failure, so it could not see that
+//     CatalogPersistence.saveSeason() itself still wrote season.json and the
+//     Documents mirror unconditionally after a writeDb() rejection
+//     (js/catalog-persistence.js), independent of anything SeasonStore does.
+//     This section drives the REAL CatalogPersistence + real SqlCatalog
+//     through a genuine writeDb() failure and proves every sidecar sink --
+//     json, mirror, AND the in-memory catalog itself (a same-session,
+//     faster-than-disk variant of the identical resurrection hazard) --
+//     remains completely untouched, alongside a successful-save control on a
+//     fresh instance proving the same mechanism genuinely writes when the
+//     save legitimately succeeds.
+// ============================================================================
+section('3e. A rejected canonical (db) write produces zero json, mirror, or in-memory-catalog writes [LOCK, closed PC-1]');
+{
+  const fs = makeFs();
+  fs.state.writeDbFail = true;
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const okDb = await cp.saveSeason('s1', season('s1', 'Rejected Import'));
+
+  ok('lock', okDb === false, 'a rejected canonical (db) write reports failure', String(okDb));
+  ok('lock', !fs.state.json.has('s1'),
+    'a rejected canonical write performs ZERO writes to season.json (reproduced before this fix: the rejected payload was written to the json fallback unconditionally)',
+    JSON.stringify([...fs.state.json.keys()]));
+  ok('lock', !fs.state.mirror.has('s1'),
+    'a rejected canonical write performs ZERO writes to the Documents mirror',
+    JSON.stringify([...fs.state.mirror.keys()]));
+
+  // The in-memory catalog must not diverge from disk either -- a same-session
+  // load on the SAME cp instance must not read the rejected payload straight
+  // back out of memory, even though nothing was ever written to disk.
+  fs.state.writeDbFail = false;
+  const reload = await cp.loadSeason('s1');
+  ok('lock', reload === null,
+    "the in-memory catalog rolls back on a writeDb failure -- a later load on the same instance does not read the rejected payload back out of memory (a same-session, faster-than-disk variant of the resurrection hazard)",
+    JSON.stringify(reload));
+
+  // Successful control: the same mechanism genuinely writes json + mirror
+  // when the canonical save legitimately succeeds, on a FRESH instance so the
+  // prior failed attempt cannot leave any state behind to fake this.
+  const fs2 = makeFs();
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: fs2 });
+  const okDb2 = await cp2.saveSeason('s2', season('s2', 'Legitimate Save'));
+  ok('lock', okDb2 === true && fs2.state.json.has('s2') && fs2.state.mirror.has('s2'),
+    'a SUCCESSFUL canonical save still writes json + mirror, proving the gate above is not simply disabling the sidecar writes entirely',
+    JSON.stringify({ okDb2, json: fs2.state.json.has('s2'), mirror: fs2.state.mirror.has('s2') }));
+}
+flush();
+
+// ============================================================================
 // 4. LOCK — "Delayed save for season A completes after switching to B: zero
 //    writes to B." Repair of 529d8ae finding 2: drives the REAL callback.
 // ============================================================================
@@ -975,7 +1210,7 @@ console.log('== ADVERSARIAL MATRIX COVERAGE (all ten plan items) ==');
 const coverage = [
   ['Destination id differs from payload id: zero writes.', 'DIRECT — section 1'],
   ['Delayed save for season A completes after switching to B: zero writes to B.', 'DIRECT — section 4'],
-  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
+  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 3c (import, first-run scaffold rollback), 3d (import racing a concurrent season switch, both the already-open and first-run-scaffold cases), 3e (a rejected canonical write is atomic across json/mirror/in-memory-catalog), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
   ['TeamRegistry peeks do not alter active identity.', 'DIRECT — section 10'],
   ['SQLite is corrupt, locked, or unavailable: visible failure, no fallback authority.', 'DIRECT (CatalogPersistence layer) — section 2. The TauriBackend.listSeasons() call site that consumes this result requires the real Tauri fs plugin and cannot run in plain Node; deferred to a browser-level e2e harness with a fake window.__TAURI__ shim, owner PC-2, or the PC-5 installed smoke.'],
   ['Stale JSON/library sidecars disagree with SQLite: ignored by normal startup.', 'DIRECT — section 9'],

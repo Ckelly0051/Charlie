@@ -554,18 +554,27 @@ export class SeasonStore {
   // can never reach a saved file, a restore point, or an export, regardless of which
   // writer produced it. (persist() alone was NOT sufficient — the other paths
   // serialize this.data independently.) Idempotent; only touches unit:'special'.
-  _stripStAlignmentBeforeSave() {
-    const games = this.data && Array.isArray(this.data.games) ? this.data.games : [];
+  // `data` defaults to the ambient current season for every ordinary caller
+  // (autosave, explicit field edits, json()/saveNow()/bindDisk()). adopt()
+  // passes an EXPLICIT season object it captured before any await, so its
+  // own strip/save/debounce never reads whatever season happens to be
+  // ambiently current by the time this runs (PC-1 repair, finding 1).
+  _stripStAlignmentBeforeSave(data = this.data) {
+    const games = data && Array.isArray(data.games) ? data.games : [];
     games.forEach(g => (g.plays || []).forEach(p => SeasonStore.stripStAlignment(p)));
   }
 
-  persist() {
-    this._stripStAlignmentBeforeSave();
-    const seasonId = this.currentSeasonId;
+  // `seasonId`/`data` default to the ambient current season/store, so every
+  // existing ambient caller is unchanged. adopt() passes both explicitly
+  // (its own captured destination id + normalized payload) so this save and
+  // its debounced disk-sync always target the season this call started
+  // with, never whatever the ambient store has since switched to.
+  persist(seasonId = this.currentSeasonId, data = this.data) {
+    this._stripStAlignmentBeforeSave(data);
     // Return the durable result while preserving fire-and-forget callers.
     // Storage transactions must not announce success until the canonical
     // season bytes are actually accepted.
-    const saved = Promise.resolve(this.backend.saveSeason(seasonId, this.data))
+    const saved = Promise.resolve(this.backend.saveSeason(seasonId, data))
       .then(ok => {
         if (ok === false) { this._persistFailed(); return false; }
         this._persistWarned = false;
@@ -575,7 +584,7 @@ export class SeasonStore {
         // wrote the rejected payload to the Documents mirror 2.5s later,
         // independent of the canonical result -- reproduced directly before
         // this fix (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
-        this._scheduleDiskWrite();
+        this._scheduleDiskWrite(seasonId, data);
         return true;
       })
       .catch(() => { this._persistFailed(); return false; });
@@ -588,16 +597,16 @@ export class SeasonStore {
     if (typeof this.onPersistError === 'function') { try { this.onPersistError(); } catch (e) {} }
   }
 
-  _scheduleDiskWrite() {
+  _scheduleDiskWrite(seasonId = this.currentSeasonId, data = this.data) {
     if (!this.backend.diskStatus().bound) return;
     clearTimeout(this._diskTimer);
-    const snap = JSON.parse(JSON.stringify(this.data));   // freeze the payload
+    const snap = JSON.parse(JSON.stringify(data));   // freeze the payload
     // Pin the owning season: writeDisk resolves the TARGET at fire time (via
     // the explicit id captured here, not backend.currentId), so a debounce
     // surviving a season switch would write this frozen payload into the
     // NEXT season's file. Transitions also cancel the timer
     // (cancelPendingDiskWrite); the pin covers any path that forgets.
-    const sid = this.currentSeasonId;
+    const sid = seasonId;
     this._diskTimer = setTimeout(() => {
       if (this.currentSeasonId !== sid) return;
       this.backend.writeDisk(sid, snap, { snapshot: false }).catch(() => {});
@@ -687,15 +696,15 @@ export class SeasonStore {
   /**
    * Adopt a parsed object (season or legacy single game) as the season.
    *
-   * PC-1: three fixes to the identity/durability contract (documented in
+   * PC-1: four fixes to the identity/durability contract (documented in
    * GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
    *   1. The imported payload's own `id` (whatever machine/season it came
-   *      from) is reassigned to `this.currentSeasonId` -- the destination
-   *      library slot -- BEFORE normalize/persist. Without this, an imported
-   *      file whose id differs from the destination is silently rejected by
-   *      the very destination/payload guard `saveSeason()` already enforces
-   *      (`data.id !== this.currentId`), and the import looked like it
-   *      worked while nothing was ever durably saved.
+   *      from) is reassigned to `destSeasonId` -- the destination library
+   *      slot, captured ONCE up front -- BEFORE normalize/persist. Without
+   *      this, an imported file whose id differs from the destination is
+   *      silently rejected by the very destination/payload guard
+   *      `saveSeason()` already enforces (`data.id !== id`), and the import
+   *      looked like it worked while nothing was ever durably saved.
    *   2. `adopt()` is now `async` and returns `{ ok, data }` -- awaitable, so
    *      a caller can observe genuine durable success/failure instead of the
    *      previous fire-and-forget `this.persist()` whose result went nowhere.
@@ -705,27 +714,49 @@ export class SeasonStore {
    *      awaited, so a rejected import still replaced the live in-memory
    *      season -- reproduced directly before this fix: `ok:false` alongside
    *      the live season name changing to the imported (rejected) value.
+   *   4. SEASON-SWITCH SAFE: `destSeasonId` is captured once, synchronously,
+   *      before any await, and every subsequent mutation of the LIVE
+   *      `this.data` -- both the initial stage AND the rollback/success
+   *      read-back -- is gated on `this.currentSeasonId === destSeasonId`
+   *      still holding, i.e. this call still owning the season it started
+   *      with. The underlying durable write (persist(), called with the
+   *      EXPLICIT destSeasonId/next, never the ambient current season) still
+   *      completes or fails as scoped either way -- but if the coach has
+   *      switched seasons while this save was pending, the live store
+   *      showing whatever they opened is never touched by this call's own
+   *      stage or rollback. Reproduced directly before this fix: begin an
+   *      import into A, open B while the backend save is pending, resolve
+   *      the A save false -- the store ended as
+   *      { currentSeasonId:'B', data.id:'A', data.seasonName:'Season A' },
+   *      i.e. B's live season was silently replaced by A's stale pre-import
+   *      snapshot (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
    *
    * Returns `{ ok: false, data: null }` for an unrecognized shape (no season
    * open, or a payload with neither `.games` nor `.plays`) -- `this.data` is
    * never touched in that case either.
    */
   async adopt(parsed) {
+    const destSeasonId = this.currentSeasonId;
     const prior = this.data;
     let next;
     if (parsed && Array.isArray(parsed.games)) {
-      next = this._normalize({ ...parsed, id: this.currentSeasonId });
+      next = this._normalize({ ...parsed, id: destSeasonId });
     } else if (parsed && Array.isArray(parsed.plays)) {
-      next = this._normalize({ id: this.currentSeasonId, games: [this.gameFromLegacy(parsed)] });
+      next = this._normalize({ id: destSeasonId, games: [this.gameFromLegacy(parsed)] });
     } else {
       return { ok: false, data: null };
     }
-    this.data = next;
-    const ok = await this.persist();
+    const stillOwns = () => this.currentSeasonId === destSeasonId;
+    if (stillOwns()) this.data = next;
+    const ok = await this.persist(destSeasonId, next);
     if (ok === false) {
-      this.data = prior;               // roll back the live in-memory mutation
+      // Roll back the live in-memory mutation ONLY if this call still owns
+      // the current season -- otherwise the coach has already navigated
+      // elsewhere, and restoring `prior` here would silently replace THEIR
+      // season's live data with this call's stale pre-import snapshot.
+      if (stillOwns()) this.data = prior;
       return { ok: false, data: prior };
     }
-    return { ok: true, data: this.data };
+    return { ok: true, data: stillOwns() ? this.data : next };
   }
 }
