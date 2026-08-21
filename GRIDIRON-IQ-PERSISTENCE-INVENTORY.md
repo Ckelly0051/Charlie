@@ -550,6 +550,119 @@ model is corrected to advance only on a genuinely successful save, and it
 was then used to independently confirm the fix (640 ops clean) and to
 independently reproduce the regression under mutation.
 
+### 3.1e — CLOSED, PC-1 (repair of Codex `4d75bca`) — the whole first-run import lifecycle is now one ownership-checked fence, from scaffold creation through the final editor reload
+
+**§3.1c closed the race during `adopt()`'s own pending save (both the
+already-open A -> B case and the "delete the wrong season on failure" case).
+Codex's re-review found two narrower gaps §3.1c's fixes did not reach: a
+season switch racing the SCAFFOLD's OWN durable creation, and a stale but
+GENUINELY SUCCESSFUL import still unconditionally firing the caller's
+editor-reload side effects.**
+
+**Gap 1 — the scaffold's own creation await had zero ownership protection.**
+`SeasonStore.createSeason()` is the general "make a new season and switch to
+it" primitive — correct to switch unconditionally for its *deliberate*
+callers (Team Hub's "New Season" button, `loadDemoSeason()`,
+`StorageManager.createSeason()`), where the coach explicitly asked for the
+new season to become current. `StorageManager.loadProject()`'s first-run
+import bootstrap reused this SAME unconditional-switch method purely as
+plumbing to obtain a real library id — but that means a coach who opened (or
+created) a *different* season B while `createSeason()`'s own internal
+`await this.backend.createSeason(meta)` was still pending would have B
+silently clobbered the instant that await resolved: `createSeason()`'s body
+runs `this.currentSeasonId = rec.id; ...; this.data = this._empty(); ...`
+unconditionally as its very next synchronous step, with no check that
+nothing else had claimed the pointer in the meantime.
+
+**Fixed by separating durable allocation from the live-state claim**, so the
+deliberate-caller contract and the implementation-detail-scaffold contract
+can differ without duplicating logic:
+
+```js
+// js/season-store.js
+async _createSeasonRecordOnly(meta) {           // pure backend write, zero live-state touch
+  return this.backend.createSeason(meta || {});
+}
+_adoptSeasonRecord(rec, meta) {                  // the live-state claim, unguarded
+  this.currentSeasonId = rec.id;
+  this.backend.setCurrentSeason(rec.id);
+  this.data = this._empty();
+  this.data.id = rec.id;
+  this.data.seasonName = rec.name;
+  ...
+}
+async createSeason(meta) {                       // deliberate callers: UNCHANGED, unconditional
+  this.cancelPendingDiskWrite();
+  const rec = await this._createSeasonRecordOnly(meta);
+  if (!rec) return null;
+  this._adoptSeasonRecord(rec, meta);
+  this.persist();
+  return rec;
+}
+async createUnclaimedSeasonIfEmpty(meta) {        // NEW: loadProject()'s bootstrap only
+  this.cancelPendingDiskWrite();
+  const rec = await this._createSeasonRecordOnly(meta);
+  if (!rec) return { rec: null, claimed: false };
+  if (this.hasCurrent()) return { rec, claimed: false };   // someone else opened/created a season meanwhile
+  this._adoptSeasonRecord(rec, meta);
+  this.persist();
+  return { rec, claimed: true };
+}
+```
+
+`StorageManager.loadProject()`'s bootstrap branch now uses
+`createUnclaimedSeasonIfEmpty()`; when `claimed` is false the (never-made-live)
+scaffold is deleted by its own id and the import aborts cleanly — the
+concurrently-opened season was never on a shared code path with any of this,
+so it needs no special-casing to stay untouched.
+
+**Gap 2 — a stale but genuinely successful import still reloaded the wrong
+editor.** §3.1c's fix protects `SeasonStore.data` itself (via `adopt()`'s own
+`stillOwns()` gate), but `StorageManager.loadProject()`'s *caller-level* side
+effects — `this._clearForNewGame(); this._loadActiveGame();` — ran
+unconditionally on ANY successful `adopt()` result, with no check that the
+store still owned the season this particular import targeted. A stale import
+whose OWN durable write to its OWN destination genuinely succeeded (no data
+corruption at all) would still unload the video, reset the playlist, and blank
+the Game Info form of whatever *different* season the coach had since opened
+and was actively working in — a real, disruptive UX interruption with no
+connection to what the coach was doing, distinct from (and not caught by) any
+data-integrity check.
+
+Fixed by capturing the same identity `adopt()` itself captures, one level up,
+and gating the reload on it:
+
+```js
+// js/storage.js — loadProject()
+const destSeasonId = this.seasonStore.currentSeasonId;   // == what adopt() itself will capture; no await between here and the call below
+const result = await this.seasonStore.adopt(parsed);
+if (!result || result.ok === false) { ... return; }
+if (this.seasonStore.currentSeasonId !== destSeasonId) {
+  // The import's OWN destination season saved durably, but the coach
+  // switched to a different season while that save was pending. Reloading
+  // the editor here would only interrupt whatever they're doing now for no
+  // reason connected to it, so skip it silently.
+  return;
+}
+this._clearForNewGame();
+this._loadActiveGame();
+```
+
+Proven by `tools/pc-adversarial-matrix.mjs` section 3f, `[LOCK]`, the "two
+additional race tests" the review named: (i) drives a real `StorageManager`
+against a backend whose `createSeason()` is held pending via an unresolved
+`Promise`, opens season B mid-flight, then resolves the scaffold's creation
+and asserts the store still shows B untouched, the never-claimed scaffold is
+durably deleted, and the editor never re-renders; (ii) drives the
+already-established stale-switch harness shape from section 3d but resolves
+the pending save with `true` (a genuine success) instead of `false`, and
+asserts the editor still never reloads. Mutation-verified: disabling
+`createUnclaimedSeasonIfEmpty()`'s `hasCurrent()` guard reproduces the
+scaffold clobbering B exactly (`{"currentSeasonId":"lib-fresh-scaffold",...}`,
+the editor firing as if the import succeeded, no failure toast); removing the
+`destSeasonId` reload gate reproduces the stale-success reload firing on B
+exactly, isolated to that one assertion. Both restored, clean.
+
 ### 3.2 — No revision fencing for two overlapping saves to the *same* season
 
 Every existing safeguard (§2 "autosave" row) fences against a **season

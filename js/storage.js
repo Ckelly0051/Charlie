@@ -1267,23 +1267,58 @@ export class StorageManager {
         // so register a library entry first — adopt() persists into the
         // CURRENT season's slot and silently went nowhere without one.
         //
-        // PC-1 repair (finding 1, second half): the rollback below used to
-        // re-read `this.seasonStore.currentSeasonId` AFTER the adopt() await
-        // to decide what to delete. If the coach switched to a season B
-        // while this import's save was pending, that re-read returns B's id
-        // -- so a failed import could delete the season the coach had since
-        // opened, instead of the orphaned scaffold this call created. The
-        // scaffold's id is now captured ONCE, synchronously, right after
-        // createSeason() resolves, and that captured id is what gets
-        // deleted -- never a value re-read after any later await.
+        // PC-1 repair (the remaining P0 from Codex's re-review of the prior
+        // atomicity repair): the whole import lifecycle -- scaffold creation,
+        // the durable write, and the final editor reload -- is now ONE
+        // transaction fence, re-validated at every await boundary, not just
+        // the write itself:
+        //   1. Scaffold creation no longer switches the live editor
+        //      unconditionally. createUnclaimedSeasonIfEmpty() durably
+        //      creates the record, then claims it as current ONLY IF nothing
+        //      else opened/created a season while that create was in flight
+        //      (SeasonStore.createSeason()'s own unconditional switch --
+        //      correct for its deliberate "New Season" callers -- was
+        //      exactly this hazard for an implementation-detail scaffold: a
+        //      season the coach opened WHILE the scaffold's own durable
+        //      create was pending could be silently clobbered the instant
+        //      that create resolved).
+        //   2. `destSeasonId` is captured once, synchronously, immediately
+        //      before calling adopt() -- identical to the value adopt()
+        //      itself captures internally (no await separates the two), so
+        //      both agree on exactly which season this import targets.
+        //   3. On failure, the scaffold (if this call created and claimed
+        //      one) is deleted by that captured id -- never a value re-read
+        //      after the await, which could by then name whatever the coach
+        //      has since opened. deleteSeason() is itself scoped to the id
+        //      it's given (it only clears the live editor if that id is
+        //      still the ambient current season), so this is safe regardless
+        //      of what's current now.
+        //   4. On SUCCESS, the final `_clearForNewGame()`/`_loadActiveGame()`
+        //      reload is gated on the store still owning `destSeasonId` too
+        //      -- a stale but genuinely successful import (its own durable
+        //      write to its own destination completed fine) must not yank
+        //      the coach's video/playlist/form out from under them on
+        //      whatever DIFFERENT season they've since opened, for a reason
+        //      that has nothing to do with what they're doing.
         let scaffoldSeasonId = null;
         if (!this.seasonStore.hasCurrent()) {
-          const rec = await this.seasonStore.createSeason({
+          const { rec, claimed } = await this.seasonStore.createUnclaimedSeasonIfEmpty({
             name: parsed.seasonName || String(file.name || 'Imported Season').replace(/\.json$/i, ''),
             teamId: (() => { try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (err2) { return ''; } })(),
           });
+          if (rec && !claimed) {
+            // A concurrent operation opened/created a season WHILE this
+            // scaffold's own durable creation was in flight. It was never
+            // made live and never received any import data -- delete it and
+            // abort. The coach's concurrent action is completely untouched;
+            // it never shared a code path with any of this.
+            try { await this.seasonStore.deleteSeason(rec.id); } catch (err0) {}
+            this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+            return;
+          }
           scaffoldSeasonId = (rec && rec.id) || null;
         }
+        const destSeasonId = this.seasonStore.currentSeasonId;   // == what adopt() itself will capture; no await between here and the call below
         // PC-1: adopt() is now awaitable, atomic, and reports genuine durable
         // success/failure (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
         // a rejected write must never be presented as a successful import,
@@ -1294,15 +1329,19 @@ export class StorageManager {
           // A destination season created SOLELY for this failed import is now
           // an orphaned, empty library entry with no purpose — roll it back
           // rather than leaving the coach a phantom season they never asked
-          // for and that has no data. deleteSeason() is itself scoped to the
-          // id it's given (it only clears the live editor if that id is
-          // still the ambient current season), so deleting the captured
-          // scaffold id here is safe regardless of what the coach has since
-          // opened — it can never touch a season the coach is now viewing.
+          // for and that has no data.
           if (scaffoldSeasonId) {
             try { await this.seasonStore.deleteSeason(scaffoldSeasonId); } catch (err3) {}
           }
           this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+          return;
+        }
+        if (this.seasonStore.currentSeasonId !== destSeasonId) {
+          // The import's OWN destination season saved durably, but the coach
+          // switched to a different season while that save was pending.
+          // adopt() already guaranteed their live season was never touched;
+          // reloading the editor here would only interrupt whatever they're
+          // doing now for no reason connected to it, so skip it silently.
           return;
         }
         this._clearForNewGame();

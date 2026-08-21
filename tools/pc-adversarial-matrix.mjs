@@ -210,6 +210,40 @@
       anywhere, plus the in-memory-rollback proof and a successful-save
       control.
 
+   REPAIR of `4d75bca` (the one remaining P0, verified against source before
+   being changed, not taken on report):
+
+   1. [P0] Section 3f is new -- two narrower races section 3d did not cover.
+      (i) A season switch racing the SCAFFOLD's OWN durable creation, BEFORE
+      adopt() is even called (3d's scaffold sub-test built its scaffold
+      through the OLD unconditional-switch createSeason(), exercising a race
+      only during the LATER adopt() await, never during creation itself).
+      Root cause (js/season-store.js): createSeason()'s unconditional
+      `this.currentSeasonId = rec.id` after its own internal await would
+      clobber whatever the coach opened WHILE that await was pending. Fixed
+      by splitting creation into `_createSeasonRecordOnly()` (pure durable
+      allocation, zero live-state touch) and `_adoptSeasonRecord()` (the
+      live-state claim, unguarded); `createSeason()` composes both
+      unconditionally (unchanged behavior for its deliberate "New Season"
+      callers); a new `createUnclaimedSeasonIfEmpty()` composes them with a
+      guard -- claims the record only if `hasCurrent()` is still false when
+      the durable create resolves -- used exclusively by
+      `StorageManager.loadProject()`'s first-run bootstrap.
+      (ii) A stale but GENUINELY SUCCESSFUL import still fired
+      loadProject()'s final `_clearForNewGame()`/`_loadActiveGame()` reload
+      unconditionally against whatever season the coach had since opened --
+      adopt() itself already protected `this.data` (section 3d), but the
+      CALLER-level reload had no ownership gate of its own. Fixed
+      (js/storage.js): `destSeasonId` is captured once in loadProject(),
+      immediately before calling adopt() (identical to what adopt() itself
+      captures -- no await separates the two calls), and the final reload is
+      skipped when the store no longer owns that id after adopt() resolves.
+      Both mutation-verified: reverting createUnclaimedSeasonIfEmpty()'s
+      hasCurrent() guard to unconditional (matching plain createSeason())
+      reproduces the scaffold clobbering B exactly; removing the
+      destSeasonId reload gate reproduces the stale-success reload firing on
+      B exactly.
+
    Deliberately NOT named tools/e2e-*.mjs: tools/run-gate.sh and CI glob that
    pattern and require every harness green. This file's target-contract
    sections are supposed to be red until their checkpoint lands. Fold it into
@@ -834,6 +868,160 @@ section('3e. A rejected canonical (db) write produces zero json, mirror, or in-m
 flush();
 
 // ============================================================================
+// 3f. LOCK (closed PC-1, repair of Codex `4d75bca`, the P0 remaining after
+//     section 3d/3e) -- section 3d proved a season switch racing an import's
+//     PENDING SAVE never restores/deletes the wrong season; it did not prove
+//     two narrower things Codex's re-review named: (i) a season switch racing
+//     the SCAFFOLD's OWN durable creation (before adopt() is even called --
+//     3d's scaffold sub-test used the OLD unconditional-switch createSeason()
+//     to BUILD its scaffold with no race exercised there, only during the
+//     later adopt() await); and (ii) a stale but GENUINELY SUCCESSFUL import
+//     still unconditionally firing StorageManager.loadProject()'s final
+//     `_clearForNewGame()`/`_loadActiveGame()` reload against whatever
+//     DIFFERENT season the coach has since opened -- 3d/3b only ever tested
+//     the failure path for that reload gate, since adopt() itself already
+//     protects `this.data`, but the CALLER-level reload was never gated on
+//     ownership at all.
+//
+//     (i) is closed by SeasonStore.createUnclaimedSeasonIfEmpty(): the
+//     scaffold's durable creation and its live-state claim are now two
+//     separate steps, with the claim happening ONLY IF hasCurrent() is still
+//     false when the durable create resolves -- so a concurrent
+//     open/createSeason() landing during that create can never be clobbered.
+//     (ii) is closed by capturing `destSeasonId` once in loadProject(),
+//     immediately before calling adopt() (identical to the value adopt()
+//     itself captures -- no await separates the two), and gating the final
+//     reload on the store still owning it after adopt() resolves.
+// ============================================================================
+section('3f. Scaffold creation cannot be clobbered by a concurrent season switch during its own await, and a stale but successful import never reloads a different season\'s editor [LOCK, closed PC-1]');
+{
+  // -- (i) a season switch racing the SCAFFOLD's OWN durable creation ------
+  {
+    if (!globalThis.window) globalThis.window = globalThis;
+    if (!globalThis.document) globalThis.document = { getElementById: () => null };
+    if (!globalThis.alert) globalThis.alert = () => {};
+    if (!globalThis.FileReader || !globalThis.__pcFakeFileReaderInstalled) {
+      globalThis.FileReader = class {
+        readAsText(file) { queueMicrotask(() => { if (this.onload) this.onload({ target: { result: file.__text } }); }); }
+      };
+      globalThis.__pcFakeFileReaderInstalled = true;
+    }
+    const { StorageManager } = await import('../js/storage.js');
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const toasts = [];
+    const tagger = { ...noopEmitter, plays: [], toast(msg, dur) { toasts.push({ msg, dur }); } };
+    const canvas = { ...noopEmitter, annotations: [] };
+    const sm = new StorageManager(vc, tagger, canvas);
+
+    let resolveCreate;
+    const createPromise = new Promise(res => { resolveCreate = res; });
+    const seasons = new Map();
+    const deletedIds = [];
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async createSeason(meta) {
+        await createPromise;   // the scaffold's OWN durable creation stays pending
+        const rec = { id: 'lib-fresh-scaffold', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 };
+        seasons.set(rec.id, rec);
+        return rec;
+      },
+      async deleteSeason(id) { deletedIds.push(id); return seasons.delete(id); },
+      async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
+      async saveSeason() { return true; },   // never reached -- the scaffold is unclaimed, so adopt() never targets it
+      async touchOpened() {},
+      diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    ok('lock', !store.hasCurrent(), 'sanity: no season is open before the first-run import begins');
+    sm.seasonStore = store;
+
+    let clearCalled = false, loadCalled = false;
+    sm._clearForNewGame = () => { clearCalled = true; };
+    sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+
+    const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season');
+    const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
+    sm.loadProject(fakeFile);   // begins createUnclaimedSeasonIfEmpty(); blocks inside backend.createSeason
+    await new Promise(r => setTimeout(r, 20));   // let the FileReader microtask reach the pending create
+
+    // The coach opens season B WHILE the scaffold's own durable creation is
+    // still in flight -- BEFORE adopt() is ever called, unlike section 3d.
+    await store.openSeason('B');
+    ok('lock', store.currentSeasonId === 'B' && store.data.id === 'B',
+      "sanity: the coach genuinely opened season B while the scaffold's own durable creation was still pending");
+
+    resolveCreate();   // the scaffold's durable creation now resolves
+    await new Promise(r => setTimeout(r, 20));
+
+    ok('lock', store.currentSeasonId === 'B' && store.data && store.data.id === 'B' && store.data.seasonName === 'Season B',
+      "the store still shows season B untouched -- the scaffold's own durable creation, resolving AFTER the coach switched away, never clobbered it (reproduced before this fix: createSeason()'s unconditional switch would have overwritten currentSeasonId/data with the blank scaffold the instant this resolved)",
+      JSON.stringify({ currentSeasonId: store.currentSeasonId, data: store.data && { id: store.data.id, seasonName: store.data.seasonName } }));
+    ok('lock', seasons.has('lib-fresh-scaffold') === false && deletedIds.length === 1 && deletedIds[0] === 'lib-fresh-scaffold',
+      'the never-claimed scaffold is durably deleted rather than left as an orphaned library entry',
+      JSON.stringify({ stillExists: seasons.has('lib-fresh-scaffold'), deletedIds }));
+    ok('lock', clearCalled === false && loadCalled === false,
+      'the stale first-run import never re-renders the editor', `clearCalled=${clearCalled} loadCalled=${loadCalled}`);
+    ok('lock', toasts.some(t => /import failed/i.test(t.msg)), 'the coach sees the failure toast', JSON.stringify(toasts));
+  }
+
+  // -- (ii) a stale but GENUINELY SUCCESSFUL import must not reload a
+  //         different season's editor -----------------------------------
+  {
+    if (!globalThis.window) globalThis.window = globalThis;
+    if (!globalThis.document) globalThis.document = { getElementById: () => null };
+    if (!globalThis.alert) globalThis.alert = () => {};
+    const { StorageManager } = await import('../js/storage.js');
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const tagger = { ...noopEmitter, plays: [], toast() {} };
+    const canvas = { ...noopEmitter, annotations: [] };
+    const sm = new StorageManager(vc, tagger, canvas);
+
+    let resolveSave;
+    const savePromise = new Promise(res => { resolveSave = res; });
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
+      async saveSeason() { return savePromise; },   // the import's durable write for A stays pending
+      async touchOpened() {},
+      diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    sm.seasonStore = store;
+
+    let clearCalled = false, loadCalled = false;
+    sm._clearForNewGame = () => { clearCalled = true; };
+    sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
+
+    const importedFile = season('A', 'Imported');   // id already matches A -- the already-open case
+    const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedFile) };
+    sm.loadProject(fakeFile);
+    await new Promise(r => setTimeout(r, 20));   // let adopt() reach the pending save
+
+    // The coach switches to B WHILE the import's own save is still pending.
+    await store.openSeason('B');
+    ok('lock', store.currentSeasonId === 'B' && store.data.id === 'B',
+      "sanity: the coach genuinely switched to season B while the stale import into A was still pending");
+
+    resolveSave(true);   // the STALE import into A now succeeds durably (its own destination, not B)
+    await new Promise(r => setTimeout(r, 20));
+
+    ok('lock', store.currentSeasonId === 'B' && store.data && store.data.id === 'B' && store.data.seasonName === 'Season B',
+      "the store still shows season B, byte-identical -- the stale successful import into A never touched it",
+      JSON.stringify({ currentSeasonId: store.currentSeasonId, data: store.data && { id: store.data.id, seasonName: store.data.seasonName } }));
+    ok('lock', clearCalled === false && loadCalled === false,
+      "a stale but GENUINELY SUCCESSFUL import never reloads the editor on a season the coach has since opened -- the write itself was already correctly non-corrupting (section 3d), but the caller-level reload previously fired unconditionally on ANY resolution, success included, of whatever season happened to be current by then",
+      `clearCalled=${clearCalled} loadCalled=${loadCalled}`);
+  }
+}
+flush();
+
+// ============================================================================
 // 4. LOCK — "Delayed save for season A completes after switching to B: zero
 //    writes to B." Repair of 529d8ae finding 2: drives the REAL callback.
 // ============================================================================
@@ -1210,7 +1398,7 @@ console.log('== ADVERSARIAL MATRIX COVERAGE (all ten plan items) ==');
 const coverage = [
   ['Destination id differs from payload id: zero writes.', 'DIRECT — section 1'],
   ['Delayed save for season A completes after switching to B: zero writes to B.', 'DIRECT — section 4'],
-  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 3c (import, first-run scaffold rollback), 3d (import racing a concurrent season switch, both the already-open and first-run-scaffold cases), 3e (a rejected canonical write is atomic across json/mirror/in-memory-catalog), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
+  ['Backup, restore, or import carries the wrong id: rejected before mutation.', 'DIRECT — sections 3 (import, SeasonStore layer), 3b (import, the real StorageManager.loadProject() caller), 3c (import, first-run scaffold rollback), 3d (import racing a concurrent season switch, both the already-open and first-run-scaffold cases), 3e (a rejected canonical write is atomic across json/mirror/in-memory-catalog), 3f (a season switch racing the scaffold\'s own creation await, and a stale-but-successful import never reloading a different season\'s editor), 5/6 (SqlCatalog backup), 11 (BrowserBackend backup), 12 (SeasonStore.restoreBackup)'],
   ['TeamRegistry peeks do not alter active identity.', 'DIRECT — section 10'],
   ['SQLite is corrupt, locked, or unavailable: visible failure, no fallback authority.', 'DIRECT (CatalogPersistence layer) — section 2. The TauriBackend.listSeasons() call site that consumes this result requires the real Tauri fs plugin and cannot run in plain Node; deferred to a browser-level e2e harness with a fake window.__TAURI__ shim, owner PC-2, or the PC-5 installed smoke.'],
   ['Stale JSON/library sidecars disagree with SQLite: ignored by normal startup.', 'DIRECT — section 9'],

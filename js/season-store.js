@@ -348,14 +348,19 @@ export class SeasonStore {
     catch (e) { return null; }
   }
 
-  /**
-   * Create a brand-new season from {name, team, year, level}, make it current,
-   * and seed it with one empty game. Returns the library meta.
-   */
-  async createSeason(meta) {
-    this.cancelPendingDiskWrite();   // see openSeason — same stale-debounce hazard
-    const rec = await this.backend.createSeason(meta || {});
-    if (!rec) return null;
+  // Internal: durably create a season record via the backend WITHOUT touching
+  // live state (currentSeasonId/data). Pure allocation -- the only thing that
+  // can fail here is the backend write itself, never a race with something
+  // else the coach is doing, because nothing about "current" is read or
+  // written. Shared by createSeason() (below, unconditional switch) and
+  // createUnclaimedSeasonIfEmpty() (guarded switch, see below).
+  async _createSeasonRecordOnly(meta) {
+    return this.backend.createSeason(meta || {});
+  }
+
+  // Internal: point live state at an already-durably-created record. No
+  // guard of its own -- callers decide when this is safe to run.
+  _adoptSeasonRecord(rec, meta) {
     this.currentSeasonId = rec.id;
     this.backend.setCurrentSeason(rec.id);
     this.data = this._empty();
@@ -364,8 +369,59 @@ export class SeasonStore {
     this.data.team = rec.team; this.data.teamId = rec.teamId || meta?.teamId || ''; this.data.year = rec.year; this.data.level = rec.level;
     if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
     if (meta?.playbook && Array.isArray(meta.playbook.calls)) this.data.playbook = meta.playbook;
+  }
+
+  /**
+   * Create a brand-new season from {name, team, year, level}, make it current,
+   * and seed it with one empty game. Returns the library meta.
+   *
+   * This is the deliberate "New Season" action (Team Hub, loadDemoSeason(),
+   * StorageManager.createSeason()) -- the coach explicitly asked for this
+   * season to become current, so the switch is UNCONDITIONAL by design: there
+   * is no "someone else already claimed the pointer" case to protect against
+   * here the way there is for an implementation-detail scaffold (see
+   * createUnclaimedSeasonIfEmpty() below).
+   */
+  async createSeason(meta) {
+    this.cancelPendingDiskWrite();   // see openSeason — same stale-debounce hazard
+    const rec = await this._createSeasonRecordOnly(meta);
+    if (!rec) return null;
+    this._adoptSeasonRecord(rec, meta);
     this.persist();
     return rec;
+  }
+
+  /**
+   * PC-1 repair (Codex review of 4445db4/4d75bca, the remaining P0): durably
+   * create a scaffold season and claim it as current ONLY IF nothing else has
+   * opened or created a season in the meantime -- i.e. hasCurrent() is STILL
+   * false when the durable backend create resolves.
+   *
+   * Used exclusively by StorageManager.loadProject()'s first-run import
+   * bootstrap, which needs a real library id to write an import INTO but must
+   * never silently steal the live editor from a season the coach opened WHILE
+   * the scaffold's own durable creation was in flight. createSeason()'s
+   * unconditional switch (above) cannot protect against this and does not
+   * need to for its normal callers, where switching unconditionally on a
+   * deliberate coach action is the entire point -- this is a SEPARATE method
+   * rather than a flag on createSeason() so that contract distinction stays
+   * explicit at every call site, matching the explicit-identity discipline
+   * this whole PC-1 checkpoint is built on.
+   *
+   * Returns `{ rec, claimed }`. `rec` is the durably-created record whenever
+   * the backend write itself succeeds, REGARDLESS of `claimed` -- the caller
+   * owns cleaning it up (via deleteSeason(rec.id), which is itself safely
+   * scoped to that id) when `claimed` is false. `claimed` is true only when
+   * live state now genuinely points at it.
+   */
+  async createUnclaimedSeasonIfEmpty(meta) {
+    this.cancelPendingDiskWrite();
+    const rec = await this._createSeasonRecordOnly(meta);
+    if (!rec) return { rec: null, claimed: false };
+    if (this.hasCurrent()) return { rec, claimed: false };   // someone else opened/created a season meanwhile
+    this._adoptSeasonRecord(rec, meta);
+    this.persist();
+    return { rec, claimed: true };
   }
 
   /** Open an existing season by id and load its data as the current season. */

@@ -13,6 +13,110 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REPAIR of the PC-1 re-review (`4d75bca`) — AWAITING RE-REVIEW (2026-08-21)
+
+**Builder: Claude. Repairs the one remaining P0 from Codex's `4d75bca`
+CHANGES REQUESTED review of `4445db4` (recorded immediately below).**
+Verified against source before touching anything, per standing discipline —
+not taken on report.
+
+**Both halves of the finding are closed with one design: separating durable
+allocation from the live-state claim, and threading one captured
+destination identity all the way from scaffold creation through the final
+success-path reload.**
+
+**Half 1 — first-run scaffold creation had zero ownership protection during
+its own internal await.** `SeasonStore.createSeason()` is the deliberate
+"New Season" primitive (Team Hub, `loadDemoSeason()`, `StorageManager.
+createSeason()`) — correctly unconditional for those callers, since the
+coach explicitly asked for the new season to become current.
+`StorageManager.loadProject()`'s first-run import bootstrap reused that SAME
+unconditional-switch method purely as plumbing, so a coach opening a
+DIFFERENT season B while `createSeason()`'s own internal
+`await this.backend.createSeason(meta)` was still pending would have B
+silently clobbered the instant that await resolved — `createSeason()`'s next
+synchronous step overwrites `this.currentSeasonId`/`this.data`
+unconditionally, with nothing checking whether anything else had claimed the
+pointer in the meantime. This is the "same transaction-owner class, one
+await earlier" the review named.
+
+Fixed by splitting `createSeason()` into two composable pieces:
+`_createSeasonRecordOnly(meta)` (pure durable backend allocation, zero
+live-state touch) and `_adoptSeasonRecord(rec, meta)` (the live-state claim,
+unguarded). `createSeason()` itself composes both unconditionally —
+byte-identical behavior for its four existing deliberate callers. A new
+`SeasonStore.createUnclaimedSeasonIfEmpty(meta)` composes them with a guard:
+it claims the record as current ONLY IF `hasCurrent()` is still false when
+the durable create resolves, and returns `{ rec, claimed }` so the caller
+can clean up an unclaimed scaffold. `StorageManager.loadProject()`'s
+bootstrap branch now calls this instead of `createSeason()`; when
+`claimed === false` it deletes the never-made-live scaffold by its own id
+and aborts — the concurrently-opened season was never on a shared code path
+with any of this, so nothing further protects it because nothing further
+touches it.
+
+**Half 2 — a stale but genuinely SUCCESSFUL import still reloaded a
+different season's editor.** The prior repair's `stillOwns()` gate inside
+`adopt()` protects `SeasonStore.data` itself, but `StorageManager.
+loadProject()`'s caller-level side effects — `_clearForNewGame()`/
+`_loadActiveGame()` — ran unconditionally on any successful `adopt()`
+result, with no check that the store still owned the season this particular
+import targeted. Section 3d/3b only ever drove the FAILURE branch of this
+gate; the success branch was genuinely untested and genuinely broken,
+exactly as the review's own reproduction path names (import A pending →
+coach opens B → A's save succeeds → the stale operation tears down and
+reloads B's editor).
+
+Fixed by capturing the identical identity `adopt()` itself captures, one
+level up in `loadProject()`, immediately before calling `adopt()` (no await
+separates the two, so both are guaranteed to read the same value), and
+gating the final reload on it:
+```js
+const destSeasonId = this.seasonStore.currentSeasonId;
+const result = await this.seasonStore.adopt(parsed);
+if (!result || result.ok === false) { ...; return; }
+if (this.seasonStore.currentSeasonId !== destSeasonId) return;  // stale success — never reload someone else's editor
+this._clearForNewGame();
+this._loadActiveGame();
+```
+
+**Both new failing-first cases the review explicitly asked for** are in
+`tools/pc-adversarial-matrix.mjs` section 3f: (i) a real `StorageManager`
+against a backend whose `createSeason()` is held pending via an unresolved
+`Promise` — the coach opens B mid-flight, the scaffold's own creation THEN
+resolves, and the store must still show B untouched with the never-claimed
+scaffold durably deleted; (ii) the established stale-switch harness shape
+from section 3d, but resolving the pending save with `true` (a genuine
+success) instead of `false`, asserting the editor never reloads onto B.
+Mutation-verified: disabling `createUnclaimedSeasonIfEmpty()`'s
+`hasCurrent()` guard reproduces the scaffold clobbering B exactly
+(`{"currentSeasonId":"lib-fresh-scaffold",...}`, the editor re-rendering as
+if the import had succeeded, no failure toast); removing the `destSeasonId`
+reload gate reproduces the stale-success reload firing on B exactly,
+isolated to that one assertion with every other section 3f assertion
+staying green. Both restored, clean.
+
+**Verification:** `node tools/pc-adversarial-matrix.mjs` — **73/73 locks
+green** (up from 64), 0/4 targets green (4 intentionally red, unchanged PC-2
+items), exit 0. Full canonical gate (`bash tools/run-gate.sh`): **88
+harnesses | 88 green | 0 skipped | 0 failed**, including
+`e2e-onboarding.mjs`, `e2e-native-team-hub.mjs`, `e2e-native-game.mjs`,
+`e2e-native-recovery.mjs`, `e2e-wipe-recovery.mjs`, and every
+`e2e-catalog-*.mjs` harness — all the surfaces most likely to depend on
+`SeasonStore.createSeason()`'s exact behavior, confirming the refactor is
+byte-identical for its four pre-existing callers.
+
+**Scope discipline:** no film path, film file, season/game/play data,
+schema, migration, or unrelated file touched. `GRIDIRON-IQ-PERSISTENCE-
+INVENTORY.md` gains §3.1e; §3.2 (revision fencing) remains explicitly
+untouched, still deferred to PC-4. The reviewer's recommendation to combine
+PC-2 + PC-3 into one milestone/review cycle is noted but not acted on
+unilaterally — this repair closes exactly the one finding named in
+`4d75bca`.
+
+**Next action:** Codex independently re-reviews this repair. PC-2 does not
+open until this repair is accepted, per the plan's handoff protocol.
+
 ### CODEX RE-REVIEW — PC-1 repair 4445db4: CHANGES REQUESTED (2026-08-21)
 
 **Verdict: CHANGES REQUESTED. PC-1 remains closed on one transaction-ownership
