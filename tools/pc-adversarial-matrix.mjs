@@ -1,8 +1,8 @@
 /* PC-0 ADVERSARIAL MATRIX — GridIron IQ Desktop Persistence Convergence -------
    Encodes the ten adversarial-matrix scenarios from
    GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md as runnable Node assertions
-   against CURRENT (pre-PC-1) source, repaired across two rounds of Codex
-   review (`529d8ae`, then `6ed3bb1` on the round-1 repair). Read
+   against CURRENT (pre-PC-1) source, repaired across three rounds of Codex
+   review (`529d8ae`, `6ed3bb1`, then `f7c09a3` on the round-2 repair). Read
    GRIDIRON-IQ-PERSISTENCE-INVENTORY.md alongside this file for the "why"
    behind each section.
 
@@ -99,6 +99,26 @@
       pointer assertion correctly stays green (proving the two checks are
       independently meaningful, not redundant); restored (`git diff` confirms
       byte-identical), reran clean.
+
+   REPAIR of `f7c09a3` (the one required item, verified against source
+   before being changed, not taken on report):
+
+   1. [P1] Section 7's four "version ownership" target assertions previously
+      composed the ownership check THEMSELVES (a `scopedGetVersion`/
+      `scopedDeleteVersion` helper built from `listVersions()`), so they
+      tested this file's own logic, not production -- a broken PC-2
+      implementation could leave that local helper untouched and still
+      inherit four green results. That helper is deleted. The section now
+      calls two exact, named production methods that do NOT exist yet --
+      `SqlCatalog.getVersionScoped(seasonId, gameId, id)` and
+      `deleteVersionScoped(seasonId, gameId, id)`, documented as the
+      intended PC-2 contract in GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3
+      -- via a small `callScoped()` helper that only checks whether the
+      method exists and, if so, invokes it; it contains no ownership logic
+      of its own. All four assertions now honestly report
+      `unavailable`/red ("does not exist yet") until PC-2 implements those
+      two methods, at which point they exercise the real implementation with
+      no further change to this file.
 
    Deliberately NOT named tools/e2e-*.mjs: tools/run-gate.sh and CI glob that
    pattern and require every harness green. This file's target-contract
@@ -504,31 +524,52 @@ section('7. A saved-point (version) id from a DIFFERENT season/game must be reje
   ok('target', stillThere !== null, "deleteVersion(id) must not delete a version outside the caller's scope",
     stillThere ? '' : "season-B/game-B's version was deleted while nominally acting on season-A/game-A");
 
-  // Modeled intended API (Codex 6ed3bb1 finding 3): SqlCatalog has no scoped
-  // get/delete today, so this composes the ownership check PC-2 must add out
-  // of the ONE version primitive that IS already scope-aware --
-  // listVersions(seasonId, gameId). This is not a claim that the wrapper
-  // below exists in production; it is the exact behavior PC-2's real
-  // implementation is required to satisfy, proven against real saved rows.
+  // INTENDED PRODUCTION CONTRACT for PC-2 (repair of f7c09a3 finding 1 --
+  // does NOT exist in production today, and this section must NOT implement
+  // it itself). SqlCatalog must add:
+  //   getVersionScoped(seasonId, gameId, id)    -> the version's body if it
+  //     belongs to (seasonId, gameId), else null.
+  //   deleteVersionScoped(seasonId, gameId, id) -> true if a version owned by
+  //     (seasonId, gameId) was deleted; false (no-op, nothing deleted)
+  //     otherwise.
+  // The four assertions below call EXACTLY those method names on the real
+  // SqlCatalog instance. Today neither method exists, so `callScoped` reports
+  // `available:false` and every assertion is honestly red -- not because the
+  // ownership check failed, but because the seam PC-2 must build is absent.
+  // This file contains NO local implementation of the ownership logic: once
+  // PC-2 adds these two methods to js/sql-catalog.js, these four assertions
+  // exercise that real code with no further change needed here.
   const vB2 = cat.saveVersion('season-B', 'game-B', { label: 'B point 2', time: new Date().toISOString(), manual: true, playCount: 1, data: { seasonName: 'B second record' } });
-  const scopedGetVersion = (seasonId, gameId, versionId) =>
-    cat.listVersions(seasonId, gameId).some(v => String(v.id) === String(versionId)) ? cat.getVersion(versionId) : null;
-  const scopedDeleteVersion = (seasonId, gameId, versionId) => {
-    const owned = cat.listVersions(seasonId, gameId).some(v => String(v.id) === String(versionId));
-    if (owned) cat.deleteVersion(versionId);
-    return owned;
+  const callScoped = (methodName, ...args) => {
+    const fn = cat[methodName];
+    if (typeof fn !== 'function') return { available: false };
+    try { return { available: true, result: fn.apply(cat, args) }; }
+    catch (e) { return { available: true, threw: true, message: e && e.message }; }
   };
-  const bbReadsB = scopedGetVersion('season-B', 'game-B', vB2);
-  ok('target', bbReadsB && bbReadsB.seasonName === 'B second record', 'B/B (correctly scoped) can read its own version through the intended ownership check', JSON.stringify(bbReadsB));
-  const aaReadsB = scopedGetVersion('season-A', 'game-A', vB2);
-  ok('target', aaReadsB === null, 'A/A (foreign) cannot read season-B/game-B\'s version through the intended ownership check', JSON.stringify(aaReadsB));
-  const aaDeletedB = scopedDeleteVersion('season-A', 'game-A', vB2);
-  ok('target', aaDeletedB === false, 'A/A (foreign) cannot delete season-B/game-B\'s version through the intended ownership check', `deleted=${aaDeletedB}`);
-  // The decisive check: B/B must STILL read it afterward -- this is what
-  // rules out a naive "every scoped read returns null" implementation, which
-  // would otherwise pass the two assertions immediately above for free.
-  const bbStillReadsB = scopedGetVersion('season-B', 'game-B', vB2);
-  ok('target', bbStillReadsB && bbStillReadsB.seasonName === 'B second record', 'B/B can STILL read its own version after the rejected A/A attempt (rules out an always-null implementation)', JSON.stringify(bbStillReadsB));
+  const unavailable = (r) => `SqlCatalog.${r.name} does not exist yet -- PC-2 has not implemented the scoped seam`;
+
+  let r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-B', 'game-B', vB2) };
+  ok('target', r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
+    'B/B (correctly scoped) can read its own version through the production getVersionScoped seam',
+    r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
+
+  r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-A', 'game-A', vB2) };
+  ok('target', r.available && !r.threw && r.result === null,
+    "A/A (foreign) cannot read season-B/game-B's version through the production getVersionScoped seam",
+    r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
+
+  r = { name: 'deleteVersionScoped', ...callScoped('deleteVersionScoped', 'season-A', 'game-A', vB2) };
+  ok('target', r.available && !r.threw && r.result === false,
+    "A/A (foreign) cannot delete season-B/game-B's version through the production deleteVersionScoped seam",
+    r.available ? (r.threw ? r.message : `deleted=${r.result}`) : unavailable(r));
+
+  // The decisive check: B/B must STILL read it afterward through the SAME
+  // production seam -- rules out a naive "every scoped read returns null"
+  // implementation, which would otherwise satisfy the two checks above for free.
+  r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-B', 'game-B', vB2) };
+  ok('target', r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
+    'B/B can STILL read its own version through getVersionScoped after the rejected A/A attempt (rules out an always-null implementation)',
+    r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
   cat.close();
 }
 flush();

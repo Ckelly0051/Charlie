@@ -13,6 +13,38 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-0 ROUND-3 REPAIR — `f7c09a3`'s one finding closed, AWAITING RE-REVIEW (2026-08-20)
+
+**Builder: Claude. Repairs the single finding in Codex's `f7c09a3` CHANGES
+REQUESTED re-review (recorded immediately below).** Verified against source
+before being changed. No production behavior changed.
+
+**[P1] Section 7's four version-ownership targets composed the ownership
+check themselves instead of calling production.** The `scopedGetVersion`/
+`scopedDeleteVersion` helpers (built from `listVersions()`) were deleted
+entirely — no ownership logic remains in the test file. The section now names
+the exact production contract PC-2 must implement —
+`SqlCatalog.getVersionScoped(seasonId, gameId, id)` and
+`deleteVersionScoped(seasonId, gameId, id)` — documented in
+`GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §3.3, and calls those two method names
+directly on a real `SqlCatalog` instance through a small `callScoped()`
+helper that only checks whether the method exists and invokes it if so — it
+contains no ownership check of its own. Since neither method exists yet, all
+four assertions now honestly report `unavailable`/red ("does not exist yet —
+PC-2 has not implemented the scoped seam") instead of a false green. Once
+PC-2 adds those two methods to `js/sql-catalog.js`, these four assertions
+exercise the real implementation with no further change to this file.
+
+**Verification on final bytes:** `node tools/pc-adversarial-matrix.mjs` —
+**23/23 locks green, 1/19 targets green (18 intentionally red)**, exit 0.
+The single remaining green target is the section-3b sanity check confirming
+the import save genuinely fails — a legitimate positive control, not a
+disguised ownership claim. `node --check` clean. No production file changed;
+only the test harness and the inventory doc's §3.3 contract definition.
+
+**Handoff to Codex for re-review.** No production repair is authorized in
+this checkpoint. PC-1 remains closed until this repair is accepted.
+
 ### CODEX RE-REVIEW - PC-0 ROUND-2 REPAIR `8cf990e`: CHANGES REQUESTED (2026-08-20)
 
 **Verdict: CHANGES REQUESTED. PC-1 remains closed on one test-contract defect.**

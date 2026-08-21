@@ -327,6 +327,33 @@ This is the concrete, currently-real instance of the adversarial matrix's
 "Backup, restore, or import carries the wrong id: rejected before mutation."
 Today it is accepted, not rejected.
 
+**Intended production contract for PC-2 (repair of Codex's `f7c09a3`
+finding).** An earlier draft of `tools/pc-adversarial-matrix.mjs` composed the
+version-ownership check itself, inside the test file, out of the one
+already-scope-aware primitive (`listVersions`) — which meant its four
+"ownership" assertions exercised the test's own logic, not production, and
+would have stayed green even if a real PC-2 implementation shipped broken.
+That has been removed. The contract PC-2 must implement instead, named
+explicitly so the harness can call it directly and stay honestly red until it
+exists:
+
+```
+SqlCatalog.getVersionScoped(seasonId, gameId, id)
+  -> the version's stored body if it belongs to (seasonId, gameId), else null.
+
+SqlCatalog.deleteVersionScoped(seasonId, gameId, id)
+  -> true if a version owned by (seasonId, gameId) was deleted; false
+     (no-op — nothing deleted) if the id belongs to a different scope.
+```
+
+The existing unscoped `getVersion(id)`/`deleteVersion(id)` may remain for any
+caller that hasn't migrated, but no coach-reachable path may rely on them
+once these two exist. `tools/pc-adversarial-matrix.mjs` section 7 calls these
+two exact method names on a real `SqlCatalog` instance and reports each of
+its four assertions honestly `unavailable`/red today (the methods don't
+exist); once PC-2 adds them to `js/sql-catalog.js`, those four assertions
+exercise the real implementation with no further change to the test file.
+
 ### 3.4 — No shutdown flush path exists anywhere in the app
 
 `grep -rn "beforeunload|unload|visibilitychange" js/` finds seven files, but
