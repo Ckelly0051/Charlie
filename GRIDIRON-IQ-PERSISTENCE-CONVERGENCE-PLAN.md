@@ -1,6 +1,6 @@
 # GridIron IQ Desktop Persistence Convergence
 
-**Status:** PC-0 and PC-1 accepted. Combined PC-2+PC-3 3b70fab has **CHANGES REQUESTED** from Codex (2026-08-21); PC-4 remains blocked. See the top of CLAUDE.md for the four required repairs.
+**Status:** PC-0 and PC-1 accepted. Combined PC-2+PC-3 repair `5918645` has **CHANGES REQUESTED** from Codex (2026-08-22): three prior findings are closed, but the production recovery API still accepts `legacy-unenveloped` snapshots despite the Team Hub control being disabled. PC-4 remains blocked. See the top of `CLAUDE.md` for the one required repair.
 
 ## Objective
 
