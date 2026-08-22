@@ -657,14 +657,22 @@ export class TauriBackend extends StorageBackend {
     if (result.ok && String(result.envelope.seasonId) !== String(id)) {
       return { ok: false, reason: 'folder-identity-mismatch' };
     }
-    const data = result.ok ? result.envelope.data : (result.reason === 'legacy-unenveloped' ? result.data : null);
-    if (!data || !Array.isArray(data.games)) return { ok: false, reason: result.reason || 'malformed' };
-    // Only the disclosed legacy-unenveloped exception is stamped to its
-    // folder -- a snapshot that passed the check above already has
-    // data.id === id (unwrap() enforces envelope.seasonId === data.id, and
-    // the check above enforces envelope.seasonId === id), so a validated
-    // envelope's identity is never overridden here.
-    if (!result.ok) data.id = id;
+    // PC-2 repair (Codex review d206b58, finding 1): this is the production
+    // persistence boundary, not merely a UI-gated action -- the Team Hub
+    // recovery button being disabled for an invalid candidate does not, by
+    // itself, stop this method from being called with one, whether by a
+    // future caller, a scripting mistake, or a compromised UI. EVERY
+    // !result.ok outcome -- including the disclosed 'legacy-unenveloped'
+    // case (a bare pre-PC-3 snapshot with no checksum, no validated
+    // identity, no count check at all) -- is refused HERE, before catalog
+    // lookup or any write. A future permissioned legacy migration is a
+    // separate, explicit path; this method is not it.
+    if (!result.ok) return { ok: false, reason: result.reason };
+    const data = result.envelope.data;
+    if (!data || !Array.isArray(data.games)) return { ok: false, reason: 'malformed' };
+    // data.id is already === id here: unwrap() enforces envelope.seasonId
+    // === data.id, and the check above enforces envelope.seasonId === id.
+    // A validated envelope's identity is never reassigned.
     const cp = await this._ensureCatalog();
     if (!cp) return { ok: false, reason: 'catalog-unavailable' };
     // PC-2 repair (Codex review 89e34c6, finding 3): a FAILED conflict check

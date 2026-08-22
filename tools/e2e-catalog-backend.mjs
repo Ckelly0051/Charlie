@@ -28,7 +28,11 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
         disagrees with its folder.
      7. PC-2 repair (Codex review 89e34c6, finding 3): recoverSeasonFromMirror()
         must fail CLOSED when it cannot confirm whether the destination season
-        already exists, never default to "no conflict" and proceed to save. */
+        already exists, never default to "no conflict" and proceed to save.
+     8. PC-2 repair (Codex review d206b58, finding 1): recoverSeasonFromMirror()
+        rejects EVERY invalid unwrap() result, including the disclosed
+        'legacy-unenveloped' case, at the production boundary itself -- not
+        just via a disabled Team Hub button -- with zero catalog writes. */
 import puppeteer from 'puppeteer';
 
 let pass = 0, fail = 0;
@@ -316,6 +320,37 @@ const result = await page.evaluate(async () => {
     out.existsCheckFailedResult = await be.recoverSeasonFromMirror('s-D', {});
     out.existsCheckFailedSaveCalled = saveCalled;
   }
+  // 8. PC-2 repair (Codex review d206b58, finding 1): the production
+  //    persistence boundary rejects EVERY !result.ok outcome, including the
+  //    disclosed legacy-unenveloped case -- not just an invalid-checksum
+  //    candidate. Disabling the Team Hub button is a UI convenience; this
+  //    method is the boundary that actually protects the catalog from an
+  //    unverified write, regardless of which caller invokes it. Exercised
+  //    directly against the real recoverSeasonFromMirror(), never a UI mock.
+  {
+    const mirrorRoot = 'GridIron IQ/seasons';
+    // A bare pre-PC-3 season.json: no envelopeVersion, no checksum, no
+    // validated identity at all -- exactly what unwrap() classifies as
+    // 'legacy-unenveloped'.
+    const bareLegacySeason = { id: 's-E', seasonName: 'Old Format Season', games: [{ id: 'g1', plays: [{}, {}] }] };
+    const files = new Map([[`${mirrorRoot}/s-E/season.json`, JSON.stringify(bareLegacySeason)]]);
+    const be = new TauriBackend();
+    be.fs = {
+      exists: async (p) => files.has(p),
+      readTextFile: async (p) => (p === be.LIB ? '[]' : (files.get(p) || '{}')),
+      writeTextFile: async () => {},
+      remove: async () => {}, mkdir: async () => {}, writeFile: async () => {}, readFile: async () => new Uint8Array(),
+    };
+    be.baseDir = 14; be.mirrorDir = 1; be.currentId = null;
+    let saveCalled = false;
+    be._catalog = {
+      saveSeason: async () => { saveCalled = true; return true; },
+      deleteSeason: async () => true,
+      listSeasons: async () => [],
+    };
+    out.legacyRecoverResult = await be.recoverSeasonFromMirror('s-E', {});
+    out.legacyRecoverSaveCalled = saveCalled;
+  }
   return out;
 });
 
@@ -344,6 +379,7 @@ ok(result.folderMatchScanValid === true, 'PC-2: the positive control -- a snapsh
 ok(result.folderMismatchRecover.ok === false && result.folderMismatchRecover.reason === 'folder-identity-mismatch' && result.folderMismatchSaveCallsAfterMismatch === 0, 'PC-2: recoverSeasonFromMirror() refuses the same folder-identity mismatch at the point of action -- zero catalog writes, identity is never coerced to match the requested folder', JSON.stringify(result));
 ok(result.folderMatchRecover.ok === true && result.folderMatchSaveCalls.length === 1 && result.folderMatchSaveCalls[0].id === 's-C' && result.folderMatchSaveCalls[0].dataId === 's-C', 'PC-2: a genuinely folder-matching snapshot still recovers normally, proving the identity check above is not disabling recovery entirely', JSON.stringify(result));
 ok(result.existsCheckFailedResult.ok === false && result.existsCheckFailedResult.reason === 'exists-check-failed' && result.existsCheckFailedSaveCalled === false, 'PC-2: a failed conflict check (listSeasons() throws) fails CLOSED -- recovery refuses and performs zero writes, rather than defaulting to "no conflict" and saving on the one-click path', JSON.stringify(result));
+ok(result.legacyRecoverResult.ok === false && result.legacyRecoverResult.reason === 'legacy-unenveloped' && result.legacyRecoverSaveCalled === false, 'PC-2: recoverSeasonFromMirror() refuses a bare legacy-unenveloped snapshot at the production boundary itself, with zero catalog writes -- not merely a disabled UI button', JSON.stringify(result));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

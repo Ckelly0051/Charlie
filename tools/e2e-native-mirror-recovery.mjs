@@ -51,12 +51,15 @@ await page.evaluate(() => {
     const candidate = window.__scanResult.find(c => c.id === id);
     if (!candidate) return { ok: false, reason: 'not-found' };
     if (candidate.existsInCatalog && !opts?.confirmOverwrite) return { ok: false, reason: 'exists', existsInCatalog: true };
-    // PC-2 repair (Codex review 89e34c6, finding 4): the real backend no
-    // longer special-cases legacy-unenveloped as importable -- it stays
-    // valid:false, and the UI keeps its Recover control disabled, so this
-    // branch should never be reached for that candidate at all (proven in
-    // section 4b below, which asserts the button is disabled rather than
-    // relying on this mock to refuse it).
+    // PC-2 repair (Codex review 89e34c6 finding 4 / d206b58 finding 1): this
+    // mock mirrors the REAL TauriBackend.recoverSeasonFromMirror() contract,
+    // which now rejects every !result.ok outcome -- including
+    // legacy-unenveloped -- unconditionally at the production boundary
+    // itself (tools/e2e-catalog-backend.mjs section 8 asserts this directly
+    // against the real backend, not this mock). The UI additionally keeps
+    // the Recover control disabled for such a candidate (section 4b below),
+    // so this branch is doubly unreachable for it in the coach-facing flow
+    // -- but the backend refusal is the actual boundary, not the button.
     if (!candidate.valid) return { ok: false, reason: candidate.reason };
     // Simulate a genuine recovery: create a real season via the SAME path a
     // successful desktop recovery would exercise, so "the season appears in

@@ -13,6 +13,84 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-2 FINAL REPAIR of `d206b58`'s recovery-boundary finding — AWAITING RE-REVIEW (2026-08-22)
+
+**Builder: Claude. Repairs the one remaining P1 from Codex's `d206b58`
+CHANGES REQUESTED re-review of `5918645` (recorded immediately below).**
+Verified against source before touching anything, per standing discipline
+— not taken on report.
+
+**Confirmed exactly as described.** `TauriBackend.recoverSeasonFromMirror()`
+still had a live ternary — `const data = result.ok ? result.envelope.data :
+(result.reason === 'legacy-unenveloped' ? result.data : null);` — that
+accepted the disclosed `legacy-unenveloped` unwrap result and proceeded
+straight through `_ensureCatalog()`/the exists check/`cp.saveSeason()`,
+stamping `data.id = id` on the way (`if (!result.ok) data.id = id;`). The
+prior repair round (§6a) genuinely closed the P0 read-failure and both P1
+folder-identity/exists-check findings, but only disabled the Team Hub
+**button** for a `legacy-unenveloped` candidate
+(`RecoverCandidate`'s `disabled` computation) — it never touched the
+**backend method** the button calls, so the actual production persistence
+boundary stayed fail-open for any other caller. The new UI test's mock
+backend (`tools/e2e-native-mirror-recovery.mjs`) independently reimplements
+a stricter refusal than the real method, which is exactly why the gap wasn't
+caught: the mock's own comment claimed "the real backend no longer
+special-cases legacy input," and that claim was false against the committed
+bytes — confirmed by reading the real method directly before touching
+anything.
+
+**Fixed at the root, not patched around the symptom.**
+`recoverSeasonFromMirror()` now refuses on `if (!result.ok) return { ok:
+false, reason: result.reason };` immediately after the folder-identity
+check and BEFORE any catalog interaction — covering `legacy-unenveloped`
+the same uniform way every other invalid envelope reason already was, not
+as a special case carved out for it. The now-dead `data.id = id`
+legacy-stamping branch is deleted entirely: by the time a validated envelope
+reaches that point, its identity is already provably `=== id` (enforced by
+both `unwrap()`'s own `envelope.seasonId === data.id` check and the
+folder-identity check §6a added), so there is no code path left where
+identity reassignment could matter. The mock's comment in the UI test is
+corrected to state what is now genuinely true and independently proven
+against the real backend, not assumed from the mock's own behavior.
+
+**The exact production-backend assertion Codex asked for.** New section 8
+in `tools/e2e-catalog-backend.mjs` constructs a real `TauriBackend` against a
+bare pre-PC-3 `season.json` (no `envelopeVersion`, no checksum — genuinely
+`legacy-unenveloped`) and calls `recoverSeasonFromMirror()` directly,
+asserting `{ok:false, reason:'legacy-unenveloped'}` **and** that the fake
+catalog's `saveSeason` was never invoked — zero writes, not merely a failed
+one. **Mutation-verified:** reverting to the old ternary + stamping
+reproduces the exact original defect (`{"ok":true,"id":"s-E","gameCount":1,
+"playCount":2}`, `saveCalled:true`) and reds exactly this one new assertion
+— every other assertion in the file, including §6a's folder-identity-match
+positive control (proving this fix didn't disable recovery generally),
+stays green; restored, green.
+
+**Files changed:** `js/storage-backend.js` (`recoverSeasonFromMirror()` —
+the ternary/stamping replaced with a uniform `!result.ok` refusal before
+catalog lookup); `tools/e2e-catalog-backend.mjs` (new section 8, direct
+production-backend proof); `tools/e2e-native-mirror-recovery.mjs` (mock
+comment corrected to state a now-verified-true claim, no behavior change —
+the mock's `!candidate.valid` refusal was already correct).
+
+**Verification.** `node tools/e2e-catalog-backend.mjs` — 25/25 (was 24; +1,
+section 8). `node tools/e2e-native-mirror-recovery.mjs` — 15/15, unchanged.
+`node tools/e2e-catalog-persistence.mjs` — 62/62, unchanged. `node tools/
+e2e-catalog-fuzzer.mjs` — 640 ops clean, unchanged. `node tools/
+pc-adversarial-matrix.mjs` — 79/79 locks green, 0/2 targets green,
+unchanged. Full canonical gate (`bash tools/run-gate.sh`): 90 harnesses | 90
+green | 0 skipped | 0 failed — same count as both the accepted checkpoint
+and the prior §6a repair, zero harnesses added or removed.
+
+Full detail, before/after excerpts, and the exact mutation evidence are in
+`GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §6b.
+
+No film path, film file, season/game/play data, schema, or unrelated file
+touched. No installer, package, tag, or release.
+
+**Next action:** Codex independently re-reviews this repair. PC-4 does not
+open until this review completes.
+
 ### ▶ CODEX RE-REVIEW OF `5918645` — CHANGES REQUESTED (2026-08-22)
 
 **Verdict:** Three of the four repairs are accepted. One P1 recovery-boundary finding remains; PC-4 stays blocked.
