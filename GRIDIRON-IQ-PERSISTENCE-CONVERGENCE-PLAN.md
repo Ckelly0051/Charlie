@@ -1,6 +1,6 @@
 # GridIron IQ Desktop Persistence Convergence
 
-**Status:** PC-0, PC-1, and combined PC-2+PC-3 are accepted. Final repair `9f319cc` was independently accepted by Codex on 2026-08-22. PC-4 — revision-fenced autosave and lifecycle audit — is open. PC-5 remains closed until PC-4 is independently accepted.
+**Status:** PC-0 through PC-4 are accepted. PC-4 final repair `b934f9d` was independently accepted by Codex on 2026-08-22 after focused verification (104/104 persistence locks; 33/33 revision-fence assertions). PC-5 — migration and installed smoke — is now open. The accepted PC-4 commit is the rollback point for PC-5.
 
 ## Objective
 

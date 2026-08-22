@@ -1,5 +1,12 @@
 # GridIron IQ — Desktop Persistence Inventory (PC-0)
 
+> **Current milestone status (2026-08-22):** PC-0 through PC-4 are accepted.
+> The final PC-4 shutdown-drain repair is `b934f9d`; Codex independently
+> verified 104/104 persistence locks and 33/33 revision-fence assertions.
+> PC-5 (forensic backup, real two-season dry-run, permission-gated legacy-data
+> handling, installer, and installed smoke) is open. This document retains the
+> original PC-0 inventory below as the historical baseline.
+
 **Status:** PC-0 deliverable — inventory + failing-first contracts only. **No
 production behavior was changed to produce this document.** Every finding
 below is a read of the source as it exists on `claude/football-film-analyzer-GRiCW`

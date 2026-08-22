@@ -13,6 +13,34 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX FINAL RE-REVIEW OF PC-4 REPAIR `b934f9d` - ACCEPTED (2026-08-22)
+
+**Verdict: ACCEPTED, no findings. PC-4 is complete and PC-5 may open.**
+
+The repair closes the final shutdown race at both ownership layers. New
+`SeasonStore.drainWrites(seasonId)` repeatedly awaits and re-reads the
+per-season write tail until the promise identity is stable. The outer
+`StorageManager.flushPendingSaves()` loop separately rechecks its debounce
+timer after every drain, so an edit that arms a new autosave while an older
+write is settling is dispatched and awaited before the desktop window may
+close. A later failed write remains fail-closed: the window stays open and the
+existing persistence-error seam tells the coach.
+
+Independent focused verification on the committed bytes:
+`pc-adversarial-matrix.mjs` reports **104/104 locks green** (the two printed
+legacy-version targets remain the previously disclosed dormant, out-of-scope
+methods), and `e2e-revision-fence.mjs` reports **33/33 green**. Source review
+also confirmed the loop terminates once the observed tail is unchanged and
+cannot miss a newly armed debounce between its final check and return because
+that check/return is one synchronous continuation.
+
+No full gate was duplicated: Claude already ran the canonical **91/91** gate
+on `b934f9d`, and this review reran the two risk-focused proofs. Next is PC-5:
+forensic backup, dry-run against the real two-season catalog, explicit coach
+permission before any legacy data is moved/rewritten/retired, then installer
+and installed two-season smoke. After PC-5 acceptance, execute the locked
+Final Engine Independence pass before further structural feature work.
+
 ### ▶ PC-4 REPAIR round 3 of the `c962437` re-review's one finding — AWAITING RE-REVIEW (2026-08-22)
 
 **Builder: Claude. Repairs the one remaining P0 from Codex's `c962437`
