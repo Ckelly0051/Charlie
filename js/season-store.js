@@ -521,7 +521,16 @@ export class SeasonStore {
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
     if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
-    const ok = await this.backend.deleteSeason(id);
+    // PC-4 repair: delete was not ordered against this season's write queue at
+    // all, so a save already in flight for `id` could complete AFTER the
+    // delete and resurrect the season -- reproduced directly before this fix
+    // (delete durably removed the season, then the stale pending save landed
+    // and it was present again). cancelPendingDiskWrite() above only clears a
+    // future-scheduled disk-mirror timer; it cannot cancel a write that has
+    // already started. Routing the delete itself through _enqueueWrite makes
+    // it wait behind any write dispatched for this id before it, so delete is
+    // now genuinely the LAST write that can land for a deleted id.
+    const ok = await this._enqueueWrite(id, () => this.backend.deleteSeason(id));
     // Only tear down the open editor when the delete was durable. A backend that
     // retained the season (canonical delete failed) keeps it loaded; a legacy
     // backend returning undefined is treated as success (backward compatible).
@@ -849,7 +858,11 @@ export class SeasonStore {
       // "delayed save" the invariant names. Fails closed: skip, never write.
       const newest = this._revision.get(sid);
       if (Number.isInteger(rev) && Number.isInteger(newest) && rev < newest) return;
-      this.backend.writeDisk(sid, snap, { snapshot: false }).catch(() => {});
+      // PC-4 repair: this deferred write reached the backend directly, outside
+      // the per-season write queue -- see the identical fix note on
+      // snapshot(). Queued, not dispatched: it re-writes the already-frozen
+      // payload above, never a new commit.
+      this._enqueueWrite(sid, () => this.backend.writeDisk(sid, snap, { snapshot: false })).catch(() => {});
     }, 2500);
   }
 
@@ -867,7 +880,16 @@ export class SeasonStore {
     const seasonId = this.currentSeasonId;
     const data = JSON.parse(JSON.stringify(this.data));
     if (this.backend.diskStatus().bound) {
-      await this.backend.writeDisk(seasonId, data, { snapshot: true, label });
+      // PC-4 repair: writeDisk performs a SECOND, unfenced canonical
+      // saveSeason call on desktop (TauriBackend.writeDisk -> this.
+      // saveSeason(...) before the mirror/backup work), so it was reachable
+      // entirely outside the per-season write queue -- an older snapshot's
+      // write could land after a newer persist()'s canonical save and revert
+      // it. Reproduced directly before this fix. Routed through
+      // _enqueueWrite, not _dispatchWrite: a snapshot re-writes already-
+      // committed state, it is not itself a new commit, so it must not bump
+      // revision.
+      await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label }));
     }
     return this.backend.createBackup(seasonId, data, label);
   }
@@ -907,7 +929,14 @@ export class SeasonStore {
   async bindDisk() {
     this._stripStAlignmentBeforeSave();
     const ok = await this.backend.bindDisk();
-    if (ok) await this.backend.writeDisk(this.currentSeasonId, JSON.parse(JSON.stringify(this.data)), { snapshot: true, label: 'Backup folder linked', prompt: true });
+    if (ok) {
+      // PC-4 repair: same unfenced-writeDisk class as snapshot() above --
+      // queued against this season's other writes rather than reaching the
+      // backend directly.
+      const seasonId = this.currentSeasonId;
+      const data = JSON.parse(JSON.stringify(this.data));
+      await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label: 'Backup folder linked', prompt: true }));
+    }
     return ok;
   }
   async forgetDisk() { return this.backend.forgetDisk(); }
@@ -928,13 +957,29 @@ export class SeasonStore {
     // the NEW season's data into the OLD season's slot -- the cross-season
     // class PC-1 closed, which a naive queue would have quietly reopened.
     const payload = this.data;
-    await this._dispatchWrite(seasonId, payload, () => this.backend.saveSeason(seasonId, payload));
-    const data = JSON.parse(JSON.stringify(this.data));
+    // PC-4 repair: the canonical write's result was discarded, so disk/backup
+    // side effects proceeded even after the canonical save was REJECTED --
+    // reproduced directly before this fix. Bail closed before any side effect
+    // on a genuine failure, exactly as persist()'s own callers already rely
+    // on a false/rejected result to mean "nothing durable happened."
+    let ok;
+    try { ok = await this._dispatchWrite(seasonId, payload, () => this.backend.saveSeason(seasonId, payload)); }
+    catch (e) { ok = false; }
+    if (ok === false) return false;
+    // Snapshot the SAME payload the canonical write just committed, not
+    // whatever this.data holds now -- re-reading this.data here would let a
+    // season switch landing during the earlier await write the NEW season's
+    // data into the OLD season's slot, reopening the cross-season class PC-1
+    // closed.
+    const data = JSON.parse(JSON.stringify(payload));
     let wroteDisk = false;
     if (this.diskStatus().bound) {
-      wroteDisk = await this.backend.writeDisk(seasonId, data, { snapshot: true, label: label || 'Manual save', prompt: true });
+      // Queued, not direct: see the identical writeDisk fix on snapshot()/
+      // bindDisk() above -- keeps this write ordered against a concurrent
+      // debounced disk-mirror or restore-point write for the same season.
+      wroteDisk = await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label: label || 'Manual save', prompt: true }));
     }
-    await this.backend.createBackup(seasonId, data, label || 'Manual save');
+    await this._enqueueWrite(seasonId, () => this.backend.createBackup(seasonId, data, label || 'Manual save'));
     return wroteDisk;
   }
 

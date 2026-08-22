@@ -97,33 +97,75 @@ export class StorageManager {
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('beforeunload', () => { try { this.flushPendingSaves(); } catch (e) {} });
     }
+    // PC-4 repair (finding 3): the doc comment on flushPendingSaves() already
+    // disclosed that a browser beforeunload listener cannot await an async
+    // desktop write. This closes that gap for real rather than leaving it
+    // documented: Tauri's own close-requested hook can defer the window close
+    // until the flush resolves, which no browser event can do. No-op on the
+    // browser build (no window.__TAURI__).
+    this._wireDesktopCloseFlush();
+  }
+
+  /**
+   * PC-4 repair (finding 3). Desktop only (window.__TAURI__): defers the
+   * window close via Tauri's onCloseRequested, awaits flushPendingSaves()'s
+   * now-genuinely-awaitable promise chain, then explicitly closes. Reachable
+   * via window.__TAURI__.window.getCurrentWindow() -- tauri.conf.json sets
+   * withGlobalTauri:true and src-tauri/capabilities/default.json already
+   * grants core:window:default + core:window:allow-close, so no Rust/
+   * capabilities change is needed. Safe to call on the browser build or if
+   * the API shape is ever missing/changed -- every step is guarded and a
+   * failure here must never block a real close.
+   */
+  async _wireDesktopCloseFlush() {
+    const T = (typeof window !== 'undefined') ? window.__TAURI__ : null;
+    if (!T || !T.window || typeof T.window.getCurrentWindow !== 'function') return;
+    let win;
+    try { win = T.window.getCurrentWindow(); } catch (e) { return; }
+    if (!win || typeof win.onCloseRequested !== 'function') return;
+    try {
+      await win.onCloseRequested((event) => {
+        // preventDefault() must be called synchronously, before any await --
+        // Tauri's own close sequence is not guaranteed to wait for a later
+        // call. The actual flush + explicit close happen in a detached async
+        // step below.
+        try { if (typeof event.preventDefault === 'function') event.preventDefault(); } catch (e) {}
+        (async () => {
+          try { await this.flushPendingSaves(); } catch (e) {}
+          try {
+            if (typeof win.destroy === 'function') await win.destroy();
+            else if (typeof win.close === 'function') await win.close();
+          } catch (e) {}
+        })();
+      });
+    } catch (e) {}
   }
 
   /**
    * PC-4: run an armed debounced save NOW instead of waiting out its timer.
-   * Returns whether there was anything to flush.
+   * Returns whether there was anything to flush -- `false` synchronously when
+   * nothing was armed, or a Promise<true> once the underlying canonical write
+   * has genuinely settled otherwise.
    *
-   * Deliberate limitation, stated rather than implied: this makes the canonical
-   * write START synchronously. On the browser build that write is synchronous
-   * localStorage, so it genuinely completes before the page goes away. On the
-   * desktop build the SQLite write is async, so a close can still outrun it --
-   * fully closing that needs Tauri's own `onCloseRequested` hook, which can
-   * defer the close until the write resolves and which no headless harness can
-   * exercise. This method is the single seam that hook would await, so wiring
-   * it later is a one-line change rather than a redesign.
-   *
-   * The 2.5s Documents-mirror debounce is deliberately NOT flushed: it is a
-   * recovery snapshot written only after a successful canonical commit, and it
-   * is rewritten by the next save. The canonical bytes are what a shutdown
-   * must not lose.
+   * PC-4 repair (finding 3): this now returns the real promise chain instead
+   * of `true` the instant the write STARTS. A synchronous `true` was
+   * sufficient on the browser build (localStorage completes synchronously,
+   * so the write is already done by the time this returns) but never on
+   * desktop, where the SQLite write is asynchronous -- a caller that could
+   * only fire-and-forget this (a browser `beforeunload` listener) had no way
+   * to actually wait for it. `_wireDesktopCloseFlush()` (see enableAutoSave)
+   * is the caller that now genuinely awaits this before letting a real close
+   * proceed. The 2.5s Documents-mirror debounce is deliberately NOT flushed:
+   * it is a recovery snapshot written only after a successful canonical
+   * commit, and it is rewritten by the next save -- the canonical bytes are
+   * what a shutdown must not lose.
    */
   flushPendingSaves() {
     if (!this.autoSaveTimer) return false;
     clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = null;
     if (!this.seasonStore || !this.seasonStore.data) return false;
-    this._commitAndPersist();
-    return true;
+    return this._commitAndPersist().then(() => true);
   }
 
   _autoSave() {
@@ -157,13 +199,17 @@ export class StorageManager {
     if (this.seasonStore && this.seasonStore.cancelPendingDiskWrite) this.seasonStore.cancelPendingDiskWrite();
   }
 
-  /** Write the live active-game state into the season and persist the season. */
+  /** Write the live active-game state into the season and persist the season.
+   *  PC-4 repair (finding 3): returns the persist() promise chain (was
+   *  fire-and-forget) so flushPendingSaves() can genuinely await it. Every
+   *  existing caller already ignored the return value, so this is additive. */
   _commitAndPersist() {
-    if (!this.seasonStore || !this.seasonStore.data) return;
+    if (!this.seasonStore || !this.seasonStore.data) return Promise.resolve(false);
     this.commitActive();
-    this.seasonStore.persist();
+    const result = Promise.resolve(this.seasonStore.persist());
     this._maybeSnapshot();   // throttled auto restore-point
     this._signalSave('saved');
+    return result;
   }
 
   /**

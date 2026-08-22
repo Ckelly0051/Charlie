@@ -13,6 +13,109 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-4 REPAIR of the `618862c` re-review's four findings — AWAITING RE-REVIEW (2026-08-22)
+
+**Builder: Claude. Repairs all four findings from Codex's `618862c` CHANGES
+REQUESTED re-review of `33b8af1` (recorded immediately below).** Every finding
+verified against source and reproduced against the real `SeasonStore` with a
+purpose-built probe before any fix was written, per standing discipline — none
+taken on report.
+
+**Root cause, common to all four.** PC-4's per-season write queue
+(`_enqueueWrite`/`_dispatchWrite`) was applied to `persist()` and `saveNow()`'s
+own canonical half, but not to every OTHER call site that ALSO reaches the
+canonical `saveSeason` — either directly (`deleteSeason`) or through
+`writeDisk`, which `TauriBackend.writeDisk()` implements as **a second, full
+canonical `saveSeason` call** before its own mirror/backup work (confirmed by
+reading the real method, not assumed — this makes finding 1 worse than "a
+mirror write can race": it is a second unfenced *commit* path).
+
+**1. [P0, closed] `snapshot()` bypassed the write queue entirely, and so did
+two more call sites of the identical shape.** Reproduced: a snapshot capturing
+the season's OLDER (1-play) state, held pending, completed AFTER a genuinely
+newer `persist()` (2-play) commit and reverted it — `canonicalWrites` order
+`[2, 1]` instead of `[1, 2]`. `_scheduleDiskWrite()`'s deferred 2.5s timer
+callback and `bindDisk()`'s first-write-on-bind share the same defect (each
+reaches `backend.writeDisk()` directly) and are closed the same way. All three
+now route through `_enqueueWrite(seasonId, ...)` — deliberately NOT
+`_dispatchWrite`: each re-writes already-committed state, none is itself a new
+commit, so none may bump `data.revision`.
+
+**2. [P0, closed] `deleteSeason(id)` was not ordered against the write queue
+at all.** `cancelPendingDiskWrite()` only clears a future-scheduled *timer*; it
+cannot cancel a write already dispatched. Reproduced: a `persist()` for season
+A held pending, `deleteSeason('A')` completing durably, THEN the stale pending
+save landing and the season being present again
+(`presentAfterDelete:false, presentAfterStaleSaveLands:true`). Fixed by routing
+`backend.deleteSeason(id)` itself through `_enqueueWrite(id, ...)`, so a delete
+now waits behind any write already dispatched for that id and becomes
+genuinely the *last* write that can land for a deleted season.
+
+**3. [P1, closed] Shutdown flush could not genuinely await the desktop
+write.** The prior round's own doc comment already disclosed this as a stated
+limitation rather than a silent gap; Codex required it actually closed.
+`_commitAndPersist()` now returns its `persist()` promise chain (every
+existing caller already ignored the return value, confirmed by grep — purely
+additive); `flushPendingSaves()` returns that chain instead of a synchronous
+`true` the instant the write *starts*. A new
+`StorageManager._wireDesktopCloseFlush()` (wired from `enableAutoSave()`,
+no-op on the browser build) uses Tauri's own `onCloseRequested` hook —
+reachable with **zero Rust/capabilities change**, since `tauri.conf.json`
+already sets `withGlobalTauri:true` and `src-tauri/capabilities/default.json`
+already grants `core:window:default`/`core:window:allow-close` — to defer the
+close (`event.preventDefault()`, called synchronously before any await, per
+Tauri's own documented idiom), await the flush, then explicitly `destroy()`
+the window.
+
+**4. [P1, closed] `saveNow()` discarded the canonical write's result and
+re-read `this.data` after the await.** Two independent defects, both
+reproduced directly: (a) `_dispatchWrite`'s boolean/rejection was never
+checked, so disk and backup side effects still landed after a REJECTED
+canonical save; (b) the disk/backup snapshot was built from `this.data` read
+AFTER the await rather than the `payload` already captured at dispatch time —
+reproduced with a season switch landing during the gated write: the disk/
+backup writes carried `seasonName:"Season B"` under `id:"A"`, reopening the
+exact cross-season class PC-1 closed. Fixed: the result is checked before any
+side effect (bails closed on failure, matching how every other `false`/
+`null`-on-failure method in this codebase already signals to its callers);
+the disk/backup snapshot uses the captured `payload`; and the disk/backup
+writes now also route through `_enqueueWrite`, staying ordered against a
+concurrent `_scheduleDiskWrite`/`snapshot()`/`bindDisk()` write for the same
+season.
+
+**Deliberately out of scope, disclosed rather than silently ignored.** The
+desktop backend's `TauriBackend._catalog` is a single library-wide
+`CatalogPersistence` instance shared across every open season. None of
+Codex's four findings named this, and none of the four reproductions needed
+it. Recorded in `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §7a for whoever next
+touches catalog-layer concurrency, not fixed unilaterally.
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — new section 14,
+five sub-cases: **92/92 locks green** (was 85; +7 — 4 new sections cover the
+four findings, +3 for a direct `_wireDesktopCloseFlush()` test distinct from
+`flushPendingSaves()`'s own awaitability), 0/2 targets (the two pre-existing,
+disclosed, out-of-scope legacy version methods, unchanged). `node tools/
+e2e-revision-fence.mjs` — 33/33, unchanged. Every one of the five fixes
+independently mutation-verified: reverting each in isolation against the
+committed test reproduces its exact original symptom — three as a clean
+assertion failure with the original evidence shape reproduced verbatim
+(`order:[2,1]`, `callOrder:["delete-done","save-done"]`, non-empty disk/backup
+writes on a rejected save, `seasonName:"Season B"` under `id:"A"`), and two
+(the `_commitAndPersist()`/`_wireDesktopCloseFlush()` mechanism tests) as a
+genuine harness crash rather than a silent pass — itself the load-bearing
+proof that nothing downstream can quietly no-op if the mechanism regresses —
+confirmed restored and reconfirmed green. Full canonical gate
+(`bash tools/run-gate.sh`): **91 harnesses | 91 green | 0 skipped | 0
+failed** — same count as the accepted `33b8af1` checkpoint, zero harnesses
+added or dropped, including `e2e-realdata.mjs` (the real six-game coach
+season) clean.
+
+No film path, film file, season/game/play data, schema version, migration, or
+unrelated file touched. No installer, package, tag, or release.
+
+**Next action:** Codex independently re-reviews this repair. PC-5 does not
+open until this review completes.
+
 ### CODEX REVIEW — PC-4 `33b8af1`: CHANGES REQUESTED (2026-08-22)
 
 The per-season queue and monotonic revision work for the paths that use them,

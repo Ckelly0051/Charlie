@@ -1574,8 +1574,12 @@ section('13. A pending autosave never outlives the restore that discarded its st
       JSON.stringify({ saves: saves.length }));
 
     sm._autoSave();
-    const flushed = sm.flushPendingSaves();
-    await new Promise(r => setTimeout(r, 0));
+    // PC-4 repair (finding 3): flushPendingSaves() now returns the real
+    // promise chain instead of a synchronous `true` the instant the write
+    // starts, so a genuine close hook can await it. Await it here too, rather
+    // than a bare setTimeout(0) that only worked because the old code never
+    // returned anything worth awaiting.
+    const flushed = await sm.flushPendingSaves();
     ok('lock', flushed === true && saves.length === 1 && !sm.autoSaveTimer,
       "a pending debounced save is flushed on shutdown instead of dying with the window -- before PC-4 nothing anywhere flushed on exit, so a coach closing within ~1s of their last edit lost that edit's canonical write entirely (Inventory Sec 3.4)",
       JSON.stringify({ flushed, saves: saves.length, stillArmed: !!sm.autoSaveTimer }));
@@ -1625,6 +1629,250 @@ section('13. A pending autosave never outlives the restore that discarded its st
     ok('lock', store.data.roster.length === 2 && store.data.playbook.calls.length === 2,
       'positive control: a populated live roster/playbook still mirrors into the season, so the empty-clobber guard is not freezing these fields',
       JSON.stringify({ roster: store.data.roster.length, calls: store.data.playbook.calls.length }));
+  }
+}
+flush();
+
+// ============================================================================
+// 14. LOCK (closed PC-4 repair) -- Codex's 618862c re-review of PC-4 (33b8af1):
+//     the per-season write queue section 13 depends on was applied to
+//     persist()/saveNow()'s canonical half but not to every OTHER call site
+//     that also reaches saveSeason (via writeDisk, which TauriBackend.
+//     writeDisk() implements as a SECOND, full canonical saveSeason call
+//     before its mirror/backup work -- confirmed by reading the real method,
+//     not assumed) or to deleteSeason at all. Each finding was reproduced
+//     directly against the real SeasonStore before being fixed, per standing
+//     discipline. Full detail: GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
+// ============================================================================
+section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered against the per-season queue, and a season switch mid-write cannot smear payloads across seasons [LOCK, closed PC-4 repair]');
+{
+  const tick = () => new Promise(r => setTimeout(r, 0));
+
+  // -- (i) an older snapshot() cannot land after a newer persist() ----------
+  // Reproduced before this fix exactly as described: snapshot()'s writeDisk
+  // reached the backend directly, so a 1-play snapshot's write could complete
+  // AFTER a 2-play persist() and silently revert it.
+  {
+    const canonicalWrites = [];
+    let gate = null;
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason(id, data) {
+        const snap = clone(data);
+        if (gate) { const g = gate; gate = null; return new Promise(res => { g.release = () => { canonicalWrites.push(snap); res(true); }; }); }
+        canonicalWrites.push(snap); return true;
+      },
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      // Mirrors the real TauriBackend.writeDisk shape: it performs a second,
+      // full canonical saveSeason call, not merely a mirror write.
+      async writeDisk(id, data) { return this.saveSeason(id, data); },
+      async createBackup() { return 'bk1'; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
+
+    const held = { release: null };
+    gate = held;
+    // Start (do not await) a snapshot of the CURRENT 1-play state -- its
+    // writeDisk is gated pending.
+    const snapPromise = store.snapshot('Auto');
+    await tick();
+
+    // The coach keeps working: a second play is added. This persist() must
+    // now be genuinely queued behind the still-pending gated snapshot write,
+    // not race ahead of it -- so start it too without awaiting yet.
+    store.data.games[0].plays.push({ id: 2 });
+    const persistPromise = store.persist();
+
+    held.release();          // the gated (older, 1-play) write completes first
+    await snapPromise;
+    await persistPromise;    // the newer (2-play) write is only now free to run
+
+    ok('lock', canonicalWrites.length === 2 &&
+               canonicalWrites[0].games[0].plays.length === 1 &&
+               canonicalWrites[1].games[0].plays.length === 2,
+      "an older snapshot's writeDisk (a second, unfenced canonical saveSeason call on the real backend) cannot land after a newer persist() and revert it -- both are now strictly ordered by dispatch through the same per-season queue",
+      JSON.stringify({ order: canonicalWrites.map(w => w.games[0].plays.length) }));
+  }
+
+  // -- (ii) deleteSeason() cannot be resurrected by a save already in flight -
+  {
+    const callOrder = [];
+    let gate = null;
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() {
+        if (gate) { const g = gate; gate = null; return new Promise(res => { g.release = () => { callOrder.push('save-done'); res(true); }; }); }
+        callOrder.push('save-done'); return true;
+      },
+      async deleteSeason() { callOrder.push('delete-done'); return true; },
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+
+    const held = { release: null };
+    gate = held;
+    const savePromise = store.persist();          // a save is in flight for A, gated
+    await tick();
+
+    // The coach deletes A WHILE that save is still pending. cancelPending
+    // DiskWrite() only clears a future-scheduled timer; it cannot cancel a
+    // write already dispatched, so the delete itself must queue behind it.
+    const deletePromise = store.deleteSeason('A');
+
+    held.release();                                // the stale pending save now lands
+    await savePromise;
+    await deletePromise;
+
+    ok('lock', callOrder.indexOf('save-done') < callOrder.indexOf('delete-done'),
+      "a save already in flight for a season completes BEFORE its delete can run, never after -- reproduced before this fix as delete->save landing in that order, which resurrected a durably-deleted season",
+      JSON.stringify({ callOrder }));
+  }
+
+  // -- (iii) saveNow() bails closed on a rejected canonical write, performing
+  //          zero disk/backup side effects -----------------------------------
+  {
+    const diskWrites = [];
+    const backupWrites = [];
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return false; },   // the canonical write REJECTS
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      async writeDisk(id, data) { diskWrites.push({ id, plays: data.games[0].plays.length }); return true; },
+      async createBackup(id, data) { backupWrites.push({ id, plays: data.games[0].plays.length }); return 'bk'; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
+
+    const result = await store.saveNow('Manual save');
+
+    ok('lock', result === false && diskWrites.length === 0 && backupWrites.length === 0,
+      "saveNow() performs zero disk/backup side effects when the canonical save is REJECTED -- reproduced before this fix as a disk write and a backup write still landing after a rejected canonical save",
+      JSON.stringify({ result, diskWrites, backupWrites }));
+  }
+
+  // -- (iv) saveNow()'s disk/backup writes use the payload captured at
+  //         DISPATCH time, never whatever the live season holds after a
+  //         season switch lands during the canonical write's own await ------
+  {
+    const diskWrites = [];
+    const backupWrites = [];
+    let gate = null;
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() {
+        if (gate) { const g = gate; gate = null; return new Promise(res => { g.release = () => res(true); }); }
+        return true;
+      },
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      async writeDisk(id, data) { diskWrites.push({ id, seasonName: data.seasonName, plays: data.games[0].plays.length }); return true; },
+      async createBackup(id, data) { backupWrites.push({ id, seasonName: data.seasonName, plays: data.games[0].plays.length }); return 'bk'; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
+
+    const held = { release: null };
+    gate = held;
+    const saveNowPromise = store.saveNow('Manual save');
+    await tick();
+
+    // A season switch lands WHILE the canonical write for A is still pending.
+    store.currentSeasonId = 'B';
+    backend.setCurrentSeason('B');
+    store.data = season('B', 'Season B');
+
+    held.release();
+    await saveNowPromise;
+
+    ok('lock', diskWrites.length === 1 && diskWrites[0].id === 'A' && diskWrites[0].seasonName === 'Season A' &&
+               backupWrites.length === 1 && backupWrites[0].id === 'A' && backupWrites[0].seasonName === 'Season A',
+      "a season switch landing during saveNow()'s canonical write does not write the NEW season's data into the OLD season's disk/backup slot -- reading this.data after the await (rather than the payload captured at dispatch) would reproduce that class",
+      JSON.stringify({ diskWrites, backupWrites }));
+  }
+
+  // -- (v) StorageManager._wireDesktopCloseFlush() -- the actual mechanism
+  //        finding 3 asked for, not just flushPendingSaves()'s awaitability.
+  //        A real close request is deferred (preventDefault, synchronously),
+  //        the pending save is genuinely awaited, then the window is
+  //        explicitly closed. No-op and non-throwing on the browser build.
+  {
+    if (!globalThis.window) globalThis.window = globalThis;
+    if (!globalThis.document) globalThis.document = { getElementById: () => null };
+    const { StorageManager } = await import('../js/storage.js');
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const tagger = { ...noopEmitter, plays: [], toast() {} };
+    const canvas = { ...noopEmitter, annotations: [] };
+
+    // No window.__TAURI__ (the browser build) -- must be a safe, non-throwing no-op.
+    {
+      const prevTauri = globalThis.window.__TAURI__;
+      delete globalThis.window.__TAURI__;
+      const sm = new StorageManager(vc, tagger, canvas);
+      let threw = false;
+      try { await sm._wireDesktopCloseFlush(); } catch (e) { threw = true; }
+      globalThis.window.__TAURI__ = prevTauri;
+      ok('lock', !threw, '_wireDesktopCloseFlush() is a safe no-op on the browser build (no window.__TAURI__)');
+    }
+
+    // window.__TAURI__ present (desktop) -- the real close-deferral behavior.
+    {
+      let capturedHandler = null;
+      let destroyCalled = false;
+      let destroyResolve;
+      const destroyPromise = new Promise(res => { destroyResolve = res; });
+      const win = {
+        onCloseRequested(handler) { capturedHandler = handler; return Promise.resolve(); },
+        async destroy() { destroyCalled = true; destroyResolve(); },
+      };
+      const prevTauri = globalThis.window.__TAURI__;
+      globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
+      try {
+        const sm = new StorageManager(vc, tagger, canvas);
+        const saves = [];
+        const backend = {
+          currentId: null, RETENTION: 25,
+          setCurrentSeason(id) { this.currentId = id; },
+          async loadSeason() { return null; },
+          async saveSeason(id) { saves.push(id); return true; },
+          async touchOpened() {}, diskStatus() { return { bound: false }; },
+        };
+        const store = new SeasonStore(backend);
+        store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+        store.data = season('A', 'Season A');
+        sm.seasonStore = store;
+        sm._loadedGameId = store.data.activeGameId;
+        sm._serialize = () => ({ ...store.data.games[0] });
+
+        await sm._wireDesktopCloseFlush();
+        ok('lock', typeof capturedHandler === 'function',
+          '_wireDesktopCloseFlush() registers a real onCloseRequested handler when window.__TAURI__ is present');
+
+        sm._autoSave();   // arm a pending debounced save, as a real coach edit would
+        let preventDefaultCalled = false;
+        capturedHandler({ preventDefault() { preventDefaultCalled = true; } });
+        await destroyPromise;   // the detached async flush+destroy must eventually settle
+
+        ok('lock', preventDefaultCalled && saves.length === 1 && destroyCalled,
+          'a real close request is deferred (preventDefault called synchronously), the pending save is genuinely flushed, then the window is explicitly closed -- this is the actual close-deferral mechanism finding 3 asked for, not merely flushPendingSaves() returning a promise nobody awaits',
+          JSON.stringify({ preventDefaultCalled, saves: saves.length, destroyCalled }));
+      } finally {
+        globalThis.window.__TAURI__ = prevTauri;
+      }
+    }
   }
 }
 flush();
