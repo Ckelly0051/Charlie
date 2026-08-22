@@ -13,6 +13,17 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX RE-REVIEW OF `9f319cc` — ACCEPTED; PC-4 OPENS (2026-08-22)
+
+**Verdict:** ACCEPTED, no findings. Combined PC-2+PC-3 is complete.
+
+The final recovery boundary now matches the contract. `TauriBackend.recoverSeasonFromMirror()` rejects every `!result.ok` result, including `legacy-unenveloped`, before catalog initialization or mutation. The dead legacy identity-stamping branch is removed. A valid envelope still proceeds normally, so this is fail-closed validation rather than disabling recovery.
+
+The new regression drives the real `TauriBackend`, not the Team Hub mock: a bare legacy snapshot returns `{ok:false, reason:'legacy-unenveloped'}` and performs zero catalog writes. The UI independently keeps the candidate visible, disabled, and explained.
+
+**Independent verification:** `e2e-catalog-backend` 25/25, `e2e-native-mirror-recovery` 15/15, and `e2e-snapshot-envelope` 21/21. Claude's full canonical gate was 90/90. No additional full-gate duplication was needed for this one-branch repair.
+
+**Next:** PC-4 — revision-fenced autosave and lifecycle audit. PC-5 remains closed until PC-4 is independently accepted.
 ### ▶ PC-2 FINAL REPAIR of `d206b58`'s recovery-boundary finding — AWAITING RE-REVIEW (2026-08-22)
 
 **Builder: Claude. Repairs the one remaining P1 from Codex's `d206b58`
