@@ -13,6 +13,161 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-4 — REVISION-FENCED AUTOSAVE + LIFECYCLE AUDIT BUILT, AWAITING CODEX REVIEW (2026-08-22)
+
+**Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`'s PC-4
+checkpoint** ("Capture season id and revision when work is scheduled. Reject
+stale saves after season switch, reload, undo/redo, restore, or a newer commit.
+Audit Team Hub, game/team/season switch, backup/restore, import, delete, and
+shutdown"). Closes **§3.2** — the last open PC-0 finding — and **§3.4**. Full
+detail in `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §7.
+
+**Both §3.2 halves were REPRODUCED FIRST, against the committed classes.**
+PC-0 recorded §3.2 as "structurally real but not yet reproduced as a concrete
+field symptom." Before writing any code, a probe drove the real `SeasonStore`
+and reproduced both:
+- two overlapping `persist()` calls for one season completed **out of order** —
+  durable write order `[2 plays, 1 play]`, so the coach's second edit was
+  durably lost while memory still showed it;
+- a `persist()` dispatched **before** a restore landed **after** it — order
+  `[1 play (restore), 3 plays (pre-restore)]`, so the restore silently un-did
+  itself on the next reload while memory showed it had worked.
+
+Every fence built before PC-4 guards against a **season switch** landing
+mid-flight. Neither of these involves a season switch, so none of them could
+catch either.
+
+**Two mechanisms.** (1) **Dispatch-ordered writes per season** — durable body
+writes for one season run strictly in dispatch order, keyed by season id so an
+unrelated season is never blocked, and the next write runs whether the previous
+resolved or rejected. An **uncontended** write still starts synchronously,
+preserving `persist()`'s long-standing property that a fire-and-forget call has
+begun its write by the time it returns. (2) **A monotonic `data.revision`** —
+additive and persisted; `_normalize` defaults a missing key to 0 and refuses a
+hostile value rather than trusting a number so high every later save looks
+stale. The next revision is `max(payload's own, newest dispatched) + 1`, never
+the payload alone — which is what keeps **restore** safe, since a restored
+backup carries its ORIGINAL low revision and basing off it would make the
+restore itself look stale to every later fence.
+
+**Deliberately NOT revision-fenced: the autosave.** It re-reads live state at
+fire time, so it is never stale in content; fencing it would skip legitimate
+saves. The fence applies to the one delayed path carrying a **frozen** payload —
+the 2.5s Documents-mirror write — where writing a superseded copy would move the
+recovery snapshot BACKWARD relative to the canonical row, which is exactly what
+PC-3's recovery preview relies on never happening.
+
+**Lifecycle audit findings.** `StorageManager.restoreBackup()` never cancelled
+pending saves, so the 1s autosave could fire during the restore's own awaits and
+`commitActive()` would stamp the live tagger's PRE-restore plays into the
+freshly-restored season — the `_loadedGameId` guard does not catch it, because a
+restore of the same season keeps the same active game id and its equality check
+passes. `saveNow()` called `backend.saveSeason` directly, bypassing `persist()`
+and any ordering with an in-flight autosave (§3.2's FIRST named scenario).
+**§3.4 confirmed still open** — no `beforeunload`/`pagehide`/Tauri close handler
+existed anywhere in `js/`, so a coach closing within ~1s of their last edit lost
+that edit's canonical write; new `flushPendingSaves()` wired to `beforeunload`.
+Deleting a season now drops its write queue and revision sequence so a recreated
+id cannot inherit a ghost high-water mark. Season/game/team switch, import, and
+Team Hub needed no change (already correct, re-verified).
+
+**Stated limitation, not implied.** The shutdown flush makes the canonical write
+START synchronously. On the browser build that write is synchronous localStorage
+and genuinely completes; on desktop the SQLite write is async, so a close can
+still outrun it. Fully closing that needs Tauri's `onCloseRequested`, which no
+headless harness can exercise — `flushPendingSaves()` is deliberately the single
+seam that hook would await, so wiring it later is a one-line change. Same
+discipline as the standing decision not to ship unverifiable changes to the
+canonical write path.
+
+**⚠ What the integrity fuzzer caught, which no focused test did — worth the
+reviewer's attention.** The first implementation deferred **every** write to a
+microtask; all focused suites passed. `e2e-integrity` then failed with **8 RELOAD
+violations across 5 seeds**: `persist()` no longer started its write
+synchronously, so a fire-and-forget persist followed by an immediate backend read
+no longer saw it. Restoring the synchronous start for uncontended writes took it
+to 5; tightening the queue-drain to the same continuation that observes
+settlement took it to 2. The residual 2 were genuine contention, and exposed that
+the fuzzer's `reload` op fire-and-forgot its `persist()` then read the backend —
+which only ever worked because BrowserBackend's localStorage write completes
+synchronously, and was never true of the Tauri/SQLite backend the app ships. The
+op now **awaits** the persist, which is what "persist→reload round-trip" actually
+means and now holds on both backends. **That correction was itself
+mutation-tested, because "make the failing check await" is exactly the shape of
+weakening a test to fit a change:** making `_persistNow` silently drop half its
+writes produces **15 violations** on the corrected op, so it still catches a real
+persistence regression and is not vacuous.
+
+**A second defect found while tracing that, fixed before commit:** `saveNow()`
+initially read `this.data` inside its queued callback rather than capturing the
+reference at dispatch. A season switch landing between dispatch and run would
+have written the NEW season's data into the OLD season's slot — reopening the
+cross-season class PC-1 closed. It now captures at dispatch, as `persist()`'s
+default parameter already does.
+
+**⚠ Two further defects the FULL GATE caught, which the focused suites did not.**
+Both are the class this project's history keeps warning about — a change that
+looks correct in its own tests and breaks something two layers away.
+
+1. **`e2e-wipe-recovery` went red**, and the cause was a genuine PRE-EXISTING
+   bug my flush made reachable. `commitActive()` mirrored `roster` and
+   `playbook` into the season **unconditionally**, so an EMPTY live value
+   overwrote a populated saved one. Those copies exist precisely so
+   `TeamRegistry.recoverFromWipe()` can rebuild a wiped install — clobbering
+   them destroys the source recovery reads. `teamProfile` has had an "only adopt
+   a real identity" guard for exactly this reason since long before PC-4; roster
+   and playbook never did. Diagnosed by probe, not inspection: the seeded blob
+   was correct (playbook present, revision 2) but held revision 3 with an empty
+   playbook immediately after reload, with **no** season write captured during
+   the recovery boot — which located it in the *previous* page's `beforeunload`.
+   **Baseline was established by stashing the whole checkpoint and re-running
+   against the accepted HEAD (13/13 green), not against a commit of my own** —
+   the break was genuinely mine. Fixed at the root by extending the same guard
+   to both fields, with a positive control proving a populated live
+   roster/playbook still mirrors. Disclosed trade-off, matching the
+   `teamProfile` precedent: clearing every player no longer propagates into the
+   season file through an autosave — losing a coach's saved roster silently is
+   far worse than retaining one they emptied, and the season's copy is a
+   recovery mirror, not the live authority.
+2. **`e2e-operation-diff` went red** on "game selection changes only the
+   active-game pointer". Correct behavior, undeclared path: opening a game
+   commits and persists the outgoing season, so the commit counter legitimately
+   advances. `revision` is now a **declared** path of that operation and
+   additionally asserted to change, making it a positive statement rather than a
+   permission. It is deliberately NOT added to the route-navigation case, which
+   still must change no season path at all — that untouched assertion is what
+   proves the counter tracks real commits rather than incidental activity.
+
+**PC-3's envelope placeholder closed.** `SnapshotEnvelope.wrap()` now stamps the
+real committed revision, so a recovery candidate is compared by commit order
+rather than wall-clock timestamp — two snapshots written in the same millisecond
+are still strictly ordered, and a machine whose clock moved cannot make an older
+snapshot look newer. The timestamp fallback is retained for pre-PC-4 seasons, so
+every envelope already on disk still wraps, validates, and recovers unchanged.
+
+**Verification.** `node tools/e2e-revision-fence.mjs` — **NEW, 33/33**.
+`node tools/pc-adversarial-matrix.mjs` — **85/85 locks green** (was 79; +6,
+section 13), 0/2 targets green (the two pre-existing, disclosed, out-of-scope
+legacy version methods, unchanged). `node tools/e2e-integrity.mjs` — 12 seeds ×
+80 ops, **0 violations**. `e2e-catalog-persistence` **63/63** (+1: the revision
+survives a canonical SQLite save/reopen — a check section 1 structurally cannot
+make, since it compares against a reference SqlCatalog round trip and a field
+dropped by BOTH sides compares equal). `e2e-wipe-recovery` 13/13,
+`e2e-operation-diff` 9/9, `e2e-catalog-backend` 25/25,
+`e2e-snapshot-envelope` 21/21, `e2e-native-mirror-recovery` 15/15,
+`e2e-catalog-fuzzer` 640 ops clean, `e2e-parity` 2/2. Every fix independently
+mutation-verified in isolation, each reproducing its exact original symptom and
+reding only the assertion(s) built to catch it, restored and reconfirmed green.
+
+**Scope discipline:** no film path, film file, season/game/play data, schema
+version, migration, or unrelated file touched. `data.revision` is additive and
+backward-compatible — a season saved before PC-4 has no such key, normalizes to
+0, and is unaffected. No installer, package, tag, or release, per the plan's own
+boundary.
+
+**Next action:** Codex independently reviews PC-4. PC-5 (migration + installed
+smoke) does not open until this review completes.
+
 ### ▶ CODEX RE-REVIEW OF `9f319cc` — ACCEPTED; PC-4 OPENS (2026-08-22)
 
 **Verdict:** ACCEPTED, no findings. Combined PC-2+PC-3 is complete.

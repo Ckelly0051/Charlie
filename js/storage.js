@@ -88,6 +88,42 @@ export class StorageManager {
     this.tagger.on('play-deleted', () => this._autoSave());
     this.canvas.on('annotations-changed', () => this._autoSave());
     this.canvas.on('annotation-added', () => this._autoSave());
+    // PC-4 lifecycle audit, shutdown (Inventory Sec 3.4): nothing anywhere in
+    // the app flushed a pending debounced save when the window closed, so a
+    // coach closing within ~1s of their last edit lost that edit's canonical
+    // write entirely. Wired here rather than in the constructor because the
+    // season store and tagger are only fully wired by the time app.js calls
+    // this.
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('beforeunload', () => { try { this.flushPendingSaves(); } catch (e) {} });
+    }
+  }
+
+  /**
+   * PC-4: run an armed debounced save NOW instead of waiting out its timer.
+   * Returns whether there was anything to flush.
+   *
+   * Deliberate limitation, stated rather than implied: this makes the canonical
+   * write START synchronously. On the browser build that write is synchronous
+   * localStorage, so it genuinely completes before the page goes away. On the
+   * desktop build the SQLite write is async, so a close can still outrun it --
+   * fully closing that needs Tauri's own `onCloseRequested` hook, which can
+   * defer the close until the write resolves and which no headless harness can
+   * exercise. This method is the single seam that hook would await, so wiring
+   * it later is a one-line change rather than a redesign.
+   *
+   * The 2.5s Documents-mirror debounce is deliberately NOT flushed: it is a
+   * recovery snapshot written only after a successful canonical commit, and it
+   * is rewritten by the next save. The canonical bytes are what a shutdown
+   * must not lose.
+   */
+  flushPendingSaves() {
+    if (!this.autoSaveTimer) return false;
+    clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = null;
+    if (!this.seasonStore || !this.seasonStore.data) return false;
+    this._commitAndPersist();
+    return true;
   }
 
   _autoSave() {
@@ -394,8 +430,38 @@ export class StorageManager {
     if (this._loadedGameId == null || this._loadedGameId !== this.seasonStore.data.activeGameId) return;
     this.seasonStore.updateActiveGame(this._serialize());
     const app = window.app;
-    if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
-    if (app && app.playbook) this.seasonStore.data.playbook = app.playbook.snapshot();
+    // PC-4 lifecycle audit: roster and playbook get the SAME "only adopt a real
+    // identity" protection teamProfile has had all along (see below). They are
+    // mirrored into the season file specifically so TeamRegistry.recoverFromWipe()
+    // can rebuild a wiped install from it -- so stamping an EMPTY value over a
+    // populated one destroys the very copy recovery depends on. The live objects
+    // read their localStorage keys, and those keys are exactly what a wipe
+    // removes, so "live is empty" does NOT reliably mean "the coach cleared it".
+    //
+    // Reproduced: with a pending autosave armed, an app shutdown after those keys
+    // went missing persisted roster:[] and playbook:{calls:[]} over a season that
+    // held a real roster and a real play call, and the next launch's recovery
+    // then found nothing to restore. The asymmetry was pre-existing -- any
+    // _commitAndPersist() after a "Switch team" (which empties the profile) could
+    // already do this -- and PC-4's shutdown flush made it reachable at a new
+    // moment, which is how it surfaced.
+    //
+    // Disclosed trade-off, matching the teamProfile precedent exactly: an empty
+    // live roster/playbook is not mirrored over a populated saved one, so
+    // clearing every player does not propagate into the season file through an
+    // autosave. Losing a coach's saved roster silently is far worse than
+    // retaining one they emptied, and the season's copy is a recovery mirror,
+    // not the live authority (localStorage is).
+    if (app && app.roster) {
+      const roster = app.roster.toJSON();
+      if ((roster && roster.length) || !(this.seasonStore.data.roster || []).length) this.seasonStore.data.roster = roster;
+    }
+    if (app && app.playbook) {
+      const playbook = app.playbook.snapshot();
+      const liveCalls = (playbook && playbook.calls) || [];
+      const savedCalls = (this.seasonStore.data.playbook && this.seasonStore.data.playbook.calls) || [];
+      if (liveCalls.length || !savedCalls.length) this.seasonStore.data.playbook = playbook;
+    }
     try {
       const prof = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
       // Only adopt a real identity — after "Switch team" the profile is empty,
@@ -1249,6 +1315,15 @@ export class StorageManager {
 
   /** Restore a previous save; reloads the active game on success. */
   async restoreBackup(id) {
+    // PC-4 lifecycle audit (Invariant #7): a restore is an explicit decision to
+    // DISCARD the current state, so a debounced autosave still describing that
+    // discarded state must not survive it. Without this, the 1s autosave timer
+    // could fire during the restore's own awaits (snapshot + persist) and run
+    // commitActive(), which stamps the live tagger's PRE-restore plays into the
+    // freshly-restored season -- the _loadedGameId guard does not catch it,
+    // because a restore of the same season normally keeps the same active game
+    // id, so the guard's equality check passes and the write proceeds.
+    this._cancelPendingSaves();
     const data = await this.seasonStore.restoreBackup(id);
     if (!data) return false;
     this._clearForNewGame();

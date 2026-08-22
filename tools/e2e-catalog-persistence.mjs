@@ -175,6 +175,24 @@ const refA = await refRoundTrip(seasonA());
   ok(recovered && recovered.data.seasonName === 'Alpha', 'once the disk read recovers, the season is intact', JSON.stringify(recovered && recovered.data.seasonName));
 }
 
+// ---- 4c. PC-4: the monotonic revision survives the canonical SQLite round trip
+// The desktop path reconstructs a season from columns plus a `body_json` blob.
+// If `revision` were dropped there, the persisted sequence would silently reset
+// on every desktop reload and the durable half of PC-4's fence would be inert --
+// a failure that looks identical to working code from SeasonStore's side, and
+// that section 1's round-trip check cannot see (it compares against a reference
+// SqlCatalog round trip, so a field dropped by BOTH sides compares equal).
+{
+  const fs = trackFs();
+  const withRevision = seasonA();
+  withRevision.revision = 137;
+  await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).saveSeason('s1', withRevision);
+  const reopened = await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1');
+  ok(reopened && reopened.data.revision === 137,
+    'PC-4: the season-level monotonic revision survives a canonical SQLite save/reopen, so the durable fence is not silently reset on every desktop reload',
+    JSON.stringify(reopened && reopened.data.revision));
+}
+
 // ---- 5. mirror failure is best-effort; season.json still never written ----
 {
   const fs = trackFs();

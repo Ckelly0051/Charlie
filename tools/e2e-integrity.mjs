@@ -109,7 +109,17 @@ const campaign = async (fixture, seed, nOps) => {
       async finish() { const a = store.data.games.find(g => g.id === store.data.activeGameId); if (a) { (a.gameInfo = a.gameInfo || {}).scoreUs = '21'; a.gameInfo.scoreThem = '14'; } if (store.setGameStatus) store.setGameStatus(store.data.activeGameId, 'final'); return { affected: [store.data.activeGameId] }; },
       async snapshot() { await store.snapshot('stress'); return { affected: [] }; },
       async restore() { const list = await (store.listBackups ? store.listBackups() : []); if (!list || !list.length) return { skip: 1 }; await sm.restoreBackup(pick(list).id); return { affected: 'all' }; },
-      async reload() { sm.commitActive(); store.persist(); const back = await store.backend.loadSeason(store.currentSeasonId); return { affected: [], reload: back }; },
+      // PC-4: this op AWAITS the persist. Its purpose is persist->reload
+      // round-trip equality, and a round trip cannot be checked before the
+      // write completes. It previously fire-and-forgot the persist and relied
+      // on BrowserBackend's localStorage write finishing synchronously inside
+      // persist() -- an accident of the browser backend that was never true of
+      // the Tauri/SQLite backend the app actually ships, and that stopped
+      // holding once PC-4 began ordering concurrent writes to one season.
+      // persist() still resolves only after the durable write, so the round-trip
+      // guarantee this op exists to check is fully preserved and now holds on
+      // BOTH backends rather than only the synchronous one.
+      async reload() { sm.commitActive(); await store.persist(); const back = await store.backend.loadSeason(store.currentSeasonId); return { affected: [], reload: back }; },
       async desyncCommit() { const cands = store.data.games.map(g => g.id).filter(i => i !== sm._loadedGameId); if (!cands.length) return { skip: 1 }; store.data.activeGameId = pick(cands); sm.commitActive(); sm._loadActiveGame(); return { affected: [] }; }, // guard must block → nothing changes
       async renderAll() { try { eng.showDashboard(); for (const t of ['game', 'offense', 'defense', 'selfscout', 'season', 'matchup']) { const b = document.querySelector(`#statsDashboard .stats-tab[data-tab="${t}"]`); if (b) b.click(); } eng.renderSelfScout(); eng.renderDefensiveReport(); const o = (store.data.games.find(g => g.id === store.data.activeGameId)?.gameInfo?.opponent) || ''; if (o) eng.renderOpponentScout(o); } finally { if (eng.hideDashboard) eng.hideDashboard(); } return { affected: [] }; },
       async undo() { try { window.app.history && window.app.history.undo && window.app.history.undo(); } catch (e) {} sm.commitActive(); return { affected: [store.data.activeGameId] }; },

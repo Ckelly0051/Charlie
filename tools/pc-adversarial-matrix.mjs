@@ -1494,6 +1494,141 @@ section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to 
 }
 flush();
 
+// ============================================================================
+// 13. LOCK (closed PC-4) -- Invariant #7's SAME-season half, and the lifecycle
+//     paths PC-4's scope names ("Audit ... backup/restore ... and shutdown").
+//
+//     Every fence before PC-4 protected against a SEASON SWITCH landing
+//     mid-flight (sections 3d/3f/4). Inventory Sec 3.2 recorded the same-season
+//     case as "structurally real but not yet reproduced as a concrete field
+//     symptom" -- it is reproduced concretely now, and the full contract lives
+//     in tools/e2e-revision-fence.mjs. What is pinned HERE is the coach-facing
+//     lifecycle half, which needs a real StorageManager rather than a bare
+//     SeasonStore: a debounced autosave still describing the state a coach just
+//     chose to DISCARD must not survive their restore; a pending save is flushed
+//     on shutdown rather than dying with the window; and a commit never mirrors
+//     an EMPTY roster/playbook over a populated one -- the last of which is a
+//     PRE-EXISTING bug (teamProfile had that guard, roster/playbook did not)
+//     that PC-4's shutdown flush made reachable at a new moment, and that the
+//     full gate caught via e2e-wipe-recovery rather than any focused suite.
+// ============================================================================
+section('13. A pending autosave never outlives the restore that discarded its state, shutdown flushes it, and a commit never clobbers saved identity with empties [LOCK, closed PC-4]');
+{
+  if (!globalThis.window) globalThis.window = globalThis;
+  if (!globalThis.document) globalThis.document = { getElementById: () => null };
+  const { StorageManager } = await import('../js/storage.js');
+  const noopEmitter = { on() {}, off() {} };
+  const vc = { ...noopEmitter, paused: true };
+  const tagger = { ...noopEmitter, plays: [], toast() {} };
+  const canvas = { ...noopEmitter, annotations: [] };
+
+  // -- (i) restore cancels a pending autosave -------------------------------
+  {
+    const sm = new StorageManager(vc, tagger, canvas);
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return true; },
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+      async createBackup() { return 'bk1'; },
+      async getBackup() { return season('A', 'Restored'); },
+      async writeDisk() { return true; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    sm.seasonStore = store;
+    sm._clearForNewGame = () => {};
+    sm._loadActiveGame = () => {};
+
+    sm._autoSave();   // a debounced autosave is now armed for the pre-restore state
+    ok('lock', !!sm.autoSaveTimer, 'sanity: a debounced autosave is genuinely armed before the restore');
+
+    await sm.restoreBackup('bk1');
+    ok('lock', !sm.autoSaveTimer,
+      "a restore cancels the pending autosave that still described the state the coach just discarded -- without this the 1s timer could fire during the restore's own awaits and commitActive() would stamp the PRE-restore plays into the freshly-restored season (the _loadedGameId guard does not catch it: a restore of the same season keeps the same active game id, so its equality check passes)",
+      JSON.stringify({ pendingAutosave: !!sm.autoSaveTimer }));
+  }
+
+  // -- (ii) shutdown flushes a pending autosave (Inventory Sec 3.4) ---------
+  {
+    const sm = new StorageManager(vc, tagger, canvas);
+    const saves = [];
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason(id) { saves.push(id); return true; },
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    sm.seasonStore = store;
+    sm._loadedGameId = store.data.activeGameId;   // so commitActive's guard passes
+    sm._serialize = () => ({ ...store.data.games[0] });
+
+    ok('lock', sm.flushPendingSaves() === false,
+      'flushing with nothing armed is an honest no-op, not a spurious write',
+      JSON.stringify({ saves: saves.length }));
+
+    sm._autoSave();
+    const flushed = sm.flushPendingSaves();
+    await new Promise(r => setTimeout(r, 0));
+    ok('lock', flushed === true && saves.length === 1 && !sm.autoSaveTimer,
+      "a pending debounced save is flushed on shutdown instead of dying with the window -- before PC-4 nothing anywhere flushed on exit, so a coach closing within ~1s of their last edit lost that edit's canonical write entirely (Inventory Sec 3.4)",
+      JSON.stringify({ flushed, saves: saves.length, stillArmed: !!sm.autoSaveTimer }));
+  }
+
+  // -- (iii) a commit never mirrors an EMPTY roster/playbook over a populated
+  //          one. The season's copies exist so TeamRegistry.recoverFromWipe()
+  //          can rebuild a wiped install, so clobbering them with empties
+  //          destroys the very source recovery reads. The live objects read the
+  //          localStorage keys a wipe removes, so "live is empty" does not
+  //          reliably mean "the coach cleared it". PRE-EXISTING asymmetry --
+  //          teamProfile has had this guard all along, roster/playbook did
+  //          not -- surfaced by PC-4's shutdown flush running a commit at a
+  //          moment when those keys could already be gone.
+  {
+    const sm = new StorageManager(vc, tagger, canvas);
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; }, async saveSeason() { return true; },
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    store.data.roster = [{ num: '22', name: 'Carter' }];
+    store.data.playbook = { version: 1, calls: [{ id: 'c1', name: '26 Blast' }] };
+    sm.seasonStore = store;
+    sm._loadedGameId = store.data.activeGameId;
+    sm._serialize = () => ({ ...store.data.games[0] });
+
+    // The wipe state: the live objects report empty because their localStorage
+    // keys are gone, NOT because the coach cleared them.
+    const prevApp = globalThis.window.app;
+    globalThis.window.app = { roster: { toJSON: () => [] }, playbook: { snapshot: () => ({ version: 1, calls: [] }) } };
+    try { sm.commitActive(); } finally { globalThis.window.app = prevApp; }
+
+    ok('lock', store.data.roster.length === 1 && store.data.playbook.calls.length === 1,
+      "a commit never mirrors an EMPTY roster/playbook over a populated one -- reproduced before this fix as roster:[] and playbook:{calls:[]} written over a season holding both, which left TeamRegistry.recoverFromWipe() with nothing to restore on the next launch",
+      JSON.stringify({ roster: store.data.roster.length, calls: store.data.playbook.calls.length }));
+
+    // Positive control: a genuinely populated live roster/playbook DOES still
+    // mirror, so the guard above is not simply freezing these fields forever.
+    const prevApp2 = globalThis.window.app;
+    globalThis.window.app = { roster: { toJSON: () => [{ num: '7', name: 'Ellis' }, { num: '9', name: 'Ward' }] }, playbook: { snapshot: () => ({ version: 1, calls: [{ id: 'c1' }, { id: 'c2' }] }) } };
+    try { sm.commitActive(); } finally { globalThis.window.app = prevApp2; }
+    ok('lock', store.data.roster.length === 2 && store.data.playbook.calls.length === 2,
+      'positive control: a populated live roster/playbook still mirrors into the season, so the empty-clobber guard is not freezing these fields',
+      JSON.stringify({ roster: store.data.roster.length, calls: store.data.playbook.calls.length }));
+  }
+}
+flush();
+
 } catch (e) {
   crashed = true;
   console.log('');

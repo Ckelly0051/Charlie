@@ -26,12 +26,27 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 
 export class SeasonStore {
+  /** PC-4: ceiling for the monotonic commit counter. Far beyond any real
+   *  season's lifetime of saves, and low enough that `revision + 1` always
+   *  genuinely increments (unlike Number.MAX_SAFE_INTEGER, where it does not). */
+  static MAX_REVISION = Number.MAX_SAFE_INTEGER - 1024;
+
   constructor(backend) {
     this.SCHEMA = 5;
     this.data = null;
     this.currentSeasonId = null;
     this.backend = backend || detectBackend();
     this._diskTimer = null;
+    // PC-4 revision fencing (Convergence Plan Invariant #7, Inventory Sec 3.2).
+    // `_writeChain` serializes durable body writes PER SEASON so two overlapping
+    // saves to the SAME season can never complete out of order; `_revision`
+    // tracks the newest revision dispatched for each season, which is what a
+    // delayed frozen-payload write compares itself against to know it is stale.
+    // Both are in-memory only and deliberately so: they order writes within a
+    // session, while `data.revision` is the durable marker that survives a
+    // reload and seeds the next session's sequence.
+    this._writeChain = new Map();   // seasonId -> tail promise (FIFO ordering)
+    this._revision = new Map();     // seasonId -> newest dispatched revision
   }
 
   // ---- lifecycle -----------------------------------------------------------
@@ -42,6 +57,7 @@ export class SeasonStore {
     let parsed = null;
     try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
+    this._seedRevision(this.currentSeasonId, this.data);   // PC-4: continue the persisted sequence
     return this.data;
   }
 
@@ -53,6 +69,11 @@ export class SeasonStore {
       teamProfile: {}, roster: [], playbook: { version: 1, calls: [] },
       games: [g], activeGameId: g.id,
       plans: [],
+      // PC-4: monotonic commit counter. Additive and backward-compatible -- a
+      // season saved before this checkpoint simply has no `revision` key and
+      // `_normalize` defaults it to 0, so the very first save in the new world
+      // stamps 1 and the sequence proceeds from there.
+      revision: 0,
     };
   }
 
@@ -327,6 +348,17 @@ export class SeasonStore {
     d.year = d.year || '';
     d.level = d.level || '';
     d.plans = this._normalizePlans(d.plans);   // Phase 3: season-level game-plan workspace (backward-compat default [])
+    // PC-4: a legacy season (or a hand-edited/corrupted/imported one) normalizes
+    // to 0 rather than being trusted, so a garbage value can never mint a
+    // revision so high that every subsequent legitimate save looks stale against
+    // it. The upper bound matters as much as the lower one: at
+    // Number.MAX_SAFE_INTEGER, `revision + 1` stops actually incrementing, so
+    // every later comparison comes out equal and the fence goes silently inert
+    // -- a failure indistinguishable from working code. Reachable only via a
+    // hand-crafted import, but the whole point of a fence is that it cannot be
+    // switched off by data.
+    d.revision = (Number.isInteger(d.revision) && d.revision >= 0 && d.revision < SeasonStore.MAX_REVISION)
+      ? d.revision : 0;
     return d;
   }
 
@@ -481,6 +513,7 @@ export class SeasonStore {
     try { parsed = await this.backend.loadSeason(id); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
     this.data.id = id;
+    this._seedRevision(id, this.data);   // PC-4: continue the persisted sequence
     try { await this.backend.touchOpened(id); } catch (e) {}
     return this.data;
   }
@@ -493,6 +526,11 @@ export class SeasonStore {
     // retained the season (canonical delete failed) keeps it loaded; a legacy
     // backend returning undefined is treated as success (backward compatible).
     if (ok !== false && this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+    // PC-4: a durably-deleted season's write queue and revision sequence are
+    // dropped with it. If that id is ever recreated it starts a fresh sequence
+    // from its own (absent) stored revision, rather than inheriting a ghost
+    // high-water mark from the season that used to hold the id.
+    if (ok !== false) { this._writeChain.delete(id); this._revision.delete(id); }
     return ok !== false;
   }
 
@@ -673,12 +711,100 @@ export class SeasonStore {
   // (its own captured destination id + normalized payload) so this save and
   // its debounced disk-sync always target the season this call started
   // with, never whatever the ambient store has since switched to.
+  /**
+   * PC-4 (Invariant #7, Inventory Sec 3.2): stamp the next monotonic revision
+   * for `seasonId` onto `data` and record it as the newest DISPATCHED revision.
+   *
+   * The next revision is based on the HIGHER of the payload's own stored
+   * revision and the newest revision this session has already dispatched for
+   * that season -- never on the payload alone. That distinction is what keeps
+   * a restore safe: a restored backup carries its ORIGINAL (old) revision, so
+   * basing off the payload would mint a revision below the live season's and
+   * make the restore itself look stale to every later fence. Taking the max
+   * means a restore is correctly a NEW, newer commit of older content.
+   */
+  _nextRevision(seasonId, data) {
+    const stored = (data && Number.isInteger(data.revision) && data.revision >= 0) ? data.revision : 0;
+    const dispatched = this._revision.get(seasonId);
+    const next = Math.max(stored, Number.isInteger(dispatched) ? dispatched : 0) + 1;
+    if (data) data.revision = next;
+    this._revision.set(seasonId, next);
+    return next;
+  }
+
+  /**
+   * PC-4: seed the in-memory revision sequence from a season's durable state.
+   * Called by every path that loads a season's stored body, so the first write
+   * of a session continues the persisted sequence instead of restarting at 1
+   * (which would make a legitimate save indistinguishable from a stale one).
+   */
+  _seedRevision(seasonId, data) {
+    if (!seasonId) return;
+    const stored = (data && Number.isInteger(data.revision) && data.revision >= 0) ? data.revision : 0;
+    const known = this._revision.get(seasonId);
+    this._revision.set(seasonId, Math.max(stored, Number.isInteger(known) ? known : 0));
+  }
+
+  /**
+   * PC-4: run durable body writes for one season STRICTLY IN DISPATCH ORDER.
+   *
+   * Reproduced before this fix (Inventory Sec 3.2, both cases): two overlapping
+   * `saveSeason` calls for the SAME season completed out of order, so the
+   * chronologically-earlier payload landed last and silently reverted the newer
+   * one -- and a save dispatched before a restore landed after it, durably
+   * undoing the restore while memory showed it had worked. Cross-season fencing
+   * (PC-1) could not catch either: the season never changed.
+   *
+   * Chaining is per season id, so an unrelated season is never blocked, and the
+   * next write runs whether the previous one resolved or rejected -- a failed
+   * save must not strand the queue.
+   */
+  _enqueueWrite(seasonId, run) {
+    const tail = this._writeChain.get(seasonId);
+    let next;
+    if (tail) {
+      next = tail.then(run, run);   // contention: strictly after the in-flight write, pass or fail
+    } else {
+      // NO contention: start the backend write SYNCHRONOUSLY. persist() has
+      // always had the property that a fire-and-forget call has already begun
+      // its write by the time it returns, and callers depend on it -- notably
+      // the browser backend, whose localStorage write completes synchronously,
+      // so `store.persist(); await backend.loadSeason(id)` reads back the state
+      // just written. Deferring every write to a microtask silently broke that
+      // and was caught by the integrity fuzzer's persist-then-reload check
+      // (8 RELOAD violations across 5 seeds), not by any focused test.
+      try { next = Promise.resolve(run()); } catch (e) { next = Promise.reject(e); }
+    }
+    // Drop the tail as soon as it drains, so the next uncontended write again
+    // starts synchronously instead of chaining onto an already-resolved
+    // promise. This MUST happen in the same continuation that observes `next`
+    // settling, not a chained `.then` on top of it: a chained cleanup lands one
+    // microtask later, and an op dispatched inside that gap still saw a stale
+    // tail and got deferred (the integrity fuzzer went 8 -> 5 RELOAD violations
+    // rather than to 0 until this was tightened).
+    let settled;
+    const drain = () => { if (this._writeChain.get(seasonId) === settled) this._writeChain.delete(seasonId); };
+    settled = next.then(drain, drain);
+    this._writeChain.set(seasonId, settled);
+    return next;
+  }
+
+  /** PC-4: stamp a revision at DISPATCH time, then run the write in order. */
+  _dispatchWrite(seasonId, data, write) {
+    const revision = this._nextRevision(seasonId, data);
+    return this._enqueueWrite(seasonId, () => write(revision));
+  }
+
   persist(seasonId = this.currentSeasonId, data = this.data) {
     this._stripStAlignmentBeforeSave(data);
     // Return the durable result while preserving fire-and-forget callers.
     // Storage transactions must not announce success until the canonical
     // season bytes are actually accepted.
-    const saved = Promise.resolve(this.backend.saveSeason(seasonId, data))
+    return this._dispatchWrite(seasonId, data, revision => this._persistNow(seasonId, data, revision));
+  }
+
+  _persistNow(seasonId, data, revision) {
+    return Promise.resolve(this.backend.saveSeason(seasonId, data))
       .then(ok => {
         if (ok === false) { this._persistFailed(); return false; }
         this._persistWarned = false;
@@ -688,11 +814,10 @@ export class SeasonStore {
         // wrote the rejected payload to the Documents mirror 2.5s later,
         // independent of the canonical result -- reproduced directly before
         // this fix (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
-        this._scheduleDiskWrite(seasonId, data);
+        this._scheduleDiskWrite(seasonId, data, revision);
         return true;
       })
       .catch(() => { this._persistFailed(); return false; });
-    return saved;
   }
 
   _persistFailed() {
@@ -701,7 +826,7 @@ export class SeasonStore {
     if (typeof this.onPersistError === 'function') { try { this.onPersistError(); } catch (e) {} }
   }
 
-  _scheduleDiskWrite(seasonId = this.currentSeasonId, data = this.data) {
+  _scheduleDiskWrite(seasonId = this.currentSeasonId, data = this.data, revision = this._revision.get(seasonId)) {
     if (!this.backend.diskStatus().bound) return;
     clearTimeout(this._diskTimer);
     const snap = JSON.parse(JSON.stringify(data));   // freeze the payload
@@ -711,8 +836,19 @@ export class SeasonStore {
     // NEXT season's file. Transitions also cancel the timer
     // (cancelPendingDiskWrite); the pin covers any path that forgets.
     const sid = seasonId;
+    const rev = revision;
     this._diskTimer = setTimeout(() => {
       if (this.currentSeasonId !== sid) return;
+      // PC-4 (Invariant #7, "...or a newer commit"): the payload above was
+      // FROZEN at schedule time. A newer commit for this same season means the
+      // frozen copy is a superseded state, and writing it would move the
+      // Documents recovery snapshot BACKWARD -- the one sidecar PC-3 relies on
+      // to be no older than the canonical row. Unlike an autosave (which
+      // re-reads live state at fire time and is therefore never stale in
+      // content), this work carries its payload with it, so it is exactly the
+      // "delayed save" the invariant names. Fails closed: skip, never write.
+      const newest = this._revision.get(sid);
+      if (Number.isInteger(rev) && Number.isInteger(newest) && rev < newest) return;
       this.backend.writeDisk(sid, snap, { snapshot: false }).catch(() => {});
     }, 2500);
   }
@@ -780,7 +916,19 @@ export class SeasonStore {
   async saveNow(label) {
     this._stripStAlignmentBeforeSave();
     const seasonId = this.currentSeasonId;
-    await this.backend.saveSeason(seasonId, this.data);
+    // PC-4: an explicit "Save Season" used to call backend.saveSeason directly,
+    // bypassing persist() and therefore any ordering with an in-flight debounced
+    // autosave for the same season -- the FIRST scenario Inventory Sec 3.2 names
+    // ("a debounced autosave firing at the same moment as an explicit Save
+    // Season click"). Routing it through the same per-season queue makes the two
+    // strictly ordered by dispatch, so neither can revert the other.
+    // Capture the payload reference at DISPATCH time, exactly as persist()'s
+    // default parameter does. Reading `this.data` inside the queued callback
+    // instead would let a season switch landing between dispatch and run write
+    // the NEW season's data into the OLD season's slot -- the cross-season
+    // class PC-1 closed, which a naive queue would have quietly reopened.
+    const payload = this.data;
+    await this._dispatchWrite(seasonId, payload, () => this.backend.saveSeason(seasonId, payload));
     const data = JSON.parse(JSON.stringify(this.data));
     let wroteDisk = false;
     if (this.diskStatus().bound) {

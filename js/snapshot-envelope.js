@@ -59,19 +59,28 @@ export const SnapshotEnvelope = {
   /**
    * Wrap a season object for a Documents-mirror snapshot write.
    *
-   * `revision` is a RECENCY MARKER for the explicit recovery preview to
-   * compare against the live catalog's own `updated` timestamp -- it is
-   * deliberately NOT the strict per-write monotonic counter that PC-4's
-   * revision-fenced-autosave work introduces for rejecting stale writes;
-   * that is explicitly out of this checkpoint's scope. Defaults to the
-   * season's own `updated` field when present.
+   * `revision` is the recency marker the explicit recovery preview compares
+   * against the live season. PC-4 wired this to the REAL monotonic commit
+   * counter (`data.revision`, stamped by SeasonStore on every dispatched
+   * durable write), so a recovery candidate can now be compared to the live
+   * catalog by commit order rather than by wall-clock timestamp -- two
+   * snapshots written in the same second are still strictly ordered, and a
+   * machine whose clock moved cannot make an older snapshot look newer.
+   *
+   * The timestamp fallback is retained for a season written before PC-4 (no
+   * `revision` key) and for any caller wrapping a bare object, so this stays
+   * backward-compatible with every envelope already on disk.
    */
   wrap(seasonId, data, { revision } = {}) {
     const { gameCount, playCount } = SnapshotEnvelope._counts(data);
+    const committed = (data && Number.isInteger(data.revision) && data.revision >= 0) ? data.revision : null;
+    let stamp = revision;
+    if (stamp == null) stamp = committed;
+    if (stamp == null) stamp = (data && data.updated) || new Date().toISOString();
     return {
       envelopeVersion: SnapshotEnvelope.VERSION,
       seasonId,
-      revision: revision || (data && data.updated) || new Date().toISOString(),
+      revision: stamp,
       timestamp: new Date().toISOString(),
       gameCount,
       playCount,

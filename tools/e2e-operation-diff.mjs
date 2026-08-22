@@ -86,9 +86,16 @@ ok(audit.changed.length === 0, 'route navigation changes no season path', JSON.s
 before = await snapshot();
 await page.evaluate(() => window.app.openGame('diff-g2'));
 after = await snapshot();
-audit = auditSeasonOperation(before, after, ['activeGameId']);
-ok(audit.unexpected.length === 0 && audit.changed.includes('activeGameId'),
-  'game selection changes only the active-game pointer', JSON.stringify(audit));
+// PC-4: opening a game commits and persists the OUTGOING season, and a commit
+// legitimately advances the monotonic commit counter -- so `revision` is a
+// DECLARED path of this operation, not an exemption. It is deliberately NOT
+// added to the route-navigation case above, which must still change no season
+// path at all: navigation writes nothing, so it must not advance the counter
+// either, and that assertion is what proves the counter tracks real commits
+// rather than incidental activity.
+audit = auditSeasonOperation(before, after, ['activeGameId', 'revision']);
+ok(audit.unexpected.length === 0 && audit.changed.includes('activeGameId') && audit.changed.includes('revision'),
+  'game selection changes only the active-game pointer and the commit counter', JSON.stringify(audit));
 ok(JSON.stringify(before.games.find(game => game.id === 'diff-g1').plays)
     === JSON.stringify(after.games.find(game => game.id === 'diff-g1').plays),
   'game selection leaves every play in the prior game byte-identical');
