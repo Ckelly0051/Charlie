@@ -47,6 +47,14 @@ export class SeasonStore {
     // reload and seeds the next session's sequence.
     this._writeChain = new Map();   // seasonId -> tail promise (FIFO ordering)
     this._revision = new Map();     // seasonId -> newest dispatched revision
+    // PC-4 repair (Codex 50e2e50, finding 1): a season currently being
+    // deleted. Ordering a write BEHIND an in-flight delete (the prior
+    // repair) is not enough -- a write that lands in the queue AFTER delete
+    // starts still eventually EXECUTES and resurrects the season the moment
+    // it reaches the front. This is the fence that stops it from ever being
+    // ACCEPTED in the first place. See deleteSeason()/_enqueueWrite().
+    this._deletingSeasons = new Set();
+    this._lastWrite = new Map();    // seasonId -> most recent dispatched write's durable true/false (see pendingWrite())
   }
 
   // ---- lifecycle -----------------------------------------------------------
@@ -521,16 +529,36 @@ export class SeasonStore {
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
     if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
-    // PC-4 repair: delete was not ordered against this season's write queue at
-    // all, so a save already in flight for `id` could complete AFTER the
-    // delete and resurrect the season -- reproduced directly before this fix
-    // (delete durably removed the season, then the stale pending save landed
-    // and it was present again). cancelPendingDiskWrite() above only clears a
-    // future-scheduled disk-mirror timer; it cannot cancel a write that has
-    // already started. Routing the delete itself through _enqueueWrite makes
-    // it wait behind any write dispatched for this id before it, so delete is
-    // now genuinely the LAST write that can land for a deleted id.
-    const ok = await this._enqueueWrite(id, () => this.backend.deleteSeason(id));
+    // PC-4 repair (Codex 50e2e50, finding 1): ordering the delete behind any
+    // write already dispatched for `id` (below) is not enough on its own -- a
+    // write dispatched WHILE the delete is still in flight (the season
+    // remains "current" until this await resolves) would queue BEHIND the
+    // delete via the normal FIFO and still eventually EXECUTE, resurrecting
+    // the season the instant it reaches the front. Reproduced directly:
+    // delete durably completing, then a persist() dispatched during its own
+    // await landing afterward and recreating the season. The fence is set
+    // SYNCHRONOUSLY here, before the delete's own write is even dispatched --
+    // nothing else can run between this line and the next in JS -- so no
+    // later dispatch can ever slip in ahead of it. _rawEnqueue() (not the
+    // gated _enqueueWrite()) is used for the delete's own write so it does
+    // not refuse itself.
+    this._deletingSeasons.add(id);
+    let ok;
+    try {
+      ok = await this._rawEnqueue(id, () => this.backend.deleteSeason(id));
+    } finally {
+      // Season ids can be REUSED (StorageBackend.createSeason slugifies the
+      // name and only checks against the CURRENTLY-LISTED seasons, so a
+      // freshly deleted "Season A" frees up its exact id for a brand new
+      // "Season A"). The fence must not outlive this one delete attempt --
+      // on failure the season is still legitimately open and must stay
+      // writable; on success the id must become writable again the moment a
+      // new season claims it. By the time this resolves nothing could have
+      // queued a write behind THIS delete's own dispatch (the fence blocked
+      // every attempt for the entire window), so clearing it here is safe
+      // either way.
+      this._deletingSeasons.delete(id);
+    }
     // Only tear down the open editor when the delete was durable. A backend that
     // retained the season (canonical delete failed) keeps it loaded; a legacy
     // backend returning undefined is treated as success (backward compatible).
@@ -539,7 +567,7 @@ export class SeasonStore {
     // dropped with it. If that id is ever recreated it starts a fresh sequence
     // from its own (absent) stored revision, rather than inheriting a ghost
     // high-water mark from the season that used to hold the id.
-    if (ok !== false) { this._writeChain.delete(id); this._revision.delete(id); }
+    if (ok !== false) { this._writeChain.delete(id); this._revision.delete(id); this._lastWrite.delete(id); }
     return ok !== false;
   }
 
@@ -767,8 +795,22 @@ export class SeasonStore {
    * Chaining is per season id, so an unrelated season is never blocked, and the
    * next write runs whether the previous one resolved or rejected -- a failed
    * save must not strand the queue.
+   *
+   * PC-4 repair (Codex 50e2e50, finding 1): this is now the GATED public
+   * entry -- it refuses to even queue a write for a season whose deletion has
+   * already started (see deleteSeason()). Queuing a write BEHIND an in-flight
+   * delete only orders it; the write still eventually EXECUTES once it
+   * reaches the front, resurrecting the season. deleteSeason() itself bypasses
+   * this gate via _rawEnqueue(), since a delete must never refuse itself.
    */
   _enqueueWrite(seasonId, run) {
+    if (this._deletingSeasons.has(seasonId)) return Promise.resolve(false);
+    return this._rawEnqueue(seasonId, run);
+  }
+
+  /** The actual FIFO queueing mechanism, ungated. Only deleteSeason() may call
+   *  this directly; every other write path goes through _enqueueWrite() above. */
+  _rawEnqueue(seasonId, run) {
     const tail = this._writeChain.get(seasonId);
     let next;
     if (tail) {
@@ -784,6 +826,13 @@ export class SeasonStore {
       // (8 RELOAD violations across 5 seeds), not by any focused test.
       try { next = Promise.resolve(run()); } catch (e) { next = Promise.reject(e); }
     }
+    // PC-4 repair (Codex 50e2e50, finding 2): track this write's own durable
+    // result separately from the drain-wrapped `settled` chain below, so
+    // pendingWrite() can expose a caller-awaitable true/false -- not merely
+    // "has it settled", which `settled` alone cannot answer (drain() itself
+    // resolves to undefined). Never rejects: a rejected write reports false,
+    // matching every other false/null-on-failure method in this codebase.
+    this._lastWrite.set(seasonId, next.then(v => v !== false, () => false));
     // Drop the tail as soon as it drains, so the next uncontended write again
     // starts synchronously instead of chaining onto an already-resolved
     // promise. This MUST happen in the same continuation that observes `next`
@@ -796,6 +845,24 @@ export class SeasonStore {
     settled = next.then(drain, drain);
     this._writeChain.set(seasonId, settled);
     return next;
+  }
+
+  /**
+   * PC-4 repair (Codex 50e2e50, finding 2): the promise a caller can await to
+   * know the MOST RECENTLY DISPATCHED write for this season -- whether from
+   * persist(), saveNow(), snapshot(), bindDisk(), or the debounced disk-mirror
+   * timer -- has settled, resolving to its durable true/false result (never
+   * rejects). Returns null when nothing has ever been dispatched for this
+   * season, so a caller can distinguish "nothing to wait for" from "the last
+   * dispatched write already settled". This is what lets a shutdown flush
+   * genuinely await a write that started earlier -- from the debounce timer
+   * firing naturally, or from an EARLIER flush call, since the browser
+   * `beforeunload` listener and the desktop close-requested hook can both
+   * fire for one real close -- instead of seeing no ARMED timer and wrongly
+   * reporting nothing to flush while that write is still running.
+   */
+  pendingWrite(seasonId = this.currentSeasonId) {
+    return this._lastWrite.get(seasonId) || null;
   }
 
   /** PC-4: stamp a revision at DISPATCH time, then run the write in order. */

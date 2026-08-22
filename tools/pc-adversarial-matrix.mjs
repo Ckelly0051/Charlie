@@ -1569,9 +1569,15 @@ section('13. A pending autosave never outlives the restore that discarded its st
     sm._loadedGameId = store.data.activeGameId;   // so commitActive's guard passes
     sm._serialize = () => ({ ...store.data.games[0] });
 
-    ok('lock', sm.flushPendingSaves() === false,
+    // PC-4 repair (Codex 50e2e50, finding 3): flushPendingSaves() is now
+    // consistently async, and "idle" resolves TRUE (genuinely safe to
+    // proceed), not false -- false is reserved exclusively for an observed
+    // save FAILURE, which is what lets a close hook gate on the boolean
+    // without conflating "nothing to do" with "something failed".
+    const idleFlush = await sm.flushPendingSaves();
+    ok('lock', idleFlush === true && saves.length === 0,
       'flushing with nothing armed is an honest no-op, not a spurious write',
-      JSON.stringify({ saves: saves.length }));
+      JSON.stringify({ idleFlush, saves: saves.length }));
 
     sm._autoSave();
     // PC-4 repair (finding 3): flushPendingSaves() now returns the real
@@ -1873,6 +1879,195 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
         globalThis.window.__TAURI__ = prevTauri;
       }
     }
+  }
+}
+flush();
+
+// ============================================================================
+// 15. LOCK (closed PC-4 repair round 2) -- Codex's 50e2e50 re-review of
+//     95fc1df: three lifecycle races the section-14 repair's own new cases
+//     only covered the EASY direction of (work queued BEFORE delete; a close
+//     while the debounce timer is still armed). All three reproduced directly
+//     against the committed classes before being fixed, per standing
+//     discipline. Full detail: GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
+// ============================================================================
+section('15. A save dispatched after delete starts cannot resurrect the season, a close awaits an already-running write, and a failed final save keeps the window open [LOCK, closed PC-4 repair round 2]');
+{
+  // -- (i) a save dispatched WHILE delete is already in flight is refused,
+  //        not merely ordered after it -----------------------------------
+  {
+    const store2 = new Map();
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason(id, data) { store2.set(id, data); return true; },
+      async deleteSeason(id) { store2.delete(id); return true; },
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    store2.set('A', store.data);
+
+    // The season remains "current" until deleteSeason's own await resolves,
+    // so this persist() is genuinely dispatched WHILE delete is in flight --
+    // not before it started, the case the prior repair already ordered
+    // correctly.
+    const deletePromise = store.deleteSeason('A');
+    const persistPromise = store.persist('A', season('A', 'Season A (edited)'));
+    await Promise.allSettled([deletePromise, persistPromise]);
+
+    ok('lock', !store2.has('A'),
+      "a save dispatched while delete is already in flight does not resurrect the season -- reproduced before this fix as delete completing durably, then the later persist still landing and recreating it (Codex's exact reproduction: {case:\"save-after-delete-start\",exists:true})",
+      JSON.stringify({ case: 'save-after-delete-start', exists: store2.has('A') }));
+
+    ok('lock', (await persistPromise) === false,
+      'the refused save itself is visibly reported as a failure, not silently swallowed',
+      JSON.stringify({ persistResult: await persistPromise }));
+  }
+
+  // -- (ii) a shutdown close genuinely awaits a write already in flight,
+  //         whether it started from the debounce timer's own natural fire or
+  //         from an EARLIER flushPendingSaves() call (beforeunload and the
+  //         desktop close-requested hook can both fire for one real close) --
+  {
+    if (!globalThis.window) globalThis.window = globalThis;
+    if (!globalThis.document) globalThis.document = { getElementById: () => null };
+    const { StorageManager } = await import('../js/storage.js');
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const tagger = { ...noopEmitter, plays: [], toast() {} };
+    const canvas = { ...noopEmitter, annotations: [] };
+
+    // Positive control: the underlying write eventually SUCCEEDS.
+    {
+      const sm = new StorageManager(vc, tagger, canvas);
+      let release = null;
+      const backend = {
+        currentId: null, RETENTION: 25,
+        setCurrentSeason(id) { this.currentId = id; },
+        async loadSeason() { return null; },
+        async saveSeason() { return new Promise(res => { release = () => res(true); }); },
+        async touchOpened() {}, diskStatus() { return { bound: false }; },
+      };
+      const store = new SeasonStore(backend);
+      store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+      store.data = season('A', 'Season A');
+      sm.seasonStore = store;
+      sm._loadedGameId = store.data.activeGameId;
+      sm._serialize = () => ({ ...store.data.games[0] });
+
+      sm._autoSave();
+      // A FIRST close-flush trigger starts the write and clears the debounce
+      // timer (mirrors either the timer's own natural fire or an earlier
+      // flushPendingSaves() call).
+      const first = sm.flushPendingSaves();
+      const saveStillPendingAtSecondCall = typeof release === 'function';
+      // A SECOND caller runs while that write is STILL IN FLIGHT -- this is
+      // the exact interleaving Codex's reproduction names.
+      const second = sm.flushPendingSaves();
+      release();
+      const [r1, r2] = await Promise.all([Promise.resolve(first), Promise.resolve(second)]);
+
+      ok('lock', saveStillPendingAtSecondCall,
+        'sanity: the underlying write is genuinely still pending when the second caller runs',
+        JSON.stringify({ saveStillPendingAtSecondCall }));
+      ok('lock', r1 === true && r2 === true,
+        'both the first and a second, later flushPendingSaves() call correctly await and observe the SAME already-running write rather than the second reporting nothing to flush -- reproduced before this fix as the second call returning a bare synchronous false while the write was still pending (Codex\'s exact reproduction: {case:"already-in-flight-close",flushed:false,saveStillPending:true})',
+        JSON.stringify({ r1, r2 }));
+    }
+
+    // Negative control: the underlying write ultimately FAILS -- both callers
+    // must observe the failure, not a false positive.
+    {
+      const sm = new StorageManager(vc, tagger, canvas);
+      let release = null;
+      const backend = {
+        currentId: null, RETENTION: 25,
+        setCurrentSeason(id) { this.currentId = id; },
+        async loadSeason() { return null; },
+        async saveSeason() { return new Promise(res => { release = () => res(false); }); },
+        async touchOpened() {}, diskStatus() { return { bound: false }; },
+      };
+      const store = new SeasonStore(backend);
+      store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+      store.data = season('A', 'Season A');
+      sm.seasonStore = store;
+      sm._loadedGameId = store.data.activeGameId;
+      sm._serialize = () => ({ ...store.data.games[0] });
+
+      sm._autoSave();
+      const first = sm.flushPendingSaves();
+      const second = sm.flushPendingSaves();
+      release();
+      const [r1, r2] = await Promise.all([Promise.resolve(first), Promise.resolve(second)]);
+      ok('lock', r1 === false && r2 === false,
+        'a genuinely FAILED in-flight write is observed as a failure by both an early and a late caller, not masked as success',
+        JSON.stringify({ r1, r2 }));
+    }
+  }
+
+  // -- (iii) the desktop close hook keeps the window open and surfaces the
+  //          error on a genuinely FAILED final save, instead of destroying
+  //          the window regardless -----------------------------------------
+  {
+    if (!globalThis.window) globalThis.window = globalThis;
+    if (!globalThis.document) globalThis.document = { getElementById: () => null };
+    const { StorageManager } = await import('../js/storage.js');
+    const noopEmitter = { on() {}, off() {} };
+    const vc = { ...noopEmitter, paused: true };
+    const tagger = { ...noopEmitter, plays: [], toast() {} };
+    const canvas = { ...noopEmitter, annotations: [] };
+
+    const sm = new StorageManager(vc, tagger, canvas);
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return false; },   // the final canonical write REJECTS
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    sm.seasonStore = store;
+    sm._loadedGameId = store.data.activeGameId;
+    sm._serialize = () => ({ ...store.data.games[0] });
+    let errorSurfaced = false;
+    store.onPersistError = () => { errorSurfaced = true; };
+    // _persistNow()'s own _persistFailed() already calls onPersistError on a
+    // rejected persist() -- independent of the close hook. Pre-arming the
+    // "warned once already" guard suppresses THAT call, so the only way
+    // errorSurfaced can become true below is via _wireDesktopCloseFlush()'s
+    // OWN explicit call -- otherwise this assertion would pass even with
+    // that call deleted, since _persistNow's own signal would still fire.
+    store._persistWarned = true;
+
+    let destroyed = false;
+    const win = {
+      onCloseRequested(handler) { this._h = handler; return Promise.resolve(); },
+      async destroy() { destroyed = true; },
+    };
+    const prevTauri = globalThis.window.__TAURI__;
+    globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
+    try {
+      await sm._wireDesktopCloseFlush();
+      sm._autoSave();
+      win._h({ preventDefault() {} });
+      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
+    } finally {
+      globalThis.window.__TAURI__ = prevTauri;
+    }
+
+    ok('lock', !destroyed,
+      "the window is NOT destroyed after the final save reports failure -- reproduced before this fix as destroyed:true regardless of the flush result (Codex's exact reproduction: {case:\"failed-flush-close\",destroyed:true})",
+      JSON.stringify({ case: 'failed-flush-close', destroyed }));
+    ok('lock', errorSurfaced,
+      "the close hook's own explicit onPersistError call surfaces the failure to the coach even when _persistNow's own independent warn-once signal has already been used up this session",
+      JSON.stringify({ errorSurfaced }));
   }
 }
 flush();

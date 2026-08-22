@@ -131,7 +131,20 @@ export class StorageManager {
         // step below.
         try { if (typeof event.preventDefault === 'function') event.preventDefault(); } catch (e) {}
         (async () => {
-          try { await this.flushPendingSaves(); } catch (e) {}
+          let ok = true;
+          try { ok = await this.flushPendingSaves(); } catch (e) { ok = false; }
+          if (ok === false) {
+            // PC-4 repair (Codex 50e2e50, finding 3): a genuine, OBSERVED save
+            // failure must not be silently discarded by destroying the window
+            // anyway -- the coach would lose work with no signal at all.
+            // flushPendingSaves() now resolves false ONLY on an actual
+            // observed failure (never merely "nothing was pending"), so this
+            // check is safe to gate the close on. Surface it through the
+            // existing onPersistError seam and leave the window open so the
+            // coach can retry or export a backup instead of losing data.
+            try { this.seasonStore && this.seasonStore.onPersistError && this.seasonStore.onPersistError(); } catch (e) {}
+            return;
+          }
           try {
             if (typeof win.destroy === 'function') await win.destroy();
             else if (typeof win.close === 'function') await win.close();
@@ -142,30 +155,50 @@ export class StorageManager {
   }
 
   /**
-   * PC-4: run an armed debounced save NOW instead of waiting out its timer.
-   * Returns whether there was anything to flush -- `false` synchronously when
-   * nothing was armed, or a Promise<true> once the underlying canonical write
-   * has genuinely settled otherwise.
+   * PC-4: run an armed debounced save NOW instead of waiting out its timer, OR
+   * genuinely await a write already in flight from an EARLIER trigger.
    *
-   * PC-4 repair (finding 3): this now returns the real promise chain instead
-   * of `true` the instant the write STARTS. A synchronous `true` was
-   * sufficient on the browser build (localStorage completes synchronously,
-   * so the write is already done by the time this returns) but never on
-   * desktop, where the SQLite write is asynchronous -- a caller that could
-   * only fire-and-forget this (a browser `beforeunload` listener) had no way
-   * to actually wait for it. `_wireDesktopCloseFlush()` (see enableAutoSave)
-   * is the caller that now genuinely awaits this before letting a real close
-   * proceed. The 2.5s Documents-mirror debounce is deliberately NOT flushed:
+   * PC-4 repair (Codex 50e2e50, findings 2 and 3). Resolves to a durable
+   * signal a close handler can safely gate on:
+   *   - `true`  it is genuinely safe to proceed -- either there was nothing
+   *             to flush at all (idle), or a flush/await completed and the
+   *             underlying canonical save durably SUCCEEDED.
+   *   - `false` ONLY on a genuine, OBSERVED save failure. Never means "there
+   *             was nothing pending" -- that ambiguity was finding 3's root
+   *             cause (the close hook could not tell "nothing to do" apart
+   *             from "attempted and failed", so it destroyed the window
+   *             either way).
+   *
+   * Finding 2: the debounce timer being un-armed does NOT mean nothing is
+   * running -- the timer's own callback nulls it the instant it fires,
+   * BEFORE its write settles (see _autoSave()), and this method itself nulls
+   * it the moment it starts a flush. So a SECOND caller in the same close --
+   * the browser `beforeunload` listener and the desktop close-requested hook
+   * both fire for one real close, and either can run second -- would see no
+   * armed timer and, before this fix, wrongly conclude there was nothing to
+   * flush while the first caller's write was still running. It now falls
+   * back to SeasonStore.pendingWrite() to await that same in-flight write
+   * instead. The 2.5s Documents-mirror debounce is deliberately NOT flushed:
    * it is a recovery snapshot written only after a successful canonical
    * commit, and it is rewritten by the next save -- the canonical bytes are
    * what a shutdown must not lose.
    */
-  flushPendingSaves() {
-    if (!this.autoSaveTimer) return false;
-    clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = null;
-    if (!this.seasonStore || !this.seasonStore.data) return false;
-    return this._commitAndPersist().then(() => true);
+  async flushPendingSaves() {
+    const hadTimer = !!this.autoSaveTimer;
+    if (hadTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+      if (!this.seasonStore || !this.seasonStore.data) return true;   // nothing durable to lose
+      const ok = await this._commitAndPersist();
+      return ok !== false;
+    }
+    const seasonId = this.seasonStore ? this.seasonStore.currentSeasonId : null;
+    const pending = (seasonId && typeof this.seasonStore.pendingWrite === 'function')
+      ? this.seasonStore.pendingWrite(seasonId) : null;
+    if (!pending) return true;   // truly idle -- nothing to lose, safe to proceed
+    let ok = true;
+    try { ok = await pending; } catch (e) { ok = false; }
+    return ok !== false;
   }
 
   _autoSave() {
@@ -178,6 +211,14 @@ export class StorageManager {
     // B's file). Transitions also cancel this timer; the pin is belt-and-braces.
     const sid = this.seasonStore ? this.seasonStore.currentSeasonId : null;
     this.autoSaveTimer = setTimeout(() => {
+      // PC-4 repair (Codex 50e2e50, finding 2): the field is spent the
+      // instant the timer fires, not merely "at some point before the write
+      // settles" -- nulling it here (rather than leaving the now-stale id
+      // sitting in it) is what lets flushPendingSaves() correctly tell "not
+      // yet armed" apart from "already firing/fired", and fall back to
+      // SeasonStore.pendingWrite() to await the write this fire is about to
+      // start instead of redundantly re-triggering it.
+      this.autoSaveTimer = null;
       if (this.seasonStore && this.seasonStore.currentSeasonId !== sid) return;
       this._commitAndPersist();
     }, 1000);
@@ -200,9 +241,11 @@ export class StorageManager {
   }
 
   /** Write the live active-game state into the season and persist the season.
-   *  PC-4 repair (finding 3): returns the persist() promise chain (was
-   *  fire-and-forget) so flushPendingSaves() can genuinely await it. Every
-   *  existing caller already ignored the return value, so this is additive. */
+   *  PC-4 repair (finding 3): returns persist()'s own promise chain (was
+   *  fire-and-forget) -- resolving to the REAL durable true/false, not just
+   *  "it started" -- so flushPendingSaves() can both genuinely await it AND
+   *  tell a caller whether it actually succeeded. Every existing caller
+   *  already ignored the return value, so this is additive. */
   _commitAndPersist() {
     if (!this.seasonStore || !this.seasonStore.data) return Promise.resolve(false);
     this.commitActive();

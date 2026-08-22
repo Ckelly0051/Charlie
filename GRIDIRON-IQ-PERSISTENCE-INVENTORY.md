@@ -1660,3 +1660,109 @@ PC-4 remains open. Required closure is a deletion fence/tombstone, a real
 per-season/all-writes drain seam, and a fail-closed close handler that retains
 the window and surfaces a durable-save failure. Tests must exercise these exact
 reverse/negative interleavings; the current success-only cases are insufficient.
+
+## 7c. PC-4 repair round 2 — deletion fence, real drain seam, fail-closed close
+##     (Codex re-review `50e2e50`, 2026-08-22)
+
+All three findings from §7b were independently reproduced against the real
+`SeasonStore`/`StorageManager` classes before any fix was written, per standing
+discipline. Each reproduction matched Codex's cited result shape exactly.
+
+**1. [P0, closed] `deleteSeason(id)` now fences new dispatches for the
+lifetime of the delete, not merely orders them.** The §7a repair correctly
+ordered a delete BEHIND any write already dispatched before it — but a write
+dispatched WHILE the delete is still in flight (the season stays "current"
+until `deleteSeason`'s own `await` resolves) was still ACCEPTED into the queue
+and would eventually EXECUTE the moment it reached the front, resurrecting the
+season regardless of the ordering fix. Reproduced with `store.persist(...)`
+dispatched immediately after `store.deleteSeason(id)` (no gate needed — both
+resolve within the same microtask window): `{case:"save-after-delete-start",
+exists:true}`.
+
+Fixed with a `_deletingSeasons` Set, set SYNCHRONOUSLY as the first statement
+of `deleteSeason(id)` — before nothing else can run, so no later dispatch can
+ever slip in ahead of it — and checked by a new gated `_enqueueWrite(seasonId,
+run)`, which now refuses (`Promise.resolve(false)`) any write for a season
+currently being deleted. The actual FIFO queueing mechanism moved to a private
+`_rawEnqueue(seasonId, run)`; `deleteSeason` calls that directly (bypassing its
+own fence) so a delete never refuses itself. The fence is cleared in a
+`finally` block once the delete's own write settles, REGARDLESS of outcome —
+required because `StorageBackend.createSeason()` slugifies the season name and
+checks only against currently-listed seasons, so a freshly-deleted season's id
+becomes available again for reuse by a brand-new season with the same name; a
+fence that outlived the delete attempt would silently reject all future writes
+for that reused id.
+
+**2. [P0, closed] A shutdown close now genuinely awaits a write already in
+flight, from whichever trigger started it.** The §7a repair made
+`flushPendingSaves()` await the write IT starts, but had no way to represent
+"a write started by an EARLIER trigger — the debounce timer's own natural
+fire, or an earlier `flushPendingSaves()` call — is still running." The
+browser `beforeunload` listener and the desktop `onCloseRequested` hook are
+BOTH registered from `enableAutoSave()` and can both fire for one real close;
+whichever runs second saw no armed timer (the first caller had already
+cleared it) and reported nothing to flush while the first caller's write was
+still pending. Reproduced with two sequential `flushPendingSaves()` calls, the
+second while the first's gated write was still unresolved:
+`{case:"already-in-flight-close",flushed:false,saveStillPending:true}`.
+
+Fixed at two layers. First, `_autoSave()`'s debounce timer now nulls
+`this.autoSaveTimer` the instant it fires (not merely "at some point before
+its write settles") — the field previously stayed a stale, truthy value after
+firing, which had actually been masking a DIFFERENT redundant-write hazard
+(a later `flushPendingSaves()` call would have seen it still armed and
+re-triggered `_commitAndPersist()` a second time on top of the naturally-fired
+one). Second, `SeasonStore` gained `pendingWrite(seasonId)`, exposing the most
+recently dispatched write's own durable true/false result (tracked in a new
+`_lastWrite` map, separate from the drain-wrapped `_writeChain` entry, since
+that entry's own continuation resolves to `undefined`, not the write's actual
+outcome). `flushPendingSaves()` now falls back to awaiting `pendingWrite()`
+whenever no timer is armed, so a second (or later) caller observes the SAME
+in-flight write instead of reporting nothing pending.
+
+**3. [P0, closed] `_wireDesktopCloseFlush()` now keeps the window open on a
+genuinely failed final save.** `flushPendingSaves()` previously hardcoded
+`.then(() => true)`, discarding whatever the underlying write actually
+resolved to, so the close hook always proceeded to `destroy()` regardless of
+success or failure. Reproduced with `backend.saveSeason` rejecting:
+`{case:"failed-flush-close",destroyed:true}`.
+
+Fixed by making `flushPendingSaves()`'s resolved value unambiguous: `true`
+means genuinely safe to proceed (either nothing needed flushing at all, or a
+flush/await completed and the underlying save durably succeeded); `false`
+means ONLY an observed save failure, never "nothing was pending" — that
+conflation was the exact ambiguity the close hook needed resolved, since
+`await false` and `await Promise.resolve(false)` are indistinguishable to a
+caller. `_wireDesktopCloseFlush()`'s handler now checks the resolved value
+and, on `false`, surfaces the failure through the existing
+`SeasonStore.onPersistError` seam and returns without destroying the window,
+leaving it open for the coach to retry or export a backup.
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — new section 15,
+seven assertions covering all three findings plus positive/negative controls
+(a genuinely successful in-flight write is also correctly observed by a
+second caller, not just a failed one): **99/99 locks green** (was 92; +7),
+0/2 targets (the two pre-existing, disclosed, out-of-scope legacy version
+methods, unchanged). `node tools/e2e-revision-fence.mjs` — 33/33, unchanged.
+Every fix independently mutation-verified: reverting each in isolation
+reproduces its exact original symptom (`exists:true`/`persistResult:true` for
+finding 1; a second caller resolving `true` while the underlying write was a
+genuine failure — `{"r1":false,"r2":true}` — for finding 2; `destroyed:true`
+for finding 3), confirmed restored and reconfirmed green. One test-construction
+gap was found and fixed during this repair, not merely reported: the initial
+`errorSurfaced` assertion for finding 3 passed even with the close hook's own
+`onPersistError` call removed, because `SeasonStore._persistNow()`'s own
+independent `_persistFailed()` path already fires it for an ordinary rejected
+`persist()` — the test was non-discriminating for the specific scenario it
+built. Fixed by pre-arming `store._persistWarned = true` (`_persistFailed()`'s
+own "warn once per session" dedup guard) before triggering the close, which
+isolates the close hook's own explicit call as the only remaining path that
+can set `errorSurfaced`; re-mutated afterward to confirm it now reds correctly.
+
+Full canonical gate (`bash tools/run-gate.sh`): **91 harnesses | 91 green | 0
+skipped | 0 failed** — same count as the prior repair round, zero harnesses
+added or dropped, including `e2e-realdata.mjs` (the real six-game coach
+season) clean.
+
+No film path, film file, season/game/play data, schema version, migration, or
+unrelated file touched. No installer, package, tag, or release.

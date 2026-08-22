@@ -13,6 +13,128 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PRODUCT SEQUENCE LOCK - PC-5, THEN FINAL ENGINE INDEPENDENCE (2026-08-22)
+
+**Coach and Codex are aligned.** Finish and accept PC-5 first. Then stop
+structural feature development and remove the hidden legacy control
+architecture in one contained implementation pass.
+
+S7 removed the second visible shell, `#app`, and `#wsClassicOutlet`, but
+production still depends on hidden controls under `#giLegacyEngineHost`.
+Treating that as harmless residue was incorrect: every structural addition must
+still account for the old control surface, increasing synchronization risk and
+future rewrite cost.
+
+Binding sequence:
+
+1. Close PC-5 and establish its accepted commit as the rollback point.
+2. One implementation range replaces hidden DOM control dependencies with
+   explicit state/services/commands and deletes `#giLegacyEngineHost`.
+3. The same pass removes obsolete synchronization/restore code, dead legacy
+   CSS, `build.sh`, and `football-film-analyzer.html`.
+4. One independent review, one full canonical gate, then one installed
+   real-film coach smoke.
+5. Only after acceptance may Plan V2-B (Team, Film and Scouting Control Center)
+   or mobile workflow implementation begin.
+
+No schema or customer-data migration is authorized in that pass. Acceptance
+requires zero production reads/writes of retired control ids and one state
+model behind desktop and future mobile presentations. Full contract:
+`GRIDIRON-IQ-PLAN-V2.md` §3A. Historical correction:
+`GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` revision log.
+
+### ▶ PC-4 REPAIR round 2 of the `50e2e50` re-review's three findings — AWAITING RE-REVIEW (2026-08-22)
+
+**Builder: Claude. Repairs all three findings from Codex's `50e2e50` CHANGES
+REQUESTED re-review of `95fc1df` (recorded immediately below).** Every finding
+verified against source and reproduced against the real `SeasonStore`/
+`StorageManager` with a purpose-built probe before any fix was written, per
+standing discipline — none taken on report. Every reproduction matched
+Codex's cited result shape exactly.
+
+**1. [P0, closed] `deleteSeason(id)` now fences new dispatches for the whole
+lifetime of the delete, not merely orders them.** The prior repair correctly
+ordered a delete BEHIND any write already dispatched before it — but a write
+dispatched WHILE the delete is still in flight (the season stays "current"
+until `deleteSeason`'s own `await` resolves) was still ACCEPTED into the
+queue and would eventually EXECUTE the moment it reached the front,
+resurrecting the season regardless of the ordering fix. Reproduced:
+`{case:"save-after-delete-start",exists:true}`. Fixed with a
+`_deletingSeasons` Set, set SYNCHRONOUSLY as the very first statement of
+`deleteSeason(id)` — before nothing else can run, so no later dispatch can
+ever slip in ahead of it — checked by a new gated `_enqueueWrite`, which now
+refuses any write for a season currently being deleted. The actual FIFO
+mechanism moved to a private `_rawEnqueue`; `deleteSeason` calls that
+directly so it never refuses itself. The fence clears once the delete's own
+write settles, regardless of outcome — required because season ids CAN be
+reused (`StorageBackend.createSeason()` checks only currently-listed
+seasons), so a fence that outlived the attempt would silently reject all
+future writes for a reused id.
+
+**2. [P0, closed] A shutdown close now genuinely awaits a write already in
+flight, from whichever trigger started it.** The prior repair made
+`flushPendingSaves()` await the write IT starts, but had no way to represent
+"a write started by an EARLIER trigger is still running." The browser
+`beforeunload` listener and the desktop `onCloseRequested` hook can both fire
+for one real close; whichever runs second saw no armed timer and reported
+nothing to flush while the first caller's write was still pending.
+Reproduced: `{case:"already-in-flight-close",flushed:false,
+saveStillPending:true}`. Fixed at two layers: `_autoSave()`'s debounce timer
+now nulls `this.autoSaveTimer` the instant it fires, instead of leaving a
+stale truthy value sitting in it (which had also been masking a redundant-
+write hazard — a later flush call would have re-triggered a second, needless
+commit on top of the naturally-fired one); and `SeasonStore` gained
+`pendingWrite(seasonId)`, exposing the most recently dispatched write's own
+durable true/false result via a new `_lastWrite` map (kept separate from the
+drain-wrapped `_writeChain` entry, whose own continuation resolves to
+`undefined`, not the write's actual outcome). `flushPendingSaves()` now falls
+back to awaiting `pendingWrite()` whenever no timer is armed.
+
+**3. [P0, closed] The close hook now keeps the window open on a genuinely
+failed final save.** `flushPendingSaves()` previously hardcoded
+`.then(() => true)`, discarding the underlying write's real result, so the
+close hook always proceeded regardless of success or failure. Reproduced:
+`{case:"failed-flush-close",destroyed:true}`. Fixed by making
+`flushPendingSaves()`'s resolved value unambiguous: `true` means genuinely
+safe to proceed (idle, or a flush completed and durably succeeded); `false`
+means ONLY an observed failure, never "nothing was pending" — that
+conflation was the root cause, since `await false` looks the same to a
+caller either way. `_wireDesktopCloseFlush()` now checks the resolved value
+and, on `false`, surfaces the failure through the existing
+`SeasonStore.onPersistError` seam and leaves the window open instead of
+destroying it.
+
+**A test-construction gap found and fixed during this repair, not merely
+reported.** The initial regression for finding 3's error-surfacing half
+passed even with the close hook's own `onPersistError` call removed, because
+`SeasonStore._persistNow()`'s own independent `_persistFailed()` path already
+fires it for an ordinary rejected `persist()` — the test wasn't discriminating
+for the scenario it built. Fixed by pre-arming `store._persistWarned = true`
+(`_persistFailed()`'s own "warn once per session" dedup guard) before
+triggering the close, isolating the close hook's own explicit call as the
+only remaining path that can set the flag; re-mutated afterward to confirm it
+now reds correctly.
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — new section 15,
+seven assertions covering all three findings plus positive/negative controls:
+**99/99 locks green** (was 92; +7), 0/2 targets (the two pre-existing,
+disclosed, out-of-scope legacy version methods, unchanged). `node tools/
+e2e-revision-fence.mjs` — 33/33, unchanged. Every fix independently
+mutation-verified: reverting each in isolation reproduces its exact original
+symptom (`exists:true`/`persistResult:true` for finding 1; a second caller
+resolving `true` on a genuine failure — `{"r1":false,"r2":true}` — for
+finding 2; `destroyed:true` plus `errorSurfaced:false` for finding 3),
+confirmed restored and reconfirmed green. Full canonical gate (`bash
+tools/run-gate.sh`): **91 harnesses | 91 green | 0 skipped | 0 failed** —
+same count as the prior repair round, zero harnesses added or dropped,
+including `e2e-realdata.mjs` (the real six-game coach season) clean.
+
+No film path, film file, season/game/play data, schema version, migration,
+or unrelated file touched. No installer, package, tag, or release.
+
+**Next action:** Codex independently re-reviews this repair. PC-5 does not
+open until this review completes.
+
 ### ▶ CODEX RE-REVIEW OF PC-4 REPAIR `95fc1df` — CHANGES REQUESTED (2026-08-22)
 
 **Verdict: three lifecycle races remain. PC-4 stays blocked; PC-5 must not
