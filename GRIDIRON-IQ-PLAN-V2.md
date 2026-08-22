@@ -1,6 +1,7 @@
 # GridIron IQ Plan V2
 
-> **Status:** PARKED FUTURE ROADMAP
+> **Status:** PARKED FUTURE ROADMAP - BLOCKED ON PC-5 AND FINAL ENGINE
+> INDEPENDENCE
 >
 > Do not begin this work until the current beta repair plan is complete and the
 > coach explicitly activates Plan V2. This document records product direction;
@@ -48,6 +49,60 @@ storage health understandable to the coach.
 7. Playback, loading, and large-game performance must feel dependable enough
    for daily use.
 
+## 3A. Activation Gate: Final Engine Independence
+
+**Coach/Codex decision, 2026-08-22:** finish and accept PC-5 first. Then freeze
+structural feature development and remove the hidden legacy control
+architecture in one contained milestone before V2-B or any mobile workflow
+opens.
+
+S7 removed the second visible shell, `#app`, and `#wsClassicOutlet`, but it
+did not finish engine independence. Some production modules still use hidden
+DOM controls under `#giLegacyEngineHost` as their state/API surface. Native
+screens therefore still pay a synchronization and testing tax against a
+desktop-era control model. Continuing to add structural features before
+removing that dependency makes the eventual rewrite larger.
+
+This is **one implementation pass**, not another sequence of small public
+milestones:
+
+- One accepted PC-5 commit is the rollback point.
+- One implementation range replaces hidden-control dependencies with explicit
+  JavaScript state, services, and commands.
+- One independent review covers the complete range.
+- One full canonical gate runs after implementation, not after every cosmetic
+  edit.
+- One installed candidate receives the coach smoke.
+- Failure of film, data, charting, analytics, routing, or recovery reverts the
+  whole pass to the accepted PC-5 baseline.
+
+The pass must:
+
+- Inventory every production read/write of `#giLegacyEngineHost` descendants.
+- Give each surviving engine an explicit DOM-free state and command API.
+- Point native desktop surfaces directly at those APIs.
+- Delete hidden controls as their last production consumers disappear.
+- Delete `#giLegacyEngineHost`, synchronization adapters, and obsolete restore
+  code.
+- Remove the retired `build.sh` / `football-film-analyzer.html` path and CSS
+  that has no surviving native owner.
+- Preserve all trustworthy season, game, play, roster, film-link, report,
+  export, backup, and recovery behavior without a schema or data migration.
+
+Acceptance is binary:
+
+- Zero `#giLegacyEngineHost`.
+- Zero production access to retired control ids.
+- Zero native-to-hidden-control synchronization.
+- One application state model and one coach-facing application.
+- Full gate green, independent review accepted, and installed real-film smoke
+  passed.
+
+This makes later mobile work easier: desktop and mobile become separate
+presentations over the same state and commands. It does not itself design the
+mobile UI, but it prevents mobile from becoming a third interface synchronized
+against obsolete desktop controls.
+
 ## 4. Upgrade Lanes
 
 ### V2-A: One Navigation And Context Owner
@@ -65,9 +120,33 @@ Required outcomes:
 - Back/forward, restore, and direct-open paths share the same tested contract.
 - Classic compatibility code can be removed only after parity is proven.
 
-### V2-B: Team And Film Control Center
+### V2-B: Team, Film And Scouting Control Center
 
-Create one pre-game Team & Film Settings destination that owns:
+Create one pre-game Home and settings experience with two explicit football
+workspaces:
+
+- **Our Program** - team seasons, our games, self-scout, roster, film, and
+  season reporting.
+- **Opponent Scout** - opponents, their games against other teams, opponent
+  film, opponent charting, and scout reporting.
+
+The selector is a second front door to the existing charting, storage, Study,
+Reports, and Plan systems, not a duplicate analytics backend. Games created
+inside Opponent Scout default to the existing `perspective: 'scout'` contract.
+They must remain visually and analytically separate from our schedule, record,
+Home totals, season exports, and self-scout rollups.
+
+The approved first-pass interaction and layout direction is recorded in:
+
+- `design-comps/home-workspace-2026-08/home.html` (interactive)
+- `design-comps/home-workspace-2026-08/home-program-1440x900.png`
+- `design-comps/home-workspace-2026-08/home-scout-1440x900.png`
+
+Binding terminology: use **opponent** or **opponents** in coach-facing copy.
+Do not call opponents "targets."
+
+Within those workspaces, create one Team & Film Settings destination that
+owns:
 
 - Team identity and roster.
 - Film library root and storage mode.
@@ -79,6 +158,17 @@ Create one pre-game Team & Film Settings destination that owns:
 - Safe cleanup of obsolete managed copies.
 
 The coach must not need to open a game to manage team or film storage.
+
+Opponent Scout creation should ask for the opponent, season/year, and the
+source game being charted (the teams involved, date, and film folder). The app
+sets Opponent Scout perspective automatically; the coach should not have to
+create a fake game on our schedule and then repair its context.
+
+The persistent left navigation must look and behave like selectable
+navigation, not background labels. Every available destination needs a clear
+button-like hit area plus hover, keyboard-focus, and selected states. Disabled
+destinations must remain visible only when useful and must look deliberately
+unavailable rather than merely dim or ambiguous.
 
 ### V2-C: Intentional First-Run Storage Setup
 
@@ -242,4 +332,3 @@ Plan V2 is complete when a coach can:
    conclusion traceable to the correct film.
 7. Trust that saves, failures, migrations, and cleanup actions are visible and
    recoverable.
-

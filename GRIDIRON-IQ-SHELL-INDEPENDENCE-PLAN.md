@@ -30,6 +30,28 @@ non-events.
 
 ## ⚠ REVISION LOG — read this before acting on anything below
 
+**Final Engine Independence required after PC-5 · 2026-08-22 · Coach/Codex ·
+CORRECTS THE S7 COMPLETION BOUNDARY**
+
+S7 correctly removed the second visible application shell, `#app`, and
+`#wsClassicOutlet`. It did **not** complete engine independence: active
+production modules still use hidden DOM controls under `#giLegacyEngineHost`
+as behavior adapters. That means one visible app still synchronizes with a
+legacy desktop-era control surface.
+
+After PC-5 is accepted, structural feature work freezes for one contained
+Final Engine Independence pass. That pass replaces all hidden-control
+dependencies with explicit state/services/commands, deletes
+`#giLegacyEngineHost`, and absorbs the previously deferred S7-e CSS cleanup
+and S7-f build-artifact retirement. It receives one complete-range independent
+review, one final gate, and one installed coach smoke. It is not split into
+subsystem release milestones.
+
+Historical S7 results below remain valid evidence of visible-shell removal.
+Any statement that S7 achieved a completely legacy-free internal architecture
+is superseded by this amendment. The binding execution and acceptance contract
+is Plan V2 §3A.
+
 **S7 execution plan accepted · 2026-08-09 · Claude built, Codex reviewed (3 rounds), coach approved · ADDS §13**
 
 S6 is accepted (coach smoked `1.12.0-43`) and **S7 is open**. Its execution plan

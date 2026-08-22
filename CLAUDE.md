@@ -13,6 +13,43 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX RE-REVIEW OF PC-4 REPAIR `3dab9f4` - CHANGES REQUESTED (2026-08-22)
+
+**Verdict: the three reported races are closed, but the required all-writes
+shutdown drain is still a snapshot rather than a drain. PC-4 remains open and
+PC-5 must not begin.**
+
+Focused verification is green: `pc-adversarial-matrix.mjs` reports 99/99 locks
+and `e2e-revision-fence.mjs` reports 33/33. Source review confirms the deletion
+fence rejects saves dispatched throughout an in-flight delete, both close
+callers observe the same already-running write, and a failed observed flush
+keeps the desktop window open.
+
+**[P0] A write dispatched while shutdown is awaiting another write can still
+be abandoned.** `SeasonStore.pendingWrite()` returns the promise stored in
+`_lastWrite` at the instant it is called (`js/season-store.js:835,864-865`).
+`StorageManager.flushPendingSaves()` awaits that one captured promise and then
+returns success (`js/storage.js:195-201`); the close hook immediately destroys
+the window (`js/storage.js:133-150`). If write A is in flight when close starts
+and write B is dispatched behind A before A settles, `_lastWrite` correctly
+moves to B, but the close path is still awaiting A. A's success therefore
+closes the window while B remains queued/running. This violates the explicit
+all-writes drain required by the prior review.
+
+Required closure: expose or implement a stable per-season drain that rechecks
+the queue/high-water mark after each await and returns only when the observed
+tail is still the current tail. The shutdown path must also account for an
+autosave armed while it is draining, or establish a synchronous closing fence
+that prevents such work from being accepted. Add a failing-first reverse test:
+start A, begin `flushPendingSaves()`, dispatch B while A is unresolved, release
+A, and prove the flush does not resolve or close until B settles; repeat with B
+failing and prove the window remains open.
+
+No full gate was duplicated in this review: Claude already ran 91/91 on the
+committed bytes, and the independent focused suites above passed. Once this
+single lifecycle edge is closed, rerun the focused matrix/revision harnesses;
+PC-4 can then receive final acceptance without another broad redesign.
+
 ### ▶ PRODUCT SEQUENCE LOCK - PC-5, THEN FINAL ENGINE INDEPENDENCE (2026-08-22)
 
 **Coach and Codex are aligned.** Finish and accept PC-5 first. Then stop

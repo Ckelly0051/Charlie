@@ -1766,3 +1766,26 @@ season) clean.
 
 No film path, film file, season/game/play data, schema version, migration, or
 unrelated file touched. No installer, package, tag, or release.
+
+## 7d. Codex re-review of PC-4 repair round 2 `3dab9f4` - CHANGES REQUESTED
+##     (2026-08-22)
+
+The three exact findings in §7b are closed and the focused verification is
+green (adversarial locks 99/99; revision fence 33/33). One P0 remains in the
+same shutdown contract.
+
+**The new `pendingWrite()` seam is a snapshot of the most recently dispatched
+write, not a stable all-writes drain.** `_lastWrite` is replaced on every
+dispatch, while `flushPendingSaves()` captures its current promise once, awaits
+it, and returns. If close captures write A and write B is dispatched behind A
+before A settles, the flush still resolves when A succeeds and the close hook
+destroys the window while B remains queued or in flight. The section-15 test
+only proves two callers await the same existing write; it does not test a newer
+write arriving while a caller is already awaiting the older tail.
+
+Required proof: begin A, start the shutdown flush, dispatch B while A is still
+unresolved, then release A. The flush must remain unresolved until B settles.
+Repeat with B failing and prove the close remains prevented. Production must
+either recheck the per-season tail/high-water mark until stable (including any
+newly armed autosave) or establish a synchronous closing fence that prevents
+new work from entering after shutdown begins. PC-4 and PC-5 remain blocked.
