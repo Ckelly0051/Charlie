@@ -13,6 +13,49 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REVIEW — PC-4 `33b8af1`: CHANGES REQUESTED (2026-08-22)
+
+The per-season queue and monotonic revision work for the paths that use them,
+and the focused suites independently reran green (`e2e-revision-fence` 33/33;
+PC matrix 85/85 locks). PC-5 remains blocked because the lifecycle audit missed
+three production paths that bypass or cannot complete that ordering contract:
+
+1. **[P0] Recovery snapshots bypass the write queue and can overwrite a newer
+   canonical edit.** `SeasonStore.snapshot()` calls `backend.writeDisk()`
+   directly (`js/season-store.js:865-872`); desktop `writeDisk()` calls
+   `saveSeason()` directly (`js/storage-backend.js:1384-1390`). Automatic
+   snapshots are fire-and-forget (`js/storage.js:192-195`). A direct probe
+   held a one-play snapshot, durably saved a later two-play edit through
+   `persist()`, then released the snapshot: durable state finished at **one
+   play**. Queue every canonical body write, including snapshot/writeDisk, or
+   split mirror/snapshot output from canonical save so it cannot rewrite the
+   catalog. Add the exact stale-snapshot-after-newer-persist regression.
+2. **[P0] Delete is not ordered against an in-flight save, so a deleted season
+   can resurrect.** `deleteSeason()` calls the backend immediately, then merely
+   drops `_writeChain` (`js/season-store.js:522-533`). Clearing the map cannot
+   cancel a write already running. A direct probe started a held save, completed
+   delete, then released the save; the season existed again. The committed
+   section 9 waits for `persist()` before deleting, so it cannot detect this.
+   Serialize delete behind pending writes (or tombstone/fence the id) and prove
+   save→delete ends absent even when completion order is forced adversarially.
+3. **[P1] Desktop shutdown durability remains explicitly unimplemented while
+   PC-4 claims §3.4 closed.** `beforeunload` calls `flushPendingSaves()` without
+   awaiting it (`js/storage.js:98,120-126`), and the method itself documents
+   that WebView close can outrun async SQLite (`js/storage.js:106-113`). The
+   matrix proves only that the write starts. The installed desktop app is the
+   product, so wire an awaitable Tauri close-request handler before calling
+   shutdown closed; headless tests can pin the awaitable seam and PC-5's
+   installed smoke can prove the native hook.
+4. **[P1] `saveNow()` ignores its first canonical result and continues with
+   disk/backup work, using ambient `this.data` after the await.** At
+   `js/season-store.js:931-937`, a failed first save still proceeds. A direct
+   probe returned success and created disk/backup side effects after that
+   canonical failure. Capture one immutable season/payload identity, stop on
+   `false`, and keep every subsequent canonical write in the same queue. Add a
+   failed-save test proving zero backup/mirror writes and an honest result.
+
+No production code changed in this review. PC-4 is not accepted; do not open
+PC-5 or build an installer until these paths are repaired and re-reviewed.
 ### ▶ PC-4 — REVISION-FENCED AUTOSAVE + LIFECYCLE AUDIT BUILT, AWAITING CODEX REVIEW (2026-08-22)
 
 **Builder: Claude. Scope: `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`'s PC-4

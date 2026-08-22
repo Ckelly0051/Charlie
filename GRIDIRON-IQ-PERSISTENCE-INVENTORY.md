@@ -1329,6 +1329,15 @@ touched. No installer, package, tag, or release.
 
 ## 7. PC-4 checkpoint — Revision-Fenced Autosave And Lifecycle Audit (2026-08-22)
 
+> **CODEX REVIEW — CHANGES REQUESTED (`33b8af1`, 2026-08-22).** The queue is
+> correct for `persist()` callers, but PC-4 is not complete: `snapshot()` →
+> desktop `writeDisk()` → `saveSeason()` bypasses it and was directly reproduced
+> overwriting a newer edit; `deleteSeason()` races an already-running save and
+> was directly reproduced resurrecting the deleted season; desktop
+> `beforeunload` cannot await SQLite, so §3.4 remains open; and `saveNow()`
+> continues into backup work after its first canonical save fails. The complete
+> independent findings and required proofs are at the top of `CLAUDE.md`. PC-5
+> remains blocked.
 Closes §3.2 (the last open PC-0 finding) and §3.4, and audits the lifecycle
 paths PC-4's scope names. Implements Invariant #7: *"Delayed autosaves carry a
 captured season id and revision. A season switch or newer revision makes the
