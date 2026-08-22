@@ -588,6 +588,18 @@ export class TauriBackend extends StorageBackend {
       if (!raw) continue;
       const result = SnapshotEnvelope.unwrap(raw);
       const existsInCatalog = liveIds.has(String(id));
+      // PC-2 repair (Codex review 89e34c6, finding 2): unwrap() only proves the
+      // envelope is internally self-consistent (its own seasonId, data.id, and
+      // checksum all agree with EACH OTHER) -- it has no idea what folder it was
+      // read from. A season-A snapshot copied or renamed into season-B's mirror
+      // directory still unwraps `ok:true`, and a valid checksum proves the
+      // CONTENT wasn't tampered with, not that this folder is allowed to become
+      // that content. Bind identity to the folder explicitly: refuse rather than
+      // report it as an importable candidate for the id it was merely found under.
+      if (result.ok && String(result.envelope.seasonId) !== String(id)) {
+        out.push({ id, valid: false, reason: 'folder-identity-mismatch', name: id, team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog });
+        continue;
+      }
       if (result.ok) {
         const envelope = result.envelope;
         out.push({
@@ -635,13 +647,39 @@ export class TauriBackend extends StorageBackend {
     } catch (e) { raw = null; }
     if (!raw) return { ok: false, reason: 'not-found' };
     const result = SnapshotEnvelope.unwrap(raw);
+    // PC-2 repair (Codex review 89e34c6, finding 2): re-validate at the point
+    // of action too, not just in the scan preview -- the same folder-copy/
+    // rename vector applies here. A valid checksum proves the content is
+    // exactly what it claims to be; it says nothing about whether THIS folder
+    // is allowed to become that content. Refuse rather than import a season-A
+    // snapshot under season-B's identity merely because it was found in B's
+    // mirror directory.
+    if (result.ok && String(result.envelope.seasonId) !== String(id)) {
+      return { ok: false, reason: 'folder-identity-mismatch' };
+    }
     const data = result.ok ? result.envelope.data : (result.reason === 'legacy-unenveloped' ? result.data : null);
     if (!data || !Array.isArray(data.games)) return { ok: false, reason: result.reason || 'malformed' };
-    data.id = id;
+    // Only the disclosed legacy-unenveloped exception is stamped to its
+    // folder -- a snapshot that passed the check above already has
+    // data.id === id (unwrap() enforces envelope.seasonId === data.id, and
+    // the check above enforces envelope.seasonId === id), so a validated
+    // envelope's identity is never overridden here.
+    if (!result.ok) data.id = id;
     const cp = await this._ensureCatalog();
     if (!cp) return { ok: false, reason: 'catalog-unavailable' };
-    let exists = false;
-    try { exists = (await cp.listSeasons()).some(s => String(s.id) === String(id)); } catch (e) {}
+    // PC-2 repair (Codex review 89e34c6, finding 3): a FAILED conflict check
+    // must never default to "no conflict". The old code left `exists` at its
+    // initial `false` on a listSeasons() failure, silently bypassing the
+    // required overwrite confirmation and proceeding to save as though the
+    // destination were empty. Fail closed instead: if we cannot confirm
+    // whether the season already exists, refuse rather than guess safe.
+    let exists;
+    try {
+      exists = (await cp.listSeasons()).some(s => String(s.id) === String(id));
+    } catch (e) {
+      console.error('Blocked recovery: could not confirm whether the season already exists.', e);
+      return { ok: false, reason: 'exists-check-failed' };
+    }
     if (exists && !confirmOverwrite) return { ok: false, reason: 'exists', existsInCatalog: true };
     let okDb = false;
     try { okDb = await cp.saveSeason(id, data); } catch (e) { okDb = false; }
@@ -811,7 +849,22 @@ export class TauriBackend extends StorageBackend {
   _catalogFs() {
     const dbPath = 'seasons/library.db';
     return {
-      readDb: async () => { try { if (await this._exists(dbPath)) return await this.fs.readFile(dbPath, { baseDir: this.baseDir }); } catch (e) {} return null; },
+      // PC-2 repair (Codex review 89e34c6, finding 1): this used to route
+      // through the general-purpose `_exists()` helper, which swallows ANY
+      // error from the existence check and reports `false` -- collapsing "the
+      // db is genuinely there but I can't tell because of a permission/IO
+      // error" into "there is no db", i.e. exactly the fresh-install branch.
+      // A locked or permission-denied EXISTING db would therefore never even
+      // reach `catalog.open(bytes)` to throw -- it looked like a clean slate
+      // before _ensureLoaded() ever got a chance to distinguish it. Now: an
+      // existence-check failure propagates (never assume fresh install), a
+      // confirmed-absent file returns null (genuinely nothing on disk), and a
+      // confirmed-present file's read failure also propagates.
+      readDb: async () => {
+        const exists = await this.fs.exists(dbPath, { baseDir: this.baseDir });
+        if (!exists) return null;
+        return await this.fs.readFile(dbPath, { baseDir: this.baseDir });
+      },
       writeDb: async (bytes) => { try { await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true }); } catch (e) {} await this.fs.writeFile(dbPath, bytes, { baseDir: this.baseDir }); },
       readJson: async (id) => this._readJson(this._seasonFile(id)),
       writeMirror: async (id, data) => { await this._mirrorToDocuments(id, data); },

@@ -51,7 +51,13 @@ await page.evaluate(() => {
     const candidate = window.__scanResult.find(c => c.id === id);
     if (!candidate) return { ok: false, reason: 'not-found' };
     if (candidate.existsInCatalog && !opts?.confirmOverwrite) return { ok: false, reason: 'exists', existsInCatalog: true };
-    if (!candidate.valid && candidate.reason !== 'legacy-unenveloped') return { ok: false, reason: candidate.reason };
+    // PC-2 repair (Codex review 89e34c6, finding 4): the real backend no
+    // longer special-cases legacy-unenveloped as importable -- it stays
+    // valid:false, and the UI keeps its Recover control disabled, so this
+    // branch should never be reached for that candidate at all (proven in
+    // section 4b below, which asserts the button is disabled rather than
+    // relying on this mock to refuse it).
+    if (!candidate.valid) return { ok: false, reason: candidate.reason };
     // Simulate a genuine recovery: create a real season via the SAME path a
     // successful desktop recovery would exercise, so "the season appears in
     // Team Hub afterward" is proven against real state, not a stub flag.
@@ -72,27 +78,43 @@ ok(/No Documents-mirror recovery snapshots/.test(r.text), 'an empty scan shows a
 await page.click('[data-overlay-action="ok"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-panel'));
 
-// ---- 4. Real candidates: valid, existsInCatalog, and invalid, all in one scan ----
+// ---- 4. Real candidates: valid, existsInCatalog, invalid, and legacy-unenveloped, all in one scan ----
 await page.evaluate(() => {
   window.__scanResult = [
     { id: 'rec-valid', valid: true, name: 'Recovered Season', team: 'Recovery Test', gameCount: 3, playCount: 42, revision: '2026-01-01T00:00:00Z', timestamp: '2026-01-01T00:00:00Z', existsInCatalog: false },
     { id: 'rec-conflict', valid: true, name: 'Conflicting Season', team: 'Recovery Test', gameCount: 1, playCount: 5, revision: '2026-01-02T00:00:00Z', timestamp: '2026-01-02T00:00:00Z', existsInCatalog: true },
     { id: 'rec-broken', valid: false, reason: 'checksum-mismatch', name: 'Corrupt Snapshot', team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog: false },
+    { id: 'rec-legacy', valid: false, reason: 'legacy-unenveloped', name: 'Old Format Season', team: 'Recovery Test', gameCount: 2, playCount: 18, revision: null, timestamp: null, existsInCatalog: false },
   ];
 });
 await page.click('[data-native-hub-recover]');
 await page.waitForSelector('[data-overlay-id="team-hub-recover-seasons"]');
 r = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.gi-hub-recover-row')];
+  const legacyRow = rows.find(row => row.textContent.includes('Old Format Season'));
+  const legacyButton = legacyRow?.querySelector('button');
   return {
     count: rows.length,
     names: rows.map(row => row.querySelector('strong')?.textContent),
     brokenDisabled: rows.find(row => row.textContent.includes('Corrupt Snapshot'))?.querySelector('button')?.disabled,
+    legacyLabel: legacyRow?.querySelector('.gi-hub-recover-state')?.textContent,
+    legacyDisabled: legacyButton?.disabled,
+    legacyHint: legacyButton?.title,
   };
 });
-ok(r.count === 3 && r.names.join('|') === 'Recovered Season|Conflicting Season|Corrupt Snapshot',
+ok(r.count === 4 && r.names.join('|') === 'Recovered Season|Conflicting Season|Corrupt Snapshot|Old Format Season',
   'every scanned candidate renders as its own row, in scan order', JSON.stringify(r));
 ok(r.brokenDisabled === true, 'an invalid (checksum-mismatch) candidate\'s Recover control is disabled -- it cannot be imported', JSON.stringify(r));
+// ---- 4b. PC-2 repair (Codex review 89e34c6, finding 4): a legacy-unenveloped
+// candidate (no checksum, no validated identity) stays VISIBLE -- the coach
+// can see the file exists -- but its Recover control is disabled, not a
+// one-click importable action, until a permissioned migration path can give
+// it a real integrity check.
+ok(r.legacyLabel === 'Legacy backup (unverified)', 'a legacy-unenveloped candidate is honestly labeled, not silently hidden', JSON.stringify(r));
+ok(r.legacyDisabled === true, 'a legacy-unenveloped candidate\'s Recover control is disabled -- it cannot be one-click imported', JSON.stringify(r));
+ok(!!r.legacyHint, 'the disabled legacy control explains why, rather than sitting silently unclickable', JSON.stringify(r));
+r = await page.evaluate(() => window.__recoverCalls.length);
+ok(r === 0, 'clicking near a disabled legacy row never invokes recoverSeasonFromMirror at all', String(r));
 
 // ---- 5. The valid, non-conflicting candidate recovers on one click ----
 const clickRecoverFor = async (name) => page.evaluate((n) => {

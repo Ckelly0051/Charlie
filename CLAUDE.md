@@ -13,6 +13,123 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-2+PC-3 REPAIR of `89e34c6`'s four findings — AWAITING RE-REVIEW (2026-08-21)
+
+**Builder: Claude. Repairs all four findings from Codex's `89e34c6` CHANGES
+REQUESTED review of the combined PC-2+PC-3 checkpoint (`3b70fab`, recorded
+immediately below).** Every finding verified against source before touching
+anything, per standing discipline — none taken on report.
+
+**1. [P0, closed] Locked/unreadable catalog no longer looks like a fresh
+install.** Confirmed exactly as described:
+`TauriBackend._catalogFs().readDb()` routed its existence check through the
+shared `_exists()` helper (`js/storage-backend.js:480`), which swallows ANY
+error — permission denial, a locked file, a transient disk fault — into
+`false`, collapsing "the db is genuinely there but I can't tell" into "there
+is no db." `CatalogPersistence._ensureLoaded()` independently wrapped
+`this.fs.readDb()` in its own `try/catch`, converting even a propagated
+failure back into `bytes = null`. Together, an existing-but-unreadable db
+never reached `catalog.open(bytes)` to throw — it took the clean-open branch
+silently, exactly reopening Sec 3.0 one layer earlier than where it was
+closed. Fixed at both layers: `readDb()` now calls `this.fs.exists()`
+directly (bypassing the swallowing helper) and returns `null` ONLY for a
+confirmed-absent file, letting any other failure — including the existence
+check itself failing — propagate; `_ensureLoaded()` no longer wraps that
+call in its own `try/catch`, so a real failure now reaches every one of its
+existing (already-unguarded) callers exactly as they already expect.
+**Mutation-verified:** reverting `_ensureLoaded()`'s try/catch reproduces the
+exact original defect and reds only the new "db read failure on a
+genuinely-existing db surfaces a VISIBLE failure" assertion
+(`tools/e2e-catalog-persistence.mjs` section 4b); restored, green.
+
+**2. [P1, closed] Recovery identity is now bound to the folder it was found
+in, at both the preview and point-of-action layers independently.**
+Confirmed: `SnapshotEnvelope.unwrap()` only proves an envelope is internally
+self-consistent (its own `seasonId`/`data.id`/checksum agree with EACH
+OTHER) — it has no idea what mirror folder it was read from. A season-A
+snapshot copied/renamed into season-B's mirror directory still unwrapped
+`ok:true`, and `recoverSeasonFromMirror()` went as far as `data.id = id;` —
+overwriting the snapshot's own already-validated identity to match whatever
+folder it happened to be found under. Fixed with an explicit
+`String(envelope.seasonId) !== String(id)` binding check, refused with a
+distinct `'folder-identity-mismatch'` reason, in BOTH
+`scanRecoverableSeasons()` (the preview) and `recoverSeasonFromMirror()` (the
+import) independently — genuine defense in depth, not one check duplicated.
+The `data.id = id` reassignment now only ever applies to the disclosed
+legacy-unenveloped fallback; a validated envelope's identity is never
+overridden. **Mutation-verified at both layers independently:** disabling the
+scan-side check alone reproduces `valid:true` for the mismatched folder while
+the point-of-action check still refuses it (proving the two layers are
+genuinely independent, not decorative); disabling the point-of-action check
+alone reproduces a successful import of season A's content under season B's
+identity, reding exactly the two assertions built to catch it
+(`tools/e2e-catalog-backend.mjs` section 6); both restored, green.
+
+**3. [P1, closed] A failed conflict check no longer defaults to "no
+conflict."** Confirmed: `recoverSeasonFromMirror()`'s existence check
+(`cp.listSeasons().some(...)`) left `exists` at its initial `false` on a
+swallowed `try/catch` — a transient catalog read failure was silently
+treated as "genuinely absent," bypassing the required `confirmOverwrite`
+gate and proceeding straight to save. Fixed to fail closed: an
+existence-check failure now returns `{ok:false,
+reason:'exists-check-failed'}` before any write is attempted, never guessing
+safe. **Mutation-verified:** reverting to the swallow-to-false default
+reproduces the exact defect — a `listSeasons()` throw resulting in a
+successful save with the fake catalog's `saveSeason` genuinely invoked —
+reding exactly the one assertion built to catch it
+(`tools/e2e-catalog-backend.mjs` section 7); restored, green.
+
+**4. [P1, closed] Unverified legacy snapshots are disabled, not hidden.**
+Confirmed: `RecoverCandidate`'s `disabled` computation
+(`js/native-team-hub.jsx`) was `!candidate.valid && candidate.reason !==
+'legacy-unenveloped'` — a bare pre-PC-3 `season.json` with no checksum, no
+validated identity, no count check at all stayed one-click importable, with
+only its label disclosing "unverified." Fixed to `!candidate.valid`
+unconditionally, so every genuinely-invalid candidate is disabled, legacy
+included — still VISIBLE (the coach can see the file exists rather than it
+silently disappearing), with an explanatory `title` hint on the disabled
+control. Genuine legacy migration remains future, permissioned work (a
+separate checkpoint), not a casual one-click import path. **Mutation-
+verified:** reverting the `disabled` computation reproduces the exact
+original defect (`legacyDisabled:false`, `legacyHint:""`) and reds exactly
+the two assertions built to catch it
+(`tools/e2e-native-mirror-recovery.mjs` section 4b); restored, green.
+
+**Files changed:** `js/storage-backend.js` (`readDb()`,
+`scanRecoverableSeasons()`, `recoverSeasonFromMirror()`);
+`js/catalog-persistence.js` (`_ensureLoaded()` + its doc comments);
+`js/native-team-hub.jsx` (`RecoverCandidate`'s disabled logic + a disabled
+hint); `js/legacy-global-bridge.js` (`SnapshotEnvelope` exposed for the new
+tests, matching how `TauriBackend`/`CatalogPersistence` are already
+exposed). New regressions in `tools/e2e-catalog-persistence.mjs` (section
+4b), `tools/e2e-catalog-backend.mjs` (sections 6-7), and
+`tools/e2e-native-mirror-recovery.mjs` (section 4b, plus its existing mock
+backend tightened to match the fixed contract).
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — 79/79 locks
+green, 0/2 targets green (unchanged, pre-existing, disclosed out-of-scope
+items). `node tools/e2e-catalog-persistence.mjs` — 62/62 (was 60; +2).
+`node tools/e2e-catalog-backend.mjs` — 24/24 (was 19; +5).
+`node tools/e2e-native-mirror-recovery.mjs` — 15/15 (was 11; +4).
+`node tools/e2e-snapshot-envelope.mjs` — 21/21, unchanged.
+`node tools/e2e-catalog-fuzzer.mjs` — 640 ops clean, unchanged. Every one
+of the four fixes independently mutation-verified in isolation, each
+reproducing its exact original symptom and reding exactly the assertion(s)
+built to catch it, confirmed restored and reconfirmed green afterward. Full
+canonical gate (`bash tools/run-gate.sh`): 90 harnesses | 90 green | 0
+skipped | 0 failed — same count as the accepted checkpoint, zero harnesses
+added or removed by this repair, including `e2e-realdata.mjs` (the real
+coach season) clean.
+
+Full detail, before/after excerpts, and the exact mutation evidence are in
+`GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §6a.
+
+No film path, film file, season/game/play data, schema, or unrelated file
+touched. No installer, package, tag, or release.
+
+**Next action:** Codex independently re-reviews this repair. PC-4 does not
+open until this review completes.
+
 ### CODEX REVIEW - PC-2+PC-3 3b70fab: CHANGES REQUESTED (2026-08-21)
 
 **Verdict:** the architecture is moving in the right direction, and the focused

@@ -131,7 +131,19 @@ function RecoverCandidate({ candidate, onRecover }) {
   const label = candidate.valid ? 'Recoverable'
     : candidate.reason === 'legacy-unenveloped' ? 'Legacy backup (unverified)'
     : `Not recoverable (${candidate.reason || 'unreadable'})`;
-  const disabled = !candidate.valid && candidate.reason !== 'legacy-unenveloped';
+  // PC-2 repair (Codex review 89e34c6, finding 4): a legacy-unenveloped
+  // snapshot has NO checksum, NO validated identity, and NO count check at
+  // all -- unwrap() reports it as `valid:false` for exactly that reason. It
+  // previously stayed one-click actionable anyway (only the label read
+  // "unverified"), and the backend imported its raw contents unconditionally.
+  // Every genuinely-invalid candidate is disabled now, legacy included: still
+  // VISIBLE so the coach knows the file exists rather than it silently
+  // disappearing, but not importable until a permissioned migration path can
+  // give it a real integrity check.
+  const disabled = !candidate.valid;
+  const disabledHint = disabled && candidate.reason === 'legacy-unenveloped'
+    ? 'This backup predates checksum verification and cannot be recovered automatically yet.'
+    : undefined;
   const run = async (confirmOverwrite) => {
     setState('busy'); setError('');
     const result = await onRecover(candidate, confirmOverwrite);
@@ -153,7 +165,7 @@ function RecoverCandidate({ candidate, onRecover }) {
         </div>
       : <div class="gi-hub-recover-actions">
           {state === 'recovered' ? <span class="gi-hub-recover-done">Recovered</span>
-            : <button disabled={disabled || state === 'busy'} onClick={click}>{state === 'busy' ? 'Recovering…' : candidate.existsInCatalog ? 'Recover (overwrite)' : 'Recover'}</button>}
+            : <button disabled={disabled || state === 'busy'} title={disabledHint} onClick={click}>{state === 'busy' ? 'Recovering…' : candidate.existsInCatalog ? 'Recover (overwrite)' : 'Recover'}</button>}
           {error && <p class="gi-hub-error" role="alert">{error}</p>}
         </div>}
   </article>;

@@ -19,7 +19,16 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
      4. PC-1 repair (Codex review c51a12c/4ae34e8, finding 2): a rejected
         canonical save must not advance library.json metadata either --
         saveSeason() used to call _touchMeta() unconditionally regardless of
-        the canonical result. */
+        the canonical result.
+     6. PC-2 repair (Codex review 89e34c6, finding 2): scanRecoverableSeasons()/
+        recoverSeasonFromMirror() must bind recovery identity to the snapshot's
+        OWN declared seasonId, never coerce it to match whatever mirror folder
+        it happened to be found under -- proven directly against the real
+        implementations with a genuinely valid envelope whose declared identity
+        disagrees with its folder.
+     7. PC-2 repair (Codex review 89e34c6, finding 3): recoverSeasonFromMirror()
+        must fail CLOSED when it cannot confirm whether the destination season
+        already exists, never default to "no conflict" and proceed to save. */
 import puppeteer from 'puppeteer';
 
 let pass = 0, fail = 0;
@@ -233,6 +242,80 @@ const result = await page.evaluate(async () => {
     out.failClosedNoSidecarWrites = fsCalls.filter(([op]) => op === 'writeTextFile' || op === 'writeFile').length;
     out.failClosedCalls = fsCalls.map(c => c[0]);
   }
+  // 6. PC-2 repair (Codex review 89e34c6, finding 2): recovery identity must be
+  //    bound to the snapshot's OWN declared seasonId, never coerced to match
+  //    whatever mirror folder it happened to be found under. Exercised
+  //    directly against the real scanRecoverableSeasons()/
+  //    recoverSeasonFromMirror() implementations, not a UI stub.
+  {
+    const mirrorRoot = 'GridIron IQ/seasons';
+    const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', plays: [{}] }] };
+    const envelopeForA = SnapshotEnvelope.wrap('s-A', seasonAData); // internally valid: seasonId==='s-A', data.id==='s-A'
+    const seasonCData = { id: 's-C', seasonName: 'Season C', games: [{ id: 'g1', plays: [{}, {}] }] };
+    const envelopeForC = SnapshotEnvelope.wrap('s-C', seasonCData); // genuinely matches its own folder
+
+    const files = new Map([
+      // A season-A snapshot copied/renamed into season-B's mirror folder --
+      // the file's OWN envelope still declares itself 's-A', never 's-B'.
+      [`${mirrorRoot}/s-B/season.json`, JSON.stringify(envelopeForA)],
+      // Positive control: a snapshot that genuinely matches its own folder.
+      [`${mirrorRoot}/s-C/season.json`, JSON.stringify(envelopeForC)],
+    ]);
+    const be = new TauriBackend();
+    be.fs = {
+      exists: async (p) => p === mirrorRoot || files.has(p),
+      readDir: async () => [{ name: 's-B', isDirectory: true }, { name: 's-C', isDirectory: true }],
+      readTextFile: async (p) => (p === be.LIB ? '[]' : (files.get(p) || '{}')),
+      writeTextFile: async () => {},
+      remove: async () => {}, mkdir: async () => {}, writeFile: async () => {}, readFile: async () => new Uint8Array(),
+    };
+    be.baseDir = 14; be.mirrorDir = 1; be.currentId = null;
+    const saveCalls = [];
+    be._catalog = {
+      saveSeason: async (id, data) => { saveCalls.push({ id, dataId: data.id }); return true; },
+      deleteSeason: async () => true,
+      listSeasons: async () => [],
+    };
+
+    const scan = await be.scanRecoverableSeasons();
+    const mismatchRow = scan.find(c => c.id === 's-B');
+    const matchRow = scan.find(c => c.id === 's-C');
+    out.folderMismatchScanValid = mismatchRow && mismatchRow.valid;
+    out.folderMismatchScanReason = mismatchRow && mismatchRow.reason;
+    out.folderMatchScanValid = matchRow && matchRow.valid;
+
+    out.folderMismatchRecover = await be.recoverSeasonFromMirror('s-B', {});
+    out.folderMismatchSaveCallsAfterMismatch = saveCalls.length;   // must still be 0
+
+    out.folderMatchRecover = await be.recoverSeasonFromMirror('s-C', {});
+    out.folderMatchSaveCalls = saveCalls;                          // must record exactly the matching id
+  }
+  // 7. PC-2 repair (Codex review 89e34c6, finding 3): recoverSeasonFromMirror()
+  //    must fail CLOSED when it cannot confirm whether the destination season
+  //    already exists -- never default to "no conflict" and silently proceed
+  //    to save, bypassing the required overwrite confirmation.
+  {
+    const mirrorRoot = 'GridIron IQ/seasons';
+    const seasonDData = { id: 's-D', seasonName: 'Season D', games: [{ id: 'g1', plays: [{}] }] };
+    const envelopeForD = SnapshotEnvelope.wrap('s-D', seasonDData);
+    const files = new Map([[`${mirrorRoot}/s-D/season.json`, JSON.stringify(envelopeForD)]]);
+    const be = new TauriBackend();
+    be.fs = {
+      exists: async (p) => files.has(p),
+      readTextFile: async (p) => (p === be.LIB ? '[]' : (files.get(p) || '{}')),
+      writeTextFile: async () => {},
+      remove: async () => {}, mkdir: async () => {}, writeFile: async () => {}, readFile: async () => new Uint8Array(),
+    };
+    be.baseDir = 14; be.mirrorDir = 1; be.currentId = null;
+    let saveCalled = false;
+    be._catalog = {
+      saveSeason: async () => { saveCalled = true; return true; },
+      deleteSeason: async () => true,
+      listSeasons: async () => { throw new Error('catalog listSeasons transiently failed'); },
+    };
+    out.existsCheckFailedResult = await be.recoverSeasonFromMirror('s-D', {});
+    out.existsCheckFailedSaveCalled = saveCalled;
+  }
   return out;
 });
 
@@ -256,6 +339,11 @@ ok(result.failClosedDeleteRet === false, 'PC-2: deleteSeason() refuses (false) w
 ok(result.failClosedTouchRet === false, 'PC-2: touchOpened() refuses (false) when the catalog genuinely cannot be opened', JSON.stringify(result.failClosedTouchRet));
 ok(result.failClosedBackupRet === null, 'PC-2: createBackup() refuses (null) when the catalog genuinely cannot be opened (no legacy JSON restore-point file is created as a fallback)', JSON.stringify(result.failClosedBackupRet));
 ok(result.failClosedNoSidecarWrites === 0, 'PC-2: none of the six fail-closed operations above ever wrote a season.json/library.json/backup-file sidecar as a substitute authority', JSON.stringify(result.failClosedCalls));
+ok(result.folderMismatchScanValid === false && result.folderMismatchScanReason === 'folder-identity-mismatch', 'PC-2: scanRecoverableSeasons() refuses a snapshot whose OWN declared identity disagrees with the mirror folder it was found under, rather than reporting it as an importable candidate for that folder', JSON.stringify(result));
+ok(result.folderMatchScanValid === true, 'PC-2: the positive control -- a snapshot that genuinely matches its own folder -- still scans as a valid candidate', JSON.stringify(result));
+ok(result.folderMismatchRecover.ok === false && result.folderMismatchRecover.reason === 'folder-identity-mismatch' && result.folderMismatchSaveCallsAfterMismatch === 0, 'PC-2: recoverSeasonFromMirror() refuses the same folder-identity mismatch at the point of action -- zero catalog writes, identity is never coerced to match the requested folder', JSON.stringify(result));
+ok(result.folderMatchRecover.ok === true && result.folderMatchSaveCalls.length === 1 && result.folderMatchSaveCalls[0].id === 's-C' && result.folderMatchSaveCalls[0].dataId === 's-C', 'PC-2: a genuinely folder-matching snapshot still recovers normally, proving the identity check above is not disabling recovery entirely', JSON.stringify(result));
+ok(result.existsCheckFailedResult.ok === false && result.existsCheckFailedResult.reason === 'exists-check-failed' && result.existsCheckFailedSaveCalled === false, 'PC-2: a failed conflict check (listSeasons() throws) fails CLOSED -- recovery refuses and performs zero writes, rather than defaulting to "no conflict" and saving on the one-click path', JSON.stringify(result));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

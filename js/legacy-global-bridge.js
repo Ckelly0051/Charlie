@@ -14,6 +14,7 @@ import { PlayGrid } from './play-grid.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { PlayTagger } from './play-tagger.js';
 import { SeasonStore } from './season-store.js';
+import { SnapshotEnvelope } from './snapshot-envelope.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { SqlCatalog } from './sql-catalog.js';
 import { StatsEngine } from './stats-engine.js';
@@ -49,6 +50,7 @@ Object.assign(globalThis, {
   PlaylistManager,
   PlayTagger,
   SeasonStore,
+  SnapshotEnvelope,
   SpecialTeamsModel,
   SqlCatalog,
   StatsEngine,

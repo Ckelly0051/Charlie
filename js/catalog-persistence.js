@@ -33,10 +33,13 @@
  *   await cp.saveSeason(id, seasonObject);
  *   const { data, source } = (await cp.loadSeason(id)) || {};
  *
- * Injected `fs` adapter (all async, all best-effort-safe for the caller):
- *   readDb()            -> Uint8Array | null   (the shared library db bytes)
- *   writeDb(bytes)      -> void                (canonical write)
- *   readJson(id)        -> object | null       (legacy one-time migration read only)
+ * Injected `fs` adapter (all async):
+ *   readDb()            -> Uint8Array | null   (shared library db bytes; null ONLY for a
+ *                                                confirmed-absent file -- any other failure,
+ *                                                including "exists but unreadable", MUST throw
+ *                                                and propagate; never swallowed into null)
+ *   writeDb(bytes)      -> void                (canonical write; a failure propagates)
+ *   readJson(id)        -> object | null       (legacy one-time migration read only; best-effort)
  *   writeMirror(id,data)-> void  (optional)    (Documents recovery snapshot; may throw — swallowed)
  */
 export class CatalogPersistence {
@@ -65,11 +68,20 @@ export class CatalogPersistence {
    * cannot initialize, the desktop app fails closed; it must not silently
    * fall back"). A season whose db cannot be read must surface as a VISIBLE
    * failure so recovery can be offered, never as "there are no seasons."
+   *
+   * PC-2 repair (Codex review 89e34c6, finding 1): the first pass at this
+   * still wrapped `this.fs.readDb()` in its own try/catch here, swallowing a
+   * genuine read failure (a locked file, a permission error, a transient
+   * disk fault on a db that DOES exist) into `bytes = null` -- the same
+   * value a legitimate fresh install produces -- so the code below still
+   * took the clean-open branch and reported "no seasons" with no exception.
+   * `readDb()` itself now only returns null for a CONFIRMED-absent file; any
+   * other failure it raises must propagate here uncaught, exactly like a
+   * corrupt-bytes `catalog.open()` failure already does.
    */
   async _ensureLoaded() {
     if (this._loaded && this.catalog.db) return;
-    let bytes = null;
-    try { bytes = await this.fs.readDb(); } catch (e) { bytes = null; }
+    const bytes = await this.fs.readDb();   // null = confirmed fresh install; anything else it throws propagates
     if (bytes && bytes.length) {
       await this.catalog.open(bytes);   // real bytes that fail to open MUST throw
     } else {

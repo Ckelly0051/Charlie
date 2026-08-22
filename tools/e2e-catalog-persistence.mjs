@@ -150,6 +150,31 @@ const refA = await refRoundTrip(seasonA());
   ok(threw, 'a corrupt on-disk db surfaces a VISIBLE failure (throws) instead of silently opening empty');
 }
 
+// ---- 4b. a READ FAILURE on an EXISTING db is not the same as "no bytes ever
+// existed" -- it too must throw, never silently collapse to a fresh empty
+// catalog (PC-2 repair, Codex review 89e34c6, finding 1). Section 4 above
+// proves corrupt BYTES throw once catalog.open() sees them; this proves the
+// read itself failing (a locked file, a permission error, a transient disk
+// fault on a genuinely-existing db) must ALSO throw, never be silently
+// swallowed into "there is no db" -- exactly the class of failure Inventory
+// Sec 3.0 was originally about, one layer earlier than where it was closed.
+{
+  const fs = trackFs();
+  await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).saveSeason('s1', seasonA());
+  fs.state.readDbFail = true;   // the db genuinely exists on disk (state.db is set); reading it fails
+  let threw = false;
+  try { await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1'); }
+  catch (e) { threw = true; }
+  ok(threw, 'a db read failure on a genuinely-existing db surfaces a VISIBLE failure (throws), the same as corrupt bytes -- never silently opens empty', String(threw));
+
+  // Control: once the read genuinely recovers, the season is still intact --
+  // proving the throw above lost nothing, it only refused to silently
+  // substitute an empty catalog while the read was failing.
+  fs.state.readDbFail = false;
+  const recovered = await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1');
+  ok(recovered && recovered.data.seasonName === 'Alpha', 'once the disk read recovers, the season is intact', JSON.stringify(recovered && recovered.data.seasonName));
+}
+
 // ---- 5. mirror failure is best-effort; season.json still never written ----
 {
   const fs = trackFs();
