@@ -156,49 +156,90 @@ export class StorageManager {
 
   /**
    * PC-4: run an armed debounced save NOW instead of waiting out its timer, OR
-   * genuinely await a write already in flight from an EARLIER trigger.
+   * genuinely await ALL writes already in flight / still landing, from
+   * whichever trigger(s) started them, draining until genuinely stable.
    *
-   * PC-4 repair (Codex 50e2e50, findings 2 and 3). Resolves to a durable
-   * signal a close handler can safely gate on:
+   * Resolves to a durable signal a close handler can safely gate on:
    *   - `true`  it is genuinely safe to proceed -- either there was nothing
-   *             to flush at all (idle), or a flush/await completed and the
-   *             underlying canonical save durably SUCCEEDED.
+   *             to flush at all (idle), or every flush/drain completed and
+   *             the LAST underlying canonical save durably SUCCEEDED.
    *   - `false` ONLY on a genuine, OBSERVED save failure. Never means "there
-   *             was nothing pending" -- that ambiguity was finding 3's root
-   *             cause (the close hook could not tell "nothing to do" apart
-   *             from "attempted and failed", so it destroyed the window
-   *             either way).
+   *             was nothing pending" -- that ambiguity was PC-4 repair round
+   *             2's root cause (the close hook could not tell "nothing to
+   *             do" apart from "attempted and failed", so it destroyed the
+   *             window either way).
    *
-   * Finding 2: the debounce timer being un-armed does NOT mean nothing is
+   * Round 2 fix: the debounce timer being un-armed does NOT mean nothing is
    * running -- the timer's own callback nulls it the instant it fires,
    * BEFORE its write settles (see _autoSave()), and this method itself nulls
    * it the moment it starts a flush. So a SECOND caller in the same close --
    * the browser `beforeunload` listener and the desktop close-requested hook
    * both fire for one real close, and either can run second -- would see no
-   * armed timer and, before this fix, wrongly conclude there was nothing to
-   * flush while the first caller's write was still running. It now falls
-   * back to SeasonStore.pendingWrite() to await that same in-flight write
-   * instead. The 2.5s Documents-mirror debounce is deliberately NOT flushed:
-   * it is a recovery snapshot written only after a successful canonical
-   * commit, and it is rewritten by the next save -- the canonical bytes are
-   * what a shutdown must not lose.
+   * armed timer and wrongly conclude there was nothing to flush while the
+   * first caller's write was still running. It falls back to
+   * SeasonStore.pendingWrite() to find that same in-flight write.
+   *
+   * PC-4 repair round 3 (Codex c962437): a SNAPSHOT of "the most recently
+   * dispatched write" is not enough -- if a NEWER write (or a freshly
+   * re-armed debounce, from an edit landing mid-shutdown) appears while THIS
+   * call is still awaiting an older one, a single await/return can settle
+   * and let the caller proceed before that newer work has landed. Reproduced
+   * directly before this fix, in both the timer-armed and the pendingWrite-
+   * fallback branch below: releasing only the FIRST write let the flush
+   * resolve while a SECOND write (dispatched during the flush) was still
+   * gated and pending.
+   *
+   * This loops instead of returning after one pass. Each iteration: if a
+   * debounce is armed (from before this call started, OR newly armed by an
+   * edit that happened during an EARLIER iteration's own await), run it now;
+   * then drain the season's write chain to a genuinely stable tail via
+   * SeasonStore.drainWrites() (which itself loops until nothing newer has
+   * landed). After that drain, the loop goes around again -- an edit could
+   * have re-armed the debounce timer WHILE the drain was awaiting (a
+   * SeasonStore-level drain has no visibility into StorageManager's own
+   * timer field), so only exiting when NEITHER a timer is armed NOR anything
+   * new has been dispatched since the last drain is what makes this genuinely
+   * stable, not merely "waited once more than before."
+   *
+   * The 2.5s Documents-mirror debounce is deliberately NOT drained: it is a
+   * recovery snapshot written only after a successful canonical commit, and
+   * it is rewritten by the next save -- the canonical bytes are what a
+   * shutdown must not lose.
    */
   async flushPendingSaves() {
-    const hadTimer = !!this.autoSaveTimer;
-    if (hadTimer) {
-      clearTimeout(this.autoSaveTimer);
-      this.autoSaveTimer = null;
-      if (!this.seasonStore || !this.seasonStore.data) return true;   // nothing durable to lose
-      const ok = await this._commitAndPersist();
-      return ok !== false;
-    }
-    const seasonId = this.seasonStore ? this.seasonStore.currentSeasonId : null;
-    const pending = (seasonId && typeof this.seasonStore.pendingWrite === 'function')
-      ? this.seasonStore.pendingWrite(seasonId) : null;
-    if (!pending) return true;   // truly idle -- nothing to lose, safe to proceed
     let ok = true;
-    try { ok = await pending; } catch (e) { ok = false; }
-    return ok !== false;
+    let flushedAnything = false;
+    let converged = null;   // the _lastWrite entry the previous iteration already fully drained
+    for (;;) {
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer);
+        this.autoSaveTimer = null;
+        // Dispatch synchronously here; drained (with everything else) below,
+        // rather than awaited directly -- a write dispatched by ANY OTHER
+        // trigger while this one is in flight must be picked up too, and
+        // drainWrites() is the one place that guarantee lives.
+        if (this.seasonStore && this.seasonStore.data) this._commitAndPersist();
+      }
+      const seasonId = this.seasonStore ? this.seasonStore.currentSeasonId : null;
+      const pending = (seasonId && typeof this.seasonStore.pendingWrite === 'function')
+        ? this.seasonStore.pendingWrite(seasonId) : null;
+      if (!pending || pending === converged) break;   // nothing armed and nothing new since the last drain -- genuinely stable
+      flushedAnything = true;
+      let r = true;
+      if (typeof this.seasonStore.drainWrites === 'function') {
+        r = await this.seasonStore.drainWrites(seasonId);
+      } else {
+        try { r = await pending; } catch (e) { r = false; }
+      }
+      ok = r !== false;
+      // Re-read rather than assume `pending` is still the final word --
+      // drainWrites() may have internally converged past it to a newer
+      // write; the NEXT iteration's "already drained" comparison must be
+      // against the true final state, not the reference captured before the
+      // drain began.
+      converged = (seasonId && this.seasonStore.pendingWrite) ? this.seasonStore.pendingWrite(seasonId) : pending;
+    }
+    return flushedAnything ? ok : true;
   }
 
   _autoSave() {

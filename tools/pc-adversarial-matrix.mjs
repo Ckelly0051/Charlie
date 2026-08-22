@@ -2072,6 +2072,200 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
 }
 flush();
 
+// ============================================================================
+// 16. LOCK (closed PC-4 repair round 3) -- Codex's c962437 re-review of
+//     3dab9f4: pendingWrite() (and by extension the section-15 flush fix) is
+//     a SNAPSHOT of the most recently dispatched write, not a stable
+//     all-writes drain. If write B is dispatched behind write A while a
+//     caller is already awaiting A's snapshot, that caller's already-
+//     captured reference resolves the instant A settles, oblivious to B --
+//     section 15's own tests only proved two callers awaiting the SAME
+//     already-existing write, never a NEWER write arriving mid-await. Both
+//     branches (the timer-armed dispatch and the pendingWrite fallback) were
+//     reproduced directly against the committed classes before being fixed,
+//     using INDEPENDENTLY gated writes -- a first probe attempt raced the
+//     microtask queue instead and produced a misleading "safe" result purely
+//     from incidental .then()-hop-count timing, not a real guarantee; that
+//     construction defect is recorded here so it is not repeated.
+// ============================================================================
+section('16. flushPendingSaves() drains to a genuinely stable tail -- a write dispatched while an older one is still unresolved is never abandoned, and a freshly re-armed autosave mid-drain is picked up too [LOCK, closed PC-4 repair round 3]');
+{
+  if (!globalThis.window) globalThis.window = globalThis;
+  if (!globalThis.document) globalThis.document = { getElementById: () => null };
+  const { StorageManager } = await import('../js/storage.js');
+  const noopEmitter = { on() {}, off() {} };
+  const vc = { ...noopEmitter, paused: true };
+  const tagger = { ...noopEmitter, plays: [], toast() {} };
+  const canvas = { ...noopEmitter, annotations: [] };
+
+  function gatedBackend() {
+    const gates = [];   // one release fn per dispatched saveSeason call, in order
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return new Promise(res => { gates.push(v => res(v)); }); },
+      async touchOpened() {}, diskStatus() { return { bound: false }; },
+    };
+    return { backend, gates };
+  }
+  const freshStore = (backend) => {
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+    return store;
+  };
+  const wireStorageManager = (store) => {
+    const sm = new StorageManager(vc, tagger, canvas);
+    sm.seasonStore = store;
+    sm._loadedGameId = store.data.activeGameId;
+    sm._serialize = () => ({ ...store.data.games[0] });
+    return sm;
+  };
+
+  // -- (i) timer-armed branch: B dispatched (persist()) while A is still
+  //        unresolved must be awaited too, before the flush resolves -------
+  {
+    const { backend, gates } = gatedBackend();
+    const store = freshStore(backend);
+    const sm = wireStorageManager(store);
+
+    sm._autoSave();
+    const flushPromise = sm.flushPendingSaves();   // dispatches A (gates[0])
+    await new Promise(r => setTimeout(r, 0));
+    store.persist();                               // B dispatched WHILE A is unresolved -- gates[1]
+    await new Promise(r => setTimeout(r, 0));
+
+    let settled = false;
+    flushPromise.then(() => { settled = true; });
+
+    gates[0](true);   // release A ONLY
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    const settledOnAAlone = settled;
+
+    gates[1](true);   // now release B
+    await flushPromise;
+
+    ok('lock', !settledOnAAlone,
+      "flushPendingSaves() does not resolve on A alone -- a newer write (B) dispatched while A was still unresolved must also settle first (Codex's exact reverse interleaving: start A, begin flushPendingSaves(), dispatch B while A is unresolved, release A, prove the flush does not resolve until B settles)",
+      JSON.stringify({ settledOnAAlone }));
+  }
+
+  // -- (ii) same interleaving, but B FAILS -- the close hook must keep the
+  //         window open, not merely reflect A's earlier success ------------
+  {
+    const { backend, gates } = gatedBackend();
+    const store = freshStore(backend);
+    const sm = wireStorageManager(store);
+
+    let destroyed = false;
+    let errorSurfaced = false;
+    store.onPersistError = () => { errorSurfaced = true; };
+    const win = {
+      onCloseRequested(handler) { this._h = handler; return Promise.resolve(); },
+      async destroy() { destroyed = true; },
+    };
+    const prevTauri = globalThis.window.__TAURI__;
+    globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
+    try {
+      await sm._wireDesktopCloseFlush();
+      sm._autoSave();
+      win._h({ preventDefault() {} });               // dispatches A (gates[0])
+      await new Promise(r => setTimeout(r, 0));
+      store.persist();                                // B dispatched while A is unresolved -- gates[1]
+      await new Promise(r => setTimeout(r, 0));
+      gates[0](true);    // A succeeds
+      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
+      const destroyedOnAAlone = destroyed;
+      gates[1](false);   // B FAILS
+      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
+
+      ok('lock', !destroyedOnAAlone,
+        'the window is not destroyed merely because A (the write present when close began) succeeded, while B (dispatched mid-close) is still unresolved',
+        JSON.stringify({ destroyedOnAAlone }));
+      ok('lock', !destroyed && errorSurfaced,
+        "a genuinely failed LATER write (B) keeps the window open and surfaces the failure, even though the EARLIER write (A) succeeded -- repeats Codex's exact instruction to prove this with B failing",
+        JSON.stringify({ destroyed, errorSurfaced }));
+    } finally {
+      globalThis.window.__TAURI__ = prevTauri;
+    }
+  }
+
+  // -- (iii) the pendingWrite-fallback branch (a second flushPendingSaves()
+  //          call, matching beforeunload + close-requested both firing) is
+  //          drained just as stably -----------------------------------------
+  {
+    const { backend, gates } = gatedBackend();
+    const store = freshStore(backend);
+    const sm = wireStorageManager(store);
+
+    sm._autoSave();
+    const first = sm.flushPendingSaves();     // clears the timer, dispatches A (gates[0])
+    await new Promise(r => setTimeout(r, 0));
+    const second = sm.flushPendingSaves();    // hadTimer=false -- falls back to the drain
+    await new Promise(r => setTimeout(r, 0));
+    store.persist();                          // B dispatched while both flushes await A -- gates[1]
+    await new Promise(r => setTimeout(r, 0));
+
+    let settled = false;
+    second.then(() => { settled = true; });
+
+    gates[0](true);
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    const settledOnAAlone = settled;
+
+    gates[1](true);
+    await Promise.all([first, second]);
+
+    ok('lock', !settledOnAAlone,
+      'the pendingWrite-fallback branch (a second caller in the same close) also drains to B, not merely to whichever write it happened to snapshot first',
+      JSON.stringify({ settledOnAAlone }));
+  }
+
+  // -- (iv) a debounce timer re-armed WHILE the flush is draining an
+  //         already-dispatched write is picked up before the flush resolves,
+  //         not lost -- Codex's explicit second requirement -----------------
+  {
+    const { backend, gates } = gatedBackend();
+    const store = freshStore(backend);
+    const sm = wireStorageManager(store);
+
+    sm._autoSave();
+    const flushPromise = sm.flushPendingSaves();   // dispatches A (gates[0])
+    await new Promise(r => setTimeout(r, 0));
+
+    // A fresh edit arms a NEW debounce timer while the flush is still
+    // draining A -- not a direct persist() call this time, the timer itself.
+    sm._autoSave();
+    await new Promise(r => setTimeout(r, 0));
+
+    let settled = false;
+    flushPromise.then(() => { settled = true; });
+
+    gates[0](true);   // release A
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    const settledOnAAloneBeforeTimerFires = settled;
+    const timerWriteDispatched = gates.length >= 2;
+
+    if (gates.length >= 2) gates[1](true);
+    await flushPromise;
+
+    ok('lock', !settledOnAAloneBeforeTimerFires && timerWriteDispatched,
+      "a debounce timer re-armed WHILE the flush is draining an existing write is itself dispatched and awaited before the flush resolves -- required because SeasonStore.drainWrites() has no visibility into StorageManager's own timer field, so only the OUTER loop rechecking it can catch this",
+      JSON.stringify({ settledOnAAloneBeforeTimerFires, timerWriteDispatched, gatesDispatched: gates.length }));
+  }
+}
+flush();
+
 } catch (e) {
   crashed = true;
   console.log('');

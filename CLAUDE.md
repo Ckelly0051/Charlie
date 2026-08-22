@@ -13,6 +13,75 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-4 REPAIR round 3 of the `c962437` re-review's one finding — AWAITING RE-REVIEW (2026-08-22)
+
+**Builder: Claude. Repairs the one remaining P0 from Codex's `c962437`
+CHANGES REQUESTED re-review of `3dab9f4` (recorded immediately below).**
+Verified against source and reproduced against the real `SeasonStore`/
+`StorageManager` with a purpose-built probe before any fix was written, per
+standing discipline. A first reproduction attempt was itself flawed and is
+disclosed rather than silently corrected: it inserted a macrotask `tick()`
+right after releasing write A, which let the whole microtask chain (A
+settling, its drain cleanup, B's own write firing) fully drain before
+anything was checked — it could not distinguish "resolved before B" from
+"resolved after B." Rewritten with B INDEPENDENTLY gated (its own release
+function, held until explicitly called), which is what actually confirmed
+the bug in both branches of `flushPendingSaves()`.
+
+**Root cause.** `SeasonStore.pendingWrite(seasonId)` returns whatever promise
+is CURRENTLY in `_lastWrite` at the instant it's called — a snapshot, not a
+subscription. A caller awaiting that snapshot is watching one specific
+promise object; if a NEWER write replaces the map entry while that await is
+pending, the caller's already-captured reference is unaffected and resolves
+the moment the OLDER write settles, oblivious to the newer one. Reproduced in
+both branches of `flushPendingSaves()`: releasing only write A let the flush
+resolve while an independently-gated write B (dispatched while A was still
+unresolved) remained pending.
+
+**Fix, two layers.** `SeasonStore.drainWrites(seasonId)` is a new stable
+primitive: captures `_lastWrite`'s current entry, awaits it, then RECHECKS
+`_lastWrite` — if the map now holds a different promise than the one just
+awaited, a newer write landed during that await and is awaited too, looping
+until the observed entry is genuinely unchanged across an await. Resolves
+the durable true/false of the LAST write actually observed to settle.
+
+`StorageManager.flushPendingSaves()` is rewritten around an OUTER loop,
+needed because `drainWrites()` alone has no visibility into
+`StorageManager.autoSaveTimer` — a coach edit that re-arms the debounce
+timer WHILE `drainWrites()` is awaiting an existing write (nothing has been
+dispatched to `_lastWrite` yet at that point) would be invisible to it. Each
+outer iteration: dispatches whatever debounce is currently armed; reads
+`pendingWrite()` and compares it against what the PREVIOUS iteration already
+fully drained; exits only when neither a timer is armed nor anything new has
+appeared since the last drain. This is the code shape of "the shutdown path
+must also account for an autosave armed while it is draining" — the review's
+explicit second requirement.
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — new section 16,
+five assertions: the exact reverse interleaving in both the timer-armed and
+`pendingWrite`-fallback branches; a negative control proving the close hook
+stays gated on the LATER write's own outcome even when the EARLIER write
+succeeded; and the newly-armed-autosave-during-drain case. **104/104 locks
+green** (was 99; +5), 0/2 targets (the two pre-existing, disclosed,
+out-of-scope legacy version methods, unchanged). `node tools/
+e2e-revision-fence.mjs` — 33/33, unchanged. Both new mechanisms
+independently mutation-verified: disabling `drainWrites()`'s own recheck
+loop reproduces the exact original symptom in the three sub-cases that
+depend on it while correctly leaving the newly-armed-timer sub-case green
+(protected by the outer loop instead — a genuine layering, not a
+coincidence); collapsing the outer loop to a single pass reproduces exactly
+the inverse. Both restored and reconfirmed green. Full canonical gate
+(`bash tools/run-gate.sh`): **91 harnesses | 91 green | 0 skipped | 0
+failed** — same count as the prior repair round, zero harnesses added or
+dropped, including `e2e-realdata.mjs` (the real six-game coach season)
+clean.
+
+No film path, film file, season/game/play data, schema version, migration,
+or unrelated file touched. No installer, package, tag, or release.
+
+**Next action:** Codex independently re-reviews this repair. PC-5 does not
+open until this review completes.
+
 ### ▶ CODEX RE-REVIEW OF PC-4 REPAIR `3dab9f4` - CHANGES REQUESTED (2026-08-22)
 
 **Verdict: the three reported races are closed, but the required all-writes

@@ -865,6 +865,37 @@ export class SeasonStore {
     return this._lastWrite.get(seasonId) || null;
   }
 
+  /**
+   * PC-4 repair round 3 (Codex c962437): a STABLE drain for one season's
+   * write chain, not a snapshot of whichever write happened to be most
+   * recent when called. `pendingWrite()` alone only ever returns the promise
+   * that was current the instant it was read -- if a NEWER write (write B)
+   * is dispatched for this season while a caller is still awaiting an OLDER
+   * one (write A), the caller's already-captured reference resolves the
+   * moment A settles, oblivious to B. Reproduced directly before this fix:
+   * a caller awaiting `pendingWrite()`'s snapshot of A resolved the instant A
+   * settled, while B (dispatched during that await) was still pending.
+   *
+   * This rechecks `_lastWrite` after every await: if the entry has moved on
+   * to a different promise since the one just awaited, a newer write landed
+   * while waiting, and THAT one is awaited too -- looping until the observed
+   * tail is genuinely unchanged across an await. Resolves the durable
+   * true/false of the LAST write actually observed to settle (never
+   * rejects, mirroring `_lastWrite`'s own entries). Returns null when
+   * nothing has ever been dispatched for this season.
+   */
+  async drainWrites(seasonId = this.currentSeasonId) {
+    let last = this._lastWrite.get(seasonId) || null;
+    if (!last) return null;
+    let ok = true;
+    for (;;) {
+      try { ok = await last; } catch (e) { ok = false; }
+      const current = this._lastWrite.get(seasonId) || null;
+      if (current === last) return ok;   // stable: nothing new arrived while waiting
+      last = current;                    // a newer write landed mid-drain; keep going
+    }
+  }
+
   /** PC-4: stamp a revision at DISPATCH time, then run the write in order. */
   _dispatchWrite(seasonId, data, write) {
     const revision = this._nextRevision(seasonId, data);

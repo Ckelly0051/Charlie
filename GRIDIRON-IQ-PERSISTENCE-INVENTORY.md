@@ -1789,3 +1789,77 @@ Repeat with B failing and prove the close remains prevented. Production must
 either recheck the per-season tail/high-water mark until stable (including any
 newly armed autosave) or establish a synchronous closing fence that prevents
 new work from entering after shutdown begins. PC-4 and PC-5 remain blocked.
+
+## 7e. PC-4 repair round 3 — a genuinely stable all-writes drain
+##     (Codex re-review `c962437`, 2026-08-22)
+
+The finding was independently reproduced against the real `SeasonStore`/
+`StorageManager` classes before any fix was written. The first reproduction
+attempt was itself flawed and is disclosed rather than silently corrected: it
+inserted a macrotask `tick()` (a `setTimeout(0)`) immediately after releasing
+write A, which let the ENTIRE microtask chain — A settling, its drain cleanup,
+and B's own write firing — fully drain before anything was checked, so it could
+not distinguish "the flush resolved before B" from "the flush resolved after
+B". It was rewritten using an INDEPENDENTLY gated write B (its own release
+function, held until explicitly called), which is what actually confirmed the
+bug in both branches of `flushPendingSaves()`.
+
+**Root cause.** `SeasonStore.pendingWrite(seasonId)` returns whatever promise
+is CURRENTLY in `_lastWrite` at the instant it is called — a snapshot, not a
+subscription. A caller that captures that snapshot and awaits it is watching
+one specific promise object; if a NEWER write replaces the map entry while
+that await is still pending, the caller's already-captured reference is
+unaffected and resolves the moment the OLDER write settles, oblivious to the
+newer one. Reproduced in both branches of `flushPendingSaves()` (the
+timer-armed dispatch, which directly awaited `_commitAndPersist()`'s own
+return, and the `pendingWrite()` fallback used by a second/later caller):
+releasing only write A let the flush resolve while an independently-gated
+write B (dispatched while A was still unresolved) remained pending.
+
+**Fix, two layers.** `SeasonStore.drainWrites(seasonId)` is a new stable
+primitive: it captures `_lastWrite`'s current entry, awaits it, then RECHECKS
+`_lastWrite` — if the map now holds a DIFFERENT promise than the one just
+awaited, a newer write landed during that await, and it is awaited too,
+looping until the observed entry is genuinely unchanged across an await.
+Resolves the durable true/false of the LAST write actually observed to settle.
+
+`StorageManager.flushPendingSaves()` is rewritten around an OUTER loop, needed
+because `drainWrites()` alone cannot see everything: it has no visibility into
+`StorageManager.autoSaveTimer`, so a coach edit that re-arms the debounce
+timer WHILE `drainWrites()` is awaiting an existing write — a genuinely
+different edit than a direct concurrent `persist()`/`saveNow()` call, since
+nothing has been dispatched to `_lastWrite` yet at that point — would be
+invisible to it. Each outer iteration: dispatches (via `_commitAndPersist()`,
+not awaited directly) whatever debounce is currently armed; reads
+`pendingWrite()` and compares it against what the PREVIOUS iteration already
+fully drained; exits only when neither a timer is armed nor anything new has
+appeared since the last drain. This is what "the shutdown path must also
+account for an autosave armed while it is draining" (the review's explicit
+second requirement) resolves to in code — the alternative offered (a
+synchronous closing fence that refuses new work) was not needed, since the
+loop's own recheck already flushes rather than needing to reject.
+
+**Verification.** `node tools/pc-adversarial-matrix.mjs` — new section 16,
+five assertions: the exact reverse interleaving in both the timer-armed and
+`pendingWrite`-fallback branches; a negative control proving the close hook
+stays gated on the LATER write's (B's) own outcome even when the EARLIER
+write (A) succeeded; and the newly-armed-autosave-during-drain case. **104/104
+locks green** (was 99; +5), 0/2 targets (the two pre-existing, disclosed,
+out-of-scope legacy version methods, unchanged). `node tools/
+e2e-revision-fence.mjs` — 33/33, unchanged. Both new mechanisms independently
+mutation-verified: disabling `drainWrites()`'s own recheck loop reproduces the
+exact original symptom in the three sub-cases that depend on it
+(`settledOnAAlone:true`, `destroyedOnAAlone:true`,
+`destroyed:true,errorSurfaced:true`) while correctly leaving the fourth
+(newly-armed-timer) sub-case green, confirming that case is protected by the
+OUTER loop instead — not a coincidence, a genuine layering; collapsing the
+outer loop to a single pass reproduces exactly the inverse (only the
+newly-armed-timer sub-case reds, `timerWriteDispatched:false`, while the three
+`drainWrites()`-covered sub-cases stay green). Both restored and reconfirmed
+green. Full canonical gate (`bash tools/run-gate.sh`): **91 harnesses | 91
+green | 0 skipped | 0 failed** — same count as the prior repair round, zero
+harnesses added or dropped, including `e2e-realdata.mjs` (the real six-game
+coach season) clean.
+
+No film path, film file, season/game/play data, schema version, migration, or
+unrelated file touched. No installer, package, tag, or release.
