@@ -13,6 +13,46 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX RE-REVIEW OF PC-4 REPAIR `95fc1df` — CHANGES REQUESTED (2026-08-22)
+
+**Verdict: three lifecycle races remain. PC-4 stays blocked; PC-5 must not
+open.** The focused matrix is green, but its new cases only cover work queued
+*before* delete and a close while the debounce timer is still armed. Codex
+reproduced all three omitted interleavings directly against the committed
+classes:
+
+1. **[P0] A save dispatched after delete starts resurrects the season.**
+   `SeasonStore.deleteSeason(id)` queues the delete behind prior work, but the
+   season remains current until that delete finishes. A `persist()` dispatched
+   during the await is accepted behind the delete and writes the season back.
+   The method then deletes `_writeChain[id]` even though that later tail exists.
+   Reproduction result: `{case:"save-after-delete-start",exists:true}`. Add a
+   deletion tombstone/fence (or atomically detach ownership with rollback) so
+   no new write for that id can be accepted after delete dispatch. Pin the
+   reverse ordering: delete starts -> later persist attempted -> final season
+   absent.
+
+2. **[P0] Desktop close does not await a canonical write already in flight.**
+   Once the autosave timer fires it is cleared before the async SQLite write
+   settles. `flushPendingSaves()` sees no timer and returns `false`; the close
+   hook immediately destroys the window while the write is still pending.
+   Reproduction result:
+   `{case:"already-in-flight-close",flushed:false,saveStillPending:true}`.
+   Expose a real `SeasonStore` queue-drain promise and have close await both any
+   newly flushed debounce and every already-running durable write.
+
+3. **[P0] Desktop close proceeds after a failed final save.**
+   `flushPendingSaves()` converts every resolved `_commitAndPersist()` result to
+   `true`, and `_wireDesktopCloseFlush()` destroys the window regardless of the
+   result or rejection. Reproduction with a failed flush:
+   `{case:"failed-flush-close",destroyed:true}`. Preserve the durable boolean;
+   on failure keep the window open and surface the save error. Add a negative
+   close-hook proof, not only the current always-success backend.
+
+The `snapshot()`/`bindDisk()` queue repairs and `saveNow()` payload/failure
+repairs are accepted. No production code changed in this review. The temporary
+probe was removed after reproduction; unrelated untracked directories remain
+untouched.
 ### ▶ PC-4 REPAIR of the `618862c` re-review's four findings — AWAITING RE-REVIEW (2026-08-22)
 
 **Builder: Claude. Repairs all four findings from Codex's `618862c` CHANGES

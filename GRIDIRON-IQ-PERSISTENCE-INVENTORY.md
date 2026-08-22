@@ -1640,3 +1640,23 @@ gate, and in `e2e-revision-fence.mjs`, already counted); including
 
 No film path, film file, season/game/play data, schema version, migration, or
 unrelated file touched. No installer, package, tag, or release.
+
+## 7b. Codex re-review of PC-4 repair `95fc1df` — CHANGES REQUESTED (2026-08-22)
+
+The repair correctly queues snapshot/bind-disk writes and fixes `saveNow()`'s
+payload and failure handling. Three omitted lifecycle interleavings remain P0:
+
+- **Delete tombstone missing:** a save dispatched after delete starts queues
+  behind the delete and recreates the season. Direct result:
+  `{case:"save-after-delete-start",exists:true}`.
+- **In-flight write not drained on close:** after the debounce timer fires but
+  before SQLite settles, `flushPendingSaves()` returns false and close proceeds.
+  Direct result:
+  `{case:"already-in-flight-close",flushed:false,saveStillPending:true}`.
+- **Failed flush still closes:** the close handler destroys the window after a
+  false save result. Direct result: `{case:"failed-flush-close",destroyed:true}`.
+
+PC-4 remains open. Required closure is a deletion fence/tombstone, a real
+per-season/all-writes drain seam, and a fail-closed close handler that retains
+the window and surfaces a durable-save failure. Tests must exercise these exact
+reverse/negative interleavings; the current success-only cases are insufficient.
