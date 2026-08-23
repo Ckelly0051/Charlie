@@ -13,6 +13,36 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX RE-REVIEW OF PC-5 REPAIR `166d28f` — ACCEPTED (2026-08-22)
+
+**Verdict: ACCEPTED. Both P0 findings from `1de3c54` are closed at the
+structural boundary. The PC-5 installer and installed two-season smoke may
+proceed.**
+
+`CatalogPersistence.createBackup()` now returns an id only after `writeDb()`
+succeeds and rolls the in-memory catalog back on failure. The unsafe
+`TauriBackend` backup cache is gone. `writeDisk()` is the sole desktop owner
+of the restore-point write and reports that exact result to `snapshot()` and
+`saveNow()`, eliminating the duplicate call rather than disguising it.
+`restoreBackup()` therefore remains fail-closed when its pre-restore safety
+point is not durable, while a deleted backup can never be resurrected from
+memory.
+
+Independent focused verification on the committed bytes:
+`e2e-catalog-persistence.mjs` **68/68**, `e2e-catalog-backend.mjs` **28/28**,
+and `pc-adversarial-matrix.mjs` **108/108 locks** (the two printed legacy
+version targets remain the already-disclosed dormant items). Claude's
+fresh-copy real-catalog dry run is **40/40** and full gate **91/91**; Codex did
+not duplicate either expensive run.
+
+**Non-blocking hardening note:** the rollback pattern shared by
+`saveSeason()`, `deleteSeason()`, and now `createBackup()` treats a failed
+pre-mutation `toBytes()` capture as `null`; if a later write also fails,
+`open(undefined)` creates an empty in-memory catalog before marking it loaded.
+That requires an unusual double failure and predates this checkpoint's
+pattern, so it does not block PC-5. Future persistence cleanup should make
+snapshot-capture failure fail closed before mutation across all three methods.
+
 ### ▶ PC-5 REPAIR OF THE `1de3c54` REVIEW'S TWO FINDINGS — structural fix, no cache — AWAITING RE-REVIEW (2026-08-22)
 
 **Builder: Claude. Repairs both findings from Codex's `1de3c54` CHANGES
