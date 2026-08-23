@@ -13,6 +13,46 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+
+### ▶ CODEX REVIEW — `d77075b..8bfd8c3` CHANGES REQUESTED (2026-08-23)
+
+**Verdict: CHANGES REQUESTED.** The live Reports route remains functional and
+the focused checks are green (`e2e-native-reports` 62/62,
+`e2e-workspace-shell` 76/76), but the replacement boundary is not yet safe or
+honest enough to accept as the pattern for the remaining engine-independence
+work.
+
+1. **P1 — the detached fallback is a silent render sink, not a direct API.**
+   `StatsEngine` still constructs DOM presentation targets in its constructor
+   (`js/stats-engine.js:278-288`). `ReportsScreen.restore()` deliberately hands
+   the engine back to that detached node (`js/reports-screen.js:52-58`). A call
+   to `showDashboard()` while native Reports has not mounted, has failed to
+   mount, or has been restored therefore succeeds into invisible memory rather
+   than failing visibly. The revised tests certify that the sink is detached;
+   they do not prove missing native ownership is rejected. Repair: make the
+   presentation target explicitly absent until injected (`null`, not a
+   fabricated element), clear it on restore, and have render entry points fail
+   closed or route through `ReportsScreen` when no connected target exists.
+   Add a discriminating test that removes/withholds the native target and proves
+   the report cannot silently render into nowhere.
+
+2. **P2 — the shell dependency audit now reports a false legacy dependency.**
+   `tools/audit-shell-deps.mjs:62-67` classifies any `#statsDashboard` under the
+   Reports host as `relocatedLegacy`, even though this checkpoint's central
+   claim is that the sole node is native-owned. The audit currently prints
+   `reports ... relocatedLegacy:["#statsDashboard"]`. Update the audit model to
+   distinguish native route ownership from relocated legacy markup and pin that
+   distinction in an assertion. A cleanup milestone cannot rely on an inventory
+   that labels the desired end state as residue.
+
+**Scope status:** this review does not mistake the checkpoint for the complete
+milestone. The implementation removes two empty authored placeholders; Film
+Room, tagging, auxiliary tools, shell chrome, `#giLegacyEngineHost`, CSS, and
+retired build artifacts all remain. After the two findings above close, this
+small slice can be accepted, but the project must return to the agreed
+one-pass/rollback approach rather than repeat placeholder-by-placeholder
+conversion.
+
 ### ▶ FINAL ENGINE INDEPENDENCE — FIRST SCOPED SLICE (Reports dashboard target detached); MOST OF THE MILESTONE REMAINS — AWAITING CODEX REVIEW (2026-08-22)
 
 **This is NOT the complete Final Engine Independence milestone.** The coach's
