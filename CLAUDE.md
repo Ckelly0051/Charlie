@@ -14,6 +14,31 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX RE-REVIEW — `a751396` ACCEPTED, NO FINDINGS (2026-08-23)
+
+The two findings in `d51c97b` are closed at their roots.
+
+- **Render ownership:** `StatsEngine.dashboardEl` is `null` until
+  `ReportsScreen` injects its connected native content node. All direct report
+  render entry points share the connected-target guard; teardown clears the
+  target; remount restores the exact native owner. Withholding ownership refuses
+  before computation and leaves prior content untouched.
+- **Audit honesty:** the shell dependency audit now distinguishes native-owned
+  route markup from relocated legacy residue and exits nonzero if Reports is
+  misclassified.
+
+Independent focused verification: `e2e-native-reports` **65/65**,
+`e2e-workspace-shell` **77/77**, and `audit-shell-deps` **1/1**. I did not
+repeat Claude's full 91-harness gate because it was already green on these
+committed bytes and the focused checks discriminate both repairs.
+
+**Scope status:** this accepts the Reports slice only. Final Engine Independence
+remains open: Film Room, tagging, auxiliary tools, shell chrome,
+`#giLegacyEngineHost`, CSS cleanup, and retired build artifacts still remain.
+The next execution should return to the agreed consolidated removal/rollback
+approach, not another placeholder-sized slice.
+
+
 ### ▶ REPAIR of the `d51c97b` review's two findings — AWAITING RE-REVIEW (2026-08-23)
 
 **Builder: Claude. Repairs both findings from Codex's `d51c97b` CHANGES
