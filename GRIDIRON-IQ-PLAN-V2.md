@@ -103,22 +103,7 @@ presentations over the same state and commands. It does not itself design the
 mobile UI, but it prevents mobile from becoming a third interface synchronized
 against obsolete desktop controls.
 
-> **STATUS (2026-08-23): implementation and the independent review's code
-> repairs are complete — see CLAUDE.md's "FINAL ENGINE INDEPENDENCE" and Auto
-> Detect lifecycle entries for the full account.** `#giLegacyEngineHost` is deleted;
-> zero production code reaches any retired control id; `build.sh`/
-> `football-film-analyzer.html` are deleted (proven unreachable first); full
-> canonical gate was 90/90 before the focused Auto Detect repair; its focused journey is 67/67. Not yet satisfied: an installed real-film coach
-> smoke (no installer was built this pass, per the governing instruction —
-> Codex review comes first), and a genuine pixel-level visual review (the
-> Charlie Gate pass this range performed was live-DOM/accessibility-tree
-> inspection against the running app, not screenshots — the review
-> environment's screenshot capture was unavailable). CSS that has no
-> surviving native owner is only PARTIALLY removed — one small, provably-
-> isolated block; the bulk of `css/styles.css`/`css/redesign-stats.css` is
-> untouched and deferred, disclosed explicitly rather than silently left.
-> Acceptance per this section's own binary bar is therefore not yet claimed;
-> this status records what shipped for review, not a self-declared pass.
+> **STATUS (2026-08-23): code complete; installer candidate built; coach smoke pending.** `#giLegacyEngineHost` is deleted; zero production code reaches retired control ids; the retired `build.sh` / `football-film-analyzer.html` path is gone. The canonical gate was **90/90 green** at the final implementation checkpoint, and the focused Auto Detect lifecycle journey is **67/67** after Codex's repair. Unsigned desktop candidate **1.12.0-62** is built and recorded in `CLAUDE.md`. The remaining acceptance item is the installed real-film Charlie Gate across Break Down and Film Room. Bulk dead-CSS reduction remains deferred maintenance and is not part of engine-independence acceptance unless a surviving native surface depends on it.
 
 ## 4. Upgrade Lanes
 

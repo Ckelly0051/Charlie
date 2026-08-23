@@ -16,6 +16,18 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ FINAL ENGINE INDEPENDENCE INSTALLER CANDIDATE 1.12.0-62 — COACH SMOKE PENDING (2026-08-23)
+
+**Builder: Codex. Functional source through `3afff46`; this checkpoint adds only the synchronized version stamp and release documentation.** This candidate combines the accepted Final Engine Independence range, the visible Auto Detect service, the Film Room clipping repair, and Codex's game-ownership/one-shot Auto Detect lifecycle fix.
+
+**Verification used proportionately:** Claude's final implementation checkpoint ran the canonical gate **90/90 green** and `cargo check` clean. After Codex's narrow lifecycle repair, Vite built clean and `e2e-native-tagging.mjs` was **67/67**. The capture runner then produced **44 distinct surfaces with no page-level overflow**; spot review confirmed that Film Room's bottom controls are visible at both 1440x900 and 1280x720. The synthetic Break Down capture remained an empty-selection setup state with a transient toast, so it is not being misrepresented as a complete visual acceptance. The coach explicitly chose the installed real-data Charlie Gate instead of spending another iteration polishing synthetic capture setup. No redundant full gate was run after the four-file version bump.
+
+**Unsigned local installers:**
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-62_x64-setup.exe` — 4,000,687 bytes — SHA-256 `1F4FA9D669AABDF9D83B755472EDE2DFFDDD63393580D1A3FEFD945A2FEE090B`
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-62_x64_en-US.msi` — 5,545,984 bytes — SHA-256 `E92B360EEDD37483553AAACCEC8C8EFCBEB539FF13C13263DAE711F6A8D7A02C`
+
+`cargo tauri build` completed both bundles, then returned the expected signing-key error because this workstation has the public key but no `TAURI_SIGNING_PRIVATE_KEY`. The artifacts themselves are complete. This is a local smoke candidate, not a tagged or published release. **Next action:** install the NSIS build and run the real-film Charlie Gate across Break Down and Film Room; Final Engine Independence is accepted only after that smoke passes.
+
 ### ▶ CODEX REPAIR of Auto Detect lifecycle findings — CODE CLOSED (2026-08-23)
 
 **Builder/reviewer: Codex. Repairs the two lifecycle findings recorded in the
