@@ -1838,19 +1838,19 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
     {
       let capturedHandler = null;
       let closeCalled = false;
-      let recursivePrevented = false;
       let closeResolve;
       const closePromise = new Promise(res => { closeResolve = res; });
       const win = {
         onCloseRequested(handler) { capturedHandler = handler; return Promise.resolve(); },
-        async close() {
-          closeCalled = true;
-          capturedHandler({ preventDefault() { recursivePrevented = true; } });
-          closeResolve();
-        },
       };
       const prevTauri = globalThis.window.__TAURI__;
-      globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
+      globalThis.window.__TAURI__ = {
+        window: { getCurrentWindow: () => win },
+        core: { async invoke(command) {
+          closeCalled = command === 'close_after_flush';
+          closeResolve();
+        } },
+      };
       try {
         const sm = new StorageManager(vc, tagger, canvas);
         const saves = [];
@@ -1877,9 +1877,9 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
         capturedHandler({ preventDefault() { preventDefaultCalled = true; } });
         await closePromise;   // the detached async flush+close must eventually settle
 
-        ok('lock', preventDefaultCalled && saves.length === 1 && closeCalled && !recursivePrevented,
-          'a real close request is deferred, flushed, then closed through the permitted API; the recursive close event passes without preventDefault',
-          JSON.stringify({ preventDefaultCalled, saves: saves.length, closeCalled, recursivePrevented }));
+        ok('lock', preventDefaultCalled && saves.length === 1 && closeCalled,
+          'a real close request is deferred, flushed, then handed to the native non-recursive close command',
+          JSON.stringify({ preventDefaultCalled, saves: saves.length, closeCalled }));
       } finally {
         globalThis.window.__TAURI__ = prevTauri;
       }
@@ -2055,7 +2055,10 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
       async destroy() { destroyed = true; },
     };
     const prevTauri = globalThis.window.__TAURI__;
-    globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
+    globalThis.window.__TAURI__ = {
+      window: { getCurrentWindow: () => win },
+      core: { invoke: async () => { destroyed = true; } },
+    };
     try {
       await sm._wireDesktopCloseFlush();
       sm._autoSave();
@@ -2173,7 +2176,10 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
       async destroy() { destroyed = true; },
     };
     const prevTauri = globalThis.window.__TAURI__;
-    globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
+    globalThis.window.__TAURI__ = {
+      window: { getCurrentWindow: () => win },
+      core: { invoke: async () => { destroyed = true; } },
+    };
     try {
       await sm._wireDesktopCloseFlush();
       sm._autoSave();

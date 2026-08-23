@@ -2152,3 +2152,13 @@ The recursively emitted close event passes without preventDefault, while
 save failure still keeps the window open. The lifecycle matrix remains
 **108/108 locks** with an explicit recursion-guard assertion. Version
 1.12.0-59 is defective; 1.12.0-60 replaces it.
+
+### 7i.1 Installed re-test correction
+
+The 1.12.0-60 JavaScript close recursion guard also failed in the installed
+WebView. Its headless test modeled the recursive event synchronously and did
+not prove the real Tauri lifecycle. Version 1.12.0-61 removes that dependency:
+after a successful durable flush, StorageManager invokes the native
+close_after_flush Rust command, which destroys the window directly. The
+focused matrix remains **108/108 locks** and cargo check is clean. Versions
+1.12.0-59 and 1.12.0-60 are both rejected.

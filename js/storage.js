@@ -22,7 +22,6 @@ export class StorageManager {
     this.canvas = canvasOverlay;
 
     this.autoSaveTimer = null;
-    this._desktopCloseApproved = false;
     this._desktopCloseInFlight = false;
     this._deferredSnapshot = null;
     this._snapshotIdleTimer = null;
@@ -111,29 +110,21 @@ export class StorageManager {
   /**
    * PC-4 repair (finding 3). Desktop only (window.__TAURI__): defers the
    * window close via Tauri's onCloseRequested, awaits flushPendingSaves()'s
-   * now-genuinely-awaitable promise chain, then explicitly closes. Reachable
-   * via window.__TAURI__.window.getCurrentWindow() -- tauri.conf.json sets
-   * withGlobalTauri:true and src-tauri/capabilities/default.json already
-   * grants core:window:default + core:window:allow-close, so no Rust/
-   * capabilities change is needed. Safe to call on the browser build or if
+   * now-genuinely-awaitable promise chain, then invokes a native command that
+   * destroys the window without re-entering the close-request hook. Safe to
+   * call on the browser build or if
    * the API shape is ever missing/changed -- every step is guarded and a
    * failure here must never block a real close.
    */
   async _wireDesktopCloseFlush() {
     const T = (typeof window !== 'undefined') ? window.__TAURI__ : null;
-    if (!T || !T.window || typeof T.window.getCurrentWindow !== 'function') return;
+    if (!T || !T.window || typeof T.window.getCurrentWindow !== 'function'
+      || !T.core || typeof T.core.invoke !== 'function') return;
     let win;
     try { win = T.window.getCurrentWindow(); } catch (e) { return; }
     if (!win || typeof win.onCloseRequested !== 'function') return;
     try {
       await win.onCloseRequested((event) => {
-        // win.close() emits this event again. The first request flushes and
-        // arms this one-shot pass; the second must proceed without another
-        // preventDefault() or the app can never close.
-        if (this._desktopCloseApproved) {
-          this._desktopCloseApproved = false;
-          return;
-        }
         // preventDefault() must be called synchronously, before any await --
         // Tauri's own close sequence is not guaranteed to wait for a later
         // call. The actual flush + explicit close happen in a detached async
@@ -158,14 +149,12 @@ export class StorageManager {
             return;
           }
           try {
-            // The app grants core:window:allow-close, not allow-destroy.
-            // Arm the one-shot pass above before invoking close so the
-            // re-emitted close-request event is not intercepted recursively.
-            this._desktopCloseApproved = true;
-            await win.close();
+            // Native destruction does not emit another webview close-request,
+            // so there is no recursive event or capability mismatch.
+            await T.core.invoke('close_after_flush');
           } catch (e) {
-            this._desktopCloseApproved = false;
             this._desktopCloseInFlight = false;
+            try { window.app?.updater?._toast('Unable to close GridIron IQ. Please try again.'); } catch (err) {}
           }
         })();
       });

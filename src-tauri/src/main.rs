@@ -45,6 +45,13 @@ fn open_library_dir(app: tauri::AppHandle, path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Close the desktop window after JavaScript has durably flushed pending saves.
+/// This runs natively so it does not re-enter the webview close-request hook.
+#[tauri::command]
+fn close_after_flush(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.destroy().map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
@@ -52,7 +59,11 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![allow_library_dir, open_library_dir])
+        .invoke_handler(tauri::generate_handler![
+            allow_library_dir,
+            open_library_dir,
+            close_after_flush
+        ])
         .run(tauri::generate_context!())
         .expect("error while running GridIron IQ");
 }
