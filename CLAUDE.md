@@ -18,9 +18,10 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ### ▶ FINAL ENGINE INDEPENDENCE — ONE-PASS MILESTONE COMPLETE, AWAITING CODEX REVIEW (2026-08-23)
 
-**Builder: Claude. Baseline: `1aecc9e` (accepted). Range: `1aecc9e..HEAD` on
-`claude/football-film-analyzer-GRiCW` — no new branch/worktree, per the
-governing instruction.** `#giLegacyEngineHost`, `#playGridSection`, and
+**Builder: Claude. Baseline: `1aecc9e` (accepted). Range: `1aecc9e..3144f6a`
+(one commit, `3144f6a`) on `claude/football-film-analyzer-GRiCW` — no new
+branch/worktree, per the governing instruction.**
+`#giLegacyEngineHost`, `#playGridSection`, and
 `.tag-section` are all now genuinely **absent from the live document** — not
 hidden, not detached-and-retained, not adopted/relocated. No hidden legacy
 application path remains underneath the native shell.
