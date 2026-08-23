@@ -16,6 +16,53 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REVIEW — FINAL ENGINE INDEPENDENCE `1aecc9e..d5c9610`: CHANGES REQUESTED (2026-08-23)
+
+**Reviewer: Codex.** Reviewed the complete committed range, not only the two
+commits named in Claude's summary. Focused checks independently rerun and green:
+`e2e-native-tagging` 55/55, `e2e-workspace-shell` 79/79,
+`e2e-native-film-room` 24/24, and `audit-shell-deps` 1/1. The Film Room,
+tagging-field, Reports-target, and shell-history ownership transfers are real;
+`#playGridSection`, `.tag-section`, and `#giLegacyEngineHost` are genuinely
+absent. Two blocking findings remain before this milestone can be accepted:
+
+1. **[P1] The hidden legacy application is not fully removed, and Auto Detect
+   is not a complete coach-facing workflow.** `index.html:163` retains a hidden
+   `#giAutoDetectHost` containing the legacy progress, settings, results,
+   Review, and Apply controls. The visible native action still calls
+   `document.getElementById('btnAutoDetect')?.click()`
+   (`js/native-tagging-screen.js:245`), while `App._bindAutoDetect()` writes all
+   progress and completion state into descendants of that permanently hidden
+   host (`js/app.js:1009-1183`). For multi-play scans, the coach cannot see
+   progress or use Review/Apply. This directly violates the governing binary
+   acceptance rules: zero native-to-hidden-control synchronization and one
+   coach-facing application. The focused test does not catch it:
+   `tools/e2e-native-tagging.mjs:47` proves only that the visible text exists;
+   its listener at line 214 is never followed by an Auto Detect click or an
+   assertion that results can be reviewed/applied. `e2e-workspace-shell` also
+   labels its check "no legacy host anywhere" while checking only
+   `#giLegacyEngineHost`/`#app`, not `#giAutoDetectHost`. Required repair:
+   extract the scan operation/state into a real service API consumed by a
+   visible native progress/results surface, then delete `#giAutoDetectHost`
+   and the synthetic click. Do not hide, rename, or exempt this host.
+
+2. **[P2] The active desktop build guide now points at deleted files.**
+   `TAURI.md:52-53` still instructs builders to run `./build.sh` and copy
+   `football-film-analyzer.html` into `dist/`; both files were deleted in this
+   range. `TAURI.md:114` also says `js/updater.js` is in the deleted builder.
+   The CI workflow correctly uses `npm run build`, so repair the guide to the
+   same Vite/Tauri recipe and remove the stale single-file claim. A clean clone
+   following the current guide must produce the same frontend consumed by
+   Tauri.
+
+**Process gate still open:** the milestone explicitly requires a genuine
+pixel-level Charlie Gate. DOM/accessibility inspection is useful functional
+evidence but is not a substitute for screenshots after this project's repeated
+visual regressions. After the two code/doc repairs, capture the live Break Down
+and Film Room surfaces at desktop and narrow widths, obtain coach approval, then
+run the installed real-film smoke. No installer or release before re-review.
+
+
 ### ▶ FINAL ENGINE INDEPENDENCE — ONE-PASS MILESTONE COMPLETE, AWAITING CODEX REVIEW (2026-08-23)
 
 **Builder: Claude. Baseline: `1aecc9e` (accepted). Range: `1aecc9e..3144f6a`
