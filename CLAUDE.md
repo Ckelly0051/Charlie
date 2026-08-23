@@ -13,6 +13,76 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-5 REAL-CATALOG DRY RUN COMPLETE — SNAPSHOT/RESTORE FOUND AND FIXED BROKEN ON DESKTOP — AWAITING CODEX REVIEW (2026-08-22)
+
+**Builder: Claude. Scope: the coach's own explicit 8-step PC-5 dry-run
+protocol, run against an isolated, byte-verified copy of the real two-season
+catalog — never the live files.** A fresh forensic backup was taken first
+(`incident-backups/pc5-forensic-backup-20260822-193122/`, gitignored, SHA-256
+verified, `films/` excluded). New `tools/pc5-real-catalog-dry-run.mjs`
+(deliberately not `e2e-*.mjs` — it needs the coach's real seasons on disk and
+is not part of the CI gate) drives the full production write path
+(`SeasonStore` → `TauriBackend` → `CatalogPersistence` → `SqlCatalog`) through
+all 8 steps: fingerprint the live catalog read-only; copy it into an isolated
+app-data root; confirm the copy matches exactly; repeated JV↔Varsity
+switch/edit/restart cycles; backup + restore in each season with cross-season
+scope isolation and linked-film-metadata preservation; a tampered legacy
+sidecar proven ignored; a failed save proven fail-closed; and a final
+fingerprint comparison against the initial live state with every intentional
+difference named. **Live catalog confirmed:** JV ("2025 St. Joseph Mavericks -
+JV") 6 games/440 plays; Varsity ("SJM Varsity 2026") 2 games/50 plays — both
+exactly matching the plan's stated counts, every game `filmMode:'linked'` with
+real folder names.
+
+**A genuine production defect was found and fixed — the reason PC-5 specifies
+a real-catalog dry run rather than trusting the synthetic suite.**
+`SeasonStore.snapshot()` on desktop always takes the `diskStatus().bound`
+branch (unconditionally `true` for `TauriBackend` — no `bindDisk()` step
+exists there), which calls `writeDisk({snapshot:true, ...})` — and
+`TauriBackend.writeDisk()` already creates the backup internally via its own
+`createBackup()` call. `snapshot()` then makes a SEPARATE, immediate trailing
+`createBackup()` call with the identical payload, which the existing de-dup
+guard answered with `null` — read by `restoreBackup()`'s
+`if (!safetyId) return null;` as "no backup was created," even though one
+genuinely was. **Result: restore silently refused to proceed on every single
+attempt, on the real desktop app, for both real seasons.** Reproduced directly
+against the isolated copy before fixing. Fixed by caching the created backup's
+meta (`_lastBackupMeta`) alongside the existing de-dup JSON cache and
+returning it — not `null` — on the duplicate branch; a genuinely different
+edit still reaches the catalog and creates a real new backup.
+
+**Mutation-verified**: reverting the fix reproduces the exact original
+symptom in both the real-catalog dry run and a new permanent regression
+(`tools/e2e-catalog-backend.mjs` section "3c", `dupBackupSecondId:null`),
+reds only that assertion, restored clean. **Verification:**
+`node tools/pc5-real-catalog-dry-run.mjs` **36/36**; `node tools/
+e2e-catalog-backend.mjs` **27/27** (was 25; +2); full canonical gate
+(`bash tools/run-gate.sh`), run twice: **91 harnesses | 91 green | 0 skipped |
+0 failed** both times (one intermediate run hit the documented
+`e2e-native-tagging.mjs` Puppeteer/CDP intermittent, 55/55 clean standalone,
+unrelated, not reproduced on the clean re-run). The live `library.db` was
+confirmed byte-identical (SHA-256) to the forensic backup throughout, with an
+on-disk modification time predating this entire checkpoint.
+
+Two test-construction defects in the dry-run harness itself were found and
+fixed during this checkpoint (disclosed, not silently corrected): an early
+cross-season "leakage" check compared bare `play.id` across two season objects
+that can never coexist in memory, a false test that could only fail on an
+incidental id collision, never a real leak — rewritten to check the edited
+play by its own `(gameId, playId)` pair plus total play count; and
+`snapshot()`'s return value (a backup META OBJECT) was passed directly to
+`restoreBackup()`/`getBackup()` in place of its own `.id` field.
+
+Full detail in `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §7f. No film path, film
+file, existing season/game/play data, schema version, or migration touched.
+Per the coach's explicit instruction, no legacy live file was retired,
+rewritten, archived, or deleted, and no cleanup was performed or authorized.
+
+**Next action:** this is new production code inside the persistence layer
+Codex already accepted at `78eaa7e` — Codex independently reviews it before
+the remaining PC-5 steps (installer, installed smoke against the coach's live
+sessions) proceed.
+
 ### ▶ CODEX FINAL RE-REVIEW OF PC-4 REPAIR `b934f9d` - ACCEPTED (2026-08-22)
 
 **Verdict: ACCEPTED, no findings. PC-4 is complete and PC-5 may open.**

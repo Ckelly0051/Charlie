@@ -1870,3 +1870,132 @@ coach season) clean.
 
 No film path, film file, season/game/play data, schema version, migration, or
 unrelated file touched. No installer, package, tag, or release.
+
+## 7f. PC-5 real-catalog dry run — snapshot()/restoreBackup() found and fixed
+##     broken on desktop (2026-08-22)
+
+PC-4 was accepted by Codex at `78eaa7e`, opening PC-5 (forensic backup, dry run
+against the real two-season catalog, permission-gated legacy-data handling,
+installer, installed smoke). Per the coach's own explicit 8-step protocol for
+the dry run, a fresh forensic backup was taken first
+(`incident-backups/pc5-forensic-backup-20260822-193122/`, gitignored, SHA-256
+verified against the live source, `films/` explicitly excluded), then a new
+harness (`tools/pc5-real-catalog-dry-run.mjs`) was built to run the FULL
+production write path — `SeasonStore` -> `TauriBackend` -> `CatalogPersistence`
+-> `SqlCatalog` — against an ISOLATED COPY of the real catalog, never the live
+files. Deliberately not named `tools/e2e-*.mjs`: it depends on the coach's real
+seasons already existing on this machine and is not part of the CI-swept gate.
+
+**Live catalog measured, read-only, before anything else.** `sjm-varsity-2026`
+("SJM Varsity 2026") — 2 games / 50 plays, matches the plan's own stated count.
+`2026-varsity-demo` ("2025 St. Joseph Mavericks - JV") — 6 games / 440 plays,
+matches exactly. Both seasons' every game carries `filmMode:'linked'` with real
+`filmDir` values naming the coach's actual game folders. Neither season's raw
+`data.revision` was ever stamped (reads `undefined`, normalizes to 0) — expected
+for data that predates PC-4's revision fencing.
+
+**The 8 steps, each run against the isolated copy only, never the live files:**
+fingerprint the live catalog read-only; copy the catalog into an isolated
+temporary app-data root (film excluded); confirm the copy's fingerprint matches
+the live one exactly; repeated JV<->Varsity open/switch cycles with a
+reversible tagged-play edit in each season, surviving a simulated restart;
+backup + restore in each season with cross-season backup-scope isolation and
+linked-film-metadata preservation; a tampered legacy `season.json` sidecar
+proven ignored by normal startup (SQLite remains the sole read authority); a
+failed save proven fail-closed (the season stays durable, neither lost nor
+resurrected); and a final fingerprint comparison against the initial live
+state, with every intentional difference (this dry run's own edits, the
+revision advance from its own writes) named explicitly rather than hidden
+inside a loose comparison.
+
+**A genuine production defect was found and fixed via this process — this is
+exactly why PC-5 specifies a REAL-catalog dry run rather than trusting the
+already-green synthetic-fixture suite.** `SeasonStore.snapshot(label)`:
+```js
+if (this.backend.diskStatus().bound) {
+  await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label }));
+}
+return this.backend.createBackup(seasonId, data, label);
+```
+`TauriBackend.diskStatus().bound` is `this._ok()`, i.e. `!!this.fs` — set
+unconditionally in the constructor the instant `window.__TAURI__` exists, which
+is true from the moment the real desktop app boots. There is no separate
+`bindDisk()` step on desktop (that concept only exists for `BrowserBackend`'s
+File System Access API). So on the real app, `snapshot()` ALWAYS takes the
+bound branch: `writeDisk(seasonId, data, {snapshot:true, label})` runs first,
+and `TauriBackend.writeDisk()` itself already calls
+`this.createBackup(seasonId, data, opts.label)` internally when
+`opts.snapshot` is true — creating the real backup row and caching its JSON in
+`this._lastBackupJson` for de-dup purposes. `snapshot()` then makes its OWN,
+SEPARATE trailing `createBackup(seasonId, data, label)` call with the
+IDENTICAL `seasonId`/`data`/`label` — an exact JSON match against what was just
+cached — which the existing de-dup guard answered with `return null;`.
+
+**The consequence: `SeasonStore.snapshot()` returned `null` on every single
+call on the real desktop app, even though the backup genuinely was created.**
+`StorageManager.saveNow()` has the identical shape but discards the second
+call's result, so it was unaffected. `SeasonStore.restoreBackup(id)` was not:
+```js
+const safetyId = await this.snapshot('Before restore');
+if (!safetyId) return null;
+```
+`safetyId` was always `null`, so **restore refused to proceed on every single
+attempt, on the real desktop app, for both real seasons** — reproduced directly
+against the isolated copy of the coach's own catalog before this was fixed
+(`snapshot created: FAIL`, `restore succeeded: FAIL`, both seasons). Coach
+smoke would have hit this immediately the first time restore was exercised.
+
+**Fix, in `js/storage-backend.js`'s `TauriBackend.createBackup()`.** A new
+`this._lastBackupMeta` field caches the created backup's meta object alongside
+the existing `_lastBackupJson` de-dup cache. The de-dup branch now returns
+`this._lastBackupMeta` instead of `null` — an honest answer to a genuine
+duplicate call ("yes, that backup exists") rather than a false failure,
+without creating a second row. A genuinely different edit afterward still
+reaches the catalog and produces a real new backup id; the guard's actual
+purpose (preventing duplicate rows from the exact writeDisk()-then-snapshot()
+collision shape) is unchanged.
+
+**Mutation-verified.** Reverting the fix reproduces the exact original symptom
+in the real-catalog dry run (`snapshot created: FAIL` on both seasons,
+`restore succeeded: FAIL` on both) and reds exactly the new
+`tools/e2e-catalog-backend.mjs` assertion (section 9/"3c") built to catch it
+(`dupBackupSecondId:null, dupBackupSecondTruthy:false`), with the sibling
+"genuinely different edit still creates a new backup" assertion staying green
+either way. Restored, both clean.
+
+**Verification.** `node tools/pc5-real-catalog-dry-run.mjs` — **36/36**, run
+against a fresh, byte-verified copy of the real two-season catalog (film
+excluded), never the live files. `node tools/e2e-catalog-backend.mjs` — **27/27**
+(was 25; +2, section "3c"). Full canonical gate (`bash tools/run-gate.sh`), run
+twice: **91 harnesses | 91 green | 0 skipped | 0 failed** both times (one
+intermediate run hit the documented `e2e-native-tagging.mjs` Puppeteer/CDP
+intermittent — 55/55 clean standalone, not caused by this change, not
+reproduced on the clean re-run). The live `library.db` was confirmed
+byte-identical (SHA-256) to the pre-work forensic backup throughout, and its
+on-disk modification time predates every action in this checkpoint.
+
+**Two test-construction defects in the dry-run harness itself, found and fixed
+during this checkpoint, disclosed rather than silently corrected** (the same
+discipline this file's own history keeps applying to itself): an early
+cross-season "leakage" check compared bare `play.id` values across two
+completely separate season objects that can never coexist in memory (`openSeason()`
+fully replaces `SeasonStore.data`) — a false test that could only ever fail on
+an incidental numeric id collision between games in different seasons, never on
+a real leak; rewritten to check the edited play by its own `(gameId, playId)`
+pair plus the season's total play count. And `snapshot()`'s own return value
+(a backup META OBJECT, `{id, t, label, ...}`) was passed directly to
+`restoreBackup(id)`/`getBackup(seasonId, id)` in place of its own `.id` field —
+extracted correctly after tracing the real return shape.
+
+No film path, film file, existing season/game/play data, schema version,
+migration, or unrelated file touched. No installer, package, tag, or release.
+The live catalog and every legacy sidecar remain byte-for-byte as they were
+before this checkpoint began. Per the coach's own explicit instruction, no
+legacy live file was retired, rewritten, archived, or deleted, and no cleanup
+was performed or authorized.
+
+**Next action.** This fix is new production code inside the persistence layer
+Codex accepted at `78eaa7e` — it has not yet been independently reviewed.
+Per the standing handoff protocol, Codex reviews this checkpoint before the
+remaining PC-5 steps (installer, installed smoke against the coach's live
+sessions) proceed.

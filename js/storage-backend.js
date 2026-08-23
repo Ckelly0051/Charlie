@@ -463,6 +463,7 @@ export class TauriBackend extends StorageBackend {
     this._lastWrite = 0;
     this._dirReady = {};        // per-season "backups dir ensured" cache
     this._lastBackupJson = null;
+    this._lastBackupMeta = null;
   }
   name() { return 'tauri'; }
 
@@ -915,7 +916,26 @@ export class TauriBackend extends StorageBackend {
       return null;
     }
     const json = JSON.stringify(data);
-    if (this._lastBackupJson && this._lastBackupJson === json) return null;
+    // PC-5 dry-run finding: writeDisk({snapshot:true}) already creates the
+    // backup row for this exact (seasonId, data, label) below (its own
+    // internal createBackup call at the top of this file's writeDisk()), and
+    // SeasonStore.snapshot()/saveNow() BOTH make a second, separate call to
+    // this method right after, with the identical payload -- there is no way
+    // for a caller to know the first call already succeeded. This guard used
+    // to answer that duplicate call with `null`, which SeasonStore.snapshot()
+    // and restoreBackup() read as "no backup was created" even though one
+    // genuinely was: `if (!safetyId) return null;` inside restoreBackup()
+    // made every restore on desktop refuse to proceed, since diskStatus().
+    // bound is unconditionally true for TauriBackend (see _ok() above) and so
+    // this collision fires on every single snapshot() call. Reproduced
+    // directly against a copy of the real coach catalog before this fix
+    // (tools/pc5-real-catalog-dry-run.mjs): snapshot() returned null and
+    // restoreBackup() bailed out on every attempt, on both real seasons.
+    // Returning the cached meta of the identical backup that was just
+    // created answers the duplicate call honestly -- "yes, that backup
+    // exists" -- instead of falsely reporting failure, without creating a
+    // second row.
+    if (this._lastBackupJson && this._lastBackupJson === json) return this._lastBackupMeta;
     // PC-2: restore points are rows in the shared library db, the ONE
     // authority for a NEW backup write. Pre-existing legacy season_<ts>.json
     // restore-point files remain READABLE (listBackups/getBackup/deleteBackup
@@ -931,7 +951,11 @@ export class TauriBackend extends StorageBackend {
     }
     try {
       const bid = await cp.createBackup(seasonId, data, label || 'Save');
-      if (bid) { const meta = this._meta(data, label); meta.id = bid; this._lastBackupJson = json; return meta; }
+      if (bid) {
+        const meta = this._meta(data, label); meta.id = bid;
+        this._lastBackupJson = json; this._lastBackupMeta = meta;
+        return meta;
+      }
       return null;
     } catch (e) {
       console.error('catalog backup failed', e);

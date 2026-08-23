@@ -1,6 +1,8 @@
 # GridIron IQ Desktop Persistence Convergence
 
-**Status:** PC-0 through PC-4 are accepted. PC-4 final repair `b934f9d` was independently accepted by Codex on 2026-08-22 after focused verification (104/104 persistence locks; 33/33 revision-fence assertions). PC-5 — migration and installed smoke — is now open. The accepted PC-4 commit is the rollback point for PC-5.
+**Status:** PC-0 through PC-4 are accepted. PC-4 final repair `b934f9d` was independently accepted by Codex on 2026-08-22 after focused verification (104/104 persistence locks; 33/33 revision-fence assertions). PC-5 — migration and installed smoke — is open. The accepted PC-4 commit is the rollback point for PC-5.
+
+PC-5's real-catalog dry run (all 8 steps of the coach's own protocol) is complete against an isolated, byte-verified copy of the real two-season catalog, never the live files: `tools/pc5-real-catalog-dry-run.mjs`, 36/36. The dry run found and fixed a genuine production defect — `SeasonStore.snapshot()`/`restoreBackup()` were completely non-functional on the real desktop app (see `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §7f). This is new, unreviewed production code inside the persistence layer Codex already accepted; **Codex must independently review this fix before the remaining PC-5 steps (installer, installed smoke) proceed.**
 
 ## Objective
 
