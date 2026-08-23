@@ -275,32 +275,61 @@ export class StatsEngine {
     this.filter = playFilter || null;
     this.heatMaps = new HeatMaps();
     this.advanced = new AdvancedMetrics();
-    // Final Engine Independence (2026-08-22): the legacy #statsDashboard /
-    // #btnCloseStats markup is deleted from index.html. dashboardEl now
-    // defaults to a private, never-inserted scratch element — real content
-    // is always injected via setDashboardTarget() the moment a route mounts
-    // (ReportsScreen.mount(), below). btnCloseStats is likewise a detached
-    // stand-in: its click affordance was already superseded by native
-    // Reports' own close/back actions, so this preserves the field's shape
-    // (`if (this.btnCloseStats)` keeps working) with no reachable control.
-    this.dashboardEl = document.createElement('div');
-    this.dashboardEl.hidden = true;
+    // Final Engine Independence (2026-08-22, repaired after CHANGES REQUESTED
+    // review d51c97b): the legacy #statsDashboard / #btnCloseStats markup is
+    // deleted from index.html. dashboardEl defaults to null — EXPLICITLY
+    // ABSENT, not a fabricated stand-in element. A prior version of this
+    // constructor defaulted to a private, never-inserted <div>, which meant
+    // every render entry point below could succeed into that invisible node
+    // whenever native ownership was unavailable — a silent render failure
+    // indistinguishable from success. Real content is injected only via
+    // setDashboardTarget() the moment ReportsScreen.mount() genuinely owns a
+    // connected native target; every render entry point now refuses to run
+    // (see _requireRenderTarget()) rather than compute a report nobody can
+    // ever see. btnCloseStats remains a detached stand-in — it is a CONTROL,
+    // not a render sink, so it carries none of the silent-success risk: a
+    // click on a node nobody can reach is simply unreachable, never a false
+    // "it worked."
+    this.dashboardEl = null;
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.createElement('button');
 
     this._bindEvents();
   }
 
-  /** Inject the active report presentation target. Analytics formulas remain in
-   *  this engine; native route ownership no longer requires moving a legacy DOM
-   *  node. Returns the prior target so lifecycle owners can restore it exactly. */
+  /** Inject (or, with `null`, explicitly clear) the active report presentation
+   *  target. Analytics formulas remain in this engine; native route ownership
+   *  no longer requires moving a legacy DOM node. Returns the prior target so
+   *  lifecycle owners can restore it exactly. `null` is the only accepted
+   *  "no target" value — a genuinely absent target must never be silently
+   *  substituted with a fabricated element, which is what let Reports render
+   *  invisibly when unmounted. Any other falsy or non-element value is a
+   *  programmer error and fails loudly. */
   setDashboardTarget(element) {
+    if (element === null) {
+      const prior = this.dashboardEl;
+      this.dashboardEl = null;
+      return prior;
+    }
     if (!element || typeof element.querySelector !== 'function') {
-      throw new TypeError('StatsEngine dashboard target must be a DOM element.');
+      throw new TypeError('StatsEngine dashboard target must be a DOM element or null.');
     }
     const prior = this.dashboardEl;
     this.dashboardEl = element;
     return prior;
+  }
+
+  /** The single choke point every report-render entry point below must pass
+   *  through before touching dashboardEl. Fails closed and LOUDLY (a captured
+   *  console.error, not a silent no-op) when no connected native target
+   *  exists — this is what makes "no target" a visible failure instead of a
+   *  report computed into an invisible, detached node. A target that was set
+   *  once but has since been torn out of the document (route unmounted
+   *  without clearing it) is treated the same as no target at all. */
+  _requireRenderTarget(who) {
+    if (this.dashboardEl && this.dashboardEl.isConnected) return true;
+    console.error(`[GridIron IQ] ${who}() called with no connected native Reports target -- refusing to render into an absent/detached element.`);
+    return false;
   }
 
   _bindEvents() {
@@ -336,6 +365,7 @@ export class StatsEngine {
       reports.show();
       return;
     }
+    if (!this._requireRenderTarget('showDashboard')) return;
     const stats = this.compute();
     this._renderDashboard(stats);
     this.dashboardEl.classList.remove('hidden');
@@ -349,7 +379,9 @@ export class StatsEngine {
       app.reportsScreen.show();
       return;
     }
-    this.dashboardEl.classList.add('hidden');
+    // Hiding a target that doesn't currently exist is a harmless no-op (unlike
+    // rendering into one) -- optional chaining, not a _requireRenderTarget gate.
+    this.dashboardEl?.classList.add('hidden');
     // showAdvancedReports() had to reveal #wsClassicOutlet for this dashboard to
     // render. Put it back, or the retired classic UI stays exposed underneath.
     window.app?.workspaceShell?.restoreRouteVisibility?.();
@@ -5344,6 +5376,7 @@ export class StatsEngine {
   }
 
   renderOpponentScout(opponentName) {
+    if (!this._requireRenderTarget('renderOpponentScout')) return;
     const esc = Charts._esc;
     const data = this.generateOpponentScout(opponentName);
     const name = esc(opponentName || 'Opponent');
@@ -5424,6 +5457,7 @@ export class StatsEngine {
   }
 
   renderScoutReport() {
+    if (!this._requireRenderTarget('renderScoutReport')) return;
     const report = this.generateScoutReport();
     if (!report) { this._emptyOverlay('Scout Report', 'No opponent plays tagged yet. Tag the opponent’s formations, play types, and results, then generate the report.'); return; }
     const notes = document.getElementById('scoutNotes')?.value || '';
@@ -6531,6 +6565,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
   /** Graceful in-overlay empty state — use instead of a blocking alert() when a
    *  report has nothing to show (no plays tagged for it yet). */
   _emptyOverlay(title, msg) {
+    if (!this._requireRenderTarget('_emptyOverlay')) return;
     this.dashboardEl.innerHTML = `
       <div class="stats-overlay">
         <div class="stats-container">
@@ -6552,6 +6587,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
   }
 
   renderSelfScout() {
+    if (!this._requireRenderTarget('renderSelfScout')) return;
     const report = this.generateSelfScout();
     if (!report) { this._emptyOverlay('Self-Scout', 'No run/pass-tagged offensive plays yet. Tag your offense’s Run/Pass (and Play Type) on a few snaps, then re-open Self-Scout to see your tendencies and the tells you’re giving away.'); return; }
     const team = Charts._esc(this._subjectName('Our Offense'));
@@ -6702,6 +6738,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
   // via the "Defense" button so it's never buried or silently empty.
   // ================================================================
   renderDefensiveReport() {
+    if (!this._requireRenderTarget('renderDefensiveReport')) return;
     const stats = this.compute();
     const team = this._subjectName('Our Defense');
     const hasData = stats.defensive.hasData;

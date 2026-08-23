@@ -63,25 +63,83 @@ await sleep(150);
 let result = await page.evaluate(() => ({
   native: document.querySelectorAll('#wsReports > [data-native-reports]').length,
   dashboardIds: document.querySelectorAll('#statsDashboard').length,
-  // Final Engine Independence (2026-08-22): #statsDashboard/#btnCloseStats no
-  // longer have ANY authored markup, in #giLegacyEngineHost or anywhere else.
-  // StatsEngine's original (pre-Reports-mount) dashboardEl — preserved by
-  // ReportsScreen as _legacyTarget precisely so restore() can hand it back —
-  // is a private, never-inserted <div>. It must never carry an id and must
-  // never be connected to the document, which is what makes "there is
-  // exactly one live owner of #statsDashboard" a real, provable guarantee
-  // rather than an id-swap convention.
-  fallbackConnected: !!window.app?.reportsScreen?._legacyTarget?.isConnected,
-  fallbackHasId: !!window.app?.reportsScreen?._legacyTarget?.id,
+  // Final Engine Independence (2026-08-22, repaired after CHANGES REQUESTED
+  // review d51c97b): #statsDashboard/#btnCloseStats have no authored markup
+  // anywhere -- not in #giLegacyEngineHost, not as a detached fallback either.
+  // StatsEngine.dashboardEl is explicitly null until a route supplies a real,
+  // connected target via setDashboardTarget(); it is never a fabricated
+  // stand-in. So "there is exactly one live owner of #statsDashboard" is
+  // provable directly off the engine's own field, not inferred from a
+  // detached fallback's absence.
+  // dashboardEl is native-reports.jsx's inner [data-native-report-content]
+  // node, a descendant of the #statsDashboard route root -- not that root
+  // element itself. The provable claim is that it is the exact, connected
+  // content node living inside the one true #statsDashboard section.
+  engineTargetIsLiveContent: window.app?.stats?.dashboardEl === document.querySelector('#wsReports [data-native-reports]#statsDashboard [data-native-report-content]'),
+  engineTargetConnected: !!window.app?.stats?.dashboardEl?.isConnected,
   tabs: [...document.querySelectorAll('#wsReports [data-report-tab]')].map(node => node.dataset.reportTab),
   actions: [...document.querySelectorAll('#wsReports [data-rp-action]')].map(node => node.dataset.rpAction),
 }));
-ok(result.native === 1 && result.dashboardIds === 1 && !result.fallbackConnected && !result.fallbackHasId,
-  'Reports has one native owner; the pre-mount dashboard fallback is a detached, id-less scratch element', JSON.stringify(result));
+ok(result.native === 1 && result.dashboardIds === 1 && result.engineTargetIsLiveContent && result.engineTargetConnected,
+  'Reports has one native owner; StatsEngine.dashboardEl is exactly the live, connected content node it owns', JSON.stringify(result));
 ok(result.tabs.join(',') === 'overview,offense,defense,special,players,selfscout,season,matchup',
   'Native Reports exposes all eight football report views', JSON.stringify(result.tabs));
 ok(result.actions.includes('scout') && result.actions.includes('export'),
   'Native Reports exposes scout and export commands', JSON.stringify(result.actions));
+
+console.log('\n== F15. A withheld render target fails loudly instead of rendering into nowhere ==');
+// Repair of Codex CHANGES REQUESTED review d51c97b, finding 1: a prior version
+// of StatsEngine.dashboardEl defaulted to a detached, never-inserted <div>, so
+// every report-render entry point could succeed into that invisible node
+// whenever native ownership was unavailable -- masking a lifecycle failure as
+// a silent success. dashboardEl is now explicitly null until injected; every
+// render entry point must refuse (loudly) rather than render into an
+// absent/detached element. This withholds the target directly -- the exact
+// scenario the review named -- and proves both the refusal and the recovery.
+const beforeErrorCount = errors.length;
+let withheld = await page.evaluate(() => {
+  const stats = window.app.stats;
+  const priorTarget = stats.dashboardEl;
+  const priorHtml = priorTarget ? priorTarget.innerHTML : null;
+  stats.setDashboardTarget(null);
+
+  let showThrew = false;
+  try { stats.showDashboard(); } catch (e) { showThrew = true; }
+  const targetStillNullAfterShow = stats.dashboardEl === null;
+  const priorNodeUntouchedAfterShow = priorTarget ? priorTarget.innerHTML === priorHtml : true;
+
+  let defThrew = false;
+  try { stats.renderDefensiveReport(); } catch (e) { defThrew = true; }
+  const targetStillNullAfterDef = stats.dashboardEl === null;
+  const priorNodeUntouchedAfterDef = priorTarget ? priorTarget.innerHTML === priorHtml : true;
+
+  // Restore the real target -- the positive control proving the guard is a
+  // refusal, not a permanent lockout, and that recovery leaves the engine
+  // pointed at exactly the same live section as before.
+  stats.setDashboardTarget(priorTarget);
+  const recovered = stats.dashboardEl === priorTarget;
+
+  return {
+    showThrew, targetStillNullAfterShow, priorNodeUntouchedAfterShow,
+    defThrew, targetStillNullAfterDef, priorNodeUntouchedAfterDef,
+    recovered,
+  };
+});
+const newErrors = errors.slice(beforeErrorCount);
+const sawShowRefusal = newErrors.some(e => /showDashboard\(\) called with no connected native Reports target/.test(e));
+const sawDefRefusal = newErrors.some(e => /renderDefensiveReport\(\) called with no connected native Reports target/.test(e));
+ok(!withheld.showThrew && withheld.targetStillNullAfterShow && withheld.priorNodeUntouchedAfterShow && sawShowRefusal,
+  'showDashboard() with a withheld target fails loudly (a captured error) instead of rendering into an absent element',
+  JSON.stringify({ withheld, newErrors }));
+ok(!withheld.defThrew && withheld.targetStillNullAfterDef && withheld.priorNodeUntouchedAfterDef && sawDefRefusal,
+  'renderDefensiveReport() with a withheld target fails the same way -- the guard is systemic, not one call site',
+  JSON.stringify({ withheld, newErrors }));
+ok(withheld.recovered, 'The withheld target is a refusal, not a lockout -- re-injecting it restores the exact same live section', JSON.stringify(withheld));
+// Both refusals are the expected, deliberately-triggered signal this test
+// exists to prove, not an unrelated regression -- exclude them from the
+// journey's final "no page errors" assertion rather than let them mask it.
+errors.splice(beforeErrorCount, newErrors.length);
+
 result = await page.evaluate(() => {
   const host = document.getElementById('wsReports');
   const native = host?.querySelector('[data-native-reports]');

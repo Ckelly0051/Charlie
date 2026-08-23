@@ -8,10 +8,13 @@ const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'playe
  * Native Reports route controller.
  *
  * StatsEngine remains the only formula owner. This controller owns route markup,
- * report composition, actions, tabs, accessibility, and film bindings. The
- * legacy #statsDashboard node no longer exists in the document at all — it is
- * a private detached element StatsEngine defaults to — and the engine renders
- * into an explicitly injected native content target while the shell is mounted.
+ * report composition, actions, tabs, accessibility, and film bindings. There is
+ * no legacy #statsDashboard node anywhere in the document, and no detached
+ * fallback stand-in either — StatsEngine.dashboardEl is EXPLICITLY `null`
+ * whenever this controller does not own a connected native target, and every
+ * report-render entry point in StatsEngine refuses to run (fails loudly, not
+ * silently) rather than compute a report into an absent/detached element. See
+ * StatsEngine.setDashboardTarget()/_requireRenderTarget().
  */
 export class ReportsScreen {
   constructor(app) {
@@ -21,7 +24,6 @@ export class ReportsScreen {
     this.activeTab = 'overview';
     this._native = null;
     this._observer = null;
-    this._legacyTarget = app.stats?.dashboardEl || document.getElementById('statsDashboard');
     this._mode = 'main';
     this.perspective = 'self';
     this._opponentData = null;
@@ -31,18 +33,11 @@ export class ReportsScreen {
   mount(host) {
     if (!host || !this.app.stats) return false;
     this._unmountNative();
-    // Final Engine Independence (2026-08-22): the legacy #statsDashboard
-    // node is now a private, never-inserted detached element (see
-    // StatsEngine's constructor) — it carries no id at all, so there is no
-    // longer a live-DOM id collision to avoid when the native content host
-    // (which owns id="statsDashboard" for real, per native-reports.jsx)
-    // mounts. The id-swap dance this comment used to describe is gone.
     this.host = host;
     this._native = mountNativeReports({ host, screen: this });
     this.content = this._native.content;
     if (!this.content) return false;
-    this.app.stats.setDashboardTarget?.(this.content);
-    if (this.app.stats.dashboardEl !== this.content) this.app.stats.dashboardEl = this.content;
+    this.app.stats.setDashboardTarget(this.content);
     this._observer = new MutationObserver(() => this._syncPresentation());
     this._observer.observe(this.content, { childList: true, subtree: false });
     this._syncHeader();
@@ -53,10 +48,10 @@ export class ReportsScreen {
     this._observer?.disconnect();
     this._observer = null;
     this._unmountNative();
-    if (this._legacyTarget) {
-      this.app.stats.setDashboardTarget?.(this._legacyTarget);
-      if (this.app.stats.dashboardEl !== this._legacyTarget) this.app.stats.dashboardEl = this._legacyTarget;
-    }
+    // No fallback to hand back -- the target is explicitly absent the moment
+    // this controller no longer owns a connected one. StatsEngine's render
+    // entry points fail closed (loudly) rather than rendering into nowhere.
+    this.app.stats?.setDashboardTarget?.(null);
     this.host = null;
     this.content = null;
   }

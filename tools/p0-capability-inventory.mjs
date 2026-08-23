@@ -67,7 +67,7 @@ export const P0_CAPABILITIES = [
   { id:'study.advanced-reports', surface:'study', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Reaching Advanced Reports no longer exposes the classic outlet' },
 
   // Reports: preserve football analysis breadth and canonical actions
-  { id:'reports.native-owner', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Reports has one native owner; the pre-mount dashboard fallback is a detached, id-less scratch element' },
+  { id:'reports.native-owner', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Reports has one native owner; StatsEngine.dashboardEl is exactly the live, connected content node it owns' },
   { id:'reports.eight-views', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'All eight report views render a real pane' },
   { id:'reports.lens-board', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Overview reads canonical totals, success, and yards per play' },
   { id:'reports.lens-routing', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'A highlighted Overview result opens a non-empty composite-ref film cohort' },

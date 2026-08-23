@@ -511,24 +511,28 @@ await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !!document.querySelector('#wsClassicOutlet') }));
 ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
 // S1 REPORTS OWNERSHIP CONTRACT. The visible dashboard is created inside the
-// Preact route; the pre-mount fallback stays a private, id-less, never-
-// inserted element.
+// Preact route, and StatsEngine's own dashboardEl points at exactly that node
+// -- no fallback stand-in exists for it to be confused with.
 r = await page.evaluate(() => ({
   nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
   nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
   legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
-  // Final Engine Independence (2026-08-22): #statsDashboard/#giLegacyEngineHost
-  // no longer share any markup at all. ReportsScreen's captured fallback
-  // (_legacyTarget) is a bare, never-appended <div> — it has no id and is not
-  // connected to the document, which is the real, provable form of "the
-  // legacy dashboard never leaks into a live route."
-  fallbackDetachedAndIdLess: !window.app.reportsScreen._legacyTarget?.isConnected
-    && !window.app.reportsScreen._legacyTarget?.id,
+  // Final Engine Independence (2026-08-22, repaired after CHANGES REQUESTED
+  // review d51c97b): #statsDashboard/#giLegacyEngineHost no longer share any
+  // markup at all, and StatsEngine.dashboardEl is never a fabricated stand-in
+  // -- it is explicitly null until ReportsScreen injects the live section, so
+  // "the legacy dashboard never leaks into a live route" is provable directly
+  // off the engine's own field rather than inferred from a detached
+  // fallback's absence.
+  // dashboardEl is native-reports.jsx's inner [data-native-report-content]
+  // node, a descendant of the #statsDashboard route root -- not that root
+  // element itself.
+  engineTargetIsLiveContent: window.app.stats.dashboardEl === document.querySelector('#wsReports [data-native-reports]#statsDashboard [data-native-report-content]'),
   mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
   tabs: document.querySelectorAll('#wsReports [data-report-tab]').length,
 }));
-ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.fallbackDetachedAndIdLess && r.mainActions === 2 && r.tabs === 8,
-  'Native Reports owns its route and actions; the pre-mount fallback is a detached, id-less scratch element', JSON.stringify(r));
+ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.engineTargetIsLiveContent && r.mainActions === 2 && r.tabs === 8,
+  'Native Reports owns its route and actions; StatsEngine.dashboardEl is exactly the live content node it owns', JSON.stringify(r));
 r = await page.evaluate(() => {
   const screen = window.app.reportsScreen, calls = [];
   const original = screen.export;
@@ -673,9 +677,15 @@ r = await page.evaluate(() => {
       && !document.querySelector('#giLegacyEngineHost .top-bar .more-menu')
       && !document.getElementById('settingsDrawer')
       && !document.getElementById('drawerScrim'),
+    // Repair of Codex CHANGES REQUESTED review d51c97b, finding 1:
+    // ReportsScreen.restore() (called by disable()) must EXPLICITLY clear
+    // StatsEngine's render target to null rather than hand back a fabricated
+    // stand-in a coach could silently render into.
+    dashboardTargetCleared: window.app.stats.dashboardEl === null,
   };
 });
 ok(r.restored && r.chromeRestored, 'disable() (internal teardown) parks media in its permanent host and restores every adopted chrome control', JSON.stringify(r));
+ok(r.dashboardTargetCleared, 'disable() clears StatsEngine.dashboardEl to null -- an explicitly absent target, never a detached stand-in', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });
