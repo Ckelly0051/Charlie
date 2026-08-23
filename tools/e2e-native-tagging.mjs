@@ -528,6 +528,62 @@ ok(state.calls.apply===1&&state.after===ad.before+2&&state.starts[0]===200&&stat
   'Apply All reaches the real PlayDetector.applyDetectedPlays exactly once and the plays land in the tagger',JSON.stringify(state));
 ok(state.stampedFormation.every(f=>f==='Ace'),'Applied plays are auto-tagged from the scan analysis through the real stamping path',JSON.stringify(state));
 
+state=await page.evaluate(()=>{
+  const before=app.tagger.plays.length;
+  const second=app.autoDetectScreen.applyAll();
+  const snap=app.autoDetectScreen.snapshot();
+  return{before,after:app.tagger.plays.length,second,calls:window.__adCalls.apply,canApply:snap.canApply,canReview:snap.canReview};
+});
+ok(state.second===0&&state.before===state.after&&state.calls===1&&!state.canApply&&!state.canReview,
+  'Apply All consumes its scan result -- a second action cannot duplicate plays or reopen stale Review/Apply controls',JSON.stringify(state));
+
+// A partial Review is also terminal: rejected detections cannot be added later
+// by a stale Apply All action.
+await page.evaluate(()=>app.autoDetectScreen.start());
+await page.waitForFunction(()=>app.autoDetectScreen.snapshot().canReview===true);
+await page.evaluate(()=>app.autoDetectScreen.openReview());
+await page.waitForSelector('#detectReviewModal');
+state=await page.evaluate(()=>{
+  const before=app.tagger.plays.length;
+  const checks=[...document.querySelectorAll('#detectReviewModal .detect-review-row input[type=checkbox]')];
+  checks[1].click();
+  document.getElementById('detectReviewApply').click();
+  const afterReview=app.tagger.plays.length;
+  const staleApply=app.autoDetectScreen.applyAll();
+  const snap=app.autoDetectScreen.snapshot();
+  return{before,afterReview,afterStale:app.tagger.plays.length,staleApply,calls:window.__adCalls.apply,canApply:snap.canApply,canReview:snap.canReview};
+});
+ok(state.afterReview===state.before+1&&state.afterStale===state.afterReview&&state.staleApply===0&&!state.canApply&&!state.canReview,
+  'Applying a reviewed subset consumes the whole scan -- rejected detections cannot leak through a later Apply All',JSON.stringify(state));
+
+// A scan belongs to the season/game where it started. Switching games while
+// the detector is awaiting work must expire the result before any mutation.
+state=await page.evaluate(async ids=>{
+  let release;
+  app.detector.scan=()=>new Promise(resolve=>{release=()=>{
+    const found=[{start:240,end:245,peak:1,confidence:0.9}];
+    app.detector.detectedPlays=found;
+    app.detector.motionData=[{time:0,motion:0.4},{time:5,motion:0.9}];
+    resolve(found);
+  };});
+  Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
+  const origin={seasonId:app.storage.seasonStore.currentSeasonId,gameId:app.storage.seasonStore.data.activeGameId};
+  const pending=app.autoDetectScreen.start();
+  await app.storage.switchToGame(ids.secondId,{persist:false});
+  const before=app.tagger.plays.length;
+  release();
+  await pending;
+  const snap=app.autoDetectScreen.snapshot();
+  const staleApply=app.autoDetectScreen.applyAll();
+  const after=app.tagger.plays.length;
+  await app.storage.switchToGame(ids.firstId,{persist:false});
+  Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
+  return{origin,current:ids.secondId,before,after,staleApply,resultText:snap.resultText,canApply:snap.canApply,canReview:snap.canReview};
+},{firstId:fixture.firstId,secondId:fixture.secondId});
+ok(state.origin.gameId===fixture.firstId&&state.before===state.after&&state.staleApply===0
+   &&/expired because the active game changed/.test(state.resultText)&&!state.canApply&&!state.canReview,
+  'A pending scan is fenced to its starting season/game and expires without mutating the game opened meanwhile',JSON.stringify(state));
+
 await page.evaluate(()=>{
   const done=[...document.querySelectorAll('[data-overlay-id="auto-detect"] button')].find(b=>b.textContent.trim()==='Done');
   done?.click();

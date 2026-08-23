@@ -103,12 +103,12 @@ presentations over the same state and commands. It does not itself design the
 mobile UI, but it prevents mobile from becoming a third interface synchronized
 against obsolete desktop controls.
 
-> **STATUS (2026-08-23): implementation range built, gated, and awaiting
-> independent Codex review — see CLAUDE.md's "FINAL ENGINE INDEPENDENCE"
-> changelog entry for the full account.** `#giLegacyEngineHost` is deleted;
+> **STATUS (2026-08-23): implementation and the independent review's code
+> repairs are complete — see CLAUDE.md's "FINAL ENGINE INDEPENDENCE" and Auto
+> Detect lifecycle entries for the full account.** `#giLegacyEngineHost` is deleted;
 > zero production code reaches any retired control id; `build.sh`/
 > `football-film-analyzer.html` are deleted (proven unreachable first); full
-> canonical gate is 90/90. Not yet satisfied: an installed real-film coach
+> canonical gate was 90/90 before the focused Auto Detect repair; its focused journey is 67/67. Not yet satisfied: an installed real-film coach
 > smoke (no installer was built this pass, per the governing instruction —
 > Codex review comes first), and a genuine pixel-level visual review (the
 > Charlie Gate pass this range performed was live-DOM/accessibility-tree

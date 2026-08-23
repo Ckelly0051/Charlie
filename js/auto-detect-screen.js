@@ -42,15 +42,26 @@ export class AutoDetectScreen {
     };
 
     this._lastAnalyses = [];
+    this._scanContext = null;
     this._visionProgress = 0;
     this._motionCanvas = null;
 
     this.detector.on('scan-progress', (data) => {
+      if (this.status !== 'scanning') return;
+      if (this._scanContext && !this._ownsContext(this._scanContext)) {
+        this._expireContext(this._scanContext);
+        return;
+      }
       const pct = Math.round(data.progress * 100);
       const timeStr = data.time != null ? ` · ${data.time.toFixed(1)}s` : '';
       this._setState({ progress: pct, statusText: `${pct}%${timeStr}` });
     });
     this.detector.on('clip-scanned', (data) => {
+      if (this.status !== 'scanning') return;
+      if (this._scanContext && !this._ownsContext(this._scanContext)) {
+        this._expireContext(this._scanContext);
+        return;
+      }
       const pct = Math.round(data.progress * 100);
       this._setState({ progress: pct, statusText: `Clip ${data.index}/${data.total} · ${data.clipName} · ${data.detected} detected` });
     });
@@ -165,12 +176,60 @@ export class AutoDetectScreen {
     return this.overlays?.toast?.({ message: String(message ?? ''), tone });
   }
 
+  _context() {
+    const store = this.app.storage?.seasonStore;
+    return {
+      seasonId: String(store?.currentSeasonId || ''),
+      gameId: String(store?.data?.activeGameId || ''),
+    };
+  }
+
+  _ownsContext(expected) {
+    if (!expected?.seasonId || !expected?.gameId) return false;
+    const current = this._context();
+    return current.seasonId === expected.seasonId && current.gameId === expected.gameId;
+  }
+
+  _expireContext(expected = this._scanContext) {
+    if (!expected || this._scanContext !== expected) return false;
+    this.detector.cancelScan?.();
+    try { this.app.backend?.cancel?.(); } catch (e) {}
+    try { this.app.vision?.cancel?.(); } catch (e) {}
+    this._scanContext = null;
+    this._lastAnalyses = [];
+    this._setState({
+      status: 'done', progress: 0, statusText: '',
+      resultText: 'Scan expired because the active game changed. Scan this game again.',
+      canReview: false, canApply: false,
+    });
+    this._toast('Auto-detect results expired because the active game changed.', 'warning');
+    return false;
+  }
+
+  _guardContext(expected = this._scanContext) {
+    return expected && this._scanContext === expected && this._ownsContext(expected)
+      ? true
+      : this._expireContext(expected);
+  }
+
+  _consumeResults(resultText) {
+    this._scanContext = null;
+    this._lastAnalyses = [];
+    this._setState({ status: 'done', progress: 100, resultText, canReview: false, canApply: false });
+  }
+
   /** Start a scan. Mirrors the original click handler's orchestration exactly
    *  -- PlayDetector scan, Vision/local-CV tagging fallback chain, tag
    *  stamping -- but writes to native state instead of DOM elements. */
   async start() {
     if (this.detector.isScanning) return;
     const app = this.app;
+    const scanContext = this._context();
+    if (!scanContext.seasonId || !scanContext.gameId) {
+      this._toast('Open a game before scanning film.', 'warning');
+      return;
+    }
+    this._scanContext = scanContext;
     const s = this.settings;
     this.detector.strictness = Number(s.strictness) || 1.0;
     this.detector.minPlayDuration = Number(s.minPlayDuration) || 2;
@@ -186,6 +245,7 @@ export class AutoDetectScreen {
     try {
       if (app.playlist.hasClips) {
         const results = await this.detector.scanClips(app.playlist);
+        if (!this._guardContext(scanContext)) return;
         const totalDetected = results.reduce((sum, r) => sum + (r.detected?.length || 0), 0);
         this._setState({ resultText: `${totalDetected} action windows found in ${results.length} clips`, canApply: false, canReview: false });
       } else {
@@ -195,6 +255,7 @@ export class AutoDetectScreen {
           throw new Error('No video');
         }
         await this.detector.scan();
+        if (!this._guardContext(scanContext)) return;
         const plays = this.detector.detectedPlays;
         const teamCtx = app._getTeamContext();
         this._lastAnalyses = app.clipAnalyzer.analyzePlays(plays, this.detector.motionData, teamCtx);
@@ -207,6 +268,7 @@ export class AutoDetectScreen {
           let tickHandle = null;
           const modelName = app.vision.model.includes('opus') ? 'Opus' : 'Sonnet';
           const renderTick = () => {
+            if (!this._guardContext(scanContext)) return;
             const elapsed = Math.floor((performance.now() - t0) / 1000);
             const phase = elapsed > 5 ? ' (thinking…)' : '';
             this._setState({ progress: 100, statusText: `🧠 ${modelName} analyzing play ${Math.min(this._visionProgress || 1, plays.length)}/${plays.length} · ${elapsed}s${phase}` });
@@ -220,6 +282,7 @@ export class AutoDetectScreen {
               const p = plays[i];
               try {
                 const result = await app.vision.analyzePlay(videoEl, p.start, p.end, teamCtx);
+                if (!this._guardContext(scanContext)) return;
                 visionResults.push(result);
               } catch (e) {
                 console.warn(`[FFA vision] play ${i + 1} failed:`, e);
@@ -252,6 +315,7 @@ export class AutoDetectScreen {
             const t0 = performance.now();
             let tickHandle = null;
             const renderTick = () => {
+              if (!this._guardContext(scanContext)) return;
               const elapsed = Math.floor((performance.now() - t0) / 1000);
               this._setState({ progress: 100, statusText: `🤖 Local server analyzing ${plays.length} play${plays.length !== 1 ? 's' : ''} · ${elapsed}s elapsed` });
             };
@@ -260,6 +324,7 @@ export class AutoDetectScreen {
             try {
               const windows = plays.map((p) => ({ start: p.start, end: p.end }));
               const backendResults = await app.backend.analyzeBatch(sourceFile, windows, teamCtx);
+              if (!this._guardContext(scanContext)) return;
               const backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
                 for (let i = 0; i < backendResults.length; i++) {
@@ -285,11 +350,13 @@ export class AutoDetectScreen {
           : (app.vision.apiKey ? ' · ⚠️ Vision failed, heuristic fallback' : ' · heuristic (set API key for AI tagging)');
 
         if (plays.length === 1 && (app.vc.video?.duration || 999) <= 45) {
+          if (!this._guardContext(scanContext)) return;
           const before = app.tagger.plays.length;
           this.detector.applyDetectedPlays();
           this._stampAutoTags(before);
-          this._setState({ resultText: `1 play auto-tagged · ${taggedFieldCount} fields${analysisLabel}`, canApply: false, canReview: false });
+          this._consumeResults(`1 play auto-tagged · ${taggedFieldCount} fields${analysisLabel}`);
         } else {
+          if (!this._guardContext(scanContext)) return;
           this._setState({
             resultText: `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${analysisLabel}`,
             canApply: true, canReview: plays.length > 0,
@@ -298,10 +365,13 @@ export class AutoDetectScreen {
         this._motionReady = true;
       }
     } catch (e) {
+      if (this._scanContext !== scanContext || !this._ownsContext(scanContext)) return;
       if (e.message !== 'No video') this._toast('Scan error: ' + e.message, 'error');
     }
 
-    this._setState({ status: 'done', progress: 100 });
+    if (this._scanContext === scanContext && this._ownsContext(scanContext)) {
+      this._setState({ status: 'done', progress: 100 });
+    }
   }
 
   cancel() {
@@ -311,10 +381,12 @@ export class AutoDetectScreen {
   }
 
   applyAll() {
+    if (!this.canApply || !this._guardContext()) return 0;
     const before = this.app.tagger.plays.length;
     const added = this.detector.applyDetectedPlays();
     this._stampAutoTags(before);
-    this._setState({ resultText: `${added} play${added !== 1 ? 's' : ''} added · tagged from film`, canReview: false });
+    this._consumeResults(`${added} play${added !== 1 ? 's' : ''} added · tagged from film`);
+    return added;
   }
 
   /** Merge heuristic/vision auto-tags onto plays just appended to the tagger.
@@ -348,6 +420,7 @@ export class AutoDetectScreen {
    *  App._openDetectionReview() implementation -- it already appends
    *  directly to document.body, so it was never part of the hidden host. */
   openReview() {
+    if (!this.canReview || !this._guardContext()) return;
     const plays = (this.detector.detectedPlays || []).map((p, i) => ({
       idx: i, start: p.start, end: p.end, peak: p.peak, confidence: p.confidence, accepted: true,
     }));
@@ -510,6 +583,7 @@ export class AutoDetectScreen {
     });
 
     modal.querySelector('#detectReviewApply').addEventListener('click', () => {
+      if (!this._guardContext()) { close(); return; }
       const keptIdxs = [];
       const accepted = [];
       plays.forEach((p) => {
@@ -523,7 +597,7 @@ export class AutoDetectScreen {
       this._lastAnalyses = keptIdxs.map((i) => fullAnalyses[i]);
       this._stampAutoTags(before);
       this._lastAnalyses = fullAnalyses;
-      this._setState({ resultText: `${added} play${added !== 1 ? 's' : ''} added · tagged from film` });
+      this._consumeResults(`${added} play${added !== 1 ? 's' : ''} added · tagged from film`);
       close();
     });
   }

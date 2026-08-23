@@ -16,6 +16,34 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REPAIR of Auto Detect lifecycle findings — CODE CLOSED (2026-08-23)
+
+**Builder/reviewer: Codex. Repairs the two lifecycle findings recorded in the
+`09a57d2` review of `70ff11e`.** The change is deliberately narrow: one
+production file (`js/auto-detect-screen.js`) and the existing native-tagging
+journey (`tools/e2e-native-tagging.mjs`).
+
+- **Cross-game ownership is now explicit.** Every scan captures immutable
+  `SeasonStore.currentSeasonId + data.activeGameId` before work begins. Async
+  progress/result publication and both mutation paths verify that exact
+  identity. A game switch expires and cancels the scan, clears analyses,
+  disables Review/Apply, and tells the coach to scan the newly active game.
+- **Scan results are one-shot.** Apply All and Review → Apply Selected share one
+  consume seam that disables both actions and clears the analyses. A rejected
+  detection can no longer be added later through a stale Apply All action.
+- **The regression is discriminating.** The existing visible Auto Detect
+  journey now delays a real screen-owned scan, switches games before resolving
+  it, and proves zero mutations plus disabled stale actions. It also proves a
+  second Apply All is inert and a partially rejected Review cannot leak the
+  rejected detection afterward.
+
+**Verification:** Vite production build clean; `e2e-native-tagging.mjs`
+**67/67** (was 64/64); `git diff --check` clean. No full canonical gate was
+repeated for this two-file lifecycle repair. The milestone's code blocker is
+closed. The previously recorded **Charlie Gate remains a release boundary**:
+final Break Down and Film Room captures at 1440x900 and 1280x720 still need to
+be retained and shown to the coach before packaging an installer.
+
 ### ▶ CODEX RE-REVIEW of `70ff11e` — CHANGES REQUESTED (2026-08-23)
 
 **Reviewer: Codex. Scope: the two repairs requested in `e99d1ac` plus the
