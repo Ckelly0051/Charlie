@@ -105,6 +105,19 @@ against obsolete desktop controls.
 
 > **STATUS (2026-08-23): ACCEPTED.** The coach installed **1.12.0-62** and passed the real-film Charlie Gate. Commit `01a3108` and installer `1.12.0-62` are the accepted rollback point. `#giLegacyEngineHost`, retired-control synchronization, `build.sh`, and `football-film-analyzer.html` are gone; Plan V2 may now open from one application state model and one coach-facing shell. Bulk dead-CSS reduction remains deferred maintenance, not a milestone blocker.
 
+## 3A. Dependency Retirement Rule
+
+Beginning with V2-A, new work must not deepen dependence on obsolete presentation infrastructure.
+
+- Age and implementation language are not deletion criteria. Proven football rules, analytics, video, and persistence services remain unless replacement has a concrete product or correctness benefit.
+- Hidden DOM owners, click proxies, adopted/relocated controls, duplicate route implementations, compatibility globals used by production, and competing context pointers are obsolete dependencies.
+- When a feature touches an obsolete dependency, the default is to replace it with an explicit service/state API and remove the superseded path in the same reviewed checkpoint. Do not add another bridge merely to preserve the old path.
+- Production UI may consume retained engines through documented APIs. It must not reach through hidden markup or reconstruct authoritative state from presentation elements.
+- Every implementation handoff must disclose: retained dependencies, dependencies removed, any new compatibility seam, and why each retained older component is still the correct owner.
+- A milestone must not increase the count of obsolete production dependencies. If safe removal would require changing football meaning, persistence identity, or coach data, stop and obtain coach approval before proceeding.
+- Temporary parallel implementations require an explicit removal checkpoint in the same milestone. “We will clean it up later” is not an accepted default.
+
+The goal is not a ceremonial all-Preact rewrite. The goal is one authoritative owner per behavior, clean boundaries around retained engines, and progressively less obsolete infrastructure as coach-facing work advances.
 ## 4. Upgrade Lanes
 
 ### V2-A: Home And Context UX
@@ -134,6 +147,7 @@ Implementation contract:
 - Selecting a game row previews it and populates the summary without opening a route. Continue Charting, Study, and Reports are explicit commands; destructive actions remain separate from row selection.
 - `Our Program` / `Opponent Scout` is the approved future workspace entry. V2-A renders the affordance but does not build opponent creation, migration, or a duplicate analytics backend.
 - Existing Team & Film Settings, seasons, games, film links, and coach data remain untouched. No schema or persistence migration belongs in this milestone.
+- V2-A must replace the superseded Home/context presentation it touches rather than layering the approved treatment over it. No parallel Home renderer, hidden selector, click proxy, or new context cache may survive the checkpoint.
 - Desktop acceptance covers the approved 1440x900 composition and a narrower desktop viewport, including obvious left-navigation hover, focus, selected, and disabled states.
 Execution and ownership:
 

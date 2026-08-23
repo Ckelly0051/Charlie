@@ -39,6 +39,8 @@ The coach approved the V2-A Home and context treatment. **Claude is now the prod
 
 The full milestone contract is `GRIDIRON-IQ-PLAN-V2.md` §4 V2-A. Any material departure from the approved comp returns to the coach and Codex before implementation continues.
 
+**Binding dependency rule, effective now:** do not build V2-A on obsolete presentation infrastructure. Reuse proven football, video, analytics, and persistence services through explicit APIs, but remove the superseded Home/context renderer and any hidden-DOM, click-proxy, duplicate-state, or compatibility path touched by this work. Do not leave two Home implementations. The handoff must name every retained older dependency, every dependency removed, and any compatibility seam added; a new seam requires a specific justification. If safe removal would alter persistence identity, football meaning, or coach data, stop for coach approval rather than guessing.
+
 ### ▶ V2-A OPEN — HOME & CONTEXT UX DESIGN OWNED BY COACH + CODEX (2026-08-23)
 
 Final Engine Independence is accepted. V2-A is redefined as a coach-facing Home and context-switching milestone, not another architecture rewrite. **Current step:** Codex and the coach produce and approve real-data Home/global-context comps. Claude does not begin implementation until that treatment is approved. Claude then builds the approved design; Codex owns independent review and the live-app Charlie Gate; the coach owns the installed smoke. After acceptance, the remaining Plan V2 priorities are reassessed before V2-B opens. The binding scope and acceptance outcomes are in `GRIDIRON-IQ-PLAN-V2.md` §4 V2-A.
