@@ -2126,3 +2126,18 @@ deleted; no cleanup performed or authorized.
 **Next action.** Codex independently re-reviews this repair before the
 remaining PC-5 steps (installer, installed smoke against the coach's live
 sessions) proceed.
+
+## 7h. PC-5 final rollback-capture hardening (Codex, 2026-08-22)
+
+CatalogPersistence saveSeason(), deleteSeason(), and createBackup() now
+require a valid pre-mutation toBytes() snapshot before touching the live
+catalog. Previously an unusual double failure (snapshot capture fails, then
+durable write fails) could enter rollback with no bytes; SqlCatalog would
+then create a fresh empty in-memory catalog. The operations now fail closed
+before mutation.
+
+The focused regression forces snapshot capture to throw and proves all three
+operations refuse, the loaded season remains unchanged, and no backup row is
+created. Verification: catalog persistence **73/73**, catalog backend
+**28/28**, adversarial matrix **108/108 locks**. No real catalog, season data,
+sidecar, or film was touched.

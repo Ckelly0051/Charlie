@@ -123,6 +123,9 @@ export class CatalogPersistence {
     await this._ensureLoaded();
     let snapshot = null;
     try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+    // A mutation without rollback bytes can turn a later write failure into an
+    // empty in-memory catalog (`open(undefined)`). Refuse before touching state.
+    if (!snapshot || !snapshot.length) return false;
     data.id = id;
     this.catalog.setCurrentSeason(id);
     if (!this.catalog.saveSeason(data)) return false;
@@ -233,6 +236,7 @@ export class CatalogPersistence {
     // failure, and re-reading a failing disk would blank the whole catalog.
     let snapshot = null;
     try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+    if (!snapshot || !snapshot.length) return false;
     try {
       this.catalog.deleteSeason(id);
       await this.fs.writeDb(this.catalog.toBytes());
@@ -288,6 +292,7 @@ export class CatalogPersistence {
     await this._ensureLoaded();
     let snapshot = null;
     try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+    if (!snapshot || !snapshot.length) return null;
     let bid = null;
     try { bid = this.catalog.createBackup(id, data, label || 'Save'); }
     catch (e) { return null; }

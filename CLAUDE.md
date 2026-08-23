@@ -13,6 +13,33 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-5 INSTALLER CANDIDATE 1.12.0-59 — CODEX HARDENING COMPLETE (2026-08-22)
+
+Codex closed the final non-blocking rollback edge it identified while
+accepting 166d28f: CatalogPersistence saveSeason(), deleteSeason(), and
+createBackup() now refuse before mutation when the pre-mutation catalog
+snapshot cannot be captured. This prevents a later failed write from trying
+to roll back through an empty snapshot and replacing the loaded in-memory
+catalog with an empty one.
+
+The focused regression forces SqlCatalog.toBytes() to throw and proves all
+three operations refuse while leaving the loaded season unchanged and
+creating no backup row. Focused verification on the release-candidate bytes:
+e2e-catalog-persistence **73/73**, e2e-catalog-backend **28/28**, and the
+PC adversarial matrix **108/108 locks**. Claude's accepted PC-5 evidence
+remains: real-catalog dry run **40/40**, canonical gate **91/91**, and the
+live catalog byte-identical to the forensic backup.
+
+All four version owners are aligned at **1.12.0-59**. The unsigned native
+build completed successfully and produced:
+- NSIS: src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-59_x64-setup.exe
+  (SHA-256 441C9532F4EF06B219CDA7284B06C54D6D99CFB0529516E18FA4F33D0EF62695)
+- MSI: src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-59_x64_en-US.msi
+  (SHA-256 1C34E5529A01888671928EB646A45E2BC3FD6035C4CCF1E863CF8D3943720B7E)
+
+No live data, legacy sidecar, or film file was changed. This is the installer
+candidate for the coach's installed two-season smoke.
+
 ### ▶ CODEX RE-REVIEW OF PC-5 REPAIR `166d28f` — ACCEPTED (2026-08-22)
 
 **Verdict: ACCEPTED. Both P0 findings from `1de3c54` are closed at the

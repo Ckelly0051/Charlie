@@ -398,6 +398,27 @@ const refA = await refRoundTrip(seasonA());
   ok((await cp2.getBackup('s1', retryId))?.id === 's1', 'the retried backup is genuinely readable back out of the catalog');
 }
 
+// ---- 12c. rollback capture must succeed before any mutation ----------------
+// If toBytes() fails, there is no trustworthy state to restore after a later
+// write failure. Every mutation must refuse before touching the live catalog.
+{
+  const fs = trackFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveSeason('s1', seasonA());
+  const before = clone(cp.catalog.loadSeason('s1'));
+  cp.catalog.toBytes = () => { throw new Error('snapshot unavailable'); };
+
+  const saveResult = await cp.saveSeason('s1', season('s1', 'Changed', [mkGame('changed', 1)]));
+  const deleteResult = await cp.deleteSeason('s1');
+  const backupResult = await cp.createBackup('s1', seasonA(), 'Must refuse');
+
+  ok(saveResult === false, 'saveSeason refuses before mutation when rollback capture fails', String(saveResult));
+  ok(deleteResult === false, 'deleteSeason refuses before mutation when rollback capture fails', String(deleteResult));
+  ok(backupResult === null, 'createBackup refuses before mutation when rollback capture fails', String(backupResult));
+  ok(deepEq(cp.catalog.loadSeason('s1'), before), 'failed rollback capture leaves the loaded season byte-for-byte unchanged');
+  ok(cp.catalog.listBackups('s1').length === 0, 'failed rollback capture creates no in-memory backup row');
+}
+
 // ---- 13. C2: a LINKED game's filmMode/filmDir survive the canonical store ---
 // The Refuge failure was a linked game that "played" but persisted as managed.
 // This pins the canonical desktop path: a game linked to a D: child folder must
