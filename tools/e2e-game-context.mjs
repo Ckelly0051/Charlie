@@ -121,7 +121,16 @@ r = await page.evaluate(() => {
   const seen = [];
   const off = app.gameContext.subscribe(s => seen.push(s.perspective));
   app.gameContext.update({ perspective: 'scout' });
-  const scoutClass = document.getElementById('tagForm')?.classList.contains('is-scout');
+  // Final Engine Independence: .tag-section/#tagForm is deleted -- the coach-
+  // visible scout indicator now only exists once NativeTaggingScreen mounts
+  // its own presentation into a real host, so mount into a scratch host to
+  // prove the UI genuinely reflects context, not a hidden select.
+  const scratchHost = document.createElement('div');
+  document.body.append(scratchHost);
+  app.nativeTagging.mount(scratchHost);
+  const scoutClass = !!scratchHost.querySelector('.gi-tag-subject');
+  app.nativeTagging.restore();
+  scratchHost.remove();
   const defaultUnitScout = app.tagger.defaultUnit;
   app.gameContext.update({ perspective: 'defense' });
   const defaultUnitDefense = app.tagger.defaultUnit;

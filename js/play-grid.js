@@ -37,6 +37,7 @@ import { isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { PlayCallModel } from './play-call-model.js';
+import { OPTIONS as TAG_OPTIONS, RESULT_OPTIONS } from './native-tagging.jsx';
 
 export class PlayGrid {
   /**
@@ -121,11 +122,17 @@ export class PlayGrid {
     offense: ['sit', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
   };
 
-  constructor(tagger, videoController, cutupPlayer, playbook = null) {
+  constructor(tagger, videoController, cutupPlayer, playbook = null, customChips = null) {
     this.tagger = tagger;
     this.vc = videoController;
     this.cutup = cutupPlayer;
     this.playbook = playbook;
+    // Final Engine Independence: _options() used to read a column's option
+    // list off the legacy .tag-section chip DOM (`#tagFormation .pick` etc.,
+    // now deleted). Library-backed vocabulary (formation/backfield/front)
+    // comes from CustomChips/TagLibrary -- the same source native-tagging.jsx
+    // reads -- injected explicitly rather than reached for off `window.app`.
+    this.customChips = customChips;
 
     // NOTE (2026-08-22, Final Engine Independence investigation): this was
     // trialed as a detached (never-document-inserted) scratch element, the
@@ -818,12 +825,26 @@ export class PlayGrid {
 
   /** Options for an enum column, read live from the tag form's chip group so
    *  the grid can never offer values the form wouldn't. */
+  // Final Engine Independence: a column's vocabulary used to be read live off
+  // the legacy .tag-section chip DOM via col.src (e.g. `#tagFormation .pick`)
+  // -- that markup is deleted. Library-backed fields (team-customizable
+  // formation/backfield/front) now read the same TagLibrary source
+  // native-tagging.jsx does; fixed-vocabulary fields read the same OPTIONS/
+  // RESULT_OPTIONS constants that file exports, so there is exactly one copy
+  // of each field's vocabulary, not two drifting apart.
+  static LIBRARY_COLUMNS = { formation: 'formation', backfield: 'backfield', defFront: 'front' };
   _options(col, current = []) {
     let opts = this._optionCache[col.key];
     if (!opts) {
-      opts = [...document.querySelectorAll(`#${col.src} .pick`)]
-        .filter(button => !button.classList.contains('library-hidden'))
-        .map(button => button.dataset.value).filter(Boolean);
+      const libKey = PlayGrid.LIBRARY_COLUMNS[col.key];
+      if (libKey) {
+        const group = this.customChips?.library?.group?.(libKey);
+        opts = group ? group.values.filter(value => group.enabled.includes(value)) : [];
+      } else if (col.key === 'result') {
+        opts = [...RESULT_OPTIONS];
+      } else {
+        opts = [...(TAG_OPTIONS[col.key] || [])];
+      }
       if (opts.length) this._optionCache[col.key] = opts;
     }
     let all = [...new Set([...(opts || []), ...current].filter(Boolean))];

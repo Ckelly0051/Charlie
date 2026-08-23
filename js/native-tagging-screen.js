@@ -3,34 +3,37 @@ import { StatsEngine } from './stats-engine.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PlayCallModel } from './play-call-model.js';
+import { PlayDiagram } from './play-diagram.js';
 
 /**
- * S5c native tag-form presentation.
+ * Native tag-form presentation.
  *
- * PlayTagger and BreakdownForm remain the behavior/data owners. The native view
- * renders model state in Preact-owned markup and delegates explicit coach actions
- * to those owners. The compatibility source stays mounted off-screen until S7
- * removes #app; no coach-visible markup is copied from it.
+ * PlayTagger and BreakdownForm remain the behavior/data owners. The native
+ * view renders model state in Preact-owned markup (native-tagging.jsx) and
+ * delegates explicit coach actions to those owners. Final Engine
+ * Independence: this controller has no legacy DOM source to adopt/hide/
+ * observe any more — PlayTagger's own field objects are DOM-free (see
+ * play-tagger.js's PlainField/PlainInput), so a coach action reaches state
+ * directly and this class republishes on the SAME domain events it always
+ * subscribed to. There is nothing left to watch a hidden subtree for.
  */
 export class NativeTaggingScreen {
   constructor(app) {
     this.app = app;
     this.tagger = app.tagger;
-    // S7 demolition: .tag-section's permanent authored home is
-    // #giLegacyEngineHost, not #app (deleted). getElementById-style lookups
-    // elsewhere in this file are unaffected — id lookups don't care where in
-    // the document a node lives.
-    this.source = document.querySelector('.tag-section');
     this.host = null;
     this._view = null;
     this._listeners = new Set();
-    this._sourceState = null;
     this.activeRole = 'ballCarrier';
-    this._observer = null;
     this._publishQueued = false;
     this._saveConfirmed = false;
     this._saveTimer = null;
     this._bindDomainEvents();
+    // Formation/Backfield/Front vocabulary can change (Team & Film Settings)
+    // while this form is already mounted and showing it, with no play-data
+    // event to ride on -- CustomChips.onChange is the explicit republish
+    // seam for exactly that case.
+    this.app.customChips?.onChange?.(() => this._queuePublish());
   }
 
   _bindDomainEvents() {
@@ -39,31 +42,15 @@ export class NativeTaggingScreen {
   }
 
   mount(host) {
-    if (!host || !this.source) return false;
+    if (!host) return false;
     if (this.host === host && this._view) return true;
     if (this.host) this.restore();
     this.host = host;
-    this._sourceState = {
-      style: this.source.getAttribute('style'),
-      ariaHidden: this.source.getAttribute('aria-hidden'),
-      nativeSource: this.source.getAttribute('data-native-tag-source'),
-    };
-    this.source.setAttribute('aria-hidden', 'true');
-    this.source.setAttribute('data-native-tag-source', '');
-    this.source.style.cssText += ';position:fixed!important;left:-100000px!important;top:0!important;width:560px!important;height:900px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;z-index:-1!important;';
     try {
-      this._observer = new MutationObserver(() => this._queuePublish());
-      this._observer.observe(this.source, {
-        subtree: true, childList: true, characterData: true,
-        attributes: true, attributeFilter: ['class', 'hidden', 'open', 'disabled', 'aria-pressed'],
-      });
       this._view = mountNativeTagging({ host, screen: this });
       this._publish();
       return true;
     } catch (error) {
-      this._observer?.disconnect();
-      this._observer = null;
-      this._restoreSource();
       this.host = null;
       this._view = null;
       throw error;
@@ -72,28 +59,13 @@ export class NativeTaggingScreen {
 
   restore() {
     if (!this.host) return false;
-    this._observer?.disconnect();
-    this._observer = null;
     clearTimeout(this._saveTimer);
     this._saveTimer = null;
     this._saveConfirmed = false;
     this._view?.unmount?.();
     this._view = null;
-    this._restoreSource();
     this.host = null;
     return true;
-  }
-
-  _restoreSource() {
-    if (!this._sourceState || !this.source) return;
-    const restore = (name, value) => value == null
-      ? this.source.removeAttribute(name)
-      : this.source.setAttribute(name, value);
-    restore('style', this._sourceState.style);
-    restore('aria-hidden', this._sourceState.ariaHidden);
-    restore('data-native-tag-source', this._sourceState.nativeSource);
-    if (this._sourceState.style == null) { this.source.style.cssText = ''; this.source.removeAttribute('style'); }
-    this._sourceState = null;
   }
 
   subscribe(listener) {
@@ -126,8 +98,16 @@ export class NativeTaggingScreen {
       const group = this.app.customChips?.library?.group?.(key);
       return group ? group.values.filter(value => group.enabled.includes(value)) : [];
     };
+    // PlayDiagram.toDataURL is the same static renderer the legacy preview
+    // canvas and the Call Sheet thumbnail already use — rendering to a fresh
+    // detached canvas here instead of reading a persistent <canvas>
+    // element's own .toDataURL() means the diagram no longer needs a
+    // permanent DOM home. Called for every play with a selection (matching
+    // the old preview canvas, which rendered the blank-field background even
+    // with zero shapes) so this is a genuine no-op for display, not a
+    // behavior change.
     let diagram = '';
-    try { diagram = document.getElementById('playDiagramPreview')?.toDataURL('image/png') || ''; } catch {}
+    try { if (play) diagram = PlayDiagram.toDataURL(play.diagram || []); } catch {}
     const playbookCalls = this.app.playbook?.list?.() || [];
     const recentCalls = [];
     const seenCalls = new Set();
@@ -142,7 +122,7 @@ export class NativeTaggingScreen {
       enabled: !!play, currentPlayId: play?.id ?? null,
       unit: raw.unit || this.tagger?.defaultUnit || 'offense',
       perspective: gameInfo.perspective || 'offense', direction: gameInfo.direction || '',
-      progress: document.getElementById('tagProgressLabel')?.textContent || '0 / 0 tagged',
+      progress: this.tagger?.progressText?.() || '0 / 0 tagged',
       values: { ...raw, ...projected, yardage: raw.yardage === '' || raw.yardage == null ? '' : String(Math.abs(Number(raw.yardage) || 0)) },
       libraries: { formation: library('formation'), backfield: library('backfield'), defFront: library('front') },
       playbookCalls, recentCalls,
@@ -212,7 +192,7 @@ export class NativeTaggingScreen {
   }
   setPlayer(role, value) { const field=this.tagger?.playerFields?.[role]; if(!field)return false; field.value=value; this.tagger._savePlayer(role); this._queuePublish(); return true; }
   setGrade(role, value) { const field=this.tagger?.gradeFields?.[role]; if(!field)return false; field.value=value; this.tagger._saveGrade(role); this._queuePublish(); return true; }
-  setNotes(value) { const field=this.app.notes?.notesArea; if(!field||!this.tagger?.getCurrentPlay?.())return false; field.value=value; field.dispatchEvent(new Event('input',{bubbles:true})); this._queuePublish(); return true; }
+  setNotes(value) { const ok = this.app.notes?.setNotes?.(value); if (ok) this._queuePublish(); return !!ok; }
   addCustomTag(value) { const play=this.tagger?.getCurrentPlay?.(),clean=String(value||'').trim(); if(!play||!clean)return false; if(!Array.isArray(play.tags.custom))play.tags.custom=[]; if(!play.tags.custom.includes(clean))play.tags.custom.push(clean); this.tagger._emit('play-updated',play); return true; }
   removeCustomTag(index) { const play=this.tagger?.getCurrentPlay?.(); if(!play||!Array.isArray(play.tags.custom))return false; play.tags.custom.splice(index,1); this.tagger._emit('play-updated',play); return true; }
   setCustomField(id,value) { this.app.customFields?._write?.(id,value); this._queuePublish(); }
@@ -317,16 +297,23 @@ export class NativeTaggingScreen {
     return true;
   }
 
-  saveTemplate() {
+  async saveTemplate() {
     if (!this.tagger?.getCurrentPlay?.()) return false;
-    this.tagger.saveTemplate();
+    // saveTemplate() only ever mutated the (now DOM-free) legacy select and
+    // localStorage directly, with no domain event -- the republish used to
+    // ride along on the MutationObserver watching that select's DOM churn.
+    // Now that there is no observer, this is the one explicit republish that
+    // makes a freshly-saved template show up in the native Templates list.
+    await this.tagger.saveTemplate();
+    this._queuePublish();
     return true;
   }
 
-  deleteTemplate(name) {
+  async deleteTemplate(name) {
     if (!name || !this.tagger?.templateSelect) return false;
     this.tagger.templateSelect.value = name;
-    this.tagger.deleteSelectedTemplate();
+    await this.tagger.deleteSelectedTemplate();
+    this._queuePublish();
     return true;
   }
 

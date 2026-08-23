@@ -669,7 +669,11 @@ r = await page.evaluate(() => {
       && !media.closest('#giLegacyEngineHost')
       && document.querySelectorAll('.video-section').length === 1
       && document.querySelector('#giLegacyEngineHost > #playGridSection') != null
-      && document.querySelector('#giLegacyEngineHost > .tag-section') != null,
+      // Final Engine Independence: .tag-section is deleted entirely, not
+      // adopted/relocated -- there is no backing store to return to on
+      // teardown any more. Absence is the assertion now (same "S7
+      // demolition" pattern already applied to #wsClassicOutlet above).
+      && document.querySelector('.tag-section') == null,
     // Every adopted control must go home, not just the two the shell started
     // with — an un-restored one would leak into a detached tree on re-enable.
     chromeRestored: ['btnSidebarToggle', 'btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']

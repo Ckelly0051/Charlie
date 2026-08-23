@@ -68,8 +68,11 @@ r = await page.evaluate(async firstId => {
     info: active.gameInfo, durableInfo: durable.games.find(g => g.id === active.id)?.gameInfo,
     perspective: window.app.gameContext.snapshot().perspective, defaultUnit: window.app.tagger.defaultUnit,
     dialogClosed: !document.querySelector('[data-overlay-id="game-details"]') && !window.app.gameScreen.handle,
-    headerButton: document.getElementById('btnEditGame')?.tagName === 'BUTTON',
-    headerSummary: document.getElementById('gameHeaderSummary')?.textContent || '',
+    // Final Engine Independence: #btnEditGame/#gameHeaderSummary/.tag-section
+    // are deleted -- the shell's own context-switch button is the real,
+    // coach-visible "edit/switch game" launcher and game-name display.
+    headerButton: document.getElementById('wsContextSwitch')?.tagName === 'BUTTON',
+    headerSummary: document.getElementById('wsContextGame')?.textContent || '',
     shellContext: document.getElementById('wsContextGame')?.textContent || '' };
 }, fixture.firstId);
 ok(r.calls === 1 && r.games === 2, 'Create game performs one durable write and adds exactly one game', JSON.stringify(r));

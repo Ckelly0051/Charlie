@@ -1024,8 +1024,18 @@ r = await page.evaluate(async () => {
   tagger.plays.push(legacyPlay);
   grid._applyEdit(legacyPlay, PG.COLUMNS.find(c => c.key === 'formation'), 'Wing-T');
   await raf2();
+  // Final Engine Independence: #tagQbAlignment/.tag-section is deleted --
+  // read the same value through the real native tag form, mounted into a
+  // throwaway scratch host, to prove the grid write and the form's own read
+  // never diverge.
+  const scratchHost = document.createElement('div');
+  document.body.append(scratchHost);
+  window.app.nativeTagging.mount(scratchHost);
   tagger.selectPlay(legacyId);
-  const formChip = [...document.querySelectorAll('#tagQbAlignment .pick.active')].map(el => el.dataset.value);
+  await new Promise(res => queueMicrotask(res));
+  const formChip = [...scratchHost.querySelectorAll('[data-native-field="qbAlignment"] .gi-tag-chips button.is-active')].map(b => b.textContent.trim());
+  window.app.nativeTagging.restore();
+  scratchHost.remove();
   const parity = { gridQbAlignment: tagger.getPlay(legacyId).tags.qbAlignment, formChip };
 
   // restore

@@ -1,19 +1,24 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
-import path from 'path';
-import { fileURLToPath } from 'url';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const file = TEST_APP_URL;
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-await page.goto(file, { waitUntil: 'domcontentloaded' });
-await new Promise(r => setTimeout(r, 1500));
+await page.goto(file, { waitUntil: 'networkidle0' });
+await page.waitForFunction(() => window.app?.tagger);
 
-const result = await page.evaluate(() => {
+// Final Engine Independence: a season + native Break Down route replaces the
+// old bare-boot fixture. Vocabulary (frontChips/formChips) now comes from
+// TagLibrary directly rather than legacy .tag-section markup, and the
+// motion/direction fixed-vocabulary check reads the coach-visible native
+// chips instead of a retired DOM id, which also proves they're genuinely
+// reachable, not just declared somewhere.
+const result = await page.evaluate(async () => {
   const app = window.app;
+  await app.storage.createSeason({ name: 'Tag fields', team: 'Mavericks', year: '2026' });
   const tagger = app.tagger;
   const mk = (id, tags) => ({ id, timestamp: { start: id, end: id + 3 }, tags: { custom: [], players: {}, grades: {}, ...tags }, notes: '' });
 
@@ -45,16 +50,41 @@ const result = await page.evaluate(() => {
   // Direction/motion stats
   const dm = stats.dirMotion;
 
-  // New chips present in form
-  const frontChips = [...document.querySelectorAll('#tagDefFront .pick')].map(b => b.dataset.value);
-  const formChips = [...document.querySelectorAll('#tagFormation .pick')].map(b => b.dataset.value);
-  const motionChips = [...document.querySelectorAll('#tagMotion .pick')].map(b => b.dataset.value);
-  const dirChips = [...document.querySelectorAll('#tagPlayDir .pick')].map(b => b.dataset.value);
-  const frontIsMulti = document.getElementById('tagDefFront').classList.contains('multi');
+  // Vocabulary: Formation/Front are team-library-driven; motion/direction are
+  // fixed. Formation/Front read straight from TagLibrary (the same source
+  // native-tagging.jsx's snapshot() uses); motion/direction read the actual
+  // rendered coach-visible chips in the native form, which also proves they
+  // are genuinely reachable.
+  const frontChips = app.customChips.library.group('front').values;
+  const formChips = app.customChips.library.group('formation').values;
+  const frontIsMulti = tagger.tagFields.defFront.multi === true;
 
-  // Multi-select round trip: load play 1 into the form, check both chips active, save back
+  // Native republishing is queued as a microtask (NativeTaggingScreen._queuePublish),
+  // so every action below needs an explicit tick before the DOM reflects it.
+  const tick = () => new Promise(r => queueMicrotask(r));
+
+  // NOT _loadActiveGame() -- that would reload tagger.plays from the (empty)
+  // freshly-created season and wipe this fixture. Just mount the native
+  // route over the fixture already installed on the live tagger above.
+  await app.workspaceShell.show('breakdown');
+  tagger.selectPlay(4); // an offense play, so the offense-only motion/direction group renders
+  await tick();
+  const chipLabels = (field) => {
+    const group = document.querySelector(`[data-native-field="${field}"]`);
+    return group ? [...group.querySelectorAll('.gi-tag-chips button')].map(b => b.textContent.trim()) : [];
+  };
+  const motionChips = chipLabels('motion');
+  const dirChips = chipLabels('playDir');
+
+  // Multi-select round trip: load play 1 (defense) into the form, check both
+  // chips render active in the native form, and PlayTagger's own field value
+  // round-trips the multi string -- both DOM-free (tagFields.defFront.value
+  // is a plain property, no DOM read) and coach-visible.
   tagger.selectPlay(1);
-  const activeFronts = [...document.querySelectorAll('#tagDefFront .pick.active')].map(b => b.dataset.value);
+  await tick();
+  app.nativeTagging.setUnit('defense');
+  await tick();
+  const activeFronts = [...document.querySelectorAll('[data-native-field="defFront"] .gi-tag-chips button.is-active')].map(b => b.textContent.trim());
   const fieldValue = tagger.tagFields.defFront.value;
 
   return {
@@ -87,8 +117,8 @@ const checks = [
   ['I-Form/Split Back and core structural looks are standard formation chips', ['I-Form','Split Back','Power-I','Ace','Victory','Wing-T','Flexbone','Double Wing','Bunch','Unbalanced'].every(f => result.formChips.includes(f))],
   ['Motion chips Jet/Orbit/Shift/Trade', ['Jet','Orbit','Shift','Trade'].every(m => result.motionChips.includes(m))],
   ['Direction chips L/M/R', ['Left','Middle','Right'].every(d => result.dirChips.includes(d))],
-  ['Form shows both front chips active for multi play', JSON.stringify([...result.activeFronts].sort()) === JSON.stringify(['Jumbo Shift','Maverick'])],
-  ['ChipField value round-trips the multi string', result.fieldValue === 'Maverick + Jumbo Shift'],
+  ['Native form shows both front chips active for multi play', JSON.stringify([...result.activeFronts].sort()) === JSON.stringify(['Jumbo Shift','Maverick'])],
+  ['PlayTagger field value round-trips the multi string', result.fieldValue === 'Maverick + Jumbo Shift'],
 ];
 
 let pass = 0, fail = 0;

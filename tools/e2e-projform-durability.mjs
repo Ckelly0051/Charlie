@@ -70,6 +70,35 @@ page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 const click = (sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);
 const frame = () => page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
 
+// Final Engine Independence: .tag-section/#tagFormation etc. are deleted.
+// The native form's chip buttons carry no data-value attribute -- they are
+// matched by their rendered text, same convention as every other rewritten
+// harness this checkpoint (e2e-tag-fields.mjs, e2e-tag-library-settings.mjs).
+// mountNativeForm() must be called once per fresh page context (initial load
+// AND after every page.reload(), since reload destroys window.app entirely).
+const mountNativeForm = () => page.evaluate(() => {
+  let host = document.getElementById('durabilityTagHost');
+  if (!host) { host = document.createElement('div'); host.id = 'durabilityTagHost'; document.body.append(host); }
+  window.app.nativeTagging.mount(host);
+});
+const clickChip = (field, text) => page.evaluate((f, t) => {
+  const btn = [...document.querySelectorAll(`[data-native-field="${f}"] .gi-tag-chips button`)]
+    .find(b => b.textContent.trim() === t);
+  if (btn) btn.click();
+  return !!btn;
+}, field, text);
+const activeChips = (field) => page.evaluate((f) =>
+  [...document.querySelectorAll(`[data-native-field="${f}"] .gi-tag-chips button.is-active`)].map(b => b.textContent.trim()),
+  field);
+// Matched by class, not text: the button's own text flips to "Saved" for
+// 650ms after a click (native-tagging-screen.js's _saveConfirmed flash),
+// which /Save/ would also match -- 'is-primary' stays stable either way.
+const clickSaveNext = () => page.evaluate(() => {
+  const btn = document.querySelector('.gi-tag-nav button.is-primary');
+  if (btn) btn.click();
+  return !!btn;
+});
+
 // Reload/reopen legitimately normalizes a play's tag object to the full
 // canonical schema (e.g. filling a blank `strength` key my synthetic fixtures
 // never set) — that is season-store's normalize doing its job, not data loss.
@@ -107,26 +136,27 @@ await page.evaluate((ids) => {
 }, IDS);
 
 console.log('\n== 2. Commit real edits through the actual tag-form / Film Room UI ==');
+await mountNativeForm();
 
 // 2a. Legacy Formation -> QB Alignment promotion (turn off the only structural chip).
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.legacyFormation);
-await click('#tagFormation .pick[data-value="Trips"]');
+await clickChip('formation', 'Trips');
 await frame();
 
 // 2b. Legacy Coverage -> Coverage Family promotion.
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.legacyCoverage);
-await click('#tagCoverage .pick[data-value="Cover 3"]');
+await clickChip('coverage', 'Cover 3');
 await frame();
 
 // 2c. Combined Pistol+Empty, committed via an explicit Formation edit (adds a
 // second structural chip so the commit is genuine, not a no-op).
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptyEdit);
-await click('#tagFormation .pick[data-value="Trips"]');
+await clickChip('formation', 'Trips');
 await frame();
 
 // 2d. Combined Pistol+Empty, committed via Save & Next (commitProjectedLook).
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptySaveNext);
-await click('#btnTagSaveNext');
+await clickSaveNext();
 await frame();
 await sleep(150);
 await page.evaluate(() => window.app.workspaceShell.disable());
@@ -170,26 +200,42 @@ if (gridEdit) {
 
 // 2f. Derived-value CLEAR: seed QB Alignment 'Shotgun' from the projected view
 // (nothing stored yet), then re-tap the derived-active chip to clear it.
+// The workspaceShell.disable() call above for the Film Room grid section
+// unmounts NativeTaggingScreen along with the rest of the route (it is a
+// singleton, restored regardless of which host it was mounted into) --
+// remount before this and every later chip interaction needs it.
+await mountNativeForm();
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.derivedClear);
-await click('#tagQbAlignment .pick[data-value="Shotgun"]');
+await clickChip('qbAlignment', 'Shotgun');
 await frame();
 
 console.log('\n== 3. Snapshot every case BEFORE reload (raw tags + projected view + chip state) ==');
-const before = await page.evaluate((ids) => {
+// Final Engine Independence: chip fields are rendered by the native form only
+// for the currently relevant unit (formation/qbAlignment/backfield for
+// offense, coverage/coverageFamily for defense) -- unlike the old legacy
+// markup, which existed everywhere and was merely hidden. An empty chip
+// array for an out-of-unit field is the honest native equivalent, and since
+// the assertion below compares before/after equality (not a fixed expected
+// value) that's safe either way. Republish is a queued microtask, so every
+// selectPlay() needs a tick before the chip DOM reflects it.
+const before = await page.evaluate(async (ids) => {
   const t = window.app.tagger;
+  const tick = () => new Promise(r => queueMicrotask(r));
+  const active = (field) => [...document.querySelectorAll(`[data-native-field="${field}"] .gi-tag-chips button.is-active`)].map(b => b.textContent.trim());
   const out = {};
   for (const [key, id] of Object.entries(ids)) {
     const play = t.getPlay(id);
     t.selectPlay(id);
+    await tick();
     out[key] = {
       tags: JSON.parse(JSON.stringify(play.tags)),
       projected: TagProjection.project(play.tags),
       chips: {
-        formation: [...document.querySelectorAll('#tagFormation .pick.active')].map(el => el.dataset.value),
-        qbAlignment: [...document.querySelectorAll('#tagQbAlignment .pick.active')].map(el => el.dataset.value),
-        backfield: [...document.querySelectorAll('#tagBackfield .pick.active')].map(el => el.dataset.value),
-        coverage: [...document.querySelectorAll('#tagCoverage .pick.active')].map(el => el.dataset.value),
-        coverageFamily: [...document.querySelectorAll('#tagCoverageFamily .pick.active')].map(el => el.dataset.value),
+        formation: active('formation'),
+        qbAlignment: active('qbAlignment'),
+        backfield: active('backfield'),
+        coverage: active('coverage'),
+        coverageFamily: active('coverageFamily'),
       },
     };
   }
@@ -230,22 +276,28 @@ ok(reopened.playCount === before.playCount, 'exact same play COUNT survives pers
 ok(reopened.historyEntries === 0, 'reopening a season starts with a FRESH undo/redo stack — no leaked entries from the pre-reload session', JSON.stringify(reopened));
 
 console.log('\n== 6. Every case: raw tags AND projected view are BYTE-IDENTICAL to the pre-reload snapshot ==');
-const after = await page.evaluate((ids) => {
+// page.reload() destroyed window.app entirely -- mount a fresh native form
+// into a fresh scratch host before reading chip state again.
+await mountNativeForm();
+const after = await page.evaluate(async (ids) => {
   const t = window.app.tagger;
+  const tick = () => new Promise(r => queueMicrotask(r));
+  const active = (field) => [...document.querySelectorAll(`[data-native-field="${field}"] .gi-tag-chips button.is-active`)].map(b => b.textContent.trim());
   const out = {};
   for (const [key, id] of Object.entries(ids)) {
     const play = t.getPlay(id);
     if (!play) { out[key] = { missing: true }; continue; }
     t.selectPlay(id);
+    await tick();
     out[key] = {
       tags: JSON.parse(JSON.stringify(play.tags)),
       projected: TagProjection.project(play.tags),
       chips: {
-        formation: [...document.querySelectorAll('#tagFormation .pick.active')].map(el => el.dataset.value),
-        qbAlignment: [...document.querySelectorAll('#tagQbAlignment .pick.active')].map(el => el.dataset.value),
-        backfield: [...document.querySelectorAll('#tagBackfield .pick.active')].map(el => el.dataset.value),
-        coverage: [...document.querySelectorAll('#tagCoverage .pick.active')].map(el => el.dataset.value),
-        coverageFamily: [...document.querySelectorAll('#tagCoverageFamily .pick.active')].map(el => el.dataset.value),
+        formation: active('formation'),
+        qbAlignment: active('qbAlignment'),
+        backfield: active('backfield'),
+        coverage: active('coverage'),
+        coverageFamily: active('coverageFamily'),
       },
     };
   }
@@ -306,18 +358,20 @@ if (!realFiles.length) {
   });
   ok(gameFingerprintsBefore.length >= 1, `real season (${realName}) has at least one game to fingerprint`, String(gameFingerprintsBefore.length));
 
-  const realBefore = await page.evaluate(() => {
+  const realBefore = await page.evaluate(async () => {
     const t = window.app.tagger;
     if (!t.plays.length) return { error: 'no plays in real fixture active game' };
-    // Pick an OFFENSE play deterministically so #tagFormation is guaranteed
-    // present (Formation is hidden/collapsed for other units).
+    // Pick an OFFENSE play deterministically so the Formation chip group is
+    // guaranteed present (native-tagging.jsx hides it for other units).
     const offensePlay = t.plays.find(p => (p.tags.unit || 'offense') === 'offense') || t.plays[0];
     const id = offensePlay.id;
     t.selectPlay(id);
+    await new Promise(r => queueMicrotask(r));
     const preClick = JSON.parse(JSON.stringify(t.getPlay(id).tags));
     // Apply one genuine legacy-shaped edit through the real UI so this proves
     // an actual WRITE survives, not just an untouched read-back.
-    const chip = document.querySelector('#tagFormation .pick[data-value="Trips"]');
+    const chip = [...document.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button')]
+      .find(b => b.textContent.trim() === 'Trips');
     const chipFound = !!chip;
     if (chip) chip.click();
     return { id, playCount: t.plays.length, preClick, chipFound };

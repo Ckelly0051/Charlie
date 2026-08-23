@@ -25,16 +25,20 @@ const fixture=await page.evaluate(async()=>{
   second.gameInfo={...(second.gameInfo||{}),opponent:'Beta',week:'2',gameType:'game',perspective:'defense',direction:'right'};
   second.plays=[{id:101,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',defFront:'4-2-5',coverage:'Cover 3',players:{},grades:{},custom:[]}}];
   store.setActive(first.id);await store.persist();await app.storage._loadActiveGame({renderGames:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
-  const source=app.nativeTagging.source,before={data:JSON.stringify(store.data)};
+  const before={data:JSON.stringify(store.data)};
   const mounted=!!document.querySelector('#wsBreakdown [data-native-tagging]');
   return{seasonId:store.data.id,firstId:first.id,secondId:second.id,mounted,before};
 });
 let state=await page.evaluate(()=>{
-  const root=document.querySelector('[data-native-tagging]'),source=app.nativeTagging.source;
+  const root=document.querySelector('[data-native-tagging]');
   const fields=[...root.querySelectorAll('[data-native-field]')].map(n=>n.dataset.nativeField).sort();
   const controls=[...root.querySelectorAll('button,select,input,textarea,summary')].filter(n=>n.getClientRects().length);
   const text=root.textContent;
-  return{roots:document.querySelectorAll('[data-native-tagging]').length,sourceMoved:source.dataset.nativeTagSource===''&&source.style.position==='fixed'&&source.style.left==='-100000px',
+  // Final Engine Independence: there is no legacy .tag-section markup left to
+  // hide/adopt/observe -- PlayTagger's field storage is DOM-free (PlainField/
+  // PlainInput). The stronger, real guarantee is that .tag-section is
+  // genuinely ABSENT from the document, not merely hidden off-screen.
+  return{roots:document.querySelectorAll('[data-native-tagging]').length,legacyFormAbsent:!document.querySelector('.tag-section'),
     ids:[...root.querySelectorAll('[id]')].map(n=>n.id),proxy:root.querySelectorAll('[data-native-tag-proxy]').length,fields,controls:controls.length,
     context:[...root.querySelectorAll('[data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
     contextInHeader:[...root.querySelectorAll('.gi-tag-context [data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
@@ -42,7 +46,7 @@ let state=await page.evaluate(()=>{
     unitSelects:root.querySelectorAll('.gi-tag-context select').length,
     capabilities:['Same as Last','Templates','Save Template','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','New Drive','Edit custom fields'].filter(label=>text.includes(label))};
 });
-ok(fixture.mounted&&state.roots===1&&state.sourceMoved,'One native owner mounts and compatibility markup is off-screen',JSON.stringify(state));
+ok(fixture.mounted&&state.roots===1&&state.legacyFormAbsent,'One native owner mounts and the legacy .tag-section markup does not exist in the document at all',JSON.stringify(state));
 ok(state.proxy===0&&!state.ids.some(id=>id.startsWith('tag')||id.startsWith('btn')),'Visible markup is Preact-owned, not a legacy clone',JSON.stringify({ids:state.ids,proxy:state.proxy}));
 const expectedFields=['backfield','blitz','coverage','coverageFamily','defFront','distance','down','driveNumber','fieldSide','formation','hash','motion','personnel','playDir','playType','qbAlignment','quarter','result','runPass','strength','yardLine','yardage'];
 ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard offense/defense/situation field has a native owner',JSON.stringify(state.fields));
@@ -439,14 +443,23 @@ ok(state.coarse&&state.count>0&&state.overflow<=1&&state.min>=44,'Mobile native 
 await touchContext.close();
 state=await page.evaluate(async()=>{
   app.workspaceShell.disable();
-  const source=app.nativeTagging.source;
-  const before={style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')};
+  // Final Engine Independence: mount()/restore() no longer adopt, hide, or
+  // observe any legacy source element -- there is none. The real guarantee
+  // left to prove is that a mount+restore cycle leaves the host genuinely
+  // empty (the Preact tree fully unmounts), and that the controller can
+  // mount again afterward -- restore() must not strand it.
   const host=document.createElement('div');host.id='nativeTaggingTestHost';document.body.append(host);
   const mounted=app.nativeTagging.mount(host);
+  const populated=host.childElementCount>0;
   const restored=app.nativeTagging.restore();
-  return{mounted,restored,empty:!host.childElementCount,actual:{style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')},before,exact:(source.getAttribute('style')||null)===(before.style||null)&&source.getAttribute('aria-hidden')===before.aria&&source.getAttribute('data-native-tag-source')===before.marker};
+  const empty=!host.childElementCount;
+  const remounted=app.nativeTagging.mount(host);
+  const repopulated=host.childElementCount>0;
+  app.nativeTagging.restore();
+  host.remove();
+  return{mounted,populated,restored,empty,remounted,repopulated};
 });
-ok(state.mounted&&state.restored&&state.empty&&state.exact,'Unmount restores compatibility source attributes exactly',JSON.stringify(state));
+ok(state.mounted&&state.populated&&state.restored&&state.empty&&state.remounted&&state.repopulated,'Mount/restore is a clean, repeatable cycle with no legacy source to adopt or restore',JSON.stringify(state));
 
 ok(!errors.length,'No page errors',errors.join(' | '));
 console.log('\n== RESULT: '+pass+' passed, '+fail+' failed ==');

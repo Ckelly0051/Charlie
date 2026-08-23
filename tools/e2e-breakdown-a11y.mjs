@@ -42,7 +42,12 @@ await page.waitForFunction(() => document.querySelector('[data-overlay-id="game-
 state = await page.evaluate(() => {
   const focused = document.activeElement;
   return {
-    scout: document.getElementById('tagForm').classList.contains('is-scout'),
+    // Final Engine Independence: #tagForm no longer exists. The real,
+    // native-visible scout indicator is native-tagging.jsx's own
+    // .gi-tag-subject line, which the form only renders when
+    // perspective === 'scout' -- checking it verifies the coach-visible
+    // presentation, not just the canonical data field read below.
+    scout: !!document.querySelector('.gi-tag-subject'),
     perspective: window.app.gameContext.snapshot().perspective,
     modal: !!document.querySelector('[data-overlay-id="game-details"]'),
     focused: focused?.name,

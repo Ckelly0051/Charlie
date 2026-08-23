@@ -2,7 +2,13 @@ import { render } from 'preact';
 import { useLayoutEffect, useState } from 'preact/hooks';
 import '../css/native-tagging.css';
 
-const OPTIONS = {
+// Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
+// used to read its option lists straight off the legacy .tag-section chip
+// DOM (`document.querySelectorAll('#tagFormation .pick')` etc.) -- now
+// deleted. OPTIONS is exported so it stays the single source of a fixed
+// vocabulary field's values, consumed by both the tag form and the grid
+// editor, instead of two copies drifting apart.
+export const OPTIONS = {
   down:['1','2','3','4'], qbAlignment:['Under Center','Pistol','Shotgun'],
   strength:['Right','Left','Balanced'], personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
   motion:['Jet','Orbit','Shift','Trade'], runPass:['Run','Pass'],
@@ -98,6 +104,9 @@ const RESULT_PRIMARY = [
   {value:'Interception',label:'INT'}, {value:'Fumble',label:'Fumble'},
 ];
 const RESULT_MORE = ['Punt','Penalty','Field Goal','Good','No Good','Kneel','Spike','Safety'];
+// Flat vocabulary for consumers that need every Result value, not the
+// primary/overflow split the chip UI renders (e.g. PlayGrid's inline editor).
+export const RESULT_OPTIONS = [...RESULT_PRIMARY.map(o => o.value), ...RESULT_MORE];
 
 function ResultField({screen, state}) {
   const value = state.values.result;

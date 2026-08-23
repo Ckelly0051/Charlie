@@ -59,16 +59,27 @@ const loaded = await page.evaluate(async () => {
 // MARKING IS OPTIONAL: loading a video into an empty game auto-creates a
 // whole-video play and the form is live immediately. The first manual
 // Mark Start/End RE-TIMES that placeholder; later marks add new plays.
+// Final Engine Independence: .tag-section/#tagForm is deleted. Mount the
+// real native tagging form (the same route a coach reaches) into a scratch
+// host so this harness still drives the actual coach flow -- real clicks on
+// the real Mark Start/End buttons (still native-owned, in #giMediaHost),
+// then a real click on the native form's own chip.
+await page.evaluate(() => {
+  const host = document.createElement('div');
+  host.id = 'markFlowTagHost';
+  document.body.append(host);
+  window.app.nativeTagging.mount(host);
+});
 const result = await page.evaluate(async () => {
   const v = document.getElementById('videoPlayer');
-  const form = document.getElementById('tagForm');
+  const form = document.querySelector('.gi-native-tagging');
   const t = window.app.tagger;
 
   // 1. Right after load: placeholder play exists, selected, form live
   const onLoad = {
     plays: t.plays.length,
     selected: t.currentPlayId,
-    disabled: form.classList.contains('form-disabled'),
+    disabled: form.classList.contains('is-disabled'),
     spansVideo: t.plays[0] && Math.abs(t.plays[0].timestamp.end - v.duration) < 0.5,
     autoFull: !!t.plays[0]?.autoFull,
   };
@@ -84,11 +95,13 @@ const result = await page.evaluate(async () => {
     start: t.plays[0].timestamp.start,
     end: t.plays[0].timestamp.end,
     autoFull: !!t.plays[0].autoFull,
-    disabled: form.classList.contains('form-disabled'),
+    disabled: document.querySelector('.gi-native-tagging').classList.contains('is-disabled'),
   };
 
-  // 3. Chip click saves to the (re-timed) play
-  const chip = document.querySelector('#tagPlayType .pick[data-value="Run Inside"]');
+  // 3. Chip click saves to the (re-timed) play, on the native offense unit
+  // (the fixture plays default to offense, where Play Type is shown)
+  const chip = [...document.querySelectorAll('[data-native-field="playType"] .gi-tag-chips button')]
+    .find(b => b.textContent.trim() === 'Run Inside');
   chip.click();
   await new Promise(r => setTimeout(r, 150));
   const chipSaved = t.getCurrentPlay()?.tags.playType;

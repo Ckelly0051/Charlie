@@ -1,145 +1,75 @@
 import { TagLibrary } from './tag-library.js';
 /**
- * CustomChips — renders the active team's Formation, Backfield, and Front library.
+ * CustomChips — thin owner of the active team's Formation, Backfield, and
+ * Front vocabulary (TagLibrary), plus notifying the surfaces that cache or
+ * present that vocabulary (Film Room's grid, the native tag form) when it
+ * changes.
  *
- * Scoped to the ACTIVE TEAM (localStorage `ffa_tag_libraries_<teamId>`), the way
- * the roster is — a team's formation vocabulary is part of its identity, and a
- * JV vs Varsity staff keep their own. Custom chips are injected as first-class
- * `.pick` buttons and registered with the group's ChipField, so:
- *   - keyboard tagging + click behave exactly like built-in chips,
- *   - the Film Room grid editor picks them up (it reads options live from the
- *     DOM: `#tagFormation .pick`), and
- *   - every analytic works unchanged (formation splits on " + ", backfield is a
- *     plain string) — a custom value is just another value.
+ * Final Engine Independence: this class no longer injects/removes chip
+ * BUTTONS into any DOM chip group. native-tagging.jsx already reads its
+ * Formation/Backfield/Front option lists straight from `TagLibrary` on every
+ * publish (native-tagging-screen.js's snapshot() `library()` helper), and
+ * the native "Edit library" action opens the dedicated Team & Film Settings
+ * library editor (`SettingsScreen`, which calls `library.add`/`.remove`
+ * directly) rather than an inline "+" button inside the tag form.
  *
- * Removing a custom chip only drops the affordance; plays already tagged with
- * that value keep it (same as any tag value the coach later stops using).
+ * What survives is two things that were previously side effects of DOM
+ * mutation (a MutationObserver watching the legacy chip group for injected/
+ * removed/re-classed buttons): PlayGrid's Film Room needs its column-option
+ * cache invalidated, and an ALREADY-MOUNTED native tag form needs to know a
+ * value it's currently showing was hidden/added/removed/restored — neither
+ * of those is triggered by a play-data event, so both get an explicit
+ * subscriber notification here instead.
+ *
+ * Removing a custom value only drops the affordance; plays already tagged
+ * with that value keep it (same as any tag value the coach later stops
+ * using).
  */
 export class CustomChips {
   static GROUPS = [
-    { key: 'formation', groupId: 'tagFormation', field: 'formation', label: 'formation' },
-    { key: 'backfield', groupId: 'tagBackfield', field: 'backfield', label: 'backfield' },
-    { key: 'front', groupId: 'tagDefFront', field: 'defFront', label: 'front' },
+    { key: 'formation', field: 'formation', label: 'formation' },
+    { key: 'backfield', field: 'backfield', label: 'backfield' },
+    { key: 'front', field: 'defFront', label: 'front' },
   ];
 
   constructor(tagger) {
     this.tagger = tagger;
     this.library = new TagLibrary();
-    this.groups = [];
-    for (const g of CustomChips.GROUPS) this._initGroup({ ...g });
+    this._listeners = new Set();
   }
 
-  // ---- storage (per active team) ----
-  _teamId() {
-    try { return localStorage.getItem('ffa_active_team_id') || 'default'; } catch (e) { return 'default'; }
-  }
-  _key() { return this.library.key(); }
-  _load() {
-    const out = {};
-    for (const g of CustomChips.GROUPS) out[g.key] = this.library.group(g.key).custom;
-    return out;
-  }
-  _save(data) { this.library.replaceCustom(data); }
-
-  // ---- setup ----
-  _initGroup(g) {
-    g.groupEl = document.getElementById(g.groupId);
-    g.fieldObj = this.tagger.tagFields && this.tagger.tagFields[g.field];
-    if (!g.groupEl || !g.fieldObj || !g.fieldObj.registerChip) return;
-    // "+ Add" affordance. Not a [data-value] chip, so ChipField ignores it.
-    const add = document.createElement('button');
-    add.type = 'button';
-    add.className = 'pick pick-add';
-    add.title = `Add a custom ${g.label} chip`;
-    add.setAttribute('aria-label', `Add a custom ${g.label} chip`);
-    add.textContent = '+';
-    add.addEventListener('click', (e) => { e.preventDefault(); this._promptAdd(g); });
-    g.groupEl.appendChild(add);
-    g.addBtn = add;
-    g.customBtns = [];
-    this.groups.push(g);
-    this._injectSaved(g);
-    this._applyVisibility(g);
+  /** Subscribe to "the active team's vocabulary changed" (a value was
+   *  hidden/shown/added/removed/restored, or the active team switched).
+   *  Returns an unsubscribe function. */
+  onChange(fn) {
+    this._listeners.add(fn);
+    return () => this._listeners.delete(fn);
   }
 
-  _injectSaved(g) {
-    for (const v of this.library.group(g.key).custom) this._injectChip(g, v);
-  }
-
-  /** True if a chip with this value already exists in the group (built-in or custom). */
-  _exists(g, v) {
-    return [...g.groupEl.querySelectorAll('.pick[data-value]')].some(c => c.dataset.value === v);
-  }
-
-  _injectChip(g, value) {
-    const v = String(value || '').trim();
-    if (!v || this._exists(g, v)) return null;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'pick pick-custom';
-    btn.dataset.value = v;
-    btn.dataset.custom = '1';
-    btn.appendChild(document.createTextNode(v));   // safe text (no innerHTML)
-    // × remove — only on custom chips. stopPropagation so it doesn't toggle.
-    const x = document.createElement('span');
-    x.className = 'pick-x';
-    x.textContent = '×';
-    x.title = 'Remove this custom chip';
-    x.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this._remove(g, v, btn); });
-    btn.appendChild(x);
-    g.groupEl.insertBefore(btn, g.addBtn);      // keep the +Add button last
-    g.fieldObj.registerChip(btn);
-    g.customBtns.push(btn);
-    return btn;
-  }
-
-  async _promptAdd(g) {
-    let name = '';
-    try {
-      name = ((await this.tagger._promptDialog(`Add a custom ${g.label} chip`, 'Add', `e.g. ${g.key === 'formation' ? 'Trey' : 'Ace'}`)) || '').trim();
-    } catch (e) { return; }
-    if (!name) return;
-    if (this._exists(g, name)) { this.tagger.toast && this.tagger.toast(`"${name}" already exists`); return; }
-    this._injectChip(g, name);
-    this.library.add(g.key, name);
-    this._applyVisibility(g);
+  _notify() {
     this._clearGridCache();
-    this.tagger.toast && this.tagger.toast(`Added ${g.label}: ${name}`);
-  }
-
-  _remove(g, value, btn) {
-    this.library.remove(g.key, value);
-    g.fieldObj.unregisterChip(btn);
-    btn.remove();
-    g.customBtns = g.customBtns.filter(b => b !== btn);
-    this._clearGridCache();
-  }
-
-  /** Re-render all custom chips for the CURRENT active team — call after a team
-   *  switch so the tag form shows that team's vocabulary, not the last one's. */
-  reload() {
-    for (const g of this.groups) {
-      for (const b of g.customBtns) { g.fieldObj.unregisterChip(b); b.remove(); }
-      g.customBtns = [];
-      this._injectSaved(g);
-      this._applyVisibility(g);
-    }
-    this._clearGridCache();
+    this._listeners.forEach(fn => { try { fn(); } catch (e) {} });
   }
 
   _clearGridCache() {
     try { if (window.app && window.app.playGrid) window.app.playGrid._optionCache = {}; } catch (e) {}
   }
-  _applyVisibility(g) {
-    const enabled = new Set(this.library.group(g.key).enabled);
-    g.groupEl.querySelectorAll('.pick[data-value]').forEach(btn => btn.classList.toggle('library-hidden', !enabled.has(btn.dataset.value)));
+
+  /** Re-derive whatever depends on the CURRENT active team's vocabulary —
+   *  call after a team switch, or after a direct `library.add`/`.remove`
+   *  call (SettingsScreen calls those two directly, then this). */
+  reload() {
+    this._notify();
   }
+
   setEnabled(key, value, enabled) {
     const changed = this.library.setEnabled(key, value, enabled);
-    const group = this.groups.find(item => item.key === key);
-    if (group) this._applyVisibility(group);
-    if (changed) this._clearGridCache();
+    if (changed) this._notify();
     return changed;
   }
-  restoreDefaults() { this.library.restore(); this.reload(); }
+
+  restoreDefaults() {
+    this.library.restore();
+    this._notify();
+  }
 }

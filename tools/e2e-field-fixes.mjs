@@ -132,22 +132,51 @@ const carry = await page.evaluate(() => {
 check('carry-scheme fills blank formation/personnel', carry.f === 'Wing-T' && carry.p === '21', JSON.stringify(carry));
 check('carry-scheme never overwrites a tagged look', carry.kept === 'Spread' && carry.filled === '21', JSON.stringify(carry));
 
-// Toggle exists and persists
+// Toggle exists and persists. Final Engine Independence: #carrySchemeToggle/
+// .tag-section is deleted -- native-tagging.jsx already has its own real
+// checkbox calling screen.setCarryScheme() (a pre-existing, working native
+// control, not new this checkpoint). Mount the native form to reach it.
+await page.evaluate(() => {
+  // The earlier "Carry scheme" section (above) set tagger.carryScheme = true
+  // directly -- reset to false first so the checkbox starts unchecked and one
+  // click genuinely turns it ON, rather than blindly toggling an unknown state.
+  window.app.tagger.carryScheme = false;
+  const host = document.createElement('div');
+  host.id = 'fieldFixesTagHost';
+  document.body.append(host);
+  window.app.nativeTagging.mount(host);
+  window.app.tagger.selectPlay(window.app.tagger.plays[0]?.id);
+  // The Takeaway role only renders on the defense unit's Players group.
+  window.app.nativeTagging.setUnit('defense');
+});
 const toggle = await page.evaluate(() => {
-  const el = document.getElementById('carrySchemeToggle');
+  const label = [...document.querySelectorAll('.gi-tag-check')].find(l => /Carry formation to next play/.test(l.textContent));
+  const el = label?.querySelector('input[type="checkbox"]');
   if (!el) return { exists: false };
-  el.checked = true;
-  el.dispatchEvent(new Event('change'));
+  if (el.checked) return { exists: true, stored: '(unexpectedly pre-checked)' };
+  el.click();
   return { exists: true, stored: localStorage.getItem('ffa_carry_scheme') };
 });
 check('carry-scheme toggle wired + persisted', toggle.exists && toggle.stored === '1', JSON.stringify(toggle));
 
-// Takeaway input present in the form
-const roleInput = await page.evaluate(() => ({
-  input: !!document.getElementById('tagPlayerTakeaway'),
-  rosterRole: !!(window.app.roster && window.app.roster.roleInputs.takeaway),
-}));
-check('Takeaway role input present + registered with roster', roleInput.input && roleInput.rosterRole);
+// Takeaway input present in the form, and genuinely writes. Final Engine
+// Independence: #tagPlayerTakeaway/.tag-section is deleted, and with it
+// RosterManager.roleInputs.takeaway (a DOM lookup of the same dead id) --
+// that field is now permanently null, guarded (`if (!el) continue`),
+// harmlessly dead. The real, coach-reachable mechanism is now entirely
+// independent of RosterManager's DOM: NativeTaggingScreen.setPlayer() writes
+// straight into tagger.playerFields.takeaway (the same PlainInput field this
+// checkpoint's PlayTagger conversion produced). Prove the coach-visible
+// input exists AND that using it end-to-end genuinely tags the play.
+const roleInput = await page.evaluate(() => {
+  const nativeInput = !!document.querySelector('input[aria-label="takeaway player number"]');
+  window.app.nativeTagging.setActiveRole('takeaway');
+  window.app.nativeTagging.setPlayer('takeaway', '44');
+  const wrote = window.app.tagger.getCurrentPlay()?.tags.players?.takeaway === '44';
+  return { nativeInput, wrote };
+});
+check('Takeaway role input present + genuinely tags the play', roleInput.nativeInput && roleInput.wrote, JSON.stringify(roleInput));
+await page.evaluate(() => { window.app.nativeTagging.restore(); document.getElementById('fieldFixesTagHost')?.remove(); });
 
 const benign = errors.filter(e => !/Failed to load because no supported source|The element has no supported sources/.test(e));
 check('no unexpected page errors', benign.length === 0, benign.join(' | '));

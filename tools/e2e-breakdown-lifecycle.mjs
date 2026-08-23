@@ -50,7 +50,10 @@ let state = await page.evaluate(async () => {
     filmRoom: document.querySelectorAll('[data-native-film-room]').length,
     mediaOwner: document.querySelectorAll('[data-breakdown-theater-host] #videoContainer').length,
     legacyVideo: document.querySelectorAll('.breakdown-player-controls, .breakdown-play-strip').length,
-    legacyTagVisible: app.nativeTagging.source.offsetParent !== null,
+    // Final Engine Independence: .tag-section is deleted from index.html
+    // entirely -- there is no adopted/hidden legacy form to check for
+    // visibility any more. Absence is the assertion now.
+    legacyTagVisible: !!document.querySelector('.tag-section'),
     // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion now.
     classicVisible: !!document.getElementById('wsClassicOutlet'),
     dataSame: before === JSON.stringify(app.storage.seasonStore.data),
@@ -105,7 +108,10 @@ state = await page.evaluate(async () => {
   const disabled = {
     native: document.querySelectorAll('[data-native-breakdown-route]').length,
     mediaHome: media.parentElement === app.breakdownTheater._home.parent,
-    tagRestored: !app.nativeTagging.source.hasAttribute('data-native-tag-source'),
+    // Final Engine Independence: NativeTaggingScreen no longer adopts a
+    // legacy source element to restore -- restore() just releases its host
+    // reference, which the teardown must have cleared by this point.
+    tagRestored: app.nativeTagging.host === null,
   };
   await app.workspaceShell.enable();
   await app.workspaceShell.show('breakdown');

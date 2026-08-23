@@ -107,6 +107,83 @@ class ChipField {
 }
 
 /**
+ * PlainField — Final Engine Independence: a DOM-free value holder carrying
+ * the EXACT same public contract as ChipField above (.value get/set,
+ * .toggle(v), .addEventListener('change', fn)), minus the DOM element it
+ * used to wrap. PlayTagger's field-consuming logic (_saveField,
+ * _loadTagForm, EXCLUSIVE_GROUPS, the multi-value " + " join) is byte-for-
+ * byte unchanged whether a field is native-owned (this) or, for any legacy
+ * consumer that still constructs one directly, DOM-backed (ChipField) — only
+ * the storage backing changes. The coach-visible tag form
+ * (native-tagging.jsx) never reads this object at all; it renders its own
+ * chip buttons from `state.values[field]` (a plain snapshot of play.tags)
+ * and calls PlayTagger's setField/toggleField, which write straight through
+ * this holder. There is no hidden DOM this class depends on for correctness.
+ */
+class PlainField {
+  constructor(opts = {}) {
+    this.multi = !!opts.multi;
+    this.exclusive = opts.exclusive || [];
+    this._value = '';
+    this._values = [];
+    this._listeners = {};
+  }
+  get value() { return this.multi ? this._values.join(' + ') : this._value; }
+  set value(v) {
+    if (this.multi) this._values = String(v || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    else this._value = v || '';
+  }
+  /** Remove values that are mutually exclusive with v (multi mode). Same rule
+   *  as ChipField._dropRivals, kept in sync deliberately (both read the same
+   *  PlayTagger.EXCLUSIVE_GROUPS table passed in at construction). */
+  _dropRivals(v) {
+    for (const group of this.exclusive) {
+      if (!group.includes(v)) continue;
+      this._values = this._values.filter(x => x === v || !group.includes(x));
+    }
+  }
+  toggle(v) {
+    if (this.multi) {
+      const i = this._values.indexOf(v);
+      if (i >= 0) this._values.splice(i, 1);
+      else { this._dropRivals(v); this._values.push(v); }
+    } else {
+      this.value = this._value === v ? '' : v;
+    }
+  }
+  addEventListener(event, fn) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(fn);
+  }
+  _fire(event) {
+    (this._listeners[event] || []).forEach(fn => fn());
+  }
+}
+
+/**
+ * PlainInput — the same DOM-free contract as PlainField, sized for the plain
+ * numeric/text tag fields (yardage, distance, drive number, jersey #, grade)
+ * that were never chip groups — the legacy code read/wrote these directly as
+ * raw `<input>` elements (`.value`, a `change` event). No toggle/exclusivity
+ * semantics; a bare value holder.
+ */
+class PlainInput {
+  constructor() {
+    this._value = '';
+    this._listeners = {};
+  }
+  get value() { return this._value; }
+  set value(v) { this._value = v == null ? '' : v; }
+  addEventListener(event, fn) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(fn);
+  }
+  _fire(event) {
+    (this._listeners[event] || []).forEach(fn => fn());
+  }
+}
+
+/**
  * PlayTagger - Manages play segmentation, categorization, and timeline display.
  */
 export class PlayTagger {
@@ -118,15 +195,26 @@ export class PlayTagger {
     this.listeners = {};
     this.nextId = 1;
 
+    // #giMediaHost is the permanent native-owned media host (S7-d2) and is
+    // untouched by this pass — these five resolve to real, always-present
+    // markup.
     this.playSelect = document.getElementById('playSelect');
     this.btnMarkStart = document.getElementById('btnMarkStart');
     this.btnMarkEnd = document.getElementById('btnMarkEnd');
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
     this.btnClearTags = document.getElementById('btnClearTags');
-    this.btnCopyPrev = document.getElementById('btnCopyPrev');
-    this.templateSelect = document.getElementById('templateSelect');
-    this.btnSaveTemplate = document.getElementById('btnSaveTemplate');
-    this.btnDeleteTemplate = document.getElementById('btnDeleteTemplate');
+    // The remaining four were legacy .tag-section buttons/select with no
+    // permanent native counterpart. native-tagging.jsx's own "Same as Last" /
+    // "Save Template" / "Delete" actions call PlayTagger's methods directly
+    // (copyFromPrevious/saveTemplate/deleteSelectedTemplate) and never touch
+    // these — every consumer below is already null-guarded. `templateSelect`
+    // is the one exception: NativeTaggingScreen.deleteTemplate() sets
+    // `.value` on it before calling deleteSelectedTemplate(), so it needs a
+    // real (DOM-free) value holder, not null.
+    this.btnCopyPrev = null;
+    this.templateSelect = new PlainInput();
+    this.btnSaveTemplate = null;
+    this.btnDeleteTemplate = null;
     this.timelineBar = document.getElementById('timelineBar');
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
@@ -156,41 +244,43 @@ export class PlayTagger {
     // Sack + Fumble, Penalty + anything) are unaffected.
     // Exclusivity groups live on PlayTagger (static) so the Film Room grid's
     // inline editor applies the identical rule — see PlayTagger.EXCLUSIVE_GROUPS.
-    for (const [key, id] of Object.entries(fieldMap)) {
-      const el = document.getElementById(id);
-      this.tagFields[key] = el?.classList.contains('pick-group')
-        ? new ChipField(el, { multi: multiFields.has(key), exclusive: PlayTagger.EXCLUSIVE_GROUPS[key] })
-        : el;
+    // Final Engine Independence: field storage is DOM-free. `inputFields` are
+    // the plain numeric fields (never chip groups, even in the legacy form —
+    // confirmed against index.html's own markup before this conversion);
+    // every other fieldMap key becomes a PlainField (chip-group semantics:
+    // toggle, multi-join, exclusivity). Neither reads or writes any DOM
+    // element — the coach-visible chips live entirely in native-tagging.jsx,
+    // which calls PlayTagger.setField/toggleField (via NativeTaggingScreen),
+    // which write straight into these holders exactly as the legacy
+    // ChipField-over-hidden-DOM path used to, minus the DOM.
+    const inputFields = new Set(['distance', 'yardage', 'yardLine', 'driveNumber', 'kickDistance', 'returnYards', 'hangTime', 'kickedTo']);
+    for (const [key] of Object.entries(fieldMap)) {
+      this.tagFields[key] = inputFields.has(key)
+        ? new PlainInput()
+        : new PlainField({ multi: multiFields.has(key), exclusive: PlayTagger.EXCLUSIVE_GROUPS[key] });
     }
 
     // Per-play player attribution (jersey #) by role.
     this.playerFields = {
-      ballCarrier: document.getElementById('tagPlayerBC'),
-      passer: document.getElementById('tagPlayerPasser'),
-      receiver: document.getElementById('tagPlayerReceiver'),
-      tackler: document.getElementById('tagPlayerTackler'),
-      takeaway: document.getElementById('tagPlayerTakeaway'),
-      kicker: document.getElementById('tagPlayerKicker'),
-      returner: document.getElementById('tagPlayerReturner'),
+      ballCarrier: new PlainInput(), passer: new PlainInput(), receiver: new PlainInput(),
+      tackler: new PlainInput(), takeaway: new PlainInput(), kicker: new PlainInput(), returner: new PlainInput(),
     };
 
     // Per-play player grading (+/- per snap).
     this.gradeFields = {
-      ballCarrier: document.getElementById('tagGradeBC'),
-      passer: document.getElementById('tagGradePasser'),
-      receiver: document.getElementById('tagGradeReceiver'),
-      tackler: document.getElementById('tagGradeTackler'),
-      takeaway: document.getElementById('tagGradeTakeaway'),
-      kicker: document.getElementById('tagGradeKicker'),
-      returner: document.getElementById('tagGradeReturner'),
+      ballCarrier: new PlainInput(), passer: new PlainInput(), receiver: new PlainInput(),
+      tackler: new PlainInput(), takeaway: new PlainInput(), kicker: new PlainInput(), returner: new PlainInput(),
     };
 
     // Unit toggle (Offense / Defense / Special Teams) — drives the tag-form
     // layout per play. Stored on play.tags.unit; defaults from Game Info
-    // perspective via this.defaultUnit (set by App).
-    this.tagForm = document.getElementById('tagForm');
-    const unitEl = document.getElementById('tagUnit');
-    this.unitField = unitEl ? new ChipField(unitEl) : null;
+    // perspective via this.defaultUnit (set by App). `tagForm` no longer
+    // resolves to any authored markup (the legacy .tag-section it once
+    // pointed at is retired) — every consumer already guards its absence
+    // (_updateFormEnabled, the disabled-form click hint, BreakdownForm's own
+    // constructor), so this stays `null` rather than a fabricated stand-in.
+    this.tagForm = null;
+    this.unitField = new PlainField();
     this.defaultUnit = 'offense';
 
     // Auto down & distance: when advancing to the next (untagged) play, pre-fill
@@ -270,6 +360,16 @@ export class PlayTagger {
     }
   }
 
+  /** "N / M tagged" — the same computation app.js's legacy _updateTagProgress
+   *  wrote into a hidden DOM label; native-tagging-screen.js's snapshot()
+   *  calls this directly instead of reading that label's textContent back
+   *  out, so the coach-visible progress line has one owner, not a DOM round-trip. */
+  progressText() {
+    const total = this.plays.length;
+    const tagged = this.plays.filter(isPlayTagged).length;
+    return `${tagged} / ${total} tagged`;
+  }
+
   _disabledHintText() {
     return this.plays.length
       ? 'Select a play to tag — click a row in the play list, or hit <b>Save &amp; Next</b> to start at play 1'
@@ -301,13 +401,6 @@ export class PlayTagger {
     // so clicking one chip doesn't overwrite other fields with stale values.
     for (const [key, el] of Object.entries(this.tagFields)) {
       el.addEventListener('change', () => this._saveField(key));
-    }
-
-    // Phase-aware special teams: when the ST Play Type changes, show only the
-    // detail fields/chips that phase uses (kickoff hang time, punt net, FG
-    // result, etc.).
-    if (this.tagFields.stType) {
-      this.tagFields.stType.addEventListener('change', () => this._onStPhaseChange(this.tagFields.stType.value));
     }
 
     // Player-role inputs save into play.tags.players.
@@ -349,29 +442,6 @@ export class PlayTagger {
     if (this.btnNewDrive) {
       this.btnNewDrive.addEventListener('click', () => this.newDrive());
     }
-
-    // Custom tag input
-    this.customTagInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const tag = this.customTagInput.value.trim();
-        if (tag && this.currentPlayId) {
-          const play = this.getPlay(this.currentPlayId);
-          // The WRITE sink for the same missing-collection case the render sink
-          // guards. A legacy/imported play has no tags.custom, and this threw
-          // INSIDE the listener — so it never surfaced as a failed call, only as
-          // an uncaught page error, which is why the render-only fix looked
-          // complete. Reproduced before fixing.
-          if (play && !Array.isArray(play.tags.custom)) play.tags.custom = [];
-          if (play && !play.tags.custom.includes(tag)) {
-            play.tags.custom.push(tag);
-            this._renderCustomTags(play.tags.custom);
-            this._emit('play-updated', play);
-          }
-          this.customTagInput.value = '';
-        }
-      }
-    });
   }
 
   /**
@@ -1190,7 +1260,6 @@ export class PlayTagger {
     const unit = play.tags.unit || this.defaultUnit || 'offense';
     if (this.unitField) this.unitField.value = unit;
     this.applyUnitMode(unit);
-    this._applyStPhase(play.tags.stType || '');
     this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
@@ -1210,39 +1279,6 @@ export class PlayTagger {
     el.textContent = dist ? `${ord} & ${dist}` : ord;
     el.classList.toggle('dd-badge--key', down === '3' || down === '4');
     el.style.display = '';
-  }
-
-  /**
-   * User switched ST Play Type: drop any ST detail values the new phase doesn't
-   * use, so a corrected phase can't leave stale data behind (e.g. a Punt's
-   * "Downed" outcome on a play the coach re-tagged as a Field Goal — which would
-   * silently keep that FG out of the made-kick count). Loading a saved play
-   * calls _applyStPhase directly, so saved values are never cleared.
-   */
-  _onStPhaseChange(stType) {
-    const phase = stType || '';
-    const ok = (el) => !!el && (el.dataset.phases || '').split('|').includes(phase);
-    const ko = this.tagFields.kickOutcome;
-    if (ko && ko.value && !ok(document.querySelector(`#tagKickOutcome .pick[data-value="${ko.value}"]`))) {
-      ko.value = ''; this._saveField('kickOutcome');
-    }
-    ['kickDistance', 'hangTime', 'returnYards', 'kickedTo'].forEach(key => {
-      const el = this.tagFields[key];
-      if (el && el.value && !ok(el.closest && el.closest('.st-field'))) { el.value = ''; this._saveField(key); }
-    });
-    this._applyStPhase(stType);
-  }
-
-  /**
-   * Show only the special-teams detail fields/chips the selected ST Play Type
-   * uses. Each .st-field and each Kick Outcome chip carries data-phases (the
-   * stTypes it belongs to, "|"-separated); an empty stType hides them all.
-   */
-  _applyStPhase(stType) {
-    const phase = stType || '';
-    const inPhase = (el) => (el.dataset.phases || '').split('|').filter(Boolean).includes(phase);
-    document.querySelectorAll('.st-field').forEach(el => el.classList.toggle('st-hidden', !phase || !inPhase(el)));
-    document.querySelectorAll('#tagKickOutcome .pick[data-phases]').forEach(chip => chip.classList.toggle('st-hidden', !phase || !inPhase(chip)));
   }
 
   /**
@@ -1356,7 +1392,7 @@ export class PlayTagger {
     for (const el of Object.values(this.tagFields)) el.value = '';
     for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
     for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
-    this.tagChips.innerHTML = '';
+    if (this.tagChips) this.tagChips.innerHTML = '';
     this._updateFormEnabled();
   }
 
@@ -1622,6 +1658,12 @@ export class PlayTagger {
   }
 
   _renderCustomTags(tags) {
+    // Legacy .tag-section chip display — native-tagging.jsx renders custom
+    // tags itself (state.customTags, straight off play.tags.custom), so this
+    // is a pure no-op on the coach-visible path. Still called from
+    // _loadTagForm on every play selection, so it must not crash once the
+    // legacy display node is gone.
+    if (!this.tagChips) return;
     this.tagChips.innerHTML = '';
     // Every in-app creation site sets `custom: []`, but SeasonStore._normalize
     // does NOT backfill it, so a play from an imported or pre-field season file

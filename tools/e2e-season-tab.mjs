@@ -373,7 +373,9 @@ await page.$eval('[data-native-game-form] [name="opponent"]', el => { el.value =
 await page.click('[data-native-game-form] .gi-game-actions .is-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]'));
 r = await page.evaluate(() => ({ opponent: window.app.storage.seasonStore.activeGame()?.gameInfo?.opponent,
-  summary: document.getElementById('gameHeaderSummary')?.textContent || '' }));
+  // Final Engine Independence: #gameHeaderSummary/.tag-section is deleted --
+  // the coach-visible game summary is now the shell's own context breadcrumb.
+  summary: document.getElementById('wsContextGame')?.textContent || '' }));
 ok(r.opponent === 'Probe Rivals B' && /Rivals B/.test(r.summary), 'native edit updates the active game and summary', JSON.stringify(r));
 
 const deleteProbe = await page.evaluate(() => {
@@ -566,32 +568,17 @@ ok(r.prTd === 1 && r.krAvg === 30, 'return game (punt-return TD + kick-return av
 ok(r.htmlHasPunts, 'Special Teams section renders', JSON.stringify(r));
 ok(r.xpPts === 1, 'XP scores via kickOutcome=Good (playPoints)', JSON.stringify(r));
 
-console.log('\n== 12. Phase-aware ST form: fields/chips show per ST Play Type ==');
-r = await page.evaluate(() => {
-  const tagger = window.app.tagger;
-  const fieldHidden = (id) => document.getElementById(id)?.closest('.st-field')?.classList.contains('st-hidden');
-  const chipHidden = (val) => document.querySelector(`#tagKickOutcome .pick[data-value="${val}"]`)?.classList.contains('st-hidden');
-  tagger._applyStPhase('Punt');
-  const punt = { hang: fieldHidden('tagHangTime') === false, dist: fieldHidden('tagKickDistance') === false, good: chipHidden('Good') === true, downed: chipHidden('Downed') === false };
-  tagger._applyStPhase('Field Goal');
-  const fg = { hangHidden: fieldHidden('tagHangTime') === true, good: chipHidden('Good') === false };
-  tagger._applyStPhase('');
-  const cleared = fieldHidden('tagKickDistance') === true;
-  // Stale-field clearing on a user phase switch (_onStPhaseChange).
-  tagger.tagFields.kickOutcome.value = 'Downed';
-  tagger._onStPhaseChange('Field Goal');
-  const staleCleared = tagger.tagFields.kickOutcome.value === '';
-  tagger.tagFields.kickOutcome.value = 'Good';
-  tagger._onStPhaseChange('Field Goal');
-  const validKept = tagger.tagFields.kickOutcome.value === 'Good';
-  return { punt, fg, cleared, staleCleared, validKept };
-});
-ok(r.punt.hang && r.punt.dist, 'Punt phase shows hang time + kick distance', JSON.stringify(r));
-ok(r.punt.good && r.punt.downed, 'Punt shows coverage outcomes, hides Good/No Good', JSON.stringify(r));
-ok(r.fg.hangHidden && r.fg.good, 'FG phase hides hang time, shows Good', JSON.stringify(r));
-ok(r.cleared, 'no ST phase hides the detail fields', JSON.stringify(r));
-ok(r.staleCleared, 'switching phase clears an outcome the new phase cannot use', JSON.stringify(r));
-ok(r.validKept, 'switching phase keeps an outcome the new phase still allows', JSON.stringify(r));
+// == 12 retired (Final Engine Independence). ==
+// PlayTagger._applyStPhase/_onStPhaseChange were pure DOM show/hide over the
+// legacy .tag-section markup (#tagHangTime/#tagKickDistance/#tagKickOutcome,
+// the .st-field/st-hidden classes) that this checkpoint deletes. That
+// legacy stType/kickOutcome charting UI has had no coach-reachable path
+// since the structured Special Teams redesign (native-tagging.jsx's
+// TryEditor/specialAction workflow); no chip group for stType/kickOutcome
+// has existed in the native form at any point this session. Both methods
+// and their wiring are deleted from play-tagger.js as genuinely unreachable
+// legacy code, not just untested code -- the stType/kickOutcome DATA fields
+// themselves (and every analytics/CSV read of them) are untouched.
 
 console.log('\n== 13. Formation→Backfield migration (Hudl model): split, idempotent, safe ==');
 r = await page.evaluate(() => {
@@ -1017,8 +1004,11 @@ r = await page.evaluate(() => {
   store.data.games = [{ id: 'tp1', name: 'vs Counter', gameInfo: { opponent: 'Counter' }, status: 'active', plays, annotations: [], nextId: 90, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false }];
   store.data.activeGameId = 'tp1';
   sm._loadActiveGame();
-  const label = document.getElementById('tagProgressLabel');
-  return { text: label ? label.textContent : '(no element)' };
+  // Final Engine Independence: the counter is no longer a DOM label that can
+  // go stale -- PlayTagger.progressText() is a pure, always-fresh computed
+  // getter (the same source native-tagging-screen.js's snapshot().progress
+  // reads), so there is no cached value left to prove correct/stale.
+  return { text: window.app.tagger.progressText() };
 });
 ok(r.text === '2 / 3 tagged', 'after opening a game the counter shows the real tagged count (was stale "0 / 0 tagged")', JSON.stringify(r));
 
@@ -1274,25 +1264,37 @@ ok(r.attempts === 3, 'pass attempts count each play once — "Incomplete + Inter
 ok(r.tfl === 1, 'TFL counts only the real behind-the-line run — penalty, kneel and sack are excluded', JSON.stringify(r));
 
 console.log('\n== 35. Custom Formation/Backfield/Front chips: per-team, first-class, grid-visible, removable ==');
-r = await page.evaluate(() => {
+// Final Engine Independence: CustomChips no longer injects/removes DOM chip
+// buttons (there is no static .tag-section chip DOM left to inject into) --
+// it is a thin owner of the active team's TagLibrary plus a change-notify
+// seam. Adding/removing a custom value now goes through the real production
+// path (SettingsScreen's own: library.add/.remove directly, then reload() to
+// notify), and "the grid/form sees it" is proven by mounting the real native
+// tag form, same convention as every other rewritten harness this checkpoint.
+r = await page.evaluate(async () => {
   const cc = window.app.customChips, t = window.app.tagger, grid = window.app.playGrid;
   try { localStorage.setItem('ffa_active_team_id', 'teamZ'); } catch (e) {}
   cc.reload();                                   // key on teamZ
-  const g = cc.groups.find(x => x.key === 'formation');
-  cc._injectChip(g, 'Trey');
-  const data = cc._load(); data.formation = [...(data.formation || []), 'Trey']; cc._save(data); cc._clearGridCache();
-  const boundToField = g.fieldObj.chips.some(c => c.dataset.value === 'Trey');
+  cc.library.add('formation', 'Trey');
+  cc.reload();
+  const boundToField = cc.library.group('formation').values.includes('Trey');
   // selecting it tags the play (multi-select append). Use a clean mk play so
-  // _loadTagForm has a well-formed tags object regardless of prior-test state.
+  // the native form has a well-formed tags object regardless of prior-test state.
   const clean = window.__mk({ formation: '' });
   t.plays = [clean]; t.nextId = (clean.id || 0) + 1;
+  const scratchHost = document.createElement('div');
+  document.body.append(scratchHost);
+  window.app.nativeTagging.mount(scratchHost);
   t.selectPlay(clean.id);
-  const chip = [...g.groupEl.querySelectorAll('.pick[data-value]')].find(c => c.dataset.value === 'Trey');
+  await new Promise(res => queueMicrotask(res));
+  const chip = [...scratchHost.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button')]
+    .find(b => b.textContent.trim() === 'Trey');
   chip.click();
+  await new Promise(res => queueMicrotask(res));
   const tagged = t.getPlay(t.currentPlayId).tags.formation;
-  // grid editor reads options live from the DOM
+  // grid editor reads options live from the library (not the DOM any more)
   grid._optionCache = {};
-  const gridSees = grid._options({ key: 'formation', src: 'tagFormation' }).includes('Trey');
+  const gridSees = grid._options({ key: 'formation' }).includes('Trey');
   // E3b: the example must be a STRUCTURAL formation. This used to hide 'Shotgun',
   // but Shotgun is QB ALIGNMENT now and the grid's structural Formation picker
   // filters alignments out entirely — which would make "historically visible"
@@ -1301,19 +1303,21 @@ r = await page.evaluate(() => {
   // already carries it.
   cc.setEnabled('formation', 'Trips', false);
   grid._optionCache = {};
-  const hiddenForNew = !grid._options({ key: 'formation', src: 'tagFormation' }).includes('Trips');
-  const historicalVisible = grid._options({ key: 'formation', src: 'tagFormation' }, ['Trips']).includes('Trips');
-  const perTeamKey = cc._key() === 'ffa_tag_libraries_teamZ';
-  // remove clears DOM + storage
-  cc._remove(g, 'Trey', chip);
-  const removed = ![...g.groupEl.querySelectorAll('.pick[data-value]')].some(c => c.dataset.value === 'Trey')
-    && !(cc._load().formation || []).includes('Trey');
+  const hiddenForNew = !grid._options({ key: 'formation' }).includes('Trips');
+  const historicalVisible = grid._options({ key: 'formation' }, ['Trips']).includes('Trips');
+  const perTeamKey = cc.library.key() === 'ffa_tag_libraries_teamZ';
+  // remove clears the library entry (and, transitively, both surfaces above)
+  cc.library.remove('formation', 'Trey');
+  cc.reload();
+  const removed = !cc.library.group('formation').values.includes('Trey');
+  window.app.nativeTagging.restore();
+  scratchHost.remove();
   try { localStorage.removeItem('ffa_active_team_id'); localStorage.removeItem('ffa_custom_chips_teamZ'); localStorage.removeItem('ffa_tag_libraries_teamZ'); } catch (e) {}
   return { boundToField, tagged, gridSees, hiddenForNew, historicalVisible, perTeamKey, removed };
 });
-ok(r.boundToField, 'a custom chip is a first-class ChipField chip (keyboard/click behave like built-ins)', JSON.stringify(r));
-ok(r.tagged === 'Trey', 'clicking a custom Formation chip tags the play with its value', JSON.stringify(r));
-ok(r.gridSees, 'the Film Room grid editor sees the custom chip (reads options live from the DOM)', JSON.stringify(r));
+ok(r.boundToField, 'adding a custom Formation value makes it a first-class TagLibrary member', JSON.stringify(r));
+ok(r.tagged === 'Trey', 'clicking a custom Formation chip in the native form tags the play with its value', JSON.stringify(r));
+ok(r.gridSees, 'the Film Room grid editor sees the custom chip (reads options live from TagLibrary)', JSON.stringify(r));
 ok(r.hiddenForNew && r.historicalVisible, 'hidden values leave future grid choices but remain editable on historical plays', JSON.stringify(r));
 ok(r.perTeamKey, 'tag libraries are stored per active team (ffa_tag_libraries_<teamId>)', JSON.stringify(r));
 ok(r.removed, 'removing a custom chip clears it from the group and storage', JSON.stringify(r));

@@ -142,6 +142,14 @@ export class BreakdownForm {
   }
 
   loadPlay(play) {
+    // Legacy .tag-section display refresh — native-tagging.jsx's own
+    // SpecialTeams/TryEditor components already re-render from
+    // state.special on every 'play-updated' publish (which every caller of
+    // loadPlay() emits before calling it), so this is a pure no-op once the
+    // legacy form is gone. Called from app.js's onLoadForm hook on EVERY
+    // play selection, unconditionally — must not crash when there is no
+    // legacy form to refresh.
+    if (!this.form) return;
     const editor = this.form.querySelector('.bdv-st-editor');
     if (!editor) return;
     const st = SpecialTeamsModel.normalize(play?.specialTeams);
@@ -173,6 +181,12 @@ export class BreakdownForm {
   }
 
   _renderPenalties(play) {
+    // Legacy .tag-section display refresh — native-tagging.jsx's own
+    // Penalties component re-renders from state.penalties on every
+    // 'play-updated' publish (which every caller of this method emits just
+    // before calling it), so this is a pure no-op once the legacy form is
+    // gone. Called unconditionally from _savePenaltyPlay.
+    if (!this.form) return;
     const section = this.form.querySelector('.bdv-penalties');
     if (!section) return;
     const penalties = PenaltyModel.normalizeList(play?.penalties);
