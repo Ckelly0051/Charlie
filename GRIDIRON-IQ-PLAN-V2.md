@@ -107,21 +107,32 @@ against obsolete desktop controls.
 
 ## 4. Upgrade Lanes
 
-### V2-A: One Navigation And Context Owner
+### V2-A: Home And Context UX
 
-Replace the dual classic/workspace entry paths with one authoritative routing
-and workspace-context system for Home, Break Down, Study, and Plan.
+Final Engine Independence established one state model and one coach-facing shell. V2-A now turns that foundation into an obvious daily workflow rather than repeating structural work.
 
 Required outcomes:
 
-- One active team, season, and game across every screen.
-- One game-opening lifecycle regardless of where the coach clicks.
-- Home highlights the actual active or previewed game intentionally, never a
-  stale previous selection.
-- Settings and primary navigation render consistently on first entry.
-- Back/forward, restore, and direct-open paths share the same tested contract.
-- Classic compatibility code can be removed only after parity is proven.
+- A prominent Program / Season / Game context switcher is available throughout Home, Break Down, Study, Reports, and Plan.
+- The tiny, out-of-place Seasons affordance is retired. A coach can switch seasons from inside any season without hunting for Home or opening a game first.
+- A season change safely lands on that season's Home instead of leaving stale game-specific context on screen.
+- One active team, season, and game remains authoritative across every route; Home highlights the intentional active or previewed game.
+- Home becomes a useful season command center showing record, games, charting progress, film-link health, a recent or selected game summary, and clear actions to open a game, add a game, continue charting, or open Reports.
+- Season and game rows are selectable across their useful area. Open/continue actions are visually distinct from destructive controls.
+- Persistent navigation has clear button-like hit areas, hover, keyboard-focus, and selected states. Disabled destinations look intentionally unavailable rather than like background copy.
+- Settings and primary navigation render consistently on first entry; restore and direct-open paths preserve the same context contract.
+- The approved treatment must improve hierarchy, spacing, typography, density, and scanability rather than merely restyle the current layout.
 
+Scope boundary: detailed film-root management, repair diagnostics, opponent-scout creation, and storage onboarding remain V2-B/V2-D/V2-C. V2-A may establish the visual/context entry points they will later use, but must not absorb those workflows.
+
+Execution and ownership:
+
+1. Codex and the coach produce real-data Home and global-context comps.
+2. The coach approves the actual rendered treatment before production work begins.
+3. Claude implements the approved V2-A treatment and behavior without reinterpretation.
+4. Codex independently reviews the implementation and runs the visual Charlie Gate against the live app.
+5. The coach smokes one installed candidate.
+6. Codex and the coach reassess and reorder the remaining Plan V2 priorities around the actual coaching workflow before V2-B opens.
 ### V2-B: Team, Film And Scouting Control Center
 
 Create one pre-game Home and settings experience with two explicit football

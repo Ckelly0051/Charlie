@@ -15,6 +15,9 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ V2-A OPEN — HOME & CONTEXT UX DESIGN OWNED BY COACH + CODEX (2026-08-23)
+
+Final Engine Independence is accepted. V2-A is redefined as a coach-facing Home and context-switching milestone, not another architecture rewrite. **Current step:** Codex and the coach produce and approve real-data Home/global-context comps. Claude does not begin implementation until that treatment is approved. Claude then builds the approved design; Codex owns independent review and the live-app Charlie Gate; the coach owns the installed smoke. After acceptance, the remaining Plan V2 priorities are reassessed before V2-B opens. The binding scope and acceptance outcomes are in `GRIDIRON-IQ-PLAN-V2.md` §4 V2-A.
 ### ▶ FINAL ENGINE INDEPENDENCE — ACCEPTED ON INSTALLED 1.12.0-62 (2026-08-23)
 
 The coach installed candidate **1.12.0-62** and completed the focused real-film Charlie Gate: both seasons remained intact and switchable; Break Down film/play selection and tag persistence worked; Film Room controls remained available; native chrome worked; and the application closed and reopened normally. No blocking issue was observed.
