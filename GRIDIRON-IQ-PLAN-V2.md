@@ -103,7 +103,7 @@ presentations over the same state and commands. It does not itself design the
 mobile UI, but it prevents mobile from becoming a third interface synchronized
 against obsolete desktop controls.
 
-> **STATUS (2026-08-23): code complete; installer candidate built; coach smoke pending.** `#giLegacyEngineHost` is deleted; zero production code reaches retired control ids; the retired `build.sh` / `football-film-analyzer.html` path is gone. The canonical gate was **90/90 green** at the final implementation checkpoint, and the focused Auto Detect lifecycle journey is **67/67** after Codex's repair. Unsigned desktop candidate **1.12.0-62** is built and recorded in `CLAUDE.md`. The remaining acceptance item is the installed real-film Charlie Gate across Break Down and Film Room. Bulk dead-CSS reduction remains deferred maintenance and is not part of engine-independence acceptance unless a surviving native surface depends on it.
+> **STATUS (2026-08-23): ACCEPTED.** The coach installed **1.12.0-62** and passed the real-film Charlie Gate. Commit `01a3108` and installer `1.12.0-62` are the accepted rollback point. `#giLegacyEngineHost`, retired-control synchronization, `build.sh`, and `football-film-analyzer.html` are gone; Plan V2 may now open from one application state model and one coach-facing shell. Bulk dead-CSS reduction remains deferred maintenance, not a milestone blocker.
 
 ## 4. Upgrade Lanes
 

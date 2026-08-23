@@ -15,6 +15,11 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ FINAL ENGINE INDEPENDENCE — ACCEPTED ON INSTALLED 1.12.0-62 (2026-08-23)
+
+The coach installed candidate **1.12.0-62** and completed the focused real-film Charlie Gate: both seasons remained intact and switchable; Break Down film/play selection and tag persistence worked; Film Room controls remained available; native chrome worked; and the application closed and reopened normally. No blocking issue was observed.
+
+**Milestone status:** Final Engine Independence is complete. Commit `01a3108` and installer `1.12.0-62` are the accepted rollback point. The application now has one coach-facing shell and no `#giLegacyEngineHost`, retired-control synchronization, `build.sh`, or `football-film-analyzer.html` production path. Deferred bulk CSS cleanup is maintenance, not a blocker. **Next:** Plan V2 may open from this accepted baseline.
 
 ### ▶ FINAL ENGINE INDEPENDENCE INSTALLER CANDIDATE 1.12.0-62 — COACH SMOKE PENDING (2026-08-23)
 
