@@ -8,9 +8,10 @@ const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'playe
  * Native Reports route controller.
  *
  * StatsEngine remains the only formula owner. This controller owns route markup,
- * report composition, actions, tabs, accessibility, and film bindings. It never
- * moves #statsDashboard out of the legacy tree; the engine renders into an
- * explicitly injected native content target while the shell is mounted.
+ * report composition, actions, tabs, accessibility, and film bindings. The
+ * legacy #statsDashboard node no longer exists in the document at all — it is
+ * a private detached element StatsEngine defaults to — and the engine renders
+ * into an explicitly injected native content target while the shell is mounted.
  */
 export class ReportsScreen {
   constructor(app) {
@@ -30,10 +31,12 @@ export class ReportsScreen {
   mount(host) {
     if (!host || !this.app.stats) return false;
     this._unmountNative();
-    // Preserve the public dashboard id for integrations while ensuring there is
-    // exactly one owner: the hidden legacy node relinquishes it before Preact
-    // creates the native content host.
-    if (this._legacyTarget?.id === 'statsDashboard') this._legacyTarget.id = 'legacyStatsDashboard';
+    // Final Engine Independence (2026-08-22): the legacy #statsDashboard
+    // node is now a private, never-inserted detached element (see
+    // StatsEngine's constructor) — it carries no id at all, so there is no
+    // longer a live-DOM id collision to avoid when the native content host
+    // (which owns id="statsDashboard" for real, per native-reports.jsx)
+    // mounts. The id-swap dance this comment used to describe is gone.
     this.host = host;
     this._native = mountNativeReports({ host, screen: this });
     this.content = this._native.content;
@@ -51,7 +54,6 @@ export class ReportsScreen {
     this._observer = null;
     this._unmountNative();
     if (this._legacyTarget) {
-      this._legacyTarget.id = 'statsDashboard';
       this.app.stats.setDashboardTarget?.(this._legacyTarget);
       if (this.app.stats.dashboardEl !== this._legacyTarget) this.app.stats.dashboardEl = this._legacyTarget;
     }

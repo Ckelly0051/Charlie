@@ -511,19 +511,24 @@ await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !!document.querySelector('#wsClassicOutlet') }));
 ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
 // S1 REPORTS OWNERSHIP CONTRACT. The visible dashboard is created inside the
-// Preact route; the hidden legacy node stays home and relinquishes its public id.
+// Preact route; the pre-mount fallback stays a private, id-less, never-
+// inserted element.
 r = await page.evaluate(() => ({
   nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
   nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
   legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
-  // S7 demolition: #app is deleted. The hidden legacy dashboard's home is now
-  // the permanent #giLegacyEngineHost, a sibling of the shell root.
-  legacyStillHome: !!document.querySelector('#giLegacyEngineHost #legacyStatsDashboard'),
+  // Final Engine Independence (2026-08-22): #statsDashboard/#giLegacyEngineHost
+  // no longer share any markup at all. ReportsScreen's captured fallback
+  // (_legacyTarget) is a bare, never-appended <div> — it has no id and is not
+  // connected to the document, which is the real, provable form of "the
+  // legacy dashboard never leaks into a live route."
+  fallbackDetachedAndIdLess: !window.app.reportsScreen._legacyTarget?.isConnected
+    && !window.app.reportsScreen._legacyTarget?.id,
   mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
   tabs: document.querySelectorAll('#wsReports [data-report-tab]').length,
 }));
-ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.legacyStillHome && r.mainActions === 2 && r.tabs === 8,
-  'Native Reports owns its route, actions, and football section navigation without moving the legacy dashboard', JSON.stringify(r));
+ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.fallbackDetachedAndIdLess && r.mainActions === 2 && r.tabs === 8,
+  'Native Reports owns its route and actions; the pre-mount fallback is a detached, id-less scratch element', JSON.stringify(r));
 r = await page.evaluate(() => {
   const screen = window.app.reportsScreen, calls = [];
   const original = screen.export;

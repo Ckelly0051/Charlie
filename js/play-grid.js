@@ -127,6 +127,19 @@ export class PlayGrid {
     this.cutup = cutupPlayer;
     this.playbook = playbook;
 
+    // NOTE (2026-08-22, Final Engine Independence investigation): this was
+    // trialed as a detached (never-document-inserted) scratch element, the
+    // same technique applied successfully to StatsEngine.dashboardEl below.
+    // Reverted here: e2e-film-room.mjs drives the classic-rendered grid with
+    // real document-rooted queries and Puppeteer page.click() (~60 call
+    // sites: `#pgRows`, `.pg-row`, etc.), which requires the section to be
+    // genuinely attached to the document to be found/hit-tested. Converting
+    // that harness to route every one of those through a scoped
+    // `app.playGrid.section.querySelector(...)` is real, mechanical,
+    // low-risk work — but it is sized for its own reviewed pass, not a
+    // footnote in this one. #playGridSection therefore remains a real,
+    // present (but hidden) id in index.html for now. See the milestone
+    // handoff for the concrete follow-up plan.
     this.section = document.getElementById('playGridSection');
     if (!this.section) return;
 

@@ -275,9 +275,18 @@ export class StatsEngine {
     this.filter = playFilter || null;
     this.heatMaps = new HeatMaps();
     this.advanced = new AdvancedMetrics();
-    this.dashboardEl = document.getElementById('statsDashboard');
+    // Final Engine Independence (2026-08-22): the legacy #statsDashboard /
+    // #btnCloseStats markup is deleted from index.html. dashboardEl now
+    // defaults to a private, never-inserted scratch element — real content
+    // is always injected via setDashboardTarget() the moment a route mounts
+    // (ReportsScreen.mount(), below). btnCloseStats is likewise a detached
+    // stand-in: its click affordance was already superseded by native
+    // Reports' own close/back actions, so this preserves the field's shape
+    // (`if (this.btnCloseStats)` keeps working) with no reachable control.
+    this.dashboardEl = document.createElement('div');
+    this.dashboardEl.hidden = true;
     this.btnShowStats = document.getElementById('btnShowStats');
-    this.btnCloseStats = document.getElementById('btnCloseStats');
+    this.btnCloseStats = document.createElement('button');
 
     this._bindEvents();
   }
@@ -302,7 +311,7 @@ export class StatsEngine {
     // the render path is identical — only the framing changes. Every other
     // caller (season-library, ui-polish) clicks this same button, so
     // they all inherit the routing with no change of their own.
-    this.btnShowStats.addEventListener('click', () => {
+    this.btnShowStats?.addEventListener('click', () => {
       const shell = window.app?.workspaceShell;
       if (shell?.root && typeof shell.show === 'function') { shell.show('reports'); return; }
       this.showDashboard();

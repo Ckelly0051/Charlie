@@ -248,6 +248,20 @@ export class NativeTaggingScreen {
   setScoreboardRegion() { this.app.ocr?.startRegionSelect?.(); }
   readScoreboard() { this.app.ocr?.readNow?.(); }
   setAutoOcr(value) { return this.app.ocr?.setAutoOcr?.(value); }
+  // Final Engine Independence (2026-08-22): the ONE capability in this file
+  // that genuinely cannot be converted to a direct call without a real
+  // feature-level redesign. App._bindAutoDetect()'s scan handler is ~175
+  // lines that read and write ~15 legacy DOM nodes as ITS OWN UI — a
+  // progress bar, a live status label, a motion-graph canvas, a settings
+  // panel with a strictness slider — not as a proxy for domain state. There
+  // is no native auto-detect progress surface to redirect that UI into; a
+  // pure-logic extraction would either duplicate ~175 lines of scan
+  // orchestration or silently drop the coach's real-time scan-progress
+  // feedback on what can be a slow, multi-play AI Vision/local-CV pass —
+  // a real capability regression, not a structural cleanup. Left as a
+  // click() into the legacy handler on purpose; converting it is a
+  // dedicated native auto-detect UI project, reported here rather than
+  // silently worked around.
   runAutoDetect() { document.getElementById('btnAutoDetect')?.click(); }
   newDrive() { return this.tagger?.newDrive?.(); }
   addNoteTimestamp() { return this.app.notes?.insertTimestamp?.(); }

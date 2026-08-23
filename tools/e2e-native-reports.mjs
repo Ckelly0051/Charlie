@@ -63,15 +63,21 @@ await sleep(150);
 let result = await page.evaluate(() => ({
   native: document.querySelectorAll('#wsReports > [data-native-reports]').length,
   dashboardIds: document.querySelectorAll('#statsDashboard').length,
-  // S7 demolition: #app is deleted. #statsDashboard's permanent authored home
-  // is #giLegacyEngineHost now, not #app.
-  oldId: document.querySelector('#giLegacyEngineHost #legacyStatsDashboard')?.id || '',
-  oldInsideReports: !!document.querySelector('#wsReports #legacyStatsDashboard'),
+  // Final Engine Independence (2026-08-22): #statsDashboard/#btnCloseStats no
+  // longer have ANY authored markup, in #giLegacyEngineHost or anywhere else.
+  // StatsEngine's original (pre-Reports-mount) dashboardEl — preserved by
+  // ReportsScreen as _legacyTarget precisely so restore() can hand it back —
+  // is a private, never-inserted <div>. It must never carry an id and must
+  // never be connected to the document, which is what makes "there is
+  // exactly one live owner of #statsDashboard" a real, provable guarantee
+  // rather than an id-swap convention.
+  fallbackConnected: !!window.app?.reportsScreen?._legacyTarget?.isConnected,
+  fallbackHasId: !!window.app?.reportsScreen?._legacyTarget?.id,
   tabs: [...document.querySelectorAll('#wsReports [data-report-tab]')].map(node => node.dataset.reportTab),
   actions: [...document.querySelectorAll('#wsReports [data-rp-action]')].map(node => node.dataset.rpAction),
 }));
-ok(result.native === 1 && result.dashboardIds === 1 && result.oldId === 'legacyStatsDashboard' && !result.oldInsideReports,
-  'Reports has one native owner while the legacy dashboard stays in the classic tree', JSON.stringify(result));
+ok(result.native === 1 && result.dashboardIds === 1 && !result.fallbackConnected && !result.fallbackHasId,
+  'Reports has one native owner; the pre-mount dashboard fallback is a detached, id-less scratch element', JSON.stringify(result));
 ok(result.tabs.join(',') === 'overview,offense,defense,special,players,selfscout,season,matchup',
   'Native Reports exposes all eight football report views', JSON.stringify(result.tabs));
 ok(result.actions.includes('scout') && result.actions.includes('export'),
