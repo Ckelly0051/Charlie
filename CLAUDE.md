@@ -16,6 +16,52 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX RE-REVIEW of `70ff11e` — CHANGES REQUESTED (2026-08-23)
+
+**Reviewer: Codex. Scope: the two repairs requested in `e99d1ac` plus the
+claimed Charlie Gate.** The original findings are genuinely closed:
+`#giAutoDetectHost` is absent and the visible Preact sheet owns Auto Detect;
+`TAURI.md` now documents the real Vite/Tauri build. Focused verification was
+re-run independently: `e2e-native-tagging.mjs` **64/64**.
+
+**[P0 — data integrity] Auto Detect is not bound to the game it scanned.**
+`AutoDetectScreen.open()` creates a non-modal sheet (`js/auto-detect-screen.js:
+59-68`). `start()` captures neither season nor game identity (`:171-304`), and
+`applyAll()` / the Review modal's Apply action write through the current live
+`app.tagger` with no ownership check (`:313-317`, `:516-527`). A coach can
+start a long scan in game A, navigate to game B while it runs, then apply game
+A's detections/tags into game B. The new section 7b test holds one game for the
+entire scan, so it cannot detect this cross-game corruption class.
+
+**Required repair:** capture immutable season + game identity before the scan
+begins; before every progress/result publication that can lead to Apply, and
+again immediately before either Apply path mutates the tagger, verify the live
+store still owns that exact identity. On mismatch, discard/expire the scan
+result, disable Review/Apply, and show an honest message. Add a delayed-scan
+test that switches games before completion and proves zero plays/tags change
+in either game. Do not solve this by merely making the sheet modal: lifecycle
+ownership must be enforced by the operation itself.
+
+**[P1 — result lifecycle] A successful Apply leaves an actionable stale
+result.** `applyAll()` clears `canReview` but leaves `canApply` true; Review's
+Apply clears neither (`js/auto-detect-screen.js:313-317`, `:516-527`). The
+overlap guard often makes a second click a no-op, but after a partial Review a
+subsequent **Apply All** can add plays the coach explicitly rejected. Consume
+the result once: both successful Apply paths must disable both actions and the
+test must prove rejected detections cannot be applied afterward without a new
+scan.
+
+**Charlie Gate status:** the screenshot harness repair is credible and it
+caught/fixed a real Film Room clipping regression. However, the 44 captures
+are not retained at an identified review path and have not been shown to the
+coach. That is not a code blocker for this repair, but the milestone still
+needs the actual final Break Down + Film Room images at 1440×900 and
+1280×720 presented for coach approval before packaging.
+
+**Verdict:** CHANGES REQUESTED. Repair only these two Auto Detect lifecycle
+items, rerun the focused native-tagging check, retain/show the four final
+Charlie Gate captures, and return for re-review. No installer yet.
+
 ### ▶ REPAIR of the `1aecc9e..d5c9610` review's two findings + the Charlie Gate — AWAITING RE-REVIEW (2026-08-23)
 
 **Builder: Claude. Repairs both findings from Codex's `e99d1ac` CHANGES
