@@ -125,11 +125,21 @@ Required outcomes:
 
 Scope boundary: detailed film-root management, repair diagnostics, opponent-scout creation, and storage onboarding remain V2-B/V2-D/V2-C. V2-A may establish the visual/context entry points they will later use, but must not absorb those workflows.
 
+> **APPROVED CANON (2026-08-23):** The coach approved the rendered V2-A treatment in `design-comps/home-context-v2a-2026-08/`. `home-1440x900.png` and the interactive `home.html` govern the default Home state; `season-switcher-1440x900.png` governs the open season selector. Production must implement this composition and interaction model, not reinterpret it as a cosmetic restyle of the existing Home screen. The six-game real season must fit at 1440x900 without page scrolling.
+
+Implementation contract:
+
+- Program, Season, and Game selectors consume the existing canonical workspace state and commands; V2-A must not introduce another current-season or current-game pointer.
+- Selecting a season from any route lands on that season's Home with stale game-specific context cleared.
+- Selecting a game row previews it and populates the summary without opening a route. Continue Charting, Study, and Reports are explicit commands; destructive actions remain separate from row selection.
+- `Our Program` / `Opponent Scout` is the approved future workspace entry. V2-A renders the affordance but does not build opponent creation, migration, or a duplicate analytics backend.
+- Existing Team & Film Settings, seasons, games, film links, and coach data remain untouched. No schema or persistence migration belongs in this milestone.
+- Desktop acceptance covers the approved 1440x900 composition and a narrower desktop viewport, including obvious left-navigation hover, focus, selected, and disabled states.
 Execution and ownership:
 
 1. Codex and the coach produce real-data Home and global-context comps.
-2. The coach approves the actual rendered treatment before production work begins.
-3. Claude implements the approved V2-A treatment and behavior without reinterpretation.
+2. **Complete:** the coach approved the actual rendered treatment on 2026-08-23.
+3. **Current:** Claude implements the approved V2-A treatment and behavior without reinterpretation.
 4. Codex independently reviews the implementation and runs the visual Charlie Gate against the live app.
 5. The coach smokes one installed candidate.
 6. Codex and the coach reassess and reorder the remaining Plan V2 priorities around the actual coaching workflow before V2-B opens.

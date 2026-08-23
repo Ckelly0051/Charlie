@@ -15,6 +15,30 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ V2-A DESIGN APPROVED — CLAUDE IMPLEMENTS THE CANON (2026-08-23)
+
+The coach approved the V2-A Home and context treatment. **Claude is now the production executor.** This is implementation of an approved design, not another design exploration and not an architecture-only checkpoint.
+
+**Binding visual sources:**
+
+- `design-comps/home-context-v2a-2026-08/home.html` — interactive canon
+- `design-comps/home-context-v2a-2026-08/home-1440x900.png` — default Home canon
+- `design-comps/home-context-v2a-2026-08/season-switcher-1440x900.png` — open Season selector canon
+- `design-comps/home-context-v2a-2026-08/README.md` — concise binding decisions
+
+**Build contract:**
+
+1. Implement the approved composition faithfully. A reskin of the current Team Home, a structurally correct screen with different layout, or a partial shell treatment does not satisfy V2-A.
+2. Program / Season / Game selectors must use the existing canonical workspace state and commands. Do not create another mutable context pointer.
+3. A season switch from Home, Break Down, Study, Reports, or Plan lands safely on the selected season's Home and cannot retain stale game state.
+4. Clicking a game row previews it and populates the summary. Continue Charting, Study, and Reports are explicit actions; Delete remains isolated from the row hit area.
+5. Preserve Team & Film Settings and all existing season, game, charting, and film-link data. No schema, migration, or persistence change is authorized.
+6. Render the `Our Program` / `Opponent Scout` entry affordance, but do not build the opponent-scout creation workflow in V2-A.
+7. The six-game real season must fit in one 1440x900 viewport without page overflow. Also verify a narrower desktop width, keyboard focus, and unmistakable left-nav hover/selected/disabled states.
+8. Stop after a focused implementation checkpoint with the relevant tests and retained live screenshots. Do not package an installer. Codex owns independent code review and the live-app Charlie Gate; the coach owns installed smoke.
+
+The full milestone contract is `GRIDIRON-IQ-PLAN-V2.md` §4 V2-A. Any material departure from the approved comp returns to the coach and Codex before implementation continues.
+
 ### ▶ V2-A OPEN — HOME & CONTEXT UX DESIGN OWNED BY COACH + CODEX (2026-08-23)
 
 Final Engine Independence is accepted. V2-A is redefined as a coach-facing Home and context-switching milestone, not another architecture rewrite. **Current step:** Codex and the coach produce and approve real-data Home/global-context comps. Claude does not begin implementation until that treatment is approved. Claude then builds the approved design; Codex owns independent review and the live-app Charlie Gate; the coach owns the installed smoke. After acceptance, the remaining Plan V2 priorities are reassessed before V2-B opens. The binding scope and acceptance outcomes are in `GRIDIRON-IQ-PLAN-V2.md` §4 V2-A.
