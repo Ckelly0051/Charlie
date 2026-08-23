@@ -22,6 +22,8 @@ export class StorageManager {
     this.canvas = canvasOverlay;
 
     this.autoSaveTimer = null;
+    this._desktopCloseApproved = false;
+    this._desktopCloseInFlight = false;
     this._deferredSnapshot = null;
     this._snapshotIdleTimer = null;
     this.videoFileName = null;
@@ -125,11 +127,20 @@ export class StorageManager {
     if (!win || typeof win.onCloseRequested !== 'function') return;
     try {
       await win.onCloseRequested((event) => {
+        // win.close() emits this event again. The first request flushes and
+        // arms this one-shot pass; the second must proceed without another
+        // preventDefault() or the app can never close.
+        if (this._desktopCloseApproved) {
+          this._desktopCloseApproved = false;
+          return;
+        }
         // preventDefault() must be called synchronously, before any await --
         // Tauri's own close sequence is not guaranteed to wait for a later
         // call. The actual flush + explicit close happen in a detached async
         // step below.
         try { if (typeof event.preventDefault === 'function') event.preventDefault(); } catch (e) {}
+        if (this._desktopCloseInFlight) return;
+        this._desktopCloseInFlight = true;
         (async () => {
           let ok = true;
           try { ok = await this.flushPendingSaves(); } catch (e) { ok = false; }
@@ -143,12 +154,19 @@ export class StorageManager {
             // existing onPersistError seam and leave the window open so the
             // coach can retry or export a backup instead of losing data.
             try { this.seasonStore && this.seasonStore.onPersistError && this.seasonStore.onPersistError(); } catch (e) {}
+            this._desktopCloseInFlight = false;
             return;
           }
           try {
-            if (typeof win.destroy === 'function') await win.destroy();
-            else if (typeof win.close === 'function') await win.close();
-          } catch (e) {}
+            // The app grants core:window:allow-close, not allow-destroy.
+            // Arm the one-shot pass above before invoking close so the
+            // re-emitted close-request event is not intercepted recursively.
+            this._desktopCloseApproved = true;
+            await win.close();
+          } catch (e) {
+            this._desktopCloseApproved = false;
+            this._desktopCloseInFlight = false;
+          }
         })();
       });
     } catch (e) {}

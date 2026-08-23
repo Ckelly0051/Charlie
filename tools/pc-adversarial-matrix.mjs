@@ -1837,12 +1837,17 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
     // window.__TAURI__ present (desktop) -- the real close-deferral behavior.
     {
       let capturedHandler = null;
-      let destroyCalled = false;
-      let destroyResolve;
-      const destroyPromise = new Promise(res => { destroyResolve = res; });
+      let closeCalled = false;
+      let recursivePrevented = false;
+      let closeResolve;
+      const closePromise = new Promise(res => { closeResolve = res; });
       const win = {
         onCloseRequested(handler) { capturedHandler = handler; return Promise.resolve(); },
-        async destroy() { destroyCalled = true; destroyResolve(); },
+        async close() {
+          closeCalled = true;
+          capturedHandler({ preventDefault() { recursivePrevented = true; } });
+          closeResolve();
+        },
       };
       const prevTauri = globalThis.window.__TAURI__;
       globalThis.window.__TAURI__ = { window: { getCurrentWindow: () => win } };
@@ -1870,11 +1875,11 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
         sm._autoSave();   // arm a pending debounced save, as a real coach edit would
         let preventDefaultCalled = false;
         capturedHandler({ preventDefault() { preventDefaultCalled = true; } });
-        await destroyPromise;   // the detached async flush+destroy must eventually settle
+        await closePromise;   // the detached async flush+close must eventually settle
 
-        ok('lock', preventDefaultCalled && saves.length === 1 && destroyCalled,
-          'a real close request is deferred (preventDefault called synchronously), the pending save is genuinely flushed, then the window is explicitly closed -- this is the actual close-deferral mechanism finding 3 asked for, not merely flushPendingSaves() returning a promise nobody awaits',
-          JSON.stringify({ preventDefaultCalled, saves: saves.length, destroyCalled }));
+        ok('lock', preventDefaultCalled && saves.length === 1 && closeCalled && !recursivePrevented,
+          'a real close request is deferred, flushed, then closed through the permitted API; the recursive close event passes without preventDefault',
+          JSON.stringify({ preventDefaultCalled, saves: saves.length, closeCalled, recursivePrevented }));
       } finally {
         globalThis.window.__TAURI__ = prevTauri;
       }

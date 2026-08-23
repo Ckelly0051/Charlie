@@ -13,6 +13,29 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-5 CLOSE BLOCKER REPAIRED — 1.12.0-60 INSTALLER (2026-08-22)
+
+Coach smoke found that 1.12.0-59 could not close from the title-bar X or the
+Windows taskbar. Root cause: the PC-4 close-flush hook called Tauri destroy(),
+but the desktop capability grants allow-close, not allow-destroy. The denied
+call was swallowed, leaving the window open after every close request.
+
+StorageManager now flushes through the same durable drain, arms a one-shot
+approval flag, and calls the permitted close() API. The close event emitted
+by that call passes through once without preventDefault, avoiding a recursive
+close loop. Concurrent close clicks while a flush is active remain deferred,
+and a genuine save failure still leaves the window open.
+
+The lifecycle matrix is **108/108 locks** and now explicitly proves the first
+request is deferred, the pending save lands, close() is called, and the
+recursive close event is not prevented. Version 1.12.0-59 is defective and
+must not be used. Version **1.12.0-60** replaces it. The corrected unsigned
+native build completed successfully:
+- NSIS: src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-60_x64-setup.exe
+  (SHA-256 A9154C2A84593ED71B0E71E52715F953712DC84547DAF3414933752F30B10FF3)
+- MSI: src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-60_x64_en-US.msi
+  (SHA-256 8DFC63818A91E6784B63385638A79231823749E2400E3B59AA9D25DA454E0726)
+
 ### ▶ PC-5 INSTALLER CANDIDATE 1.12.0-59 — CODEX HARDENING COMPLETE (2026-08-22)
 
 Codex closed the final non-blocking rollback edge it identified while

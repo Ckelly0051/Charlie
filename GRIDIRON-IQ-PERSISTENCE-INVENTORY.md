@@ -2141,3 +2141,14 @@ operations refuse, the loaded season remains unchanged, and no backup row is
 created. Verification: catalog persistence **73/73**, catalog backend
 **28/28**, adversarial matrix **108/108 locks**. No real catalog, season data,
 sidecar, or film was touched.
+
+## 7i. PC-5 installed-smoke close blocker (Codex, 2026-08-22)
+
+Installer 1.12.0-59 could not close. The close-flush hook invoked Tauri
+destroy(), while the app grants allow-close rather than allow-destroy; the
+denied call was swallowed and every close request left the window open.
+StorageManager now flushes, arms a one-shot approval, and invokes close().
+The recursively emitted close event passes without preventDefault, while
+save failure still keeps the window open. The lifecycle matrix remains
+**108/108 locks** with an explicit recursion-guard assertion. Version
+1.12.0-59 is defective; 1.12.0-60 replaces it.
