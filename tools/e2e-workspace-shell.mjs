@@ -36,9 +36,13 @@ let r = await page.evaluate(() => ({
   flag: localStorage.getItem('ffa_workspace_shell_v2'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
   reportsDisabled: [...document.querySelectorAll('[data-ws-route="reports"]')].every(button => button.disabled),
-  emptyAction: document.querySelector('#wsResume')?.textContent,
-  emptyActionEnabled: !document.querySelector('#wsResume')?.disabled,
-  emptyActionTarget: document.querySelector('#wsResume')?.dataset.wsAction,
+  // V2-A: Home has no dedicated season-less resume button -- Team Hub owns
+  // first-run setup (already proven by `hub` above) and Home's persistent
+  // header actions (Team & Film Settings / + Add game) are what keep an
+  // empty Home from reading as dead.
+  emptyAction: document.querySelector('[data-ws-action="new-game"]')?.textContent,
+  emptyActionEnabled: !document.querySelector('[data-ws-action="new-game"]')?.disabled,
+  emptyActionTarget: document.querySelector('[data-ws-action="new-game"]')?.dataset.wsAction,
 }));
 ok(r.shell && r.active && r.hub && r.legacyHostGone && r.mediaHostPresent, 'Shell mounts with the native Team Hub as its single front door and no legacy host anywhere', JSON.stringify(r));
 
@@ -84,8 +88,8 @@ ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/un
 ok(chromeScan.navIcons.length >= 5 && chromeScan.navIcons.every(i => i && i !== '•'),
   'Every shell route carries its OWN icon, not the missing-icon fallback', JSON.stringify(chromeScan.navIcons));
 ok(r.flag === '1' && r.breakdownDisabled && r.reportsDisabled, 'Guarded routes, including Reports, start disabled with no season');
-ok(r.emptyAction === 'Set up team' && r.emptyActionEnabled && r.emptyActionTarget === 'seasons',
-  'Empty Home offers an enabled primary setup action instead of appearing dead', JSON.stringify(r));
+ok(r.emptyAction === '+ Add game' && r.emptyActionEnabled && r.emptyActionTarget === 'new-game',
+  'Empty Home offers an enabled primary action instead of appearing dead', JSON.stringify(r));
 
 await page.evaluate(async () => {
   const app = window.app;
@@ -107,43 +111,64 @@ await page.evaluate(async () => {
 });
 r = await page.evaluate(() => ({
   title: document.querySelector('#wsContinueTitle')?.textContent,
-  season: document.querySelector('#wsContextSeason')?.textContent,
-  resumeDisabled: document.querySelector('#wsResume')?.disabled,
-  filmRows: document.querySelectorAll('.ws-film-row').length,
-  filmStatus: document.querySelector('.ws-film-row span')?.textContent,
-  filmDot: getComputedStyle(document.querySelector('.ws-film-row .ws-film-select > i')).backgroundColor,
-  seasonCounts: document.querySelector('.ws-season-row.current span')?.textContent,
+  season: document.querySelector('#wsCtxSeasonValue')?.textContent,
+  continueDisabled: document.querySelector('#wsContinueCharting')?.disabled,
+  gameRows: document.querySelectorAll('.ws-game-row').length,
+  filmStatus: document.querySelector('[data-film-health] strong')?.textContent,
+  filmClass: document.querySelector('[data-film-health] strong')?.className,
+  summary: document.querySelector('#wsHomeSummary')?.textContent,
 }));
-ok(/Rivals/.test(r.title) && /2026 Varsity/.test(r.season) && !r.resumeDisabled, 'Home renders live season/game context and Resume command', JSON.stringify(r));
-ok(r.filmRows === 2, 'Home renders every game in the active season', JSON.stringify(r));
+ok(/Rivals/.test(r.title) && /2026 Varsity/.test(r.season) && !r.continueDisabled, 'Home renders live season/game context and an enabled Continue command', JSON.stringify(r));
+ok(r.gameRows === 2, 'Home renders every game in the active season', JSON.stringify(r));
 ok(r.filmStatus && !/^(.*?) · \1$/.test(r.filmStatus), 'Film status does not repeat an empty-state label', r.filmStatus);
-ok(r.filmDot !== 'rgb(54, 201, 121)', 'Empty film uses a neutral health indicator, not ready green', r.filmDot);
-ok(r.seasonCounts === '2 games · 4 plays', 'Current season row uses live counts and correct grammar', r.seasonCounts);
+ok(r.filmClass !== 'ws-fact-green', 'Unlinked film uses a neutral/warn indicator, not ready green', r.filmClass);
+ok(/2 games/.test(r.summary), 'Home summary uses live game counts', r.summary);
 
+await page.evaluate(() => {
+  window.__openGameCalls = [];
+  window.__openGameOrig = window.app.openGame.bind(window.app);
+  window.app.openGame = id => { window.__openGameCalls.push(String(id)); return window.__openGameOrig(id); };
+});
 await page.click('[data-ws-preview="preview-game"]');
 r = await page.evaluate(() => ({
   activeGameId: window.app.storage.seasonStore.data.activeGameId,
   previewId: window.app.workspaceShell._homeSelectedGameId,
-  title: document.querySelector('#wsContinueTitle')?.textContent,
-  meta: document.querySelector('#wsContinueMeta')?.textContent,
-  score: document.querySelector('#wsScoreValue')?.textContent,
-  plays: document.querySelector('#wsPlaysValue')?.textContent,
-  charted: document.querySelector('#wsChartedValue')?.textContent,
-  units: document.querySelector('#wsUnitsValue')?.textContent,
-  progress: document.querySelector('#wsProgressText')?.textContent,
-  action: document.querySelector('#wsResume')?.textContent,
-  actionGame: document.querySelector('#wsResume')?.dataset.wsGame,
-  selected: document.querySelector('[data-film-id="preview-game"]')?.classList.contains('selected'),
+  name: document.querySelector('#wsDetailName')?.textContent,
+  meta: document.querySelector('#wsDetailMeta')?.textContent,
+  us: document.querySelector('#wsDetailUsScore')?.textContent,
+  them: document.querySelector('#wsDetailThemScore')?.textContent,
+  plays: document.querySelector('#wsFactPlays')?.textContent,
+  charted: document.querySelector('#wsFactCharted')?.textContent,
+  phase: document.querySelector('#wsFactPhase')?.textContent,
+  phaseRows: [...document.querySelectorAll('#wsPhaseRows .ws-phase-row')].map(row => row.textContent.trim()),
+  continueText: document.querySelector('#wsContinueCharting')?.textContent,
+  selected: document.querySelector('.ws-game-row.selected')?.dataset.gameId,
   pressed: document.querySelector('[data-ws-preview="preview-game"]')?.getAttribute('aria-pressed'),
 }));
-ok(r.previewId === 'preview-game' && r.activeGameId !== 'preview-game' && r.selected && r.pressed === 'true',
+ok(r.previewId === 'preview-game' && r.activeGameId !== 'preview-game' && r.selected === 'preview-game' && r.pressed === 'true',
   'Selecting a Home game previews it without opening or changing the active editor game', JSON.stringify(r));
-ok(/Knights/.test(r.title) && /Sep/.test(r.meta) && /final/.test(r.meta) && r.score === '14–7',
+ok(/Knights/i.test(r.name) && /Sep/.test(r.meta) && /final/.test(r.meta) && r.us === '14' && r.them === '7',
   'Selected-game summary shows opponent, date, status, and score', JSON.stringify(r));
-ok(r.plays === '3' && r.charted === '2 / 3' && r.units === 'O 1 · D 1 · ST 1' && r.progress === '2 of 3 charted',
-  'Selected-game summary shows total, canonical charted count, unit mix, and progress', JSON.stringify(r));
-ok(r.action === 'Open selected game' && r.actionGame === 'preview-game',
-  'Opening the selected game remains a separate explicit command', JSON.stringify(r));
+ok(r.plays === '3' && r.charted === '2 / 3' && r.phase === 'O 1 · D 1 · ST 1' && r.phaseRows.length === 3,
+  'Selected-game summary shows total, canonical charted count, unit mix, and per-unit phase rows', JSON.stringify(r));
+ok(r.continueText === 'Open selected game',
+  'The previewed (non-active) game reads as an explicit open command, not a resume', JSON.stringify(r));
+await page.click('#wsContinueCharting');
+await new Promise(res => setTimeout(res, 400));
+const openCalls = await page.evaluate(() => window.__openGameCalls);
+ok(openCalls.length === 1 && openCalls[0] === 'preview-game',
+  'Continue charting opens exactly the previewed game through the one canonical App.openGame command', JSON.stringify(openCalls));
+await page.evaluate(async () => {
+  window.app.openGame = window.__openGameOrig;
+  // Restore pre-click active-game state so a downstream test that assumes
+  // 'preview-game' is not yet the active game (and exercises a genuine
+  // switch, not the already-active fast path) is not left seeing it as
+  // already open.
+  const store = window.app.storage.seasonStore;
+  const other = store.data.games.find(g => String(g.id) !== 'preview-game');
+  if (other) store.setActive(other.id);
+  await window.app.workspaceShell.show('home');
+});
 await capture('home-1280x800');
 await page.setViewport({ width: 1440, height: 900 });
 await capture('home-1440x900');
@@ -425,7 +450,10 @@ r = await page.evaluate(async () => {
     if (route === 'breakdown' && !loadCompleted) breakdownBeforeLoad = true;
     return originalShow.call(this, route);
   };
-  document.querySelector('[data-ws-game="preview-game"]')?.click();
+  // V2-A: no per-row Open button -- previewing a Home row, then explicit
+  // Continue Charting, is the one way to open a game.
+  document.querySelector('[data-ws-preview="preview-game"]')?.click();
+  document.getElementById('wsContinueCharting')?.click();
   await new Promise(resolve => setTimeout(resolve, 650));
   app.storage._loadActiveGame = originalLoad;
   app.workspaceShell.show = originalShow;
@@ -482,7 +510,7 @@ r = await page.evaluate(async () => {
   const app = window.app;
   const A = app.storage.seasonStore.data.games.find(g => g.id !== 'preview-game').id;
   const B = 'preview-game';
-  const selectedOnHome = () => document.querySelector('.ws-film-row.selected [data-ws-preview]')?.dataset.wsPreview;
+  const selectedOnHome = () => document.querySelector('.ws-game-row.selected')?.dataset.gameId;
   await app.openGame(A); await app.workspaceShell.show('home'); const afterA = selectedOnHome();
   await app.openGame(B); await app.workspaceShell.show('home'); const afterB = selectedOnHome();
   return { A, B, afterA, afterB, active: app.storage.seasonStore.data.activeGameId };
@@ -861,25 +889,34 @@ r = await page.evaluate(async () => {
   const canon = { offense: [0, 0], defense: [0, 0], special: [0, 0] };
   game.plays.forEach(p => { const u = p.tags.unit; canon[u][1]++; if (p.tags.playType && p.tags.result) canon[u][0]++; });
 
-  const rows = [...document.querySelectorAll('#wsUnitProgress .ws-unit-row')].map(row => ({
-    key: row.querySelector('.ws-unit-key')?.textContent,
-    value: row.querySelector('strong')?.textContent,
-    empty: row.classList.contains('is-empty'),
+  // V2-A: per-unit progress moved from a standalone Home widget into the
+  // selected-game detail panel's #wsPhaseRows (bar-encoded pct, not a
+  // rendered N/M fraction), and the single game here is auto-selected.
+  const rows = [...document.querySelectorAll('#wsPhaseRows .ws-phase-row')].map(row => ({
+    short: row.querySelector('b')?.textContent,
+    total: row.querySelector('span:last-child')?.textContent,
+    width: row.querySelector('.ws-bar i')?.style.width,
   }));
-  const headline = document.getElementById('wsProgressText')?.textContent || '';
-  const summed = rows.reduce((n, row) => n + (Number(String(row.value).split('/')[0]) || 0), 0);
-  return { canon, rows, headline, summed,
-    expected: [`${canon.offense[0]}/${canon.offense[1]}`, `${canon.defense[0]}/${canon.defense[1]}`] };
+  const factCharted = document.getElementById('wsFactCharted')?.textContent || '';
+  return { canon, rows, factCharted,
+    expected: [canon.offense[1], canon.defense[1], canon.special[1]],
+    summedTagged: canon.offense[0] + canon.defense[0] + canon.special[0],
+    summedTotal: canon.offense[1] + canon.defense[1] + canon.special[1] };
 });
-ok(r.rows.length === 3 && r.rows[0].value === r.expected[0] && r.rows[1].value === r.expected[1],
+ok(r.rows.length === 3 && Number(r.rows[0].total) === r.expected[0] && Number(r.rows[1].total) === r.expected[1] && Number(r.rows[2].total) === r.expected[2],
   'Home shows charting progress per unit matching the canonical play data', JSON.stringify(r));
-ok(r.headline.startsWith(`${r.summed} of `),
-  'Per-unit charted counts sum to the headline progress figure', JSON.stringify({ headline: r.headline, summed: r.summed }));
-ok(r.rows[2].value === 'none' && r.rows[2].empty === true,
-  'A unit with no plays reads "none" rather than 0%, which would look like uncharted film', JSON.stringify(r.rows[2]));
+ok(r.factCharted === `${r.summedTagged} / ${r.summedTotal}`,
+  'Per-unit charted counts sum to the selected-game charted figure', JSON.stringify(r));
+ok(r.rows[2].total === '0' && r.rows[2].width === '0%',
+  'A unit with no plays reads a real zero rather than a fabricated percentage', JSON.stringify(r.rows[2]));
 
-// Film source: the row must state WHERE film lives, not only how many clips
-// matched. A managed copy and a linked D: folder previously read identically.
+// Film source: a managed copy and a linked external folder must never read
+// identically -- that ambiguity is exactly what made the 1.12.0-8 smoke
+// unprovable (P0_CRITICAL id home.film-source). V2-A's Home no longer shows
+// the resolved absolute path for a linked folder (that detail lives in Team
+// & Film Settings, disclosed as a deviation from the pre-V2-A "film inbox"),
+// but it still discloses linked-vs-managed by name, and never claims
+// readiness it hasn't confirmed.
 r = await page.evaluate(async () => {
   const app = window.app;
   const real = app.workspace.filmHealth.bind(app.workspace);
@@ -888,22 +925,30 @@ r = await page.evaluate(async () => {
     action: 'open', detail: '', path: 'D:\\Football\\Film\\Holy Family' });
   await app.workspaceShell.show('home');
   await new Promise(res => setTimeout(res, 700));
-  const linked = document.querySelector('[data-film-source]');
-  const linkedText = linked?.textContent || ''; const linkedHidden = !!linked?.hidden;
+  const linkedText = document.getElementById('wsFactFilm')?.textContent || '';
+  const linkedClass = document.getElementById('wsFactFilm')?.className || '';
   app.workspace.filmHealth = async () => ({ state: 'managed', label: 'Managed film ready', ready: true,
     persistent: true, mode: 'managed', expected: 3, found: 3, missing: 0, progress: null,
     action: 'open', detail: '', path: '' });
   await app.workspaceShell.show('home');
   await new Promise(res => setTimeout(res, 700));
-  const managed = document.querySelector('[data-film-source]');
-  const managedText = managed?.textContent || '';
+  const managedText = document.getElementById('wsFactFilm')?.textContent || '';
+  app.workspace.filmHealth = async () => ({ state: 'missing', label: 'Film needed', ready: false,
+    persistent: false, mode: 'managed', expected: 3, found: 0, missing: 3, progress: null,
+    action: 'repair', detail: '', path: '' });
+  await app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 700));
+  const missingText = document.getElementById('wsFactFilm')?.textContent || '';
+  const missingClass = document.getElementById('wsFactFilm')?.className || '';
   app.workspace.filmHealth = real;
-  return { linkedText, linkedHidden, managedText };
+  return { linkedText, linkedClass, managedText, missingText, missingClass };
 });
-ok(r.linkedText === 'D:\\Football\\Film\\Holy Family' && !r.linkedHidden,
-  'Film inbox reports the resolved linked folder alongside its clip count', JSON.stringify(r));
-ok(/managed copy/i.test(r.managedText),
-  'A managed game says so instead of implying a path the coach could open', JSON.stringify(r));
+ok(/3 clips/.test(r.linkedText) && /3 clips/.test(r.managedText) && r.linkedClass === 'ws-fact-green',
+  'Ready film reports its clip count with a positive indicator', JSON.stringify(r));
+ok(r.linkedText !== r.managedText && /linked/i.test(r.linkedText) && /managed/i.test(r.managedText),
+  'A managed copy and a linked folder never read identically -- the exact ambiguity that made a prior smoke unprovable', JSON.stringify(r));
+ok(/Film needed/.test(r.missingText) && r.missingClass !== 'ws-fact-green',
+  'Missing film states its own label rather than a fabricated ready state', JSON.stringify(r));
 
 console.log('\n== S6-4a UX-2: universal game context switcher ==');
 // A second game with a distinct score/charting profile, so the switcher's rows
@@ -921,7 +966,7 @@ r = await page.evaluate(async () => {
   const out = {};
   for (const route of ['home', 'breakdown', 'study', 'reports', 'plan']) {
     await window.app.workspaceShell.show(route);
-    const button = document.querySelector('#wsContextSwitch');
+    const button = document.querySelector('#wsCtxGame');
     const rect = button?.getBoundingClientRect();
     out[route] = { tag: button?.tagName, menu: button?.getAttribute('aria-haspopup'),
       onScreen: !!rect && rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.right <= document.documentElement.clientWidth };
@@ -931,7 +976,7 @@ r = await page.evaluate(async () => {
 ok(Object.values(r).every(entry => entry.tag === 'BUTTON' && entry.menu === 'menu' && entry.onScreen),
   'Game context is a real switcher on every route, not a Home-only round trip', JSON.stringify(r));
 await page.evaluate(() => window.app.workspaceShell.show('reports'));
-await page.click('#wsContextSwitch');
+await page.click('#wsCtxGame');
 await page.waitForSelector('.gi-popover-item', { timeout: 5000 });
 // The popover moves initial focus on a requestAnimationFrame, so the items
 // existing does not mean focus has landed. Measuring straight after the
@@ -954,7 +999,7 @@ r = await page.evaluate(() => {
     details: rows.map(button => button.querySelector('small')?.textContent || ''),
     focused: document.activeElement?.dataset?.popoverItem,
     headingTabIndex: document.querySelector('[data-popover-heading]')?.tabIndex,
-    expanded: document.querySelector('#wsContextSwitch')?.getAttribute('aria-expanded'),
+    expanded: document.querySelector('#wsCtxGame')?.getAttribute('aria-expanded'),
   };
 });
 ok(r.gameRows === r.gameCount && r.headings[0] && JSON.stringify(r.current) === JSON.stringify([r.activeKey]) && r.expanded === 'true',
@@ -980,8 +1025,8 @@ const contextSwitch = await page.evaluate(async () => {
   await new Promise(resolve => setTimeout(resolve, 900));
   return { before, target: String(target.id), after: String(store.data.activeGameId),
     route: app.workspace.currentRoute(), tabBefore, tabAfter: document.querySelector('.stats-tab.active')?.textContent.trim(),
-    context: document.querySelector('#wsContextGame')?.textContent,
-    focus: document.activeElement?.id, expanded: document.querySelector('#wsContextSwitch')?.getAttribute('aria-expanded'),
+    context: document.querySelector('#wsCtxGameValue')?.textContent,
+    focus: document.activeElement?.id, expanded: document.querySelector('#wsCtxGame')?.getAttribute('aria-expanded'),
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
 });
 ok(contextSwitch.after === contextSwitch.target && contextSwitch.after !== contextSwitch.before && contextSwitch.route === 'reports',
@@ -990,10 +1035,10 @@ r = await page.evaluate(async () => {
   await window.app.workspaceShell.show('reports');
   const store = window.app.storage.seasonStore, active = String(store.data.activeGameId);
   const game = store.data.games.find(entry => String(entry.id) === active);
-  document.querySelector('#wsContextSwitch').click();
+  document.querySelector('#wsCtxGame').click();
   await new Promise(resolve => setTimeout(resolve, 400));
   const row = document.querySelector(`[data-popover-item="game-${active}"] span`)?.textContent;
-  const bar = document.querySelector('#wsContextGame')?.textContent;
+  const bar = document.querySelector('#wsCtxGameValue')?.textContent;
   const mobile = document.querySelector('#wsMobileContext')?.textContent;
   document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   await new Promise(resolve => setTimeout(resolve, 200));
@@ -1003,8 +1048,45 @@ r = await page.evaluate(async () => {
 });
 ok(r.row === r.canonical && r.bar === r.canonical && r.mobile === r.canonical,
   'The context bar, the mobile context and the switcher all name a game with the one canonical rule', JSON.stringify(r));
-ok(contextSwitch.tabAfter === contextSwitch.tabBefore && contextSwitch.tabBefore && /Tigers|Rivals/.test(contextSwitch.context || '') && contextSwitch.focus === 'wsContextSwitch' && contextSwitch.expanded === 'false' && !contextSwitch.overflow,
+ok(contextSwitch.tabAfter === contextSwitch.tabBefore && contextSwitch.tabBefore && /Tigers|Rivals/.test(contextSwitch.context || '') && contextSwitch.focus === 'wsCtxGame' && contextSwitch.expanded === 'false' && !contextSwitch.overflow,
   'The switch preserves the open report view, updates the context label, and returns focus to the switcher', JSON.stringify(contextSwitch));
+
+console.log('\n== V2-A: universal season switcher lands on the new season\'s Home ==');
+// A second season for this team, so the switch is observable and req #3
+// (season switching from any route lands safely on that season's Home with
+// stale game context cleared) can be proven directly rather than inferred.
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const before = { seasonId: app.storage.seasonStore.currentSeasonId, route: 'reports' };
+  await app.workspaceShell.show('study');
+  const rec = await app.storage.createSeason({ name: '2027 JV', team: 'Mavericks', year: '2027', level: 'JV' });
+  // createSeason opens the new season immediately (its own real flow) --
+  // reopen the original season first so the switcher itself is what's tested.
+  await app.storage.openSeasonById(before.seasonId);
+  await app.workspaceShell.show('study');
+  const staleGame = document.querySelector('#wsCtxGameValue')?.textContent;
+  await app.workspaceShell._openSeasonSwitch(document.getElementById('wsCtxSeason'));
+  await new Promise(res => setTimeout(res, 250));
+  const rows = [...document.querySelectorAll('.gi-popover-item')].filter(b => /2027 JV/.test(b.textContent || ''));
+  rows[0]?.click();
+  await new Promise(res => setTimeout(res, 400));
+  return {
+    route: app.workspace.currentRoute(),
+    seasonId: app.storage.seasonStore.currentSeasonId,
+    targetId: rec.id,
+    season: document.querySelector('#wsCtxSeasonValue')?.textContent,
+    game: document.querySelector('#wsCtxGameValue')?.textContent,
+    staleGame,
+    gameRows: document.querySelectorAll('.ws-game-row').length,
+    homeVisible: !document.getElementById('wsHome')?.hidden,
+  };
+});
+ok(r.route === 'home' && r.homeVisible && String(r.seasonId) === String(r.targetId),
+  'Switching seasons from a non-Home route lands on the new season\'s Home', JSON.stringify(r));
+ok(/2027 JV/.test(r.season) && r.gameRows === 1,
+  'Home reflects the new season\'s own name and game list', JSON.stringify(r));
+ok(r.game !== r.staleGame,
+  'The prior season\'s game context does not leak into the newly opened season', JSON.stringify(r));
 
 console.log('\n== S6-4b UX-4: shell palette resolves and stays legible ==');
 r = await page.evaluate(() => {

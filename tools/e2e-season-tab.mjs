@@ -98,8 +98,10 @@ await sleep(600);
 // Team/season setup lives in the library overlay, opened from the shell Home.
 await setupTeamAndDemo(page);
 await sleep(900);
-// Open game 1 from the shell Home film inbox (the sole game-entry route).
-await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());
+// Open game 1 from the shell Home game list (the sole game-entry route).
+// V2-A: no per-row Open button -- preview the row, then Continue charting.
+await page.evaluate(() => document.querySelector('.ws-game-row')?.click());
+await page.evaluate(() => document.getElementById('wsContinueCharting')?.click());
 await sleep(700);
 
 // In-page play builder (mirrors e2e-self-scout).
@@ -375,7 +377,7 @@ await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game
 r = await page.evaluate(() => ({ opponent: window.app.storage.seasonStore.activeGame()?.gameInfo?.opponent,
   // Final Engine Independence: #gameHeaderSummary/.tag-section is deleted --
   // the coach-visible game summary is now the shell's own context breadcrumb.
-  summary: document.getElementById('wsContextGame')?.textContent || '' }));
+  summary: document.getElementById('wsCtxGameValue')?.textContent || '' }));
 ok(r.opponent === 'Probe Rivals B' && /Rivals B/.test(r.summary), 'native edit updates the active game and summary', JSON.stringify(r));
 
 const deleteProbe = await page.evaluate(() => {

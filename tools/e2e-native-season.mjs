@@ -42,7 +42,7 @@ let state = await page.evaluate(() => ({
   legacyIds: ['seasonOverlay','seasonNameInput','seasonGameList','seasonStatsBody','seasonRestorePanel'].filter(id => document.getElementById(id)),
   hasStats: typeof window.app.season?.statsHtml === 'function',
   deadMethods: ['show','hide','_renderAll','_renderGameList','_renderRestoreList'].filter(key => typeof window.app.season?.[key] === 'function'),
-  homeGames: document.querySelectorAll('#wsFilmList [data-ws-game]').length,
+  homeGames: document.querySelectorAll('#wsGameList .ws-game-row').length,
 }));
 ok(!state.legacyIds.length && state.hasStats && !state.deadMethods.length,
   'Season analytics remains live while the legacy modal owner and lifecycle are deleted', JSON.stringify(state));

@@ -71,9 +71,9 @@ r = await page.evaluate(async firstId => {
     // Final Engine Independence: #btnEditGame/#gameHeaderSummary/.tag-section
     // are deleted -- the shell's own context-switch button is the real,
     // coach-visible "edit/switch game" launcher and game-name display.
-    headerButton: document.getElementById('wsContextSwitch')?.tagName === 'BUTTON',
-    headerSummary: document.getElementById('wsContextGame')?.textContent || '',
-    shellContext: document.getElementById('wsContextGame')?.textContent || '' };
+    headerButton: document.getElementById('wsCtxGame')?.tagName === 'BUTTON',
+    headerSummary: document.getElementById('wsCtxGameValue')?.textContent || '',
+    shellContext: document.getElementById('wsCtxGameValue')?.textContent || '' };
 }, fixture.firstId);
 ok(r.calls === 1 && r.games === 2, 'Create game performs one durable write and adds exactly one game', JSON.stringify(r));
 ok(r.dialogClosed, 'Game settings closes after a successful create', JSON.stringify(r));

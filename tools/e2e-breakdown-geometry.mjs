@@ -56,25 +56,37 @@ const measure=async(width,height,focus)=>{
 //   1920 split:      1338x753   -> ~1265x711.5
 //   1440 Film Focus:  1159x652  -> ~1116x627.5
 //   1920 Film Focus:  1479x832  -> ~1436x807.5
-// The floors below assert the ACCEPTED post-chyron picture budget (a small
+// RE-MEASURED for V2-A (2026-08-23): the persistent Program/Season/Game
+// context bar (req 1 of the V2-A build contract) is coach-approved and
+// reachable on every route including Break Down, and even in its most
+// compact route-scoped form (22px, no label row, 11px value type -- shrunk
+// as far as it can go without becoming illegible) it costs a further real,
+// disclosed slice of the picture budget on top of the lower-third's own
+// disclosed cost above. Measured again, chyron-composition -> V2-A:
+//   1440 split:       ~945x531.5 -> ~906x509.5
+//   1920 split:      ~1265x711.5 -> ~1226x689.5
+//   1440 Film Focus:  ~1116x627.5 -> ~1076x605.5
+//   1920 Film Focus:  ~1436x807.5 -> ~1396x785.5
+// The floors below assert the ACCEPTED post-V2A picture budget (a small
 // margin under the measured values so normal rendering variance can't flake
-// this), not "still beats legacy" — do not lower them further without the
-// same kind of honest re-measurement, and do not re-inflate the wording to
-// claim they exceed the pre-lower-third numbers again.
+// this), not "still beats legacy" or "still beats the chyron composition" —
+// do not lower them further without the same kind of honest re-measurement,
+// and do not re-inflate the wording to claim they exceed either prior
+// baseline again.
 console.log('\n== 1. Default split improves film without crowding charting ==');
 let state=await measure(1440,900,false);
-ok(state.media.width>=930&&state.media.height>=525,'1440 split meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 963x542)',JSON.stringify(state));
+ok(state.media.width>=895&&state.media.height>=500,'1440 split meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 945x531.5)',JSON.stringify(state));
 ok(state.deck.width>=420&&state.deck.width<=501&&state.tagOverflow<=1,'1440 charting deck remains usable at its bounded width',JSON.stringify(state));
 ok(state.overlap===0&&state.overflow<=1,'1440 split never overlays film or overflows the page',JSON.stringify(state));
 state=await measure(1920,1080,false);
-ok(state.media.width>=1250&&state.media.height>=705,'1920 split meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 1338x753)',JSON.stringify(state));
+ok(state.media.width>=1215&&state.media.height>=680,'1920 split meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 1265x711.5)',JSON.stringify(state));
 ok(state.deck.width>=420&&state.deck.width<=501&&state.overlap===0,'1920 keeps a bounded non-overlay charting deck',JSON.stringify(state));
 console.log('\n== 2. Film Focus is explicit, larger, and durable ==');
 state=await measure(1440,900,true);
-ok(state.media.width>=1100&&state.media.height>=620,'1440 Film Focus meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 1159x652)',JSON.stringify(state));
+ok(state.media.width>=1065&&state.media.height>=595,'1440 Film Focus meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 1116x627.5)',JSON.stringify(state));
 ok(state.deck.display==='none'&&state.overlap===0&&state.focus==='true'&&state.stored==='1','Film Focus removes the deck from layout and persists its state',JSON.stringify(state));
 state=await measure(1920,1080,true);
-ok(state.media.width>=1420&&state.media.height>=800,'1920 Film Focus meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-lower-third 1479x832)',JSON.stringify(state));
+ok(state.media.width>=1385&&state.media.height>=775,'1920 Film Focus meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 1436x807.5)',JSON.stringify(state));
 await page.evaluate(async()=>{app.workspaceShell.disable();app.workspaceShell.enable();await app.workspaceShell.show('breakdown')});
 state=await page.evaluate(()=>({focus:document.querySelector('[data-bd-film-focus]')?.getAttribute('aria-pressed'),deck:getComputedStyle(document.querySelector('.gi-breakdown-deck')).display,stored:localStorage.getItem('ffa_breakdown_film_focus')}));
 ok(state.focus==='true'&&state.deck==='none'&&state.stored==='1','Film Focus survives a shell teardown and remount',JSON.stringify(state));

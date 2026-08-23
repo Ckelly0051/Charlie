@@ -8,7 +8,7 @@ export const P0_CAPABILITIES = [
   { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home New Game action opens a chartable game in Break Down' },
   { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
   { id:'home.unit-progress', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Home shows charting progress per unit matching the canonical play data' },
-  { id:'home.film-source', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Film inbox reports the resolved linked folder alongside its clip count' },
+  { id:'home.film-source', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'A managed copy and a linked folder never read identically -- the exact ambiguity that made a prior smoke unprovable' },
   { id:'shell.containment', surface:'shell', evidence:'behavior', harness:'e2e-responsive-containment.mjs', assertion:'Every shell route contains itself at every reviewed viewport including the installed window size' },
   { id:'shell.containment-live', surface:'shell', evidence:'behavior', harness:'e2e-responsive-containment.mjs', assertion:'The escape detector fires on a genuinely over-wide element (the check can fail)' },
   { id:'shell.palette', surface:'shell', evidence:'data', harness:'e2e-design-system.mjs', assertion:'every shell colour role derives from a design-system token — one palette, not two' },

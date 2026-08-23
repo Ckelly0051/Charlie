@@ -25,8 +25,10 @@ const backHome = async () => {
   await page.evaluate(() => window.app.workspaceShell.show('home'));
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 };
+// V2-A: no per-row Open button -- preview the row, then Continue charting.
 const openHomeGame = async (index = 0) => {
-  await page.evaluate(i => document.querySelectorAll('#wsFilmList [data-ws-game]')[i]?.click(), index);
+  await page.evaluate(i => document.querySelectorAll('.ws-game-row')[i]?.click(), index);
+  await page.evaluate(() => document.getElementById('wsContinueCharting')?.click());
   await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
 };
 const showStats = async () => {
@@ -77,17 +79,19 @@ r = await clickButtonText('.gi-hub-section-head button', /Explore sample season/
 ok(r, 'sample action begins as Explore sample season');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
-  games: document.querySelectorAll('#wsFilmList [data-ws-game]').length,
+  games: document.querySelectorAll('.ws-game-row').length,
   roster: JSON.parse(localStorage.getItem('ffa_roster') || '[]').length,
 }));
 ok(r.games === 2, 'Home film inbox shows both sample games', JSON.stringify(r));
 ok(r.roster === 0, 'sample season leaves the active team roster untouched', JSON.stringify(r));
 r = await page.evaluate(async () => {
   const scores = [];
-  for (const button of document.querySelectorAll('#wsFilmList [data-ws-preview]')) {
+  for (const button of document.querySelectorAll('.ws-game-row')) {
     button.click();
     await new Promise(resolve => setTimeout(resolve, 80));
-    scores.push(document.getElementById('wsScoreValue')?.textContent || '');
+    const us = document.getElementById('wsDetailUsScore')?.textContent || '';
+    const them = document.getElementById('wsDetailThemScore')?.textContent || '';
+    scores.push(us && them ? `${us}-${them}` : '');
   }
   return scores;
 });
@@ -100,9 +104,9 @@ console.log('\n== 3. Sample game and reports ==');
 await openHomeGame(0);
 r = await page.evaluate(() => ({
   route: window.app.workspace.currentRoute(),
-  team: document.getElementById('wsContextTeam')?.textContent,
-  season: document.getElementById('wsContextSeason')?.textContent,
-  game: document.getElementById('wsContextGame')?.textContent,
+  team: document.getElementById('wsCtxProgramValue')?.textContent,
+  season: document.getElementById('wsCtxSeasonValue')?.textContent,
+  game: document.getElementById('wsCtxGameValue')?.textContent,
 }));
 ok(r.route === 'breakdown', 'opening a game lands in Break Down', JSON.stringify(r));
 ok(r.team === 'Mavericks', 'sample workspace retains the owning team identity', JSON.stringify(r));

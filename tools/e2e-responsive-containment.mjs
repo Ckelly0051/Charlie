@@ -122,7 +122,7 @@ const measure = async route => page.evaluate(routeId => {
     }
   }
   // Navigation landmarks: the left-edge clipping the installed smoke reported.
-  const landmarks = ['.ws-side', '.ws-topbar', '.ws-mobile-head', '.ws-mobile-nav', '#wsContextSwitch']
+  const landmarks = ['.ws-side', '.ws-topbar', '.ws-mobile-head', '.ws-mobile-nav', '#wsCtxGame']
     .map(selector => ({ selector, node: document.querySelector(selector) }))
     .filter(entry => entry.node && entry.node.getBoundingClientRect().width > 0)
     .map(entry => { const rect = entry.node.getBoundingClientRect(); return { selector: entry.selector, left: Math.round(rect.left), right: Math.round(rect.right) }; });

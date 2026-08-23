@@ -248,29 +248,30 @@ for (const [width, height] of [[1440, 900], [1280, 800], [1180, 800]]) {
   await page.setViewport({ width, height });
   await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
   await new Promise(resolve => setTimeout(resolve, 350));
+  // V2-A replaced the single collapsing breadcrumb with three always-present
+  // context buttons (#wsCtxProgram/#wsCtxSeason/#wsCtxGame). Each value carries
+  // its own unconditional white-space:nowrap + text-overflow:ellipsis, so the
+  // old "team stays whole, season drops, game ellipsizes" priority ladder is
+  // superseded by a simpler, stronger guarantee: no segment ever hard-clips.
   const header = await page.evaluate(vp => {
     const shown = el => !!el && el.getClientRects().length > 0;
-    const whole = el => !!el && el.scrollWidth <= el.clientWidth + 1;
-    const team = document.getElementById('wsContextTeam');
-    const season = document.getElementById('wsContextSeason');
-    const game = document.getElementById('wsContextGame');
+    const ids = { program: 'wsCtxProgramValue', season: 'wsCtxSeasonValue', game: 'wsCtxGameValue' };
+    const els = Object.fromEntries(Object.entries(ids).map(([k, id]) => [k, document.getElementById(id)]));
     const nav = [...document.querySelectorAll('.ws-top-nav button')].filter(shown);
     return {
       viewport: vp,
-      teamShown: shown(team), teamWhole: whole(team),
-      seasonDropped: !shown(season),
-      gameShown: shown(game),
-      gameEllipsis: game ? getComputedStyle(game).textOverflow : null,
-      gameWidth: game ? Math.round(game.clientWidth) : 0,
+      allShown: Object.values(els).every(shown),
+      allEllipsis: Object.values(els).every(el => getComputedStyle(el).textOverflow === 'ellipsis'),
+      gameWidth: els.game ? Math.round(els.game.clientWidth) : 0,
       navCount: nav.length,
       navClipped: nav.filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent.trim()),
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };
   }, width + 'x' + height);
-  ok(header.teamShown && header.teamWhole && header.seasonDropped,
-    width + 'x' + height + ' keeps the team identity whole and drops the season first', JSON.stringify(header));
-  ok(header.gameShown && header.gameEllipsis === 'ellipsis' && header.gameWidth > 60,
-    width + 'x' + height + ' truncates the game with a readable ellipsis rather than a hard cut', JSON.stringify(header));
+  ok(header.allShown && header.allEllipsis,
+    width + 'x' + height + ' keeps every context segment present, truncating gracefully rather than hard-clipping', JSON.stringify(header));
+  ok(header.gameWidth > 60,
+    width + 'x' + height + ' leaves the game context segment a readable minimum width', JSON.stringify(header));
   ok(header.navCount >= 4 && header.navClipped.length === 0 && header.pageOverflow <= 0,
     width + 'x' + height + ' never clips primary route navigation and adds no page overflow', JSON.stringify(header));
 }

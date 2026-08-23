@@ -66,7 +66,9 @@ const openFilmRoom = async () => {
     && !!document.querySelector('[data-hub-open-season]'));
   await page.click('[data-hub-open-season]');
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
-  await page.click('#wsFilmList [data-ws-game]');
+  // V2-A: no per-row Open button -- preview the row, then Continue charting.
+  await page.click('.ws-game-row');
+  await page.click('#wsContinueCharting');
   await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
   await page.waitForFunction(() => !!document.querySelector('[data-native-film-room]'));
   await page.evaluate(() => { if (window.app.breakdownWorkspace.view !== 'film-room') window.app.breakdownWorkspace._setView('film-room', { userInitiated: true }); });
@@ -93,7 +95,8 @@ await page.evaluate(() => {
     .find(button => /Explore sample season/i.test(button.textContent || ''))?.click();
 });
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
-await page.click('#wsFilmList [data-ws-game]');
+await page.click('.ws-game-row');
+await page.click('#wsContinueCharting');
 await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
 await page.waitForFunction(() => !!document.querySelector('[data-native-film-room]'));
 await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room', { userInitiated: true }));
