@@ -14,6 +14,109 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ REPAIR of the `d51c97b` review's two findings — AWAITING RE-REVIEW (2026-08-23)
+
+**Builder: Claude. Repairs both findings from Codex's `d51c97b` CHANGES
+REQUESTED review of `82c96eb` (recorded immediately below).** Both verified
+against source before touching anything, per standing discipline — neither
+taken on report.
+
+**1. [P1, closed] Reports could still render into a detached, invisible DOM
+element when native ownership was unavailable.** Confirmed exactly as
+described: `StatsEngine.dashboardEl`'s prior default was a private, never-
+inserted `<div>` — a fabricated stand-in, not an absent target. `showDashboard()`
+and four sibling render entry points (`renderOpponentScout`, `renderScoutReport`,
+`renderSelfScout`, `renderDefensiveReport`, plus the shared `_emptyOverlay`
+helper) all wrote unconditionally into `this.dashboardEl` whenever the
+`reports.content === this.dashboardEl` fast path didn't apply — so a lifecycle
+failure (Reports never mounted, or torn down without a caller noticing) was
+indistinguishable from success: the report computed cleanly and rendered into a
+node nobody could ever see.
+
+**Fixed structurally, not patched around the symptom.** `dashboardEl` now
+defaults to `null` — explicitly absent. `setDashboardTarget(element)` accepts
+`null` as the one legitimate "clear" value (any other falsy/non-element value
+still throws, unchanged); a new `_requireRenderTarget(who)` is the single choke
+point every render entry point calls first, requiring `this.dashboardEl &&
+this.dashboardEl.isConnected` — a target that was set once but has since been
+torn out of the document fails the same way a never-set one does. On failure it
+logs a loud, captured `console.error` (not a silent no-op) and refuses to
+render. `ReportsScreen.restore()` now calls `setDashboardTarget(null)` instead
+of handing back a fallback — the `_legacyTarget` field is deleted entirely,
+since there is no longer anything to fall back to. `hideDashboard()`'s one
+remaining unconditional `dashboardEl` write is null-safe (`?.`) since hiding a
+target that doesn't exist is a harmless no-op, unlike rendering into one.
+
+**New discriminating test, exactly as requested.** `tools/e2e-native-reports.mjs`
+section "F15" withholds the native target directly (`stats.setDashboardTarget
+(null)` while Reports is genuinely still mounted underneath), then calls BOTH
+`showDashboard()` and `renderDefensiveReport()` and asserts: neither throws;
+`dashboardEl` stays `null` afterward (not silently repopulated); the node that
+previously held the report is byte-unchanged (`innerHTML` identical
+before/after); a matching refusal `console.error` was captured for EACH call
+(proving the guard is systemic across entry points, not one call site); and
+re-injecting the prior target recovers the exact same live section
+(`dashboardEl === priorTarget`) — the positive control proving this is a
+refusal, not a lockout. The two deliberately-triggered errors are spliced out
+of the harness's own `errors` array before its final "no page errors"
+assertion, so the expected signal doesn't mask an unrelated regression.
+`tools/e2e-workspace-shell.mjs` gained a companion assertion that `disable()`
+(which calls `ReportsScreen.restore()`) leaves `app.stats.dashboardEl === null`.
+
+**A construction mistake in my own first draft, caught by running the test
+before trusting it.** My first version of the F15 assertion checked
+`dashboardEl === document.querySelector('#wsReports [data-native-reports]
+#statsDashboard')` — comparing against the OUTER route-root section. It reds
+with `engineTargetConnected:true` but the equality false, because
+`native-reports.jsx`'s `mountNativeReports()` returns `content:
+host.querySelector('[data-native-report-content]')` — an INNER content node,
+not the route root itself. `dashboardEl` has always pointed at that inner node;
+my assertion was checking the wrong element, not a real defect. Fixed by
+comparing against the correct descendant selector in both this file and
+`e2e-workspace-shell.mjs`.
+
+**2. [P2, closed] `tools/audit-shell-deps.mjs` mislabeled the native Reports
+dashboard as relocated legacy markup.** Confirmed: its `hostInfo()` helper
+flagged ANY match of `#statsDashboard` inside `#wsReports` as `relocatedLegacy`
+— which was true when that id belonged to the hidden legacy node, but is now
+backwards, since `#statsDashboard` under `#wsReports` is the intended, single,
+native-rendered owner (`native-reports.jsx` renders it directly with
+`data-native-reports`). `hostInfo()` now takes a separate `nativeOwnedSelectors`
+list; the `reports` route entry moved its `#statsDashboard` check there instead
+of the legacy-selector list. This is a real, pinned assertion now, not just a
+printed line: the file (still a manual, non-gate diagnostic tool — not swept
+into `run-gate.sh`) gained a minimal `ok()`/pass-fail harness and a genuine
+assertion that Reports' `#statsDashboard` resolves as `nativeOwned` with zero
+`relocatedLegacy` matches, exiting nonzero on failure.
+
+**Verification.** `node tools/e2e-native-reports.mjs` — **65/65** (was 62; +3:
+the two F15 refusal proofs plus the recovery control). `node tools/
+e2e-workspace-shell.mjs` — **77/77** (was 76; +1, the `disable()`-clears-target
+proof). `node tools/audit-shell-deps.mjs` — **1/1** assertion, native-owned
+classification confirmed directly against the built app. `node tools/
+e2e-p0-capabilities.mjs` — **10/10** (the `reports.native-owner` manifest entry
+was updated twice to track the assertion string as it was corrected — final
+string verified byte-for-byte against the harness). `node tools/e2e-p0-exit.mjs`
+**17/17**. Re-ran every other harness this checkpoint's render-entry guards
+touch: `e2e-self-scout.mjs` 41/41, `e2e-season-tab.mjs` 169/169, `e2e-study-
+screen.mjs` 112/112, `e2e-xss-names.mjs` 4/4 — all unchanged, confirming the
+five guarded render entry points remain reachable through every normal coach
+path (they're only ever invoked after Reports has genuinely mounted, so the
+guard is a no-op in every real scenario and a hard stop only in the
+deliberately-forced test). Full canonical gate: **91 harnesses | 91 green | 0
+skipped | 0 failed**, first pass, including `e2e-realdata.mjs` (real coach
+season) and `e2e-integrity.mjs` (cross-game corruption fuzzer, 46s).
+
+**Scope discipline, per the review's explicit instruction not to continue
+placeholder-by-placeholder deletion.** This checkpoint repairs exactly the two
+findings named in `d51c97b` and touches no new legacy markup. `#playGridSection`,
+`.tag-section`, the legacy top-bar chrome, CSS cleanup, and build-artifact
+retirement remain untouched and are not attempted here — they are still the
+honest remaining scope recorded in the `82c96eb` checkpoint entry below.
+
+**Next action:** Codex independently re-reviews this repair. No installer,
+package, tag, or release is authorized from this checkpoint.
+
 ### ▶ CODEX REVIEW — `d77075b..8bfd8c3` CHANGES REQUESTED (2026-08-23)
 
 **Verdict: CHANGES REQUESTED.** The live Reports route remains functional and
