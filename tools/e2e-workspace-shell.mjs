@@ -158,8 +158,37 @@ await new Promise(res => setTimeout(res, 400));
 const openCalls = await page.evaluate(() => window.__openGameCalls);
 ok(openCalls.length === 1 && openCalls[0] === 'preview-game',
   'Continue charting opens exactly the previewed game through the one canonical App.openGame command', JSON.stringify(openCalls));
+
+// Restore the real App.openGame (the "Continue charting" proof above
+// deliberately stubbed it to a single-argument shape to count calls, which
+// would silently drop the {route} option any later caller passed) BEFORE
+// exercising Open Study / Open Reports below.
+await page.evaluate(() => { window.app.openGame = window.__openGameOrig; });
+
+// V2-A: Open Study / Open Reports must act on the PREVIEWED game, not a
+// stale already-active one (Codex review f1a90c2, finding 1). preview-game
+// is active from the Continue Charting click above; switch active back to
+// the OTHER game first, so re-previewing preview-game genuinely previews a
+// non-active game and the assertion cannot pass by coincidence.
+for (const [action, route] of [['open-study', 'study'], ['open-reports', 'reports']]) {
+  await page.evaluate(async () => {
+    const store = window.app.storage.seasonStore;
+    const other = store.data.games.find(g => String(g.id) !== 'preview-game');
+    if (other) store.setActive(other.id);
+    await window.app.workspaceShell.show('home');
+  });
+  await page.click('[data-ws-preview="preview-game"]');
+  await page.click(`[data-ws-action="${action}"]`);
+  await new Promise(res => setTimeout(res, 400));
+  const outcome = await page.evaluate(() => ({
+    route: window.app.workspace.currentRoute(),
+    activeGameId: window.app.storage.seasonStore.data.activeGameId,
+  }));
+  ok(outcome.route === route && outcome.activeGameId === 'preview-game',
+    `${action} opens the PREVIEWED game (not the prior active one) and lands on ${route}`, JSON.stringify(outcome));
+}
+
 await page.evaluate(async () => {
-  window.app.openGame = window.__openGameOrig;
   // Restore pre-click active-game state so a downstream test that assumes
   // 'preview-game' is not yet the active game (and exercises a genuine
   // switch, not the already-active fast path) is not left seeing it as
@@ -1087,6 +1116,58 @@ ok(/2027 JV/.test(r.season) && r.gameRows === 1,
   'Home reflects the new season\'s own name and game list', JSON.stringify(r));
 ok(r.game !== r.staleGame,
   'The prior season\'s game context does not leak into the newly opened season', JSON.stringify(r));
+
+// V2-A: a Home-to-Home season switch (route unchanged throughout) previously
+// left the OLD season's preview id in place, so a game id collision between
+// seasons could carry a stale preview across (Codex review f1a90c2, finding
+// 3). Build two seasons whose games deliberately share the literal id
+// 'preview-game' and prove the destination season's OWN active game is
+// shown, not the source season's stale preview riding through on the id
+// match.
+r = await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore;
+  const recA = await app.storage.createSeason({ name: 'Collision A', team: 'Mavericks', year: '2028' });
+  store.data.games = [{ id: 'preview-game', name: '', status: 'active', gameInfo: { opponent: 'Season A Opponent' }, plays: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false }];
+  store.data.activeGameId = 'preview-game';
+  await store.persist();
+  await app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 300));
+  document.querySelector('.ws-game-row')?.click();
+  const previewedBefore = app.workspaceShell._homeSelectedGameId;
+  // The colliding id ('preview-game') is deliberately NOT season B's active
+  // game -- a stale, uncleared preview id would match this WRONG row by
+  // coincidence; only a genuinely cleared preview correctly falls through to
+  // B's real active game ('b-active'). If the two resolved to the same
+  // content the test could pass even with the bug present.
+  const recB = await app.storage.createSeason({ name: 'Collision B', team: 'Mavericks', year: '2029' });
+  store.data.games = [
+    { id: 'preview-game', name: '', status: 'active', gameInfo: { opponent: 'Wrong Match B' }, plays: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false },
+    { id: 'b-active', name: '', status: 'active', gameInfo: { opponent: 'Season B Opponent' }, plays: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false },
+  ];
+  store.data.activeGameId = 'b-active';
+  await store.persist();
+  await app.storage.openSeasonById(recA.id);
+  // Already on Home before the switch -- the exact Home-to-Home case the
+  // finding named, where `show()`'s own previousRoute!=='home' guard cannot
+  // fire because the route never changes.
+  await app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 200));
+  await app.workspaceShell._openSeasonSwitch(document.getElementById('wsCtxSeason'));
+  await new Promise(res => setTimeout(res, 250));
+  const row = [...document.querySelectorAll('.gi-popover-item')].find(b => /Collision B/.test(b.textContent || ''));
+  row?.click();
+  await new Promise(res => setTimeout(res, 400));
+  return {
+    previewedBefore,
+    seasonId: store.currentSeasonId, targetId: recB.id,
+    homeSelected: app.workspaceShell._homeSelectedGameId,
+    detailName: document.getElementById('wsDetailName')?.textContent,
+  };
+});
+ok(r.previewedBefore === 'preview-game' && String(r.seasonId) === String(r.targetId),
+  'setup: a game was previewed in season A before a Home-to-Home switch to season B', JSON.stringify(r));
+ok(/Season B Opponent/i.test(r.detailName || ''),
+  'A colliding game id across seasons does not carry season A\'s stale preview into season B\'s Home', JSON.stringify(r));
 
 console.log('\n== S6-4b UX-4: shell palette resolves and stays legible ==');
 r = await page.evaluate(() => {

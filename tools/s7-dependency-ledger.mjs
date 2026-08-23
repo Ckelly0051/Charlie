@@ -121,8 +121,10 @@ await page.waitForFunction(() => window.app?.workspaceShell, { timeout: 20000 })
 await page.evaluate(async () => {
   try {
     await window.app.storage.loadDemoSeason();
-    const game = document.querySelector('#wsFilmList [data-ws-game]');
-    if (game) game.click();
+    // V2-A: no per-row Open button -- preview the row, then Continue charting.
+    const row = document.querySelector('.ws-game-row');
+    if (row) row.click();
+    document.getElementById('wsContinueCharting')?.click();
   } catch (e) {}
 });
 await new Promise(r => setTimeout(r, 1200));

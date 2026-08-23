@@ -15,6 +15,91 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ REPAIR of the `f1a90c2` review's four findings — AWAITING RE-REVIEW (2026-08-23)
+
+**Builder: Claude. Repairs all four findings from Codex's `f1a90c2` CHANGES
+REQUESTED review of `807d9ad` (recorded immediately below).** Every finding
+verified against source before fixing, per standing discipline. At the
+coach's direction, no full canonical gate was run for this repair — Codex's
+own independent review is the verification step; focused harnesses for
+everything touched are green (below).
+
+**1. [P1, closed] Open Study / Open Reports now act on the previewed game.**
+`workspace-shell.js`'s `open-study`/`open-reports` handlers now route through
+`App.openGame(this._homeSelectedGameId, {route})` — the same seam Continue
+Charting already used — instead of a bare `show(route)` that left `activeGameId`
+untouched. A missing preview (defensive only; these buttons live inside the
+hidden-until-selected detail body) falls back to a plain route switch.
+
+**A genuine build-out defect, caught before it shipped:** the first version of
+the discriminating test called `App.openGame` directly rather than through the
+real click, to sidestep an EARLIER test's stub of `window.app.openGame`
+(added upstream in this same file to count calls) — that stub only accepts a
+bare `id`, silently dropping any `{route}` option, so a later real click would
+have silently regressed to always landing on Break Down with the stub still
+installed. Traced with the browser's own console output rather than guessed;
+fixed by restoring `App.openGame` to its real implementation immediately after
+the earlier stub's assertion, before this new test drives real clicks.
+`e2e-workspace-shell.mjs` new assertions: previewing a non-active game, then
+clicking each action, asserts both the resulting route **and** the canonical
+`activeGameId` are the previewed game — for both Open Study and Open Reports
+independently.
+
+**2. [P1, closed] The Home game row is no longer an HTML-injection sink.**
+`_gameRowHtml()`'s composed date/score metadata string is now wrapped in
+`this._esc(...)` at the sink, matching how the game name and ids in the same
+row were already escaped. `_dateLabel()` deliberately returns the raw string
+for an invalid date, and imported/legacy `scoreUs`/`scoreThem` are never
+guaranteed safe — both now render as inert text. New coverage in
+`e2e-xss-names.mjs`: drives `_gameRowHtml()` directly with a hostile date and
+score value, asserts zero handler firings, zero live injected elements, and
+the payload text preserved-but-escaped.
+
+**3. [P2, closed] Season and program switches now clear the Home preview.**
+`_openSeasonSwitch()`'s and `_openProgramSwitch()`'s `onSelect` callbacks both
+now set `this._homeSelectedGameId = null` before calling `show('home')`,
+closing the gap where `show()`'s own `previousRoute !== 'home'` guard cannot
+fire on a Home-to-Home switch (the route never changes). New
+`e2e-workspace-shell.mjs` coverage builds two seasons whose games
+**deliberately share the literal id `'preview-game'`** — with season B's
+colliding-id game **not** its active game, so a stale uncleared preview would
+resolve to the wrong row by coincidence rather than by accident agreeing with
+the correct answer — previews in season A, switches Home-to-Home to season B,
+and asserts the detail panel shows B's own real active game, not the
+id-collision match.
+
+**4. [P2, closed] Retired `[data-ws-season]`/`[data-ws-game]` branches deleted;
+six stale test/tool setup steps replaced with the real canonical API.**
+Both dead click branches in `workspace-shell.js`'s delegated handler are
+removed outright (V2-A emits neither attribute; the branches were unreachable
+dead code, confirmed by a full-repo grep before deletion). The matching stale
+setup step (`document.querySelector('#wsFilmList [data-ws-game]')?.click()` —
+both ids are gone, so the optional chaining made every one of these a silent
+no-op) is replaced in `tools/e2e-tagging.mjs`, `tools/e2e-tag-projform.mjs`,
+`tools/e2e-self-scout.mjs`, `tools/e2e-season-tab.mjs` (fixed in the prior
+V2-A checkpoint), `tools/e2e-film-room.mjs`/`tools/e2e-onboarding.mjs` (also
+fixed in the prior checkpoint) and `tools/s7-dependency-ledger.mjs` with the
+real preview-then-Continue-charting sequence, plus (where the file did not
+already assert it) a new assertion that the intended route genuinely opened
+— not just that a click was dispatched.
+
+**Verification.** `node tools/e2e-workspace-shell.mjs` — **88/88** (was 84;
++4, one assertion per finding-1/finding-3 sub-case). `node tools/
+e2e-xss-names.mjs` — **6/6** (was 4; +2, the new row-metadata sink coverage).
+`node tools/e2e-tagging.mjs` **28/28**, `node tools/e2e-tag-projform.mjs`
+**55/55**, `node tools/e2e-self-scout.mjs` **42/42** — all include the new
+route-opened setup assertion, all green. `node tools/e2e-p0-capabilities.mjs`
+**10/10**, unaffected by the dead-branch removal (neither retired branch was
+named by any capability id). No full canonical gate run this checkpoint, per
+the coach's explicit direction — Codex's independent review is the
+verification step here.
+
+No analytics formula, persistence schema, coach data, film file, or unrelated
+behavior changed. Scope held to exactly the four named findings.
+
+**Handoff to Codex for re-review.** No installer, package, or V2-B work is
+authorized from this repair.
+
 ### ▶ CODEX REVIEW - V2-A `807d9ad` - CHANGES REQUESTED (2026-08-23)
 
 **Reviewer: Codex. Verdict: CHANGES REQUESTED.** The live Home implementation

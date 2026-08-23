@@ -89,6 +89,43 @@ ok(res.liveImgs === 0, 'no live <img src=x> payload element was injected into th
 ok(res.escapedPresent, 'the payload text is preserved but escaped (rendered as literal text)', JSON.stringify(res));
 ok(!res.matrixRawImg && res.matrixEscaped, 'Tendency Matrix escapes coach-controlled row/col values (no raw <img in the grid)', JSON.stringify(res));
 
+// V2-A: Home's game-row metadata line (`_gameRowHtml`) composes a date label
+// and a score string, both of which can carry unescaped coach/import data --
+// `_dateLabel()` deliberately returns the raw string for an invalid date, and
+// imported/legacy scoreUs/scoreThem are never guaranteed numeric or safe.
+// Both flowed into innerHTML unescaped until this checkpoint's repair
+// (Codex review f1a90c2, finding 2). Drive the actual sink function directly
+// so this is independent of the Team Hub/route-guard boot sequence.
+const rowRes = await page.evaluate(async () => {
+  window.__xssRow = 0;
+  const P = '<img src=x onerror="window.__xssRow=(window.__xssRow||0)+1">';
+  const shell = window.app.workspaceShell;
+  const game = {
+    id: 'row-xss', name: '', status: 'active',
+    gameInfo: { opponent: 'Opponent', date: P, scoreUs: P, scoreThem: '3' },
+    plays: [], __idx: 0,
+  };
+  // A minimal season context so _gameRowHtml's internal store reads resolve.
+  const store = window.app.storage.seasonStore;
+  const priorData = store.data, priorSeasonId = store.currentSeasonId;
+  store.data = store._normalize({ version: 5, type: 'season', id: 'row-xss-season', seasonName: 'Row XSS', activeGameId: 'row-xss', games: [game] });
+  store.currentSeasonId = 'row-xss-season';
+  const html = shell._gameRowHtml(store.data.games[0], { season: { id: 'row-xss-season' }, team: null });
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(container);
+  container.innerHTML = html;
+  await new Promise(r => setTimeout(r, 60));
+  const liveImgs = [...container.querySelectorAll('img')].filter(im => (im.getAttribute('src') || '') === 'x').length;
+  const escapedPresent = container.innerHTML.includes('&lt;img');
+  const rawImgPresent = /<img\s/i.test(html.replace(/\s(class|type|aria-pressed|data-[\w-]+)="[^"]*"/g, ''));
+  container.remove();
+  store.data = priorData; store.currentSeasonId = priorSeasonId;
+  return { xss: window.__xssRow, liveImgs, escapedPresent, htmlLength: html.length, rawImgPresent };
+});
+ok(rowRes.xss === 0 && rowRes.liveImgs === 0, 'a hostile Home game-row date/score value fires no handler and creates no live element', JSON.stringify(rowRes));
+ok(rowRes.escapedPresent, 'the hostile date/score text is preserved but escaped, not silently dropped', JSON.stringify(rowRes));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 process.exit(fail ? 1 : 0);

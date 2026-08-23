@@ -141,16 +141,19 @@ export class WorkspaceShell {
       if (action === 'program-switch') { await this._openProgramSwitch(e.target.closest('[data-ws-action]')); return; }
       if (action === 'season-switch') { await this._openSeasonSwitch(e.target.closest('[data-ws-action]')); return; }
       if (action === 'season-report') { await this.show('reports'); return; }
-      if (action === 'open-study') { await this.show('study'); return; }
-      if (action === 'open-reports') { await this.show('reports'); return; }
-      const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
-      if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
+      // Open Study / Open Reports act on the PREVIEWED game, not whichever
+      // game happens to already be active -- routed through the one
+      // authoritative App.openGame() seam (same as Continue Charting), so
+      // the coach lands on their own preview's analysis, never a stale
+      // active game's. No preview selected (defensive only -- these buttons
+      // live inside the hidden-until-selected detail body) falls back to a
+      // plain route switch rather than silently doing nothing.
+      if (action === 'open-study') { if (this._homeSelectedGameId) await this.app.openGame(this._homeSelectedGameId, { route: 'study' }); else await this.show('study'); return; }
+      if (action === 'open-reports') { if (this._homeSelectedGameId) await this.app.openGame(this._homeSelectedGameId, { route: 'reports' }); else await this.show('reports'); return; }
       const previewId = e.target.closest('[data-ws-preview]')?.dataset.wsPreview;
       if (previewId) { this._selectHomeGame(previewId); return; }
       const continueBtn = e.target.closest('#wsContinueCharting');
       if (continueBtn && !continueBtn.disabled && this._homeSelectedGameId) { await this.app.openGame(this._homeSelectedGameId); return; }
-      const gid = e.target.closest('[data-ws-game]')?.dataset.wsGame;
-      if (gid) { await this.app.openGame(gid); return; }   // one authoritative open path (C1)
     });
   }
   async show(routeId) {
@@ -271,7 +274,7 @@ export class WorkspaceShell {
    *  Continue Charting in the detail panel is the one way to open a game). */
   _gameRowHtml(g,c){const info=this.app._gameRowInfo(g,g.__idx??0,this.app.storage.seasonStore,this.app.storage.seasonStore.data.activeGameId);const idx=this.app.storage.seasonStore.data.games.indexOf(g);const selected=String(g.id)===this._homeSelectedGameId;const result=info.hasScore?`${Number(info.u)>Number(info.t)?'Final ':Number(info.u)<Number(info.t)?'Final ':'Final '}${info.u}-${info.t}`:(info.isFinal?'Final':'Not played');const tagged=(g.plays||[]).filter(isPlayTagged).length;
     return `<button type="button" class="ws-game-row${selected?' selected':''}" data-ws-preview="${this._esc(g.id)}" data-game-id="${this._esc(g.id)}" aria-pressed="${selected?'true':'false'}">
-      <span class="ws-game-name"><strong>${this._esc(this._gameName(g,idx))}</strong><small>${[this._dateLabel(g.gameInfo?.date),result].filter(Boolean).join(' · ')}</small></span>
+      <span class="ws-game-name"><strong>${this._esc(this._gameName(g,idx))}</strong><small>${this._esc([this._dateLabel(g.gameInfo?.date),result].filter(Boolean).join(' · '))}</small></span>
       <span class="ws-game-cell"><strong>${(g.plays||[]).length}</strong><small>plays</small></span>
       <span class="ws-game-cell"><strong>${tagged}</strong><small>charted</small></span>
       <span class="ws-game-cell" data-film-health><strong class="ws-loading">Checking…</strong><small>&nbsp;</small></span>
@@ -408,7 +411,7 @@ export class WorkspaceShell {
     const registry=this.app.teamRegistry; const activeId=registry.activeTeamId();
     const teams=registry.teams();
     const items=teams.map(team=>({key:`team-${team.id}`,label:team.teamName,selected:team.id===activeId,
-      onSelect:async()=>{ if(await this.app.teamHubScreen?.switchTeam?.(team.id)) await this.show('home'); }}));
+      onSelect:async()=>{ if(await this.app.teamHubScreen?.switchTeam?.(team.id)) { this._homeSelectedGameId=null; await this.show('home'); } }}));
     items.push({key:'new-program',label:'+ New program',separator:!!teams.length,
       onSelect:()=>this.app.teamHubScreen?.openAddTeam?.(anchor)});
     anchor.setAttribute('aria-expanded','true');
@@ -437,7 +440,7 @@ export class WorkspaceShell {
       : seasons.map(season=>({key:`season-${season.id}`,label:season.name||'Untitled Season',
           detail:`${season.games||0} game${season.games===1?'':'s'} · ${season.plays||0} play${season.plays===1?'':'s'}`,
           selected:String(season.id)===String(currentId),
-          onSelect:async()=>{ if(String(season.id)===String(currentId)) return; await this.app.storage.openSeasonById(season.id); await this.show('home'); }}));
+          onSelect:async()=>{ if(String(season.id)===String(currentId)) return; await this.app.storage.openSeasonById(season.id); this._homeSelectedGameId=null; await this.show('home'); }}));
     items.push({key:'new-season',label:'+ New season',separator:!!items.length,
       onSelect:()=>this.app.teamHubScreen?.openCreateSeason?.(anchor)});
     anchor.setAttribute('aria-expanded','true');
