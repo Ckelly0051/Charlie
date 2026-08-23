@@ -13,6 +13,47 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REVIEW OF PC-5 DRY-RUN FIX `c463fae` — CHANGES REQUESTED (2026-08-22)
+
+**Verdict: the real-catalog dry run is valuable and its diagnosis is correct,
+but the cache-based production repair is not safe enough to approve. PC-5
+remains open; do not build the installer yet.** Independent focused verification
+confirmed `tools/e2e-catalog-backend.mjs` is green at 27/27, but the new test
+only proves the happy-path duplicate call. It does not discriminate either
+failure mode below.
+
+1. **P0 — an undurable backup can now be certified as the restore safety net.**
+   `CatalogPersistence.createBackup()` inserts the row in memory, swallows a
+   failed `writeDb()`, and still returns the generated id. `TauriBackend.
+   createBackup()` caches that id/meta as successful. The second call then
+   returns the cache, and `SeasonStore.restoreBackup()` proceeds past
+   `if (!safetyId) return null` even though the safety backup never reached
+   disk. The old duplicate-null bug accidentally failed closed here; this fix
+   turns the same condition into a false success. A restore must not mutate
+   live state unless the pre-restore snapshot is confirmed durable.
+
+2. **P0 — the cache can return an id for a backup that no longer exists.**
+   `_lastBackupJson/_lastBackupMeta` are not invalidated by `deleteBackup()` and
+   the fast path does not verify the cached row. If the latest backup is
+   deleted while the season is unchanged, the next snapshot returns that
+   deleted id without touching SQLite; restore then proceeds with no usable
+   undo point. The implementation comment also claims the key is
+   `(seasonId, data, label)`, but the code compares JSON only. The present
+   fixture does not test delete-then-snapshot, catalog-write failure, season
+   scope, or label scope.
+
+**Required repair direction:** remove the cache workaround and establish one
+owner for backup creation. `SeasonStore.snapshot()`/`saveNow()` must not ask
+`writeDisk({snapshot:true})` and then independently call `createBackup()` for
+the same payload. The one backup call must report success only after the
+SQLite bytes are durably written; on failure it must roll back/refuse and
+restore must remain fail-closed. Add discriminating tests for (a) durable
+write failure, zero usable safety backup, restore refused; (b) deleted latest
+backup followed by unchanged-state snapshot creates/verifies a real new row;
+and (c) the normal one-row happy path. Keep the real-catalog dry-run isolated;
+rerun its restore phase after the repair. No second full gate is needed if the
+builder runs the focused catalog, persistence, PC matrix, and dry-run proofs.
+
 ### ▶ PC-5 REAL-CATALOG DRY RUN COMPLETE — SNAPSHOT/RESTORE FOUND AND FIXED BROKEN ON DESKTOP — AWAITING CODEX REVIEW (2026-08-22)
 
 **Builder: Claude. Scope: the coach's own explicit 8-step PC-5 dry-run
