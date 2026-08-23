@@ -13,6 +13,76 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-5 REPAIR OF THE `1de3c54` REVIEW'S TWO FINDINGS — structural fix, no cache — AWAITING RE-REVIEW (2026-08-22)
+
+**Builder: Claude. Repairs both findings from Codex's `1de3c54` CHANGES
+REQUESTED review of `c463fae` (recorded immediately below).** Both verified
+against source before touching anything, per standing discipline — neither
+taken on report.
+
+**Confirmed exactly as described.** `CatalogPersistence.createBackup()`
+(`js/catalog-persistence.js`) inserted the backup row into the in-memory
+catalog, then swallowed a failed `fs.writeDb()` with an empty `catch(e){}`
+and returned the generated id regardless — an undurable write reported as a
+success. `TauriBackend.createBackup()`'s cache then remembered that
+falsely-successful id/meta with no expiry and no verification against
+`deleteBackup()`/pruning, so a later identical-content call could return an
+id for a row that no longer existed.
+
+**Fixed structurally, cache removed entirely, at three layers:**
+- **`CatalogPersistence.createBackup()`** now snapshots pre-mutation bytes
+  and, on a failed `writeDb()`, closes and reopens the catalog from that
+  snapshot — mirroring `deleteSeason()`'s own established rollback shape
+  exactly — and returns `null`, never a lying `bid`. Does not reopen the
+  "never blocks a save" contract: `writeDisk()` already discards this
+  method's return value, so a failed backup still never blocks the
+  canonical season write it accompanies.
+- **`TauriBackend.createBackup()`** — the `_lastBackupJson`/`_lastBackupMeta`
+  cache is deleted entirely. Every call performs a real, durably-verified
+  write, every time.
+- **`TauriBackend.writeDisk()`** now reports its own internal backup result
+  to its caller via a new out-parameter (`opts.createdBackup`) instead of
+  the caller making a redundant second `createBackup()` call — the exact
+  call that produced the original finding. `SeasonStore.snapshot()`/
+  `saveNow()` read it directly: `undefined` (this backend doesn't own
+  backup creation, or the canonical write failed first) falls through to
+  the unchanged original direct call; a truthy meta uses the verified
+  result directly; `null` (a genuine failure) propagates honestly, never
+  retried.
+
+**Verification.** `node tools/e2e-catalog-persistence.mjs` — **68/68** (was
+63; +5, new section 12b: a failed `writeDb()` during `createBackup()` rolls
+back cleanly, leaves zero readable rows, leaves the on-disk db unchanged, and
+a retried call succeeds once the write recovers). `node tools/
+e2e-catalog-backend.mjs` — **28/28** (was 27; the stale "dup returns cached
+meta" test replaced with three tests: two separate calls now create two
+separate readable rows; a genuine failure returns `null`, never masked; a
+deleted backup is never returned again). `node tools/pc-adversarial-matrix.mjs`
+— **108/108 locks green** (was 104; +4, new section 17: `snapshot()`/
+`saveNow()` create each backup exactly once; `restoreBackup()` refuses and
+leaves live data untouched when the safety backup genuinely fails). Every
+fix independently mutation-verified: reverting each in isolation reproduces
+its exact original symptom and reds only the assertion(s) built to catch it,
+confirmed restored and reconfirmed green.
+
+**Real-catalog dry run re-run per Codex's explicit request**, against a fresh
+copy of the real two-season catalog, never the live files: `node tools/
+pc5-real-catalog-dry-run.mjs` — **40/40** (was 36; +4, new Phase 5b, which
+precisely isolates a real backup-specific `writeDb` failure — within one
+`writeDisk()` call, `writeDb` fires exactly twice, once for the canonical
+save and once for the backup; failing only the second proves the canonical
+save is genuinely unaffected while the backup honestly fails and restore
+correctly refuses). Full canonical gate (`bash tools/run-gate.sh`): **91
+harnesses | 91 green | 0 skipped | 0 failed**. Live `library.db` confirmed
+byte-identical (SHA-256) to the forensic backup throughout.
+
+Full detail in `GRIDIRON-IQ-PERSISTENCE-INVENTORY.md` §7g. No film path,
+film file, existing season/game/play data, schema version, or migration
+touched. No legacy live file retired, rewritten, archived, or deleted.
+
+**Next action:** Codex independently re-reviews this repair. Installer and
+installed smoke remain blocked until acceptance.
+
 ### ▶ CODEX REVIEW OF PC-5 DRY-RUN FIX `c463fae` — CHANGES REQUESTED (2026-08-22)
 
 **Verdict: the real-catalog dry run is valuable and its diagnosis is correct,

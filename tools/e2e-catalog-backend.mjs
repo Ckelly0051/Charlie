@@ -35,19 +35,29 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
         just via a disabled Team Hub button -- with zero catalog writes.
      9. PC-5 dry-run finding (tools/pc5-real-catalog-dry-run.mjs, run against a
         copy of the real coach catalog, 2026-08-22): SeasonStore.snapshot()
-        and StorageManager.saveNow() both call writeDisk({snapshot:true, ...})
-        and then make a SEPARATE, immediate createBackup() call with the
-        identical payload. writeDisk()'s own internal createBackup() call
-        already creates that backup; the second call is an exact-duplicate
-        JSON match, which the de-dup guard answered with `null` -- read by
-        SeasonStore.snapshot()'s caller as "no backup was created", even
-        though one genuinely was. Because diskStatus().bound is
-        unconditionally true on TauriBackend, this fired on EVERY snapshot()
-        call, and SeasonStore.restoreBackup()'s `if (!safetyId) return null;`
-        guard made restore refuse to proceed every single time on the real
-        desktop app. Fixed by caching the created backup's meta alongside the
-        existing de-dup JSON cache and returning it (not null) on the
-        identical-duplicate branch. */
+        and StorageManager.saveNow() both called writeDisk({snapshot:true,
+        ...}) and then made a SEPARATE, immediate createBackup() call with
+        the identical payload. writeDisk()'s own internal createBackup() call
+        already created that backup; the redundant second call originally
+        collided with a de-dup guard that answered it with `null`, which
+        SeasonStore.snapshot()'s caller read as "no backup was created" even
+        though one genuinely was -- restore refused to proceed on the real
+        desktop app every single time.
+     10. PC-5 review repair (Codex re-review `1de3c54`, 2026-08-22): the
+        cache-based fix for finding 9 was itself unsafe -- it could return a
+        truthy cached id for a call whose OWN write had genuinely failed, and
+        it had no way to know a cached backup had since been deleted or
+        pruned. The structural fix instead REMOVES createBackup()'s cache
+        entirely (this method now performs a real write on every call, every
+        time) and closes the redundant-call shape at its root:
+        StorageManager.writeDisk() now reports its own internal backup result
+        back to its caller via an out-parameter (opts.createdBackup), so
+        SeasonStore.snapshot()/saveNow() read the REAL, already-durability-
+        verified result instead of ever calling createBackup() a second time
+        for the same payload. Section 3c below now proves the corrected
+        contract directly at this layer: two genuinely separate calls with
+        identical data create two genuinely separate rows (no cache), and a
+        failed catalog write is never masked as a truthy id. */
 import puppeteer from 'puppeteer';
 
 let pass = 0, fail = 0;
@@ -185,37 +195,64 @@ const result = await page.evaluate(async () => {
     out.ambientBkScope = seenScope;                 // must be 's2', not 's1'
     out.ambientBkName = got && got.seasonName;       // 'restored-s2'
   }
-  // 3c. PC-5 dry-run finding: an immediate duplicate createBackup() call for
-  //     the identical (seasonId, data, label) -- exactly what writeDisk()
-  //     ({snapshot:true}) followed by SeasonStore.snapshot()'s own trailing
-  //     createBackup() call does, on every single snapshot() invocation when
-  //     diskStatus().bound is true (unconditionally true on TauriBackend) --
-  //     must return the SAME backup's meta, not null. Reproduced directly
-  //     against a copy of the real coach catalog before this fix
-  //     (tools/pc5-real-catalog-dry-run.mjs): snapshot() returned null on
-  //     every call and restoreBackup()'s `if (!safetyId) return null;` guard
-  //     made restore refuse to proceed on both real seasons, every time.
+  // 3c. PC-5 review repair (Codex re-review `1de3c54`, 2026-08-22): the cache
+  //     that used to answer a duplicate createBackup() call is REMOVED
+  //     entirely -- this method now performs a real write every single call,
+  //     with no memory of what it returned last time. Three properties that
+  //     must hold with no cache present:
+  //     (c) the happy path -- two genuinely separate calls, even with
+  //         byte-identical data, create two genuinely separate rows (proves
+  //         the cache is really gone, not just hidden);
+  //     a failed catalog write is never masked as a truthy id (the exact
+  //         shape of finding #1: an undurable write must never look like a
+  //         successful backup to a caller);
+  //     (b) a backup that has since been DELETED is never returned again --
+  //         creating a new backup for the same (now-unchanged) data after
+  //         the prior one was deleted produces a genuinely NEW, genuinely
+  //         retrievable id, never the stale/deleted one (the exact shape of
+  //         finding #2).
   {
     let catalogCalls = 0;
+    const rows = new Map();
     const cat = {
       saveSeason: async () => true, deleteSeason: async () => true,
-      createBackup: async () => { catalogCalls++; return `bk_dup_${catalogCalls}`; },
-      listBackups: async () => [], getBackup: async () => null, deleteBackup: async () => {},
+      createBackup: async (id, data, label) => {
+        catalogCalls++;
+        const bid = `bk_${catalogCalls}`;
+        rows.set(bid, { seasonName: data.seasonName, games: data.games });
+        return bid;
+      },
+      listBackups: async () => [...rows.keys()].map(id => ({ id })),
+      getBackup: async (id, bid) => rows.get(bid) || null,
+      deleteBackup: async (id, bid) => { rows.delete(bid); },
     };
     const { be } = makeBackend(cat);
     const data = { id: 's1', seasonName: 'X', games: [{ plays: [{}, {}] }] };
+
+    // (c) happy path: two separate calls, identical data, two separate rows.
     const first = await be.createBackup('s1', data, 'Before restore');
-    const second = await be.createBackup('s1', data, 'Before restore');   // identical call, same payload+label -- the writeDisk()-then-snapshot() collision
-    out.dupBackupCatalogCalls = catalogCalls;              // must be 1 -- the duplicate must not create a second row
-    out.dupBackupFirstId = first && first.id;
-    out.dupBackupSecondId = second && second.id;            // must equal first.id, never null
-    out.dupBackupSecondTruthy = !!second;
-    // A genuinely NEW edit (different payload) afterward must still create a
-    // real new backup -- the fix must not disable the de-dup guard entirely.
-    const changedData = { ...data, games: [{ plays: [{}, {}, {}] }] };
-    const third = await be.createBackup('s1', changedData, 'Before restore');
-    out.dupBackupThirdCatalogCalls = catalogCalls;          // must be 2 -- genuinely different content still reaches the catalog
-    out.dupBackupThirdDiffersFromFirst = third && third.id !== (first && first.id);
+    const second = await be.createBackup('s1', data, 'Before restore');
+    out.noCacheCatalogCalls = catalogCalls;                 // must be 2 -- no de-dup skip
+    out.noCacheFirstId = first && first.id;
+    out.noCacheSecondId = second && second.id;              // must be a DIFFERENT id from first, and truthy
+    out.noCacheBothTruthy = !!first && !!second;
+    out.noCacheBothReadable = (await be.getBackup('s1', first.id)) != null && (await be.getBackup('s1', second.id)) != null;
+
+    // Failure propagation: the underlying catalog write genuinely fails --
+    // must return null cleanly, never a truthy id from a prior successful call.
+    const failingCat = { ...cat, createBackup: async () => { throw new Error('db write down'); } };
+    const { be: beFail } = makeBackend(failingCat);
+    const failed = await beFail.createBackup('s1', data, 'Before restore');
+    out.failedBackupResult = failed;                        // must be null, not a truthy id
+
+    // (b) deleted-then-recreated: the FIRST backup above is deleted; a new
+    // createBackup() call for the SAME unchanged data must not resurrect it.
+    await be.deleteBackup('s1', first.id);
+    out.deletedNoLongerReadable = (await be.getBackup('s1', first.id)) == null;
+    const third = await be.createBackup('s1', data, 'Before restore');
+    out.recreatedAfterDeleteId = third && third.id;
+    out.recreatedDiffersFromDeleted = third && third.id !== first.id;
+    out.recreatedReadable = third && (await be.getBackup('s1', third.id)) != null;
   }
   // 4. PC-1 (repair of Codex 1aefe8b finding 1): writeDisk() must gate BOTH
   //    the snapshot backup and the Documents-mirror write on the canonical
@@ -410,10 +447,12 @@ ok(result.delFailRemoves === 0 && result.delFailLibKept === true && result.delFa
 ok(result.delOkRemoves >= 1 && result.delOkLibDropped === true && result.delOkRet === true, 'a DURABLE catalog delete removes files + library entry AND returns true');
 ok(result.bkId === 'bk_1' && result.bkCatId === 's1' && result.bkList === true && result.bkGot === true && result.bkDeleted === true, 'backup ring delegates to the catalog (create/list/get/delete) with an explicit seasonId when flag-ON', JSON.stringify(result));
 ok(result.ambientBkScope === 's2' && result.ambientBkName === 'restored-s2', 'an incorrect ambient this.currentId cannot redirect getBackup -- the explicit seasonId argument alone chooses the scope', JSON.stringify(result));
-ok(result.dupBackupCatalogCalls === 1 && result.dupBackupSecondTruthy === true && result.dupBackupSecondId === result.dupBackupFirstId,
-  'PC-5 dry-run finding: an immediate duplicate createBackup() call for the identical (seasonId, data, label) -- the exact writeDisk()-then-snapshot() collision -- returns the SAME backup meta instead of null, without creating a second row', JSON.stringify(result));
-ok(result.dupBackupThirdCatalogCalls === 2 && result.dupBackupThirdDiffersFromFirst === true,
-  'the de-dup guard is not disabled outright -- a genuinely different edit afterward still reaches the catalog and produces a new backup id', JSON.stringify(result));
+ok(result.noCacheCatalogCalls === 2 && result.noCacheBothTruthy === true && result.noCacheSecondId !== result.noCacheFirstId && result.noCacheBothReadable === true,
+  'PC-5 review repair: two separate createBackup() calls with identical data create two genuinely separate, genuinely readable rows -- no cache, no de-dup skip', JSON.stringify(result));
+ok(result.failedBackupResult === null,
+  'a genuinely failed catalog write is reported as null, never masked as a truthy id by a leftover cache from a prior successful call', JSON.stringify(result.failedBackupResult));
+ok(result.deletedNoLongerReadable === true && result.recreatedDiffersFromDeleted === true && result.recreatedReadable === true,
+  'a deleted backup is never returned again -- creating a new backup for the same unchanged data afterward produces a genuinely new, genuinely readable id, never the stale deleted one', JSON.stringify(result));
 ok(result.writeDiskFailedRet === false && result.writeDiskFailedMirrorWrites === 0 && result.writeDiskFailedCatalogBackup === false,
   'writeDisk() gates the snapshot backup AND the Documents-mirror write on the canonical saveSeason() succeeding -- a rejected canonical save produces zero mirror/backup writes', JSON.stringify(result));
 ok(result.writeDiskOkRet === true && result.writeDiskOkMirrorWrites === 1,

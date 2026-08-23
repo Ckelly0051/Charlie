@@ -2266,6 +2266,118 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
 }
 flush();
 
+// ============================================================================
+// 17. LOCK (closed PC-5 review repair, Codex `1de3c54`) -- SeasonStore.
+//     snapshot()/saveNow() create each backup ONCE. When diskStatus().bound
+//     is true, writeDisk()'s own internal createBackup() call is the SOLE
+//     owner; the backend's separate, directly-callable createBackup() must
+//     never be invoked a second time for the same write. And when writeDisk's
+//     internal attempt genuinely fails to produce a durable backup,
+//     snapshot()/restoreBackup() must fail closed -- never silently retry
+//     and never let the live season data be mutated.
+// ============================================================================
+section('17. snapshot()/saveNow() create each backup exactly once; a genuinely failed safety backup keeps restore fail-closed [LOCK, closed PC-5 review repair]');
+{
+  // -- (i) snapshot(): writeDisk's internal success is used directly; the
+  //        separate createBackup() is never called a second time -------------
+  {
+    let directCalls = 0;
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return true; },
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = { id: 'bk-internal', seasonName: data.seasonName }; return true; },
+      async createBackup() { directCalls++; return 'bk-should-not-happen'; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+
+    const result = await store.snapshot('Before restore');
+
+    ok('lock', directCalls === 0 && result && result.id === 'bk-internal',
+      "snapshot() uses writeDisk()'s own internal backup result directly and never makes a second, separate createBackup() call for the same write -- reproduced before this fix as the second call always firing, colliding with the internal one",
+      JSON.stringify({ directCalls, result }));
+  }
+
+  // -- (ii) snapshot(): writeDisk's internal attempt genuinely fails a
+  //         durable write -- snapshot() reports failure honestly, never a
+  //         masked success, and never retries via the direct call -----------
+  {
+    let directCalls = 0;
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return true; },
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = null; return true; },   // the internal backup write genuinely failed
+      async createBackup() { directCalls++; return 'bk-should-not-happen'; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A');
+
+    const result = await store.snapshot('Before restore');
+
+    ok('lock', result === null && directCalls === 0,
+      "a genuinely failed internal backup write is reported as null, not silently retried through the direct call -- a retry after a genuine failure would just repeat it, defeating create-each-backup-once",
+      JSON.stringify({ result, directCalls }));
+  }
+
+  // -- (iii) restoreBackup(): a genuinely failed safety snapshot (case ii's
+  //          exact shape) keeps restore fail-closed -- live data untouched --
+  {
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return true; },
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = null; return true; },   // the pre-restore safety backup genuinely fails
+      async createBackup() { return null; },
+      async getBackup() { return season('A', 'Restored from backup'); },   // a real backup to restore FROM exists
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    const live = season('A', 'Live unsaved edits');
+    store.data = live;
+
+    const restored = await store.restoreBackup('some-backup-id');
+
+    ok('lock', restored === null && store.data === live,
+      "restoreBackup() refuses to proceed when the pre-restore safety backup genuinely fails to be created durably -- live season data is left completely untouched, never partially overwritten",
+      JSON.stringify({ restored: restored, dataUnchanged: store.data === live }));
+  }
+
+  // -- (iv) saveNow(): the same create-each-backup-once contract, for the
+  //         explicit "Save Season" path ---------------------------------------
+  {
+    let directCalls = 0;
+    const backend = {
+      currentId: null, RETENTION: 25,
+      setCurrentSeason(id) { this.currentId = id; },
+      async loadSeason() { return null; },
+      async saveSeason() { return true; },
+      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = { id: 'bk-internal-2' }; return true; },
+      async createBackup() { directCalls++; return 'bk-should-not-happen'; },
+    };
+    const store = new SeasonStore(backend);
+    store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
+    store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
+
+    await store.saveNow('Manual save');
+
+    ok('lock', directCalls === 0,
+      "saveNow() also creates each backup exactly once -- when writeDisk's internal call already ran, the previously-unconditional second createBackup() call is skipped entirely",
+      JSON.stringify({ directCalls }));
+  }
+}
+flush();
+
 } catch (e) {
   crashed = true;
   console.log('');

@@ -987,7 +987,34 @@ export class SeasonStore {
       // _enqueueWrite, not _dispatchWrite: a snapshot re-writes already-
       // committed state, it is not itself a new commit, so it must not bump
       // revision.
-      await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label }));
+      //
+      // PC-5 review repair (Codex, `1de3c54`): TauriBackend.writeDisk()
+      // ALREADY creates the backup ring entry internally when
+      // opts.snapshot is true -- a second, separate createBackup() call
+      // below for the identical payload was the exact redundant-call shape
+      // that produced the original PC-5 dry-run finding, and the cache-based
+      // patch for it was itself unsafe (an undurable or since-deleted
+      // backup could be reported as successful). The structural fix: read
+      // writeDisk's OWN result off the writeOpts out-parameter instead of
+      // calling createBackup a second time when it's already run.
+      // `writeOpts.createdBackup` is `undefined` in exactly two cases,
+      // both of which fall through to the direct call below unchanged from
+      // the ORIGINAL (pre-PC-5) behavior: this backend's writeDisk() does
+      // not own backup creation at all (BrowserBackend writes its own
+      // separate file-based mirror snapshot inline and never touches this
+      // out-parameter), or the internal saveSeason() failed before ever
+      // reaching the backup step (writeDisk() returns early in that case,
+      // never setting it) -- in both, a fresh direct attempt is the correct,
+      // unchanged fallback. When it IS set -- a truthy meta object (the
+      // internal call succeeded and was durably verified) or `null` (the
+      // internal call was attempted and genuinely failed) -- it is used
+      // directly and no second attempt is made: repeating a call that just
+      // genuinely failed would defeat "create each backup once," and a
+      // second attempt after a genuine success would just be the same
+      // redundant call this repair exists to remove.
+      const writeOpts = { snapshot: true, label };
+      await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, writeOpts));
+      if (writeOpts.createdBackup !== undefined) return writeOpts.createdBackup;
     }
     return this.backend.createBackup(seasonId, data, label);
   }
@@ -1071,13 +1098,25 @@ export class SeasonStore {
     // closed.
     const data = JSON.parse(JSON.stringify(payload));
     let wroteDisk = false;
+    // PC-5 review repair (Codex, `1de3c54`): this method previously made an
+    // UNCONDITIONAL second createBackup() call below regardless of whether
+    // writeDisk() had already created one internally -- on desktop that was
+    // a genuine duplicate call every single time "Save Season" ran, the same
+    // redundant shape snapshot() had. Same fix: writeDisk's own out-parameter
+    // result is used when it ran; the direct call below is now the fallback
+    // for exactly the two cases where it never ran (disk not bound, or the
+    // canonical write failed before reaching the backup step) -- identical
+    // reasoning to snapshot()'s own comment above.
+    const writeOpts = { snapshot: true, label: label || 'Manual save', prompt: true };
     if (this.diskStatus().bound) {
       // Queued, not direct: see the identical writeDisk fix on snapshot()/
       // bindDisk() above -- keeps this write ordered against a concurrent
       // debounced disk-mirror or restore-point write for the same season.
-      wroteDisk = await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label: label || 'Manual save', prompt: true }));
+      wroteDisk = await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, writeOpts));
     }
-    await this._enqueueWrite(seasonId, () => this.backend.createBackup(seasonId, data, label || 'Manual save'));
+    if (writeOpts.createdBackup === undefined) {
+      await this._enqueueWrite(seasonId, () => this.backend.createBackup(seasonId, data, label || 'Manual save'));
+    }
     return wroteDisk;
   }
 

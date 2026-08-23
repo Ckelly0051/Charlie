@@ -368,6 +368,36 @@ const refA = await refRoundTrip(seasonA());
   ok((await cp2.listBackups('s1')).length === 25, 'backup ring prunes to RETENTION (25)', String((await cp2.listBackups('s1')).length));
 }
 
+// ---- 12b. PC-5 review repair (Codex `1de3c54`): createBackup() must roll
+//     back and report FAILURE, not a truthy id, when the canonical writeDb
+//     fails -- a restore point that exists only in memory is not durable,
+//     and SeasonStore.restoreBackup()'s pre-restore safety snapshot depends
+//     on this method's success meaning "genuinely on disk." Mirrors the
+//     deleteSeason() rollback shape (sections 9/10) exactly, applied to the
+//     one other mutation in this file that used to swallow the failure.
+{
+  const fs = trackFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveSeason('s1', seasonA());
+  fs.state.writeDbFail = true;   // the backup row's canonical write will fail
+  const failed = await cp.createBackup('s1', seasonA(), 'Before restore');
+  ok(failed === null, 'createBackup reports FAILURE (null), not a truthy id, when the canonical db write fails', String(failed));
+  // The failed row must not be readable by ANY id -- confirms rollback, not
+  // merely a lied-about return value with the row still actually present.
+  const list = await cp.listBackups('s1');
+  ok(list.length === 0, 'no backup row is readable after a failed durable write -- the in-memory insert was rolled back, not just under-reported', JSON.stringify(list));
+  // A fresh session opening the same (unchanged) db confirms the on-disk
+  // bytes were never touched by the failed attempt -- no split-brain.
+  fs.state.writeDbFail = false;
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  ok((await cp2.listBackups('s1')).length === 0, 'the on-disk db was never mutated by the failed backup write');
+  // A retried createBackup (db healthy again) succeeds durably -- proves the
+  // rollback did not corrupt the catalog for later legitimate use.
+  const retryId = await cp2.createBackup('s1', seasonA(), 'Retry after recovery');
+  ok(!!retryId, 'a retried createBackup succeeds durably once the db write recovers', String(retryId));
+  ok((await cp2.getBackup('s1', retryId))?.id === 's1', 'the retried backup is genuinely readable back out of the catalog');
+}
+
 // ---- 13. C2: a LINKED game's filmMode/filmDir survive the canonical store ---
 // The Refuge failure was a linked game that "played" but persisted as managed.
 // This pins the canonical desktop path: a game linked to a D: child folder must

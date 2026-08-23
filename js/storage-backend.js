@@ -462,8 +462,6 @@ export class TauriBackend extends StorageBackend {
     this.LEGACY = 'season.json';
     this._lastWrite = 0;
     this._dirReady = {};        // per-season "backups dir ensured" cache
-    this._lastBackupJson = null;
-    this._lastBackupMeta = null;
   }
   name() { return 'tauri'; }
 
@@ -909,33 +907,30 @@ export class TauriBackend extends StorageBackend {
   }
 
   // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
+  // PC-5 review repair (Codex, `1de3c54`): the prior fix here cached the
+  // created backup's meta to answer an identical-payload duplicate call
+  // honestly -- but a cache is not a substitute for durability. It could
+  // return a truthy result for a call whose OWN write had genuinely failed
+  // (masked because a stale, unrelated cache entry happened to match by
+  // JSON), and it had no way to know a cached backup had since been deleted
+  // or pruned, so a later identical-content call could return an id that no
+  // longer existed on disk. `restoreBackup()`'s safety snapshot depends on
+  // this method's return meaning "durably created, right now" -- a cache
+  // cannot promise that. Removed entirely; every call performs (and, per
+  // CatalogPersistence.createBackup()'s own repair, durably VERIFIES) a real
+  // write. The redundant duplicate call this cache used to paper over
+  // (writeDisk({snapshot:true}) already creating the backup, then
+  // SeasonStore.snapshot()/saveNow() calling this a second time for the
+  // identical payload) is closed structurally instead: writeDisk() now
+  // reports its own internal backup result back to its caller via an out
+  // parameter, so snapshot()/saveNow() never need to call this a second time
+  // at all -- see writeDisk() below and SeasonStore.snapshot()/saveNow().
   async createBackup(seasonId, data, label) {
     if (!this._ok() || !seasonId) return null;
     if (!data || (data.id && String(data.id) !== String(seasonId))) {
       console.error('Blocked cross-season backup', { destinationId: seasonId, payloadId: data && data.id });
       return null;
     }
-    const json = JSON.stringify(data);
-    // PC-5 dry-run finding: writeDisk({snapshot:true}) already creates the
-    // backup row for this exact (seasonId, data, label) below (its own
-    // internal createBackup call at the top of this file's writeDisk()), and
-    // SeasonStore.snapshot()/saveNow() BOTH make a second, separate call to
-    // this method right after, with the identical payload -- there is no way
-    // for a caller to know the first call already succeeded. This guard used
-    // to answer that duplicate call with `null`, which SeasonStore.snapshot()
-    // and restoreBackup() read as "no backup was created" even though one
-    // genuinely was: `if (!safetyId) return null;` inside restoreBackup()
-    // made every restore on desktop refuse to proceed, since diskStatus().
-    // bound is unconditionally true for TauriBackend (see _ok() above) and so
-    // this collision fires on every single snapshot() call. Reproduced
-    // directly against a copy of the real coach catalog before this fix
-    // (tools/pc5-real-catalog-dry-run.mjs): snapshot() returned null and
-    // restoreBackup() bailed out on every attempt, on both real seasons.
-    // Returning the cached meta of the identical backup that was just
-    // created answers the duplicate call honestly -- "yes, that backup
-    // exists" -- instead of falsely reporting failure, without creating a
-    // second row.
-    if (this._lastBackupJson && this._lastBackupJson === json) return this._lastBackupMeta;
     // PC-2: restore points are rows in the shared library db, the ONE
     // authority for a NEW backup write. Pre-existing legacy season_<ts>.json
     // restore-point files remain READABLE (listBackups/getBackup/deleteBackup
@@ -953,7 +948,6 @@ export class TauriBackend extends StorageBackend {
       const bid = await cp.createBackup(seasonId, data, label || 'Save');
       if (bid) {
         const meta = this._meta(data, label); meta.id = bid;
-        this._lastBackupJson = json; this._lastBackupMeta = meta;
         return meta;
       }
       return null;
@@ -1405,10 +1399,24 @@ export class TauriBackend extends StorageBackend {
   // mirror -- reproduced directly before this fix: a rejected import
   // returned ok:false yet still produced one Documents-mirror write
   // containing the rejected season name.
+  //
+  // PC-5 review repair (Codex, `1de3c54`): the caller-visible boolean
+  // contract stays exactly as it was (every existing caller reads `ok` as a
+  // plain boolean; changing that would ripple into StorageManager.saveNow()'s
+  // own public return value). But when `opts.snapshot` is true, this method
+  // is now the SOLE owner of backup creation for this write -- it stamps the
+  // result of its own internal createBackup() call onto the caller-owned
+  // `opts` object as `opts.createdBackup`, so SeasonStore.snapshot()/
+  // saveNow() can read the REAL, ALREADY-DURABILITY-VERIFIED result instead
+  // of making a second, separate createBackup() call for the identical
+  // payload (the exact redundant-call shape that produced the PC-5 dry-run
+  // finding in the first place). `opts` is already caller-owned and mutable
+  // for every call site here, so this is a pure additive out-parameter, not
+  // a new argument -- no existing caller that ignores it is affected.
   async writeDisk(seasonId, data, opts = {}) {
     const ok = await this.saveSeason(seasonId, data);
     if (!ok) return false;
-    if (opts.snapshot) await this.createBackup(seasonId, data, opts.label);
+    if (opts.snapshot) opts.createdBackup = await this.createBackup(seasonId, data, opts.label);
     await this._mirrorToDocuments(seasonId, data, opts);
     this._lastWrite = Date.now();
     return ok;

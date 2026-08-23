@@ -1999,3 +1999,130 @@ Codex accepted at `78eaa7e` — it has not yet been independently reviewed.
 Per the standing handoff protocol, Codex reviews this checkpoint before the
 remaining PC-5 steps (installer, installed smoke against the coach's live
 sessions) proceed.
+
+## 7g. PC-5 review repair — the cache workaround was itself unsafe; removed
+##     and replaced with a structural fix (Codex re-review `1de3c54`, 2026-08-22)
+
+Codex's independent review of `c463fae`'s §7f fix found the cache-based repair
+unsafe: **(1)** `CatalogPersistence.createBackup()` inserted the row in memory,
+swallowed a failed `writeDb()`, and still returned the generated id — the cache
+then remembered that falsely-successful id, so `restoreBackup()`'s safety
+snapshot could proceed past `if (!safetyId) return null` even though nothing
+durable existed. **(2)** the cache had no expiry and no verification: a
+subsequent identical-content call could return a backup id that had since been
+DELETED or pruned (`RETENTION=25`), with no write ever attempted to confirm it.
+Both verified against source before any code was touched, exactly as described.
+
+**Required repair direction (Codex's own words): "remove the cache workaround
+and establish one owner for backup creation... The one backup call must
+report success only after the SQLite bytes are durably written; on failure it
+must roll back/refuse and restore must remain fail-closed."** Fixed at three
+layers, structurally, with no cache anywhere:
+
+1. **`CatalogPersistence.createBackup()`** (`js/catalog-persistence.js`) — now
+   snapshots pre-mutation bytes before the in-memory insert and, on a failed
+   `writeDb()`, closes and reopens the catalog from that snapshot (mirroring
+   `deleteSeason()`'s own established rollback shape exactly) and returns
+   `null` — never a `bid` the caller would read as durably created. This does
+   NOT reopen the "never blocks a save" contract this section's header
+   comment documents: `writeDisk()`/`saveSeason()` already discard this
+   method's return value entirely, so a failed backup still never blocks the
+   canonical season write it accompanies — only callers that actually depend
+   on this method's own success (`restoreBackup()`'s safety snapshot) now see
+   the truth instead of a lie.
+2. **`TauriBackend.createBackup()`** (`js/storage-backend.js`) — the
+   `_lastBackupJson`/`_lastBackupMeta` cache is deleted entirely, both fields
+   and the branch that read them. Every call now performs (and, per fix #1,
+   durably verifies) a real write, every time, with no memory of a prior call.
+3. **`TauriBackend.writeDisk()`** — the redundant-second-call shape that made
+   the cache seem necessary in the first place is closed at its root instead
+   of papered over. `writeDisk()` now stamps its own internal backup result
+   onto the caller-owned `opts` object as `opts.createdBackup` (a pure
+   additive out-parameter — `opts` was already caller-owned and mutable at
+   every call site, so no existing caller that ignores it is affected, and
+   the boolean return contract every existing caller relies on is unchanged).
+   `SeasonStore.snapshot()` and `saveNow()` (`js/season-store.js`) now read
+   this out-parameter instead of making a second, separate `createBackup()`
+   call for the identical payload — the exact call that produced the §7f
+   finding in the first place. `writeOpts.createdBackup` has three
+   meaningful states: `undefined` (this backend's `writeDisk()` does not own
+   backup creation at all — `BrowserBackend.writeDisk()` writes its own
+   separate file-based mirror snapshot inline and never touches this
+   out-parameter, and its own `createBackup()` already re-verifies against
+   fresh IndexedDB state on every call, so it was never affected by this bug
+   class — or the internal `saveSeason()` failed before ever reaching the
+   backup step) — both fall through to the unchanged, original direct call;
+   a truthy meta object (the internal call succeeded and was durably
+   verified) — used directly, no second attempt; `null` (the internal call
+   was attempted and genuinely failed) — propagated honestly, never retried
+   (a retry after a genuine failure would just repeat it, defeating "create
+   each backup once").
+
+**Verification, at every layer, each independently mutation-verified.**
+`node tools/e2e-catalog-persistence.mjs` — **68/68** (was 63; +5, new section
+12b): a failed `writeDb()` during `createBackup()` returns `null`, leaves zero
+readable rows (rollback, not under-reporting), leaves the on-disk db
+byte-unchanged, and a retried call once the write recovers succeeds durably.
+Mutation-verified: reverting the rollback to the old swallow-and-return-`bid`
+shape reproduces the exact original defect (a truthy id, a readable row, for a
+write that never reached disk) and reds exactly those two new assertions.
+`node tools/e2e-catalog-backend.mjs` — **28/28** (was 27; the stale §7f "dup
+returns cached meta" test is replaced with three tests proving the corrected
+contract at this layer: two separate calls with identical data now create two
+separate, both-readable rows; a genuinely failed catalog write returns `null`,
+never masked; a deleted backup is never returned again — creating a new one
+for the same unchanged data afterward produces a genuinely new, genuinely
+readable id). Mutation-verified: reintroducing a naive JSON-based cache
+reproduces both symptoms exactly (`noCacheCatalogCalls:1` instead of 2;
+`recreatedDiffersFromDeleted:false, recreatedReadable:false` — a deleted
+backup's id returned again) and reds exactly those two assertions, with the
+unrelated failure-propagation assertion correctly staying green throughout
+(genuinely discriminating, not incidentally red).
+
+`node tools/pc-adversarial-matrix.mjs` — **108/108 locks green** (was 104;
++4, new section 17), 0/2 targets (the two pre-existing disclosed dormant
+legacy version methods, unchanged): `snapshot()` uses `writeDisk()`'s own
+internal result directly and never makes a second `createBackup()` call for
+the same write; a genuinely failed internal backup write is reported as
+`null`, never silently retried; `restoreBackup()` refuses to proceed and
+leaves live season data completely untouched when the pre-restore safety
+backup genuinely fails; `saveNow()` observes the identical create-each-
+backup-once contract. Mutation-verified independently: reverting
+`snapshot()`'s out-parameter short-circuit reproduces the exact original
+redundant-call symptom (`directCalls:1` instead of 0) on both the success and
+failure sub-cases; removing `restoreBackup()`'s `if (!safetyId) return null`
+guard reproduces exactly the danger scenario this whole repair exists to
+close — the restore proceeds and live data is overwritten
+(`dataUnchanged:false`) despite the safety backup having genuinely failed.
+
+**Real-catalog dry run re-run per Codex's explicit request, against a fresh,
+byte-verified copy of the real two-season catalog, never the live files.**
+`node tools/pc5-real-catalog-dry-run.mjs` — **40/40** (was 36; +4, a new Phase
+5b). Phase 5's backup/restore now genuinely succeeds through the fully
+durability-verified path on both real seasons. The new Phase 5b precisely
+isolates the backup-specific failure at the real class level: within one
+`writeDisk()` call, the underlying `writeDb()` is invoked exactly twice — once
+by `saveSeason()` (the canonical write, confirmed to keep succeeding), once by
+`createBackup()` (the write this phase targets) — and failing only the second
+call proves the canonical save is genuinely unaffected while the backup
+specifically and honestly fails, `restoreBackup()` refuses with no genuine
+safety backup to restore from, and the season is fully intact afterward. One
+test-construction bug of my own was found and fixed while building this phase
+(disclosed, not silently corrected): the first version checked for the
+LABEL `'Before restore'` existing at all, which false-failed because Phase 5's
+own legitimate JV restore earlier in the same run had already created a
+genuine backup with that identical label — corrected to compare the backup
+COUNT before and after the failed attempt instead.
+
+Full canonical gate (`bash tools/run-gate.sh`): **91 harnesses | 91 green | 0
+skipped | 0 failed**. Live `library.db` confirmed byte-identical (SHA-256) to
+the forensic backup throughout, with an on-disk modification time predating
+this entire repair round.
+
+No film path, film file, existing season/game/play data, schema version, or
+migration touched. No legacy live file retired, rewritten, archived, or
+deleted; no cleanup performed or authorized.
+
+**Next action.** Codex independently re-reviews this repair before the
+remaining PC-5 steps (installer, installed smoke against the coach's live
+sessions) proceed.

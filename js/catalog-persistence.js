@@ -256,21 +256,55 @@ export class CatalogPersistence {
   // The restore-ring migration: instead of a `backups/season_<ts>.json` file per
   // snapshot (the old per-season file structure), restore points live as rows in
   // the shared library db (SqlCatalog.backups, pruned to RETENTION). Every mutation
-  // re-exports the db bytes so the ring is durable; a write failure is swallowed
-  // (best-effort, like the mirror) — a lost restore point never blocks a save, and
-  // the canonical season data is unaffected. Each op pins the season scope first.
+  // re-exports the db bytes so the ring is durable. `deleteBackup()` swallows a
+  // write failure (best-effort, like the mirror) -- a backup that fails to be
+  // REMOVED durably is a harmless leftover row, and the canonical season data is
+  // unaffected either way. `createBackup()` is the deliberate exception (PC-5
+  // review repair, `1de3c54`): a "backup" that exists only in memory is not a
+  // real one to any caller, so it rolls back and refuses on a failed write
+  // instead of swallowing it -- see its own comment. Each op pins the season
+  // scope first.
   // PC-1: pass id straight through to the catalog's own explicit-seasonId
   // methods -- no setCurrentSeason() call needed. Closes the "below the
   // seam" half of the explicit-identity finding (js/sql-catalog.js now
   // never consults this.currentId for any of these four ops).
+  // PC-5 review repair (Codex, `1de3c54`): a restore point that exists only
+  // in the in-memory catalog and never reaches disk is not a real backup to
+  // ANY caller -- restore-safety or otherwise -- because it vanishes on the
+  // next reload. This method used to swallow a failed fs.writeDb() and still
+  // return the generated id, so SeasonStore.restoreBackup()'s pre-restore
+  // safety snapshot could report success while nothing durable existed.
+  // Rolls back on a failed write, mirroring deleteSeason()'s own established
+  // rollback shape exactly (snapshot pre-mutation bytes, close+reopen from
+  // them on failure so memory can never diverge from disk), and returns null
+  // -- never a bid the caller would read as "durably created." This does NOT
+  // reopen the "never blocks a save" contract this method's header comment
+  // documents: writeDisk()/saveSeason() already discard this method's return
+  // value entirely, so a failed backup still never blocks the canonical
+  // season write it accompanies -- only callers that actually depend on this
+  // method's own success (restoreBackup's safety snapshot) now see the truth.
   async createBackup(id, data, label) {
     if (!id || !data) return null;
     await this._ensureLoaded();
+    let snapshot = null;
+    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
     let bid = null;
     try { bid = this.catalog.createBackup(id, data, label || 'Save'); }
     catch (e) { return null; }
-    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
-    return bid;
+    try {
+      await this.fs.writeDb(this.catalog.toBytes());
+      return bid;
+    } catch (e) {
+      try {
+        this.catalog.close();
+        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+        this._loaded = true;
+      } catch (e2) {
+        this._loaded = false;
+        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+      }
+      return null;
+    }
   }
   async listBackups(id) {
     if (!id) return [];

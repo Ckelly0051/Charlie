@@ -331,6 +331,72 @@ section('Phase 5 -- backup + restore in each season, cross-season isolation, fil
 }
 
 // ============================================================================
+// Phase 5b -- Codex review repair (`1de3c54`): a genuine writeDb failure
+// SPECIFICALLY during backup creation (distinct from Phase 7's failed
+// canonical-save test below) must keep restoreBackup() fail-closed, proven
+// against the REAL SeasonStore -> TauriBackend -> CatalogPersistence ->
+// SqlCatalog stack, on a copy of the real catalog -- not just the fake
+// backends in tools/pc-adversarial-matrix.mjs.
+// ============================================================================
+section('Phase 5b -- a real writeDb failure during backup creation keeps restore fail-closed on the real class stack');
+{
+  const be4 = await makeBackend(SQL);
+  const store4 = new SeasonStore(be4);
+  await store4.openSeason(jvId);
+  const preFailureFp = fingerprintSeason(store4.data);
+
+  // Baseline count BEFORE the injected failure -- Phase 5's own JV restore
+  // above already created a genuine, legitimate 'Before restore' backup for
+  // this same season, so the correct proof is that the count does not grow
+  // by the failed attempt, not that no backup with this label exists at all.
+  const backupsBeforeFailure = await be4.listBackups(jvId);
+
+  const realCatalog = await be4._ensureCatalog();
+  const realFs = realCatalog.fs;
+  // Precisely isolate the BACKUP's own writeDb call: within one writeDisk()
+  // call, writeDb is invoked exactly twice -- once by saveSeason (the
+  // canonical write, which must keep succeeding here) and once by
+  // createBackup (the write this phase targets). Failing only the 2nd call
+  // proves the canonical save is genuinely unaffected while the backup
+  // specifically fails to become durable -- the exact isolation Codex asked
+  // for, now proven against the real class stack, not just fake backends.
+  let writeDbCallCount = 0;
+  realCatalog.fs = { ...realFs, writeDb: async (bytes) => { writeDbCallCount++; if (writeDbCallCount === 2) throw new Error('PC-5 dry run: injected writeDb failure on the backup-specific write only'); return realFs.writeDb(bytes); } };
+  const failedSnapshot = await store4.snapshot('Before restore');
+  ok('the canonical save succeeds while the backup-specific write fails, and snapshot() reports that honestly (null), never a masked success',
+    failedSnapshot === null && writeDbCallCount === 2, JSON.stringify({ failedSnapshot, writeDbCallCount }));
+
+  // Confirm the backup count did not grow -- the in-memory row insert was
+  // genuinely rolled back, not merely under-reported while a real row snuck
+  // through.
+  realCatalog.fs = realFs;   // restore real fs before reading, so the read itself isn't sabotaged
+  const backupsAfterFailure = await be4.listBackups(jvId);
+  ok('the backup count is unchanged after the failed write -- the in-memory catalog was genuinely rolled back, not just under-reported',
+    backupsAfterFailure.length === backupsBeforeFailure.length,
+    JSON.stringify({ before: backupsBeforeFailure.length, after: backupsAfterFailure.length }));
+
+  // Now attempt an actual restore using a stale/nonexistent id -- proves
+  // restoreBackup() itself remains fail-closed end to end when there is no
+  // genuine safety backup to restore from.
+  const throwawayPlay2 = store4.data.games.flatMap(g => g.plays)[2];
+  const throwawayOriginal2 = throwawayPlay2.notes || '';
+  throwawayPlay2.notes = `${throwawayOriginal2} [PHASE-5B-THROWAWAY]`;
+  realCatalog.fs = { ...realFs, writeDb: async () => { throw new Error('still failing'); } };
+  const restoreResult = await store4.restoreBackup('bk-real-nonexistent-id');
+  realCatalog.fs = realFs;
+  ok('restoreBackup() refuses when no genuine safety backup exists (getBackup returns nothing for a real-but-unknown id)', restoreResult === null);
+
+  // Revert the throwaway edit directly and confirm the season is otherwise
+  // exactly as it was before this phase -- no partial/corrupted state left
+  // behind by the injected failures.
+  throwawayPlay2.notes = throwawayOriginal2;
+  await store4.persist();
+  const afterFp = fingerprintSeason(store4.data);
+  ok('the season is fully intact after the injected failures, once the throwaway edit is reverted',
+    sameContentIgnoringRevision(afterFp, preFailureFp));
+}
+
+// ============================================================================
 // Phase 6 -- stale sidecars: place a conflicting legacy season.json beside the
 // copied catalog and prove normal startup ignores it (PC-2 Invariant #5).
 // ============================================================================
