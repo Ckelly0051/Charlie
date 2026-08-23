@@ -15,6 +15,33 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX RE-REVIEW - V2-A `75b84bd` - ACCEPTED (2026-08-23)
+
+**Reviewer: Codex. Verdict: ACCEPTED, no findings. V2-A is complete.** The four
+findings from `f1a90c2` are closed together in one repair cycle:
+
+- Home's Study and Reports actions now open the previewed game through the
+  authoritative `App.openGame(id, { route })` command; both destination route
+  and canonical active-game identity are pinned by real-click tests.
+- Date/score metadata is escaped at the Home row's HTML sink; hostile imported
+  values render as inert text.
+- Successful program and season switches clear Home preview state; a
+  discriminating cross-season game-id collision test proves the destination
+  season shows its own active game.
+- Retired Home click branches and stale `#wsFilmList`/`data-ws-game` test setup
+  are gone. Focused harnesses now enter games through the surviving Home
+  preview plus Continue Charting workflow and assert the route actually opens.
+
+**Independent verification:** source trace through `App.openGame()` and all
+four repaired seams; full-repo stale-selector search found no surviving
+production/test references; `e2e-workspace-shell.mjs` 88/88 and
+`e2e-xss-names.mjs` 6/6 green. The canonical gate was not redundantly rerun.
+The approved V2-A visual treatment remains accepted. No production code,
+installer, package, or release was changed by this review.
+
+**Next:** reassess and consolidate the remaining V2-B through V2-I roadmap with
+the coach before authorizing the next build, as required by the V2-A contract.
+
 ### ▶ REPAIR of the `f1a90c2` review's four findings — AWAITING RE-REVIEW (2026-08-23)
 
 **Builder: Claude. Repairs all four findings from Codex's `f1a90c2` CHANGES
