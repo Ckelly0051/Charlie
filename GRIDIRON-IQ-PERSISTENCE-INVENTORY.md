@@ -1,11 +1,13 @@
 # GridIron IQ — Desktop Persistence Inventory (PC-0)
 
-> **Current milestone status (2026-08-22):** PC-0 through PC-4 are accepted.
+> **Current milestone status (2026-08-22):** PC-0 through PC-5 are accepted.
 > The final PC-4 shutdown-drain repair is `b934f9d`; Codex independently
 > verified 104/104 persistence locks and 33/33 revision-fence assertions.
-> PC-5 (forensic backup, real two-season dry-run, permission-gated legacy-data
-> handling, installer, and installed smoke) is open. This document retains the
-> original PC-0 inventory below as the historical baseline.
+> PC-5 completed on installed version 1.12.0-61: the coach confirmed an edit
+> persisted across reopen and both title-bar and taskbar close paths work
+> normally. Commit `ef6d1a1` is the accepted persistence rollback point.
+> This document retains the original PC-0 inventory below as the historical
+> baseline.
 
 **Status:** PC-0 deliverable — inventory + failing-first contracts only. **No
 production behavior was changed to produce this document.** Every finding
@@ -2162,3 +2164,10 @@ after a successful durable flush, StorageManager invokes the native
 close_after_flush Rust command, which destroys the window directly. The
 focused matrix remains **108/108 locks** and cargo check is clean. Versions
 1.12.0-59 and 1.12.0-60 are both rejected.
+
+### 7i.2 Coach acceptance
+
+The coach installed 1.12.0-61 and confirmed that a real edit persisted across
+reopen, the title-bar X closes the application normally, and Windows taskbar
+Close window also closes normally. PC-5 is accepted. No legacy live sidecar,
+season data, or film file was deleted, moved, or rewritten.

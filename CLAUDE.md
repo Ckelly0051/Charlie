@@ -13,6 +13,24 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PC-5 ACCEPTED — INSTALLED SMOKE PASSED ON 1.12.0-61 (2026-08-22)
+
+The coach installed 1.12.0-61 and confirmed the corrected lifecycle against
+the real desktop app: an edit persisted across reopen, the title-bar X closes
+normally, and Windows taskbar Close window closes normally. This closes the
+installed acceptance condition that rejected 1.12.0-59 and 1.12.0-60.
+
+**PC-0 through PC-5 are complete.** Commit `ef6d1a1` and installer
+1.12.0-61 are the accepted persistence rollback point. No legacy sidecar or
+film file was deleted or rewritten during PC-5.
+
+**Next locked milestone:** execute the previously agreed one-pass final engine
+independence removal. Replace the remaining hidden legacy DOM control
+dependencies under `#giLegacyEngineHost` with direct domain APIs, remove the
+obsolete synchronization/restore paths and dead legacy markup/CSS/build
+artifacts in the same implementation range, then perform a Charlie visual gate
+and installed smoke before more product enhancements.
+
 ### ▶ PC-5 CLOSE BLOCKER REPAIRED NATIVELY — 1.12.0-61 INSTALLER (2026-08-22)
 
 Coach smoke found that 1.12.0-59 could not close from the title-bar X or the
