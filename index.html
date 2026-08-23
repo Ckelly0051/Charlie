@@ -152,76 +152,14 @@
   </div>
   <!-- Final Engine Independence: PlayTagger's tag/player/grade fields are
        DOM-free (js/play-tagger.js's PlainField/PlainInput) and the coach
-       tag form (native-tagging.jsx) never reads this markup. The one
-       deliberately retained legacy control surface is auto-detect: its
-       ~175-line scan-progress UI (progress bar, live status, motion-graph
-       canvas, strictness/duration/cooldown settings) is App._bindAutoDetect's
-       own presentation, not a proxy for domain state, and building a native
-       equivalent is a dedicated feature-level project — reported here rather
-       than rushed. NativeTaggingScreen.runAutoDetect() reaches it via one
-       explicit, disclosed click() passthrough. -->
-  <div id="giAutoDetectHost" class="gi-autodetect-host" hidden>
-          <!-- Auto-Detect (experimental) -->
-          <details class="tagger-tools auto-detect-tools">
-            <summary>Auto-Detect Plays (experimental)</summary>
-            <div class="tagger-tools-body">
-              <div class="auto-detect-section">
-                <div class="auto-detect-header">
-                  <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
-                    <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
-                    Auto-Detect Plays
-                  </button>
-                  <button class="btn btn-sm btn-danger hidden" id="btnCancelScan">Cancel</button>
-                </div>
-                <div class="auto-detect-progress hidden" id="autoDetectProgress">
-                  <div class="progress-bar">
-                    <div class="progress-bar-fill" id="scanProgressFill"></div>
-                  </div>
-                  <span class="progress-label" id="scanProgressLabel">0%</span>
-                </div>
-                <div class="auto-detect-settings hidden" id="autoDetectSettings">
-                  <div class="detect-setting">
-                    <label>Strictness</label>
-                    <input type="range" id="detectStrictness" min="0.5" max="1.6" value="1.0" step="0.05" title="Lower = more plays, higher = fewer false positives">
-                    <span class="setting-value" id="strictnessValue">Balanced</span>
-                  </div>
-                  <div class="detect-setting detect-setting-toggle">
-                    <label for="detectUseAudio">Use audio (whistles)</label>
-                    <input type="checkbox" id="detectUseAudio" checked>
-                  </div>
-                  <div class="detect-setting">
-                    <label>Min Play (sec)</label>
-                    <input type="number" id="detectMinDuration" value="2" min="1" max="15" step="0.5">
-                  </div>
-                  <div class="detect-setting">
-                    <label>Max Play (sec)</label>
-                    <input type="number" id="detectMaxDuration" value="30" min="5" max="60" step="1">
-                  </div>
-                  <div class="detect-setting">
-                    <label>Cooldown (sec)</label>
-                    <input type="number" id="detectCooldown" value="2.5" min="1" max="15" step="0.5">
-                  </div>
-                  <div class="detect-hint">
-                    Tip: strictness "Balanced" works for most broadcast angles. Raise it if you're getting false positives from crowd shots or replays.
-                  </div>
-                </div>
-                <button class="btn btn-sm btn-link" id="btnToggleDetectSettings">Settings</button>
-                <div class="auto-detect-results hidden" id="autoDetectResults">
-                  <div class="detect-results-header">
-                    <span id="detectResultCount">0 plays detected</span>
-                    <div class="detect-results-actions">
-                      <button class="btn btn-sm" id="btnReviewDetected" title="Scrub, trim, and accept detections one by one">Review…</button>
-                      <button class="btn btn-sm btn-accent" id="btnApplyDetected">Apply All</button>
-                    </div>
-                  </div>
-                  <div class="detect-motion-graph" id="motionGraph">
-                    <canvas id="motionGraphCanvas" height="60"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </details>
-  </div>
+       tag form (native-tagging.jsx) never reads this markup. Auto-Detect's
+       scan/progress/settings/results/Review/Apply are now a real native
+       operation + state API (js/auto-detect-screen.js) rendered as a visible
+       NativeOverlayService sheet (js/native-autodetect.jsx) -- the prior
+       #giAutoDetectHost this comment used to describe is deleted, not hidden.
+       Its Review step opens a modal that was always appended directly to
+       document.body (never inside the hidden host); that construction is
+       unchanged, only relocated onto AutoDetectScreen. -->
   <!-- Final Engine Independence: #giLegacyEngineHost is deleted. It held two
        generations of legacy markup, both now genuinely gone: #playGridSection
        (native Film Room, native-film-room.jsx via NativeFilmRoomScreen, has

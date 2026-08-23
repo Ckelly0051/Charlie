@@ -211,7 +211,6 @@ state=await page.evaluate(async fixture=>{
   const notes=[...root().querySelectorAll('textarea')][0];notes.value='Punt return right';notes.dispatchEvent(new Event('input',{bubbles:true}));
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
-  document.getElementById('btnAutoDetect').addEventListener('click',()=>calls.detect++,{once:true});
   button('Draw').click();button('Clear').click();button('Set OCR Region').click();button('Read Scoreboard').click();
   const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');app.nativeTagging.penaltySituation('down','2');app.nativeTagging.penaltySituation('distance','7');app.nativeTagging.penaltySituation('fieldSide','opp');app.nativeTagging.penaltySituation('yardLine','38');app.nativeTagging.penaltySituation('confirmed','',true);const playOne={penalties:structuredClone(play.penalties),situation:structuredClone(play.resultingSituation),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');return{punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
 },fixture);
@@ -427,6 +426,114 @@ await page.evaluate(async()=>{await window.app.storage._loadActiveGame({renderGa
   window.app.tagger.selectPlay(1);await window.app.workspaceShell.show('breakdown');});
 await page.waitForFunction(()=>document.querySelector('[data-native-tagging]')?.getBoundingClientRect().width>0);
 
+console.log('\n== 7b. Native Auto-Detect: real scan/progress/results/review/apply, no hidden host ==');
+// Codex review d51c97b/e99d1ac: the prior "Auto-detect plays" click proxied
+// into a permanently hidden #giAutoDetectHost holding progress, settings,
+// results, Review and Apply -- none of it reachable for a real multi-play
+// scan. This proves the replacement (js/auto-detect-screen.js +
+// js/native-autodetect.jsx) is a genuinely visible, reachable workflow, not
+// just that the trigger button's text exists (the exact gap the review named
+// at the old line 47/214 of this file).
+let ad=await page.evaluate(()=>{
+  const app=window.app;
+  // Stub PlayDetector's signal-processing scan and seek-based apply -- both
+  // are pre-existing PlayDetector logic this milestone does not touch;
+  // headless has no real decodable video for the real motion pipeline to
+  // read. What's under test is that the visible panel's buttons reach these
+  // real methods and that the round-trip result is genuinely on screen.
+  window.__adCalls={scan:0,apply:0};
+  // Headless has no real decodable video loaded (no src). AutoDetectScreen's
+  // guard only needs a truthy duration to proceed to the (stubbed) scan --
+  // real playback/decode is PlayDetector's own scan() internals, untouched.
+  Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
+  const fakePlays=[{start:200,end:205,peak:1,confidence:0.9},{start:210,end:215,peak:1,confidence:0.9}];
+  app.detector.scan=async()=>{window.__adCalls.scan++;app.detector.detectedPlays=fakePlays;
+    app.detector.motionData=[{time:0,motion:0.4},{time:5,motion:0.9}];return fakePlays;};
+  app.clipAnalyzer.analyzePlays=()=>fakePlays.map(()=>({tags:{formation:'Ace'},confidence:{formation:0.8},reasons:{}}));
+  app.detector.applyDetectedPlays=(plays)=>{window.__adCalls.apply++;
+    const list=plays||app.detector.detectedPlays;
+    list.forEach((dp,i)=>app.tagger.plays.push({id:900+i,timestamp:{start:dp.start,end:dp.end},notes:'',
+      tags:{unit:'offense',formation:'',players:{},grades:{},custom:[]}}));
+    app.tagger._updatePlaySelect?.();app.tagger._updateTimeline?.();
+    return list.length;};
+  return{hostExists:!!document.getElementById('giAutoDetectHost'),before:app.tagger.plays.length};
+});
+ok(ad.hostExists===false,'#giAutoDetectHost does not exist in the document -- the hidden legacy scan UI is deleted, not merely hidden',JSON.stringify(ad));
+
+await nativeClick('Auto-detect plays');
+await page.waitForSelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+state=await page.evaluate(()=>{
+  const onScreen=el=>{const r=el?.getBoundingClientRect();return!!r&&r.width>0&&r.height>0;};
+  const panel=document.querySelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+  const scanBtn=[...panel.querySelectorAll('button')].find(b=>/Scan for Plays/.test(b.textContent));
+  return{panelOnScreen:onScreen(panel),scanBtnOnScreen:onScreen(scanBtn)};
+});
+ok(state.panelOnScreen&&state.scanBtnOnScreen,'Auto-Detect opens as a real visible native panel, not a hidden host',JSON.stringify(state));
+
+await page.evaluate(()=>{
+  const panel=document.querySelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+  [...panel.querySelectorAll('button')].find(b=>/Scan for Plays/.test(b.textContent)).click();
+});
+await page.waitForFunction(()=>window.__adCalls.scan===1);
+await page.waitForFunction(()=>{
+  const panel=document.querySelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+  return!!panel&&/2 plays detected/.test(panel.textContent);
+},{timeout:10000});
+state=await page.evaluate(()=>{
+  const onScreen=el=>{const r=el?.getBoundingClientRect();return!!r&&r.width>0&&r.height>0;};
+  const panel=document.querySelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+  const reviewBtn=[...panel.querySelectorAll('button')].find(b=>/Review…/.test(b.textContent));
+  const applyBtn=[...panel.querySelectorAll('button')].find(b=>/Apply All/.test(b.textContent));
+  return{
+    resultText:panel.querySelector('.gi-detect-results-head span')?.textContent||'',
+    reviewOnScreen:onScreen(reviewBtn),applyOnScreen:onScreen(applyBtn),
+    motionCanvasOnScreen:onScreen(panel.querySelector('.gi-detect-motion canvas')),
+  };
+});
+ok(/2 plays detected/.test(state.resultText),'Scan results render as visible text in the native panel, not written into an invisible host',state.resultText);
+ok(state.reviewOnScreen&&state.applyOnScreen,'Review and Apply All are genuinely on-screen for a multi-play scan -- the exact capability the hidden host made unreachable',JSON.stringify(state));
+ok(state.motionCanvasOnScreen,'The motion-signal graph renders inside the visible panel',JSON.stringify(state));
+
+// --- Review: opens the real detections, one row per play, reachable and visible ---
+await page.evaluate(()=>{
+  const panel=document.querySelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+  [...panel.querySelectorAll('button')].find(b=>/Review…/.test(b.textContent)).click();
+});
+await page.waitForSelector('#detectReviewModal');
+state=await page.evaluate(()=>{
+  const onScreen=el=>{const r=el?.getBoundingClientRect();return!!r&&r.width>0&&r.height>0;};
+  return{
+    rows:document.querySelectorAll('#detectReviewModal .detect-review-row').length,
+    count:document.querySelector('#detectReviewCount')?.textContent||'',
+    modalOnScreen:onScreen(document.getElementById('detectReviewModal')),
+  };
+});
+ok(state.rows===2&&state.count==='2 / 2 accepted'&&state.modalOnScreen,
+  'Review opens the real detections -- one visible row per detected play, accepted by default',JSON.stringify(state));
+await page.evaluate(()=>document.getElementById('detectReviewClose').click());
+await page.waitForFunction(()=>!document.getElementById('detectReviewModal'));
+
+// --- Apply All: the click reaches the real detector method AND the tagger ---
+await page.evaluate(()=>{
+  const panel=document.querySelector('[data-overlay-id="auto-detect"] .gi-overlay-panel');
+  [...panel.querySelectorAll('button')].find(b=>/Apply All/.test(b.textContent)).click();
+});
+await page.waitForFunction(()=>window.__adCalls.apply===1);
+state=await page.evaluate(before=>{
+  const added=window.app.tagger.plays.slice(-2);
+  return{calls:window.__adCalls,after:window.app.tagger.plays.length,
+    starts:added.map(p=>p.timestamp.start),stampedFormation:added.map(p=>p.tags.formation)};
+},ad.before);
+ok(state.calls.apply===1&&state.after===ad.before+2&&state.starts[0]===200&&state.starts[1]===210,
+  'Apply All reaches the real PlayDetector.applyDetectedPlays exactly once and the plays land in the tagger',JSON.stringify(state));
+ok(state.stampedFormation.every(f=>f==='Ace'),'Applied plays are auto-tagged from the scan analysis through the real stamping path',JSON.stringify(state));
+
+await page.evaluate(()=>{
+  const done=[...document.querySelectorAll('[data-overlay-id="auto-detect"] button')].find(b=>b.textContent.trim()==='Done');
+  done?.click();
+});
+await page.waitForFunction(()=>!document.querySelector('[data-overlay-id="auto-detect"]'));
+ok(true,'Closing Auto-Detect leaves no overlay behind',JSON.stringify(ad));
 
 console.log('\n== 5. Responsive geometry and exact restore ==');
 state=await page.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');return{overflow:document.documentElement.scrollWidth-innerWidth,width:root.getBoundingClientRect().width,data:JSON.stringify(app.storage.seasonStore.data)}});

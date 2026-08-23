@@ -43,16 +43,29 @@ src-tauri/
     └── main.rs            # Entry point: registers plugins, launches app
 ```
 
-The Tauri `frontendDist` points at `../dist`, which contains the built
-single-file app renamed to `index.html`.
+The Tauri `frontendDist` points at `../dist`, which is the plain Vite build
+output (`dist/index.html` + hashed `dist/assets/*.js`/`*.css`/media) —
+`src-tauri/tauri.conf.json`'s `beforeBuildCommand` (`"npm run build"`) runs
+Vite automatically as part of `cargo tauri build`, so no separate copy step
+is needed. The retired single-file concatenated bundle (`build.sh` →
+`football-film-analyzer.html`) is deleted; it stopped being the frontend
+`dist/` is built from once the project moved to Vite (Final Engine
+Independence, 2026-08).
 
 ## Build
 
 ```bash
-./build.sh                 # produce football-film-analyzer.html
-mkdir -p dist && cp football-film-analyzer.html dist/index.html
-cargo tauri build           # -> native installers in src-tauri/target/release/bundle
+npm ci                      # install frontend dependencies
+cargo tauri build            # runs `npm run build` (Vite) automatically, then
+                              # -> native installers in src-tauri/target/release/bundle
 ```
+
+`npm run build` alone (no Rust) is enough to produce `dist/` for local
+browser testing; `cargo tauri build` always rebuilds it fresh via
+`beforeBuildCommand`, so a stale `dist/` from an earlier session can't leak
+into a desktop build. This is the exact recipe `.github/workflows/
+build-desktop.yml` uses (via `npm ci` + an explicit `npm run build` step,
+then `tauri-apps/tauri-action`).
 
 For debug builds (faster, includes devtools):
 ```bash
@@ -111,7 +124,9 @@ signature against `plugins.updater.pubkey`, installs, and relaunches.
   `capabilities/default.json`.
 - Bundle: `"createUpdaterArtifacts": true` so the build emits the signed
   update package (`.nsis.zip` / `.app.tar.gz`) + `.sig`.
-- Frontend: `js/updater.js` (in `build.sh` list + imported by `app.js`).
+- Frontend: `js/updater.js`, imported by `app.js` as an ordinary ES module
+  (part of the Vite entry graph — no separate bundle-file list to keep in
+  sync with it).
 
 **Signing keys:** Tauri signs every update with its own key (separate from
 OS code-signing). The keypair was generated with `cargo tauri signer

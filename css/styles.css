@@ -3504,14 +3504,9 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   display: flex;
   gap: 6px;
 }
-#btnReviewDetected {
-  background: rgba(59, 130, 246, 0.15);
-  color: #22d3ee;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-#btnReviewDetected:hover {
-  background: rgba(59, 130, 246, 0.25);
-}
+/* Final Engine Independence: #btnReviewDetected lived inside the deleted
+   #giAutoDetectHost; the native panel's "Review…" button is Preact-owned
+   and needs no id-scoped style here. */
 
 /* Review modal ------------------------------------------------ */
 

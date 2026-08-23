@@ -16,6 +16,120 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ REPAIR of the `1aecc9e..d5c9610` review's two findings + the Charlie Gate — AWAITING RE-REVIEW (2026-08-23)
+
+**Builder: Claude. Repairs both findings from Codex's `e99d1ac` CHANGES
+REQUESTED review (recorded immediately below), then performs the pixel-level
+Charlie Gate that review explicitly required before any further step.**
+
+**1. [P1, closed] Auto Detect no longer depends on a hidden legacy host.**
+`#giAutoDetectHost` (progress bar, settings sliders, results header, motion
+graph canvas) is **deleted from `index.html` entirely** — not hidden, not
+renamed, not exempted. The scan's orchestration (Vision API fallback, local CV
+backend fallback, multi-clip vs single-video branching, short-clip auto-apply,
+tag stamping) moved unchanged into a new `AutoDetectScreen`
+(`js/auto-detect-screen.js`) — a real operation/state service in the same
+`subscribe/snapshot/_publish` shape every other screen in this codebase already
+uses (`SettingsScreen`, `PlayImportScreen`, `ShortcutsScreen`). It renders as a
+visible `NativeOverlayService` sheet (`js/native-autodetect.jsx` +
+`css/native-autodetect.css`): settings, a live progress bar, and — once a scan
+completes — the results line with real **Review…** and **Apply All** actions.
+`NativeTaggingScreen.runAutoDetect()` now calls `app.autoDetectScreen.open()`
+directly instead of `document.getElementById('btnAutoDetect')?.click()`. The
+existing Review modal (`openReview()`, a raw-DOM dialog appended directly to
+`document.body`) was already genuinely reachable — relocated onto the new
+class unchanged, not rewritten.
+
+New `tools/e2e-native-tagging.mjs` section 7b closes the exact gap the review
+named: it stubs `detector.scan()`/`clipAnalyzer.analyzePlays()`/
+`applyDetectedPlays()`, asserts `#giAutoDetectHost` does not exist in the
+document, drives a real Auto-detect click through to a genuinely on-screen
+panel, clicks **Scan for Plays**, waits for the progress/results text, opens
+**Review…** and asserts the modal is on-screen with the correct accepted
+count, then clicks **Apply All** and asserts the two detected plays actually
+land in `tagger.plays` with the stamped formation tag. **Mutation-verified
+twice**: reverting `runAutoDetect()` to the synthetic click reproduces a
+timeout waiting for the overlay panel; re-adding `#giAutoDetectHost` to
+`index.html` reproduces the exact `hostExists:true` failure. Both restored,
+green. `e2e-native-tagging` is now **64/64** (was 55). `tools/
+p0-capability-inventory.mjs` gains a new critical id, `breakdown.auto-detect`,
+whose assertion is exactly "Review and Apply All are genuinely on-screen for a
+multi-play scan — the exact capability the hidden host made unreachable."
+
+A PowerShell line-range deletion used while removing the old
+`_bindAutoDetect()`/`_openDetectionReview()` block from `js/app.js`
+accidentally also deleted two unrelated methods that sat textually inside that
+range — `_bindBackendStatus()` and `_getTeamContext()`. Caught before any test
+ran by diffing every removed method signature against the intended list; both
+restored verbatim, `node --check js/app.js` clean, `_getTeamContext` re-verified
+as the method `AutoDetectScreen.start()` now calls for team context.
+
+**2. [P2, closed] `TAURI.md` now describes the actual build.** The `## Layout`
+and `## Build` sections no longer instruct `./build.sh` + a manual `dist/`
+copy of the retired single-file bundle. They now state that `dist/` is a plain
+Vite build, that `tauri.conf.json`'s `beforeBuildCommand` (`npm run build`)
+already runs it as part of `cargo tauri build`, and that this is the exact
+recipe `.github/workflows/build-desktop.yml` uses. The updater section's claim
+that `js/updater.js` lives "in the build.sh list" is corrected to describe it
+as an ordinary Vite-graph ES module.
+
+**3. The Charlie Gate — real screenshots, not DOM inspection.** `tools/
+shots.mjs` (the repo's existing 4-viewport, 11-surface visual harness) failed
+before it could run: it waited on `window.app?.library`, a property retired
+earlier in this same milestone (team/season registry now lives on
+`TeamHubScreen`). Fixed to wait on `window.app?.teamHubScreen`, the same
+readiness signal `e2e-native-team-hub.mjs` already uses. With that one-line
+fix the tool runs clean — 44 distinct captures, zero page errors, zero
+page-level overflow — and, critically, **caught a real geometry regression
+that no DOM check had found**:
+
+At the desktop widths (1440×900 and 1280×720, the `is-film-room` 1181–1499px
+bracket), Film Room mode's theater host is height-clamped
+(`clamp(350px, 52vh, 500px)`) but the theater's own internal grid still
+enforced Chart mode's stage floor (326px outer / 280px inner). At 1440×900
+that squeezed the transport-actions row — Mark Start, Mark End, Copy Last,
+Autoplay, Clear Tags, Delete Play — to a ~14px sliver wedged against the
+Breakdown Table header; at 1280×720 the whole row was fully clipped and
+invisible under the ancestor's `overflow:hidden`. **A coach could not mark,
+clear, or delete a play from Film Room mode at either tested desktop width.**
+Root-caused via the DOM measurement the screenshot prompted, not guessed:
+`.gi-breakdown-theater-host{overflow:hidden}` genuinely clips a CSS Grid
+whose row minimums exceed the container's definite height, and the
+transport-actions row is last in grid order, so it's what gets cut. Fixed in
+`css/native-breakdown-route.css`, scoped to the existing
+`@media (min-width: 1181px) and (max-width: 1499px)` `.ws-breakdown.
+is-film-room` block only: `.gi-breakdown-theater`'s row-1 minimum drops
+326px→170px and `.gi-theater-player`'s drops 280px→120px — enough headroom
+for the actions row (and, worked through explicitly, enough margin even at
+the 720px-tall worst case with a second camera angle loaded). Chart mode and
+the narrow breakpoints (768×1024, 390×844, both `height:auto` in Film Room)
+are untouched by this rule and were re-screenshotted to confirm — pixel
+identical to before.
+
+Re-captured after the fix: at both 1440×900 and 1280×720 the full actions row
+is now fully legible with a clean divider above the Breakdown Table header;
+the video placeholder is smaller than Chart mode (deliberate — Film Room's
+job is the table) but not degraded to illegibility. Break Down/Chart at all
+four widths, and Film Room at the two narrow widths, are confirmed unchanged.
+
+**Verification.** `node tools/e2e-native-tagging.mjs` — **64/64** (was 55).
+`node tools/e2e-p0-capabilities.mjs` — **10/10**. `node tools/
+e2e-breakdown-geometry.mjs` — **12/12**, unchanged (Chart-mode picture budget
+untouched by the Film Room fix). Full canonical gate (`bash tools/
+run-gate.sh`): **90 harnesses | 90 green | 0 skipped | 0 failed**. `cargo
+check --manifest-path src-tauri/Cargo.toml`: clean.
+
+**No analytics formula, persistence schema, coach data, film file, or
+unrelated behavior changed.** No installer, package, tag, or release —
+per the review's own explicit "No installer yet."
+
+**Handoff to Codex for re-review.** Both named findings are closed at the
+root with discriminating, mutation-verified regressions, and the pixel-level
+Charlie Gate the review required is done and found (and fixed) a real
+defect neither the prior DOM-based tests nor the earlier "focused suites
+passed independently" claim had caught — the strongest evidence yet for why
+that gate is a required step, not an optional one.
+
 ### ▶ CODEX REVIEW — FINAL ENGINE INDEPENDENCE `1aecc9e..d5c9610`: CHANGES REQUESTED (2026-08-23)
 
 **Reviewer: Codex.** Reviewed the complete committed range, not only the two

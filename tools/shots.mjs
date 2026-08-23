@@ -26,7 +26,10 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 await page.goto(APP_URL, { waitUntil:'networkidle0' });
-await page.waitForFunction(() => window.app?.workspaceShell && window.app?.library);
+// `window.app.library` (SeasonLibrary) was retired in the Final Engine
+// Independence pass -- team/season registry now lives on TeamHubScreen. Match
+// the same boot-ready signal e2e-native-team-hub.mjs already uses.
+await page.waitForFunction(() => window.app?.workspaceShell && window.app?.teamHubScreen);
 
 // Deterministic sample state, reached through the native Team Hub controls.
 await page.waitForSelector('.gi-hub-first');

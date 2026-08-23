@@ -118,6 +118,18 @@
     height: clamp(350px, 52vh, 500px); min-height: 350px;
     border-right: 0; border-bottom: 1px solid var(--gi-7);
   }
+  /* Charlie Gate (real screenshots, not DOM inspection) caught this: the
+     theater's own grid still enforced Chart mode's stage floor (326px outer /
+     280px inner) inside a host clamped to 350-500px total. At 1440x900 that
+     left the transport clear but squeezed the actions row (Mark Start/End,
+     Copy Last, Autoplay, Clear Tags, Delete Play) to an ~14px sliver; at
+     1280x720 it disappeared under the ancestor's overflow:hidden entirely --
+     a coach could not mark, clear, or delete a play from Film Room mode at
+     either tested desktop width. Film Room's job here is the breakdown
+     table, not primary film-watching, so the picture may run smaller than
+     Chart's; the play-marking commands may not disappear. */
+  .ws-breakdown.is-film-room .gi-breakdown-theater { grid-template-rows: minmax(170px, 1fr) auto auto auto; }
+  .ws-breakdown.is-film-room .gi-theater-player { grid-template-rows: minmax(120px, 1fr) auto auto; }
   .ws-breakdown.is-film-room .gi-breakdown-deck,
   .ws-breakdown.is-film-room .gi-breakdown-film-room-host {
     height: min(720px, calc(100vh - 54px)); min-height: 520px; overflow: hidden;
