@@ -4,10 +4,17 @@ import { isPlayTagged } from './football-rules.js';
  * The one native application shell.
  *
  * S7 demolition: `#app` and `#wsClassicOutlet` are gone. The tagging domain,
- * Film Room grid, Reports' legacy render target, and the remaining top-bar
- * controls now live permanently in `#giLegacyEngineHost` (a sibling of
- * `#giMediaHost`), outside this shell's own root — real backing stores the
- * domain engines still read/write directly, not a second visible surface.
+ * Film Room grid, and Reports' legacy render target live permanently in
+ * `#giLegacyEngineHost` (a sibling of `#giMediaHost`), outside this shell's
+ * own root — real backing stores the domain engines still read/write
+ * directly, not a second visible surface.
+ *
+ * Final Engine Independence: the top-bar chrome that used to live in
+ * `#giLegacyEngineHost` (Undo/Redo/Shortcuts/Settings) is gone too. This
+ * shell's own `.ws-global-tools` buttons are real Preact-free but genuinely
+ * native DOM this class owns and renders itself, calling the underlying
+ * services (`app.history`, `app.shortcutsScreen`, `app.settingsScreen`)
+ * directly — no legacy element is adopted, relocated, or `.click()`-proxied.
  */
 export class WorkspaceShell {
   constructor(app) {
@@ -16,22 +23,9 @@ export class WorkspaceShell {
     this._homeToken = 0;
     this._homeSelectedGameId = null;
     this._homeFilmHealth = new Map();
-    // Controls the legacy top bar owned that this shell has no replacement
-    // for. Their permanent authored home is #giLegacyEngineHost now, not a
-    // container this shell adopts/returns — relocation moves the live
-    // element, so every listener and disabled-state binding rides along
-    // untouched — history-manager binds undo/redo by id at init() and keeps
-    // driving them.
-    this._chrome = {
-      undo: this._remember(document.getElementById('btnUndoAction')),
-      redo: this._remember(document.getElementById('btnRedoAction')),
-      shortcuts: this._remember(document.getElementById('btnShortcuts')),
-      settings: this._remember(document.getElementById('btnSidebarToggle')),
-      // Status for the OPTIONAL local CV server. Not prime chrome — it belongs
-      // with the low-frequency setup tools, per the redesign plan's rule that
-      // setup/history/filter tools live in Settings.
-      backend: this._remember(document.getElementById('backendStatusBadge')),
-    };
+    this._btnUndo = null;
+    this._btnRedo = null;
+    this._historyUnsub = null;
   }
   // The redesigned workspace is THE product — there is no classic-layout escape
   // hatch and no second game-entry route (C1, binding amendment 2026-07-23). The
@@ -71,7 +65,8 @@ export class WorkspaceShell {
     this.app.reportsScreen?.restore();
     this.app.teamHubScreen?.restore();
     this.app.breakdownWorkspace?.restore();
-    this._restoreChrome();
+    this._historyUnsub?.(); this._historyUnsub = null;
+    this._btnUndo = null; this._btnRedo = null;
     this.root.remove(); this.root = null;
     document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
   }
@@ -107,6 +102,15 @@ export class WorkspaceShell {
     this.root.addEventListener('click', async e => {
       const route = e.target.closest('[data-ws-route]')?.dataset.wsRoute;
       if (route) { e.preventDefault(); await this.show(route); return; }
+      const tool = e.target.closest('[data-ws-tool]');
+      if (tool) {
+        const key = tool.dataset.wsTool;
+        if (key === 'undo') { this.app.history?.undoAll(); return; }
+        if (key === 'redo') { this.app.history?.redoAll(); return; }
+        if (key === 'shortcuts') { this.app.shortcutsScreen?.open?.(tool); return; }
+        if (key === 'settings') { this.app.settingsScreen?.open?.({ returnFocus: tool }); return; }
+        return;
+      }
       const action = e.target.closest('[data-ws-action]')?.dataset.wsAction;
       if (action === 'seasons') await this._openLibrary();
       if (action === 'new-game') { await this._newGame(); return; }
@@ -143,7 +147,7 @@ export class WorkspaceShell {
     }
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); }
     if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.studyScreen?.show(); }
-    if (routeId==='reports') { this.app.reportsScreen?.show(); }
+    if (routeId==='reports') { this.app.reportsScreen?.show(); this.app._markSeenStats?.(); }
     if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.planScreen?.show(); }
     return result;
   }
@@ -250,19 +254,29 @@ export class WorkspaceShell {
    * through the one authoritative open command. No season open → send the coach
    * to the library to pick or create one first. */
   async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const id=await this.app.gameScreen.open({mode:'create'});if(id&&id!=='cancel')await this.app.openGame(id);}
-  _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
-  _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
-  /** Adopt the classic bar's still-needed controls into shell chrome. Append
-   *  order IS the visual order: history first, then help, then settings/more. */
+  /** Own global chrome directly: real buttons rendered by this class, wired
+   *  to the underlying services in _bind()'s data-ws-tool branch. Append
+   *  order IS the visual order: history first, then help, then settings.
+   *  history-manager's own `change` event drives Undo/Redo's disabled state
+   *  and title reactively -- no DOM node is adopted from anywhere. */
   _mountChrome(){
     const tools=this.root?.querySelector('.ws-global-tools');
     if(!tools)return;
-    for(const key of ['undo','redo','shortcuts','settings']) {
-      if(this._chrome[key]?.el)tools.append(this._chrome[key].el);
-    }
+    tools.innerHTML=`
+      <button class="ws-icon-btn" type="button" data-ws-tool="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg class="icon"><use href="assets/icons.svg#icon-undo"/></svg></button>
+      <button class="ws-icon-btn" type="button" data-ws-tool="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg class="icon"><use href="assets/icons.svg#icon-redo"/></svg></button>
+      <button class="ws-icon-btn" type="button" data-ws-tool="shortcuts" title="Keyboard shortcuts (press ?)" aria-label="Keyboard shortcuts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg></button>
+      <button class="ws-icon-btn" type="button" data-ws-tool="settings" title="Team & Film Settings" aria-label="Team and Film Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>`;
+    this._btnUndo=tools.querySelector('[data-ws-tool="undo"]');
+    this._btnRedo=tools.querySelector('[data-ws-tool="redo"]');
+    this._historyUnsub?.();
+    const hist=this.app.history;
+    this._syncHistoryButtons(hist?.canUndo?.()||false,hist?.canRedo?.()||false,'');
+    this._historyUnsub=hist?.on?.('change',state=>this._syncHistoryButtons(state.canUndo,state.canRedo,state.undoLabel))||null;
   }
-  _restoreChrome(){
-    for(const key of ['undo','redo','shortcuts','settings','backend'])this._restore(this._chrome[key]);
+  _syncHistoryButtons(canUndo,canRedo,undoLabel){
+    if(this._btnUndo){this._btnUndo.disabled=!canUndo;this._btnUndo.title=canUndo?`Undo: ${undoLabel} (Ctrl+Z)`:'Undo (Ctrl+Z)';}
+    if(this._btnRedo)this._btnRedo.disabled=!canRedo;
   }
   /**
    * UX-2 (S6-4a). Game context is switchable from every route instead of
@@ -327,8 +341,8 @@ export class WorkspaceShell {
       {key:'settings',label:'Team & Film Settings',onSelect:()=>this.app.settingsScreen?.open?.({returnFocus:anchor})},
       {key:'teams',label:'Teams & seasons',onSelect:()=>this._openLibrary()},
       {key:'new-game',label:'New game',onSelect:()=>this._newGame()},
-      {key:'undo',label:'Undo',disabled:!!this._chrome.undo?.el?.disabled,onSelect:()=>this._chrome.undo?.el?.click()},
-      {key:'redo',label:'Redo',disabled:!!this._chrome.redo?.el?.disabled,onSelect:()=>this._chrome.redo?.el?.click()},
+      {key:'undo',label:'Undo',disabled:!this.app.history?.canUndo?.(),onSelect:()=>this.app.history?.undoAll()},
+      {key:'redo',label:'Redo',disabled:!this.app.history?.canRedo?.(),onSelect:()=>this.app.history?.redoAll()},
       {key:'shortcuts',label:'Keyboard shortcuts',onSelect:()=>this.app.shortcutsScreen?.open?.(anchor)},
     ]:[];
     items.push(

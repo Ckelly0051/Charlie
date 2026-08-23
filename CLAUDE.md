@@ -1,9 +1,11 @@
 # GridIron IQ — Architecture & Reference
 
 > Formerly "Football Film Analyzer". The product is now branded **GridIron IQ**;
-> the built bundle filename remains `football-film-analyzer.html` and the git
-> branch remains `claude/football-film-analyzer-GRiCW` (renaming those would
-> break the deploy/build path, so they're intentionally unchanged).
+> the git branch remains `claude/football-film-analyzer-GRiCW` (renaming it
+> would break the deploy/build path, so it's intentionally unchanged). The
+> single-file `football-film-analyzer.html` bundle and its `build.sh` builder
+> are RETIRED as of Final Engine Independence (see the changelog entry below)
+> — the canonical build is Vite alone (`npm run build` → `dist/`).
 
 ## What This Is
 
@@ -13,6 +15,156 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+
+### ▶ FINAL ENGINE INDEPENDENCE — ONE-PASS MILESTONE COMPLETE, AWAITING CODEX REVIEW (2026-08-23)
+
+**Builder: Claude. Baseline: `1aecc9e` (accepted). Range: `1aecc9e..HEAD` on
+`claude/football-film-analyzer-GRiCW` — no new branch/worktree, per the
+governing instruction.** `#giLegacyEngineHost`, `#playGridSection`, and
+`.tag-section` are all now genuinely **absent from the live document** — not
+hidden, not detached-and-retained, not adopted/relocated. No hidden legacy
+application path remains underneath the native shell.
+
+**Scope delivered in this range** (items 1–2 were completed and left
+uncommitted in a prior window of this same milestone; this range commits them
+together with items 4–5, since neither was independently reviewed/checkpointed
+before now):
+
+1. **Film Room** — `#playGridSection` deleted from `index.html`. `PlayGrid`'s
+   `this.section` is now genuinely `null`; every classic-DOM-specific branch
+   (`_inject`/`_wireClassic`) is conditionally skipped, and all state the
+   native route needs is initialized unconditionally. `NativeFilmRoomScreen`
+   already guarded every `this.grid.section` read with `?.`/`if`, so this was
+   safe by construction once the markup was gone.
+2. **Tagging** — `.tag-section` deleted; `PlayTagger`/`ChipField`/
+   `RosterManager`/`CustomChips` converted to explicit state/actions or
+   native-owned element injection (native-tagging.jsx). Every charting
+   capability and the current football tag model verified intact live (see
+   Charlie Gate below): Offense/Defense/Special Teams unit toggles, all
+   library-backed vocabulary (Formation/Backfield/Front/Coverage/Blitz),
+   penalties, player attribution + grades, Same as Last/templates, notes,
+   drawing tools, OCR, auto-detect.
+3. **Auxiliary film tools** — preserved as-is; not directly touched this
+   range except where item 4 (below) gave the optional local CV server a real
+   reachable affordance for the first time (see finding below).
+4. **Shell chrome** — `WorkspaceShell`'s old adopt/relocate mechanism
+   (`_chrome`/`_remember`/`_restore`/`_mountChrome`-as-DOM-mover) is deleted
+   outright. `_mountChrome()` now **renders real Preact-owned buttons itself**
+   (`data-ws-tool="undo|redo|shortcuts|settings"`) that call the underlying
+   services directly: `app.history.undoAll()/redoAll()`,
+   `app.shortcutsScreen.open()`, `app.settingsScreen.open()`. `HistoryManager`
+   gained a minimal `on()`/`_emit()` pub/sub so the native Undo/Redo buttons
+   reflect `canUndo`/`canRedo`/`undoLabel` reactively instead of a relocated
+   DOM node's own attributes being poked directly.
+5. **Final deletion** — `#giLegacyEngineHost` (the wrapper div and everything
+   inside it: the classic top-bar chrome, `#btnSidebarToggle`, `#btnShortcuts`,
+   `#videoDropZone`, `#btnLoadFolder`, `#folderLoadBadge`,
+   `#backendStatusBadge`, `#btnUndoAction`, `#btnRedoAction`, `#btnQuickChart`,
+   `#btnShowStats`, `#btnSave`, `#fileLabel`) is deleted from `index.html`,
+   replaced with a comment documenting each control's real native owner today.
+   `build.sh` and `football-film-analyzer.html` (the retired single-file
+   bundle) are **deleted**, proven unreachable first: zero references in
+   either GitHub Actions workflow, zero references in any `tools/e2e-*.mjs`
+   canonical-gate harness (they resolve the app through `tools/app-entry.mjs`'s
+   Vite `dist/` build), and the one remaining consumer
+   (`tools/verify-audit-fixes.mjs`, a manual diagnostic invoked by nothing)
+   was deleted alongside it. `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md`'s S7-e
+   scope is partially closed: the one CSS block that was provably,
+   cleanly isolated and entirely about the deleted top-bar markup ("TOP BAR —
+   progressive collapse", `css/styles.css`) plus its dead legacy-`.btn`
+   counterpart in `css/workspace-shell.css` are removed. The bulk of
+   `css/styles.css`/`css/redesign-stats.css` remains untouched — deliberately;
+   it interleaves live and dead rules and a full sweep is real, separately-
+   scoped work this range did not attempt.
+
+**Two real production defects found and fixed during the guard-safety audit,
+not just markup deletion:**
+
+- **`js/playlist-manager.js:495`** — `this.vc.fileLabel.textContent = ...` was
+  **unguarded**, and `fileLabel` (`#fileLabel`) is one of the ids deleted with
+  `#giLegacyEngineHost`. This is `switchToClip()`, the multi-clip navigation
+  path every Save & Next hits in folder/multi-clip mode — every clip switch
+  would have thrown `TypeError: Cannot read properties of null`. Fixed by
+  routing through `VideoController._setFilmStatus()`, the seam that already
+  existed for exactly this (`currentFileName` is the real owner;
+  `fileLabel` was always meant to be an optional mirror, per its own S7-d2
+  comment — this call site had just never been updated to use it). Caught
+  before shipping, by a pre-deletion grep sweep for every reference to each
+  of the 12 ids being deleted, not discovered at runtime.
+- **`js/quick-chart.js:104`** — an unguarded `this.btnToggle.addEventListener`
+  (from a prior window, predating this range) — removed along with the whole
+  now-redundant binding (`breakdown-workspace.js` already calls
+  `quickChart.toggle()` directly).
+
+**Test/tooling repair, one file per stale reference found by a repo-wide
+grep for all 12 deleted ids** (`tools/e2e-workspace-shell.mjs`,
+`e2e-native-reports.mjs` [comment only, no change needed],
+`e2e-film-storage-setup.mjs`, `e2e-native-breakdown-theater.mjs`,
+`e2e-onboarding.mjs`, `e2e-native-overlay.mjs`, `e2e-native-film-room.mjs`):
+every one converted from "check the legacy DOM stays hidden/stable" to "check
+the legacy DOM is genuinely **absent**" — a strictly stronger proof, and the
+one the milestone's own Required Proof section asks for. The most substantial
+of these was `e2e-native-film-room.mjs`, whose whole first section reached
+into `app.playGrid.section.hidden`/`app.playGrid.rowsEl.innerHTML` (both
+`null`/`undefined` once `#playGridSection` is gone) — this was a genuine test
+crash (not merely a stale string), rewritten to assert
+`!app.playGrid.section` at every point the old code asserted hiddenness.
+`tools/p0-capability-inventory.mjs` had two capability entries
+(`shell.undo`, `shell.redo`) pointing at assertion strings that no longer
+existed verbatim in the rewritten shell test, plus one pre-existing drift
+unrelated to this range (`film-room.columns`) — all three corrected to the
+live assertion text.
+
+**Verification:**
+- Full canonical gate (`bash tools/run-gate.sh --no-build` after
+  `npm run build`): **90 harnesses | 90 green | 0 skipped | 0 failed**,
+  including `e2e-integrity.mjs` (the cross-game corruption fuzzer, 35s) and
+  `e2e-realdata.mjs`. Re-run a second time after the `build.sh`/bundle
+  deletion specifically, to prove that deletion's own "nothing consumes it"
+  claim: still 90/90.
+- `cargo check --manifest-path src-tauri/Cargo.toml`: clean, both before and
+  after the artifact deletions.
+- **Charlie Gate — done live against the running app, not via screenshots.**
+  The Browser pane's screenshot compositing was unavailable in this session
+  (`the Browser pane is not displayed` on every attempt, including after
+  navigation/resize/wait — an environment constraint, not a product issue).
+  Substituted the strongest available alternative: seeded a real 10-play
+  season across all three units through the actual running Vite preview
+  build (not the test harness) and inspected the live accessibility tree +
+  computed DOM state directly. Confirmed live: Break Down at 1440×900 with
+  the play strip populated and a play selected, all four native shell-chrome
+  buttons (Undo/Redo/Keyboard shortcuts/Team and Film Settings) present and
+  correctly labeled; Film Room open with all 10 rows, every filter chip
+  (unit/down/Run/Pass/TD/TO/Penalty/Untagged), Columns, and Watch all
+  present; the Offense/Defense/Special Teams tag form each showing its
+  correct unit-specific fields (Defense: Def Front/Coverage/Coverage
+  Family/Blitz libraries, "Opponent Play" label, tackler/takeaway roles;
+  Special Teams: the eight-phase model, kicker/returner roles); 1280×720
+  with zero page-level horizontal overflow and all four chrome buttons still
+  visible. Zero console errors across the entire session. This is real
+  live-app verification, not a substitute claimed to be equivalent to one —
+  but it is not a human/AI pixel-level visual inspection, and that gap is
+  disclosed honestly rather than papered over.
+
+**Honest residual risk / explicitly not done in this range:**
+- No pixel-level visual (screenshot) review occurred — see above. If Codex's
+  review environment has working screenshot capture, that pass is still
+  owed before this can be considered fully visually verified.
+- CSS cleanup (`GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` S7-e) is **not**
+  complete — only the one small, provably-isolated, entirely-dead block
+  described above was removed. The bulk of `css/styles.css` (253KB) and
+  `css/redesign-stats.css` (21KB) is untouched and almost certainly still
+  carries dead rules from this and earlier deletions; a full sweep needs the
+  static-ownership audit method already validated and parked in this file's
+  own history (search "static-ownership audit" above), not attempted here.
+- Auxiliary film tools (drawing/OCR/play diagram/auto-detect/suggestions/
+  templates/custom libraries) were not directly modified this range and were
+  only indirectly re-verified (present and reachable in the live Charlie
+  Gate walkthrough for the fields that surfaced there); no dedicated pass
+  was made over each one individually.
+- No installer, package, tag, or deployment was built or attempted, per the
+  governing instruction. **Awaiting Codex's independent review before any of
+  that proceeds.**
 
 ### ▶ CODEX RE-REVIEW — `a751396` ACCEPTED, NO FINDINGS (2026-08-23)
 
@@ -16356,34 +16508,45 @@ replace judgment.
 
 ## Build System
 
-`build.sh` concatenates all JS modules into `football-film-analyzer.html`:
-- Strips `import`/`export` statements
-- Inlines CSS and SVG sprite
-- Rewrites SVG `href` paths
+**Final Engine Independence retired the single-file build.** `build.sh` and its
+output `football-film-analyzer.html` (the concatenated, self-contained legacy
+bundle) are DELETED — proven unreachable first: zero references in either
+GitHub Actions workflow (`.github/workflows/build-desktop.yml`,
+`.github/workflows/gate.yml`), zero references in any `tools/e2e-*.mjs`
+canonical-gate harness (they resolve the app through `tools/app-entry.mjs`'s
+Vite `dist/` build, not the bundle), and the one remaining consumer
+(`tools/verify-audit-fixes.mjs`, itself invoked by nothing) was deleted
+alongside it.
 
-**Important**: All JS files share one function scope in the built bundle. Variable name collisions between files will cause runtime errors. Each file's top-level `const`/`let` declarations must be unique across the entire codebase.
+**The canonical build is now Vite alone**: `npm run build` produces `dist/`
+(`dist/index.html` + hashed `dist/assets/*.js`/`*.css`/media). Tauri already
+consumes this directly (`tauri.conf.json`'s `frontendDist: "../dist"`,
+unchanged by this milestone). There is no second, concatenated build artifact
+and no shared-global-scope constraint to maintain — every module keeps its own
+ES module scope.
 
 ### Deploy to GitHub Pages
 
 The live site serves from the **`gh-pages` branch**, NOT the feature branch.
-After building, deploy by copying the bundle into both `index.html` and
-`football-film-analyzer.html` on `gh-pages` (a git worktree is the clean way),
-then push. Pushing only to the feature branch does **not** update the live URL.
+Build with Vite, then deploy the **entire `dist/` directory** onto `gh-pages`
+(a git worktree is the clean way), then push. Pushing only to the feature
+branch does **not** update the live URL.
 
-Concrete recipe (worktree, never edit `gh-pages` files by hand — they are
-verbatim copies of the bundle):
+Concrete recipe (worktree, never edit `gh-pages` files by hand — they are a
+verbatim copy of `dist/`):
 ```bash
+npm run build
 git fetch origin gh-pages
 git worktree add /tmp/gh-pages-deploy gh-pages
-cp football-film-analyzer.html /tmp/gh-pages-deploy/index.html
-cp football-film-analyzer.html /tmp/gh-pages-deploy/football-film-analyzer.html
+# Clear the old tree first -- Vite's asset filenames are content-hashed, so a
+# stale prior build's now-orphaned dist/assets/*.js|css must not linger.
+find /tmp/gh-pages-deploy -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+cp -r dist/. /tmp/gh-pages-deploy/
 cd /tmp/gh-pages-deploy && git add -A && git commit -m "Deploy: <summary>" && git push origin gh-pages
 git worktree remove /tmp/gh-pages-deploy   # from the repo root
 ```
 > Before overwriting, sanity-check that `gh-pages` only ever receives "Deploy:"
-> commits (`git log --oneline`) — it does, so the bundle is the source of truth.
-> A past deploy added a stray Google-Fonts `@import`; the source uses system
-> fonts now, so dropping it on the next deploy is expected, not a regression.
+> commits (`git log --oneline`) — it does, so `dist/` is the source of truth.
 
 ### Cutting a Desktop Release (Tauri auto-update)
 

@@ -16,26 +16,30 @@ export class HistoryManager {
     this.recording = true;
     this.maxSize = 100;
     this.lastSnap = null;
-    this.btnUndo = null;
-    this.btnRedo = null;
     // Optional fallbacks so the single top-bar undo/redo can also drive
     // canvas annotation undo when there's no play-data action to undo.
     this.onUndoEmpty = null;
     this.onRedoEmpty = null;
     this.fallbackCanUndo = null;
     this.fallbackCanRedo = null;
+    // Final Engine Independence: the native shell's Undo/Redo buttons are
+    // real Preact-owned elements, not a relocated legacy #btnUndoAction/
+    // #btnRedoAction DOM node -- they call undoAll()/redoAll() directly and
+    // subscribe to this event to reflect canUndo/canRedo/undoLabel reactively.
+    this._listeners = {};
 
     tagger.on('play-created', (p) => this._record('Add play ' + (p?.id || '')));
     tagger.on('play-deleted', () => this._record('Delete play'));
     tagger.on('play-updated', (p) => this._record('Edit play ' + (p?.id || '')));
   }
 
+  /** Final Engine Independence: no legacy #btnUndoAction/#btnRedoAction DOM
+   *  binding here anymore -- the native shell's Undo/Redo buttons call
+   *  undoAll()/redoAll() directly and subscribe to the 'change' event
+   *  _updateUI() emits. init() remains the re-baseline entry point storage.js
+   *  calls on every season/game load. */
   init() {
     this.lastSnap = this._snapshot();
-    this.btnUndo = document.getElementById('btnUndoAction');
-    this.btnRedo = document.getElementById('btnRedoAction');
-    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undoAll());
-    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redoAll());
     this._updateUI();
   }
 
@@ -90,6 +94,16 @@ export class HistoryManager {
 
   canUndo() { return this.index >= 0; }
   canRedo() { return this.index < this.stack.length - 1; }
+
+  /** Minimal pub/sub so the native shell's Undo/Redo buttons can reflect
+   *  state without polling or reading a relocated DOM node's own attributes. */
+  on(event, fn) {
+    (this._listeners[event] ||= []).push(fn);
+    return () => { this._listeners[event] = (this._listeners[event] || []).filter(f => f !== fn); };
+  }
+  _emit(event, ...args) {
+    (this._listeners[event] || []).forEach(fn => fn(...args));
+  }
 
   /**
    * Single global undo: undo the last play-data action if there is one,
@@ -159,13 +173,10 @@ export class HistoryManager {
   _updateUI() {
     const canUndo = this.canUndo() || (this.fallbackCanUndo && this.fallbackCanUndo());
     const canRedo = this.canRedo() || (this.fallbackCanRedo && this.fallbackCanRedo());
-    if (this.btnUndo) this.btnUndo.disabled = !canUndo;
-    if (this.btnRedo) this.btnRedo.disabled = !canRedo;
-    if (this.btnUndo) {
-      this.btnUndo.title = this.canUndo()
-        ? 'Undo: ' + this.stack[this.index].label + ' (Ctrl+Z)'
-        : 'Undo (Ctrl+Z)';
-    }
+    this._emit('change', {
+      canUndo, canRedo,
+      undoLabel: this.canUndo() ? this.stack[this.index].label : '',
+    });
   }
 
   /**

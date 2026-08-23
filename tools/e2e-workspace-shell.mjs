@@ -26,10 +26,13 @@ let r = await page.evaluate(() => ({
   shell: !!document.querySelector('#workspaceShell'),
   active: document.body.classList.contains('ws-shell-active'),
   hub: !document.querySelector('#wsTeamHub')?.hidden && !!document.querySelector('[data-native-team-hub]'),
-  // S7 demolition: #app/#wsClassicOutlet are deleted. The tagging/Film-Room/
-  // Reports backing stores now live in the permanent #giLegacyEngineHost,
-  // a sibling of the shell root rather than something nested inside it.
-  legacyHostPresent: !!document.getElementById('giLegacyEngineHost') && !document.getElementById('app'),
+  // S7 demolition: #app/#wsClassicOutlet are deleted. Final Engine
+  // Independence deletes #giLegacyEngineHost too -- there is no legacy host
+  // sibling left at all. #giMediaHost (the permanent, accepted native-owned
+  // video/canvas/transport host) remains the one thing that lives outside
+  // the shell root.
+  legacyHostGone: !document.getElementById('giLegacyEngineHost') && !document.getElementById('app'),
+  mediaHostPresent: !!document.getElementById('giMediaHost'),
   flag: localStorage.getItem('ffa_workspace_shell_v2'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
   reportsDisabled: [...document.querySelectorAll('[data-ws-route="reports"]')].every(button => button.disabled),
@@ -37,7 +40,7 @@ let r = await page.evaluate(() => ({
   emptyActionEnabled: !document.querySelector('#wsResume')?.disabled,
   emptyActionTarget: document.querySelector('#wsResume')?.dataset.wsAction,
 }));
-ok(r.shell && r.active && r.hub && r.legacyHostPresent, 'Shell mounts with the native Team Hub as its single front door', JSON.stringify(r));
+ok(r.shell && r.active && r.hub && r.legacyHostGone && r.mediaHostPresent, 'Shell mounts with the native Team Hub as its single front door and no legacy host anywhere', JSON.stringify(r));
 
 // NO JS VALUES IN THE CHROME (coach smoke, 2026-07-25). Adding the Reports
 // route without adding its nav icon rendered the literal string "undefined"
@@ -165,9 +168,9 @@ ok(r.videoOwners === 1 && r.tagOwners === 1 && r.legacyChrome === 0, 'Dedicated 
 ok(r.sidebarDisplay === 'none' && r.topNavDisplay === 'flex' && r.mediaWidth >= 800, 'Desktop Break Down replaces the sidebar with compact navigation and restores film width', JSON.stringify(r));
 
 r = await page.evaluate(() => ({
-  settingsInShell: !!document.querySelector('.ws-global-tools #btnSidebarToggle'),
+  settingsInShell: !!document.querySelector('.ws-global-tools [data-ws-tool="settings"]'),
   moreInShell: !!document.querySelector('.ws-top-actions #btnNativeMore'),
-  settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
+  settingsVisible: document.querySelector('[data-ws-tool="settings"]')?.offsetParent !== null,
   moreVisible: document.getElementById('btnNativeMore')?.offsetParent !== null,
   retiredOwnersAbsent: !document.getElementById('settingsDrawer') && !document.getElementById('drawerScrim'),
   filmPickersOutsideLegacy: ['projectFileInput','clipFileInput','repairFilmInput'].every(id => document.getElementById(id)?.parentElement === document.body),
@@ -175,7 +178,7 @@ r = await page.evaluate(() => ({
 ok(r.settingsInShell && r.moreInShell && r.settingsVisible && r.moreVisible && r.retiredOwnersAbsent && r.filmPickersOutsideLegacy,
   'Compact shell keeps Settings and More visible while retired overlays stay absent and film pickers survive outside #app', JSON.stringify(r));
 
-await page.click('#btnSidebarToggle');
+await page.click('[data-ws-tool="settings"]');
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 r = await page.evaluate(() => ({
   nativeSettings: document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length,
@@ -310,17 +313,18 @@ r = await page.evaluate(() => {
 ok(r.calls === 1 && r.closed && r.focus === 'btnNativeMore' && r.legacyAbsent,
   'Native More invokes the storage Save command exactly once, restores its launcher, and has no legacy owner', JSON.stringify(r));
 
-/* ENTOMBED-CAPABILITY GUARD. The classic top bar lives inside #app, which lives
-   inside the permanently hidden #wsClassicOutlet. So a control the shell does
-   not relocate is not "legacy chrome still showing" — it is a capability with
-   NO reachable affordance anywhere in the product. Measured 2026-07-25: undo,
-   redo, shortcuts and the CV-server badge were all in that state on every route.
+/* Final Engine Independence: undo/redo/shortcuts/the CV-server badge used to
+   be entombed inside the permanently hidden classic top bar
+   (#wsClassicOutlet, then #giLegacyEngineHost -- both since deleted). Undo,
+   Redo, Shortcuts and Settings are now real native buttons WorkspaceShell
+   itself renders and wires directly into `.ws-global-tools` (data-ws-tool
+   attributes, no adopt/relocate mechanism, no #btn*Action ids at all).
 
-   Reachability is measured as "its box actually lands inside the viewport", NOT
-   `offsetParent !== null` or a non-zero rect: the settings drawer slides on a
-   transform, so a CLOSED drawer still reports a laid-out, non-zero box and both
-   weaker checks score its contents as reachable. That exact false positive is
-   what an earlier draft of this test produced. */
+   Reachability is measured as "its box actually lands inside the viewport",
+   NOT `offsetParent !== null` or a non-zero rect: a closed sliding drawer/
+   sheet still reports a laid-out, non-zero box, and both weaker checks would
+   score its contents as reachable. That exact false positive is what an
+   earlier draft of this test produced. */
 const onScreen = sel => page.evaluate(s => [...document.querySelectorAll(s)].some(el => {
   const rect = el.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return false;
@@ -332,25 +336,30 @@ const onScreen = sel => page.evaluate(s => [...document.querySelectorAll(s)].som
 }), sel);
 
 r = {
-  undo: await onScreen('#btnUndoAction'),
-  redo: await onScreen('#btnRedoAction'),
-  shortcuts: await onScreen('#btnShortcuts'),
-  inTools: await page.evaluate(() => ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
-    .every(id => !!document.getElementById(id)?.closest('.ws-global-tools'))),
+  undo: await onScreen('[data-ws-tool="undo"]'),
+  redo: await onScreen('[data-ws-tool="redo"]'),
+  shortcuts: await onScreen('[data-ws-tool="shortcuts"]'),
+  settings: await onScreen('[data-ws-tool="settings"]'),
+  inTools: await page.evaluate(() => ['undo', 'redo', 'shortcuts', 'settings']
+    .every(key => !!document.querySelector(`[data-ws-tool="${key}"]`)?.closest('.ws-global-tools'))),
   order: await page.evaluate(() => [...document.querySelector('.ws-global-tools').children]
-    .map(el => el.id || el.querySelector('button')?.id || '')),
+    .map(el => el.dataset.wsTool || '')),
+  legacyGone: await page.evaluate(() => !document.getElementById('giLegacyEngineHost')
+    && !document.getElementById('btnUndoAction') && !document.getElementById('btnRedoAction')
+    && !document.getElementById('btnShortcuts') && !document.getElementById('btnSidebarToggle')
+    && !document.getElementById('backendStatusBadge')),
 };
-ok(r.undo && r.redo && r.shortcuts && r.inTools
-  && r.order.slice(0, 4).join(',') === 'btnUndoAction,btnRedoAction,btnShortcuts,btnSidebarToggle',
-  'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar', JSON.stringify(r));
+ok(r.undo && r.redo && r.shortcuts && r.settings && r.inTools
+  && r.order.join(',') === 'undo,redo,shortcuts,settings' && r.legacyGone,
+  'Undo, Redo, Shortcuts and Settings are the shell\'s own native chrome -- no adopted/relocated legacy element exists anywhere', JSON.stringify(r));
 
-// Relocation must move the LIVE element, so history-manager's existing binding
-// and its disabled-state driving survive. Proven by a real edit, not by asserting
-// the node exists: a cloned/rebuilt button would look identical here but be dead.
+// The native Undo button reflects history-manager state directly (no adopted
+// DOM node, no .click() proxy). Proven by a real edit, not by asserting the
+// node exists: a decorative button would look identical here.
 r = await page.evaluate(() => {
   const app = window.app, history = app.history;
   history.reset();                                   // known-empty history baseline
-  const before = document.getElementById('btnUndoAction')?.disabled;
+  const before = document.querySelector('[data-ws-tool="undo"]')?.disabled;
   // A real product edit through the tagger's own API. NOT createWholeVideoPlay:
   // it early-returns when the game already has plays, so on a populated fixture
   // it silently no-ops and the assertion passes for the wrong reason.
@@ -358,29 +367,42 @@ r = await page.evaluate(() => {
   app.tagger.selectPlay(play.id);
   app.tagger.setUnit(play.tags?.unit === 'defense' ? 'offense' : 'defense');
   return {
-    sameNode: history?.btnUndo === document.getElementById('btnUndoAction'),
-    inTools: !!history?.btnUndo?.closest('.ws-global-tools'),
     before,
-    after: document.getElementById('btnUndoAction')?.disabled,
+    after: document.querySelector('[data-ws-tool="undo"]')?.disabled,
     entries: history?.stack?.length,
   };
 });
-ok(r.sameNode && r.inTools && r.entries === 1 && r.before === true && r.after === false,
-  'Relocated Undo stays wired to history-manager and enables on a real edit', JSON.stringify(r));
+ok(r.entries === 1 && r.before === true && r.after === false,
+  'The native Undo button reflects history-manager state via its change subscription and enables on a real edit', JSON.stringify(r));
 
-// Optional analysis status belongs inside native Analysis, never in prime shell chrome.
-const badgeClosed = await onScreen('#backendStatusBadge');
-await page.click('#btnSidebarToggle');
+// Clicking the native Undo button genuinely calls history.undoAll() -- both
+// disabled states flip, which a decorative click handler could not produce.
+r = await page.evaluate(async () => {
+  const undoBefore = document.querySelector('[data-ws-tool="undo"]')?.disabled;
+  const redoBefore = document.querySelector('[data-ws-tool="redo"]')?.disabled;
+  document.querySelector('[data-ws-tool="undo"]')?.click();
+  await new Promise(res => setTimeout(res, 50));
+  return {
+    undoBefore, redoBefore,
+    undoAfter: document.querySelector('[data-ws-tool="undo"]')?.disabled,
+    redoAfter: document.querySelector('[data-ws-tool="redo"]')?.disabled,
+  };
+});
+ok(r.undoBefore === false && r.redoBefore === true && r.undoAfter === true && r.redoAfter === false,
+  'Clicking the native Undo button genuinely calls history.undoAll()', JSON.stringify(r));
+
+// Optional analysis status belongs inside native Analysis, never in prime
+// shell chrome, and there is no legacy status badge anywhere in the document.
+await page.click('[data-ws-tool="settings"]');
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 await page.click('[data-settings-tab="analysis"]');
 await page.waitForSelector('[data-settings-panel="analysis"]');
 r = await page.evaluate(() => ({
-  badgeClosed: document.getElementById('backendStatusBadge')?.offsetParent !== null,
+  legacyBadgeExists: !!document.getElementById('backendStatusBadge'),
   analysisStatus: document.querySelector('[data-settings-panel="analysis"] .gi-settings-status')?.textContent?.trim(),
-  shortcutsLabel: getComputedStyle(document.querySelector('.ws-global-tools #btnShortcuts span')).display,
 }));
-ok(!badgeClosed && !r.badgeClosed && r.analysisStatus && r.shortcutsLabel === 'none',
-  'Optional analysis status lives in Settings while prime chrome stays quiet and Shortcuts remains icon-only', JSON.stringify(r));
+ok(!r.legacyBadgeExists && r.analysisStatus,
+  'Optional analysis status lives only in Settings; no legacy status badge exists anywhere in the document', JSON.stringify(r));
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await capture('breakdown-tools-1280x800');
@@ -413,7 +435,7 @@ r = await page.evaluate(async () => {
     activeGameId: app.storage.seasonStore.data.activeGameId,
     route: app.workspace.currentRoute(),
     breakdownVisible: !document.getElementById('wsBreakdown')?.hidden,
-    settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
+    settingsVisible: document.querySelector('[data-ws-tool="settings"]')?.offsetParent !== null,
     moreVisible: document.getElementById('btnNativeMore')?.offsetParent !== null,
   };
 });
@@ -668,19 +690,19 @@ r = await page.evaluate(() => {
     restored: media != null
       && !media.closest('#giLegacyEngineHost')
       && document.querySelectorAll('.video-section').length === 1
-      && document.querySelector('#giLegacyEngineHost > #playGridSection') != null
-      // Final Engine Independence: .tag-section is deleted entirely, not
-      // adopted/relocated -- there is no backing store to return to on
-      // teardown any more. Absence is the assertion now (same "S7
-      // demolition" pattern already applied to #wsClassicOutlet above).
+      // Final Engine Independence: .tag-section AND #playGridSection are
+      // both deleted entirely, not adopted/relocated -- there is no backing
+      // store to return to on teardown any more. Absence is the assertion
+      // now (same "S7 demolition" pattern already applied to
+      // #wsClassicOutlet above).
+      && document.querySelector('#playGridSection') == null
       && document.querySelector('.tag-section') == null,
-    // Every adopted control must go home, not just the two the shell started
-    // with — an un-restored one would leak into a detached tree on re-enable.
-    chromeRestored: ['btnSidebarToggle', 'btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
-      .every(id => !!document.querySelector(`#giLegacyEngineHost .top-bar #${id}`))
-      && !document.querySelector('#giLegacyEngineHost .top-bar .more-menu')
-      && !document.getElementById('settingsDrawer')
-      && !document.getElementById('drawerScrim'),
+    // Final Engine Independence: Undo/Redo/Shortcuts/Settings are the
+    // shell's OWN native buttons rendered inside .ws-global-tools -- there is
+    // no adopted legacy element to "restore". disable() removes this.root
+    // (and every native chrome button with it), and #giLegacyEngineHost does
+    // not exist in the document at all any more.
+    chromeGone: !document.querySelector('[data-ws-tool]') && !document.getElementById('giLegacyEngineHost'),
     // Repair of Codex CHANGES REQUESTED review d51c97b, finding 1:
     // ReportsScreen.restore() (called by disable()) must EXPLICITLY clear
     // StatsEngine's render target to null rather than hand back a fabricated
@@ -688,27 +710,43 @@ r = await page.evaluate(() => {
     dashboardTargetCleared: window.app.stats.dashboardEl === null,
   };
 });
-ok(r.restored && r.chromeRestored, 'disable() (internal teardown) parks media in its permanent host and restores every adopted chrome control', JSON.stringify(r));
+ok(r.restored && r.chromeGone, 'disable() (internal teardown) parks media in its permanent host and leaves no native chrome or legacy host behind', JSON.stringify(r));
 ok(r.dashboardTargetCleared, 'disable() clears StatsEngine.dashboardEl to null -- an explicitly absent target, never a detached stand-in', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });
 
 // mount -> restore -> mount. disable() is asserted above and enable() right
-// here, but nothing re-checked that the ADOPTED controls come back into shell
-// chrome on the second mount — leaving the newly relocated ones (undo, redo,
-// shortcuts, CV badge) re-entombed inside the hidden classic bar after a
-// lifecycle cycle, with every other assertion still green.
+// here, but nothing re-checked that the shell's own chrome buttons come back
+// on the second mount with exactly one owner each and a live history
+// subscription -- leaving a duplicated button set or a leaked subscription
+// after a lifecycle cycle, with every other assertion still green.
 r = await page.evaluate(() => ({
-  reAdopted: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'btnSidebarToggle']
-    .every(id => !!document.getElementById(id)?.closest('.ws-global-tools')),
-  optionalStatusNotPrime: !document.getElementById('backendStatusBadge')?.closest('.ws-global-tools'),
+  toolsPresent: ['undo', 'redo', 'shortcuts', 'settings']
+    .every(key => document.querySelectorAll(`[data-ws-tool="${key}"]`).length === 1),
+  inTools: !!document.querySelector('[data-ws-tool="undo"]')?.closest('.ws-global-tools'),
+  optionalStatusNotPrime: !document.getElementById('backendStatusBadge'),
   nativeMoreRebuilt: !!document.querySelector('.ws-top-actions #btnNativeMore'),
-  singletons: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
-    .every(id => document.querySelectorAll(`#${id}`).length === 1),
 }));
-ok(r.reAdopted && r.optionalStatusNotPrime && r.nativeMoreRebuilt && r.singletons,
-  'Re-enabling re-adopts live global commands and rebuilds native More exactly once', JSON.stringify(r));
+ok(r.toolsPresent && r.inTools && r.optionalStatusNotPrime && r.nativeMoreRebuilt,
+  'Re-enabling rebuilds shell chrome exactly once, with no leftover legacy status badge', JSON.stringify(r));
+
+// The history subscription from the FIRST mount must not still be live --
+// otherwise an undo/redo state change on this (second) mount would double-
+// fire _syncHistoryButtons via two live subscriptions. Every one of history's
+// registered listeners calls this.[_syncHistoryButtons] on the SAME shell
+// instance, so overriding it once catches a leaked duplicate from either
+// mount, not just the current one.
+r = await page.evaluate(() => {
+  const shell = window.app.workspaceShell;
+  let fired = 0;
+  const real = shell._syncHistoryButtons.bind(shell);
+  shell._syncHistoryButtons = (...args) => { fired++; real(...args); };
+  window.app.history._updateUI();
+  shell._syncHistoryButtons = real;
+  return { fired };
+});
+ok(r.fired === 1, 'The history change subscription fires exactly once after a disable/enable cycle -- no leaked duplicate subscription', JSON.stringify(r));
 r = await page.evaluate(async () => {
   await window.app.workspaceShell.show('reports');
   const screen = window.app.reportsScreen, calls = [];

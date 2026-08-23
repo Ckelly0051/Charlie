@@ -21,8 +21,8 @@ export const P0_CAPABILITIES = [
   { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More is the single action-menu owner and the season-file picker survives outside the legacy tree' },
   { id:'shell.study-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Study opens the query workspace inside the persistent shell' },
   { id:'shell.plan-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Plan opens the live season plan workspace' },
-  { id:'shell.undo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Relocated Undo stays wired to history-manager and enables on a real edit' },
-  { id:'shell.redo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar' },
+  { id:'shell.undo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'The native Undo button reflects history-manager state via its change subscription and enables on a real edit' },
+  { id:'shell.redo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'own native chrome -- no adopted/relocated legacy element exists anywhere' },
   { id:'shell.shortcuts', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Closing native Shortcuts restores focus to the mobile More launcher' },
   { id:'shell.import-plays', surface:'shell', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Native Import confirms one mapped football play and reports success' },
 
@@ -57,7 +57,7 @@ export const P0_CAPABILITIES = [
   { id:'film-room.watch-fallback', surface:'film-room', evidence:'behavior', harness:'e2e-film-room.mjs', assertion:'no-video Watch falls back to selecting first play' },
   { id:'film-room.inline-edit', surface:'film-room', evidence:'data', harness:'e2e-film-room.mjs', assertion:'multi-enum edit commits to tags + cell' },
   { id:'film-room.keyboard', surface:'film-room', evidence:'behavior', harness:'e2e-film-room.mjs', assertion:'ArrowDown moves focus to next play, same column' },
-  { id:'film-room.columns', surface:'film-room', evidence:'data', harness:'e2e-film-room.mjs', assertion:'checkbox adds a column (persisted)' },
+  { id:'film-room.columns', surface:'film-room', evidence:'data', harness:'e2e-film-room.mjs', assertion:'setColumn adds a column (persisted)' },
   { id:'film-room.exact-film', surface:'film-room', evidence:'data', harness:'e2e-film-room.mjs', assertion:'Watch receives EXACTLY the COMPOSITE refs of the selected rendered row group, no more, no fewer' },
 
   // Study

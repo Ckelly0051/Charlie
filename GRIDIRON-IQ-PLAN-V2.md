@@ -103,6 +103,23 @@ presentations over the same state and commands. It does not itself design the
 mobile UI, but it prevents mobile from becoming a third interface synchronized
 against obsolete desktop controls.
 
+> **STATUS (2026-08-23): implementation range built, gated, and awaiting
+> independent Codex review — see CLAUDE.md's "FINAL ENGINE INDEPENDENCE"
+> changelog entry for the full account.** `#giLegacyEngineHost` is deleted;
+> zero production code reaches any retired control id; `build.sh`/
+> `football-film-analyzer.html` are deleted (proven unreachable first); full
+> canonical gate is 90/90. Not yet satisfied: an installed real-film coach
+> smoke (no installer was built this pass, per the governing instruction —
+> Codex review comes first), and a genuine pixel-level visual review (the
+> Charlie Gate pass this range performed was live-DOM/accessibility-tree
+> inspection against the running app, not screenshots — the review
+> environment's screenshot capture was unavailable). CSS that has no
+> surviving native owner is only PARTIALLY removed — one small, provably-
+> isolated block; the bulk of `css/styles.css`/`css/redesign-stats.css` is
+> untouched and deferred, disclosed explicitly rather than silently left.
+> Acceptance per this section's own binary bar is therefore not yet claimed;
+> this status records what shipped for review, not a self-declared pass.
+
 ## 4. Upgrade Lanes
 
 ### V2-A: One Navigation And Context Owner

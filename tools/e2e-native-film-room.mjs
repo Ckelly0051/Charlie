@@ -47,19 +47,21 @@ const mounted = await page.evaluate(async () => {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const before = JSON.stringify(app.storage.seasonStore.data);
   const expected = app.playGrid._visiblePlays().map(play => play.id);
-  window.__s5bLegacyHtml = app.playGrid.rowsEl.innerHTML;
+  // Final Engine Independence: #playGridSection is deleted from the document
+  // entirely, not merely hidden -- app.playGrid.section is genuinely null and
+  // there is no legacy DOM left to capture or compare against.
+  const priorSectionAbsent = !app.playGrid.section;
   const host = document.createElement('div');
   host.id = 's5bTestHost';
   host.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--gi-1)';
   document.body.appendChild(host);
-  const priorHidden = app.playGrid.section.hidden;
   const didMount = app.nativeFilmRoom.mount(host);
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   return {
     didMount,
     native: document.querySelectorAll('[data-native-film-room]').length,
-    legacyHidden: app.playGrid.section.hidden,
-    priorHidden,
+    sectionAbsent: !app.playGrid.section,
+    priorSectionAbsent,
     before,
     after: JSON.stringify(app.storage.seasonStore.data),
     expected,
@@ -67,7 +69,8 @@ const mounted = await page.evaluate(async () => {
     subscribers: app.playGrid._nativeListeners.size,
   };
 });
-ok(mounted.didMount && mounted.native === 1 && mounted.legacyHidden, 'Native deck is the only visible Film Room presentation', JSON.stringify(mounted));
+ok(mounted.didMount && mounted.native === 1 && mounted.priorSectionAbsent && mounted.sectionAbsent,
+  'Native deck is the only Film Room presentation -- #playGridSection is absent from the document, not hidden', JSON.stringify(mounted));
 ok(mounted.before === mounted.after, 'Mounting native Film Room is a season-data no-op');
 ok(JSON.stringify(mounted.actual) === JSON.stringify(mounted.expected), 'Rendered play IDs exactly equal the canonical visible pool', JSON.stringify(mounted));
 if (shotDir) await (await page.$('[data-native-film-room]')).screenshot({ path: path.join(shotDir, 'film-room-1440.png') });
@@ -201,10 +204,11 @@ await page.waitForFunction(() => document.querySelectorAll('.gi-film-table-wrap 
 state = await page.evaluate(() => ({
   selected: window.app.playGrid.selected.size,
   rows: document.querySelectorAll('.gi-film-table-wrap tbody tr').length,
-  legacyStable: window.app.playGrid.rowsEl.innerHTML === window.__s5bLegacyHtml,
+  // Nothing lazily recreates #playGridSection as plays are wholesale-replaced.
+  sectionAbsent: !window.app.playGrid.section,
 }));
 ok(state.selected === 0 && state.rows === 1, 'Wholesale game replacement clears stale row selection', JSON.stringify(state));
-ok(state.legacyStable, 'Native updates do not rerender the hidden legacy grid');
+ok(state.sectionAbsent, 'A wholesale game replacement does not resurrect #playGridSection');
 
 const geometry = {};
 for (const viewport of [[1440,900],[1280,800],[768,1024],[390,844]]) {
@@ -230,15 +234,15 @@ state = await page.evaluate(() => {
   return {
     restored,
     nativeGone: !document.querySelector('[data-native-film-room]'),
-    legacyHidden: app.playGrid.section.hidden,
-    expectedHidden: app.nativeFilmRoom._legacyHidden,
+    sectionAbsent: !app.playGrid.section,
     subscribers: app.playGrid._nativeListeners.size,
     dataSame: before === JSON.stringify(app.storage.seasonStore.data),
     overlaysBefore,
     overlaysAfter: app.overlays.snapshot().overlays.length,
   };
 });
-ok(state.restored && state.nativeGone && state.subscribers === 0, 'Restore unmounts native presentation and its scoped subscription', JSON.stringify(state));
+ok(state.restored && state.nativeGone && state.subscribers === 0 && state.sectionAbsent,
+  'Restore unmounts native presentation and its scoped subscription -- and does not resurrect #playGridSection', JSON.stringify(state));
 ok(state.overlaysBefore === 1 && state.overlaysAfter === 0, 'Restore closes Film Room-owned overlays', JSON.stringify(state));
 ok(state.dataSame, 'Restore is a season-data no-op');
 ok(errors.length === 0, 'Native Film Room journey has zero page errors', errors.join(' | '));

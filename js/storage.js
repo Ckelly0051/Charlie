@@ -44,7 +44,6 @@ export class StorageManager {
       try { window.app.updater._toast('⚠ Save failed — browser storage may be full. Use "Save Season" to export a backup file before you lose work.'); } catch (e) {}
     };
 
-    this.btnSave = document.getElementById('btnSave');
     this.projectFileInput = document.getElementById('projectFileInput');
 
     this._bindEvents();
@@ -67,7 +66,9 @@ export class StorageManager {
   }
 
   _bindEvents() {
-    this.btnSave?.addEventListener('click', () => this.saveProject());
+    // Final Engine Independence: the legacy #btnSave top-bar button is gone
+    // -- saveProject() is called directly from WorkspaceShell's More menu
+    // ("Save season") now, not proxied through a relocated legacy button.
     this.projectFileInput?.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       if (file) this.loadProject(file);

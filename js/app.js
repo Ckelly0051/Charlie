@@ -224,7 +224,9 @@ class App {
     // Auto-detect UI
     this._bindAutoDetect();
 
-    // Probe the local CV backend and keep the status badge in sync
+    // Probe the local CV backend and re-probe periodically so
+    // backend.isAvailable() stays accurate for the native Analysis settings
+    // tab, which reads it directly rather than a legacy status badge.
     this._bindBackendStatus();
 
     // Enable auto-save + surface its state on the top-bar Save button
@@ -275,15 +277,6 @@ class App {
     }, 0);
 
     this._initVersionLabel();
-
-    // Mark the onboarding checklist's "See your stats" step once the coach
-    // opens the dashboard for THEIR OWN data (not the demo — exploring the demo
-    // shouldn't silently complete onboarding). Flag read by _checklistItems.
-    document.getElementById('btnShowStats')?.addEventListener('click', () => {
-      const store = this.storage?.seasonStore;
-      if (store && this.storage.isDemoSeason(store.currentSeasonId)) return;
-      try { localStorage.setItem('ffa_seen_stats', '1'); } catch (e) {}
-    });
 
     // Desktop auto-update (no-op on the web build).
     this.updater = new Updater(this.overlays);
@@ -1227,70 +1220,26 @@ class App {
   }
 
   /**
-   * Probe the local Python CV backend, update the top-bar status badge,
-   * and re-probe periodically so the badge reflects server up/down state
-   * while the app is open. When the backend is reachable, auto-detect
-   * and clip analysis route through it automatically for real YOLO-based
-   * detection instead of in-browser heuristics.
+   * Keep the local Python CV backend's live availability fresh, so
+   * SettingsScreen.analysisProfile() (read by the native Analysis tab, which
+   * computes its own status/enable affordance directly from backend.
+   * isAvailable()/vision.apiKey) never reads a stale probe result.
+   *
+   * Final Engine Independence: there is no status badge to write into --
+   * that badge lived inside the permanently hidden #giLegacyEngineHost, which
+   * made its click-to-enable affordance genuinely unreachable to a coach. The
+   * opt-in action now lives in Settings → Analysis (SettingsScreen.
+   * enableLocalServer()); this method only keeps backend.probe()'s own
+   * network-only-when-enabled invariant doing its background work.
    */
   _bindBackendStatus() {
-    const badge = document.getElementById('backendStatusBadge');
-    const updateBadge = (available) => {
-      if (!badge) return;
-      if (available) {
-        badge.textContent = 'Auto-Detect: Server';
-        badge.classList.add('online');
-        badge.classList.remove('offline');
-        const caps = this.backend.getCapabilities();
-        badge.title = `Local CV server online\n${caps.join('\n')}\nClick to re-probe`;
-      } else {
-        badge.textContent = 'Auto-Detect: Basic';
-        badge.classList.add('offline');
-        badge.classList.remove('online');
-        badge.title = 'Auto-detect play boundaries — requires the companion server. See Settings → Setup.';
-      }
-    };
-
-    const updateVisionBadge = () => {
-      if (!badge) return false;
-      if (this.vision.apiKey) {
-        badge.textContent = '🧠 Vision AI';
-        badge.classList.add('online');
-        badge.classList.remove('offline');
-        badge.title = 'Claude Vision API active — plays will be analyzed with AI.\nClick to re-probe local server.';
-        return true;
-      }
-      return false;
-    };
-    this._updateAnalysisBadge = () => {
-      if (!updateVisionBadge()) updateBadge(this.backend.isAvailable());
-    };
-
-    if (!updateVisionBadge()) updateBadge(false);
-    this.backend.on('availability-changed', (avail) => {
-      if (!updateVisionBadge()) updateBadge(avail);
-    });
-
-    // Kick off initial probe (non-blocking)
-    this.backend.probe().then((avail) => {
-      if (!updateVisionBadge()) updateBadge(avail);
-    });
-
-    badge?.addEventListener('click', async () => {
-      if (updateVisionBadge()) return;
-      // Clicking the badge opts into the local CV server. Until then we never
-      // touch the network, so a default session stays console-clean.
-      this.backend.setEnabled(true);
-      badge.textContent = '… probing';
-      const ok = await this.backend.probe();
-      updateBadge(ok);
-    });
-
-    // Re-probe every 30s while the tab is visible so the badge stays fresh
+    // Kick off an initial probe (non-blocking; probe() itself no-ops with no
+    // network call while backend.enabled is false, so a default session
+    // never touches the network here either).
+    this.backend.probe();
+    // Re-probe every 30s while the tab is visible so isAvailable() stays fresh.
     setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        this.backend.probe();
-      }
+      if (document.visibilityState === 'visible') this.backend.probe();
     }, 30000);
   }
 
@@ -1589,13 +1538,23 @@ class App {
     this._setGameScore(sb.us, sb.them);
   }
 
+  /** Mark the onboarding checklist's "See your stats" step complete once the
+   *  coach opens Reports for THEIR OWN data (not the demo -- exploring the
+   *  demo shouldn't silently complete onboarding). Flag read by
+   *  _checklistItems. Called from WorkspaceShell.show('reports') -- Reports
+   *  is a native shell route now, not a legacy button click. */
+  _markSeenStats() {
+    const store = this.storage?.seasonStore;
+    if (store && this.storage.isDemoSeason(store.currentSeasonId)) return;
+    try { localStorage.setItem('ffa_seen_stats', '1'); } catch (e) {}
+  }
+
   _saveApiKey(value) {
     const apiKey = value === undefined
       ? localStorage.getItem('ffa_claude_api_key') || ''
       : String(value || '').trim();
     localStorage.setItem('ffa_claude_api_key', apiKey);
     this.vision.apiKey = apiKey;
-    this._updateAnalysisBadge?.();
   }
 
   /** Persist native Analysis settings without depending on retired form DOM. */
@@ -1718,14 +1677,18 @@ class App {
     // has a real owner: the team profile, which is where it always belonged.
     this._applyTeamProfile();
   }
+  /** Global `?` keyboard shortcut (see the keydown handler elsewhere in this
+   *  file). The shell's own `.ws-global-tools` Shortcuts button and every
+   *  other native entry point call `app.shortcutsScreen.open()` directly;
+   *  this remains the shared toggle used by the keyboard shortcut, which has
+   *  no anchor element of its own -- ShortcutsScreen.open()/toggle() already
+   *  default their returnFocus to null. */
   _bindShortcuts() {
-    const btn = document.getElementById('btnShortcuts');
     this.toggleShortcuts = (show) => {
       if (show === false) return this.shortcutsScreen.close('cancel');
-      if (show === true) return this.shortcutsScreen.open(btn);
-      return this.shortcutsScreen.toggle(btn);
+      if (show === true) return this.shortcutsScreen.open();
+      return this.shortcutsScreen.toggle();
     };
-    btn?.addEventListener('click', () => this.toggleShortcuts());
   }
 
   /**
@@ -1843,21 +1806,13 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
-  /** Render the autosave state on the top-bar Save button: "● Saving…" while
-   *  a debounced write is armed, settling to "✓ Saved". The button stays the
-   *  explicit-save action (Ctrl+S); this just makes persistence VISIBLE. */
+  /** Render the autosave state on the native Break Down route's save
+   *  indicator: "Saving..." while a debounced write is armed, settling to
+   *  "Saved". Ctrl+S / the More menu remain the explicit-save action; this
+   *  just makes persistence VISIBLE. Final Engine Independence: the legacy
+   *  #btnSave top-bar button this used to also render into is gone. */
   _renderSaveState(state) {
     this.breakdownWorkspace?.setSaveState(state);
-    const btn = document.getElementById('btnSave');
-    if (!btn) return;
-    const label = btn.querySelector('.btn-label');
-    btn.classList.toggle('save-pending', state === 'pending');
-    btn.classList.toggle('save-ok', state === 'saved');
-    if (label) label.textContent = state === 'pending' ? 'Saving…' : 'Saved';
-    if (!this._saveTitleSet) {
-      btn.title = 'Everything saves automatically. Click to save now + create a restore point (Ctrl+S).';
-      this._saveTitleSet = true;
-    }
   }
 
   /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest

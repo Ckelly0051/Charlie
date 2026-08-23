@@ -11,7 +11,6 @@
 export class UIPolish {
   constructor(app = null) {
     this.app = app;
-    this._initSettingsLauncher();
     this._initPanelCollapse();
     this._initEmptyStateCTA();
     this._initVideoLoadedHint();
@@ -78,11 +77,9 @@ export class UIPolish {
     return false;
   }
 
-  _initSettingsLauncher() {
-    document.getElementById('btnSidebarToggle')?.addEventListener('click', event => {
-      this.app?.settingsScreen?.open?.({ returnFocus: event.currentTarget });
-    });
-  }
+  // Final Engine Independence: the legacy #btnSidebarToggle launcher is gone
+  // -- WorkspaceShell's own .ws-global-tools "settings" button calls
+  // settingsScreen.open() directly now.
 
   _initPanelCollapse() {
     document.querySelectorAll('.panel-title[data-toggle]').forEach(title => {
@@ -166,12 +163,9 @@ export class UIPolish {
       : mode === 'managed'
         ? 'Imported film is copied into GridIron IQ. Link a folder to use it in place.'
         : 'Choose where film should live before adding it.';
-    const topLabel = document.getElementById('fileLabel');
-    const folderLabel = document.querySelector('#btnLoadFolder .btn-label');
-    if (topLabel) topLabel.textContent = mode === 'linked'
-      ? 'Link from the game below, or drop files to choose'
-      : mode === 'managed' ? 'Drop video(s) / folder or click to load' : 'Choose film storage before adding film';
-    if (folderLabel) folderLabel.textContent = mode === 'linked' ? 'Copy Folder' : 'Folder';
+    // Final Engine Independence: #fileLabel and #btnLoadFolder were the top-bar
+    // owners of this status text -- both deleted with #giLegacyEngineHost. The
+    // native empty-state hint above is the sole surviving surface for it.
   }
 
   /**

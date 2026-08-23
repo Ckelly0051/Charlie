@@ -159,43 +159,53 @@ await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptySav
 await clickSaveNext();
 await frame();
 await sleep(150);
-await page.evaluate(() => window.app.workspaceShell.disable());
-await sleep(100);
 
 // 2e. Film Room grid edit on Backfield (one of the four newly-editable columns).
-// Real DOM shape (js/play-grid.js): row = tr.pg-row[data-id], cell =
-// td[data-k="backfield"] inside that row; clicking once selects/focuses the
-// cell, a second click (or Enter) opens the editor's `.pg-chip[data-v]` picks.
+// Final Engine Independence: #playGridSection/PlayGrid's classic renderer are
+// deleted -- Film Room is reached exclusively through the native route
+// (native-film-room.jsx via NativeFilmRoomScreen), mounted into a scratch host
+// the same way mountNativeForm() mounts native tagging above. Real DOM shape
+// (js/native-film-room.jsx): cell = button[data-cell="playId:colKey"];
+// clicking once selects/focuses the cell, a second click (or Enter) opens the
+// editor's `.gi-film-option-chips button` picks (single-select commits on
+// click, no separate Done needed).
 // Backfield is not in PlayGrid.PRESETS.default (['sit','formation',
 // 'qbAlignment','playType','result','yardage','penalty']) — add it, same as
 // e2e-film-room.mjs does when it needs a non-default column visible.
 await page.evaluate(() => {
   const grid = window.app.playGrid;
   if (grid && !grid.cols.includes('backfield')) { grid.cols = [...grid.cols, 'backfield']; }
+  const host = document.createElement('div');
+  host.id = 'projformFilmRoomHost';
+  document.body.append(host);
+  window.app.nativeFilmRoom.mount(host);
   if (grid) grid.refresh();
 });
-// Wait for the CELL, not for a fixed number of milliseconds. `grid.refresh()`
-// renders on a frame, so a blind sleep raced it: the row and the column were
-// both present and the cell simply had not been written yet, which surfaced as
-// an intermittent "Film Room Backfield cell is missing" that reproduced on
-// unmodified code and vanished the moment anything added a round-trip before
-// the assertion. If the cell genuinely never renders this still fails, because
-// the wait times out and `gridEdit` stays false.
+// Wait for the CELL, not for a fixed number of milliseconds -- same reasoning
+// as before: refresh() renders on a frame, and a blind sleep raced it.
 const gridEdit = await page.waitForFunction(
-  (id) => !!document.querySelector(`.pg-row[data-id="${id}"] td[data-k="backfield"]`),
+  (id) => !!document.querySelector(`button[data-cell="${id}:backfield"]`),
   { timeout: 5000 }, IDS.gridBackfield,
 ).then(() => true).catch(() => false);
 ok(gridEdit, 'Film Room Backfield cell is present and reachable before the grid-edit case runs');
 if (gridEdit) {
-  await page.evaluate((id) => {
-    const cell = document.querySelector(`.pg-row[data-id="${id}"] td[data-k="backfield"]`);
-    if (cell) { cell.click(); cell.click(); }
-  }, IDS.gridBackfield);
+  // Two separate round-trips, not two synchronous .click() calls in one
+  // evaluate: native-film-room.jsx's click handler compares against `active`
+  // state from its OWN closure, which only updates after Preact re-renders --
+  // a second click in the same synchronous turn would still see the stale
+  // pre-first-click `active` and never detect "this is now the focused cell".
+  await page.evaluate((id) => document.querySelector(`button[data-cell="${id}:backfield"]`)?.click(), IDS.gridBackfield);
   await frame();
-  await click('.pg-chip[data-v="I"]');
+  await page.evaluate((id) => document.querySelector(`button[data-cell="${id}:backfield"]`)?.click(), IDS.gridBackfield);
+  await frame();
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('.gi-film-option-chips button')].find(b => b.textContent.trim() === 'I');
+    if (btn) btn.click();
+  });
   await frame();
   const gridCommitted = await page.evaluate((id) => window.app.tagger.getPlay(id).tags.backfield, IDS.gridBackfield);
   ok(gridCommitted === 'I', 'Film Room grid edit on Backfield actually committed (Split -> I) through the real inline editor', gridCommitted);
+  await page.evaluate(() => { window.app.nativeFilmRoom.restore(); document.getElementById('projformFilmRoomHost')?.remove(); });
 }
 
 // 2f. Derived-value CLEAR: seed QB Alignment 'Shotgun' from the projected view

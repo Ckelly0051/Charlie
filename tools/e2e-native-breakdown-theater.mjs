@@ -414,11 +414,10 @@ ok(d2.remountedOutsideApp,
   'Re-entering Break Down re-adopts the media without reaching into the legacy shell', JSON.stringify(d2));
 
 // VideoController kept the film name in #fileLabel.textContent and read it back
-// on an error. That top-bar label is entombed today and deleted at S7-d7, so the
-// name now lives on the controller and the label is an optional mirror.
-//
-// LIMIT, stated rather than implied: this removes the label after boot, which is
-// evidence of decoupling, NOT deletion authority. S7-d7 must re-prove it cold.
+// on an error. That top-bar label, its folder badge, and the drop zone were all
+// deleted with #giLegacyEngineHost (Final Engine Independence) -- the name now
+// lives on the controller and the label was always an optional mirror, so
+// removing it at runtime here matches genuine cold-boot absence.
 const d2b = await page.evaluate(() => {
   const vc = window.app.vc;
   const label = document.getElementById('fileLabel');

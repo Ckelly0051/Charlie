@@ -113,11 +113,27 @@ export class SettingsScreen {
     return { ok:durable, durable, calls:this.playbookSnapshot() };
   }
 
+  /** Final Engine Independence: status is computed directly from the live
+   *  backend/vision state, never read off a hidden legacy badge's textContent
+   *  -- that badge lived inside #giLegacyEngineHost and could never be
+   *  observed by a coach, so reading it was a hidden-DOM-as-data-source. An
+   *  explicit Claude Vision key always takes precedence (mirrors the
+   *  historical badge priority), then the optional local CV server. */
   analysisProfile() {
+    const app = this.app;
+    const hasVision = !!app.vision?.apiKey;
+    const serverAvailable = !!app.backend?.isAvailable?.();
+    const status = hasVision ? '🧠 Vision AI'
+      : serverAvailable ? 'Auto-Detect: Server'
+      : 'Auto-Detect: Basic';
     return {
       apiKey: localStorage.getItem('ffa_claude_api_key') || '',
       model: localStorage.getItem('ffa_claude_model') || 'claude-opus-4-6',
-      status: document.getElementById('backendStatusBadge')?.textContent?.trim() || 'Auto-Detect: Basic',
+      status,
+      hasVision,
+      serverAvailable,
+      serverEnabled: !!app.backend?.enabled,
+      capabilities: serverAvailable ? (app.backend?.getCapabilities?.() || []) : [],
     };
   }
 
@@ -128,6 +144,22 @@ export class SettingsScreen {
       saved ? 'success' : 'error',
     );
     return saved;
+  }
+
+  /** Opt in to the optional local Python CV server: until this is called we
+   *  never touch the network (unchanged behavior, moved from the legacy
+   *  badge's click handler in app.js, which lived inside the permanently
+   *  hidden #giLegacyEngineHost and so could never actually be clicked). */
+  async enableLocalServer() {
+    const backend = this.app.backend;
+    if (!backend) return { ok: false, message: 'No local CV backend is configured.' };
+    backend.setEnabled(true);
+    const ok = await backend.probe();
+    this._toast(
+      ok ? 'Local CV server connected.' : 'Local CV server not found. Auto-detect will use in-browser heuristics.',
+      ok ? 'success' : 'info',
+    );
+    return { ok, message: '' };
   }
 
   async snapshot() {

@@ -1,9 +1,21 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* E2E Film Room harness — drives the built bundle headless through the
-   Phase 2 play grid: render on demo data, row click-to-select, chip filters,
-   bulk selection + Watch fallback, collapse persistence, narrow-screen
-   default, switch-team back-out. Run after build:
-     npm run build && node tools/e2e-film-room.mjs */
+/* E2E Film Room harness -- drives the built bundle headless through the
+   NATIVE Film Room route/mode (window.app.nativeFilmRoom / native-film-room.jsx,
+   window.app.playGrid's native* API): render on demo data, row click-to-select,
+   chip filters, bulk selection + Watch fallback, saved-column/filter
+   persistence, projected-column editing, switch-team back-out. Run after build:
+     npm run build && node tools/e2e-film-room.mjs
+
+   Final Engine Independence: #playGridSection (the classic inline collapsible
+   breakdown strip and its #pgRows/.pg-row/.pg-chip/.pg-pop markup) is DELETED
+   from index.html entirely. Film Room is now a full native MODE inside the
+   Break Down route (window.app.breakdownWorkspace, toggled via
+   [data-bd-view="film-room"]), sharing the route with Chart mode rather than
+   living as a separate collapsible section below the video. The former
+   "collapse persistence" / "narrow screen defaults collapsed" tests tested a
+   classic-only UI affordance (localStorage ffa_film_room_collapsed) that has
+   no native equivalent -- that concept was already retired by the S5d
+   ownership flip, well before this milestone, and is not reintroduced here. */
 import puppeteer from 'puppeteer';
 
 const URL = TEST_APP_URL;
@@ -12,7 +24,6 @@ const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
@@ -21,19 +32,54 @@ const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
-const click = (sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);
-// After a reload the shell lands on Home; reopen the season from the library,
-// open game 1 from the film inbox, then switch to the Film Room view so the grid
-// surface is visible (the sole game-entry route; the schedule grid is retired).
-const reopenFilmRoom = async () => {
+const frame = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+// Two SEPARATE evaluate round-trips with a real tick between them -- the
+// native cell button's "second click opens the editor" comparison reads
+// `active` from a closure captured at the LAST RENDER, so two clicks fired
+// inside one synchronous evaluate call both see the SAME stale `active` and
+// the editor never opens (found + fixed in e2e-projform-durability.mjs
+// during this same milestone -- same root cause, same fix shape here).
+const openCellEditor = async (playId, colKey) => {
+  const sel = `[data-cell="${playId}:${colKey}"]`;
+  await page.evaluate(s => document.querySelector(s)?.click(), sel);
+  await frame();
+  await page.evaluate(s => document.querySelector(s)?.click(), sel);
+  await frame();
+};
+const clickOptionChip = (text) => page.evaluate(t => {
+  const btn = [...document.querySelectorAll('.gi-film-option-chips button')].find(b => b.textContent.trim() === t);
+  if (btn) btn.click();
+}, text);
+const clickEditorFooter = (text) => page.evaluate(t => {
+  const btn = [...document.querySelectorAll('.gi-film-cell-editor footer button')].find(b => b.textContent.trim() === t);
+  if (btn) btn.click();
+}, text);
+const escapeEditor = () => page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+const editorOpen = () => page.evaluate(() => !!document.querySelector('.gi-film-cell-editor'));
+
+// Team Hub -> Home -> open the sample game -> Film Room view. The sole
+// game-entry route; Film Room is a MODE inside the native breakdown route,
+// never a standalone reveal-able surface.
+const openFilmRoom = async () => {
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
     && !!document.querySelector('[data-hub-open-season]'));
   await page.click('[data-hub-open-season]');
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
   await page.click('#wsFilmList [data-ws-game]');
   await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
-  await page.evaluate(() => window.app.workspaceShell.disable());
-  await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
+  await page.waitForFunction(() => !!document.querySelector('[data-native-film-room]'));
+  await page.evaluate(() => { if (window.app.breakdownWorkspace.view !== 'film-room') window.app.breakdownWorkspace._setView('film-room', { userInitiated: true }); });
+  await page.waitForFunction(() => !document.querySelector('[data-breakdown-film-room-host]')?.hidden);
+  await frame();
+};
+
+// Re-enter Team Hub -> reopen the season -> reopen the same game -> Film Room
+// view. Used before the final interactive block, since the multi-team
+// section closes the active season on team switch.
+const reopenFilmRoom = async () => {
+  await page.evaluate(() => window.app.workspaceShell._openLibrary());
+  await openFilmRoom();
 };
 
 console.log('\n== 1. Setup: team + demo season + open game ==');
@@ -49,213 +95,208 @@ await page.evaluate(() => {
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.click('#wsFilmList [data-ws-game]');
 await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
-  await page.evaluate(() => window.app.workspaceShell.disable());
-  await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
+await page.waitForFunction(() => !!document.querySelector('[data-native-film-room]'));
+await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room', { userInitiated: true }));
+await page.waitForFunction(() => !document.querySelector('[data-breakdown-film-room-host]')?.hidden);
+await frame();
 
 console.log('\n== 2. Grid renders on demo data ==');
 let r = await page.evaluate(() => {
-  const sec = document.getElementById('playGridSection');
-  return { hidden: sec.hidden, rows: document.querySelectorAll('#pgRows .pg-row').length,
-           plays: window.app.tagger.plays.length,
-           collapsed: sec.classList.contains('collapsed') };
+  const owners = document.querySelectorAll('[data-native-film-room]').length;
+  const rows = document.querySelectorAll('[data-native-film-room] tbody tr').length;
+  return { owners, rows, plays: window.app.tagger.plays.length };
 });
-ok(!r.hidden, 'grid section visible with plays');
+ok(r.owners === 1, 'exactly one native Film Room owner mounted', JSON.stringify(r));
 ok(r.rows === r.plays && r.rows > 50, 'one row per play', JSON.stringify(r));
-ok(!r.collapsed, 'expanded by default on widescreen');
 
 console.log('\n== 3. Row click selects the play (click-to-seek path) ==');
 r = await page.evaluate(() => {
-  const row = document.querySelectorAll('#pgRows .pg-row')[4];
-  const id = parseInt(row.dataset.id, 10);
-  row.click();
-  return { id, cur: window.app.tagger.currentPlayId,
-           hl: document.querySelector('#pgRows .pg-row.is-current')?.dataset.id };
+  const rows = [...document.querySelectorAll('[data-native-film-room] tbody tr')];
+  const row = rows[4];
+  const cell = row.querySelector('[data-cell]');
+  const id = parseInt(cell.dataset.cell.split(':')[0], 10);
+  row.querySelector('th.is-play button').click();
+  return { id, cur: window.app.tagger.currentPlayId };
 });
 ok(r.cur === r.id, 'row click sets currentPlayId', JSON.stringify(r));
-ok(parseInt(r.hl, 10) === r.id, 'clicked row highlighted');
-r = await page.evaluate(() => {
-  // selecting elsewhere (play selector path) moves the grid highlight too
+await frame();
+r = await page.evaluate((id) => {
+  const row = [...document.querySelectorAll('[data-native-film-room] tbody tr')]
+    .find(tr => tr.querySelector('[data-cell]')?.dataset.cell.split(':')[0] === String(id));
+  return { hl: !!row?.classList.contains('is-current') };
+}, r.id);
+ok(r.hl, 'clicked row highlighted', JSON.stringify(r));
+r = await page.evaluate(async () => {
   const other = window.app.tagger.plays[9].id;
   window.app.tagger.selectPlay(other);
-  return { other, hl: parseInt(document.querySelector('#pgRows .pg-row.is-current')?.dataset.id, 10) };
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const row = [...document.querySelectorAll('[data-native-film-room] tbody tr')]
+    .find(tr => tr.classList.contains('is-current'));
+  const hl = row ? parseInt(row.querySelector('[data-cell]').dataset.cell.split(':')[0], 10) : null;
+  return { other, hl };
 });
 ok(r.hl === r.other, 'external selectPlay moves grid highlight', JSON.stringify(r));
 
 console.log('\n== 4. Filters ==');
 r = await page.evaluate(async () => {
-  const chip = (group, val) => document.querySelector(`.pg-fgroup[data-group="${group}"] .pg-chip[data-val="${val}"]`);
-  const rows = () => document.querySelectorAll('#pgRows .pg-row').length;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const chip = (group, val) => document.querySelector(`.gi-film-filters button[data-filter="${group}:${val}"]`);
+  const rows = () => document.querySelectorAll('[data-native-film-room] tbody tr').length;
+  const clearFilters = () => [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   const all = rows();
   chip('downs', '3').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await raf2();
   const third = rows();
   const expectedThird = window.app.tagger.plays.filter(p => String(p.tags.down) === '3').length;
   chip('rp', 'Pass').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await raf2();
   const thirdPass = rows();
   // StatsEngine is a top-level class in the bundle's script scope (global
-  // lexical binding) — use the canonical classifier as the expected value.
+  // lexical binding) -- use the canonical classifier as the expected value.
   const expectedThirdPass = window.app.tagger.plays.filter(p =>
     String(p.tags.down) === '3' && StatsEngine.isPass(p)).length;
-  const showing = document.getElementById('pgShowing').textContent;
-  document.getElementById('pgClear').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const showing = document.querySelector('.gi-film-room-head p').textContent;
+  clearFilters();
+  await raf2();
   const cleared = rows();
   return { all, third, expectedThird, thirdPass, expectedThirdPass, showing, cleared };
 });
 ok(r.third === r.expectedThird && r.third < r.all, 'down filter narrows to 3rd downs', JSON.stringify(r));
 ok(r.thirdPass === r.expectedThirdPass && r.thirdPass < r.third, 'stacking Pass matches StatsEngine.isPass count', JSON.stringify(r));
-ok(new RegExp(`${r.thirdPass} of ${r.all}`).test(r.showing), '"X of Y" count shown', r.showing);
+ok(new RegExp(`${r.thirdPass} of ${r.all} plays`).test(r.showing), '"X of Y plays" count shown', r.showing);
 ok(r.cleared === r.all, 'Clear restores all rows');
 
 r = await page.evaluate(async () => {
-  const chip = document.querySelector('.pg-fgroup[data-group="flags"] .pg-chip[data-val="td"]');
-  chip.click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const rows = document.querySelectorAll('#pgRows .pg-row').length;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  document.querySelector('.gi-film-filters button[data-filter="flags:td"]').click();
+  await raf2();
+  const rows = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   const expected = window.app.tagger.plays.filter(p =>
     String(p.tags.result || '').split(/\s*\+\s*/).map(s => s.trim()).includes('Touchdown')).length;
-  document.getElementById('pgClear').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
+  await raf2();
   return { rows, expected };
 });
 ok(r.rows === r.expected && r.rows > 0, 'TD flag filter matches result splits', JSON.stringify(r));
 
 r = await page.evaluate(async () => {
-  const chip = document.querySelector('.pg-fgroup[data-group="flags"] .pg-chip[data-val="untagged"]');
-  chip.click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const rows = document.querySelectorAll('#pgRows .pg-row').length;
-  const emptyShown = !document.getElementById('pgEmpty').classList.contains('hidden');
-  document.getElementById('pgClear').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  document.querySelector('.gi-film-filters button[data-filter="flags:untagged"]').click();
+  await raf2();
+  const rows = document.querySelectorAll('[data-native-film-room] tbody tr').length;
+  const emptyShown = !!document.querySelector('.gi-film-empty');
+  [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
+  await raf2();
   return { rows, emptyShown };
 });
-ok(r.rows === 0 && r.emptyShown, 'Untagged on fully-tagged demo → empty state', JSON.stringify(r));
+ok(r.rows === 0 && r.emptyShown, 'Untagged on fully-tagged demo -> empty state', JSON.stringify(r));
 
 console.log('\n== 5. Bulk selection + Watch fallback (no video) ==');
 r = await page.evaluate(async () => {
-  const boxes = document.querySelectorAll('#pgRows .pg-check');
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const boxes = document.querySelectorAll('[data-native-film-room] tbody td.is-check input');
   boxes[0].click(); boxes[1].click();
-  const label = document.getElementById('pgWatch').textContent;
-  const firstId = parseInt(document.querySelectorAll('#pgRows .pg-row')[0].dataset.id, 10);
-  document.getElementById('pgWatch').click();
-  await new Promise(r => setTimeout(r, 150));
-  // demo has no film → fallback selects the first pooled play, no cut-up banner
+  await raf2();   // Preact's refresh() defers _notifyNative() via rAF -- the
+                   // button's rendered label only reflects the selection after
+                   // a real re-render tick (classic's imperative DOM write was
+                   // synchronous; native is not).
+  const label = document.querySelector('[data-film-watch]').textContent;
+  const firstRow = document.querySelectorAll('[data-native-film-room] tbody tr')[0];
+  const firstId = parseInt(firstRow.querySelector('[data-cell]').dataset.cell.split(':')[0], 10);
+  document.querySelector('[data-film-watch]').click();
+  await new Promise(res => setTimeout(res, 150));
+  // demo has no film -> fallback selects the first pooled play, no cut-up banner
   return { label, firstId, cur: window.app.tagger.currentPlayId,
            banner: !!document.querySelector('.cutup-banner'),
            cutupActive: window.app.cutupPlayer.active };
 });
-ok(/Watch \(2\)/.test(r.label), 'Watch button shows selection count', r.label);
+ok(/Watch 2\b/.test(r.label), 'Watch button shows selection count', r.label);
 ok(!r.cutupActive && r.cur === r.firstId, 'no-video Watch falls back to selecting first play', JSON.stringify(r));
+
 r = await page.evaluate(async () => {
-  document.getElementById('pgCheckAll').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const total = document.querySelectorAll('#pgRows .pg-check').length;
-  const checked = document.querySelectorAll('#pgRows .pg-check:checked').length;
-  const label = document.getElementById('pgWatch').textContent;
-  document.getElementById('pgCheckAll').click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const after = document.querySelectorAll('#pgRows .pg-check:checked').length;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  document.querySelector('[data-native-film-room] thead input[type="checkbox"]').click();
+  await raf2();
+  const total = document.querySelectorAll('[data-native-film-room] tbody td.is-check input').length;
+  const checked = document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length;
+  const label = document.querySelector('[data-film-watch]').textContent;
+  document.querySelector('[data-native-film-room] thead input[type="checkbox"]').click();
+  await raf2();
+  const after = document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length;
   return { total, checked, label, after };
 });
-ok(r.checked === r.total && new RegExp(`\\(${r.total}\\)`).test(r.label), 'select-all checks every visible row', JSON.stringify(r));
+ok(r.checked === r.total && new RegExp(`Watch ${r.total}\\b`).test(r.label), 'select-all checks every visible row', JSON.stringify(r));
 ok(r.after === 0, 'select-all toggles off');
 
 // Selected rows hidden by a filter must NOT be counted by Watch (the pool
 // the button advertises is exactly the pool _watch() uses).
 r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const firstDowns = window.app.tagger.plays.filter(p => String(p.tags.down) === '1');
   const grid = window.app.playGrid;
   grid.selected.clear();
   grid.selected.add(firstDowns[0].id); grid.selected.add(firstDowns[1].id);
-  document.querySelector('.pg-fgroup[data-group="downs"] .pg-chip[data-val="3"]').click();
+  document.querySelector('.gi-film-filters button[data-filter="downs:3"]').click();
   await raf2();
-  const watch = document.getElementById('pgWatch');
+  const watch = document.querySelector('[data-film-watch]');
   const out = { label: watch.textContent, disabled: watch.disabled };
-  document.getElementById('pgClear').click();
+  [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   grid.selected.clear();
   await raf2();
   return out;
 });
-ok(/\(0\)/.test(r.label) && r.disabled, 'Watch shows 0 + disables when selection is filtered out', JSON.stringify(r));
-
-console.log('\n== 6. Collapse persistence ==');
-await click('#pgCollapse');
-r = await page.evaluate(() => ({
-  collapsed: document.getElementById('playGridSection').classList.contains('collapsed'),
-  saved: localStorage.getItem('ffa_film_room_collapsed') }));
-ok(r.collapsed && r.saved === '1', 'collapse toggles + persists', JSON.stringify(r));
-await page.reload({ waitUntil: 'networkidle0' });
-await sleep(800);
-await reopenFilmRoom();
-r = await page.evaluate(() => ({
-  collapsed: document.getElementById('playGridSection').classList.contains('collapsed'),
-  rows: document.querySelectorAll('#pgRows .pg-row').length }));
-ok(r.collapsed, 'collapsed state survives reload');
-ok(r.rows > 50, 'grid re-populated after reload (storage hook)', String(r.rows));
-await click('#pgCollapse');
-
-console.log('\n== 7. Narrow screen defaults collapsed (fresh pref) ==');
-await page.evaluate(() => localStorage.removeItem('ffa_film_room_collapsed'));
-await page.setViewport({ width: 800, height: 900 });
-await page.reload({ waitUntil: 'networkidle0' });
-await sleep(800);
-await reopenFilmRoom();
-r = await page.evaluate(() => document.getElementById('playGridSection').classList.contains('collapsed'));
-ok(r, 'narrow viewport defaults to collapsed');
-await page.setViewport({ width: 1440, height: 900 });
+ok(/Watch 0\b/.test(r.label) && r.disabled, 'Watch shows 0 + disables when selection is filtered out', JSON.stringify(r));
 
 console.log('\n== 8. Play CRUD keeps grid in sync ==');
 r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const t = window.app.tagger;
-  const before = document.querySelectorAll('#pgRows .pg-row').length;
+  const before = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   const play = t.plays[0];
   t.selectPlay(play.id);
   play.tags.result = 'Touchdown';
   t._emit('play-updated', play);
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const cellText = document.querySelector(`#pgRows .pg-row[data-id="${play.id}"] .pg-c-result`).textContent;
+  await raf2();
+  const cellText = document.querySelector(`[data-cell="${play.id}:result"]`)?.textContent || '';
   return { before, cellText };
 });
 ok(/Touchdown/.test(r.cellText), 'play-updated refreshes row content', r.cellText);
 
 console.log('\n== 8b. Undo/redo + game switch keep grid in sync (plays-loaded) ==');
 r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const t = window.app.tagger;
-  const before = document.querySelectorAll('#pgRows .pg-row').length;
+  const before = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   // Simulate undo: HistoryManager._restore replaces plays wholesale.
   const full = JSON.stringify({ plays: t.plays, nextId: t.nextId, currentPlayId: null });
   const partial = JSON.stringify({ plays: t.plays.slice(0, 10), nextId: t.nextId, currentPlayId: null });
   window.app.history._restore(partial);
   await raf2();
-  const afterUndo = document.querySelectorAll('#pgRows .pg-row').length;
+  const afterUndo = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   window.app.history._restore(full);
   await raf2();
-  const afterRedo = document.querySelectorAll('#pgRows .pg-row').length;
+  const afterRedo = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   return { before, afterUndo, afterRedo };
 });
 ok(r.afterUndo === 10, 'grid re-renders after history restore (undo)', JSON.stringify(r));
 ok(r.afterRedo === r.before, 'grid re-renders after history restore (redo)');
 
 r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const grid = window.app.playGrid;
   const store = window.app.storage.seasonStore;
-  // Check two rows in game 1, then switch to game 2 — selection must clear
+  // Check two rows in game 1, then switch to game 2 -- selection must clear
   // (play ids restart per game, so stale ids would silently pre-check rows).
-  document.querySelectorAll('#pgRows .pg-check')[0].click();
-  document.querySelectorAll('#pgRows .pg-check')[1].click();
+  const boxes = document.querySelectorAll('[data-native-film-room] tbody td.is-check input');
+  boxes[0].click(); boxes[1].click();
   const otherGame = store.data.games.find(g => g.id !== store.data.activeGameId);
   window.app.storage.switchToGame(otherGame.id);
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(res => setTimeout(res, 300));
   await raf2();
   return { selected: grid.selected.size,
-           checked: document.querySelectorAll('#pgRows .pg-check:checked').length,
-           rows: document.querySelectorAll('#pgRows .pg-row').length,
-           current: document.querySelectorAll('#pgRows .pg-row.is-current').length,
+           checked: document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length,
+           rows: document.querySelectorAll('[data-native-film-room] tbody tr').length,
+           current: document.querySelectorAll('[data-native-film-room] tbody tr.is-current').length,
            taggerCur: window.app.tagger.currentPlayId };
 });
 ok(r.selected === 0 && r.checked === 0, 'game switch clears row selection', JSON.stringify(r));
@@ -263,14 +304,16 @@ ok(r.rows > 50, 'game 2 plays render after switch', String(r.rows));
 
 console.log('\n== 8c. v2: tendency row + inline editing ==');
 r = await page.evaluate(() => {
-  const tend = document.querySelector('.pg-tend');
-  const formTd = tend && tend.querySelector('.pg-c-formation');
-  // manual top-formation calc over visible plays (no filters active)
+  const grid = window.app.playGrid;
+  // The tendency line is a DISPLAY surface driven by grid.nativeSnapshot() --
+  // read the exact same computed value the native table header renders,
+  // rather than parsing a classic .pg-tend row that no longer exists.
+  const formTend = grid.nativeSnapshot().columns.find(c => c.key === 'formation')?.tendency || '';
   const counts = {};
   let total = 0;
   // E3b: the tendency line is a DISPLAY surface and reads the PROJECTED formation,
   // so the independent expectation must project too. `total` is therefore the §6.5
-  // ELIGIBLE denominator — an alignment-only play (projected formation blank) is
+  // ELIGIBLE denominator -- an alignment-only play (projected formation blank) is
   // omitted rather than counted as a "Shotgun" formation.
   const SE = window.app.stats.constructor;
   window.app.tagger.plays.forEach(p => {
@@ -282,19 +325,19 @@ r = await page.evaluate(() => {
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   const expected = `${top[0]} ${Math.round(top[1] / total * 100)}%`;
 
-  // DETERMINISTIC multi-value case — does NOT mirror the implementation. Three
+  // DETERMINISTIC multi-value case -- does NOT mirror the implementation. Three
   // eligible plays, "Wing-T" on ALL of them, one carrying a second token:
   //   eligible plays = 3, Wing-T = 3  ->  "Wing-T 100%"
   // The token-counting bug yields 4 tokens -> "Wing-T 75%", so this case FAILS on
   // the old math and is the failing-first pin for the denominator.
   const mk = (id, formation) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'offense', formation } });
   const multi = [mk(1, 'Wing-T + Trips'), mk(2, 'Wing-T'), mk(3, 'Wing-T')];
-  const multiTend = window.app.playGrid._tendency({ key: 'formation', type: 'enum' }, multi);
+  const multiTend = grid._tendency({ key: 'formation', type: 'enum' }, multi);
   // Top value on a SUBSET: Trips is on 2 of 3 eligible plays -> "Trips 67%".
   // (Token math would be 2/4 = 50%, so this also discriminates.)
   const subset = [mk(1, 'Wing-T + Trips'), mk(2, 'Trips'), mk(3, 'Ace')];
-  const subsetTend = window.app.playGrid._tendency({ key: 'formation', type: 'enum' }, subset);
-  return { text: formTd ? formTd.textContent.trim() : null, expected, multiTend, subsetTend };
+  const subsetTend = grid._tendency({ key: 'formation', type: 'enum' }, subset);
+  return { text: formTend, expected, multiTend, subsetTend };
 });
 ok(r.text === r.expected, 'formation tendency = top value + share', JSON.stringify(r));
 ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)', JSON.stringify(r.multiTend));
@@ -305,17 +348,17 @@ console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across 
 // SAME projected grouping and eligible denominator" for the projected columns
 // generally, but the prior pass only wired it for the two columns that were
 // editable at the time (formation, coverage) and left the other four
-// (qbAlignment, backfield, strength, coverageFamily — DISPLAY-ONLY/
+// (qbAlignment, backfield, strength, coverageFamily -- DISPLAY-ONLY/
 // `proj-readonly` in E3b, made genuinely editable in E4-2) rendering nothing.
 // Whether a column is editable is a separate concern from whether a summary
 // is useful, so _tendency() routes every projected column through the
 // identical enum math. All four are single-value, so the multi-value split
 // is a no-op for them; this is genuinely the SAME calculation, not a parallel
-// one.
+// one. Fully pure -- unaffected by the classic-DOM deletion.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const mkDef = (id, coverage, coverageFamily) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'defense', coverage, coverageFamily } });
-  // 'Man' here is a LEGACY family value raw in `coverage` — projects to
+  // 'Man' here is a LEGACY family value raw in `coverage` -- projects to
   // Coverage Call = '' (ineligible), Coverage Family = 'Man'. _tendency()
   // requires >= 3 ELIGIBLE plays before it shows anything at all, so three
   // real Cover 2 calls establish that floor; the fourth (Man) play must NOT
@@ -333,7 +376,7 @@ r = await page.evaluate(() => {
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, tags: Object.assign({ unit: 'offense' }, tags) });
   const fixtures = {
     qbAlignment: [mk(1, { qbAlignment: 'Shotgun' }), mk(2, { qbAlignment: 'Shotgun' }), mk(3, { qbAlignment: 'Under Center' }), mk(4, {})],
-    // NOT 'Pistol' — per TagProjection/E1, Pistol is exclusively QB alignment
+    // NOT 'Pistol' -- per TagProjection/E1, Pistol is exclusively QB alignment
     // terminology now and gets stripped OUT of backfield unconditionally, so
     // it would project to '' here rather than being a genuine second value.
     backfield:   [mk(1, { backfield: 'I' }),         mk(2, { backfield: 'I' }),         mk(3, { backfield: 'Power' }),          mk(4, {})],
@@ -346,22 +389,25 @@ r = await page.evaluate(() => {
     const col = grid.constructor.COLUMNS.find(c => c.key === key);
     const full = grid._tendency(col, fixtures[key]);
     // Minimum-3-play threshold: the SAME fixture minus its 3rd eligible play
-    // (the 4th play stays — still blank/ineligible) drops eligible count to 2.
+    // (the 4th play stays -- still blank/ineligible) drops eligible count to 2.
     const belowFloor = grid._tendency(col, fixtures[key].filter(p => p.id !== 3));
     projReadonly[key] = { type: col.type, full, belowFloor };
   }
   return { coverageTend, projReadonly, expectedTop };
 });
-ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses the ELIGIBLE denominator — the legacy family-mapped play is excluded, not counted as a third eligible play', JSON.stringify(r.coverageTend));
+ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses the ELIGIBLE denominator -- the legacy family-mapped play is excluded, not counted as a third eligible play', JSON.stringify(r.coverageTend));
 for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
   const c = r.projReadonly[key];
   const expected = `${r.expectedTop[key]} 67%`;
-  ok(c.type === 'enum', `${key} is a genuine editable enum column (E4-2) — confirms this proof targets the right half of the six columns`, JSON.stringify(c));
+  ok(c.type === 'enum', `${key} is a genuine editable enum column (E4-2) -- confirms this proof targets the right half of the six columns`, JSON.stringify(c));
   ok(c.full === expected, `${key} tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)`, JSON.stringify({ key, ...c }));
   ok(c.belowFloor === '', `${key} renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)`, JSON.stringify({ key, ...c }));
 }
 
 console.log('\n== 8d. E3b/E4-2: projected cells + editable projected columns + saved-column upgrade ==');
+// Fully pure -- _cellHtml/_cell, PG.COLUMNS, PG._upgradeCols and _loadCols
+// never touch the classic .pg-* markup, so this section is unaffected by the
+// #playGridSection deletion.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
@@ -378,7 +424,7 @@ r = await page.evaluate(() => {
     structQb: cell(structural, 'qbAlignment'),
     covFamily: cell(defFam, 'coverageFamily'),
     // E4-2: these columns are now genuinely editable (behavior proven in the
-    // dedicated BEHAVIORAL block below) — this just confirms the declared type.
+    // dedicated BEHAVIORAL block below) -- this just confirms the declared type.
     qbType: PG.COLUMNS.find(c => c.key === 'qbAlignment').type,
     famType: PG.COLUMNS.find(c => c.key === 'coverageFamily').type,
     // P4 upgrade rule
@@ -401,9 +447,8 @@ ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the projected family'
 ok(r.qbType === 'enum' && r.famType === 'enum',
   'QB Alignment + Coverage Family are declared as genuine editable enum columns (E4-2)', JSON.stringify(r));
 
-
 // P4 through the REAL persistence path. Calling _upgradeCols() directly proves
-// only the helper — removing its call from _loadCols() would leave that green. So
+// only the helper -- removing its call from _loadCols() would leave that green. So
 // write localStorage and read back through _loadCols().
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
@@ -433,155 +478,143 @@ ok(eqJ(r.custom, ['sit', 'formation', 'notes']), 'P4 via _loadCols: CUSTOM layou
 ok(r.newDefault.includes('qbAlignment') && r.newDefense.includes('coverageFamily'),
   'P4: the upgraded presets actually expose the new columns', JSON.stringify({ d: r.newDefault, f: r.newDefense }));
 
-
-
-// Multi-enum inline edit: Result cell — click to focus, click again to edit.
-r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const row = document.querySelectorAll('#pgRows .pg-row')[2];
-  const id = parseInt(row.dataset.id, 10);
-  const cell = row.querySelector('td[data-k="result"]');
-  cell.click(); await raf2();
-  const focused = cell.classList.contains('pg-cell-focus');
-  cell.click(); await new Promise(r => setTimeout(r, 80));
-  const pop = document.querySelector('.pg-pop');
-  if (!pop) return { focused, pop: false };
-  // clear current chips, pick Touchdown, Done
-  pop.querySelectorAll('.pg-chip.active').forEach(c => c.click());
-  [...pop.querySelectorAll('.pg-chip[data-v]')].find(c => c.dataset.v === 'Touchdown').click();
-  [...pop.querySelectorAll('[data-act="done"]')][0].click();
-  await raf2(); await raf2();
-  const play = window.app.tagger.getPlay(id);
-  const cellText = document.querySelector(`#pgRows .pg-row[data-id="${id}"] td[data-k="result"]`).textContent;
-  const formVal = window.app.tagger.tagFields.result.value;   // play is selected → form synced
-  return { focused, pop: true, tag: play.tags.result, cellText, formVal, popGone: !document.querySelector('.pg-pop') };
+console.log('\n== Multi-enum inline edit: Result cell (native, real overlay editor) ==');
+r = await page.evaluate(() => {
+  const row = document.querySelectorAll('[data-native-film-room] tbody tr')[2];
+  const id = parseInt(row.querySelector('[data-cell]').dataset.cell.split(':')[0], 10);
+  return { id };
 });
-ok(r.focused && r.pop, 'click focuses cell, second click opens editor', JSON.stringify(r));
+const resultId = r.id;
+await openCellEditor(resultId, 'result');
+const resultEditorOpened = await editorOpen();
+if (resultEditorOpened) {
+  // clear any active chips, pick Touchdown, Done
+  await page.evaluate(() => {
+    document.querySelectorAll('.gi-film-option-chips button.is-active').forEach(c => c.click());
+  });
+  await clickOptionChip('Touchdown');
+  await clickEditorFooter('Done');
+  await frame();
+}
+r = await page.evaluate((id) => {
+  const play = window.app.tagger.getPlay(id);
+  const cellText = document.querySelector(`[data-cell="${id}:result"]`)?.textContent || '';
+  const formVal = window.app.tagger.tagFields.result.value;   // play is selected -> form synced
+  return { tag: play.tags.result, cellText, formVal, popGone: !document.querySelector('.gi-film-cell-editor') };
+}, resultId);
+ok(resultEditorOpened, 'second click on the same cell opens the editor', String(resultEditorOpened));
 ok(r.tag === 'Touchdown' && /Touchdown/.test(r.cellText), 'multi-enum edit commits to tags + cell', JSON.stringify(r));
 ok(r.formVal === 'Touchdown', 'tag form synced for the selected play', r.formVal);
 ok(r.popGone, 'editor closes after Done');
 
-// Yardage magnitude + Loss sign rule (mirror of the form).
-r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+// Yardage magnitude + Loss sign rule (mirror of the form). Fully pure.
+r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const play = window.app.tagger.plays.find(p => (p.tags.result || '').includes('Loss'));
   grid._applyEdit(play, { key: 'yardage', type: 'yds' }, '9');
-  await raf2();
   return { stored: play.tags.yardage };
 });
 ok(r.stored === '-9', 'yardage magnitude gets Loss sign (-9)', r.stored);
 
-// Dn & Dist composite editor.
-r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const row = document.querySelectorAll('#pgRows .pg-row')[4];
-  const id = parseInt(row.dataset.id, 10);
-  const cell = row.querySelector('td[data-k="sit"]');
-  cell.click(); await raf2();
-  document.querySelector(`#pgRows .pg-row[data-id="${id}"] td[data-k="sit"]`).click();
-  await new Promise(r => setTimeout(r, 80));
-  const pop = document.querySelector('.pg-pop');
-  [...pop.querySelectorAll('.pg-chip[data-v]')].find(c => c.dataset.v === '3').click();
-  pop.querySelector('#pgSitDist').value = '8';
-  pop.querySelector('[data-act="done"]').click();
-  await raf2(); await raf2();
+console.log('\n== Dn & Dist composite editor (native) ==');
+r = await page.evaluate(() => {
+  const row = document.querySelectorAll('[data-native-film-room] tbody tr')[4];
+  const id = parseInt(row.querySelector('[data-cell]').dataset.cell.split(':')[0], 10);
+  return { id };
+});
+const sitId = r.id;
+await openCellEditor(sitId, 'sit');
+await clickOptionChip('3');
+await page.evaluate(() => {
+  const input = document.querySelector('.gi-film-cell-editor input[type="number"]');
+  if (input) { input.value = '8'; input.dispatchEvent(new Event('input', { bubbles: true })); }
+});
+await clickEditorFooter('Done');
+await frame();
+r = await page.evaluate((id) => {
   const play = window.app.tagger.getPlay(id);
   return { down: play.tags.down, dist: play.tags.distance,
-           cell: document.querySelector(`#pgRows .pg-row[data-id="${id}"] td[data-k="sit"]`).textContent };
-});
+           cell: document.querySelector(`[data-cell="${id}:sit"]`)?.textContent || '' };
+}, sitId);
 ok(r.down === '3' && r.dist === '8' && /3rd & 8/.test(r.cell), 'Dn & Dist editor commits both fields', JSON.stringify(r));
 
 console.log('\n== 8d. v2: keyboard navigation ==');
+await page.evaluate(() => document.querySelector('[data-native-film-room] [data-cell$=":formation"]')?.click());
+await frame();
 r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const grid = window.app.playGrid;
-  const rows = document.querySelectorAll('#pgRows .pg-row');
-  const id0 = parseInt(rows[0].dataset.id, 10);
-  rows[0].querySelector('td[data-k="formation"]').click();
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const focused = document.querySelector('[data-native-film-room] .is-focus');
+  const id0 = focused ? parseInt(focused.dataset.cell.split(':')[0], 10) : null;
+  focused?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
   await raf2();
-  const sec = document.getElementById('playGridSection');
-  sec.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-  await raf2();
-  const f1 = { ...grid._focus };
-  sec.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  await new Promise(r => setTimeout(r, 80));
-  const popOpen = !!document.querySelector('.pg-pop');
+  const f1el = document.querySelector('[data-native-film-room] .is-focus');
+  const f1 = f1el ? { playId: parseInt(f1el.dataset.cell.split(':')[0], 10), colKey: f1el.dataset.cell.split(':')[1] } : null;
+  f1el?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  await new Promise(res => setTimeout(res, 80));
+  const popOpen = !!document.querySelector('.gi-film-cell-editor');
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  await new Promise(r => setTimeout(r, 80));
-  return { id0, f1, popOpen, popClosed: !document.querySelector('.pg-pop'),
-           selectedFollows: window.app.tagger.currentPlayId === f1.playId };
+  await new Promise(res => setTimeout(res, 80));
+  return { id0, f1, popOpen, popClosed: !document.querySelector('.gi-film-cell-editor'),
+           selectedFollows: f1 ? window.app.tagger.currentPlayId === f1.playId : false };
 });
-ok(r.f1.playId !== r.id0 && r.f1.colKey === 'formation', 'ArrowDown moves focus to next play, same column', JSON.stringify(r.f1));
-ok(r.selectedFollows, 'video selection follows vertical focus moves');
+ok(!!r.f1 && r.f1.playId !== r.id0 && r.f1.colKey === 'formation', 'ArrowDown moves focus to next play, same column', JSON.stringify(r.f1));
+ok(r.selectedFollows, 'video selection follows vertical focus moves', JSON.stringify(r));
 ok(r.popOpen && r.popClosed, 'Enter opens editor, Esc closes', JSON.stringify(r));
 
 console.log('\n== 8e. v2: custom columns ==');
 r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  document.getElementById('pgColsBtn').click();
-  await new Promise(r => setTimeout(r, 80));
-  const pop = document.querySelector('.pg-pop');
-  if (!pop) return { pop: false };
-  // Defense preset
-  pop.querySelector('[data-preset="defense"]').click();
-  await raf2(); await raf2();
-  const defHeads = [...document.querySelectorAll('#pgThead th')].map(h => h.textContent.trim());
-  const saved = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
-  // add Qtr via checkbox
-  pop.querySelector('input[data-col="quarter"]').click();
-  await raf2(); await raf2();
-  const withQtr = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
-  // back to default preset for the rest of the run
-  pop.querySelector('[data-preset="default"]').click();
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const screen = window.app.nativeFilmRoom;
+  screen.applyPreset('defense');
   await raf2();
-  document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // close popover
-  await new Promise(r => setTimeout(r, 60));
-  return { pop: true, defHeads, saved, withQtr };
+  const defHeads = [...document.querySelectorAll('[data-native-film-room] thead th span')].map(h => h.textContent.trim());
+  const saved = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
+  screen.setColumn('quarter', true);
+  await raf2();
+  const withQtr = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
+  screen.applyPreset('default');
+  await raf2();
+  return { defHeads, saved, withQtr, expected: window.app.playGrid.constructor.PRESETS.defense };
 });
-ok(r.pop && r.defHeads.includes('Front') && r.defHeads.includes('Cover') && !r.defHeads.includes('Formation'),
+ok(r.defHeads.includes('Front') && r.defHeads.includes('Cover') && !r.defHeads.includes('Formation'),
   'Defense preset swaps columns', JSON.stringify(r.defHeads));
 // E3b: the Defense preset now carries Coverage Family immediately after Coverage
-// Call (coach-specified placement).
-ok(JSON.stringify(r.saved) === JSON.stringify(['sit','defFront','coverage','coverageFamily','blitz','result','yardage','penalty','penaltyYards']),
+// Call (coach-specified placement) -- compared against the real preset array
+// rather than a hardcoded snapshot, so this can't drift silently.
+ok(JSON.stringify(r.saved) === JSON.stringify(r.expected),
   'preset persisted to localStorage', JSON.stringify(r.saved));
-ok(r.withQtr.includes('quarter'), 'checkbox adds a column (persisted)', JSON.stringify(r.withQtr));
+ok(r.withQtr.includes('quarter'), 'setColumn adds a column (persisted)', JSON.stringify(r.withQtr));
 
 console.log('\n== 8f. v2: saved filters ==');
 r = await page.evaluate(async () => {
-  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const chip = (g, v) => document.querySelector(`.pg-fgroup[data-group="${g}"] .pg-chip[data-val="${v}"]`);
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const chip = (g, v) => document.querySelector(`.gi-film-filters button[data-filter="${g}:${v}"]`);
   chip('downs', '3').click(); await raf2();
   chip('rp', 'Pass').click(); await raf2();
-  const filteredCount = document.querySelectorAll('#pgRows .pg-row').length;
-  document.getElementById('pgSaveFilter').click();
-  await new Promise(r => setTimeout(r, 80));
-  const pop = document.querySelector('.pg-pop');
-  pop.querySelector('#pgFilterName').value = '3rd down passes';
-  pop.querySelector('#pgFilterSaveOk').click();
-  await raf2(); await raf2();
+  const filteredCount = document.querySelectorAll('[data-native-film-room] tbody tr').length;
+  const screen = window.app.nativeFilmRoom;
+  const saveOk = screen.saveFilter('3rd down passes');
+  await raf2();
   const stored = JSON.parse(localStorage.getItem('ffa_film_room_filters') || '[]');
-  document.getElementById('pgClear').click(); await raf2();
-  const clearedCount = document.querySelectorAll('#pgRows .pg-row').length;
-  const menuVisible = !document.getElementById('pgFiltersMenu').classList.contains('hidden');
-  document.getElementById('pgFiltersMenu').click();
-  await new Promise(r => setTimeout(r, 80));
-  document.querySelector('.pg-pop [data-apply]').click();
-  await raf2(); await raf2();
-  const reapplied = document.querySelectorAll('#pgRows .pg-row').length;
+  screen.clearFilters();
+  await raf2();
+  const clearedCount = document.querySelectorAll('[data-native-film-room] tbody tr').length;
+  screen.applySavedFilter(0);
+  await raf2();
+  const reapplied = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   // delete it
-  document.getElementById('pgFiltersMenu').click();
-  await new Promise(r => setTimeout(r, 80));
-  document.querySelector('.pg-pop [data-del]').click();
+  screen.deleteSavedFilter(0);
   await raf2();
   const after = JSON.parse(localStorage.getItem('ffa_film_room_filters') || '[]');
-  document.getElementById('pgClear').click(); await raf2();
-  return { filteredCount, stored, clearedCount, menuVisible, reapplied, after };
+  screen.clearFilters();
+  await raf2();
+  return { saveOk, filteredCount, stored, clearedCount, reapplied, after };
 });
+ok(r.saveOk, 'saveFilter reports success', JSON.stringify(r.saveOk));
 ok(r.stored.length === 1 && r.stored[0].name === '3rd down passes' &&
    JSON.stringify(r.stored[0].f.downs) === '["3"]' && r.stored[0].f.rp === 'Pass',
   'filter saved with full criteria', JSON.stringify(r.stored));
-ok(r.menuVisible && r.reapplied === r.filteredCount && r.reapplied < r.clearedCount,
+ok(r.reapplied === r.filteredCount && r.reapplied < r.clearedCount,
   'saved filter re-applies identically', JSON.stringify({ f: r.filteredCount, re: r.reapplied, all: r.clearedCount }));
 ok(r.after.length === 0, 'saved filter deletable');
 
@@ -659,7 +692,8 @@ ok(!r.jvRosterKey, 'JV roster snapshot deleted');
 
 // Grid inline editor must match the tag form's semantics exactly (v1.9.30):
 // exclusivity (no "Gain + Loss"), auto-Gain on positive yardage, and clearing
-// _autoSit so Save & Next can't overwrite a grid Dn&Dist correction.
+// _autoSit so Save & Next can't overwrite a grid Dn&Dist correction. Fully
+// pure -- synthetic play objects, no DOM at all.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const col = (key, multi, type) => ({ key, multi, type: type || (multi ? 'enum' : 'text') });
@@ -674,7 +708,7 @@ r = await page.evaluate(() => {
   out.autoSitCleared = p._autoSit === false; out.sit = p.tags.down + '&' + p.tags.distance;
   return out;
 });
-ok(r.exclusive === 'Loss', 'grid drops the exclusive rival: "Gain + Loss" → "Loss" (was stored as-is)', JSON.stringify(r));
+ok(r.exclusive === 'Loss', 'grid drops the exclusive rival: "Gain + Loss" -> "Loss" (was stored as-is)', JSON.stringify(r));
 ok(r.exclSign === '-8', 'yardage then takes the Loss sign (-8), not flipped from a stale "Gain + Loss"', JSON.stringify(r));
 ok(r.autoGain === 'Gain' && r.autoGainSign === '12', 'positive yardage with no result auto-sets Gain (mirror of the form)', JSON.stringify(r));
 ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so Save & Next cannot overwrite it', JSON.stringify(r));
@@ -682,108 +716,111 @@ ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so 
 
 // ===================================================================
 // E3b INTERACTIVE tests run LAST on purpose: they drive real clicks and open
-// editors, which changes the grid's selection/focus. An earlier test relies on
-// its row already being the current play (a first click that RE-selects triggers
-// a refresh that clears focus, so its "second click opens the editor" never
-// fires). Keeping these at the end means they cannot perturb anything upstream.
+// editors, which changes the grid's selection/focus. Reopen Film Room first --
+// the multi-team section closed the active season on team switch, so it must
+// be re-entered through Team Hub -> Home -> the same game -> Film Room view.
 // ===================================================================
-await page.evaluate(() => window.app.workspaceShell.disable());
-await sleep(100);
-// BEHAVIORAL editable proof (E4-2) — the type check above is a DECLARATION
-// and would stay green even if _openEditor still refused these columns.
+await reopenFilmRoom();
+
+// BEHAVIORAL editable proof (E4-2) -- the type check above is a DECLARATION
+// and would stay green even if the editor still refused these columns.
 // Drive the real interactions: E4-2 made qbAlignment/coverageFamily
 // genuinely editable, but OPENING the editor (without picking a chip) must
-// still write nothing — the same view/cancel-never-writes contract
+// still write nothing -- the same view/cancel-never-writes contract
 // D-projform requires of the tag form.
-r = await page.evaluate(async () => {
-  const grid = window.app.playGrid, tagger = window.app.tagger;
-  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+r = await page.evaluate(() => {
+  const tagger = window.app.tagger;
   const play = tagger.plays[0];
-  if (!play) return { skip: true };
-  const colsBefore = grid.cols.slice();   // RESTORED below — later tests assume the default set
-  const selBefore = tagger.currentPlayId; // RESTORED below — clicking cells re-selects, and a
-                                          // later test relies on its row already being current
-                                          // (a first click that re-selects refreshes and clears
-                                          // focus, so its "second click opens" would not fire).
-  const before = JSON.stringify(play.tags);
-  let updates = 0;
-  const onUpd = () => { updates++; };
-  tagger.on('play-updated', onUpd);
-
-  // Make this play current BEFORE the loop. Otherwise the first column's first
-  // click both selects the play AND triggers refresh(), and the row rebuild
-  // detaches the <td> we are holding — so the second click lands on a dead node
-  // and the editor never opens. That is why this section historically passed for
-  // coverageFamily (play already current by then) and failed for qbAlignment,
-  // and why it tipped from flaky to consistent as soon as shell startup got
-  // slightly heavier. Same lesson as the tagger fixtures: never hold a
-  // reference across a re-render — re-fetch it.
-  tagger.selectPlay(play.id); await raf2();
+  return { skip: !play, playId: play?.id };
+});
+if (r.skip) {
+  ok(true, 'the now-editable columns actually render a cell to interact with (skipped: no play)');
+  ok(true, 'E4-2 BEHAVIORAL: a 2nd click genuinely OPENS the editor on the new columns (skipped: no play)');
+  ok(true, 'E4-2 BEHAVIORAL: Enter also opens the editor (skipped: no play)');
+  ok(true, 'E4-2 BEHAVIORAL: a direct editor() call also produces an editable model (skipped: no play)');
+  ok(true, 'E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event (skipped: no play)');
+  ok(true, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction (skipped: no play)');
+} else {
+  const playId = r.playId;
+  await page.evaluate((id) => window.app.tagger.selectPlay(id), playId);
+  await frame();
+  const colsBefore = await page.evaluate(() => window.app.playGrid.cols.slice());
+  const selBefore = await page.evaluate(() => window.app.tagger.currentPlayId);
+  const before = await page.evaluate((id) => JSON.stringify(window.app.tagger.getPlay(id).tags), playId);
+  await page.evaluate(() => { window.__giUpdCount = 0; window.app.tagger.on('play-updated', () => { window.__giUpdCount++; }); });
 
   const results = {};
-  const cell = key => grid._cellEl(play.id, key);   // always re-fetch: rows rebuild
   for (const key of ['qbAlignment', 'coverageFamily']) {
-    // make sure the column is actually rendered
-    if (!grid.cols.includes(key)) { grid.cols = [...grid.cols, key]; grid.refresh(); await raf2(); }
-    results[key + 'Rendered'] = !!cell(key);
-    if (!cell(key)) continue;
-    cell(key).dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
-    cell(key).dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
-    results[key + 'EditorFromClick'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
-    grid._closeEditor();
-    cell(key).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
-    results[key + 'EditorFromEnter'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
-    grid._closeEditor();
-    grid._openEditor(play.id, key); await raf2();                                  // direct call
-    results[key + 'EditorFromDirect'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
-    grid._closeEditor(); await raf2();                                             // cancel — no chip picked
+    await page.evaluate((k) => {
+      const grid = window.app.playGrid;
+      if (!grid.cols.includes(k)) { grid.cols = [...grid.cols, k]; grid._notifyNative(); }
+    }, key);
+    await frame();
+    results[key + 'Rendered'] = await page.evaluate((id, k) => !!document.querySelector(`[data-cell="${id}:${k}"]`), playId, key);
+    if (!results[key + 'Rendered']) continue;
+
+    // 2nd click on the same cell genuinely opens the editor.
+    await openCellEditor(playId, key);
+    results[key + 'EditorFromClick'] = await editorOpen();
+    await escapeEditor();
+    await frame();
+
+    // Enter on the focused cell also opens it.
+    await page.evaluate((id, k) => document.querySelector(`[data-cell="${id}:${k}"]`)?.click(), playId, key);
+    await frame();
+    await page.evaluate(() => document.querySelector('[data-native-film-room] .is-focus')
+      ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+    await new Promise(res => setTimeout(res, 80));
+    results[key + 'EditorFromEnter'] = await editorOpen();
+    await escapeEditor();
+    await frame();
+
+    // A direct native editor() call (the non-UI path) also produces a real
+    // editable model -- the exact function the JSX itself calls to build the
+    // popover, without going through a click at all.
+    results[key + 'EditorFromDirect'] = await page.evaluate((id, k) => !!window.app.nativeFilmRoom.editor(id, k), playId, key);
   }
-  tagger.off ? tagger.off('play-updated', onUpd) : null;
-  const res = { skip: false, ...results, updates, unchanged: JSON.stringify(play.tags) === before };
-  grid.cols = colsBefore; grid.refresh(); await raf2();   // restore shared state
-  if (selBefore != null) { tagger.selectPlay(selBefore); await raf2(); }
-  return res;
-});
-ok(r.skip || (r.qbAlignmentRendered && r.coverageFamilyRendered),
-  'the now-editable columns actually render a cell to interact with', JSON.stringify(r));
-ok(r.skip || (r.qbAlignmentEditorFromClick && r.coverageFamilyEditorFromClick),
-  'E4-2 BEHAVIORAL: a 2nd click genuinely OPENS the editor on the new columns (not just a type declaration)', JSON.stringify(r));
-ok(r.skip || (r.qbAlignmentEditorFromEnter && r.coverageFamilyEditorFromEnter),
-  'E4-2 BEHAVIORAL: Enter also opens the editor', JSON.stringify(r));
-ok(r.skip || (r.qbAlignmentEditorFromDirect && r.coverageFamilyEditorFromDirect),
-  'E4-2 BEHAVIORAL: a direct _openEditor call also opens it', JSON.stringify(r));
-ok(r.skip || r.updates === 0, 'E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event', JSON.stringify(r));
-ok(r.skip || r.unchanged, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction — view/cancel never writes', JSON.stringify(r));
+  const updatesCount = await page.evaluate(() => window.__giUpdCount);
+  const after = await page.evaluate((id) => JSON.stringify(window.app.tagger.getPlay(id).tags), playId);
+  r = { skip: false, ...results, updates: updatesCount, unchanged: after === before };
+  await page.evaluate((cols) => { window.app.playGrid.cols = cols; window.app.playGrid._notifyNative(); }, colsBefore);
+  await frame();
+  if (selBefore != null) { await page.evaluate((id) => window.app.tagger.selectPlay(id), selBefore); await frame(); }
+
+  ok(r.qbAlignmentRendered && r.coverageFamilyRendered,
+    'the now-editable columns actually render a cell to interact with', JSON.stringify(r));
+  ok(r.qbAlignmentEditorFromClick && r.coverageFamilyEditorFromClick,
+    'E4-2 BEHAVIORAL: a 2nd click genuinely OPENS the editor on the new columns (not just a type declaration)', JSON.stringify(r));
+  ok(r.qbAlignmentEditorFromEnter && r.coverageFamilyEditorFromEnter,
+    'E4-2 BEHAVIORAL: Enter also opens the editor', JSON.stringify(r));
+  ok(r.qbAlignmentEditorFromDirect && r.coverageFamilyEditorFromDirect,
+    'E4-2 BEHAVIORAL: a direct editor() call also produces an editable model', JSON.stringify(r));
+  ok(r.updates === 0, 'E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event', JSON.stringify(r));
+  ok(r.unchanged, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction -- view/cancel never writes', JSON.stringify(r));
+}
 
 console.log('\n== 8e. E3b-P1: Formation editor projected seed + promote-on-commit ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
-  const SE = window.app.stats.constructor;
   const col = PG.COLUMNS.find(c => c.key === 'formation');
   const mk = (tags) => ({ id: 9001, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
-  const colsSnapshot = grid.cols.slice();
   const out = {};
 
-  // (a) SEED — proven by OPENING THE REAL EDITOR and inspecting the rendered
-  //     chips. (An earlier version asserted on its own SE.projField() call, which
-  //     tested projField rather than the editor: reverting the seed to raw left it
-  //     green. Found by mutation.)
+  // (a) SEED -- proven through the REAL native editor() model builder, the
+  // exact non-UI function the JSX calls to construct the popover's initial
+  // state. (An earlier version asserted on its own SE.projField() call, which
+  // tested projField rather than the editor: reverting the seed to raw left it
+  // green. Found by mutation.)
   const openOn = (formationValue) => {
     const real = grid.tagger.plays[0];
     const saved = real.tags.formation;
     real.tags.formation = formationValue;
-    grid.refresh();
-    grid._openEditor(real.id, 'formation');
-    const pop = document.querySelector('.pg-pop');
-    const chips = pop ? [...pop.querySelectorAll('.pg-chip[data-v]')] : [];
-    const res = {
-      opened: !!pop,
-      active: chips.filter(c => c.classList.contains('active')).map(c => c.dataset.v),
-      offered: chips.map(c => c.dataset.v),
-    };
-    grid._closeEditor();
+    const model = window.app.nativeFilmRoom.editor(real.id, 'formation');
+    const active = model.col.multi
+      ? String(model.value || '').split(/\s*\+\s*/).filter(Boolean)
+      : (model.value ? [model.value] : []);
+    const res = { opened: !!model, active, offered: model.options };
     real.tags.formation = saved;
-    grid.refresh();
     return res;
   };
   const legacyOpen = openOn('Under Center');
@@ -795,11 +832,11 @@ r = await page.evaluate(() => {
 
   // NOTE (honest scope): for FORMATION the `_options` alignment filter alone
   // removes the chip, so the PROJECTED SEED is not independently observable through
-  // the rendered chips — reverting the seed to raw leaves these green (verified by
-  // mutation). The filter is the enforcing mechanism and IS discriminating (see the
-  // "offers NO QB alignments" assertion); the projected seed is defense-in-depth.
+  // the offered options alone (verified by mutation). The filter is the enforcing
+  // mechanism and IS discriminating (see the "offers NO QB alignments" assertion
+  // below); the projected seed is defense-in-depth.
 
-  // (b) PROMOTE on explicit commit — alignment preserved into qbAlignment.
+  // (b) PROMOTE on explicit commit -- alignment preserved into qbAlignment.
   const p1 = mk({ formation: 'Under Center' });
   grid._applyEdit(p1, col, 'Trips');
   out.promoted = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
@@ -819,26 +856,25 @@ r = await page.evaluate(() => {
   grid._applyEdit(p4, PG.COLUMNS.find(c => c.key === 'playType'), 'Run Inside');
   out.otherField = { formation: p4.tags.formation, qbAlignment: p4.tags.qbAlignment || '' };
 
-  // (f) OPENING and CANCELLING must write NOTHING. Use an EXISTING rendered play —
-  // injecting a synthetic one into tagger.plays moves selection and leaves the
-  // tagger pointing at a popped play, which broke four later tests.
+  // (f) building the direct editor() model writes NOTHING. The real UI
+  // click-then-cancel path (which must ALSO write nothing) is separately and
+  // genuinely proven with real clicks in the BEHAVIORAL block above.
   const real = grid.tagger.plays[0];
   if (real) {
     const selBefore = grid.tagger.currentPlayId;
     const before5 = JSON.stringify(real.tags);
-    grid._openEditor(real.id, 'formation');
-    out.editorOpened = !!document.querySelector('.pg-pop');   // it IS editable (not a no-op test)
-    grid._closeEditor();
+    const model = window.app.nativeFilmRoom.editor(real.id, 'formation');
+    out.editorOpened = !!model;   // it IS editable (not a no-op test)
     out.openCancelUnchanged = JSON.stringify(real.tags) === before5;
     if (selBefore != null) grid.tagger.selectPlay(selBefore);   // restore via the real path
   } else { out.editorOpened = false; out.openCancelUnchanged = true; }
   return out;
 });
-ok(r.legacyOpened, 'P1 seed: the Formation editor opens (seed assertions are not vacuous)', JSON.stringify(r.legacyOpened));
+ok(r.legacyOpened, 'P1 seed: the Formation editor model builds (seed assertions are not vacuous)', JSON.stringify(r.legacyOpened));
 ok(Array.isArray(r.seedLegacyActive) && r.seedLegacyActive.length === 0,
-  'P1 seed: an alignment-only play seeds the REAL editor with NO active chip', JSON.stringify(r.seedLegacyActive));
+  'P1 seed: an alignment-only play seeds the REAL editor model with NO active value', JSON.stringify(r.seedLegacyActive));
 ok(JSON.stringify(r.seedMixedActive) === JSON.stringify(['Trips']),
-  'P1 seed: a mixed play activates ONLY its structural chip in the real editor', JSON.stringify(r.seedMixedActive));
+  'P1 seed: a mixed play activates ONLY its structural value in the real editor model', JSON.stringify(r.seedMixedActive));
 ok(!r.optsHaveAlignment, 'P1: the structural Formation picker offers NO QB alignments', JSON.stringify(r.optsHaveAlignment));
 ok(r.promoted.formation === 'Trips' && r.promoted.qbAlignment === 'Under Center',
   'P1 promote: explicit commit writes the structural choice AND preserves the alignment', JSON.stringify(r.promoted));
@@ -848,10 +884,11 @@ ok(r.noInvention.formation === 'Trips' && r.noInvention.qbAlignment === '',
   'P1: no alignment is INVENTED when the play never had one', JSON.stringify(r.noInvention));
 ok(r.otherField.formation === 'Under Center' && r.otherField.qbAlignment === '',
   'P1: editing a DIFFERENT field promotes nothing (no sibling rewrite)', JSON.stringify(r.otherField));
-ok(r.editorOpened, 'P1: the Formation editor DOES open (so the cancel test is not vacuous)', JSON.stringify(r.editorOpened));
-ok(r.openCancelUnchanged, 'P1: opening then cancelling the editor writes NOTHING', JSON.stringify(r.openCancelUnchanged));
+ok(r.editorOpened, 'P1: the Formation editor model DOES build (so the no-write check is not vacuous)', JSON.stringify(r.editorOpened));
+ok(r.openCancelUnchanged, 'P1: building the editor model writes NOTHING', JSON.stringify(r.openCancelUnchanged));
 
-console.log('\n== 8f. E3b-P1b: COVERAGE CALL — same promote class as Formation ==');
+console.log('\n== 8f. E3b-P1b: COVERAGE CALL -- same promote class as Formation ==');
+// Fully pure -- grid._options/_applyEdit never touch classic markup.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const col = PG.COLUMNS.find(c => c.key === 'coverage');
@@ -891,15 +928,14 @@ ok(r.otherField.coverage === 'Man' && r.otherField.coverageFamily === '',
 
 console.log('\n== 8g. E3b-P1c: promotion is ONE undoable transaction (real history) ==');
 // NO skip path. An earlier version returned {skip:true} when the play or
-// HistoryManager was missing and every assertion accepted it — so it could
+// HistoryManager was missing and every assertion accepted it -- so it could
 // certify undo behaviour it never exercised. The prerequisites are now explicit
-// assertions that FAIL CLOSED, and BOTH registered pairs are driven.
-r = await page.evaluate(async () => {
+// assertions that FAIL CLOSED, and BOTH registered pairs are driven. Fully pure.
+r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
-  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   // Codex E4-2 review, item #2: enumerate every DESCRIPTOR RELATIONSHIP
-  // (primary -> sibling pair), not just primary KEYS — Object.keys(PROJECTED_PAIRS)
+  // (primary -> sibling pair), not just primary KEYS -- Object.keys(PROJECTED_PAIRS)
   // is ['formation','backfield','coverage'], which is only 3, but Formation
   // alone has TWO registered relationships (-> qbAlignment AND -> backfield),
   // so a primary-keyed enumeration silently lets Formation -> Backfield escape
@@ -912,49 +948,58 @@ r = await page.evaluate(async () => {
   // FAIL CLOSED with a readable reason instead of the old skip (or a bare
   // TypeError deeper in): the proofs below must never be reported as passing
   // because the machinery they claim to exercise was absent.
-  if (!prereq.hasHistory) throw new Error('P1c PREREQ FAILED: no real HistoryManager — undo/redo proofs cannot run');
-  if (!prereq.playCount) throw new Error('P1c PREREQ FAILED: no real plays — undo/redo proofs cannot run');
-  const runPair = async (colKey, sibling, legacyPrimary, pick, unit) => {
+  if (!prereq.hasHistory) throw new Error('P1c PREREQ FAILED: no real HistoryManager -- undo/redo proofs cannot run');
+  if (!prereq.playCount) throw new Error('P1c PREREQ FAILED: no real plays -- undo/redo proofs cannot run');
+  const runPair = (colKey, sibling, legacyPrimary, pick, unit) => {
     const play = tagger.plays[0];
     const saved = { primary: play.tags[colKey], sib: play.tags[sibling], unit: play.tags.unit };
+    // Read-time precedence for qbAlignment is explicit > formation's own
+    // token > backfield's (TagProjection). tagger.plays[0] is a REAL demo
+    // play whose own formation string may already carry an alignment token
+    // (e.g. legacy "Under Center + ..."); left untouched, that token would
+    // outrank the backfield->qbAlignment case under test below and silently
+    // corrupt only that one relationship depending on which play happens to
+    // land at index 0. Neutralize formation for every relationship except
+    // the one that's actually testing it.
+    const touchesFormation = colKey === 'formation' || sibling === 'formation';
+    const savedFormation = play.tags.formation;
+    if (!touchesFormation) play.tags.formation = '';
     play.tags.unit = unit; play.tags[colKey] = legacyPrimary; play.tags[sibling] = '';
-    grid.refresh(); await raf2();
     hist.reset();
     const depth0 = hist.stack.length;
     grid._applyEdit(play, PG.COLUMNS.find(c => c.key === colKey), pick);
-    await raf2();
     const entries = hist.stack.length - depth0;
     const now = () => { const p = tagger.getPlay(play.id); return { p: p?.tags[colKey], s: p?.tags[sibling] || '' }; };
     const after = now();
-    hist.undo(); await raf2();
+    hist.undo();
     const undone = now();
-    hist.redo(); await raf2();
+    hist.redo();
     const redone = now();
     const p = tagger.getPlay(play.id);
     if (p) { p.tags[colKey] = saved.primary; p.tags[sibling] = saved.sib; p.tags.unit = saved.unit; }
-    grid.refresh(); await raf2();
+    if (!touchesFormation) play.tags.formation = savedFormation;
     return { entries, after, undone, redone };
   };
   return {
     prereq,
-    formationQb: await runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
-    // E4-2 review fix: this relationship escaped every prior test — Formation
+    formationQb: runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
+    // E4-2 review fix: this relationship escaped every prior test -- Formation
     // alone embeds BOTH a QB Alignment token and (now) a Backfield 'Empty'
     // token, and the two must be driven independently since one primary
     // commit must protect BOTH siblings in the same transaction.
-    formationBackfield: await runPair('formation', 'backfield', 'Ace + Empty', 'Trips', 'offense'),
+    formationBackfield: runPair('formation', 'backfield', 'Ace + Empty', 'Trips', 'offense'),
     // Backfield is now ALSO a registered primary in its own right (a legacy
     // 'Pistol' can still be embedded in backfield's raw string, promoted to
     // qbAlignment).
-    backfieldQb: await runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
-    coverageFamily: await runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
+    backfieldQb: runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
+    coverageFamily: runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
   };
 });
-// Prerequisites fail closed — if these break, the proofs below cannot silently pass.
+// Prerequisites fail closed -- if these break, the proofs below cannot silently pass.
 ok(r.prereq.hasHistory, 'P1c prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
 ok(r.prereq.playCount > 0, 'P1c prereq: real plays exist to edit', JSON.stringify(r.prereq));
 ok(JSON.stringify(r.prereq.relationships) === JSON.stringify(['formation->qbAlignment', 'formation->backfield', 'backfield->qbAlignment', 'coverage->coverageFamily']),
-  'P1c prereq: ALL FOUR registered RELATIONSHIPS are covered by this test — enumerated by relationship, not by primary key, so Formation->Backfield cannot silently escape again', JSON.stringify(r.prereq.relationships));
+  'P1c prereq: ALL FOUR registered RELATIONSHIPS are covered by this test -- enumerated by relationship, not by primary key, so Formation->Backfield cannot silently escape again', JSON.stringify(r.prereq.relationships));
 for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
   ['Formation/QB Alignment', r.formationQb, 'Under Center', 'Trips', 'Under Center'],
   ['Formation/Backfield', r.formationBackfield, 'Ace + Empty', 'Trips', 'Empty'],
@@ -971,63 +1016,79 @@ console.log('\n== 8h. E4-2: safe Film Room editing for QB Alignment/Backfield/St
 // These four columns were DISPLAY-ONLY (`proj-readonly`) in E3b, pending the
 // field-level-merge machinery E4/E4-2 built. Proves the same non-writing
 // view/cancel contract D-projform requires of the tag form ALSO holds for the
-// grid's inline editor, now that these cells are real editable enum cells —
+// grid's inline editor, now that these cells are real editable enum cells --
 // plus one-step undo/redo for a relationship-free column (Strength) and
 // cross-surface parity (a grid edit is visible identically in the tag form
-// for the currently-loaded play).
-r = await page.evaluate(async () => {
-  const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
+// for the currently-loaded play, mounted into a throwaway scratch host since
+// .tag-section/#tagQbAlignment are deleted).
+r = await page.evaluate(() => {
   const tagger = window.app.tagger;
-  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const play = tagger.plays[1];
+  return { playId: play.id, saved: JSON.parse(JSON.stringify(play.tags)), selBefore: tagger.currentPlayId };
+});
+const playId8h = r.playId, saved8h = r.saved, selBefore8h = r.selBefore;
+
+// 1) VIEW/SELECT never writes -- selecting the row (video follows) must not
+//    touch any of the four newly-editable projected fields.
+r = await page.evaluate((id) => {
+  window.app.tagger.selectPlay(id);
+  return JSON.parse(JSON.stringify(window.app.tagger.getPlay(id).tags));
+}, playId8h);
+const selectUnchanged8h = JSON.stringify(r) === JSON.stringify(saved8h);
+await frame();
+
+// 2) OPEN + CANCEL never writes -- open the QB Alignment editor popover via
+//    two real clicks (with a tick between), then close it WITHOUT committing
+//    (Escape), and confirm the play is untouched.
+await page.evaluate(() => {
+  const grid = window.app.playGrid;
+  if (!grid.cols.includes('qbAlignment')) { grid.cols = [...grid.cols, 'qbAlignment']; grid._notifyNative(); }
+});
+await frame();
+await openCellEditor(playId8h, 'qbAlignment');
+const editorOpened8h = await editorOpen();
+await escapeEditor();
+await frame();
+r = await page.evaluate((id) => JSON.parse(JSON.stringify(window.app.tagger.getPlay(id).tags)), playId8h);
+const cancelUnchanged8h = JSON.stringify(r) === JSON.stringify(saved8h);
+
+// 3) STRENGTH has NO registered sibling relationship at all -- an explicit
+//    edit must touch ONLY strength, in exactly one undoable transaction.
+r = await page.evaluate((id) => {
+  const grid = window.app.playGrid, hist = window.app.history;
+  const tagger = window.app.tagger;
+  const play = tagger.getPlay(id);
   const saved = JSON.parse(JSON.stringify(play.tags));
-  const selBefore = tagger.currentPlayId;   // RESTORED below — this section reselects twice
-
-  // 1) VIEW/SELECT never writes — selecting the row (video follows) must not
-  //    touch any of the four newly-editable projected fields.
-  tagger.selectPlay(play.id);
-  await raf2();
-  const afterSelect = JSON.parse(JSON.stringify(tagger.getPlay(play.id).tags));
-  const selectUnchanged = JSON.stringify(afterSelect) === JSON.stringify(saved);
-
-  // 2) OPEN + CANCEL never writes — open the QB Alignment editor popover, then
-  //    close it WITHOUT committing (mirrors pressing Escape), and confirm the
-  //    play is untouched.
-  grid._openEditor(play.id, 'qbAlignment');
-  await raf2();
-  const editorOpened = !!grid._editor;
-  grid._closeEditor();
-  await raf2();
-  const afterCancel = JSON.parse(JSON.stringify(tagger.getPlay(play.id).tags));
-  const cancelUnchanged = JSON.stringify(afterCancel) === JSON.stringify(saved);
-
-  // 3) STRENGTH has NO registered sibling relationship at all — an explicit
-  //    edit must touch ONLY strength, in exactly one undoable transaction.
   play.tags.unit = 'offense'; play.tags.strength = '';
-  grid.refresh(); await raf2();
+  grid._notifyNative();
   hist.reset();
   const depth0 = hist.stack.length;
-  grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'strength'), 'Right');
-  await raf2();
+  grid._applyEdit(play, grid.constructor.COLUMNS.find(c => c.key === 'strength'), 'Right');
   const strengthEntries = hist.stack.length - depth0;
-  const afterStrength = tagger.getPlay(play.id);
+  const afterStrength = tagger.getPlay(id);
   const strengthOnlyChanged = Object.keys(saved).every(k =>
     k === 'strength' || k === 'unit' || JSON.stringify(afterStrength.tags[k] ?? null) === JSON.stringify(saved[k] ?? null));
-  hist.undo(); await raf2();
-  const strengthUndone = tagger.getPlay(play.id).tags.strength || '';
+  hist.undo();
+  const strengthUndone = tagger.getPlay(id).tags.strength || '';
+  return { strengthEntries, strengthOnlyChanged, strengthUndone };
+}, playId8h);
+const { strengthEntries, strengthOnlyChanged, strengthUndone } = r;
+await frame();
 
-  // 4) CROSS-SURFACE PARITY — select the play into the tag form and confirm
-  //    the QB Alignment chip reflects the grid's earlier edit identically
-  //    (the grid write and the form's read must never diverge).
+// 4) CROSS-SURFACE PARITY -- select the play into the tag form (mounted into
+//    a scratch host, since the real tagging host is currently in film-room
+//    mode and hidden) and confirm the QB Alignment chip reflects the grid's
+//    earlier edit identically -- the grid write and the form's read must
+//    never diverge. The real host is captured and remounted afterward so
+//    later sections keep a genuine mounted tagging surface.
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, PG = grid.constructor;
+  const tagger = window.app.tagger;
   const legacyId = 9201;
   const legacyPlay = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Wing-T' } };
   tagger.plays.push(legacyPlay);
   grid._applyEdit(legacyPlay, PG.COLUMNS.find(c => c.key === 'formation'), 'Wing-T');
-  await raf2();
-  // Final Engine Independence: #tagQbAlignment/.tag-section is deleted --
-  // read the same value through the real native tag form, mounted into a
-  // throwaway scratch host, to prove the grid write and the form's own read
-  // never diverge.
+  const realHost = document.querySelector('[data-breakdown-tagging-host]');
   const scratchHost = document.createElement('div');
   document.body.append(scratchHost);
   window.app.nativeTagging.mount(scratchHost);
@@ -1036,70 +1097,74 @@ r = await page.evaluate(async () => {
   const formChip = [...scratchHost.querySelectorAll('[data-native-field="qbAlignment"] .gi-tag-chips button.is-active')].map(b => b.textContent.trim());
   window.app.nativeTagging.restore();
   scratchHost.remove();
+  if (realHost) window.app.nativeTagging.mount(realHost);
   const parity = { gridQbAlignment: tagger.getPlay(legacyId).tags.qbAlignment, formChip };
-
-  // restore
-  const p = tagger.getPlay(play.id);
-  if (p) Object.assign(p.tags, saved);
   tagger.plays = tagger.plays.filter(pl => pl.id !== legacyId);
-  if (selBefore != null) tagger.selectPlay(selBefore);
-  grid.refresh(); await raf2();
-
-  return { selectUnchanged, editorOpened, cancelUnchanged, strengthEntries, strengthOnlyChanged, strengthUndone, parity };
+  return parity;
 });
-ok(r.selectUnchanged, 'E4-2: selecting a row (view) writes NOTHING to any of the four newly-editable projected fields', JSON.stringify(r));
-ok(r.editorOpened, 'E4-2 prereq: the QB Alignment editor actually opened (proves the guard was lifted, not that nothing ran)', JSON.stringify(r));
-ok(r.cancelUnchanged, 'E4-2: opening then CANCELING the QB Alignment editor writes NOTHING', JSON.stringify(r));
-ok(r.strengthEntries === 1, 'E4-2: an explicit Strength edit (no registered relationship) is exactly ONE history entry', JSON.stringify(r));
-ok(r.strengthOnlyChanged, 'E4-2: editing Strength touches NO other field', JSON.stringify(r));
-ok(r.strengthUndone === '', 'E4-2: UNDO reverts the Strength edit', JSON.stringify(r));
-ok(r.parity.gridQbAlignment === 'Under Center' && JSON.stringify(r.parity.formChip) === JSON.stringify(['Under Center']),
-  'E4-2 cross-surface parity: a Formation edit made in the GRID promotes QB Alignment identically to how the TAG FORM displays it — no divergent write path', JSON.stringify(r.parity));
+const parity8h = r;
+
+// restore
+await page.evaluate((data) => {
+  const { playId, saved, selBefore } = data;
+  const p = window.app.tagger.getPlay(playId);
+  if (p) Object.assign(p.tags, saved);
+  const grid = window.app.playGrid;
+  grid.cols = grid.constructor.PRESETS.default.slice();
+  grid._notifyNative();
+  if (selBefore != null) window.app.tagger.selectPlay(selBefore);
+}, { playId: playId8h, saved: saved8h, selBefore: selBefore8h });
+await frame();
+
+ok(selectUnchanged8h, 'E4-2: selecting a row (view) writes NOTHING to any of the four newly-editable projected fields');
+ok(editorOpened8h, 'E4-2 prereq: the QB Alignment editor actually opened (proves the guard was lifted, not that nothing ran)');
+ok(cancelUnchanged8h, 'E4-2: opening then CANCELING the QB Alignment editor writes NOTHING');
+ok(strengthEntries === 1, 'E4-2: an explicit Strength edit (no registered relationship) is exactly ONE history entry', String(strengthEntries));
+ok(strengthOnlyChanged, 'E4-2: editing Strength touches NO other field');
+ok(strengthUndone === '', 'E4-2: UNDO reverts the Strength edit', strengthUndone);
+ok(parity8h.gridQbAlignment === 'Under Center' && JSON.stringify(parity8h.formChip) === JSON.stringify(['Under Center']),
+  'E4-2 cross-surface parity: a Formation edit made in the GRID promotes QB Alignment identically to how the TAG FORM displays it -- no divergent write path', JSON.stringify(parity8h));
 
 console.log('\n== 8i. E4-2 review fix: DIRECT commit-and-clear of QB Alignment, Backfield, and Coverage Family through the GRID, each with revisit + undo/redo ==');
 // Codex E4-2 review, item #2: 8h only directly committed Strength (no
-// registered relationship) and only VIEWED/CANCELED QB Alignment — it never
+// registered relationship) and only VIEWED/CANCELED QB Alignment -- it never
 // directly committed THEN CLEARED a sibling's own grid cell. This drives the
 // SAME derived-clear-survives-a-revisit proof e2e-tag-projform.mjs runs
 // through the tag form, but through the GRID's real _applyEdit path, for all
 // three siblings that can be genuinely derived: qbAlignment (from Formation),
-// backfield (from Formation's Empty), coverageFamily (from Coverage).
-r = await page.evaluate(async () => {
+// backfield (from Formation's Empty), coverageFamily (from Coverage). Fully
+// pure -- synthetic play objects, no DOM at all.
+r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
-  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
 
-  const runClear = async (siblingKey, primaryKey, primaryLegacy, unit, id) => {
+  const runClear = (siblingKey, primaryKey, primaryLegacy, unit, id) => {
     const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit, down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], [primaryKey]: primaryLegacy } };
     tagger.plays.push(play);
-    grid.refresh(); await raf2();
     const derivedBefore = grid._cellHtml(play, PG.COLUMNS.find(c => c.key === siblingKey));
     hist.reset();
     const depth0 = hist.stack.length;
-    // A direct commit of '' on the SIBLING's own column — exactly what the
-    // grid's "✕ none" chip-popover choice produces via _openEditor's commit.
+    // A direct commit of '' on the SIBLING's own column -- exactly what the
+    // grid's "clear" chip choice produces via nativeCommitEdit's commit.
     grid._applyEdit(play, PG.COLUMNS.find(c => c.key === siblingKey), '');
-    await raf2();
     const entries = hist.stack.length - depth0;
     const now = () => { const p = tagger.getPlay(id); return { primary: p?.tags[primaryKey], sibling: p?.tags[siblingKey] || '' }; };
     const afterCommit = now();
-    hist.undo(); await raf2();
+    hist.undo();
     const undone = now();
-    hist.redo(); await raf2();
+    hist.redo();
     const redone = now();
-    // Revisit: re-render the grid from scratch and re-read the cell — proves
+    // Revisit: re-read the cell through _cellHtml from scratch -- proves
     // the clear is durable in the DATA, not merely a transient DOM state.
-    grid.refresh(); await raf2();
     const revisitCell = grid._cellHtml(tagger.getPlay(id), PG.COLUMNS.find(c => c.key === siblingKey));
     tagger.plays = tagger.plays.filter(pl => pl.id !== id);
-    grid.refresh(); await raf2();
     return { derivedBefore, entries, afterCommit, undone, redone, revisitCell };
   };
 
   return {
-    qbAlignment: await runClear('qbAlignment', 'formation', 'Ace + Shotgun', 'offense', 9202),
-    backfield: await runClear('backfield', 'formation', 'Wing-T + Empty', 'offense', 9203),
-    coverageFamily: await runClear('coverageFamily', 'coverage', 'Man', 'defense', 9204),
+    qbAlignment: runClear('qbAlignment', 'formation', 'Ace + Shotgun', 'offense', 9202),
+    backfield: runClear('backfield', 'formation', 'Wing-T + Empty', 'offense', 9203),
+    coverageFamily: runClear('coverageFamily', 'coverage', 'Man', 'defense', 9204),
   };
 });
 for (const [name, c, derivedText, primaryAfterClear, primaryAfterUndo] of [
@@ -1107,7 +1172,7 @@ for (const [name, c, derivedText, primaryAfterClear, primaryAfterUndo] of [
   ['Backfield (from Formation)', r.backfield, 'Empty', 'Wing-T', 'Wing-T + Empty'],
   ['Coverage Family (from Coverage)', r.coverageFamily, 'Man', '', 'Man'],
 ]) {
-  ok(c.derivedBefore === derivedText,
+  ok(c.derivedBefore.includes(derivedText),
     `${name}: the DERIVED value is genuinely shown before any commit`, JSON.stringify(c.derivedBefore));
   ok(c.entries === 1, `${name}: the direct clear is EXACTLY one history entry`, JSON.stringify(c));
   ok(c.afterCommit.sibling === '' && c.afterCommit.primary === primaryAfterClear,
@@ -1116,8 +1181,8 @@ for (const [name, c, derivedText, primaryAfterClear, primaryAfterUndo] of [
     `${name}: UNDO restores the raw legacy primary TOGETHER with the (still-derived, not explicit) sibling`, JSON.stringify(c.undone));
   ok(c.redone.primary === primaryAfterClear && c.redone.sibling === '',
     `${name}: REDO restores the stripped primary TOGETHER with the cleared sibling`, JSON.stringify(c.redone));
-  ok(c.revisitCell !== derivedText,
-    `${name}: the clear STICKS after a full grid re-render — the derived value does not silently reappear`, JSON.stringify(c.revisitCell));
+  ok(!c.revisitCell.includes(derivedText),
+    `${name}: the clear STICKS after a fresh cell read -- the derived value does not silently reappear`, JSON.stringify(c.revisitCell));
 }
 
 console.log('\n== 8j. E4-2 review fix: the combined "Pistol backfield + Empty formation" case, exercised through the GRID ==');
@@ -1128,37 +1193,33 @@ console.log('\n== 8j. E4-2 review fix: the combined "Pistol backfield + Empty fo
 // BOTH promotions (qbAlignment AND backfield) in one transaction, with
 // working undo/redo. tools/e2e-tag-projform.mjs section 16 proves this same
 // shape through the TAG FORM; this is the Film Room grid's own proof, since
-// the review explicitly asked this not be Film-Room-untested.
-r = await page.evaluate(async () => {
+// the review explicitly asked this not be Film-Room-untested. Fully pure.
+r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
-  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const SE = window.app.stats.constructor;
   const id = 9205;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } };
   tagger.plays.push(play);
   const before = SE.proj(play);
-  grid.refresh(); await raf2();
   hist.reset();
   const depth0 = hist.stack.length;
   grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'formation'), 'Trips');
-  await raf2();
   const entries = hist.stack.length - depth0;
   const now = () => { const p = tagger.getPlay(id); return { formation: p?.tags.formation, backfield: p?.tags.backfield, qbAlignment: p?.tags.qbAlignment }; };
   const afterCommit = now();
-  hist.undo(); await raf2();
+  hist.undo();
   const undone = now();
-  hist.redo(); await raf2();
+  hist.redo();
   const redone = now();
   tagger.plays = tagger.plays.filter(pl => pl.id !== id);
-  grid.refresh(); await raf2();
   return { before, entries, afterCommit, undone, redone };
 });
 ok(r.before.qbAlignment === 'Pistol' && r.before.formation === 'Ace' && r.before.backfield === 'Empty',
   'prereq: the fixture genuinely projects as Pistol / Ace / Empty', JSON.stringify(r.before));
 ok(r.entries === 1, 'the Formation commit through the grid is EXACTLY one history entry', JSON.stringify(r));
 ok(r.afterCommit.formation === 'Trips' && r.afterCommit.backfield === 'Empty' && r.afterCommit.qbAlignment === 'Pistol',
-  'a GRID Formation commit preserves BOTH promotions (QB Alignment AND Backfield) — neither is lost', JSON.stringify(r.afterCommit));
+  'a GRID Formation commit preserves BOTH promotions (QB Alignment AND Backfield) -- neither is lost', JSON.stringify(r.afterCommit));
 ok(r.undone.formation === 'Ace + Empty' && r.undone.backfield === 'Pistol' && (r.undone.qbAlignment || '') === '',
   'UNDO restores the raw legacy Formation and Backfield ("Pistol") together, removing only the PROMOTED QB Alignment', JSON.stringify(r.undone));
 ok(r.redone.formation === 'Trips' && r.redone.backfield === 'Empty' && r.redone.qbAlignment === 'Pistol',
@@ -1166,33 +1227,18 @@ ok(r.redone.formation === 'Trips' && r.redone.backfield === 'Empty' && r.redone.
 
 console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==');
 // P3's exact contract (TAG-MODEL.md §20): Film Room has NO six-field quick
-// filter, so do not add one here — instead group the RENDERED row IDs by each
+// filter, so do not add one here -- instead group the RENDERED row IDs by each
 // projected cell value, assert those sets equal AnalyticsRegistry.matchingRefs
 // (an INDEPENDENT computation, not Film Room's own code), then select one exact
 // row set and assert Watch receives the same refs. This is the LAST section
 // (see the E3b-INTERACTIVE banner above) and restores every piece of state it
 // touches.
-//
-// Review findings on the first pass of this section, all fixed here:
-//  - covered 2 of the 6 StatsEngine.PROJECTED_FIELDS (only qbAlignment/
-//    coverageFamily) -> now all six: formation, qbAlignment, backfield,
-//    strength, coverage, coverageFamily.
-//  - stripped `gameId::` and compared bare play ids, weakening the composite
-//    film-identity contract -> both sides now compare FULL composite refs;
-//    bare ids are derived only at the point Film Room's own selection API
-//    (grid.selected, a Set<number>) requires them.
-//  - both the row-equality and completeness checks derived their "expected"
-//    set from the CONSUMER'S OWN rendered output, so a value the renderer
-//    silently drops was invisible -> added a completeness check that
-//    independently enumerates the true value set from raw plays via
-//    StatsEngine.proj/splitFormations (never touching grid._render()'s
-//    output), matching the same fix applied to Study in this round.
 r = await page.evaluate(async () => {
   const grid = window.app.playGrid, tagger = window.app.tagger, registry = window.app.analyticsRegistry;
   const SE = window.app.stats.constructor;
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   // matchingRefs is a pure function over the plays it's given + a gameId for the
-  // composite ref — it never reads the season store, so a synthetic id is fine
+  // composite ref -- it never reads the season store, so a synthetic id is fine
   // even with no season currently open (an earlier section closes the season).
   const gameId = 'e3b-p3-fixture';
   const compositeRef = (id) => `${gameId}::${id}`;
@@ -1204,14 +1250,14 @@ r = await page.evaluate(async () => {
 
   const mk = (id, unit, tags) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: Object.assign({ unit }, tags), __gid: gameId });
   const plays = [
-    // OFFENSE — formation (incl. multi-value), qbAlignment, backfield, strength.
+    // OFFENSE -- formation (incl. multi-value), qbAlignment, backfield, strength.
     mk(9001, 'offense', { formation: 'Trips',              qbAlignment: 'Shotgun',      strength: 'Right',   playType: 'Short Pass' }),
     mk(9002, 'offense', { formation: 'Shotgun + Bunch',                                                       playType: 'Deep Pass' }),  // legacy -> projects formation=Bunch, qbAlignment=Shotgun
     mk(9003, 'offense', { formation: 'Ace',                 qbAlignment: 'Under Center', backfield: 'I', strength: 'Balanced', playType: 'Run Inside' }),
     mk(9004, 'offense', { formation: 'Ace',                                                              playType: 'Run Inside' }), // no alignment/backfield/strength charted -> INELIGIBLE for those three
     mk(9009, 'offense', { formation: 'Trips + Bunch',                                     strength: 'Left',   playType: 'Screen' }),      // MULTI-structural: contributes to BOTH Trips and Bunch groups
     mk(9010, 'offense', { formation: '',                                     backfield: 'Pistol',            playType: 'Screen' }),       // formation "Not charted" but backfield still eligible
-    // DEFENSE — coverage (Coverage Call) + coverageFamily.
+    // DEFENSE -- coverage (Coverage Call) + coverageFamily.
     mk(9005, 'defense', { coverage: 'Man',      defFront: '4-3' }),                                                  // legacy -> projects coverage='' (blank/Coverage Call ineligible), coverageFamily='Man'
     mk(9006, 'defense', { coverage: 'Cover 2',  coverageFamily: 'Zone', defFront: '4-3' }),
     mk(9007, 'defense', { coverage: 'Cover 3',  coverageFamily: 'Man',  defFront: '3-4' }),
@@ -1221,20 +1267,21 @@ r = await page.evaluate(async () => {
   tagger.plays = plays;
   grid.cols = ['sit', 'formation', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily', 'playType'];
   grid.selected.clear();
-  grid._render();
+  grid._notifyNative();
   await raf2();
 
   const emDash = '—';
   const NOT_CHARTED = 'Not charted';
-  // Groups RENDERED row ids (as COMPOSITE refs — finding 3) by a column's cell
+  // Groups RENDERED row ids (as COMPOSITE refs -- finding 3) by a column's cell
   // text. `multi: true` (formation only) splits a "A + B" cell into both groups.
   const groupByRenderedCell = (colKey, multi = false) => {
     const out = {};
-    document.querySelectorAll('#pgRows .pg-row').forEach(row => {
-      const id = parseInt(row.dataset.id, 10);
-      const cell = row.querySelector(`td[data-k="${colKey}"]`);
+    document.querySelectorAll('[data-native-film-room] tbody tr').forEach(row => {
+      const idCell = row.querySelector('[data-cell]');
+      const id = idCell ? parseInt(idCell.dataset.cell.split(':')[0], 10) : null;
+      const cell = id != null ? row.querySelector(`[data-cell="${id}:${colKey}"]`) : null;
       const text = cell ? cell.textContent.trim() : '';
-      if (!text || text === emDash || text === NOT_CHARTED) return;   // blank/placeholder = ineligible
+      if (!text || text === emDash || text === NOT_CHARTED || text === '--') return;   // blank/placeholder = ineligible
       const vals = multi ? text.split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean) : [text];
       vals.forEach(v => { (out[v] = out[v] || []).push(compositeRef(id)); });
     });
@@ -1246,9 +1293,9 @@ r = await page.evaluate(async () => {
     for (const value of values) out[value] = registry.matchingRefs(plays, cutType, value);   // already composite + sorted
     return out;
   };
-  // Independent completeness enumeration — straight off raw `plays`, never
-  // through grid._render()'s output, so a value the renderer silently DROPS
-  // still shows up here and surfaces as a set mismatch instead of nothing to
+  // Independent completeness enumeration -- straight off raw `plays`, never
+  // through the rendered table, so a value the renderer silently DROPS still
+  // shows up here and surfaces as a set mismatch instead of nothing to
   // compare against.
   const OFF_COLS = new Set(['formation', 'qbAlignment', 'backfield', 'strength']);
   const isOff = p => (p.tags.unit || 'offense') === 'offense';
@@ -1284,27 +1331,27 @@ r = await page.evaluate(async () => {
     };
   }
 
-  // Select the RENDERED qbAlignment="Shotgun" row set and click Watch —
+  // Select the RENDERED qbAlignment="Shotgun" row set and click Watch --
   // cutup.start must receive EXACTLY those plays. Watch/selection are Film
   // Room's OWN bare-id API (single-game scoped by construction), so bare ids
-  // are derived here ONLY for driving that call — the comparison above never
+  // are derived here ONLY for driving that call -- the comparison above never
   // strips composite identity.
   const shotgunRefs = perCol.qbAlignment.rendered['Shotgun'] || [];
   const shotgunIds = shotgunRefs.map(ref => parseInt(ref.split('::')[1], 10)).sort((a, b) => a - b);
   grid.selected.clear();
   shotgunIds.forEach(id => grid.selected.add(id));
-  grid._render();
+  grid._notifyNative();
   await raf2();
   // Review finding: comparing bare watched ids against bare shotgunIds (both
   // stripped) weakened the composite-identity proof back to the same gap
   // finding 3 already fixed elsewhere in this section. Convert the intercepted
   // ids straight BACK into composite refs and compare against `shotgunRefs`
-  // (never stripped) — the whole Watch proof now stays at composite-ref
+  // (never stripped) -- the whole Watch proof now stays at composite-ref
   // granularity end to end.
   let watchedRefs = null;
   grid.vc = { video: { src: 'fake.mp4' } };
   grid.cutup = { start: (ids) => { watchedRefs = ids.map(compositeRef).sort(); } };
-  document.getElementById('pgWatch').click();
+  document.querySelector('[data-film-watch]').click();
 
   const out = { perCol, shotgunRefs, watchedRefs };
 
@@ -1312,7 +1359,7 @@ r = await page.evaluate(async () => {
   tagger.plays = savedPlays;
   grid.cols = savedCols;
   grid.selected = savedSelected;
-  grid._render();
+  grid._notifyNative();
   await raf2();
   return out;
 });
@@ -1322,10 +1369,10 @@ for (const key of ['formation', 'qbAlignment', 'backfield', 'strength', 'coverag
   const c = r.perCol[key];
   ok(c.renderedValues.length > 0, `${key}: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)`, JSON.stringify(c.rendered));
   ok(setEq(c.rendered, c.registry), `${key}: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value`, JSON.stringify({ rendered: c.rendered, registry: c.registry }));
-  ok(setEq(c.renderedValues, c.expected), `${key}: rendered group SET is complete — no value silently dropped`, JSON.stringify({ rendered: c.renderedValues, expected: c.expected }));
+  ok(setEq(c.renderedValues, c.expected), `${key}: rendered group SET is complete -- no value silently dropped`, JSON.stringify({ rendered: c.renderedValues, expected: c.expected }));
 }
 ok(setEq(r.perCol.qbAlignment.rendered['Shotgun'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9002']),
-  'the legacy mixed play (9002) projects into the SAME rendered Shotgun group as the modern play (9001) — composite refs', JSON.stringify(r.perCol.qbAlignment.rendered['Shotgun']));
+  'the legacy mixed play (9002) projects into the SAME rendered Shotgun group as the modern play (9001) -- composite refs', JSON.stringify(r.perCol.qbAlignment.rendered['Shotgun']));
 ok(setEq(r.perCol.formation.rendered['Trips'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9009']) &&
    setEq(r.perCol.formation.rendered['Bunch'], ['e3b-p3-fixture::9002', 'e3b-p3-fixture::9009']),
   'a MULTI-structural formation play (9009, "Trips + Bunch") lands in BOTH rendered groups, alongside their single-value siblings', JSON.stringify({ trips: r.perCol.formation.rendered['Trips'], bunch: r.perCol.formation.rendered['Bunch'] }));

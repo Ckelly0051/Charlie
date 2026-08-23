@@ -182,7 +182,11 @@ function NativeFilmRoom({ screen }) {
         const cell = event.target.closest('[data-cell]');
         const row = state.rows.find(item => item.id === active.playId);
         const col = state.columns.find(item => item.key === active.colKey);
-        if (cell && row && col) { event.preventDefault(); openEditor(cell, row, col); }
+        // Mirror move()'s own stopPropagation: without it, the app's global
+        // Enter shortcut (Save & Next) also fires as the event bubbles past
+        // this table, silently advancing the selected play underneath the
+        // editor that just opened.
+        if (cell && row && col) { event.preventDefault(); event.stopPropagation(); openEditor(cell, row, col); }
       }
     }}>
       <table>

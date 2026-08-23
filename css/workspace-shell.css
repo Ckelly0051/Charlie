@@ -91,20 +91,9 @@ body.ws-shell-active.ws-route-breakdown .ws-context{margin-left:auto;flex:1}
 
 /* Keep the canonical Settings command and global history tools reachable in the compact shell. */
 .ws-global-tools{display:flex;align-items:center;gap:6px}
-/* Adopted legacy buttons remain first-level children until S5/S7 removes the outlet. */
-body.ws-shell-active .ws-global-tools>.btn{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;margin:0;padding:0 10px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);box-shadow:none;font:inherit;font-size:12px;font-weight:750}
-body.ws-shell-active .ws-global-tools>.btn:hover:not(:disabled){border-color:var(--ws-line-strong);background:var(--ws-hover);color:var(--ws-on-solid)}
-body.ws-shell-active .ws-global-tools>.btn svg{width:15px;height:15px;stroke:currentColor}
-/* Undo/Redo are icon-only: square, and visibly dead when there is nothing to
-   undo (the disabled state is the ONLY signal that history is empty). */
-body.ws-shell-active .ws-global-tools>.btn-icon{padding:0;width:34px}
-body.ws-shell-active .ws-global-tools>.btn:disabled{opacity:.38;cursor:default}
-/* Shortcuts is deliberately icon-only in shell chrome at EVERY width, carrying
-   its name via aria-label. Previously it was icon-only only by accident: an
-   unscoped classic rule (`#btnShortcuts span{display:none}` under max-width
-   1450px) leaked onto the relocated button, so it would have sprouted a label
-   on a wide monitor and silently reflowed the top bar. */
-body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
+/* Final Engine Independence: WorkspaceShell._mountChrome() renders these itself
+   as real .ws-icon-btn elements (shared with Plan/Study) -- there is no adopted
+   legacy .btn/#btnShortcuts to style here any more. */
 @media(max-width:1150px) and (min-width:901px){body.ws-shell-active.ws-route-breakdown .ws-top-team{display:none}.ws-top-nav button{min-width:66px;padding:0 7px}.ws-top-nav button span{display:none}body.ws-shell-active.ws-route-breakdown .ws-context span,body.ws-shell-active.ws-route-breakdown .ws-context b{display:none}}
 
 @media(max-width:900px){

@@ -127,13 +127,17 @@ r = await page.evaluate(() => ({
   file: document.querySelector('#videoPlaceholder [data-action="file"]')?.textContent,
   folder: document.querySelector('#videoPlaceholder [data-action="folder"]')?.textContent,
   link: document.querySelector('#videoPlaceholder [data-action="link"]')?.textContent,
-  top: document.querySelector('#fileLabel')?.textContent,
+  // #fileLabel was the top-bar text this assertion used to read; it was deleted
+  // with #giLegacyEngineHost. The real coach-facing surface for "what happens
+  // if I drop/add film in linked mode" is the empty-state hint line.
+  hint: document.querySelector('#videoPlaceholder .empty-hint')?.textContent,
 }));
 ok(r.mode === 'linked' && r.root === 'D:/Football/Film' && r.setRootCalls === 1, 'Existing-library choice saves the selected root once', JSON.stringify(r));
 ok(/linked/i.test(r.label) && r.path === 'D:/Football/Film', 'Native Film settings shows linked mode and exact library path', JSON.stringify(r));
 ok(r.file === 'Copy Video' && r.folder === 'Copy Folder' && r.link === 'Link Game Folder',
   'Linked mode makes no-copy action primary and labels copy overrides honestly', JSON.stringify(r));
-ok(/Link from the game/.test(r.top), 'Linked mode removes the top-bar implication that dropping files is the default', r.top);
+ok(/linked/i.test(r.hint) && /without making a copy/i.test(r.hint),
+  'Linked mode\u2019s empty-state hint states film plays from the library with no copy, not that dropping files is the default', r.hint);
 await page.evaluate(() => window.app.settingsScreen.close('linked-proof-complete'));
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
@@ -481,10 +485,11 @@ let s7b = await page.evaluate(() => {
     folderOutside: outsideLegacy(q('videoFolderInput')),
     opened,
     placeholderLive: onScreen(q('videoPlaceholder')),
-    // The only pre-S7-b drop target. Measured 0x0 inside the hidden outlet, so
-    // dropping film had been dead the whole shell era while the empty state
-    // still advertised it.
-    legacyDropZoneReachable: onScreen(q('videoDropZone')),
+    // #videoDropZone was the only pre-S7-b drop target; it lived inside
+    // #giLegacyEngineHost, which Final Engine Independence deletes outright --
+    // q('videoDropZone') now resolves to null, confirming absence rather than
+    // measuring a 0x0 hidden box.
+    legacyDropZoneGone: !q('videoDropZone'),
   };
 });
 ok(s7b.fileOutside && s7b.folderOutside,

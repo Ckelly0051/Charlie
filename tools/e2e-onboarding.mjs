@@ -30,7 +30,7 @@ const openHomeGame = async (index = 0) => {
   await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
 };
 const showStats = async () => {
-  await page.evaluate(() => document.getElementById('btnShowStats')?.click());
+  await page.evaluate(() => document.querySelector('[data-ws-route="reports"]')?.click());
   await page.waitForFunction(() => !document.getElementById('wsReports')?.hidden
     && !!document.querySelector('#wsReports [data-native-main-report]'));
 };

@@ -492,7 +492,9 @@ export class PlaylistManager {
       this.vc.video.load();
     }
 
-    this.vc.fileLabel.textContent = clip.file ? clip.file.name : clip.name;
+    // Route through VideoController's own status seam -- fileLabel is optional
+    // (deleted with #giLegacyEngineHost); currentFileName is the real owner.
+    this.vc._setFilmStatus(clip.file ? clip.file.name : clip.name);
     this.vc.placeholder.classList.add('hidden');
 
     // Select the associated play in the tagger

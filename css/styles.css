@@ -6604,40 +6604,13 @@ body {
 .team-pill-add:hover { color: #fff; border-color: rgba(255,255,255,.4); }
 
 /* ================================================================== */
-/* ====  TOP BAR — progressive collapse for non-fullscreen windows == */
-/* The bar must stay 52px tall (the sticky video offset and the       */
-/* widescreen layout both assume it), so it collapses instead of      */
-/* wrapping: drop text labels first, then the niche status badge.     */
-/* Appended last so it beats the ≤1100px rule that re-enabled         */
-/* .btn-highlight labels.                                             */
-/* ================================================================== */
-.top-bar-left, .top-bar-center, .top-bar-right { min-width: 0; }
-.file-input-label #fileLabel {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  display: inline-block; max-width: 340px; vertical-align: middle;
-}
-
-@media (max-width: 1450px) {
-  .top-bar .btn-label { display: none !important; }     /* icon-only Quick Chart / Stats / Save / Folder */
-  .top-bar .sidebar-toggle-label { display: none; }
-  #btnShortcuts span { display: none; }
-  .app-title { display: none; }
-  .file-input-label #fileLabel { max-width: 190px; }
-}
-
-@media (max-width: 1200px) {
-  .backend-status-badge { display: none; }              /* status-only; CV server is a niche feature */
-  .file-input-label #fileLabel { max-width: 140px; }
-  .top-bar .bc-seg { max-width: 130px; }
-}
-
-@media (max-width: 1000px) {
-  .file-input-label #fileLabel { max-width: 110px; }
-  .top-bar .bc-seg { max-width: 96px; }
-  .top-bar { gap: 6px; }
-  .top-bar-left { gap: 6px; }
-}
-
+/* Final Engine Independence: the "TOP BAR — progressive collapse"    */
+/* block that lived here is deleted. Every selector it styled         */
+/* (.top-bar, .top-bar-left/center/right, .file-input-label #fileLabel, */
+/* #btnShortcuts, .app-title, .backend-status-badge, .top-bar .bc-seg) */
+/* lived exclusively inside <header class="top-bar">, which was       */
+/* deleted with #giLegacyEngineHost. Nothing in this block could      */
+/* still match a live element.                                       */
 /* ================================================================== */
 /* ====  FILM ROOM v2 — inline editing, columns, saved filters  ===== */
 /* ================================================================== */

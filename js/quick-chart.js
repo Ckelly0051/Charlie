@@ -36,7 +36,9 @@ export class QuickChart {
     this.yardageStr = '';
     this.yardageNegative = false;
 
-    this.btnToggle = document.getElementById('btnQuickChart');
+    // Final Engine Independence: the legacy #btnQuickChart top-bar button is
+    // gone -- toggle() is called directly from the Break Down toolbar's
+    // [data-bd-context="quick"] control (breakdown-workspace.js).
     this._clearPanelRefs();
     this._bindEvents();
   }
@@ -77,7 +79,6 @@ export class QuickChart {
     const handle = this.handle;
     this.handle = null;
     this.isActive = false;
-    this.btnToggle?.classList.remove('active');
     this._clearPanelRefs();
     if (close) handle?.close('toggle');
     this._emit('mode-changed', false);
@@ -100,9 +101,6 @@ export class QuickChart {
   }
 
   _bindEvents() {
-    // Toggle button
-    this.btnToggle.addEventListener('click', () => this.toggle());
-
     // Keyboard handler — capture all keys when quick chart is active
     document.addEventListener('keydown', (e) => {
       if (!this.isActive) return;
@@ -130,14 +128,13 @@ export class QuickChart {
     this.yardageStr = '';
     this.yardageNegative = false;
     this.status = 'Quick Chart active. Use the keyboard to tag plays.';
-    this.btnToggle?.classList.add('active');
     const handle = this.overlays.sheet({
       id: 'quick-chart',
       title: 'Quick Chart',
       modal: false,
       actions: [],
       initialFocus: '[data-native-quick-chart]',
-      returnFocus: document.activeElement && document.activeElement !== document.body ? document.activeElement : this.btnToggle,
+      returnFocus: document.activeElement && document.activeElement !== document.body ? document.activeElement : null,
       content: h(NativeQuickChart),
     });
     this.handle = handle;

@@ -291,7 +291,6 @@ export class StatsEngine {
     // click on a node nobody can reach is simply unreachable, never a false
     // "it worked."
     this.dashboardEl = null;
-    this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.createElement('button');
 
     this._bindEvents();
@@ -333,18 +332,12 @@ export class StatsEngine {
   }
 
   _bindEvents() {
-    // "Stats" is the entry point to the full team report. When the shell owns
-    // the product that report is the REPORTS DESTINATION, so route there rather
-    // than popping the legacy full-screen dashboard over whatever route the
-    // coach was on. The shell's reports route calls showDashboard() itself, so
-    // the render path is identical — only the framing changes. Every other
-    // caller (season-library, ui-polish) clicks this same button, so
-    // they all inherit the routing with no change of their own.
-    this.btnShowStats?.addEventListener('click', () => {
-      const shell = window.app?.workspaceShell;
-      if (shell?.root && typeof shell.show === 'function') { shell.show('reports'); return; }
-      this.showDashboard();
-    });
+    // Final Engine Independence: the legacy #btnShowStats top-bar button (and
+    // its click handler that routed to the shell's Reports destination) is
+    // gone -- every coach path to Reports already goes through
+    // [data-ws-route="reports"]/WorkspaceShell.show('reports') directly, and
+    // nothing else in the app clicked this button (confirmed: no reference to
+    // it survived outside this file).
     if (this.btnCloseStats) {
       this.btnCloseStats.addEventListener('click', () => this.hideDashboard());
     }

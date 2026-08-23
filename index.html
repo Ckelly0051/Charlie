@@ -222,68 +222,24 @@
             </div>
           </details>
   </div>
-  <div id="giLegacyEngineHost" class="gi-legacy-engine-host" hidden>
-  <section class="play-grid-section" id="playGridSection" hidden></section>
-  <header class="top-bar">
-        <div class="top-bar-left">
-          <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Open settings" aria-label="Open settings">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <line x1="4" y1="7" x2="20" y2="7"/>
-              <line x1="4" y1="12" x2="20" y2="12"/>
-              <line x1="4" y1="17" x2="20" y2="17"/>
-            </svg>
-            <span class="sidebar-toggle-label">Settings</span>
-          </button>
-  <button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)" aria-label="Keyboard shortcuts">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2"/>
-              <line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/>
-              <line x1="7" y1="14" x2="17" y2="14"/>
-            </svg>
-            <span>Shortcuts</span>
-          </button>
-          <h1 class="app-title">GridIron <span class="app-iq">IQ</span></h1>
-          <!-- The breadcrumb (Team ▸ Season ▸ Game) and its game-switcher dropdown
-               were the retired game-entry route (C1). Home is the sole game entry
-               and the shell's own `.ws-context` bar duplicates the breadcrumb
-               verbatim, so both are deleted rather than left hidden — hidden
-               markup is what let the retired flow resurface twice when an overlay
-               revealed the classic outlet. -->
-        </div>
-        <div class="top-bar-center">
-          <label class="file-input-label" id="videoDropZone" for="videoFileInput">
-            <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
-            <span id="fileLabel">Drop video(s) / folder or click to load</span>
-          </label>
-          <button class="btn btn-sm" id="btnLoadFolder" title="Load an entire folder of plays">
-            <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
-            <span class="btn-label">Folder</span>
-          </button>
-          <span class="folder-load-badge hidden" id="folderLoadBadge"></span>
-        </div>
-        <div class="top-bar-right">
-          <button class="backend-status-badge offline" id="backendStatusBadge" type="button"
-                  title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
-            Auto-Detect: Basic
-          </button>
-          <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
-            <svg class="icon"><use href="assets/icons.svg#icon-undo"/></svg>
-          </button>
-          <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>
-            <svg class="icon"><use href="assets/icons.svg#icon-redo"/></svg>
-          </button>
-          <button class="btn btn-secondary" id="btnQuickChart" title="Toggle Quick Chart Mode">
-            <svg class="icon"><use href="assets/icons.svg#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
-          </button>
-          <button class="btn btn-secondary" id="btnShowStats" title="View Game Stats">
-            <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> <span class="btn-label">Stats</span>
-          </button>
-          <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
-            <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save Season</span>
-          </button>
-        </div>
-      </header>
-  </div>
+  <!-- Final Engine Independence: #giLegacyEngineHost is deleted. It held two
+       generations of legacy markup, both now genuinely gone: #playGridSection
+       (native Film Room, native-film-room.jsx via NativeFilmRoomScreen, has
+       owned presentation through PlayGrid's DOM-free native*()/
+       nativeSnapshot() API all along) and the classic top-bar chrome
+       (#btnSidebarToggle/#btnShortcuts/#videoDropZone/#btnLoadFolder/
+       #backendStatusBadge/#btnUndoAction/#btnRedoAction/#btnQuickChart/
+       #btnShowStats/#btnSave). Every one of those controls now has a real
+       native owner that calls the underlying service directly instead of
+       adopting/relocating/`.click()`-proxying a hidden legacy element:
+       Undo/Redo/Shortcuts/Settings are WorkspaceShell's own
+       `.ws-global-tools` buttons; film loading is the native empty-state CTA
+       (ui-polish.js `_initEmptyStateCTA`) plus Settings' film-storage tools;
+       Quick Chart is the Break Down toolbar's [data-bd-context="quick"];
+       Stats/Reports is [data-ws-route="reports"]; Save is the More menu's
+       "Save season" (and Ctrl+S). The optional local CV server's status/
+       enable action -- unreachable while it lived on this hidden badge --
+       now lives in Settings -> Analysis (SettingsScreen.enableLocalServer()). -->
 
   <script type="module" src="js/native-root.jsx"></script>
   <script type="module" src="js/legacy-global-bridge.js"></script>

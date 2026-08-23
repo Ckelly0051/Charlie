@@ -134,21 +134,16 @@ export class PlayGrid {
     // reads -- injected explicitly rather than reached for off `window.app`.
     this.customChips = customChips;
 
-    // NOTE (2026-08-22, Final Engine Independence investigation): this was
-    // trialed as a detached (never-document-inserted) scratch element, the
-    // same technique applied successfully to StatsEngine.dashboardEl below.
-    // Reverted here: e2e-film-room.mjs drives the classic-rendered grid with
-    // real document-rooted queries and Puppeteer page.click() (~60 call
-    // sites: `#pgRows`, `.pg-row`, etc.), which requires the section to be
-    // genuinely attached to the document to be found/hit-tested. Converting
-    // that harness to route every one of those through a scoped
-    // `app.playGrid.section.querySelector(...)` is real, mechanical,
-    // low-risk work — but it is sized for its own reviewed pass, not a
-    // footnote in this one. #playGridSection therefore remains a real,
-    // present (but hidden) id in index.html for now. See the milestone
-    // handoff for the concrete follow-up plan.
+    // Final Engine Independence: #playGridSection is a legacy authored
+    // element the native Film Room route (native-film-room.jsx via
+    // NativeFilmRoomScreen) never renders into or reads from directly --
+    // it only checks this.section's PRESENCE as a mount guard, a vestige of
+    // when the classic renderer was the only implementation. All state below
+    // is now initialized unconditionally, and only the classic-DOM-specific
+    // setup (_inject/_wireClassic) is gated on this.section existing, so a
+    // coach on the native/shell route (unconditional since S7) is fully
+    // functional with #playGridSection absent from the document entirely.
     this.section = document.getElementById('playGridSection');
-    if (!this.section) return;
 
     // Filter state: AND across groups, OR within a group.
     this.f = { unit: '', downs: new Set(), rp: '', flags: new Set() };
@@ -166,8 +161,15 @@ export class PlayGrid {
     this.cols = this._loadCols();
     this.savedFilters = this._loadSavedFilters();
 
-    this._inject();
-    this._wire();
+    if (this.section) {
+      this._inject();
+      this._wireClassic();
+    }
+    // Domain-event subscriptions (play-created/updated/deleted/plays-loaded/
+    // play-selected) drive BOTH the classic re-render and the native
+    // subscriber notification (_notifyNative, inside refresh()) -- these must
+    // be registered unconditionally, not folded into the classic-only wiring.
+    this._wireDomainEvents();
     this.refresh();
   }
 
@@ -274,7 +276,7 @@ export class PlayGrid {
     });
   }
 
-  _wire() {
+  _wireClassic() {
     this.section.querySelector('#pgCollapse').addEventListener('click', () => this._toggleCollapsed());
     this.section.querySelector('#pgHead').addEventListener('click', (e) => {
       if (e.target.closest('.pg-chip, .pg-clear, .pg-watch, #pgCollapse, .pg-menu-btn')) return;
@@ -360,7 +362,12 @@ export class PlayGrid {
         this._setFocus(null);
       }
     });
+  }
 
+  /** Registered unconditionally (both classic and headless/native-only
+   *  construction) -- these are what drive refresh()'s native-mode
+   *  notification, not just the classic re-render. */
+  _wireDomainEvents() {
     // Data changes → re-render; selection changes → just move the highlight.
     this.tagger.on('play-created', () => this.refresh());
     this.tagger.on('play-updated', () => this.refresh());
@@ -788,6 +795,7 @@ export class PlayGrid {
   }
 
   _restoreFocusClass() {
+    if (!this.rowsEl) return;
     this.rowsEl.querySelectorAll('td.pg-cell-focus').forEach(td => td.classList.remove('pg-cell-focus'));
     if (!this._focus) return;
     const td = this._cellEl(this._focus.playId, this._focus.colKey);
