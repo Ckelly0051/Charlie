@@ -15,6 +15,65 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REVIEW - V2-A `807d9ad` - CHANGES REQUESTED (2026-08-23)
+
+**Reviewer: Codex. Verdict: CHANGES REQUESTED.** The live Home implementation
+is visually faithful to the approved canon: the dense six-game desktop view,
+selected-game detail, season rail, and compact Program / Season / Game context
+bar are all materially correct. This is not another palette-only reskin. No
+redesign is requested. Four implementation/test findings must close before
+V2-A is accepted:
+
+1. **P1 - Home preview actions open analysis for the wrong game.** A Home row is
+   intentionally preview-only (`_homeSelectedGameId` changes while
+   `activeGameId` does not), but `open-study` and `open-reports` only call
+   `show(...)`. If the coach previews Game B while Game A remains active, the
+   right panel describes B and both analysis buttons open A. Route both actions
+   through the authoritative `App.openGame(previewId, { route })` seam, exactly
+   as Continue Charting already routes through `App.openGame`. Add a
+   discriminating test that previews a non-active game, clicks each action, and
+   proves both the route and canonical active game are B.
+
+2. **P1 - the new Home game row is an HTML-injection sink.**
+   `_gameRowHtml()` escapes the game name and ids, but injects the composed
+   date/score metadata without escaping it. `_dateLabel()` deliberately returns
+   the original string for an invalid date, and imported/legacy `scoreUs` /
+   `scoreThem` values are not guaranteed safe. Escape the final metadata string
+   at the sink. Extend the XSS harness with hostile invalid-date and score
+   values and prove they render as inert text with no live element/event.
+
+3. **P2 - season switching can carry a stale Home preview across seasons.**
+   `show('home')` only clears `_homeSelectedGameId` when the prior route was not
+   Home. A Home-to-Home season switch therefore reuses the old preview id; if
+   two imported/cloned seasons contain the same game id, the new season can
+   preview that matching id instead of its canonical active game. Clear Home
+   preview state as part of a successful season switch. Pin it with two seasons
+   whose games intentionally share an id.
+
+4. **P2 - obsolete Home dependencies remain in production and tests.** The
+   retired `[data-ws-season]` / `[data-ws-game]` click branches remain in
+   `workspace-shell.js`, although V2-A emits neither attribute. Three focused
+   harnesses and `s7-dependency-ledger.mjs` still optionally click the deleted
+   `#wsFilmList [data-ws-game]`; optional chaining makes those setup steps pass
+   vacuously. Remove the dead production branches and replace each stale setup
+   with the surviving canonical game-entry API plus an assertion that the
+   intended game/route actually opened. This is required by the binding
+   obsolete-dependency retirement rule immediately below this checkpoint.
+
+**Visual review evidence.** Codex compared the real six-game 1440x900 and
+1280x800 captures to the approved `home-context-v2a-2026-08` canon. The
+composition, hierarchy, selector affordances, density, and selected-game panel
+match closely. The compact Break Down context bar is also visually coherent.
+The disclosed film-height reduction is real and narrowly attributable to that
+bar; no further geometry-floor reduction is approved by this review.
+
+**Review scope:** source trace of all new state transitions and HTML sinks;
+test-diff audit; direct visual comparison of implementation versus canon. The
+builder's 90/90 gate was not redundantly rerun because these defects are in
+branches the current suite does not exercise. No production code, installer,
+package, or release was changed by this review. **V2-B stays closed.**
+
+
 ### ▶ V2-A HOME AND CONTEXT UX — IMPLEMENTED, GATE GREEN — AWAITING REVIEW (2026-08-23)
 
 **Builder: Claude.** Implements the approved canon recorded immediately below
