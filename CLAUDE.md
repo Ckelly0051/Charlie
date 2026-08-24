@@ -15,6 +15,48 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX BUILD - V2-B CONTROL CENTER IMPLEMENTED - CLAUDE REVIEW QUEUE (2026-08-23)
+
+**Review range: `f54ea7f..HEAD`. Builder: Codex. No installer, package, tag, or
+release.** This is the full V2-B implementation checkpoint, not another Home
+wrapper or a cosmetic pass.
+
+What changed:
+
+- First run now begins with the football decision: **Our Program** or
+  **Opponent Scout**. Both are visible, selectable cards with distinct Program
+  and Scout states, followed by plain-language setup and film-storage guidance.
+- Program seasons and opponent scouts have explicit canonical `kind` identity.
+  Opponent Scout creation captures opponent, year, the two teams actually on the
+  source film, date, and scout perspective. It does not create a fake program
+  game or enter program schedule/record/totals.
+- Team Hub is now a useful control center before a game is opened: season/scout
+  library, film state and root, roster count, backup/recovery status, setup
+  progress, and direct actions for Team & Film Settings and Recovery.
+- Program and Scout selections are persistent and visually unambiguous. An open
+  scout season cannot silently override an explicit switch back to Program.
+- Source-game labels and score ownership use the actual two teams on film.
+  Existing charting, Study, Reports, Plan, persistence, and analytics services
+  are reused; no duplicate football engine or current-season pointer was added.
+- The superseded Team Hub composition touched by this work was replaced rather
+  than layered underneath the new route.
+
+Focused verification on the final tree:
+
+- `tools/e2e-v2b-control-center.mjs`: **14/14**
+- `tools/e2e-native-team-hub.mjs`: **27/27**
+- `tools/e2e-workspace-shell.mjs`: **88/88**
+- `npm run build`: green
+- Charlie Gate captures: `design-comps/v2b-verification/` (first run, Program
+  control center, Scout library, Scout Home)
+
+The full canonical gate was intentionally not rerun; the coach explicitly asked
+that effort go into the product and that Claude perform the independent review.
+Review priority: canonical Program/Scout isolation; source-game identity and
+score ownership; season/program switching; first-run comprehension; native
+film-root/control-center behavior; and any retained obsolete dependency. The
+browser-backed workflow is proven. Desktop root/path wording and the final
+no-verbal-help Assistant Coach Test remain acceptance work after review.
 ### ▶ PLAN V2 REASSESSMENT + DESKTOP CANDIDATE `1.12.0-63` (2026-08-23)
 
 V2-A remains accepted. Codex built the Windows desktop candidate at

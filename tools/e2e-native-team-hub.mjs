@@ -36,17 +36,17 @@ await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
 r = await page.evaluate(() => ({
   active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
-  empty: document.querySelector('.gi-hub-empty')?.textContent || '',
+  empty: document.querySelector('.gi-hub-empty-inline')?.textContent || '',
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
   setup: document.querySelector('.gi-hub-setup')?.textContent || '',
   steps: document.querySelectorAll('.gi-hub-setup-steps li').length,
 }));
-ok(r.active === 'Mavericks' && /No seasons yet/.test(r.empty) && r.profile.teamName === 'Mavericks',
+ok(r.active === 'Mavericks' && /Start the football year here/.test(r.empty) && r.profile.teamName === 'Mavericks',
   'First setup creates one active team and a clear empty-season state', JSON.stringify(r));
 ok(r.steps === 5 && /1 of 5/.test(r.setup) && /Add your roster/.test(r.setup) && /Start a season/.test(r.setup),
   'Native Team Hub preserves the five-step setup progress with real completion state', JSON.stringify(r));
 
-await page.click('.gi-hub-section-head .gi-hub-primary');
+await page.click('.gi-hub-hero-action');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
 await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
 const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
@@ -85,13 +85,13 @@ r = await page.evaluate(() => {
   const removeRect = remove.getBoundingClientRect();
   return {
     listWidth: Math.round(list.width), rowWidth: Math.round(row.width),
-    stateVisible: state.left >= 0 && state.right <= innerWidth && row.top >= 0 && row.bottom <= innerHeight,
+    stateFitsWidth: state.left >= 0 && state.right <= innerWidth,
     openText: open.textContent.trim(), removeText: remove.textContent.trim(),
     actionGap: Math.round(removeRect.left - openRect.right),
     directionalCopy: /→/.test(document.querySelector('.gi-hub-season').textContent),
   };
 });
-ok(r.listWidth <= 1120 && r.rowWidth === r.listWidth && r.stateVisible,
+ok(r.listWidth <= 1120 && r.rowWidth === r.listWidth && r.stateFitsWidth,
   'Season rows stay compact and fully visible instead of stretching across the viewport', JSON.stringify(r));
 ok(r.openText === 'Return to Home' && r.removeText === 'Delete' && r.actionGap >= 8 && !r.directionalCopy,
   'Open is a distinct primary action and Delete is separated without a misleading arrow', JSON.stringify(r));

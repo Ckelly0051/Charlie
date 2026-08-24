@@ -21,12 +21,14 @@ export class GameScreen {
     storage.commitActive();
     const active = store.activeGame();
     if (!active) return Promise.resolve(false);
+    const scout = store.data?.kind === 'scout';
+    const scoutTarget = String(store.data?.scout?.opponent || '').trim();
     const source = mode === 'create' ? {} : clone(storage.gameInfo || active.gameInfo || {});
     const initial = {
       week: source.week || '', opponent: source.opponent || '',
       date: source.date || (mode === 'create' ? new Date().toISOString().slice(0, 10) : ''),
       homeAway: source.homeAway || '', gameType: source.gameType || 'game',
-      perspective: source.perspective || 'offense', scoreUs: source.scoreUs ?? '', scoreThem: source.scoreThem ?? '',
+      perspective: scout ? 'scout' : (source.perspective || 'offense'), sourceTeamA: source.sourceTeamA || scoutTarget, sourceTeamB: source.sourceTeamB || '', scoreUs: source.scoreUs ?? '', scoreThem: source.scoreThem ?? '',
     };
     const context = {
       mode, gameId: String(active.id), before: clone(store.data),
@@ -34,10 +36,10 @@ export class GameScreen {
     };
     let handle;
     handle = this.overlays.dialog({
-      id: 'game-details', title: mode === 'create' ? 'New game' : 'Game settings', returnFocus, unsaved: true,
+      id: 'game-details', title: mode === 'create' ? (scout ? 'New source game' : 'New game') : (scout ? 'Source game settings' : 'Game settings'), returnFocus, unsaved: true,
       initialFocus: `[name="${focus || (mode === 'create' ? 'week' : 'opponent')}"]`, actions: [],
       content: h(NativeGameForm, {
-        mode, initial, trackedScore: this.app.stats.computeScoreboard(),
+        mode, initial, trackedScore: this.app.stats.computeScoreboard(), scout, scoutTarget,
         onCancel: () => handle.close('cancel'),
         onSubmit: async values => {
           const result = await this.save(values, context);
@@ -108,13 +110,19 @@ export class GameScreen {
         const reused = store.isEmptyActive();
         if (!reused) {
           const game = store.addGame();
-          game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
+          game.gameInfo = { ...(game.gameInfo || {}), perspective: store.data?.kind === 'scout' ? 'scout' : 'offense' };
         }
         storage._clearForNewGame();
         await storage._loadActiveGame({ renderGames: false });
       }
 
+      if (store.data?.kind === 'scout') values = { ...values, opponent: store.data?.scout?.opponent || values.opponent, perspective: 'scout', gameType: 'scout' };
       this.app._applyGameInfoDraft(values);
+      if (store.data?.kind === 'scout') {
+        const game = store.activeGame();
+        const matchup = [values.sourceTeamA, values.sourceTeamB].filter(Boolean).join(' vs ');
+        if (game && matchup) { game.name = matchup; storage.gameInfo.projectName = matchup; }
+      }
       storage.commitActive();
       const saved = await store.persist();
       if (saved === false) throw new Error('The season could not be saved.');

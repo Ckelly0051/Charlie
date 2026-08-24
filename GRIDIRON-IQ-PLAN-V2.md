@@ -160,6 +160,25 @@ Execution and ownership:
 
 ### V2-B: Guided Setup, Team, Film And Scouting Control Center
 
+> **IMPLEMENTED - AWAITING INDEPENDENT REVIEW (2026-08-23).** Codex built the
+> V2-B coach journey on top of the accepted V2-A shell. The Home front door now
+> makes **Our Program** and **Opponent Scout** explicit, selectable football
+> workflows; first run explains the choice and film-storage consequence before
+> asking the coach to create anything. Program seasons and opponent scouts carry
+> explicit canonical `kind` identity, source games record the two teams actually
+> on film, and scout seasons are excluded from program schedules, records, totals,
+> and rollups. Home now includes a visible Team, Film, Roster, Backup and Recovery
+> control center before any game is opened. No duplicate analytics backend or
+> second current-season pointer was introduced.
+>
+> Focused proof on the committed candidate: `e2e-v2b-control-center.mjs` 14/14,
+> `e2e-native-team-hub.mjs` 27/27, and `e2e-workspace-shell.mjs` 88/88. Final
+> real-screen captures are in `design-comps/v2b-verification/`. A full canonical
+> gate was deliberately not repeated for this coach-facing checkpoint; Claude's
+> independent adversarial review is next. V2-B is not finally accepted until the
+> reviewed desktop installer passes the clean-profile, no-verbal-help Assistant
+> Coach Test described below.
+
 This is one coach journey, not three disconnected settings projects. It absorbs
 the former V2-C first-run storage lane and V2-D diagnostics lane. A new user
 must be able to install the app, establish the correct football context, connect

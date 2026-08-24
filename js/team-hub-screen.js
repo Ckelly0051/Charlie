@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
+import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -13,7 +13,7 @@ export class TeamHubScreen {
     this.host = null;
     this._native = null;
     this._listeners = new Set();
-    this._state = { status: 'idle', teams: [], seasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, error: '' };
+    this._state = { status: 'idle', teams: [], seasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, workspaceMode: (() => { try { return localStorage.getItem('giq_home_workspace') === 'scout' ? 'scout' : 'program'; } catch { return 'program'; } })(), allTeamSeasonCount: 0, control: null, error: '' };
     this._loadToken = 0;
   }
 
@@ -48,6 +48,30 @@ export class TeamHubScreen {
   _storage() { return this.app.storage; }
   _store() { return this.app.storage?.seasonStore; }
 
+  async _controlStatus(teamSeasons = []) {
+    const store = this._store();
+    const backend = store?.backend;
+    const desktop = !!(window.__TAURI__ && backend?.supportsLinkedFilm?.());
+    const root = desktop ? backend.getLibraryRoot?.() || '' : '';
+    const mode = desktop ? backend.getFilmStorageMode?.() || '' : 'browser';
+    const games = teamSeasons.reduce((sum, season) => sum + (Number(season.games) || 0), 0);
+    const plays = teamSeasons.reduce((sum, season) => sum + (Number(season.plays) || 0), 0);
+    return {
+      desktop, root, mode, games, plays,
+      rosterCount: this.app.roster?.players?.length || 0,
+      recovery: this.canRecoverSeasons() ? 'Recovery ready' : 'Browser backup ring',
+      storageLabel: !desktop ? 'Browser storage' : root ? 'Linked library' : mode === 'managed' ? 'Managed app storage' : 'Film storage not set',
+    };
+  }
+
+  selectWorkspace(mode) {
+    const workspaceMode = mode === 'scout' ? 'scout' : 'program';
+    if (workspaceMode === this._state.workspaceMode) return true;
+    try { localStorage.setItem('giq_home_workspace', workspaceMode); } catch {}
+    this._state.workspaceMode = workspaceMode;
+    return this.load();
+  }
+
   async show() {
     if (!this.host) return false;
     this.host.hidden = false;
@@ -68,8 +92,11 @@ export class TeamHubScreen {
       const activeTeamId = registry.activeTeamId() || teams[0]?.id || '';
       const profile = registry.teamProfile();
       const allSeasons = await this._storage().listSeasons();
-      const seasons = teams.length ? registry.seasonsForTeam(allSeasons, activeTeamId) : [];
+      const teamSeasons = teams.length ? registry.seasonsForTeam(allSeasons, activeTeamId) : [];
       const currentSeasonId = this._store()?.currentSeasonId || '';
+      let workspaceMode = this._state.workspaceMode;
+      if (!['program', 'scout'].includes(workspaceMode)) workspaceMode = 'program';
+      const seasons = teamSeasons.filter(season => workspaceMode === 'scout' ? season.kind === 'scout' : season.kind !== 'scout');
       // Season rows render immediately from list metadata (name, counts,
       // current) so a large library or a slow film check never blocks Team
       // Hub from appearing. Film health resolves in the background per row
@@ -82,7 +109,9 @@ export class TeamHubScreen {
       const doneCount = items.filter(item => item.done).length;
       const checklist = { items, doneCount, visible: !!teams.length && !!items.length && doneCount < items.length && !registry.checklistDismissed() };
       if (token !== this._loadToken) return false;
-      this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, checklist, error: '' });
+      const control = await this._controlStatus(teamSeasons);
+      if (token !== this._loadToken) return false;
+      this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, checklist, workspaceMode, allTeamSeasonCount: teamSeasons.length, control, error: '' });
       this._verifyFilmHealth(rows, currentSeasonId, token);
       return true;
     } catch (error) {
@@ -100,7 +129,7 @@ export class TeamHubScreen {
     const playCount = games ? games.reduce((sum, game) => sum + (game.plays?.length || 0), 0) : Number(meta.plays) || 0;
     return {
       id: String(meta.id), name: meta.name || 'Untitled Season', year: meta.year || '', level: meta.level || '',
-      team: meta.team || '', gameCount, playCount, current, isDemo: this._storage().isDemoSeason(meta.id) || meta.isDemo || meta.kind === 'demo',
+      team: meta.team || '', kind: meta.kind || '', gameCount, playCount, current, isScout: meta.kind === 'scout', isDemo: this._storage().isDemoSeason(meta.id) || meta.isDemo || meta.kind === 'demo',
       lastOpened: meta.lastOpened || meta.openedAt || meta.created || '',
       // The honest transient — real state is filled in by _verifyFilmHealth.
       // Never "not checked": that reads as an error/unlinked state rather
@@ -159,7 +188,7 @@ export class TeamHubScreen {
 
   close() { return this.app.workspaceShell?.closeTeamHub?.(); }
 
-  openSettings(invoker) { return this.app.settingsScreen?.open?.({ returnFocus: invoker }); }
+  openSettings(invoker, initialTab = 'film') { return this.app.settingsScreen?.open?.({ initialTab, returnFocus: invoker }); }
   openRoster(invoker = null) { return this.app.settingsScreen?.open?.({ initialTab:'roster', returnFocus:invoker || document.activeElement }); }
 
   dismissChecklist() {
@@ -258,6 +287,56 @@ export class TeamHubScreen {
     return handle.result;
   }
 
+  openCreateScout(invoker) {
+    if (!this._state.activeTeamId) return this.openAddTeam(invoker);
+    let handle;
+    handle = this.overlays.dialog({
+      id: 'team-hub-create-scout', title: 'Create opponent scout', returnFocus: invoker, actions: [],
+      content: h(CreateScoutForm, {
+        onCancel: () => handle.close('cancel'),
+        onSubmit: async values => { const result = await this.createScout(values); if (result.ok) handle.close('created'); return result; },
+      }),
+    });
+    return handle.result;
+  }
+
+  async createScout({ opponent, year = '', sourceTeamA = '', sourceTeamB = '', date = '' }) {
+    const cleanOpponent = String(opponent || '').trim();
+    const a = String(sourceTeamA || '').trim();
+    const b = String(sourceTeamB || '').trim();
+    if (!cleanOpponent) return { ok: false, message: 'Enter the opponent you are scouting.' };
+    if (!a || !b) return { ok: false, message: 'Enter both teams from the source film.' };
+    const cleanYear = String(year || '').trim();
+    const seasonName = [cleanYear, cleanOpponent, 'Scout'].filter(Boolean).join(' ');
+    try {
+      const rec = await this._storage().createSeason({
+        name: seasonName, year: cleanYear, level: 'Opponent scout', kind: 'scout',
+        team: this._state.profile.teamName || '', teamId: this._state.activeTeamId,
+      });
+      if (!rec) return { ok: false, message: 'The opponent scout could not be created. Nothing changed.' };
+      const store = this._store();
+      const game = store?.activeGame?.();
+      if (!game) return { ok: false, message: 'The source game could not be created.' };
+      store.data.kind = 'scout';
+      store.data.scout = { opponent: cleanOpponent, year: cleanYear };
+      this.app._applyGameInfoDraft({
+        opponent: cleanOpponent, date: String(date || '').trim(), perspective: 'scout', gameType: 'scout',
+        sourceTeamA: a, sourceTeamB: b,
+      });
+      game.name = `${a} vs ${b}`;
+      this._storage().gameInfo.projectName = game.name;
+      this._storage().commitActive();
+      const saved = await store.persist();
+      if (saved === false) throw new Error('The opponent scout could not be saved.');
+      try { localStorage.setItem('giq_home_workspace', 'scout'); } catch {}
+      this._state.workspaceMode = 'scout';
+      await this.app.workspaceShell.show('home');
+      this.overlays.toast({ tone: 'success', message: `${cleanOpponent} scout created. Link the source-game folder, then chart the opponent.` });
+      return { ok: true, seasonId: rec.id, gameId: String(game.id) };
+    } catch (error) {
+      return { ok: false, message: `${error?.message || 'The opponent scout could not be created.'} No existing program season was changed.` };
+    }
+  }
   openCreateSeason(invoker) {
     if (!this._state.activeTeamId) return this.openAddTeam(invoker);
     let handle;
@@ -278,9 +357,11 @@ export class TeamHubScreen {
     try {
       const rec = await this._storage().createSeason({
         name: clean, year: String(year || '').trim(), level: String(level || '').trim(),
-        team: this._state.profile.teamName || '', teamId: this._state.activeTeamId,
+        team: this._state.profile.teamName || '', teamId: this._state.activeTeamId, kind: 'program'
       });
       if (!rec) return { ok: false, message: 'The season could not be created. Nothing changed.' };
+      try { localStorage.setItem('giq_home_workspace', 'program'); } catch {}
+      this._state.workspaceMode = 'program';
       await this.app.workspaceShell.show('home');
       return { ok: true };
     } catch (error) { return { ok: false, message: String(error?.message || 'The season could not be created.') }; }
@@ -326,6 +407,9 @@ export class TeamHubScreen {
     if (!row) return false;
     try {
       if (!row.current) await this._storage().openSeasonById(row.id);
+      const mode = row.kind === 'scout' ? 'scout' : 'program';
+      try { localStorage.setItem('giq_home_workspace', mode); } catch {}
+      this._state.workspaceMode = mode;
       await this.app.workspaceShell.show('home');
       return true;
     } catch (error) {
@@ -378,10 +462,10 @@ export class TeamHubScreen {
     const id = this._state.activeTeamId;
     const team = this._state.teams.find(item => item.id === id);
     if (!team) return false;
-    if (this._state.seasons.length) {
+    if (this._state.allTeamSeasonCount) {
       await this.overlays.dialog({
         title: 'Team still has seasons', returnFocus: invoker,
-        message: `${team.teamName} owns ${this._state.seasons.length} season${this._state.seasons.length === 1 ? '' : 's'}. Delete or move those seasons before removing the team.`,
+        message: `${team.teamName} owns ${this._state.allTeamSeasonCount} season${this._state.allTeamSeasonCount === 1 ? '' : 's'}. Delete or move those seasons before removing the team.`,
         actions: [{ key: 'ok', label: 'Got it', default: true }],
       }).result;
       return false;

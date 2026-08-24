@@ -73,7 +73,7 @@ export class SeasonStore {
     const g = this.blankGame();
     return {
       version: this.SCHEMA, type: 'season',
-      id: '', seasonName: '', team: '', year: '', level: '',
+      id: '', seasonName: '', team: '', year: '', level: '', kind: '',
       teamProfile: {}, roster: [], playbook: { version: 1, calls: [] },
       games: [g], activeGameId: g.id,
       plans: [],
@@ -433,6 +433,7 @@ export class SeasonStore {
     this.data.id = rec.id;
     this.data.seasonName = rec.name;
     this.data.team = rec.team; this.data.teamId = rec.teamId || meta?.teamId || ''; this.data.year = rec.year; this.data.level = rec.level;
+    this.data.kind = rec.kind || meta?.kind || '';
     if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
     if (meta?.playbook && Array.isArray(meta.playbook.calls)) this.data.playbook = meta.playbook;
   }
