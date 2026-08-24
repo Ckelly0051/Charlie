@@ -43,9 +43,10 @@ r = await page.evaluate(() => ({
   stored: localStorage.getItem('giq_home_workspace'),
   active: document.querySelector('[data-ws-action="workspace-scout"]')?.classList.contains('is-active'),
   pressed: document.querySelector('[data-ws-action="workspace-scout"]')?.getAttribute('aria-pressed'),
+  eyebrow: document.getElementById('wsHomeEyebrow')?.textContent?.trim(),
 }));
-ok(r.stored === 'scout' && r.active && r.pressed === 'true',
-  'Scout choice remains active after leaving Team Hub before any season exists', JSON.stringify(r));
+ok(r.stored === 'scout' && r.active && r.pressed === 'true' && r.eyebrow === 'Opponent Scout / Film Library',
+  'Scout choice and Home copy remain aligned after leaving Team Hub before any season exists', JSON.stringify(r));
 await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('program');
   await window.app.workspaceShell._openLibrary();

@@ -260,7 +260,7 @@ export class WorkspaceShell {
     const data = store.data;
     const games = data?.games || [];
     const game = data ? store.activeGame?.() : null;
-    const scout = data?.kind === 'scout';
+    const scout = this._isScoutWorkspace();
     const scoutTarget = String(data?.scout?.opponent || '').trim();
     const workspaceName = scoutTarget || c.season?.name || 'Opponent';
     const record = scout ? { text: workspaceName } : this._seasonRecord(games, store);

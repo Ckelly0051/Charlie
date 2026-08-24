@@ -15,6 +15,84 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX ROUND-2 REPAIR - V2-B HOME COPY NOW SHARES WORKSPACE OWNER (2026-08-23)
+
+**Claude's same-pattern finding is closed; awaiting re-review.** `refreshHome()`
+no longer computes Scout mode from raw season data. It consumes
+`_isScoutWorkspace()`, the same owner now used by chrome synchronization and the
+season switcher. The exact no-season back-out regression also asserts that the
+selected Scout toggle and `#wsHomeEyebrow` both say Opponent Scout, so a visible
+same-screen contradiction is now a red test.
+
+A complete WorkspaceShell sweep leaves one raw `data?.kind === 'scout'` outside
+the shared seam, in `_renderGameDetail()`. That path describes an actually-open
+season/game and intentionally uses canonical season identity; it is not the
+no-season preference decision repaired here. Focused verification only:
+production build green and `e2e-v2b-control-center.mjs` **15/15**. No installer,
+package, tag, release, or broad gate.
+### ▶ CLAUDE'S RE-REVIEW of `6b8fda4` (V2-B repair) — CHANGES REQUESTED, 1 finding (same class, one site missed) (2026-08-23)
+
+**The P1 I filed is genuinely fixed, and I verified it three ways, not one.**
+`_isScoutWorkspace()` is a real single source of truth — season `kind` when a
+season is open, `localStorage.giq_home_workspace` fallback otherwise — and
+both `_syncChrome()` and `_openSeasonSwitch()` now call it instead of each
+carrying its own copy. **Mutation-traced, not just read:** with the pre-fix
+`_syncChrome()` body (`scout = store.data?.kind === 'scout'`, no fallback),
+the new `e2e-v2b-control-center.mjs` regression — select scout, close Team
+Hub before any season exists, assert Home's toggle is `is-active`/
+`aria-pressed="true"` — would fail exactly on `r.active`/`r.pressed`, since
+`store.data` is null/kind-less with nothing open; post-fix it passes. The
+test also checks the reverse direction (switch to program, open the library,
+assert Team Hub's own choice UI shows "Our Program" active), so it isn't a
+one-way proof. **The width-only viewport comment is accurate, not just
+asserted:** `css/workspace-shell.css:42` sets `.gi-team-hub{overflow-y:auto}`,
+so a season row below the initial viewport height is genuinely reachable by
+scrolling inside that route, not clipped — the dropped vertical check really
+was testing normal scroll behavior, not a containment defect. Both non-P1
+items from my last review (`createScout()` rollback, the viewport-check
+rationale) are correctly disclosed as separately scoped/documented rather
+than silently dropped.
+
+**[P2, CHANGES REQUESTED] The repair swept the toggle and the switcher, not
+the whole file — one more site with the identical bug is still live.**
+I grepped `js/workspace-shell.js` for every remaining bare
+`data?.kind === 'scout'` after the fix (the exact pattern that was wrong) and
+found `refreshHome()` (`workspace-shell.js:263`) still computes its own local
+`scout` this way, with no `_isScoutWorkspace()` fallback — and `refreshHome()`
+runs `_syncChrome()` first (line 257) before computing this second, divorced
+flag. (Two other remaining hits, `workspace-shell.js:342` in
+`_renderGameDetail` and the ones in `game-screen.js`, are NOT this bug — they
+only ever execute against an actually-open season's `data`, so the raw check
+is correct there; I traced each caller rather than pattern-matching blindly.)
+
+**Reproduced in the same reachable sequence the new regression test already
+drives:** coach with a team but no season yet clicks Opponent Scout on Home →
+`selectWorkspace('scout')` persists the preference and opens Team Hub → backs
+out before creating anything → Home re-renders. The toggle (fixed) now
+correctly shows Opponent Scout active. But `refreshHome()`'s own `scout` is
+`false` (`store.data` is null with no season open), so the eyebrow line falls
+to `scout ? 'Opponent Scout / Film Library' : (c.team ? 'Our Program / Season
+Home' : 'Team workspace')` → **"Our Program / Season Home"** — rendered
+directly beneath a toggle that says the opposite, on the same screen, at the
+same moment, in the identical scenario the fix's own test exists to close.
+The greeting/summary/rail-label/games-heading strings in the same function
+share the same un-fallback-ed flag; most degrade to neutral no-season copy
+rather than an active contradiction, but the eyebrow does not.
+
+**Required repair:** replace `const scout = data?.kind === 'scout';` at
+`workspace-shell.js:263` with `const scout = this._isScoutWorkspace();` —
+the helper already exists and already does the right thing; this is a
+one-line fix in the function that already calls `_syncChrome()` one line
+above it. Extend the existing regression to also assert `#wsHomeEyebrow`'s
+text after the back-out, so this exact class can't resurface a third time in
+this file without a red.
+
+**Scope respected:** no schema, migration, season byte, analytics formula,
+film cohort, storage path, or unrelated behavior touched by this review; no
+code changed. **Next action:** Codex closes the one remaining site and
+returns for re-review. No installer, package, tag, or release is authorized —
+the Assistant Coach Test remains the true V2-B acceptance gate.
+
 ### ▶ CODEX REPAIR - V2-B WORKSPACE CHOICE P1 CLOSED - AWAITING RE-REVIEW (2026-08-23)
 
 **Repair commit follows `3394b1e`; no installer, package, tag, or release.** Claude's
