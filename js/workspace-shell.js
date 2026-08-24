@@ -73,10 +73,7 @@ export class WorkspaceShell {
   _mount() {
     const root = document.createElement('div');
     root.id = 'workspaceShell'; root.className = 'ws-shell';
-    root.innerHTML = `<aside class="ws-sidebar"><div class="ws-brand">GRIDIRON <b>IQ</b></div>
-      <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
-      <div class="ws-side-foot"><div class="ws-save-state"><i></i>Season ready</div></div></aside>
-      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn ws-more-btn" id="btnNativeMore" data-ws-action="more" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">▾</span></button></div></header>
+    root.innerHTML = `<main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn ws-more-btn" id="btnNativeMore" data-ws-action="more" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">▾</span></button></div></header>
       <section class="ws-contextbar" id="wsContextBar" aria-label="Football context">
         <button class="ws-ctx" id="wsCtxProgram" data-ws-action="program-switch" aria-haspopup="menu" aria-expanded="false"><span class="ws-ctx-label">Program</span><span class="ws-ctx-value" id="wsCtxProgramValue">Team</span><b class="ws-ctx-chev" aria-hidden="true">▾</b></button>
         <button class="ws-ctx" id="wsCtxSeason" data-ws-action="season-switch" aria-haspopup="menu" aria-expanded="false"><span class="ws-ctx-label">Season</span><span class="ws-ctx-value" id="wsCtxSeasonValue">No season open</span><b class="ws-ctx-chev" aria-hidden="true">▾</b></button>

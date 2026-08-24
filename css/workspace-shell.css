@@ -32,27 +32,25 @@
   --ws-sel-line:var(--gi-accent-border);           /* selected border                         */
   --ws-sel-text:var(--gi-accent-text);           /* selected label                          */
   --ws-warn-surface:var(--gi-warn-surface);       /* amber advisory surface                  */
-  --ws-side:208px;--ws-top:54px
+  --ws-top:54px
 }
-body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:100vh;width:100vw;font-family:var(--gi-sans);font-synthesis:none;text-shadow:none;display:grid;grid-template-columns:var(--ws-side) minmax(0,1fr);background:var(--ws-ink);color:var(--ws-text);overflow:hidden}.ws-sidebar{height:100vh;background:var(--ws-nav);border-right:1px solid var(--ws-line);padding:18px 12px;display:flex;flex-direction:column}.ws-brand{font-family:var(--gi-cond);font-size:21px;font-weight:800;padding:0 10px 20px}.ws-brand b,.ws-mobile-brand b{color:var(--ws-blue)}.ws-nav{display:grid;gap:4px}.ws-nav button{height:42px;border:0;background:transparent;text-align:left;border-radius:var(--gi-radius);padding:0 12px;color:var(--ws-muted);font-weight:700}.ws-nav button span{width:24px;display:inline-block}.ws-nav button:hover:not(:disabled){background:var(--ws-raised)}.ws-nav button.active{background:var(--ws-sel);color:var(--ws-on-solid);border-left:3px solid var(--ws-blue)}.ws-nav button:disabled{opacity:.35;cursor:not-allowed}.ws-side-foot{margin-top:auto;border-top:1px solid var(--ws-line);padding-top:12px}.ws-classic{width:100%;height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:transparent;color:var(--ws-muted)}.ws-save-state{font-size:12px;color:var(--ws-muted);padding:10px}.ws-save-state i{display:inline-block;width:8px;height:8px;background:var(--ws-green);border-radius:var(--gi-radius);margin-right:7px}.ws-main{min-width:0;min-height:0;display:grid;grid-template-rows:var(--ws-top) minmax(0,1fr)}
+body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:100vh;width:100vw;font-family:var(--gi-sans);font-synthesis:none;text-shadow:none;display:block;background:var(--ws-ink);color:var(--ws-text);overflow:hidden}.ws-mobile-brand b{color:var(--ws-blue)}.ws-main{width:100%;height:100vh;min-width:0;min-height:0;display:grid;grid-template-rows:var(--ws-top) minmax(0,1fr)}
 /* Every native destination is a real grid viewport. Keeping this contract on
    the shell prevents a route-specific stylesheet omission from collapsing an
    otherwise mounted screen in WebView2. */
 .ws-home,.ws-team-hub,.ws-breakdown,.ws-study,.ws-reports,.ws-plan-state{min-width:0;min-height:0}
 .ws-team-hub,.ws-study,.ws-reports,.ws-plan-state{overflow-y:auto}.ws-topbar,.ws-mobile-head{height:var(--ws-top);background:var(--ws-nav);border-bottom:1px solid var(--ws-line);display:flex;align-items:center;padding:0 18px;gap:10px}.ws-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}.ws-film-chip{font-size:12px;color:var(--ws-muted);border:1px solid var(--ws-line);padding:6px 9px;border-radius:var(--gi-radius)}.ws-icon-btn{width:34px;height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text)}.ws-more-btn{width:auto;padding:0 10px;font-weight:700}.ws-more-btn span{margin-left:3px;color:var(--ws-muted)}.ws-mobile-head{display:none}.ws-home{overflow:auto;padding:22px 28px 20px;min-width:0}.ws-home>*{max-width:1280px;margin-left:auto;margin-right:auto}.ws-home-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}.ws-eyebrow{font-size:11.5px;color:var(--ws-sel-text);text-transform:uppercase;font-weight:800;letter-spacing:1px}.ws-home h1,.ws-plan-state h1{font-family:var(--gi-cond);font-size:34px;line-height:1;margin:6px 0;font-weight:800}.ws-home-head p{color:var(--ws-muted)}.ws-btn{height:36px;padding:0 13px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);font-weight:700}.ws-btn:hover:not(:disabled),.ws-link:hover{border-color:var(--ws-line-strong);background:var(--ws-hover)}.ws-btn:disabled{opacity:.4;cursor:not-allowed}.ws-btn.ws-primary{background:var(--ws-blue);border-color:var(--ws-blue)}.ws-btn.ws-small{height:30px;padding:0 10px;font-size:12px}.ws-section-head{display:flex;align-items:center;border-bottom:1px solid var(--ws-line);padding-bottom:10px}.ws-section-head h2{font-size:13px}.ws-link{margin-left:auto;border:0;background:transparent;color:var(--ws-sel-text);font-size:12px}.ws-empty{padding:22px 5px;color:var(--ws-muted);border-bottom:1px solid var(--ws-line)}.ws-empty.ws-error{color:var(--ws-red);border-left:3px solid var(--ws-red);padding-left:12px}.ws-classic-outlet{min-height:0;overflow:hidden}.ws-classic-outlet>#app{height:100%;width:100%}.ws-plan-state{display:grid;place-items:center;text-align:center}.ws-plan-state span{font-size:12px;letter-spacing:1px;color:var(--ws-sel-text);font-weight:800}.ws-plan-state .ws-btn{margin-top:14px}.ws-mobile-brand{border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}.ws-mobile-head select{margin-left:auto;height:34px;max-width:145px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);padding:0 8px}
-@media(max-width:900px){.ws-shell{display:block}.ws-sidebar,.ws-topbar{display:none}.ws-main{height:100vh;grid-template-rows:48px minmax(0,1fr)}.ws-mobile-head{display:flex;height:48px;padding:0 10px}.ws-home{padding:22px 15px}.ws-home-head{display:block}.ws-home-head .ws-home-actions{margin-top:14px}.ws-classic-outlet>#app{height:100%;width:100%}.ws-home h1{font-size:29px}}
+@media(max-width:900px){.ws-topbar{display:none}.ws-main{height:100vh;grid-template-rows:48px minmax(0,1fr)}.ws-mobile-head{display:flex;height:48px;padding:0 10px}.ws-home{padding:22px 15px}.ws-home-head{display:block}.ws-home-head .ws-home-actions{margin-top:14px}.ws-classic-outlet>#app{height:100%;width:100%}.ws-home h1{font-size:29px}}
 
-.ws-shell-active #statsDashboard .stats-overlay{left:var(--ws-side);top:var(--ws-top)}
+.ws-shell-active #statsDashboard .stats-overlay{left:0;top:var(--ws-top)}
 @media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
 
-/* Break Down uses the approved compact top navigation so film receives the
-   width that the permanent workspace sidebar previously consumed. */
-.ws-top-brand,.ws-top-nav,.ws-mobile-nav{display:none}
-body.ws-shell-active.ws-route-breakdown .ws-shell{grid-template-columns:minmax(0,1fr)}
-body.ws-shell-active.ws-route-breakdown .ws-sidebar{display:none}
-body.ws-shell-active.ws-route-breakdown .ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}
+/* One desktop route owner. The retired left rail is gone; every destination
+   uses this compact top navigation and mobile keeps its bottom navigation. */
+.ws-mobile-nav{display:none}
+.ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}
 .ws-top-brand b{color:var(--ws-blue)}
-body.ws-shell-active.ws-route-breakdown .ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:2px}
+.ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:2px}
 .ws-top-nav button{min-width:76px;padding:0 9px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ws-muted);font:inherit;font-size:12px;font-weight:750}.ws-top-nav button span{margin-right:5px}.ws-top-nav button:hover:not(:disabled){background:var(--ws-raised);color:var(--ws-on-solid)}.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:var(--ws-sel);color:var(--ws-on-solid)}.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
 
 /* Keep the canonical Settings command and global history tools reachable in the compact shell. */
@@ -123,7 +121,6 @@ body.ws-shell-active.ws-route-breakdown .ws-top-nav{display:flex;align-self:stre
 /* Status marks are 8px SQUARES, the way Team Hub already draws film health.
    They were circles here, which is the only place in the product a state dot
    was round. */
-.ws-save-state i{width:8px;height:8px}
 
 /* Typography boundary: native form controls do not inherit by default. */
 .ws-shell button,.ws-shell input,.ws-shell select,.ws-shell textarea{

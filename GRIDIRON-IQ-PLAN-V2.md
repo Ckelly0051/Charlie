@@ -182,6 +182,8 @@ Execution and ownership:
 > The final closeout adds an explicit **Season Library** action to the universal
 > Season selector, so a coach can return to the full season-management surface
 > from any route without knowing that the workspace label is also navigation.
+> Coach-smoke correction (2026-08-24): the duplicate left route rail is deleted. The compact top navigation is now the only desktop route owner on Home, Break Down, Study, Reports, and Plan; mobile keeps one bottom navigation. This is an absence contract, not a CSS hide.
+>
 > The clean-profile Assistant Coach Test is consolidated into Functional Beta
 > Acceptance rather than blocking further functional work with another interim
 > installer cycle.

@@ -15,6 +15,15 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX COACH-SMOKE REPAIR — ONE NAVIGATION OWNER (2026-08-24)
+
+The `1.12.0-65` Assistant Coach candidate exposed a clear composition defect: V2-A had added a usable desktop top navigation but retained the older left route rail on Home, Study, Reports, and Plan. The two controls owned the same five destinations and wasted 208px of every non-Break-Down workspace.
+
+The left rail is now deleted from `WorkspaceShell` rather than hidden. The compact top navigation is the sole desktop route owner on every screen; mobile retains its sole bottom navigation. The shell and report viewport now use the reclaimed full width. `tools/e2e-workspace-shell.mjs` was strengthened to assert `.ws-sidebar` is absent from the DOM and that the top navigation drives all desktop routes.
+
+Focused verification only: production Vite build clean; `e2e-workspace-shell.mjs` 90/90. No full canonical gate. Candidate `1.12.0-65` is superseded by corrected candidate `1.12.0-66` for the Assistant Coach Test because it still contains duplicate navigation.
+
+All four version owners are synchronized at 1.12.0-66. Native packaging produced NSIS src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-66_x64-setup.exe (SHA-256 6EB968E9591B912ECD1ED666050DB0CD5E86711789F2CF4BE6BBE6913ADF1731) and MSI src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-66_x64_en-US.msi (SHA-256 C281487E459AFF346B53D3CBC9BBC79ADDA190315DF8A953F355B17CEA2AF17C). The packaging command's only nonzero condition was the expected optional updater-signing warning after both bundles were produced.
 ### ▶ ASSISTANT COACH TEST CANDIDATE `1.12.0-65` — V2-B + V2-E (2026-08-24)
 
 V2-B and V2-E are independently accepted on code. All four version owners are synchronized at `1.12.0-65`; this checkpoint packages the combined Windows desktop candidate for the no-verbal-help Assistant Coach Test. It is a test candidate, not a published release or milestone acceptance.

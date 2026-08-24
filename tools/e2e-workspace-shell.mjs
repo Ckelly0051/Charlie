@@ -63,7 +63,7 @@ const chromeScan = await page.evaluate(() => {
   // short enough to appear inside real words); "undefined" and "[object Object]"
   // are distinctive enough to match bare.
   const bad = /undefined|\[object Object\]|\bNaN\b|\bnull\b/;
-  const zones = ['.ws-sidebar', '.ws-topbar', '.ws-mobile-head', '.ws-mobile-nav', '.ws-home-head', '.ws-context'];
+  const zones = ['.ws-topbar', '.ws-top-nav', '.ws-mobile-head', '.ws-mobile-nav', '.ws-home-head', '.ws-contextbar'];
   const hits = [];
   zones.forEach(sel => document.querySelectorAll(sel).forEach(z => {
     const t = (z.textContent || '').replace(/\s+/g, ' ').trim();
@@ -71,10 +71,10 @@ const chromeScan = await page.evaluate(() => {
   }));
   return {
     hits,
-    navLabels: [...document.querySelectorAll('.ws-sidebar [data-ws-route]')].map(b => (b.textContent || '').trim()),
+    navLabels: [...document.querySelectorAll('.ws-top-nav [data-ws-route]')].map(b => (b.textContent || '').trim()),
     // The icon <span> specifically, so "has a REAL icon" can be checked rather
     // than merely "has no undefined" — the fallback glyph satisfies the latter.
-    navIcons: [...document.querySelectorAll('.ws-sidebar [data-ws-route] span')].map(s => (s.textContent || '').trim()),
+    navIcons: [...document.querySelectorAll('.ws-top-nav [data-ws-route] span')].map(s => (s.textContent || '').trim()),
   };
 });
 ok(chromeScan.hits.length === 0, 'No JS value (undefined/NaN/null/[object Object]) leaks into shell chrome', JSON.stringify(chromeScan.hits));
@@ -203,7 +203,7 @@ await page.setViewport({ width: 1440, height: 900 });
 await capture('home-1440x900');
 await page.setViewport({ width: 1280, height: 800 });
 
-await page.click('.ws-sidebar [data-ws-route="breakdown"]');
+await page.click('.ws-top-nav [data-ws-route="breakdown"]');
 r = await page.evaluate(() => ({
   dedicatedVisible: !document.querySelector('#wsBreakdown')?.hidden,
   // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion.
@@ -213,13 +213,13 @@ r = await page.evaluate(() => ({
   videoOwners: document.querySelectorAll('#wsBreakdown #videoContainer').length,
   tagOwners: document.querySelectorAll('#wsBreakdown [data-native-tagging]').length,
   legacyChrome: document.querySelectorAll('#wsBreakdown .top-bar, #wsBreakdown .settings-drawer, #wsBreakdown #statsDashboard').length,
-  sidebarDisplay: getComputedStyle(document.querySelector('.ws-sidebar')).display,
+  sidebarAbsent: !document.querySelector('.ws-sidebar'),
   topNavDisplay: getComputedStyle(document.querySelector('.ws-top-nav')).display,
   mediaWidth: Math.round(document.querySelector('.gi-breakdown-theater-host').getBoundingClientRect().width),
 }));
 ok(r.dedicatedVisible && r.classicHidden && r.homeHidden && r.route === 'breakdown', 'Break Down opens its dedicated production route', JSON.stringify(r));
 ok(r.videoOwners === 1 && r.tagOwners === 1 && r.legacyChrome === 0, 'Dedicated route has one canonical video/tag owner and no legacy app chrome', JSON.stringify(r));
-ok(r.sidebarDisplay === 'none' && r.topNavDisplay === 'flex' && r.mediaWidth >= 800, 'Desktop Break Down replaces the sidebar with compact navigation and restores film width', JSON.stringify(r));
+ok(r.sidebarAbsent && r.topNavDisplay === 'flex' && r.mediaWidth >= 800, 'Desktop uses one compact top navigation, with the retired sidebar absent and film width restored', JSON.stringify(r));
 
 r = await page.evaluate(() => ({
   settingsInShell: !!document.querySelector('.ws-global-tools [data-ws-tool="settings"]'),
@@ -680,9 +680,9 @@ const reportsLibrary = await page.evaluate(async () => {
 });
 ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.hubVisible && !reportsLibrary.whileOpen.outletVisible
   && reportsLibrary.after.reportsVisible && reportsLibrary.after.outletHidden,
-  'Opening and backing out of native Team Hub from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));await page.click('.ws-sidebar [data-ws-route="study"]');
+  'Opening and backing out of native Team Hub from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));await page.click('.ws-top-nav [data-ws-route="study"]');
 
-await page.click('.ws-sidebar [data-ws-route="plan"]');
+await page.click('.ws-top-nav [data-ws-route="plan"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: !document.querySelector('#wsClassicOutlet'), text: document.querySelector('#wsPlan')?.textContent || '' }));
 ok(r.route === 'plan' && r.plan && r.appHidden && /GAME PLAN/.test(r.text), 'Plan opens the live season plan workspace');
 
@@ -829,10 +829,10 @@ await page.setViewport({ width: 390, height: 844 });
 r = await page.evaluate(() => ({
   overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   mobileHeader: getComputedStyle(document.querySelector('.ws-mobile-head')).display !== 'none',
-  sidebar: getComputedStyle(document.querySelector('.ws-sidebar')).display,
+  sidebarAbsent: !document.querySelector('.ws-sidebar'),
   bottomTabs: document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent',
 }));
-ok(!r.overflow && r.mobileHeader && r.sidebar === 'none' && r.bottomTabs === 'absent', 'Mobile Home has no overflow and hides classic navigation', JSON.stringify(r));
+ok(!r.overflow && r.mobileHeader && r.sidebarAbsent && r.bottomTabs === 'absent', 'Mobile Home has no overflow and hides classic navigation', JSON.stringify(r));
 await capture('home-390x844');
 
 await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
