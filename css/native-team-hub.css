@@ -104,3 +104,14 @@
 .gi-hub-scout-matchup .gi-hub-field{grid-template-columns:70px 1fr}
 @media(max-width:1050px){.gi-hub-command-grid{grid-template-columns:1fr}.gi-hub-control{display:grid;grid-template-columns:1fr 1fr}.gi-hub-control>header,.gi-hub-control-facts{grid-column:1/-1}}
 @media(max-width:760px){.gi-hub-workspace-choice,.gi-hub-workspace-choice.is-compact{grid-template-columns:1fr}.gi-hub-workspace-hero{align-items:stretch;flex-direction:column}.gi-hub-hero-action{width:100%}.gi-hub-control{display:block}.gi-hub-onboarding{width:calc(100% - 24px);margin:24px auto}.gi-hub-onboarding h1{font-size:32px}.gi-hub-storage-promise{align-items:center;flex-direction:column}.gi-hub-command-head h1{font-size:32px}}
+/* V2-B closeout — optional, resumable season setup. */
+.gi-hub-setup-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 20px}
+.gi-hub-dialog-form .gi-hub-setup-mode button{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-height:92px;padding:14px;text-align:left;background:var(--gi-2)}
+.gi-hub-setup-mode button>span{display:grid;gap:6px}.gi-hub-setup-mode button strong{color:var(--gi-12);font:800 17px/1 var(--gi-cond)}.gi-hub-setup-mode button small{color:var(--gi-10);font:500 11.5px/1.4 var(--gi-sans)}
+.gi-hub-setup-mode button>b{padding:3px 6px;background:var(--gi-4);color:var(--gi-10);font:700 9px/1 var(--gi-sans);text-transform:uppercase}
+.gi-hub-setup-mode button.is-selected{border-color:var(--gi-first-down);box-shadow:inset 0 -3px 0 var(--gi-first-down);background:color-mix(in srgb,var(--gi-first-down) 8%,var(--gi-2))}.gi-hub-setup-mode button.is-selected>b{background:var(--gi-first-down);color:#111}
+.gi-season-guide{width:min(620px,100%)}.gi-season-guide-head h2{margin:6px 0 0;font:800 26px/1 var(--gi-cond)}.gi-season-guide-head p{margin:7px 0 0;color:var(--gi-11);font-size:12px;line-height:1.45}
+.gi-season-guide-steps{display:grid;gap:0;margin:20px 0 0;padding:0;border-top:1px solid var(--gi-6);list-style:none}.gi-season-guide-steps li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:70px;padding:10px 0;border-bottom:1px solid var(--gi-6)}
+.gi-season-guide-number{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--gi-7);color:var(--gi-10);font:800 14px/1 var(--gi-cond)}.gi-season-guide-steps .is-done .gi-season-guide-number{border-color:var(--gi-ok);background:color-mix(in srgb,var(--gi-ok) 16%,transparent);color:var(--gi-ok)}
+.gi-season-guide-copy{display:grid;gap:4px}.gi-season-guide-copy strong{font:700 13px/1 var(--gi-sans)}.gi-season-guide-copy small{color:var(--gi-10);font-size:11.5px}.gi-season-guide-note{margin:14px 0 0!important;font-size:11.5px!important}
+@media(max-width:600px){.gi-hub-setup-mode{grid-template-columns:1fr}.gi-season-guide-steps li{grid-template-columns:34px minmax(0,1fr)}.gi-season-guide-steps li>button{grid-column:2;width:100%}}

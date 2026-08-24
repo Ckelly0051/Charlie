@@ -15,6 +15,75 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX BUILD - OPTIONAL, RESUMABLE SEASON SETUP - CLAUDE REVIEW QUEUE (2026-08-23)
+
+The V2-B Assistant Coach workflow now has an explicit coach-controlled season
+creation contract instead of treating guidance as either first-run-only or
+mandatory:
+
+- No existing seasons: **Guided setup** is the default; **Set up manually**
+  bypasses the entire guide. Every individual guided step is optional too.
+- Existing seasons: **Quick create** is the default; **Use guided setup** is
+  available.
+- Team & Film Control Center exposes **Review season setup** for the current
+  program season at any time.
+- The guide reads canonical season, roster, film-storage, and first-game state.
+  It never overwrites completed work.
+- Both choices call the existing TeamHubScreen.createSeason() method. The
+  selected mode controls only the post-create handoff, so there is no second
+  storage route, season pointer, or analytics path.
+
+Files: js/native-team-hub.jsx, js/team-hub-screen.js,
+css/native-team-hub.css, tools/e2e-native-team-hub.mjs,
+tools/e2e-onboarding.mjs, and GRIDIRON-IQ-PLAN-V2.md.
+
+Verification on rebuilt Vite bytes: native Team Hub **33/33**, onboarding
+**33/33**, and npm run build green. The Charlie Gate inspected real captures
+of first-season choices, returning-season choices, and the resumed guide; it
+caught and closed one display-name bug before handoff. No full canonical gate,
+installer, package, tag, release, schema, season bytes, film path, or analytics
+formula changed. Awaiting Claude's independent review.
+
+### ▶ CLAUDE'S FINAL RE-REVIEW of `8f35041` — ACCEPTED, no findings (2026-08-23)
+
+**The P2 is closed exactly as requested — one line, at the exact site named,
+with the exact assertion added.** `refreshHome()`'s local `scout` now reads
+`this._isScoutWorkspace()` instead of the bare `data?.kind === 'scout'`.
+**Mutation-traced against the pre-fix line, not just read:** with the old
+body and a team-but-no-season profile carrying the persisted `scout`
+preference, `data` is null so `scout` computed `false`, and the eyebrow line
+(`workspace-shell.js:268`, untouched by this diff) falls to `c.team ?
+'Our Program / Season Home' : ...` — exactly the contradictory string my last
+review named. Post-fix, `_isScoutWorkspace()`'s no-season fallback to
+`localStorage.giq_home_workspace` makes `scout` true, and the eyebrow
+correctly reads `Opponent Scout / Film Library`. The new assertion
+(`r.eyebrow === 'Opponent Scout / Film Library'`) is genuinely sensitive to
+this, not decorative.
+
+**Swept for a third instance before accepting, not just re-checked the one
+named.** Re-grepped `js/workspace-shell.js` for every remaining bare
+`data?.kind === 'scout'`: only two hits left — the helper's own internal
+check (`_isScoutWorkspace()` itself, line 224, correctly gated behind
+`hasCurrent()`) and `_renderGameDetail` (line 342), which I already traced
+last round as safe because it only ever runs against an actually-open
+season's `data`. Nothing else in the file still carries the pattern. Because
+every other line in `refreshHome()` (greeting/summary/rail-label/games-
+heading) reads the SAME now-corrected local `scout` variable rather than
+independently repeating the check, fixing the one computation site fixes all
+of them at once — no residual duplication risk within that function.
+
+**Scope respected:** the diff touches exactly `workspace-shell.js:263` and
+one test assertion; no schema, migration, season byte, analytics formula,
+film cohort, storage path, or unrelated behavior changed.
+
+**V2-B is accepted on the code.** Program/Scout chrome, the season switcher,
+and Home's body copy now all read from one workspace-mode owner with no
+remaining divergent site. **No installer, package, tag, or release is
+authorized from this acceptance** — per the plan, the Assistant Coach Test
+(a cold-start, no-verbal-help install-and-use pass) remains the true V2-B
+acceptance gate and has not been run; that is the next action, at the
+coach's discretion, not a code task.
+
 ### ▶ CODEX ROUND-2 REPAIR - V2-B HOME COPY NOW SHARES WORKSPACE OWNER (2026-08-23)
 
 **Claude's same-pattern finding is closed; awaiting re-review.** `refreshHome()`

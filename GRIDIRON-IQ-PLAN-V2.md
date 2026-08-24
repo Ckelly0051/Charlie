@@ -243,6 +243,24 @@ First-run guidance is part of this same control center:
 - Keep recovery, backup health, source paths, missing clip counts, and safe
   cleanup in this same destination rather than scattering them across routes.
 
+**Binding season-creation behavior (V2-B closeout, 2026-08-23):**
+
+- With no existing seasons, **Guided setup** is selected by default and
+  **Set up manually** is available as a complete bypass. The guided path itself
+  also permits every individual step to be skipped.
+- With existing seasons, **Quick create** is selected by default and
+  **Use guided setup** remains an explicit option.
+- Successful creation always uses the existing canonical Team Hub
+  createSeason() path. The setup choice controls only the post-create
+  destination; it does not create a second persistence path or mutate an
+  existing season.
+- The guide covers Season details, Roster, Film storage, First game, and Ready
+  to chart. Completed work is read from canonical season state and remains
+  untouched.
+- **Review season setup** remains available from Team & Film Control Center for
+  the currently open program season, so the guide is resumable rather than a
+  one-time first-run trap.
+
 Opponent Scout creation should ask for the opponent, season/year, and the
 source game being charted (the teams involved, date, and film folder). The app
 sets Opponent Scout perspective automatically; the coach should not have to

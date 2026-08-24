@@ -95,29 +95,58 @@ export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onS
   </form>;
 }
 
-export function CreateSeasonForm({ teamName, onSubmit, onCancel }) {
+export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, onCancel }) {
   const yearNow = String(new Date().getFullYear());
+  const [setupMode, setSetupMode] = useState(hasExistingData ? 'quick' : 'guided');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     setBusy(true); setError('');
-    const result = await onSubmit({ name: values.get('seasonName'), year: values.get('year'), level: values.get('level') });
+    const result = await onSubmit({ name: values.get('seasonName'), year: values.get('year'), level: values.get('level'), setupMode });
     if (!result?.ok) { setError(result?.message || 'The season could not be created.'); setBusy(false); }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
-    <p>For <strong>{teamName || 'this team'}</strong>. Games are added from Home after the season opens.</p>
+    <p>For <strong>{teamName || 'this team'}</strong>. Choose how much help you want setting up the season.</p>
+    <div class="gi-hub-setup-mode" role="radiogroup" aria-label="Season setup method">
+      <button type="button" role="radio" aria-checked={setupMode === 'guided'} class={setupMode === 'guided' ? 'is-selected' : ''} onClick={() => setSetupMode('guided')}>
+        <span><strong>{hasExistingData ? 'Use guided setup' : 'Guided setup'}</strong><small>Walk through roster, film storage, and the first game. You can skip anything.</small></span>
+        {!hasExistingData && <b>Recommended</b>}
+      </button>
+      <button type="button" role="radio" aria-checked={setupMode === 'quick'} class={setupMode === 'quick' ? 'is-selected' : ''} onClick={() => setSetupMode('quick')}>
+        <span><strong>{hasExistingData ? 'Quick create' : 'Set up manually'}</strong><small>Create the season and go straight to Home. The full guide is skipped.</small></span>
+        {hasExistingData && <b>Default</b>}
+      </button>
+    </div>
     <label class="gi-hub-field"><span>Season name</span><input name="seasonName" autoFocus required placeholder={`${yearNow} ${teamName || 'Season'}`} /></label>
     <div class="gi-hub-field-row">
       <label class="gi-hub-field"><span>Year</span><input name="year" defaultValue={yearNow} inputMode="numeric" /></label>
       <label class="gi-hub-field"><span>Level</span><input name="level" defaultValue="Varsity" placeholder="Varsity" /></label>
     </div>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
-    <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : 'Create season'}</button></div>
+    <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : setupMode === 'guided' ? 'Create and start guide' : 'Create season'}</button></div>
   </form>;
 }
 
+export function SeasonSetupGuide({ setup, onAction, onClose }) {
+  return <div class="gi-hub-dialog-form gi-season-guide">
+    <header class="gi-season-guide-head">
+      <span class="gi-hub-kicker">Season setup</span>
+      <h2>{setup.seasonName}</h2>
+      <p>Pick up wherever you need. Completed work stays untouched, and every step is optional.</p>
+    </header>
+    <ol class="gi-season-guide-steps">
+      {setup.steps.map((step, index) => <li class={step.done ? 'is-done' : ''}>
+        <span class="gi-season-guide-number">{step.done ? '✓' : index + 1}</span>
+        <span class="gi-season-guide-copy"><strong>{step.label}</strong><small>{step.detail}</small></span>
+        {step.action && <button type="button" onClick={() => onAction(step.action)}>{step.done ? 'Review' : step.button}</button>}
+      </li>)}
+    </ol>
+    <p class="gi-season-guide-note">You can reopen this guide from Team &amp; Film Control Center at any time.</p>
+    <div class="gi-hub-form-actions"><button type="button" onClick={onClose}>Skip guide and go to Home</button></div>
+  </div>;
+}
 export function CreateScoutForm({ onSubmit, onCancel }) {
   const yearNow = String(new Date().getFullYear());
   const [error, setError] = useState('');
@@ -283,6 +312,7 @@ function ControlCenter({ control, screen }) {
     <header><span class="gi-hub-kicker">Team &amp; Film</span><h2 id="giHubControlTitle">Control Center</h2></header>
     <button class="gi-hub-control-row" onClick={event => screen.openSettings(event.currentTarget, 'film')}><i class={`gi-hub-control-state ${storageReady ? 'is-ok' : 'is-warn'}`} /><span><strong>Film storage</strong><small>{control.root || control.storageLabel}</small></span><b>Manage</b></button>
     <button class="gi-hub-control-row" onClick={event => screen.openRoster(event.currentTarget)}><i class={`gi-hub-control-state ${control.rosterCount ? 'is-ok' : ''}`} /><span><strong>Roster</strong><small>{control.rosterCount ? `${control.rosterCount} players ready for attribution` : 'Add players or import a roster'}</small></span><b>Open</b></button>
+    {control.canReviewSetup && <button class="gi-hub-control-row" data-native-hub-review-setup onClick={event => screen.openSeasonSetup(event.currentTarget)}><i class={`gi-hub-control-state ${control.setupReady ? 'is-ok' : 'is-warn'}`} /><span><strong>Season setup</strong><small>{control.setupLabel}</small></span><b>Review</b></button>}
     {screen.canRecoverSeasons() && <button class="gi-hub-control-row" data-native-hub-recover onClick={event => screen.recoverSeasons(event.currentTarget)}><i class="gi-hub-control-state is-ok" /><span><strong>Backups &amp; recovery</strong><small>{control.recovery}</small></span><b>Review</b></button>}
     <div class="gi-hub-control-facts"><span><b>{control.games}</b>games</span><span><b>{control.plays}</b>plays</span><span><b>{control.rosterCount}</b>players</span></div>
   </aside>;

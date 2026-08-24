@@ -54,7 +54,7 @@ let r = await page.evaluate(() => ({
   legacy: !!document.getElementById('libraryOverlay'),
   outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
 }));
-ok(r.route === 'team-hub' && /Set up your team/.test(r.first) && !r.legacy && !r.outlet,
+ok(r.route === 'team-hub' && /Set up your program/.test(r.first) && !r.legacy && !r.outlet,
   'First-run Team Hub offers team setup before any season', JSON.stringify(r));
 
 await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
@@ -63,13 +63,13 @@ await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active'));
 r = await page.evaluate(() => ({
   active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
-  empty: document.querySelector('.gi-hub-empty')?.textContent || '',
+  empty: document.querySelector('.gi-hub-empty-inline')?.textContent || '',
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
   setup: document.querySelector('.gi-hub-setup')?.textContent || '',
   done: document.querySelectorAll('.gi-hub-setup-steps .is-done').length,
   steps: document.querySelectorAll('.gi-hub-setup-steps li').length,
 }));
-ok(r.active === 'Mavericks' && /No seasons yet/.test(r.empty) && r.profile.teamName === 'Mavericks',
+ok(r.active === 'Mavericks' && /Start the football year here/.test(r.empty) && r.profile.teamName === 'Mavericks',
   'First setup creates one active team and a clear season empty state', JSON.stringify(r));
 ok(r.steps === 5, 'native onboarding keeps all five setup milestones', JSON.stringify(r));
 ok(r.done === 1 && /1 of 5/.test(r.setup), 'team setup completes only the team milestone', JSON.stringify(r));
@@ -167,8 +167,10 @@ r = await page.evaluate(() => ({
 ok(!r.pointer && /Explore sample season/.test(r.action || ''), 'removing the sample clears its pointer and restores Explore', JSON.stringify(r));
 
 console.log('\n== 5. Real season and Home game entry ==');
-await page.click('.gi-hub-section-head .gi-hub-primary');
+ok(await clickButtonText('.gi-hub-workspace-hero button', /New season/),
+  'returning coach can start a new season from the program workspace');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
+await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:nth-child(2)');
 await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
 const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
 ok(seasonNameAtSubmit === '2026 Mavericks', 'rapid season-name entry reaches the submit boundary intact', JSON.stringify(seasonNameAtSubmit));

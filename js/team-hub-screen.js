@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
+import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, SeasonSetupGuide, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -56,9 +56,18 @@ export class TeamHubScreen {
     const mode = desktop ? backend.getFilmStorageMode?.() || '' : 'browser';
     const games = teamSeasons.reduce((sum, season) => sum + (Number(season.games) || 0), 0);
     const plays = teamSeasons.reduce((sum, season) => sum + (Number(season.plays) || 0), 0);
+    const rosterCount = this.app.roster?.players?.length || 0;
+    const current = store?.data;
+    const canReviewSetup = !!current && current.kind !== 'scout';
+    const firstGame = canReviewSetup ? current.games?.[0] : null;
+    const info = firstGame?.gameInfo || {};
+    const storageReady = !desktop || !!root || mode === 'managed';
+    const gameReady = !!(String(info.opponent || '').trim() || String(info.week || '').trim() || String(info.date || '').trim());
+    const setupDone = [rosterCount > 0, storageReady, gameReady].filter(Boolean).length;
     return {
-      desktop, root, mode, games, plays,
-      rosterCount: this.app.roster?.players?.length || 0,
+      desktop, root, mode, games, plays, rosterCount, canReviewSetup,
+      setupReady: canReviewSetup && setupDone === 3,
+      setupLabel: canReviewSetup ? (setupDone === 3 ? 'Roster, film, and first game ready' : `${setupDone} of 3 setup areas ready`) : 'Open a program season to review setup',
       recovery: this.canRecoverSeasons() ? 'Recovery ready' : 'Browser backup ring',
       storageLabel: !desktop ? 'Browser storage' : root ? 'Linked library' : mode === 'managed' ? 'Managed app storage' : 'Film storage not set',
     };
@@ -337,6 +346,56 @@ export class TeamHubScreen {
       return { ok: false, message: `${error?.message || 'The opponent scout could not be created.'} No existing program season was changed.` };
     }
   }
+  _seasonSetupStatus() {
+    const store = this._store();
+    const data = store?.data;
+    if (!store?.hasCurrent?.() || data?.kind === 'scout') return null;
+    const season = this._state.seasons.find(item => item.current) || this._state.seasons.find(item => item.id === this._state.currentSeasonId);
+    const backend = store.backend;
+    const desktop = !!(window.__TAURI__ && backend?.supportsLinkedFilm?.());
+    const root = desktop ? backend.getLibraryRoot?.() || '' : '';
+    const mode = desktop ? backend.getFilmStorageMode?.() || '' : 'browser';
+    const rosterCount = this.app.roster?.players?.length || 0;
+    const firstGame = data.games?.[0];
+    const info = firstGame?.gameInfo || {};
+    const storageReady = !desktop || !!root || mode === 'managed';
+    const gameReady = !!(String(info.opponent || '').trim() || String(info.week || '').trim() || String(info.date || '').trim());
+    const coreReady = rosterCount > 0 && storageReady && gameReady;
+    return {
+      seasonName: data.seasonName || season?.name || data.name || 'Current season',
+      steps: [
+        { label: 'Season details', detail: [data.year, data.level].filter(Boolean).join(' · ') || 'Season created', done: true },
+        { label: 'Roster', detail: rosterCount ? `${rosterCount} players ready` : 'Add players now or later', done: rosterCount > 0, action: 'roster', button: 'Add roster' },
+        { label: 'Film storage', detail: storageReady ? (root || 'Storage ready') : 'Choose where game film lives', done: storageReady, action: 'film', button: 'Set film storage' },
+        { label: 'First game', detail: gameReady ? (firstGame?.name || info.opponent || 'Game details saved') : 'Add the opponent, date, and game details', done: gameReady, action: 'game', button: 'Set game details' },
+        { label: 'Ready to chart', detail: coreReady ? 'The season is ready for film and charting' : 'Complete what you need, or skip the guide', done: coreReady },
+      ],
+    };
+  }
+
+  openSeasonSetup(invoker = null) {
+    const setup = this._seasonSetupStatus();
+    if (!setup) {
+      this.overlays.toast({ tone: 'info', message: 'Open a program season to review its setup.' });
+      return Promise.resolve(false);
+    }
+    let handle;
+    const leave = async action => {
+      handle.close(action);
+      if (action === 'roster') this.openRoster(invoker);
+      else if (action === 'film') this.openSettings(invoker, 'film');
+      else if (action === 'game') await this.app.gameScreen?.open?.({ mode: 'edit', returnFocus: invoker });
+    };
+    handle = this.overlays.dialog({
+      id: 'team-hub-season-setup', title: 'Review season setup', returnFocus: invoker, actions: [],
+      content: h(SeasonSetupGuide, {
+        setup,
+        onAction: leave,
+        onClose: () => { handle.close('skip'); void this.app.workspaceShell?.show?.('home'); },
+      }),
+    });
+    return handle.result;
+  }
   openCreateSeason(invoker) {
     if (!this._state.activeTeamId) return this.openAddTeam(invoker);
     let handle;
@@ -344,8 +403,9 @@ export class TeamHubScreen {
       id: 'team-hub-create-season', title: 'Create season', returnFocus: invoker, actions: [],
       content: h(CreateSeasonForm, {
         teamName: this._state.profile.teamName || '',
+        hasExistingData: this._state.allTeamSeasonCount > 0,
         onCancel: () => handle.close('cancel'),
-        onSubmit: async values => { const result = await this.createSeason(values); if (result.ok) handle.close('created'); return result; },
+        onSubmit: async values => { const result = await this.createSeason(values); if (result.ok) { handle.close('created'); if (values.setupMode === 'guided') setTimeout(() => this.openSeasonSetup(null), 0); } return result; },
       }),
     });
     return handle.result;

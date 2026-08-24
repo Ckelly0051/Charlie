@@ -48,6 +48,13 @@ ok(r.steps === 5 && /1 of 5/.test(r.setup) && /Add your roster/.test(r.setup) &&
 
 await page.click('.gi-hub-hero-action');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
+r = await page.evaluate(() => ({
+  options: [...document.querySelectorAll('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button')].map(button => ({ text: button.textContent.trim(), checked: button.getAttribute('aria-checked') })),
+}));
+ok(r.options.length === 2 && /Guided setup/.test(r.options[0].text) && r.options[0].checked === 'true' && /Set up manually/.test(r.options[1].text),
+  'First season defaults to Guided setup and offers a full manual bypass', JSON.stringify(r));
+if (shotDir) await page.screenshot({ path: path.join(shotDir, 'first-season-choice.png'), fullPage: true });
+await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:nth-child(2)');
 await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
 const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
 ok(seasonNameAtSubmit === '2026 Mavericks', 'rapid season-name entry reaches the submit boundary intact', JSON.stringify(seasonNameAtSubmit));
@@ -61,6 +68,8 @@ r = await page.evaluate(() => ({
 }));
 ok(r.season === '2026 Mavericks' && r.teamId === 'mavericks' && r.home && r.games === 1,
   'Create season stores active-team ownership and hands off to Home', JSON.stringify(r));
+ok(!await page.$('[data-overlay-id="team-hub-season-setup"]'),
+  'Set up manually bypasses the entire guided workflow');
 
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
 await page.waitForSelector('[data-native-team-hub] [data-season-id]');
@@ -75,6 +84,50 @@ r = await page.evaluate(() => ({
 }));
 ok(r.rows === 1 && /Current/.test(r.current) && /No film linked/.test(r.film) && !r.legacy && !r.outlet,
   'Current season is explicit with honest neutral film health and no legacy owner', JSON.stringify(r));
+r = await page.evaluate(() => ({ review: document.querySelector('[data-native-hub-review-setup]')?.textContent || '' }));
+ok(/Season setup/.test(r.review) && /Review/.test(r.review),
+  'Control Center keeps season setup available after creation', JSON.stringify(r));
+await page.click('.gi-hub-hero-action');
+await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
+r = await page.evaluate(() => ({
+  options: [...document.querySelectorAll('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button')].map(button => ({ text: button.textContent.trim(), checked: button.getAttribute('aria-checked') })),
+}));
+ok(/Quick create/.test(r.options[1].text) && r.options[1].checked === 'true' && /Use guided setup/.test(r.options[0].text),
+  'Returning coaches default to Quick create while Guided setup remains optional', JSON.stringify(r));
+if (shotDir) await page.screenshot({ path: path.join(shotDir, 'returning-season-choice.png'), fullPage: true });
+await page.evaluate(() => {
+  const hub = window.app.teamHubScreen;
+  window.__guidedSetupProbe = { createSeason: hub.createSeason, openSeasonSetup: hub.openSeasonSetup, values: null, opens: 0 };
+  hub.createSeason = async values => { window.__guidedSetupProbe.values = values; return { ok: true }; };
+  hub.openSeasonSetup = () => { window.__guidedSetupProbe.opens += 1; return Promise.resolve(true); };
+});
+await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:first-child');
+await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', 'Guided Probe');
+await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
+await page.waitForFunction(() => window.__guidedSetupProbe?.opens === 1);
+r = await page.evaluate(() => {
+  const probe = window.__guidedSetupProbe;
+  const result = { mode: probe.values?.setupMode, opens: probe.opens };
+  window.app.teamHubScreen.createSeason = probe.createSeason;
+  window.app.teamHubScreen.openSeasonSetup = probe.openSeasonSetup;
+  delete window.__guidedSetupProbe;
+  return result;
+});
+ok(r.mode === 'guided' && r.opens === 1, 'Selecting Guided setup hands the successful canonical creation boundary to the guide', JSON.stringify(r));
+await page.click('[data-native-hub-review-setup]');
+await page.waitForSelector('[data-overlay-id="team-hub-season-setup"] .gi-season-guide');
+r = await page.evaluate(() => ({
+  title: document.querySelector('.gi-season-guide h2')?.textContent.trim(),
+  steps: [...document.querySelectorAll('.gi-season-guide-steps li')].map(row => row.textContent.trim()),
+  skip: document.querySelector('.gi-season-guide .gi-hub-form-actions button')?.textContent,
+}));
+ok(r.title === '2026 Mavericks' && r.steps.length === 5 && /Season details/.test(r.steps[0]) && /Roster/.test(r.steps[1]) && /Film storage/.test(r.steps[2]) && /First game/.test(r.steps[3]) && /Ready to chart/.test(r.steps[4]) && /Skip guide/.test(r.skip),
+  'Review season setup reopens one resumable, fully skippable guide', JSON.stringify(r));
+if (shotDir) await page.screenshot({ path: path.join(shotDir, 'season-setup-guide.png'), fullPage: true });
+await page.click('.gi-season-guide .gi-hub-form-actions button');
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForSelector('[data-native-team-hub] [data-season-id]');
 r = await page.evaluate(() => {
   const list = document.querySelector('.gi-hub-seasons').getBoundingClientRect();
   const row = document.querySelector('.gi-hub-season').getBoundingClientRect();
