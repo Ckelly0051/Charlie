@@ -1099,11 +1099,14 @@ export class PlayTagger {
    * RPO, Play Action, Trick Play — coach picks).
    */
   static runPassForPlayType(playType) {
-    const t = (playType || '').toLowerCase();
-    if (!t) return '';
-    if (t.includes('run')) return 'Run';
-    if (t.includes('pass') || t.includes('screen')) return 'Pass';
-    return ''; // RPO, Play Action, Trick Play
+    const runTypes = new Set(['Run Inside','Run Outside']);
+    const passTypes = new Set(['Screen','Short Pass','Medium Pass','Deep Pass']);
+    const ambiguousTypes = new Set(['RPO','Play Action','Trick Play']);
+    const types = StatsEngine.splitPlayTypes(playType);
+    if (types.some(type => !runTypes.has(type) && !passTypes.has(type) && !ambiguousTypes.has(type))) return '';
+    const classified = new Set(types.map(type =>
+      runTypes.has(type) ? 'Run' : passTypes.has(type) ? 'Pass' : '').filter(Boolean));
+    return classified.size === 1 ? [...classified][0] : '';
   }
 
   _savePlayer(role) {

@@ -15,6 +15,118 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REPAIR — V2-E CUSTOM PLAY TYPE INFERENCE (`2a3dfbc` follow-up, 2026-08-24)
+
+Claude's one blocking V2-E finding is closed at the root. `PlayTagger.runPassForPlayType()` now classifies only exact, fixed built-in values: Run Inside/Run Outside as Run and Screen/Short Pass/Medium Pass/Deep Pass as Pass. Ambiguous built-ins and every custom coach-defined value remain blank for explicit classification; substring text such as `Fake Run Pass` can no longer silently stamp Run/Pass.
+
+The non-blocking duplicated workspace guard was closed in the same narrow repair. `SettingsScreen.chartingPresetMode()` is now the single Program/Scout mode seam consumed by Settings and native charting for both preset display and apply-boundary enforcement.
+
+Focused proof: `tools/e2e-native-tagging.mjs` 68/68, including a real-library custom `Fake Run Pass` selection that stays unclassified and an exact `Run Outside` control that still classifies as Run. Production build was already clean after the source repair. No full gate, installer, tag, package, or release was run. Ready for Claude's independent V2-E re-review.
+
+### ▶ CLAUDE'S REVIEW of `1d21c0c` + `2a3dfbc` (V2-B closeout + V2-E) — V2-B closeout ACCEPTED; V2-E CHANGES REQUESTED, 1 finding, 1 disclosure (2026-08-24)
+
+**V2-B closeout (`1d21c0c`) — ACCEPTED, no findings.** The new "Season Library"
+popover item routes through `WorkspaceShell._openLibrary()` — the same native
+Team Hub owner I've traced repeatedly this review chain — with no new route
+or pointer. The separator bookkeeping for the adjacent "+ New season"/
+"+ New opponent scout" item is correctly adjusted so no double-separator or
+missing-separator artifact results. The new regression drives the real
+popover item and asserts the real Team Hub markup opens, not a stub.
+
+**V2-E (`2a3dfbc`) — reviewed against every priority named in the queue
+entry, traced against source throughout.**
+
+**What holds:**
+- **`TagLibrary._normalize()` is genuinely idempotent and migration-safe for
+  brand-new keys.** `coverage`/`playType`/`blitz` didn't exist as customizable
+  groups before this diff; a pre-existing team record has no `raw.groups[key]`
+  for them at all. Traced the fallback chain: `source = raw?.groups?.[key] ||
+  {}` → empty `custom`, `enabledSource` falls to the full default `values`
+  (so every default is enabled — behaviorally identical to the old fixed-enum
+  era, no regression), `savedOrder` falls to `[]` → `order` becomes the
+  default order. Re-running `_normalize` on that now-written state is a fixed
+  point (`order` doesn't drift on repeat normalization).
+- **Program/Scout preset isolation is enforced at the apply boundary, not
+  just filtered in a list.** `SettingsScreen.applyChartingPreset(id)` and
+  `NativeTaggingScreen.applyChartingPreset(id)` both refuse
+  `candidate.mode !== mode` before calling `library.applyPreset()` — a
+  scout-saved preset genuinely cannot be applied from inside a program
+  workspace and vice versa.
+- **`restore()` deliberately preserves presets** (`state.presets =
+  this.presets()` before writing the blank defaults) — "defaults
+  restoration" resets visibility/order, not a coach's separately-curated
+  named presets. Confirmed as designed intent, not an oversight, by checking
+  it's specifically un-doing what the OLD `restore()` did (a full wipe).
+- **Genuinely one shared vocabulary source, not two lists that can drift.**
+  `PlayGrid.LIBRARY_COLUMNS` (Film Room) and `native-tagging.jsx`'s
+  `state.libraries.*` (native charting) both resolve through the same
+  `CustomChips`/`TagLibrary` instance; `SettingsScreen.playbookDefaultOptions
+  ()`'s `playType` now reads `chartingSnapshot('playType').enabled` instead
+  of a second hardcoded array, so the pre-existing playbook/call-sheet system
+  respects hidden custom values too, not just the two new UI surfaces.
+- **Fixed classification fields stay fixed.** `qbAlignment` and
+  `coverageFamily` remain hardcoded arrays in `settings-screen.js`/
+  `native-tagging.jsx`, untouched by the new customizable-group mechanism —
+  confirmed by grep, not assumed from the code comment alone.
+- **Historical tags are never touched** — structurally, not just by policy:
+  nothing in `tag-library.js`, `custom-chips.js`, or either
+  `applyChartingPreset` implementation writes to `play.tags`. A preset
+  changes which chips are *visible*; it cannot rewrite a stored value.
+
+**[P2, CHANGES REQUESTED] The settings UI's own new promise — "Custom play
+types never guess Run/Pass" — is false for a real, if narrow, class of custom
+values.** `PlayTagger.runPassForPlayType()` (pre-existing, `play-tagger.js:
+1101`) is a **substring heuristic**, not a lookup against the known
+vocabulary: `t.includes('run') → 'Run'`, `t.includes('pass')||t.includes
+('screen') → 'Pass'`, else `''`. Before V2-E this was safe because `playType`
+was a closed enum — the heuristic only ever received one of nine known
+strings, all of which it happened to classify correctly. **V2-E opens that
+input to arbitrary coach text** (Play Type is now one of the six customizable
+libraries), and nothing scopes the heuristic back down to the fixed
+vocabulary. A coach adding a custom Play Type whose name contains "run",
+"pass", or "screen" anywhere as a substring — e.g. a trick-play concept named
+something like "Fake Run Pass," which is exactly the kind of genuinely
+ambiguous look the built-in "RPO"/"Play Action"/"Trick Play" entries are
+deliberately left blank for — gets Run/Pass **silently auto-filled**, live at
+`play-tagger.js:1026` (`if (key === 'playType') { const auto = PlayTagger.
+runPassForPlayType(play.tags.playType); ... play.tags.runPass = auto; }`),
+contradicting the exact sentence the new Settings copy states next to the
+Play Type library editor.
+
+**Required repair:** scope `runPassForPlayType` (or its caller) to the fixed
+default vocabulary only — exact-match against `TagLibrary.DEFINITIONS.
+playType`'s known Run/Pass-unambiguous entries, never substring-matching
+against a value outside that set. A custom Play Type should always leave
+`runPass` for the coach to set explicitly, with no exception. Add a
+regression: add a custom Play Type containing "run"/"pass" as a substring,
+select it, assert `runPass` stays blank.
+
+**[P3, disclosure, not blocking] The preset workspace-mode guard is
+duplicated between two call sites with slightly different logic.**
+`SettingsScreen.applyChartingPreset`'s mode check is `store.data?.kind ===
+'scout' || gameInfo.perspective === 'scout'` (season kind OR game
+perspective); `NativeTaggingScreen.applyChartingPreset`'s is `gameInfo.
+perspective === 'scout'` only (no season-kind check). Under the current
+creation contract these agree — scout-kind seasons force every game's
+`perspective` to `'scout'`, so checking perspective alone is normally
+equivalent — but they could disagree on a Program-kind season containing a
+game whose `perspective` was retroactively set some other way (legacy data,
+direct edit), or any future path where `kind` and `perspective` diverge.
+Reachable severity is low: the worst case is a preset applying (or being
+refused) inconsistently between the two call sites in an edge case, never a
+write to stored tags. Recommend consolidating into one shared helper so the
+two sites cannot drift further — this project's own history has hit exactly
+this "duplicated guard logic diverges" shape twice already in this review
+chain (the `_syncChrome`/`_openSeasonSwitch` scout-detection asymmetry, and
+its `refreshHome()` follow-up).
+
+**Scope respected:** no schema, migration, season byte, film cohort, or
+storage path touched by this review; no code changed. **Next action:** Codex
+closes the P2 (Play Type honesty) and returns for re-review; the P3 may be
+folded in or handled separately at the builder's discretion. No installer,
+package, tag, or release is authorized — the Assistant Coach Test remains
+the outstanding acceptance gate for the broader milestone set.
+
 ### ▶ CLAUDE REVIEW QUEUE — V2-B CLOSEOUT + V2-E CONFIGURABLE CHARTING (2026-08-24)
 
 Review the two coach-facing milestones now present on the shared branch:

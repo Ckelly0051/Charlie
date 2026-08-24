@@ -319,7 +319,7 @@ will be removed and receiving explicit confirmation.
 
 ### V2-E: Configurable Full-Depth Charting
 
-> **IMPLEMENTED — AWAITING CLAUDE REVIEW (2026-08-24).** One team-scoped
+> **REPAIR IMPLEMENTED — AWAITING CLAUDE RE-REVIEW (2026-08-24).** One team-scoped
 > `TagLibrary` now owns six coach-managed vocabularies: Formation, Backfield,
 > Front, Coverage Call, Play Type, and Blitz. Settings can add custom choices,
 > hide/show any choice, reorder the charting controls, and restore defaults.
@@ -335,7 +335,7 @@ will be removed and receiving explicit confirmation.
 > corrupted. Penalty and Special Teams models are untouched.
 >
 > Focused verification: tag-library 18/18, tag-library-settings 17/17, native
-> tagging 67/67, Film Room 175/175, and a clean Vite production build. No full
+> tagging 68/68 (including custom Play Type inference), Film Room 175/175, and a clean Vite production build. No full
 > canonical gate or installer was run for this checkpoint; Claude owns the
 > independent combined V2-B/V2-E review.
 

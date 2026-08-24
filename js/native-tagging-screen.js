@@ -128,7 +128,7 @@ export class NativeTaggingScreen {
         formation:library('formation'), backfield:library('backfield'), defFront:library('front'),
         coverage:library('coverage'), playType:library('playType'), blitz:library('blitz'),
       },
-      chartingPresets: this.app.customChips?.library?.presets?.().filter(item => item.mode === (gameInfo.perspective === 'scout' ? 'scout' : 'program')) || [],
+      chartingPresets: this.app.customChips?.library?.presets?.().filter(item => item.mode === (this.app.settingsScreen?.chartingPresetMode?.() || 'program')) || [],
       playbookCalls, recentCalls,
       appliedCallDefaults: raw.playCallDefaults && typeof raw.playCallDefaults === 'object' ? { ...raw.playCallDefaults } : {},
       players: { ...(raw.players || {}) }, grades: { ...(raw.grades || {}) }, notes: play?.notes || '',
@@ -286,8 +286,7 @@ export class NativeTaggingScreen {
   }
 
   applyChartingPreset(id) {
-    const gameInfo = this.app.storage?.gameInfo || {};
-    const mode = gameInfo.perspective === 'scout' ? 'scout' : 'program';
+    const mode = this.app.settingsScreen?.chartingPresetMode?.() || 'program';
     const candidate = this.app.customChips?.library?.presets?.().find(item => item.id === id);
     if (!candidate || candidate.mode !== mode) return false;
     const preset = this.app.customChips?.library?.applyPreset?.(id);

@@ -273,9 +273,11 @@ export class SettingsScreen {
   }
   setTagEnabled(group, value, enabled) { this.app.customChips.setEnabled(group, value, enabled); return this.chartingSnapshot(group); }
   moveTagChoice(group, value, delta) { this.app.customChips.library.move(group, value, delta); this.app.customChips.reload(); return this.chartingSnapshot(group); }
+  chartingPresetMode() {
+    return this._store()?.data?.kind === 'scout' || this.app.gameContext?.isScout?.() ? 'scout' : 'program';
+  }
   chartingPresetSnapshot() {
-    const mode = this._store()?.data?.kind === 'scout' || this.app.storage?.gameInfo?.perspective === 'scout' ? 'scout' : 'program';
-    return { presets:this.app.customChips.library.presets(), mode };
+    return { presets:this.app.customChips.library.presets(), mode:this.chartingPresetMode() };
   }
   saveChartingPreset(input) { const preset=this.app.customChips.library.savePreset(input); if (preset) this.app.customChips.reload(); return { ok:!!preset, preset, ...this.chartingPresetSnapshot() }; }
   applyChartingPreset(id) {
