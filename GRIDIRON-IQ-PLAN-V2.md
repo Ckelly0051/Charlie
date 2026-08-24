@@ -163,7 +163,7 @@ Execution and ownership:
 
 ### V2-B: Guided Setup, Team, Film And Scouting Control Center
 
-> **IMPLEMENTED - AWAITING INDEPENDENT REVIEW (2026-08-23).** Codex built the
+> **FUNCTIONALLY COMPLETE (2026-08-24).** Codex built the
 > V2-B coach journey on top of the accepted V2-A shell. The Home front door now
 > makes **Our Program** and **Opponent Scout** explicit, selectable football
 > workflows; first run explains the choice and film-storage consequence before
@@ -177,10 +177,14 @@ Execution and ownership:
 > Focused proof on the committed candidate: `e2e-v2b-control-center.mjs` 14/14,
 > `e2e-native-team-hub.mjs` 27/27, and `e2e-workspace-shell.mjs` 88/88. Final
 > real-screen captures are in `design-comps/v2b-verification/`. A full canonical
-> gate was deliberately not repeated for this coach-facing checkpoint; Claude's
-> independent adversarial review is next. V2-B is not finally accepted until the
-> reviewed desktop installer passes the clean-profile, no-verbal-help Assistant
-> Coach Test described below.
+> gate was deliberately not repeated for this coach-facing checkpoint. Claude's
+> independent adversarial review accepted the implementation and its repairs.
+> The final closeout adds an explicit **Season Library** action to the universal
+> Season selector, so a coach can return to the full season-management surface
+> from any route without knowing that the workspace label is also navigation.
+> The clean-profile Assistant Coach Test is consolidated into Functional Beta
+> Acceptance rather than blocking further functional work with another interim
+> installer cycle.
 
 This is one coach journey, not three disconnected settings projects. It absorbs
 the former V2-C first-run storage lane and V2-D diagnostics lane. A new user
@@ -393,7 +397,7 @@ future products and are not implied by Plan V2.
 4. **Coaching value:** V2-F Study and V2-G Plan.
 5. **Companion experience:** V2-I mobile workflow.
 
-V2-B acceptance requires a cold-start Assistant Coach Test on a clean Windows
+Functional Beta Acceptance requires a cold-start Assistant Coach Test on a clean Windows
 profile with no fixture data and no verbal help. In one continuous journey the
 tester must install, choose the correct workspace, create its football context,
 connect film with the intended storage behavior, chart one useful play, find it

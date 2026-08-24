@@ -1169,6 +1169,30 @@ ok(r.previewedBefore === 'preview-game' && String(r.seasonId) === String(r.targe
 ok(/Season B Opponent/i.test(r.detailName || ''),
   'A colliding game id across seasons does not carry season A\'s stale preview into season B\'s Home', JSON.stringify(r));
 
+console.log('\n== V2-B closeout: Season selector exposes the full Season Library ==');
+r = await page.evaluate(async () => {
+  const app = window.app;
+  await app.workspaceShell.show('reports');
+  await app.workspaceShell._openSeasonSwitch(document.getElementById('wsCtxSeason'));
+  await new Promise(res => setTimeout(res, 150));
+  const item = document.querySelector('[data-popover-item="season-library"]');
+  const label = item?.textContent?.trim() || '';
+  item?.click();
+  await new Promise(res => setTimeout(res, 300));
+  return {
+    label,
+    route: document.getElementById('workspaceShell')?.dataset.route,
+    hubVisible: !document.getElementById('wsTeamHub')?.hidden,
+    nativeHub: !!document.querySelector('#wsTeamHub [data-native-team-hub]'),
+  };
+});
+ok(r.label.includes('Season Library'),
+  'The universal Season selector names the full Season Library explicitly', JSON.stringify(r));
+ok(r.route === 'team-hub' && r.hubVisible && r.nativeHub,
+  'Season Library opens the existing native Team Hub instead of a second navigation path', JSON.stringify(r));
+await page.evaluate(() => window.app.workspaceShell.closeTeamHub());
+await new Promise(res => setTimeout(res, 200));
+
 console.log('\n== S6-4b UX-4: shell palette resolves and stays legible ==');
 r = await page.evaluate(() => {
   const styles = getComputedStyle(document.documentElement);

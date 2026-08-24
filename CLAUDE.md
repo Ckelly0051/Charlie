@@ -15,6 +15,22 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX V2-B CLOSEOUT - EXPLICIT SEASON LIBRARY ROUTE (2026-08-24)
+
+V2-B is functionally complete in one closeout checkpoint. The universal Season
+selector now includes a literal **Season Library** command that routes through
+the existing `WorkspaceShell._openLibrary()` / native Team Hub owner. This
+closes the installed-smoke UX gap where the only way back to season management
+was the ambiguous **Our Program** workspace label; no duplicate route, season
+pointer, or persistence path was added.
+
+Focused proof (`e2e-workspace-shell.mjs` 90/90) drives the real selector item and confirms it opens the native
+Team Hub. The roadmap now consolidates the clean-profile, no-verbal-help
+Assistant Coach Test into Functional Beta Acceptance instead of creating
+another interim installer cycle. Visual inconsistency remains acknowledged
+debt for the final visual consolidation milestone; this checkpoint does not
+pretend to solve it.
+
 ### ▶ ASSISTANT COACH TEST CANDIDATE `1.12.0-64` (2026-08-24)
 
 Claude independently accepted `d0fb5a6` with no findings. Codex then bumped

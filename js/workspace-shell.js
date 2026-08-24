@@ -514,7 +514,9 @@ export class WorkspaceShell {
           detail:`${season.games||0} game${season.games===1?'':'s'} · ${season.plays||0} play${season.plays===1?'':'s'}`,
           selected:String(season.id)===String(currentId),
           onSelect:async()=>{ if(String(season.id)===String(currentId)) return; await this.app.storage.openSeasonById(season.id); this._homeSelectedGameId=null; await this.show('home'); }}));
-    items.push({key:scoutMode?'new-scout':'new-season',label:scoutMode?'+ New opponent scout':'+ New season',separator:!!items.length,
+    items.push({key:'season-library',label:'Season Library',detail:scoutMode?'Manage opponent scout seasons':'View and manage all program seasons',separator:!!items.length,
+      onSelect:()=>this._openLibrary()});
+    items.push({key:scoutMode?'new-scout':'new-season',label:scoutMode?'+ New opponent scout':'+ New season',separator:false,
       onSelect:()=>scoutMode?this.app.teamHubScreen?.openCreateScout?.(anchor):this.app.teamHubScreen?.openCreateSeason?.(anchor)});
     anchor.setAttribute('aria-expanded','true');
     const handle=this.app.overlays.popover({title:'Switch season',anchor,returnFocus:anchor,items});
