@@ -15,6 +15,74 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ ASSISTANT COACH TEST CANDIDATE `1.12.0-64` (2026-08-24)
+
+Claude independently accepted `d0fb5a6` with no findings. Codex then bumped
+all four desktop version owners to `1.12.0-64` and built a local Windows
+candidate specifically for the V2-B Assistant Coach Test. This is not a
+published release. The test must cover both coach states without verbal help:
+
+1. **No existing seasons:** Guided setup is selected by default; Set up
+   manually bypasses the whole guide; every guided step can be skipped.
+2. **Existing seasons:** Quick create is selected by default; Use guided setup
+   is optional; Review season setup can reopen the read-only guide later.
+
+The candidate must not be promoted until those workflows are understandable
+without explanation and season creation remains on the one canonical path.
+
+### ▶ CLAUDE'S REVIEW of `d0fb5a6` (optional, resumable season setup) — ACCEPTED, no findings (2026-08-24)
+
+**Traced against source, not read on report — every clause of the described
+contract checked individually.**
+
+- **Default selection is correct in both directions.** `CreateSeasonForm`'s
+  `setupMode` initializes `hasExistingData ? 'quick' : 'guided'`
+  (`native-team-hub.jsx`), and the "Recommended"/"Default" badges follow the
+  same boolean, so the two never disagree. `hasExistingData` is threaded from
+  `openCreateSeason`'s real `this._state.allTeamSeasonCount > 0`, not a
+  hardcoded guess.
+- **"Set up manually" genuinely bypasses the whole guide, not just its first
+  screen.** `openCreateSeason`'s submit handler calls `this.createSeason
+  (values)` exactly once, unconditionally, then opens the guide **only** when
+  `values.setupMode === 'guided'`. There is no second creation path to drift
+  from the first — I grepped for a second `createSeason` call site and found
+  none. The new onboarding regression proves the negative directly:
+  `!await page.$('[data-overlay-id="team-hub-season-setup"]')` after a manual
+  create.
+- **Every guide step is skippable, structurally.** `SeasonSetupGuide` is a
+  checklist with no forced-advance gate — each actionable step opens its own
+  screen and returns; "Skip guide and go to Home" is always present and
+  unconditional. There's no completion requirement blocking Home.
+- **The guide never writes.** `_seasonSetupStatus()` is a pure read — roster
+  count, film-storage mode/root, first game's `gameInfo` — with no mutation
+  anywhere in the function. Re-opening it on a season with existing work
+  cannot lose or overwrite that work because it has no write path to do so.
+- **Scout seasons are correctly excluded.** `_seasonSetupStatus()` returns
+  `null` when `data?.kind === 'scout'`, and the Control Center's "Season
+  setup" row is gated on `control.canReviewSetup` (which carries the same
+  check) — this guide is Program-only, matching V2-B's isolation contract; it
+  doesn't leak into or get offered for opponent scouts.
+- **Test evidence is genuinely non-vacuous, not just present.** The "guided
+  mode hands off correctly" assertion spies on `createSeason`/
+  `openSeasonSetup` via real method-swap-and-restore (not a canned mock that
+  always passes), asserting the exact `setupMode` value threaded through and
+  that `openSeasonSetup` fires exactly once — then restores the real methods
+  before the next section drives the actual, un-mocked guide dialog against
+  the real active season. I checked this restoration is real (`hub.
+  createSeason = probe.createSeason` before the mocked season's name could
+  ever be asserted against) — the guide's later title check
+  (`r.title === '2026 Mavericks'`) correctly targets the real prior season,
+  not the never-actually-created "Guided Probe," which is exactly what a
+  correctly-scoped mock should produce.
+- CSS is token-consistent (`var(--gi-*)` throughout, no new raw colors);
+  mobile breakpoint handling present for both the mode picker and the guide.
+
+**Nothing to require here.** No schema, migration, season byte, analytics
+formula, film cohort, or storage path touched; `createSeason()` itself is
+unmodified. **Accepted on the code.** No installer, package, tag, or release
+is authorized from this acceptance alone — the Assistant Coach Test remains
+the outstanding acceptance gate for the V2-B milestone as a whole.
+
 ### ▶ CODEX BUILD - OPTIONAL, RESUMABLE SEASON SETUP - CLAUDE REVIEW QUEUE (2026-08-23)
 
 The V2-B Assistant Coach workflow now has an explicit coach-controlled season

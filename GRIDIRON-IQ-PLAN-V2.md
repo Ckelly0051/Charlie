@@ -156,7 +156,10 @@ Execution and ownership:
 3. **Complete:** Claude implemented the approved V2-A treatment and behavior.
 4. **Complete:** Codex independently accepted the implementation at `137ed02`.
 5. **Complete:** desktop candidate `1.12.0-63` was built for the coach.
-6. **Complete:** Codex and the coach reassessed the remaining roadmap. The result is the consolidated V2-B contract below.
+6. **Assistant Coach candidate:** `1.12.0-64` packages the accepted optional,
+   resumable season setup for a no-verbal-help test. It is a local candidate,
+   not a published release.
+7. **Complete:** Codex and the coach reassessed the remaining roadmap. The result is the consolidated V2-B contract below.
 
 ### V2-B: Guided Setup, Team, Film And Scouting Control Center
 
