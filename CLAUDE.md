@@ -15,6 +15,21 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ PLAN V2 REASSESSMENT + DESKTOP CANDIDATE `1.12.0-63` (2026-08-23)
+
+V2-A remains accepted. Codex built the Windows desktop candidate at
+`src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-63_x64-setup.exe`.
+The MSI/NSIS build completed; only optional updater signing was unavailable
+because no signing key is configured.
+
+The coach and Codex reassessed the remaining roadmap after V2-A. The prior
+V2-B control center, V2-C storage onboarding, and V2-D diagnostics are now one
+binding milestone: **V2-B Guided Setup, Team, Film And Scouting Control
+Center**. First-run comprehension is a product requirement, not later polish.
+The current automated onboarding proves mechanics but does not prove that an
+assistant coach can make the correct workspace/storage choices without help.
+V2-B therefore ends with a clean-profile, no-verbal-help Assistant Coach Test.
+See `GRIDIRON-IQ-PLAN-V2.md` for the full revised contract and sequence.
 ### CODEX RE-REVIEW - V2-A `75b84bd` - ACCEPTED (2026-08-23)
 
 **Reviewer: Codex. Verdict: ACCEPTED, no findings. V2-A is complete.** The four

@@ -153,11 +153,21 @@ Execution and ownership:
 
 1. Codex and the coach produce real-data Home and global-context comps.
 2. **Complete:** the coach approved the actual rendered treatment on 2026-08-23.
-3. **Current:** Claude implements the approved V2-A treatment and behavior without reinterpretation.
-4. Codex independently reviews the implementation and runs the visual Charlie Gate against the live app.
-5. The coach smokes one installed candidate.
-6. Codex and the coach reassess and reorder the remaining Plan V2 priorities around the actual coaching workflow before V2-B opens.
-### V2-B: Team, Film And Scouting Control Center
+3. **Complete:** Claude implemented the approved V2-A treatment and behavior.
+4. **Complete:** Codex independently accepted the implementation at `137ed02`.
+5. **Complete:** desktop candidate `1.12.0-63` was built for the coach.
+6. **Complete:** Codex and the coach reassessed the remaining roadmap. The result is the consolidated V2-B contract below.
+
+### V2-B: Guided Setup, Team, Film And Scouting Control Center
+
+This is one coach journey, not three disconnected settings projects. It absorbs
+the former V2-C first-run storage lane and V2-D diagnostics lane. A new user
+must be able to install the app, establish the correct football context, connect
+film, and reach a trustworthy first chart without verbal instruction.
+
+The current five-item checklist is progress tracking, not sufficient
+onboarding. Automated clicks proving that controls work do not prove that a
+coach understands terms, consequences, or the next action.
 
 Create one pre-game Home and settings experience with two explicit football
 workspaces:
@@ -196,6 +206,24 @@ owns:
 
 The coach must not need to open a game to manage team or film storage.
 
+First-run guidance is part of this same control center:
+
+- Start with the football decision: **Our Program** or **Opponent Scout**.
+- Our Program guides team identity, season, game, film connection, optional
+  roster, first chart, and first report in that order.
+- Opponent Scout guides opponent, season/year, source game teams/date, film
+  connection, and scout-perspective charting without creating a fake game on
+  our schedule.
+- Ask where film should live only after the user has enough context to
+  understand the choice. Use plain language for **Keep originals where they
+  are** and **Copy into GridIron IQ**; explain the exact path and duplication
+  consequence before confirmation.
+- End with an explicit **Ready to chart** state and a primary next action.
+- Explain the minimum charting needed for useful reports, while keeping deeper
+  fields optional.
+- Keep recovery, backup health, source paths, missing clip counts, and safe
+  cleanup in this same destination rather than scattering them across routes.
+
 Opponent Scout creation should ask for the opponent, season/year, and the
 source game being charted (the teams involved, date, and film folder). The app
 sets Opponent Scout perspective automatically; the coach should not have to
@@ -207,7 +235,10 @@ button-like hit area plus hover, keyboard-focus, and selected states. Disabled
 destinations must remain visible only when useful and must look deliberately
 unavailable rather than merely dim or ambiguous.
 
-### V2-C: Intentional First-Run Storage Setup
+### V2-C: Absorbed Into V2-B
+
+The former Intentional First-Run Storage Setup scope is now binding inside
+V2-B.
 
 On first desktop launch, explain and offer:
 
@@ -222,7 +253,10 @@ The selected application install location and the coach's data/film locations
 must be described honestly; installing the executable on another drive must not
 imply that Windows app data moved with it.
 
-### V2-D: Visible Source And Storage Diagnostics
+### V2-D: Absorbed Into V2-B
+
+The former Visible Source And Storage Diagnostics scope is now binding inside
+V2-B.
 
 Add coach-facing diagnostics rather than relying on developer inspection.
 
@@ -313,12 +347,19 @@ future products and are not implied by Plan V2.
 
 ## 5. Recommended Sequence
 
-1. **Foundation:** V2-A navigation/context ownership.
-2. **Trust:** V2-B control center plus V2-D diagnostics.
-3. **Onboarding:** V2-C first-run storage workflow.
-4. **Daily work:** V2-E configurable charting and V2-H playback performance.
-5. **Coaching value:** V2-F Study and V2-G Plan.
-6. **Companion experience:** V2-I mobile workflow.
+1. **Complete foundation:** V2-A navigation/context ownership.
+2. **Guided trust:** V2-B onboarding plus team, film, scouting, recovery, and diagnostics.
+3. **Daily work:** V2-E configurable charting and V2-H playback performance.
+4. **Coaching value:** V2-F Study and V2-G Plan.
+5. **Companion experience:** V2-I mobile workflow.
+
+V2-B acceptance requires a cold-start Assistant Coach Test on a clean Windows
+profile with no fixture data and no verbal help. In one continuous journey the
+tester must install, choose the correct workspace, create its football context,
+connect film with the intended storage behavior, chart one useful play, find it
+in Reports or Study, close and reopen the app, and confirm both data and film.
+Any question that requires the builder to explain terminology or reveal a
+hidden settings route is a UX finding, even when the automated harness is green.
 
 Each lane should ship in independently reviewable increments. Do not mix a data
 migration, navigation rewrite, and visual redesign in one checkpoint.
