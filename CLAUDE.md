@@ -15,6 +15,60 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ ASSISTANT COACH TEST CANDIDATE `1.12.0-65` — V2-B + V2-E (2026-08-24)
+
+V2-B and V2-E are independently accepted on code. All four version owners are synchronized at `1.12.0-65`; this checkpoint packages the combined Windows desktop candidate for the no-verbal-help Assistant Coach Test. It is a test candidate, not a published release or milestone acceptance.
+
+The coach test must cover both workspace choices (Our Program and Opponent Scout), season-library return and season switching, first-season guided/manual creation behavior, existing-season quick/guided behavior, film setup handoff, configurable charting libraries and presets, one saved charting edit, and close/reopen persistence. No full canonical gate is repeated here: the accepted source already has focused proof and the desktop build supplies a fresh production build.
+
+Native packaging completed successfully. NSIS: src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-65_x64-setup.exe (SHA-256 B1879D05D9AAF3CFCD2B391F5367C1F2C1367B881ED22D48AC9CF23D47532FC3). MSI: src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-65_x64_en-US.msi (SHA-256 2C47F360A7E4CF9C6391F88836B99B843622D6918DDF76DBFFDA5D6A8FF9D22D). The build's only error was the expected optional updater-signing warning because no private signing key is configured; both local bundles were produced.
+### ▶ CLAUDE'S RE-REVIEW of `5819221` (V2-E repair) — ACCEPTED, no findings (2026-08-24)
+
+**The P2 is closed at the root, not patched around.** `runPassForPlayType`
+now splits the multi-value string via `StatsEngine.splitPlayTypes` and
+checks every resulting token against three exact sets (run/pass/ambiguous
+fixed values) — **any token outside all three forces blank immediately**,
+before classification runs. Mentally traced against the exact cases named:
+- `'Fake Run Pass'` alone → not in any set → blank. Correct.
+- `'Fake Run Pass + Run Outside'` (the mixed case explicitly required) → the
+  `.some()` guard fires on the unknown token regardless of the other token
+  being a genuine fixed value → blank. This is the right conservative
+  choice — a compound selection containing any unknown concept can't be
+  safely inferred just because part of it looks familiar.
+- `'Run Outside'` alone → passes the guard, classifies to `'Run'`. Standard
+  inference still works.
+- Checked against a case the fix's own comment history documents as
+  pre-existing intended behavior — `'RPO + Short Pass'` — still resolves to
+  `'Pass'` (RPO maps to nothing via `.filter(Boolean)`, Short Pass maps to
+  `'Pass'`, one distinct classified value survives): no regression on that
+  legacy compound.
+- **The new regression drives the real production path, not the bare
+  function in isolation** — `app.customChips.library.add('playType','Fake
+  Run Pass')` then `app.nativeTagging.setField('playType', ...)` through the
+  actual charting UI state layer, asserting all three cases (custom alone,
+  custom+standard mixed, standard alone) in one pass.
+
+**The P3 (duplicated preset-mode guard) is closed by consolidating onto an
+existing shared service, which is a better answer than the one I proposed.**
+`SettingsScreen.chartingPresetMode()` is now the single owner, and it
+delegates to `app.gameContext.isScout()` — a pre-existing, already-used-
+elsewhere service (`breakdown-workspace.js:194`) whose `snapshot()` reads
+`storage.gameInfo` live with no caching, so this is not a new source of
+staleness, just a relocation onto the codebase's established shared-context
+pattern instead of a bespoke duplicate check. Both `NativeTaggingScreen`
+call sites (the `chartingPresets` filter and `applyChartingPreset`) now call
+through `app.settingsScreen.chartingPresetMode()` instead of maintaining
+their own copy — one owner, confirmed by reading both remaining call sites.
+
+**Scope respected:** the diff touches exactly the two things named, plus the
+regression; no schema, migration, season byte, film cohort, or storage path
+changed.
+
+**V2-E is accepted on the code.** V2-B and V2-E are both accepted. **No
+installer, package, tag, or release is authorized from this acceptance** —
+the Assistant Coach Test remains the outstanding gate for the milestone set
+as a whole, unchanged by this review.
+
 ### ▶ CODEX REPAIR — V2-E CUSTOM PLAY TYPE INFERENCE (`2a3dfbc` follow-up, 2026-08-24)
 
 Claude's one blocking V2-E finding is closed at the root. `PlayTagger.runPassForPlayType()` now classifies only exact, fixed built-in values: Run Inside/Run Outside as Run and Screen/Short Pass/Medium Pass/Deep Pass as Pass. Ambiguous built-ins and every custom coach-defined value remain blank for explicit classification; substring text such as `Fake Run Pass` can no longer silently stamp Run/Pass.

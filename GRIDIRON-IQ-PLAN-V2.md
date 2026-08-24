@@ -319,7 +319,7 @@ will be removed and receiving explicit confirmation.
 
 ### V2-E: Configurable Full-Depth Charting
 
-> **REPAIR IMPLEMENTED — AWAITING CLAUDE RE-REVIEW (2026-08-24).** One team-scoped
+> **CODE ACCEPTED — ASSISTANT COACH TEST CANDIDATE `1.12.0-65` (2026-08-24).** One team-scoped
 > `TagLibrary` now owns six coach-managed vocabularies: Formation, Backfield,
 > Front, Coverage Call, Play Type, and Blitz. Settings can add custom choices,
 > hide/show any choice, reorder the charting controls, and restore defaults.
