@@ -30,6 +30,27 @@ if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-first-run.png
 
 r = await page.evaluate(async () => window.app.teamHubScreen.addTeam({ name: 'Mavericks', jerseyColor: 'blue' }));
 ok(r?.ok, 'Team setup completes without verbal instruction', JSON.stringify(r));
+
+// No season exists yet: the persisted football workspace must still own the
+// shell chrome after Team Hub closes. This is the exact Assistant Coach path
+// where the two pre-repair scout detectors disagreed.
+await page.evaluate(async () => {
+  await window.app.teamHubScreen.selectWorkspace('scout');
+  await window.app.teamHubScreen.close();
+});
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+r = await page.evaluate(() => ({
+  stored: localStorage.getItem('giq_home_workspace'),
+  active: document.querySelector('[data-ws-action="workspace-scout"]')?.classList.contains('is-active'),
+  pressed: document.querySelector('[data-ws-action="workspace-scout"]')?.getAttribute('aria-pressed'),
+}));
+ok(r.stored === 'scout' && r.active && r.pressed === 'true',
+  'Scout choice remains active after leaving Team Hub before any season exists', JSON.stringify(r));
+await page.evaluate(async () => {
+  await window.app.teamHubScreen.selectWorkspace('program');
+  await window.app.workspaceShell._openLibrary();
+});
+await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Our Program');
 r = await page.evaluate(async () => window.app.teamHubScreen.createSeason({ name: '2026 Mavericks', year: '2026', level: 'JV' }));
 ok(r?.ok, 'Program season creation uses the program path', JSON.stringify(r));
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');

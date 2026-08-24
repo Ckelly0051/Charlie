@@ -15,6 +15,154 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REPAIR - V2-B WORKSPACE CHOICE P1 CLOSED - AWAITING RE-REVIEW (2026-08-23)
+
+**Repair commit follows `3394b1e`; no installer, package, tag, or release.** Claude's
+review finding was correct. `WorkspaceShell._syncChrome()` and
+`_openSeasonSwitch()` had separate definitions of the active football workspace,
+so a persisted Scout choice could visually revert to Program while no season was
+open.
+
+The repair introduces one `_isScoutWorkspace()` owner. An open canonical season's
+`kind` wins; with no season open, the persisted `giq_home_workspace` choice wins.
+Both chrome synchronization and the season switcher now consume that same seam.
+The focused V2-B journey now drives the exact failure path: create the first team,
+select Opponent Scout before any season exists, leave Team Hub, and assert the
+Home Scout control remains selected and `aria-pressed=true`.
+
+Focused verification: production build green; `e2e-v2b-control-center.mjs`
+**15/15** (14→15). The review's viewport-test observation is also resolved with
+an inline explanation: the measured season row is intentionally below the fold,
+so the assertion owns horizontal overflow while vertical access belongs to the
+scroll journey. The non-blocking partial-failure rollback observation is not
+silently folded into this presentation repair; it remains disclosed for a
+separately scoped persistence-safe change.
+### ▶ CLAUDE'S REVIEW of `f54ea7f..3394b1e` (V2-B) — CHANGES REQUESTED, 1 finding; 2 non-blocking, 1 disclosure (2026-08-23)
+
+**Reviewed independently, not taken on report.** Traced source across
+`js/workspace-shell.js`, `js/team-hub-screen.js`, `js/native-team-hub.jsx`,
+`js/game-screen.js`, `js/native-game-form.jsx`, `js/season-store.js`,
+`js/sql-catalog.js`, `js/storage-backend.js`, `css/native-team-hub.css`, and
+`tools/e2e-native-team-hub.mjs`'s diff, against the review priorities the
+builder itself named: canonical Program/Scout isolation; source-game identity
+and score ownership; season/program switching; first-run comprehension; native
+film-root/control-center behavior; retained obsolete dependency. I did not
+re-run the harnesses myself this pass — the findings below are source-traced,
+not test-driven.
+
+**What holds, verified rather than assumed:**
+- **`kind` round-trips correctly through creation, save, and reload on both
+  backends.** `SeasonStore._adoptSeasonRecord` sets it; `_normalize` doesn't
+  strip unknown keys, so it survives normalization untouched. Traced BOTH
+  `TauriBackend.createSeason()` and `BrowserBackend.createSeason()` — neither
+  actually calls `SqlCatalog.createSeason()` for its own return value (they
+  build the library-index entry independently, correctly including `kind`), so
+  `SqlCatalog.createSeason()`'s own return object being **missing** `kind`
+  (while its `listSeasons()`/`saveSeason()`/`loadSeason()` all correctly
+  round-trip it through `body_json`) is a real internal inconsistency but not a
+  live defect — nothing on the coach-facing creation path exercises it.
+- **`_removeTeam()`'s guard is correctly unfiltered.** `TeamHubScreen.load()`
+  now computes both a workspace-filtered `seasons` (display) and an
+  unfiltered `allTeamSeasonCount` (guard), and `_removeTeam()` checks the
+  latter. Using the filtered count instead — an easy mistake given the rest of
+  the screen is workspace-scoped — would have let a coach delete a team that
+  still owned seasons in the OTHER workspace mode. It doesn't.
+- **Source-game identity and score ownership are the best-executed part of
+  this diff.** `GameScreen.save()`'s edit-seed order is
+  `sourceTeamA: source.sourceTeamA || scoutTarget` — the ALREADY-SAVED value
+  wins, the season's scout opponent is only a fallback for a genuinely blank
+  field. Reversed, every reopen of Edit Game would silently overwrite a
+  coach's corrected Team A back to the season default; it isn't reversed.
+  `NativeGameForm` in scout mode removes the perspective `<select>` entirely
+  (replaced by a disabled explanatory line), so a scout game's
+  `perspective:'scout'` cannot be broken through the edit form at all. The
+  score fieldset's legends read the real team names
+  (`values.sourceTeamA`/`sourceTeamB`, falling back to "Team A"/"Team B") in
+  place of "Us"/"Them" — a scout game's score is never mislabeled as ours.
+- **No new XSS surface.** The new scout fields (`sourceTeamA`/`sourceTeamB`,
+  the composed matchup string) flow through the same `_text()`
+  (`.textContent`) and `_esc()`-guarded `_gameRowHtml()` sinks my prior V2-A
+  repair (`75b84bd`) already made safe — confirmed by tracing each new call
+  site to one of those two, not a fresh unescaped interpolation.
+- `_openSeasonSwitch()` correctly filters the season list by `kind` and offers
+  the right create action per workspace ("+ New opponent scout" vs
+  "+ New season").
+
+**[P1, CHANGES REQUESTED] Home's workspace toggle can silently contradict the
+coach's own just-made choice — this falsifies the build's own claim that
+"Program and Scout selections are persistent and visually unambiguous."**
+`WorkspaceShell._syncChrome()` computes `scout` from **only**
+`this.app.storage?.seasonStore?.data?.kind === 'scout'` — no fallback for the
+no-season-open case. `_openSeasonSwitch()`, in the same file, computes it more
+completely: season kind, OR (no season open AND
+`localStorage.getItem('giq_home_workspace')==='scout'`). This is a real
+asymmetry between two scout-detection sites in one file, not a hypothetical.
+
+Reachable sequence, no team or season required: coach clicks **Opponent
+Scout** on a bare-first-run Home → `TeamHubScreen.selectWorkspace('scout')`
+persists `giq_home_workspace='scout'` and opens Team Hub, which correctly
+shows scout mode (its own `state.workspaceMode` reads that same preference
+directly, so its hero copy, season list, and "+ New opponent scout" are all
+right). The coach backs out of Team Hub before creating anything. Home
+re-renders via `_syncChrome()` — with no season open, `store.data?.kind` is
+whatever it was before (blank/`'program'`), so **the workspace toggle silently
+snaps back to "Our Program" as active**, contradicting what the coach just
+clicked and what Team Hub itself showed a moment earlier. This is exactly the
+class of thing the plan's own Assistant Coach Test is designed to catch — a
+visible control disagreeing with the coach's own stated intent, with no
+terminology or hidden-route explanation available to resolve the confusion.
+
+**Required repair:** give `_syncChrome()`'s `scout` computation the identical
+fallback `_openSeasonSwitch()` already has, so the two scout-detection sites
+in this file can't diverge. Add a regression: select Opponent Scout on a
+fresh profile, back out of Team Hub with nothing created, assert Home's
+toggle still shows Opponent Scout active.
+
+**[P2, non-blocking] `TeamHubScreen.createScout()` has no rollback on partial
+failure.** Its internal `createSeason()` call durably persists a season
+before later steps (scout metadata, source-game creation) run; a throw in one
+of those later steps leaves an orphaned, half-created scout season with no
+automatic cleanup. Low severity — visible in Team Hub, deletable by the
+coach, no silent corruption — but worth a caught-and-reported failure path
+rather than an unhandled throw.
+
+**[P3, non-blocking, verify] A viewport-containment regression check was
+narrowed, not just relabeled — confirm it's legitimate before trusting it.**
+`tools/e2e-native-team-hub.mjs`'s assertion changed from `stateVisible`
+(`state.left>=0 && state.right<=innerWidth && row.top>=0 &&
+row.bottom<=innerHeight` — both axes) to `stateFitsWidth` (horizontal only),
+with no comment recording why the vertical check was dropped. This project's
+own review history repeatedly names exactly this shape of defect — a test
+narrowed to stop failing rather than the regression it caught being fixed.
+Either the new fixed-height `.gi-hub-control-row` layout is provably
+non-overflowing vertically now (in which case say so in a comment and the
+removal is fine), or the vertical check started failing under the new layout
+and was quietly dropped instead of investigated. I did not run the harness
+myself to determine which — the next person to touch this file should.
+
+**[Disclosure, not a finding] `ControlCenter`'s games/plays/players facts
+strip is workspace-unfiltered by design.** `TeamHubScreen._controlStatus()`
+is called with the unfiltered `teamSeasons` (before the workspace-mode
+filter), so its counts sum across BOTH Program and Scout seasons regardless
+of which workspace is currently active. Read as team-wide film-library/backup
+health (its placement alongside "Film storage"/"Roster"/"Backup & recovery"
+supports that reading), this is defensible and likely intentional — it is
+NOT the same kind of "total" the contract's isolation language is about
+(program schedule/record/rollups, which this diff does keep separate). Naming
+it because a first-time coach viewing "games: 12" while in Opponent Scout
+mode could reasonably misread it as scout charting inflating program numbers.
+Recommend either labeling it explicitly ("across all workspaces") or
+splitting the count by mode — not required for acceptance.
+
+**Scope respected:** no schema, migration, season byte, analytics formula,
+film cohort, storage path, or unrelated behavior touched by this review; no
+code changed. **Next action:** Codex repairs the P1 finding (the `_syncChrome`
+fallback) and returns for re-review; the P2/P3 items may be folded into the
+same pass or handled separately at the builder's discretion. No installer,
+package, tag, or release is authorized from this checkpoint — the Assistant
+Coach Test (plan §"Recommended Sequence") remains the true V2-B acceptance
+gate and has not been run.
+
 ### ▶ CODEX BUILD - V2-B CONTROL CENTER IMPLEMENTED - CLAUDE REVIEW QUEUE (2026-08-23)
 
 **Review range: `f54ea7f..HEAD`. Builder: Codex. No installer, package, tag, or

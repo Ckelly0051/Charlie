@@ -85,6 +85,9 @@ r = await page.evaluate(() => {
   const removeRect = remove.getBoundingClientRect();
   return {
     listWidth: Math.round(list.width), rowWidth: Math.round(row.width),
+    // This row is intentionally below the 900px fold in the full Team Hub.
+    // The regression is horizontal stretching/overflow; vertical visibility
+    // belongs to the document scroll journey, not a viewport-containment check.
     stateFitsWidth: state.left >= 0 && state.right <= innerWidth,
     openText: open.textContent.trim(), removeText: remove.textContent.trim(),
     actionGap: Math.round(removeRect.left - openRect.right),

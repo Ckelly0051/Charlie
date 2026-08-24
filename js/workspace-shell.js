@@ -219,10 +219,15 @@ export class WorkspaceShell {
   /** UX-2/V2-A: three persistent context selectors, not one breadcrumb button.
    *  All three read the SAME canonical `WorkspaceContext.snapshot()` this class
    *  already used for the old single breadcrumb — no new context pointer. */
+  _isScoutWorkspace() {
+    const store = this.app.storage?.seasonStore;
+    if (store?.hasCurrent?.()) return store.data?.kind === 'scout';
+    try { return localStorage.getItem('giq_home_workspace') === 'scout'; } catch { return false; }
+  }
   _syncChrome() {
     if (!this.root) return;
     const c = this.app.workspace.snapshot();
-    const scout = this.app.storage?.seasonStore?.data?.kind === 'scout';
+    const scout = this._isScoutWorkspace();
     const scoutTarget = String(this.app.storage?.seasonStore?.data?.scout?.opponent || '').trim();
     this._text('wsCtxProgramValue', c.team?.name || 'Set up team');
     this._text('wsCtxSeasonValue', c.season?.name || 'No season open');
@@ -501,7 +506,7 @@ export class WorkspaceShell {
     // rather than a silently-shrunk menu.
     let seasons=[], failed=false; try{seasons=await this.app.storage.listSeasons();}catch(e){failed=true;console.error('listSeasons failed',e);}
     try{const r=this.app.teamRegistry;if(!failed&&r?.teams().length)seasons=r.seasonsForTeam(seasons,r.activeTeamId());}catch{}
-    const scoutMode=this.app.storage?.seasonStore?.data?.kind==='scout'||(!this.app.storage?.seasonStore?.hasCurrent?.()&&(()=>{try{return localStorage.getItem('giq_home_workspace')==='scout';}catch{return false;}})());
+    const scoutMode=this._isScoutWorkspace();
     if(!failed)seasons=seasons.filter(season=>scoutMode?season.kind==='scout':season.kind!=='scout');
     const items=failed
       ? [{key:'load-failed',label:'Seasons could not be loaded',detail:'This is a read failure, not an empty library.',disabled:true}]
