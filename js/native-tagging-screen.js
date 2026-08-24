@@ -124,7 +124,11 @@ export class NativeTaggingScreen {
       perspective: gameInfo.perspective || 'offense', direction: gameInfo.direction || '',
       progress: this.tagger?.progressText?.() || '0 / 0 tagged',
       values: { ...raw, ...projected, yardage: raw.yardage === '' || raw.yardage == null ? '' : String(Math.abs(Number(raw.yardage) || 0)) },
-      libraries: { formation: library('formation'), backfield: library('backfield'), defFront: library('front') },
+      libraries: {
+        formation:library('formation'), backfield:library('backfield'), defFront:library('front'),
+        coverage:library('coverage'), playType:library('playType'), blitz:library('blitz'),
+      },
+      chartingPresets: this.app.customChips?.library?.presets?.().filter(item => item.mode === (gameInfo.perspective === 'scout' ? 'scout' : 'program')) || [],
       playbookCalls, recentCalls,
       appliedCallDefaults: raw.playCallDefaults && typeof raw.playCallDefaults === 'object' ? { ...raw.playCallDefaults } : {},
       players: { ...(raw.players || {}) }, grades: { ...(raw.grades || {}) }, notes: play?.notes || '',
@@ -277,6 +281,19 @@ export class NativeTaggingScreen {
   copyPrevious() {
     if (!this.tagger?.getCurrentPlay?.()) return false;
     this.tagger.copyFromPrevious();
+    this._queuePublish();
+    return true;
+  }
+
+  applyChartingPreset(id) {
+    const gameInfo = this.app.storage?.gameInfo || {};
+    const mode = gameInfo.perspective === 'scout' ? 'scout' : 'program';
+    const candidate = this.app.customChips?.library?.presets?.().find(item => item.id === id);
+    if (!candidate || candidate.mode !== mode) return false;
+    const preset = this.app.customChips?.library?.applyPreset?.(id);
+    if (!preset) return false;
+    this.app.customChips.reload();
+    this.setUnit(preset.unit);
     this._queuePublish();
     return true;
   }

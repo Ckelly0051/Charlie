@@ -28,4 +28,13 @@ ok(upgraded.setEnabled('formation','I-Form',false)&&!new TagLibrary({storage:v1S
 const other=new TagLibrary({storage,teamId:'teamB'});
 ok(other.group('front').custom.length===0,'team libraries remain isolated');
 ok(library.group('unknown').values.length===0&&!library.add('unknown','Value'),'unknown groups fail closed');
+const first=library.group('formation').values[0];
+ok(library.move('formation',first,1)&&library.group('formation').values[1]===first,'staff can reorder charting choices without changing their values');
+library.setEnabled('coverage','Cover 6',false);
+const preset=library.savePreset({name:'Friday defense',unit:'defense',mode:'program',role:'Defensive staff'});
+library.setEnabled('coverage','Cover 6',true);
+const applied=library.applyPreset(preset.id);
+ok(applied?.unit==='defense'&&applied.role==='Defensive staff'&&!library.group('coverage').enabled.includes('Cover 6'),'a contextual preset restores its saved library visibility and metadata');
+ok(library.deletePreset(preset.id)&&library.presets().length===0,'charting presets can be removed without touching a vocabulary');
+ok(['coverage','playType','blitz'].every(key=>library.group(key).values.length>0),'coverage, play type, and blitz are first-class managed libraries');
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);process.exit(fail?1:0);

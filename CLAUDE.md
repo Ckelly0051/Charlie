@@ -15,6 +15,31 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CLAUDE REVIEW QUEUE — V2-B CLOSEOUT + V2-E CONFIGURABLE CHARTING (2026-08-24)
+
+Review the two coach-facing milestones now present on the shared branch:
+
+1. **V2-B closeout (`1d21c0c`)** — the universal Season selector has an
+   explicit **Season Library** command routed through the one native Team Hub
+   owner. Verify no duplicate season pointer or entry path was introduced.
+2. **V2-E (the implementation commit containing this handoff)** — one team-scoped
+   `TagLibrary` owns Formation, Backfield, Front, Coverage Call, Play Type, and
+   Blitz across Settings, the native charting deck, and Film Room. Coaches can
+   add, hide/show, reorder, restore, save contextual presets, apply them from
+   charting, and delete them. Historical tags must remain untouched.
+
+Review priorities: migration/idempotence from TagLibrary v1/v2 to v3; team and
+Program/Opponent Scout isolation; preset Unit/workspace/role behavior; immediate
+subscriber refresh after add/remove/reorder/preset actions; exact option parity
+between native charting and Film Room; mobile containment; and the data-honesty
+rule that custom Play Types never infer Run/Pass. Confirm fixed semantic fields,
+penalties, and Special Teams remain outside customization.
+
+Builder verification was intentionally focused, not a full gate:
+`e2e-tag-library` 18/18, `e2e-tag-library-settings` 17/17,
+`e2e-native-tagging` 67/67, `e2e-film-room` 175/175, and `npm run build` green.
+No V2-E installer, tag, package, or release was made. Do not treat the older
+untracked design/scratch directories as part of this range.
 ### ▶ CODEX V2-B CLOSEOUT - EXPLICIT SEASON LIBRARY ROUTE (2026-08-24)
 
 V2-B is functionally complete in one closeout checkpoint. The universal Season

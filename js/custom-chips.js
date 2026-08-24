@@ -1,13 +1,13 @@
 import { TagLibrary } from './tag-library.js';
 /**
- * CustomChips — thin owner of the active team's Formation, Backfield, and
- * Front vocabulary (TagLibrary), plus notifying the surfaces that cache or
+ * CustomChips — thin owner of the active team's managed charting vocabulary
+ * (TagLibrary), plus notifying the surfaces that cache or
  * present that vocabulary (Film Room's grid, the native tag form) when it
  * changes.
  *
  * Final Engine Independence: this class no longer injects/removes chip
  * BUTTONS into any DOM chip group. native-tagging.jsx already reads its
- * Formation/Backfield/Front option lists straight from `TagLibrary` on every
+ * managed option lists straight from `TagLibrary` on every
  * publish (native-tagging-screen.js's snapshot() `library()` helper), and
  * the native "Edit library" action opens the dedicated Team & Film Settings
  * library editor (`SettingsScreen`, which calls `library.add`/`.remove`
@@ -30,6 +30,9 @@ export class CustomChips {
     { key: 'formation', field: 'formation', label: 'formation' },
     { key: 'backfield', field: 'backfield', label: 'backfield' },
     { key: 'front', field: 'defFront', label: 'front' },
+    { key: 'coverage', field: 'coverage', label: 'coverage call' },
+    { key: 'playType', field: 'playType', label: 'play type' },
+    { key: 'blitz', field: 'blitz', label: 'blitz' },
   ];
 
   constructor(tagger) {

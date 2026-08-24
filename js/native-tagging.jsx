@@ -340,6 +340,8 @@ function NativeTagging({screen}) {
     </header>
     <div class="gi-tag-actions">
       <button type="button" disabled={!state.canCopyPrevious} onClick={() => screen.copyPrevious()}>Same as Last</button>
+      <select aria-label="Charting preset" value="" onChange={e => screen.applyChartingPreset(e.currentTarget.value)}>
+        <option value="">Charting preset</option>{state.chartingPresets.map(item => <option key={item.id} value={item.id}>{item.name} · {item.role}</option>)}</select>
       <select value={state.selectedTemplate} onChange={e => screen.applyTemplate(e.currentTarget.value)}>
         <option value="">Templates</option>{state.templates.map(name => <option key={name}>{name}</option>)}</select>
       <button type="button" onClick={() => screen.saveTemplate()}>Save Template</button>
@@ -369,11 +371,11 @@ function NativeTagging({screen}) {
           {chips('strength','Strength',OPTIONS.strength)}{chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
         </Group>;
         const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} detail="front, coverage, pressure" open={state.unit === 'defense'}>
-          {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',OPTIONS.coverage)}
-          {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',OPTIONS.blitz)}
+          {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
+          {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
         const playResult = <Group key="pr" title="Play &amp; Result" detail="call, direction, outcome" open>
-          {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',OPTIONS.playType)}
+          {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',state.libraries.playType,'','playType')}
           {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} state={state}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
         </Group>;

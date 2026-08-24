@@ -74,10 +74,10 @@ let state=await page.evaluate(()=>({
  rows:document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]').length,
  expectedRows:window.app.customChips.library.group('formation').values.length,
  values:[...document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]')].map(row=>row.dataset.tagValue),
- promise:document.querySelector('[data-settings-panel="charting"] .gi-settings-truth')?.textContent||'',
+ promises:[...document.querySelectorAll('[data-settings-panel="charting"] .gi-settings-truth')].map(el=>el.textContent||''),
 }));
-ok(state.owners===1&&!state.legacy&&state.tabs===3&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting is the one owner of the complete active Formation library, and no legacy chip markup exists',JSON.stringify(state));
-ok(/Hiding is not deleting/.test(state.promise)&&/analytics stay unchanged/.test(state.promise),'Charting states the non-destructive visibility contract');
+ok(state.owners===1&&!state.legacy&&state.tabs===6&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting owns all six managed libraries, and no legacy chip markup exists',JSON.stringify(state));
+ok(state.promises.some(text=>/Hiding is not deleting/.test(text)&&/analytics stay unchanged/.test(text)),'Charting states the non-destructive visibility contract');
 
 await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='Wing-T';window.app.tagger._loadTagForm(play);});
 await page.click('[data-tag-value="Wing-T"] input');
@@ -99,9 +99,15 @@ state={
   checked: await page.evaluate(()=>document.querySelector('[data-tag-value="Bear"] input')?.checked),
 };
 ok(state.stored&&state.chip&&state.checked,'A custom Front is persisted, enabled, and immediately chartable in the native form',JSON.stringify(state));
+await page.evaluate(()=>{window.app.customChips.library.add('coverage','Bracket');window.app.customChips.library.add('playType','Counter');window.app.customChips.library.add('blitz','Mike Plug');window.app.customChips.reload();});
+state={coverage:await (await nativeChipHandle('coverage','Bracket')).evaluate(el=>!!el),playType:await (await nativeChipHandle('playType','Counter')).evaluate(el=>!!el),blitz:await (await nativeChipHandle('blitz','Mike Plug')).evaluate(el=>!!el)};
+ok(state.coverage&&state.playType&&state.blitz,'Coverage, Play Type, and Blitz libraries feed the real native charting form',JSON.stringify(state));
+state=await page.evaluate(()=>window.app.settingsScreen.saveChartingPreset({name:'Friday defense',unit:'defense',mode:'program',role:'Defensive staff'}));
+await page.waitForFunction(()=>[...document.querySelectorAll('[aria-label="Charting preset"] option')].some(option=>option.textContent.includes('Friday defense')));
+ok(state.ok&&state.preset.unit==='defense'&&state.preset.role==='Defensive staff','A contextual charting preset is saved and immediately available in the charting form',JSON.stringify(state));
 
 await page.type('[data-tag-add]','Bear "Zero"');await page.click('.gi-library-add button');
-state=await page.evaluate(()=>{const value='Bear "Zero"';const row=[...document.querySelectorAll('[data-tag-value]')].find(el=>el.dataset.tagValue===value);const remove=row?.querySelector('button');return{stored:window.app.customChips.library.group('front').custom.includes(value),row:!!row,aria:remove?.getAttribute('aria-label'),stray:!!row?.getAttribute('zero"')};});
+state=await page.evaluate(()=>{const value='Bear "Zero"';const row=[...document.querySelectorAll('[data-tag-value]')].find(el=>el.dataset.tagValue===value);const remove=[...(row?.querySelectorAll('button')||[])].find(button=>button.getAttribute('aria-label')===`Remove ${value}`);return{stored:window.app.customChips.library.group('front').custom.includes(value),row:!!row,aria:remove?.getAttribute('aria-label'),stray:!!row?.getAttribute('zero"')};});
 ok(state.stored&&state.row&&state.aria==='Remove Bear "Zero"'&&!state.stray,'Quoted custom names remain exact inert DOM data',JSON.stringify(state));
 
 for(const [group,value] of [['formation','Trey Open'],['backfield','Ace Offset']]){await page.click(`[data-chart-group="${group}"]`);await page.type('[data-tag-add]',value);await page.click('.gi-library-add button');}
@@ -144,7 +150,7 @@ ok(state.absent&&state.restored,'Switching teams isolates and restores each staf
 
 await page.evaluate(()=>{ window.app.tagLibrarySettings.open('front'); });
 await page.waitForSelector('[data-settings-panel="charting"] [data-chart-group="front"].is-selected');
-await page.click('[data-tag-value="Bear"] button');await page.waitForSelector('[data-overlay-action="remove"]');await page.click('[data-overlay-action="remove"]');
+await page.click('[data-tag-value="Bear"] [aria-label="Remove Bear"]');await page.waitForSelector('[data-overlay-action="remove"]');await page.click('[data-overlay-action="remove"]');
 await page.waitForFunction(()=>!document.querySelector('[data-tag-value="Bear"]'));
 bearChip = await nativeChipHandle('defFront', 'Bear');
 state={stored: await page.evaluate(()=>window.app.customChips.library.group('front').custom.includes('Bear')), chip: await bearChip.evaluate(el=>!!el)};

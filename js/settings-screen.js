@@ -61,7 +61,7 @@ export class SettingsScreen {
   playbookDefaultOptions() {
     return {
       runPass:['Run','Pass'],
-      playType:['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Trick Play'],
+      playType:this.chartingSnapshot('playType').enabled,
       playDir:['Left','Middle','Right'],
       formation:this.chartingSnapshot('formation').enabled,
       qbAlignment:['Under Center','Pistol','Shotgun'],
@@ -263,11 +263,37 @@ export class SettingsScreen {
   exportDepthChart() { return this.app.roster?.exportDepthChart?.(); }
 
   chartingSnapshot(group = 'formation') {
-    const meta = { formation:{label:'Formations',singular:'formation'}, backfield:{label:'Backfields',singular:'backfield'}, front:{label:'Fronts',singular:'front'} };
+    const meta = {
+      formation:{label:'Formations',singular:'formation'}, backfield:{label:'Backfields',singular:'backfield'},
+      front:{label:'Fronts',singular:'front'}, coverage:{label:'Coverages',singular:'coverage call'},
+      playType:{label:'Play Types',singular:'play type'}, blitz:{label:'Blitzes',singular:'blitz'},
+    };
     const key = meta[group] ? group : 'formation';
     return { key, ...meta[key], ...this.app.customChips.library.group(key) };
   }
   setTagEnabled(group, value, enabled) { this.app.customChips.setEnabled(group, value, enabled); return this.chartingSnapshot(group); }
+  moveTagChoice(group, value, delta) { this.app.customChips.library.move(group, value, delta); this.app.customChips.reload(); return this.chartingSnapshot(group); }
+  chartingPresetSnapshot() {
+    const mode = this._store()?.data?.kind === 'scout' || this.app.storage?.gameInfo?.perspective === 'scout' ? 'scout' : 'program';
+    return { presets:this.app.customChips.library.presets(), mode };
+  }
+  saveChartingPreset(input) { const preset=this.app.customChips.library.savePreset(input); if (preset) this.app.customChips.reload(); return { ok:!!preset, preset, ...this.chartingPresetSnapshot() }; }
+  applyChartingPreset(id) {
+    const current = this.chartingPresetSnapshot();
+    const candidate = current.presets.find(item => item.id === id);
+    if (!candidate || candidate.mode !== current.mode) return { ok:false, ...current };
+    const preset=this.app.customChips.library.applyPreset(id);
+    if (!preset) return { ok:false, ...this.chartingPresetSnapshot() };
+    this.app.customChips.reload();
+    if (this.app.tagger?.getCurrentPlay?.()) this.app.nativeTagging?.setUnit?.(preset.unit);
+    this._toast(`Charting preset "${preset.name}" applied.`);
+    return { ok:true, preset, ...this.chartingPresetSnapshot() };
+  }
+  deleteChartingPreset(id) {
+    const ok = this.app.customChips.library.deletePreset(id);
+    if (ok) this.app.customChips.reload();
+    return { ok, ...this.chartingPresetSnapshot() };
+  }
   addTagChoice(group, value) {
     const clean = String(value || '').trim();
     const current = this.chartingSnapshot(group);

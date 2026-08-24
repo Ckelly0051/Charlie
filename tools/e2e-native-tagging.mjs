@@ -73,7 +73,7 @@ state=await page.evaluate(async()=>{
   const playersGroup=[...root.querySelectorAll('.gi-tag-group')].find(node=>node.querySelector('summary strong')?.textContent.startsWith('Players'));
   return{unitOwners:root.querySelectorAll('[data-native-context=unit]').length,libraryCalls:calls,players:[...new Set([...offensePlayers,...defensePlayers])],notes:root.querySelectorAll('textarea').length,custom:text.includes('Edit custom fields'),penalties:text.includes('Penalties'),playersOpen:!!playersGroup?.open};
 });
-ok(state.unitOwners===1&&JSON.stringify(state.libraryCalls)===JSON.stringify(['formation','backfield','front']),'Native route has one charting-unit owner and one shared library editor seam',JSON.stringify(state));
+ok(state.unitOwners===1&&JSON.stringify(state.libraryCalls)===JSON.stringify(['formation','backfield','front','coverage','blitz','playType']),'Native route has one charting-unit owner and all six managed fields use the shared library editor seam',JSON.stringify(state));
 // Roles now carry football labels ("Tackler(s)") rather than camel-cased field
 // names ("ball Carrier"). Match the label a coach reads.
 ok(['Ball Carrier','Passer','Receiver','Tackler(s)','Takeaway'].every(role=>state.players.includes(role))&&state.notes>0&&state.custom&&state.penalties,'Every production offense, defense, player, custom, note, and situation control remains present in the native form',JSON.stringify(state));

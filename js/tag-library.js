@@ -1,22 +1,15 @@
-/** Per-team charting vocabulary. Visibility changes controls, never stored tags. */
+/** Per-team charting vocabulary. Visibility and ordering change controls, never stored tags. */
 export class TagLibrary {
-  static VERSION = 2;
+  static VERSION = 3;
   static DEFINITIONS = {
-    // E4: Under Center/Pistol/Shotgun removed — they are QB Alignment, not
-    // Formation structure (E1 decision; #tagQbAlignment is their new home, not a
-    // TagLibrary-customizable group since the three values are fixed, not team
-    // vocabulary).
-    // E4-2: 'Empty' removed from Formation — it's a backfield concept (no
-    // running back), and Backfield already has its own 'Empty' chip as the
-    // correct home; TagProjection.PROJECTED_PAIRS now registers Formation ->
-    // Backfield so this move is read-time-safe (legacy plays project it out
-    // correctly, nothing is migrated). 'Pistol' removed from Backfield — it's
-    // QB alignment, not a back alignment; QB Alignment already has its own
-    // 'Pistol' chip, and PROJECTED_PAIRS now also registers Backfield ->
-    // QB Alignment for the same reason.
+    // Classification-critical fields (down, result, run/pass, QB alignment,
+    // coverage family, strength and direction) intentionally remain fixed.
     formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','I-Form','Split Back','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
+    coverage: ['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
+    playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Trick Play'],
+    blitz: ['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   };
 
   constructor({ storage, teamId } = {}) {
@@ -30,8 +23,10 @@ export class TagLibrary {
   legacyKey() { return `ffa_custom_chips_${this._teamId()}`; }
   _blank() {
     const groups = {};
-    for (const [key, defaults] of Object.entries(TagLibrary.DEFINITIONS)) groups[key] = { custom: [], enabled: defaults.slice() };
-    return { version: TagLibrary.VERSION, groups };
+    for (const [key, defaults] of Object.entries(TagLibrary.DEFINITIONS)) {
+      groups[key] = { custom: [], enabled: defaults.slice(), order: defaults.slice() };
+    }
+    return { version: TagLibrary.VERSION, groups, presets: [] };
   }
   _read(key) { try { return JSON.parse(this.storage?.getItem(key) || 'null'); } catch { return null; } }
   _write(state) { try { this.storage?.setItem(this.key(), JSON.stringify(state)); } catch {} return state; }
@@ -47,8 +42,26 @@ export class TagLibrary {
       if ((Number(raw?.version) || 1) < 2 && key === 'formation') {
         for (const added of ['I-Form','Split Back']) if (!enabled.includes(added)) enabled.push(added);
       }
-      next.groups[key] = { custom, enabled };
+      const savedOrder = Array.isArray(source.order) ? source.order.map(String).filter(value => values.includes(value)) : [];
+      const order = [...new Set([...savedOrder, ...values])];
+      next.groups[key] = { custom, enabled, order };
     }
+    const presets = Array.isArray(raw?.presets) ? raw.presets : [];
+    next.presets = presets.map((preset, index) => {
+      const enabled = {};
+      for (const key of Object.keys(TagLibrary.DEFINITIONS)) {
+        const values = next.groups[key].order;
+        enabled[key] = [...new Set((Array.isArray(preset?.enabled?.[key]) ? preset.enabled[key] : next.groups[key].enabled).map(String).filter(value => values.includes(value)))];
+      }
+      return {
+        id: String(preset?.id || `preset-${index + 1}`),
+        name: String(preset?.name || '').trim(),
+        unit: ['offense','defense','special'].includes(preset?.unit) ? preset.unit : 'offense',
+        mode: preset?.mode === 'scout' ? 'scout' : 'program',
+        role: String(preset?.role || 'All staff').trim() || 'All staff',
+        enabled,
+      };
+    }).filter(preset => preset.name);
     return next;
   }
   load() {
@@ -60,30 +73,43 @@ export class TagLibrary {
       const defaults = TagLibrary.DEFINITIONS[key];
       migrated.groups[key].custom = [...new Set((legacy[key] || []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
       migrated.groups[key].enabled.push(...migrated.groups[key].custom);
+      migrated.groups[key].order.push(...migrated.groups[key].custom);
     }
     const state = this._write(this._normalize(migrated));
     this._remove(this.legacyKey());
     return state;
   }
-  group(key) { const defaults = TagLibrary.DEFINITIONS[key], state = this.load(), group = state.groups[key]; return defaults && group ? { values: [...defaults, ...group.custom], custom: group.custom.slice(), enabled: group.enabled.slice() } : { values: [], custom: [], enabled: [] }; }
+  group(key) {
+    const state = this.load(), group = state.groups[key];
+    return group ? { values: group.order.slice(), custom: group.custom.slice(), enabled: group.enabled.slice() } : { values: [], custom: [], enabled: [] };
+  }
   add(key, value) {
     const state = this.load(), group = state.groups[key], defaults = TagLibrary.DEFINITIONS[key], v = String(value || '').trim();
     if (!group || !defaults || !v || defaults.includes(v) || group.custom.includes(v)) return false;
-    group.custom.push(v); group.enabled.push(v); this._write(state); return true;
+    group.custom.push(v); group.enabled.push(v); group.order.push(v); this._write(state); return true;
   }
   remove(key, value) {
     const state = this.load(), group = state.groups[key];
     if (!group || !group.custom.includes(value)) return false;
     group.custom = group.custom.filter(item => item !== value);
     group.enabled = group.enabled.filter(item => item !== value);
+    group.order = group.order.filter(item => item !== value);
     this._write(state); return true;
   }
   setEnabled(key, value, enabled) {
     const state = this.load(), group = state.groups[key];
-    if (!group || !this.group(key).values.includes(value)) return false;
+    if (!group || !group.order.includes(value)) return false;
     const has = group.enabled.includes(value);
     if (!!enabled === has) return false;
     group.enabled = enabled ? [...group.enabled, value] : group.enabled.filter(item => item !== value);
+    this._write(state); return true;
+  }
+  move(key, value, delta) {
+    const state = this.load(), group = state.groups[key], step = Number(delta) < 0 ? -1 : 1;
+    if (!group) return false;
+    const from = group.order.indexOf(value), to = from + step;
+    if (from < 0 || to < 0 || to >= group.order.length) return false;
+    [group.order[from], group.order[to]] = [group.order[to], group.order[from]];
     this._write(state); return true;
   }
   replaceCustom(data = {}) {
@@ -93,8 +119,42 @@ export class TagLibrary {
       const custom = [...new Set((data[key] || []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
       prior.custom = custom;
       prior.enabled = [...new Set([...prior.enabled.filter(value => defaults.includes(value)), ...custom])];
+      prior.order = [...new Set([...prior.order.filter(value => defaults.includes(value) || custom.includes(value)), ...defaults, ...custom])];
     }
     return this._write(state);
   }
-  restore() { return this._write(this._blank()); }
+  presets() { return this.load().presets.map(preset => JSON.parse(JSON.stringify(preset))); }
+  savePreset({ name, unit = 'offense', mode = 'program', role = 'All staff' } = {}) {
+    const clean = String(name || '').trim();
+    if (!clean || !['offense','defense','special'].includes(unit)) return null;
+    const state = this.load();
+    const preset = {
+      id: `preset-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: clean,
+      unit,
+      mode: mode === 'scout' ? 'scout' : 'program',
+      role: String(role || 'All staff').trim() || 'All staff',
+      enabled: Object.fromEntries(Object.entries(state.groups).map(([key, group]) => [key, group.enabled.slice()])),
+    };
+    state.presets.push(preset); this._write(state); return JSON.parse(JSON.stringify(preset));
+  }
+  applyPreset(id) {
+    const state = this.load(), preset = state.presets.find(item => item.id === id);
+    if (!preset) return null;
+    for (const [key, group] of Object.entries(state.groups)) {
+      group.enabled = [...new Set((preset.enabled[key] || []).filter(value => group.order.includes(value)))];
+    }
+    this._write(state); return JSON.parse(JSON.stringify(preset));
+  }
+  deletePreset(id) {
+    const state = this.load(), before = state.presets.length;
+    state.presets = state.presets.filter(item => item.id !== id);
+    if (state.presets.length === before) return false;
+    this._write(state); return true;
+  }
+  restore() {
+    const state = this._blank();
+    state.presets = this.presets();
+    return this._write(state);
+  }
 }

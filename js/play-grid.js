@@ -840,7 +840,7 @@ export class PlayGrid {
   // native-tagging.jsx does; fixed-vocabulary fields read the same OPTIONS/
   // RESULT_OPTIONS constants that file exports, so there is exactly one copy
   // of each field's vocabulary, not two drifting apart.
-  static LIBRARY_COLUMNS = { formation: 'formation', backfield: 'backfield', defFront: 'front' };
+  static LIBRARY_COLUMNS = { formation:'formation', backfield:'backfield', defFront:'front', coverage:'coverage', playType:'playType', blitz:'blitz' };
   _options(col, current = []) {
     let opts = this._optionCache[col.key];
     if (!opts) {

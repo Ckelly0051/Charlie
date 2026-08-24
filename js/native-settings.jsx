@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import '../css/native-settings.css';
 
 const JERSEY_COLORS = ['white','black','red','blue','navy','green','yellow','orange','purple','maroon','gray','teal'];
-const CHART_GROUPS = [['formation','Formations'],['backfield','Backfields'],['front','Fronts']];
+const CHART_GROUPS = [['formation','Formations'],['backfield','Backfields'],['front','Fronts'],['coverage','Coverages'],['playType','Play Types'],['blitz','Blitzes']];
 const DRAW_TOOLS = [['line','Line'],['arrow','Arrow'],['circle','Circle'],['rect','Rectangle'],['freehand','Draw'],['text','Text']];
 const DRAW_COLORS = ['#ffffff','#ffff00','#ff4444','#4488ff','#44ff44','#ff8800'];
 const FILTERS = {
@@ -137,18 +137,40 @@ function RosterSettings({ screen }) {
 
 function ChartingSettings({ screen, initialGroup }) {
   const [groupKey,setGroupKey]=useState(initialGroup||'formation');
-  const [group,setGroup]=useState(()=>screen.chartingSnapshot(groupKey)); const [value,setValue]=useState(''); const [error,setError]=useState('');
+  const [group,setGroup]=useState(()=>screen.chartingSnapshot(groupKey));
+  const initialPresets=screen.chartingPresetSnapshot();
+  const [presets,setPresets]=useState(initialPresets.presets);
+  const [presetName,setPresetName]=useState('');
+  const [presetUnit,setPresetUnit]=useState('offense');
+  const [presetMode,setPresetMode]=useState(initialPresets.mode);
+  const [presetRole,setPresetRole]=useState('All staff');
+  const [value,setValue]=useState(''); const [error,setError]=useState('');
   const choose=key=>{setGroupKey(key);setGroup(screen.chartingSnapshot(key));setError('');};
   const add=()=>{const result=screen.addTagChoice(groupKey,value);if(!result.ok){setError(result.message);return;}setGroup(result.group);setValue('');setError('');};
-  return <div data-settings-panel="charting"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">CHARTING LIBRARIES</span><h3>Show only the looks your staff uses</h3></div><button type="button" onClick={async()=>{if(await screen.restoreTagDefaults())setGroup(screen.chartingSnapshot(groupKey));}}>Restore defaults</button></header><div class="gi-settings-section-body">
-    <p class="gi-settings-truth"><strong>Hiding is not deleting.</strong> Existing plays and analytics stay unchanged. This only reduces charting clutter.</p>
-    <div class="gi-settings-segment" role="tablist" aria-label="Charting library">{CHART_GROUPS.map(([key,label])=><button key={key} type="button" role="tab" data-chart-group={key} aria-selected={groupKey===key} class={groupKey===key?'is-selected':''} onClick={()=>choose(key)}>{label}</button>)}</div>
-    <div class="gi-library-summary"><strong>{group.enabled.length} shown</strong><span>{group.values.length-group.enabled.length} hidden</span></div>
-    <div class="gi-library-list">{group.values.map(item=><div class="gi-library-row" key={item} data-tag-value={item}><label><input type="checkbox" checked={group.enabled.includes(item)} onChange={e=>setGroup(screen.setTagEnabled(groupKey,item,e.currentTarget.checked))}/><span>{item}</span></label>{group.custom.includes(item)?<button type="button" aria-label={`Remove ${item}`} onClick={async()=>setGroup(await screen.removeTagChoice(groupKey,item))}>×</button>:<small>Default</small>}</div>)}</div>
-    <div class="gi-library-add"><input data-tag-add value={value} onInput={e=>{setValue(e.currentTarget.value);setError('');}} placeholder={`Add custom ${group.singular}`} maxLength="40"/><button type="button" class="gi-settings-primary" onClick={add}>Add</button></div>{error&&<p class="gi-settings-error" role="alert">{error}</p>}
-  </div></section></div>;
+  const savePreset=()=>{const result=screen.saveChartingPreset({name:presetName,unit:presetUnit,mode:presetMode,role:presetRole});if(!result.ok){setError('Name this preset first.');return;}setPresets(result.presets);setPresetName('');setError('');};
+  const applyPreset=id=>{const result=screen.applyChartingPreset(id);setPresets(result.presets);setGroup(screen.chartingSnapshot(groupKey));};
+  const deletePreset=id=>{const result=screen.deleteChartingPreset(id);setPresets(result.presets);};
+  return <div data-settings-panel="charting">
+    <section class="gi-settings-section gi-charting-presets"><header><div><span class="gi-settings-kicker">CHARTING PRESETS</span><h3>Save a staff-ready charting layout</h3></div><span class="gi-settings-status">{presets.length} saved</span></header><div class="gi-settings-section-body">
+      <p class="gi-settings-truth">A preset remembers which library choices are visible, plus its unit, workspace, and staff role. It never changes tags already saved on a play.</p>
+      <div class="gi-preset-form">
+        <label><span>Name</span><input value={presetName} onInput={e=>setPresetName(e.currentTarget.value)} placeholder="e.g. Friday offense" maxLength="40"/></label>
+        <label><span>Unit</span><select value={presetUnit} onChange={e=>setPresetUnit(e.currentTarget.value)}><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label>
+        <label><span>Workspace</span><select value={presetMode} onChange={e=>setPresetMode(e.currentTarget.value)}><option value="program">Our program</option><option value="scout">Opponent scout</option></select></label>
+        <label><span>Staff role</span><select value={presetRole} onChange={e=>setPresetRole(e.currentTarget.value)}><option>All staff</option><option>Offensive staff</option><option>Defensive staff</option><option>Special teams staff</option><option>Position coach</option></select></label>
+        <button type="button" class="gi-settings-primary" onClick={savePreset}>Save preset</button>
+      </div>
+      {presets.length ? <div class="gi-preset-list">{presets.map(item=><div class="gi-preset-row" key={item.id} data-charting-preset={item.id}><div><strong>{item.name}</strong><span>{item.mode==='scout'?'Opponent scout':'Our program'} · {item.unit==='special'?'Special Teams':item.unit[0].toUpperCase()+item.unit.slice(1)} · {item.role}</span></div><button type="button" onClick={()=>applyPreset(item.id)}>Apply</button><button type="button" class="gi-settings-danger" aria-label={`Delete ${item.name}`} onClick={()=>deletePreset(item.id)}>×</button></div>)}</div> : null}
+    </div></section>
+    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">CHARTING LIBRARIES</span><h3>Show and order the language your staff uses</h3></div><button type="button" onClick={async()=>{if(await screen.restoreTagDefaults())setGroup(screen.chartingSnapshot(groupKey));}}>Restore defaults</button></header><div class="gi-settings-section-body">
+      <p class="gi-settings-truth"><strong>Hiding is not deleting.</strong> Existing plays and analytics stay unchanged. Custom play types never guess Run/Pass; chart that field explicitly.</p>
+      <div class="gi-settings-segment" role="tablist" aria-label="Charting library">{CHART_GROUPS.map(([key,label])=><button key={key} type="button" role="tab" data-chart-group={key} aria-selected={groupKey===key} class={groupKey===key?'is-selected':''} onClick={()=>choose(key)}>{label}</button>)}</div>
+      <div class="gi-library-summary"><strong>{group.enabled.length} shown</strong><span>{group.values.length-group.enabled.length} hidden</span></div>
+      <div class="gi-library-list">{group.values.map((item,index)=><div class="gi-library-row" key={item} data-tag-value={item}><label><input type="checkbox" checked={group.enabled.includes(item)} onChange={e=>setGroup(screen.setTagEnabled(groupKey,item,e.currentTarget.checked))}/><span>{item}</span></label><div class="gi-library-order"><button type="button" aria-label={`Move ${item} up`} disabled={index===0} onClick={()=>setGroup(screen.moveTagChoice(groupKey,item,-1))}>↑</button><button type="button" aria-label={`Move ${item} down`} disabled={index===group.values.length-1} onClick={()=>setGroup(screen.moveTagChoice(groupKey,item,1))}>↓</button>{group.custom.includes(item)?<button type="button" class="gi-settings-danger" aria-label={`Remove ${item}`} onClick={async()=>setGroup(await screen.removeTagChoice(groupKey,item))}>×</button>:<small>Default</small>}</div></div>)}</div>
+      <div class="gi-library-add"><input data-tag-add value={value} onInput={e=>{setValue(e.currentTarget.value);setError('');}} placeholder={`Add custom ${group.singular}`} maxLength="40"/><button type="button" class="gi-settings-primary" onClick={add}>Add</button></div>{error&&<p class="gi-settings-error" role="alert">{error}</p>}
+    </div></section>
+  </div>;
 }
-
 function ToggleGroup({ label, values, selected, onChange }) {
   return <fieldset class="gi-filter-group"><legend>{label}</legend><div>{values.map(value=><button key={value} type="button" aria-pressed={selected.includes(value)} class={selected.includes(value)?'is-selected':''} onClick={()=>onChange(selected.includes(value)?selected.filter(item=>item!==value):[...selected,value])}>{value}</button>)}</div></fieldset>;
 }

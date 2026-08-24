@@ -319,6 +319,26 @@ will be removed and receiving explicit confirmation.
 
 ### V2-E: Configurable Full-Depth Charting
 
+> **IMPLEMENTED — AWAITING CLAUDE REVIEW (2026-08-24).** One team-scoped
+> `TagLibrary` now owns six coach-managed vocabularies: Formation, Backfield,
+> Front, Coverage Call, Play Type, and Blitz. Settings can add custom choices,
+> hide/show any choice, reorder the charting controls, and restore defaults.
+> Film Room and the native charting deck read the same ordered source. Hiding or
+> removing an affordance never rewrites historical play tags.
+>
+> Charting presets save the visible vocabulary plus Unit, workspace mode
+> (Our Program/Opponent Scout), and staff role. Matching presets are available
+> directly in the charting deck and apply without changing stored plays. Fixed
+> semantic fields remain fixed: Down, Result, Run/Pass, QB Alignment, Coverage
+> Family, Strength, and Direction. A custom Play Type does not guess Run/Pass;
+> the coach must classify that field explicitly so analytics cannot be silently
+> corrupted. Penalty and Special Teams models are untouched.
+>
+> Focused verification: tag-library 18/18, tag-library-settings 17/17, native
+> tagging 67/67, Film Room 175/175, and a clean Vite production build. No full
+> canonical gate or installer was run for this checkpoint; Claude owns the
+> independent combined V2-B/V2-E review.
+
 Retain every meaningful production field while reducing everyday clutter.
 
 - Coach-managed libraries for formations, backfields, fronts, coverages, play
