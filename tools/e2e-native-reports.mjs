@@ -380,37 +380,86 @@ ok(result.unchanged, 'Report navigation is read-only against canonical season da
 
 
 console.log('\n== 2b. Defense is season-wide, performance-first, and film-exact ==');
-result = await page.evaluate(() => {
+// Loaded as the REAL active season (not a standalone plays array handed
+// straight to defensivePerformance()) so the DOM assertions below exercise
+// the same data the numeric model checks do -- section "2b" previously
+// computed `model` from a disconnected local array while the actually
+// rendered pane still reflected whatever season section 1 had left active,
+// which is exactly why its sort/film-click assertions could pass without
+// proving anything (see the two fixes below).
+result = await page.evaluate(async () => {
   const app = window.app;
-  const mk = (gid, id, tags) => {
-    const play = { id, timestamp: { start: id * 4, end: id * 4 + 3 }, tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } };
-    Object.defineProperty(play, '__gid', { value: gid, enumerable: false });
-    return play;
-  };
-  const plays = [
-    mk('a', 1, { runPass: 'Run', playType: 'Run Inside', result: 'No Gain', yardage: '0', down: '1', distance: '10', defFront: '4-2-5', coverage: 'Cover 3' }),
-    mk('a', 2, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '8', defFront: '4-2-5', coverage: 'Cover 3' }),
-    mk('b', 1, { runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '20', down: '3', distance: '5', fieldSide: 'opp', yardLine: '10', defFront: '5-2', coverage: 'Cover 1', blitz: 'Edge' }),
-    mk('b', 2, { runPass: 'Pass', playType: 'Short Pass', result: 'Interception', yardage: '0', down: '3', distance: '7', fieldSide: 'opp', yardLine: '10', defFront: '4-2-5', coverage: 'Cover 3', blitz: 'Edge' }),
-    { ...mk('b', 3, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '99', down: '1', distance: '10' }), penalties: [{ id: 'no-play', team: 'opponent', phase: 'offense', foul: 'False start', disposition: 'accepted', playCounts: false }] },
+  // Isolated fixture -- section 1's g-self/g-scout season (which section 3
+  // and later sections rely on for an offense-unit cut-row) is saved and
+  // restored around this test rather than left clobbered.
+  const originalGames = app.storage.seasonStore.data.games;
+  const originalActiveGameId = app.storage.seasonStore.data.activeGameId;
+  const play = (id, tags) => ({ id, timestamp: { start: id * 4, end: id * 4 + 3 }, tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } });
+  app.storage.seasonStore.data.games = [
+    {
+      id: 'a', name: 'Week 1', nextId: 3, gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+      plays: [
+        play(1, { runPass: 'Run', playType: 'Run Inside', result: 'No Gain', yardage: '0', down: '1', distance: '10', defFront: '4-2-5', coverage: 'Cover 3' }),
+        play(2, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '8', defFront: '4-2-5', coverage: 'Cover 3' }),
+      ],
+    },
+    {
+      // Play id 1 is deliberately reused across games -- proves composite
+      // gameId::playId identity, not bare ids, is what every assertion below
+      // resolves against. defFront '4-2-5' spans BOTH games (a::1, a::2,
+      // b::2) so a Scheme Detail click has a real cross-game cohort to prove.
+      id: 'b', name: 'Week 2', nextId: 4, gameInfo: { opponent: 'Knights', perspective: 'self' },
+      plays: [
+        play(1, { runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '20', down: '3', distance: '5', fieldSide: 'opp', yardLine: '10', defFront: '5-2', coverage: 'Cover 1', blitz: 'Edge' }),
+        play(2, { runPass: 'Pass', playType: 'Short Pass', result: 'Interception', yardage: '0', down: '3', distance: '7', fieldSide: 'opp', yardLine: '10', defFront: '4-2-5', coverage: 'Cover 3', blitz: 'Edge' }),
+        { ...play(3, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '99', down: '1', distance: '10' }), penalties: [{ id: 'no-play', team: 'opponent', phase: 'offense', foul: 'False start', disposition: 'accepted', playCounts: false }] },
+      ],
+    },
+    // A third, opponent-scout game -- must never enter our-team defensive
+    // totals (_defenseCohort filters on gameInfo.perspective !== 'scout').
+    // Real defensive-shaped plays, not a placeholder, so a broken filter
+    // would visibly inflate `model.total` past 4 and add a third game name.
+    {
+      id: 'c', name: 'Scout Game', nextId: 4, gameInfo: { opponent: 'Rivals', perspective: 'scout' },
+      plays: [
+        play(1, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5', down: '1', distance: '10' }),
+        play(2, { runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '8', down: '2', distance: '10' }),
+        play(3, { runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '3', down: '1', distance: '10' }),
+      ],
+    },
   ];
-  const model = app.stats.defensivePerformance(plays, { a: 'Week 1', b: 'Week 2' });
+  app.storage.seasonStore.data.activeGameId = 'a';
+  await app.storage._loadActiveGame();
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
+  // The exact production path -- same cohort the rendered pane used.
+  const { scoped, labels } = app.reportsScreen._defenseCohort();
+  const model = app.stats.defensivePerformance(scoped, labels);
   const pane = document.querySelector('[data-pane="defense"]');
   const seasonActive = pane?.querySelector('[data-defense-scope="season"].active') != null;
   const runInside = model.playTypes.find(row => row.name === 'Run Inside');
   const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
   const typeTable = pane?.querySelector('.gi-def-type');
   const typeRowsBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
+  const yppBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[2]?.textContent));
   // DataTable (native-report-kit.jsx) makes every header clickable/sortable
   // by design -- role="button" is the live marker, not a static per-column
   // "this one is sortable" class the legacy `_makeSortable()` DOM convention
   // used. Sort reads directly off the row object's field, so verify the
-  // effect (real cell text, ascending) rather than a `data-sort` attribute
-  // DataTable never writes.
+  // effect (real cell text, descending -- DataTable's first-click direction)
+  // rather than a `data-sort` attribute DataTable never writes. This fixture
+  // deliberately has three type rows with a non-monotonic yards/play order
+  // (2.0, 20.0, 0.0) so a broken/no-op sort is caught, not masked by an
+  // accidentally-already-sorted or single-row table.
   const sortableHeaders = typeTable?.querySelectorAll('thead th[role="button"]').length || 0;
   typeTable?.querySelector('thead th:nth-child(3)')?.click();
+  // DataTable's sort is real Preact hook state (useState -> setSort), which
+  // Preact flushes on a deferred microtask/rAF, not synchronously inside the
+  // click handler -- unlike ReportsScreen's own imperative full-route
+  // `render()` calls (e.g. the defenseScope toggle below), which repaint
+  // before the click handler returns. Reading the table immediately after
+  // .click() here would silently observe the PRE-sort DOM.
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const typeRowsAfterYppSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
   const yppAfterSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[2]?.textContent));
   const aggregateCards = [...(pane?.querySelectorAll('.gi-def-type-summary') || [])].map(card => card.textContent.trim());
@@ -423,21 +472,43 @@ result = await page.evaluate(() => {
   const originalWatch = app.filmNavigation.watch;
   app.filmNavigation.watch = refs => { watched = refs; return true; };
   // Real onClick wiring (Watchable/WatchableRefs), not the legacy delegated
-  // `[data-defense-refs]` attribute -- click an actual clickable type row.
-  pane?.querySelector('.gi-def-type tbody tr.cut-row')?.click();
+  // `[data-defense-refs]` attribute -- click the real "Run Inside" type row
+  // (both its snaps live in game 'a').
+  const runInsideRow = [...(typeTable?.querySelectorAll('tbody tr') || [])]
+    .find(row => row.cells[0]?.textContent.trim() === 'Run Inside');
+  runInsideRow?.click();
+  const watchedRunInside = watched;
+  watched = null;
+  // The season-wide film bug: Scheme Detail's front table is a LegacyWidget
+  // embed of StatsEngine's own HTML (`_renderDefensive`), wired by
+  // `wireGenericCutRows`. Its "4-2-5" front row spans BOTH games; before the
+  // fix this resolved through `_watchPlays`, which rebuilds its pool from
+  // `this.tagger.plays` -- the ACTIVE game only -- so a season-wide count
+  // could silently play fewer plays than it displayed.
+  const schemeRow = pane?.querySelector('.gi-defense-report [data-cut-type="defFront"][data-cut-val="4-2-5"]');
+  schemeRow?.click();
+  const watchedScheme = watched;
   app.filmNavigation.watch = originalWatch;
   pane?.querySelector('[data-defense-scope="game"]')?.click();
   const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].active') != null;
   const after = document.querySelector('[data-pane="defense"] .gi-def-kpi strong')?.textContent || '';
+  app.reportsScreen.defenseScope = 'season';
+  app.storage.seasonStore.data.games = originalGames;
+  app.storage.seasonStore.data.activeGameId = originalActiveGameId;
+  await app.storage._loadActiveGame();
   return {
     total: model.total, ypp: model.summary.yardsPerPlay, stop: model.summary.stopRate,
     third: model.thirdDownStopRate, redZone: model.redZoneTdRate, takeaways: model.takeaways,
     runInside: runInside && { n: runInside.n, refs: runInside.refs },
     duplicateRefs, games: model.byGame.map(row => row.name),
-    seasonActive, gameActive, before, after, watched, typeRowsBefore, typeRowsAfterYppSort,
+    seasonActive, gameActive, before, after, typeRowsBefore, typeRowsAfterYppSort, yppBefore,
+    watchedRunInside, watchedScheme, schemeRowFound: !!schemeRow,
     sortableHeaders, aggregateCards, yppAfterSort, answerHeaderPosition, answerRowsClearHeader,
     headings: [...(pane?.querySelectorAll('h3') || [])].map(node => node.textContent.trim()),
-    scoutExcluded: before === '1',
+    // The fixture's third game is opponent-scout with real defensive-shaped
+    // plays; a broken _defenseCohort filter would both inflate the season
+    // total past 4 and add "Scout Game" to byGame.
+    scoutExcluded: model.total === 4 && !model.byGame.some(row => row.name === 'Scout Game'),
   };
 });
 ok(result.total === 4 && result.ypp === 6 && result.stop === 75
@@ -446,8 +517,12 @@ ok(result.total === 4 && result.ypp === 6 && result.stop === 75
 ok(result.runInside?.n === 2 && JSON.stringify(result.runInside.refs) === JSON.stringify(['a::1', 'a::2'])
   && JSON.stringify(result.duplicateRefs) === JSON.stringify(['a::1', 'b::1']),
   'Opponent play-type rows retain composite game/play identity even when bare ids collide', JSON.stringify(result));
-ok(Array.isArray(result.watched) && result.watched.length === 1 && result.watched[0] === 'g-self::2',
-  'A season Defense row launches exactly the film refs it displays', JSON.stringify(result.watched));
+ok(Array.isArray(result.watchedRunInside) && JSON.stringify(result.watchedRunInside) === JSON.stringify(['a::1', 'a::2']),
+  'A season Defense row launches exactly the film refs it displays', JSON.stringify(result.watchedRunInside));
+ok(result.schemeRowFound && Array.isArray(result.watchedScheme)
+  && JSON.stringify([...result.watchedScheme].sort()) === JSON.stringify(['a::1', 'a::2', 'b::2']),
+  'Season-wide Scheme Detail plays the exact cross-game cohort it counts, not just the active game',
+  JSON.stringify({ schemeRowFound: result.schemeRowFound, watchedScheme: result.watchedScheme }));
 ok(result.games.join(',') === 'Week 1,Week 2'
   && result.seasonActive && result.gameActive && result.scoutExcluded,
   'Defense defaults to full season, excludes opponent-scout games, and can switch to current game', JSON.stringify(result));
@@ -457,11 +532,17 @@ ok(result.headings.includes('Defensive Performance')
   && result.headings.includes('Situational Defense'),
   'The Defense page leads with performance, play type, game trend, and situation', JSON.stringify(result.headings));
 ok(result.sortableHeaders === 7
-  && result.typeRowsBefore.length > 0
+  && result.typeRowsBefore.length === 3
+  // The fixture's three type rows have a genuinely non-monotonic initial
+  // yards/play order (2.0, 20.0, 0.0 -- count-desc/name-tiebreak, not sorted
+  // by yards/play at all), so this is a positive proof the initial order is
+  // NOT already descending -- a broken/no-op sort (the exact `key: 'ypp'` vs
+  // `yardsPerPlay` field-mismatch bug this pins) would leave it unchanged
+  // and this check would catch it.
+  && !result.yppBefore.every((value, index, values) => index === 0 || values[index - 1] >= value)
   && result.typeRowsAfterYppSort.length === result.typeRowsBefore.length
   // DataTable's first click on a column sorts descending (its established,
-  // shared convention -- already live on Offense/Players' tables); a real
-  // sort toggle exists is the thing under test, not which direction leads.
+  // shared convention -- already live on Offense/Players' tables).
   && result.yppAfterSort.every((value, index, values) => index === 0 || values[index - 1] >= value)
   && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes')
   && result.aggregateCards.length > 0

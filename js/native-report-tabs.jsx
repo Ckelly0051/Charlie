@@ -353,7 +353,7 @@ function DefSection({ title, children }) {
 
 const defTypeColumns = [
   { key: 'name', label: 'Play Run Against Us' }, { key: 'n', label: 'Snaps', numeric: true },
-  { key: 'ypp', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'yardsPerPlay', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
   { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
   { key: 'explosiveRate', label: 'Explosive Rate', numeric: true, render: row => `${row.explosiveRate}%` },
   { key: 'havocRate', label: 'Havoc Rate', numeric: true, render: row => `${row.havocRate}%` },
@@ -361,7 +361,7 @@ const defTypeColumns = [
 ];
 const defGameColumns = [
   { key: 'name', label: 'Game' }, { key: 'n', label: 'Snaps', numeric: true },
-  { key: 'ypp', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'yardsPerPlay', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
   { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
   { key: 'explosives', label: 'Explosive', numeric: true },
   { key: 'havoc', label: 'Havoc', numeric: true },
@@ -369,7 +369,7 @@ const defGameColumns = [
 ];
 const defSitColumns = [
   { key: 'name', label: 'Situation' }, { key: 'n', label: 'Snaps', numeric: true },
-  { key: 'ypp', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'yardsPerPlay', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
   { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
   { key: 'explosiveRate', label: 'Explosive', numeric: true, render: row => `${row.explosiveRate}%` },
   { key: 'havocRate', label: 'Havoc', numeric: true, render: row => `${row.havocRate}%` },
@@ -474,9 +474,9 @@ export function DefenseTab({ report, scoped, screen }) {
       </div>
     </DefSection>
     <DefSection title="Scheme Detail">
-      <LegacyWidget html={engine._renderDefensive(scopedStats)} bind={node => screen.wireGenericCutRows(node)} />
+      <LegacyWidget html={engine._renderDefensive(scopedStats)} bind={node => screen.wireGenericCutRows(node, scoped)} />
     </DefSection>
-    <LegacyWidget html={engine._defScoutBlock(defScout, false, true)} bind={node => screen.wireGenericCutRows(node)} />
+    <LegacyWidget html={engine._defScoutBlock(defScout, false, true)} bind={node => screen.wireGenericCutRows(node, scoped)} />
   </div>;
 }
 

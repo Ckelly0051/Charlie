@@ -445,13 +445,44 @@ export class ReportsScreen {
    *  `.cut-row[data-cut-type][data-cut-val]` film convention those fragments
    *  emit. NOT `_bindContent` itself: that also wires `data-lens-tab`/
    *  `data-defense-scope`/drive-rows/player-rows, none of which either
-   *  fragment's markup produces. */
-  wireGenericCutRows(node) {
+   *  fragment's markup produces.
+   *
+   *  `plays` is the EXACT cohort the embedded fragment was computed from
+   *  (e.g. DefenseTab's `scoped`, which is season-wide when "Full season"
+   *  is selected). Composite `gameId::playId` refs are resolved against it
+   *  directly and routed through `watchRefs` -- the same H16 fix
+   *  `_bindContent`'s season-pane wiring already applies below, closing an
+   *  identical bug here: without it, a click fell through `watchCut` ->
+   *  `_watchPlays`, which rebuilds its pool from `this.tagger.plays` (the
+   *  ACTIVE GAME only), so a season-wide count (e.g. "154 plays" from a
+   *  Scheme Detail front row spanning six games) could silently play only
+   *  the active game's matching snaps. A row whose predicate resolves to no
+   *  ref in `plays` loses its film affordance rather than offering a dead
+   *  click. When `plays` is omitted, falls back to the active-game-only
+   *  path for any future caller with no explicit cohort of its own. */
+  wireGenericCutRows(node, plays) {
     if (!node) return;
     try { this.app.stats.constructor.bindDefs(node); } catch {}
+    const stats = this.app.stats;
+    const refsFor = predicate => [...new Set((plays || [])
+      .filter(play => { try { return predicate(play); } catch { return false; } })
+      .filter(play => play?.__gid != null && play?.id != null)
+      .map(play => `${play.__gid}::${play.id}`))];
     node.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
+      const label = row.dataset.cutLabel || 'Watch these plays';
       row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
-      this._makeFilmControl(row, () => this.watchCut(row.dataset.cutType, row.dataset.cutVal, row.dataset.cutLabel || ''));
+      if (!plays) {
+        this._makeFilmControl(row, () => this.watchCut(row.dataset.cutType, row.dataset.cutVal, row.dataset.cutLabel || ''));
+        return;
+      }
+      const predicate = stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
+      const refs = refsFor(predicate);
+      if (!refs.length) {
+        row.classList.remove('cut-row');
+        row.removeAttribute('tabindex'); row.removeAttribute('role');
+        return;
+      }
+      this._makeFilmControl(row, () => this.watchRefs(refs, label));
     });
   }
 

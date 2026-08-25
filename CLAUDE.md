@@ -15,6 +15,74 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ REPAIR of the `d1b4f9c` review's two P1s + P2 — Defense committed, ready for re-review (2026-08-25)
+
+**Builder: Claude. Repairs all three findings from `d1b4f9c` (recorded immediately
+below).** Every finding verified against source before fixing, per standing
+discipline, then mutation-verified after the fix.
+
+1. **P1, closed — season-wide legacy sections were resolving film through the
+   active game only.** `wireGenericCutRows(node, plays)` now takes the exact
+   cohort a `LegacyWidget` embed was computed from (`DefenseTab`'s `scoped`,
+   season-wide when Full season is selected) and resolves each
+   `.cut-row[data-cut-type]`'s composite `gameId::playId` refs directly against
+   it via `screen.watchRefs(refs, label)` — the same H16 pattern
+   `_bindContent`'s season-pane wiring already used, closing an identical gap
+   here. Both `LegacyWidget` call sites (Scheme Detail, Defensive Self-Scout)
+   now pass `scoped`. **Mutation-verified**: reverting one call site back to
+   the no-cohort fallback reproduces the exact reported symptom — a Scheme
+   Detail row spanning two games plays only the active game's snaps
+   (`["a::1","a::2"]` instead of `["a::1","a::2","b::2"]`) — and reds only that
+   one assertion.
+2. **P1, closed — Yards/Play sort was wired to a nonexistent field.** All three
+   Defense column definitions (`defTypeColumns`/`defGameColumns`/
+   `defSitColumns`) declared `key: 'ypp'`; `DataTable`'s sort reads
+   `row[sort.key]` directly (never through a column's `render`), and rows
+   store `yardsPerPlay`. Renamed all three keys to `yardsPerPlay`.
+   **Mutation-verified**: reverting to `ypp` reproduces a no-op sort exactly
+   (`yppAfterSort` identical to `yppBefore`) and reds only the sort assertion.
+   The review's diagnosis of the prior test — vacuous because the fixture
+   started in descending order — is confirmed correct; the rewritten fixture
+   (`Run Inside`/`Run Outside`/`Short Pass` at 2/20/0 yds/play, deliberately
+   non-monotonic) can no longer pass by coincidence. A real test-construction
+   bug was also found and fixed in this same pass: `DataTable`'s sort is
+   genuine Preact hook state (`useState`), flushed on a deferred microtask/rAF
+   rather than synchronously inside the click handler (unlike
+   `ReportsScreen`'s own imperative full-route `render()` calls, which repaint
+   before the handler returns) — reading the table immediately after
+   `.click()` silently observed the pre-sort DOM. Fixed with the file's own
+   established double-`requestAnimationFrame` wait convention.
+3. **P2, closed — Charlie Gate captures were contaminated.** Loading real
+   linked-film season metadata in the headless capture environment (no D:
+   drive access) fires a "Repair Film" toast that the prior captures raced
+   against its 4.5s auto-expiry and lost. `scratchpad/shot-defense.mjs` now
+   explicitly dismisses `.gi-native-toast` elements (click-to-dismiss by
+   design) before each of the three screenshots instead of racing the timer.
+   Recaptured against the real six-game season's richest defensive game (Week
+   5 vs OL Lakes Lakers, 83 plays; season-wide KPIs correctly show 174
+   defensive snaps across all six games) — all three captures are clean.
+
+New/rewritten fixture in `tools/e2e-native-reports.mjs` section "2b" also
+closes the review's stated root cause directly: the section previously
+computed `model` from a disconnected local array while the rendered DOM still
+reflected whatever season section 1 had left active (a degenerate 1-defense-
+play fixture), so the sort/click assertions were structurally unable to catch
+either bug. The fixture is now loaded as the real active season (two self-
+perspective games plus a third opponent-scout game proving `_defenseCohort()`'s
+exclusion still holds), with the original season saved and restored around the
+test so downstream sections are unaffected.
+
+**Verification:** `node tools/e2e-native-reports.mjs` — **66/66** (was 65; +1,
+the new opponent-scout-exclusion coverage in section 2b's fixture).
+`node tools/e2e-reports-view-parity.mjs` — **6/6**, unchanged. Both P1 fixes
+independently mutation-verified as described above, each restored and
+reconfirmed green. No formula, denominator, classification, scoring, or
+stored-data change — this repair touches only film-resolution wiring, one
+column-key typo, and screenshot-capture timing.
+
+**Next action:** independent re-review. Per the review's own instruction,
+Special Teams migration remains on hold until this is accepted.
+
 ### ▶ CODEX REVIEW OF `28363f7` / `5d40bc8` — CHANGES REQUESTED (2026-08-25)
 
 **Verdict: CHANGES REQUESTED. Two functional findings and one proof gap.**
