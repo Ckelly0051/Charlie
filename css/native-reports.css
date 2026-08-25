@@ -1270,10 +1270,24 @@
    auto-fit lets 2 modules stack wide and 6 arrange several-per-row without a
    card ever being forced to an equal-width box it has no content for; the
    min width keeps a single-line stat card from getting uselessly narrow.
-   `align-items:start` matches `.gi-overview-production`/`.gi-overview-support`
-   -- a short card must not stretch to its tallest row-mate and leave a dead
-   gap beneath its own content. */
-.gi-reports .gi-overview-band-auto{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
+   Stretching the module surface keeps every vertical separator continuous;
+   the compact row content itself remains naturally sized at the top. */
+.gi-reports .gi-overview-band-auto{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:stretch}
+
+/* Special Teams detail is intentionally asymmetric: the return table uses
+   the broad scanning column, while field-goal detail, specialists and impact
+   plays stack in the narrower column. Short modules fill one another's
+   vertical space instead of stretching beside the longest table. */
+.gi-reports .gi-st-detail-band{grid-template-columns:1fr;align-items:start}
+.gi-reports .gi-st-detail-band.has-return-game{grid-template-columns:minmax(0,1.55fr) minmax(330px,.75fr)}
+.gi-reports .gi-st-detail-stack{display:grid;gap:1px;min-width:0;align-content:start;background:var(--bd-rule)}
+.gi-reports .gi-st-detail-stack>.gi-overview-module{border:0}
+.gi-reports .gi-st-detail-band:not(.has-return-game)>.gi-st-detail-stack{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+@media(max-width:900px){
+  .gi-reports .gi-st-detail-band.has-return-game{grid-template-columns:1fr}
+  .gi-reports .gi-st-detail-stack{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+}
+
 
 /* Special Teams' own season/game scope toggle -- structurally identical to
    Defense's `.gi-def-toolbar`/`.gi-def-scope` (same flex/border/button

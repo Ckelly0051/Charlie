@@ -15,6 +15,15 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REVIEW + REPAIR OF b4beda7 - ACCEPTED (2026-08-25)
+
+Codex accepted the Special Teams data and presentation architecture after tracing the structured seams, composite film refs, self/scout cohort ownership, scoring reuse, and escaping boundaries. The shipped layout still had one acceptance-level visual defect: a full-width Kicking & Conversions band stretched a single conversion gauge across mostly empty space, while the individual tables below formed an unbalanced two-column row.
+
+The repair removes that redundant gauge band and gives the page a deliberate asymmetric composition. Return Game owns the broad column; Kicking/Punting and exact-film Impact Plays stack in the narrower column; Field Goals by Distance appears compactly only when attempts exist. The five phase modules now stretch to a shared row height so their separators align without stretching their contents. No football formula or stored data contract changed.
+
+Verification on the repaired tree: npm run build green; tools/e2e-native-reports.mjs 83/83; tools/e2e-parity.mjs 2/2 (synthetic and real six-game season); exact-film Impact Plays assertion green; zero page errors; clean real-season captures at 1440x900 and 1280x720 with all five phase modules at equal height and the detail columns balanced. The in-app Browser helper remained unavailable because the recurring Windows deny-read ACL helper error prevented it from launching, so the same local Puppeteer capture path used by the project was run instead and the resulting screenshots were inspected directly.
+
+The retained StatsEngine._renderSpecialTeams(), _renderConversions(), and _renderIndividualStats() methods remain intentionally live for opponent scout, Season, and HTML export. They were not incorrectly declared obsolete or removed in this repair.
 ### ▶ SPECIAL TEAMS ARCHITECTURE + VISUAL MIGRATION COMPLETE (2026-08-25)
 
 **Builder: Claude.** Closes the live Reports Special Teams tab in one coherent

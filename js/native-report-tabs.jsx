@@ -678,6 +678,18 @@ function SpecialTeamsPhase({ phase, screen }) {
  *  (Full season by default), so a phase/table row's own refs are always the
  *  exact composite `gameId::playId` cohort behind its own count, correct
  *  even when two games in the cohort reuse the same bare play id. */
+function SpecialTeamsPlayerTable({ table, screen }) {
+  return <Module title={table.title}>
+    <DataTable columns={table.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
+      rows={table.rows.map(row => {
+        const label = `${row.label}'s Special Teams plays`;
+        return { ...row, id: row.num, player: row.label,
+          onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, label) : undefined, label };
+      })} />
+  </Module>;
+}
+
+/** Native Special Teams report: structured data in, Preact presentation and exact-film actions out. */
 export function SpecialTeamsTab({ stats, summary, screen }) {
   const engine = screen.app.stats;
   const st = stats.specialTeams;
@@ -688,7 +700,6 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
   }
   const kpis = view.specialTeamsKpis(stats, summary);
   const phases = view.specialTeamsPhases(stats);
-  const attemptTone = pct => pct >= 60 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444';
   const fgHasAttempts = !!st?.fg?.att;
   const fgRows = (st?.fg?.byDist || []).map(bucket => {
     const label = `Field goals ${bucket.label} — ${bucket.att} attempt${bucket.att === 1 ? '' : 's'}`;
@@ -696,20 +707,14 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
       pct: bucket.att ? Math.round(bucket.made / bucket.att * 100) : 0,
       onActivate: bucket.refs?.length ? () => screen.watchRefs(bucket.refs, label) : undefined };
   });
-  const tryHasAttempts = !!(conv?.xp?.att || conv?.two?.att);
   const tables = view.individualStats(stats, 'special', num => engine._playerLabel(num));
-  // Field Goals and PAT/2-Point only pair as even columns when BOTH carry real
-  // attempts -- a real gauge beside a genuine distance table is a fair match.
-  // A game with attempts on only one side (very common -- most JV/HS games have
-  // no field goal tries at all) would otherwise stretch the empty side's box to
-  // match its populated sibling and leave a large dead void beneath one honest
-  // line of empty-state copy. Collapse to one combined full-width module instead
-  // so the space is never wasted and nothing reads as a broken/unfinished panel.
-  const kickingPaired = fgHasAttempts && tryHasAttempts;
-  const kickingMeta = kickingPaired ? null
-    : fgHasAttempts ? `${st.fg.att} field goal attempt${st.fg.att === 1 ? '' : 's'}`
-    : tryHasAttempts ? 'conversion attempts and results'
-    : 'none charted';
+  const returnTable = tables.find(table => table.key === 'returns');
+  const specialistTable = tables.find(table => table.key === 'kicking');
+  const impactRows = (summary.impact || []).map(item => {
+    const label = `${item.label} — ${item.n} play${item.n === 1 ? '' : 's'}`;
+    return { id: item.label, type: item.label, plays: item.n,
+      onActivate: item.refs?.length ? () => screen.watchRefs(item.refs, label) : undefined, label };
+  });
   return <div class="gi-overview-board">
     <div class="gi-st-toolbar">
       <strong class="gi-st-toolbar-label">Special Teams</strong>
@@ -724,49 +729,28 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
     {phases.length > 0 && <div class="gi-overview-band gi-overview-band-auto">
       {phases.map(phase => <SpecialTeamsPhase key={phase.key} phase={phase} screen={screen} />)}
     </div>}
-    {kickingPaired ? <div class="gi-overview-band gi-overview-band-2">
-      <Module title="Field Goals" meta={`${st.fg.att} attempt${st.fg.att === 1 ? '' : 's'}`}>
-        <div class="sit-gauges-row"><Gauge pct={st.fg.pct} label={`Field Goals ${st.fg.made}/${st.fg.att}`} color={attemptTone(st.fg.pct)} size={110} /></div>
-        <DataTable columns={[
-          { key: 'dist', label: 'Distance' }, { key: 'made', label: 'Made', numeric: true },
-          { key: 'att', label: 'Att', numeric: true }, { key: 'pct', label: 'Pct', numeric: true, render: row => `${row.pct}%` },
-        ]} rows={fgRows} emptyText="Attempts charted with no distance recorded." />
-      </Module>
-      <Module title="PAT &amp; 2-Point" meta="conversion attempts and results">
-        <div class="sit-gauges-row">
-          {conv.xp?.att ? <Gauge pct={conv.xp.pct} label={`PAT (XP) ${conv.xp.made}/${conv.xp.att}`} color={attemptTone(conv.xp.pct)} size={110} /> : null}
-          {conv.two?.att ? <Gauge pct={conv.two.pct} label={`2-Point ${conv.two.made}/${conv.two.att}`} color={attemptTone(conv.two.pct)} size={110} /> : null}
+    {(returnTable || fgHasAttempts || specialistTable || impactRows.length > 0) &&
+      <div class={`gi-overview-band gi-st-detail-band${returnTable ? ' has-return-game' : ''}`}>
+        {returnTable && <SpecialTeamsPlayerTable table={returnTable} screen={screen} />}
+        <div class="gi-st-detail-stack">
+          {fgHasAttempts && <Module title="Field Goals by Distance"
+            meta={`${st.fg.made}/${st.fg.att} made · ${st.fg.pct}% · long ${st.fg.long || '—'}`}>
+            <DataTable columns={[
+              { key: 'dist', label: 'Distance' }, { key: 'made', label: 'Made', numeric: true },
+              { key: 'att', label: 'Att', numeric: true }, { key: 'pct', label: 'Pct', numeric: true, render: row => `${row.pct}%` },
+            ]} rows={fgRows} emptyText="Attempts charted with no distance recorded." />
+          </Module>}
+          {specialistTable && <SpecialTeamsPlayerTable table={specialistTable} screen={screen} />}
+          {impactRows.length > 0 && <Module title="Impact Plays"
+            meta={`${impactRows.reduce((sum, row) => sum + row.plays, 0)} total`}>
+            <DataTable columns={[
+              { key: 'type', label: 'Result' }, { key: 'plays', label: 'Plays', numeric: true },
+            ]} rows={impactRows} />
+          </Module>}
         </div>
-      </Module>
-    </div> : <div class="gi-overview-band">
-      <Module title="Kicking &amp; Conversions" meta={kickingMeta}>
-        {fgHasAttempts && <>
-          <div class="sit-gauges-row"><Gauge pct={st.fg.pct} label={`Field Goals ${st.fg.made}/${st.fg.att}`} color={attemptTone(st.fg.pct)} size={110} /></div>
-          <DataTable columns={[
-            { key: 'dist', label: 'Distance' }, { key: 'made', label: 'Made', numeric: true },
-            { key: 'att', label: 'Att', numeric: true }, { key: 'pct', label: 'Pct', numeric: true, render: row => `${row.pct}%` },
-          ]} rows={fgRows} emptyText="Attempts charted with no distance recorded." />
-        </>}
-        {tryHasAttempts && <div class="sit-gauges-row">
-          {conv.xp?.att ? <Gauge pct={conv.xp.pct} label={`PAT (XP) ${conv.xp.made}/${conv.xp.att}`} color={attemptTone(conv.xp.pct)} size={110} /> : null}
-          {conv.two?.att ? <Gauge pct={conv.two.pct} label={`2-Point ${conv.two.made}/${conv.two.att}`} color={attemptTone(conv.two.pct)} size={110} /> : null}
-        </div>}
-        {!fgHasAttempts && !tryHasAttempts && <p class="gi-table-empty">No field goal or conversion attempts charted.</p>}
-      </Module>
-    </div>}
-    {tables.length > 0 && <div class="gi-overview-band gi-overview-band-2">
-      {tables.map(table => <Module key={table.key} title={table.title}>
-        <DataTable columns={table.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
-          rows={table.rows.map(row => {
-            const label = `${row.label}'s Special Teams plays`;
-            return { ...row, id: row.num, player: row.label,
-              onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, label) : undefined, label };
-          })} />
-      </Module>)}
-    </div>}
+      </div>}
   </div>;
 }
-
 /**
  * A migration boundary, not a fallback renderer. `_renderActiveTab()` calls
  * exactly one `render()` into `screen.content` for EVERY tab, always through
