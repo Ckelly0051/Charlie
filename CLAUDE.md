@@ -15,6 +15,66 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ REPORTS PRESENTATION INDEPENDENCE — Overview/Offense/Players committed (2026-08-25)
+
+**Builder: Claude. Commit `50276e6`, pushed. No independent review pass —
+the coach has explicitly moved off the builder/reviewer handoff ritual
+as the default; see the note at the end of this section.**
+
+Migrates the Reports route so `StatsEngine` stays the sole owner of every
+formula, cohort, denominator, and film reference, while `ReportsScreen`
+and new Preact components (`js/native-report-tabs.jsx`,
+`js/native-report-kit.jsx`, `js/reports-view.js`) own the visible markup,
+layout, and interactions. Overview, Offense, and Players are migrated;
+Defense, Special Teams, Self-Scout, Season, and Matchup remain on the
+legacy `_renderActiveTab()` string-render path for a later checkpoint.
+No parallel/fallback renderer — the legacy `_offenseHtml`/`_playersHtml`
+methods stay un-deleted only as the input the new parity harness diffs
+the migrated components against.
+
+**A real bug was found and fixed during the build, not shipped around:**
+`LegacyHtml` (the render boundary for still-unmigrated tabs) mutates its
+subtree directly via `innerHTML=`, bypassing Preact's diff entirely. That
+meant Preact's own record of "what's actually in the DOM" could go stale
+the instant a legacy tab rendered — the very next migrated-tab switch
+would then diff against that stale record and silently no-op, leaving
+the prior tab's content on screen while the new component had genuinely
+run with correct data. `ReportPane` now calls `render(null, this.content)`
+before every tab switch, forcing a full unmount so no diff can ever be
+computed against a tree a raw DOM write may have invalidated.
+
+**Verification:**
+- `tools/e2e-native-reports.mjs` — 65/65. Five assertions were rewritten
+  during this checkpoint: three checked for the legacy `data-cut-type`
+  delegated-click markup pattern, which migrated components never emit
+  (they wire film activation as real `onClick` closures instead) — two of
+  those three were in Overview's own coverage and had silently been
+  broken since Overview shipped, only surfacing once the render(null) fix
+  cleared a crash that was masking them. Two checked for formation
+  ramp-bar markup that `stats-engine.js`'s own `_dataShape` doc comment
+  already documents as deliberately replaced by a sortable, film-linked
+  table. All five were rewritten to test the real current mechanism, not
+  loosened to pass.
+- `tools/e2e-reports-view-parity.mjs` (new, permanent) — 5/5. Overview is
+  checked byte-identical (legacy string render vs. new component, same
+  `stats` object). Offense and Players are checked by value-coverage
+  against the coach's real six-game season mirror instead — a redesign,
+  not a like-for-like port, so exact-text equality doesn't apply; every
+  distinct number the legacy render produces must still appear somewhere
+  in the new component's render for the same real game.
+- Fresh screenshots against the real season (`design-comps/visual-reset-
+  2026-08/part2-verification/reports-independence-offense-players/`),
+  zero page errors.
+
+No formula, denominator, classification, scoring, or stored-data change.
+
+**Process note:** the coach told me directly (2026-08-25) that the
+project's established Claude/Codex builder-reviewer handoff has been
+"clunky and inefficient" and he wants "solid answers to simple questions"
+instead. This commit was verified and pushed on my own judgment rather
+than held for a formal independent-review round. See memory
+`drop-the-multiagent-review-ritual` for the full instruction.
+
 ### BINDING PRODUCT QUALITY STANDARD - CONSUMER APP, NOT DEV SANDBOX (2026-08-25)
 
 This standard survives task resets, context compaction, and builder handoffs.
