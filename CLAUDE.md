@@ -15,6 +15,38 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### BINDING PRODUCT QUALITY STANDARD - CONSUMER APP, NOT DEV SANDBOX (2026-08-25)
+
+This standard survives task resets, context compaction, and builder handoffs.
+
+- GridIron IQ is a consumer-facing coaching product. Functional correctness is
+  necessary but does not make a screen acceptable. It must also be attractive,
+  coherent, legible, efficient, and understandable without builder narration.
+- If the coach's scope, sequencing, or interaction plan is unsound, Codex or
+  Claude must say so before implementation. If the plan is sound and execution
+  misses the visual bar, record that as an execution failure.
+- Approved comps are binding composition contracts. A recolor, token swap,
+  wrapper, or approximate layout does not satisfy a comp.
+- The Charlie Gate happens before expensive review, packaging, or release:
+  show the real app with representative real data at the agreed viewport and
+  obtain PASS / REVISE / REJECT. A green automated gate cannot replace it.
+- Typography, hierarchy, density, alignment, whitespace, contrast, responsive
+  containment, and first-viewport usefulness are acceptance criteria. Dev-console
+  styling, filler space, implementation language, inconsistent route chrome,
+  tiny metadata, and synthetic font weights are defects, not later polish.
+- Use one readable UI/body family for operational copy. Reserve condensed or
+  display faces for true headings and major KPI values. Home, Reports, and Break
+  Down are the typography and cross-route visual acceptance screens.
+- Pretty and functional are one acceptance standard. Neither compensates for
+  failure of the other.
+- When work touches an obsolete presentation owner, replace and remove that
+  affected path in the same checkpoint unless doing so risks football meaning,
+  persistence identity, or coach data. Those risks require coach approval.
+
+Current typography defect: Home mixes legacy Barlow Condensed, IBM Plex Sans
+Condensed design tokens, and system/Segoe UI text. Condensed faces and irregular
+weights are used too broadly in game rows and metadata. Presentation convergence
+cannot close until active typography ownership is unified and visually approved.
 ### ▶ CODEX COACH-SMOKE REPAIR — ONE NAVIGATION OWNER (2026-08-24)
 
 The `1.12.0-65` Assistant Coach candidate exposed a clear composition defect: V2-A had added a usable desktop top navigation but retained the older left route rail on Home, Study, Reports, and Plan. The two controls owned the same five destinations and wasted 208px of every non-Break-Down workspace.

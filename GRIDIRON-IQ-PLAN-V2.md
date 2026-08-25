@@ -24,6 +24,9 @@ storage health understandable to the coach.
 - Video-first; controls, overlays, and navigation must not obscure film.
 - Coach-job-first UX: organize the product around connecting film, charting,
   studying evidence, and building a plan rather than around code modules.
+- Consumer-product presentation: every coach-facing screen must be attractive,
+  coherent, legible, dense without clutter, and understandable without builder
+  narration. Functional-but-ugly is not an accepted intermediate end state.
 - Exact stat-to-film traceability for every analytical result.
 - Deep, football-correct charting with no artificial requirement to complete
   optional fields.
@@ -118,6 +121,38 @@ Beginning with V2-A, new work must not deepen dependence on obsolete presentatio
 - Temporary parallel implementations require an explicit removal checkpoint in the same milestone. “We will clean it up later” is not an accepted default.
 
 The goal is not a ceremonial all-Preact rewrite. The goal is one authoritative owner per behavior, clean boundaries around retained engines, and progressively less obsolete infrastructure as coach-facing work advances.
+
+
+## 3B. Binding Consumer Presentation Standard
+
+Product presentation is part of functionality, not optional polish. GridIron IQ
+must look like a finished consumer coaching product, not a developer console.
+
+- Approved comps govern composition, geometry, hierarchy, density, and visual
+  treatment. Token changes or recoloring alone do not satisfy them.
+- Every visual checkpoint receives a low-cost Charlie Gate using the real app,
+  representative real data, and agreed viewports before expensive automated
+  review, packaging, or release.
+- Acceptance covers useful information per viewport, alignment, whitespace,
+  typography, contrast, responsive containment, interaction states, and
+  consistency with the shared shell and neighboring routes.
+- Empty space must be intentional, not compensation for unfinished composition
+  or stretched low-information modules.
+- Operational copy uses one readable UI/body family. Condensed/display faces
+  are reserved for true headings and major numbers. Only supplied font weights
+  may be used; synthetic weights and tiny low-contrast metadata fail review.
+- Home, Reports, and Break Down are the reference screens for typography and
+  cross-route visual coherence.
+- Pretty and functional are one acceptance requirement. Automated tests prove
+  behavior; they do not certify visual quality.
+- Builders and reviewers must challenge weak product planning before coding.
+  When the direction is sound but the result misses the approved visual
+  standard, describe it honestly as an execution miss and revise it.
+
+This standard survives task resets, context compaction, and builder handoffs.
+Every handoff must identify its real-app screenshots and the coach's PASS,
+REVISE, or REJECT decision.
+
 ## 4. Upgrade Lanes
 
 ### V2-A: Home And Context UX
