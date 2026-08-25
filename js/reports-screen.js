@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
-import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -424,7 +424,13 @@ export class ReportsScreen {
     else if (tab === 'selfscout') {
       const report = statsEngine.generateSelfScout();
       const defScout = report?.defScout || statsEngine.generateDefensiveSelfScout();
-      html = statsEngine._renderSelfScoutBody(report, defScout);
+      const performance = statsEngine.compute();
+      const callRows = statsEngine._selfScoutRows(statsEngine._selfScoutGroup(
+        statsEngine._offensePlays(), play => play.tags.playCall || play.tags.playConcept || null
+      ));
+      render(h(ReportPane, { tab: 'selfscout' },
+        h(SelfScoutTab, { report, defScout, performance, callRows, screen: this })), this.content);
+      return;
     }
     render(h(ReportPane, { tab, html }), this.content);
     this._bindContent(this.content);

@@ -136,6 +136,22 @@ r = await page.evaluate(() => {
 });
 ok(r.count === 1, 'one defensive-self-scout computation per dashboard render', JSON.stringify(r));
 
+console.log('\n== 4b. Self-Scout is natively owned, not an HTML-string fallback ==');
+r = await page.evaluate(() => {
+  const engine = window.app.stats;
+  const old = engine._renderSelfScoutBody;
+  engine._renderSelfScoutBody = () => { throw new Error('legacy self-scout renderer invoked'); };
+  window.app.reportsScreen.selectTab('selfscout');
+  const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  const result = {
+    nativeBoard: !!pane?.querySelector('.gi-selfscout-board'),
+    legacyBindings: pane?.querySelectorAll('[data-cut-type],[data-cut-val]').length || 0,
+  };
+  engine._renderSelfScoutBody = old;
+  return result;
+});
+ok(r.nativeBoard, 'Self-Scout renders through its real native component even when the legacy body renderer refuses', JSON.stringify(r));
+ok(r.legacyBindings === 0, 'Self-Scout carries no retired selector-rebinding attributes', JSON.stringify(r));
 console.log('\n== 5. Actionable tells: distance buckets, clickable-to-film, defensive counter ==');
 r = await page.evaluate(() => {
   const mk = window.__mk;
@@ -244,10 +260,11 @@ r = await page.evaluate(() => {
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   const section = pane?.querySelector('.ss-personnel-diversity');
   const cutRows = section ? section.querySelectorAll('tr.cut-row') : [];
-  const deadLinks = Array.from(cutRows).filter(row => {
-    const f = window.app.stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
-    return !f || window.app.tagger.plays.filter(p => f(p)).length === 0;
-  }).length;
+  const originalWatch = window.app.stats._watchPlays;
+  let watched = 0;
+  window.app.stats._watchPlays = predicate => { watched = window.app.tagger.plays.filter(predicate).length; };
+  cutRows[0]?.click();
+  window.app.stats._watchPlays = originalWatch;
   // Check Film Room Insights for the Personnel Tell
   const insightTags = rep.insights.map(i => i.tag);
   return {
@@ -256,7 +273,7 @@ r = await page.evaluate(() => {
     p21TopPct: p21?.topPct,
     hasSection: !!section,
     cutRowCount: cutRows.length,
-    deadLinks,
+    watched,
     hasLockedFlag: /Locked/.test(section?.innerHTML || ''),
     hasLeaningFlag: /Leaning/.test(section?.innerHTML || ''),
     hasPersonnelTell: insightTags.includes('Personnel Tell'),
@@ -267,7 +284,7 @@ ok(r.p12TopPct === 75 && r.p12TopForm === 'I-Form', '12 personnel leaning to I-F
 ok(r.p21TopPct <= 50, '21 personnel is diverse (no tell)', JSON.stringify(r));
 ok(r.hasSection, 'Personnel → Formation Diversity section renders', JSON.stringify(r));
 ok(r.cutRowCount === 2, 'only locked/leaning groups render (11 and 12, not 21)', JSON.stringify(r));
-ok(r.deadLinks === 0, 'all cut-rows resolve to plays', JSON.stringify(r));
+ok(r.watched === 8, 'a native personnel row launches exactly its eight-play film cohort', JSON.stringify(r));
 ok(r.hasLockedFlag && r.hasLeaningFlag, 'Locked and Leaning flags both shown', JSON.stringify(r));
 ok(r.hasPersonnelTell, 'Personnel Tell appears in Film Room Insights', JSON.stringify(r));
 

@@ -15,6 +15,19 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX SELF-SCOUT ARCHITECTURE + VISUAL MIGRATION COMPLETE (2026-08-25)
+
+The live Reports Self-Scout tab is now a native, answer-first Preact report. It no longer calls `StatsEngine._renderSelfScoutBody()`, injects report HTML, or relies on post-render `data-cut-*` selector rebinding. The first viewport leads with the six performance KPIs, sortable exact-film Top Tells, and concise recommendations; situation/call performance, negative and explosive events, formation/personnel splits, personnel-to-formation reads, predictability, the matrix, film-room insights, and defensive self-scout follow as one dense joined coaching board.
+
+Every live row and matrix cell owns a direct film action. The native personnel regression proves the displayed eight-play cohort is the exact cohort sent to film. Recommendation and insight emphasis is parsed into safe Preact text/strong/span nodes rather than injected with `dangerouslySetInnerHTML`. The matrix's balanced/low/working/exploitable classification now lives in one shared `StatsEngine._selfScoutMatrixView()` seam consumed by both the native component and the retained legacy adapter, so presentation paths cannot silently disagree on the football answer.
+
+Visual verification used the real 2025 six-game season at 1440x900 and 1280x720. The report is centered, horizontally contained, and composed without stretched empty modules; the answer band intentionally gives Top Tells the broad column and stacks compact recommendations in the narrow column. Evidence is in `design-comps/visual-reset-2026-08/part2-verification/reports-independence-self-scout/`. The recurring Windows deny-read ACL helper prevented the in-app image viewer from opening local captures, so reduced previews were generated through the same local file and visually inspected in this task; DOM geometry also confirmed zero page overflow and zero legacy bindings.
+
+Verification: `npm run build` green; `tools/e2e-self-scout.mjs` 44/44; `tools/e2e-native-reports.mjs` 83/83; `tools/e2e-parity.mjs` 2/2 across the synthetic edge fixture and real six-game season; zero page errors.
+
+Residual boundary, stated precisely: `StatsEngine._renderSelfScoutBody()` remains reachable only through the older standalone `_renderDashboard()` API, while `renderSelfScout()` is another standalone legacy report path. No production module outside `stats-engine.js` calls either directly, but deleting them safely belongs with retirement of that whole dashboard/API family rather than leaving a half-deleted monolith. The live Reports Self-Scout tab is independent now.
+
+
 ### CODEX REVIEW + REPAIR OF b4beda7 - ACCEPTED (2026-08-25)
 
 Codex accepted the Special Teams data and presentation architecture after tracing the structured seams, composite film refs, self/scout cohort ownership, scoring reuse, and escaping boundaries. The shipped layout still had one acceptance-level visual defect: a full-width Kicking & Conversions band stretched a single conversion gauge across mostly empty space, while the individual tables below formed an unbalanced two-column row.

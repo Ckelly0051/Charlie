@@ -1303,3 +1303,48 @@
 .gi-reports .gi-st-scope button:last-child{border-right:0}
 .gi-reports .gi-st-scope button.active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 @media(max-width:560px){.gi-reports .gi-st-toolbar{align-items:stretch;flex-direction:column}.gi-reports .gi-st-scope{display:grid;grid-template-columns:1fr 1fr}}
+
+/* Native Self-Scout: answer-first, dense coaching board. */
+.gi-reports .gi-selfscout-board{display:grid;gap:1px;margin:0 var(--gi-6x) var(--gi-6x);border:1px solid var(--gi-6);background:var(--gi-6)}
+.gi-reports .gi-selfscout-board>.gi-overview-module,
+.gi-reports .gi-selfscout-board>.gi-selfscout-defense,
+.gi-reports .gi-selfscout-board>.gi-overview-band,
+.gi-reports .gi-selfscout-board>.gi-overview-kpis{background:var(--gi-2)}
+.gi-reports .gi-selfscout-toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);padding:var(--gi-3x) var(--gi-5x);background:var(--gi-3)}
+.gi-reports .gi-selfscout-toolbar>div{display:flex;align-items:baseline;gap:var(--gi-3x)}
+.gi-reports .gi-selfscout-toolbar strong{font:700 12px/1 var(--gi-sans);color:var(--gi-12);text-transform:uppercase}
+.gi-reports .gi-selfscout-toolbar span{font:var(--gi-text-caption);color:var(--gi-11)}
+.gi-reports .gi-selfscout-board>.gi-overview-kpis{margin:0;border:0}
+.gi-reports .gi-selfscout-answer-band{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,.75fr);align-items:start}
+.gi-reports .gi-selfscout-answer-band>.gi-overview-module{height:100%}
+.gi-reports .gi-selfscout-answer-band .ss-recs{display:grid;gap:var(--gi-2x);padding:var(--gi-3x)}
+.gi-reports .gi-selfscout-answer-band .ss-rec{padding:var(--gi-3x);border-left:3px solid var(--gi-run);background:var(--gi-3);color:var(--gi-12);font:var(--gi-text-body)}
+.gi-reports .gi-selfscout-event-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--gi-6)}
+.gi-reports .gi-selfscout-event-grid>div{display:grid;gap:5px;padding:var(--gi-3x);background:var(--gi-2)}
+.gi-reports .gi-selfscout-event-grid span{font:var(--gi-text-label);color:var(--gi-11)}
+.gi-reports .gi-selfscout-event-grid strong{font:700 24px/1 var(--gi-cond);color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .gi-selfscout-tier{padding:var(--gi-4x) var(--gi-5x) var(--gi-2x);border-top:3px solid var(--gi-1);background:var(--gi-2)}
+.gi-reports .gi-selfscout-tier span{font:700 10px/1 var(--gi-sans);color:var(--gi-11);text-transform:uppercase}
+.gi-reports .gi-selfscout-splits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.gi-reports .gi-selfscout-meter{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(260px,1fr);align-items:center;gap:var(--gi-4x);padding:var(--gi-4x)}
+.gi-reports .gi-selfscout-meter>div{height:8px;background:var(--gi-5)}
+.gi-reports .gi-selfscout-meter>div>span{display:block;height:100%}
+.gi-reports .gi-selfscout-meter>strong{font:700 34px/1 var(--gi-cond)}
+.gi-reports .gi-selfscout-meter small{font-size:14px;color:var(--gi-11)}
+.gi-reports .gi-selfscout-meter p{margin:0;max-width:52ch;font:var(--gi-text-caption);color:var(--gi-11)}
+.gi-reports .gi-selfscout-defense>.gi-overview-kpis{margin:0;border:0;border-bottom:1px solid var(--gi-6)}
+.gi-reports .gi-selfscout-defense>.ss-def-section{margin:0;border:0}
+.gi-reports .gi-selfscout-board .gi-overview-module{min-width:0}
+.gi-reports .gi-selfscout-board .sm-cell.cut-row{cursor:pointer}
+@media(max-width:1000px){
+ .gi-reports .gi-selfscout-answer-band,.gi-reports .gi-selfscout-splits{grid-template-columns:minmax(0,1fr)}
+ .gi-reports .gi-selfscout-event-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .gi-reports .gi-selfscout-meter{grid-template-columns:minmax(0,1fr) auto}
+ .gi-reports .gi-selfscout-meter p{grid-column:1/-1}
+}
+@media(max-width:700px){
+ .gi-reports .gi-selfscout-board{margin-inline:var(--gi-3x)}
+ .gi-reports .gi-selfscout-toolbar{align-items:flex-start}
+ .gi-reports .gi-selfscout-toolbar>div{display:grid}
+ .gi-reports .gi-selfscout-event-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

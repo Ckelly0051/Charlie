@@ -761,6 +761,119 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
  * child node so Preact's diffing never has to reconcile foreign DOM at the
  * pane root itself.
  */
+function InlineReportText({ html }) {
+  const doc = new DOMParser().parseFromString('<body>' + (html || '') + '</body>', 'text/html');
+  const node = (item, key) => {
+    if (item.nodeType === 3) return item.nodeValue;
+    if (item.nodeType !== 1) return null;
+    const children = [...item.childNodes].map((child, i) => node(child, key + '-' + i));
+    if (item.tagName === 'STRONG' || item.tagName === 'B') return <strong key={key}>{children}</strong>;
+    if (item.tagName === 'SPAN') return <span key={key}>{children}</span>;
+    return item.textContent;
+  };
+  return <>{[...doc.body.childNodes].map((item, i) => node(item, i))}</>;
+}
+function SelfScoutSplitTable({ rows, label, cutType, screen }) {
+  if (!rows?.length) return null;
+  const engine = screen.app.stats;
+  return <DataTable className="stats-table stats-table-full ss-split" columns={[
+    { key:'display', label }, { key:'n', label:'#', numeric:true },
+    { key:'runPct', label:'Run', numeric:true, render:r => <span class="ss-split-bar ss-bar-run" style={{'--p':r.runPct+'%'}}>{r.runPct}%</span> },
+    { key:'passPct', label:'Pass', numeric:true, render:r => <span class="ss-split-bar ss-bar-pass" style={{'--p':r.passPct+'%'}}>{r.passPct}%</span> },
+    { key:'runAvg', label:'R Avg', numeric:true }, { key:'passAvg', label:'P Avg', numeric:true },
+    { key:'succRate', label:'Succ%', numeric:true, render:r => r.succRate+'%' },
+    { key:'leanPct', label:'Read', numeric:true, render:r => r.tell ? <span class="ss-flag">{r.lean} {r.leanPct}%</span> : <span class="ss-ok">Balanced</span> },
+  ]} rows={rows.map(r => {
+    const display = label === 'Down & Dist' ? engine._ddPretty(r.key) : r.key;
+    const filmLabel = display + ' — ' + r.n + ' plays';
+    return {...r,id:r.key,display,label:filmLabel,onActivate:cutType ? () => screen.watchCut(cutType,r.key,filmLabel) : undefined};
+  })}/>;
+}
+function SelfScoutTells({ tells, screen }) {
+  if (!tells?.length) return <p class="viz-caption">No strong tells at the current sample size.</p>;
+  return <DataTable className="stats-table stats-table-full ss-tells" columns={[
+    {key:'label',label:'Situation'}, {key:'dim',label:'Type',render:r=><span class="ss-dim">{r.dim}</span>},
+    {key:'leanPct',label:'Tendency',numeric:true,render:r=><span class={'ss-bar ss-bar-'+(r.lean==='Run'?'run':'pass')} style={{'--p':r.leanPct+'%'}}>{r.lean} {r.leanPct}%</span>},
+    {key:'leanAvg',label:'Avg',numeric:true}, {key:'leanSuccRate',label:'Succ%',numeric:true,render:r=>r.leanSuccRate+'%'},
+    {key:'verdict',label:'Assessment',render:r=><span class={'ss-verdict ss-verdict-'+r.verdict}>{verdictIcon(r.verdict)} {verdictLabel(r.verdict)}</span>},
+    {key:'n',label:'n',numeric:true},
+  ]} rows={tells.map((t,i)=>({...t,id:t.dim+'-'+t.label+'-'+i,onActivate:t.cutType?()=>screen.watchCut(t.cutType,t.cutVal,t.label+' — '+t.n+' plays'):undefined}))}/>;
+}
+function SelfScoutPersonnel({ items, screen }) {
+  const rows=(items||[]).filter(x=>x.topPct>=75).map(x=>({...x,id:x.personnel,
+    distribution:x.formations.map(f=>f.formation+' '+f.pct+'%').join(' · '),
+    read:x.topPct>=90?'Locked':'Leaning',label:x.personnel+' personnel — '+x.n+' plays',
+    onActivate:()=>screen.watchCut('personnel',x.personnel,x.personnel+' personnel — '+x.n+' plays')}));
+  if(!rows.length)return null;
+  return <Module title="Personnel to Formation" meta="what the huddle gives away" cls="ss-personnel-diversity"><DataTable columns={[
+    {key:'personnel',label:'Personnel'},{key:'n',label:'#',numeric:true},{key:'uniqueFormations',label:'Forms',numeric:true},
+    {key:'topFormation',label:'Top Formation'},{key:'topPct',label:'Top %',numeric:true,render:r=>r.topPct+'%'},
+    {key:'distribution',label:'Distribution'},{key:'read',label:'Read'}
+  ]} rows={rows}/></Module>;
+}
+function SelfScoutMatrix({ matrix, screen }) {
+  const view=screen.app.stats._selfScoutMatrixView(matrix);
+  if(!view)return null;
+  return <Module title="Predictability Map" meta={'formation by situation · '+view.baseline+'% success baseline'}>
+    <p class="viz-caption">Red is predictable and below your normal success; gold is predictable but working; low samples stay neutral. Select any populated cell to watch it.</p>
+    <div class="sm-wrap"><table class="stats-table stats-table-full sm-table"><thead><tr><th class="sm-corner">Formation / Situation</th>{view.cols.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead>
+    <tbody>{view.rows.map(row=><tr key={row.formation}><th class="sm-row-label">{row.formation} <span class="sm-rown">n={row.n}</span></th>{row.cells.map(v=>{
+      const c=v.situation; if(v.empty)return <td key={c.key} class="sm-cell sm-empty"><span class="sm-nodata">No data</span></td>;
+      const label=row.formation+' on '+c.label+' — '+v.cell.n+' plays';
+      return <Watchable key={c.key} tag="td" class={'sm-cell is-'+v.state} onActivate={()=>screen.watchCut('comboFS',row.formation+'__'+c.key,label)} label={label}>
+        <span class="sm-lean">{v.lean} {v.leanPct}%</span><span class="sm-n">n={v.cell.n}{v.strong?'':' · low'}</span>
+      </Watchable>;})}</tr>)}</tbody></table></div>
+  </Module>;
+}
+function SelfScoutDefense({ defScout, performance, screen }) {
+  if(!defScout||defScout.insufficient){
+    const dp=defScout?.defPlays||0,sp=defScout?.schemePlays||0;
+    const body=!dp?'No defensive plays are tagged yet. Chart defensive snaps to see what your fronts, coverages, and pressures reveal.':!sp?dp+' defensive plays are charted, but none include Front, Coverage, or Blitz.':sp+' scheme-tagged defensive plays are available; six are needed to identify reliable tendencies.';
+    return <EmptyState title="Defensive Self-Scout" body={body}/>;
+  }
+  const d=performance.defensive||{},plays=performance.defPlays||[];
+  const stop=plays.length?Math.round(plays.filter(p=>!screen.app.stats._isSuccessfulPlay(p)).length/plays.length*100):0;
+  const ypp=plays.length?(plays.reduce((sum,p)=>sum+(parseInt(p.tags.yardage)||0),0)/plays.length).toFixed(1):'0.0';
+  return <div class="gi-selfscout-defense"><KpiBand items={[
+    {label:'Stop Rate',value:stop+'%'},{label:'Yards Allowed / Play',value:ypp},{label:'Havoc Rate',value:(d.havocRate||'0.0')+'%'},
+    {label:'Sacks',value:d.sacks||0},{label:'TFL',value:d.tfl||0},{label:'Takeaways',value:d.turnovers||0},
+  ]}/><DefensiveSelfScout defScout={defScout} screen={screen}/></div>;
+}
+export function SelfScoutTab({ report, defScout, performance, callRows, screen }) {
+  const engine=screen.app.stats;
+  if(!report)return <div class="gi-selfscout-board"><EmptyState title="No offensive self-scout yet" body="Tag Run/Pass or Play Type on offensive snaps to reveal your tendencies."/><SelfScoutDefense defScout={defScout} performance={performance} screen={screen}/></div>;
+  const e=performance.efficiency||{},d=performance.downs||{},rz=performance.situational?.redZone||{},neg=performance.negativePlays||{};
+  const color=engine.constructor._meterColor(report.predictability);
+  return <div class="gi-selfscout-board">
+    <div class="gi-selfscout-toolbar"><div><strong>Self-Scout</strong><span>{report.totalPlays} classified offensive plays</span></div>
+      <button class="btn btn-sm" onClick={()=>engine._exportSelfScout(report,screen.app.gameContext.snapshot().teamName||'Our Offense')}>Export Report</button></div>
+    <KpiBand items={[
+      {label:'Success Rate',value:(e.successRate||'0.0')+'%'},{label:'Yards / Play',value:engine.constructor.yardsPerPlay(performance)},
+      {label:'Explosive Rate',value:(e.explosivePct||'0.0')+'%'},{label:'Negative Plays',value:(e.negativePct||'0.0')+'%'},
+      {label:'Third Down',value:(d.thirdDownPct||'0.0')+'%'},{label:'Red Zone TD',value:rz.total?Math.round((rz.tds||0)/rz.total*100)+'%':'N/A'},
+    ]}/>
+    <div class="gi-overview-band gi-selfscout-answer-band">
+      <Module title="Top Tells" meta="select a row to watch film"><SelfScoutTells tells={report.tells} screen={screen}/></Module>
+      <Module title="Recommendations" meta="what to keep and what to break"><div class="ss-recs">{report.recommendations.map((x,i)=><div class="ss-rec" key={i}><InlineReportText html={x}/></div>)}</div></Module>
+    </div>
+    {report.downDistRows.length>0&&<Module title="Situational Performance" meta="run/pass mix and production by down"><SelfScoutSplitTable rows={report.downDistRows} label="Down & Dist" cutType="dd" screen={screen}/></Module>}
+    {callRows.length>0&&<Module title="Play Call Performance" meta="exact calls charted"><SelfScoutSplitTable rows={callRows} label="Play Call" cutType="playCall" screen={screen}/></Module>}
+    <Module title="Negative & Explosive Plays" meta="where possessions are won or lost"><div class="gi-selfscout-event-grid">{[
+      ['Explosive Rate',(e.explosivePct||'0.0')+'%'],['Negative Plays',neg.distinct||0],['Turnovers',neg.turnovers||0],
+      ['Sacks',neg.lossSacks||0],['Plays for Loss',neg.lossTotal||0],['Penalties',neg.penalties||0],
+    ].map(([l,v])=><div key={l}><span>{l}</span><strong>{v}</strong></div>)}</div></Module>
+    <div class="gi-selfscout-tier"><span>Tendencies and predictability</span></div>
+    <div class="gi-overview-band gi-selfscout-splits">
+      {report.formationRows.length>0&&<Module title="By Formation" meta={report.formationRows.length+' looks'}><SelfScoutSplitTable rows={report.formationRows} label="Formation" cutType="formation" screen={screen}/></Module>}
+      {report.personnelRows.length>0&&<Module title="By Personnel" meta={report.personnelRows.length+' groupings'}><SelfScoutSplitTable rows={report.personnelRows} label="Personnel" cutType="personnel" screen={screen}/></Module>}
+    </div>
+    <SelfScoutPersonnel items={report.personnelDiversity} screen={screen}/>
+    <Module title="Predictability" meta={report.predLabel+' · '+report.totalPlays+' plays'}><div class="gi-selfscout-meter"><div><span style={{width:report.predictability+'%',background:color}}/></div><strong style={{color}}>{report.predictability}<small>/100</small></strong><p>0 is balanced; 100 is one-dimensional. Weighted by the largest run/pass share in each qualified situation.</p></div></Module>
+    <SelfScoutMatrix matrix={report.matrix} screen={screen}/>
+    {report.insights.length>0&&<Module title="Film Room Insights" meta={report.insights.length+' coaching reads'}><div class="ss-insights">{report.insights.map((x,i)=><div class={'ss-insight ss-insight-'+x.type} key={i}><span class={'ss-insight-tag ss-tag-'+x.type}>{x.tag}</span><span class="ss-insight-text"><InlineReportText html={x.text}/></span></div>)}</div></Module>}
+    <div class="gi-selfscout-tier"><span>Defensive self-scout</span></div><SelfScoutDefense defScout={defScout} performance={performance} screen={screen}/>
+  </div>;
+}
 export function ReportPane({ tab, html, children, opponent }) {
   // The real fix for the LegacyHtml/component reconciliation hazard lives in
   // ReportsScreen._renderActiveTab(), which calls `render(null, this.content)`

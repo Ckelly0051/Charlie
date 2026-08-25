@@ -5922,45 +5922,53 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     return { cols, rows, cells, rowN };
   }
 
-  _renderSelfScoutMatrix(m) {
-    if (!m || m.rows.length < 2 || m.cols.length < 2) return '';
-    const MINC = 3;   // below this a lean is noise — shown, never coloured
-    const PRED = 40;  // lean strong enough for a DC to key
-    // AX-2: the baseline is this matrix's OWN success rate, so "not working"
-    // means "worse than you usually are", not worse than a number we invented.
-    // Accumulate over the cell VALUES, not by rebuilding keys. The cell key is
-    // formation + separator + situation, so `row + col.key` does not reconstruct
-    // it — a second lookup here silently summed nothing and reported a 0%
-    // baseline, which then made every predictable cell look like it was working.
+  _selfScoutMatrixView(m) {
+    if (!m || m.rows.length < 2 || m.cols.length < 2) return null;
+    const MINC = 3;
+    const PRED = 40;
     let baseN = 0, baseSucc = 0;
     Object.values(m.cells).forEach(cell => {
       if (cell && cell.n) { baseN += cell.n; baseSucc += cell.succ || 0; }
     });
     const baseline = baseN ? Math.round(baseSucc / baseN * 100) : 0;
-    let header = '<th class="sm-corner" scope="col">Formation \\ Situation</th>';
-    m.cols.forEach(c => { header += `<th scope="col">${c.label}</th>`; });
-    let body = '';
-    m.rows.forEach(f => {
-      let row = `<th class="sm-row-label" scope="row">${Charts._esc(f)} <span class="sm-rown">n=${m.rowN[f]}</span></th>`;
-      m.cols.forEach(c => {
-        const cell = m.cells[`${f}\u0001${c.key}`];   // same U+0001 separator the builder uses
-        // AX-2: an empty cell said "·", which reads as a value. Say it in words.
-        if (!cell || !cell.n) { row += '<td class="sm-cell sm-empty"><span class="sm-nodata">No data</span></td>'; return; }
+    const rows = m.rows.map(formation => ({
+      formation,
+      n: m.rowN[formation],
+      cells: m.cols.map(situation => {
+        const cell = m.cells[`${formation}\u0001${situation.key}`];
+        if (!cell || !cell.n) return { situation, empty: true };
         const runPct = Math.round(cell.runs / cell.n * 100);
         const lean = runPct >= 50 ? 'Run' : 'Pass';
         const leanPct = Math.max(runPct, 100 - runPct);
-        const pred = Math.round((leanPct - 50) * 2);          // 50%→0, 100%→100
+        const pred = Math.round((leanPct - 50) * 2);
         const strong = cell.n >= MINC;
         const succ = Math.round(cell.succ / cell.n * 100);
         const avg = (cell.yards / cell.n).toFixed(1);
-        const cut = ` cut-row" data-cut-type="comboFS" data-cut-val="${Charts._esc(f)}__${c.key}" data-cut-label="${Charts._esc(f)} on ${c.label} — ${cell.n} plays`;
-        // AX-2: four NAMED states, not one lean gradient. A heavy tendency that
-        // is winning is a strength; the old colouring made it look identical to
-        // one that is losing, and painted two-snap cells like certainties.
         let state = 'balanced', label = 'Balanced';
         if (!strong) { state = 'low'; label = 'Low sample'; }
         else if (pred >= PRED && succ < baseline) { state = 'exploit'; label = 'Predictable, not working'; }
         else if (pred >= PRED) { state = 'working'; label = 'Predictable, but working'; }
+        return { situation, cell, runPct, lean, leanPct, pred, strong, succ, avg, state, label };
+      })
+    }));
+    return { baseline, minCount: MINC, predictabilityThreshold: PRED, cols: m.cols, rows };
+  }
+
+  _renderSelfScoutMatrix(m) {
+    const view = this._selfScoutMatrixView(m);
+    if (!view) return '';
+    const { baseline, minCount: MINC } = view;
+    let header = '<th class="sm-corner" scope="col">Formation \\ Situation</th>';
+    view.cols.forEach(c => { header += `<th scope="col">${c.label}</th>`; });
+    let body = '';
+    view.rows.forEach(matrixRow => {
+      const f = matrixRow.formation;
+      let row = `<th class="sm-row-label" scope="row">${Charts._esc(f)} <span class="sm-rown">n=${matrixRow.n}</span></th>`;
+      matrixRow.cells.forEach(cellView => {
+        const c = cellView.situation;
+        if (cellView.empty) { row += '<td class="sm-cell sm-empty"><span class="sm-nodata">No data</span></td>'; return; }
+        const { cell, lean, leanPct, strong, succ, avg, state, label } = cellView;
+        const cut = ` cut-row" data-cut-type="comboFS" data-cut-val="${Charts._esc(f)}__${c.key}" data-cut-label="${Charts._esc(f)} on ${c.label} — ${cell.n} plays`;
         row += `<td class="sm-cell is-${state}${cut}" title="${Charts._esc(f)} · ${c.label}: ${cell.n} plays, ${leanPct}% ${lean.toLowerCase()}, ${succ}% success vs your ${baseline}% average, ${avg} avg — ${label}">
           <span class="sm-lean">${lean} ${leanPct}%</span>
           <span class="sm-n">n=${cell.n}${strong ? '' : ' · low'}</span>
