@@ -15,6 +15,49 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REVIEW OF `28363f7` / `5d40bc8` — CHANGES REQUESTED (2026-08-25)
+
+**Verdict: CHANGES REQUESTED. Two functional findings and one proof gap.**
+Focused checks were rerun independently: `e2e-native-reports.mjs` 65/65 and
+`e2e-reports-view-parity.mjs` 6/6. The green results do not cover the failures
+below.
+
+1. **P1 — Season-wide Scheme Detail and Defensive Self-Scout rows open only the
+   active game's film.** `DefenseTab` renders those two season-wide sections from
+   `engine._renderDefensive(scopedStats)` and `engine._defScoutBlock(defScout,
+   false, true)`, then `wireGenericCutRows()` routes their clicks through
+   `watchCut()` / `StatsEngine._watchPlays()`. `_watchPlays()` searches
+   `tagger.plays`, which is the active game only. The displayed season totals can
+   therefore represent six games while the cut-up contains only matching plays
+   from the currently open game. The new ref-exact test clicks a native opponent
+   play-type row, not either legacy embed, so it cannot detect this. Repair the
+   two embedded sections to carry and activate their own composite refs (the
+   preferred fix is native data + components), and add a cross-game duplicate-id
+   test against a row inside each affected section.
+
+2. **P1 — Every Defense Yards/Play sort is wired to a nonexistent field.** The
+   three column definitions declare `key: 'ypp'`, but their rows store
+   `yardsPerPlay`; `DataTable` sorts on `row[sort.key]`. Every value is therefore
+   `undefined` and clicking Yards/Play leaves the order unchanged. The current
+   assertion is vacuous because the fixture starts in descending Yards/Play
+   order, so a no-op satisfies it. Use the real field key (or an explicit sort
+   accessor), then prove the first click changes a deliberately non-descending
+   fixture and the second click reverses it. Cover play type, game trend, and
+   situational tables because all three repeat the defect.
+
+3. **P2 — The committed Charlie Gate captures are not clean visual evidence.**
+   `defense-top.png`, `defense-mid.png`, and `defense-bottom.png` all contain the
+   same persistent Repair Film toast covering report content. Re-capture after
+   the toast clears or dismiss it before capture. The visible composition is
+   otherwise coherent with the current Defense treatment; this checkpoint is a
+   presentation-owner migration, not the later visual redesign.
+
+**Milestone status correction:** Overview, Offense, and Players are presentation-
+independent. Defense is partially migrated, but it is not complete while Scheme
+Detail and Defensive Self-Scout remain StatsEngine HTML fragments with post-render
+DOM binding. Special Teams does not open until the two P1s above are repaired and
+re-reviewed. No installer or release is authorized from this checkpoint.
+
 ### ▶ REPORTS PRESENTATION INDEPENDENCE — Defense committed (2026-08-25)
 
 **Builder: Claude. Commit `28363f7`, pushed.** Defense migrates to a
