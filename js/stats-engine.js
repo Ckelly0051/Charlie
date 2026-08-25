@@ -634,6 +634,7 @@ export class StatsEngine {
     const oppOffMap = {};
     const oppGameMap = {};
     games.forEach(g => {
+      const stamp = p => ({ ...p, __gid: g.id });
       const scout = ((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
       const rawOpp = String((g.gameInfo && g.gameInfo.opponent) || '').trim();
       const key = rawOpp || 'Opponent';
@@ -644,17 +645,17 @@ export class StatsEngine {
         if (scout) {
           // Opponent film tagged directly: their defense = their defensive snaps,
           // their offense = their offensive snaps. No relabelling needed.
-          if (u === 'defense') (oppMap[key] = oppMap[key] || []).push(p);
-          else if (u === 'offense') (oppOffMap[key] = oppOffMap[key] || []).push(p);
+          if (u === 'defense') (oppMap[key] = oppMap[key] || []).push(stamp(p));
+          else if (u === 'offense') (oppOffMap[key] = oppOffMap[key] || []).push(stamp(p));
         } else if (u === 'offense') {
-          yourOff.push(p);
+          yourOff.push(stamp(p));
           // A game we PLAYED: their defense = the front/coverage we FACED on this
           // offensive snap. Relabel the rep as defensive so _renderDefensive reads
           // it — the yards we gained are the yards their defense allowed. (This is
           // why "I played them" games now populate the matchup, not just scout
           // games — same model as the Opponent Scout.)
           if (rawOpp && (t.defFront || StatsEngine.proj(p).coverage || StatsEngine.proj(p).coverageFamily)) {
-            (oppMap[rawOpp] = oppMap[rawOpp] || []).push({ ...p, tags: { ...t, unit: 'defense' } });
+            (oppMap[rawOpp] = oppMap[rawOpp] || []).push({ ...p, __gid: g.id, tags: { ...t, unit: 'defense' } });
           }
         } else if (u === 'defense') {
           // THE MIRROR, and it is the same shortcut read the other way. On OUR
@@ -667,10 +668,10 @@ export class StatsEngine {
           // with only a front is real defensive data and no information at all
           // about their offense; admitting it would pad their play count with
           // rows that say nothing.
-          yourDef.push(p);
+          yourDef.push(stamp(p));
           const proj = StatsEngine.proj(p);
           if (rawOpp && (proj.formation || t.playType || t.runPass || proj.backfield || t.personnel)) {
-            (oppOffMap[rawOpp] = oppOffMap[rawOpp] || []).push({ ...p, tags: { ...t, unit: 'offense' } });
+            (oppOffMap[rawOpp] = oppOffMap[rawOpp] || []).push({ ...p, __gid: g.id, tags: { ...t, unit: 'offense' } });
           }
         }
       });
@@ -683,6 +684,23 @@ export class StatsEngine {
       games: oppGameMap[name]?.size || 0,
     })).sort((a, b) => (b.defPlays.length + b.offPlays.length) - (a.defPlays.length + a.offPlays.length));
     return { opponents, yourOff, yourDef };
+  }
+
+  /** Structured Matchup seam for the native Reports tab. All football values
+   *  come from the same compute()/defensivePerformance() owners used elsewhere;
+   *  this method only selects the opponent and names the four cohorts. */
+  matchupReport(oppName) {
+    const data = this._matchupData();
+    const want = oppName || this._activeOpponent();
+    const opponent = data.opponents.find(item => item.name === want) || data.opponents[0] || null;
+    if (!opponent) return { opponents: [], opponent: null };
+    const lanes = {
+      ourOffense: { plays: data.yourOff, stats: this.compute(data.yourOff) },
+      theirDefense: { plays: opponent.defPlays, stats: this.compute(opponent.defPlays), report: this.defensivePerformance(opponent.defPlays) },
+      ourDefense: { plays: data.yourDef, stats: this.compute(data.yourDef), report: this.defensivePerformance(data.yourDef) },
+      theirOffense: { plays: opponent.offPlays, stats: this.compute(opponent.offPlays) },
+    };
+    return { opponents: data.opponents, opponent, lanes };
   }
 
   // Renders the Matchup tab: our offense beside a scouted opponent's defense,

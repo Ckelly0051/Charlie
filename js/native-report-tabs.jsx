@@ -751,16 +751,80 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
       </div>}
   </div>;
 }
-/**
- * A migration boundary, not a fallback renderer. `_renderActiveTab()` calls
- * exactly one `render()` into `screen.content` for EVERY tab, always through
- * this dispatcher, so Preact owns that subtree continuously — no raw
- * `container.innerHTML =` bypass ever races a live Preact tree in the same
- * node. A tab not yet migrated to a real component in this checkpoint mounts
- * its still-string-sourced markup through `LegacyHtml`, scoped to its own
- * child node so Preact's diffing never has to reconcile foreign DOM at the
- * pane root itself.
- */
+/** Native Matchup resolves every displayed tendency against its own stamped
+ * cross-game cohort. It never falls through to the active game's tagger. */
+function matchupRefs(plays, engine, cutType, cutVal) {
+  const predicate = engine._buildCutFilter(cutType, cutVal);
+  return [...new Set((plays || []).filter(predicate).map(engine.constructor._compositeRef).filter(Boolean))].sort();
+}
+
+function MatchupOffense({ title, lane, screen }) {
+  const stats = lane.stats;
+  const engine = screen.app.stats;
+  if (!lane.plays.length) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No offensive snaps charted.</p></div>;
+  const tendencies = view.tendencyBreakdown(stats);
+  const rows = (source, kind) => source.slice(0, 4).map(row => {
+    const refs = matchupRefs(lane.plays, engine, row.cutType, row.cutVal);
+    return { ...row, kind, id: `${kind}-${row.name}`, onActivate: refs.length ? () => screen.watchRefs(refs, `${title}: ${row.name}`) : undefined, label: `${title}: ${row.name}` };
+  });
+  const profiles = [...rows(tendencies.formations, 'Formation'), ...rows(tendencies.playTypes, 'Play type')];
+  return <div class="gi-matchup-side is-offense">
+    <h4>{title}</h4>
+    <div class="gi-matchup-kpis">{view.offenseHero(stats, engine).slice(0, 5).map(item => <div key={item.label} class={item.tone || ''}><span>{item.label}</span><strong>{item.value}</strong><small>{item.sub || ''}</small></div>)}</div>
+    <DataTable columns={[
+      { key:'kind', label:'Profile' }, { key:'name', label:'Name' }, { key:'count', label:'Plays', numeric:true },
+      { key:'runPass', label:'Run/Pass', render:row => { const total=row.runs+row.passes; const runPct=total?Math.round(row.runs/total*100):0; return `${row.runs}R (${runPct}%) / ${row.passes}P (${100-runPct}%)`; } },
+      { key:'ypp', label:'Yds/play', numeric:true }, { key:'success', label:'Success' },
+    ]} rows={profiles} />
+  </div>;
+}
+
+function MatchupDefense({ title, lane, screen }) {
+  const report = lane.report;
+  if (!lane.plays.length || !report.total) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No defensive snaps charted.</p></div>;
+  const summary = report.summary;
+  const def = lane.stats.defensive || {};
+  const playRows = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes').slice(0, 4).map(row => ({
+    kind:'Play type', name:row.name, count:row.n, ypp:row.yardsPerPlay.toFixed(1), result:`${row.stopRate}% stop`, refs:row.refs,
+  }));
+  const schemeRows = [
+    ...(def.fronts || []).slice(0, 3).map(row => ({ kind:'Front', name:row.name, count:row.count, ypp:row.count ? (row.yards / row.count).toFixed(1) : '0.0', result:`${row.count ? Math.round(row.successes / row.count * 100) : 0}% stop`, refs:row.refs })),
+    ...(def.coverages || []).slice(0, 3).map(row => ({ kind:'Coverage', name:row.name, count:row.count, ypp:row.count ? (row.yards / row.count).toFixed(1) : '0.0', result:`${row.count ? Math.round(row.successes / row.count * 100) : 0}% stop`, refs:row.refs })),
+  ];
+  const rows = [...playRows, ...schemeRows].map(row => ({ ...row, id:`${row.kind}-${row.name}`, onActivate:row.refs?.length ? () => screen.watchRefs(row.refs, `${title}: ${row.name}`) : undefined, label:`${title}: ${row.name}` }));
+  return <div class="gi-matchup-side is-defense">
+    <h4>{title}</h4>
+    <div class="gi-matchup-kpis">
+      <div><span>Snaps</span><strong>{report.total}</strong></div>
+      <div><span>Yds/play allowed</span><strong>{summary.yardsPerPlay.toFixed(1)}</strong></div>
+      <div><span>Stop rate</span><strong>{summary.stopRate}%</strong></div>
+      <div><span>Explosive allowed</span><strong>{summary.explosiveRate}%</strong></div>
+      <div><span>Havoc</span><strong>{summary.havocRate}%</strong></div>
+    </div>
+    <DataTable columns={[
+      {key:'kind',label:'Profile'},{key:'name',label:'Name'},{key:'count',label:'Snaps',numeric:true},
+      {key:'ypp',label:'Yds/play',numeric:true},{key:'result',label:'Result'},
+    ]} rows={rows} />
+  </div>;
+}
+export function MatchupTab({ model, screen }) {
+  if (!model.opponent) return <EmptyState title="No opponent matchup yet" body="Chart the front and coverage you face, or add an Opponent Scout game, to compare both sides of the ball." />;
+  const { opponent, opponents, lanes } = model;
+  const hasFirst = lanes.ourOffense.plays.length > 0 && lanes.theirDefense.plays.length > 0;
+  const hasSecond = lanes.ourDefense.plays.length > 0 && lanes.theirOffense.plays.length > 0;
+  const missing = [];
+  if (!hasFirst) missing.push('Their defense: chart the front and coverage you face on offensive snaps.');
+  if (!hasSecond) missing.push('Their offense: chart formation and play type on defensive snaps.');
+  return <div class="gi-overview-board gi-matchup-board">
+    <div class="gi-matchup-toolbar">
+      <div><span>Opponent matchup</span><strong>{opponent.name}</strong><small>{opponent.games} game{opponent.games === 1 ? '' : 's'} charted · {opponent.offPlays.length} offensive · {opponent.defPlays.length} defensive snaps</small></div>
+      {opponents.length > 1 && <label>Opponent<select value={opponent.name} onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>{opponents.map(item => <option key={item.name} value={item.name}>{item.name} · {item.offPlays.length} O / {item.defPlays.length} D</option>)}</select></label>}
+    </div>
+    {hasFirst && <Module title={`Our offense vs ${opponent.name} defense`} meta="production against the structure they show"><div class="gi-matchup-pair"><MatchupOffense title="Our Offense" lane={lanes.ourOffense} screen={screen} /><MatchupDefense title={`${opponent.name} Defense`} lane={lanes.theirDefense} screen={screen} /></div></Module>}
+    {hasSecond && <Module title={`Our defense vs ${opponent.name} offense`} meta="our answers against what they run"><div class="gi-matchup-pair"><MatchupDefense title="Our Defense" lane={lanes.ourDefense} screen={screen} /><MatchupOffense title={`${opponent.name} Offense`} lane={lanes.theirOffense} screen={screen} /></div></Module>}
+    {missing.length > 0 && <Module title="Not charted yet"><ul class="gi-matchup-missing">{missing.map(item => <li key={item}>{item}</li>)}</ul></Module>}
+  </div>;
+}
 function InlineReportText({ html }) {
   const doc = new DOMParser().parseFromString('<body>' + (html || '') + '</body>', 'text/html');
   const node = (item, key) => {

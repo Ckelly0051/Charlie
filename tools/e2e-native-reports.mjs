@@ -379,6 +379,37 @@ ok(result.evidence.special.marker && result.evidence.selfscout.marker && result.
 ok(result.unchanged, 'Report navigation is read-only against canonical season data', JSON.stringify(result.diff));
 
 
+console.log('\n== 2a. Matchup is native, two-sided, and film-exact ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  const originalRender = app.stats._renderMatchupInto;
+  const originalWatch = app.filmNavigation.watch;
+  let legacyCalls = 0;
+  const watches = [];
+  app.stats._renderMatchupInto = () => { legacyCalls++; throw new Error('retired live Matchup renderer called'); };
+  app.filmNavigation.watch = (refs, options) => watches.push({ refs, label: options?.label || '' });
+  app.reportsScreen.selectTab('matchup');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const pane = document.querySelector('[data-pane="matchup"]');
+  const row = pane?.querySelector('.gi-matchup-side.is-offense tbody tr[role="button"]');
+  row?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  app.stats._renderMatchupInto = originalRender;
+  app.filmNavigation.watch = originalWatch;
+  return {
+    legacyCalls,
+    native: !!pane?.querySelector('.gi-matchup-board'),
+    pairs: pane?.querySelectorAll('.gi-matchup-pair').length || 0,
+    labels: [...(pane?.querySelectorAll('.gi-matchup-side>h4') || [])].map(node => node.textContent.trim()),
+    watch: watches.at(-1) || null,
+  };
+});
+ok(result.native && result.legacyCalls === 0,
+  'Matchup renders through its native component without calling the retired live DOM renderer', JSON.stringify(result));
+ok(result.pairs === 2 && result.labels.some(label => label === 'Our Offense') && result.labels.some(label => label === 'Our Defense'),
+  'Matchup presents both sides of the ball as two deliberate comparison lanes', JSON.stringify(result));
+ok(JSON.stringify(result.watch?.refs) === JSON.stringify(['g-self::1']),
+  'A native Matchup tendency row opens the exact cross-game-safe film cohort it displays', JSON.stringify(result.watch));
+
 console.log('\n== 2b. Defense is season-wide, performance-first, and film-exact ==');
 // Loaded as the REAL active season (not a standalone plays array handed
 // straight to defensivePerformance()) so the DOM assertions below exercise

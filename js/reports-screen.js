@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
-import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, ReportPane } from './native-report-tabs.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, MatchupTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -31,6 +31,7 @@ export class ReportsScreen {
     this._opponentData = null;
     this.defenseScope = 'season';
     this.specialTeamsScope = 'season';
+    this.matchupOpponent = '';
   }
 
   mount(host) {
@@ -411,14 +412,9 @@ export class ReportsScreen {
     let html = '';
     if (tab === 'season') html = this.app.season?.statsHtml?.() || '<div class="stats-section"><p>Season stats unavailable — open a season first.</p></div>';
     else if (tab === 'matchup') {
-      // _renderMatchupInto renders into a live pane node directly rather than
-      // returning a string — mount a plain node for it via the same
-      // legacy-html boundary, then let it populate that node in place.
-      render(h(ReportPane, { tab: 'matchup', html: '' }), this.content);
-      const pane = this.content.querySelector('[data-pane="matchup"] > div');
-      try { statsEngine._renderMatchupInto(pane); }
-      catch { if (pane) pane.innerHTML = '<div class="stats-section"><p>Matchup unavailable for this game.</p></div>'; }
-      this._bindContent(this.content);
+      const model = statsEngine.matchupReport(this.matchupOpponent);
+      if (model.opponent) this.matchupOpponent = model.opponent.name;
+      render(h(ReportPane, { tab: 'matchup' }, h(MatchupTab, { model, screen: this })), this.content);
       return;
     }
     else if (tab === 'selfscout') {

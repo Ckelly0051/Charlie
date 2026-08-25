@@ -15,6 +15,17 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX MATCHUP NATIVE MIGRATION COMPLETE (2026-08-25)
+
+The live Reports Matchup tab is now a real Preact comparison board. `ReportsScreen` no longer calls `StatsEngine._renderMatchupInto()`, mounts an empty node for imperative population, or runs the legacy selector-binding pass. A new structured `StatsEngine.matchupReport()` seam selects the opponent and supplies four established cohorts: our offense, their defense, our defense, and their offense. All football values continue to come from `compute()` and `defensivePerformance()`.
+
+Matchup film identity is now cross-game safe. `_matchupData()` stamps ephemeral play copies with their owning game id without mutating canonical season data; native formation, play-type, front, and coverage rows therefore open exact composite `gameId::playId` refs. The opponent selector is Preact-owned and stale selections fail safely to the highest-sample available opponent.
+
+The first visual capture exposed excessive vertical spacing from stacking two small generic tables. The accepted composition uses one compact profile table per side, joins offense and defense with a continuous divider, and fills the defensive read with already-computed front/coverage data. Visual inspection was completed at 1440x900 against a 28-play two-sided fixture. The recurring Windows deny-read ACL prevented `view_image` from opening the local file directly, so the capture was reduced locally and inspected from its base64 image output.
+
+Verification: `npm run build` green; `tools/e2e-native-reports.mjs` 86/86, including proof that the retired live Matchup renderer is never called and a native tendency row opens exactly `g-self::1`; `tools/e2e-season-tab.mjs` retained all Matchup contracts green, with its known unrelated baseline of ten retired-player-table failures unchanged (153 passed, 10 failed); zero page errors.
+
+Remaining Reports presentation boundary: Season is now the only self-perspective tab still sourced from the older HTML composition. The standalone `_renderMatchupInto()` method remains temporarily reachable from the older dashboard/test path; delete it with retirement of that path, not by breaking its remaining explicit consumer.
 ### CODEX SELF-SCOUT ADVERSARIAL REPAIR COMPLETE (2026-08-25)
 
 Codex's independent adversarial review of the native Self-Scout migration found and closed four defects. Self-Scout now admits every offensive play with either an explicit Run/Pass classification or a Play Type, matching the KPI cohort; concept-only call rows open their exact film through a shared play-call-or-concept filter; tell labels remain raw data until each HTML sink escapes them, preventing both visible `&amp;` text in Preact and legacy/export injection; and the native table/recommendation components preserve the approved verdict and emphasis classes instead of silently discarding them.
