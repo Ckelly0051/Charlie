@@ -3789,53 +3789,71 @@ export class StatsEngine {
      opponent branch pass its own play set and formation list; `cut:false`
      suppresses film links there, because an opponent row's cut types resolve
      against OUR charting perspective and would play the wrong cohort. */
-  _renderShape(stats, opts = {}) {
+  /** Reports Presentation Independence: returns the panel data/chart-HTML,
+   *  never the section wrapper — Reports-owned components own title/note/
+   *  layout. The chart bodies themselves stay Charts.*-generated (a separate,
+   *  pre-existing presentational module, not StatsEngine markup) — unchanged
+   *  SVG/HTML, just returned instead of concatenated into a wrapped string.
+   *  Formation frequency itself is no longer produced here at all: Reports
+   *  renders it as a real sortable table (reports-view.js `tendencyBreakdown`)
+   *  reading the same `stats.tendencies.formationList`, consistent with every
+   *  other breakdown table on the route rather than a bar-chart one-off. */
+  _dataShape(stats, opts = {}) {
     const plays = opts.plays || stats.offPlays || [];
-    if (!plays.length) return '';
+    if (!plays.length) return null;
     const cut = opts.cut !== false;
     const dist = this._yardageBins(plays);
     const points = this._scatterPoints(plays);
     const zones = this._fieldZoneStats(plays);
     const downs = this._downMultiples(plays);
+    const histHtml = dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '';
+    const scatterHtml = Charts.scatter(points, { label: 'Yards gained by distance to go' });
+    const zoneHtml = Charts.zoneStrip(zones);
+    const downsHtml = Charts.smallMultiples(downs);
+    // H16 — the radar is gated SEPARATELY from `cut`: it asks "how did THIS
+    // GAME do against our season best", a question a season-scope report
+    // cannot ask of itself. The season composer passes { profile:false }.
+    const teamProfileHtml = (cut && opts.profile !== false) ? this._teamProfileHtml(stats) : '';
+    return {
+      histogram: histHtml ? { note: `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`, html: histHtml } : null,
+      scatter: scatterHtml ? { note: 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.', html: scatterHtml } : null,
+      zones: zoneHtml ? { note: 'Success rate by field position; empty zones have no charted snaps.', html: zoneHtml } : null,
+      downs: downsHtml ? { note: 'Run/pass split and success rate by down.', html: downsHtml } : null,
+      teamProfileHtml: teamProfileHtml || null,
+    };
+  }
+
+  /** Legacy string-returning wrapper over `_dataShape`, kept only because
+   *  SeasonManager.statsHtml() still consumes this shape — Season's own
+   *  migration is a separate, later checkpoint. One computation
+   *  (`_dataShape`); this reconstructs the exact prior markup from it,
+   *  including the formation bars, which this class no longer generates for
+   *  its own Reports route but must still produce here unchanged for Season. */
+  _renderShape(stats, opts = {}) {
+    const plays = opts.plays || stats.offPlays || [];
+    if (!plays.length) return '';
+    const cut = opts.cut !== false;
+    const d = this._dataShape(stats, opts);
+    if (!d) return '';
     const source = opts.formations || (stats.tendencies?.formationList || []);
     const formations = source.slice(0, 8).map(row => ({
       label: row.name, count: row.count, successPct: parseFloat(row.successPct) || 0,
       cut: cut ? { type: 'formation', val: row.name } : null,
     }));
-
     const panel = (title, note, body) => body
       ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
-    // A panel without the outer .stats-section wrapper, for pairing two
-    // panels inside one shared section below.
     const panelInner = (title, note, body) => body
       ? `<div><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
-
-    // Charlie Gate finding #3: "the histogram and distance-to-go chart can
-    // share a row." Both are compact single charts with no reason to each
-    // claim a full-width section -- paired here the same way Situational
-    // pairs its scorecard with its by-quarter table (.stats-two-col).
-    const histBody = dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '';
-    const scatterBody = Charts.scatter(points, { label: 'Yards gained by distance to go' });
-    const distanceRow = (histBody || scatterBody) ? `<div class="stats-section stats-two-col">
-      ${panelInner('Yards gained per play, distribution', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`, histBody)}
-      ${panelInner('Yards gained vs distance to go', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.', scatterBody)}
+    const distanceRow = (d.histogram || d.scatter) ? `<div class="stats-section stats-two-col">
+      ${d.histogram ? panelInner('Yards gained per play, distribution', d.histogram.note, d.histogram.html) : ''}
+      ${d.scatter ? panelInner('Yards gained vs distance to go', d.scatter.note, d.scatter.html) : ''}
     </div>` : '';
-
     return `
-      ${panel('Formation frequency and success rate', 'Bar = snap share; fill = success rate. Success: 50% on 1st, 70% on 2nd, conversion on 3rd/4th. Faded = fewer than 3 snaps.',
-        Charts.rampBars(formations))}
+      ${panel('Formation frequency and success rate', 'Bar = snap share; fill = success rate. Success: 50% on 1st, 70% on 2nd, conversion on 3rd/4th. Faded = fewer than 3 snaps.', Charts.rampBars(formations))}
       ${distanceRow}
-      ${panel('Success Rate by Field Position', 'Success rate by field position; empty zones have no charted snaps.',
-        Charts.zoneStrip(zones))}
-      ${panel('Run/pass split and success rate by down', 'Run/pass split and success rate by down.',
-        Charts.smallMultiples(downs))}
-      ${/* H16 — the radar is gated SEPARATELY from `cut`, not as a side effect
-            of it. It asks "how did THIS GAME do against our season best", which
-            is a question a season-scope report cannot ask of itself: every axis
-            would peg to its own maximum and the heading would read "This game
-            against our best" over six games. The season composer passes
-            { profile: false }; game tabs are unchanged. */''}
-      ${cut && opts.profile !== false ? this._renderTeamProfile(stats) : ''}`;
+      ${d.zones ? panel('Success Rate by Field Position', d.zones.note, d.zones.html) : ''}
+      ${d.downs ? panel('Run/pass split and success rate by down', d.downs.note, d.downs.html) : ''}
+      ${d.teamProfileHtml || ''}`;
   }
 
   /**
@@ -3852,7 +3870,7 @@ export class StatsEngine {
    * values are listed for every spoke so the chart never stands alone as
    * normalized geometry with no real numbers attached.
    */
-  _renderTeamProfile(stats) {
+  _teamProfileHtml(stats) {
     let seasonStats = [];
     try {
       seasonStats = this._allSeasonGames()

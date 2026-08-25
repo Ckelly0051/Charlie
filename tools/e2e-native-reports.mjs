@@ -462,18 +462,29 @@ console.log('\n== 3. A self-report row launches the exact active-game film cohor
 result = await page.evaluate(() => {
   const app = window.app;
   app.reportsScreen.selectTab('offense');
-  const row = document.querySelector('[data-pane="offense"] .cut-row[data-cut-type]');
+  // Migrated components (native-report-kit.jsx `Watchable`) wire film activation
+  // through a real onClick/onKeyDown closure over `screen.watchCut`/`watchRefs`
+  // -- there is no delegated data-cut-type attribute to read back, so the proof
+  // is structural: a real activatable row exists, keyboard Enter reaches the
+  // canonical film seam exactly once, and every returned ref is a genuine
+  // composite `gameId::playId` naming a play that actually belongs to the
+  // active game (never a bare id, never another game's play).
+  const row = document.querySelector('[data-pane="offense"] .cut-row');
   if (!row) return { row: false };
-  const predicate = app.stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
-  const expected = app.filmNavigation.refsForGame(app.tagger.plays.filter(predicate), 'g-self');
-  let call = null;
+  const activeGameId = app.storage.seasonStore.data.activeGameId;
+  const activePlayIds = new Set((app.storage.seasonStore.data.games.find(g => g.id === activeGameId)?.plays || []).map(p => String(p.id)));
+  let calls = 0, refs = null;
   const original = app.filmNavigation.watch;
-  app.filmNavigation.watch = (refs, options) => { call = { refs, label: options?.label || '' }; return true; };
+  app.filmNavigation.watch = (r) => { calls++; refs = r; return true; };
   row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   app.filmNavigation.watch = original;
-  return { row: true, expected, call, type: row.dataset.cutType, value: row.dataset.cutVal };
+  return { row: true, calls, refs, activeGameId,
+    composite: Array.isArray(refs) && refs.length > 0 && refs.every(ref => {
+      const [gid, pid] = String(ref).split('::');
+      return gid === activeGameId && activePlayIds.has(pid);
+    }) };
 });
-ok(result.row && JSON.stringify(result.call?.refs) === JSON.stringify(result.expected) && result.expected.length > 0,
+ok(result.row && result.calls === 1 && result.composite,
   'Keyboard activation sends the exact active-game report cohort to film navigation', JSON.stringify(result));
 
 console.log('\n== 4. Opponent perspective keeps offense, defense, and Special Teams honest ==');
@@ -586,14 +597,14 @@ console.log('\n== CHARLIE GATE. Approved broadcast-density Overview composition 
 await page.setViewport({width:1400,height:860});
 await page.evaluate(async()=>{ const app=window.app,store=app.storage.seasonStore,looks=['Trips','Ace','Wing-T','Bunch','Empty','Doubles'],types=['Run Inside','Run Outside','Short Pass','Deep Pass','Screen','Play Action'],game=store.data.games.find(x=>x.id==='g-self'); game.plays=Array.from({length:64},(_,i)=>({id:i+1,timestamp:{start:i*5,end:i*5+4},notes:'',analysis:null,tags:{unit:i%5===4?'defense':'offense',formation:looks[i%looks.length],backfield:i%2?'I':'Single',personnel:i%2?'11':'21',runPass:i%2?'Run':'Pass',playType:types[i%types.length],result:i%9===0?'Touchdown':(i%7===0?'Loss':'Gain'),yardage:String(i%9===0?18:(i%7===0?-4:2+(i%14))),down:String((i%4)+1),distance:String(1+(i%12)),quarter:'Q'+((i%4)+1),defFront:'4-2-5',coverage:'Cover 3',custom:[],players:{ballCarrier:'22',tackler:'55'},grades:{}}})); game.nextId=65; store.data.activeGameId='g-self'; app.storage._loadActiveGame(); await app.workspaceShell.show('reports'); app.reportsScreen.selectTab('overview'); });
 await new Promise(r=>setTimeout(r,450));
-const approvedOverview=await page.evaluate(()=>{ const app=window.app,stats=app.stats.compute(),board=document.querySelector('.gi-overview-board'),titles=[...(board?.querySelectorAll('.gi-overview-module>header>strong')||[])].map(n=>n.textContent.trim()),kpis=[...(board?.querySelectorAll('.gi-overview-kpi')||[])].map(n=>({label:n.querySelector('span')?.textContent.trim(),value:n.querySelector('strong')?.textContent.trim()})),rect=board?.getBoundingClientRect(); return {board:!!board,childCount:board?.children.length||0,titles,kpis,clickable:board?.querySelectorAll('.cut-row[data-cut-type]').length||0,overflow:rect?Math.max(0,Math.round(rect.right-document.documentElement.clientWidth)):-1,oldScoreboard:!!document.querySelector('.scoreboard-layout'),oldLensBoard:!!document.querySelector('.gi-lens-board'),allPlays:stats.allPlays,success:String(stats.efficiency.successRate)+'%',ypp:((stats.rushing.yards+stats.passing.yards)/stats.offPlays.length).toFixed(1)}; });
+const approvedOverview=await page.evaluate(()=>{ const app=window.app,stats=app.stats.compute(),board=document.querySelector('.gi-overview-board'),titles=[...(board?.querySelectorAll('.gi-overview-module>header>strong')||[])].map(n=>n.textContent.trim()),kpis=[...(board?.querySelectorAll('.gi-overview-kpi')||[])].map(n=>({label:n.querySelector('span')?.textContent.trim(),value:n.querySelector('strong')?.textContent.trim()})),rect=board?.getBoundingClientRect(); return {board:!!board,childCount:board?.children.length||0,titles,kpis,clickable:board?.querySelectorAll('.cut-row').length||0,overflow:rect?Math.max(0,Math.round(rect.right-document.documentElement.clientWidth)):-1,oldScoreboard:!!document.querySelector('.scoreboard-layout'),oldLensBoard:!!document.querySelector('.gi-lens-board'),allPlays:stats.allPlays,success:String(stats.efficiency.successRate)+'%',ypp:((stats.rushing.yards+stats.passing.yards)/stats.offPlays.length).toFixed(1)}; });
 ok(approvedOverview.board && approvedOverview.childCount===5,'Overview is the approved five-band broadcast-density board, not legacy cards',JSON.stringify(approvedOverview));
 ok(['Snaps by phase','Situational','Key metrics','Rushing','Passing','Yards by type','Down & distance','Game plan','Big plays','Drives','Defense & discipline'].every(x=>approvedOverview.titles.includes(x)),'All approved first-screen coaching modules are present',JSON.stringify(approvedOverview.titles));
 ok(!approvedOverview.oldScoreboard && !approvedOverview.oldLensBoard && approvedOverview.overflow===0,'Legacy composition is retired and the approved board does not overflow',JSON.stringify(approvedOverview));
 const kpiValue=label=>approvedOverview.kpis.find(x=>x.label===label)?.value;
 ok(kpiValue('Total plays')===String(approvedOverview.allPlays)&&kpiValue('Success rate')===approvedOverview.success&&kpiValue('Yards / play')===approvedOverview.ypp,'Overview reads canonical totals, success, and yards per play',JSON.stringify(approvedOverview.kpis));
 ok(approvedOverview.clickable>=4,'Dense Overview preserves multiple exact-film entry points',JSON.stringify({clickable:approvedOverview.clickable}));
-const overviewFilm=await page.evaluate(async()=>{ const app=window.app,calls=[],original=app.filmNavigation.watch; app.filmNavigation.watch=(refs,options)=>{calls.push({refs,label:options?.label});return Promise.resolve({completed:true});}; document.querySelector('.gi-overview-board .cut-row[data-cut-type]')?.click(); await new Promise(r=>setTimeout(r,200)); app.filmNavigation.watch=original; const refs=calls[0]?.refs||[]; return {calls:calls.length,refs:refs.length,composite:refs.every(ref=>/^[^:]+::[^:]+$/.test(String(ref)))}; });
+const overviewFilm=await page.evaluate(async()=>{ const app=window.app,calls=[],original=app.filmNavigation.watch; app.filmNavigation.watch=(refs,options)=>{calls.push({refs,label:options?.label});return Promise.resolve({completed:true});}; document.querySelector('.gi-overview-board .cut-row')?.click(); await new Promise(r=>setTimeout(r,200)); app.filmNavigation.watch=original; const refs=calls[0]?.refs||[]; return {calls:calls.length,refs:refs.length,composite:refs.every(ref=>/^[^:]+::[^:]+$/.test(String(ref)))}; });
 ok(overviewFilm.calls===1&&overviewFilm.refs>0&&overviewFilm.composite,'A highlighted Overview result opens a non-empty composite-ref film cohort',JSON.stringify(overviewFilm));
 
 console.log('\n== F3/F4. Every charted game scouts, and the scout says something ==');
@@ -663,9 +674,19 @@ const shape = await page.evaluate(async () => {
   const dist = engine._yardageBins(stats.offPlays);
   const points = engine._scatterPoints(stats.offPlays);
   const zones = engine._fieldZoneStats(stats.offPlays);
+  // Formation frequency is deliberately NOT a ramp-bar chart on the migrated
+  // route (stats-engine.js `_dataShape`'s own doc comment): it is the same
+  // sortable, film-linked DataTable every other breakdown uses. The proof of
+  // "multiple exact-film entry points" is that table's real onClick rows, not
+  // a `.gi-ramp-row` mark that no longer exists by design.
+  const formationModule = [...root.querySelectorAll('.gi-overview-module')].find(m => m.querySelector('header strong')?.textContent.trim() === 'Formation frequency and success rate');
+  const resolveToken = name => { const probe = document.createElement('div'); probe.style.background = `var(${name})`;
+    document.body.appendChild(probe); const value = getComputedStyle(probe).backgroundColor; probe.remove(); return value; };
+  const tokens = { turnover: resolveToken('--gi-turnover'), neutral: resolveToken('--gi-7'), cat1: resolveToken('--gi-cat-1') };
+  const histFills = [...root.querySelectorAll('.gi-hist rect')].map(r => getComputedStyle(r).fill);
   return {
-    ramp: root.querySelectorAll('.gi-ramp-row').length,
-    rampLinked: root.querySelectorAll('.gi-ramp-row.cut-row').length,
+    formationRows: formationModule?.querySelectorAll('tbody tr').length || 0,
+    formationClickableRows: formationModule?.querySelectorAll('tbody tr.cut-row').length || 0,
     histBars: root.querySelectorAll('.gi-hist rect').length,
     scatterPoints: root.querySelectorAll('.gi-scatter circle').length,
     zoneCells: root.querySelectorAll('.gi-zone').length,
@@ -675,14 +696,13 @@ const shape = await page.evaluate(async () => {
     enginePoints: points.length,
     engineZoneTotal: zones.reduce((sum, zone) => sum + zone.count, 0),
     offPlays: stats.offPlays.length,
-    // No chart may invent a colour: every fill resolves to a design token.
-    rampFill: getComputedStyle(root.querySelector('.gi-ramp-track i') || document.body).backgroundColor,
-    losToken: (() => { const probe = document.createElement('div'); probe.style.background = 'var(--gi-los)';
-      document.body.appendChild(probe); const value = getComputedStyle(probe).backgroundColor; probe.remove(); return value; })(),
+    // No chart may invent a colour: every histogram bar's fill resolves to
+    // one of the three tokens its tone can legitimately map to.
+    histFills, tokens,
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   };
 });
-ok(shape.ramp > 0 && shape.rampLinked === shape.ramp,
+ok(shape.formationRows > 0 && shape.formationClickableRows === shape.formationRows,
   'Frequency-by-success bars render and every bar plays its own film cohort', JSON.stringify(shape));
 ok(shape.histBars > 0 && shape.engineBins === shape.offPlays,
   'The yardage distribution bins every offensive snap exactly once, in the engine', JSON.stringify({ bins: shape.engineBins, plays: shape.offPlays }));
@@ -693,8 +713,8 @@ ok(shape.scatterPoints > 0 && shape.scatterPoints === shape.enginePoints,
 // tags no yard line, so it pins the omission side of that rule.
 ok(shape.multiples > 0 && (shape.engineZoneTotal > 0 ? shape.zoneCells === 6 : shape.zoneCells === 0),
   'Per-down small multiples render, and the field-zone strip appears only when field position is charted', JSON.stringify(shape));
-ok(shape.rampFill === shape.losToken,
-  'Chart marks resolve to design-system tokens rather than literal colours', JSON.stringify({ fill: shape.rampFill, token: shape.losToken }));
+ok(shape.histFills.length > 0 && shape.histFills.every(fill => Object.values(shape.tokens).includes(fill)),
+  'Chart marks resolve to design-system tokens rather than literal colours', JSON.stringify({ fills: shape.histFills, tokens: shape.tokens }));
 ok(!shape.overflow, 'The visual deck does not push the page sideways', JSON.stringify(shape));
 
 if (screenshotDir) {

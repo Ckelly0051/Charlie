@@ -1,0 +1,375 @@
+/**
+ * Reports Presentation Independence — real Preact tab components.
+ *
+ * ReportsScreen computes/aggregates (delegating every formula to StatsEngine)
+ * and passes the result to these components. No component here recomputes a
+ * football value; each reads a pre-computed field off `stats`/a report object
+ * and turns it into markup. Film clicks call screen methods directly — no
+ * post-render DOM query/rebind pass.
+ */
+import { useState } from 'preact/hooks';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, LegacyWidget, EmptyState } from './native-report-kit.jsx';
+import * as view from './reports-view.js';
+import { Visualizations } from './visualizations.js';
+
+const breakdownColumns = [
+  { key: 'name', label: 'Name' }, { key: 'count', label: 'Plays', numeric: true },
+  // Run/Pass composition — the same underlying `runs`/`passes` counts every
+  // legacy Formation/Play Type/Personnel/Backfield/Strength row already
+  // carries via Charts.effectivenessRows' stacked bar ("Run: 16 (64%)").
+  // Counts in the "24R/3P" shorthand the Offense hero already uses, plus the
+  // run share legacy's bar leads with, so this row genuinely reads as one
+  // number a coach cross-checks against the bar, not two disconnected facts.
+  { key: 'runPass', label: 'Run/Pass', render: row => {
+    if (!Number.isFinite(row.runs) || !Number.isFinite(row.passes)) return '—';
+    const total = row.runs + row.passes;
+    const runPct = total ? Math.round((row.runs / total) * 100) : 0;
+    return `${row.runs}R (${runPct}%) / ${row.passes}P (${100 - runPct}%)`;
+  } },
+  { key: 'ypp', label: 'Yds/play', numeric: true }, { key: 'success', label: 'Success' },
+];
+function breakdownRows(rows, screen) {
+  return rows.map(row => ({ ...row, onActivate: () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel), label: row.cutLabel }));
+}
+
+/** Two Modules that share a fixed-width `gi-overview-band-2` grid track when
+ *  BOTH have data, but a lone survivor must never sit in that grid — the
+ *  second track's 340px-minimum column stays reserved and renders as a dead
+ *  gray gap (house rule: fill the space or kill the space). `slots` is an
+ *  array of nullable nodes; nulls are dropped before deciding whether to wrap. */
+function PairedBand({ slots, cls = 'stats-two-col' }) {
+  const present = slots.filter(Boolean);
+  if (!present.length) return null;
+  if (present.length === 1) return present[0];
+  return <div class={cls}>{present}</div>;
+}
+
+export function OverviewTab({ stats, screen }) {
+  if (!stats.allPlays) return <EmptyState title="No charted data yet" body="Tag Play Type, Result, and Yardage to build the report. Add Down & Distance and Formation for situational tendencies." />;
+  const engine = screen.app.stats;
+  const cut = (type, val, label) => () => screen.watchCut(type, val, label);
+  const phase = view.snapsByPhase(stats);
+  const tiles = view.situationalTiles(stats).map(t => ({ ...t, onActivate: t.plays ? cut(t.cutType, t.cutVal, t.cutLabel) : undefined }));
+  const yards = view.yardsByType(stats);
+  const dd = view.downDistanceRows(stats);
+  const plan = view.gamePlan(stats);
+  const bigPlays = view.bigPlaysRows(stats, engine);
+  const drives = view.drivesRows(stats);
+
+  return <div class="gi-overview-board">
+    <KpiBand items={view.overviewKpis(stats)} />
+    <div class="gi-overview-band gi-overview-band-3 gi-overview-phase">
+      <Module title="Snaps by phase" meta={`${phase.total} total`}>
+        <div class="gi-phase-ramp"><i style={`--n:${phase.off}`} /><i style={`--n:${phase.def}`} /><i style={`--n:${phase.special}`} /></div>
+        <table><thead><tr><th>Phase</th><th>Snaps</th><th>Share</th><th>Yds/play</th></tr></thead><tbody>
+          {phase.rows.map(row => <tr key={row.label} class={row.cls}><td>{row.label}</td><td>{row.count}</td><td>{row.share}%</td><td>{row.ypp}</td></tr>)}
+        </tbody></table>
+      </Module>
+      <Module title="Situational" meta="each tile opens film"><TileGrid tiles={tiles} /></Module>
+      <Module title="Key metrics" meta="five coaching lenses" cls="is-lenses">
+        <div class="gi-overview-lenses">{view.keyMetrics(stats).map(([label, value, sub]) => <div key={label}><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>)}</div>
+      </Module>
+    </div>
+    <div class="gi-overview-band gi-overview-band-3 gi-overview-production">
+      <Module title="Rushing" meta={view.rushingRows(stats).meta} cls="is-offense"><RowList rows={view.rushingRows(stats).rows} /></Module>
+      <Module title="Passing" meta={view.passingRows(stats).meta} cls="is-offense"><RowList rows={view.passingRows(stats).rows} /></Module>
+      <Module title="Yards by type" meta={`${yards.total} total`} cls="is-offense">
+        <div class="gi-yards-split"><i style={`--n:${yards.rushWidth}`} /><i style={`--n:${yards.passWidth}`} /></div>
+        <div class="gi-yards-legend"><span>Rush {yards.rush}</span><span>Pass {yards.pass}</span></div>
+        <DataTable columns={[
+          { key: 'name', label: 'Play type' }, { key: 'snaps', label: 'Snaps', numeric: true }, { key: 'ypp', label: 'Yds/play', numeric: true }, { key: 'success', label: 'Success' },
+        ]} rows={yards.rows.map(row => ({ ...row, onActivate: cut(row.cutType, row.cutVal, row.cutLabel), label: row.cutLabel }))} />
+      </Module>
+    </div>
+    <div class="gi-overview-band gi-overview-band-2 gi-overview-decisions">
+      <Module title="Down &amp; distance" meta="run/pass mix and production">
+        <table><thead><tr><th>Situation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Success</th><th>Conv</th></tr></thead><tbody>
+          {dd.map(row => <Watchable key={row.situation} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
+            <td>{row.situation}</td><td>{row.snaps}</td>
+            <td><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</td>
+            <td>{row.ypp}</td><td>{row.success}</td><td>{row.conv}</td>
+          </Watchable>)}
+        </tbody></table>
+      </Module>
+      <Module title="Game plan" meta="what the tags say" cls="is-plan">
+        <div class="gi-overview-plan is-good">{plan.working.map((item, i) => <p key={i} class={item.cut ? 'cut-row' : ''}
+          onClick={item.cut ? cut(item.cut[0], item.cut[1], 'Game plan') : undefined}
+          tabIndex={item.cut ? 0 : undefined} role={item.cut ? 'button' : undefined}>{item.text}</p>)}</div>
+        <div class="gi-overview-plan is-fix">{plan.fix.map((item, i) => <p key={i} class={item.cut ? 'cut-row' : ''}
+          onClick={item.cut ? cut(item.cut[0], item.cut[1], 'Game plan') : undefined}
+          tabIndex={item.cut ? 0 : undefined} role={item.cut ? 'button' : undefined}>{item.text}</p>)}</div>
+      </Module>
+    </div>
+    <div class="gi-overview-band gi-overview-support">
+      <Module title="Big plays" meta={`${stats.bigPlays.length} total`} cls="is-offense">
+        <table><thead><tr><th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
+          {bigPlays.map(play => <Watchable key={play.id} tag="tr" onActivate={() => screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
+            <td>{play.id}</td><td>{play.situation}</td><td>{play.call}</td><td>{play.yards}</td>
+          </Watchable>)}
+        </tbody></table>
+      </Module>
+      <div class="gi-overview-support-stack">
+        <Module title="Drives" meta={`${drives.total} drives · ${drives.scoring} scored`}>
+          <div class="gi-overview-drives">{drives.rows.map(drive => <Watchable key={drive.number} onActivate={() => {
+            const ids = new Set(drive.playIds.map(String));
+            screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`);
+          }} label={`Drive ${drive.number}`}>
+            <span>D{drive.number}</span><i><b style={`--w:${drive.widthPct}%`} /></i><small>{drive.outcome}</small>
+          </Watchable>)}</div>
+        </Module>
+        <Module title="Defense &amp; discipline" meta={view.defenseDisciplineRows(stats, engine).meta} cls="is-defense">
+          <RowList rows={view.defenseDisciplineRows(stats, engine).rows} />
+        </Module>
+      </div>
+    </div>
+  </div>;
+}
+
+function PlayCalls({ stats, screen }) {
+  const engine = screen.app.stats;
+  const analysis = engine._playCallAnalysis(stats.offPlays);
+  if (!analysis.eligible) return null;
+  const gameId = screen.app.storage?.seasonStore?.activeGame?.()?.id || '';
+  const pct = v => `${Number(v || 0).toFixed(1).replace(/\.0$/, '')}%`;
+  const refsFor = row => row.playIds.map(id => `${gameId}::${id}`);
+  const watch = (row, label) => () => screen.watchRefs(refsFor(row), label);
+  return <Module title="Play Calls" meta={`${analysis.eligible} offensive snaps have an exact call. Frequency uses those call-charted snaps; every row opens its exact film.`}>
+    <div class="gi-call-grid">
+      <div><h4>Call performance</h4><DataTable columns={[
+        { key: 'name', label: 'Play Call' }, { key: 'concept', label: 'Concept' }, { key: 'n', label: 'Plays', numeric: true },
+        { key: 'share', label: 'Frequency', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true },
+        { key: 'ypp', label: 'Yds/Play', numeric: true }, { key: 'explosive', label: 'Explosive', numeric: true }, { key: 'negative', label: 'Negative', numeric: true },
+      ]} rows={analysis.calls.map(row => ({
+        id: row.name, name: row.name, concept: row.concept || '—', n: row.n, share: pct(row.sharePct), success: pct(row.successRate),
+        ypp: row.yardsPerPlay.toFixed(1), explosive: pct(row.explosiveRate), negative: pct(row.negativeRate),
+        onActivate: watch(row, `Play Call: ${row.name}`), label: `Play Call: ${row.name}`,
+      }))} /></div>
+      <div><h4>Concept roll-up</h4>{analysis.concepts.length ? <DataTable columns={[
+        { key: 'name', label: 'Concept / Call' }, { key: 'n', label: 'Plays', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
+      ]} rows={analysis.concepts.flatMap(concept => [
+        { id: `c-${concept.name}`, name: concept.name, n: concept.n, success: pct(concept.successRate), ypp: concept.yardsPerPlay.toFixed(1), onActivate: watch(concept, `Concept: ${concept.name}`), label: `Concept: ${concept.name}` },
+        ...concept.calls.map(call => ({ id: `${concept.name}-${call.name}`, name: call.name, n: call.n, success: pct(call.successRate), ypp: call.yardsPerPlay.toFixed(1), onActivate: watch(call, `Play Call: ${call.name}`), label: `Play Call: ${call.name}` })),
+      ])} /> : <p>No concepts assigned yet.</p>}</div>
+    </div>
+    <h4>What we call by situation</h4>
+    <div class="gi-call-context-grid">{[...new Set(analysis.situations.map(row => row.lens))].map(lens => {
+      const rows = analysis.situations.filter(row => row.lens === lens).sort((a, b) => b.contextN - a.contextN || a.value.localeCompare(b.value));
+      return <div class="gi-call-context" key={lens}><h4>{lens}</h4><DataTable columns={[
+        { key: 'value', label: 'Situation' }, { key: 'call', label: 'Top Call' }, { key: 'use', label: 'Use' }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
+      ]} rows={rows.map(row => ({ id: `${lens}-${row.value}`, value: row.value, call: row.call, use: `${row.n}/${row.contextN}`, success: pct(row.successRate), ypp: row.yardsPerPlay.toFixed(1),
+        onActivate: watch(row, `${lens}: ${row.value} — ${row.call}`), label: `${lens}: ${row.value} — ${row.call}` }))} /></div>;
+    })}</div>
+  </Module>;
+}
+
+function BigTwelve({ data, screen }) {
+  if (!data) return null;
+  return <Module title={`The “Big ${data.to90}” — ${data.label}'s Core Tendencies`} meta="Snaps sorted by frequency; click any column or row to sort. Click any row to watch the film.">
+    <DataTable columns={[
+      { key: 'form', label: 'Formation' }, { key: 'qb', label: 'QB align' }, { key: 'bf', label: 'Backfield' }, { key: 'str', label: 'Strength' }, { key: 'mot', label: 'Motion' }, { key: 'pt', label: 'Play' },
+      { key: 'n', label: 'N', numeric: true }, { key: 'succ', label: 'Success', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true },
+    ]} rows={data.rows.map(row => ({ ...row, onActivate: row.cutType ? () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
+  </Module>;
+}
+
+function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultCol = 'down', title = 'Tendency Matrix' }) {
+  const [rowId, setRowId] = useState(defaultRow);
+  const [colId, setColId] = useState(defaultCol);
+  if (!plays?.length || plays.length < 3) return null;
+  const dims = engine.constructor._matrixDimensions();
+  const matrix = view.matrixData(engine, plays, rowId, colId);
+  return <Module title={title}>
+    <div class="tm-controls">
+      <label>Rows: <select value={rowId} onChange={e => setRowId(e.currentTarget.value)}>{dims.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
+      <span style="opacity:.5;margin:0 4px">×</span>
+      <label>Cols: <select value={colId} onChange={e => setColId(e.currentTarget.value)}>{dims.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
+    </div>
+    {rowId === colId ? <p style="opacity:.6">Pick two different dimensions.</p> : <MatrixGrid matrix={matrix} />}
+  </Module>;
+}
+
+function MatrixGrid({ matrix }) {
+  if (!matrix.rowKeys.length || !matrix.colKeys.length) return <p style="opacity:.6">Not enough data for this combination.</p>;
+  const maxCount = Math.max(1, ...Object.values(matrix.cells).map(c => c.count));
+  return <>
+    <p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">{matrix.eligible} of {matrix.total} plays charted on both axes{matrix.omitted ? ` · ${matrix.omitted} omitted (blank on ${matrix.rowDim.label} or ${matrix.colDim.label})` : ''}</p>
+    <div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
+      <thead><tr><th>{matrix.rowDim.label} \ {matrix.colDim.label}</th>{matrix.colKeys.map(c => <th key={c}>{c}</th>)}</tr></thead>
+      <tbody>{matrix.rowKeys.map(r => <tr key={r}>
+        <td style="font-weight:600;white-space:nowrap">{r}</td>
+        {matrix.colKeys.map(c => {
+          const cell = matrix.cells[`${r}\0${c}`];
+          if (!cell?.count) return <td key={c} class="tm-cell" style="opacity:.2">—</td>;
+          const intensity = cell.count / maxCount;
+          const succPct = Math.round((cell.successes / cell.count) * 100);
+          const avg = (cell.yards / cell.count).toFixed(1);
+          const runPct = Math.round((cell.runs / cell.count) * 100);
+          const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
+          return <td key={c} class="tm-cell" style={`background:rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)});border:${border}`} title={`${r} × ${c}: ${cell.count} plays, ${runPct}% run, ${succPct}% success, ${avg} avg`}>
+            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct}R/{100 - runPct}P</div><div class="tm-succ">{succPct}% · {avg}y</div>
+          </td>;
+        })}
+      </tr>)}</tbody>
+    </table></div>
+  </>;
+}
+
+function AdvancedEpa({ data }) {
+  if (!data) return null;
+  return <Module title="Expected Points (EPA)">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-title">Total EPA</div><div class={`stat-card-value ${data.totalClass}`}>{data.totalText}</div></div>
+      <div class="stat-card"><div class="stat-card-title">EPA / Play</div><div class={`stat-card-value ${data.perPlayClass}`}>{data.perPlayText}</div></div>
+      <div class="stat-card"><div class="stat-card-title">Plays Scored</div><div class="stat-card-value">{data.count}</div></div>
+    </div>
+    <div class="epa-curve-wrap"><svg viewBox={`0 0 ${data.W} ${data.H}`} class="epa-curve" preserveAspectRatio="xMidYMid meet">
+      <line x1={data.P} y1={data.zeroY} x2={data.W - data.P} y2={data.zeroY} stroke="#555" stroke-dasharray="3,3" />
+      <path d={data.path} fill="none" stroke="var(--accent)" stroke-width="2" />
+      <text x={data.P} y="14" fill="#aaa" font-size="11">Cumulative EPA</text>
+      <text x={data.P} y={data.H - 8} fill="#aaa" font-size="10">Play 1</text>
+      <text x={data.W - data.P} y={data.H - 8} fill="#aaa" font-size="10" text-anchor="end">Play {data.n}</text>
+      <text x={data.W - data.P} y="14" fill="#aaa" font-size="11" text-anchor="end">High {data.hi.toFixed(1)} / Low {data.lo.toFixed(1)}</text>
+    </svg></div>
+    <div class="stats-two-col">
+      <EpaGroupTable title="Play Type" rows={data.byType} />
+      <EpaGroupTable title="Formation" rows={data.byFormation} />
+    </div>
+    <div class="stats-two-col">
+      <EpaGroupTable title="Personnel" rows={data.byPersonnel} />
+      <div><h4 style="margin:8px 0 4px">By Down</h4><table class="stats-table stats-table-full epa-table">
+        <thead><tr><th>Down</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
+        <tbody>{data.byDown.length ? data.byDown.map(d => <tr key={d.down}><td>{d.down}</td><td>{d.count}</td><td class={d.totalClass}>{d.total}</td><td class={d.perPlayClass}>{d.perPlay}</td></tr>) : <tr><td colspan="4" style="opacity:.6">No data</td></tr>}</tbody>
+      </table></div>
+    </div>
+    <div class="stats-two-col">
+      <EpaPlayTable title="Top 5 EPA Plays" color="#44ff88" rows={data.top} />
+      <EpaPlayTable title="Worst 5 EPA Plays" color="#ff6666" rows={data.worst} />
+    </div>
+  </Module>;
+}
+function EpaGroupTable({ title, rows }) {
+  if (!rows.length) return null;
+  return <div><h4 style="margin:8px 0 4px">{title}</h4><table class="stats-table stats-table-full epa-table">
+    <thead><tr><th>{title}</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
+    <tbody>{rows.map(r => <tr key={r.name}><td>{r.name}</td><td>{r.count}</td><td class={r.totalClass}>{r.total}</td><td class={r.perPlayClass}>{r.perPlay}</td></tr>)}</tbody>
+  </table></div>;
+}
+function EpaPlayTable({ title, color, rows }) {
+  return <div><h4 style={`margin:8px 0 4px;color:${color}`}>{title}</h4><table class="stats-table stats-table-full epa-table">
+    <thead><tr><th>#</th><th>Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+    <tbody>{rows.map(r => <tr key={r.id}><td>#{r.id}</td><td>{r.label}</td><td>{r.yards}</td><td class={r.epaClass}>{r.epaText}</td></tr>)}</tbody>
+  </table></div>;
+}
+
+export function OffenseTab({ stats, screen }) {
+  const engine = screen.app.stats;
+  if (!stats.offPlays.length) return <EmptyState title="No offensive snaps charted" body="Set Unit to Offense to populate this report." />;
+  const shape = engine._dataShape(stats);
+  const tend = view.tendencyBreakdown(stats);
+  const bf = view.backfieldStrength(stats, engine);
+  const dm = view.directionMotion(stats);
+  const pa = view.playAction(stats);
+  const advanced = view.advancedData(stats, engine);
+  const cut = (type, val, label) => () => screen.watchCut(type, val, label);
+  return <div class="gi-overview-board">
+    <Hero kpis={view.offenseHero(stats, engine)} />
+    <PlayCalls stats={stats} screen={screen} />
+    <div class="gi-overview-band gi-overview-band-2">
+      <Module title="Formation frequency and success rate" meta="each row opens film">
+        <DataTable columns={breakdownColumns} rows={breakdownRows(tend.formations, screen)} />
+      </Module>
+      <Module title="Play type breakdown" meta="each row opens film">
+        <DataTable columns={breakdownColumns} rows={breakdownRows(tend.playTypes, screen)} />
+      </Module>
+    </div>
+    <PairedBand slots={[
+      shape?.histogram ? <Module title="Yards gained per play, distribution"><ChartBody {...shape.histogram} /></Module> : null,
+      shape?.scatter ? <Module title="Yards gained vs distance to go"><ChartBody {...shape.scatter} /></Module> : null,
+    ]} />
+    {shape?.zones && <Module title="Success Rate by Field Position"><ChartBody {...shape.zones} /></Module>}
+    {shape?.downs && <Module title="Run/pass split and success rate by down"><ChartBody {...shape.downs} /></Module>}
+    {pa && <Module title="Play-Action">
+      <div class="stats-grid stats-grid-flex">
+        <div class="stat-card"><div class="stat-card-title">PA Rate</div><div class="stat-card-value">{pa.paRate}%</div><div class="stat-card-sub">{pa.paPlays} of dropbacks</div></div>
+        <div class="stat-card"><div class="stat-card-title">PA Comp%</div><div class="stat-card-value">{pa.paCompPct}%</div></div>
+        <div class="stat-card"><div class="stat-card-title">PA YPA</div><div class="stat-card-value">{pa.paYPA}</div></div>
+        <div class="stat-card"><div class="stat-card-title">Straight YPA</div><div class="stat-card-value">{pa.straightYPA}</div></div>
+      </div>
+      {pa.formations.length > 0 && <DataTable columns={[{ key: 'name', label: 'Formation' }, { key: 'count', label: 'PA Plays', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]} rows={pa.formations.map((f, i) => ({ id: i, ...f }))} />}
+    </Module>}
+    <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} />
+    <PairedBand cls="gi-overview-band gi-overview-band-2" slots={[
+      bf.backfield.length > 0 ? <Module title="Backfield"><DataTable columns={breakdownColumns} rows={breakdownRows(bf.backfield, screen)} /></Module> : null,
+      bf.strength.length > 0 ? <Module title="Strength"><DataTable columns={breakdownColumns} rows={breakdownRows(bf.strength, screen)} /></Module> : null,
+    ]} />
+    {view.personnelGroups(stats).length > 0 && <Module title="Personnel Groupings"><DataTable columns={breakdownColumns} rows={breakdownRows(view.personnelGroups(stats), screen)} /></Module>}
+    <PairedBand slots={[
+      dm?.direction.length > 0 ? <Module title="Play Direction"><DataTable columns={breakdownColumns} rows={breakdownRows(dm.direction, screen)} /></Module> : null,
+      dm?.motion.length > 0 ? <Module title="Motion"><DataTable columns={breakdownColumns} rows={breakdownRows(dm.motion, screen)} /></Module> : null,
+    ]} />
+    {view.hashTendencies(stats).length > 0 && <Module title="Hash Tendencies"><DataTable columns={breakdownColumns} rows={breakdownRows(view.hashTendencies(stats), screen)} /></Module>}
+    {view.personnelSituation(stats).length > 0 && <Module title="Personnel × Situation">
+      <DataTable columns={[{ key: 'personnel', label: 'Personnel' }, { key: 'situation', label: 'Situation' }, { key: 'count', label: 'Plays', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]}
+        rows={view.personnelSituation(stats).map((row, i) => ({ id: i, ...row }))} />
+    </Module>}
+    <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
+    {(() => { const sit = view.situationalBreakdown(stats); return sit.rows.length ? <Module title="Situational">
+      <div class="stats-two-col">
+        <DataTable columns={[{ key: 'name', label: 'Situation' }, { key: 'total', label: '#', numeric: true }, { key: 'yards', label: 'Yds', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Succ%' }, { key: 'tds', label: 'TD', numeric: true }]}
+          rows={sit.rows.map(row => ({ ...row, id: row.key, onActivate: cut('situation', row.key, `${row.name} — ${row.total} plays`), label: `${row.name} — ${row.total} plays` }))} />
+        <div><h4 style="margin:0 0 6px">By Quarter</h4>{sit.byQuarter.length ? <table class="stats-table stats-table-full"><thead><tr><th>Q</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
+          <tbody>{sit.byQuarter.map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody></table> : <p style="opacity:.6">No quarter data tagged.</p>}</div>
+      </div>
+    </Module> : null; })()}
+    <LegacyWidget html={engine.heatMaps.render(stats.offPlays)} bind={node => {
+      try { engine.constructor.bindDefs(node); } catch { /* no definitions in this fragment */ }
+      try { engine.heatMaps.bind(node); } catch { /* heat-map tab wiring */ }
+    }} />
+    <LegacyWidget html={Visualizations.render(stats.offPlays)} />
+    {shape?.teamProfileHtml && <ChartBody html={shape.teamProfileHtml} />}
+    <AdvancedEpa data={advanced} />
+  </div>;
+}
+
+export function PlayersTab({ stats, screen }) {
+  const engine = screen.app.stats;
+  const tables = view.individualStats(stats, 'all', num => engine._playerLabel(num));
+  if (!tables.length) return <EmptyState title="No player attribution yet" body="Add ball carrier, passer, receiver, tackler, returner, or kicker to chart individual performance." />;
+  return <div class="gi-overview-board">
+    {tables.map(table => <Module key={table.key} title={table.title}>
+      <DataTable columns={table.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
+        rows={table.rows.map(row => ({ ...row, id: row.num, player: row.label, onActivate: () => engine._watchPlayer(row.num), label: `${row.label}'s plays` }))} />
+    </Module>)}
+  </div>;
+}
+
+/**
+ * A migration boundary, not a fallback renderer. `_renderActiveTab()` calls
+ * exactly one `render()` into `screen.content` for EVERY tab, always through
+ * this dispatcher, so Preact owns that subtree continuously — no raw
+ * `container.innerHTML =` bypass ever races a live Preact tree in the same
+ * node. A tab not yet migrated to a real component in this checkpoint mounts
+ * its still-string-sourced markup through `LegacyHtml`, scoped to its own
+ * child node so Preact's diffing never has to reconcile foreign DOM at the
+ * pane root itself.
+ */
+export function ReportPane({ tab, html, children, opponent }) {
+  // `key` forces a genuine unmount+remount at the tab boundary rather than an
+  // in-place Preact patch. Without it, switching from a legacy tab (whose
+  // LegacyHtml child mutates `innerHTML` imperatively, entirely outside
+  // Preact's vdom tracking) to a migrated tab (a real component tree at the
+  // SAME position) can commit into a subtree Preact still believes is the
+  // untracked LegacyHtml div — the new component's own render runs cleanly
+  // (proven by tracing it directly) but never reaches the visible DOM.
+  // Reproduced live: switching straight from Defense (legacy) to Offense
+  // (native) left the OLD legacy empty-state text on screen with zero
+  // errors thrown anywhere. Keying by tab+shape closes it at the root.
+  return <section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane={tab}
+    data-report-perspective-pane={opponent ? 'opponent' : undefined}>
+    {children != null ? <div key={`native-${tab}`}>{children}</div> : <LegacyHtml key={`legacy-${tab}`} html={html} />}
+  </section>;
+}
+
+function LegacyHtml({ html }) {
+  return <div ref={el => { if (el && el.__lastHtml !== html) { el.innerHTML = html; el.__lastHtml = html; } }} />;
+}

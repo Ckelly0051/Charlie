@@ -1,4 +1,6 @@
+import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -47,6 +49,12 @@ export class ReportsScreen {
   restore() {
     this._observer?.disconnect();
     this._observer = null;
+    // `this.content` is a second, independently-owned Preact root nested
+    // inside the outer chrome tree (see _renderActiveTab). Unmounting the
+    // outer tree below removes its DOM but does not know this inner root
+    // exists; explicitly unmount it first so nothing here relies on a
+    // component ever having cleanup effects to stay leak-free.
+    if (this.content) { try { render(null, this.content); } catch {} }
     this._unmountNative();
     // No fallback to hand back -- the target is explicitly absent the moment
     // this controller no longer owns a connected one. StatsEngine's render
@@ -88,9 +96,12 @@ export class ReportsScreen {
   }
 
   _renderFailure(message) {
-    const target = this.content || this.host;
-    if (!target) return;
-    target.innerHTML = `<section class="gi-report-pane stats-section gi-reports-empty gi-reports-failure" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
+    const html = `<section class="gi-report-pane stats-section gi-reports-empty gi-reports-failure" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
+    if (this.content) { render(h(ReportPane, { tab: 'failure', html }), this.content); return; }
+    // The one legitimate case for a raw write: `this.content` itself is
+    // absent, so there is no Preact root left to render into and the outer
+    // native chrome (host) is the only thing left to show anything at all.
+    if (this.host) this.host.innerHTML = html;
   }
 
   selectTab(tab) {
@@ -349,34 +360,74 @@ export class ReportsScreen {
     // compute() call for the tabs that don't need it avoids paying for the
     // whole engine on every Defense/Self-Scout/Season/Matchup render.
     const stats = ['overview', 'offense', 'special', 'players'].includes(tab) ? statsEngine.compute() : null;
-    if (tab === 'season') {
-      this.content.innerHTML = `<section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane="season">${this.app.season?.statsHtml?.() || '<div class="stats-section"><p>Season stats unavailable — open a season first.</p></div>'}</section>`;
-      this._bindContent(this.content);
+
+    // Force a full unmount before mounting the next tab's tree. A LegacyHtml
+    // pane mutates its own subtree directly (outside Preact's diff) so the
+    // vdom's own record of "what's really there" can go stale relative to the
+    // DOM the instant a legacy tab (Defense/Season/Matchup/Self-Scout) has
+    // rendered; the very next migrated-component tab (Overview/Offense/
+    // Players) is then diffed against that stale record instead of the real
+    // DOM, and Preact can silently no-op the swap. Discarding the old tree
+    // outright removes the ambiguity — every tab switch mounts fresh.
+    render(null, this.content);
+
+    // Overview, Offense, and Players are fully migrated real components —
+    // every film action is a direct onClick, so these are the branches that
+    // must NOT also run the legacy `_bindContent` selector-rebind pass over
+    // them. `_offenseHtml`/`_playersHtml` remain below, un-deleted: they are
+    // still the input the parity harness diffs the new components against,
+    // and Season/exports/the opponent tab still call their own StatsEngine
+    // render methods directly (untouched by this migration).
+    if (tab === 'overview') {
+      render(h(ReportPane, { tab: 'overview' }, h(OverviewTab, { stats, screen: this })), this.content);
       return;
     }
-    if (tab === 'matchup') {
-      this.content.innerHTML = '<section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane="matchup"></section>';
-      const pane = this.content.querySelector('[data-pane="matchup"]');
-      try { statsEngine._renderMatchupInto(pane); }
-      catch { pane.innerHTML = '<div class="stats-section"><p>Matchup unavailable for this game.</p></div>'; }
-      this._bindContent(this.content);
+    if (tab === 'offense') {
+      render(h(ReportPane, { tab: 'offense' }, h(OffenseTab, { stats, screen: this })), this.content);
+      return;
+    }
+    if (tab === 'players') {
+      render(h(ReportPane, { tab: 'players' }, h(PlayersTab, { stats, screen: this })), this.content);
       return;
     }
 
     let html = '';
-    if (tab === 'overview') html = this._overviewHtml(stats);
-    else if (tab === 'offense') html = this._offenseHtml(stats);
-    else if (tab === 'defense') {
-      html = this._defenseHtml();
-    } else if (tab === 'special') html = this._specialTeamsHtml(stats);
-    else if (tab === 'players') html = this._playersHtml(stats);
+    if (tab === 'season') html = this.app.season?.statsHtml?.() || '<div class="stats-section"><p>Season stats unavailable — open a season first.</p></div>';
+    else if (tab === 'matchup') {
+      // _renderMatchupInto renders into a live pane node directly rather than
+      // returning a string — mount a plain node for it via the same
+      // legacy-html boundary, then let it populate that node in place.
+      render(h(ReportPane, { tab: 'matchup', html: '' }), this.content);
+      const pane = this.content.querySelector('[data-pane="matchup"] > div');
+      try { statsEngine._renderMatchupInto(pane); }
+      catch { if (pane) pane.innerHTML = '<div class="stats-section"><p>Matchup unavailable for this game.</p></div>'; }
+      this._bindContent(this.content);
+      return;
+    }
+    else if (tab === 'defense') html = this._defenseHtml();
+    else if (tab === 'special') html = this._specialTeamsHtml(stats);
     else if (tab === 'selfscout') {
       const report = statsEngine.generateSelfScout();
       const defScout = report?.defScout || statsEngine.generateDefensiveSelfScout();
       html = statsEngine._renderSelfScoutBody(report, defScout);
     }
-    this.content.innerHTML = `<section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane="${tab}">${html}</section>`;
+    render(h(ReportPane, { tab, html }), this.content);
     this._bindContent(this.content);
+  }
+
+  /** Direct film activations for a fully-migrated tab component — the exact
+   *  same underlying mechanisms `_bindContent`'s selector-rebind pass used
+   *  to invoke, just called straight from a real onClick instead of a
+   *  post-render DOM query. */
+  watchCut(cutType, cutVal, label) {
+    const stats = this.app.stats;
+    stats._watchPlays(stats._buildCutFilter(cutType, cutVal), label || '');
+  }
+  watchPredicate(predicate, label) {
+    this.app.stats._watchPlays(predicate, label || '');
+  }
+  watchRefs(refs, label) {
+    this.app.filmNavigation?.watch?.(refs, { label });
   }
 
   _renderOpponentTab() {
@@ -417,7 +468,7 @@ export class ReportsScreen {
       if (!data.stStats) html = '<div class="stats-section"><h3>No opponent Special Teams scout film</h3><p>Chart a future opponent game in Opponent scout mode to build kick, return, field-goal, and try tendencies. Head-to-head film is not auto-flipped because the stored subject is our team.</p></div>';
       else html = `<div class="stats-section gi-reports-unit-head"><h3>Their Special Teams · ${data.stCount} snaps</h3>${this._opponentWatchButton('special', data.stCount, 'Watch opponent Special Teams')}</div>${this.app.stats._renderSpecialTeams(data.stStats)}${this.app.stats._renderConversions(data.stStats)}${this.app.stats._renderIndividualStats(data.stStats, 'special')}`;
     }
-    this.content.innerHTML = `<section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane="${tab}" data-report-perspective-pane="opponent">${html}</section>`;
+    render(h(ReportPane, { tab, html, opponent: true }), this.content);
     this._bindContent(this.content, data?.stStats || this.app.stats.compute([]));
   }
 
