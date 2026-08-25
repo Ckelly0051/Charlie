@@ -761,10 +761,10 @@ function matchupRefs(plays, engine, cutType, cutVal) {
 function MatchupOffense({ title, lane, screen }) {
   const stats = lane.stats;
   const engine = screen.app.stats;
-  if (!lane.plays.length) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No offensive snaps charted.</p></div>;
+  if (!stats.offPlays.length) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No offensive snaps charted.</p></div>;
   const tendencies = view.tendencyBreakdown(stats);
   const rows = (source, kind) => source.slice(0, 4).map(row => {
-    const refs = matchupRefs(lane.plays, engine, row.cutType, row.cutVal);
+    const refs = matchupRefs(stats.offPlays, engine, row.cutType, row.cutVal);
     return { ...row, kind, id: `${kind}-${row.name}`, onActivate: refs.length ? () => screen.watchRefs(refs, `${title}: ${row.name}`) : undefined, label: `${title}: ${row.name}` };
   });
   const profiles = [...rows(tendencies.formations, 'Formation'), ...rows(tendencies.playTypes, 'Play type')];
@@ -784,7 +784,8 @@ function MatchupDefense({ title, lane, screen }) {
   if (!lane.plays.length || !report.total) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No defensive snaps charted.</p></div>;
   const summary = report.summary;
   const def = lane.stats.defensive || {};
-  const playRows = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes').slice(0, 4).map(row => ({
+  const playRows = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes')
+    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 4).map(row => ({
     kind:'Play type', name:row.name, count:row.n, ypp:row.yardsPerPlay.toFixed(1), result:`${row.stopRate}% stop`, refs:row.refs,
   }));
   const schemeRows = [
@@ -810,8 +811,8 @@ function MatchupDefense({ title, lane, screen }) {
 export function MatchupTab({ model, screen }) {
   if (!model.opponent) return <EmptyState title="No opponent matchup yet" body="Chart the front and coverage you face, or add an Opponent Scout game, to compare both sides of the ball." />;
   const { opponent, opponents, lanes } = model;
-  const hasFirst = lanes.ourOffense.plays.length > 0 && lanes.theirDefense.plays.length > 0;
-  const hasSecond = lanes.ourDefense.plays.length > 0 && lanes.theirOffense.plays.length > 0;
+  const hasFirst = lanes.ourOffense.stats.offPlays.length > 0 && lanes.theirDefense.report.total > 0;
+  const hasSecond = lanes.ourDefense.report.total > 0 && lanes.theirOffense.stats.offPlays.length > 0;
   const missing = [];
   if (!hasFirst) missing.push('Their defense: chart the front and coverage you face on offensive snaps.');
   if (!hasSecond) missing.push('Their offense: chart formation and play type on defensive snaps.');
