@@ -15,6 +15,43 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ REPORTS PRESENTATION INDEPENDENCE — Defense committed (2026-08-25)
+
+**Builder: Claude. Commit `28363f7`, pushed.** Defense migrates to a
+Preact `DefenseTab`, holding the byte-identical text-parity standard
+(same as Overview — this is a port, not a redesign; Defense keeps its
+established `.gi-def-*` visual language exactly). `StatsEngine.
+defensivePerformance()` already returned pure data, so no data-layer
+change was needed. Cohort/scope logic (game filtering, opponent-scout
+exclusion, current-game vs. full-season) moved into `ReportsScreen.
+_defenseCohort()`, shared by the new component and the legacy
+`_defenseHtml()` (kept as the parity harness's input). Scheme Detail and
+Defensive Self-Scout stay `LegacyWidget` embeds of StatsEngine's own HTML
+(same pattern as Offense's HeatMaps/Visualizations), wired via a new
+`ReportsScreen.wireGenericCutRows()`.
+
+**Real bug found and fixed:** a bare `{count && <Component/>}` guard
+rendered the literal digit "0" instead of nothing when `count` was 0 — the
+classic falsy-but-renderable-child Preact/React footgun. Fixed to `count >
+0 &&`; swept the file for the same pattern, found no other instance.
+
+Verification: `tools/e2e-native-reports.mjs` 65/65 (four assertions
+updated for `DataTable`'s real mechanism — `role="button"` sortable
+headers, real cell text instead of a `data-sort` attribute it never
+writes, a real `.cut-row` click target instead of the legacy delegated
+`data-defense-refs` attribute, and the shared `gi-reports-empty` class
+instead of Defense's old tab-specific `def-empty` class — same "test the
+real current mechanism" discipline as the Offense/Players round, not
+loosened checks). `tools/e2e-reports-view-parity.mjs` extended with a
+byte-identical Defense check, 6/6. Fresh screenshots against the real
+season (174 season-wide defensive snaps), zero page errors; a live
+film-click check confirmed a season-scope row resolves to 68 real
+composite refs across all 6 real games.
+
+No formula, denominator, classification, scoring, or stored-data change.
+Remaining: Special Teams, Self-Scout, Season, Matchup still on the legacy
+string-render path.
+
 ### ▶ REPORTS PRESENTATION INDEPENDENCE — Overview/Offense/Players committed (2026-08-25)
 
 **Builder: Claude. Commit `50276e6`, pushed. No independent review pass —
