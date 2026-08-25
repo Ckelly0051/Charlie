@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
-import { OverviewTab, OffenseTab, PlayersTab, ReportPane } from './native-report-tabs.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -371,13 +371,14 @@ export class ReportsScreen {
     // outright removes the ambiguity — every tab switch mounts fresh.
     render(null, this.content);
 
-    // Overview, Offense, and Players are fully migrated real components —
-    // every film action is a direct onClick, so these are the branches that
-    // must NOT also run the legacy `_bindContent` selector-rebind pass over
-    // them. `_offenseHtml`/`_playersHtml` remain below, un-deleted: they are
-    // still the input the parity harness diffs the new components against,
-    // and Season/exports/the opponent tab still call their own StatsEngine
-    // render methods directly (untouched by this migration).
+    // Overview, Offense, Players, and Defense are fully migrated real
+    // components — every film action is a direct onClick, so these are the
+    // branches that must NOT also run the legacy `_bindContent`
+    // selector-rebind pass over them. `_offenseHtml`/`_playersHtml`/
+    // `_defenseHtml` remain below, un-deleted: they are still the input the
+    // parity harness diffs the new components against, and Season/exports/
+    // the opponent tab still call their own StatsEngine render methods
+    // directly (untouched by this migration).
     if (tab === 'overview') {
       render(h(ReportPane, { tab: 'overview' }, h(OverviewTab, { stats, screen: this })), this.content);
       return;
@@ -388,6 +389,13 @@ export class ReportsScreen {
     }
     if (tab === 'players') {
       render(h(ReportPane, { tab: 'players' }, h(PlayersTab, { stats, screen: this })), this.content);
+      return;
+    }
+    if (tab === 'defense') {
+      const { scoped, labels } = this._defenseCohort();
+      this._defenseScopedPlays = scoped;
+      const report = statsEngine.defensivePerformance(scoped, labels);
+      render(h(ReportPane, { tab: 'defense' }, h(DefenseTab, { report, scoped, screen: this })), this.content);
       return;
     }
 
@@ -404,7 +412,6 @@ export class ReportsScreen {
       this._bindContent(this.content);
       return;
     }
-    else if (tab === 'defense') html = this._defenseHtml();
     else if (tab === 'special') html = this._specialTeamsHtml(stats);
     else if (tab === 'selfscout') {
       const report = statsEngine.generateSelfScout();
@@ -428,6 +435,24 @@ export class ReportsScreen {
   }
   watchRefs(refs, label) {
     this.app.filmNavigation?.watch?.(refs, { label });
+  }
+
+  /** Wires a `LegacyWidget` embed of StatsEngine's still-separately-owned
+   *  HTML fragments (Scheme Detail / Defensive Self-Scout -- disclosed,
+   *  non-interactive-otherwise sub-modules inside an already-migrated tab):
+   *  the definition-tooltip buttons (`StatsEngine.bindDefs`, idempotent --
+   *  guarded by its own `dataset.defsBound`) and the plain
+   *  `.cut-row[data-cut-type][data-cut-val]` film convention those fragments
+   *  emit. NOT `_bindContent` itself: that also wires `data-lens-tab`/
+   *  `data-defense-scope`/drive-rows/player-rows, none of which either
+   *  fragment's markup produces. */
+  wireGenericCutRows(node) {
+    if (!node) return;
+    try { this.app.stats.constructor.bindDefs(node); } catch {}
+    node.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
+      row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
+      this._makeFilmControl(row, () => this.watchCut(row.dataset.cutType, row.dataset.cutVal, row.dataset.cutLabel || ''));
+    });
   }
 
   _renderOpponentTab() {
@@ -816,8 +841,12 @@ export class ReportsScreen {
     return body || '<div class="stats-section"><h3>No Special Teams snaps charted</h3><p>Chart kickoff, return, punt, field goal, and try units to populate this report.</p></div>';
   }
 
-  _defenseHtml() {
-    const engine = this.app.stats;
+  /** Report-level cohort logic (game/opponent-scout scoping), not a football
+   *  formula -- StatsEngine consumes the resulting play list, it doesn't
+   *  compute which plays belong in it. Shared by the migrated DefenseTab
+   *  component and the legacy `_defenseHtml()` (kept only as the parity
+   *  harness's comparison input) so the two can never scope differently. */
+  _defenseCohort() {
     const store = this.app.storage?.seasonStore;
     const games = store?.gamesChrono?.() || store?.data?.games || [];
     const selfGames = games.filter(game => game?.gameInfo?.perspective !== 'scout');
@@ -845,6 +874,12 @@ export class ReportsScreen {
     const activeId = String(store?.data?.activeGameId || 'current');
     const scoped = this.defenseScope === 'game'
       ? plays.filter(play => String(play.__gid) === activeId) : plays;
+    return { scoped, labels };
+  }
+
+  _defenseHtml() {
+    const engine = this.app.stats;
+    const { scoped, labels } = this._defenseCohort();
     this._defenseScopedPlays = scoped;
     const report = engine.defensivePerformance(scoped, labels);
     if (!report.total) return `<div class="stats-section def-empty"><h3>No defensive data tagged yet</h3><p>Tag plays as Defense and add the opponent's play type, result and yardage to build this report.</p></div>`;
@@ -921,18 +956,13 @@ export class ReportsScreen {
     });
 
     if (this.perspective === 'self') {
-      root.querySelectorAll('[data-defense-scope]').forEach(button => {
-        button.addEventListener('click', () => {
-          this.defenseScope = button.dataset.defenseScope === 'game' ? 'game' : 'season';
-          this._renderActiveTab();
-        });
-      });
-      root.querySelectorAll('[data-defense-refs]').forEach(row => {
-        const refs = (row.dataset.defenseRefs || '').split(',').filter(Boolean);
-        if (refs.length) this._makeFilmControl(row, () => this.app.filmNavigation?.watch?.(refs, {
-          label: row.dataset.cutLabel || 'Defensive film',
-        }));
-      });      // ── H16 — SEASON ROWS FILM THE SEASON, NOT THE ACTIVE GAME ─────────────
+      // `data-defense-scope`/`data-defense-refs` had no other producer than
+      // `_defenseHtml()`'s own markup; now that Defense is a migrated
+      // component (DefenseTab, wired with real onClick via Watchable/
+      // WatchableRefs) that markup never reaches `_bindContent`, so the two
+      // forEach passes that used to bind those attributes here are deleted
+      // rather than left as dead wiring nothing can trigger.
+      // ── H16 — SEASON ROWS FILM THE SEASON, NOT THE ACTIVE GAME ─────────────
       //
       // Every binding below resolves through StatsEngine._watchPlays, which
       // rebuilds its pool from `this.tagger.plays` — the ACTIVE GAME only. That

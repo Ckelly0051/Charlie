@@ -343,6 +343,143 @@ export function PlayersTab({ stats, screen }) {
   </div>;
 }
 
+/** Defense keeps its own established visual language (`stats-section`/`h3`,
+ *  `.gi-def-*` classes with dedicated CSS) rather than adopting Overview's
+ *  `gi-overview-module` shell -- this is a presentation-ownership migration,
+ *  not a visual redesign, so the existing appearance is the target. */
+function DefSection({ title, children }) {
+  return <section class="stats-section"><h3>{title}</h3>{children}</section>;
+}
+
+const defTypeColumns = [
+  { key: 'name', label: 'Play Run Against Us' }, { key: 'n', label: 'Snaps', numeric: true },
+  { key: 'ypp', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
+  { key: 'explosiveRate', label: 'Explosive Rate', numeric: true, render: row => `${row.explosiveRate}%` },
+  { key: 'havocRate', label: 'Havoc Rate', numeric: true, render: row => `${row.havocRate}%` },
+  { key: 'touchdowns', label: 'TD Allowed', numeric: true },
+];
+const defGameColumns = [
+  { key: 'name', label: 'Game' }, { key: 'n', label: 'Snaps', numeric: true },
+  { key: 'ypp', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
+  { key: 'explosives', label: 'Explosive', numeric: true },
+  { key: 'havoc', label: 'Havoc', numeric: true },
+  { key: 'touchdowns', label: 'TD', numeric: true },
+];
+const defSitColumns = [
+  { key: 'name', label: 'Situation' }, { key: 'n', label: 'Snaps', numeric: true },
+  { key: 'ypp', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
+  { key: 'explosiveRate', label: 'Explosive', numeric: true, render: row => `${row.explosiveRate}%` },
+  { key: 'havocRate', label: 'Havoc', numeric: true, render: row => `${row.havocRate}%` },
+];
+// A row with no resolved film ref keeps its data but loses the click
+// affordance -- the same "never a dead click" rule every migrated table
+// follows. Defense refs are pre-resolved composite arrays on the row itself
+// (built by StatsEngine.defensivePerformance), so activation is a direct
+// watchRefs call, not a cut-type/val lookup.
+function defRows(rows, label, screen) {
+  return rows.map(row => ({ ...row, id: row.name,
+    onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} ${label}`) : undefined,
+    label: `${row.name} ${label}` }));
+}
+
+function DefAnswerCell({ answer, screen }) {
+  if (!answer) return <span class="gi-def-no-sample">Not enough snaps</span>;
+  const label = `${answer.name} answer`;
+  return <WatchableRefs tag="button" type="button" class="gi-def-answer" refs={answer.refs} label={label} screen={screen}>
+    <strong>{answer.name}</strong><span>{answer.stopRate}% stop · {answer.yardsPerPlay.toFixed(1)} yds/play · {answer.n} snaps</span>
+  </WatchableRefs>;
+}
+
+export function DefenseTab({ report, scoped, screen }) {
+  const engine = screen.app.stats;
+  if (!report.total) return <EmptyState title="No defensive data tagged yet" body="Tag plays as Defense and add the opponent's play type, result and yardage to build this report." />;
+  const pct = value => value == null ? 'N/A' : `${value}%`;
+  const typeSummary = report.playTypes.filter(row => row.name === 'All Runs' || row.name === 'All Passes');
+  const typeDetail = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes')
+    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+  // Charlie Gate finding #5: a Best Calls table dominated by "Not enough
+  // snaps" rows is a large decision table mostly reporting the absence of a
+  // decision. Qualified rows (at least one real front/coverage/pressure
+  // answer) lead the table; opponent play types with no qualified answer at
+  // all collapse behind one disclosure line instead of one dead row each.
+  const qualifiedAnswers = report.answers.filter(row => row.front || row.coverage || row.pressure);
+  const emptyAnswers = report.answers.filter(row => !row.front && !row.coverage && !row.pressure);
+  const scopedStats = engine.compute(scoped);
+  const defScout = engine.generateDefensiveSelfScout(scoped);
+  const teamName = () => screen.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
+  return <div class="gi-defense-report">
+    <div class="gi-def-toolbar">
+      <div class="gi-def-scope" role="group" aria-label="Defense report scope">
+        <button type="button" data-defense-scope="season" class={screen.defenseScope === 'season' ? 'active' : ''}
+          onClick={() => { screen.defenseScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+        <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
+          onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+      </div>
+      <button class="btn btn-sm" onClick={() => engine._exportDefensiveReport(engine.compute(scoped), teamName())}>Export Report</button>
+    </div>
+    <DefSection title="Defensive Performance">
+      <div class="gi-def-kpis">
+        <div class="gi-def-kpi"><span>Defensive Snaps</span><strong>{report.total}</strong></div>
+        <div class="gi-def-kpi"><span>Yards / Play Allowed</span><strong>{report.summary.yardsPerPlay.toFixed(1)}</strong></div>
+        <div class="gi-def-kpi"><span>Stop Rate</span><strong>{pct(report.summary.stopRate)}</strong></div>
+        <div class="gi-def-kpi"><span>Explosives Allowed</span><strong>{report.summary.explosives}</strong><small>{report.summary.explosiveRate}%</small></div>
+        <div class="gi-def-kpi"><span>3rd Down Stop Rate</span><strong>{pct(report.thirdDownStopRate)}</strong></div>
+        <div class="gi-def-kpi"><span>Red Zone TD Rate</span><strong>{pct(report.redZoneTdRate)}</strong></div>
+        <div class="gi-def-kpi"><span>Takeaways</span><strong>{report.takeaways}</strong></div>
+        <div class="gi-def-kpi"><span>Havoc Rate</span><strong>{pct(report.summary.havocRate)}</strong></div>
+      </div>
+    </DefSection>
+    <DefSection title="Opponent Offense by Play Type">
+      <div class="gi-def-type-totals">
+        {typeSummary.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-type-summary"
+          refs={row.refs} label={`${row.name} — ${row.n} defensive snaps`} screen={screen}>
+          <span>{row.name}</span><strong>{row.n} snaps</strong>
+          <small>{row.yardsPerPlay.toFixed(1)} yds/play · {row.stopRate}% stop · {row.explosiveRate}% explosive</small>
+        </WatchableRefs>)}
+      </div>
+      <div class="gi-def-table-wrap">
+        <DataTable className="stats-table stats-table-full gi-def-type" columns={defTypeColumns}
+          rows={typeDetail.map(row => ({ ...row, id: row.name,
+            onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} — ${row.n} defensive snaps`) : undefined,
+            label: `${row.name} — ${row.n} defensive snaps` }))} />
+      </div>
+    </DefSection>
+    {(qualifiedAnswers.length > 0 || emptyAnswers.length > 0) && <DefSection title="Best Calls by Opponent Play Type">
+      {qualifiedAnswers.length > 0 && <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
+        <thead><tr><th>Opponent Play Type</th><th>Best Front</th><th>Best Coverage</th><th>Blitz Decision</th></tr></thead>
+        <tbody>{qualifiedAnswers.map(row => <tr key={row.playType}>
+          <td><strong>{row.playType}</strong><small>{row.n} snaps</small></td>
+          <td><DefAnswerCell answer={row.front} screen={screen} /></td>
+          <td><DefAnswerCell answer={row.coverage} screen={screen} /></td>
+          <td><DefAnswerCell answer={row.pressure} screen={screen} /></td>
+        </tr>)}</tbody>
+      </table></div>}
+      {emptyAnswers.length > 0 && <p class="viz-caption">{emptyAnswers.length} more opponent play type{emptyAnswers.length === 1 ? '' : 's'} ({emptyAnswers.map(row => row.playType).join(', ')}) didn't have enough snaps for a best-answer call yet.</p>}
+    </DefSection>}
+    {/* Charlie Gate finding #4: pairing Game Trend with the taller Situational
+        Defense table in a fixed two-column row left the shorter side (usually
+        Game Trend -- one row per game, often just 1-6 rows) with a large empty
+        half-panel below it. Stacked full width instead. */}
+    <DefSection title="Game Trend">
+      <div class="gi-def-table-wrap">
+        <DataTable columns={defGameColumns} rows={defRows(report.byGame, 'defense', screen)} />
+      </div>
+    </DefSection>
+    <DefSection title="Situational Defense">
+      <div class="gi-def-table-wrap">
+        <DataTable columns={defSitColumns} rows={defRows(report.situations, 'defense', screen)} />
+      </div>
+    </DefSection>
+    <DefSection title="Scheme Detail">
+      <LegacyWidget html={engine._renderDefensive(scopedStats)} bind={node => screen.wireGenericCutRows(node)} />
+    </DefSection>
+    <LegacyWidget html={engine._defScoutBlock(defScout, false, true)} bind={node => screen.wireGenericCutRows(node)} />
+  </div>;
+}
+
 /**
  * A migration boundary, not a fallback renderer. `_renderActiveTab()` calls
  * exactly one `render()` into `screen.content` for EVERY tab, always through
@@ -354,16 +491,14 @@ export function PlayersTab({ stats, screen }) {
  * pane root itself.
  */
 export function ReportPane({ tab, html, children, opponent }) {
-  // `key` forces a genuine unmount+remount at the tab boundary rather than an
-  // in-place Preact patch. Without it, switching from a legacy tab (whose
-  // LegacyHtml child mutates `innerHTML` imperatively, entirely outside
-  // Preact's vdom tracking) to a migrated tab (a real component tree at the
-  // SAME position) can commit into a subtree Preact still believes is the
-  // untracked LegacyHtml div — the new component's own render runs cleanly
-  // (proven by tracing it directly) but never reaches the visible DOM.
-  // Reproduced live: switching straight from Defense (legacy) to Offense
-  // (native) left the OLD legacy empty-state text on screen with zero
-  // errors thrown anywhere. Keying by tab+shape closes it at the root.
+  // The real fix for the LegacyHtml/component reconciliation hazard lives in
+  // ReportsScreen._renderActiveTab(), which calls `render(null, this.content)`
+  // before every tab switch — a genuine full unmount, so no diff is ever
+  // computed against a tree a LegacyHtml sibling's raw `innerHTML=` write may
+  // have invalidated. (Reproduced live: without it, switching straight from
+  // Defense (legacy) to Offense (native) left the OLD legacy empty-state text
+  // on screen with zero errors thrown anywhere.) `key` here is now inert
+  // (nothing survives the unmount for a key to distinguish) but harmless.
   return <section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane={tab}
     data-report-perspective-pane={opponent ? 'opponent' : undefined}>
     {children != null ? <div key={`native-${tab}`}>{children}</div> : <LegacyHtml key={`legacy-${tab}`} html={html} />}

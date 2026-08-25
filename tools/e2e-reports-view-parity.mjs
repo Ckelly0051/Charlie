@@ -105,6 +105,43 @@ ok(overview.legacyText === overview.newText,
   { legacyLen: overview.legacyLen, newLen: overview.newLen,
     firstDiffAt: (() => { const a = overview.legacyText, b = overview.newText; let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return { i, legacy: a.slice(Math.max(0, i - 20), i + 40), fresh: b.slice(Math.max(0, i - 20), i + 40) }; })() });
 
+// --- Defense: legacy _defenseHtml() vs the new DefenseTab component ------
+//
+// Defense preserves its established `.gi-def-*` visual language exactly
+// (this is a presentation-ownership migration, not a redesign, unlike
+// Offense/Players below) -- so it holds to the same byte-identical text
+// standard as Overview, not the looser value-coverage standard.
+const defense = await page.evaluate(() => {
+  const screen = window.app.reportsScreen;
+  // The shared fixture's two defense plays (ids 4/5) deliberately carry
+  // `playType: ''` for Overview's own purposes above -- an untyped defensive
+  // snap. That hits a genuine, disclosed DataTable improvement (a zero-row
+  // table renders "No data yet." instead of legacy's headers-with-nothing-
+  // under-them), which is not a text-parity question. Give this check its
+  // own realistic play types -- what a coach's actual charted defense looks
+  // like -- so the byte-identical standard is tested against the real,
+  // common case rather than an edge case the shared component intentionally
+  // improved on. Mutated only after Overview's check above already ran.
+  const game = window.app.storage.seasonStore.data.games[0];
+  const p4 = game.plays.find(p => p.id === 4); if (p4) p4.tags.playType = 'Run Inside';
+  const p5 = game.plays.find(p => p.id === 5); if (p5) p5.tags.playType = 'Short Pass';
+  const htmlToText = html => {
+    const spaced = html.replace(/<\/(div|section|header|p|tr|table|thead|tbody|h[1-6]|li|ul|td|th)>/gi, '</$1> ');
+    const scratch = document.createElement('div');
+    scratch.innerHTML = spaced;
+    return scratch.textContent.replace(/\s+/g, ' ').trim();
+  };
+  const legacyText = htmlToText(screen._defenseHtml());
+  screen.selectTab('defense');
+  const liveNode = document.querySelector('[data-native-report-content] [data-pane="defense"]');
+  const newText = htmlToText(liveNode?.innerHTML || '');
+  return { legacyText, newText, legacyLen: legacyText.length, newLen: newText.length };
+});
+ok(defense.legacyText === defense.newText,
+  'Defense: legacy HTML-string render and the new Preact component produce byte-identical text content',
+  { legacyLen: defense.legacyLen, newLen: defense.newLen,
+    firstDiffAt: (() => { const a = defense.legacyText, b = defense.newText; let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return { i, legacy: a.slice(Math.max(0, i - 20), i + 40), fresh: b.slice(Math.max(0, i - 20), i + 40) }; })() });
+
 // --- Offense / Players: value-coverage against the real season -----------
 //
 // Offense and Players were a deliberate REDESIGN, not a like-for-like port —

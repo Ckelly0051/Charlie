@@ -403,10 +403,16 @@ result = await page.evaluate(() => {
   const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
   const typeTable = pane?.querySelector('.gi-def-type');
   const typeRowsBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
-  const sortableHeaders = typeTable?.querySelectorAll('thead th.gi-sort-th').length || 0;
+  // DataTable (native-report-kit.jsx) makes every header clickable/sortable
+  // by design -- role="button" is the live marker, not a static per-column
+  // "this one is sortable" class the legacy `_makeSortable()` DOM convention
+  // used. Sort reads directly off the row object's field, so verify the
+  // effect (real cell text, ascending) rather than a `data-sort` attribute
+  // DataTable never writes.
+  const sortableHeaders = typeTable?.querySelectorAll('thead th[role="button"]').length || 0;
   typeTable?.querySelector('thead th:nth-child(3)')?.click();
   const typeRowsAfterYppSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
-  const yppAfterSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => Number(row.cells[2]?.dataset.sort));
+  const yppAfterSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[2]?.textContent));
   const aggregateCards = [...(pane?.querySelectorAll('.gi-def-type-summary') || [])].map(card => card.textContent.trim());
   const answerHead = typeTable?.querySelector('thead');
   const answerFirst = typeTable?.querySelector('tbody tr');
@@ -416,7 +422,9 @@ result = await page.evaluate(() => {
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
   app.filmNavigation.watch = refs => { watched = refs; return true; };
-  pane?.querySelector('[data-defense-refs]')?.click();
+  // Real onClick wiring (Watchable/WatchableRefs), not the legacy delegated
+  // `[data-defense-refs]` attribute -- click an actual clickable type row.
+  pane?.querySelector('.gi-def-type tbody tr.cut-row')?.click();
   app.filmNavigation.watch = originalWatch;
   pane?.querySelector('[data-defense-scope="game"]')?.click();
   const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].active') != null;
@@ -451,7 +459,10 @@ ok(result.headings.includes('Defensive Performance')
 ok(result.sortableHeaders === 7
   && result.typeRowsBefore.length > 0
   && result.typeRowsAfterYppSort.length === result.typeRowsBefore.length
-  && result.yppAfterSort.every((value, index, values) => index === 0 || values[index - 1] <= value)
+  // DataTable's first click on a column sorts descending (its established,
+  // shared convention -- already live on Offense/Players' tables); a real
+  // sort toggle exists is the thing under test, not which direction leads.
+  && result.yppAfterSort.every((value, index, values) => index === 0 || values[index - 1] >= value)
   && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes')
   && result.aggregateCards.length > 0
   && result.aggregateCards.every(text => text.includes('All Runs') || text.includes('All Passes')),
@@ -927,7 +938,11 @@ result = await page.evaluate(async () => {
   const pane = document.querySelector('[data-pane="defense"]');
   return {
     sawCurrentGameLabel: !!pane && /Current game/i.test(pane.textContent || ''),
-    sawEmptyState: !!pane?.querySelector('.def-empty'),
+    // DefenseTab's empty state is the shared EmptyState component
+    // (native-report-kit.jsx, class "gi-reports-empty") now, the same one
+    // Overview/Offense/Players use -- not the legacy string-render's own
+    // tab-specific ".def-empty" class.
+    sawEmptyState: !!pane?.querySelector('.gi-reports-empty'),
     sawScoutFront: !!pane && /4-2-5/.test(pane.textContent || ''),
   };
 });
