@@ -15,6 +15,34 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX REVIEW OF `6056ec5` — ACCEPTED (2026-08-25)
+
+**Verdict: accepted, no findings.** Defense presentation independence is
+complete for the live Reports Defense tab. `SchemeDetail` and
+`DefensiveSelfScout` are real Preact owners; neither uses `LegacyWidget`,
+`dangerouslySetInnerHTML`, delegated selector binding, or a post-render film
+lookup. Composite refs are accumulated with each bucket, then deduplicated,
+and the season-wide tests prove duplicate bare play ids resolve to the exact
+cross-game cohort displayed by the row.
+
+The raw-data boundary is also correct: coach-controlled front/coverage text is
+left raw for JSX auto-escaping, while the surviving HTML-string consumer
+escapes it at its own sink. Structured recommendation selection remains in one
+engine path, with presentation formatting split only at the JSX/HTML sinks.
+
+Focused verification run by Codex on the committed tree:
+
+- `tools/e2e-native-reports.mjs`: **70/70**
+- `tools/e2e-reports-view-parity.mjs`: **6/6**
+- `tools/e2e-self-scout.mjs`: **42/42**, zero page errors
+- `git diff --check 8e2970a..6056ec5`: clean
+
+Scope boundary, stated plainly: `_renderDefensive()` and `_defScoutBlock()`
+still exist because Matchup, Season, and export/sample-report surfaces still
+consume them. They are no longer dependencies of the live Defense tab. Those
+methods should be deleted when those consumers are migrated, not prematurely.
+Special Teams may now open as the next two-tab/status checkpoint.
+
 ### ▶ DEFENSE PRESENTATION INDEPENDENCE COMPLETE — Scheme Detail + Defensive Self-Scout migrated (2026-08-25)
 
 **Builder: Claude.** Closes the two remaining Defense `LegacyWidget` sections
