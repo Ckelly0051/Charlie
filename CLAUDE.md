@@ -15,6 +15,127 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ SPECIAL TEAMS ARCHITECTURE + VISUAL MIGRATION COMPLETE (2026-08-25)
+
+**Builder: Claude.** Closes the live Reports Special Teams tab in one coherent
+checkpoint: real Preact ownership (no `LegacyWidget`, no
+`dangerouslySetInnerHTML`, no delegated `data-cut-*` film resolution) recomposed
+into the Broadcast Density report language established by Overview and Defense
+— not a technically-independent port that still looks like the retired screen.
+
+**Structured data seams added (all additive, `js/stats-engine.js`):**
+- `_individualStats(plays)` — every returner/kicker/rusher/passer/receiver/
+  tackler row now carries `refs: []`, deduplicated composite `gameId::playId`
+  strings (`[...new Set(row.refs)].sort()`), accumulated in the same per-play
+  pass that increments each row's own counts. Two same-numbered games'
+  identical bare ids never collapse into one ref, and different games never
+  bleed into a row that shouldn't have them.
+- `_conversionStats(source)` — `refs.att`/`refs.made`/`refs.missed` per
+  XP/2-Point bucket.
+- `_specialTeamsStats(plays)` (both structured and legacy branches) —
+  `retAllowedYards` on punts/kickoffs (coverage-allowed yardage), `refs`
+  per FG distance bucket plus `refs.missed`, and `yards` on the kick/punt
+  return summary — all reused, never re-derived formulas.
+- New `_specialTeamsSummary(plays, stats)` — Snaps/Points/Impact-plays
+  composed from already-computed fields via the existing
+  `playPoints`/`scoringSide` functions; no scoring rule duplicated in JSX.
+
+**Native components added (`js/native-report-tabs.jsx`, `js/reports-view.js`):**
+`SpecialTeamsTab` + `SpecialTeamsPhase`, and `view.specialTeamsKpis()` /
+`view.specialTeamsPhases()`. Every film action is a real `Watchable`/
+`WatchableRefs` `onClick`/`onKeyDown` closure; a row with no resolvable refs
+never renders a click affordance (`onActivate` stays `undefined`, never a
+dead handler). `SpecialTeamsTab` reads a season-wide self-perspective cohort
+via a new shared `ReportsScreen._selfPerspectiveCohort(scope)` — extracted
+from `_defenseCohort()`'s existing opponent-scout-exclusion logic so Defense
+and Special Teams share one cohort builder with independent scope state
+(`screen.defenseScope` / `screen.specialTeamsScope`), defaulting to full
+season with a "Current game" toggle matching Defense's own scope control.
+
+**Old renderer deleted:** `ReportsScreen._specialTeamsHtml()` — confirmed
+zero remaining callers before deletion (grep-verified).
+
+**Old renderers retained, with their exact live consumers:**
+`StatsEngine._renderSpecialTeams()` / `_renderConversions()` /
+`_renderIndividualStats()` remain because three real surfaces still call
+them directly and are out of this checkpoint's scope: `ReportsScreen.
+_renderOpponentTab()`'s opponent-scout Special Teams branch,
+`season-manager.js`'s season report (`statsHtml()`), and `storage.js`'s
+`exportHtmlReport()`. Deleting any of the three would break Opponent Scout,
+the Season tab, or the downloadable HTML export. Migrate those three
+consumers before removing these methods, not silently in this checkpoint.
+
+**Visual composition decisions:** KPI performance band (ST Snaps / Points /
+Field Goals / Conversions / Return Production / Coverage Allowed / Impact
+Plays) leads the tab; a five-module auto-fit phase band (Kickoffs / Kick
+Returns / Punts / Punt Returns / Conversions) follows, sized by
+`repeat(auto-fit,minmax(220px,1fr))` so a sparse or rich phase count never
+forces empty equal-width boxes; Individual Performance (Return Game /
+Kicking-Punting) closes the tab as dense sortable tables. **A real defect
+was found and fixed during the screenshot review, not merely reported**:
+pairing "Field Goals" and "PAT & 2-Point" as fixed equal-height grid columns
+left a large dead void under the Field Goals box's one-line honest empty
+state whenever a game had conversions but zero FG attempts (a common
+JV/HS shape) — the empty box stretched to match its populated sibling's
+gauge. Fixed by collapsing the two into one combined "Kicking &amp;
+Conversions" module whenever either side lacks attempts, so no game state
+can pair an empty box against a populated one; kept as two columns only when
+both genuinely have data. Mutation-verified (forcing the old always-paired
+behavior reds exactly the one new assertion built to catch it; restored,
+green). No fabricated metrics anywhere — every empty state is a compact,
+honest line, never an invented zero.
+
+**Film integrity:** every displayed count's refs are accumulated in the same
+aggregation pass that increments it, never reconstructed from the active
+game. Verified live against a two-game fixture (games `a`/`b` self-
+perspective, deliberately reusing bare play ids 1-5; game `c` opponent-scout,
+excluded) covering kickoff, kick return, punt, punt return, field goal, XP,
+and 2-point: season-wide phase cards resolve `['a::2','b::2']` for a shared
+bare id, a distance-bucket row resolves only its own bucket's game, the
+Individual Performance kicker row spans both games' attempts, and mouse vs.
+keyboard activation resolve the identical cohort. Also verified live against
+the coach's real six-game season (Week 1 vs St. Peter Lutheran, 70 plays,
+18 ST snaps): a real phase-card Watch click resolved 21 exact composite refs
+spanning six real games, zero page errors.
+
+**Escaping:** a hostile roster name (`<img src=x onerror=...>`) credited to
+the Individual Performance kicker renders as inert text — verified two ways
+at once, since the assertion locates the row *by* the literal unescaped
+substring in `textContent` (an executed `<img>` would leave no matching text
+node to find at all) and separately asserts the injected handler never fired.
+
+**Verification:** `node tools/e2e-native-reports.mjs` — **82/82** (was 70
+before this checkpoint; +12 — the season-wide film-identity/duplicate-id/
+XSS/empty-state section (+11) plus the Kicking-collapse regression (+1)).
+`node tools/e2e-parity.mjs` — **2/2** on both goldens (regenerated and
+audited key-by-key via a throwaway structural diff: **42 additions, 0
+removals, 22 changed — every changed entry is byte-identical on every
+pre-existing field, gaining only the new additive `refs`/`yards`/
+`retAllowedYards`/`refs.missed` keys**; nothing in `numbers.scoreboard`,
+`numbers.turnovers`, or any other analytic value moved). Zero page errors
+throughout. Real screenshots captured at 1440×900 and 1280×720 against the
+real season and visually inspected by hand — `design-comps/visual-reset-
+2026-08/part2-verification/reports-independence-special-teams/`.
+
+**One incidental fix along the way:** the new component's toolbar needed a
+real, visible "Special Teams" label (not just a test hook) — the pre-existing
+`e2e-native-reports.mjs` copy-standard assertion for this tab expects the
+literal phrase to appear on-screen, which it did not until a
+`.gi-st-toolbar-label` was added using the same label typography every other
+tab's toolbar already uses.
+
+**Honest residual risks:** the `_selfPerspectiveCohort` extraction changes
+`_defenseCohort()`'s own implementation (not its output — verified via the
+unchanged Defense assertion count and the unmoved parity goldens) but was
+not independently re-reviewed on its own; the Kicking &amp; Conversions
+collapse leaves a single left-anchored gauge in a full-width row when only
+conversions are charted — deliberately left as-is (matches an existing
+Defense precedent, a correctly-sized 129px module, not dead space) rather
+than pursued further to avoid scope creep. Season, Matchup, and HTML export
+still render Special Teams through the retained legacy string methods —
+migrating those three is explicitly out of this checkpoint per the stop
+condition in the original task.
+
 ### ▶ CODEX REVIEW OF `6056ec5` — ACCEPTED (2026-08-25)
 
 **Verdict: accepted, no findings.** Defense presentation independence is

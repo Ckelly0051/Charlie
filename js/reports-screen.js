@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
-import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, ReportPane } from './native-report-tabs.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -30,6 +30,7 @@ export class ReportsScreen {
     this.perspective = 'self';
     this._opponentData = null;
     this.defenseScope = 'season';
+    this.specialTeamsScope = 'season';
   }
 
   mount(host) {
@@ -359,7 +360,7 @@ export class ReportsScreen {
     // second argument passed to it everywhere was always inert. Skipping the
     // compute() call for the tabs that don't need it avoids paying for the
     // whole engine on every Defense/Self-Scout/Season/Matchup render.
-    const stats = ['overview', 'offense', 'special', 'players'].includes(tab) ? statsEngine.compute() : null;
+    const stats = ['overview', 'offense', 'players'].includes(tab) ? statsEngine.compute() : null;
 
     // Force a full unmount before mounting the next tab's tree. A LegacyHtml
     // pane mutates its own subtree directly (outside Preact's diff) so the
@@ -398,6 +399,14 @@ export class ReportsScreen {
       render(h(ReportPane, { tab: 'defense' }, h(DefenseTab, { report, scoped, screen: this })), this.content);
       return;
     }
+    if (tab === 'special') {
+      const { scoped, labels } = this._specialTeamsCohort();
+      this._specialTeamsScopedPlays = scoped;
+      const stStats = statsEngine.compute(scoped);
+      const summary = statsEngine._specialTeamsSummary(scoped, stStats);
+      render(h(ReportPane, { tab: 'special' }, h(SpecialTeamsTab, { stats: stStats, summary, scoped, labels, screen: this })), this.content);
+      return;
+    }
 
     let html = '';
     if (tab === 'season') html = this.app.season?.statsHtml?.() || '<div class="stats-section"><p>Season stats unavailable — open a season first.</p></div>';
@@ -412,7 +421,6 @@ export class ReportsScreen {
       this._bindContent(this.content);
       return;
     }
-    else if (tab === 'special') html = this._specialTeamsHtml(stats);
     else if (tab === 'selfscout') {
       const report = statsEngine.generateSelfScout();
       const defScout = report?.defScout || statsEngine.generateDefensiveSelfScout();
@@ -817,18 +825,13 @@ export class ReportsScreen {
     return `<div class="stats-section gi-play-calls"><h3>Play Calls</h3><p class="gi-call-note">${analysis.eligible} offensive snaps have an exact call. Frequency uses those call-charted snaps; every row opens its exact film.</p><div class="gi-call-grid"><div><h4>Call performance</h4><table class="stats-table stats-table-full gi-call-table"><thead><tr><th>Play Call</th><th>Concept</th><th>Plays</th><th>Frequency</th><th>Success Rate</th><th>Yds/Play</th><th>Explosive</th><th>Negative</th></tr></thead><tbody>${callRows}</tbody></table></div><div><h4>Concept roll-up</h4>${conceptRows ? `<table class="stats-table stats-table-full gi-call-concepts"><thead><tr><th>Concept / Call</th><th>Plays</th><th>Success Rate</th><th>Yds/Play</th></tr></thead><tbody>${conceptRows}</tbody></table>` : '<p>No concepts assigned yet.</p>'}</div></div><h4>What we call by situation</h4><div class="gi-call-context-grid">${situationHtml}</div></div>`;
   }
 
-  _specialTeamsHtml(stats) {
-    const s = this.app.stats;
-    const body = `${s._renderSpecialTeams(stats)}${s._renderConversions(stats)}${s._renderIndividualStats(stats, 'special')}`;
-    return body || '<div class="stats-section"><h3>No Special Teams snaps charted</h3><p>Chart kickoff, return, punt, field goal, and try units to populate this report.</p></div>';
-  }
-
   /** Report-level cohort logic (game/opponent-scout scoping), not a football
    *  formula -- StatsEngine consumes the resulting play list, it doesn't
-   *  compute which plays belong in it. Shared by the migrated DefenseTab
-   *  component and the legacy `_defenseHtml()` (kept only as the parity
-   *  harness's comparison input) so the two can never scope differently. */
-  _defenseCohort() {
+   *  compute which plays belong in it. Extracted so Defense and Special
+   *  Teams (each with their own independent season/game scope toggle) share
+   *  ONE cohort-building implementation and can never scope differently by
+   *  accident -- only the caller-supplied `scope` differs. */
+  _selfPerspectiveCohort(scope) {
     const store = this.app.storage?.seasonStore;
     const games = store?.gamesChrono?.() || store?.data?.games || [];
     const selfGames = games.filter(game => game?.gameInfo?.perspective !== 'scout');
@@ -854,9 +857,25 @@ export class ReportsScreen {
       }
     }
     const activeId = String(store?.data?.activeGameId || 'current');
-    const scoped = this.defenseScope === 'game'
+    const scoped = scope === 'game'
       ? plays.filter(play => String(play.__gid) === activeId) : plays;
     return { scoped, labels };
+  }
+
+  /** Delegates to `_selfPerspectiveCohort` with Defense's own scope. Consumed
+   *  by both the migrated DefenseTab component and the legacy `_defenseHtml()`
+   *  (kept only as the parity harness's comparison input) so the two can
+   *  never scope differently. */
+  _defenseCohort() {
+    return this._selfPerspectiveCohort(this.defenseScope);
+  }
+
+  /** Same cohort machinery as Defense (it is unit-agnostic -- every
+   *  self-perspective play, filtered later by whatever StatsEngine.compute()
+   *  needs), scoped by Special Teams' own independent Full-season/Current-
+   *  game toggle so switching one tab's scope never moves the other's. */
+  _specialTeamsCohort() {
+    return this._selfPerspectiveCohort(this.specialTeamsScope);
   }
 
   _defenseHtml() {

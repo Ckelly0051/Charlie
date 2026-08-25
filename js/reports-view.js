@@ -323,25 +323,31 @@ export function individualStats(stats, group, playerLabel) {
     return { text: `${avg > 0 ? '+' : ''}${avg.toFixed(1)}`, cls: avg > 0 ? 'grade-pos' : avg < 0 ? 'grade-neg' : '' };
   };
   const player = num => ({ num, label: playerLabel(num) });
+  // Special Teams Presentation Independence: `_individualStats` now carries a
+  // deduped, sorted `refs` array on every row (the exact plays that produced
+  // that row's own counts). Propagated here unconditionally -- PlayersTab
+  // (game-scoped, still uses `engine._watchPlayer`) simply ignores the field;
+  // SpecialTeamsTab (season-capable) needs it for an honest cross-game click.
+  const refs = row => Array.isArray(row.refs) ? row.refs : [];
   const tables = [];
   if (showOff && ind.rushers?.length) tables.push({ title: 'Individual Rushing', key: 'rushing',
     columns: [['player', 'Player'], ['att', 'Att', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true], ['fum', 'Fum', true], ['grade', 'Grade']],
-    rows: ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r) })) });
+    rows: ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r), refs: refs(r) })) });
   if (showOff && ind.passers?.length) tables.push({ title: 'Individual Passing', key: 'passing',
     columns: [['player', 'Player'], ['ca', 'C/A'], ['pct', 'Pct'], ['yds', 'Yds', true], ['tds', 'TD', true], ['ints', 'INT', true], ['sacks', 'Sck', true], ['grade', 'Grade']],
-    rows: ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p) })) });
+    rows: ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p), refs: refs(p) })) });
   if (showOff && ind.receivers?.length) tables.push({ title: 'Individual Receiving', key: 'receiving',
     columns: [['player', 'Player'], ['rec', 'Rec', true], ['yds', 'Yds', true], ['long', 'Long', true], ['tds', 'TD', true], ['grade', 'Grade']],
-    rows: ind.receivers.map(r => ({ ...player(r.num), rec: r.receptions, yds: r.yards, long: r.long, tds: r.tds, ...grade(r) })) });
+    rows: ind.receivers.map(r => ({ ...player(r.num), rec: r.receptions, yds: r.yards, long: r.long, tds: r.tds, ...grade(r), refs: refs(r) })) });
   if (showDef && ind.tacklers?.length) tables.push({ title: 'Individual Tackles', key: 'tackles',
     columns: [['player', 'Player'], ['tkl', 'Tkl', true], ['solo', 'Solo', true], ['ast', 'Ast', true], ['sacks', 'Sack', true], ['tfl', 'TFL', true], ['ints', 'INT', true], ['fr', 'FR', true], ['grade', 'Grade']],
-    rows: ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t) })) });
+    rows: ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) })) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
-    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.returns, yds: r.yards, avg: r.returns ? (r.yards / r.returns).toFixed(1) : '0.0', long: r.long, tds: r.tds })) });
+    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.returns, yds: r.yards, avg: r.returns ? (r.yards / r.returns).toFixed(1) : '0.0', long: r.long, tds: r.tds, refs: refs(r) })) });
   if (showST && ind.kickers?.length) tables.push({ title: 'Kicking / Punting', key: 'kicking',
     columns: [['player', 'Player'], ['fg', 'FG (M/A)'], ['punts', 'Punts'], ['puntAvg', 'Punt Avg']],
-    rows: ind.kickers.map(k => ({ ...player(k.num), fg: k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—', punts: k.punts || '—', puntAvg: k.punts ? (k.puntYds / k.punts).toFixed(1) : '—' })) });
+    rows: ind.kickers.map(k => ({ ...player(k.num), fg: k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—', punts: k.punts || '—', puntAvg: k.punts ? (k.puntYds / k.punts).toFixed(1) : '—', refs: refs(k) })) });
   return tables;
 }
 
@@ -362,4 +368,100 @@ export function defenseDisciplineRows(stats, statsEngine) {
     ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],
     ['Penalties declined', penalties.hasData ? penalties.declined : '0'],
   ] };
+}
+
+/**
+ * Special Teams Presentation Independence -- the performance-band KPI tiles.
+ * Every value is read straight off `stats.specialTeams`/`stats.conversions`
+ * (both already fully computed, refs-carrying) plus the two new aggregates
+ * StatsEngine's `_specialTeamsSummary` composed (snaps/points). No formula
+ * lives here -- this only decides which already-computed numbers lead the
+ * band and how to phrase them.
+ */
+export function specialTeamsKpis(stats, summary) {
+  const st = stats.specialTeams || {};
+  const conv = stats.conversions || {};
+  const fg = st.fg || { att: 0, made: 0, pct: 0, long: 0 };
+  const xp = conv.xp || { att: 0, made: 0 };
+  const two = conv.two || { att: 0, made: 0 };
+  const convAtt = xp.att + two.att, convMade = xp.made + two.made;
+  const kickRet = st.returns?.kick || { attempts: 0, yards: 0, long: 0 };
+  const puntRet = st.returns?.punt || { attempts: 0, yards: 0, long: 0 };
+  const retAtt = kickRet.attempts + puntRet.attempts;
+  const retYards = (kickRet.yards || 0) + (puntRet.yards || 0);
+  const retLong = Math.max(kickRet.long || 0, puntRet.long || 0);
+  const covYards = (st.punts?.retAllowedYards || 0) + (st.kickoffs?.retAllowedYards || 0);
+  const covN = (st.punts?.refs?.returned?.length || 0) + (st.kickoffs?.refs?.returned?.length || 0);
+  const impact = summary.impact || [];
+  const impactN = impact.reduce((sum, item) => sum + item.n, 0);
+  return [
+    { label: 'ST Snaps', value: summary.snaps.n, sub: summary.snaps.n ? 'kick · return · punt · FG · try' : 'none charted' },
+    { label: 'Points', value: summary.points.us,
+      sub: summary.points.them ? `${summary.points.them} allowed` : (summary.points.us ? 'none allowed' : '—'),
+      cls: summary.points.us > summary.points.them ? 'is-good' : '' },
+    { label: 'Field Goals', value: fg.att ? `${fg.made}/${fg.att}` : '—', sub: fg.att ? `${fg.pct}% · long ${fg.long}` : 'none attempted' },
+    { label: 'Conversions', value: convAtt ? `${convMade}/${convAtt}` : '—', sub: convAtt ? `${Math.round(convMade / convAtt * 100)}% · XP + 2pt` : 'none attempted' },
+    { label: 'Return Production', value: retAtt ? `${retYards} yds` : '—', sub: retAtt ? `${retAtt} returns · long ${retLong}` : 'none charted' },
+    { label: 'Coverage Allowed', value: covN ? `${(covYards / covN).toFixed(1)} yds/ret` : '—', sub: covN ? `${covN} return${covN === 1 ? '' : 's'} allowed` : 'none charted' },
+    { label: 'Impact Plays', value: impactN, sub: impactN ? impact.map(item => item.label).join(' · ') : 'none charted', cls: impactN ? '' : 'is-good' },
+  ];
+}
+
+/**
+ * The compact per-phase modules (kickoff / kick return / punt / punt return /
+ * field goal / conversions). A phase is omitted entirely when nothing was
+ * charted -- an honest absence, never a blank card. Every phase's own
+ * `refs.all` (already deduped/sorted by StatsEngine) is the exact film that
+ * module's "watch this phase" affordance opens.
+ */
+export function specialTeamsPhases(stats) {
+  const st = stats.specialTeams || {};
+  const conv = stats.conversions || {};
+  const phases = [];
+  if (st.kickoffs?.n) {
+    const rows = [
+      ['Kickoffs', st.kickoffs.n],
+      ['Avg distance', st.kickoffs.avg != null ? st.kickoffs.avg : '—'],
+      ['Touchback %', `${st.kickoffs.tbPct}%`],
+      ['Return allowed', st.kickoffs.retAllowedAvg != null ? st.kickoffs.retAllowedAvg : '—'],
+    ];
+    if (st.kickoffs.onside?.n != null) rows.push(['Onside', `${st.kickoffs.onside.recovered}/${st.kickoffs.onside.n}`]);
+    phases.push({ key: 'kickoffs', title: 'Kickoffs', refs: st.kickoffs.refs?.all || [], label: `Kickoffs — ${st.kickoffs.n} snaps`, rows });
+  }
+  if (st.returns?.kick?.n) phases.push({ key: 'kickReturns', title: 'Kick Returns', refs: st.returns.kick.refs?.all || [],
+    label: `Kick Returns — ${st.returns.kick.n} snaps`, rows: [
+      ['Returns', st.returns.kick.attempts],
+      ['Avg', st.returns.kick.avg != null ? st.returns.kick.avg : '—'],
+      ['Long', st.returns.kick.long],
+      ['TD', st.returns.kick.td, st.returns.kick.td ? 'is-good' : ''],
+    ] });
+  if (st.punts?.n) phases.push({ key: 'punts', title: 'Punts', refs: st.punts.refs?.all || [],
+    label: `Punts — ${st.punts.n} snaps`, rows: [
+      ['Punts', st.punts.n],
+      ['Gross / Net', `${st.punts.grossAvg ?? '—'} / ${st.punts.netAvg ?? '—'}`],
+      ['Hang time', st.punts.hangAvg != null ? `${st.punts.hangAvg}s` : '—'],
+      ['Touchback %', `${st.punts.tbPct}%`],
+      ['Return allowed', st.punts.retAllowedAvg != null ? st.punts.retAllowedAvg : '—'],
+    ] });
+  if (st.returns?.punt?.n) phases.push({ key: 'puntReturns', title: 'Punt Returns', refs: st.returns.punt.refs?.all || [],
+    label: `Punt Returns — ${st.returns.punt.n} snaps`, rows: [
+      ['Returns', st.returns.punt.attempts],
+      ['Avg', st.returns.punt.avg != null ? st.returns.punt.avg : '—'],
+      ['Long', st.returns.punt.long],
+      ['TD', st.returns.punt.td, st.returns.punt.td ? 'is-good' : ''],
+    ] });
+  if (st.fg?.att) phases.push({ key: 'fieldGoals', title: 'Field Goals', refs: st.fg.refs?.all || [],
+    label: `Field Goals — ${st.fg.att} attempts`, rows: [
+      ['Made / Att', `${st.fg.made}/${st.fg.att}`],
+      ['Pct', `${st.fg.pct}%`, st.fg.pct >= 60 ? 'is-good' : ''],
+      ['Long', st.fg.long],
+    ] });
+  const convAtt = (conv.xp?.att || 0) + (conv.two?.att || 0);
+  if (convAtt) phases.push({ key: 'conversions', title: 'Conversions',
+    refs: [...new Set([...(conv.xp?.refs?.att || []), ...(conv.two?.refs?.att || [])])].sort(),
+    label: `Conversions — ${convAtt} attempts`, rows: [
+      ['PAT (XP)', conv.xp?.att ? `${conv.xp.made}/${conv.xp.att}` : '—'],
+      ['2-Point', conv.two?.att ? `${conv.two.made}/${conv.two.att}` : '—'],
+    ] });
+  return phases;
 }

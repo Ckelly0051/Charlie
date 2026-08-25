@@ -1366,8 +1366,12 @@ export class StatsEngine {
       // Codex review finding #1 (Study expansion Phase 2): refs for the exact
       // plays behind `att`/`made`, so a Study row for "Extra Points Attempted"
       // can never Watch anything beyond the actual XP attempts.
+      // Special Teams Presentation Independence: `missed` is the exact
+      // complement of `made` within `att` -- the film a coach reaches when
+      // clicking "Field Goals Missed"/"Tries Missed" must be attempts that
+      // did NOT succeed, never the full attempted set.
       return { att: att.length, made: madePlays.length, pct: att.length ? Math.round(madePlays.length / att.length * 100) : 0,
-        refs: { att: StatsEngine._refsOf(att), made: StatsEngine._refsOf(madePlays) } };
+        refs: { att: StatsEngine._refsOf(att), made: StatsEngine._refsOf(madePlays), missed: StatsEngine._refsOf(att.filter(p => !made(p, wanted))) } };
     };
     const two = tally('2-Pt');
     const xp = tally('XP');
@@ -1425,6 +1429,11 @@ export class StatsEngine {
         fairCatchPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'fairCatch').length / puntRows.length * 100) : 0,
         blocked: puntRows.filter(x => x.st.outcome.status === 'blocked').length,
         retAllowedAvg: puntRetAllowed.value,
+        // Special Teams Presentation Independence: the raw SUM alongside the
+        // existing average -- a coach-facing coverage KPI needs an honest
+        // total (summed across punts AND kickoffs), which an average alone
+        // cannot provide without re-deriving avg*n and losing precision.
+        retAllowedYards: puntReturnedRows.reduce((s, x) => s + (Number.isFinite(x.st.return.yards) ? x.st.return.yards : 0), 0),
         refs: {
           all: StatsEngine._refsOf(puntRows, getPlay),
           blocked: StatsEngine._refsOf(puntRows.filter(x => x.st.outcome.status === 'blocked'), getPlay),
@@ -1446,6 +1455,7 @@ export class StatsEngine {
         tbPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'touchback').length / koRows.length * 100) : 0,
         fairCatchPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'fairCatch').length / koRows.length * 100) : 0,
         retAllowedAvg: koRetAllowed.value,
+        retAllowedYards: koReturnedRows.reduce((s, x) => s + (Number.isFinite(x.st.return.yards) ? x.st.return.yards : 0), 0),
         // isOnside is a structured modifier (not a separate unit) -- 'recovered'
         // counts only a SUBJECT recovery (the point of an onside attempt).
         onside: { n: onsideRows.length, recovered: onsideRecoveredRows.length },
@@ -1469,9 +1479,9 @@ export class StatsEngine {
         long: fgMadeRows.reduce((m, x) => Math.max(m, x.st.kick.distance || 0), 0),
         byDist: [['<30',0,29],['30-39',30,39],['40-49',40,49],['50+',50,99]].map(([label,lo,hi]) => {
           const attempts = fgRows.filter(x => x.st.kick.distance != null && x.st.kick.distance >= lo && x.st.kick.distance <= hi);
-          return { label, att: attempts.length, made: attempts.filter(made).length };
+          return { label, att: attempts.length, made: attempts.filter(made).length, refs: StatsEngine._refsOf(attempts, getPlay) };
         }).filter(bucket => bucket.att),
-        refs: { all: StatsEngine._refsOf(fgRows, getPlay), made: StatsEngine._refsOf(fgMadeRows, getPlay) },
+        refs: { all: StatsEngine._refsOf(fgRows, getPlay), made: StatsEngine._refsOf(fgMadeRows, getPlay), missed: StatsEngine._refsOf(fgRows.filter(x => !made(x)), getPlay) },
       };
       const ret = unit => {
         const arr = rows(unit);
@@ -1485,6 +1495,10 @@ export class StatsEngine {
           // its own `.refs` discarded since `refs.attempts` below already
           // covers the identical cohort.
           avg: avgStat(attempts, x => x.st.return.yards).value,
+          // The raw SUM behind `avg` -- Special Teams Presentation
+          // Independence's Return Production KPI needs an honest total across
+          // BOTH kick and punt returns, which two averages can't combine.
+          yards: attempts.reduce((s, x) => s + x.st.return.yards, 0),
           long: attempts.length ? Math.max(...attempts.map(x => x.st.return.yards)) : 0,
           // Exact denominator for `long`/`avg` -- distinct from `n` (every ST
           // play of this unit, including fair catches/touchbacks/muffs with no
@@ -1542,6 +1556,7 @@ export class StatsEngine {
       fairCatchPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Fair Catch').length / pp.length * 100) : 0,
       blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
       retAllowedAvg: puntRetAllowed.value,
+      retAllowedYards: puntReturnedRows.reduce((s, p) => s + (num(p.tags.returnYards) || 0), 0),
       refs: {
         all: refsOf(pp),
         blocked: refsOf(pp.filter(p => p.tags.kickOutcome === 'Blocked')),
@@ -1560,6 +1575,7 @@ export class StatsEngine {
       tbPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Touchback').length / ko.length * 100) : 0,
       fairCatchPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Fair Catch').length / ko.length * 100) : 0,
       retAllowedAvg: koRetAllowed.value,
+      retAllowedYards: koReturnedRows.reduce((s, p) => s + (num(p.tags.returnYards) || 0), 0),
       // Legacy charted an onside kick as its OWN stType ('Onside'), never as a
       // Kickoff modifier -- a structurally different shape than the new model's
       // isOnside flag, so it is not derivable from `by('Kickoff')` here. Stays
@@ -1577,9 +1593,9 @@ export class StatsEngine {
       long: fgMade.reduce((m, p) => Math.max(m, num(p.tags.kickDistance) || 0), 0),
       byDist: [['<30', 0, 29], ['30-39', 30, 39], ['40-49', 40, 49], ['50+', 50, 99]].map(([label, lo, hi]) => {
         const att = fgp.filter(p => { const d = num(p.tags.kickDistance); return d != null && d >= lo && d <= hi; });
-        return { label, att: att.length, made: att.filter(made).length };
+        return { label, att: att.length, made: att.filter(made).length, refs: refsOf(att) };
       }).filter(b => b.att > 0),
-      refs: { all: refsOf(fgp), made: refsOf(fgMade) },
+      refs: { all: refsOf(fgp), made: refsOf(fgMade), missed: refsOf(fgp.filter(p => !made(p))) },
     };
     const ret = (type) => {
       const arr = by(type);
@@ -1590,6 +1606,7 @@ export class StatsEngine {
       return {
         n: arr.length,
         avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null,
+        yards: yds.reduce((s, x) => s + x, 0),
         long: yds.length ? Math.max(...yds) : 0,
         attempts: yds.length,
         td: tdRows.length,
@@ -1609,6 +1626,55 @@ export class StatsEngine {
       blocks: { n: null, blocked: null, refs: { all: [], blocked: [] } },
       tries: { n: null, refs: { all: [] } },
       hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n),
+    };
+  }
+
+  /**
+   * Special Teams Presentation Independence -- the performance-band
+   * composition StatsEngine owns so the native component never invents a
+   * classification. Two genuinely new aggregates:
+   *
+   *   snaps  -- the count of unit:'special' plays in the cohort, using the
+   *             SAME unit-partition convention compute() already applies to
+   *             offPlays/defPlays. Not a new rule, just applied here too.
+   *   points -- playPoints()/scoringSide() summed over exactly those plays,
+   *             reusing the canonical scoring functions every scoreboard
+   *             surface in this file already calls -- never a second
+   *             scoring formula.
+   *
+   * `impact` composes ALREADY-COMPUTED fields off `stats.specialTeams`/
+   * `stats.conversions` (blocked/missed/muffed) into one honest list; the
+   * classification of what counts as blocked/missed/muffed lives entirely in
+   * those existing fields, not here. Refs are accumulated in the same pass
+   * that increments each count -- never resolved separately afterward.
+   */
+  _specialTeamsSummary(plays, stats) {
+    const stPlays = (plays || []).filter(p => p?.tags?.unit === 'special');
+    let us = 0, them = 0;
+    const usRefs = [], themRefs = [];
+    stPlays.forEach(p => {
+      const pts = StatsEngine.playPoints(p);
+      if (!pts) return;
+      const side = StatsEngine.scoringSide(p);
+      const ref = StatsEngine._compositeRef(p);
+      if (side === 'us') { us += pts; if (ref) usRefs.push(ref); }
+      else if (side === 'them') { them += pts; if (ref) themRefs.push(ref); }
+    });
+    const st = stats.specialTeams || {};
+    const conv = stats.conversions || {};
+    const impact = [];
+    if (st.punts?.blocked) impact.push({ label: 'Punts blocked', n: st.punts.blocked, refs: st.punts.refs?.blocked || [] });
+    if (st.blocks?.blocked) impact.push({ label: 'Field goals blocked', n: st.blocks.blocked, refs: st.blocks.refs?.blocked || [] });
+    const fgMissed = (st.fg?.att || 0) - (st.fg?.made || 0);
+    if (fgMissed > 0) impact.push({ label: 'Field goals missed', n: fgMissed, refs: st.fg.refs?.missed || [] });
+    const tryMissed = ((conv.xp?.att || 0) - (conv.xp?.made || 0)) + ((conv.two?.att || 0) - (conv.two?.made || 0));
+    if (tryMissed > 0) impact.push({ label: 'Tries missed', n: tryMissed, refs: [...(conv.xp?.refs?.missed || []), ...(conv.two?.refs?.missed || [])] });
+    const muffed = (st.returns?.kick?.muffed || 0) + (st.returns?.punt?.muffed || 0);
+    if (muffed > 0) impact.push({ label: 'Muffed returns', n: muffed, refs: [...(st.returns.kick.refs?.muffed || []), ...(st.returns.punt.refs?.muffed || [])] });
+    return {
+      snaps: { n: stPlays.length, refs: StatsEngine._refsOf(stPlays) },
+      points: { us, them, refsUs: [...new Set(usRefs)].sort(), refsThem: [...new Set(themRefs)].sort() },
+      impact,
     };
   }
 
@@ -2498,6 +2564,11 @@ export class StatsEngine {
     const kickers = {};
 
     plays.forEach(p => {
+      // Special Teams Presentation Independence: composite ref for THIS play,
+      // computed once and pushed into every bucket it credits in the same
+      // pass that increments that bucket's own count -- refs can never drift
+      // from what a row displays. Deduped + sorted at the return statement.
+      const ref = StatsEngine._compositeRef(p);
       const structured = SpecialTeamsModel.normalize(p.specialTeams);
       const players = StatsEngine.effectivePlayers(p);
       const yds = parseInt(p.tags.yardage) || 0;
@@ -2516,16 +2587,17 @@ export class StatsEngine {
         const returnTd = structuredReturn
           ? structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject'
           : isTD;
-        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0 };
+        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0, refs: [] };
         returners[id].returns++;
         returners[id].yards += returnYards;
         if (returnTd) returners[id].tds++;
         if (returnYards > returners[id].long) returners[id].long = returnYards;
+        if (ref) returners[id].refs.push(ref);
       }
       const specialist = structured ? (players.punter || players.kicker) : players.kicker;
       if (specialist && structured && !structured.isFake && ['fieldGoal','punt'].includes(structured.unit)) {
         const id = specialist;
-        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, refs: [] };
         if (structured.unit === 'fieldGoal') {
           kickers[id].fgAtt++;
           if (structured.outcome.status === 'good') kickers[id].fgMade++;
@@ -2533,9 +2605,10 @@ export class StatsEngine {
           kickers[id].punts++;
           kickers[id].puntYds += structured.kick.distance || 0;
         }
+        if (ref) kickers[id].refs.push(ref);
       } else if (players.kicker && !structured && st) {
         const id = players.kicker;
-        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, refs: [] };
         if (st === 'Field Goal' || st === 'XP') {
           kickers[id].fgAtt++;
           if (StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Field Goal') || StatsEngine.hasResult(p, 'Touchdown')) kickers[id].fgMade++;
@@ -2543,18 +2616,20 @@ export class StatsEngine {
           kickers[id].punts++;
           kickers[id].puntYds += yds;
         }
+        if (ref) kickers[id].refs.push(ref);
       }
 
       if (countsFootballRoles) {
       // Ball carrier (rushing)
       if (players.ballCarrier && isRun) {
         const id = players.ballCarrier;
-        if (!rushers[id]) rushers[id] = { num: id, attempts: 0, yards: 0, tds: 0, long: 0, fumbles: 0 };
+        if (!rushers[id]) rushers[id] = { num: id, attempts: 0, yards: 0, tds: 0, long: 0, fumbles: 0, refs: [] };
         rushers[id].attempts++;
         rushers[id].yards += yds;
         if (isTD) rushers[id].tds++;
         if (yds > rushers[id].long) rushers[id].long = yds;
         if (StatsEngine.hasResult(p, 'Fumble')) rushers[id].fumbles++;
+        if (ref) rushers[id].refs.push(ref);
         if (p.tags.grades?.ballCarrier != null) {
           if (!rushers[id].gradeSum) rushers[id].gradeSum = 0;
           if (!rushers[id].gradeCount) rushers[id].gradeCount = 0;
@@ -2566,7 +2641,7 @@ export class StatsEngine {
       // Passer
       if (players.passer && isPass) {
         const id = players.passer;
-        if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0 };
+        if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0, refs: [] };
         // Attempts = completions + incompletions + INTs (matches team C/A).
         if (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) passers[id].attempts++;
         if (isComplete) {
@@ -2576,6 +2651,7 @@ export class StatsEngine {
         if (isTD) passers[id].tds++;
         if (StatsEngine.hasResult(p, 'Interception')) passers[id].ints++;
         if (StatsEngine.hasResult(p, 'Sack')) passers[id].sacks++;
+        if (ref) passers[id].refs.push(ref);
         if (p.tags.grades?.passer != null) {
           if (!passers[id].gradeSum) passers[id].gradeSum = 0;
           if (!passers[id].gradeCount) passers[id].gradeCount = 0;
@@ -2587,11 +2663,12 @@ export class StatsEngine {
       // Receiver
       if (players.receiver && isPass && isComplete) {
         const id = players.receiver;
-        if (!receivers[id]) receivers[id] = { num: id, receptions: 0, yards: 0, tds: 0, long: 0 };
+        if (!receivers[id]) receivers[id] = { num: id, receptions: 0, yards: 0, tds: 0, long: 0, refs: [] };
         receivers[id].receptions++;
         receivers[id].yards += yds;
         if (isTD) receivers[id].tds++;
         if (yds > receivers[id].long) receivers[id].long = yds;
+        if (ref) receivers[id].refs.push(ref);
         if (p.tags.grades?.receiver != null) {
           if (!receivers[id].gradeSum) receivers[id].gradeSum = 0;
           if (!receivers[id].gradeCount) receivers[id].gradeCount = 0;
@@ -2611,7 +2688,7 @@ export class StatsEngine {
       const takeawayIds = StatsEngine.splitPlayers(players.takeaway);
       const creditTakeawayViaTackler = isDefPlay && takeawayIds.length === 0;
       tacklerIds.forEach(id => {
-        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
+        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0, refs: [] };
         tacklers[id].tackles++;
         if (shared) tacklers[id].assists++; else tacklers[id].solo++;
         if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
@@ -2619,6 +2696,7 @@ export class StatsEngine {
         else if (yds < 0) tacklers[id].tfl++;
         if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
         if (creditTakeawayViaTackler && StatsEngine.isFumbleRecovered(p)) tacklers[id].fumblesRec++;
+        if (ref) tacklers[id].refs.push(ref);
         if (p.tags.grades?.tackler != null) {
           if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
           if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -2628,9 +2706,10 @@ export class StatsEngine {
       });
       if (isDefPlay) {
         takeawayIds.forEach(id => {
-          if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
+          if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0, refs: [] };
           if (StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
           if (StatsEngine.isFumbleRecovered(p)) tacklers[id].fumblesRec++;
+          if (ref) tacklers[id].refs.push(ref);
           if (p.tags.grades?.takeaway != null) {
             if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
             if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -2642,13 +2721,17 @@ export class StatsEngine {
       }
     });
 
+    // Dedupe + sort every row's own refs once here, at the single return
+    // point every consumer reads -- never at a call site, so a row's film
+    // cohort can never disagree with what's displayed no matter who reads it.
+    const withRefs = rows => rows.map(row => ({ ...row, refs: [...new Set(row.refs)].sort() }));
     return {
-      rushers: Object.values(rushers).sort((a, b) => b.yards - a.yards),
-      passers: Object.values(passers).sort((a, b) => b.yards - a.yards),
-      receivers: Object.values(receivers).sort((a, b) => b.yards - a.yards),
-      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles),
-      returners: Object.values(returners).sort((a, b) => b.yards - a.yards),
-      kickers: Object.values(kickers).sort((a, b) => (b.fgMade + b.punts) - (a.fgMade + a.punts))
+      rushers: withRefs(Object.values(rushers)).sort((a, b) => b.yards - a.yards),
+      passers: withRefs(Object.values(passers)).sort((a, b) => b.yards - a.yards),
+      receivers: withRefs(Object.values(receivers)).sort((a, b) => b.yards - a.yards),
+      tacklers: withRefs(Object.values(tacklers)).sort((a, b) => b.tackles - a.tackles),
+      returners: withRefs(Object.values(returners)).sort((a, b) => b.yards - a.yards),
+      kickers: withRefs(Object.values(kickers)).sort((a, b) => (b.fgMade + b.punts) - (a.fgMade + a.punts))
     };
   }
 

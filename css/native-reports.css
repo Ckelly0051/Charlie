@@ -1263,3 +1263,29 @@
   .gi-reports .gi-overview-phase,.gi-reports .gi-overview-production,.gi-reports .gi-overview-decisions,.gi-reports .gi-overview-support{grid-template-columns:1fr}
   .gi-reports .gi-overview-lenses{grid-template-columns:repeat(2,1fr)}
 }
+
+/* Special Teams Presentation Independence -- the phase-summary band's module
+   count genuinely varies (2-6 phases, whichever were charted), unlike every
+   other `gi-overview-band-*` variant which is sized for a fixed known count.
+   auto-fit lets 2 modules stack wide and 6 arrange several-per-row without a
+   card ever being forced to an equal-width box it has no content for; the
+   min width keeps a single-line stat card from getting uselessly narrow.
+   `align-items:start` matches `.gi-overview-production`/`.gi-overview-support`
+   -- a short card must not stretch to its tallest row-mate and leave a dead
+   gap beneath its own content. */
+.gi-reports .gi-overview-band-auto{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
+
+/* Special Teams' own season/game scope toggle -- structurally identical to
+   Defense's `.gi-def-toolbar`/`.gi-def-scope` (same flex/border/button
+   geometry) but its own class family so the active state can be GOLD, not
+   Defense's cyan: Special Teams is neither offense nor defense, and gold is
+   the design system's own "a selected value" role (see the Broadcast Density
+   token comment in design-system/tokens.css), which a scope toggle's active
+   button literally is. */
+.gi-reports .gi-st-toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-3x);margin-bottom:var(--gi-3x)}
+.gi-reports .gi-st-toolbar-label{color:var(--gi-11);font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.gi-reports .gi-st-scope{display:inline-flex;border:1px solid var(--gi-7)}
+.gi-reports .gi-st-scope button{min-height:36px;padding:0 var(--gi-4x);border:0;border-right:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-11);font:700 12px/1 var(--gi-sans)}
+.gi-reports .gi-st-scope button:last-child{border-right:0}
+.gi-reports .gi-st-scope button.active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+@media(max-width:560px){.gi-reports .gi-st-toolbar{align-items:stretch;flex-direction:column}.gi-reports .gi-st-scope{display:grid;grid-template-columns:1fr 1fr}}
