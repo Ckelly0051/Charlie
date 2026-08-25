@@ -479,13 +479,15 @@ result = await page.evaluate(async () => {
   runInsideRow?.click();
   const watchedRunInside = watched;
   watched = null;
-  // The season-wide film bug: Scheme Detail's front table is a LegacyWidget
-  // embed of StatsEngine's own HTML (`_renderDefensive`), wired by
-  // `wireGenericCutRows`. Its "4-2-5" front row spans BOTH games; before the
-  // fix this resolved through `_watchPlays`, which rebuilds its pool from
-  // `this.tagger.plays` -- the ACTIVE game only -- so a season-wide count
-  // could silently play fewer plays than it displayed.
-  const schemeRow = pane?.querySelector('.gi-defense-report [data-cut-type="defFront"][data-cut-val="4-2-5"]');
+  // The season-wide film bug this section exists to prove closed: Scheme
+  // Detail's front table (SchemeDetail, a real Preact component reading
+  // compute(scoped).defensive's own additive `refs`) must resolve a
+  // cross-game front row to every game it spans, not just the active one.
+  // "4-2-5" spans BOTH games -- select the real onClick row via its
+  // Watchable-assigned title (no data-cut-type attribute exists anymore;
+  // that was the retired LegacyWidget/wireGenericCutRows convention).
+  const schemeRow = [...(pane?.querySelectorAll('.gi-defense-report table tbody tr') || [])]
+    .find(row => row.getAttribute('title')?.startsWith('Watch: 4-2-5 front'));
   schemeRow?.click();
   const watchedScheme = watched;
   app.filmNavigation.watch = originalWatch;
@@ -550,6 +552,107 @@ ok(result.sortableHeaders === 7
   'Opponent offense is a sortable play-type table with Run/Pass totals separated from detail rows', JSON.stringify(result));
 ok(result.answerHeaderPosition === 'static' && result.answerRowsClearHeader,
   'Defense table headers stay in normal flow and never cover the first answer row', JSON.stringify(result));
+
+console.log('\n== 2c. Scheme Detail and Defensive Self-Scout are real components, not LegacyWidget ==');
+// Both sections used to be a `LegacyWidget` embed of a StatsEngine HTML
+// string, wired by the (now-deleted) `wireGenericCutRows` post-render DOM
+// pass. This proves the replacement: no LegacyWidget/dangerouslySetInnerHTML
+// residue anywhere in the pane (no `data-cut-type` attribute exists -- that
+// was that convention's own marker), every row is a real onClick, a
+// cross-game Defensive Self-Scout tell opens its exact composite cohort
+// (including a bare id reused across games), and the front/coverage names
+// carrying a literal "&" prove the label/tellVal fields are not
+// double-escaped now that they flow through both an HTML-string renderer
+// (Self-Scout tab, Season report) AND this native JSX renderer.
+result = await page.evaluate(async () => {
+  const app = window.app;
+  const originalGames = app.storage.seasonStore.data.games;
+  const originalActiveGameId = app.storage.seasonStore.data.activeGameId;
+  const play = (id, tags) => ({ id, timestamp: { start: id * 4, end: id * 4 + 3 }, tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } });
+  // "Bear & Stack" front spans both games, 5 total snaps -- enough (>=4) to
+  // trigger a defensive self-scout tell, and its own literal "&" exercises
+  // the escaping fix directly. 4 of 5 run Cover 1 (80% >= 70%), so the
+  // byFront grouping tells a Coverage lean; the same 4 Cover-1 snaps share
+  // one front 100% of the time, so the byCov grouping independently tells a
+  // Front lean -- two real, differently-scoped tells from one fixture.
+  app.storage.seasonStore.data.games = [
+    {
+      id: 'a', name: 'Week 1', nextId: 4, gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+      plays: [
+        play(1, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '1', distance: '10', yardage: '6', result: 'Gain' }),
+        play(2, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '2', distance: '8', yardage: '5', result: 'Gain' }),
+        play(3, { defFront: 'Bear & Stack', coverage: 'Cover 3', down: '1', distance: '10', yardage: '7', result: 'Gain' }),
+      ],
+    },
+    {
+      id: 'b', name: 'Week 2', nextId: 4, gameInfo: { opponent: 'Knights', perspective: 'self' },
+      plays: [
+        // Bare id 1 deliberately reused across games -- the same composite-
+        // ref proof section 2b already established, exercised again here for
+        // the Self-Scout tells specifically, not just Scheme Detail.
+        play(1, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '1', distance: '10', yardage: '6', result: 'Gain' }),
+        play(2, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '3', distance: '4', yardage: '5', result: 'Gain' }),
+        // Padding: pushes the scheme-tagged total to 6 (generateDefensiveSelfScout's
+        // own >=6 gate) without joining the "Bear & Stack" group (n=1, below
+        // the tell minimum of 4) or its Cover 1 group (different coverage).
+        play(3, { defFront: '4-3', coverage: 'Cover 2', down: '2', distance: '6', yardage: '2', result: 'Gain' }),
+      ],
+    },
+  ];
+  app.storage.seasonStore.data.activeGameId = 'a';
+  await app.storage._loadActiveGame();
+  app.reportsScreen.defenseScope = 'season';
+  app.reportsScreen.show();
+  app.reportsScreen.selectTab('defense');
+  const { scoped } = app.reportsScreen._defenseCohort();
+  const defScout = app.stats.generateDefensiveSelfScout(scoped);
+  const pane = document.querySelector('[data-pane="defense"]');
+  const noLegacyMarkers = pane?.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length === 0;
+  const section = pane?.querySelector('.ss-def-section');
+  const summaryText = section?.querySelector('.ss-def-summary')?.textContent || '';
+  const recDivs = [...(section?.querySelectorAll('.ss-recs > .ss-rec') || [])].map(el => el.textContent);
+  const tellRowEls = [...(section?.querySelectorAll('.ss-tells tbody tr') || [])];
+  const frontTell = defScout.tells.find(t => t.dim === 'vs Front' && t.label === 'Bear & Stack');
+  const frontTellRow = tellRowEls.find(row => row.cells[0]?.textContent.trim() === 'Bear & Stack'
+    && row.cells[1]?.textContent.trim() === 'vs Front');
+  let watched = null;
+  const originalWatch = app.filmNavigation.watch;
+  app.filmNavigation.watch = refs => { watched = refs; return true; };
+  frontTellRow?.click();
+  const watchedFrontTell = watched;
+  app.filmNavigation.watch = originalWatch;
+  app.storage.seasonStore.data.games = originalGames;
+  app.storage.seasonStore.data.activeGameId = originalActiveGameId;
+  await app.storage._loadActiveGame();
+  return {
+    noLegacyMarkers,
+    hasSection: !!section,
+    summaryText,
+    tellCount: defScout.tells.length,
+    tellRowCount: tellRowEls.length,
+    recCount: defScout.recommendations.length,
+    recDivCount: recDivs.length,
+    recTextHasAmp: recDivs.some(text => text.includes('Bear & Stack')),
+    recTextDoubleEscaped: recDivs.some(text => text.includes('&amp;')),
+    frontTellFound: !!frontTell,
+    frontTellRowFound: !!frontTellRow,
+    frontTellRefs: frontTell?.refs,
+    watchedFrontTell,
+  };
+});
+ok(result.noLegacyMarkers && result.hasSection,
+  'Defensive Self-Scout renders with no LegacyWidget/data-cut-type residue anywhere in the Defense pane', JSON.stringify(result));
+ok(result.summaryText === '6 defensive plays' && result.tellRowCount === result.tellCount && result.tellCount > 0,
+  'Every computed tell has exactly one rendered row, over the real six-play scheme-tagged cohort', JSON.stringify(result));
+ok(result.recDivCount === result.recCount && result.recTextHasAmp && !result.recTextDoubleEscaped,
+  'Recommendation text renders the literal front name once, never double-escaped', JSON.stringify(result));
+ok(result.frontTellFound && result.frontTellRowFound
+  && Array.isArray(result.frontTellRefs) && result.frontTellRefs.length === 5
+  && JSON.stringify(result.watchedFrontTell) === JSON.stringify(result.frontTellRefs)
+  && result.frontTellRefs.some(ref => ref.startsWith('a::')) && result.frontTellRefs.some(ref => ref.startsWith('b::')),
+  'A cross-game Defensive Self-Scout tell opens its exact five-play composite cohort across both games',
+  JSON.stringify(result));
+
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
 result = await page.evaluate(() => {
   const app = window.app;

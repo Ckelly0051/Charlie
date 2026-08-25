@@ -15,6 +15,114 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ DEFENSE PRESENTATION INDEPENDENCE COMPLETE — Scheme Detail + Defensive Self-Scout migrated (2026-08-25)
+
+**Builder: Claude.** Closes the two remaining Defense `LegacyWidget` sections
+Codex's `4a74016` re-review flagged as outstanding — "Finish those two remaining
+Defense presentation owners before beginning Special Teams." Both are now real
+Preact components, backed by additive-only `StatsEngine` data seams. Special
+Teams migration may now begin.
+
+**Scheme Detail** (`SchemeDetail` in `native-report-tabs.jsx`) reads
+`compute(scoped).defensive` — the exact object `_renderDefensive()` already
+consumed — with no new formula. `StatsEngine._defensiveStats()` gained
+additive `refs: []` on every front/coverage/blitz bucket, pushed in the same
+per-play pass that increments `count` so refs can never drift from what the
+row's own count describes. The Havoc Rate gauge is real SVG (a new `Gauge`
+component in `native-report-kit.jsx`, a byte-for-byte JSX re-derivation of
+`Charts.gauge()`'s geometry) and the Stop%/Havoc% definition tooltips are a
+new `DefMark` component (real `useState`-backed toggle, replacing
+`StatsEngine.defMark()`/`bindDefs()`'s HTML-string + delegated-click pattern).
+
+**Defensive Self-Scout** (`DefensiveSelfScout`) reads
+`generateDefensiveSelfScout(scoped)` — already the call DefenseTab made.
+`_defScoutGroup()` gained the identical additive `refs` treatment per group
+key. `_defTellsFrom()`'s `label`/`tellVal` now return RAW text instead of
+pre-escaped HTML: this is a pure data seam consumed by both an HTML-string
+renderer and a JSX renderer now, and a pre-escaped string flowing through
+JSX's own auto-escaping would double-escape (`&amp;` → `&amp;amp;`). The
+still-legacy HTML-string renderer (`_renderDefScoutSection`, the Self-Scout
+tab's and Season report's own consumer — see below) now escapes at its own
+sink instead of trusting the data seam to have done it.
+
+`generateDefensiveSelfScout()`'s `recommendations` changed from pre-built
+HTML strings to structured objects (`{kind, label, tellVal, tellPct, ...}`).
+The SELECTION logic (which tells become which kind of recommendation, in
+what order, `_themedRecommendations`'s show/rest grouping) is untouched and
+still lives in exactly one place; only the final "what are the literal
+words" step moved to each renderer. `ddRows`' pre-joined `topFront`/`topCov`
+display strings similarly split into `topFrontName`/`topFrontPct`/
+`topCovName`/`topCovPct` for the same reason. A new static
+`StatsEngine._defScoutRecommendationHtml(r)` reproduces the exact original
+HTML strings from the structured data, byte-for-byte, for the legacy path.
+
+**`wireGenericCutRows()` deleted** from `reports-screen.js` — it had exactly
+two call sites, both now real components with real `onClick`/`watchRefs`.
+
+**Genuinely still-legacy, disclosed rather than silently forced to migrate:**
+`_renderDefensive()` and `_defScoutBlock()`/`_renderDefScoutSection()`
+remain HTML-string methods because they have real remaining consumers this
+checkpoint's scope did not include — the Matchup tab (`_renderMatchupInto`,
+still string-rendered) calls `_renderDefensive()` directly for both
+matchup halves, and `_renderDefenseTabBody()` (Season report, via
+`season-manager.js`'s `statsHtml()`, and the legacy `_renderDashboard()`,
+which has zero production callers) calls both. Deleting either method would
+break the Matchup tab and the Season report. Both are proven unbroken by
+this checkpoint: `e2e-self-scout.mjs` 42/42 (Self-Scout tab, still consumes
+`_renderDefScoutSection` via `_renderSelfScoutBody`), unchanged.
+
+**Verification:**
+- `node tools/e2e-native-reports.mjs` — **70/70** (was 66; +4, new section
+  "2c" proving no `LegacyWidget`/`data-cut-type` residue anywhere in the
+  Defense pane, every computed tell has exactly one rendered row, structured
+  recommendations render the literal front name once and never
+  double-escaped, and a cross-game Defensive Self-Scout tell opens its exact
+  five-play composite cohort spanning both games with a duplicate bare id).
+  All three new correctness claims mutation-verified: reverting the
+  `DefenseTab` wiring back to `LegacyWidget` reds exactly the 3 assertions
+  that depend on the migration (and reproduces the EXACT original bug —
+  `watchedFrontTell:null`, since the legacy `<tr>` carries no live onClick);
+  reverting the `_defTellsFrom` escaping fix reproduces double-escaping
+  exactly (`recTextDoubleEscaped:true`); reverting the `_defScoutGroup` refs
+  push reproduces an empty cohort exactly (`frontTellRefs:[]`). All three
+  restored and reconfirmed green.
+- `node tools/e2e-reports-view-parity.mjs` — **6/6**, unchanged (byte-
+  identical text-content comparison between the legacy `_defenseHtml()`
+  string render and the live native route — both Scheme Detail and
+  Defensive Self-Scout are exercised by its fixture).
+- `node tools/e2e-parity.mjs` — **2/2** on both goldens (synthetic + the
+  real six-game season), after a disclosed, audited regeneration. Every
+  changed value falls into exactly one of the three documented categories:
+  (a) additive `refs` arrays on `defensive.fronts/coverages/blitzes` — every
+  pre-existing field byte-identical; (b) `tells[].label`/`tellVal` unescaped
+  (`"1st &amp; Long"` → `"1st & Long"`, the disclosed escaping fix, values
+  otherwise unchanged); (c) `recommendations`/`ddRows` reshaped from
+  pre-formatted strings to structured data carrying the identical
+  underlying values. A structural key-by-key diff against the committed
+  golden found **zero** unexpected additions, removals, or value changes.
+- `node tools/e2e-self-scout.mjs` — **42/42**, unchanged (the still-legacy
+  Self-Scout tab, confirming its shared `StatsEngine` methods are unbroken).
+- `node tools/e2e-season-tab.mjs` — 153/163; the 10 failures are
+  **pre-existing on the unmodified `8e2970a` baseline** (confirmed via
+  `git stash`/rerun — an unrelated offense-side rushing-leaderboard
+  regression, `noTable:true`, with zero relationship to any file this
+  checkpoint touched), not introduced by this work.
+- Real-season screenshots recaptured clean (`design-comps/visual-reset-
+  2026-08/part2-verification/reports-independence-defense/`): `defense-top`,
+  `-mid` (Scheme Detail's Havoc gauge, cards, front breakdown with live
+  definition tooltips), `-selfscout` (new capture — the full Defensive
+  Self-Scout header, predictability, recommendations, and tells table
+  against the real season's richest defensive game, 174 season-wide
+  defensive snaps, zero toast, zero console errors), and `-bottom`
+  (Scheme by Situation, the section's tail).
+
+No formula, denominator, classification, scoring, or stored-data change.
+This checkpoint touches only presentation ownership and additive film-ref/
+escaping-boundary instrumentation.
+
+**Next action:** Special Teams migration is now unblocked per the prior
+review's own instruction.
+
 ### ▶ CODEX RE-REVIEW OF `4a74016` — REPAIRS ACCEPTED (2026-08-25)
 
 **Verdict: ACCEPTED, no repair findings.** The season-scope film fix now resolves

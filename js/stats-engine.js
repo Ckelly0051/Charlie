@@ -941,20 +941,26 @@ export class StatsEngine {
       const defSuccess = !this._isSuccessfulPlay(p);
       const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
         StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
+      // Additive film identity: pushed in the SAME pass that increments count,
+      // so refs.length can never drift from what the row's own count says it
+      // covers (Reports Presentation Independence, Scheme Detail migration).
+      // No count/yards/successes/havoc/runs/passes value is touched here.
+      const ref = StatsEngine._compositeRef(p);
 
       StatsEngine.splitFronts(p.tags.defFront).forEach(f => {
-        if (!fronts[f]) fronts[f] = { name: f, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0 };
+        if (!fronts[f]) fronts[f] = { name: f, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0, refs: [] };
         fronts[f].count++;
         fronts[f].yards += yds;
         if (defSuccess) fronts[f].successes++;
         if (isHavoc) fronts[f].havoc++;
         if (StatsEngine.isRun(p)) fronts[f].runs++;
         else fronts[f].passes++;
+        if (ref) fronts[f].refs.push(ref);
       });
 
       if (StatsEngine.proj(p).coverage) {
         const c = StatsEngine.proj(p).coverage;
-        if (!coverages[c]) coverages[c] = { name: c, count: 0, yards: 0, successes: 0, comps: 0, incs: 0, ints: 0, sacks: 0 };
+        if (!coverages[c]) coverages[c] = { name: c, count: 0, yards: 0, successes: 0, comps: 0, incs: 0, ints: 0, sacks: 0, refs: [] };
         coverages[c].count++;
         coverages[c].yards += yds;
         if (defSuccess) coverages[c].successes++;
@@ -962,16 +968,18 @@ export class StatsEngine {
         if (StatsEngine.hasResult(p, 'Incomplete')) coverages[c].incs++;
         if (StatsEngine.hasResult(p, 'Interception')) coverages[c].ints++;
         if (StatsEngine.hasResult(p, 'Sack')) coverages[c].sacks++;
+        if (ref) coverages[c].refs.push(ref);
       }
 
       if (p.tags.blitz) {
         StatsEngine.splitBlitzes(p.tags.blitz).forEach(b => {
-          if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
+          if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0, refs: [] };
           blitzes[b].count++;
           blitzes[b].yards += yds;
           if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
           if (isHavoc) blitzes[b].havoc++;
           if (defSuccess) blitzes[b].successes++;
+          if (ref) blitzes[b].refs.push(ref);
         });
       }
     });
@@ -1012,9 +1020,9 @@ export class StatsEngine {
       havocRate: plays.length ? ((havocPlays / plays.length) * 100).toFixed(1) : '0.0',
       incompletions: incompletions.length,
       threeAndOuts,
-      fronts: Object.values(fronts).sort((a, b) => b.count - a.count),
-      coverages: Object.values(coverages).sort((a, b) => b.count - a.count),
-      blitzes: Object.values(blitzes).sort((a, b) => b.count - a.count),
+      fronts: Object.values(fronts).map(row => ({ ...row, refs: [...new Set(row.refs)].sort() })).sort((a, b) => b.count - a.count),
+      coverages: Object.values(coverages).map(row => ({ ...row, refs: [...new Set(row.refs)].sort() })).sort((a, b) => b.count - a.count),
+      blitzes: Object.values(blitzes).map(row => ({ ...row, refs: [...new Set(row.refs)].sort() })).sort((a, b) => b.count - a.count),
       blitzRate: plays.length ? ((blitzPlays.length / plays.length) * 100).toFixed(1) : '0.0',
       blitzTotal: blitzPlays.length,
       blitzHavocRate: blitzPlays.length ? ((blitzHavoc / blitzPlays.length) * 100).toFixed(1) : '0.0',
@@ -5896,7 +5904,11 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
   // down & distance, so you can see if you're predictable too.
   // ================================================================
 
-  /** Group defensive plays by a key, counting front/coverage/blitz distribution. */
+  /** Group defensive plays by a key, counting front/coverage/blitz distribution.
+   *  Each group also accumulates its own deduped composite film refs -- pushed
+   *  in the same pass that increments `n`, so a group's refs can never drift
+   *  from its own count (Reports Presentation Independence, Defensive
+   *  Self-Scout migration). No existing numeric field is touched. */
   _defScoutGroup(plays, keyFn) {
     const g = {};
     plays.forEach(p => {
@@ -5909,15 +5921,17 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       const fronts = StatsEngine.splitFronts(p.tags.defFront);
       const cov = StatsEngine.proj(p).coverage || '';
       const blitz = !!p.tags.blitz;
+      const ref = StatsEngine._compositeRef(p);
       keys.forEach(k => {
         if (k == null || k === '' || k === '?' || /(^|&)\?($|&)/.test(String(k))) return;
         if (!g[k]) g[k] = { key: k, n: 0, yards: 0, stops: 0, havoc: 0,
-          frontMap: {}, covMap: {}, blitzN: 0 };
+          frontMap: {}, covMap: {}, blitzN: 0, refs: [] };
         g[k].n++;
         g[k].yards += yds;
         if (stop) g[k].stops++;
         if (isHavoc) g[k].havoc++;
         if (blitz) g[k].blitzN++;
+        if (ref) g[k].refs.push(ref);
         fronts.forEach(f => { if (f) g[k].frontMap[f] = (g[k].frontMap[f] || 0) + 1; });
         if (cov) g[k].covMap[cov] = (g[k].covMap[cov] || 0) + 1;
       });
@@ -5926,17 +5940,25 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
   }
 
   /** Extract defensive tells: situations where front/coverage/blitz is
-   *  lopsided. `cutFn` maps a group key → {type,val} so each tell links to
-   *  its film (the situation's defensive snaps, or all snaps with that
-   *  front/coverage). */
+   *  lopsided. `cutFn` maps a group key → {type,val} so the LEGACY HTML
+   *  renderer (`_renderDefScoutSection`, still the Self-Scout tab's owner)
+   *  can wire its `data-cut-type`/`data-cut-val` click path unchanged.
+   *  `refs` carries the group's own pre-resolved composite film refs
+   *  directly (built in `_defScoutGroup`, same cohort/count the tell's `n`
+   *  describes) for the native Preact consumer -- no post-render lookup.
+   *  `label`/`tellVal` are returned RAW (not HTML-escaped): this is a pure
+   *  data seam now consumed by both an HTML-string renderer and a JSX
+   *  renderer, and each must escape at its OWN sink or a JSX consumer would
+   *  double-escape an already-escaped string (e.g. `&amp;amp;`). */
   _defTellsFrom(groups, dim, fmt, cutFn) {
     const min = StatsEngine._SELF_SCOUT_MIN_N;
     const out = [];
     Object.values(groups).filter(grp => grp.n >= min).forEach(grp => {
-      const label = Charts._esc(fmt(grp.key));
+      const label = fmt(grp.key);
       const cut = cutFn ? cutFn(grp.key) : null;
       const cutType = cut ? cut.type : null;
       const cutVal = cut ? cut.val : null;
+      const refs = [...new Set(grp.refs || [])].sort();
       const stopRate = Math.round(grp.stops / grp.n * 100);
       const havocRate = Math.round(grp.havoc / grp.n * 100);
       const avgYds = +(grp.yards / grp.n).toFixed(1);
@@ -5951,16 +5973,16 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       if (topFrontPct >= 70 && topFront) {
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Front',
-          tellVal: Charts._esc(topFront[0]), tellPct: topFrontPct,
-          stopRate, havocRate, avgYds, cutType, cutVal,
+          tellVal: topFront[0], tellPct: topFrontPct,
+          stopRate, havocRate, avgYds, cutType, cutVal, refs,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topFrontPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
       if (topCovPct >= 70 && topCov) {
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Coverage',
-          tellVal: Charts._esc(topCov[0]), tellPct: topCovPct,
-          stopRate, havocRate, avgYds, cutType, cutVal,
+          tellVal: topCov[0], tellPct: topCovPct,
+          stopRate, havocRate, avgYds, cutType, cutVal, refs,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topCovPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
@@ -5970,7 +5992,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Blitz',
           tellVal: blitzLean, tellPct: pct,
-          stopRate, havocRate, avgYds, cutType, cutVal,
+          stopRate, havocRate, avgYds, cutType, cutVal, refs,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (pct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
@@ -6026,7 +6048,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       : predictability >= 50 ? 'Predictable'
         : predictability >= 30 ? 'Moderate' : 'Balanced';
 
-    // Build rows for tables
+    // Build rows for tables. Front/coverage names returned RAW (see
+    // _defTellsFrom's comment) -- each renderer escapes/formats "name pct%"
+    // at its own sink instead of one pre-baked, pre-escaped string.
     const ddRows = Object.values(byDD).map(grp => {
       const topF = Object.entries(grp.frontMap).sort((a, b) => b[1] - a[1])[0];
       const topC = Object.entries(grp.covMap).sort((a, b) => b[1] - a[1])[0];
@@ -6034,29 +6058,34 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
         stopRate: Math.round(grp.stops / grp.n * 100),
         havocRate: Math.round(grp.havoc / grp.n * 100),
         blitzPct: Math.round(grp.blitzN / grp.n * 100),
-        topFront: topF ? `${Charts._esc(topF[0])} ${Math.round(topF[1] / grp.n * 100)}%` : '—',
-        topCov: topC ? `${Charts._esc(topC[0])} ${Math.round(topC[1] / grp.n * 100)}%` : '—',
+        topFrontName: topF ? topF[0] : null, topFrontPct: topF ? Math.round(topF[1] / grp.n * 100) : null,
+        topCovName: topC ? topC[0] : null, topCovPct: topC ? Math.round(topC[1] / grp.n * 100) : null,
       };
     }).sort((a, b) => b.n - a.n).slice(0, 15);
 
+    // Structured, not pre-rendered HTML strings: `generateDefensiveSelfScout`
+    // is a pure data seam consumed by BOTH the legacy HTML renderer
+    // (`_renderDefScoutSection`, Self-Scout tab / Season report) and the
+    // native Preact Defensive Self-Scout section -- each formats these into
+    // its own markup. The SELECTION logic (which tells become which kind of
+    // recommendation, in what order) lives here, exactly once, unchanged;
+    // only the final "what are the literal words" step is now owned by each
+    // renderer, same as every other section in this migration.
     const recommendations = [];
     const exploitable = tells.filter(t => t.verdict === 'exploitable');
     const dominant = tells.filter(t => t.verdict === 'dominant');
     if (exploitable.length > 0) {
-      recommendations.push(`<strong>${exploitable.length} exploitable defensive tendenc${exploitable.length > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.`);
+      recommendations.push({ kind: 'exploitable-summary', count: exploitable.length });
     }
     StatsEngine._themedRecommendations(exploitable,
-      t => `<span class="ss-rec-label">${t.label}</span>: ${t.tellType} tell — ${t.tellVal} ${t.tellPct}% of the time (n=${t.n}), but only ${t.stopRate}% stop rate. Mix in alternative looks.`,
-      rest => {
-        const names = [...new Set(rest.map(item => item.label))];
-        return `<strong>${rest.length} more alignments</strong> tip the same way (${names.slice(0, 4).join(', ')}${names.length > 4 ? `, +${names.length - 4} more` : ''}). One change of look covers all of them.`;
-      }
-    ).forEach(line => recommendations.push(line));
+      t => ({ kind: 'exploitable-item', label: t.label, tellType: t.tellType, tellVal: t.tellVal, tellPct: t.tellPct, n: t.n, stopRate: t.stopRate }),
+      rest => ({ kind: 'exploitable-more', count: rest.length, names: [...new Set(rest.map(item => item.label))] })
+    ).forEach(item => recommendations.push(item));
     dominant.slice(0, 3).forEach(t => {
-      recommendations.push(`<span class="ss-rec-label ss-rec-strength">${t.label}</span>: ${t.tellVal} ${t.tellPct}% is predictable but <strong>working</strong> — ${t.stopRate}% stop rate${t.havocRate >= 15 ? `, ${t.havocRate}% havoc` : ''}. The alignment is earning its keep.`);
+      recommendations.push({ kind: 'dominant', label: t.label, tellVal: t.tellVal, tellPct: t.tellPct, stopRate: t.stopRate, havocRate: t.havocRate });
     });
     if (tells.length === 0) {
-      recommendations.push('No strong defensive tells at the current sample size — your scheme mix looks balanced across situations.');
+      recommendations.push({ kind: 'balanced' });
     }
 
     return { totalPlays: plays.length, predictability, predLabel, tells, ddRows, recommendations };
@@ -6531,15 +6560,19 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       <div><strong>${d.tfl || 0}</strong><span>TFL</span></div>
       <div><strong>${d.turnovers || 0}</strong><span>Takeaways</span></div>
     </div>`;
+    // `t.label`/`t.tellVal` arrive RAW from `_defTellsFrom` (see its own
+    // comment) -- this HTML-string renderer is the sink, so it escapes here.
     const tellsHtml = ds.tells.length ? `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
       <tbody>${ds.tells.map(t => {
-        const cut = t.cutType ? ` cut-row" data-cut-type="${t.cutType}" data-cut-val="${Charts._esc(t.cutVal)}" data-cut-label="${t.label} — ${t.n} plays` : '';
+        const label = Charts._esc(t.label);
+        const tellVal = Charts._esc(t.tellVal);
+        const cut = t.cutType ? ` cut-row" data-cut-type="${t.cutType}" data-cut-val="${Charts._esc(t.cutVal)}" data-cut-label="${label} — ${t.n} plays` : '';
         return `<tr class="ss-verdict-${t.verdict}${cut}">
-        <td>${t.label}</td>
+        <td>${label}</td>
         <td><span class="ss-dim">${t.dim}</span></td>
         <td>${t.tellType}</td>
-        <td><span class="ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}" style="--p:${t.tellPct}%">${t.tellVal} ${t.tellPct}%</span></td>
+        <td><span class="ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}" style="--p:${t.tellPct}%">${tellVal} ${t.tellPct}%</span></td>
         <td>${t.stopRate}%</td>
         <td>${t.havocRate}%</td>
         <td><span class="ss-verdict ss-verdict-${t.verdict}">${StatsEngine._verdictIcon(t.verdict)} ${StatsEngine._verdictLabel(t.verdict)}</span></td>
@@ -6550,12 +6583,16 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
 
     const ddTableHtml = ds.ddRows.length ? `<table class="stats-table stats-table-full ss-split">
       <thead><tr><th>Situation</th><th>#</th><th>Top Front</th><th>Top Coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg Yds</th></tr></thead>
-      <tbody>${ds.ddRows.map(r => `<tr>
+      <tbody>${ds.ddRows.map(r => {
+        const topFront = r.topFrontName ? `${Charts._esc(r.topFrontName)} ${r.topFrontPct}%` : '—';
+        const topCov = r.topCovName ? `${Charts._esc(r.topCovName)} ${r.topCovPct}%` : '—';
+        return `<tr>
         <td>${this._ddPretty(r.key)}</td><td>${r.n}</td>
-        <td>${r.topFront}</td><td>${r.topCov}</td>
+        <td>${topFront}</td><td>${topCov}</td>
         <td>${r.blitzPct}%</td><td>${r.stopRate}%</td>
         <td>${r.havocRate}%</td><td>${r.avgYds}</td>
-      </tr>`).join('')}</tbody>
+      </tr>`;
+      }).join('')}</tbody>
     </table>` : '';
 
     return `
@@ -6566,11 +6603,35 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
         </div>
         ${performanceHtml}
         <div class="ss-def-predictability">Predictability: <span style="color:${mc};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span></div>
-        ${ds.recommendations.length ? `<div class="ss-recs" style="margin-bottom:12px">${ds.recommendations.map(r => `<div class="ss-rec">${r}</div>`).join('')}</div>` : ''}
+        ${ds.recommendations.length ? `<div class="ss-recs" style="margin-bottom:12px">${ds.recommendations.map(r => `<div class="ss-rec">${StatsEngine._defScoutRecommendationHtml(r)}</div>`).join('')}</div>` : ''}
         <h4 style="margin:12px 0 6px;font-size:13px;color:var(--text-dim)">Defensive Tendency Tells</h4>
         ${tellsHtml}
         ${ddTableHtml ? `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--text-dim)">Scheme by Situation</h4>${ddTableHtml}` : ''}
       </div>`;
+  }
+
+  /** Format one structured defensive-self-scout recommendation (see
+   *  `generateDefensiveSelfScout`'s own comment) into the exact HTML this
+   *  section has always rendered -- the sink where coach-facing tell text
+   *  gets escaped, since the data seam itself now returns it raw for the
+   *  native Preact consumer. */
+  static _defScoutRecommendationHtml(r) {
+    const esc = Charts._esc;
+    switch (r.kind) {
+      case 'exploitable-summary':
+        return `<strong>${r.count} exploitable defensive tendenc${r.count > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.`;
+      case 'exploitable-item':
+        return `<span class="ss-rec-label">${esc(r.label)}</span>: ${r.tellType} tell — ${esc(r.tellVal)} ${r.tellPct}% of the time (n=${r.n}), but only ${r.stopRate}% stop rate. Mix in alternative looks.`;
+      case 'exploitable-more': {
+        const names = r.names.map(esc);
+        return `<strong>${r.count} more alignments</strong> tip the same way (${names.slice(0, 4).join(', ')}${names.length > 4 ? `, +${names.length - 4} more` : ''}). One change of look covers all of them.`;
+      }
+      case 'dominant':
+        return `<span class="ss-rec-label ss-rec-strength">${esc(r.label)}</span>: ${esc(r.tellVal)} ${r.tellPct}% is predictable but <strong>working</strong> — ${r.stopRate}% stop rate${r.havocRate >= 15 ? `, ${r.havocRate}% havoc` : ''}. The alignment is earning its keep.`;
+      case 'balanced':
+      default:
+        return 'No strong defensive tells at the current sample size — your scheme mix looks balanced across situations.';
+    }
   }
 
   /** Graceful in-overlay empty state — use instead of a blocking alert() when a

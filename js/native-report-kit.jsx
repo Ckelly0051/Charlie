@@ -114,6 +114,52 @@ export function TileGrid({ tiles, cls = '' }) {
   </Watchable>)}</div>;
 }
 
+/** Real SVG, not `Charts.gauge()`'s HTML string -- a byte-for-byte JSX
+ *  re-derivation of that primitive's markup/geometry for sections that must
+ *  render with no `dangerouslySetInnerHTML` at all (Reports Presentation
+ *  Independence: Defense's Scheme Detail). Keep this in sync with
+ *  `Charts.gauge` in js/charts.js if that geometry ever changes. */
+export function Gauge({ pct, label = '', color = 'var(--accent)', size = 100, tip = '' }) {
+  const clamped = Math.min(100, Math.max(0, pct));
+  const frac = clamped / 100;
+  const r = size * 0.38;
+  const cx = size / 2, cy = size * 0.52;
+  const sw = size * 0.09;
+  const halfCirc = Math.PI * r;
+  const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
+  const h = +(size * 0.62).toFixed(0);
+  const arc = `M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}`;
+  return <div class="chart-gauge" title={tip || undefined}>
+    <svg viewBox={`0 0 ${size} ${h}`} width={size} height={h}>
+      <path d={arc} fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width={sw.toFixed(1)} stroke-linecap="round" />
+      <path d={arc} fill="none" style={{ stroke: color }} stroke-width={sw.toFixed(1)} stroke-linecap="round" stroke-dasharray={dash} opacity="0.9" />
+      <text x={cx} y={(cy - 1).toFixed(1)} text-anchor="middle" fill="var(--text,#E9EEF5)" font-size={(size * 0.2).toFixed(0)} font-weight="700">{Math.round(pct)}%</text>
+    </svg>
+    {label ? <div class="chart-gauge-label">{label}</div> : null}
+  </div>;
+}
+
+/** A definitional "i" tooltip button -- the native replacement for
+ *  `StatsEngine.defMark()`/`bindDefs()`'s HTML-string + delegated-click-
+ *  binding pattern. Real Preact interactivity (local `useState`), not a
+ *  post-render selector-binding pass. `text` is a static, developer-authored
+ *  definition string (StatsEngine.DEFINITIONS), never coach data, so plain
+ *  JSX text interpolation is the correct (and safe) sink. Renders nothing
+ *  when `text` is blank, matching `defMark()`'s own "no term, no button"
+ *  contract. Each instance opens/closes independently rather than the
+ *  legacy single delegated "only one open at a time" -- a disclosed, purely
+ *  cosmetic difference; the definition content and reachability are
+ *  identical. */
+export function DefMark({ text }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  return <button type="button" class={`gi-def${open ? ' is-open' : ''}`}
+    aria-label={`What this measures: ${text}`}
+    onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(o => !o); }}
+    onKeyDown={e => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); } }}
+  >i<span class="gi-def-pop" role="tooltip" aria-hidden="true">{text}</span></button>;
+}
+
 /** A disclosed, narrow safe-embed for the handful of genuine chart bodies
  *  that still come from Charts.* (histogram/scatter/zone-strip/small-
  *  multiples/radar) — a separate, pre-existing presentational module, not

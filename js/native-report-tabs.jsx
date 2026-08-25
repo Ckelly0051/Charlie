@@ -8,7 +8,7 @@
  * post-render DOM query/rebind pass.
  */
 import { useState } from 'preact/hooks';
-import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, LegacyWidget, EmptyState } from './native-report-kit.jsx';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, LegacyWidget, Gauge, DefMark, EmptyState } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { Visualizations } from './visualizations.js';
 
@@ -393,6 +393,177 @@ function DefAnswerCell({ answer, screen }) {
   </WatchableRefs>;
 }
 
+/** One front/coverage/blitz breakdown row -- a plain, non-sortable `<tr>`
+ *  (matching the legacy `_renderDefensive` table's own behavior exactly;
+ *  the already-migrated tables around it are sortable `DataTable`s, but
+ *  this section was never one, and this is a presentation-ownership
+ *  migration, not a redesign). Reuses the shared `Watchable` primitive so a
+ *  row with no resolvable refs renders with no click affordance at all --
+ *  the same "never a dead click" rule the rest of the tab follows. */
+function SchemeRow({ onActivate, label, children }) {
+  return <Watchable tag="tr" onActivate={onActivate} label={label}>{children}</Watchable>;
+}
+
+/** Scheme Detail's "Defensive Analytics" body -- a real Preact re-derivation
+ *  of `StatsEngine._renderDefensive()`'s markup, reading the SAME
+ *  `compute(scoped).defensive` object that renderer always has (additive
+ *  `refs` arrays only; no formula moved or duplicated). No LegacyWidget, no
+ *  dangerouslySetInnerHTML, no post-render selector binding -- every click
+ *  is a real onClick, and the Havoc Rate gauge is real SVG (`Gauge`, not
+ *  `Charts.gauge()`'s HTML string). */
+function SchemeDetail({ defensive, screen }) {
+  const engine = screen.app.stats;
+  const d = defensive;
+  if (!d.hasData) return null;
+  const havocPctVal = parseFloat(d.havocRate);
+  const havocColor = havocPctVal >= 20 ? '#22c55e' : havocPctVal >= 12 ? '#f59e0b' : '#ef4444';
+  const avg = (yards, count) => (count ? yards / count : 0).toFixed(1);
+  const share = (n, count) => count ? (n / count * 100).toFixed(0) : '0';
+  return <div class="stats-section">
+    <h3>Defensive Analytics</h3>
+    <div class="def-top-row">
+      <Gauge pct={havocPctVal} label={`Havoc Rate (${d.havocPlays})`} color={havocColor} size={110} />
+      <div class="stats-grid stats-grid-flex">
+        <div class="stat-card"><div class="stat-card-title">Sacks</div><div class="stat-card-value">{d.sacks}</div><div style="font-size:11px;opacity:.6">{d.sackYards} yds</div></div>
+        <div class="stat-card"><div class="stat-card-title">TFL</div><div class="stat-card-value">{d.tfl}</div></div>
+        <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">{d.turnovers}</div><div style="font-size:11px;opacity:.6">{d.interceptions} INT / {d.fumblesRecovered} FR</div></div>
+        <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">{d.blitzRate}%</div><div style="font-size:11px;opacity:.6">{d.blitzTotal} plays</div></div>
+        <div class="stat-card"><div class="stat-card-title">Blitz Havoc</div><div class="stat-card-value" style={{ color: parseFloat(d.blitzHavocRate) >= 20 ? '#44ff88' : '#fff' }}>{d.blitzHavocRate}%</div></div>
+        <div class="stat-card"><div class="stat-card-title">Forced Inc</div><div class="stat-card-value">{d.incompletions}</div></div>
+        <div class="stat-card"><div class="stat-card-title">3-and-Outs</div><div class="stat-card-value">{d.threeAndOuts}</div></div>
+      </div>
+    </div>
+    {d.fronts.length > 0 && <>
+      <h4 style="margin:16px 0 4px">Defensive Front Breakdown</h4>
+      <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+        <thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th>
+          <th>Stop%<DefMark text={engine.constructor.DEFINITIONS.stopPct} /></th>
+          <th>Havoc%<DefMark text={engine.constructor.DEFINITIONS.havoc} /></th></tr></thead>
+        <tbody>{d.fronts.map(f => <SchemeRow key={f.name}
+          onActivate={f.refs?.length ? () => screen.watchRefs(f.refs, `${f.name} front — ${f.count} plays`) : undefined}
+          label={`${f.name} front — ${f.count} plays`}>
+          <td>{f.name}</td><td>{f.count}</td><td>{f.runs}/{f.passes}</td><td>{f.yards}</td>
+          <td>{avg(f.yards, f.count)}</td><td>{share(f.successes, f.count)}%</td><td>{share(f.havoc, f.count)}%</td>
+        </SchemeRow>)}</tbody>
+      </table></div>
+    </>}
+    {d.coverages.length > 0 && <>
+      <h4 style="margin:16px 0 4px">Coverage Breakdown</h4>
+      <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+        <thead><tr><th>Coverage</th><th>#</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead>
+        <tbody>{d.coverages.map(c => <SchemeRow key={c.name}
+          onActivate={c.refs?.length ? () => screen.watchRefs(c.refs, `${c.name} — ${c.count} plays`) : undefined}
+          label={`${c.name} — ${c.count} plays`}>
+          <td>{c.name}</td><td>{c.count}</td><td>{c.comps}</td><td>{c.incs}</td><td>{c.ints}</td><td>{c.sacks}</td>
+          <td>{c.yards}</td><td>{avg(c.yards, c.count)}</td><td>{share(c.successes, c.count)}%</td>
+        </SchemeRow>)}</tbody>
+      </table></div>
+    </>}
+    {d.blitzes.length > 0 && <>
+      <h4 style="margin:16px 0 4px">Blitz Analysis</h4>
+      <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+        <thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg Yds</th><th>Stop%</th></tr></thead>
+        <tbody>{d.blitzes.map(b => <SchemeRow key={b.name}
+          onActivate={b.refs?.length ? () => screen.watchRefs(b.refs, `${b.name} blitz — ${b.count} plays`) : undefined}
+          label={`${b.name} blitz — ${b.count} plays`}>
+          <td>{b.name}</td><td>{b.count}</td><td>{b.sacks}</td><td>{share(b.havoc, b.count)}%</td>
+          <td>{avg(b.yards, b.count)}</td><td>{share(b.successes, b.count)}%</td>
+        </SchemeRow>)}</tbody>
+      </table></div>
+    </>}
+    {(d.earlyDownFronts.fronts.length > 0 || d.passingDownFronts.fronts.length > 0) && <div class="stats-two-col" style="margin-top:12px">
+      {[d.earlyDownFronts, d.passingDownFronts].filter(sit => sit.fronts.length > 0).map(sit => <div key={sit.label}>
+        <h4 style="margin:8px 0 4px">{sit.label} ({sit.total})</h4>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
+          <tbody>{sit.fronts.map(([name, count]) => <tr key={name}>
+            <td>{name}</td><td>{count}</td><td>{sit.total ? (count / sit.total * 100).toFixed(0) : 0}%</td>
+          </tr>)}</tbody>
+        </table>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+function verdictIcon(v) { return v === 'dominant' ? '▲' : v === 'effective' ? '▬' : '▼'; }
+function verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
+
+/** One structured recommendation (see `StatsEngine.generateDefensiveSelfScout`'s
+ *  own comment) rendered as real JSX -- the SAME selection this section has
+ *  always shown, formatted here instead of via `_defScoutRecommendationHtml`'s
+ *  HTML-string sink. `item.label`/`tellVal` arrive raw (not pre-escaped),
+ *  matching every other JSX text child in this file. */
+function DefRecommendation({ item }) {
+  switch (item.kind) {
+    case 'exploitable-summary':
+      return <div class="ss-rec"><strong>{item.count} exploitable defensive tendenc{item.count > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.</div>;
+    case 'exploitable-item':
+      return <div class="ss-rec"><span class="ss-rec-label">{item.label}</span>: {item.tellType} tell — {item.tellVal} {item.tellPct}% of the time (n={item.n}), but only {item.stopRate}% stop rate. Mix in alternative looks.</div>;
+    case 'exploitable-more': {
+      const shown = item.names.slice(0, 4).join(', ');
+      const extra = item.names.length > 4 ? `, +${item.names.length - 4} more` : '';
+      return <div class="ss-rec"><strong>{item.count} more alignments</strong> tip the same way ({shown}{extra}). One change of look covers all of them.</div>;
+    }
+    case 'dominant':
+      return <div class="ss-rec"><span class="ss-rec-label ss-rec-strength">{item.label}</span>: {item.tellVal} {item.tellPct}% is predictable but <strong>working</strong> — {item.stopRate}% stop rate{item.havocRate >= 15 ? `, ${item.havocRate}% havoc` : ''}. The alignment is earning its keep.</div>;
+    case 'balanced':
+    default:
+      return <div class="ss-rec">No strong defensive tells at the current sample size — your scheme mix looks balanced across situations.</div>;
+  }
+}
+
+/** Defensive Self-Scout -- a real Preact re-derivation of
+ *  `StatsEngine._renderDefScoutSection(ds, hideKpis=true)`'s markup (the
+ *  exact call DefenseTab always made: the KPI strip is suppressed here
+ *  because Defensive Performance, two sections above, already shows the
+ *  same numbers). Renders nothing at all when the sample is insufficient,
+ *  matching `_defScoutBlock(defScout, showEmpty=false, ...)`'s exact
+ *  contract -- the Defense tab's own top-level empty state already covers
+ *  that case. */
+function DefensiveSelfScout({ defScout, screen }) {
+  if (!defScout || defScout.insufficient) return null;
+  const engine = screen.app.stats;
+  const mc = engine.constructor._meterColor(defScout.predictability);
+  return <div class="stats-section ss-def-section">
+    <div class="ss-def-header">
+      <h3>Defensive Self-Scout</h3>
+      <div class="ss-def-summary">{defScout.totalPlays} defensive plays</div>
+    </div>
+    <div class="ss-def-predictability">Predictability: <span style={{ color: mc, fontWeight: 700 }}>{defScout.predictability}/100 ({defScout.predLabel})</span></div>
+    {defScout.recommendations.length > 0 && <div class="ss-recs" style="margin-bottom:12px">
+      {defScout.recommendations.map((item, i) => <DefRecommendation key={i} item={item} />)}
+    </div>}
+    <h4 style="margin:12px 0 6px;font-size:13px;color:var(--text-dim)">Defensive Tendency Tells</h4>
+    {defScout.tells.length > 0 ? <table class="stats-table stats-table-full ss-tells">
+      <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
+      <tbody>{defScout.tells.map((t, i) => <SchemeRow key={i}
+        onActivate={t.refs?.length ? () => screen.watchRefs(t.refs, `${t.label} — ${t.n} plays`) : undefined}
+        label={`${t.label} — ${t.n} plays`}>
+        <td>{t.label}</td>
+        <td><span class="ss-dim">{t.dim}</span></td>
+        <td>{t.tellType}</td>
+        <td><span class={`ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}`} style={{ '--p': `${t.tellPct}%` }}>{t.tellVal} {t.tellPct}%</span></td>
+        <td>{t.stopRate}%</td>
+        <td>{t.havocRate}%</td>
+        <td><span class={`ss-verdict ss-verdict-${t.verdict}`}>{verdictIcon(t.verdict)} {verdictLabel(t.verdict)}</span></td>
+        <td>{t.n}</td>
+      </SchemeRow>)}</tbody>
+    </table> : <p style="color:var(--text-dim)">No defensive scheme tells at the current sample size.</p>}
+    {defScout.ddRows.length > 0 && <>
+      <h4 style="margin:16px 0 6px;font-size:13px;color:var(--text-dim)">Scheme by Situation</h4>
+      <table class="stats-table stats-table-full ss-split">
+        <thead><tr><th>Situation</th><th>#</th><th>Top Front</th><th>Top Coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg Yds</th></tr></thead>
+        <tbody>{defScout.ddRows.map(r => <tr key={r.key}>
+          <td>{engine._ddPretty(r.key)}</td><td>{r.n}</td>
+          <td>{r.topFrontName ? `${r.topFrontName} ${r.topFrontPct}%` : '—'}</td>
+          <td>{r.topCovName ? `${r.topCovName} ${r.topCovPct}%` : '—'}</td>
+          <td>{r.blitzPct}%</td><td>{r.stopRate}%</td><td>{r.havocRate}%</td><td>{r.avgYds}</td>
+        </tr>)}</tbody>
+      </table>
+    </>}
+  </div>;
+}
+
 export function DefenseTab({ report, scoped, screen }) {
   const engine = screen.app.stats;
   if (!report.total) return <EmptyState title="No defensive data tagged yet" body="Tag plays as Defense and add the opponent's play type, result and yardage to build this report." />;
@@ -474,9 +645,9 @@ export function DefenseTab({ report, scoped, screen }) {
       </div>
     </DefSection>
     <DefSection title="Scheme Detail">
-      <LegacyWidget html={engine._renderDefensive(scopedStats)} bind={node => screen.wireGenericCutRows(node, scoped)} />
+      <SchemeDetail defensive={scopedStats.defensive} screen={screen} />
     </DefSection>
-    <LegacyWidget html={engine._defScoutBlock(defScout, false, true)} bind={node => screen.wireGenericCutRows(node, scoped)} />
+    <DefensiveSelfScout defScout={defScout} screen={screen} />
   </div>;
 }
 
