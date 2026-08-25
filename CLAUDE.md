@@ -15,6 +15,26 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX RE-REVIEW OF `4a74016` — REPAIRS ACCEPTED (2026-08-25)
+
+**Verdict: ACCEPTED, no repair findings.** The season-scope film fix now resolves
+composite refs from the exact cohort used to compute each legacy Defense fragment;
+the Yards/Play columns sort on the real `yardsPerPlay` field; and the rewritten
+fixture is non-monotonic, waits for Preact's deferred update, and directly proves
+the cross-game Scheme Detail cohort. Replacement Charlie Gate captures are clean.
+
+Independent focused verification: `e2e-native-reports.mjs` 66/66 and
+`e2e-reports-view-parity.mjs` 6/6.
+
+**Architecture status remains explicit:** this accepts the repair, not a claim
+that Defense is fully presentation-independent. Scheme Detail and Defensive
+Self-Scout still enter the live tab as StatsEngine HTML through `LegacyWidget`.
+Finish those two remaining Defense presentation owners before beginning Special
+Teams; carrying another partially migrated tab would recreate the old-dependency
+problem this milestone exists to remove. A direct Defensive Self-Scout cross-game
+activation assertion should accompany that conversion; it is the independent
+call site not directly exercised by the current Scheme Detail regression.
+
 ### ▶ REPAIR of the `d1b4f9c` review's two P1s + P2 — Defense committed, ready for re-review (2026-08-25)
 
 **Builder: Claude. Repairs all three findings from `d1b4f9c` (recorded immediately
