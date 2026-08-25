@@ -2037,7 +2037,7 @@
     "tells": [
      {
       "dim": "Down & Dist",
-      "label": "1st &amp; Long",
+      "label": "1st & Long",
       "n": 8,
       "lean": "Run",
       "leanPct": 100,
@@ -2059,7 +2059,7 @@
      },
      {
       "dim": "Formation × Down",
-      "label": "Trips on 1st &amp; Long",
+      "label": "Trips on 1st & Long",
       "n": 6,
       "lean": "Run",
       "leanPct": 100,
@@ -6371,7 +6371,7 @@
     "tells": [
      {
       "dim": "Down & Dist",
-      "label": "1st &amp; Long",
+      "label": "1st & Long",
       "n": 7,
       "lean": "Run",
       "leanPct": 100,
@@ -6393,7 +6393,7 @@
      },
      {
       "dim": "Formation × Down",
-      "label": "Trips on 1st &amp; Long",
+      "label": "Trips on 1st & Long",
       "n": 6,
       "lean": "Run",
       "leanPct": 100,
@@ -9433,7 +9433,7 @@
     "tells": [
      {
       "dim": "Down & Dist",
-      "label": "2nd &amp; Medium",
+      "label": "2nd & Medium",
       "n": 4,
       "lean": "Run",
       "leanPct": 100,

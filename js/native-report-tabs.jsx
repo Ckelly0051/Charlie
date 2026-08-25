@@ -768,7 +768,10 @@ function InlineReportText({ html }) {
     if (item.nodeType !== 1) return null;
     const children = [...item.childNodes].map((child, i) => node(child, key + '-' + i));
     if (item.tagName === 'STRONG' || item.tagName === 'B') return <strong key={key}>{children}</strong>;
-    if (item.tagName === 'SPAN') return <span key={key}>{children}</span>;
+    if (item.tagName === 'SPAN') {
+      const allowed = ['ss-rec-label', 'ss-rec-strength'].filter(name => item.classList.contains(name));
+      return <span key={key} class={allowed.join(' ') || undefined}>{children}</span>;
+    }
     return item.textContent;
   };
   return <>{[...doc.body.childNodes].map((item, i) => node(item, i))}</>;
@@ -797,7 +800,7 @@ function SelfScoutTells({ tells, screen }) {
     {key:'leanAvg',label:'Avg',numeric:true}, {key:'leanSuccRate',label:'Succ%',numeric:true,render:r=>r.leanSuccRate+'%'},
     {key:'verdict',label:'Assessment',render:r=><span class={'ss-verdict ss-verdict-'+r.verdict}>{verdictIcon(r.verdict)} {verdictLabel(r.verdict)}</span>},
     {key:'n',label:'n',numeric:true},
-  ]} rows={tells.map((t,i)=>({...t,id:t.dim+'-'+t.label+'-'+i,onActivate:t.cutType?()=>screen.watchCut(t.cutType,t.cutVal,t.label+' — '+t.n+' plays'):undefined}))}/>;
+  ]} rows={tells.map((t,i)=>({...t,id:t.dim+'-'+t.label+'-'+i,class:'ss-verdict-'+t.verdict,onActivate:t.cutType?()=>screen.watchCut(t.cutType,t.cutVal,t.label+' — '+t.n+' plays'):undefined}))}/>;
 }
 function SelfScoutPersonnel({ items, screen }) {
   const rows=(items||[]).filter(x=>x.topPct>=75).map(x=>({...x,id:x.personnel,
@@ -857,7 +860,7 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
       <Module title="Recommendations" meta="what to keep and what to break"><div class="ss-recs">{report.recommendations.map((x,i)=><div class="ss-rec" key={i}><InlineReportText html={x}/></div>)}</div></Module>
     </div>
     {report.downDistRows.length>0&&<Module title="Situational Performance" meta="run/pass mix and production by down"><SelfScoutSplitTable rows={report.downDistRows} label="Down & Dist" cutType="dd" screen={screen}/></Module>}
-    {callRows.length>0&&<Module title="Play Call Performance" meta="exact calls charted"><SelfScoutSplitTable rows={callRows} label="Play Call" cutType="playCall" screen={screen}/></Module>}
+    {callRows.length>0&&<Module title="Call and Concept Performance" meta="charted calls and concepts"><SelfScoutSplitTable rows={callRows} label="Call / Concept" cutType="playCallOrConcept" screen={screen}/></Module>}
     <Module title="Negative & Explosive Plays" meta="where possessions are won or lost"><div class="gi-selfscout-event-grid">{[
       ['Explosive Rate',(e.explosivePct||'0.0')+'%'],['Negative Plays',neg.distinct||0],['Turnovers',neg.turnovers||0],
       ['Sacks',neg.lossSacks||0],['Plays for Loss',neg.lossTotal||0],['Penalties',neg.penalties||0],

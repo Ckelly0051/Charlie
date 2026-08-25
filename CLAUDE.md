@@ -15,6 +15,13 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX SELF-SCOUT ADVERSARIAL REPAIR COMPLETE (2026-08-25)
+
+Codex's independent adversarial review of the native Self-Scout migration found and closed four defects. Self-Scout now admits every offensive play with either an explicit Run/Pass classification or a Play Type, matching the KPI cohort; concept-only call rows open their exact film through a shared play-call-or-concept filter; tell labels remain raw data until each HTML sink escapes them, preventing both visible `&amp;` text in Preact and legacy/export injection; and the native table/recommendation components preserve the approved verdict and emphasis classes instead of silently discarding them.
+
+The analytics golden change was audited field by field before acceptance. Across the synthetic fixture and the private real six-game season, every changed path was a Self-Scout tell label changing from a pre-escaped `&amp;` string to the intended raw `&`; no count, metric, cohort, or drill-down changed. The local real-season golden remains gitignored.
+
+Verification: `npm run build` green; `tools/e2e-self-scout.mjs` 48/48; `tools/e2e-native-reports.mjs` 83/83; `tools/e2e-xss-names.mjs` 6/6; `tools/e2e-core.mjs` 25/25; `tools/e2e-reports-view-parity.mjs` 6/6; `tools/e2e-parity.mjs` 2/2 across synthetic and real-season fixtures; zero reported page errors.
 ### CODEX SELF-SCOUT ARCHITECTURE + VISUAL MIGRATION COMPLETE (2026-08-25)
 
 The live Reports Self-Scout tab is now a native, answer-first Preact report. It no longer calls `StatsEngine._renderSelfScoutBody()`, injects report HTML, or relies on post-render `data-cut-*` selector rebinding. The first viewport leads with the six performance KPIs, sortable exact-film Top Tells, and concise recommendations; situation/call performance, negative and explosive events, formation/personnel splits, personnel-to-formation reads, predictability, the matrix, film-room insights, and defensive self-scout follow as one dense joined coaching board.

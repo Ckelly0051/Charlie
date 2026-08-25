@@ -101,7 +101,7 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
       role="button" tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(col.key); } }}
     >{col.label}</th>)}</tr></thead>
-    <tbody>{sorted.map((row, i) => <Watchable key={row.id ?? i} tag="tr" onActivate={row.onActivate} label={row.label}>
+    <tbody>{sorted.map((row, i) => <Watchable key={row.id ?? i} tag="tr" class={row.class} onActivate={row.onActivate} label={row.label}>
       {columns.map(col => <td key={col.key} data-col={col.key}>{col.render ? col.render(row) : row[col.key]}</td>)}
     </Watchable>)}</tbody>
   </table></div>;

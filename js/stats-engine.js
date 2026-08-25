@@ -466,7 +466,7 @@ export class StatsEngine {
   }
 
   _currentPlays() {
-    let plays = this.tagger.plays.filter(p => p.tags.playType);
+    let plays = this.tagger.plays.filter(p => p.tags.playType || p.tags.runPass);
     if (this.filter && this.filter.active) plays = this.filter.filter(plays);
     return plays;
   }
@@ -3216,6 +3216,8 @@ export class StatsEngine {
       case 'qbAlignment': return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '') === val;
       case 'formation': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formation).includes(val);
       case 'playCall':  return p => isOff(p) && (p.tags.playCall || '') === val;
+      case 'playCallOrConcept': return p => isOff(p)
+        && (p.tags.playCall || p.tags.playConcept || '') === val;
       case 'playConcept': return p => isOff(p) && (p.tags.playConcept || '') === val;
       case 'playType':  return p => isOff(p) && StatsEngine.splitPlayTypes(p.tags.playType).includes(val);
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
@@ -5830,7 +5832,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
         const verdict = dominant ? 'dominant' : effective ? 'effective' : 'exploitable';
         const cut = cutFn ? cutFn(grp.key) : null;
         return {
-          dim, label: Charts._esc(fmt(grp.key)), n: grp.n, lean, leanPct,
+          dim, label: fmt(grp.key), n: grp.n, lean, leanPct,
           leanAvg, leanSuccRate, overallAvg, overallSucc,
           tds: grp.tds, turnovers: grp.turnovers, explosives: grp.explosives,
           verdict,
@@ -6485,20 +6487,20 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     StatsEngine._themedRecommendations(exploitable,
       t => {
         const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
-        return `<span class="ss-rec-label">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) at ${t.leanAvg} yds/${t.leanSuccRate}% success — the lean isn't paying off, and ${c.threat}. Add ${c.fix}.`;
+        return `<span class="ss-rec-label">${Charts._esc(t.label)}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) at ${t.leanAvg} yds/${t.leanSuccRate}% success — the lean isn't paying off, and ${c.threat}. Add ${c.fix}.`;
       },
       rest => {
-        const names = [...new Set(rest.map(item => item.label))];
+        const names = [...new Set(rest.map(item => Charts._esc(item.label)))];
         return `<strong>${rest.length} more situations</strong> lean the same way (${names.slice(0, 4).join(', ')}${names.length > 4 ? `, +${names.length - 4} more` : ''}). One constraint call answers all of them.`;
       }
     ).forEach(line => recommendations.push(line));
     effective.slice(0, 3).forEach(t => {
       const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
       const prod = t.leanAvg >= 5 ? 'productive' : 'adequate';
-      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: your ${t.lean.toLowerCase()} lean (${t.leanPct}%) is ${prod} at ${t.leanAvg} yds/${t.leanSuccRate}% success, but ${c.threat}. Carry one constraint (${c.fix}) per game to hold them honest.`);
+      recommendations.push(`<span class="ss-rec-label">${Charts._esc(t.label)}</span>: your ${t.lean.toLowerCase()} lean (${t.leanPct}%) is ${prod} at ${t.leanAvg} yds/${t.leanSuccRate}% success, but ${c.threat}. Carry one constraint (${c.fix}) per game to hold them honest.`);
     });
     dominant.slice(0, 3).forEach(t => {
-      recommendations.push(`<span class="ss-rec-label ss-rec-strength">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% and it's <strong>working</strong> — ${t.leanAvg} yds, ${t.leanSuccRate}% success${t.tds ? `, ${t.tds} TD${t.tds > 1 ? 's' : ''}` : ''}. Keep riding it. The tendency is a feature, not a bug.`);
+      recommendations.push(`<span class="ss-rec-label ss-rec-strength">${Charts._esc(t.label)}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% and it's <strong>working</strong> — ${t.leanAvg} yds, ${t.leanSuccRate}% success${t.tds ? `, ${t.tds} TD${t.tds > 1 ? 's' : ''}` : ''}. Keep riding it. The tendency is a feature, not a bug.`);
     });
     if (tells.length === 0) {
       recommendations.push('No strong tells at the current sample size — your run/pass mix is well balanced across situations. Keep tagging for finer-grained insight.');
@@ -6531,9 +6533,10 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     return `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead>
       <tbody>${tells.map(t => {
-        const cut = t.cutType ? ` cut-row" data-cut-type="${t.cutType}" data-cut-val="${Charts._esc(t.cutVal)}" data-cut-label="${t.label} — ${t.n} plays` : '';
+        const label = Charts._esc(t.label);
+        const cut = t.cutType ? ` cut-row" data-cut-type="${t.cutType}" data-cut-val="${Charts._esc(t.cutVal)}" data-cut-label="${label} — ${t.n} plays` : '';
         return `<tr class="ss-verdict-${t.verdict}${cut}">
-        <td>${t.label}</td>
+        <td>${label}</td>
         <td><span class="ss-dim">${t.dim}</span></td>
         <td><span class="ss-bar ss-bar-${t.lean === 'Run' ? 'run' : 'pass'}" style="--p:${t.leanPct}%">${t.lean} ${t.leanPct}%</span></td>
         <td>${t.leanAvg}</td>
@@ -6841,7 +6844,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     const title = `Self-Scout Report: ${team}`;
     const vc = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#f59e0b' : '#ef4444';
     const tellRows = report.tells.map(t =>
-      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${vc(t.verdict)};font-weight:600">${StatsEngine._verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
+      `<tr><td>${Charts._esc(t.label)}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${vc(t.verdict)};font-weight:600">${StatsEngine._verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
     ).join('') || '<tr><td colspan="7">No strong tells at current sample size.</td></tr>';
     const formRows = report.formationRows.map(r =>
       `<tr${r.tell ? ' style="font-weight:600"' : ''}><td>${Charts._esc(r.key)}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.runAvg}</td><td>${r.passAvg}</td><td>${r.succRate}%</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`

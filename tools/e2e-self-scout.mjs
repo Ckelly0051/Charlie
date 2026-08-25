@@ -152,6 +152,50 @@ r = await page.evaluate(() => {
 });
 ok(r.nativeBoard, 'Self-Scout renders through its real native component even when the legacy body renderer refuses', JSON.stringify(r));
 ok(r.legacyBindings === 0, 'Self-Scout carries no retired selector-rebinding attributes', JSON.stringify(r));
+
+console.log('\n== 4c. Adversarial repair cases: cohort, concept film, escaping, visual semantics ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk;
+  const stats = window.app.stats;
+  stats.filter.active = false;
+
+  stats.tagger.plays = [mk({ unit:'offense', runPass:'Run', playType:'', result:'Gain', yardage:'4' })];
+  const runPassReport = stats.generateSelfScout();
+  const runPassComputed = stats.compute().offPlays.length;
+
+  stats.tagger.plays = [mk({ unit:'offense', runPass:'Run', playType:'Run Inside',
+    playCall:'', playConcept:'Counter', result:'Gain', yardage:'5' })];
+  const conceptRows = stats._selfScoutRows(stats._selfScoutGroup(
+    stats._offensePlays(), play => play.tags.playCall || play.tags.playConcept || null
+  ));
+  const conceptMatches = stats.tagger.plays.filter(stats._buildCutFilter('playCallOrConcept', 'Counter')).length;
+
+  stats.tagger.plays = Array.from({ length:5 }, () => mk({ unit:'offense', runPass:'Run',
+    playType:'Run Inside', formation:'Ace & Empty', result:'Gain', yardage:'8' }));
+  const escapedReport = stats.generateSelfScout();
+  window.app.reportsScreen.selectTab('selfscout');
+  const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  const tellText = pane.querySelector('.ss-tells tbody tr td')?.textContent || '';
+  return {
+    runPassTotal: runPassReport?.totalPlays || 0,
+    runPassComputed,
+    conceptKeys: conceptRows.map(row => row.key),
+    conceptMatches,
+    rawTellLabel: escapedReport.tells.find(t => t.cutType === 'formation')?.label || '',
+    tellText,
+    recommendationLabels: pane.querySelectorAll('.ss-rec-label').length,
+    verdictRows: pane.querySelectorAll('.ss-tells tr.ss-verdict-dominant,.ss-tells tr.ss-verdict-effective,.ss-tells tr.ss-verdict-exploitable').length,
+  };
+});
+ok(r.runPassTotal === 1 && r.runPassComputed === 1,
+  'Run/Pass-only offense is included consistently in Self-Scout and KPI computation', JSON.stringify(r));
+ok(r.conceptKeys.includes('Counter') && r.conceptMatches === 1,
+  'a concept-only performance row resolves its exact film cohort', JSON.stringify(r));
+ok(r.rawTellLabel === 'From Ace & Empty' && r.tellText === 'From Ace & Empty',
+  'native tell labels stay raw in data and render one escaped time', JSON.stringify(r));
+ok(r.recommendationLabels > 0 && r.verdictRows > 0,
+  'recommendation emphasis and verdict row-edge classes survive native rendering', JSON.stringify(r));
+
 console.log('\n== 5. Actionable tells: distance buckets, clickable-to-film, defensive counter ==');
 r = await page.evaluate(() => {
   const mk = window.__mk;
