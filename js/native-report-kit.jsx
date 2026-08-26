@@ -16,7 +16,7 @@ import { useMemo, useState } from 'preact/hooks';
 
 export function KpiBand({ items }) {
   if (!items?.length) return null;
-  return <div class="gi-overview-kpis">
+  return <div class="gi-overview-kpis" style={`--gi-kpi-cols:${Math.min(items.length, 7)}`}>
     {items.map((item, i) => <div key={i} class={`gi-overview-kpi ${item.cls || ''}`}>
       <span>{item.label}</span><strong>{item.value}</strong>{item.sub ? <small>{item.sub}</small> : null}
     </div>)}

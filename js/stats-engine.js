@@ -5067,21 +5067,23 @@ export class StatsEngine {
       const isTd = StatsEngine.hasResult(p, 'Touchdown');
       // Multi-select formation: attribute the play to each component look.
       StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
-        if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
+        if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0, refs: [] };
         formationDetail[f].total++;
         if (isRun) formationDetail[f].runs++;
         else formationDetail[f].passes++;
         formationDetail[f].yards += yards;
         if (isTd) formationDetail[f].tds++;
+        if (p.__gid != null && p.id != null) formationDetail[f].refs.push(`${p.__gid}::${p.id}`);
       });
     });
     const downTendency = {};
     plays.forEach(p => {
       const key = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
-      if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0 };
+      if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0, refs: [] };
       downTendency[key].total++;
       if (StatsEngine.isRun(p)) downTendency[key].runs++;
       else downTendency[key].passes++;
+      if (p.__gid != null && p.id != null) downTendency[key].refs.push(`${p.__gid}::${p.id}`);
     });
     const fronts = {}, coverages = {};
     plays.forEach(p => {
@@ -5096,12 +5098,12 @@ export class StatsEngine {
     return {
       totalPlays: plays.length, stats,
       formationDetail: Object.entries(formationDetail).sort((a, b) => b[1].total - a[1].total)
-        .map(([name, d]) => ({ name, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+        .map(([name, d]) => ({ name, ...d, refs: [...new Set(d.refs)], runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
       // G2 — no `.slice(0, 15)`. It silently dropped situations while the header
       // still counted them: 15 rows totalling 30 of 34 snaps, with no "and N
       // more". A report that looks complete and is not.
       downTendency: Object.entries(downTendency).sort((a, b) => b[1].total - a[1].total)
-        .map(([key, d]) => ({ key, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+        .map(([key, d]) => ({ key, ...d, refs: [...new Set(d.refs)], runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
       byDown: this._scoutByDown(plays),
       byDistance: this._scoutByDistance(plays),
       fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
@@ -5241,11 +5243,12 @@ export class StatsEngine {
       const set = (plays || []).filter(p => String(p.tags?.down || '') === down);
       const runs = set.filter(p => StatsEngine.isRun(p)).length;
       const yards = set.reduce((sum, p) => sum + (parseInt(p.tags?.yardage, 10) || 0), 0);
+      const refs = [...new Set(set.filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
       return {
         key: down, label: `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'}`,
         total: set.length, runs, passes: set.length - runs,
         runPct: set.length ? Math.round(runs / set.length * 100) : 0,
-        avg: set.length ? (yards / set.length).toFixed(1) : '0.0',
+        avg: set.length ? (yards / set.length).toFixed(1) : '0.0', refs,
       };
     });
     return rows.filter(r => r.total);   // empty is omitted, not zeroed
@@ -5265,10 +5268,11 @@ export class StatsEngine {
       });
       const runs = set.filter(p => StatsEngine.isRun(p)).length;
       const yards = set.reduce((sum, p) => sum + (parseInt(p.tags?.yardage, 10) || 0), 0);
+      const refs = [...new Set(set.filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
       return {
         key: bucket.key, label: bucket.label, total: set.length, runs, passes: set.length - runs,
         runPct: set.length ? Math.round(runs / set.length * 100) : 0,
-        avg: set.length ? (yards / set.length).toFixed(1) : '0.0',
+        avg: set.length ? (yards / set.length).toFixed(1) : '0.0', refs,
       };
     });
     return rows.filter(r => r.total);

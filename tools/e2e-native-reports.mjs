@@ -1046,6 +1046,8 @@ result = await page.evaluate(() => {
     all: app.reportsScreen._opponentRefs('all'),
     visibleTabs: [...document.querySelectorAll('[data-report-tab]')].filter(node => !node.hidden).map(node => node.dataset.reportTab),
     text: document.querySelector('[data-native-report-content]')?.textContent || '',
+    sampleCards: [...document.querySelectorAll('[data-pane="overview"] .gi-overview-kpi')]
+      .map(node => ({ label: node.querySelector('span')?.textContent.trim(), value: node.querySelector('strong')?.textContent.trim() })),
   };
 });
 ok(result.games === 2
@@ -1055,9 +1057,32 @@ ok(result.games === 2
 ok(JSON.stringify(result.special) === JSON.stringify(['g-scout::3']) && !result.all.includes('g-self::3'),
   'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST', JSON.stringify(result));
 ok(result.visibleTabs.join(',') === 'overview,offense,defense,special'
-  && /Games Charted:\s*2/.test(result.text),
+  && result.sampleCards.some(card => card.label === 'Games charted' && card.value === '2')
+  && !result.text.includes('No charted data yet'),
   'Opponent mode exposes only supported views and a dynamic sample strip', JSON.stringify(result));
 await capture('desktop-opponent');
+for (const tab of ['offense', 'defense', 'special']) {
+  await page.evaluate(tabName => window.app.reportsScreen.selectTab(tabName), tab);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await sleep(250);
+  await capture(`desktop-opponent-${tab}`);
+}
+const initialOpponentDefense = await page.evaluate(async () => {
+  window.app.reportsScreen.selectTab('defense');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const data = window.app.reportsScreen._opponentData?.defenseJoin;
+  const modules = [...document.querySelectorAll('[data-pane="defense"] .gi-overview-module')];
+  const rowCounts = modules.map(module => ({
+    title: module.querySelector('header strong')?.textContent.trim() || '',
+    rows: module.querySelectorAll('tbody tr').length,
+  }));
+  return { model: { fronts: data?.fronts?.length || 0, coverages: data?.coverages?.length || 0 }, rowCounts };
+});
+ok(initialOpponentDefense.model.fronts === initialOpponentDefense.rowCounts.find(row => row.title.startsWith('Fronts'))?.rows
+  && initialOpponentDefense.model.coverages === initialOpponentDefense.rowCounts.find(row => row.title.startsWith('Coverages'))?.rows,
+  'Initial native opponent Defense render includes every structured front and coverage row', JSON.stringify(initialOpponentDefense));
+await page.evaluate(() => window.app.reportsScreen.selectTab('overview'));
+await sleep(80);
 
 result = await page.evaluate(() => {
   const app = window.app;
@@ -1161,7 +1186,7 @@ const scout = await page.evaluate(() => {
   const data = engine.generateOpponentScout('Wildcats');
   const join = data?.defenseJoin;
   const root = document.querySelector('#wsReports');
-  const rows = [...root.querySelectorAll('[data-opponent-refs]')];
+  const rows = [...root.querySelectorAll('[data-report-perspective-pane="opponent"] .gi-answer-row.cut-row')];
   return {
     listed: listed.map(item => ({ name: item.name, games: item.games, plays: item.plays })),
     // A head-to-head game is a scouting source: their offense read off our
@@ -1196,8 +1221,10 @@ const scoutFilm = await page.evaluate(async () => {
   await new Promise(resolve => setTimeout(resolve, 200));
   app.reportsScreen.selectTab('defense');
   await new Promise(resolve => setTimeout(resolve, 250));
-  const row = document.querySelector('#wsReports [data-opponent-refs]');
-  const expected = (row?.dataset.opponentRefs || '').split(',').filter(Boolean);
+  const module = [...document.querySelectorAll('#wsReports .gi-overview-module')]
+    .find(node => node.querySelector('header strong')?.textContent.includes('Fronts —'));
+  const row = module?.querySelector('tbody tr.cut-row');
+  const expected = app.reportsScreen._opponentData?.defenseJoin?.fronts?.[0]?.refs || [];
   const shown = Number(row?.querySelectorAll('td')[1]?.textContent || 0);
   row?.click();
   await new Promise(resolve => setTimeout(resolve, 250));
@@ -1279,16 +1306,27 @@ const oppOffense = await page.evaluate(async () => {
   document.querySelector('[data-report-tab="offense"]')?.click();
   await new Promise(r => setTimeout(r, 400));
   const root = document.querySelector('.gi-reports');
-  const bt = root?.querySelector('table.bt-table');
+  const bigModule = [...(root?.querySelectorAll('.gi-overview-module') || [])]
+    .find(node => node.querySelector('header strong')?.textContent.startsWith('The “Big'));
+  const bt = bigModule?.querySelector('table');
   const heads = [...(bt?.querySelectorAll('thead th') || [])].map(th => th.textContent.trim());
   const firstRow = [...(bt?.querySelectorAll('tbody tr:first-child td') || [])].map(td => td.textContent.trim());
-  const h3 = [...(root?.querySelectorAll('h3') || [])].map(h => h.textContent.trim());
+const h3 = [...(root?.querySelectorAll('h3') || [])].map(h => h.textContent.trim());
+  const situationsModule = [...(root?.querySelectorAll('.gi-overview-module') || [])]
+    .find(node => node.querySelector('header strong')?.textContent === 'Every situation');
+  const runHeader = [...(situationsModule?.querySelectorAll('thead th') || [])]
+    .find(th => th.textContent.trim() === 'Run');
+  runHeader?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const runValues = [...(situationsModule?.querySelectorAll('tbody td[data-col="runPct"]') || [])]
+    .map(td => Number.parseInt(td.textContent, 10));
+  const runSortsNumerically = runValues.every((value, index) => index === 0 || runValues[index - 1] >= value);
   return {
     // G13 — cells in charting order: Formation leads, QB alignment second.
     heads, cells: firstRow.length,
     formationFirst: heads[0] === 'Formation' && heads[1] === 'QB align',
-    sortable: [...(bt?.querySelectorAll('thead th[data-bt-sort]') || [])].length,
-    blankRendersDash: [...(bt?.querySelectorAll('tbody td.bt-blank') || [])].every(td => td.textContent.trim() === '—'),
+    sortable: [...(bt?.querySelectorAll('thead th[role="button"]') || [])].length,
+    blankRendersBlank: firstRow.slice(0, 5).some(cell => cell === ''),
     // G2 — the two levels above the raw table exist, and the raw table is whole.
     hasByDown: h3.includes('By Down'),
     hasByDistance: h3.includes('By Distance to the Sticks'),
@@ -1297,10 +1335,11 @@ const oppOffense = await page.evaluate(async () => {
     shapeMarks: root?.querySelectorAll('.gi-hist, .gi-scatter, .gi-zones, .gi-multiples, .gi-ramp').length || 0,
     // Opponent rows must NOT claim our cut filters.
     oppShapeCuts: root?.querySelectorAll('.gi-ramp .cut-row').length || 0,
+    runSortsNumerically, runValues,
   };
 });
-ok(oppOffense.formationFirst && oppOffense.sortable === oppOffense.heads.length && oppOffense.blankRendersDash,
-  'The Big 13 is sortable cells in charting order — Formation first, untagged dimensions blank',
+ok(oppOffense.formationFirst && oppOffense.sortable === oppOffense.heads.length && oppOffense.blankRendersBlank && oppOffense.runSortsNumerically,
+  'Opponent Offense tables sort numerically and keep charting-order dimensions — Formation first, untagged dimensions blank',
   JSON.stringify({ heads: oppOffense.heads, sortable: oppOffense.sortable }));
 /* G2/G3 — asserted on the opponent Offense HTML the renderer actually produces,
    not on whatever tab the harness happened to leave mounted. Both templates

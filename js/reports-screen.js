@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
-import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, ReportPane } from './native-report-tabs.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, OpponentOverviewTab, OpponentOffenseTab, OpponentDefenseTab, OpponentSpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -454,151 +454,14 @@ export class ReportsScreen {
   _renderOpponentTab() {
     const data = this._opponentData;
     const tab = this.activeTab;
-    const opponentName = data?.opponent || 'Opponent';
-    const name = Charts._esc(opponentName);
-    let html = '';
-    if (!data || !data.games) {
-      html = `<div class="stats-section"><h3>No opponent sample yet</h3><p>Tag a game against ${name}, or chart opponent film with Opponent scout selected. Reports will separate their offense, defense, and Special Teams without re-tagging.</p></div>`;
-    } else if (tab === 'overview') {
-      html = this._opponentOverviewHtml(data, opponentName);
-    } else if (tab === 'offense') {
-      const report = data.offReport;
-      if (!report) html = '<div class="stats-section"><h3>No opponent offensive snaps</h3><p>On head-to-head film, chart our unit as Defense. On opponent film, choose Opponent scout and chart their Offense.</p></div>';
-      else html = `
-        <div class="stats-section gi-reports-unit-head"><h3>Their offense · ${report.totalPlays} snaps</h3>${this._opponentWatchButton('offense', data.offCount, 'Watch opponent offense')}</div>
-        <div class="stats-section"><h3>Formation tendencies</h3><table class="stats-table stats-table-full"><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead><tbody>${report.formationDetail.map(row => `<tr><td>${Charts._esc(row.name)}</td><td>${row.total}</td><td>${row.runPct}%</td><td>${100 - row.runPct}%</td><td>${row.yards}</td><td>${row.tds}</td></tr>`).join('')}</tbody></table></div>
-        ${/* H18 / G2 — THIS is the path the native screen renders. Both were
-              built into stats-engine's `renderOpponentScout`, which this screen
-              never calls, so two builds of work went into a dead path and the
-              coach saw none of it. Composed here, where the tab is actually
-              assembled. */''}
-        ${/* H19 — a PIVOT, which is what was asked for. Two static tables
-              answered exactly the two questions I coded; this answers any pair
-              the coach picks, and `dirVsStrength` / `dirVsHash` are registered
-              dimensions so they cross with formation, down, distance and
-              personnel. Opens on the read he named. */''}
-        ${this.app.stats._renderTendencyMatrix(null, {
-          plays: data.offPlays, row: 'formation', col: 'dirVsStrength',
-          title: 'Tendencies — pivot any two dimensions',
-        })}
-        ${this.app.stats._renderBigTwelve(data.offPlays, data.opponent, { cut: false })}
-        ${this.app.stats._renderScoutDownDistance(report)}`;
-    } else if (tab === 'defense') {
-      html = this._opponentDefenseHtml(data, opponentName);
-    } else if (tab === 'special') {
-      if (!data.stStats) html = '<div class="stats-section"><h3>No opponent Special Teams scout film</h3><p>Chart a future opponent game in Opponent scout mode to build kick, return, field-goal, and try tendencies. Head-to-head film is not auto-flipped because the stored subject is our team.</p></div>';
-      else html = `<div class="stats-section gi-reports-unit-head"><h3>Their Special Teams · ${data.stCount} snaps</h3>${this._opponentWatchButton('special', data.stCount, 'Watch opponent Special Teams')}</div>${this.app.stats._renderSpecialTeams(data.stStats)}${this.app.stats._renderConversions(data.stStats)}${this.app.stats._renderIndividualStats(data.stStats, 'special')}`;
-    }
-    render(h(ReportPane, { tab, html, opponent: true }), this.content);
-    this._bindContent(this.content, data?.stStats || this.app.stats.compute([]));
-  }
-
-  /**
-   * F4 — the opponent Overview as an ANSWER SHEET.
-   *
-   * It used to be five sample-count tiles, which told a coach how much film
-   * existed and nothing about the opponent. This leads with who they are,
-   * then what to expect, attack and avoid — every line drawn from the same
-   * charted plays and film-linked where a cohort exists.
-   */
-  _opponentOverviewHtml(data, opponentName) {
-    const join = data.defenseJoin;
-    const off = data.offReport;
-    const runPct = off?.stats?.tendencies?.runPct;
-    const topCall = off?.formationDetail?.[0];
-    const thin = (data.offCount + data.defCount) < 40;
-    const identity = [
-      join?.baseFront ? `${join.baseFront.name} front` : '',
-      join?.baseCoverage ? `${join.baseCoverage.name}` : '',
-      runPct != null ? `${Math.round(parseFloat(runPct))}% run` : '',
-    ].filter(Boolean).join(' · ');
-
-    const line = (label, value, sub, refs) => {
-      const attrs = refs?.length
-        ? ` class="gi-answer-row cut-row" data-opponent-refs="${Charts._esc(refs.join(','))}" tabindex="0" role="button"`
-        : ' class="gi-answer-row"';
-      return `<li${attrs}><span>${Charts._esc(label)}</span><strong>${Charts._esc(value)}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</li>`;
-    };
-    const block = (title, rows) => rows.length
-      ? `<section class="gi-answer"><h4>${Charts._esc(title)}</h4><ul>${rows.join('')}</ul></section>` : '';
-
-    const expect = (off?.formationDetail || []).slice(0, 3).map(row =>
-      line(row.name, `${row.total} snaps`, `${row.runPct}% run`));
-    const attack = join ? [join.best].filter(Boolean).map(row =>
-      line(row.name, `${row.succPct}% success`, `${row.n} snaps · ${row.avg} avg`, row.refs)) : [];
-    const avoid = join ? [join.worst].filter(Boolean).filter(row => row !== join.best).map(row =>
-      line(row.name, `${row.succPct}% success`, `${row.n} snaps · ${row.avg} avg`, row.refs)) : [];
-    const risk = join ? [
-      line('Blitz Rate', `${join.pressure.ratePct}% of snaps`,
-        `Success Rate: ${join.pressure.blitzed.n ? `${join.pressure.blitzed.succPct}%` : 'N/A'}`, join.pressure.blitzed.refs),
-      join.pressure.blitzed.sacks ? line('Sacks allowed', String(join.pressure.blitzed.sacks + join.pressure.noBlitz.sacks), 'across this cohort') : '',
-    ].filter(Boolean) : [];
-
-    return `
-
-      <div class="stats-section gi-answer-head">
-        <h3>${Charts._esc(opponentName)}</h3>
-        ${identity ? `<p class="gi-answer-identity">${Charts._esc(identity)}</p>` : ''}
-        <p class="viz-caption gi-answer-sample">Games Charted: ${data.games} · Offensive Snaps: ${data.offCount} · Defensive Snaps: ${data.defCount}${thin ? ' · Small Sample' : ''}</p>
-      </div>
-      <div class="stats-section gi-answer-grid">
-        ${block('Expect', expect)}
-        ${block('Attack', attack)}
-        ${block('Avoid', avoid)}
-        ${block('Risk', risk)}
-      </div>
-      <div class="stats-section"><h3>Film</h3><div class="gi-reports-watch-row">
-        ${this._opponentWatchButton('all', data.offCount + data.defCount + data.stCount, `Watch all ${opponentName} film`)}
-        ${this._opponentWatchButton('offense', data.offCount, `Their offense`)}
-        ${this._opponentWatchButton('defense', data.defCount, `Their defense`)}
-        ${this._opponentWatchButton('special', data.stCount, `Their Special Teams`)}
-      </div></div>`;
-  }
-
-  /**
-   * F4 — their defense, from the joint observation on our offensive snaps.
-   * Was two one-row tables of front and coverage frequency. Frequency alone
-   * says nothing a coach can call a play from.
-   */
-  _opponentDefenseHtml(data, opponentName) {
-    const join = data.defenseJoin;
-    if (!join) return '<div class="stats-section"><h3>No opponent defensive snaps</h3><p>Chart our unit as Offense on head-to-head film. Every offensive snap records the front, coverage and pressure they showed.</p></div>';
-    const rows = (list, label) => list.slice(0, 8).map(row => `
-      <tr class="cut-row" data-opponent-refs="${Charts._esc(row.refs.join(','))}" tabindex="0" role="button">
-        <td>${Charts._esc(row.name)}</td><td>${row.n}</td><td>${row.avg}</td><td>${row.succPct}%</td><td>${row.explPct}%</td><td>${row.sacks}</td>
-      </tr>`).join('') || `<tr><td colspan="6">No ${label} charted.</td></tr>`;
-    const table = (title, note, list, first) => `
-      <div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>
-        <table class="stats-table stats-table-full"><thead><tr>
-          <th>${Charts._esc(first)}</th><th>Snaps</th><th>Yds/play</th><th>Our success</th><th>Explosive</th><th>Sacks</th>
-        </tr></thead><tbody>${rows(list, first.toLowerCase())}</tbody></table></div>`;
-
-    const changeup = join.changeups.length
-      ? `<div class="stats-section"><h3>Fronts and coverages outside their base</h3><p class="viz-caption">Fronts and coverages outside their base of ${Charts._esc(join.baseFront?.name || 'base')}, ordered by how rarely they appear.</p>
-          <table class="stats-table stats-table-full"><thead><tr><th>Front</th><th>Snaps</th><th>Yds/play</th><th>Our success</th></tr></thead>
-          <tbody>${join.changeups.map(row => `<tr class="cut-row" data-opponent-refs="${Charts._esc(row.refs.join(','))}" tabindex="0" role="button"><td>${Charts._esc(row.name)}</td><td>${row.n}</td><td>${row.avg}</td><td>${row.succPct}%</td></tr>`).join('')}</tbody></table></div>` : '';
-
-    const p = join.pressure;
-    return `
-      <div class="stats-section gi-reports-unit-head"><h3>Their defense · ${join.total} snaps</h3>${this._opponentWatchButton('defense', join.total, 'Watch opponent defense')}</div>
-      <div class="stats-section"><h3>Blitz</h3>
-
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">${p.ratePct}%</div><div class="stat-card-sub">${p.blitzed.n} of ${join.total} snaps</div></div>
-          <div class="stat-card"><div class="stat-card-title">Success Rate vs. Blitz</div><div class="stat-card-value">${p.blitzed.n ? `${p.blitzed.succPct}%` : 'N/A'}</div><div class="stat-card-sub">${p.blitzed.avg} yds/play</div></div>
-          <div class="stat-card"><div class="stat-card-title">No Blitz</div><div class="stat-card-value">${p.noBlitz.succPct}%</div><div class="stat-card-sub">${p.noBlitz.avg} yds/play</div></div>
-          <div class="stat-card"><div class="stat-card-title">Sacks allowed</div><div class="stat-card-value">${p.blitzed.sacks + p.noBlitz.sacks}</div></div>
-        </div></div>
-      ${table('Fronts — and what they cost us', 'Snaps we faced from each front, with yards per play, our success rate, our explosive rate and sacks allowed against it.', join.fronts, 'Front')}
-      ${table('Coverages — and what they cost us', 'Snaps we faced from each coverage, with yards per play, our success rate, our explosive rate and sacks allowed against it.', join.coverages, 'Coverage')}
-      ${table('What they play against our looks', 'Our formation, their answer, our result. The core scouting question.', join.byOurLook, 'Our formation')}
-      ${table('By situation', 'Money downs, red zone and backed up — where the call changes.', join.bySituation, 'Situation')}
-      ${changeup}`;
-  }
-
-  _opponentWatchButton(kind, count, label) {
-    if (!count) return '';
-    return `<button type="button" class="gi-reports-watch" data-opponent-watch="${kind}">${Charts._esc(label)} <span>${count}</span></button>`;
+    render(null, this.content);
+    this.content.replaceChildren();
+    let child;
+    if (tab === 'overview') child = h(OpponentOverviewTab, { data, screen: this });
+    else if (tab === 'offense') child = h(OpponentOffenseTab, { data, screen: this });
+    else if (tab === 'defense') child = h(OpponentDefenseTab, { data, screen: this });
+    else if (tab === 'special') child = h(OpponentSpecialTeamsTab, { data, screen: this });
+    render(h(ReportPane, { tab, opponent: true }, child), this.content);
   }
 
   _opponentRefs(kind) {
@@ -1053,31 +916,6 @@ export class ReportsScreen {
         const id = String(row.dataset.overviewPlayId || '');
         if (id) this._makeFilmControl(row, () => stats._watchPlays(
           play => String(play.id) === id, `Play ${id}`));
-      });
-    } else {
-      // Existing tag filters operate on the active game's tagger and would be
-      // wrong for a cross-game opponent cohort. Only these composite-ref unit
-      // controls are interactive in opponent perspective.
-      // F4: rows that carry their OWN composite refs stay live. The tag-filter
-      // rows are stripped as before, because those resolve against the active
-      // game's tagger and would be wrong for a cross-game opponent cohort.
-      root.querySelectorAll('.cut-row:not([data-opponent-refs]),.player-row').forEach(row => {
-        row.removeAttribute('tabindex');
-        row.removeAttribute('role');
-        row.classList.remove('cut-row', 'player-row');
-      });
-      root.querySelectorAll('[data-opponent-refs]').forEach(row => {
-        const refs = (row.dataset.opponentRefs || '').split(',').filter(Boolean);
-        if (!refs.length) { row.classList.remove('cut-row'); row.removeAttribute('tabindex'); row.removeAttribute('role'); return; }
-        const label = row.querySelector('span')?.textContent?.trim() || row.querySelector('td')?.textContent?.trim() || 'Opponent film';
-        this._makeFilmControl(row, () => this.app.filmNavigation?.watch?.(refs, { label }));
-      });
-      root.querySelectorAll('[data-opponent-watch]').forEach(button => {
-        button.addEventListener('click', () => {
-          const kind = button.dataset.opponentWatch;
-          const refs = this._opponentRefs(kind);
-          this.app.filmNavigation?.watch?.(refs, { label: button.textContent.trim() });
-        });
       });
     }
     root.querySelector('#btnExportSelfScout')?.addEventListener('click', () => {

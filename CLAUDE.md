@@ -15,6 +15,19 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX LIVE OPPONENT REPORTS NATIVE MIGRATION COMPLETE (2026-08-26)
+
+All four live Opponent Scout report views are now real Preact presentation: Overview, Offense, Defense, and Special Teams. `ReportsScreen` no longer composes opponent HTML strings, injects them into the live route, or rebinds `[data-opponent-refs]` / `[data-opponent-watch]` after render. The old `_opponentOverviewHtml()`, `_opponentDefenseHtml()`, and `_opponentWatchButton()` methods are deleted.
+
+The native views preserve the established opponent cohort rules instead of inventing a second analytics path: their offense comes from our defensive snaps plus opponent-scout offense, their defense from our offensive snaps plus opponent-scout defense, and Special Teams excludes ambiguous head-to-head subject film. Formation, down, distance, Big-call, front, coverage, pressure, situation, and Special Teams rows now carry or derive exact composite `gameId::playId` refs and own direct Preact film actions. `generateScoutReport()` gained additive, deduplicated refs on formation/down/distance rows; no football value changed.
+
+Visual composition now uses the same KPI/module/table language as the accepted self reports. KPI bands size themselves from their real metric count instead of leaving false empty panels; the opponent identity header is structured and aligned; Special Teams has one shared toolbar instead of a nested duplicate. Screenshots for all four views are in `design-comps/visual-reset-2026-08/part2-verification/reports-independence-opponent/`.
+
+Adversarial review caught and repaired percentage columns that displayed correctly but sorted lexicographically. Opponent Offense now stores numeric run/pass shares and adds `%` only at render time; the browser test clicks the real Run header and proves descending numeric order. The same harness also pins first-render Defense table completeness so a later rerender cannot hide missing rows.
+
+Verification: `npm run build` green; `tools/e2e-native-reports.mjs` 93/93; `tools/e2e-reports-view-parity.mjs` 6/6; `tools/e2e-xss-names.mjs` 6/6; analytics parity 2/2. The synthetic golden audit found exactly 43 additive `refs` arrays; recursively removing `refs` makes the old and new snapshots byte-identical.
+
+Retained boundary, stated precisely: the live Reports route is now native for both self and opponent perspectives. Older StatsEngine HTML renderers and `SeasonManager.statsHtml()` remain only for standalone/downloadable HTML report consumers and older non-route APIs. `Charts.rampRows()` also retains its legacy `data-opponent-refs` output for those consumers. Retire that family with the HTML export migration; it no longer constrains live Reports.
 ### CODEX NATIVE SEASON REPORT COMPLETE (2026-08-25)
 
 The live Reports Season tab is now a real Preact component over a structured `SeasonManager.reportModel()`. `ReportsScreen` no longer injects `SeasonManager.statsHtml()` into the live route. The seven native lenses are Overview, Offense, Defense, Special Teams, Players, Self-Scout, and Trends; each mounts only its active pane, while the season identity and KPI rail remain visible.

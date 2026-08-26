@@ -168,7 +168,7 @@ function BigTwelve({ data, screen }) {
     <DataTable columns={[
       { key: 'form', label: 'Formation' }, { key: 'qb', label: 'QB align' }, { key: 'bf', label: 'Backfield' }, { key: 'str', label: 'Strength' }, { key: 'mot', label: 'Motion' }, { key: 'pt', label: 'Play' },
       { key: 'n', label: 'N', numeric: true }, { key: 'succ', label: 'Success', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true },
-    ]} rows={data.rows.map(row => ({ ...row, onActivate: row.cutType ? () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
+    ]} rows={data.rows.map(row => ({ ...row, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, row.cutLabel) : row.cutType ? () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
   </Module>;
 }
 
@@ -261,6 +261,17 @@ function EpaPlayTable({ title, color, rows }) {
   </table></div>;
 }
 
+function ShapePanels({ shape }) {
+  if (!shape) return null;
+  return <>
+    <PairedBand slots={[
+      shape.histogram ? <Module title="Yards gained per play, distribution"><ChartBody {...shape.histogram} /></Module> : null,
+      shape.scatter ? <Module title="Yards gained vs distance to go"><ChartBody {...shape.scatter} /></Module> : null,
+    ]} />
+    {shape.zones && <Module title="Success Rate by Field Position"><ChartBody {...shape.zones} /></Module>}
+    {shape.downs && <Module title="Run/pass split and success rate by down"><ChartBody {...shape.downs} /></Module>}
+  </>;
+}
 export function OffenseTab({ stats, screen }) {
   const engine = screen.app.stats;
   if (!stats.offPlays.length) return <EmptyState title="No offensive snaps charted" body="Set Unit to Offense to populate this report." />;
@@ -282,12 +293,8 @@ export function OffenseTab({ stats, screen }) {
         <DataTable columns={breakdownColumns} rows={breakdownRows(tend.playTypes, screen)} />
       </Module>
     </div>
-    <PairedBand slots={[
-      shape?.histogram ? <Module title="Yards gained per play, distribution"><ChartBody {...shape.histogram} /></Module> : null,
-      shape?.scatter ? <Module title="Yards gained vs distance to go"><ChartBody {...shape.scatter} /></Module> : null,
-    ]} />
-    {shape?.zones && <Module title="Success Rate by Field Position"><ChartBody {...shape.zones} /></Module>}
-    {shape?.downs && <Module title="Run/pass split and success rate by down"><ChartBody {...shape.downs} /></Module>}
+    <ShapePanels shape={shape} />
+
     {pa && <Module title="Play-Action">
       <div class="stats-grid stats-grid-flex">
         <div class="stat-card"><div class="stat-card-title">PA Rate</div><div class="stat-card-value">{pa.paRate}%</div><div class="stat-card-sub">{pa.paPlays} of dropbacks</div></div>
@@ -652,6 +659,151 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
   </div>;
 }
 
+function OpponentWatch({ kind, count, label, screen }) {
+  if (!count) return null;
+  const refs = screen._opponentRefs(kind);
+  if (!refs.length) return null;
+  return <button type="button" class="gi-reports-watch" data-opponent-watch={kind} onClick={() => screen.watchRefs(refs, label)}>
+    {label} <span>{count}</span>
+  </button>;
+}
+
+function OpponentAnswerList({ title, rows, screen }) {
+  if (!rows.length) return null;
+  return <Module title={title}><div class="gi-answer-list">{rows.map((row, i) =>
+    <WatchableRefs key={`${row.label}-${i}`} refs={row.refs} label={`${title}: ${row.label}`} screen={screen} class="gi-answer-row">
+      <span>{row.label}</span><strong>{row.value}</strong>{row.sub ? <small>{row.sub}</small> : null}
+    </WatchableRefs>)}</div></Module>;
+}
+
+/** Native opponent answer sheet. Values come directly from generateOpponentScout;
+ * film actions use the exact composite refs carried by its grouped rows. */
+export function OpponentOverviewTab({ data, screen }) {
+  if (!data?.games) return <EmptyState title="No opponent sample yet" body="Tag a game against this opponent, or chart their film in Opponent Scout. Reports separate their offense, defense, and Special Teams without re-tagging." />;
+  const join = data.defenseJoin;
+  const off = data.offReport;
+  const runPct = off?.stats?.tendencies?.runPct;
+  const identity = [join?.baseFront ? `${join.baseFront.name} front` : '', join?.baseCoverage?.name || '', runPct != null ? `${Math.round(parseFloat(runPct))}% run` : ''].filter(Boolean).join(' · ');
+  const cards = [
+    { label: 'Games charted', value: data.games, sub: 'opponent sample' },
+    { label: 'Offensive snaps', value: data.offCount, sub: 'their offense', cls: 'is-gold' },
+    { label: 'Defensive snaps', value: data.defCount, sub: 'their defense' },
+    { label: 'Special Teams', value: data.stCount, sub: 'scout-film snaps' },
+  ];
+  const expect = (off?.formationDetail || []).slice(0, 3).map(row => ({ label: row.name, value: `${row.total} snaps`, sub: `${row.runPct}% run`, refs: row.refs }));
+  const attack = join?.best ? [{ label: join.best.name, value: `${join.best.succPct}% success`, sub: `${join.best.n} snaps · ${join.best.avg} avg`, refs: join.best.refs }] : [];
+  const avoid = join?.worst && join.worst !== join.best ? [{ label: join.worst.name, value: `${join.worst.succPct}% success`, sub: `${join.worst.n} snaps · ${join.worst.avg} avg`, refs: join.worst.refs }] : [];
+  const risk = join ? [
+    { label: 'Blitz rate', value: `${join.pressure.ratePct}%`, sub: `${join.pressure.blitzed.n} pressure snaps`, refs: join.pressure.blitzed.refs },
+    { label: 'Sacks allowed', value: join.pressure.blitzed.sacks + join.pressure.noBlitz.sacks, sub: 'across this cohort', refs: [...join.pressure.blitzed.refs, ...join.pressure.noBlitz.refs] },
+  ] : [];
+  return <div class="gi-overview-board">
+    <div class="gi-answer-head"><div><span class="gi-answer-eyebrow">Opponent identity</span><h3>{data.opponent}</h3>{identity && <p class="gi-answer-identity">{identity}</p>}<p class="gi-answer-sample">{data.games} games · {data.offCount + data.defCount + data.stCount} charted snaps</p></div>
+      <OpponentWatch kind="all" count={data.offCount + data.defCount + data.stCount} label={`Watch all ${data.opponent} film`} screen={screen} /></div>
+    <KpiBand items={cards} />
+    <div class="gi-overview-band gi-overview-band-auto">
+      <OpponentAnswerList title="Expect" rows={expect} screen={screen} />
+      <OpponentAnswerList title="Attack" rows={attack} screen={screen} />
+      <OpponentAnswerList title="Avoid" rows={avoid} screen={screen} />
+      <OpponentAnswerList title="Risk" rows={risk} screen={screen} />
+    </div>
+    <Module title="Film" meta="exact charted cohorts">
+      <div class="gi-reports-watch-row">
+        <OpponentWatch kind="offense" count={data.offCount} label="Their offense" screen={screen} />
+        <OpponentWatch kind="defense" count={data.defCount} label="Their defense" screen={screen} />
+        <OpponentWatch kind="special" count={data.stCount} label="Their Special Teams" screen={screen} />
+      </div>
+    </Module>
+  </div>;
+}
+
+function scoutRows(rows, screen, prefix) {
+  return (rows || []).map(row => ({ ...row, id: row.key || row.name || row.label,
+    situation: row.label || row.key, snaps: row.total, runPct: row.runPct, passPct: 100 - row.runPct,
+    onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${prefix}: ${row.label || row.key || row.name}`) : undefined,
+    label: `${prefix}: ${row.label || row.key || row.name}` }));
+}
+
+/** Their offense, rebuilt from the structured scout model with no legacy HTML renderer. */
+export function OpponentOffenseTab({ data, screen }) {
+  const report = data?.offReport;
+  if (!report) return <EmptyState title="No opponent offensive snaps" body="On head-to-head film, chart our unit as Defense. On opponent film, choose Opponent Scout and chart their Offense." />;
+  const engine = screen.app.stats;
+  const totalYards = report.stats.rushing.yards + report.stats.passing.yards;
+  const big = engine._bigTwelveData(data.offPlays);
+  const bigRows = big.calls.map(call => {
+    const predicate = engine._buildCutFilter('bigCall', call.key);
+    const refs = [...new Set(data.offPlays.filter(predicate).filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
+    const runPct = call.n ? Math.round(call.runs / call.n * 100) : 0;
+    return { ...call, id: call.key, n: call.n, succ: call.n ? Math.round(call.succ / call.n * 100) : 0,
+      avg: call.n ? (call.yards / call.n).toFixed(1) : '0.0', runPct, refs,
+      cutLabel: `${call.form || call.qb || 'Opponent call'} ${call.pt || ''} — ${call.n} plays` };
+  });
+  const bigData = big.total >= 8 ? { to90: big.to90, label: data.opponent, rows: bigRows } : null;
+  const columns = [{ key: 'situation', label: 'Situation' }, { key: 'snaps', label: 'Snaps', numeric: true },
+    { key: 'runPct', label: 'Run', numeric: true, render: row => `${row.runPct}%` },
+    { key: 'passPct', label: 'Pass', numeric: true, render: row => `${row.passPct}%` }, { key: 'avg', label: 'Avg', numeric: true }];
+  const formations = scoutRows(report.formationDetail.map(row => ({ ...row, key: row.name, label: row.name, avg: row.total ? (row.yards / row.total).toFixed(1) : '0.0' })), screen, 'Formation');
+  return <div class="gi-overview-board">
+    <div class="gi-st-toolbar"><strong class="gi-st-toolbar-label">Their offense</strong><OpponentWatch kind="offense" count={data.offCount} label="Watch opponent offense" screen={screen} /></div>
+    <KpiBand items={[
+      { label: 'Snaps', value: report.totalPlays, sub: 'charted offense' },
+      { label: 'Run / pass', value: report.stats.tendencies.runPassRatio, sub: `${report.stats.tendencies.runPct}% run`, cls: 'is-gold' },
+      { label: 'Yards / play', value: report.totalPlays ? (totalYards / report.totalPlays).toFixed(1) : '0.0', sub: `${totalYards} yards` },
+      { label: 'Third down', value: report.thirdDown.total ? `${report.thirdDown.converted}/${report.thirdDown.total}` : 'N/A', sub: report.thirdDown.total ? `${Math.round(report.thirdDown.converted / report.thirdDown.total * 100)}%` : 'no sample' },
+      { label: 'Red-zone TD', value: report.redZone.total ? `${report.redZone.tds}/${report.redZone.total}` : 'N/A', sub: 'scoring trips' },
+    ]} />
+    <Module title="Formation tendencies" meta="each row opens exact film"><DataTable columns={columns} rows={formations} /></Module>
+    <ShapePanels shape={engine._dataShape(report.stats, { plays: data.offPlays, cut: false, profile: false })} />
+    <TendencyMatrixPanel engine={engine} plays={data.offPlays} defaultRow="formation" defaultCol="dirVsStrength" title="Tendencies — pivot any two dimensions" />
+    {bigData && <BigTwelve data={bigData} screen={screen} />}
+    <div class="gi-overview-band gi-overview-band-2">
+      <Module title="By down"><DataTable columns={columns} rows={scoutRows(report.byDown, screen, 'Down')} /></Module>
+      <Module title="By distance to the sticks"><DataTable columns={columns} rows={scoutRows(report.byDistance, screen, 'Distance')} /></Module>
+    </div>
+    <Module title="Every situation" meta={`${report.downTendency.length} combinations · all snaps accounted for`}>
+      <DataTable columns={columns.slice(0, 4)} rows={scoutRows(report.downTendency, screen, 'Situation')} />
+    </Module>
+  </div>;
+}
+
+function OpponentDefenseTable({ title, meta, first, rows, screen }) {
+  return <Module title={title} meta={meta}><DataTable columns={[
+    { key: 'name', label: first }, { key: 'n', label: 'Snaps', numeric: true }, { key: 'avg', label: 'Yds/play', numeric: true },
+    { key: 'succPct', label: 'Our success', numeric: true, render: row => `${row.succPct}%` },
+    { key: 'explPct', label: 'Explosive', numeric: true, render: row => `${row.explPct}%` }, { key: 'sacks', label: 'Sacks', numeric: true },
+  ]} rows={rows.map(row => ({ ...row, id: row.name, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${title}: ${row.name}`) : undefined, label: `${title}: ${row.name}` }))} emptyText={`No ${first.toLowerCase()} charted.`} /></Module>;
+}
+
+/** Their defense, rebuilt around the joined front/coverage/outcome model. */
+export function OpponentDefenseTab({ data, screen }) {
+  const join = data?.defenseJoin;
+  if (!join) return <EmptyState title="No opponent defensive snaps" body="Chart our unit as Offense on head-to-head film. Every offensive snap records the front, coverage, and pressure they showed." />;
+  const pressure = join.pressure;
+  return <div class="gi-overview-board">
+    <div class="gi-st-toolbar"><strong class="gi-st-toolbar-label">Their defense</strong><OpponentWatch kind="defense" count={data.defCount} label="Watch opponent defense" screen={screen} /></div>
+    <KpiBand items={[
+      { label: 'Snaps', value: join.total, sub: 'charted defense' },
+      { label: 'Blitz rate', value: `${pressure.ratePct}%`, sub: `${pressure.blitzed.n} pressure snaps`, cls: 'is-gold' },
+      { label: 'Success vs blitz', value: pressure.blitzed.n ? `${pressure.blitzed.succPct}%` : 'N/A', sub: `${pressure.blitzed.avg} yds/play` },
+      { label: 'Success vs no blitz', value: `${pressure.noBlitz.succPct}%`, sub: `${pressure.noBlitz.avg} yds/play` },
+      { label: 'Sacks allowed', value: pressure.blitzed.sacks + pressure.noBlitz.sacks, sub: 'all calls' },
+    ]} />
+    <OpponentDefenseTable title="Fronts — and what they cost us" meta="frequency, production, explosives, and sacks" first="Front" rows={join.fronts} screen={screen} />
+    <OpponentDefenseTable title="Coverages — and what they cost us" meta="frequency, production, explosives, and sacks" first="Coverage" rows={join.coverages} screen={screen} />
+    <div class="gi-overview-band gi-overview-band-2">
+      <OpponentDefenseTable title="What they play against our looks" meta="our formation, their answer, our result" first="Our formation" rows={join.byOurLook} screen={screen} />
+      <OpponentDefenseTable title="By situation" meta="money downs, red zone, and backed up" first="Situation" rows={join.bySituation} screen={screen} />
+    </div>
+    {join.changeups.length > 0 && <OpponentDefenseTable title="Changeups" meta={`calls outside ${join.baseFront?.name || 'their base'}`} first="Front" rows={join.changeups} screen={screen} />}
+  </div>;
+}
+export function OpponentSpecialTeamsTab({ data, screen }) {
+  if (!data?.stStats) return <EmptyState title="No opponent Special Teams scout film" body="Chart a future opponent game in Opponent Scout to build kick, return, field-goal, and try tendencies. Head-to-head film is not auto-flipped because the stored subject is our team." />;
+  const summary = screen.app.stats._specialTeamsSummary(data.stPlays, data.stStats);
+  return <SpecialTeamsTab stats={data.stStats} summary={summary} screen={screen} fixedScope title="Their Special Teams"
+    toolbarAction={<OpponentWatch kind="special" count={data.stCount} label="Watch opponent Special Teams" screen={screen} />} />;
+}
 /** One compact phase card (Kickoffs / Kick Returns / Punts / Punt Returns /
  *  Field Goals / Conversions) -- the "phase summary" band. Unlike Defense's
  *  per-row film links, a phase card's content is a fixed handful of aligned
@@ -691,7 +843,7 @@ function SpecialTeamsPlayerTable({ table, screen }) {
 }
 
 /** Native Special Teams report: structured data in, Preact presentation and exact-film actions out. */
-export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false }) {
+export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, title = 'Special Teams', toolbarAction = null }) {
   const engine = screen.app.stats;
   const st = stats.specialTeams;
   const conv = stats.conversions;
@@ -718,13 +870,14 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false }) 
   });
   return <div class="gi-overview-board">
     <div class="gi-st-toolbar">
-      <strong class="gi-st-toolbar-label">Special Teams</strong>
+      <strong class="gi-st-toolbar-label">{title}</strong>
       {!fixedScope && <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
         <button type="button" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
           onClick={() => { screen.specialTeamsScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
         <button type="button" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
           onClick={() => { screen.specialTeamsScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
       </div>}
+      {toolbarAction}
     </div>
     <KpiBand items={kpis} />
     {phases.length > 0 && <div class="gi-overview-band gi-overview-band-auto">
