@@ -15,6 +15,13 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX INSTALLED REPORT BLANK-SCREEN REPAIR (2026-08-26)
+
+The `1.12.0-66` installed smoke exposed blank Defense, Self-Scout, and Season bodies on the real 2025 catalog. During the final obsolete-comment deletion in `d863b29`, the live `const recommendations = []` initialization inside `generateDefensiveSelfScout()` was accidentally removed with the comment block. Real defensive cohorts reached the later `recommendations.push()` calls and threw; small synthetic fixtures returned before that branch and missed it.
+
+The initialization is restored. The exact SQLite season was loaded read-only into the production bundle: Defense rendered 5,216 characters, Self-Scout 5,443, and Season 3,502 with zero exceptions. `e2e-realdata.mjs` now asserts that each affected tab has a nonblank native body after selection; it can no longer report success for a click that emptied the pane. Focused verification: production build green, real-data 9/9, native Reports 91/91, Self-Scout 48/48. Corrected installer version: `1.12.0-67`.
+
+
 ### CODEX REPORTS PRESENTATION RETIREMENT COMPLETE (2026-08-26)
 
 The obsolete Reports presentation implementation is deleted rather than hidden or wrapped. `StatsEngine` no longer owns a dashboard controller, report target, delegated binder, or HTML-string report method family. `ReportsScreen` is now a native route coordinator only. `SeasonManager.statsHtml()` and its private HTML helpers are gone; `SeasonManager.reportModel()` is the sole live Season analytics composition. Current-game and Season downloads continue through the shared structured `js/html-report.js` renderer.

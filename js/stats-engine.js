@@ -3770,6 +3770,7 @@ export class StatsEngine {
     // Structured recommendations remain raw data here. Native Reports and the
     // shared HTML export each format and escape them at their own boundary;
     // the selection and ranking logic lives here exactly once.
+    const recommendations = [];
     const exploitable = tells.filter(t => t.verdict === 'exploitable');
     const dominant = tells.filter(t => t.verdict === 'dominant');
     if (exploitable.length > 0) {

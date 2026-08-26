@@ -75,9 +75,9 @@ const seedFn = (season, OUR) => {
 const VIEWS = [
   ['reports route', async () => { await window.app.workspaceShell.show('reports'); const host=document.getElementById('wsReports'); const content=host?.querySelector('[data-native-report-content]'); if (host?.hidden || !content || !content.textContent.trim()) throw new Error('NATIVE REPORTS BLANK'); }],
   ['tab:offense', () => document.querySelector('#statsDashboard .stats-tab[data-tab="offense"]')?.click()],
-  ['tab:defense', () => document.querySelector('#statsDashboard .stats-tab[data-tab="defense"]')?.click()],
-  ['tab:selfscout', () => document.querySelector('#statsDashboard .stats-tab[data-tab="selfscout"]')?.click()],
-  ['tab:season', () => document.querySelector('#statsDashboard .stats-tab[data-tab="season"]')?.click()],
+  ['tab:defense', () => { window.app.reportsScreen.selectTab('defense'); const text=document.querySelector('[data-native-report-content]')?.textContent?.trim(); if(!text) throw new Error('DEFENSE REPORT BLANK'); }],
+  ['tab:selfscout', () => { window.app.reportsScreen.selectTab('selfscout'); const text=document.querySelector('[data-native-report-content]')?.textContent?.trim(); if(!text) throw new Error('SELF-SCOUT REPORT BLANK'); }],
+  ['tab:season', () => { window.app.reportsScreen.selectTab('season'); const text=document.querySelector('[data-native-report-content]')?.textContent?.trim(); if(!text) throw new Error('SEASON REPORT BLANK'); }],
   ['tab:matchup', () => document.querySelector('#statsDashboard .stats-tab[data-tab="matchup"]')?.click()],
   ['selfScoutReport', () => { window.app.reportsScreen.show(); window.app.reportsScreen.selectTab('selfscout'); }],
   ['defensiveReport', () => { window.app.reportsScreen.show(); window.app.reportsScreen.selectTab('defense'); }],
