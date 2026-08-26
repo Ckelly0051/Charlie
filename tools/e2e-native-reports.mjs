@@ -379,6 +379,70 @@ ok(result.evidence.special.marker && result.evidence.selfscout.marker && result.
 ok(result.unchanged, 'Report navigation is read-only against canonical season data', JSON.stringify(result.diff));
 
 
+console.log('\n== 2s. Season rows retain exact cross-game film identity ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  const originalGames = app.storage.seasonStore.data.games;
+  const originalActiveGameId = app.storage.seasonStore.data.activeGameId;
+  const originalWatch = app.filmNavigation.watch;
+  const watches = [];
+  const play = (yards, start) => ({ id: 1, timestamp: { start, end: start + 4 }, tags: {
+    unit: 'offense', down: '1', distance: '10', quarter: 'Q1', playType: 'Run Inside', runPass: 'Run',
+    result: 'Gain', yardage: yards, driveNumber: '1', playCall: 'Power', formation: 'Ace', personnel: '11',
+    players: { ballCarrier: '22' }, grades: {}, custom: [],
+  }});
+  app.storage.seasonStore.data.games = [
+    { id: 'season-a', name: 'Season A', gameInfo: { opponent: 'A', scoreUs: '21', scoreThem: '7' }, roster: [{ num: '22', name: 'Runner A' }], plays: [play(25, 10)] },
+    { id: 'season-b', name: 'Season B', gameInfo: { opponent: 'B', scoreUs: '14', scoreThem: '10' }, roster: [{ num: '22', name: 'Runner B' }], plays: [play(30, 20)] },
+  ];
+  app.storage.seasonStore.data.activeGameId = 'season-a';
+  app.filmNavigation.watch = refs => watches.push([...refs].sort());
+  await app.storage._loadActiveGame();
+  app.reportsScreen.show();
+  app.reportsScreen.selectTab('season');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const pane = document.querySelector('[data-pane="season"]');
+  const clickTab = async key => { pane.querySelector(`.gi-subtab[data-subtab="${key}"]`)?.click(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); };
+  const findModule = title => [...pane.querySelectorAll('.gi-overview-module')].find(node => node.querySelector(':scope > header > strong')?.textContent.trim() === title);
+  const clicks = [];
+  const clickModuleRow = title => { const module=findModule(title), row=module?.querySelector('tbody tr[role="button"]'); clicks.push({title,found:!!module,row:!!row,available:[...pane.querySelectorAll('.gi-overview-module > header > strong')].map(node=>node.textContent.trim())}); row?.click(); };
+  const sourceGames = {
+    big: [...(findModule('Big plays')?.querySelectorAll('tbody tr td:first-child') || [])].map(cell => cell.textContent.trim()),
+    drives: [...pane.querySelectorAll('.gi-overview-drives em')].map(node => node.textContent.trim()),
+  };
+  clickModuleRow('Big plays');
+  const drive = pane.querySelector('.gi-overview-drives [role="button"]');
+  drive?.click();
+  await clickTab('offense');
+  clickModuleRow('Play Calls');
+  await clickTab('players');
+  clickModuleRow('Individual Rushing');
+  const model = app.season.reportModel();
+  const direct = {
+    big: model.stats.bigPlays.map(row => row.ref).sort(),
+    drives: model.stats.drives.list.flatMap(row => row.refs || []).sort(),
+    calls: app.stats._playCallAnalysis(model.stats.offPlays).calls.flatMap(row => row.refs || []).sort(),
+    players: model.stats.individuals.rushers.flatMap(row => row.refs || []).sort(),
+  };
+  app.filmNavigation.watch = originalWatch;
+  app.storage.seasonStore.data.games = originalGames;
+  app.storage.seasonStore.data.activeGameId = originalActiveGameId;
+  await app.storage._loadActiveGame();
+  app.reportsScreen.show();
+  app.reportsScreen.selectTab('season');
+  return { watches, direct, sourceGames, clicks };
+});
+const exactSeasonRefs = ['season-a::1', 'season-b::1'];
+ok(result.sourceGames.big.length === 2 && new Set(result.sourceGames.big).size === 2 && result.sourceGames.big.every(Boolean)
+    && result.sourceGames.drives.length === 2 && new Set(result.sourceGames.drives).size === 2 && result.sourceGames.drives.every(Boolean),
+  'Season Big Plays and Drives visibly name their two distinct source games', JSON.stringify(result.sourceGames));ok(Object.values(result.direct).every(refs => JSON.stringify(refs) === JSON.stringify(exactSeasonRefs)),
+  'Season big plays, drives, calls, and players stamp the exact two-game cohort despite duplicate bare ids', JSON.stringify(result.direct));
+ok(result.watches.length === 4
+    && result.watches[0].length === 1 && exactSeasonRefs.includes(result.watches[0][0])
+    && result.watches[1].length === 1 && exactSeasonRefs.includes(result.watches[1][0])
+    && JSON.stringify(result.watches[2]) === JSON.stringify(exactSeasonRefs)
+    && JSON.stringify(result.watches[3]) === JSON.stringify(exactSeasonRefs),
+  'Native Season rows open their exact film: one source play/drive, both games for the aggregated call/player', JSON.stringify({watches:result.watches,clicks:result.clicks}));
 console.log('\n== 2a. Matchup is native, two-sided, and film-exact ==');
 result = await page.evaluate(async () => {
   const app = window.app;

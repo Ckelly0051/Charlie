@@ -44,7 +44,7 @@ function PairedBand({ slots, cls = 'stats-two-col' }) {
   return <div class={cls}>{present}</div>;
 }
 
-export function OverviewTab({ stats, screen }) {
+export function OverviewTab({ stats, screen, gameLabels = null }) {
   if (!stats.allPlays) return <EmptyState title="No charted data yet" body="Tag Play Type, Result, and Yardage to build the report. Add Down & Distance and Formation for situational tendencies." />;
   const engine = screen.app.stats;
   const cut = (type, val, label) => () => screen.watchCut(type, val, label);
@@ -53,8 +53,8 @@ export function OverviewTab({ stats, screen }) {
   const yards = view.yardsByType(stats);
   const dd = view.downDistanceRows(stats);
   const plan = view.gamePlan(stats);
-  const bigPlays = view.bigPlaysRows(stats, engine);
-  const drives = view.drivesRows(stats);
+  const bigPlays = view.bigPlaysRows(stats, engine, gameLabels);
+  const drives = view.drivesRows(stats, gameLabels);
 
   return <div class="gi-overview-board">
     <KpiBand items={view.overviewKpis(stats)} />
@@ -102,19 +102,19 @@ export function OverviewTab({ stats, screen }) {
     </div>
     <div class="gi-overview-band gi-overview-support">
       <Module title="Big plays" meta={`${stats.bigPlays.length} total`} cls="is-offense">
-        <table><thead><tr><th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
-          {bigPlays.map(play => <Watchable key={play.id} tag="tr" onActivate={() => screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
-            <td>{play.id}</td><td>{play.situation}</td><td>{play.call}</td><td>{play.yards}</td>
+        <table><thead><tr>{gameLabels&&<th>Game</th>}<th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
+          {bigPlays.map(play => <Watchable key={play.ref || play.id} tag="tr" onActivate={() => play.ref ? screen.watchRefs([play.ref], `Play ${play.id}`) : screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
+            {gameLabels&&<td>{play.game}</td>}<td>{play.id}</td><td>{play.situation}</td><td>{play.call}</td><td>{play.yards}</td>
           </Watchable>)}
         </tbody></table>
       </Module>
       <div class="gi-overview-support-stack">
         <Module title="Drives" meta={`${drives.total} drives · ${drives.scoring} scored`}>
-          <div class="gi-overview-drives">{drives.rows.map(drive => <Watchable key={drive.number} onActivate={() => {
-            const ids = new Set(drive.playIds.map(String));
-            screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`);
+          <div class="gi-overview-drives">{drives.rows.map(drive => <Watchable key={`${drive.number}-${drive.refs[0]||''}`} class="gi-overview-drive" onActivate={() => {
+            if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
+            else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
           }} label={`Drive ${drive.number}`}>
-            <span>D{drive.number}</span><i><b style={`--w:${drive.widthPct}%`} /></i><small>{drive.outcome}</small>
+            <span>D{drive.number}{drive.game&&<em>{drive.game}</em>}</span><i><b style={`--w:${drive.widthPct}%`} /></i><small>{drive.outcome}</small>
           </Watchable>)}</div>
         </Module>
         <Module title="Defense &amp; discipline" meta={view.defenseDisciplineRows(stats, engine).meta} cls="is-defense">
@@ -131,7 +131,7 @@ function PlayCalls({ stats, screen }) {
   if (!analysis.eligible) return null;
   const gameId = screen.app.storage?.seasonStore?.activeGame?.()?.id || '';
   const pct = v => `${Number(v || 0).toFixed(1).replace(/\.0$/, '')}%`;
-  const refsFor = row => row.playIds.map(id => `${gameId}::${id}`);
+  const refsFor = row => row.refs?.length ? row.refs : row.playIds.map(id => `${gameId}::${id}`);
   const watch = (row, label) => () => screen.watchRefs(refsFor(row), label);
   return <Module title="Play Calls" meta={`${analysis.eligible} offensive snaps have an exact call. Frequency uses those call-charted snaps; every row opens its exact film.`}>
     <div class="gi-call-grid">
@@ -331,14 +331,15 @@ export function OffenseTab({ stats, screen }) {
   </div>;
 }
 
-export function PlayersTab({ stats, screen }) {
+export function PlayersTab({ stats, screen, labels = null }) {
   const engine = screen.app.stats;
-  const tables = view.individualStats(stats, 'all', num => engine._playerLabel(num));
+  const playerLabel = num => labels?.[String(num)] ? `#${num} ${labels[String(num)]}` : engine._playerLabel(num);
+  const tables = view.individualStats(stats, 'all', playerLabel);
   if (!tables.length) return <EmptyState title="No player attribution yet" body="Add ball carrier, passer, receiver, tackler, returner, or kicker to chart individual performance." />;
   return <div class="gi-overview-board">
     {tables.map(table => <Module key={table.key} title={table.title}>
       <DataTable columns={table.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
-        rows={table.rows.map(row => ({ ...row, id: row.num, player: row.label, onActivate: () => engine._watchPlayer(row.num), label: `${row.label}'s plays` }))} />
+        rows={table.rows.map(row => ({ ...row, id: row.num, player: row.label, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label}'s plays`) : () => engine._watchPlayer(row.num), label: `${row.label}'s plays` }))} />
     </Module>)}
   </div>;
 }
@@ -564,7 +565,7 @@ function DefensiveSelfScout({ defScout, screen }) {
   </div>;
 }
 
-export function DefenseTab({ report, scoped, screen }) {
+export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
   const engine = screen.app.stats;
   if (!report.total) return <EmptyState title="No defensive data tagged yet" body="Tag plays as Defense and add the opponent's play type, result and yardage to build this report." />;
   const pct = value => value == null ? 'N/A' : `${value}%`;
@@ -583,12 +584,12 @@ export function DefenseTab({ report, scoped, screen }) {
   const teamName = () => screen.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
   return <div class="gi-defense-report">
     <div class="gi-def-toolbar">
-      <div class="gi-def-scope" role="group" aria-label="Defense report scope">
+      {!fixedScope && <div class="gi-def-scope" role="group" aria-label="Defense report scope">
         <button type="button" data-defense-scope="season" class={screen.defenseScope === 'season' ? 'active' : ''}
           onClick={() => { screen.defenseScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
         <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
           onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
-      </div>
+      </div>}
       <button class="btn btn-sm" onClick={() => engine._exportDefensiveReport(engine.compute(scoped), teamName())}>Export Report</button>
     </div>
     <DefSection title="Defensive Performance">
@@ -690,7 +691,7 @@ function SpecialTeamsPlayerTable({ table, screen }) {
 }
 
 /** Native Special Teams report: structured data in, Preact presentation and exact-film actions out. */
-export function SpecialTeamsTab({ stats, summary, screen }) {
+export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false }) {
   const engine = screen.app.stats;
   const st = stats.specialTeams;
   const conv = stats.conversions;
@@ -718,12 +719,12 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
   return <div class="gi-overview-board">
     <div class="gi-st-toolbar">
       <strong class="gi-st-toolbar-label">Special Teams</strong>
-      <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
+      {!fixedScope && <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
         <button type="button" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
           onClick={() => { screen.specialTeamsScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
         <button type="button" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
           onClick={() => { screen.specialTeamsScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
-      </div>
+      </div>}
     </div>
     <KpiBand items={kpis} />
     {phases.length > 0 && <div class="gi-overview-band gi-overview-band-auto">
@@ -750,6 +751,112 @@ export function SpecialTeamsTab({ stats, summary, screen }) {
         </div>
       </div>}
   </div>;
+}
+function SeasonSituational({ rows }) {
+  return <Module title="Situational Scorecard" meta="season-wide conversion and drive performance">
+    <div class="gi-sc-grid">{rows.map(row=><div key={row.label} class={`gi-sc-tile${row.tone?` tone-${row.tone}`:''}`}>
+      <div class="gi-sc-label">{row.label}</div><div class="gi-sc-val">{row.value}</div><div class="gi-sc-sub">{row.sub}</div>
+    </div>)}</div>
+  </Module>;
+}
+
+function SeasonTurnoverScoring({ data }) {
+  const tone=data.margin>0?'good':data.margin<0?'bad':'even';
+  const max=Math.max(1,...data.quarters.flatMap(row=>[row.us,row.them]));
+  const margin=data.margin>0?`+${data.margin}`:String(data.margin);
+  return <Module title="Turnovers & Scoring" meta="possession margin and scoring rhythm">
+    <div class="gi-ts-grid">
+      <div class={`gi-ts-margin tone-${tone}`}><div class="gi-sc-label">Turnover Margin</div><div class="gi-ts-margin-val">{margin}</div>
+        <div class="gi-sc-sub">{data.takeaways} takeaways · {data.giveaways} giveaways{data.unresolved?` · ${data.unresolved} unresolved fumble${data.unresolved===1?'':'s'}`:''}</div>
+      </div>
+      <div class="gi-ts-quarters"><div class="gi-sc-label">Scoring by Quarter <span class="gi-q-key"><i class="us" />Us <i class="them" />Opp</span></div>
+        {data.quarters.length?data.quarters.map(row=><div key={row.quarter} class="gi-q-row"><span class="gi-q-lbl">{row.quarter}</span><div class="gi-q-bars">
+          <div class="gi-q-bar us" style={`width:${Math.round(row.us/max*100)}%`}>{row.us||''}</div><div class="gi-q-bar them" style={`width:${Math.round(row.them/max*100)}%`}>{row.them||''}</div>
+        </div></div>):<div class="gi-sc-sub">Tag Quarter on scoring plays to see this.</div>}
+      </div>
+    </div>
+  </Module>;
+}
+
+function SeasonIdentityColumn({ title, rows, empty }) {
+  return <div class="gi-id-col"><div class="gi-id-head">{title} <span>use · succ</span></div>
+    {rows.length?rows.map(row=><div key={row.name} class="gi-id-row"><span class="gi-id-name">{row.name}</span><div class="gi-id-bar"><div style={`width:${row.use}%`} /></div><span class="gi-id-use">{row.use}%</span><span class="gi-id-succ">{row.success}%</span></div>):<div class="gi-sc-sub">{empty}</div>}
+  </div>;
+}
+
+function SeasonOverview({ model, screen }) {
+  return <div class="gi-season-stack">
+    <SeasonSituational rows={model.situational}/>
+    <SeasonTurnoverScoring data={model.turnoverScoring}/>
+    <OverviewTab stats={model.stats} screen={screen} gameLabels={model.gameLabels}/>
+  </div>;
+}
+
+function SeasonOffense({ model, screen }) {
+  const identity=model.offensiveIdentity;
+  return <div class="gi-season-stack">
+    {(identity.personnel.length||identity.formations.length)>0&&<Module title="Offensive Identity" meta="snap share and success rate">
+      <div class="gi-id-grid"><SeasonIdentityColumn title="Personnel" rows={identity.personnel} empty="No personnel tagged."/><SeasonIdentityColumn title="Formation" rows={identity.formations} empty="No formations tagged."/></div>
+    </Module>}
+    <OffenseTab stats={model.stats} screen={screen}/>
+  </div>;
+}
+function SeasonPlayers({ model, screen }) {
+  const wl = model.winLoss;
+  const margin = value => value > 0 ? `+${value}` : String(value);
+  const wlRows = wl ? [
+    {id:'ypp',metric:'Yards / Play',wins:wl.wins.ypp,losses:wl.losses.ypp},
+    {id:'success',metric:'Success %',wins:wl.wins.success,losses:wl.losses.success},
+    {id:'third',metric:'3rd Down %',wins:wl.wins.third,losses:wl.losses.third},
+    {id:'ppd',metric:'Pts / Drive',wins:wl.wins.ppd,losses:wl.losses.ppd},
+    {id:'margin',metric:'Turnover Margin',wins:margin(wl.wins.margin),losses:margin(wl.losses.margin)},
+  ] : [];
+  return <div class="gi-overview-board">
+    {wl && <Module title="Wins vs Losses" meta={`${wl.winCount} win${wl.winCount===1?'':'s'} · ${wl.lossCount} loss${wl.lossCount===1?'':'es'}`}>
+      <DataTable className="stats-table stats-table-full gi-wl-table" columns={[{key:'metric',label:'Metric'},{key:'wins',label:'Wins'},{key:'losses',label:'Losses'}]} rows={wlRows} />
+    </Module>}
+    <PlayersTab stats={model.stats} screen={screen} labels={model.rosterLabels} />
+    <Module title="Per-Game Box Score">
+      <DataTable columns={[{key:'name',label:'Game'},{key:'plays',label:'Plays',numeric:true},{key:'yards',label:'Yds',numeric:true},{key:'rush',label:'Rush A/Y'},{key:'pass',label:'Pass C/A/Y'},{key:'touchdowns',label:'TD',numeric:true},{key:'turnoverMargin',label:'TO±',numeric:true,render:r=>margin(r.turnoverMargin)},{key:'pointsPerDrive',label:'PPD',numeric:true},{key:'successRate',label:'Succ%',numeric:true,render:r=>`${r.successRate}%`},{key:'thirdDown',label:'3rd%',numeric:true,render:r=>`${r.thirdDown}%`}]} rows={model.perGame} />
+    </Module>
+  </div>;
+}
+
+function SeasonTrends({ model }) {
+  if (model.perGame.length < 2) return <EmptyState title="Not enough games for trends" body="Chart at least two games to compare progression." />;
+  const metrics=[['yards','Total Yards'],['successRate','Success Rate'],['touchdowns','Touchdowns'],['turnoverMargin','Turnover Margin']];
+  return <div class="gi-overview-board">
+    <Module title="Season Progression" meta="first half compared with second half">
+      <div class="prog-grid">{model.progression.map(item=><div key={item.label} class={`prog-card prog-${item.verdict==='Improving'?'better':item.verdict==='Slipping'?'worse':'flat'}`}><div class="prog-metric">{item.label}</div><div class="prog-vals">{item.from} <span class="prog-arrow">{item.direction==='up'?'↑':item.direction==='down'?'↓':'→'}</span> {item.to}</div><div class="prog-tag">{item.verdict}</div></div>)}</div>
+    </Module>
+    <Module title="Game-by-Game Trends" meta={`${model.perGame.length} charted games`}>
+      <div class="trend-legend"><span>{model.perGame[0]?.name}</span><span>{model.perGame.at(-1)?.name}</span></div><div class="gi-trend-grid">{metrics.map(([key,label])=>{const values=model.perGame.map(row=>Number(row[key])||0);const max=Math.max(1,...values.map(Math.abs));return <div key={key} class="trend-chart gi-season-trend"><h4>{label}</h4><div>{model.perGame.map((row,i)=><span key={row.id} title={`${row.name}: ${values[i]}`}><i style={`--h:${Math.max(4,Math.round(Math.abs(values[i])/max*100))}%`} /><small>{row.name}</small></span>)}</div></div>;})}</div>
+    </Module>
+    <Module title="Season Game Log"><DataTable columns={[{key:'name',label:'Game'},{key:'yards',label:'Yards',numeric:true},{key:'successRate',label:'Success',numeric:true,render:r=>`${r.successRate}%`},{key:'touchdowns',label:'TD',numeric:true},{key:'turnoverMargin',label:'TO±',numeric:true}]} rows={model.perGame} /></Module>
+  </div>;
+}
+
+export function SeasonTab({ model, screen }) {
+  const [active,setActive]=useState('overview');
+  if (!model?.stats) return <EmptyState title="No season data yet" body="Add a game and chart plays to build season-wide reports." />;
+  const engine=screen.app.stats;
+  const refsFor=predicate=>[...new Set(model.allPlays.filter(predicate).map(engine.constructor._compositeRef).filter(Boolean))].sort();
+  const seasonScreen={app:screen.app,defenseScope:'season',specialTeamsScope:'season',_renderActiveTab:()=>{},
+    watchRefs:(refs,label)=>screen.watchRefs(refs,label),
+    watchCut:(type,val,label)=>screen.watchRefs(refsFor(engine._buildCutFilter(type,val)),label),
+    watchPredicate:(predicate,label)=>screen.watchRefs(refsFor(predicate),label)};
+  const s=model.summary;
+  const hero=[{label:'Games',value:s.games},{label:'Record',value:s.played?s.record:'—'},{label:'Points For / Against',value:s.played?`${s.pointsFor}-${s.pointsAgainst}`:'—'},...view.offenseHero(model.stats,engine).slice(0,3)];
+  const tabs=[['overview','Overview'],['offense','Offense'],['defense','Defense'],['special','Special Teams'],['players','Players'],['scout','Self-Scout'],['trends','Trends']];
+  let body=null;
+  if(active==='overview')body=<SeasonOverview model={model} screen={seasonScreen}/>;
+  else if(active==='offense')body=<SeasonOffense model={model} screen={seasonScreen}/>;
+  else if(active==='defense')body=<DefenseTab report={model.defenseReport} scoped={model.allPlays} screen={seasonScreen} fixedScope/>;
+  else if(active==='special')body=<SpecialTeamsTab stats={model.stats} summary={model.specialSummary} screen={seasonScreen} fixedScope/>;
+  else if(active==='players')body=<SeasonPlayers model={model} screen={seasonScreen}/>;
+  else if(active==='scout')body=<SelfScoutTab report={model.selfScout} defScout={model.defScout} performance={model.stats} callRows={model.callRows} screen={seasonScreen}/>;
+  else body=<SeasonTrends model={model}/>;
+  return <div class="gi-season-native"><div class="gi-season-heading"><span>Season Report</span><strong>{s.record}</strong><small>{s.games} games · {model.allPlays.length} charted plays</small></div><div class="season-summary"><Hero kpis={hero}/></div><div class="gi-subnav" role="tablist">{tabs.map(([id,label])=><button key={id} type="button" class={`gi-subtab ${active===id?'active':''}`} data-subtab={id} role="tab" aria-selected={active===id} onClick={()=>setActive(id)}>{label}</button>)}</div><div class="gi-subpane active" data-subpane={active}>{body}</div></div>;
 }
 /** Native Matchup resolves every displayed tendency against its own stamped
  * cross-game cohort. It never falls through to the active game's tagger. */

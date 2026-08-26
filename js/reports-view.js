@@ -124,19 +124,20 @@ export function gamePlan(stats) {
   return { working: list(t.working), fix: list(t.fix) };
 }
 
-export function bigPlaysRows(stats, statsEngine) {
-  const playsById = new Map((stats.offPlays || []).map(play => [String(play.id), play]));
+export function bigPlaysRows(stats, statsEngine, gameLabels = null) {
+  const playsById = new Map((stats.offPlays || []).map(play => [statsEngine.constructor._compositeRef(play) || String(play.id), play]));
   return (stats.bigPlays || []).slice(0, 8).map(play => {
-    const source = playsById.get(String(play.id));
-    return { id: play.id, situation: statsEngine.constructor.situationLabel(source) || '—', call: play.type || '—', yards: play.yards };
+    const source = playsById.get(play.ref || String(play.id));
+    const gameId = play.ref?.split('::')[0] || '';
+    return { id: play.id, ref: play.ref || null, game: gameLabels?.[gameId] || '', situation: statsEngine.constructor.situationLabel(source) || '—', call: play.type || '—', yards: play.yards };
   });
 }
 
-export function drivesRows(stats) {
+export function drivesRows(stats, gameLabels = null) {
   const drives = stats.drives?.list || [];
   const max = Math.max(1, ...drives.map(d => Math.abs(d.yards)));
   return { total: drives.length, scoring: stats.drives.scoringDrives, rows: drives.slice(0, 8).map(drive => ({
-    number: drive.number, widthPct: Math.max(6, Math.round(Math.abs(drive.yards) / max * 100)), outcome: drive.outcome, playIds: drive.playIds || [],
+    number: drive.number, game: gameLabels?.[drive.refs?.[0]?.split('::')[0]] || '', widthPct: Math.max(6, Math.round(Math.abs(drive.yards) / max * 100)), outcome: drive.outcome, playIds: drive.playIds || [], refs: drive.refs || [],
   })) };
 }
 

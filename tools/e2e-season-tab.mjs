@@ -163,37 +163,39 @@ ok(JSON.stringify(r.desc) === JSON.stringify([30, 20, 10]), 're-clicking Yds fli
 ok(r.descClass, 'descending click marks the header gi-sort-desc', JSON.stringify(r));
 ok(JSON.stringify(r.playerOrder) === JSON.stringify(['#10', '#20', '#30']), 'Player column sorts as text', JSON.stringify(r));
 
-console.log('\n== 2. Season tab lazy-renders: header KPIs + trend charts + roll-up ==');
-r = await page.evaluate(() => {
-  // Keep the injected plays as the active game; the demo contributes a 2nd game,
-  // so the season aggregates 2 games (enough for trend lines).
+console.log('\n== 2. Season tab renders: persistent KPIs + native trends + player roll-up ==');
+r = await page.evaluate(async () => {
   window.app.stats.showDashboard();
   const tab = document.querySelector('#statsDashboard .stats-tab[data-tab="season"]');
   if (!tab) return { noTab: true };
-  tab.click();   // lazy render is synchronous inside the click handler
+  tab.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
-  // Reports redesign (item A): the season KPI rail now shares the exact
-  // .gi-hero/.gi-kpi primitive the game-scope persistent rail uses (see
-  // ReportsScreen._syncKpiRail / SeasonManager._renderHeader), not the
-  // retired .ss-stat/.ss-num markup — one KPI component in the product.
   const kpiValue = pane.querySelector('.season-summary .gi-kpi-value');
-  const leaderboard = Array.from(pane.querySelectorAll('table.stats-table-full')).find(t => t.querySelector('tr.player-row'));
+  pane.querySelector('.gi-subtab[data-subtab="trends"]')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const trendCount = pane.querySelectorAll('.gi-season-trend').length;
+  pane.querySelector('.gi-subtab[data-subtab="players"]')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const playerModule = [...pane.querySelectorAll('.gi-overview-module')].find(node => /Rushing|Passing|Receiving|Tackling/.test(node.textContent || ''));
+  const leaderboard = playerModule?.querySelector('table.stats-table-full');
+  pane.querySelector('.gi-subtab[data-subtab="overview"]')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   return {
     nativePane: pane.matches('[data-native-main-report]'),
     kpiCount: pane.querySelectorAll('.season-summary .gi-kpi').length,
     hasKpi: !!kpiValue,
-    trendCount: pane.querySelectorAll('.gi-trend').length,
+    trendCount,
     hasLeaderboard: !!leaderboard,
-    leaderboardSortable: leaderboard ? leaderboard.querySelectorAll('th.gi-sort-th').length : 0,
+    leaderboardSortable: leaderboard ? leaderboard.querySelectorAll('th[role="button"]').length : 0,
   };
 });
 ok(!r.noTab, 'the Season tab button exists in the dashboard', JSON.stringify(r));
 ok(r.nativePane, 'Season pane renders through the native route on first selection', JSON.stringify(r));
-ok(r.hasKpi && r.kpiCount >= 4, 'season header shows KPI cards (games/record/points/success…)', JSON.stringify(r));
-ok(r.trendCount >= 1, 'game-by-game trend line charts render (>=2 games)', JSON.stringify(r));
-ok(r.hasLeaderboard, 'season player roll-up leaderboard renders', JSON.stringify(r));
-ok(r.leaderboardSortable >= 1, 'season leaderboard headers are wired sortable too', JSON.stringify(r));
-
+ok(r.hasKpi && r.kpiCount >= 4, 'season header shows KPI cells (games/record/points/success...)', JSON.stringify(r));
+ok(r.trendCount >= 1, 'the Trends sub-tab renders game-by-game charts (>=2 games)', JSON.stringify(r));
+ok(r.hasLeaderboard, 'the Players sub-tab renders the season player roll-up', JSON.stringify(r));
+ok(r.leaderboardSortable >= 1, 'season player tables use the shared sortable DataTable', JSON.stringify(r));
 console.log('\n== 3. Header hero: .season-summary wears the .gi-hero hairline-joined scan-board look ==');
 r = await page.evaluate(() => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
@@ -222,30 +224,33 @@ ok(r.radius === '0px', 'Native season KPI cells use the square broadcast geometr
 ok(r.bg === r.deck, 'Native season KPI cells sit on the DECK surface', JSON.stringify(r));
 ok(/IBM Plex Sans Condensed/i.test(r.numFont), 'KPI numbers use the native condensed football-number face', JSON.stringify(r));
 
-console.log('\n== 3b. Season analytics blocks (v1.10.2) + trend un-clip ==');
-r = await page.evaluate(() => {
+console.log('\n== 3b. Season-only analytics survive the native tab structure ==');
+r = await page.evaluate(async () => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
-  const q = s => pane.querySelectorAll(s).length;
-  // Sub-panes all stay in the DOM (CSS show/hide), so the Breakdown/Players
-  // blocks are queryable without clicking their sub-tabs.
-  const legendFirst = pane.querySelector('.gi-trend-legend span')?.textContent || '';
-  return {
-    scorecardTiles: q('.gi-sc-tile'),
-    marginVal: pane.querySelector('.gi-ts-margin-val')?.textContent ?? null,
-    quarterRows: q('.gi-q-row'),
-    identityRows: q('.gi-id-row'),
-    winLossTable: !!pane.querySelector('.gi-wl-table'),
-    perGameTO: /INT±/.test(pane.querySelector('.stats-table-full thead')?.textContent || ''),
-    legendFirst,
+  const click = async key => {
+    pane.querySelector(`.gi-subtab[data-subtab="${key}"]`)?.click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   };
+  await click('overview');
+  const scorecardTiles = pane.querySelectorAll('.gi-sc-tile').length;
+  const marginVal = pane.querySelector('.gi-ts-margin-val')?.textContent ?? null;
+  const quarterRows = pane.querySelectorAll('.gi-q-row').length;
+  await click('offense');
+  const identityRows = pane.querySelectorAll('.gi-id-row').length;
+  await click('players');
+  const winLossTable = !!pane.querySelector('.gi-wl-table');
+  const perGameTO = /TO±/.test([...pane.querySelectorAll('thead')].map(node => node.textContent).join(' '));
+  await click('trends');
+  const legendFirst = pane.querySelector('.trend-legend span')?.textContent || '';
+  await click('overview');
+  return {scorecardTiles,marginVal,quarterRows,identityRows,winLossTable,perGameTO,legendFirst};
 });
 ok(r.scorecardTiles >= 6, 'Situational Scorecard renders its tiles', JSON.stringify(r));
 ok(r.marginVal !== null, 'Turnover Margin value renders', JSON.stringify(r));
 ok(r.quarterRows >= 1, 'Scoring-by-quarter bars render', JSON.stringify(r));
-ok(r.identityRows >= 1, 'Offensive Identity usage rows render', JSON.stringify(r));
-ok(r.winLossTable, 'Wins vs Losses table renders (demo has a W and an L)', JSON.stringify(r));
-ok(/^[A-Za-z]/.test(r.legendFirst), 'trend legend shows the first game name un-clipped (S1/S2 fix)', JSON.stringify(r));
-
+ok(r.identityRows >= 1, 'Offensive Identity usage rows render under Offense', JSON.stringify(r));
+ok(r.winLossTable && r.perGameTO, 'Players retains Wins vs Losses and the per-game turnover margin', JSON.stringify(r));
+ok(/^[A-Za-z]/.test(r.legendFirst), 'Trends names the first game without clipping it', JSON.stringify(r));
 console.log('\n== 3c. Turnover margin counts only confirmed changes of possession ==');
 r = await page.evaluate(() => {
   const stats = {
@@ -259,61 +264,61 @@ ok(r.margin === 0 && r.takeaways === 3 && r.giveaways === 3,
   JSON.stringify(r));
 ok(r.offensiveFumbles === 4 && r.defensiveFumbles === 3 && r.unresolved === 2,
   'Raw and unresolved fumbles remain visible without being misclassified as turnovers', JSON.stringify(r));
-console.log('\n== 4. Sub-tabs organize the 13 sections (Overview/Breakdown/Players/Self-Scout) ==');
-r = await page.evaluate(() => {
+console.log('\n== 4. Seven native Season lenses are reachable and complete ==');
+r = await page.evaluate(async () => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
-  const subtabs = Array.from(pane.querySelectorAll('.gi-subnav .gi-subtab')).map(t => t.dataset.subtab);
-  const disp = (key) => {
-    const p = pane.querySelector(`.gi-subpane[data-subpane="${key}"]`);
-    return p ? getComputedStyle(p).display : 'missing';
+  const subtabs = [...pane.querySelectorAll('.gi-subnav .gi-subtab')].map(tab => tab.dataset.subtab);
+  const current = () => pane.querySelector('.gi-subpane')?.dataset.subpane || '';
+  const click = async key => {
+    pane.querySelector(`.gi-subtab[data-subtab="${key}"]`)?.click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return pane.querySelector('.gi-subpane');
   };
-  const overviewBefore = disp('overview'), playersBefore = disp('players');
-  // The header KPI bar sits ABOVE the sub-nav (always visible, not inside a pane).
-  const headerOutsidePanes = !!pane.querySelector('.season-summary') &&
-    !pane.querySelector('.gi-subpane .season-summary');
-  // Switch to the Players sub-tab.
-  pane.querySelector('.gi-subtab[data-subtab="players"]').click();
-  const overviewAfter = disp('overview'), playersAfter = disp('players');
-  const playersPane = pane.querySelector('.gi-subpane[data-subpane="players"]');
-  const leaderboardUnderPlayers = !!playersPane?.querySelector('table.stats-table-full tr.player-row');
-  // H16 — heat maps moved from the old catch-all "breakdown" pane to Offense,
-  // which is where the game report has always kept them.
-  const heatUnderOffense = !!pane.querySelector('.gi-subpane[data-subpane="offense"] .heatmap-tabs');
-  const text = key => pane.querySelector(`.gi-subpane[data-subpane="${key}"]`)?.textContent || '';
-  // H16 — the blocks that computed correctly at season scope and were never
-  // rendered. Asserting them by NAME rather than by counting sections: a count
-  // passes as long as something is there, and the defect this closes was that
-  // the season view silently kept an old subset while the game view grew.
-  const seasonNowRenders = {
-    // Heading renamed "The Five Lenses" -> "Key Metrics" in the literal-copy
-    // pass; the lens CARDS are what this assertion is about, so key off the
-    // structure rather than a heading string that copy review can move again.
-    lensBoard: !!pane.querySelector('.gi-subpane[data-subpane="overview"] .gi-lens'),
-    drives: /Drives/.test(text('overview')),
-    bigPlays: /Big Plays/.test(text('overview')),
-    penalties: /Penalt/.test(text('overview')),
-    bigCalls: /Big “?\d+/.test(text('offense')) || /Core Tendencies|Big /.test(text('offense')),
-    epa: /Expected Points/.test(text('offense')),
-    defense: /Defensive Analytics/.test(text('defense')),
-    special: text('special').trim().length > 0,
+  const overviewBefore = current();
+  const headerOutsidePanes = !!pane.querySelector('.season-summary') && !pane.querySelector('.gi-subpane .season-summary');
+  let active = await click('overview');
+  const overviewText = active?.textContent || '';
+  const overview = {
+    lenses: !!active?.querySelector('.gi-overview-lenses'),
+    drives: /Drives/i.test(overviewText),
+    bigPlays: /Big plays/i.test(overviewText),
+    discipline: /Defense & discipline/i.test(overviewText),
+    situational: /Situational Scorecard/i.test(overviewText),
   };
-  // The radar asks "this game against our best" — unanswerable at season scope.
+  active = await click('offense');
+  const offenseText = active?.textContent || '';
+  const offense = {
+    identity: !!active?.querySelector('.gi-id-grid'),
+    calls: /Core Tendencies|Play Calls|Big /i.test(offenseText),
+    epa: /Expected Points/i.test(offenseText),
+    heat: !!active?.querySelector('.heatmap-tabs'),
+  };
+  active = await click('defense');
+  const defense = /Defensive Performance|Opponent Offense by Play Type/i.test(active?.textContent || '');
+  active = await click('special');
+  const special = /Special Teams/i.test(active?.textContent || '');
+  active = await click('players');
+  const playersAfter = current();
+  const leaderboardUnderPlayers = [...(active?.querySelectorAll('.gi-overview-module') || [])].some(node => /Rushing|Passing|Receiving|Tackling/.test(node.textContent || '') && node.querySelector('table'));
+  active = await click('scout');
+  const scout = /Self-Scout|Top Tells|Recommendations/i.test(active?.textContent || '');
+  active = await click('trends');
+  const trends = /Season Progression|Game-by-Game Trends/i.test(active?.textContent || '');
+  await click('overview');
   const radarExcluded = !/against our best/i.test(pane.textContent || '');
-  return { subtabs, overviewBefore, playersBefore, overviewAfter, playersAfter,
-    headerOutsidePanes, leaderboardUnderPlayers, heatUnderOffense, seasonNowRenders, radarExcluded };
+  return {subtabs,overviewBefore,playersAfter,headerOutsidePanes,leaderboardUnderPlayers,overview,offense,defense,special,scout,trends,radarExcluded};
 });
-ok(JSON.stringify(r.subtabs) === JSON.stringify(['overview', 'offense', 'defense', 'special', 'players', 'scout', 'trends']),
-  'season sub-tabs mirror the game report tabs, in order', JSON.stringify(r.subtabs));
-ok(Object.values(r.seasonNowRenders).every(Boolean),
-  'H16: every block the season view used to omit now renders at season scope', JSON.stringify(r.seasonNowRenders));
-ok(r.radarExcluded,
-  'H16: the game-vs-season-best radar is excluded at season scope (it would peg every axis to itself)', JSON.stringify(r));
-ok(r.headerOutsidePanes, 'KPI header stays above the sub-nav (always visible)', JSON.stringify(r));
-ok(r.overviewBefore === 'block' && r.playersBefore === 'none', 'Overview is the default sub-pane', JSON.stringify(r));
-ok(r.overviewAfter === 'none' && r.playersAfter === 'block', 'clicking a sub-tab swaps the visible pane', JSON.stringify(r));
-ok(r.leaderboardUnderPlayers, 'player leaderboard lives under the Players sub-tab', JSON.stringify(r));
-ok(r.heatUnderOffense, 'heat maps live under the Offense sub-tab, as in the game report', JSON.stringify(r));
-
+ok(JSON.stringify(r.subtabs) === JSON.stringify(['overview','offense','defense','special','players','scout','trends']),
+  'season exposes the seven agreed native lenses in order', JSON.stringify(r.subtabs));
+ok(r.overviewBefore === 'overview' && r.playersAfter === 'players',
+  'Overview is the default and clicking Players swaps the mounted native pane', JSON.stringify(r));
+ok(r.headerOutsidePanes, 'KPI header stays above the sub-nav and remains visible', JSON.stringify(r));
+ok(Object.values(r.overview).every(Boolean), 'Overview retains its season-wide coaching answers', JSON.stringify(r.overview));
+ok(Object.values(r.offense).every(Boolean), 'Offense retains identity, calls, EPA, and heat maps', JSON.stringify(r.offense));
+ok(r.defense && r.special && r.scout && r.trends,
+  'Defense, Special Teams, Self-Scout, and Trends all render their native season content', JSON.stringify({defense:r.defense,special:r.special,scout:r.scout,trends:r.trends}));
+ok(r.leaderboardUnderPlayers, 'player roll-up lives under Players', JSON.stringify(r));
+ok(r.radarExcluded, 'the game-vs-season-best radar stays excluded at season scope', JSON.stringify(r));
 console.log('\n== 5. gamesChrono: undated games keep their slot (trends/progression order) ==');
 r = await page.evaluate(() => {
   const SeasonStore = window.app.storage.seasonStore.constructor;

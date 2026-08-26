@@ -1373,3 +1373,36 @@
 .gi-reports .gi-matchup-missing{display:grid;gap:var(--gi-2x);margin:0;padding:var(--gi-3x) var(--gi-5x);color:var(--gi-11)}
 @media(max-width:1050px){.gi-reports .gi-matchup-pair{grid-template-columns:minmax(0,1fr)}.gi-reports .gi-matchup-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.gi-reports .gi-matchup-toolbar{align-items:stretch;flex-direction:column}.gi-reports .gi-matchup-toolbar label{min-width:0}.gi-reports .gi-matchup-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Native Season: compact trend small multiples, labels stay inside each module. */
+.gi-season-native>.season-summary>.gi-hero{width:100%}
+.gi-season-native .gi-season-trend{min-width:0;padding:10px;border-left:2px solid var(--gi-7);background:var(--gi-2)}
+.gi-season-native .gi-season-trend h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;color:var(--text-dim)}
+.gi-season-native .gi-season-trend>div{display:flex;align-items:flex-end;gap:6px;height:110px}
+.gi-season-native .gi-season-trend>div>span{display:grid;grid-template-rows:1fr auto;align-items:end;min-width:0;flex:1;height:100%}
+.gi-season-native .gi-season-trend i{display:block;height:var(--h);min-height:4px;background:var(--accent);border-top:2px solid var(--gi-los)}
+.gi-season-native .gi-season-trend small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:var(--text-dim);padding-top:4px}
+@media(max-width:800px){.gi-season-native .gi-trend-grid{grid-template-columns:1fr}.gi-season-native .gi-subnav{overflow-x:auto}}
+/* Native Season report identity and season-source labels. */
+.gi-season-native .gi-season-heading{display:flex;align-items:baseline;gap:12px;padding:2px 0 10px;border-bottom:2px solid var(--gi-7);color:var(--text-dim);text-transform:uppercase;font:700 11px/1 var(--gi-sans);letter-spacing:0}
+.gi-season-native .gi-season-heading strong{color:var(--text);font:700 16px/1 var(--gi-cond);text-transform:none}
+.gi-season-native .gi-season-heading small{margin-left:auto;color:var(--text-dim);font:500 11px/1 var(--gi-sans);text-transform:none}
+.gi-season-native .gi-season-stack{display:grid;gap:12px}
+.gi-season-native .gi-overview-drive{grid-template-columns:minmax(120px,180px) 1fr 52px}
+.gi-season-native .gi-overview-drive>span{display:flex;align-items:baseline;gap:7px;min-width:0}
+.gi-season-native .gi-overview-drive>span>em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);font:500 10px/1 var(--gi-sans);font-style:normal}
+.gi-season-native .trend-legend{display:flex;justify-content:space-between;gap:16px;margin:0 0 8px;color:var(--text-dim);font:600 10px/1 var(--gi-sans)}
+@media(max-width:700px){.gi-season-native .gi-season-heading small{display:none}.gi-season-native .gi-overview-drive{grid-template-columns:minmax(92px,140px) 1fr 44px}}
+/* Season responsive composition: deliberate rows, never an orphan tile or wrapped tab bar. */
+.gi-season-native .gi-sc-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.gi-season-native .gi-subtab{flex:0 0 auto;white-space:nowrap}
+@media(max-width:1320px){
+  .gi-reports .gi-reports-reporthead{flex-wrap:wrap;gap:8px}
+  .gi-reports .gi-reports-reporthead .gi-reports-tabs{order:4;flex-basis:100%}
+}
+@media(max-width:900px){.gi-season-native .gi-sc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){
+  .gi-season-native .gi-sc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gi-season-native .gi-overview-module>header{align-items:flex-start;flex-direction:column;gap:3px}
+}
+.gi-season-native .gi-subnav{flex-wrap:nowrap;margin:0}

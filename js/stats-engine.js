@@ -556,7 +556,8 @@ export class StatsEngine {
       else if (dp.length >= 8 || yards >= 60) driveType = 'Sustained';
       else if (yards >= 30 && dp.length <= 4) driveType = 'Explosive';
       else if (outcome === 'TD' || outcome === 'FG') driveType = 'Scoring';
-      return { number: idx + 1, plays: dp.length, yards, outcome, startYL, points, driveType, playIds: dp.map(p => p.id) };
+      return { number: idx + 1, plays: dp.length, yards, outcome, startYL, points, driveType,
+        playIds: dp.map(p => p.id), refs: StatsEngine._refsOf(dp) };
     });
     const scoringDrives = list.filter(d => d.outcome === 'TD' || d.outcome === 'FG');
     const threeAndOuts = list.filter(d => d.driveType === '3-and-out').length;
@@ -859,6 +860,7 @@ export class StatsEngine {
         explosiveRate: Number(computed.efficiency.explosivePct),
         negativeRate: Number(computed.efficiency.negativePct),
         playIds: cohort.map(play => play.id),
+        refs: StatsEngine._refsOf(cohort),
       };
     };
     const group = (items, values) => {
@@ -2044,7 +2046,8 @@ export class StatsEngine {
       type: p.tags.playType,
       result: p.tags.result,
       yards: p.tags.yardage,
-      clipName: p.clipName || `Play ${p.id}`
+      clipName: p.clipName || `Play ${p.id}`,
+      ref: StatsEngine._compositeRef(p)
     }));
   }
 

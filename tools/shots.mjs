@@ -105,6 +105,9 @@ for(const viewport of viewports){
   await page.click('[data-report-tab="offense"]');
   await capture(viewport,'08-reports-offense','#wsReports:not([hidden]) [data-report-tab="offense"].active');
 
+  await page.click('[data-report-tab="season"]');
+  await capture(viewport,'08b-reports-season','#wsReports:not([hidden]) [data-pane="season"]');
+
   await route('plan');
   await capture(viewport,'09-plan','#wsPlan:not([hidden]) .ws-plan-head');
 

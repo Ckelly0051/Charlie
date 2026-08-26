@@ -15,6 +15,19 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX NATIVE SEASON REPORT COMPLETE (2026-08-25)
+
+The live Reports Season tab is now a real Preact component over a structured `SeasonManager.reportModel()`. `ReportsScreen` no longer injects `SeasonManager.statsHtml()` into the live route. The seven native lenses are Overview, Offense, Defense, Special Teams, Players, Self-Scout, and Trends; each mounts only its active pane, while the season identity and KPI rail remain visible.
+
+The migration preserves the Season-only answers the generic game report did not own: situational scorecard, turnover margin and scoring by quarter, offensive identity, wins-vs-losses splits, per-game box score, season progression, and game-by-game trends. Established native Overview, Offense, Defense, Special Teams, Players, and Self-Scout components are reused with one season-scoped film adapter rather than copied formulas.
+
+Cross-game film identity is explicit. Big plays carry a composite `ref`, drives and play-call rows carry exact `refs`, and player rows retain their existing exact refs. Big Plays and Drives also display the source game so duplicate bare play and drive numbers are not visually ambiguous. An adversarial two-game fixture reuses play id `1` and proves Big Play/Drive clicks open one exact source while aggregated Play Call/Player rows open both exact games.
+
+Visual review at 1440x900, 1280x720, 768x1024, and 390x844 caught and closed three presentation defects: compact-desktop report-tab clipping, an orphan sixth situational tile at tablet width, and the obsolete global `.gi-subnav { flex-wrap: wrap }` rule breaking the native phone lens bar. The boundary review also caught four undefined CSS-token names whose properties were being silently dropped; all now use established `--gi-*` tokens and the screenshots were recaptured afterward. Evidence is in `design-comps/visual-reset-2026-08/part2-verification/reports-independence-season/`.
+
+Verification: `npm run build` green; `tools/e2e-native-reports.mjs` 92/92; `tools/e2e-reports-view-parity.mjs` 6/6; analytics parity 2/2 after an audited golden update containing only additive `ref`/`refs` fields and no changed football value. `tools/e2e-season-tab.mjs` is back to its exact pre-migration baseline (153 passed, 10 known unrelated retired per-game player-table failures, zero page errors), while every Season migration assertion is green.
+
+Retained boundary, disclosed precisely: `SeasonManager.statsHtml()` and the older StatsEngine HTML renderers remain live only for downloadable/standalone HTML report consumers. They no longer constrain the live Season screen. Their removal belongs with the HTML export migration, not this route checkpoint.
 ### CODEX MATCHUP NATIVE MIGRATION COMPLETE (2026-08-25)
 
 The live Reports Matchup tab is now a real Preact comparison board. `ReportsScreen` no longer calls `StatsEngine._renderMatchupInto()`, mounts an empty node for imperative population, or runs the legacy selector-binding pass. A new structured `StatsEngine.matchupReport()` seam selects the opponent and supplies four established cohorts: our offense, their defense, our defense, and their offense. All football values continue to come from `compute()` and `defensivePerformance()`.

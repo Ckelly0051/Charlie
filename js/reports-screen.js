@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
-import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, MatchupTab, ReportPane } from './native-report-tabs.jsx';
+import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, ReportPane } from './native-report-tabs.jsx';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 
@@ -410,7 +410,11 @@ export class ReportsScreen {
     }
 
     let html = '';
-    if (tab === 'season') html = this.app.season?.statsHtml?.() || '<div class="stats-section"><p>Season stats unavailable — open a season first.</p></div>';
+    if (tab === 'season') {
+      const model = this.app.season?.reportModel?.();
+      render(h(ReportPane, { tab: 'season' }, h(SeasonTab, { model, screen: this })), this.content);
+      return;
+    }
     else if (tab === 'matchup') {
       const model = statsEngine.matchupReport(this.matchupOpponent);
       if (model.opponent) this.matchupOpponent = model.opponent.name;

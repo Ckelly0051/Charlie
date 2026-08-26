@@ -77,18 +77,94 @@ export class SeasonManager {
     return map;
   }
 
+  /** One structured owner for every season-report presentation. The native
+   * Reports tab and retained standalone HTML export must consume this same
+   * stamped cohort rather than independently rebuilding season scope. */
+  reportModel() {
+    const games = this._effectiveGames();
+    const allPlays = games.length ? this._allPlays() : [];
+    const stats = games.length ? this.statsEngine.compute(allPlays) : null;
+    const gameLabels = Object.fromEntries(games.map((game, index) => [String(game.id), game.name || `Game ${index + 1}`]));
+    if (!stats) return { games, allPlays, stats: null, rosterLabels: this._mergeRoster(), gameLabels };
+    let wins = 0, losses = 0, ties = 0, pointsFor = 0, pointsAgainst = 0;
+    games.forEach(game => {
+      const us = parseInt(game.gameInfo?.scoreUs, 10), them = parseInt(game.gameInfo?.scoreThem, 10);
+      if (!Number.isFinite(us) || !Number.isFinite(them)) return;
+      pointsFor += us; pointsAgainst += them;
+      if (us > them) wins++; else if (us < them) losses++; else ties++;
+    });
+    const played = games.filter(game => (game.plays || []).length);
+    const perGame = played.map((game, index) => {
+      const gameStats = this.statsEngine.compute(game.plays || []);
+      const margin = this._toMargin(gameStats);
+      return { id:String(game.id), name:gameLabels[String(game.id)] || `Game ${index + 1}`, plays:gameStats.totalPlays,
+        yards:gameStats.rushing.yards + gameStats.passing.yards, rush:`${gameStats.rushing.attempts}/${gameStats.rushing.yards}`,
+        pass:`${gameStats.passing.completions}/${gameStats.passing.attempts}/${gameStats.passing.yards}`,
+        touchdowns:gameStats.scoring.touchdowns, turnoverMargin:margin.margin, pointsPerDrive:gameStats.drives.pointsPerDrive,
+        successRate:Number(gameStats.efficiency.successRate), thirdDown:Number(gameStats.downs.thirdDownPct), stats:gameStats };
+    });
+    const half = Math.floor(perGame.length / 2), early = perGame.slice(0, half), late = perGame.slice(half);
+    const metricSpecs = [
+      ['Success Rate','up',2,v=>v.successRate,v=>`${v.toFixed(0)}%`], ['Yards / Play','up',0.3,v=>v.plays?v.yards/v.plays:0,v=>v.toFixed(2)],
+      ['3rd Down %','up',3,v=>v.thirdDown,v=>`${v.toFixed(0)}%`], ['TDs / Game','up',0.3,v=>v.touchdowns,v=>v.toFixed(1)],
+      ['Turnovers / Game','down',0.3,v=>v.stats.turnovers.total,v=>v.toFixed(1)],
+    ];
+    const avg = (rows, get) => rows.length ? rows.reduce((sum,row)=>sum+get(row),0)/rows.length : 0;
+    const progression = perGame.length < 2 ? [] : metricSpecs.map(([label,better,epsilon,get,format]) => {
+      const from=avg(early,get), to=avg(late,get), delta=to-from;
+      const direction=Math.abs(delta)<epsilon?'flat':delta>0?'up':'down';
+      const good=direction==='flat'?null:(direction==='up')===(better==='up');
+      return { label, from:format(from), to:format(to), direction, verdict:good===null?'Steady':good?'Improving':'Slipping' };
+    });
+    const aggregate = rows => {
+      const merged = this.statsEngine.compute(rows.flatMap(row => games.find(game => String(game.id)===row.id)?.plays || []));
+      const margin=this._toMargin(merged); return { ypp:merged.totalPlays?((merged.rushing.yards+merged.passing.yards)/merged.totalPlays).toFixed(1):'0.0', success:`${merged.efficiency.successRate}%`, third:`${merged.downs.thirdDownPct}%`, ppd:merged.drives.pointsPerDrive, margin:margin.margin };
+    };
+    const winRows=perGame.filter(row=>{const game=games.find(item=>String(item.id)===row.id);return Number(game?.gameInfo?.scoreUs)>Number(game?.gameInfo?.scoreThem);});
+    const lossRows=perGame.filter(row=>{const game=games.find(item=>String(item.id)===row.id);return Number(game?.gameInfo?.scoreUs)<Number(game?.gameInfo?.scoreThem);});
+    const pct=(n,total)=>total?Math.round(n/total*100):0;
+    const tone=(value,good,ok)=>value>=good?'good':value>=ok?'warn':'bad';
+    const situational=(()=>{const d=stats.downs||{},sit=stats.situational||{},eff=stats.efficiency||{},dr=stats.drives||{};
+      const rz=sit.redZone||{total:0,tds:0},gl=sit.goalLine||{total:0,tds:0};
+      const p3=Number(d.thirdDownPct)||0,exp=Number(eff.explosivePct)||0,ppd=Number(dr.pointsPerDrive)||0,toPct=pct(dr.threeAndOuts,dr.total);
+      const rows=[
+        {label:'3rd Down',value:`${Math.round(p3)}%`,sub:d.thirdDownConv||'0/0',tone:tone(p3,42,33)},
+        {label:'4th Down',value:`${Math.round(Number(d.fourthDownPct)||0)}%`,sub:d.fourthDownConv||'0/0'},
+        {label:'Red Zone TD',value:`${pct(rz.tds,rz.total)}%`,sub:`${rz.tds}/${rz.total} trips`,tone:rz.total?tone(pct(rz.tds,rz.total),60,45):''},
+        {label:'Explosive',value:`${Math.round(exp)}%`,sub:`${eff.explosivePlays||0} plays`,tone:tone(exp,12,8)},
+        {label:'Pts / Drive',value:dr.pointsPerDrive||'0.0',sub:`${dr.scoringDrives||0}/${dr.total||0} scored`,tone:tone(ppd,2.5,1.5)},
+        {label:'3-and-Out',value:`${toPct}%`,sub:`${dr.threeAndOuts||0} of ${dr.total||0}`,tone:dr.total?(toPct<=20?'good':toPct<=30?'warn':'bad'):''},
+      ];
+      if(gl.total>0)rows.push({label:'Goal Line',value:`${pct(gl.tds,gl.total)}%`,sub:`${gl.tds}/${gl.total} TD`});
+      return rows;
+    })();
+    const turnoverScoring=(()=>{const margin=this._toMargin(stats),byQuarter=stats.scoreboard?.byQuarter||{};
+      const quarters=['Q1','Q2','Q3','Q4','OT'].filter(q=>byQuarter[q]&&((byQuarter[q].us||0)||(byQuarter[q].them||0))).map(q=>({quarter:q,us:byQuarter[q].us||0,them:byQuarter[q].them||0}));
+      return {margin:margin.margin,takeaways:margin.takeaways,giveaways:margin.giveaways,unresolved:margin.unresolved,quarters};
+    })();
+    const identityGroup=(items,total)=>items.filter(item=>item.name!=='Unknown').slice(0,4).map(item=>({name:item.name,count:item.count,use:Math.round(item.count/(total||1)*100),success:item.successPct}));
+    const personnel=stats.personnel||[],formations=stats.tendencies?.formationList||[];
+    const offensiveIdentity={personnel:identityGroup(personnel,personnel.reduce((sum,item)=>sum+item.count,0)),formations:identityGroup(formations,formations.reduce((sum,item)=>sum+item.count,0))};
+    return { games, allPlays, stats, rosterLabels:this._mergeRoster(), gameLabels, perGame, progression,
+      summary:{ games:games.length, record:ties?`${wins}-${losses}-${ties}`:`${wins}-${losses}`, played:wins+losses+ties, pointsFor, pointsAgainst },
+      winLoss:winRows.length&&lossRows.length?{wins:aggregate(winRows),losses:aggregate(lossRows),winCount:winRows.length,lossCount:lossRows.length}:null,
+      defenseReport:this.statsEngine.defensivePerformance(allPlays,gameLabels), defScout:this.statsEngine.generateDefensiveSelfScout(allPlays),
+      specialSummary:this.statsEngine._specialTeamsSummary(allPlays,stats), selfScout:this.statsEngine.generateSelfScout(allPlays),
+      situational, turnoverScoring, offensiveIdentity,
+      callRows:this.statsEngine._selfScoutRows(this.statsEngine._selfScoutGroup(stats.offPlays, play=>play.tags.playCall||play.tags.playConcept||null)),
+    };
+  }
+
   /** Season stats composed for the native Reports Season tab. */
   statsHtml() {
-    const games = this._effectiveGames();
+    const model = this.reportModel();
+    const { games, allPlays, stats } = model;
     if (!games.length) {
       return '<div class="season-empty-stats">Load a game in the app, or add past games above, to see season-wide stats, trends, and a self-scout report.</div>';
     }
 
-    const allPlays = this._allPlays();
-    const stats = this.statsEngine.compute(allPlays);
-
     // Provide merged player names for the season roll-up, then clear.
-    this.statsEngine._seasonLabels = this._mergeRoster();
+    this.statsEngine._seasonLabels = model.rosterLabels;
     const indTables = this.statsEngine._renderIndividualStats(stats);
     const individual = indTables ? `
       <div class="stats-section"><h3>Season Player Roll-Up</h3>

@@ -317,7 +317,8 @@
      "type": "Deep Pass",
      "result": "Gain + Touchdown",
      "yards": "48",
-     "clipName": "g1_7"
+     "clipName": "g1_7",
+     "ref": "g1::7"
     }
    ],
    "individuals": {
@@ -450,6 +451,9 @@
       "driveType": "3-and-out",
       "playIds": [
        1
+      ],
+      "refs": [
+       "g1::1"
       ]
      },
      {
@@ -462,6 +466,9 @@
       "driveType": "3-and-out",
       "playIds": [
        2
+      ],
+      "refs": [
+       "g1::2"
       ]
      },
      {
@@ -474,6 +481,9 @@
       "driveType": "3-and-out",
       "playIds": [
        3
+      ],
+      "refs": [
+       "g1::3"
       ]
      },
      {
@@ -486,6 +496,9 @@
       "driveType": "3-and-out",
       "playIds": [
        4
+      ],
+      "refs": [
+       "g1::4"
       ]
      },
      {
@@ -498,6 +511,9 @@
       "driveType": "3-and-out",
       "playIds": [
        5
+      ],
+      "refs": [
+       "g1::5"
       ]
      },
      {
@@ -511,6 +527,10 @@
       "playIds": [
        6,
        7
+      ],
+      "refs": [
+       "g1::6",
+       "g1::7"
       ]
      },
      {
@@ -523,6 +543,9 @@
       "driveType": "3-and-out",
       "playIds": [
        8
+      ],
+      "refs": [
+       "g1::8"
       ]
      },
      {
@@ -542,6 +565,16 @@
        4,
        5,
        6
+      ],
+      "refs": [
+       "g1::10",
+       "g1::9",
+       "g2::1",
+       "g2::2",
+       "g2::3",
+       "g2::4",
+       "g2::5",
+       "g2::6"
       ]
      }
     ],
@@ -3247,7 +3280,8 @@
        "type": "Deep Pass",
        "result": "Gain + Touchdown",
        "yards": "48",
-       "clipName": "g1_7"
+       "clipName": "g1_7",
+       "ref": "g1::7"
       }
      ],
      "individuals": {
@@ -3368,6 +3402,9 @@
         "driveType": "3-and-out",
         "playIds": [
          1
+        ],
+        "refs": [
+         "g1::1"
         ]
        },
        {
@@ -3380,6 +3417,9 @@
         "driveType": "3-and-out",
         "playIds": [
          2
+        ],
+        "refs": [
+         "g1::2"
         ]
        },
        {
@@ -3392,6 +3432,9 @@
         "driveType": "3-and-out",
         "playIds": [
          3
+        ],
+        "refs": [
+         "g1::3"
         ]
        },
        {
@@ -3404,6 +3447,9 @@
         "driveType": "3-and-out",
         "playIds": [
          4
+        ],
+        "refs": [
+         "g1::4"
         ]
        },
        {
@@ -3416,6 +3462,9 @@
         "driveType": "3-and-out",
         "playIds": [
          5
+        ],
+        "refs": [
+         "g1::5"
         ]
        },
        {
@@ -3429,6 +3478,10 @@
         "playIds": [
          6,
          7
+        ],
+        "refs": [
+         "g1::6",
+         "g1::7"
         ]
        },
        {
@@ -3441,6 +3494,9 @@
         "driveType": "3-and-out",
         "playIds": [
          8
+        ],
+        "refs": [
+         "g1::8"
         ]
        },
        {
@@ -3460,6 +3516,16 @@
          4,
          5,
          6
+        ],
+        "refs": [
+         "g1::10",
+         "g1::9",
+         "g2::1",
+         "g2::2",
+         "g2::3",
+         "g2::4",
+         "g2::5",
+         "g2::6"
         ]
        }
       ],
@@ -4976,7 +5042,8 @@
      "type": "Deep Pass",
      "result": "Gain + Touchdown",
      "yards": "48",
-     "clipName": "g1_7"
+     "clipName": "g1_7",
+     "ref": "g1::7"
     }
    ],
    "individuals": {
@@ -5094,6 +5161,9 @@
       "driveType": "3-and-out",
       "playIds": [
        1
+      ],
+      "refs": [
+       "g1::1"
       ]
      },
      {
@@ -5106,6 +5176,9 @@
       "driveType": "3-and-out",
       "playIds": [
        2
+      ],
+      "refs": [
+       "g1::2"
       ]
      },
      {
@@ -5118,6 +5191,9 @@
       "driveType": "3-and-out",
       "playIds": [
        3
+      ],
+      "refs": [
+       "g1::3"
       ]
      },
      {
@@ -5130,6 +5206,9 @@
       "driveType": "3-and-out",
       "playIds": [
        4
+      ],
+      "refs": [
+       "g1::4"
       ]
      },
      {
@@ -5142,6 +5221,9 @@
       "driveType": "3-and-out",
       "playIds": [
        5
+      ],
+      "refs": [
+       "g1::5"
       ]
      },
      {
@@ -5155,6 +5237,10 @@
       "playIds": [
        6,
        7
+      ],
+      "refs": [
+       "g1::6",
+       "g1::7"
       ]
      },
      {
@@ -5167,6 +5253,9 @@
       "driveType": "3-and-out",
       "playIds": [
        8
+      ],
+      "refs": [
+       "g1::8"
       ]
      },
      {
@@ -5180,6 +5269,10 @@
       "playIds": [
        9,
        10
+      ],
+      "refs": [
+       "g1::10",
+       "g1::9"
       ]
      }
     ],
@@ -7161,7 +7254,8 @@
        "type": "Deep Pass",
        "result": "Gain + Touchdown",
        "yards": "48",
-       "clipName": "g1_7"
+       "clipName": "g1_7",
+       "ref": "g1::7"
       }
      ],
      "individuals": {
@@ -7267,6 +7361,9 @@
         "driveType": "3-and-out",
         "playIds": [
          1
+        ],
+        "refs": [
+         "g1::1"
         ]
        },
        {
@@ -7279,6 +7376,9 @@
         "driveType": "3-and-out",
         "playIds": [
          2
+        ],
+        "refs": [
+         "g1::2"
         ]
        },
        {
@@ -7291,6 +7391,9 @@
         "driveType": "3-and-out",
         "playIds": [
          3
+        ],
+        "refs": [
+         "g1::3"
         ]
        },
        {
@@ -7303,6 +7406,9 @@
         "driveType": "3-and-out",
         "playIds": [
          4
+        ],
+        "refs": [
+         "g1::4"
         ]
        },
        {
@@ -7315,6 +7421,9 @@
         "driveType": "3-and-out",
         "playIds": [
          5
+        ],
+        "refs": [
+         "g1::5"
         ]
        },
        {
@@ -7328,6 +7437,10 @@
         "playIds": [
          6,
          7
+        ],
+        "refs": [
+         "g1::6",
+         "g1::7"
         ]
        },
        {
@@ -7340,6 +7453,9 @@
         "driveType": "3-and-out",
         "playIds": [
          8
+        ],
+        "refs": [
+         "g1::8"
         ]
        },
        {
@@ -7353,6 +7469,10 @@
         "playIds": [
          9,
          10
+        ],
+        "refs": [
+         "g1::10",
+         "g1::9"
         ]
        }
       ],
@@ -8615,6 +8735,14 @@
        4,
        5,
        6
+      ],
+      "refs": [
+       "g2::1",
+       "g2::2",
+       "g2::3",
+       "g2::4",
+       "g2::5",
+       "g2::6"
       ]
      }
     ],
@@ -10011,6 +10139,14 @@
          4,
          5,
          6
+        ],
+        "refs": [
+         "g2::1",
+         "g2::2",
+         "g2::3",
+         "g2::4",
+         "g2::5",
+         "g2::6"
         ]
        }
       ],

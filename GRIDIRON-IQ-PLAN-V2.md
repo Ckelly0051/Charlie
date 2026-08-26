@@ -392,6 +392,16 @@ Retain every meaningful production field while reducing everyday clutter.
 
 ### V2-F: Study As The Analytical Center
 
+> **REPORTS PRESENTATION FOUNDATION (2026-08-25):** The live Reports route is now
+> native across Overview, Offense, Defense, Special Teams, Players, Self-Scout,
+> Season, and Matchup. The Season checkpoint completed the last self-perspective
+> screen dependency on HTML-string composition while preserving its seven lenses,
+> Season-only analytics, and exact cross-game film references. The older HTML
+> renderers remain only where the downloadable/standalone HTML export still calls
+> them; they are not a live-screen dependency and must be retired with that export
+> consumer rather than carried into new Study presentation work.
+>
+
 Expand Study into a visual query and comparison workspace while preserving the
 parity-locked analytics foundation.
 
