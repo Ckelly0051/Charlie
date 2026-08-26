@@ -124,5 +124,72 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }
 
+export function buildDefenseHtmlReport({ title, report, stats, defScout, scopeLabel, generatedAt = new Date() }) {
+  const defensive = stats?.defensive || {};
+  const schemeColumns = [
+    { key: 'name', label: 'Scheme' }, { key: 'count', label: 'Snaps' },
+    { key: 'average', label: 'Yards / Play', value: row => row.count ? (row.yards / row.count).toFixed(1) : '0.0' },
+    { key: 'stop', label: 'Stop Rate', value: row => `${row.count ? Math.round(row.successes / row.count * 100) : 0}%` },
+    { key: 'havoc', label: 'Havoc', value: row => `${row.count ? Math.round(row.havoc / row.count * 100) : 0}%` },
+  ];
+  const scoutRows = defScout?.insufficient ? [] : (defScout?.tells || []).map(item => ({
+    situation: item.label, type: item.tellType, lean: `${item.tellVal} ${item.tellPct}%`,
+    stop: `${item.stopRate}%`, havoc: `${item.havocRate}%`, assessment: item.verdict,
+  }));
+  const body = `${defenseTables(report)}
+    ${table('Defensive Fronts', schemeColumns, defensive.fronts)}
+    ${table('Coverages', schemeColumns, defensive.coverages)}
+    ${table('Pressures', schemeColumns, defensive.blitzes)}
+    ${table('Defensive Tendency Tells', [
+      { key: 'situation', label: 'Situation' }, { key: 'type', label: 'Type' },
+      { key: 'lean', label: 'Lean' }, { key: 'stop', label: 'Stop Rate' },
+      { key: 'havoc', label: 'Havoc' }, { key: 'assessment', label: 'Assessment' },
+    ], scoutRows)}`;
+  return documentShell({ title, subtitle: `${scopeLabel} - ${report.total} defensive snaps`,
+    meta: `Generated ${generatedAt.toLocaleString()}`, body });
+}
+
+export function buildSelfScoutHtmlReport({ title, report, defScout, performance, callRows, generatedAt = new Date() }) {
+  const efficiency = performance?.efficiency || {};
+  const splitColumns = [
+    { key: 'key', label: 'Situation' }, { key: 'n', label: 'Snaps' },
+    { key: 'run', label: 'Run / Pass', value: row => `${row.runPct}% / ${row.passPct}%` },
+    { key: 'runAvg', label: 'Run Avg' }, { key: 'passAvg', label: 'Pass Avg' },
+    { key: 'success', label: 'Success', value: row => `${row.succRate}%` },
+  ];
+  const tellRows = (report?.tells || []).map(item => ({
+    situation: item.label, type: item.dim, tendency: `${item.lean} ${item.leanPct}%`,
+    average: item.leanAvg, success: `${item.leanSuccRate}%`, assessment: item.verdict, n: item.n,
+  }));
+  const recommendations = (report?.recommendations || []).map(item => `<li>${String(item || '').replace(/<[^>]*>/g, '')}</li>`).join('');
+  const defensiveRows = defScout?.insufficient ? [] : (defScout?.tells || []).map(item => ({
+    situation: item.label, type: item.tellType, lean: `${item.tellVal} ${item.tellPct}%`,
+    stop: `${item.stopRate}%`, havoc: `${item.havocRate}%`, assessment: item.verdict,
+  }));
+  const body = `${metrics([
+    { label: 'Classified plays', value: report?.totalPlays || 0, sub: 'offensive snaps' },
+    { label: 'Predictability', value: `${report?.predictability || 0}/100`, sub: report?.predLabel || 'No data' },
+    { label: 'Success rate', value: `${efficiency.successRate || '0.0'}%`, sub: 'offensive snaps' },
+    { label: 'Explosive rate', value: `${efficiency.explosivePct || '0.0'}%`, sub: `${efficiency.explosivePlays || 0} plays` },
+  ])}
+    ${recommendations ? `<section class="report-section"><h2>Coaching Recommendations</h2><ul>${recommendations}</ul></section>` : ''}
+    ${table('Top Tells', [
+      { key: 'situation', label: 'Situation' }, { key: 'type', label: 'Type' },
+      { key: 'tendency', label: 'Tendency' }, { key: 'average', label: 'Avg Yards' },
+      { key: 'success', label: 'Success' }, { key: 'assessment', label: 'Assessment' }, { key: 'n', label: 'N' },
+    ], tellRows)}
+    ${table('By Formation', splitColumns, report?.formationRows)}
+    ${table('By Down & Distance', splitColumns, report?.downDistRows)}
+    ${table('By Personnel', splitColumns, report?.personnelRows)}
+    ${table('Call and Concept Performance', splitColumns, callRows)}
+    ${table('Defensive Self-Scout', [
+      { key: 'situation', label: 'Situation' }, { key: 'type', label: 'Type' },
+      { key: 'lean', label: 'Lean' }, { key: 'stop', label: 'Stop Rate' },
+      { key: 'havoc', label: 'Havoc' }, { key: 'assessment', label: 'Assessment' },
+    ], defensiveRows)}`;
+  return documentShell({ title, subtitle: `${report?.totalPlays || 0} classified offensive plays`,
+    meta: `Generated ${generatedAt.toLocaleString()}`, body });
+}
+
 export { esc as escapeReportHtml };
 

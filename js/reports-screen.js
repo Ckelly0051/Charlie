@@ -2,6 +2,7 @@ import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
 import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, OpponentOverviewTab, OpponentOffenseTab, OpponentDefenseTab, OpponentSpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Charts } from './charts.js';
+import { buildDefenseHtmlReport, buildSelfScoutHtmlReport } from './html-report.js';
 
 const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']);
 
@@ -153,6 +154,25 @@ export class ReportsScreen {
    * opponent perspective (its own answer-sheet header already states the
    * sample), so it never duplicates a header the tab already carries.
    */
+  exportDefense(report, scoped) {
+    if (!report?.total) return false;
+    const stats = this.app.stats.compute(scoped);
+    const defScout = this.app.stats.generateDefensiveSelfScout(scoped);
+    const scopeLabel = this.defenseScope === 'season' ? 'Full season' : 'Current game';
+    const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
+    const html = buildDefenseHtmlReport({ title: `Defensive Report: ${team}`, report, stats, defScout, scopeLabel });
+    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `defensive_report_${new Date().toISOString().slice(0, 10)}.html`);
+    return true;
+  }
+
+  exportSelfScout(report, defScout, performance, callRows) {
+    if (!report) return false;
+    const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Offense';
+    const html = buildSelfScoutHtmlReport({ title: `Self-Scout Report: ${team}`, report, defScout, performance, callRows });
+    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `self_scout_report_${new Date().toISOString().slice(0, 10)}.html`);
+    return true;
+  }
+
   _syncKpiRail() {
     const rail = this.host?.querySelector('[data-reports-rail]');
     if (!rail) return;

@@ -15,6 +15,13 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REPORT RETIREMENT ADVERSARIAL REPAIR (2026-08-26)
+
+Post-commit review of `d863b29..8cc6dc7` found two user-facing regressions: Defense's full-season Export Report and Self-Scout's Export Report had both been redirected to the generic active-game HTML export when their obsolete renderers were deleted. Dedicated structured-data HTML builders now export the exact displayed Defense scope and the actual Self-Scout tendencies, recommendations, splits, and defensive self-scout without reviving retired presentation methods.
+
+The real-data harness now requires each affected tab's specific native surface; Defense also verifies the displayed defensive snap count against the computed cohort and requires the explicit empty state when that count is zero. Button-level export assertions prove the generated filenames, scope, and report-specific content. Verification: production build green, native Reports 93/93, real-data 9/9, XSS names 6/6.
+
+
 ### CODEX INSTALLED REPORT BLANK-SCREEN REPAIR (2026-08-26)
 
 The `1.12.0-66` installed smoke exposed blank Defense, Self-Scout, and Season bodies on the real 2025 catalog. During the final obsolete-comment deletion in `d863b29`, the live `const recommendations = []` initialization inside `generateDefensiveSelfScout()` was accidentally removed with the comment block. Real defensive cohorts reached the later `recommendations.push()` calls and threw; small synthetic fixtures returned before that branch and missed it.

@@ -616,7 +616,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
           onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
       </div>}
-      <button class="btn btn-sm" onClick={() => screen.export(fixedScope ? 'season-html' : 'html')}>Export Report</button>
+      <button class="btn btn-sm" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(report, scoped)}>Export Report</button>
     </div>
     <DefSection title="Defensive Performance">
       <div class="gi-def-kpis">
@@ -1193,7 +1193,7 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
   const color=engine.constructor._meterColor(report.predictability);
   return <div class="gi-selfscout-board">
     <div class="gi-selfscout-toolbar"><div><strong>Self-Scout</strong><span>{report.totalPlays} classified offensive plays</span></div>
-      <button class="btn btn-sm" onClick={()=>screen.export('html')}>Export Report</button></div>
+      <button class="btn btn-sm" onClick={()=>screen.exportSelfScout ? screen.exportSelfScout(report, defScout, performance, callRows) : screen.export('season-html')}>Export Report</button></div>
     <KpiBand items={[
       {label:'Success Rate',value:(e.successRate||'0.0')+'%'},{label:'Yards / Play',value:engine.constructor.yardsPerPlay(performance)},
       {label:'Explosive Rate',value:(e.explosivePct||'0.0')+'%'},{label:'Negative Plays',value:(e.negativePct||'0.0')+'%'},

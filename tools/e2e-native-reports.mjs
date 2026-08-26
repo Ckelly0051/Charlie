@@ -1055,6 +1055,35 @@ result = await page.evaluate(() => {
 ok(result.join(',') === 'pdf,html,season-html,csv,call-sheet',
   'Native Reports routes game HTML, full-season HTML, PDF, CSV, and Call Sheet to their canonical owners', JSON.stringify(result));
 
+
+result = await page.evaluate(async () => {
+  const app = window.app;
+  const save = window.ffaSaveBlob;
+  const captures = [];
+  const pending = [];
+  window.ffaSaveBlob = (blob, name) => pending.push(blob.text().then(html => captures.push({ name, html })));
+  app.reportsScreen.show();
+  app.reportsScreen.selectTab('defense');
+  document.querySelector('.gi-def-toolbar .btn')?.click();
+  app.reportsScreen.selectTab('selfscout');
+  document.querySelector('.gi-selfscout-toolbar .btn')?.click();
+  await Promise.all(pending);
+  window.ffaSaveBlob = save;
+  return captures;
+});
+{
+  const defense = result.find(item => /^defensive_report_/.test(item.name));
+  const selfScout = result.find(item => /^self_scout_report_/.test(item.name));
+  ok(defense && /Defensive Report:/.test(defense.html) && /Full season - \d+ defensive snaps/.test(defense.html)
+    && /Defensive Performance/.test(defense.html) && !/Offensive Performance/.test(defense.html),
+    'Defense Export Report downloads the displayed full-season defensive report, not the active-game omnibus report',
+    JSON.stringify(result.map(item => item.name)));
+  ok(selfScout && /Self-Scout Report:/.test(selfScout.html) && /Predictability/.test(selfScout.html)
+    && /Top Tells|Coaching Recommendations/.test(selfScout.html) && !/Offensive Performance/.test(selfScout.html),
+    'Self-Scout Export Report downloads self-scout tendencies and recommendations, not the generic game report',
+    JSON.stringify(result.map(item => item.name)));
+}
+
 result = await page.evaluate(async () => {
   const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),original=window.ffaSaveBlob;
   let capture=null,pending=null;window.ffaSaveBlob=(blob,name)=>{pending=blob.text().then(html=>{capture={html,name};});};
