@@ -174,7 +174,6 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
   engine.tagger = { plays: [play(1, 0, 4)] };
   engine.filter = null;
   engine.filmNavigation = null;
-  engine.hideDashboard = () => {};
   let message = '';
   try { engine._watchPlays(() => true, 'Missing service'); } catch (error) { message = error.message; }
   ok(/requires FilmNavigationService/.test(message),

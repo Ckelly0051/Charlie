@@ -392,19 +392,17 @@ Retain every meaningful production field while reducing everyday clutter.
 
 ### V2-F: Study As The Analytical Center
 
-> **REPORTS PRESENTATION FOUNDATION (completed 2026-08-26):** The live Reports
-> route is native for both perspectives. Our Program owns Overview, Offense,
-> Defense, Special Teams, Players, Self-Scout, Season, and Matchup; Opponent Scout
-> owns native Overview, Offense, Defense, and Special Teams views over the same
-> structured football models and exact composite film references. No live report
-> injects opponent/self HTML strings or depends on post-render selector rebinding.
-> Current-game and full-season downloadable HTML reports now also consume the
-> structured report models through one shared print renderer; they no longer call
-> old StatsEngine HTML renderers or `SeasonManager.statsHtml()`. The only remaining
-> consumers of that old presentation family are obsolete non-route dashboard APIs
-> and parity/sample harnesses. Retire or redirect those explicit callers, then
-> delete the unreachable render methods before expanding Study presentation; do
-> not carry any of that family into new live UI.
+> **REPORTS PRESENTATION FOUNDATION AND RETIREMENT (completed 2026-08-26):**
+> The live Reports route is native for both perspectives. Our Program owns
+> Overview, Offense, Defense, Special Teams, Players, Self-Scout, Season, and
+> Matchup; Opponent Scout owns native Overview, Offense, Defense, and Special
+> Teams views over the same structured football models and exact composite film
+> references. Current-game and full-season HTML downloads share one structured
+> print renderer. The obsolete StatsEngine dashboard/render/binder family,
+> ReportsScreen HTML compatibility methods, and SeasonManager.statsHtml() are
+> deleted. No old Reports presentation consumer remains to constrain Study,
+> future visual composition, or mobile work. Retained StatsEngine code is football
+> analytics, film resolution, or the active PDF export path, not a second UI.
 >
 
 Expand Study into a visual query and comparison workspace while preserving the

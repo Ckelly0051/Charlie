@@ -596,22 +596,12 @@ r = await page.evaluate(() => ({
   nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
   nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
   legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
-  // Final Engine Independence (2026-08-22, repaired after CHANGES REQUESTED
-  // review d51c97b): #statsDashboard/#giLegacyEngineHost no longer share any
-  // markup at all, and StatsEngine.dashboardEl is never a fabricated stand-in
-  // -- it is explicitly null until ReportsScreen injects the live section, so
-  // "the legacy dashboard never leaks into a live route" is provable directly
-  // off the engine's own field rather than inferred from a detached
-  // fallback's absence.
-  // dashboardEl is native-reports.jsx's inner [data-native-report-content]
-  // node, a descendant of the #statsDashboard route root -- not that root
-  // element itself.
-  engineTargetIsLiveContent: window.app.stats.dashboardEl === document.querySelector('#wsReports [data-native-reports]#statsDashboard [data-native-report-content]'),
+  legacyControllerAbsent: !('dashboardEl' in window.app.stats) && !('showDashboard' in window.app.stats),
   mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
   tabs: document.querySelectorAll('#wsReports [data-report-tab]').length,
 }));
-ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.engineTargetIsLiveContent && r.mainActions === 2 && r.tabs === 8,
-  'Native Reports owns its route and actions; StatsEngine.dashboardEl is exactly the live content node it owns', JSON.stringify(r));
+ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.legacyControllerAbsent && r.mainActions === 2 && r.tabs === 8,
+  'Native Reports owns its route and actions with no StatsEngine presentation controller', JSON.stringify(r));
 r = await page.evaluate(() => {
   const screen = window.app.reportsScreen, calls = [];
   const original = screen.export;
@@ -623,42 +613,21 @@ r = await page.evaluate(() => {
 });
 ok(r.calls.length === 1 && r.calls[0] === 'pdf',
   'Native Reports Export menu invokes the canonical game-report action', JSON.stringify(r));
-await page.evaluate(() => window.app.stats._emptyOverlay('Scout Report', 'No opponent data yet.'));
-await new Promise(resolve => setTimeout(resolve, 0));
-r = await page.evaluate(() => ({
-  routeHeadHidden: [...document.querySelectorAll('#wsReports [data-reports-main-chrome]')].every(node => node.hidden),
-  title: document.querySelector('#wsReports .stats-header h2')?.textContent,
-  closeVisible: document.getElementById('btnCloseEmptyOv')?.offsetParent !== null,
-}));
-ok(r.routeHeadHidden && r.title === 'Scout Report' && r.closeVisible,
-  'Specialized/empty report keeps its truthful title and canonical Close action', JSON.stringify(r));
-await page.keyboard.press('Escape');
-await new Promise(resolve => setTimeout(resolve, 0));
-r = await page.evaluate(() => ({ main: !!document.getElementById('btnExportStats'), route: window.app.workspace.currentRoute() }));
-ok(r.main && r.route === 'reports', 'Escape from a specialized report returns to the Reports dashboard', JSON.stringify(r));
-const reportStates = await page.evaluate(() => {
-  const stats = window.app.stats;
-  const capture = (render, expectedTitle, exportSelector) => {
-    render();
-    const header = document.querySelector('#wsReports .stats-header');
-    return {
-      expectedTitle,
-      title: header?.querySelector('h2')?.textContent || '',
-      visible: !!header && getComputedStyle(header).display !== 'none',
-      close: !!header?.querySelector('[id^="btnClose"]'),
-      export: exportSelector ? !!header?.querySelector(exportSelector) : true,
-    };
-  };
-  return [
-    capture(() => stats.renderOpponentScout('Knights'), 'Opponent Report', null),
-    capture(() => stats.renderScoutReport(), 'Scout Report', '#btnExportScoutReport'),
-    capture(() => stats.renderSelfScout(), 'Self-Scout', '#btnExportSelfScout'),
-    capture(() => stats.renderDefensiveReport(), 'Defensive Report', null),
-  ];
+r = await page.evaluate(() => {
+  const screen = window.app.reportsScreen;
+  const states = [];
+  for (const tab of ['selfscout', 'defense']) {
+    screen.show();
+    screen.selectTab(tab);
+    states.push({ tab, native: !!screen.content.querySelector(`[data-pane="${tab}"]`) });
+  }
+  screen.scoutOpponent(window.app.stats._activeOpponent());
+  states.push({ tab: 'opponent', native: screen.perspective === 'opponent' && !!screen.content.querySelector('[data-native-main-report]') });
+  screen.show();
+  return states;
 });
-ok(reportStates.every(state => state.visible && state.close && state.export && state.title.includes(state.expectedTitle)),
-  'Opponent, scout, self-scout, and defensive report states retain their canonical controls', JSON.stringify(reportStates));
-await page.evaluate(() => window.app.reportsScreen.show());
+ok(r.every(state => state.native),
+  'Self-scout, Defense, and Opponent Scout are native report states, not specialized StatsEngine overlays', JSON.stringify(r));await page.evaluate(() => window.app.reportsScreen.show());
 const reportsLibrary = await page.evaluate(async () => {
   const shell = window.app.workspaceShell;
   await shell._openLibrary();
@@ -715,7 +684,7 @@ r = await page.evaluate(async () => {
   shell.showAdvancedReports();
   await new Promise(resolve => setTimeout(resolve, 0));
   const outletWhileReportsOpen = outletHidden();
-  window.app.stats.hideDashboard();
+  await shell.show('breakdown');
   await new Promise(resolve => setTimeout(resolve, 0));
   return {
     hubVisible, outletWhileHubOpen, breakdownRestored, outletAfterHubClose,
@@ -760,15 +729,9 @@ r = await page.evaluate(() => {
     // (and every native chrome button with it), and #giLegacyEngineHost does
     // not exist in the document at all any more.
     chromeGone: !document.querySelector('[data-ws-tool]') && !document.getElementById('giLegacyEngineHost'),
-    // Repair of Codex CHANGES REQUESTED review d51c97b, finding 1:
-    // ReportsScreen.restore() (called by disable()) must EXPLICITLY clear
-    // StatsEngine's render target to null rather than hand back a fabricated
-    // stand-in a coach could silently render into.
-    dashboardTargetCleared: window.app.stats.dashboardEl === null,
   };
 });
 ok(r.restored && r.chromeGone, 'disable() (internal teardown) parks media in its permanent host and leaves no native chrome or legacy host behind', JSON.stringify(r));
-ok(r.dashboardTargetCleared, 'disable() clears StatsEngine.dashboardEl to null -- an explicitly absent target, never a detached stand-in', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });

@@ -140,7 +140,7 @@ export function Gauge({ pct, label = '', color = 'var(--accent)', size = 100, ti
 }
 
 /** A definitional "i" tooltip button -- the native replacement for
- *  `StatsEngine.defMark()`/`bindDefs()`'s HTML-string + delegated-click-
+ *  the retired HTML-string tooltip and delegated-click binding
  *  binding pattern. Real Preact interactivity (local `useState`), not a
  *  post-render selector-binding pass. `text` is a static, developer-authored
  *  definition string (StatsEngine.DEFINITIONS), never coach data, so plain

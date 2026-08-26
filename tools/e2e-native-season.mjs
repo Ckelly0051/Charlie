@@ -40,11 +40,12 @@ const fixture = await page.evaluate(async () => {
 
 let state = await page.evaluate(() => ({
   legacyIds: ['seasonOverlay','seasonNameInput','seasonGameList','seasonStatsBody','seasonRestorePanel'].filter(id => document.getElementById(id)),
-  hasStats: typeof window.app.season?.statsHtml === 'function',
+  hasModel: typeof window.app.season?.reportModel === 'function',
+  legacyStatsAbsent: typeof window.app.season?.statsHtml === 'undefined',
   deadMethods: ['show','hide','_renderAll','_renderGameList','_renderRestoreList'].filter(key => typeof window.app.season?.[key] === 'function'),
   homeGames: document.querySelectorAll('#wsGameList .ws-game-row').length,
 }));
-ok(!state.legacyIds.length && state.hasStats && !state.deadMethods.length,
+ok(!state.legacyIds.length && state.hasModel && state.legacyStatsAbsent && !state.deadMethods.length,
   'Season analytics remains live while the legacy modal owner and lifecycle are deleted', JSON.stringify(state));
 ok(state.homeGames === 2, 'Home remains the single season game-entry surface', JSON.stringify(state));
 
@@ -72,33 +73,23 @@ state = await page.evaluate(() => ({
     label: card.querySelector('.gi-kpi-label')?.textContent.trim(),
   })),
   subTabs: [...document.querySelectorAll('[data-pane="season"] .gi-subtab')].map(button => button.textContent.trim()),
-  // A season row must resolve its own cross-game composite refs. A row still
-  // bound to the game-scope handler would show a season count and play only
-  // whichever of those snaps live in the open game.
-  seasonFilmRows: document.querySelectorAll('[data-pane="season"] [data-season-film]').length,
-  gameScopedLeaks: document.querySelectorAll('[data-pane="season"] .cut-row[data-cut-type]:not([data-season-film])').length,
+  model: (() => { const model = window.app.season.reportModel(); return { yards: model.stats.rushing.yards + model.stats.passing.yards, refs: model.allPlays.map(play => window.app.stats.constructor._compositeRef(play)).filter(Boolean).sort() }; })(),
   data: JSON.stringify(window.app.storage.seasonStore.data),
 }));
 const metric = label => state.summary.find(item => item.label === label)?.value;
-// "Total Plays"/"Total Yds" are no longer their own tiles (item A dropped the
-// redundant Total Yards card); "Yards by Type" carries the same aggregated
-// total (rush+pass yards across BOTH games including the live, uncommitted
-// edit) as its primary value, so it proves the identical guarantee: 17, not
-// 13, is only reachable if the in-memory edit was picked up without writing
-// it back to the store.
 ok(metric('Games') === '2' && metric('Record') === '1-1'
-  && metric('Points For / Against') === '21-28' && metric('Point Differential') === '-7'
-  && metric('Yards by Type') === '17',
-  'Native Season report aggregates both games and includes an uncommitted live edit without writing it', JSON.stringify(state.summary));
+  && metric('Points For / Against') === '21-28' && state.model.yards === 17,
+  'Native Season report aggregates both games and includes an uncommitted live edit without writing it',
+  JSON.stringify({ summary: state.summary, model: state.model }));
 // H16 — the season view is now composed from the game report's block set, so
 // its sections mirror the game tabs instead of a hand-maintained subset. The
 // old assertion pinned four labels; this pins the seven AND the film contract
 // that expanding the block set made load-bearing.
 ok(state.subTabs.join('|') === 'Overview|Offense|Defense|Special Teams|Players|Self-Scout|Trends',
   'Native Season report retains every season analysis section', JSON.stringify(state.subTabs));
-ok(state.seasonFilmRows > 0 && state.gameScopedLeaks === 0,
-  'H16: every clickable season row films the SEASON, not the active game only',
-  JSON.stringify({ seasonFilmRows: state.seasonFilmRows, gameScopedLeaks: state.gameScopedLeaks }));
+ok(state.model.refs.some(ref => ref.startsWith(fixture.firstId + '::'))
+  && state.model.refs.some(ref => ref.startsWith(fixture.secondId + '::')),
+  'Season model preserves cross-game composite film identity', JSON.stringify(state.model.refs));
 
 // Approved broadcast-density chrome: Season owns its own aggregate header.
 // Returning to Overview reveals the scorebug while the retired KPI rail stays hidden.

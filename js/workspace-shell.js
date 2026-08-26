@@ -179,10 +179,10 @@ export class WorkspaceShell {
       if (previousRoute !== 'home') this._homeSelectedGameId = null;
       await this.refreshHome();
     }
-    if (routeId==='breakdown') { this.app.stats?.hideDashboard(); }
-    if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.studyScreen?.show(); }
+    if (routeId==='breakdown') {}
+    if (routeId==='study') { this.app.studyScreen?.show(); }
     if (routeId==='reports') { this.app.reportsScreen?.show(); this.app._markSeenStats?.(); }
-    if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.planScreen?.show(); }
+    if (routeId==='plan') { this.app.planScreen?.show(); }
     return result;
   }
   /** Re-apply the CURRENT route's visibility with NO navigation side effects.

@@ -53,24 +53,21 @@ const res = await page.evaluate(async () => {
   sm._loadActiveGame();
 
   const call = (fn) => { try { fn(); } catch (e) {} };
-  // Stats dashboard + every tab + the focused reports.
-  call(() => eng.showDashboard());
-  for (const t of ['game', 'offense', 'defense', 'selfscout', 'season', 'matchup']) {
-    const b = document.querySelector(`#statsDashboard .stats-tab[data-tab="${t}"]`);
-    if (b) call(() => b.click());
+  // Every native self-report tab plus the opponent-scout route. Capture the
+  // native Offense surface while it is mounted: coach-controlled formation
+  // labels must remain literal text and never become live markup.
+  const reports = window.app.reportsScreen;
+  call(() => reports.show());
+  call(() => reports.selectTab('offense'));
+  for (const tab of ['overview', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']) {
+    call(() => reports.selectTab(tab));
   }
-  call(() => eng.renderSelfScout());
-  call(() => eng.renderDefensiveReport());
-  call(() => { const r = eng.generateScoutReport && eng.generateScoutReport(); if (eng.renderScoutReport) eng.renderScoutReport(); });
+  call(() => reports.scoutOpponent(P));
+  const matrixHtml = reports.content?.innerHTML || '';
+  const matrixText = reports.content?.textContent || '';
+  const matrixRawImg = !!reports.content?.querySelector('img[src=x]');
+  const matrixEscaped = matrixHtml.includes('&lt;img') || matrixText.includes('<img');
   call(() => eng.generateDefensiveSelfScout && eng.generateDefensiveSelfScout());
-
-  // Tendency Matrix: row/col keys are coach-controlled formation/coverage/custom
-  // library values (importable). _renderMatrixGrid interpolates them into <td>,
-  // <th>, and the title="" attribute — a direct stored-XSS sink.
-  let matrixHtml = '';
-  call(() => { matrixHtml = eng._renderMatrixGrid(eng._computeMatrix(plays.filter(p => p.tags.unit === 'offense'), 'formation', 'down')); });
-  const matrixRawImg = /<img/i.test(matrixHtml);
-  const matrixEscaped = matrixHtml.includes('&lt;img');
 
   // Tag form: render the custom-tag play's chips.
   call(() => { tagger.currentPlayId = id - 1; tagger._renderCustomTags([P]); });
@@ -80,14 +77,14 @@ const res = await page.evaluate(async () => {
 
   const html = document.body.innerHTML;
   const liveImgs = [...document.querySelectorAll('img')].filter(im => (im.getAttribute('src') || '') === 'x').length;
-  if (eng.hideDashboard) call(() => eng.hideDashboard());
+  call(() => window.app.workspaceShell.show('breakdown'));
   return { xss: window.__xss, liveImgs, escapedPresent: html.includes('&lt;img') || html.includes('&amp;lt;img'), matrixRawImg, matrixEscaped };
 });
 
 ok(res.xss === 0, 'no payload handler fired across stats dashboard/reports + tag form (formation/front/coverage/blitz/hash/custom)', JSON.stringify(res));
 ok(res.liveImgs === 0, 'no live <img src=x> payload element was injected into the DOM', JSON.stringify(res));
 ok(res.escapedPresent, 'the payload text is preserved but escaped (rendered as literal text)', JSON.stringify(res));
-ok(!res.matrixRawImg && res.matrixEscaped, 'Tendency Matrix escapes coach-controlled row/col values (no raw <img in the grid)', JSON.stringify(res));
+ok(!res.matrixRawImg && res.matrixEscaped, 'Native Offense escapes coach-controlled formation values (no raw <img in the grid)', JSON.stringify(res));
 
 // V2-A: Home's game-row metadata line (`_gameRowHtml`) composes a date label
 // and a score string, both of which can carry unescaped coach/import data --

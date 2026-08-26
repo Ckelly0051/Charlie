@@ -8,7 +8,7 @@
  *
  *   node tools/generate-sample-report.mjs
  */
-import { readFileSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -25,6 +25,7 @@ globalThis.document = { getElementById: () => stubEl(), createElement: stubEl, b
 globalThis.window = {};
 
 const { StatsEngine } = await import(join(ROOT, 'js/stats-engine.js'));
+const { buildGameHtmlReport } = await import(join(ROOT, 'js/html-report.js'));
 
 // --- Dummy data generation -------------------------------------------------
 const FORMATIONS = ['Shotgun', 'Shotgun + Trips', 'Singleback', 'I-Form', 'Pistol + Spread', 'Empty', 'Under Center'];
@@ -151,52 +152,8 @@ for (let drive = 1; drive <= NUM_DRIVES; drive++) {
 const engine = new StatsEngine({ plays }, null);
 const stats = engine.compute(plays);
 
-// --- Assemble HTML report using the engine's own render methods ------------
-const css = readFileSync(join(ROOT, 'css/styles.css'), 'utf8');
-
-const offenseSections = [
-  engine._renderTeamStats(stats),
-  engine._renderEfficiency(stats),
-  engine._renderAdvanced(stats),
-  engine._renderDownAnalysis(stats),
-  engine._renderSituational(stats),
-  engine._renderDrives(stats),
-  engine._renderTendencies(stats),
-  engine._renderTendencyMatrix(stats),
-  engine._renderPersonnel(stats),
-  engine._renderBigPlays(stats),
-  engine._renderIndividualStats(stats),
-].join('\n');
-
-const defenseSections = engine._renderDefensive(stats);
-
-const html = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sample Analytics Report</title>
-<style>${css}</style>
-<style>
-  body { background: var(--bg, #14171c); padding: 24px; }
-  .report-wrap { max-width: 1100px; margin: 0 auto; }
-  .report-banner { background:#1d2128; border:1px solid #2c333d; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
-  .report-banner h1 { margin:0 0 6px; font-size:22px; }
-  .report-banner p { margin:0; opacity:.7; font-size:13px; }
-  .report-divider { margin:28px 0 8px; padding:10px 16px; background:linear-gradient(90deg,#222a35,transparent); border-left:4px solid var(--accent,#4a9eff); border-radius:4px; }
-  .report-divider h2 { margin:0; font-size:18px; letter-spacing:.5px; }
-  .stats-section { display:block !important; }
-</style>
-</head><body>
-<div class="report-wrap">
-  <div class="report-banner">
-    <h1>Sample Analytics Report</h1>
-    <p>Generated from ${plays.length} dummy plays across ${NUM_DRIVES} drives &middot; ${new Date().toLocaleString()} &middot; reproducible seed</p>
-  </div>
-  <div class="report-divider"><h2>&#127944; Offensive Analytics</h2></div>
-  ${offenseSections}
-  <div class="report-divider"><h2>&#128737;&#65039; Defensive Analytics</h2></div>
-  ${defenseSections}
-</div>
-</body></html>`;
+// --- Assemble HTML through the same structured renderer the app exports. ---
+const html = buildGameHtmlReport({ title: 'Sample Analytics Report', stats, engine });
 
 const outPath = join(ROOT, 'sample-analytics-report.html');
 writeFileSync(outPath, html);

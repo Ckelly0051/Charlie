@@ -11,6 +11,7 @@ import { useState } from 'preact/hooks';
 import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, LegacyWidget, Gauge, DefMark, EmptyState } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { Visualizations } from './visualizations.js';
+import { Charts } from './charts.js';
 
 const breakdownColumns = [
   { key: 'name', label: 'Name' }, { key: 'count', label: 'Plays', numeric: true },
@@ -272,6 +273,26 @@ function ShapePanels({ shape }) {
     {shape.downs && <Module title="Run/pass split and success rate by down"><ChartBody {...shape.downs} /></Module>}
   </>;
 }
+function TeamProfile({ profile }) {
+  if (!profile?.axes?.length) return null;
+  const chart = Charts.radar(profile.axes, { label: 'Team profile: this game vs season average', compareName: 'season average' });
+  if (!chart) return null;
+  const best = axis => typeof axis.best === 'number'
+    ? (Number.isInteger(axis.best) ? axis.best : axis.best.toFixed(1))
+    : axis.best;
+  return <Module title="Team profile" meta="this game vs our season average">
+    <div class="gi-tp-layout">
+      <ChartBody html={chart} />
+      <div class="gi-tp-table-wrap"><table class="stats-table gi-tp-table">
+        <thead><tr><th>Metric</th><th>This game</th><th>Season avg</th><th>Season best</th></tr></thead>
+        <tbody>{profile.axes.map(axis => <tr key={axis.label}>
+          <td>{axis.label}</td><td class="gi-tp-now">{axis.valueLabel}</td><td>{axis.compareLabel}</td>
+          <td>{axis.lower ? '≤ ' : ''}{best(axis)}{axis.isBest && <span class="gi-tp-best-mark" title="Season best"> ★</span>}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </div>
+  </Module>;
+}
 export function OffenseTab({ stats, screen }) {
   const engine = screen.app.stats;
   if (!stats.offPlays.length) return <EmptyState title="No offensive snaps charted" body="Set Unit to Offense to populate this report." />;
@@ -329,11 +350,10 @@ export function OffenseTab({ stats, screen }) {
       </div>
     </Module> : null; })()}
     <LegacyWidget html={engine.heatMaps.render(stats.offPlays)} bind={node => {
-      try { engine.constructor.bindDefs(node); } catch { /* no definitions in this fragment */ }
       try { engine.heatMaps.bind(node); } catch { /* heat-map tab wiring */ }
     }} />
     <LegacyWidget html={Visualizations.render(stats.offPlays)} />
-    {shape?.teamProfileHtml && <ChartBody html={shape.teamProfileHtml} />}
+    <TeamProfile profile={shape?.teamProfile} />
     <AdvancedEpa data={advanced} />
   </div>;
 }
@@ -402,7 +422,7 @@ function DefAnswerCell({ answer, screen }) {
 }
 
 /** One front/coverage/blitz breakdown row -- a plain, non-sortable `<tr>`
- *  (matching the legacy `_renderDefensive` table's own behavior exactly;
+ *  (matching the established non-sortable breakdown behavior;
  *  the already-migrated tables around it are sortable `DataTable`s, but
  *  this section was never one, and this is a presentation-ownership
  *  migration, not a redesign). Reuses the shared `Watchable` primitive so a
@@ -498,8 +518,8 @@ function verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effecti
 
 /** One structured recommendation (see `StatsEngine.generateDefensiveSelfScout`'s
  *  own comment) rendered as real JSX -- the SAME selection this section has
- *  always shown, formatted here instead of via `_defScoutRecommendationHtml`'s
- *  HTML-string sink. `item.label`/`tellVal` arrive raw (not pre-escaped),
+ *  always shown, formatted directly as JSX at its presentation boundary.
+ *  `item.label`/`tellVal` arrive raw (not pre-escaped),
  *  matching every other JSX text child in this file. */
 function DefRecommendation({ item }) {
   switch (item.kind) {
@@ -588,7 +608,6 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
   const emptyAnswers = report.answers.filter(row => !row.front && !row.coverage && !row.pressure);
   const scopedStats = engine.compute(scoped);
   const defScout = engine.generateDefensiveSelfScout(scoped);
-  const teamName = () => screen.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
   return <div class="gi-defense-report">
     <div class="gi-def-toolbar">
       {!fixedScope && <div class="gi-def-scope" role="group" aria-label="Defense report scope">
@@ -597,7 +616,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
           onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
       </div>}
-      <button class="btn btn-sm" onClick={() => engine._exportDefensiveReport(engine.compute(scoped), teamName())}>Export Report</button>
+      <button class="btn btn-sm" onClick={() => screen.export(fixedScope ? 'season-html' : 'html')}>Export Report</button>
     </div>
     <DefSection title="Defensive Performance">
       <div class="gi-def-kpis">
@@ -820,8 +839,7 @@ function SpecialTeamsPhase({ phase, screen }) {
 }
 
 /** Special Teams Presentation Independence -- a real Preact re-derivation of
- *  the legacy `_renderSpecialTeams()`/`_renderConversions()`/
- *  `_renderIndividualStats(stats,'special')` concatenation, recomposed into
+ *  the structured Special Teams seams, recomposed into
  *  the same dense broadcast-density language Overview and Defense already
  *  established (`.gi-overview-board`/KpiBand/Module/DataTable) instead of
  *  reproducing their old three-card layout. No LegacyWidget, no
@@ -997,7 +1015,8 @@ export function SeasonTab({ model, screen }) {
   const seasonScreen={app:screen.app,defenseScope:'season',specialTeamsScope:'season',_renderActiveTab:()=>{},
     watchRefs:(refs,label)=>screen.watchRefs(refs,label),
     watchCut:(type,val,label)=>screen.watchRefs(refsFor(engine._buildCutFilter(type,val)),label),
-    watchPredicate:(predicate,label)=>screen.watchRefs(refsFor(predicate),label)};
+    watchPredicate:(predicate,label)=>screen.watchRefs(refsFor(predicate),label),
+    export:kind=>screen.export(kind==='html'?'season-html':kind)};
   const s=model.summary;
   const hero=[{label:'Games',value:s.games},{label:'Record',value:s.played?s.record:'—'},{label:'Points For / Against',value:s.played?`${s.pointsFor}-${s.pointsAgainst}`:'—'},...view.offenseHero(model.stats,engine).slice(0,3)];
   const tabs=[['overview','Overview'],['offense','Offense'],['defense','Defense'],['special','Special Teams'],['players','Players'],['scout','Self-Scout'],['trends','Trends']];
@@ -1174,7 +1193,7 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
   const color=engine.constructor._meterColor(report.predictability);
   return <div class="gi-selfscout-board">
     <div class="gi-selfscout-toolbar"><div><strong>Self-Scout</strong><span>{report.totalPlays} classified offensive plays</span></div>
-      <button class="btn btn-sm" onClick={()=>engine._exportSelfScout(report,screen.app.gameContext.snapshot().teamName||'Our Offense')}>Export Report</button></div>
+      <button class="btn btn-sm" onClick={()=>screen.export('html')}>Export Report</button></div>
     <KpiBand items={[
       {label:'Success Rate',value:(e.successRate||'0.0')+'%'},{label:'Yards / Play',value:engine.constructor.yardsPerPlay(performance)},
       {label:'Explosive Rate',value:(e.explosivePct||'0.0')+'%'},{label:'Negative Plays',value:(e.negativePct||'0.0')+'%'},

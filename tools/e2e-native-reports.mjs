@@ -63,83 +63,18 @@ await sleep(150);
 let result = await page.evaluate(() => ({
   native: document.querySelectorAll('#wsReports > [data-native-reports]').length,
   dashboardIds: document.querySelectorAll('#statsDashboard').length,
-  // Final Engine Independence (2026-08-22, repaired after CHANGES REQUESTED
-  // review d51c97b): #statsDashboard/#btnCloseStats have no authored markup
-  // anywhere -- not in #giLegacyEngineHost, not as a detached fallback either.
-  // StatsEngine.dashboardEl is explicitly null until a route supplies a real,
-  // connected target via setDashboardTarget(); it is never a fabricated
-  // stand-in. So "there is exactly one live owner of #statsDashboard" is
-  // provable directly off the engine's own field, not inferred from a
-  // detached fallback's absence.
-  // dashboardEl is native-reports.jsx's inner [data-native-report-content]
-  // node, a descendant of the #statsDashboard route root -- not that root
-  // element itself. The provable claim is that it is the exact, connected
-  // content node living inside the one true #statsDashboard section.
-  engineTargetIsLiveContent: window.app?.stats?.dashboardEl === document.querySelector('#wsReports [data-native-reports]#statsDashboard [data-native-report-content]'),
-  engineTargetConnected: !!window.app?.stats?.dashboardEl?.isConnected,
+  legacyControllerAbsent: !('dashboardEl' in window.app.stats) && !('showDashboard' in window.app.stats) && !('renderSelfScout' in window.app.stats) && !('renderDefensiveReport' in window.app.stats),
   tabs: [...document.querySelectorAll('#wsReports [data-report-tab]')].map(node => node.dataset.reportTab),
   actions: [...document.querySelectorAll('#wsReports [data-rp-action]')].map(node => node.dataset.rpAction),
 }));
-ok(result.native === 1 && result.dashboardIds === 1 && result.engineTargetIsLiveContent && result.engineTargetConnected,
-  'Reports has one native owner; StatsEngine.dashboardEl is exactly the live, connected content node it owns', JSON.stringify(result));
+ok(result.native === 1 && result.dashboardIds === 1 && result.legacyControllerAbsent,
+  'Reports has one native owner and StatsEngine has no second presentation controller', JSON.stringify(result));
 ok(result.tabs.join(',') === 'overview,offense,defense,special,players,selfscout,season,matchup',
   'Native Reports exposes all eight football report views', JSON.stringify(result.tabs));
 ok(result.actions.includes('scout') && result.actions.includes('export'),
   'Native Reports exposes scout and export commands', JSON.stringify(result.actions));
 
-console.log('\n== F15. A withheld render target fails loudly instead of rendering into nowhere ==');
-// Repair of Codex CHANGES REQUESTED review d51c97b, finding 1: a prior version
-// of StatsEngine.dashboardEl defaulted to a detached, never-inserted <div>, so
-// every report-render entry point could succeed into that invisible node
-// whenever native ownership was unavailable -- masking a lifecycle failure as
-// a silent success. dashboardEl is now explicitly null until injected; every
-// render entry point must refuse (loudly) rather than render into an
-// absent/detached element. This withholds the target directly -- the exact
-// scenario the review named -- and proves both the refusal and the recovery.
-const beforeErrorCount = errors.length;
-let withheld = await page.evaluate(() => {
-  const stats = window.app.stats;
-  const priorTarget = stats.dashboardEl;
-  const priorHtml = priorTarget ? priorTarget.innerHTML : null;
-  stats.setDashboardTarget(null);
-
-  let showThrew = false;
-  try { stats.showDashboard(); } catch (e) { showThrew = true; }
-  const targetStillNullAfterShow = stats.dashboardEl === null;
-  const priorNodeUntouchedAfterShow = priorTarget ? priorTarget.innerHTML === priorHtml : true;
-
-  let defThrew = false;
-  try { stats.renderDefensiveReport(); } catch (e) { defThrew = true; }
-  const targetStillNullAfterDef = stats.dashboardEl === null;
-  const priorNodeUntouchedAfterDef = priorTarget ? priorTarget.innerHTML === priorHtml : true;
-
-  // Restore the real target -- the positive control proving the guard is a
-  // refusal, not a permanent lockout, and that recovery leaves the engine
-  // pointed at exactly the same live section as before.
-  stats.setDashboardTarget(priorTarget);
-  const recovered = stats.dashboardEl === priorTarget;
-
-  return {
-    showThrew, targetStillNullAfterShow, priorNodeUntouchedAfterShow,
-    defThrew, targetStillNullAfterDef, priorNodeUntouchedAfterDef,
-    recovered,
-  };
-});
-const newErrors = errors.slice(beforeErrorCount);
-const sawShowRefusal = newErrors.some(e => /showDashboard\(\) called with no connected native Reports target/.test(e));
-const sawDefRefusal = newErrors.some(e => /renderDefensiveReport\(\) called with no connected native Reports target/.test(e));
-ok(!withheld.showThrew && withheld.targetStillNullAfterShow && withheld.priorNodeUntouchedAfterShow && sawShowRefusal,
-  'showDashboard() with a withheld target fails loudly (a captured error) instead of rendering into an absent element',
-  JSON.stringify({ withheld, newErrors }));
-ok(!withheld.defThrew && withheld.targetStillNullAfterDef && withheld.priorNodeUntouchedAfterDef && sawDefRefusal,
-  'renderDefensiveReport() with a withheld target fails the same way -- the guard is systemic, not one call site',
-  JSON.stringify({ withheld, newErrors }));
-ok(withheld.recovered, 'The withheld target is a refusal, not a lockout -- re-injecting it restores the exact same live section', JSON.stringify(withheld));
-// Both refusals are the expected, deliberately-triggered signal this test
-// exists to prove, not an unrelated regression -- exclude them from the
-// journey's final "no page errors" assertion rather than let them mask it.
-errors.splice(beforeErrorCount, newErrors.length);
-
+console.log('\n== F15. The retired dashboard compatibility controller is structurally absent ==');
 result = await page.evaluate(() => {
   const host = document.getElementById('wsReports');
   const native = host?.querySelector('[data-native-reports]');
@@ -181,11 +116,15 @@ result = await page.evaluate(() => {
   const visibleFailure = /Reports unavailable/.test(alert?.textContent || '') && /film and tags are safe/i.test(alert?.textContent || '');
   const failureStyle = alert ? getComputedStyle(alert) : null;
   const failureTone = failureStyle ? { background:failureStyle.backgroundColor, border:failureStyle.borderLeftColor, width:failureStyle.borderLeftWidth } : null;
-  screen.content.innerHTML = screen._emptyHtml();
+  const recovered = screen.show();
+  const savedPlays = window.app.tagger.plays;
+  window.app.tagger.plays = [];
+  screen.selectTab('overview');
   const empty = screen.content.querySelector('.gi-reports-empty');
   const emptyStyle = empty ? getComputedStyle(empty) : null;
   const emptyTone = emptyStyle ? { background:emptyStyle.backgroundColor, border:emptyStyle.borderLeftColor } : null;
-  const recovered = screen.show();
+  window.app.tagger.plays = savedPlays;
+  screen.selectTab('overview');
   return { rendered, visibleFailure, failureTone, emptyTone, recovered, pane: !!document.querySelector('#wsReports [data-native-main-report]') };
 });
 ok(result.rendered === false && result.visibleFailure && result.recovered && result.pane,
@@ -205,14 +144,7 @@ ok(result.failureTone?.width !== '0px' && result.failureTone?.background !== res
 result = await page.evaluate(async () => {
   const app = window.app;
   await app.workspaceShell.show('home');
-  let sideEffects = 0;
-  const originalHideDashboard = app.stats.hideDashboard;
-  app.stats.hideDashboard = (...args) => {
-    sideEffects += 1;
-    return originalHideDashboard.apply(app.stats, args);
-  };
   app.vc._emit('video-loaded', { duration: 600 });
-  app.stats.hideDashboard = originalHideDashboard;
   const native = document.querySelector('#wsReports [data-native-reports]');
   const hiddenAfterLoad = native?.classList.contains('hidden');
   const nav = await app.workspaceShell.show('reports');
@@ -221,7 +153,6 @@ result = await page.evaluate(async () => {
     nav: nav.ok,
     wizard: !!app.wizard,
     wizardBar: !!document.querySelector('.wizard-bar, .wiz-step, #btnToggleWizard'),
-    sideEffects,
     hiddenAfterLoad,
     hiddenAfterReports: native?.classList.contains('hidden'),
     width: Math.round(rect?.width || 0),
@@ -229,8 +160,7 @@ result = await page.evaluate(async () => {
     textLength: document.querySelector('[data-native-report-content]')?.textContent.trim().length || 0,
   };
 });
-ok(result.nav && result.sideEffects === 0
-  && !result.hiddenAfterLoad && !result.hiddenAfterReports
+ok(result.nav && !result.hiddenAfterLoad && !result.hiddenAfterReports
   && result.width > 0 && result.height > 0 && result.textLength > 0,
   'A linked-film video-load leaves native Reports visible and populated', JSON.stringify(result));
 ok(result.wizard === false && result.wizardBar === false,
@@ -446,28 +376,24 @@ ok(result.watches.length === 4
 console.log('\n== 2a. Matchup is native, two-sided, and film-exact ==');
 result = await page.evaluate(async () => {
   const app = window.app;
-  const originalRender = app.stats._renderMatchupInto;
   const originalWatch = app.filmNavigation.watch;
-  let legacyCalls = 0;
   const watches = [];
-  app.stats._renderMatchupInto = () => { legacyCalls++; throw new Error('retired live Matchup renderer called'); };
   app.filmNavigation.watch = (refs, options) => watches.push({ refs, label: options?.label || '' });
   app.reportsScreen.selectTab('matchup');
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('[data-pane="matchup"]');
   const row = pane?.querySelector('.gi-matchup-side.is-offense tbody tr[role="button"]');
   row?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  app.stats._renderMatchupInto = originalRender;
   app.filmNavigation.watch = originalWatch;
   return {
-    legacyCalls,
+    legacyAbsent: typeof app.stats._renderMatchupInto !== 'function',
     native: !!pane?.querySelector('.gi-matchup-board'),
     pairs: pane?.querySelectorAll('.gi-matchup-pair').length || 0,
     labels: [...(pane?.querySelectorAll('.gi-matchup-side>h4') || [])].map(node => node.textContent.trim()),
     watch: watches.at(-1) || null,
   };
 });
-ok(result.native && result.legacyCalls === 0,
+ok(result.native && result.legacyAbsent,
   'Matchup renders through its native component without calling the retired live DOM renderer', JSON.stringify(result));
 ok(result.pairs === 2 && result.labels.some(label => label === 'Our Offense') && result.labels.some(label => label === 'Our Defense'),
   'Matchup presents both sides of the ball as two deliberate comparison lanes', JSON.stringify(result));
@@ -1141,18 +1067,17 @@ ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(resul
 result = await page.evaluate(async () => {
   const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),save=window.ffaSaveBlob;
   const retired=['_renderTeamStats','_renderEfficiency','_renderDownAnalysis','_renderSituational','_renderDrives','_renderTendencies','_renderPersonnel','_renderBigPlays','_renderPenalties','_renderIndividualStats'];
-  const originals=Object.fromEntries(retired.map(key=>[key,app.stats[key]]));
-  retired.forEach(key=>{app.stats[key]=()=>{throw new Error(`legacy renderer called: ${key}`);};});
+  const retiredAbsent=retired.every(key=>typeof app.stats[key]!=='function');
   const captures=[];const pending=[];window.ffaSaveBlob=(blob,name)=>{pending.push(blob.text().then(html=>captures.push({html,name})));};
   let error='';
   try{app.storage.exportHtmlReport(app.stats);app.season.exportHtml();await Promise.all(pending);}catch(e){error=e.message;}
-  retired.forEach(key=>{app.stats[key]=originals[key];});window.ffaSaveBlob=save;
-  return {error,captures,unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
+  window.ffaSaveBlob=save;
+  return {error,captures,retiredAbsent,unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
 });
 {
   const game=result.captures.find(item=>/_report\.html$/.test(item.name)&&!/^season_report_/.test(item.name));
   const season=result.captures.find(item=>/^season_report_/.test(item.name));
-  ok(!result.error && result.unchanged && game && season
+  ok(!result.error && result.retiredAbsent && result.unchanged && game && season
     && /Offensive Performance/.test(game.html) && /Defensive Performance/.test(game.html)
     && /Individual Performance/.test(game.html) && /Game Log/.test(season.html),
     'Game and season HTML exports use structured report data with every legacy renderer disabled', JSON.stringify({error:result.error,names:result.captures.map(item=>item.name),unchanged:result.unchanged}));

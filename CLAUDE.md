@@ -15,6 +15,17 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REPORTS PRESENTATION RETIREMENT COMPLETE (2026-08-26)
+
+The obsolete Reports presentation implementation is deleted rather than hidden or wrapped. `StatsEngine` no longer owns a dashboard controller, report target, delegated binder, or HTML-string report method family. `ReportsScreen` is now a native route coordinator only. `SeasonManager.statsHtml()` and its private HTML helpers are gone; `SeasonManager.reportModel()` is the sole live Season analytics composition. Current-game and Season downloads continue through the shared structured `js/html-report.js` renderer.
+
+The final dependency sweep also moved the native Defense and Self-Scout export buttons onto `ReportsScreen.export()`, including Season-aware export routing; converted the sample-report generator to the shared structured renderer; removed stale dashboard calls from shell/navigation paths; and replaced the 1,400-line legacy Season archive harness with a focused native Season contract. Team Profile is native JSX over structured data, so no hidden HTML report fragment survives inside the Offense tab.
+
+This checkpoint removes roughly 5,600 lines across obsolete production presentation and dead test baggage. The production JavaScript bundle is now 1,051.52 kB, down about 154 kB from the pre-retirement build. No football formula, persistence schema, season identity, or film cohort rule moved. The retained `StatsEngine` methods are analytics/data seams, film navigation, and the active printable PDF path; none owns live Reports markup.
+
+Focused verification: Vite production build green; native Reports 91/91; workspace shell 87/87; real coach data 9/9 games; Self-Scout 48/48; hostile imported text 6/6; native Season 10/10 plus focused Season contract 9/9; structured report contract 7/7. All tested routes produced zero page errors.
+
+
 ### CODEX STRUCTURED HTML REPORT EXPORTS COMPLETE (2026-08-26)
 
 Both downloadable HTML reports now render from structured report data through one shared `js/html-report.js` presentation owner. The current-game export consumes `StatsEngine.compute()` plus established structured defense, Special Teams, and player seams; the full-season export consumes `SeasonManager.reportModel()`. Neither export calls the old StatsEngine HTML renderer family or `SeasonManager.statsHtml()`.

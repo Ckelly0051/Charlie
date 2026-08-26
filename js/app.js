@@ -197,7 +197,7 @@ class App {
     // S7-b: the legacy onboarding Wizard is retired. It was default-dismissed
     // with no toggle control and injected its bar into the hidden classic
     // outlet, so no coach could reach it — but it stayed subscribed to
-    // video-loaded and called stats.hideDashboard(), which is what blanked
+    // video-loaded and navigated away from Reports, which is what blanked
     // native Reports in 1.12.0-14. Deleting the module closes that class at the
     // root; e2e-native-reports asserts its absence so it cannot return.
 

@@ -79,9 +79,9 @@ const VIEWS = [
   ['tab:selfscout', () => document.querySelector('#statsDashboard .stats-tab[data-tab="selfscout"]')?.click()],
   ['tab:season', () => document.querySelector('#statsDashboard .stats-tab[data-tab="season"]')?.click()],
   ['tab:matchup', () => document.querySelector('#statsDashboard .stats-tab[data-tab="matchup"]')?.click()],
-  ['selfScoutReport', () => window.app.stats.renderSelfScout()],
-  ['defensiveReport', () => window.app.stats.renderDefensiveReport()],
-  ['opponentScout', () => window.app.stats.renderOpponentScout(window.__opp)],
+  ['selfScoutReport', () => { window.app.reportsScreen.show(); window.app.reportsScreen.selectTab('selfscout'); }],
+  ['defensiveReport', () => { window.app.reportsScreen.show(); window.app.reportsScreen.selectTab('defense'); }],
+  ['opponentScout', () => window.app.reportsScreen.scoutOpponent(window.__opp)],
   ['filmGrid', () => window.app.playGrid && window.app.playGrid.refresh()],
 ];
 

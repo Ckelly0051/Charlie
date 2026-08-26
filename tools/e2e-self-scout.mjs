@@ -78,7 +78,7 @@ ok(r.totalPlays === 6, 'all 6 scheme plays counted', JSON.stringify(r));
 
 console.log('\n== 2. Self-Scout TAB renders the defensive section ==');
 r = await page.evaluate(() => {
-  window.app.stats.showDashboard();
+  window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
@@ -107,7 +107,7 @@ r = await page.evaluate(() => {
       runPass: 'Pass', result: i % 2 ? 'Sack' : 'Incomplete', yardage: i % 2 ? '-6' : '0' }));
   }
   window.app.tagger.plays = plays;
-  window.app.stats.showDashboard();
+  window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   const selfScoutHasDef = !!document.querySelector('#statsDashboard [data-pane="selfscout"] .ss-def-section');
   window.app.reportsScreen.selectTab('defense');
@@ -129,7 +129,7 @@ r = await page.evaluate(() => {
   let count = 0;
   eng.generateDefensiveSelfScout = function (...a) { count++; return orig(...a); };
   eng._lastTab = 'overview';
-  eng.showDashboard();
+  window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   eng.generateDefensiveSelfScout = orig;   // restore
   return { count };
@@ -139,18 +139,15 @@ ok(r.count === 1, 'one defensive-self-scout computation per dashboard render', J
 console.log('\n== 4b. Self-Scout is natively owned, not an HTML-string fallback ==');
 r = await page.evaluate(() => {
   const engine = window.app.stats;
-  const old = engine._renderSelfScoutBody;
-  engine._renderSelfScoutBody = () => { throw new Error('legacy self-scout renderer invoked'); };
   window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
-  const result = {
+  return {
+    legacyAbsent: typeof engine._renderSelfScoutBody !== 'function',
     nativeBoard: !!pane?.querySelector('.gi-selfscout-board'),
     legacyBindings: pane?.querySelectorAll('[data-cut-type],[data-cut-val]').length || 0,
   };
-  engine._renderSelfScoutBody = old;
-  return result;
 });
-ok(r.nativeBoard, 'Self-Scout renders through its real native component even when the legacy body renderer refuses', JSON.stringify(r));
+ok(r.legacyAbsent && r.nativeBoard, 'Self-Scout renders through its real native component even when the legacy body renderer refuses', JSON.stringify(r));
 ok(r.legacyBindings === 0, 'Self-Scout carries no retired selector-rebinding attributes', JSON.stringify(r));
 
 console.log('\n== 4c. Adversarial repair cases: cohort, concept film, escaping, visual semantics ==');
@@ -221,7 +218,7 @@ r = await page.evaluate(() => {
     const f = window.app.stats._buildCutFilter(t.cutType, t.cutVal);
     return !f || window.app.tagger.plays.filter(p => f(p)).length === 0;
   }).length;
-  window.app.stats.showDashboard();
+  window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
@@ -257,7 +254,7 @@ r = await page.evaluate(() => {
   // 1st & 4th collapse to the down; 2nd/3rd bucket by distance.
   const iformFirst = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'I-Form__1')).length;
   const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Trips__3|Long')).length;
-  window.app.stats.showDashboard();
+  window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
@@ -299,7 +296,7 @@ r = await page.evaluate(() => {
   const p12 = pd.find(p => p.personnel === '12');
   const p21 = pd.find(p => p.personnel === '21');
   // Render and check DOM
-  window.app.stats.showDashboard();
+  window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   const section = pane?.querySelector('.ss-personnel-diversity');
@@ -335,103 +332,70 @@ ok(r.hasPersonnelTell, 'Personnel Tell appears in Film Room Insights', JSON.stri
 console.log('\n== S6-4c AX-2: the Predictability Map says what it means ==');
 r = await page.evaluate(() => {
   const engine = window.app.stats;
-  const html = engine._renderSelfScoutMatrix(engine.generateSelfScout().matrix);
-  const host = document.createElement('div');
-  host.innerHTML = html;
-  const caption = host.querySelector('.viz-caption')?.textContent || '';
-  const cells = [...host.querySelectorAll('.sm-cell')];
+  window.app.reportsScreen.show();
+  window.app.reportsScreen.selectTab('selfscout');
+  const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  const table = pane?.querySelector('.sm-table');
+  const cells = [...(table?.querySelectorAll('.sm-cell') || [])];
   const populated = cells.filter(cell => !cell.classList.contains('sm-empty'));
-  const baselineMatch = caption.match(/your (\d+)% average/);
-  // Recompute the baseline from the matrix itself, so the legend cannot claim a
-  // number the data does not support. A 0% here was a real defect: it made every
-  // predictable cell read as "working" because nothing could fall below it.
   const matrix = engine.generateSelfScout().matrix;
-  let n = 0, s = 0;
-  Object.values(matrix.cells).forEach(cell => { if (cell && cell.n) { n += cell.n; s += cell.succ || 0; } });
-  const expected = n ? Math.round(s / n * 100) : 0;
+  const view = engine._selfScoutMatrixView(matrix);
+  let n = 0, successes = 0;
+  Object.values(matrix.cells).forEach(cell => { if (cell?.n) { n += cell.n; successes += cell.succ || 0; } });
+  const expected = n ? Math.round(successes / n * 100) : 0;
+  const baselineMatch = (pane?.textContent || '').match(/(\d+)% success baseline/);
+  const caption = pane?.textContent || '';
   return {
     empty: cells.filter(cell => cell.classList.contains('sm-empty')).length,
-    noDataWords: host.querySelectorAll('.sm-nodata').length,
+    noDataWords: table?.querySelectorAll('.sm-nodata').length || 0,
     populated: populated.length,
     everyCellHasN: populated.every(cell => /^n=\d+/.test(cell.querySelector('.sm-n')?.textContent || '')),
-    states: ['is-exploit', 'is-working', 'is-balanced', 'is-low'].filter(cls => host.querySelector('.sm-cell.' + cls)),
-    keys: [...host.querySelectorAll('.sm-key')].map(node => node.textContent.trim()),
-    corner: host.querySelector('.sm-corner')?.textContent || '',
-    rowHeaders: host.querySelectorAll('th.sm-row-label[scope="row"]').length,
-    rows: matrix.rows.length,
-    cuts: host.querySelectorAll('.sm-cell.cut-row[data-cut-type="comboFS"]').length,
-    baseline: baselineMatch ? Number(baselineMatch[1]) : null, expected,
-    // H5/H11 rewrote captions to literal definitions, so the wording moved on
-    // from "run/pass-classifiable offensive plays only". The GUARANTEE is
-    // unchanged and still asserted: the caption must state which snaps are
-    // included, or a coach reads the matrix as covering every play.
-    mentionsInclusion: /offensive snaps with a run\/pass classification only/i.test(caption),
-    mentionsThreshold: /Fewer than \d+ plays/.test(caption),
+    baseline: baselineMatch ? Number(baselineMatch[1]) : null,
+    expected,
+    rowHeaders: table?.querySelectorAll('.sm-row-label').length || 0,
+    rows: view?.rows.length || 0,
+    cuts: table?.querySelectorAll('.sm-cell[role="button"]').length || 0,
+    corner: table?.querySelector('.sm-corner')?.textContent || '',
+    captionRules: /predictable and below/i.test(caption) && /predictable but working/i.test(caption) && /low samples stay neutral/i.test(caption),
   };
 });
 ok(r.empty > 0 && r.noDataWords === r.empty,
-  'An empty cell says "No data" in words rather than rendering a dot that reads as a value', JSON.stringify({ empty: r.empty, noData: r.noDataWords }));
+  'An empty cell says "No data" in words rather than rendering a value', JSON.stringify({ empty: r.empty, noData: r.noDataWords }));
 ok(r.populated > 0 && r.everyCellHasN,
   'Every populated cell carries its sample size attached to the lean', JSON.stringify({ populated: r.populated }));
 ok(r.baseline !== null && r.baseline === r.expected && r.baseline > 0,
-  'The legend states the real baseline the cells are judged against', JSON.stringify({ shown: r.baseline, expected: r.expected }));
-// Drive the classifier with a matrix built to contain one of each case, so this
-// proves the RULE rather than whichever cases a fixture happens to produce.
+  'The native module states the real baseline the cells are judged against', JSON.stringify({ shown: r.baseline, expected: r.expected }));
+ok(r.captionRules && /Formation/.test(r.corner),
+  'The native caption explains risk, strength, and low-sample states', JSON.stringify({ corner: r.corner }));
+ok(r.rowHeaders === r.rows && r.cuts === r.populated,
+  'Every formation is a row header and every populated cell keeps its exact film action', JSON.stringify({ rowHeaders: r.rowHeaders, rows: r.rows, cuts: r.cuts, populated: r.populated }));
+
+// Drive the structured classifier with one of each state so the assertion does
+// not depend on whichever cases the season fixture happens to produce.
 r = await page.evaluate(() => {
   const engine = window.app.stats;
   const cell = (n, runs, succ) => ({ n, runs, passes: n - runs, succ, yards: n * 5 });
-  // The cell key is formation + U+0001 + situation. Building it any other way
-  // matches nothing — which is exactly what this test did on its first run.
-  const K = (row, col) => `${row}${col}`;
+  const K = (row, col) => `${row}\u0001${col}`;
   const matrix = {
     rows: ['Heavy', 'Light'],
     cols: [{ key: 'A', label: '1st' }, { key: 'B', label: '3rd & Long' }],
     rowN: { Heavy: 20, Light: 20 },
     cells: {
-      // Predictable (100% run) and well above the baseline → a strength.
       [K('Heavy', 'A')]: cell(10, 10, 10),
-      // Predictable (100% run) and well below it → the one to fix.
       [K('Heavy', 'B')]: cell(10, 10, 0),
-      // Balanced.
       [K('Light', 'A')]: cell(10, 5, 5),
-      // Two snaps: a lean, but far too few to call anything.
       [K('Light', 'B')]: cell(2, 2, 0),
     },
   };
-  const host = document.createElement('div');
-  host.innerHTML = engine._renderSelfScoutMatrix(matrix);
-  const at = key => [...host.querySelectorAll('.sm-cell')].map(c => c.className);
-  return {
-    classes: at(), low: host.querySelectorAll('.sm-cell.is-low').length,
-    exploit: host.querySelectorAll('.sm-cell.is-exploit').length,
-    working: host.querySelectorAll('.sm-cell.is-working').length,
-    balanced: host.querySelectorAll('.sm-cell.is-balanced').length,
-    lowLabelled: /low/.test(host.querySelector('.sm-cell.is-low .sm-n')?.textContent || ''),
-  };
+  const view = engine._selfScoutMatrixView(matrix);
+  const cells = view.rows.flatMap(row => row.cells).filter(item => !item.empty);
+  const counts = Object.fromEntries(['exploit', 'working', 'balanced', 'low'].map(state => [state, cells.filter(item => item.state === state).length]));
+  return { counts, lowIsNotStrong: cells.find(item => item.state === 'low')?.strong === false };
 });
-ok(r.exploit === 1 && r.working === 1 && r.balanced === 1 && r.low === 1,
-  'Predictable-and-ineffective, predictable-but-working, balanced and low-sample are four distinct states', JSON.stringify(r));
-ok(r.lowLabelled,
-  'A cell with too few snaps is labelled low rather than painted as a certainty', JSON.stringify({ lowLabelled: r.lowLabelled }));
-r = await page.evaluate(() => {
-  const engine = window.app.stats;
-  const html = engine._renderSelfScoutMatrix(engine.generateSelfScout().matrix);
-  const host = document.createElement('div'); host.innerHTML = html;
-  const caption = host.querySelector('.viz-caption')?.textContent || '';
-  return { keys: [...host.querySelectorAll('.sm-key')].map(n => n.textContent.trim()),
-    // H5/H11 rewrote captions to literal definitions, so the wording moved on
-    // from "run/pass-classifiable offensive plays only". The GUARANTEE is
-    // unchanged and still asserted: the caption must state which snaps are
-    // included, or a coach reads the matrix as covering every play.
-    mentionsInclusion: /offensive snaps with a run\/pass classification only/i.test(caption),
-    mentionsThreshold: /Fewer than \d+ plays/.test(caption),
-    corner: host.querySelector('.sm-corner')?.textContent || '' };
-});
-ok(r.keys.length === 3 && r.mentionsInclusion && r.mentionsThreshold && /Formation/.test(r.corner),
-  'The legend names the states, the inclusion rule and the small-sample threshold', JSON.stringify({ keys: r.keys, corner: r.corner }));
-ok(r.rowHeaders === r.rows && r.cuts === r.populated,
-  'Every formation is a row header and every populated cell keeps its exact film cut', JSON.stringify({ rowHeaders: r.rowHeaders, rows: r.rows, cuts: r.cuts, populated: r.populated }));
-
+ok(Object.values(r.counts).every(count => count === 1),
+  'Predictable-and-ineffective, predictable-but-working, balanced and low-sample remain four distinct states', JSON.stringify(r));
+ok(r.lowIsNotStrong,
+  'A cell with too few snaps remains low-confidence rather than becoming a certainty', JSON.stringify(r));
 console.log('\n== S6-4c AX-3: repeated findings collapse into one theme ==');
 r = await page.evaluate(() => {
   const engine = window.app.stats;
