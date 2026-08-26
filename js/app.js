@@ -1205,8 +1205,6 @@ class App {
     };
     this.gameContext.subscribe(apply);
     apply(this.gameContext.snapshot());
-    document.getElementById('btnScoutReport')
-      ?.addEventListener('click', () => this.stats.renderScoutReport());
   }
 
   _bindTagNav() {

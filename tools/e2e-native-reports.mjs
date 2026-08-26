@@ -1135,8 +1135,28 @@ result = await page.evaluate(async () => {
   const ok=app.season.exportHtml();await pending;window.ffaSaveBlob=original;
   return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
 });
-ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html) && /Generated .* 2 games/.test(result.html) && result.unchanged,
+ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html) && /2 games · \d+ charted plays/.test(result.html) && result.unchanged,
   'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data', JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged}));
+
+result = await page.evaluate(async () => {
+  const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),save=window.ffaSaveBlob;
+  const retired=['_renderTeamStats','_renderEfficiency','_renderDownAnalysis','_renderSituational','_renderDrives','_renderTendencies','_renderPersonnel','_renderBigPlays','_renderPenalties','_renderIndividualStats'];
+  const originals=Object.fromEntries(retired.map(key=>[key,app.stats[key]]));
+  retired.forEach(key=>{app.stats[key]=()=>{throw new Error(`legacy renderer called: ${key}`);};});
+  const captures=[];const pending=[];window.ffaSaveBlob=(blob,name)=>{pending.push(blob.text().then(html=>captures.push({html,name})));};
+  let error='';
+  try{app.storage.exportHtmlReport(app.stats);app.season.exportHtml();await Promise.all(pending);}catch(e){error=e.message;}
+  retired.forEach(key=>{app.stats[key]=originals[key];});window.ffaSaveBlob=save;
+  return {error,captures,unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
+});
+{
+  const game=result.captures.find(item=>/_report\.html$/.test(item.name)&&!/^season_report_/.test(item.name));
+  const season=result.captures.find(item=>/^season_report_/.test(item.name));
+  ok(!result.error && result.unchanged && game && season
+    && /Offensive Performance/.test(game.html) && /Defensive Performance/.test(game.html)
+    && /Individual Performance/.test(game.html) && /Game Log/.test(season.html),
+    'Game and season HTML exports use structured report data with every legacy renderer disabled', JSON.stringify({error:result.error,names:result.captures.map(item=>item.name),unchanged:result.unchanged}));
+}
 
 console.log('\n== 6. Mobile Reports contains overflow and preserves touch targets ==');
 await page.setViewport({ width: 390, height: 844 });

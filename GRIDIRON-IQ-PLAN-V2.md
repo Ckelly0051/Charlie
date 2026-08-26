@@ -398,9 +398,13 @@ Retain every meaningful production field while reducing everyday clutter.
 > owns native Overview, Offense, Defense, and Special Teams views over the same
 > structured football models and exact composite film references. No live report
 > injects opponent/self HTML strings or depends on post-render selector rebinding.
-> The remaining older HTML renderers serve only standalone/downloadable HTML report
-> consumers and older non-route APIs. Retire that family with the HTML export
-> migration before expanding Study presentation; do not carry it into new live UI.
+> Current-game and full-season downloadable HTML reports now also consume the
+> structured report models through one shared print renderer; they no longer call
+> old StatsEngine HTML renderers or `SeasonManager.statsHtml()`. The only remaining
+> consumers of that old presentation family are obsolete non-route dashboard APIs
+> and parity/sample harnesses. Retire or redirect those explicit callers, then
+> delete the unreachable render methods before expanding Study presentation; do
+> not carry any of that family into new live UI.
 >
 
 Expand Study into a visual query and comparison workspace while preserving the

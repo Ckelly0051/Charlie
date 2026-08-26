@@ -15,6 +15,17 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX STRUCTURED HTML REPORT EXPORTS COMPLETE (2026-08-26)
+
+Both downloadable HTML reports now render from structured report data through one shared `js/html-report.js` presentation owner. The current-game export consumes `StatsEngine.compute()` plus established structured defense, Special Teams, and player seams; the full-season export consumes `SeasonManager.reportModel()`. Neither export calls the old StatsEngine HTML renderer family or `SeasonManager.statsHtml()`.
+
+The documents are now deliberate consumer-facing reports rather than dumps of in-app DOM: restrained light print styling, a clear report masthead, compact KPI bands, offense/defense/Special Teams chapters, situations, tendencies, drives, player tables, and season-only game log/progression. All imported names and labels escape at the final HTML boundary, the reports remain responsive and printable, and exporting is read-only against canonical season data.
+
+The dead `#btnScoutReport` listener was deleted from `App._bindScoutMode()` after the markup search confirmed the control no longer exists. This removes a phantom route into `StatsEngine.renderScoutReport()` rather than preserving optional wiring to an absent UI.
+
+Verification: Vite production build green; native Reports 94/94, including a regression that replaces ten old renderer methods with throwers and successfully downloads both reports; report-view parity 6/6; hostile-name/XSS harness 6/6. Adversarial review caught and repaired a current-game cohort handoff that initially passed the numeric `allPlays` count to the structured defense seam instead of the actual play list.
+
+Remaining boundary, stated exactly: `SeasonManager.statsHtml()`, `ReportsScreen._offenseHtml()` / `_playersHtml()` and the older StatsEngine dashboard/render API family remain only for obsolete non-route APIs and parity/sample harnesses. They are not live Reports or export consumers. The next pass should redirect or retire those explicit callers, then delete the now-unreachable HTML methods as one dependency-led cleanup.
 ### CODEX LIVE OPPONENT REPORTS NATIVE MIGRATION COMPLETE (2026-08-26)
 
 All four live Opponent Scout report views are now real Preact presentation: Overview, Offense, Defense, and Special Teams. `ReportsScreen` no longer composes opponent HTML strings, injects them into the live route, or rebinds `[data-opponent-refs]` / `[data-opponent-watch]` after render. The old `_opponentOverviewHtml()`, `_opponentDefenseHtml()`, and `_opponentWatchButton()` methods are deleted.
