@@ -15,6 +15,14 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX V2-G PLAN PRESENTATION INDEPENDENCE (2026-08-26)
+
+The live Plan route is now rendered by `js/native-plan.jsx`; `js/plan-screen.js` is reduced to commands and orchestration. The old HTML-string route renderer, delegated event bundle, manual escaping, and post-render row wiring are gone. Canonical `StudyPlan`, SeasonStore mutation/persistence, `PlanExport`, ordering rules, and composite film refs were preserved.
+
+The migration exposed two real timing contracts and fixed them at the native boundary: store callers require `PlanScreen.render()` to update the DOM synchronously, and the presentation Escape/arrow handler must exist in the opening frame. A first attempted `preact/compat` flush was rejected after the broad harness proved it changed global Study scheduling; the final implementation uses a Plan-local revision prop and a layout-timed keyboard effect. Adversarial cleanup also clears drag state on plan changes and tolerates missing browser drag payloads.
+
+Verification: production build; Study-to-Plan 114/114; Plan contract 32/32; Plan export 22/22; workspace shell 87/87; hostile names 6/6. Desktop and mobile Plan and presentation screenshots were visually inspected. The separate imperative Call Sheet modal remains disclosed and out of this route checkpoint.
+
 ### CODEX V2-F STUDY PRESENTATION INDEPENDENCE (2026-08-26)
 
 Study is now a single Preact-owned route backed by structured view models. The old `StudyScreen` HTML-string renderer, delegated control binding, and post-render row wiring were deleted; `StudyScreen` now retains only query orchestration, saved-view/plan commands, formatting adapters, and exact composite-film navigation. New presentation owners are `js/native-study.jsx`, `js/study-view.js`, and `js/native-study-plan-picker.jsx`.

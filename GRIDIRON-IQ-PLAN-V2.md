@@ -438,6 +438,23 @@ parity-locked analytics foundation.
 
 ### V2-G: Plan As A Coaching Workflow
 
+> **PLAN PRESENTATION INDEPENDENCE (completed 2026-08-26):**
+> The live Plan route and full-screen teaching presentation are now Preact-owned.
+> The former `PlanScreen.innerHTML` renderer, delegated click/change/drag
+> listeners, post-render strip synchronization, and HTML escaping adapter are
+> deleted. `StudyPlan`, SeasonStore plan persistence, `PlanExport`, ordering
+> rules, and exact composite film references remain canonical.
+>
+> The native route preserves synchronous refresh for existing store callers,
+> accessible button and desktop-drag ordering, grouped film sets, audience and
+> staff notes, export parity, keyboard presentation controls, mobile containment,
+> and one-click film playback. Focused verification: Study-to-Plan 114/114; Plan
+> contract 32/32; Plan export 22/22; workspace shell 87/87; hostile names 6/6;
+> desktop and mobile route/presentation screenshots visually inspected.
+>
+> The Call Sheet builder is a separate workflow and still has its own imperative
+> modal. This checkpoint does not label that surface retired.
+>
 Plan should turn Study findings into something a staff can teach and use.
 
 - Promote a Study cohort or finding directly into a plan.
