@@ -15,6 +15,14 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX V2-F STUDY PRESENTATION INDEPENDENCE (2026-08-26)
+
+Study is now a single Preact-owned route backed by structured view models. The old `StudyScreen` HTML-string renderer, delegated control binding, and post-render row wiring were deleted; `StudyScreen` now retains only query orchestration, saved-view/plan commands, formatting adapters, and exact composite-film navigation. New presentation owners are `js/native-study.jsx`, `js/study-view.js`, and `js/native-study-plan-picker.jsx`.
+
+The self-review found and fixed four user-facing risks before commit: the Save-to-Plan dialog could render outside the visible modal layer; player choices could remain stale after a live data refresh; query state could leak when switching seasons; and a failed subquery could leave a deceptively partial pivot. The main harness now mutation-drives the last failure and requires a visible error plus clean recovery.
+
+Verification: `npm run build`; Study 114/114; Study Players 38/38; Penalties/Special Teams 33/33; Study Query 48/48; Study-to-Plan 14/14; hostile names 6/6. Desktop and mobile Study plus the Save-to-Plan modal were visually inspected. This establishes Study presentation independence only; it does not claim the remaining app is free of obsolete presentation dependencies.
+
 ### CODEX REPORT RETIREMENT ADVERSARIAL REPAIR (2026-08-26)
 
 Post-commit review of `d863b29..8cc6dc7` found two user-facing regressions: Defense's full-season Export Report and Self-Scout's Export Report had both been redirected to the generic active-game HTML export when their obsolete renderers were deleted. Dedicated structured-data HTML builders now export the exact displayed Defense scope and the actual Self-Scout tendencies, recommendations, splits, and defensive self-scout without reviving retired presentation methods.

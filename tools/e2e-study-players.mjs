@@ -388,35 +388,32 @@ const eligibilityMutation = await page.evaluate(() => {
 ok(eligibilityMutation.before === 3 && eligibilityMutation.mutated === 0 && eligibilityMutation.restored === 3,
   'Mutation proof: disabling playerTackler\'s eligibility gate collapses the tackler leaderboard to zero groups; restoring it brings all 3 tacklers back', JSON.stringify(eligibilityMutation));
 
-// ---- mutation proof: film-ref seam (Watch must use the metric's own refs) -
+// ---- mutation proof: native film-ref seam ------------------------------
 await page.select('#wsStudyPlayerRole', 'ballCarrier');
 await page.select('#wsStudyPlayerMetric', 'avgGrade');
-const refMutation = await page.evaluate(() => {
-  const app = window.app, studyScreen = app.studyScreen;
-  const proto = Object.getPrototypeOf(studyScreen);
-  const original = proto._renderPlayersQuery;
-  // Broken variant: consumes the group's raw (broader) matchingPlayIds
-  // instead of the metric's own eligible refs -- exactly the class of leak
-  // this checkpoint's film-cohort-honesty rule exists to prevent.
-  proto._renderPlayersQuery = function (result, metric, label, context) {
-    const groups = result.groups.filter(g => g.sampleSize > 0);
-    this.rows = groups.map(g => ({ label: label(g.value), refs: (g.matchingPlayIds || []).slice() }));
-    const allRefs = [...new Set(groups.flatMap(g => g.matchingPlayIds || []))];
-    this._control('wsStudyRows').innerHTML = groups.map((g, i) => `<div class="ws-study-row"><strong>${this._esc(label(g.value))}</strong><button data-study-row="${i}">Watch</button></div>`).join('');
-    this._setWatchAll(allRefs);
+const refMutation = await page.evaluate(async () => {
+  const app = window.app, study = app.study, original = study.runMetrics.bind(study);
+  study.runMetrics = args => {
+    const result = original(args);
+    if (args.metricIds?.includes('avgGrade')) for (const group of result.groups || []) {
+      const metric = group.metrics?.avgGrade;
+      if (metric) metric.refs = (group.matchingPlayIds || []).slice();
+    }
+    return result;
   };
-  studyScreen.render();
-  const mutatedRefs = studyScreen.rows[0]?.refs.slice().sort();
-  proto._renderPlayersQuery = original;
-  studyScreen.render();
-  const restoredRefs = studyScreen.rows[0]?.refs.slice().sort();
+  app.studyScreen._native.refresh();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const mutatedRefs = app.studyScreen.rows[0]?.refs.slice().sort();
+  study.runMetrics = original;
+  app.studyScreen._native.refresh();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const restoredRefs = app.studyScreen.rows[0]?.refs.slice().sort();
   return { mutatedRefs, restoredRefs };
 });
 ok(JSON.stringify(refMutation.mutatedRefs) === JSON.stringify(['g-players-1::1', 'g-players-1::2', 'g-players-1::3']),
-  'Mutation proof: swapping the film-ref source to the group\'s raw sample leaks the blank-grade play into Watch', JSON.stringify(refMutation.mutatedRefs));
+  'Mutation proof: corrupting the structured metric refs leaks the blank-grade play into Watch', JSON.stringify(refMutation.mutatedRefs));
 ok(JSON.stringify(refMutation.restoredRefs) === JSON.stringify(['g-players-1::1', 'g-players-1::2']),
-  'Restoring the real render method brings Watch back to exactly the metric\'s eligible refs', JSON.stringify(refMutation.restoredRefs));
-
+  'Restoring the query seam brings native Watch back to the metric eligible refs', JSON.stringify(refMutation.restoredRefs));
 // ---- Codex review finding #5: leaderboard ranking, polarity-aware ---------
 await page.select('#wsStudyPlayerRole', 'tackler');
 await page.select('#wsStudyPlayer', '');

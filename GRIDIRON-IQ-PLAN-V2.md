@@ -405,6 +405,22 @@ Retain every meaningful production field while reducing everyday clutter.
 > analytics, film resolution, or the active PDF export path, not a second UI.
 >
 
+> **STUDY PRESENTATION INDEPENDENCE (completed 2026-08-26):**
+> The live Study route is now one Preact-owned analytical workspace. Query
+> controls, saved views, player questions, filters, comparisons, pivots,
+> visuals, film-linked result rows, and the Save-to-Plan chooser render from
+> structured view models in `study-view.js`; the former imperative HTML
+> renderer and delegated event-binding family are deleted. `StudyQuery`,
+> registry projections, metric formulas, composite film identity, and plan
+> persistence remain canonical rather than being duplicated in the UI.
+>
+> The checkpoint also fails visibly when any part of a pivot query fails,
+> resets query state when the coach switches seasons, refreshes player choices
+> from the current cohort, and keeps the plan chooser in the actual modal layer.
+> Focused verification: production build; Study 114/114; Study Players 38/38;
+> Penalties/Special Teams 33/33; Study Query 48/48; Study-to-Plan 14/14; hostile
+> names 6/6; desktop and mobile screenshots visually inspected.
+>
 Expand Study into a visual query and comparison workspace while preserving the
 parity-locked analytics foundation.
 

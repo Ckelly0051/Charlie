@@ -467,9 +467,9 @@ const supersession = await page.evaluate(async () => {
       resolve({ completed: false, reason: 'replaced' });
     }
   };
-  const first = app.studyScreen._watch(refs, 'First reel');
+  const first = app.studyScreen.watch(refs, 'First reel');
   while (!releaseFirst) await new Promise(resolve => setTimeout(resolve, 0));
-  const second = app.studyScreen._watch(refs, 'Second reel');
+  const second = app.studyScreen.watch(refs, 'Second reel');
   await Promise.all([first, second]);
   app.cutupPlayer.start = originalStart;
   app.cutupPlayer.stop = originalStop;
@@ -995,7 +995,7 @@ const legacyViewRaw = await page.evaluate(async () => {
     { id: 'legacy-pass-share', name: 'Old pass share view', state: { dimension: 'formation', column: '', scope: 'season', unit: '', measure: 'passShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
   ];
   localStorage.setItem(key, JSON.stringify([...before, ...legacyViews]));
-  window.app.studyScreen._loadViews();
+  window.app.studyScreen._native.refresh();
   return localStorage.getItem(key);
 });
 await page.select('#wsStudySaved', 'legacy-success-rate');
@@ -1085,6 +1085,31 @@ const twoGameOption = await page.evaluate(() => [...document.querySelectorAll('#
 await page.select('#wsStudySaved', twoGameOption);
 r = await page.evaluate(() => ({ period: document.querySelector('#wsStudyPeriodGames')?.value, compare: document.querySelector('#wsStudyCompare')?.value }));
 ok(r.period === '2' && r.compare === 'recent', 'Finding #4: restoring a saved recent-comparison view round-trips its exact period size', JSON.stringify(r));
+
+console.log('\n== Native Study failure boundary ==');
+await page.select('#wsStudyCompare', '');
+await page.select('#wsStudyColumn', 'down');
+r = await page.evaluate(async () => {
+  const study = window.app.study;
+  const original = study.runMetrics;
+  study.runMetrics = function (args) {
+    if ((args.filters || []).some(filter => filter.dimension === 'down')) throw new Error('Injected pivot failure');
+    return original.call(this, args);
+  };
+  window.app.studyScreen._native.refresh();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const failed = {
+    message: document.querySelector('.ws-study-empty')?.textContent || '',
+    partialPivot: !!document.querySelector('.ws-pivot'),
+  };
+  study.runMetrics = original;
+  window.app.studyScreen._native.refresh();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  return { ...failed, recovered: !!document.querySelector('.ws-pivot') };
+});
+ok(r.message === 'Injected pivot failure' && !r.partialPivot,
+  'A failed pivot query renders one explicit error instead of a deceptively partial table', JSON.stringify(r));
+ok(r.recovered, 'Study recovers cleanly after the analytics source becomes available again', JSON.stringify(r));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
