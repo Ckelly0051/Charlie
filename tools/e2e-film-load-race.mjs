@@ -119,6 +119,77 @@ ok(r3.afterFast.length === 1 && r3.afterFast[0][0] === 'asset://fast/c1.mp4',
 ok(r3.calls.length === 1 && r3.calls[0][0] === 'asset://fast/c1.mp4',
   'Multi-clip: the superseded (slow) earlier load never rehydrates the playlist over the active game', JSON.stringify(r3));
 
+// --- V2-H: unchanged managed manifests reuse deterministic asset URLs. ---
+const cacheResult = await page.evaluate(async () => {
+  const app = window.app;
+  app.storage._managedFilmManifests.clear();
+  const urlCalls = [];
+  const rehydrated = [];
+  let files = ['c1.mp4', 'c2.mp4', 'c3.mp4'];
+  const backend = {
+    supportsFilm: () => true,
+    supportsLinkedFilm: () => false,
+    currentSeason: () => 'season-cache',
+    listFilmFiles: async () => files.map(name => ({ name, path: name })),
+    filmUrl: async (gameId, fileRef) => {
+      urlCalls.push(`${gameId}/${fileRef.path}`);
+      return `asset://${gameId}/${fileRef.path}`;
+    },
+  };
+  app.storage.seasonStore.backend = backend;
+  app.storage.playlist = {
+    rehydrateFromDisk: async clips => { rehydrated.push(clips.map(clip => ({ url: clip.url, id: clip.catalogClipId }))); },
+    switchToClipByPlayId() {}, switchToClip() {}, activeClipIndex: -1, clips: [],
+  };
+  app.tagger.currentPlayId = null;
+  const savedCatalogIds = app.storage._catalogClipIdsForFiles;
+  let catalogIds = ['old-1', 'old-2', 'old-3'];
+  app.storage._catalogClipIdsForFiles = () => catalogIds;
+  const savedFetch = window.fetch;
+  window.fetch = async () => ({ type: 'basic', status: 200, ok: true });
+  const game = { id: 'cached', isMultiClip: true, clipPaths: ['c1', 'c2', 'c3'], clipNames: ['c1', 'c2', 'c3'], plays: [] };
+  await app.storage._autoLoadFilm(game);
+  catalogIds = ['new-1', 'new-2', 'new-3'];
+  await app.storage._autoLoadFilm(game);
+  const afterExactReopen = urlCalls.length;
+  files = [...files, 'c4.mp4'];
+  game.clipPaths.push('c4');
+  game.clipNames.push('c4');
+  catalogIds = [...catalogIds, 'new-4'];
+  await app.storage._autoLoadFilm(game);
+  window.fetch = savedFetch;
+  app.storage._catalogClipIdsForFiles = savedCatalogIds;
+  return { afterExactReopen, finalCalls: urlCalls.length, rehydrated, secondIds: rehydrated[1].map(clip => clip.id) };});
+ok(cacheResult.afterExactReopen === 3 && cacheResult.rehydrated.length === 3
+    && cacheResult.rehydrated[1].length === 3 && cacheResult.secondIds.join(',') === 'new-1,new-2,new-3',
+  'Reopening an unchanged managed game reuses its resolved clip manifest', JSON.stringify(cacheResult));
+ok(cacheResult.finalCalls === 7 && cacheResult.rehydrated[2].length === 4,
+  'A changed managed-film file list invalidates the URL manifest before rehydrate', JSON.stringify(cacheResult));
+const partialResult = await page.evaluate(async () => {
+  const app = window.app;
+  app.storage._managedFilmManifests.clear();
+  let calls = 0;
+  let miss = true;
+  const backend = {
+    currentSeason: () => 'season-partial',
+    filmUrl: async (_gameId, fileRef) => {
+      calls++;
+      if (miss && fileRef.path === 'c2.mp4') return null;
+      return `asset://${fileRef.path}`;
+    },
+  };
+  const files = ['c1.mp4', 'c2.mp4', 'c3.mp4'].map(name => ({ name, path: name }));
+  const game = { id: 'partial', clipRefs: [] };
+  const savedCatalogIds = app.storage._catalogClipIdsForFiles;
+  app.storage._catalogClipIdsForFiles = () => ['partial-1', 'partial-2', 'partial-3'];
+  const first = await app.storage._managedFilmClips(game, files, backend, () => false);
+  miss = false;
+  const second = await app.storage._managedFilmClips(game, files, backend, () => false);
+  app.storage._catalogClipIdsForFiles = savedCatalogIds;
+  return { calls, first: first.length, second: second.length, firstIds: first.map(clip => clip.catalogClipId) };
+});
+ok(partialResult.calls === 6 && partialResult.first === 2 && partialResult.second === 3 && partialResult.firstIds.join(',') === 'partial-1,partial-3',
+  'A partial URL resolution is used once but never cached as a permanently incomplete game', JSON.stringify(partialResult));
 // --- Linked-film overlapping open: same shape through _autoLoadLinkedFilm. ---
 const r4 = await page.evaluate(async () => {
   const app = window.app;

@@ -472,6 +472,15 @@ Plan should turn Study findings into something a staff can teach and use.
 
 ### V2-H: Playback And Large-Game Performance
 
+> **MANAGED-FILM MANIFEST REUSE (first slice, 2026-08-27):** Reopening an
+> unchanged managed-film game now reuses a bounded, exact-signature cache of
+> deterministic clip asset URLs instead of repeating one desktop resolution per
+> clip. File listing remains authoritative, changed/partial manifests retry,
+> current catalog identity is reattached on every use, linked folders remain
+> uncached, and the latest-load-wins race fence remains intact. This does not
+> complete V2-H; loading/buffering states, next-clip preload, measured large-grid
+> work, and broader playback resource management remain.
+>
 - Avoid rebuilding playlists or re-resolving every clip unnecessarily.
 - Preload only the next useful clip and release stale media resources.
 - Keep game switching responsive under large clip counts.

@@ -15,6 +15,11 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX V2-H MANAGED-FILM MANIFEST REUSE (2026-08-27)
+
+The first V2-H performance slice removes repeated per-clip URL resolution when an unchanged managed-film game is reopened. `StorageManager` now keeps a bounded twelve-game LRU of deterministic managed-film path/URL manifests, keyed by season, game, exact ordered file signature, and backend instance. The filesystem list remains authoritative on every open; a changed list or backend misses the cache, linked coach-owned folders remain uncached, and the existing latest-load-wins token still fences every shared-player mutation.
+
+The adversarial pass closed three identity/failure hazards before commit: catalog clip IDs are reattached from the current game payload on every use rather than cached; a partial URL resolution is used for that open but never cached; and each resolved clip retains its original manifest index so a missing middle URL cannot shift later film onto the wrong catalog identity. Verification: production build green; film-load race/cache 11/11; film-storage setup 34/34; linked relink 8/8; clip identity/repair 18/18. This is the first V2-H slice, not completion of playback/performance as a whole.
 ### CODEX NATIVE CALL SHEET PRESENTATION (2026-08-27)
 
 The separate Call Sheet workflow is now native and Preact-owned. `CallSheetBuilder` retains the established situational filters, EPA/yards/recent ranking, play labels, diagrams, numbering, and printable HTML, but no longer injects or queries `#callSheetModal` or any `.cs-*` controls. Configuration now flows through structured `defaultConfig()`, `bucketOptions()`, and `createDocument()` seams into `NativeCallSheet`; the old modal markup, event bundle, alert path, preview injection, and retired CSS are deleted.

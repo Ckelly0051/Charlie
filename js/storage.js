@@ -39,6 +39,12 @@ export class StorageManager {
     // captures this monotonic token at entry and re-checks it is still current
     // before each player/playlist mutation; a superseded load aborts silently.
     this._filmLoadSeq = 0;
+    // Managed-film URLs are deterministic for a season/game/file path. Reuse
+    // an exact manifest across reopen cycles instead of repeating one desktop
+    // filesystem existence check + path conversion per clip. Entries are tied
+    // to the backend instance and exact ordered file signature; changed film,
+    // a season/backend switch, or a superseding load cannot reuse stale URLs.
+    this._managedFilmManifests = new Map();
     // Tell the coach when a save fails (browser storage full) instead of losing
     // work silently. window.app/updater resolve lazily — this fires rarely.
     this.seasonStore.onPersistError = () => {
@@ -653,6 +659,47 @@ export class StorageManager {
     this.tagger.toast?.(`Tags loaded — use Repair Film in Playlist to reconnect ${what}${savedNote ? ' and save it to the desktop library' : ''}.`);
   }
 
+  async _managedFilmClips(gameNode, filesOnDisk, backend, stale) {
+    const seasonId = this.seasonStore.currentSeasonId || backend.currentSeason?.() || '';
+    const key = `${seasonId}::${gameNode.id}`;
+    const signature = filesOnDisk.map(fileRef => this._fileRefPath(fileRef)).join('\u001f');
+    const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
+    const attachCurrentIdentity = clips => clips.map(clip => {
+      const { sourceIndex, ...resolved } = clip;
+      return { ...resolved, catalogClipId: catalogIds[sourceIndex] || null };
+    });
+    const cached = this._managedFilmManifests.get(key);
+    if (cached?.backend === backend && cached.signature === signature) {
+      // Refresh LRU position. Cache only deterministic paths/URLs; catalog ids
+      // come from the current game payload so a metadata repair cannot inherit
+      // stale identity from an earlier open.
+      this._managedFilmManifests.delete(key);
+      this._managedFilmManifests.set(key, cached);
+      return attachCurrentIdentity(cached.clips);
+    }
+
+    const clips = (await Promise.all(filesOnDisk.map(async (fileRef, sourceIndex) => {
+      const url = await backend.filmUrl(gameNode.id, fileRef);
+      return url ? {
+        name: this._fileRefName(fileRef),
+        path: this._fileRefPath(fileRef),
+        sourceIndex,
+        url,
+      } : null;
+    }))).filter(Boolean);
+    if (stale()) return attachCurrentIdentity(clips);
+
+    // A partial resolution may be a transient desktop/filesystem failure. Use
+    // what succeeded for this open, but retry the full manifest next time.
+    if (clips.length === filesOnDisk.length) {
+      this._managedFilmManifests.delete(key);
+      this._managedFilmManifests.set(key, { backend, signature, clips: clips.map(clip => ({ ...clip })) });
+      while (this._managedFilmManifests.size > 12) {
+        this._managedFilmManifests.delete(this._managedFilmManifests.keys().next().value);
+      }
+    }
+    return attachCurrentIdentity(clips);
+  }
   async _autoLoadFilm(gameNode) {
     const backend = this.seasonStore.backend;
     // Latest-load-wins: capture this load's token; a newer load (or a game
@@ -684,12 +731,7 @@ export class StorageManager {
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
         }
         // Resolve clip URLs in parallel (see _autoLoadLinkedFilm) — order-preserving.
-        const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
-        const clips = (await Promise.all(filesOnDisk.map(async (fileRef, i) => {
-          const url = await backend.filmUrl(gameNode.id, fileRef);
-          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
-        }))).filter(Boolean);
-        if (stale()) return;
+        const clips = await this._managedFilmClips(gameNode, filesOnDisk, backend, stale);        if (stale()) return;
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
           try {
