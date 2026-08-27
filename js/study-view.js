@@ -110,7 +110,8 @@ function pivotModel(screen, s, sets, rich) {
   const method = rich ? 'runMetrics' : 'run';
   const rr = screen.app.study[method]({ ...args, plays });
   const cr = screen.app.study[method]({ ...args, dimension: s.column, plays });
-  const cols = screen._pivotValues(s.column, plays), totals = new Map(cr.groups.map(g => [String(g.value), g])), cells = new Map();
+  const columnSet = screen._pivotValues(s.column, plays), cols = columnSet.values;
+  const totals = new Map(cr.groups.map(g => [String(g.value), g])), cells = new Map();
   for (const col of cols) {
     const result = screen.app.study[method]({ ...args, plays, filters: [...filters, { dimension: s.column, values: [col] }] });
     for (const group of result.groups) cells.set(`${group.value}\u0000${col}`, group);
@@ -118,7 +119,7 @@ function pivotModel(screen, s, sets, rich) {
   const read = g => { if (!g?.sampleSize) return null; if (rich) { const m = g.metrics[metric]; return m ? { value: screen._richDisplay(s.measure, m), count: screen._metricPlaysText(m, g.sampleSize), state: metricState(m), refs: m.refs || [], dim: ['insufficient', 'unavailable'].includes(m.state) } : null; } const refs = screen._groupRefs(g, metric); return { value: screen._measure(metric, g.measures[metric]), count: String(refs.length), state: g.belowMinSample ? 'Low sample' : '', refs, dim: g.belowMinSample }; };
   const groups = rr.groups.filter(g => g.sampleSize > 0), refs = uniq(groups.flatMap(g => read(g)?.refs || [])), label = scopeName(s, sets);
   return { kind: 'pivot', metricHead: rich?.pair.name || screen.app.analyticsRegistry.getMeasure(metric)?.name || metric, summary: `${refs.length} matching play${refs.length === 1 ? '' : 's'}`, summaryMeta: `${screen.app.analyticsRegistry.getDimension(s.dimension)?.name || s.dimension} × ${screen.app.analyticsRegistry.getDimension(s.column)?.name || s.column} · ${label}`,
-    pivot: { corner: screen.app.analyticsRegistry.getDimension(s.dimension)?.name || s.dimension, columns: cols, rows: groups.map(g => ({ label: String(g.value), cells: cols.map(col => read(cells.get(`${g.value}\u0000${col}`))), total: read(g) })), totals: cols.map(col => read(totals.get(String(col)))), refs, caption: `${rich?.pair.name || screen.app.analyticsRegistry.getMeasure(metric)?.name || metric} · every cell plays its own ${rich ? 'eligible ' : ''}film` },
+    pivot: { corner: screen.app.analyticsRegistry.getDimension(s.dimension)?.name || s.dimension, columns: cols, rows: groups.map(g => ({ label: String(g.value), cells: cols.map(col => read(cells.get(`${g.value}\u0000${col}`))), total: read(g) })), totals: cols.map(col => read(totals.get(String(col)))), refs, caption: `${rich?.pair.name || screen.app.analyticsRegistry.getMeasure(metric)?.name || metric} · every cell plays its own ${rich ? 'eligible ' : ''}film${columnSet.omitted ? ` · showing ${cols.length} of ${columnSet.total} column values` : ''}` },
     warnings: [...(rr.warnings || []), ...(cr.warnings || [])], watchAll: { refs, label: 'Watch results' }, saveCohorts: [{ id: 'result', label, refs }] };
 }
 

@@ -62,6 +62,7 @@ export class WorkspaceShell {
     // BEFORE breakdownWorkspace tears down — both park their media in the
     // permanent #giMediaHost, not a container this shell owns.
     this.app.breakdownVideo?.restore();
+    this.app.studyScreen?.restore();
     this.app.reportsScreen?.restore();
     this.app.teamHubScreen?.restore();
     this.app.breakdownWorkspace?.restore();

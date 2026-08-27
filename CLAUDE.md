@@ -15,6 +15,11 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX V2-F/V2-G ADVERSARIAL REPAIR (2026-08-27)
+
+The post-migration adversarial review found and closed two Study presentation defects. Pivot columns remain capped at twelve for usable width, but the structured model now carries the full vocabulary count and visibly states when values are omitted; totals can no longer make a partial table look exhaustive. Native Study now mirrors Plan's explicit lifecycle: remount unmounts the previous root, shell teardown closes any Save-to-Plan dialog, clears pending payloads/native bridges, and releases the detached host.
+
+Discriminating proof was added to the real journeys: a thirteen-value custom-tag pivot must render twelve columns and say "showing 12 of 13 column values"; shell teardown begins with the real modal open and requires the dialog, host, mount, bridge, and pending payload all cleared. Verification on rebuilt Vite bytes: Study 115/115, workspace shell 88/88, production build green.
 ### CODEX V2-G PLAN PRESENTATION INDEPENDENCE (2026-08-26)
 
 The live Plan route is now rendered by `js/native-plan.jsx`; `js/plan-screen.js` is reduced to commands and orchestration. The old HTML-string route renderer, delegated event bundle, manual escaping, and post-render row wiring are gone. Canonical `StudyPlan`, SeasonStore mutation/persistence, `PlanExport`, ordering rules, and composite film refs were preserved.

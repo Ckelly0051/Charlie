@@ -706,10 +706,25 @@ ok(r.breadcrumbGone,
 // adopted surface with exactly one owner, so re-enable cannot leak into a
 // detached tree — so it is asserted against the permanent host instead of
 // being dropped.
+await page.evaluate(async () => {
+  await window.app.workspaceShell.show('study');
+  window.app.studyScreen._openPlanPicker([{
+    id: 'lifecycle',
+    label: 'Lifecycle finding',
+    refs: ['preview-game::1'],
+    item: { kind: 'finding', label: 'Lifecycle finding', refs: ['preview-game::1'] },
+  }]);
+  await new Promise(resolve => requestAnimationFrame(resolve));
+});
 r = await page.evaluate(() => {
+  const study = window.app.studyScreen;
+  const dialog = document.querySelector('.ws-plan-picker');
+  const pickerWasOpen = !!dialog?.open;
   window.app.workspaceShell.disable();
   const media = document.querySelector('#giMediaHost > .video-section');
   return {
+    studyClean: pickerWasOpen && !dialog.open && study.host === null && study._native === null
+      && study._nativeMount === null && study._planPicker === null && study._pendingPlanItems.length === 0,
     // S7 demolition: #app is gone. The tagging/Film-Room backing stores'
     // permanent, original home is #giLegacyEngineHost — teardown must return
     // adopted chrome there, not to a container that no longer exists.
@@ -732,6 +747,7 @@ r = await page.evaluate(() => {
   };
 });
 ok(r.restored && r.chromeGone, 'disable() (internal teardown) parks media in its permanent host and leaves no native chrome or legacy host behind', JSON.stringify(r));
+ok(r.studyClean, 'disable() unmounts native Study, closes its modal, and clears every detached-host bridge', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });

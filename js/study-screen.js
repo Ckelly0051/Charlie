@@ -326,8 +326,20 @@ export class StudyScreen {
 
   mount(host) {
     if (!host || this.host === host) return;
+    this._nativeMount?.unmount?.();
+    this._native = null;
     this.host = host;
     this._nativeMount = mountNativeStudy(this, host);
+  }
+
+  restore() {
+    this._planPicker = null;
+    this._pendingPlanItems = [];
+    this._nativeMount?.unmount?.();
+    this._nativeMount = null;
+    this._native = null;
+    this._nativeSeasonId = null;
+    this.host = null;
   }
 
   show() {
@@ -425,10 +437,11 @@ export class StudyScreen {
           counts.set(key, (counts.get(key) || 0) + 1);
         }
       }
-    } catch { return []; }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], undefined, { numeric: true }))
-      .slice(0, 12).map(entry => entry[0])
+    } catch { return { values: [], total: 0, omitted: 0 }; }
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], undefined, { numeric: true }));
+    const values = ranked.slice(0, 12).map(entry => entry[0])
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    return { values, total: ranked.length, omitted: Math.max(0, ranked.length - values.length) };
   }
 
   // ---- Study Phase 3: player performance -------------------------------

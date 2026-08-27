@@ -708,6 +708,23 @@ ok(r.hasTable && r.rowHeads.length > 0 && r.colHeads.length > 0 && r.hasTotalCol
   'Study renders a cross-tab with row and column dimensions plus totals', JSON.stringify(r));
 ok(r.cells > 0 && r.withButtons > 0 && r.minTouch >= 44 && !r.overflow,
   'Every populated pivot cell is an operable control and the table scrolls inside its own container', JSON.stringify(r));
+
+await page.evaluate(() => {
+  const play = window.app.tagger.plays[0];
+  play.tags.custom = Array.from({ length: 13 }, (_, index) => `Pivot value ${String(index + 1).padStart(2, '0')}`);
+  window.app.storage.commitActive();
+  window.app.studyScreen._native.refresh();
+});
+await page.select('#wsStudyColumn', 'customTag');
+await new Promise(resolve => setTimeout(resolve, 100));
+r = await page.evaluate(() => ({
+  columns: [...document.querySelectorAll('.ws-pivot thead th')].slice(1, -1).map(th => th.textContent),
+  caption: document.querySelector('.ws-pivot-caption')?.textContent || '',
+}));
+ok(r.columns.length === 12 && /showing 12 of 13 column values/i.test(r.caption),
+  'A capped pivot visibly discloses the omitted column values instead of presenting a partial table as exhaustive', JSON.stringify(r));
+await page.select('#wsStudyColumn', 'down');
+
 // Mechanism liveness first: a min-sample high enough that cells MUST fall below
 // it, so "they stay visible" cannot pass on an empty set. Without this the
 // assertion is vacuous — proven by mutation: hiding low-sample cells passed.
