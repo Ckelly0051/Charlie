@@ -15,6 +15,11 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX NATIVE CALL SHEET PRESENTATION (2026-08-27)
+
+The separate Call Sheet workflow is now native and Preact-owned. `CallSheetBuilder` retains the established situational filters, EPA/yards/recent ranking, play labels, diagrams, numbering, and printable HTML, but no longer injects or queries `#callSheetModal` or any `.cs-*` controls. Configuration now flows through structured `defaultConfig()`, `bucketOptions()`, and `createDocument()` seams into `NativeCallSheet`; the old modal markup, event bundle, alert path, preview injection, and retired CSS are deleted.
+
+The live sheet opens from the canonical More menu through `NativeOverlayService`, shows per-situation availability, updates one shared escaped document for preview and Print, and restores focus to its launcher. Visual QA caught and fixed an oversized white preview field: wristband and letter outputs now render as centered paper-sized artifacts on the work surface. Verification: production build green; workspace shell 90/90; play-call core 17/17; native Reports 93/93; native Call Sheet desktop screenshot inspected. Two Play-call Reports assertions remain red outside this migration; they concern native call/concept rendering and empty composite refs, not Call Sheet behavior, and are disclosed for the next Reports pass.
 ### CODEX V2-F/V2-G ADVERSARIAL REPAIR (2026-08-27)
 
 The post-migration adversarial review found and closed two Study presentation defects. Pivot columns remain capped at twelve for usable width, but the structured model now carries the full vocabulary count and visibly states when values are omitted; totals can no longer make a partial table look exhaustive. Native Study now mirrors Plan's explicit lifecycle: remount unmounts the previous root, shell teardown closes any Save-to-Plan dialog, clears pending payloads/native bridges, and releases the detached host.

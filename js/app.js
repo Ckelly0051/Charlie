@@ -191,7 +191,7 @@ class App {
     this.breakdownTheater = new BreakdownTheaterScreen(this);
     this.nativeFilmRoom = new NativeFilmRoomScreen(this);
     this.nativeTagging = new NativeTaggingScreen(this);
-    this.callSheet = new CallSheetBuilder(this.tagger);
+    this.callSheet = new CallSheetBuilder(this.tagger, this.overlays);
     this.uiPolish = new UIPolish(this);
     this.vc.beforeFilesSelected = files => this.uiPolish.prepareFilmFiles(files);
     // S7-b: the legacy onboarding Wizard is retired. It was default-dismissed

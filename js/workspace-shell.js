@@ -583,7 +583,7 @@ export class WorkspaceShell {
       {key:'csv',label:'Export plays CSV',onSelect:()=>storage.exportCsv()},
       {key:'cutup',label:'Export cut-up video',onSelect:()=>this.app.cutup.export()},
       {key:'frame',label:'Export current frame',onSelect:()=>storage.exportPng()},
-      {key:'call-sheet',label:'Build call sheet',onSelect:()=>this.app.callSheet.show()},
+      {key:'call-sheet',label:'Build call sheet',onSelect:()=>this.app.callSheet.show({ returnFocus: anchor })},
     );
     const seasonStore=storage.seasonStore;
     if(seasonStore?.canOpenDataDir?.())items.push({key:'data-folder',label:'Open data folder',separator:true,onSelect:()=>this._openDataFolder()});

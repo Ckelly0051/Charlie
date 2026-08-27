@@ -13,6 +13,8 @@ import { AdvancedMetrics } from './advanced-metrics.js';
 import { PlayDiagram } from './play-diagram.js';
 import { StatsEngine } from './stats-engine.js';
 import { TagProjection } from './tag-projection.js';
+import { h } from 'preact';
+import { NativeCallSheet } from './native-call-sheet.jsx';
 
 const BUCKETS = [
   { id: 'openers',   label: 'Openers',        count: 8,  filter: (p, i) => i < 15 },
@@ -31,101 +33,76 @@ const BUCKETS = [
 ];
 
 export class CallSheetBuilder {
-  constructor(playTagger) {
+  constructor(playTagger, overlays) {
     this.tagger = playTagger;
+    this.overlays = overlays;
     this.advanced = new AdvancedMetrics();
-    this._injectModal();
-    this._bind();
+    this._overlay = null;
   }
 
-  _injectModal() {
-    if (document.getElementById('callSheetModal')) return;
-    const m = document.createElement('div');
-    m.id = 'callSheetModal';
-    m.className = 'cs-modal hidden';
-    m.innerHTML = `
-      <div class="cs-overlay">
-        <div class="cs-container">
-          <div class="cs-header">
-            <h2>Call Sheet Builder</h2>
-            <div class="cs-header-actions">
-              <button class="btn btn-sm btn-success" id="csBuild">Build &amp; Print</button>
-              <button class="btn btn-sm btn-danger" id="csClose">Close</button>
-            </div>
-          </div>
-          <div class="cs-body">
-            <div class="cs-config">
-              <div class="cs-row">
-                <label>Title</label>
-                <input type="text" id="csTitle" placeholder="Friday vs Opponent">
-              </div>
-              <div class="cs-row">
-                <label>Layout</label>
-                <select id="csLayout">
-                  <option value="wristband">Wristband (3-up, compact)</option>
-                  <option value="callsheet">Full Call Sheet (letter)</option>
-                  <option value="script">Practice Script</option>
-                </select>
-              </div>
-              <div class="cs-row">
-                <label>Rank By</label>
-                <select id="csRank">
-                  <option value="epa">EPA (best first)</option>
-                  <option value="yards">Yards</option>
-                  <option value="recent">Most Recent</option>
-                </select>
-              </div>
-              <div class="cs-row">
-                <label>Number Plays</label>
-                <select id="csNumber">
-                  <option value="seq">Sequential (1, 2, 3…)</option>
-                  <option value="bucket">Per Bucket (R1, R2…)</option>
-                  <option value="none">No Numbers</option>
-                </select>
-              </div>
-              <h4 style="margin:14px 0 4px">Buckets &amp; Counts</h4>
-              <div class="cs-buckets" id="csBuckets"></div>
-            </div>
-            <div class="cs-preview" id="csPreview">
-              <p style="opacity:.6">Click "Build &amp; Print" to generate your call sheet.</p>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(m);
+  defaultConfig() {
+    return {
+      title: '',
+      layout: 'wristband',
+      rank: 'epa',
+      numberStyle: 'seq',
+      buckets: Object.fromEntries(BUCKETS.map(bucket => [bucket.id, { enabled: true, count: bucket.count }])),
+    };
+  }
 
-    const bWrap = m.querySelector('#csBuckets');
-    BUCKETS.forEach(b => {
-      const row = document.createElement('div');
-      row.className = 'cs-bucket-row';
-      row.innerHTML = `
-        <label><input type="checkbox" class="cs-bk-on" data-id="${b.id}" checked> ${b.label}</label>
-        <input type="number" class="cs-bk-n" data-id="${b.id}" value="${b.count}" min="0" max="20">`;
-      bWrap.appendChild(row);
+  _eligiblePlays() {
+    return this.tagger.plays.filter(play => play.tags && play.tags.playType);
+  }
+
+  _matches(bucket, plays) {
+    return plays.filter((play, index) => {
+      try { return bucket.filter(play, index, this._absYL(play.tags || {})); }
+      catch { return false; }
     });
   }
 
-  _bind() {
-    document.getElementById('btnCallSheet')?.addEventListener('click', () => this.show());
-    const m = document.getElementById('callSheetModal');
-    m.querySelector('#csClose').addEventListener('click', () => this.hide());
-    m.querySelector('.cs-overlay').addEventListener('click', e => {
-      if (e.target.classList.contains('cs-overlay')) this.hide();
-    });
-    m.querySelector('#csBuild').addEventListener('click', () => this.build());
+  bucketOptions() {
+    const plays = this._eligiblePlays();
+    return BUCKETS.map(bucket => ({
+      id: bucket.id,
+      label: bucket.label,
+      count: bucket.count,
+      available: this._matches(bucket, plays).length,
+    }));
   }
 
-  show() { document.getElementById('callSheetModal').classList.remove('hidden'); }
-  hide() { document.getElementById('callSheetModal').classList.add('hidden'); }
+  show({ returnFocus } = {}) {
+    this.hide('replaced');
+    const handle = this.overlays.sheet({
+      id: 'call-sheet-builder',
+      title: 'Call Sheet Builder',
+      modal: true,
+      dismissOnScrim: false,
+      returnFocus,
+      initialFocus: '.gi-call-sheet-field input',
+      content: h(NativeCallSheet, { builder: this }),
+    });
+    this._overlay = handle;
+    handle.result.finally(() => {
+      if (this._overlay === handle) this._overlay = null;
+    });
+    return handle;
+  }
 
+  hide(reason = 'cancel') {
+    if (!this._overlay) return false;
+    const handle = this._overlay;
+    this._overlay = null;
+    return handle.close(reason);
+  }
   _absYL(t) {
     const yl = parseInt(t.yardLine);
     if (!yl) return null;
     return (t.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
   }
 
-  _gather(rankMode) {
-    const all = this.tagger.plays.filter(p => p.tags && p.tags.playType);
+  _gather(rankMode, bucketSettings = this.defaultConfig().buckets) {
+    const all = this._eligiblePlays();
     // Compute EPA once
     const epaMap = new Map();
     all.forEach(p => epaMap.set(p.id, this.advanced.computeEPA(p)));
@@ -141,17 +118,12 @@ export class CallSheetBuilder {
     };
 
     const buckets = [];
-    const onState = id => document.querySelector(`.cs-bk-on[data-id="${id}"]`)?.checked;
-    const nState  = id => parseInt(document.querySelector(`.cs-bk-n[data-id="${id}"]`)?.value) || 0;
-
     for (const b of BUCKETS) {
-      if (!onState(b.id)) continue;
-      const n = nState(b.id);
+      const setting = bucketSettings[b.id] || { enabled: true, count: b.count };
+      if (!setting.enabled) continue;
+      const n = Math.max(0, Math.min(20, parseInt(setting.count, 10) || 0));
       if (!n) continue;
-      const matches = all.filter((p, i) => {
-        try { return b.filter(p, i, this._absYL(p.tags || {})); }
-        catch { return false; }
-      });
+      const matches = this._matches(b, all);
       const ranked = matches.slice().sort((a, b2) => score(b2) - score(a)).slice(0, n);
       buckets.push({ id: b.id, label: b.label, plays: ranked });
     }
@@ -206,40 +178,49 @@ export class CallSheetBuilder {
     return (yds > 0 ? '+' : '') + yds;
   }
 
-  build() {
-    const layout = document.getElementById('csLayout').value;
-    const rank   = document.getElementById('csRank').value;
-    const numStyle = document.getElementById('csNumber').value;
-    const title  = document.getElementById('csTitle').value || 'Call Sheet';
-    const buckets = this._gather(rank);
-
-    if (!buckets.length || buckets.every(b => !b.plays.length)) {
-      alert('No plays match the selected buckets. Tag more plays or enable more buckets.');
-      return;
-    }
+  createDocument(options = {}) {
+    const defaults = this.defaultConfig();
+    const config = { ...defaults, ...options, buckets: options.buckets || defaults.buckets };
+    const title = config.title || 'Call Sheet';
+    const buckets = this._gather(config.rank, config.buckets);
+    if (!buckets.length || buckets.every(bucket => !bucket.plays.length)) return { ok: false, html: '', buckets };
 
     let seq = 1;
     const numFor = (bIdx, pIdx) => {
-      if (numStyle === 'none') return '';
-      if (numStyle === 'bucket') return `${bIdx + 1}-${pIdx + 1}`;
+      if (config.numberStyle === 'none') return '';
+      if (config.numberStyle === 'bucket') return `${bIdx + 1}-${pIdx + 1}`;
       return String(seq++);
     };
 
-    const html = layout === 'script'
+    const html = config.layout === 'script'
       ? this._renderScript(title, buckets, numFor)
-      : this._renderCallSheet(title, buckets, numFor, layout === 'wristband');
+      : this._renderCallSheet(title, buckets, numFor, config.layout === 'wristband');
+    return { ok: true, html, buckets };
+  }
 
-    // Preview inline + open print window
-    document.getElementById('csPreview').innerHTML = `<iframe class="cs-preview-frame" srcdoc="${html.replace(/"/g, '&quot;')}"></iframe>`;
-
+  printDocument(html) {
+    if (!html) return false;
     const w = window.open('', '_blank');
-    if (!w) { alert('Popup blocked — allow popups and try again.'); return; }
+    if (!w) {
+      this.overlays?.toast({ message: 'Popup blocked. Allow popups and try again.', tone: 'warning' });
+      return false;
+    }
     w.document.open();
     w.document.write(html);
     w.document.close();
-    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
+    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 400);
+    return true;
   }
 
+  build(options = {}) {
+    const result = this.createDocument(options);
+    if (!result.ok) {
+      this.overlays?.toast({ message: 'No plays match those situations. Tag more plays or enable another situation.', tone: 'warning' });
+      return result;
+    }
+    this.printDocument(result.html);
+    return result;
+  }
   _baseStyles(wristband) {
     return `
       * { box-sizing: border-box; }

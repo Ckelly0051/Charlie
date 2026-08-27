@@ -452,8 +452,12 @@ parity-locked analytics foundation.
 > contract 32/32; Plan export 22/22; workspace shell 87/87; hostile names 6/6;
 > desktop and mobile route/presentation screenshots visually inspected.
 >
-> The Call Sheet builder is a separate workflow and still has its own imperative
-> modal. This checkpoint does not label that surface retired.
+> **CALL SHEET PRESENTATION INDEPENDENCE (completed 2026-08-27):** The separate
+> builder is now a native Preact sheet over the existing football-selection and
+> print engine. The injected `#callSheetModal`, document-query configuration,
+> alert path, and retired `.cs-*` CSS are deleted. Situational availability,
+> live escaped preview, paper-sized layout, and Print now share one structured
+> document path through the native overlay service.
 >
 Plan should turn Study findings into something a staff can teach and use.
 

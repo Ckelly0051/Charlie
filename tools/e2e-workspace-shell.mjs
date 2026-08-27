@@ -367,6 +367,51 @@ r = await page.evaluate(() => {
 ok(r.calls === 1 && r.closed && r.focus === 'btnNativeMore' && r.legacyAbsent,
   'Native More invokes the storage Save command exactly once, restores its launcher, and has no legacy owner', JSON.stringify(r));
 
+console.log('\n== Native Call Sheet builder ==');
+await page.click('#btnNativeMore');
+await page.waitForSelector('[data-popover-item="call-sheet"]');
+await page.click('[data-popover-item="call-sheet"]');
+await page.waitForSelector('[data-overlay-id="call-sheet-builder"] .gi-call-sheet');
+await page.waitForSelector('[data-overlay-id="call-sheet-builder"] .gi-call-sheet-preview');
+await capture('call-sheet-1280x800');
+r = await page.evaluate(() => ({
+  native: document.querySelectorAll('[data-overlay-id="call-sheet-builder"] .gi-call-sheet').length,
+  legacyGone: !document.getElementById('callSheetModal') && !document.querySelector('.cs-overlay'),
+  buckets: document.querySelectorAll('.gi-call-sheet-bucket').length,
+  available: [...document.querySelectorAll('.gi-call-sheet-bucket output')].some(node => Number(node.textContent) > 0),
+  preview: document.querySelector('.gi-call-sheet-preview')?.getAttribute('srcdoc') || '',
+  modal: document.querySelector('[data-overlay-id="call-sheet-builder"] .gi-overlay-panel')?.getAttribute('aria-modal'),
+  popoverClosed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+}));
+ok(r.native === 1 && r.legacyGone && r.buckets === 13 && r.available && /Call Sheet/.test(r.preview)
+    && r.modal === 'true' && r.popoverClosed,
+  'Call Sheet opens as one native modal with live football data and no legacy DOM owner', JSON.stringify({ ...r, preview: r.preview.length }));
+await page.evaluate(() => {
+  const input = document.querySelector('.gi-call-sheet-field.is-title input');
+  input.value = '<img src=x onerror=alert(1)> Rival';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  window.__callSheetPrint = [];
+  window.__callSheetOriginalPrint = window.app.callSheet.printDocument;
+  window.app.callSheet.printDocument = html => { window.__callSheetPrint.push(html); return true; };
+});
+await page.waitForFunction(() => /&lt;img src=x onerror=alert\(1\)&gt; Rival/.test(document.querySelector('.gi-call-sheet-preview')?.getAttribute('srcdoc') || ''));
+await page.click('.gi-call-sheet-print');
+await page.waitForFunction(() => window.__callSheetPrint?.length === 1);
+r = await page.evaluate(() => {
+  const printed = window.__callSheetPrint[0];
+  window.app.callSheet.printDocument = window.__callSheetOriginalPrint;
+  delete window.__callSheetOriginalPrint;
+  delete window.__callSheetPrint;
+  window.app.callSheet.hide('test-complete');
+  return {
+    escaped: printed.includes('&lt;img src=x onerror=alert(1)&gt; Rival'),
+    rawAbsent: !printed.includes('<img src=x onerror=alert(1)>'),
+  };
+});
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="call-sheet-builder"]'));
+await page.waitForFunction(() => document.activeElement?.id === 'btnNativeMore');
+ok(r.escaped && r.rawAbsent,
+  'Call Sheet live preview and Print share the escaped canonical document, then return focus to More', JSON.stringify(r));
 /* Final Engine Independence: undo/redo/shortcuts/the CV-server badge used to
    be entombed inside the permanently hidden classic top bar
    (#wsClassicOutlet, then #giLegacyEngineHost -- both since deleted). Undo,
