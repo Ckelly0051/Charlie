@@ -1467,6 +1467,55 @@ ok(result.gameDotFound && JSON.stringify(result.gameMouseA?.refs) === JSON.strin
   'Game-scope dot (bare id, no game separator) resolves through the active game only, to the same exact play the season view names gA::5',
   JSON.stringify(result.gameMouseA));
 
+console.log('\n== F13b. Native Offense visuals share canonical football meaning and retain chart context ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: '2026 Visual Meaning QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
+  const play = (id, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit: 'offense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  app.storage.seasonStore.data.games = [{
+    id: 'g-visual', name: 'Visual Meaning', nextId: 5,
+    gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+    plays: [
+      play(1, { runPass: 'Pass', playType: 'Short Pass', down: '4', distance: '10', result: 'Good', yardage: '0', yardLine: '20', fieldSide: 'own', quarter: 'Q1' }),
+      play(2, { runPass: 'Pass', playType: 'Short Pass', down: '4', distance: '10', result: 'No Good', yardage: '20', yardLine: '30', fieldSide: 'own', quarter: 'Q1' }),
+      play(3, { runPass: 'Pass', playType: 'Short Pass', down: '1', distance: '10', result: 'Interception', yardage: '0', yardLine: '40', fieldSide: 'own', quarter: 'Q2' }),
+      play(4, { runPass: 'Run', playType: 'Run Outside', down: '2', distance: '5', result: 'Fumble', yardage: '7', yardLine: '50', fieldSide: 'own', quarter: 'Q2' }),
+    ],
+  }];
+  app.storage.seasonStore.data.activeGameId = 'g-visual';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+  app.reportsScreen.selectTab('offense');
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  const dotFill = id => document.querySelector(`.hm-dot[data-heat-ref="${id}"] circle:last-of-type`)?.getAttribute('fill') || null;
+  const interception = dotFill('3');
+  const fumble = dotFill('4');
+  const ddTab = [...document.querySelectorAll('.hm-tab')].find(button => /Down & Distance/i.test(button.textContent || ''));
+  ddTab?.click();
+  await new Promise(r => requestAnimationFrame(r));
+  const fourth = [...document.querySelectorAll('.dd-grid tbody tr')].find(row => /4th/i.test(row.querySelector('th')?.textContent || ''));
+  const fourthAndLong = fourth?.querySelectorAll('td')?.[2]?.textContent?.replace(/\s+/g, ' ').trim() || '';
+  const sprayAxis = [...document.querySelectorAll('.viz-svg text[x="32"]')].map(node => node.textContent.trim());
+  const zones = [...document.querySelectorAll('.viz-zone')];
+  const quarterBars = [...document.querySelectorAll('.viz-q-bar')];
+  return {
+    interception, fumble, fourthAndLong, sprayAxis,
+    zoneTitles: zones.map(node => node.getAttribute('title')),
+    quarterTitles: quarterBars.map(node => node.getAttribute('title')),
+  };
+});
+ok(result.fourthAndLong.includes('2') && result.fourthAndLong.includes('50%S'),
+  'Made and missed kicks use the canonical success owner in the Down & Distance grid', JSON.stringify(result));
+ok(result.interception === '#a855f7' && result.fumble === '#a855f7',
+  'Interceptions and fumbles use the turnover color regardless of recorded yardage', JSON.stringify(result));
+ok(result.sprayAxis.includes('0') && result.sprayAxis.includes('20'),
+  'Yardage spray retains both zero and maximum Y-axis context', JSON.stringify(result.sprayAxis));
+ok(result.zoneTitles.length === 5 && result.zoneTitles.every(Boolean) && result.quarterTitles.length === 4 && result.quarterTitles.every(Boolean),
+  'Field-zone and quarter marks retain their exact hover context', JSON.stringify(result));
 console.log('\n== F14. The Defense report never mislabels opponent-scout film as the coach\'s own defense ==');
 result = await page.evaluate(async () => {
   const app = window.app;

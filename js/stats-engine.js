@@ -393,7 +393,7 @@ export class StatsEngine {
     return 'Goal line';
   }
 
-  _isSuccessfulPlay(p) {
+  static isSuccessfulPlay(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
     if (StatsEngine.hasResult(p, 'Touchdown')) return true;
@@ -407,6 +407,10 @@ export class StatsEngine {
       case '4': return yds >= dist;
       default: return yds >= 4;
     }
+  }
+
+  _isSuccessfulPlay(p) {
+    return StatsEngine.isSuccessfulPlay(p);
   }
 
   /** Whether `_isSuccessfulPlay` classifies this play from REAL tagged data

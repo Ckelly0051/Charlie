@@ -1,3 +1,8 @@
+### CODEX REPORTS ISLAND ADVERSARIAL REPAIR (2026-08-27)
+
+The independent review of `0c7e1cd` found and closed three defects. Native Offense visuals now consume `StatsEngine.isRun()` and the new shared `StatsEngine.isSuccessfulPlay()` owner, so made and missed kicks cannot disagree with the canonical report engine. Turnover result classification precedes yardage coloring, making the purple turnover legend truthful for interceptions and fumbles. The yardage spray again labels its maximum Y value, and field-zone/quarter marks retain exact hover context.
+
+A new browser regression proves all four behaviors against the live native route. Verification: production build green; native Reports 97/97; core 25/25. No persistence, film identity, report cohort, or stored football data changed.
 ### CODEX FINAL REPORTS ISLAND RETIREMENT (2026-08-27)
 
 The last live Reports presentation islands are now removed rather than hidden. Offense Heat Maps and Visualizations render as real Preact components over the new pure `report-visual-data.js` seam; interactive field dots call the canonical film-navigation boundary directly with exact composite refs. The obsolete `HeatMaps`, `Visualizations`, `LegacyWidget`, and generic `ReportPane` HTML fallback are deleted. The only raw failure write left is the deliberate outer-host emergency path used when the Preact Reports content root itself does not exist.

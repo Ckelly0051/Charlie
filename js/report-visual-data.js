@@ -5,25 +5,18 @@ const absYardLine = (tags = {}) => {
   if (!yardLine) return null;
   return (tags.fieldSide || 'own') === 'opp' ? 100 - yardLine : yardLine;
 };
-const isRun = play => play.tags?.runPass === 'Run' || (play.tags?.runPass !== 'Pass' && !!play.tags?.playType?.toLowerCase().includes('run'));
-const isSuccess = play => {
-  const tags = play.tags || {}, yards = parseInt(tags.yardage) || 0, distance = parseInt(tags.distance) || 10;
-  if (String(tags.result || '').split(/\s*\+\s*/).includes('Touchdown') || tags.custom?.includes('1st Down')) return true;
-  if (tags.down === '1') return yards >= distance * .5;
-  if (tags.down === '2') return yards >= distance * .7;
-  if (tags.down === '3' || tags.down === '4') return yards >= distance;
-  return yards >= 4;
-};
+const isRun = play => StatsEngine.isRun(play);
+const isSuccess = play => StatsEngine.isSuccessfulPlay(play);
 const fieldData = plays => {
   const W=1200,H=560,fStart=70,fEnd=1130,fTop=70,fBot=480,fW=fEnd-fStart,fH=fBot-fTop;
   const points=plays.filter(play=>absYardLine(play.tags)!==null).map(play=>{
     const tags=play.tags||{},yards=parseInt(tags.yardage)||0,results=String(tags.result||'').split(/\s*\+\s*/);
     let color='#888',radius=7;
     if(results.includes('Touchdown')){color='#22c55e';radius=9;}
+    else if(results.includes('Interception')||results.includes('Fumble')){color='#a855f7';radius=8;}
     else if(yards>=20){color='#38bdf8';radius=8;}
     else if(yards>=4)color='#f97316';
     else if(yards<=0||results.includes('Loss')||results.includes('Sack'))color='#ef4444';
-    else if(results.includes('Interception')||results.includes('Fumble')){color='#a855f7';radius=8;}
     const suffix=({'1':'st','2':'nd','3':'rd','4':'th'})[tags.down]||'';
     const situation=[tags.down?`${tags.down}${suffix} & ${tags.distance||'?'}`:'',tags.playType||''].filter(Boolean).join(' / ');
     const phase=tags.unit==='defense'?'Defense':tags.unit==='special'?'Special Teams':'Offense';
