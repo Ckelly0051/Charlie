@@ -8,7 +8,8 @@ import { PlayDiagram } from './play-diagram.js';
 /**
  * Native tag-form presentation.
  *
- * PlayTagger and BreakdownForm remain the behavior/data owners. The native
+ * PlayTagger and BreakdownChartingService remain the behavior/data owners.
+ * The native
  * view renders model state in Preact-owned markup (native-tagging.jsx) and
  * delegates explicit coach actions to those owners. Final Engine
  * Independence: this controller has no legacy DOM source to adopt/hide/
@@ -194,7 +195,7 @@ export class NativeTaggingScreen {
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.app.settingsScreen?.openPlaybook?.({ name:String(name || '').trim(), returnFocus });
   }
-  setPlayer(role, value) { const field=this.tagger?.playerFields?.[role]; if(!field)return false; field.value=value; this.tagger._savePlayer(role); this._queuePublish(); return true; }
+  setPlayer(role, value) { const field=this.tagger?.playerFields?.[role]; if(!field)return false; field.value=value; this.tagger._savePlayer(role); this.app.breakdownCharting?.syncSpecialist?.(role); this._queuePublish(); return true; }
   setGrade(role, value) { const field=this.tagger?.gradeFields?.[role]; if(!field)return false; field.value=value; this.tagger._saveGrade(role); this._queuePublish(); return true; }
   setNotes(value) { const ok = this.app.notes?.setNotes?.(value); if (ok) this._queuePublish(); return !!ok; }
   addCustomTag(value) { const play=this.tagger?.getCurrentPlay?.(),clean=String(value||'').trim(); if(!play||!clean)return false; if(!Array.isArray(play.tags.custom))play.tags.custom=[]; if(!play.tags.custom.includes(clean))play.tags.custom.push(clean); this.tagger._emit('play-updated',play); return true; }
@@ -215,18 +216,18 @@ export class NativeTaggingScreen {
   // — no hidden checkbox, no synthetic click, no fake DOM event/target mock.
   setAutoDD(value) { const ok=this.tagger?.setAutoDD?.(value); if(ok)this._queuePublish(); return !!ok; }
   setCarryScheme(value) { const ok=this.tagger?.setCarryScheme?.(value); if(ok)this._queuePublish(); return !!ok; }
-  addPenalty() { return this.app.breakdownForm?.addPenalty?.() === true; }
-  penaltyAction(index,field,value) { return this.app.breakdownForm?.penaltyChip?.(index,field,value) === true; }
-  penaltyInput(index,field,value) { return this.app.breakdownForm?.penaltyInput?.(index,field,value) === true; }
-  removePenalty(index) { return this.app.breakdownForm?.removePenalty?.(index); }
-  penaltySituation(field,value,checked=false) { return this.app.breakdownForm?.penaltySituation?.(field,value,checked) === true; }
-  setSpecialUnit(value) { return this.app.breakdownForm?.setSpecialUnit?.(value); }
+  addPenalty() { return this.app.breakdownCharting?.addPenalty?.() === true; }
+  penaltyAction(index,field,value) { return this.app.breakdownCharting?.penaltyChip?.(index,field,value) === true; }
+  penaltyInput(index,field,value) { return this.app.breakdownCharting?.penaltyInput?.(index,field,value) === true; }
+  removePenalty(index) { return this.app.breakdownCharting?.removePenalty?.(index); }
+  penaltySituation(field,value,checked=false) { return this.app.breakdownCharting?.penaltySituation?.(field,value,checked) === true; }
+  setSpecialUnit(value) { return this.app.breakdownCharting?.setSpecialUnit?.(value); }
   specialAction(key,value) {
     const map={status:'stOutcome',attempt:'stAttempt',score:'stScore',owner:'stOwner',recovery:'stRecovery',toggle:'stToggle',spot:'stSpotSide',tryAttempt:'stTryAttempt',tryResult:'stTryResult',tryEvent:'stTryEvent',tryTurnover:'stTryTurnover',tryScore:'stTryScore',returnAward:'stReturnAward'};
     const dataKey=map[key];
-    return dataKey ? this.app.breakdownForm?.specialAction?.(dataKey,value) === true : false;
+    return dataKey ? this.app.breakdownCharting?.specialAction?.(dataKey,value) === true : false;
   }
-  specialInput(key,value) { return this.app.breakdownForm?.specialInput?.(key,value) === true; }
+  specialInput(key,value) { return this.app.breakdownCharting?.specialInput?.(key,value) === true; }
   drawDiagram() { this.app.playDiagram?.openEditor?.(); }
   clearDiagram() { this.app.playDiagram?.clearCurrent?.(); }
   setScoreboardRegion() { this.app.ocr?.startRegionSelect?.(); }

@@ -33,7 +33,6 @@ let r = await page.evaluate(() => ({
   // the shell root.
   legacyHostGone: !document.getElementById('giLegacyEngineHost') && !document.getElementById('app'),
   mediaHostPresent: !!document.getElementById('giMediaHost'),
-  flag: localStorage.getItem('ffa_workspace_shell_v2'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
   reportsDisabled: [...document.querySelectorAll('[data-ws-route="reports"]')].every(button => button.disabled),
   // V2-A: Home has no dedicated season-less resume button -- Team Hub owns
@@ -87,7 +86,7 @@ ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/un
   'Every shell nav button renders a label with no leaked value', JSON.stringify(chromeScan.navLabels));
 ok(chromeScan.navIcons.length >= 5 && chromeScan.navIcons.every(i => i && i !== '•'),
   'Every shell route carries its OWN icon, not the missing-icon fallback', JSON.stringify(chromeScan.navIcons));
-ok(r.flag === '1' && r.breakdownDisabled && r.reportsDisabled, 'Guarded routes, including Reports, start disabled with no season');
+ok(r.breakdownDisabled && r.reportsDisabled, 'Guarded routes, including Reports, start disabled with no season');
 ok(r.emptyAction === '+ Add game' && r.emptyActionEnabled && r.emptyActionTarget === 'new-game',
   'Empty Home offers an enabled primary action instead of appearing dead', JSON.stringify(r));
 
@@ -795,7 +794,7 @@ ok(r.restored && r.chromeGone, 'disable() (internal teardown) parks media in its
 ok(r.studyClean, 'disable() unmounts native Study, closes its modal, and clears every detached-host bridge', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
-await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });
+await page.evaluate(() => window.app.workspaceShell.enable());
 
 // mount -> restore -> mount. disable() is asserted above and enable() right
 // here, but nothing re-checked that the shell's own chrome buttons come back

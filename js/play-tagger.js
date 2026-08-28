@@ -272,13 +272,9 @@ export class PlayTagger {
       tackler: new PlainInput(), takeaway: new PlainInput(), kicker: new PlainInput(), returner: new PlainInput(),
     };
 
-    // Unit toggle (Offense / Defense / Special Teams) — drives the tag-form
-    // layout per play. Stored on play.tags.unit; defaults from Game Info
-    // perspective via this.defaultUnit (set by App). `tagForm` no longer
-    // resolves to any authored markup (the legacy .tag-section it once
-    // pointed at is retired) — every consumer already guards its absence
-    // (_updateFormEnabled, the disabled-form click hint, BreakdownForm's own
-    // constructor), so this stays `null` rather than a fabricated stand-in.
+    // Unit toggle (Offense / Defense / Special Teams) drives the tag form.
+    // tagForm no longer resolves to authored markup. Every consumer guards its
+    // absence, so it stays null rather than becoming a fabricated stand-in.
     this.tagForm = null;
     this.unitField = new PlainField();
     this.defaultUnit = 'offense';

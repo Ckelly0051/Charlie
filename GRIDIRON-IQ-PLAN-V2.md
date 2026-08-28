@@ -106,7 +106,7 @@ presentations over the same state and commands. It does not itself design the
 mobile UI, but it prevents mobile from becoming a third interface synchronized
 against obsolete desktop controls.
 
-> **STATUS (2026-08-23): ACCEPTED.** The coach installed **1.12.0-62** and passed the real-film Charlie Gate. Commit `01a3108` and installer `1.12.0-62` are the accepted rollback point. `#giLegacyEngineHost`, retired-control synchronization, `build.sh`, and `football-film-analyzer.html` are gone; Plan V2 may now open from one application state model and one coach-facing shell. Bulk dead-CSS reduction remains deferred maintenance, not a milestone blocker.
+> **STATUS (amended 2026-08-28): ACCEPTED FOR SHELL INDEPENDENCE ONLY.** The coach installed **1.12.0-62** and passed the real-film Charlie Gate. Commit `01a3108` and installer `1.12.0-62` remain the rollback point for removing the hidden shell. The earlier conclusion that bulk dead CSS and remaining screen-level presentation owners were harmless deferred maintenance was wrong. Repeated comp-to-installer drift proved that they remain blockers to reliable visual redesign; the binding retirement work is recorded below.
 
 ## 3A. Dependency Retirement Rule
 
@@ -123,7 +123,32 @@ Beginning with V2-A, new work must not deepen dependence on obsolete presentatio
 The goal is not a ceremonial all-Preact rewrite. The goal is one authoritative owner per behavior, clean boundaries around retained engines, and progressively less obsolete infrastructure as coach-facing work advances.
 
 
-## 3B. Binding Consumer Presentation Standard
+## 3B. Blockers Before Further Visual Redesign
+
+**Coach/Codex decision, 2026-08-28:** do not begin another broad visual redesign until the presentation constraints below are removed or explicitly contained. Three redesign attempts demonstrated that a native-looking surface over competing renderers and an uncontrolled global cascade does not reliably produce the approved composition in the installed app.
+
+The blocking work is:
+
+- Remove duplicate Breakdown presentation owners. `BreakdownVideo` is obsolete; the DOM-composing portion of `BreakdownForm` is obsolete and its still-live football mutations must move to an explicit DOM-free service before the old renderer is deleted.
+- Separate Film Room state, editing, and football behavior from its hand-built document renderer. Retained behavior may remain, but presentation must have one owner before the next Breakdown redesign.
+- Inventory the live CSS cascade by selector and owner. Broad historical rules for typography, buttons, panels, tables, tags, video, and reports must be deleted, scoped, or consolidated so screen-local styles cannot be unpredictably overridden thousands of lines later.
+- Establish one canonical consumer-facing base for typography, controls, tables, spacing, and density. The approved comp and the installed app must run through the same cascade, fonts, and viewport assumptions.
+- Retire obsolete CSS alongside each affected screen rather than carrying it as indefinite maintenance. A screen is not redesign-ready while superseded rules can still influence its geometry or appearance.
+
+This is not authorization to remove legacy season normalization, import compatibility, schema migration, football formulas, film identity, or persistence recovery. Those are retained data/domain compatibility paths, not competing presentation owners.
+
+Acceptance for opening the next broad redesign:
+
+- Breakdown has one presentation owner per visible surface.
+- No obsolete Breakdown renderer mounts, restores, reparents, or synchronizes DOM.
+- Film Room behavior is consumable without its retired document renderer.
+- The live global CSS affecting the redesigned surface is known and controlled.
+- Real-data captures at the agreed desktop viewports match the same composition used for approval.
+
+> **PROGRESS (2026-08-28):** The first blocker is closed. BreakdownVideo, BreakdownForm, their mount/restore hooks, feature flags, bridge exports, and dedicated CSS are deleted. Structured penalty and Special Teams behavior now lives in the DOM-free BreakdownChartingService. Film Room separation and cascade control remain open.
+
+
+## 3C. Binding Consumer Presentation Standard
 
 Product presentation is part of functionality, not optional polish. GridIron IQ
 must look like a finished consumer coaching product, not a developer console.

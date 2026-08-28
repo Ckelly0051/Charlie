@@ -34,7 +34,7 @@ const FILES = [
   'js/stats-engine.js', 'js/analytics-registry.js', 'tools/e2e-parity.mjs',
   // E3b: analytics DISPLAY/FILTER consumers, added as each is wired. A raw
   // six-field read in any of these is a film-link/analytics divergence.
-  'js/heat-maps.js', 'js/advanced-metrics.js', 'js/play-filter.js', 'js/play-grid.js',
+  'js/advanced-metrics.js', 'js/play-filter.js', 'js/play-grid.js',
   // E3b: exportCsv publishes the six fields to a file the coach opens in Excel and
   // re-imports. A raw read here would ship a CSV that disagrees with every on-screen
   // surface — the same divergence class, just with a longer feedback loop.
@@ -45,7 +45,7 @@ const FILES = [
   // A raw `.tags.formation`/`.tags.coverage` etc. read here means the composition
   // was bypassed and a legacy mixed value (e.g. "Shotgun + Trips") would print
   // literally instead of through the projected label.
-  'js/call-sheet-builder.js', 'js/plan-export.js', 'js/cutup-exporter.js', 'js/breakdown-video.js',
+  'js/call-sheet-builder.js', 'js/plan-export.js', 'js/cutup-exporter.js',
 ];
 
 // Resolvable raw reads that are LEGITIMATE (must live inside a scanned file). Empty
@@ -97,7 +97,7 @@ const ok = (cond, label, extra = '') => {
 // E3b: unwrap optional chaining AND the `||`/`??` fallback idiom. `const t =
 // X.tags || {}` is a LogicalExpression, so the rev-1 detector never registered `t`
 // as a tags alias and silently missed every six-field read behind it (it hid
-// call-sheet-builder, plan-export, breakdown-video, cutup-exporter and
+// call-sheet-builder, plan-export, cutup-exporter and
 // play-filter). The tags member is the LEFT operand.
 const unwrap = (n) => {
   if (!n) return n;

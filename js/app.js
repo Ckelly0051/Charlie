@@ -37,7 +37,6 @@ import { PlanScreen } from './plan-screen.js';
 import { WorkspaceShell } from './workspace-shell.js';
 import { NativeFilmRoomScreen } from './native-film-room-screen.js';
 import { NativeTaggingScreen } from './native-tagging-screen.js';
-import { BreakdownVideo } from './breakdown-video.js';
 import { BreakdownTheaterScreen } from './breakdown-theater-screen.js';
 import { BreakdownWorkspace } from './breakdown-workspace.js';
 import { HistoryManager } from './history-manager.js';
@@ -52,7 +51,7 @@ import { UIPolish } from './ui-polish.js';
 import { CustomFieldsManager } from './custom-fields.js';
 import { CustomChips } from './custom-chips.js';
 import { TagLibrarySettings } from './tag-library-settings.js';
-import { BreakdownForm } from './breakdown-form.js';
+import { BreakdownChartingService } from './breakdown-charting-service.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
@@ -93,14 +92,13 @@ class App {
     this.customChips = new CustomChips(this.tagger);
     this.playbook = new PlaybookLibrary();
     this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
-    this.breakdownForm = new BreakdownForm(this.tagger, { tagLibrarySettings: this.tagLibrarySettings });
+    this.breakdownCharting = new BreakdownChartingService(this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
     this.tagger.onLoadForm = (play) => {
       this.customFields.loadValues(play);
       this.playDiagram.renderPreview();
-      this.breakdownForm.loadPlay(play);
     };
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
@@ -187,7 +185,6 @@ class App {
       toast: message => this.tagger.toast?.(message),
     });
     this.stats.filmNavigation = this.filmNavigation;
-    this.breakdownVideo = new BreakdownVideo(this.tagger);
     this.breakdownTheater = new BreakdownTheaterScreen(this);
     this.nativeFilmRoom = new NativeFilmRoomScreen(this);
     this.nativeTagging = new NativeTaggingScreen(this);

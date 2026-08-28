@@ -3,18 +3,8 @@ import { isPlayTagged } from './football-rules.js';
 /**
  * The one native application shell.
  *
- * S7 demolition: `#app` and `#wsClassicOutlet` are gone. The tagging domain,
- * Film Room grid, and Reports' legacy render target live permanently in
- * `#giLegacyEngineHost` (a sibling of `#giMediaHost`), outside this shell's
- * own root — real backing stores the domain engines still read/write
- * directly, not a second visible surface.
- *
- * Final Engine Independence: the top-bar chrome that used to live in
- * `#giLegacyEngineHost` (Undo/Redo/Shortcuts/Settings) is gone too. This
- * shell's own `.ws-global-tools` buttons are real Preact-free but genuinely
- * native DOM this class owns and renders itself, calling the underlying
- * services (`app.history`, `app.shortcutsScreen`, `app.settingsScreen`)
- * directly — no legacy element is adopted, relocated, or `.click()`-proxied.
+ * It owns navigation and application chrome. Domain controllers expose state
+ * and commands directly; no hidden or alternate presentation is mounted.
  */
 export class WorkspaceShell {
   constructor(app) {
@@ -32,23 +22,7 @@ export class WorkspaceShell {
   // shell mounts unconditionally on every build.
   async init() { await this.enable(); }
   async enable() {
-    // Kept as a compatibility signal: breakdown-form/breakdown-video read this
-    // key to know the redesigned workspace is active. The shell itself no longer
-    // gates on it — it is always on — but writing it keeps those modules enabled
-    // with zero change to their own logic (and joins the browser build to the
-    // one product). Nothing clears it; there is no flag-off state.
-    try { localStorage.setItem('ffa_workspace_shell_v2', '1'); } catch {}
     if (!this.root) this._mount();
-    // Idempotent: no-ops when already mounted. Required because disable() now
-    // genuinely tears the presentation down, so re-enabling must rebuild it.
-    // BOTH must be re-mounted here: each module's own constructor-time
-    // enabled() check runs BEFORE the key written just above exists (app.js
-    // constructs them at :73/:118 but calls shell.init() at :207), so on a
-    // fresh profile the first session would otherwise get the shell wrapped
-    // around the CLASSIC tag form — visible on the browser build and on any
-    // desktop version string that beta-config does not pre-seed.
-    if (!this.app.breakdownTheater?._mounted) this.app.breakdownVideo?.mount();
-    this.app.breakdownForm?.mount();
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }
@@ -58,10 +32,6 @@ export class WorkspaceShell {
   disable() {
     if (!this.root) return;
     this._homeToken++;
-    // Order matters: breakdownVideo un-mounts its chrome from .video-section
-    // BEFORE breakdownWorkspace tears down — both park their media in the
-    // permanent #giMediaHost, not a container this shell owns.
-    this.app.breakdownVideo?.restore();
     this.app.studyScreen?.restore();
     this.app.reportsScreen?.restore();
     this.app.teamHubScreen?.restore();

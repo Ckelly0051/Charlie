@@ -65,8 +65,7 @@ isolation; existing storage ownership remains unchanged.
 
 ## Invariants
 
-- The shell remains opt-in behind `ffa_workspace_shell_v2`; no default-layout
-  change is implied by this contract.
+- The native shell is unconditional. No feature flag or alternate layout remains.
 - Plan is additive (`plans: []`) and requires no storage-format migration.
 - No film copy/link/repair behavior change beyond transient status reporting.
 - Linked film always means referenced in place; it never implies a managed copy.

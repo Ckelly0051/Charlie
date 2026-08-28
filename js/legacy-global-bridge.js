@@ -1,6 +1,4 @@
 import { AnalyticsRegistry } from './analytics-registry.js';
-import { BreakdownForm } from './breakdown-form.js';
-import { BreakdownVideo } from './breakdown-video.js';
 import { Charts } from './charts.js';
 import { CatalogPersistence } from './catalog-persistence.js';
 import { CrossGameCutup } from './cross-game-cutup.js';
@@ -34,8 +32,6 @@ import { WorkspaceShell } from './workspace-shell.js';
 // explicit and delete entries as those tests move to route/journey APIs.
 Object.assign(globalThis, {
   AnalyticsRegistry,
-  BreakdownForm,
-  BreakdownVideo,
   BrowserBackend,
   CatalogPersistence,
   Charts,

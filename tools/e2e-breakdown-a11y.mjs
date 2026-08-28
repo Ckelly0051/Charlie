@@ -8,7 +8,7 @@ const browser = await puppeteer.launch({ args:['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
-await page.evaluateOnNewDocument(() => { localStorage.setItem('ffa_workspace_shell_v2','1'); localStorage.setItem('ffa_breakdown_form_v2','1'); });
+await page.evaluateOnNewDocument(() => { localStorage.setItem('ffa_workspace_shell_v2','1'); });
 await page.setViewport({ width:1440, height:900 });
 await page.goto(URL, { waitUntil:'networkidle0' });
 await page.evaluate(async () => {

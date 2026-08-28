@@ -27,7 +27,6 @@ export class BreakdownTheaterScreen {
     this._listeners = new Set();
     this._mounted = false;
     this.stripCollapsed = false;
-    this._legacyVideoWasMounted = false;
     this._home = this.media
       ? { parent: this.media.parentNode, next: this.media.nextSibling }
       : null;
@@ -69,8 +68,6 @@ export class BreakdownTheaterScreen {
   mount(host) {
     if (!host || !this.media) return false;
     if (this._mounted) this.restore();
-    this._legacyVideoWasMounted = !!this.app.breakdownVideo?._mounted;
-    if (this._legacyVideoWasMounted) this.app.breakdownVideo.restore();
     try {
       this.host = host;
       this._native = mountNativeBreakdownTheater({ host, screen: this });
@@ -87,7 +84,6 @@ export class BreakdownTheaterScreen {
       this._native = null;
       this.fullscreenTarget = null;
       this.host = null;
-      this._restoreLegacyVideo();
       throw error;
     }
   }
@@ -103,7 +99,6 @@ export class BreakdownTheaterScreen {
     this.fullscreenTarget = null;
     this.host = null;
     this._resizeMedia();
-    this._restoreLegacyVideo();
     return true;
   }
 
@@ -112,13 +107,6 @@ export class BreakdownTheaterScreen {
     const next = this._home.next?.parentNode === this._home.parent ? this._home.next : null;
     this._home.parent.insertBefore(this.media, next);
   }
-
-  _restoreLegacyVideo() {
-    const remount = this._legacyVideoWasMounted;
-    this._legacyVideoWasMounted = false;
-    if (remount) this.app.breakdownVideo?.mount?.();
-  }
-
   subscribe(listener) {
     this._listeners.add(listener);
     return () => this._listeners.delete(listener);

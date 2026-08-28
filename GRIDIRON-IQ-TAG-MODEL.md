@@ -174,7 +174,7 @@ shell-based system. The second field's label is **"Coverage Family"**
      exists. A `for...in` / `Object.keys` audit that assumes symmetry with
      `backfield` will be wrong. This asymmetry is the price of a true read-only
      projection and is accepted deliberately.
-   - **Newly created plays** (the blank-play template / `BreakdownForm` /
+   - **Newly created plays** (the PlayTagger blank-play template /
      `quick-chart`) ARE born with explicit `qbAlignment: ''` and
      `coverageFamily: ''`. Only *pre-existing* plays are left untouched.
 2. **Wrong-field tokens are ALWAYS removed from the old dimension; they only
@@ -386,7 +386,7 @@ two carry lists — and the measured cleanup this produces is pinned in §7b.
   automatically — verify, don't duplicate.)*
 - **`storage.js`** — `exportCsv` columns + `importPlaysFromText` Hudl aliases.
 - **`call-sheet-builder.js`** — `_playLabel`.
-- **`breakdown-form.js`** — the 4C form groups; **`index.html`** — chip groups.
+- **`native-tagging.jsx` / `native-tagging-screen.js`** — the charting groups and commands; **`breakdown-charting-service.js`** — structured penalty and Special Teams mutations.
 - **`tag-library.js`** — `DEFINITIONS` + Team Settings editor.
 - **`season-store.js`** — `_normalize` defaults + `ST_ALIGNMENT_KEYS`.
 - **`play-tagger.js`** — `ChipField` wiring, the four key lists (§7).

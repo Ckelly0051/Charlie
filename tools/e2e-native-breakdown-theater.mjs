@@ -364,10 +364,10 @@ state = await page.evaluate(() => {
   return { restored, mediaHome: media.parentElement === original,
     nativeGone: !document.querySelector('[data-native-breakdown-theater]'),
     dataSame: before === JSON.stringify(window.app.storage.seasonStore.data),
-    legacyRemounted: window.app.breakdownVideo._mounted
-      && !!document.querySelector('.breakdown-player-controls, .breakdown-play-strip') };
+    obsoleteOwnerAbsent: !window.app.breakdownVideo
+      && !document.querySelector('.breakdown-player-controls, .breakdown-play-strip') };
 });
-ok(state.restored && state.mediaHome && state.nativeGone && !state.legacyRemounted,
+ok(state.restored && state.mediaHome && state.nativeGone && state.obsoleteOwnerAbsent,
   'Restore returns media without reviving the retired legacy presentation', JSON.stringify(state));
 ok(state.dataSame, 'The complete native theater journey does not rewrite season payloads');
 // ===================== S7-d2: the permanent media foundation ==============
