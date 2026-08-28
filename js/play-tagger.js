@@ -195,12 +195,9 @@ export class PlayTagger {
     this.listeners = {};
     this.nextId = 1;
 
-    // Templates retain a DOM-free value/event holder; native tagging owns the UI.
-    this.btnCopyPrev = null;
-    this.templateSelect = new PlainInput();
-    this.btnSaveTemplate = null;
-    this.btnDeleteTemplate = null;
-
+    // Native tagging owns template selection explicitly. This is product state,
+    // not a detached form control pretending the deleted legacy UI still exists.
+    this.selectedTemplate = '';
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
     const fieldMap = {
@@ -358,15 +355,6 @@ export class PlayTagger {
   }
 
   _bindEvents() {
-    if (this.btnCopyPrev) this.btnCopyPrev.addEventListener('click', () => this.copyFromPrevious());
-    if (this.btnSaveTemplate) this.btnSaveTemplate.addEventListener('click', () => this.saveTemplate());
-    if (this.btnDeleteTemplate) this.btnDeleteTemplate.addEventListener('click', () => this.deleteSelectedTemplate());
-    if (this.templateSelect) {
-      this.templateSelect.addEventListener('change', () => {
-        if (this.templateSelect.value) this.applyTemplate(this.templateSelect.value);
-      });
-      this._refreshTemplateSelect();
-    }
 
     // Tag form changes — save only the changed field, not all fields,
     // so clicking one chip doesn't overwrite other fields with stale values.
@@ -702,16 +690,6 @@ export class PlayTagger {
     try { localStorage.setItem('ffa_play_templates', JSON.stringify(obj)); } catch {}
   }
 
-  _refreshTemplateSelect() {
-    if (!this.templateSelect) return;
-    const store = this._templateStore();
-    const names = Object.keys(store).sort((a, b) => a.localeCompare(b));
-    const cur = this.templateSelect.value;
-    this.templateSelect.innerHTML = '<option value="">Templates…</option>' +
-      names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
-    if (cur && store[cur]) this.templateSelect.value = cur;
-  }
-
   /** Save the current play's scheme tags as a named, reusable template. */
   async saveTemplate() {
     const play = this.getCurrentPlay();
@@ -726,33 +704,38 @@ export class PlayTagger {
     PlayTagger.SCHEME_KEYS.forEach(k => { if (play.tags[k]) subset[k] = play.tags[k]; });
     store[name] = subset;
     this._saveTemplateStore(store);
-    this._refreshTemplateSelect();
-    this.templateSelect.value = name;
+    this.selectedTemplate = name;
+    return name;
   }
 
   applyTemplate(name) {
     const play = this.getCurrentPlay();
-    if (!play) return;
+    if (!play) return false;
     const tpl = this._templateStore()[name];
-    if (!tpl) return;
+    if (!tpl) return false;
+    this.selectedTemplate = name;
     Object.entries(tpl).forEach(([k, v]) => { play.tags[k] = v; });
     // A template can carry `unit:'special'` + forbidden alignment (saved from a
     // mis-tagged play); strip it when the result is special (ST invariant).
     this._stripStAlignment(play);
     this._loadTagForm(play);
     this._emit('play-updated', play);
+    return true;
   }
 
-  async deleteSelectedTemplate() {
-    if (!this.templateSelect || !this.templateSelect.value) return;
-    const name = this.templateSelect.value;
-    const ok = await this._confirmDialog(`Delete the template "${name}"?`, 'Delete Template');
-    if (!ok) return;
+  async deleteTemplate(name = this.selectedTemplate) {
+    if (!name) return false;
     const store = this._templateStore();
+    if (!store[name]) {
+      if (this.selectedTemplate === name) this.selectedTemplate = '';
+      return false;
+    }
+    const ok = await this._confirmDialog('Delete the template "' + name + '"?', 'Delete Template');
+    if (!ok) return false;
     delete store[name];
     this._saveTemplateStore(store);
-    this._refreshTemplateSelect();
-    this.templateSelect.value = '';
+    if (this.selectedTemplate === name) this.selectedTemplate = '';
+    return true;
   }
 
   /**

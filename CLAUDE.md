@@ -1,3 +1,8 @@
+### CODEX BREAKDOWN TEMPLATE CONTROL INDEPENDENCE (2026-08-28)
+
+The populated-deck composition review exposed one remaining obsolete UI dependency: native Templates read and mutated a detached PlainInput that emulated the deleted legacy selector. Applying a template could therefore republish a blank selection and disable Delete even though the template had just been applied. The template-specific fake control, dead button fields/listeners, HTML option renderer, and selected-delete indirection are removed. PlayTagger now owns one explicit selectedTemplate value and explicit save/apply/delete APIs; NativeTaggingScreen consumes those APIs directly.
+
+The native workflow proof now requires an applied template to remain selected, Delete to be enabled, deletion to clear durable and visible selection, and the old templateSelect property to be absent. Verification: production build green; native charting 69/69; core football rules 25/25. The minified JavaScript bundle fell from about 981.3 kB to 980.4 kB. No stored play, template payload, football rule, film identity, or persistence contract changed.
 ### CODEX BREAKDOWN SHARED TYPE RHYTHM (2026-08-28)
 
 Chart and Film Room now share one consumer-facing type rhythm. Live lower-third keys moved from 9.5px to the canonical eyebrow token; Theater commands, angle controls, autoplay, and route commands consume the shared control token; Film Room controls, headers, table data, column options, and editors consume the shared control/label/body tokens. The obsolete toolbar sublabel rule was deleted. Existing compact geometry, fixed play-card widths, internal table scrolling, and touch targets remain intact.

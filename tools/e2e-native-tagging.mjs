@@ -353,8 +353,28 @@ state=await page.evaluate(()=>{
   return{stored:window.app.tagger._templateStore()['Goal Line']?.formation,
          applied:window.app.tagger.getCurrentPlay().tags.formation};
 });
-ok(state.stored==='Power-I'&&state.applied==='Power-I',
-  'Same-as-Last and a saved template round-trip remain live canonical actions',JSON.stringify(state));
+await page.waitForFunction(()=>[...document.querySelectorAll('[data-native-tagging] select')]
+  .some(select=>select.value==='Goal Line'));
+state={...state,...await page.evaluate(()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  const select=[...root.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==='Goal Line'));
+  const del=[...root.querySelectorAll('button')].find(button=>button.textContent.trim()==='Delete');
+  return{selected:select?.value,deleteEnabled:!del?.disabled,legacyHolder:'templateSelect' in window.app.tagger};
+})};
+ok(state.stored==='Power-I'&&state.applied==='Power-I'&&state.selected==='Goal Line'&&state.deleteEnabled&&!state.legacyHolder,
+  'A saved template applies and remains explicitly selected with no detached compatibility control',JSON.stringify(state));
+await nativeClick('Delete');
+await page.waitForSelector('#ffaConfirmModal');
+await page.keyboard.press('Enter');
+await page.waitForFunction(()=>!window.app.tagger._templateStore()['Goal Line']);
+state=await page.evaluate(()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  const select=[...root.querySelectorAll('select')].find(s=>s.getAttribute('aria-label')!=='Charting preset');
+  const del=[...root.querySelectorAll('button')].find(button=>button.textContent.trim()==='Delete');
+  return{selected:select?.value,deleteDisabled:!!del?.disabled,stored:window.app.tagger._templateStore()['Goal Line']};
+});
+ok(!state.stored&&state.selected===''&&state.deleteDisabled,
+  'Deleting the selected template clears durable and visible selection state',JSON.stringify(state));
 
 // --- Diagram: the editor seam and the scoped write ---
 // Not capability-id assertions, but guarantees the retired preflight owned and

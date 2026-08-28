@@ -141,7 +141,7 @@ export class NativeTaggingScreen {
       special: SpecialTeamsModel.normalize(play?.specialTeams),
       legacySpecial: !play?.specialTeams && !!(raw.stType || raw.kickOutcome || raw.scoreFor),
       templates: Object.keys(this.tagger?._templateStore?.() || {}).sort(),
-      selectedTemplate: this.tagger?.templateSelect?.value || '',
+      selectedTemplate: this.tagger?.selectedTemplate || '',
       canCopyPrevious: index > 0, canPrevious: index > 0,
       autoDD: !!this.tagger?.autoDD, carryScheme: !!this.tagger?.carryScheme, diagram,
       autoOcr: !!this.app.ocr?.autoOnPlayEnd, saveConfirmed: this._saveConfirmed,
@@ -297,30 +297,23 @@ export class NativeTaggingScreen {
   }
 
   applyTemplate(name) {
-    if (!name) return false;
-    this.tagger.applyTemplate(name);
+    if (!name || !this.tagger.applyTemplate(name)) return false;
     this._queuePublish();
     return true;
   }
 
   async saveTemplate() {
     if (!this.tagger?.getCurrentPlay?.()) return false;
-    // saveTemplate() only ever mutated the (now DOM-free) legacy select and
-    // localStorage directly, with no domain event -- the republish used to
-    // ride along on the MutationObserver watching that select's DOM churn.
-    // Now that there is no observer, this is the one explicit republish that
-    // makes a freshly-saved template show up in the native Templates list.
-    await this.tagger.saveTemplate();
+    const name = await this.tagger.saveTemplate();
     this._queuePublish();
-    return true;
+    return !!name;
   }
 
   async deleteTemplate(name) {
-    if (!name || !this.tagger?.templateSelect) return false;
-    this.tagger.templateSelect.value = name;
-    await this.tagger.deleteSelectedTemplate();
+    if (!name) return false;
+    const deleted = await this.tagger.deleteTemplate(name);
     this._queuePublish();
-    return true;
+    return deleted;
   }
 
   setPerspective(value) {
