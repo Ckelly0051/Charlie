@@ -5250,19 +5250,35 @@ select:focus,
 /* ====  BUFFERING v8 — visual feedback while video loads          == */
 /* ================================================================== */
 .video-container { position: relative; }
-video.is-buffering { opacity: 0.6; }
-.video-container:has(video.is-buffering)::after {
-  content: '';
+video.is-buffering { opacity: 0.82; }
+.video-load-state {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 36px; height: 36px;
-  margin: -18px 0 0 -18px;
-  border: 3px solid rgba(255,255,255,0.25);
-  border-top-color: #fff;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  background: rgba(9, 16, 25, 0.94);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.video-load-state.hidden { display: none; }
+.video-load-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: vc-spin 0.7s linear infinite;
-  pointer-events: none;
-  z-index: 10;
 }
 @keyframes vc-spin { to { transform: rotate(360deg); } }
 

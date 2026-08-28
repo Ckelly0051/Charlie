@@ -541,6 +541,7 @@ export class PlaylistManager {
       this.vc.setSrc(source);
     } else {
       this.vc.currentFile = clip.file;
+      this.vc._setLoadState('loading', 'Loading film');
       this.vc.video.removeAttribute('crossorigin');
       this.vc.video.src = source;
       this.vc.video.load();

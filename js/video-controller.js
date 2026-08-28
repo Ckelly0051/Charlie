@@ -5,6 +5,9 @@ export class VideoController {
   constructor() {
     this.video = document.getElementById('videoPlayer');
     this.placeholder = document.getElementById('videoPlaceholder');
+    this.placeholderText = this.placeholder?.querySelector('p') || null;
+    this.loadState = document.getElementById('videoLoadState');
+    this.loadStateText = document.getElementById('videoLoadStateText');
     this.fileInput = document.getElementById('videoFileInput');
     this.folderInput = document.getElementById('videoFolderInput');
     this.btnLoadFolder = document.getElementById('btnLoadFolder');
@@ -165,19 +168,26 @@ export class VideoController {
 
     this.video.addEventListener('waiting', () => {
       this.video.classList.add('is-buffering');
+      this._setLoadState('buffering', 'Buffering film');
     });
     this.video.addEventListener('playing', () => {
       this.video.classList.remove('is-buffering');
+      this._setLoadState();
     });
     this.video.addEventListener('stalled', () => {
-      if (this.video.readyState < 3) this.video.classList.add('is-buffering');
+      if (this.video.readyState < 3) {
+        this.video.classList.add('is-buffering');
+        this._setLoadState('buffering', 'Still loading film');
+      }
     });
     this.video.addEventListener('canplay', () => {
       this.video.classList.remove('is-buffering');
+      this._setLoadState();
     });
     this.video.addEventListener('error', () => this._handleMediaError());
     this.video.addEventListener('seeked', () => {
       this.video.classList.remove('is-buffering');
+      this._setLoadState();
     });
 
     // Scrub bar interaction (pointer events cover mouse + touch)
@@ -203,7 +213,24 @@ export class VideoController {
    * loadUrl (single-video) and the multi-clip playlist path call this so the
    * two can never drift.
    */
+  _setLoadState(state = '', text = '') {
+    if (!this.loadState) return;
+    if (!state) {
+      this.loadState.classList.add('hidden');
+      delete this.loadState.dataset.state;
+      return;
+    }
+    this.loadState.dataset.state = state;
+    if (this.loadStateText) this.loadStateText.textContent = text;
+    this.loadState.classList.remove('hidden');
+  }
+
+  _setPlaceholderText(text) {
+    if (this.placeholderText) this.placeholderText.textContent = text;
+  }
+
   setSrc(url) {
+    this._setLoadState('loading', 'Loading film');
     if (this.corsBlocked) this.video.removeAttribute('crossorigin');
     else this.video.crossOrigin = 'anonymous';
     this.video.src = url;
@@ -215,6 +242,7 @@ export class VideoController {
       URL.revokeObjectURL(this.objectUrl);
     }
     this.currentFile = file;
+    this._setLoadState('loading', 'Loading film');
     this.objectUrl = URL.createObjectURL(file);
     this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
@@ -266,6 +294,7 @@ export class VideoController {
       // falls through below, leaving corsBlocked false so subsequent good clips
       // keep an untainted canvas for frame export / AI vision.
       this._corsRetryPending = src;
+      this._setLoadState('loading', 'Retrying film');
       console.log('Retrying without crossOrigin...');
       this.video.removeAttribute('crossorigin');
       this.video.src = src;
@@ -276,6 +305,8 @@ export class VideoController {
     // the pending mark so a later unrelated success can't falsely latch.
     this._corsRetryPending = null;
     const name = this.currentFile?.name || this.currentFileName || 'this file';
+    this._setLoadState();
+    this._setPlaceholderText(`Couldn't play ${name}. Re-link the film or use MP4, MOV, or WebM.`);
     this.placeholder.classList.remove('hidden');
     // remember:false — an error message is not the film's name.
     this._setFilmStatus(`⚠ Couldn't play ${name} — try MP4, MOV, or WebM`, { remember: false });
@@ -309,6 +340,8 @@ export class VideoController {
     this.video.removeAttribute('src');
     this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
+    this._setLoadState();
+    this._setPlaceholderText('Load a video file to begin');
     if (this.placeholder) this.placeholder.classList.remove('hidden');
     this._setFilmStatus('Drop video(s) / folder or click to load');
     if (this.folderLoadBadge) this.folderLoadBadge.classList.add('hidden');

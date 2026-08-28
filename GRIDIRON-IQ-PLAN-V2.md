@@ -491,9 +491,14 @@ Plan should turn Study findings into something a staff can teach and use.
 > The successor is preloaded through one detached media element, its object URL
 > is reused when the coach advances, and jumps, relinks, removals, game switches,
 > and reset release stale media immediately. Missing clip sources fail without
-> changing the active clip. This does not complete V2-H; honest loading/buffering
-> states, autoplay persistence, measured large-grid work, and broader playback
-> responsiveness remain.
+> changing the active clip.
+>
+> **HONEST PLAYBACK STATES (third slice, 2026-08-28):** The player now labels
+> initial loading, buffering, and stalled loading in a compact live status pill
+> instead of only dimming the film. A terminal media failure replaces the generic
+> empty prompt with the failed film name and a direct re-link/format recovery
+> instruction; unload restores the normal empty state. This does not complete
+> V2-H; measured large-grid work and broader playback responsiveness remain.
 >
 - Avoid rebuilding playlists or re-resolving every clip unnecessarily.
 - Preload only the next useful clip and release stale media resources.

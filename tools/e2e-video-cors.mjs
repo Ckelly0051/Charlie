@@ -130,6 +130,36 @@ r = await page.evaluate((ASSET, ASSET2) => {
 ok(r.open.cross === 'anonymous' && r.open.loaded === 1, 'setSrc sets crossorigin when not blocked + calls load', JSON.stringify(r.open));
 ok(r.blocked.cross === null && r.blocked.loaded === 2, 'setSrc omits crossorigin when corsBlocked', JSON.stringify(r.blocked));
 
+console.log('\n== 5b. Coach-facing load, buffering, error, and reset states ==');
+r = await page.evaluate((ASSET, ASSET2) => {
+  const vc = window.app.vc;
+  vc.video.load = () => {};
+  vc.corsBlocked = false;
+  vc.setSrc(ASSET);
+  const loading = { visible: !vc.loadState.classList.contains('hidden'), state: vc.loadState.dataset.state, text: vc.loadStateText.textContent };
+  vc.video.dispatchEvent(new Event('waiting'));
+  const buffering = { visible: !vc.loadState.classList.contains('hidden'), state: vc.loadState.dataset.state, text: vc.loadStateText.textContent };
+  vc.video.dispatchEvent(new Event('canplay'));
+  const ready = { hidden: vc.loadState.classList.contains('hidden') };
+  vc.corsBlocked = true;
+  vc.currentFileName = 'Broken clip';
+  vc.video.removeAttribute('crossorigin');
+  vc.video.setAttribute('src', ASSET2);
+  vc._handleMediaError();
+  const failed = { stateHidden: vc.loadState.classList.contains('hidden'), placeholderVisible: !vc.placeholder.classList.contains('hidden'), message: vc.placeholderText.textContent };
+  vc.unloadVideo();
+  const reset = { stateHidden: vc.loadState.classList.contains('hidden'), message: vc.placeholderText.textContent };
+  return { loading, buffering, ready, failed, reset };
+}, ASSET, ASSET2);
+ok(r.loading.visible && r.loading.state === 'loading' && r.loading.text === 'Loading film',
+   'source changes show an explicit loading state', JSON.stringify(r.loading));
+ok(r.buffering.visible && r.buffering.state === 'buffering' && r.buffering.text === 'Buffering film',
+   'waiting playback shows an explicit buffering state', JSON.stringify(r.buffering));
+ok(r.ready.hidden, 'canplay clears the transient load state', JSON.stringify(r.ready));
+ok(r.failed.stateHidden && r.failed.placeholderVisible && r.failed.message.includes("Couldn't play Broken clip") && r.failed.message.includes('Re-link the film'),
+   'terminal media failure shows a useful recovery message in the player', JSON.stringify(r.failed));
+ok(r.reset.stateHidden && r.reset.message === 'Load a video file to begin',
+   'unload restores the honest empty state', JSON.stringify(r.reset));
 console.log('\n== 6. Multi-clip switchToClip delegates to setSrc (corsBlocked honored) ==');
 r = await page.evaluate((ASSET) => {
   const vc = window.app.vc;

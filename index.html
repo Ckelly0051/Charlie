@@ -55,6 +55,10 @@
               <svg class="icon icon-large"><use href="assets/icons.svg#icon-film"/></svg>
               <p>Load a video file to begin</p>
             </div>
+            <div class="video-load-state hidden" id="videoLoadState" role="status" aria-live="polite">
+              <span class="video-load-spinner" aria-hidden="true"></span>
+              <span id="videoLoadStateText">Loading film</span>
+            </div>
           </div>
 
           <!-- Playback Controls -->
