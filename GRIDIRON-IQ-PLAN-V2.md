@@ -484,9 +484,16 @@ Plan should turn Study findings into something a staff can teach and use.
 > deterministic clip asset URLs instead of repeating one desktop resolution per
 > clip. File listing remains authoritative, changed/partial manifests retry,
 > current catalog identity is reattached on every use, linked folders remain
-> uncached, and the latest-load-wins race fence remains intact. This does not
-> complete V2-H; loading/buffering states, next-clip preload, measured large-grid
-> work, and broader playback resource management remain.
+> uncached, and the latest-load-wins race fence remains intact.
+>
+> **BOUNDED NEXT-CLIP PRELOAD (second slice, 2026-08-28):** Playlist playback
+> now keeps resources for only the active clip and its next sequential successor.
+> The successor is preloaded through one detached media element, its object URL
+> is reused when the coach advances, and jumps, relinks, removals, game switches,
+> and reset release stale media immediately. Missing clip sources fail without
+> changing the active clip. This does not complete V2-H; honest loading/buffering
+> states, autoplay persistence, measured large-grid work, and broader playback
+> responsiveness remain.
 >
 - Avoid rebuilding playlists or re-resolving every clip unnecessarily.
 - Preload only the next useful clip and release stale media resources.

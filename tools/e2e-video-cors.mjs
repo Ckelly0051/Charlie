@@ -150,6 +150,104 @@ r = await page.evaluate((ASSET) => {
 ok(r.blocked.cross === null && r.blocked.src === ASSET, 'switchToClip skips crossorigin when corsBlocked', JSON.stringify(r.blocked));
 ok(r.open.cross === 'anonymous', 'switchToClip applies crossorigin when not blocked', JSON.stringify(r.open));
 
+console.log('\n== 7. Playlist preloads exactly one useful next clip and releases stale resources ==');
+r = await page.evaluate(() => {
+  const vc = window.app.vc;
+  const pl = window.app.playlist;
+  const originalLoad = HTMLMediaElement.prototype.load;
+  const originalCreate = URL.createObjectURL;
+  const originalRevoke = URL.revokeObjectURL;
+  const revoked = [];
+  HTMLMediaElement.prototype.load = () => {};
+  URL.createObjectURL = value => originalCreate.call(URL, value);
+  URL.revokeObjectURL = url => { revoked.push(url); originalRevoke.call(URL, url); };
+  try {
+    pl.reset();
+    const clips = ['one.mp4', 'two.mp4', 'three.mp4'].map((name, i) => ({
+      id: i + 1,
+      file: new File(['clip'], name, { type: 'video/mp4' }),
+      name,
+      assetUrl: null,
+      objectUrl: null,
+      duration: 5,
+      playId: null,
+    }));
+    pl.clips = clips;
+    pl.activeClipIndex = -1;
+
+    pl.switchToClip(0);
+    const first = {
+      active: pl.activeClipIndex,
+      urls: clips.map(c => c.objectUrl),
+      preloadIndex: pl._nextPreloadIndex,
+      preloadMode: pl._nextPreloadEl?.preload,
+      preloadSrc: pl._nextPreloadEl?.getAttribute('src'),
+    };
+    const reusedUrl = clips[1].objectUrl;
+
+    pl.switchToClip(1);
+    const advanced = {
+      active: pl.activeClipIndex,
+      videoSrc: vc.video.getAttribute('src'),
+      urls: clips.map(c => c.objectUrl),
+      preloadIndex: pl._nextPreloadIndex,
+      reusedUrl,
+    };
+
+    const staleThirdUrl = clips[2].objectUrl;
+    pl.switchToClip(0);
+    const jumped = {
+      active: pl.activeClipIndex,
+      urls: clips.map(c => c.objectUrl),
+      preloadIndex: pl._nextPreloadIndex,
+      staleThirdRevoked: revoked.includes(staleThirdUrl),
+    };
+
+    const removedNext = clips[1];
+    pl.removeClip(1);
+    const removed = {
+      names: pl.clips.map(c => c.name),
+      active: pl.activeClipIndex,
+      preloadIndex: pl._nextPreloadIndex,
+      preloadSrc: pl._nextPreloadEl?.getAttribute('src'),
+      removedUrlCleared: removedNext.objectUrl === null,
+    };
+
+    pl.clips.push({ id: 99, file: null, name: 'missing.mp4', assetUrl: null, objectUrl: null, duration: null, playId: null });
+    const activeBeforeMissing = pl.activeClipIndex;
+    const videoBeforeMissing = vc.video.getAttribute('src');
+    pl.switchToClip(pl.clips.length - 1);
+    const missing = {
+      activeUnchanged: pl.activeClipIndex === activeBeforeMissing,
+      videoUnchanged: vc.video.getAttribute('src') === videoBeforeMissing,
+    };
+
+    const retained = [...pl.clips];
+    pl.reset();
+    const reset = {
+      preloadCleared: pl._nextPreloadEl === null && pl._nextPreloadIndex === -1,
+      playlistCleared: pl.clips.length === 0 && pl.activeClipIndex === -1,
+      urlsCleared: retained.every(c => c.objectUrl == null),
+    };
+    return { first, advanced, jumped, removed, missing, reset };
+  } finally {
+    HTMLMediaElement.prototype.load = originalLoad;
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+  }
+});
+ok(r.first.active === 0 && r.first.urls[0] && r.first.urls[1] && r.first.urls[2] === null && r.first.preloadIndex === 1 && r.first.preloadMode === 'auto' && r.first.preloadSrc === r.first.urls[1],
+   'first switch retains active + exactly one preloaded successor', JSON.stringify(r.first));
+ok(r.advanced.active === 1 && r.advanced.videoSrc === r.advanced.reusedUrl && r.advanced.urls[0] === null && r.advanced.urls[1] === r.advanced.reusedUrl && r.advanced.urls[2] && r.advanced.preloadIndex === 2,
+   'advancing reuses the preloaded URL and releases the prior clip', JSON.stringify(r.advanced));
+ok(r.jumped.active === 0 && r.jumped.urls[0] && r.jumped.urls[1] && r.jumped.urls[2] === null && r.jumped.preloadIndex === 1 && r.jumped.staleThirdRevoked,
+   'jumping rebuilds only the useful successor and revokes the stale preload', JSON.stringify(r.jumped));
+ok(r.removed.names.join(',') === 'one.mp4,three.mp4' && r.removed.active === 0 && r.removed.preloadIndex === 1 && r.removed.preloadSrc && r.removed.removedUrlCleared,
+   'removing the queued successor clears it and preloads the new successor', JSON.stringify(r.removed));
+ok(r.missing.activeUnchanged && r.missing.videoUnchanged,
+   'a missing clip cannot move the active pointer or replace the current video', JSON.stringify(r.missing));
+ok(r.reset.preloadCleared && r.reset.playlistCleared && r.reset.urlsCleared,
+   'reset releases detached preload state and every object URL', JSON.stringify(r.reset));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:\n' + errors.join('\n')); }
 else console.log('No console/page errors.');

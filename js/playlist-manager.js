@@ -30,6 +30,8 @@ export class PlaylistManager {
     this.clipIndicator = document.getElementById('clipIndicator');
 
     this._nextClipId = 1;
+    this._nextPreloadEl = null;
+    this._nextPreloadIndex = -1;
 
     this._bindEvents();
   }
@@ -184,6 +186,8 @@ export class PlaylistManager {
       } else if (this.clips.length) {
         this.switchToClip(0);
       }
+    } else {
+      this._preloadNext(this.activeClipIndex);
     }
 
     if (relinked) this.tagger.toast?.(`Re-linked ${relinked} clip${relinked === 1 ? '' : 's'} to your saved plays`);
@@ -468,6 +472,56 @@ export class PlaylistManager {
     }
   }
 
+  _clearNextPreload() {
+    const media = this._nextPreloadEl;
+    this._nextPreloadEl = null;
+    this._nextPreloadIndex = -1;
+    if (!media) return;
+    try { media.pause(); } catch {}
+    media.removeAttribute('src');
+    try { media.load(); } catch {}
+  }
+
+  _sourceForClip(clip) {
+    if (!clip) return null;
+    if (clip.assetUrl) return clip.assetUrl;
+    if (!clip.file) return null;
+    if (!clip.objectUrl) clip.objectUrl = URL.createObjectURL(clip.file);
+    return clip.objectUrl;
+  }
+
+  _releaseObjectUrlsExcept(indexes) {
+    const keep = new Set(indexes);
+    this.clips.forEach((clip, index) => {
+      if (keep.has(index) || !clip.objectUrl) return;
+      try { URL.revokeObjectURL(clip.objectUrl); } catch {}
+      clip.objectUrl = null;
+    });
+  }
+
+  _preloadNext(index) {
+    this._clearNextPreload();
+    const nextIndex = index + 1;
+    const next = this.clips[nextIndex];
+    if (!next) {
+      this._releaseObjectUrlsExcept([index]);
+      return;
+    }
+    const source = this._sourceForClip(next);
+    if (!source) {
+      this._releaseObjectUrlsExcept([index]);
+      return;
+    }
+    const media = document.createElement('video');
+    media.preload = 'auto';
+    media.muted = true;
+    media.playsInline = true;
+    media.src = source;
+    try { media.load(); } catch {}
+    this._nextPreloadEl = media;
+    this._nextPreloadIndex = nextIndex;
+    this._releaseObjectUrlsExcept([index, nextIndex]);
+  }
   /**
    * Switch the video player to show a specific clip by index.
    */
@@ -475,6 +529,8 @@ export class PlaylistManager {
     if (index < 0 || index >= this.clips.length) return;
 
     const clip = this.clips[index];
+    const source = this._sourceForClip(clip);
+    if (!source) return;
     this.activeClipIndex = index;
 
     if (clip.assetUrl) {
@@ -482,13 +538,11 @@ export class PlaylistManager {
       this.vc.currentFile = null;
       // VideoController.setSrc owns the crossOrigin-vs-corsBlocked decision (and
       // the load() call) so this path can't drift from the single-video one.
-      this.vc.setSrc(clip.assetUrl);
+      this.vc.setSrc(source);
     } else {
-      if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
-      clip.objectUrl = URL.createObjectURL(clip.file);
       this.vc.currentFile = clip.file;
       this.vc.video.removeAttribute('crossorigin');
-      this.vc.video.src = clip.objectUrl;
+      this.vc.video.src = source;
       this.vc.video.load();
     }
 
@@ -510,6 +564,7 @@ export class PlaylistManager {
       }
     }
 
+    this._preloadNext(index);
     this._updatePlaylistUI();
     this._updateClipIndicator();
     this._emit('clip-switched', { index, clip });
@@ -539,6 +594,8 @@ export class PlaylistManager {
 
   removeClip(index) {
     if (index < 0 || index >= this.clips.length) return;
+    this._clearNextPreload();
+    const wasActive = index === this.activeClipIndex;
     const clip = this.clips[index];
 
     // Remove the associated play
@@ -554,6 +611,7 @@ export class PlaylistManager {
     // Clean up URL
     if (clip.objectUrl) {
       URL.revokeObjectURL(clip.objectUrl);
+      clip.objectUrl = null;
     }
 
     this.clips.splice(index, 1);
@@ -572,6 +630,7 @@ export class PlaylistManager {
       this.switchToClip(this.activeClipIndex);
     }
     // index > activeClipIndex: the active clip's position is unchanged.
+    if (this.clips.length && !wasActive) this._preloadNext(this.activeClipIndex);
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
@@ -590,8 +649,10 @@ export class PlaylistManager {
    * Does not touch tagger.plays — the caller loads the new game's plays.
    */
   reset() {
+    this._clearNextPreload();
     for (const clip of this.clips) {
       if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
+      clip.objectUrl = null;
     }
     this.clips = [];
     this.activeClipIndex = -1;
