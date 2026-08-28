@@ -179,190 +179,8 @@ body {
 }
 
 /* ===== Video Section ===== */
-.video-section {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #000;
-}
-
-.video-container {
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.video-container video {
-  max-width: 100%;
-  max-height: 100%;
-  display: block;
-  object-fit: contain;
-}
-
-.video-container canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: auto;
-  cursor: crosshair;
-}
-.video-container canvas.is-dormant {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.video-placeholder {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-dim);
-  font-size: 14px;
-}
-
-.video-placeholder.hidden {
-  display: none;
-}
 
 /* ===== Playback Controls ===== */
-.playback-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-}
-
-.controls-left {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ctrl-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.ctrl-btn:hover {
-  background: var(--accent);
-}
-
-.time-display {
-  font-size: 12px;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-  min-width: 100px;
-  margin-left: 6px;
-}
-
-.scrub-bar-container {
-  flex: 1;
-  padding: 0 4px;
-  position: relative;
-  z-index: 1;
-}
-
-.scrub-bar {
-  position: relative;
-  height: 8px;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  cursor: pointer;
-  overflow: visible;
-}
-
-.scrub-bar-fill {
-  height: 100%;
-  background: var(--accent-hover);
-  border-radius: 4px;
-  width: 100%;
-  transform: scaleX(0);
-  transform-origin: left center;
-  will-change: transform;
-  pointer-events: none;
-}
-
-.scrub-bar-plays {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.scrub-bar-plays .play-marker {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  background: var(--highlight);
-  opacity: 0.5;
-  border-radius: 2px;
-}
-
-.scrub-bar-handle {
-  position: absolute;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  background: var(--text-bright);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  left: 0%;
-  cursor: grab;
-  box-shadow: 0 0 4px rgba(0,0,0,0.5);
-}
-
-.controls-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.speed-select {
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.fps-label {
-  font-size: 11px;
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.fps-input {
-  width: 56px;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 2px 4px;
-  font-size: 11px;
-  text-align: center;
-}
 
 /* ===== Sidebar ===== */
 .sidebar {
@@ -520,16 +338,6 @@ body {
   color: var(--text-dim);
   display: block;
   margin-bottom: 3px;
-}
-
-.play-select {
-  width: 100%;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  font-size: 12px;
 }
 
 .tag-form {
@@ -1161,54 +969,7 @@ body {
   padding: 4px 0 6px;
 }
 
-.timeline-strip {
-  flex: 1;
-  position: relative;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  overflow: hidden;
-  min-height: 40px;
-}
-
-.timeline-bar {
-  height: 100%;
-  position: relative;
-}
-
-.timeline-play {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  border-radius: 2px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  color: var(--text-bright);
-  font-weight: 700;
-  opacity: 0.92;
-  transition: opacity var(--transition);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 4px;
-}
-
-.timeline-play:hover {
-  opacity: 1;
-}
-
-.timeline-play.active {
-  opacity: 1;
-  box-shadow: 0 0 0 2px var(--text-bright);
-}
-
 /* Play type colors */
-.timeline-play.run { background: #2266cc; }
-.timeline-play.pass { background: #22aa44; }
-.timeline-play.other { background: #aa6622; }
 
 /* ===== Scrollbar ===== */
 .sidebar::-webkit-scrollbar, .notes-area::-webkit-scrollbar {
@@ -2674,26 +2435,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 
 /* --- Playback controls --- */
-.playback-controls {
-  padding: 10px 14px;
-  background: linear-gradient(180deg, #0e1424 0%, #0a0f1c 100%);
-  border-top: 1px solid var(--border);
-  gap: 12px;
-}
-.ctrl-btn {
-  min-width: 38px;
-  min-height: 38px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 150ms;
-}
-.ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
 
 /* --- Scrollbars --- */
 .sidebar::-webkit-scrollbar, .stats-body::-webkit-scrollbar, .panel-body::-webkit-scrollbar { width: 8px; }
@@ -2752,18 +2493,8 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   .btn:not(.ws-shell *) { min-height: 40px; padding: 9px 12px; font-size: 13px; }
   .btn-sm:not(.ws-shell *) { min-height: 34px; padding: 7px 10px; font-size: 12px; }
   .btn-icon:not(.ws-shell *) { min-width: 40px; }
-  .ctrl-btn { min-width: 44px; min-height: 44px; }
 
   .top-bar-right { gap: 4px; }
-
-  .playback-controls {
-    flex-wrap: wrap;
-    padding: 8px;
-    gap: 8px;
-  }
-  .controls-left { order: 1; width: 100%; justify-content: center; }
-  .scrub-bar-container { order: 2; width: 100%; }
-  .controls-right { order: 3; width: 100%; justify-content: center; gap: 12px; }
 
   .bottom-panel {
     display: flex;
@@ -2787,7 +2518,7 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 
 /* --- Focus accessibility --- */
-.btn:focus-visible:not(.ws-shell *), .ctrl-btn:focus-visible, input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *) {
+.btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--highlight);
   outline-offset: 1px;
 }
@@ -2844,7 +2575,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 /* --- Safe area (iPhone notch) --- */
 @supports (padding: env(safe-area-inset-top)) {
   .top-bar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
-  .playback-controls { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 }
 
 /* --- Sidebar toggle visibility & style --- */
@@ -2874,59 +2604,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 /* ================================================================== */
 
 /* --- Giant empty-state CTA --- */
-.video-placeholder {
-  position: absolute;
-  inset: 0;                 /* fill the (16:9) container so the CTA truly centers + scales */
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  color: var(--text-dim);
-  pointer-events: auto;
-}
-.empty-cta-row {
-  display: flex;
-  width: 100%;              /* definite width: buttons sit side-by-side, only wrap when truly narrow */
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: stretch;
-  justify-content: center;
-}
-.empty-cta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex: 0 0 auto;          /* equal, fixed-size buttons regardless of label length */
-  width: 190px;
-  max-width: 100%;
-  padding: 16px 18px;
-  background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
-  border: none;
-  border-radius: 14px;
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(239,71,102,0.3), 0 3px 8px rgba(0,0,0,0.35);
-  transition: transform 180ms, box-shadow 180ms;
-  -webkit-tap-highlight-color: transparent;
-}
-.empty-cta-folder {
-  background: linear-gradient(180deg, var(--accent, #4a9eff) 0%, #2a6fd4 100%);
-  box-shadow: 0 8px 24px rgba(74,158,255,0.3), 0 3px 8px rgba(0,0,0,0.35);
-}
-.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(239,71,102,0.4); }
-.empty-cta-folder:hover { box-shadow: 0 12px 32px rgba(74,158,255,0.4); }
-.empty-cta:active { transform: translateY(0); }
-.empty-cta svg { width: 30px; height: 30px; margin-bottom: 2px; }
-.empty-cta-title { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
-.empty-cta-sub { font-size: 11px; opacity: 0.85; font-weight: 500; }
-.empty-hint { font-size: 12px; opacity: 0.5; }
 
 /* --- Onboarding hint toast --- */
 .onboard-hint {
@@ -2966,12 +2643,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 
 /* --- Empty CTA sizing on small phones --- */
-@media (max-width: 500px) {
-  .empty-cta { padding: 14px 20px; border-radius: 12px; }
-  .empty-cta-title { font-size: 14px; }
-  .empty-cta svg { width: 24px; height: 24px; }
-  .empty-cta-row { gap: 8px; }
-}
 
 /* ================================================================== */
 /* ===================  VISUAL OVERHAUL v2  ======================== */
@@ -3039,11 +2710,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 }
 
 /* --- Empty CTA refinement --- */
-.empty-cta {
-  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
-  box-shadow: 0 14px 40px rgba(244,63,94,0.4), 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
-  border-radius: var(--radius-lg);
-}
 
 /* --- Elevated sidebar panels --- */
 .sidebar-panel { border-bottom: 1px solid rgba(255,255,255,0.04); }
@@ -3081,21 +2747,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 .stat-card-value { font-size: 24px; font-weight: 800; color: var(--text-bright); margin-top: 4px; letter-spacing: -0.02em; }
 
 /* --- Playback controls refined --- */
-.playback-controls {
-  background: linear-gradient(180deg, #0c1220 0%, #080c18 100%);
-  border-top: 1px solid var(--border);
-}
-.ctrl-btn {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  transition: all 150ms;
-}
-.ctrl-btn:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--text-bright);
-}
 
 
 /* ================================================================== */
@@ -3392,7 +3043,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 /* Mobile: workspace takes over */
 @media (max-width: 800px) {
   .main-content { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
-  .video-section { min-height: 40vh; }
   .tw {
     border-left: none;
     border-top: 1px solid var(--border);
@@ -3894,31 +3544,12 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .chip-details { border-top-color: var(--border); }
 
 /* --- Playback controls: light bar under the (dark) video --- */
-.playback-controls {
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-}
-.ctrl-btn { background: var(--bg-tertiary); border: 1px solid var(--border-bright); color: var(--text); }
-.ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); color: #fff; }
-.scrub-bar { background: var(--bg-surface); }
-.scrub-bar-fill { background: var(--accent); }
-.scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(16,24,40,0.20); }
-.scrub-bar-plays .play-marker { background: var(--accent); opacity: 0.45; }
-.speed-select, .fps-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
 /* --- Field Strip play markers: data ink on turf --- */
-.timeline-play.run   { background: var(--run-color); color: #1A0D02; }
-.timeline-play.pass  { background: var(--pass-color); color: #06222E; }
 /* Tagged but not run/pass (special teams, penalty, defense w/o run-pass):
    gold — the unit-category ink the Film Room grid already uses for ST. */
-.timeline-play.other { background: #c9a227; color: #241C03; }
 /* Genuinely untagged: a chalk ghost, clearly distinct from every tagged
    marker (it previously shared the gray 'other' and looked identical). */
-.timeline-play.untagged { background: rgba(233,238,245,0.16); }
-.timeline-play.active {
-  box-shadow: 0 0 0 1px #fff, 0 0 10px 2px rgba(61,123,253,0.55);
-  opacity: 1;
-}
 
 /* --- Playlist --- */
 .playlist-item { background: var(--bg-tertiary); border: 1px solid transparent; }
@@ -3931,17 +3562,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .tool-btn { background: var(--bg-tertiary); color: var(--text-dim); }
 .tool-btn:hover { background: var(--bg-secondary); color: var(--text); }
 .tool-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-
-.empty-cta {
-  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
-  box-shadow: 0 14px 40px rgba(16,24,40,0.35), 0 4px 12px rgba(15,23,42,0.12);
-}
-.empty-cta-folder {
-  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-  box-shadow: 0 14px 40px rgba(56,189,248,0.3), 0 4px 12px rgba(15,23,42,0.12);
-}
-.empty-cta:hover { box-shadow: 0 16px 44px rgba(16,24,40,0.45); }
-.empty-cta-folder:hover { box-shadow: 0 16px 44px rgba(56,189,248,0.4); }
 
 /* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
    Scope dark variables onto their roots so existing light-on-dark
@@ -4143,7 +3763,7 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 /* =====================  TOUCH RESPONSIVENESS  ==================== */
 /* Remove the 300ms tap delay / double-tap zoom on interactive bits. */
 /* ================================================================== */
-.panel-title, .pick, .btn:not(.ws-shell *), .ctrl-btn, .btn-nudge:not(.ws-shell *), .player-role, .player-num, .quickpick-chip, .roster-del, .roster-add .btn:not(.ws-shell *), .cutup-btn, .tool-btn, .bt-tab, .playlist-item {
+.panel-title, .pick, .btn:not(.ws-shell *), .btn-nudge:not(.ws-shell *), .player-role, .player-num, .quickpick-chip, .roster-del, .roster-add .btn:not(.ws-shell *), .cutup-btn, .tool-btn, .bt-tab, .playlist-item {
   touch-action: manipulation;
 }
 
@@ -4314,60 +3934,14 @@ body {
 }
 
 /* Video stays in view (sticky) while the tag form scrolls underneath */
-.video-section {
-  position: sticky;
-  top: 52px;
-  z-index: 50;
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  background: #000;
-  height: min(54vh, 620px);
-  min-height: 240px;
-  border-bottom: 1px solid var(--border);
-  max-height: none;
-}
-.video-container {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: none;
-}
 
 /* Timeline strip under the video */
-.video-timeline {
-  flex: 0 0 auto;
-  padding: 5px 12px;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-}
 /* THE FIELD STRIP — the play timeline is a football field: a turf band with
    chalk yard hashes every 10% of its width; plays render as data-ink markers
    along it. Hashes are pure CSS gradients (never DOM children — a real child
    inside #timelineBar would defeat the :has(.timeline-bar:empty) collapse). */
-.video-timeline .timeline-strip {
-  height: 22px;
-  min-height: 22px;
-  position: relative;
-  background:
-    repeating-linear-gradient(to right,
-      rgba(233,238,245,0.18) 0 1px, transparent 1px 10%),
-    repeating-linear-gradient(to right,
-      rgba(255,255,255,0.02) 0 5%, transparent 5% 10%),
-    linear-gradient(180deg, #1B4630 0%, #173B26 55%, #132F1F 100%);
-  border: 1px solid rgba(233,238,245,0.10);
-  border-radius: var(--radius-sm);
-  /* High clip counts: the bar widens (min ~16px per marker) and the strip
-     scrolls horizontally — wheel to scroll, active play auto-centered.
-     Scrollbar hidden: it would eat half of a 22px band. */
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-}
-.video-timeline .timeline-strip::-webkit-scrollbar { display: none; }
-.video-timeline .timeline-bar { height: 100%; position: relative; }
 /* Separation between adjacent markers so a dense strip reads as plays,
    not one smear (active's glow rule overrides this shadow, which is fine). */
-.timeline-play:not(.active) { box-shadow: inset -1px 0 0 rgba(11,15,20,0.75); }
 
 /* Notes embedded in the tag flow */
 .tag-notes { margin: 8px 0; }
@@ -4410,7 +3984,6 @@ body {
 
 /* Mobile: shorter video, comfortable chips, account for bottom tab bar */
 @media (max-width: 800px) {
-  .video-section { top: 52px; height: 38vh; min-height: 180px; }
   /* Bottom tabs no longer need to reserve the old layout's space */
   #app { padding-bottom: 0; }
 }
@@ -4452,22 +4025,6 @@ body {
   }
 
   /* Left column: video centered in its column, sized to its 16:9 box. */
-  .video-section {
-    grid-area: video;
-    position: static;
-    height: 100%;
-    max-height: 100%;
-    min-height: 0;
-    border-bottom: none;
-    border-right: 1px solid var(--border);
-    justify-content: center;
-  }
-  .video-section .video-container {
-    flex: 0 1 auto;
-    aspect-ratio: 16 / 9;
-    width: 100%;
-    max-height: calc(100% - 100px);
-  }
 }
 
 /* ================================================================== */
@@ -4652,14 +4209,7 @@ body { background: var(--canvas); }
 .tag-helpers .btn-icon-only:not(.ws-shell *) { padding: 5px 8px; }
 
 /* Loop + A/B loop controls in the playback bar */
-.ctrl-btn.ab-btn {
-  font-size: 11px;
-  font-weight: 800;
-  width: auto;
-  min-width: 26px;
-  padding: 0 7px;
-}
-#btnLoop.active, .ctrl-btn.ab-btn.set {
+#btnLoop.active {
   background: var(--accent, #1D4ED8);
   border-color: var(--accent, #1D4ED8);
   color: #fff;
@@ -4721,11 +4271,9 @@ body { background: var(--canvas); }
 .btn:active:not(.ws-shell *) { transform: translateY(0); }
 .btn-accent:not(.ws-shell *), .btn-highlight:not(.ws-shell *) { box-shadow: none; }
 .btn-accent:hover:not(.ws-shell *), .btn-highlight:hover:not(.ws-shell *) { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
-.ctrl-btn { border-radius: var(--radius-sm); transition: all var(--transition); }
-.ctrl-btn:hover { transform: translateY(-1px); }
 
 /* ---- Inputs: match the crisp chip border + radius ---- */
-input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *), .compact-input, .yards-input, .play-select {
+input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *), .compact-input, .yards-input {
   border-radius: var(--radius-sm);
   border-color: var(--chip-border);
 }
@@ -4749,87 +4297,13 @@ input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), inpu
 .tag-progress-fill { border-radius: 999px; }
 
 /* ---- Depth on key surfaces ---- */
-.video-section { box-shadow: var(--shadow-xs); }
 .more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
 
 /* ---- Accessible focus ring ---- */
-.pick:focus-visible, .btn:focus-visible:not(.ws-shell *), .ctrl-btn:focus-visible, input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *), textarea:focus-visible:not(.ws-shell *) {
+.pick:focus-visible, .btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *), textarea:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-/* ================================================================== */
-/* ====  LAYOUT v5 — play controls under the video, toggle top-right  */
-/* Mark Start/End + Delete + Current Play now live beneath the video  */
-/* (filling the dead space in the left column); the Offense/Defense/   */
-/* Special Teams toggle leads the right column.                       */
-/* ================================================================== */
-
-/* Compact control bar under the video (in the video-section column). */
-.video-play-controls {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  position: relative;
-  z-index: 2;
-}
-.video-play-controls .btn:not(.ws-shell *) { flex: 0 0 auto; }
-.autoplay-next-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 34px;
-  padding: 4px 8px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.autoplay-next-toggle input:not(.ws-shell *) { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
-.autoplay-next-toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
-.video-play-controls .play-select {
-  flex: 1 1 160px;
-  min-width: 140px;
-  width: auto;
-  background: var(--surface);
-  border: 1px solid var(--chip-border);
-  border-radius: var(--radius-sm);
-  padding: 6px 8px;
-  font-size: 12px;
-  box-shadow: var(--shadow-xs);
-}
-
-/* Two-column: let the video fill the column's vertical space (standard
-   player look) so the controls + mark bar stack directly beneath it,
-   with no awkward empty gap. */
-@media (min-width: 1100px) {
-  .video-section { justify-content: stretch; }
-  .video-section .video-container {
-    flex: 1 1 auto;
-    aspect-ratio: auto;
-    max-height: none;
-  }
-}
-
-/* Single-column / mobile: the control bar flows under the timeline. */
-@media (max-width: 1099px) {
-  .video-play-controls { padding: 8px 10px; }
-}
-
-/* ================================================================== */
-/* Tightens vertical rhythm in the two-column (desktop) tag form only. */
-/* Mobile/tablet keep their roomier touch spacing.                    */
-/* ================================================================== */
-
-/* ================================================================== */
-/* past the form to reach Save & Next.                                */
-/* ================================================================== */
 
 /* (Removed the multi-select ✓ corner tick: selected chips are now ONE
    consistent solid-blue style across single- and multi-select groups.) */
@@ -4842,7 +4316,7 @@ input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), inpu
 /* (.play-select, .speed-select, .tag-row select…) that set a         */
 /* `background:` shorthand can't wipe out our arrow image.            */
 /* ================================================================== */
-select:not(.ws-shell *), .play-select, .speed-select, .filter-select, .tag-row select:not(.ws-shell *), .tag-row-inline select:not(.ws-shell *) {
+select:not(.ws-shell *), .filter-select, .tag-row select:not(.ws-shell *), .tag-row-inline select:not(.ws-shell *) {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -4853,10 +4327,10 @@ select:not(.ws-shell *), .play-select, .speed-select, .filter-select, .tag-row s
   background-size: 16px 16px !important;
   cursor: pointer;
 }
-select:hover:not(.ws-shell *), .play-select:hover, .speed-select:hover, .filter-select:hover, .tag-row select:hover:not(.ws-shell *) {
+select:hover:not(.ws-shell *), .filter-select:hover, .tag-row select:hover:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
-select:focus:not(.ws-shell *), .play-select:focus, .speed-select:focus, .filter-select:focus, .tag-row select:focus:not(.ws-shell *) {
+select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 
@@ -4866,179 +4340,25 @@ select:focus:not(.ws-shell *), .play-select:focus, .speed-select:focus, .filter-
 
 /* Wrappers — each holds a video (+ canvas on angle 1). Transparent
    when no second angle is loaded; position:absolute fills container. */
-.angle-wrapper {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.angle-wrapper video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.angle-wrapper-2 { display: none; }
 
 /* Placeholder must sit above the wrappers */
-.video-container .video-placeholder { z-index: 10; }
 
 /* Subtle app-name "bug" in the top-right of the video, broadcast style.
    Absolutely positioned → never affects the controls/timeline layout. */
-.brand-bug {
-  position: absolute;
-  top: 7px;
-  right: 9px;
-  z-index: 8;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: rgba(255, 255, 255, 0.55);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  pointer-events: none;
-  user-select: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-.brand-bug b {
-  font-weight: 800;
-  color: var(--accent-hover);
-}
-@media (max-width: 500px) {
-  .brand-bug { font-size: 10px; top: 5px; right: 7px; }
-}
 
 /* Angle badges */
-.angle-badge {
-  display: none;
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  padding: 2px 10px;
-  background: rgba(0,0,0,0.55);
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-  z-index: 6;
-  pointer-events: none;
-  letter-spacing: 0.3px;
-}
-.angle-badge.active {
-  background: rgba(59,130,246,0.75);
-  color: #fff;
-}
 
 /* --- Toggle mode: stack both, z-index controls which is on top --- */
-.video-container.angle-single .angle-wrapper-2 { display: flex; z-index: 0; }
-.video-container.angle-single #angleWrapper1 { z-index: 1; }
-.video-container.angle-single.active-angle-2 #angleWrapper1 { z-index: 0; }
-.video-container.angle-single.active-angle-2 .angle-wrapper-2 { z-index: 1; }
 
 /* --- Side-by-side: both wrappers share space 50/50 --- */
-.video-container.angle-sbs { flex-direction: row !important; gap: 2px; }
-.video-container.angle-sbs .angle-wrapper, .video-container.angle-sbs .angle-wrapper-2 {
-  position: relative;
-  inset: auto;
-  flex: 1 1 50%;
-  min-width: 0;
-  align-self: stretch;
-}
-.video-container.angle-sbs .angle-wrapper-2 { display: flex; }
-.video-container.angle-sbs.active-angle-1 #angleWrapper1, .video-container.angle-sbs.active-angle-2 #angleWrapper2 {
-  outline: 2px solid rgba(59,130,246,0.5);
-  outline-offset: -2px;
-  border-radius: 3px;
-}
 
 /* --- PiP: primary full, secondary small overlay in corner --- */
-.video-container.angle-pip .angle-wrapper-2 {
-  display: flex;
-  position: absolute;
-  inset: auto 8px 8px auto;
-  width: 28%;
-  height: 28%;
-  z-index: 5;
-  border: 2px solid rgba(255,255,255,0.25);
-  border-radius: 6px;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-  transition: border-color 0.15s;
-}
-.video-container.angle-pip .angle-wrapper-2:hover {
-  border-color: rgba(59,130,246,0.7);
-}
-.video-container.angle-pip #angleWrapper1 { z-index: 1; }
 
 /* Angle controls strip */
-.angle-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-  font-size: 12px;
-}
-.angle-controls .ctrl-btn { font-size: 12px; padding: 2px 8px; }
-.angle2-info {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.angle2-info.hidden { display: none; }
-.angle2-name {
-  color: var(--text-dim);
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-}
-.angle-sync-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--text-dim);
-  font-size: 12px;
-}
-.angle-remove-btn { color: var(--danger) !important; font-size: 14px !important; }
 
 /* ================================================================== */
 /* ====  BUFFERING v8 — visual feedback while video loads          == */
 /* ================================================================== */
-.video-container { position: relative; }
-video.is-buffering { opacity: 0.82; }
-.video-load-state {
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
-  z-index: 12;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 34px;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  background: rgba(9, 16, 25, 0.94);
-  color: var(--text-primary);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.video-load-state.hidden { display: none; }
-.video-load-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,0.25);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: vc-spin 0.7s linear infinite;
-}
-@keyframes vc-spin { to { transform: rotate(360deg); } }
 
 /* ================================================================== */
 /* ====  CHARTS & VISUAL ANALYTICS                                 == */
@@ -5170,85 +4490,11 @@ video.is-buffering { opacity: 0.82; }
 .dot.run { background: #ffd23f; }
 .dot.pass { background: #6cc4ff; }
 
-/* ================================================================== */
-/* ====  MOBILE RENDERING FIX v9                                   == */
-/* Compacts the video-section controls so the placeholder CTA and     */
-/* actual video get usable space on phone screens (≤800 px).          */
-/* Appended last → wins the cascade over earlier mobile blocks.       */
-/* ================================================================== */
-
+/* Compact the global toolbar on narrow screens. */
 @media (max-width: 800px) {
-  /* --- Hide desktop-only / power-user controls on mobile --- */
-  .fps-label { display: none !important; }
-  .ab-btn { display: none !important; }
-  .angle-controls { display: none !important; }
-  .video-timeline { display: none !important; }
-  #btnPrevClip, #btnNextClip { display: none !important; }
-
-  /* --- Playback controls: 2 compact rows instead of 3 --- */
-  .playback-controls {
-    padding: 4px 8px !important;
-    gap: 4px !important;
-  }
-  .controls-left {
-    width: auto !important;
-    gap: 2px !important;
-  }
-  .controls-right {
-    order: 2 !important;
-    width: auto !important;
-    gap: 6px !important;
-  }
-  .scrub-bar-container {
-    order: 3 !important;
-  }
-  .time-display { font-size: 11px; }
-  .ctrl-btn { min-width: 38px; min-height: 38px; }
-
-  /* --- Video-play-controls: tighter bar --- */
-  .video-play-controls {
-    padding: 4px 8px !important;
-    gap: 4px !important;
-  }
-  .video-play-controls .btn:not(.ws-shell *) {
-    padding: 3px 7px !important;
-    min-height: 28px !important;
-    font-size: 11px !important;
-  }
-  .autoplay-next-toggle { min-height: 44px; }
-  .video-play-controls .play-select {
-    padding: 3px 28px 3px 6px !important;
-    font-size: 11px !important;
-    min-height: 28px !important;
-  }
-
-  /* --- Video placeholder: reduce padding so CTA fits --- */
-  .video-placeholder {
-    padding: 12px 10px !important;
-    gap: 8px !important;
-  }
-  .empty-hint { font-size: 11px; }
-
-  /* --- Top bar: tighter on mobile --- */
   .top-bar { gap: 6px; }
 }
 
-/* Small phones: stack CTA buttons, even more compact */
-@media (max-width: 500px) {
-  .video-section {
-    height: 36vh !important;
-    min-height: 200px !important;
-  }
-  .video-placeholder { padding: 8px !important; gap: 6px !important; }
-  .empty-cta { padding: 10px 16px !important; }
-  .empty-cta svg { width: 22px !important; height: 22px !important; }
-  .empty-cta-title { font-size: 13px !important; }
-  .empty-cta-sub { font-size: 10px !important; }
-  .empty-cta-row { gap: 6px !important; }
-
-  .ctrl-btn { min-width: 36px !important; min-height: 36px !important; }
-  .time-display { font-size: 10px !important; }
-}
 
 /* ================================================================== */
 /* ====  SELF-SCOUT REPORT                                         == */
@@ -6367,13 +5613,6 @@ body {
 
 /* ---- Expand video to full screen — the "watch the play bigger" toggle.
    Keeps the default size as-is; fullscreen only applies while toggled on. ---- */
-#videoContainer:fullscreen, #videoContainer:-webkit-full-screen {
-  width: 100vw; height: 100vh; max-width: none; background: var(--gi-film);
-  display: flex; flex-direction: column; justify-content: center;
-}
-#videoContainer:fullscreen .angle-wrapper, #videoContainer:-webkit-full-screen .angle-wrapper { flex: 1 1 auto; min-height: 0; }
-#videoContainer:fullscreen #videoPlayer, #videoContainer:-webkit-full-screen #videoPlayer { width: 100%; height: 100%; object-fit: contain; background: var(--gi-film); }
-#btnExpandVideo.is-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 
 /* ---- Phase-aware special-teams detail fields (PlayTagger._applyStPhase) ---- */
 .st-hidden { display: none !important; }
@@ -6494,7 +5733,7 @@ body { font-size: 13px; }
 .btn-label:not(.ws-shell *) { font-size: 12.5px; font-weight: 500; }
 
 /* Tabular numerals wherever numbers appear (scorebug discipline) */
-.time-display, .fps-input, .stat-card-value, .ov-val, .dd-badge, .sb-score, .stat-num, .kpi-value, .season-chip, .gd-plays, .sch-score {
+.stat-card-value, .ov-val, .dd-badge, .sb-score, .stat-num, .kpi-value, .season-chip, .gd-plays, .sch-score {
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
 }
 
@@ -6587,20 +5826,7 @@ body { font-size: 13px; }
 
 /* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
    one accent (the primary). No glow tiles, no cyan. */
-.dropzone-card {
-  display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 26px 34px; background: transparent;
-  border: 1.5px dashed var(--border-bright); border-radius: var(--radius-lg);
-}
-.dropzone-icon { width: 28px; height: 28px; color: var(--text-dim); }
-.dropzone-title { font-size: 15px; font-weight: 700; color: var(--text); }
-.dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
 /* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
-.dropzone-actions .btn-secondary:not(.ws-shell *) {
-  background: transparent; border-color: var(--border-bright); color: var(--text);
-}
-.dropzone-actions .btn-secondary:hover:not(.ws-shell *) { background: var(--bg-tertiary); color: var(--text-bright); }
-.dropzone-card .empty-hint { color: var(--text-hint); font-size: 11px; margin-top: 2px; }
 
 /* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
    single-class, and .btn is later in source). Raise specificity so the primary
@@ -6631,11 +5857,6 @@ body { font-size: 13px; }
 /* Tendency summary row under the header — informative, not shouting. */
 
 /* Video transport (§4.7) — thin track, accent progress, hover-only handle. */
-.scrub-bar { background: var(--border); }
-.scrub-bar-fill { background: var(--accent); }
-.scrub-bar-handle { background: var(--accent); box-shadow: none; opacity: 0; transition: opacity var(--transition); }
-.scrub-bar-container:hover .scrub-bar-handle { opacity: 1; }
-.scrub-bar-plays .play-marker { background: var(--text-hint); }
 
 /* D&D readout badge in the tag form — hidden until a down is set. */
 .dd-label { display: flex; align-items: center; gap: 8px; }
@@ -6678,22 +5899,16 @@ body { font-size: 13px; }
 
 /* +Angle moved into the play-control bar; its old standalone row now collapses
    until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
-.angle-controls { display: none; }
-.angle-controls.ang-open { display: flex; }
 
 /* The timeline strip only carries content when film is loaded (one segment per
    clip/play). With no film its .timeline-bar is empty and the row is just a
    gray pad eating vertical space — collapse it until segments render. Degrades
    gracefully (worst case: the pad stays) where :has is unsupported. */
-.video-timeline:has(.timeline-bar:empty) { display: none; }
 
 /* Fold the timeline into the transport line's center column (under the seek
    bar) instead of its own dedicated row — reclaims the vertical space while
    keeping the play/clip navigator exactly where film segments render. When
    there's no film (empty .timeline-bar) it takes no space at all. */
-.transport-center { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
-.transport-center .video-timeline { padding: 0; margin: 0; border: none; background: none; }
-.transport-center .video-timeline:has(.timeline-bar:empty) { display: none; }
 
 /* Custom user chips (CustomChips): a "+" add affordance + custom chips that
    carry a × remove. Idle/active states otherwise inherit the normal chip look. */
@@ -6732,8 +5947,6 @@ body { font-size: 13px; }
 .app-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; }
 .library-brand { font-family: var(--display); text-transform: uppercase; letter-spacing: .07em; }
 .library-brand b { color: var(--accent); }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
-.brand-bug { font-family: var(--display); text-transform: uppercase; letter-spacing: .08em; }
-.brand-bug b { color: var(--accent); }
 
 /* Game header — the matchup reads like a broadcast lower third. */
 .game-header-bar .ghb-name {

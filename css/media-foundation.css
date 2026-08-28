@@ -1,0 +1,236 @@
+/* Canonical media foundation.
+ * Owns the permanent video/canvas/multi-angle subtree and its honest empty,
+ * loading, buffering, error, and fullscreen states. Coach-facing controls are
+ * owned by native-breakdown-theater.css, not this file. */
+
+.video-container {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+}
+
+.video-container video {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.video-container canvas {
+  position: absolute;
+  inset: 0 auto auto 0;
+  cursor: crosshair;
+  pointer-events: auto;
+}
+
+.video-container canvas.is-dormant {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  color: var(--text-dim);
+  font-size: 14px;
+  pointer-events: auto;
+}
+
+.video-placeholder.hidden { display: none; }
+
+.angle-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.angle-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.angle-wrapper-2 { display: none; }
+
+.brand-bug {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  z-index: 8;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.brand-bug b {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.angle-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 6;
+  display: none;
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  pointer-events: none;
+}
+
+.angle-badge.active {
+  background: rgba(59, 130, 246, 0.75);
+  color: #fff;
+}
+
+.video-container.angle-single .angle-wrapper-2 { display: flex; z-index: 0; }
+.video-container.angle-single #angleWrapper1 { z-index: 1; }
+.video-container.angle-single.active-angle-2 #angleWrapper1 { z-index: 0; }
+.video-container.angle-single.active-angle-2 .angle-wrapper-2 { z-index: 1; }
+
+.video-container.angle-sbs { flex-direction: row !important; gap: 2px; }
+.video-container.angle-sbs .angle-wrapper,
+.video-container.angle-sbs .angle-wrapper-2 {
+  position: relative;
+  inset: auto;
+  flex: 1 1 50%;
+  min-width: 0;
+  align-self: stretch;
+}
+.video-container.angle-sbs .angle-wrapper-2 { display: flex; }
+.video-container.angle-sbs.active-angle-1 #angleWrapper1,
+.video-container.angle-sbs.active-angle-2 #angleWrapper2 {
+  border-radius: 3px;
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: -2px;
+}
+
+.video-container.angle-pip .angle-wrapper-2 {
+  position: absolute;
+  inset: auto 8px 8px auto;
+  z-index: 5;
+  display: flex;
+  width: 28%;
+  height: 28%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  background: #000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.video-container.angle-pip .angle-wrapper-2:hover { border-color: rgba(59, 130, 246, 0.7); }
+.video-container.angle-pip #angleWrapper1 { z-index: 1; }
+
+video.is-buffering { opacity: .82; }
+.video-load-state {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 12;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  background: rgba(9, 16, 25, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.video-load-state.hidden { display: none; }
+.video-load-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: vc-spin .7s linear infinite;
+}
+@keyframes vc-spin { to { transform: rotate(360deg); } }
+
+#videoContainer:fullscreen,
+#videoContainer:-webkit-full-screen {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--gi-film);
+}
+#videoContainer:fullscreen .angle-wrapper,
+#videoContainer:-webkit-full-screen .angle-wrapper { flex: 1 1 auto; min-height: 0; }
+#videoContainer:fullscreen #videoPlayer,
+#videoContainer:-webkit-full-screen #videoPlayer {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--gi-film);
+}
+
+.dropzone-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 34px;
+  border: 1.5px dashed var(--border-bright);
+  border-radius: var(--radius-lg);
+  background: transparent;
+}
+.dropzone-icon { width: 28px; height: 28px; color: var(--text-dim); }
+.dropzone-title { color: var(--text); font-size: 15px; font-weight: 700; }
+.dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
+.dropzone-actions .btn-secondary {
+  border-color: var(--border-bright);
+  background: transparent;
+  color: var(--text);
+}
+.dropzone-actions .btn-secondary:hover { background: var(--bg-tertiary); color: var(--text-bright); }
+.dropzone-card .empty-hint { margin-top: 2px; color: var(--text-hint); font-size: 11px; }
+
+@media (max-width: 800px) {
+  .video-placeholder { gap: 8px; padding: 12px 10px; }
+}
+
+@media (max-width: 500px) {
+  .brand-bug { top: 5px; right: 7px; font-size: 10px; }
+  .video-placeholder { gap: 6px; padding: 8px; }
+  .dropzone-card { padding: 18px 20px; }
+  .dropzone-actions { flex-wrap: wrap; justify-content: center; }
+}

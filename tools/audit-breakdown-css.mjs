@@ -88,4 +88,17 @@ for (const [file, rules] of [...byFile].sort(([a], [b]) => a.localeCompare(b))) 
   }
 }
 
+const utilitySelectors = new Set(['*', '*::before', '*::after', '[hidden]', '.hidden']);
+const globalRules = [...byFile]
+  .filter(([file]) => file.replaceAll('\\', '/') === 'css/styles.css')
+  .flatMap(([, rules]) => rules);
+const forbiddenGlobal = globalRules.filter(rule => !utilitySelectors.has(rule.selector));
+if (forbiddenGlobal.length) {
+  throw new Error(`Historical css/styles.css still reaches Breakdown: ${forbiddenGlobal.map(rule => rule.selector).join(', ')}`);
+}
+if (![...byFile.keys()].some(file => file.replaceAll('\\', '/') === 'css/media-foundation.css')) {
+  throw new Error('Canonical css/media-foundation.css did not reach the live Breakdown route');
+}
+console.log('\nPASS: global styles.css reaches Breakdown through universal utilities only');
+
 await browser.close();
