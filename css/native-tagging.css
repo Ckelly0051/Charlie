@@ -285,13 +285,13 @@
   }
   .gi-breakdown-deck .gi-tag-subject{display:none}
   .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions{
-    min-height:38px;padding:4px 6px;gap:4px;flex-wrap:wrap;background:var(--gi-2)
+    min-height:38px;padding:4px 6px;gap:4px;flex-wrap:nowrap;background:var(--gi-2)
   }
   .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions button,
   .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions select{
     min-height:var(--gi-hit);height:var(--gi-hit);padding-inline:8px;font:var(--gi-text-control)
   }
-  .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions select{min-width:124px;flex:1 1 124px}
+  .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions select{min-width:110px;flex:1 1 110px}
   .gi-breakdown-deck .gi-native-form{padding-top:4px}
   .gi-breakdown-deck .gi-tag-group-body{gap:5px;padding:4px 9px}
   .gi-breakdown-deck .gi-tag-group>summary{min-height:32px}

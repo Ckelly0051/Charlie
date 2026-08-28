@@ -1,3 +1,8 @@
+### CODEX BREAKDOWN COMP UTILITY HIERARCHY (2026-08-28)
+
+The populated charting deck now follows the approved comp literally at its top edge: one permanent per-play utility row containing Same as Last, Templates, Save Template, and Delete. The contextual charting preset changes available vocabulary and unit, so it moved to the existing More Tools setup disclosure with detection controls instead of forcing a second utility row on every play. No control was shrunk or removed.
+
+The populated 424px deck was captured and directly inspected after the move: normal-size controls fit one line, Situation begins immediately below, field rows remain aligned, and the sticky Save & Next action retains priority. Verification: production build green; native charting 69/69; tag-library/settings 17/17; Breakdown geometry 13/13. No template payload, charting preset, play data, football rule, or persistence behavior changed.
 ### CODEX BREAKDOWN TEMPLATE CONTROL INDEPENDENCE (2026-08-28)
 
 The populated-deck composition review exposed one remaining obsolete UI dependency: native Templates read and mutated a detached PlainInput that emulated the deleted legacy selector. Applying a template could therefore republish a blank selection and disable Delete even though the template had just been applied. The template-specific fake control, dead button fields/listeners, HTML option renderer, and selected-delete indirection are removed. PlayTagger now owns one explicit selectedTemplate value and explicit save/apply/delete APIs; NativeTaggingScreen consumes those APIs directly.

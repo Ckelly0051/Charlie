@@ -340,8 +340,7 @@ function NativeTagging({screen}) {
     </header>
     <div class="gi-tag-actions">
       <button type="button" disabled={!state.canCopyPrevious} onClick={() => screen.copyPrevious()}>Same as Last</button>
-      <select aria-label="Charting preset" value="" onChange={e => screen.applyChartingPreset(e.currentTarget.value)}>
-        <option value="">Charting preset</option>{state.chartingPresets.map(item => <option key={item.id} value={item.id}>{item.name} · {item.role}</option>)}</select>
+
       <select value={state.selectedTemplate} onChange={e => screen.applyTemplate(e.currentTarget.value)}>
         <option value="">Templates</option>{state.templates.map(name => <option key={name}>{name}</option>)}</select>
       <button type="button" onClick={() => screen.saveTemplate()}>Save Template</button>
@@ -405,7 +404,11 @@ function NativeTagging({screen}) {
         <div class="gi-tag-actions"><button type="button" onClick={() => screen.clearDiagram()}>Clear</button><button type="button" onClick={() => screen.drawDiagram()}>Draw</button></div>
         {state.diagram && <img src={state.diagram} alt="Current play diagram"/>}
       </Group>
-      <Group title="More Tools" detail="scoreboard OCR and play detection">
+      <Group title="More Tools" detail="charting setup, scoreboard OCR and play detection">
+        <label class="gi-tag-input"><span>Charting setup</span>
+          <select aria-label="Charting preset" value="" onChange={e => screen.applyChartingPreset(e.currentTarget.value)}>
+            <option value="">Choose preset</option>{state.chartingPresets.map(item => <option key={item.id} value={item.id}>{item.name} · {item.role}</option>)}
+          </select></label>
         <div class="gi-tag-actions"><button type="button" onClick={() => screen.setScoreboardRegion()}>Set OCR Region</button>
           <button type="button" onClick={() => screen.readScoreboard()}>Read Scoreboard</button>
           <label class="gi-tag-check"><input type="checkbox" checked={state.autoOcr} onChange={e => screen.setAutoOcr(e.currentTarget.checked)}/> Auto OCR</label>
