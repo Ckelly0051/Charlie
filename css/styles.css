@@ -4404,48 +4404,6 @@ body {
    not one smear (active's glow rule overrides this shadow, which is fine). */
 .timeline-play:not(.active) { box-shadow: inset -1px 0 0 rgba(11,15,20,0.75); }
 
-/* Tag section: full width, scrollable region below the sticky video */
-.tag-section {
-  flex: 1 0 auto;
-  background: var(--bg-secondary);
-  padding: 14px 18px 48px;
-  border-top: none;
-}
-.tag-section .play-mark-controls {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  max-width: 1100px;
-  margin-left: auto;
-  margin-right: auto;
-}
-.tag-section .play-mark-controls .btn { flex: 0 1 auto; }
-.tag-section .play-selector {
-  margin: 0 auto 12px;
-  max-width: 1100px;
-}
-.tag-section .play-selector .play-select { max-width: 420px; }
-
-/* Center the form and give it room to breathe; chips spread horizontally */
-.tag-section .tag-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-.tag-section .tagger-tools {
-  max-width: 1100px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Larger, more tappable chips now that we have the width */
-.tag-section .pick-group { gap: 5px; }
-.tag-section .pick { padding: 8px 13px; font-size: 13px; }
-.tag-section .unit-toggle .pick { padding: 9px 6px; }
-
 /* Notes embedded in the tag flow */
 .tag-notes { margin: 8px 0; }
 .tag-notes-label {
@@ -4481,21 +4439,6 @@ body {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* Save & Next bar sits at the end of the core fields, full width. */
-.tag-section .tag-nav {
-  background: var(--surface);
-  padding: 10px 12px 4px;
-  margin-top: 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-/* Wide screens: lay the side groups (Off/Def/ST) out in two columns */
-@media (min-width: 920px) {
-  .tag-section { padding: 16px 28px 48px; }
-  .tag-section .player-roles { grid-template-columns: repeat(4, 1fr); }
-}
-
 /* Old containers no longer rendered — make sure they never reserve space */
 .bottom-panel { display: none !important; }
 .sidebar { display: none !important; }
@@ -4503,9 +4446,6 @@ body {
 /* Mobile: shorter video, comfortable chips, account for bottom tab bar */
 @media (max-width: 800px) {
   .video-section { top: 52px; height: 38vh; min-height: 180px; }
-  .tag-section { padding: 12px 12px 80px; }
-  .tag-section .pick { padding: 11px 13px; font-size: 14px; }
-  .tag-section .player-roles { grid-template-columns: repeat(2, 1fr); }
   /* Bottom tabs no longer need to reserve the old layout's space */
   #app { padding-bottom: 0; }
 }
@@ -4535,10 +4475,6 @@ body {
     overflow: hidden;
   }
   .top-bar { position: static; flex: 0 0 52px; }
-
-  /* Three named areas: video + Film Room play grid stack in the left
-     column, tag form owns the right. The grid row collapses to 0 when
-     #playGridSection is hidden (no plays). */
   .main-content {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) clamp(460px, 40vw, 760px) !important;
@@ -4561,51 +4497,12 @@ body {
     border-right: 1px solid var(--border);
     justify-content: center;
   }
-
-  /* Film Room grid fills the dead space under the video. (Child selector =
-     higher specificity than the base .play-grid-section block, which sits
-     LATER in the file and would otherwise win the max-height tie.) */
-  .main-content > .play-grid-section {
-    grid-area: grid;
-    border-right: 1px solid var(--border);
-    border-bottom: none;
-    border-top: 1px solid var(--border);
-    max-height: 38vh;
-  }
   .video-section .video-container {
     flex: 0 1 auto;
     aspect-ratio: 16 / 9;
     width: 100%;
     max-height: calc(100% - 100px);
   }
-
-  /* Right column owns its own scroll so the page never moves. */
-  .tag-section {
-    grid-area: tags;
-    height: 100%;
-    overflow-y: auto;
-    padding: 12px 18px 40px;
-    min-height: 0;
-    border-top: none;
-  }
-  .tag-section .tag-form,
-  .tag-section .tagger-tools,
-  .tag-section .play-mark-controls,
-  .tag-section .play-selector {
-    max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  /* Compact vertical rhythm so more fields fit per screen. */
-  .tag-section .chip-section { margin-bottom: 5px; padding: 5px 8px; }
-  .tag-section .chip-label { margin-bottom: 3px; }
-  .tag-section .play-mark-controls { margin-bottom: 8px; }
-  .tag-section .play-selector { margin-bottom: 8px; }
-  .tag-section .pick { padding: 6px 10px; font-size: 12.5px; }
-
-  /* Wider column => player roles fit four-up again. */
-  .tag-section .player-roles { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ================================================================== */
@@ -4639,7 +4536,6 @@ body {
 /* ---- Work surfaces ---- */
 body { background: var(--canvas); }
 .top-bar { background: var(--surface); box-shadow: 0 1px 0 var(--border), var(--shadow-xs); }
-.tag-section { background: var(--canvas); }
 
 /* ---- Chips: white, tactile, unmistakably tappable ---- */
 .pick {
@@ -4685,8 +4581,7 @@ body { background: var(--canvas); }
 }
 
 /* ---- Field groups: drop muddy fills; group by label + spacing ---- */
-.chip-section,
-.tag-section .chip-section {
+.chip-section {
   background: transparent;
   padding: 0;
   margin-bottom: 11px;
@@ -4872,8 +4767,6 @@ select, textarea, .compact-input, .yards-input, .play-select {
   border-radius: var(--radius-sm);
   border-color: var(--chip-border);
 }
-
-/* ---- Collapsed side-group headers: clean white rows ---- */
 .tag-group-head {
   background: var(--surface);
   border: 1px solid var(--chip-border);
@@ -4896,17 +4789,6 @@ select, textarea, .compact-input, .yards-input, .play-select {
 /* ---- Depth on key surfaces ---- */
 .video-section { box-shadow: var(--shadow-xs); }
 .more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
-
-/* ---- Custom thin scrollbar for the tag column ---- */
-.tag-section { scrollbar-width: thin; scrollbar-color: rgba(233,238,245,.22) transparent; }
-.tag-section::-webkit-scrollbar { width: 10px; }
-.tag-section::-webkit-scrollbar-track { background: transparent; }
-.tag-section::-webkit-scrollbar-thumb {
-  background: rgba(233,238,245,.22);
-  border-radius: 999px;
-  border: 3px solid var(--canvas);
-}
-.tag-section::-webkit-scrollbar-thumb:hover { background: rgba(233,238,245,.34); }
 
 /* ---- Accessible focus ring ---- */
 .pick:focus-visible, .btn:focus-visible, .ctrl-btn:focus-visible,
@@ -4962,9 +4844,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   box-shadow: var(--shadow-xs);
 }
 
-/* The toggle now leads the right column — give it a touch more presence. */
-.tag-section .unit-toggle-section { margin-bottom: 10px; }
-
 /* Two-column: let the video fill the column's vertical space (standard
    player look) so the controls + mark bar stack directly beneath it,
    with no awkward empty gap. */
@@ -4983,84 +4862,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ================================================================== */
-/* ====  COMPACT v6 — fit the nav bar on screen without scrolling  == */
 /* Tightens vertical rhythm in the two-column (desktop) tag form only. */
 /* Mobile/tablet keep their roomier touch spacing.                    */
 /* ================================================================== */
-@media (min-width: 1100px) {
-  .tag-section { padding-top: 10px; padding-bottom: 18px; }
-
-  /* Inter-group whitespace is the biggest lever — trim it evenly. */
-  .tag-section .chip-section { margin-bottom: 4px; }
-  .tag-section .chip-label { margin-bottom: 2px; font-size: 10px; letter-spacing: 0.6px; }
-
-  /* Slightly shorter chips (still comfortable click targets). */
-  .tag-section .pick { padding: 4px 10px; }
-  .tag-section .unit-toggle .pick { padding: 6px 6px; }
-  .tag-section .tag-progress-row { margin: 0 0 2px; }
-
-  /* Header controls */
-  .tag-section .unit-toggle-section { margin-bottom: 8px; }
-  .tag-section .unit-toggle { padding: 3px; }
-  .tag-section .unit-toggle .pick { padding: 7px 6px; }
-  .tag-section .tag-progress-row { margin: 0 0 3px; }
-
-  /* Collapsed "Defense Faced / Offense" header row */
-  .tag-section .tag-group-head { padding: 6px 10px; margin-bottom: 4px; }
-
-  /* Collapsed "Situation & Details" disclosure: snug */
-  .tag-section .chip-details { margin-top: 0; padding-top: 0; }
-  .tag-section .chip-details > summary { padding: 3px 0; }
-
-  /* Player role cards: trim internal padding */
-  .tag-section .player-roles { margin-bottom: 4px; }
-  .tag-section .player-role { padding: 3px 5px; gap: 1px; }
-  .tag-section .player-num { padding: 2px; font-size: 13px; }
-  .tag-section .player-grade { padding: 1px 3px; }
-
-  /* Notes: compact but still usable */
-  .tag-section .tag-notes { margin: 3px 0; }
-  .tag-section .tag-notes .notes-area { min-height: 30px; }
-
-  /* Nav bar: snug to the content above it */
-  .tag-section .tag-nav { padding: 6px 8px 4px; margin-top: 4px; }
-}
 
 /* ================================================================== */
-/* ====  STICKY NAV — Save & Next always visible in the tag column == */
-/* In the two-column layout the tag section scrolls independently.   */
-/* Pin the nav bar to the bottom so the coach never has to scroll     */
 /* past the form to reach Save & Next.                                */
 /* ================================================================== */
-.tag-section .tag-nav {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  background: var(--surface);
-  padding: 10px 12px 8px;
-  margin: 4px -12px 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
-}
-/* Mobile: clear the bottom tab bar so Save & Next isn't hidden behind it. */
-@media (max-width: 800px) {
-  .tag-section .tag-nav {
-    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-    margin: 4px 0 0;
-  }
-}
 
 /* (Removed the multi-select ✓ corner tick: selected chips are now ONE
    consistent solid-blue style across single- and multi-select groups.) */
 .pick-group.multi .pick.active::after { content: none; }
-
-/* Tablets: width-based breakpoints leave 801–1099px iPads with mouse-size
-   chips. Key comfortable tap targets on coarse pointers instead. */
-@media (pointer: coarse) {
-  .tag-section .pick-group { gap: 8px; }
-  .tag-section .pick { padding: 11px 15px; font-size: 14px; min-height: 42px; }
-}
 
 /* ================================================================== */
 /* ====  SELECTS v7 — prominent dropdown arrows                    == */
@@ -5470,11 +5282,6 @@ video.is-buffering { opacity: 0.82; }
     gap: 8px !important;
   }
   .empty-hint { font-size: 11px; }
-
-  /* --- Tag section: ensure bottom clears the tab bar --- */
-  .tag-section {
-    padding-bottom: max(80px, calc(68px + env(safe-area-inset-bottom))) !important;
-  }
 
   /* --- Top bar: tighter on mobile --- */
   .top-bar { gap: 6px; }
@@ -6410,126 +6217,6 @@ body {
 /* column via grid-template-areas (block below). Appended last so it  */
 /* wins the cascade over the layout blocks above.                     */
 /* ================================================================== */
-.play-grid-section {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  /* Base cap so a 170-play table can never bury the tag form on narrow /
-     fractional-width viewports; the widescreen block overrides to 38vh. */
-  max-height: 42vh;
-}
-.play-grid-section[hidden] { display: none; }
-
-.pg-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  user-select: none;
-  flex: 0 0 auto;
-}
-.pg-collapse {
-  background: none; border: none; cursor: pointer;
-  font-size: 12px; color: var(--text-dim, #64748b);
-  padding: 2px 4px; transition: transform var(--transition);
-}
-.play-grid-section.collapsed .pg-collapse { transform: rotate(-90deg); }
-.pg-title { font-weight: 600; font-size: 13px; color: var(--text); white-space: nowrap; }
-.pg-count { color: var(--text-dim, #64748b); font-weight: 500; }
-
-.pg-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
-.pg-fgroup { display: inline-flex; gap: 3px; padding-right: 6px; border-right: 1px solid var(--border); }
-.pg-fgroup:last-of-type { border-right: none; }
-.pg-chip {
-  background: var(--surface);
-  border: 1px solid var(--chip-border, #cbd3e0);
-  border-radius: 999px;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 9px;
-  cursor: pointer;
-  box-shadow: var(--shadow-xs);
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
-}
-.pg-chip:hover { border-color: var(--accent, #1D4ED8); }
-.pg-chip.active {
-  background: var(--accent, #1D4ED8);
-  border-color: var(--accent, #1D4ED8);
-  color: #fff;
-}
-.pg-clear {
-  background: none; border: none; cursor: pointer;
-  font-size: 11px; color: var(--accent, #1D4ED8); text-decoration: underline;
-  padding: 2px 4px;
-}
-.pg-showing { font-size: 11px; color: var(--text-dim, #64748b); margin-left: auto; white-space: nowrap; }
-.pg-watch { flex: 0 0 auto; font-size: 11.5px; padding: 3px 10px; }
-.pg-watch:disabled { opacity: .45; cursor: default; }
-
-.pg-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
-.play-grid-section.collapsed .pg-body { display: none; }
-
-.pg-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.pg-table th {
-  position: sticky; top: 0; z-index: 1;
-  background: var(--surface);
-  text-align: left;
-  font-size: 10.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: var(--text-dim, #64748b);
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-.pg-table td {
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 160px;
-}
-.pg-c-check { width: 26px; }
-.pg-c-num { width: 52px; }
-.pg-c-yardage { width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
-.pg-c-yardage .pos { color: #15803d; }
-.pg-c-yardage .neg { color: #b91c1c; }
-
-.pg-row { cursor: pointer; }
-.pg-row:hover td { background: rgba(16,24,40,.06); }
-.pg-row.is-current td { background: rgba(16,24,40,.13); }
-.pg-row.is-current td:first-child { box-shadow: inset 3px 0 0 var(--accent, #1D4ED8); }
-.pg-row.is-untagged td { color: var(--text-dim, #94a3b8); }
-
-.pg-unit {
-  display: inline-block;
-  width: 15px; height: 15px; line-height: 15px;
-  text-align: center;
-  border-radius: 4px;
-  font-size: 9px; font-weight: 700;
-  margin-right: 5px;
-  color: #fff;
-}
-.pg-unit-offense { background: #1D4ED8; }
-.pg-unit-defense { background: #b91c1c; }
-.pg-unit-special { background: #c9a227; }
-
-.pg-dim { color: var(--text-dim, #94a3b8); }
-.pg-empty { padding: 18px 14px; font-size: 12.5px; color: var(--text-dim, #64748b); text-align: center; }
-
-@media (max-width: 800px) {
-  .pg-table { font-size: 11.5px; }
-  .pg-chip { padding: 3px 10px; }                        /* bigger touch targets */
-}
 
 /* Widescreen layout for the grid lives INSIDE the TWO-COLUMN block above
    (grid-template-areas "video tags" / "grid tags") — not in a second
@@ -6578,71 +6265,15 @@ body {
 /* still match a live element.                                       */
 /* ================================================================== */
 /* ====  FILM ROOM v2 — inline editing, columns, saved filters  ===== */
-/* ================================================================== */
-.play-grid-section:focus { outline: none; }
-.pg-body { overflow-x: auto; }                 /* many columns scroll sideways */
-.pg-table th { white-space: nowrap; }
+/* ================================================================== */                 /* many columns scroll sideways */
 
 /* Tendency line under the headers (top value % / run-pass lean / avg yds) */
-.pg-tend td {
-  padding: 1px 8px 5px;
-  font-size: 10px;
-  color: var(--accent, #1D4ED8);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  position: sticky; top: 25px; z-index: 1;     /* rides under the sticky header row */
-  white-space: nowrap;
-}
 
 /* Roving cell focus (spreadsheet navigation) */
-td.pg-cell-focus {
-  box-shadow: inset 0 0 0 2px var(--accent, #1D4ED8);
-  border-radius: 3px;
-}
-.pg-edit { cursor: pointer; }
 
 /* Head menu buttons (Columns / Filters ▾) */
-.pg-menu-btn { font-weight: 600; }
 
 /* Popover (cell editors, columns chooser, saved filters) */
-.pg-pop {
-  position: fixed;
-  z-index: 10500;                /* above stats overlays + library */
-  background: var(--surface, #fff);
-  border: 1px solid var(--chip-border, #cbd3e0);
-  border-radius: 10px;
-  box-shadow: var(--shadow-md, 0 8px 24px rgba(15,23,42,.18));
-  padding: 10px;
-  max-width: 340px;
-  max-height: 60vh;
-  overflow-y: auto;
-  color: var(--text);
-}
-.pg-pop-title { font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .05em; color: var(--text-dim, #64748b); margin-bottom: 8px; }
-.pg-pop-chips { display: flex; flex-wrap: wrap; gap: 5px; max-width: 320px; }
-.pg-pop-chips .pg-chip { font-size: 12px; padding: 5px 11px; }
-.pg-chip-clear { color: var(--text-dim, #94a3b8); border-style: dashed; }
-.pg-pop-input {
-  display: block; width: 100%; box-sizing: border-box;
-  margin-top: 8px; padding: 6px 9px;
-  border: 1px solid var(--chip-border, #cbd3e0); border-radius: 7px;
-  font-size: 13px; background: var(--surface, #fff); color: var(--text);
-}
-.pg-pop-input:focus { outline: none; border-color: var(--accent, #1D4ED8); }
-.pg-pop-wide { min-width: 190px; margin-top: 0; }
-.pg-pop-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 9px; }
-.pg-pop-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 9px; }
-.pg-pop-check { display: flex; align-items: center; gap: 7px; font-size: 12.5px;
-  padding: 4px 2px; cursor: pointer; color: var(--text); }
-.pg-pop-row { display: flex; align-items: center; gap: 4px; }
-.pg-pop-item { flex: 1 1 auto; text-align: left; background: none; border: none;
-  font-size: 12.5px; color: var(--text); padding: 6px 6px; cursor: pointer; border-radius: 6px; }
-.pg-pop-item:hover { background: rgba(16,24,40,.08); }
-.pg-pop-del { background: none; border: none; color: var(--text-dim, #94a3b8);
-  cursor: pointer; font-size: 12px; padding: 4px 6px; }
-.pg-pop-del:hover { color: #b91c1c; }
 
 /* ============================================================
    TAGGING-SPEED PASS — form guard, rare-result expander, hint
@@ -6919,14 +6550,12 @@ body { font-size: 13px; }
 }
 
 /* Chips & buttons — one size; selected is heavier not louder */
-.pick, .pg-chip { font-size: 12.5px; font-weight: 500; }
+.pick { font-size: 12.5px; font-weight: 500; }
 .pick.active { font-weight: 600; }
 .btn-label { font-size: 12.5px; font-weight: 500; }
 
 /* Tabular numerals wherever numbers appear (scorebug discipline) */
-.time-display, .fps-input, .stat-card-value, .ov-val, .dd-badge,
-.pg-rows td, .pg-num, td.pg-num, .sb-score, .stat-num, .kpi-value,
-.season-chip, .gd-plays, .sch-score {
+.time-display, .fps-input, .stat-card-value, .ov-val, .dd-badge, .sb-score, .stat-num, .kpi-value, .season-chip, .gd-plays, .sch-score {
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
 }
 
@@ -6947,11 +6576,10 @@ body { font-size: 13px; }
    DESIGN REFRESH v2 — chips & segmented controls (§4.1). The single
    biggest upgrade: two legible variants (radio vs checkbox), no borders
    on idle chips, no glow on selected, dim hotkey badges. Appended last +
-   matched specificity so it wins over the historical .tag-section .pick.
+   specificity preserves the selected and idle chip distinction.
    ===================================================================== */
 /* Single-choice: tonal borderless idle → solid-blue selected. */
-.pick,
-.tag-section .pick {
+.pick {
   box-sizing: border-box; height: 28px; padding: 0 10px; gap: 5px;
   border: none; background: var(--bg-tertiary);
   color: var(--text-dim); font-weight: 500; font-size: 12.5px;
@@ -6960,12 +6588,10 @@ body { font-size: 13px; }
 /* Hover restyles only UNSELECTED chips — an active chip must keep its blue
    fill even while the pointer is still on it (else a just-clicked chip shows
    the hover fill until you mouse off — no immediate click confirmation). */
-.pick:not(.active):hover,
-.tag-section .pick:not(.active):hover {
+.pick:not(.active):hover {
   background: #232B37; color: var(--text); border: none;
 }
-.pick.active,
-.tag-section .pick.active {
+.pick.active {
   background: var(--accent); color: #fff; font-weight: 600;
   border: none; box-shadow: none;
 }
@@ -7063,18 +6689,7 @@ body { font-size: 13px; }
 .dd-badge--key { background: var(--accent-soft); color: var(--accent-hover); }  /* 3rd/4th down */
 
 /* Play table (§4.6) — quiet header, crisp row states, colored numeric text. */
-.pg-table th {
-  background: var(--surface); font-size: 11px; font-weight: 650;
-  letter-spacing: .06em; color: var(--text-hint); border-bottom: 1px solid var(--border);
-}
-.pg-row td { height: 32px; }
-.pg-row:hover td { background: rgba(233,238,245,.05); }
-.pg-row.is-current td { background: var(--accent-soft); }
-.pg-row.is-current td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
-.pg-c-yardage .pos { color: var(--success); font-weight: 600; }
-.pg-c-yardage .neg { color: var(--danger); font-weight: 600; }
 /* Tendency summary row under the header — informative, not shouting. */
-.pg-tend td { font-size: 11px; color: var(--text-hint); font-weight: 450; font-variant-numeric: tabular-nums; }
 
 /* Video transport (§4.7) — thin track, accent progress, hover-only handle. */
 .scrub-bar { background: var(--border); }
@@ -7114,8 +6729,8 @@ body { font-size: 13px; }
    ===================================================================== */
 /* Chips washed out on the white tag-form panel — darker tonal fill, still
    borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
-.pick, .tag-section .pick { background: var(--bg-tertiary); }
-.pick:not(.active):hover, .tag-section .pick:not(.active):hover { background: #232B37; }
+.pick { background: var(--bg-tertiary); }
+.pick:not(.active):hover { background: #232B37; }
 
 /* Library actions: one aligned row (was inline-block → the demo button's icon
    knocked the baseline off), one primary (New Season); demo → secondary. */
@@ -7197,7 +6812,6 @@ body { font-size: 13px; }
 .panel-title {
   font-family: var(--display); text-transform: uppercase; letter-spacing: .05em;
 }
-.pg-title { font-family: var(--display); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 
 /* Unit toggle — the O / D / ST call is a scorebug moment. */
 .unit-toggle .pick { font-family: var(--display); font-size: 14.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
@@ -7288,7 +6902,6 @@ body { font-size: 13px; }
 
 /* Rail rhythm: a touch more air between tag groups so sections read as
    sections while scanning fast. */
-.tag-section .chip-section { margin-bottom: 12px; }
 
 /* =====================================================================
    DESIGN DEEP-DIVE P4 — micro-feedback. State changes, not motion: press
@@ -7312,7 +6925,6 @@ body { font-size: 13px; }
 }
 
 /* Play-table row focus eases in rather than snapping (background only). */
-.pg-row td { transition: background 100ms ease; }
 
 /* =====================================================================
    THE THEATER — print re-pin. The app is dark; paper is not. A raw
@@ -7373,8 +6985,7 @@ body { font-size: 13px; }
    slate it's how selection reads). Static box-shadow — no motion, so it
    stands under prefers-reduced-motion. Appended last to beat the several
    `box-shadow: none` active rules from the historical light layers. */
-.pick.active,
-.tag-section .pick.active {
+.pick.active {
   box-shadow: 0 0 0 1px rgba(123,164,255,.85), 0 2px 10px rgba(61,123,253,.40);
 }
 .unit-toggle .pick.active {
@@ -7385,9 +6996,6 @@ body { font-size: 13px; }
   box-shadow: 0 0 0 1px rgba(123,164,255,.9), 0 6px 18px rgba(0,0,0,.5);
 }
 /* the current play row in the Film Room: brighter edge + faint halo */
-.pg-row.is-current td:first-child {
-  box-shadow: inset 3px 0 0 var(--accent), 0 0 12px rgba(61,123,253,.22);
-}
 
 /* =====================================================================
    UX PASS U1 — the trust layer.
@@ -7425,22 +7033,6 @@ body { font-size: 13px; }
   text-transform: uppercase; letter-spacing: .08em; color: var(--text-hint);
   padding: 7px 14px 3px;
 }
-
-/* Film Room editability hint (one-time, dismissible). */
-.pg-edit-hint {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 6px 12px; font-size: 12px; color: var(--text-dim);
-  background: var(--accent-soft); border-top: 1px solid var(--border);
-}
-.pg-edit-hint[hidden] { display: none; }
-.pg-edit-hint button {
-  background: none; border: none; color: var(--text-hint); cursor: pointer;
-  font-size: 15px; line-height: 1; padding: 2px 6px; border-radius: 4px;
-}
-.pg-edit-hint button:hover { color: var(--text); background: var(--bg-tertiary); }
-
-/* Cell-level hover cue: the grid is editable, say so on approach. */
-.pg-row td:not(.pg-c-check):hover { box-shadow: inset 0 0 0 1px var(--accent-border); cursor: pointer; }
 
 /* =====================================================================
    UX PASS U4 — first-session guidance.

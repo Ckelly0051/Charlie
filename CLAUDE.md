@@ -47,6 +47,13 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX BREAKDOWN CSS OWNERSHIP PASS 1 (2026-08-28)
+
+The first cascade-retirement pass removed 151 selectors (137 complete rules plus dead branches from nine mixed rules) owned solely by the deleted `.tag-section`, `.play-grid-section`, and `.pg-*` renderers. Mixed live selectors were retained. The production CSS bundle fell from 576.67 kB to 566.30 kB. Real 1440x900 and 390x844 captures were inspected after the deletion; composition and containment were unchanged.
+
+A new source-aware runtime inventory, `tools/audit-breakdown-css.mjs`, mounts the real Chart and Film Room routes, respects active media queries, normalizes interaction pseudo-states, and reports every source selector that can match the route. At 1440x900 it now identifies 94 potentially matching selectors from global `css/styles.css`, alongside the intended route-local files and shared material layer. Those global matches are mostly repeated generic button/input rules and the permanent `#videoContainer` media foundation. That measured overlap, not the deleted tag/grid CSS, is the next cascade-control target.
+
+Verification: production build green; Breakdown lifecycle 39/39; native Film Room 24/24; native theater 55/55; real release-viewport captures inspected. No play, tag, film, persistence, or football behavior changed.
 ### CODEX FILM ROOM RENDERER RETIREMENT (2026-08-28)
 
 The classic Film Room document renderer is deleted. `PlayGrid` now owns only persisted column/filter state, tendency calculations, row selection and cut-up commands, and canonical inline-edit football semantics. It no longer creates, queries, hides, restores, or converts HTML. `NativeFilmRoom` is the sole presentation owner, and `NativeFilmRoomScreen` no longer carries a legacy-hidden state or presentation-mode switch.
