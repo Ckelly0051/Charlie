@@ -256,6 +256,12 @@ const geometryAt = async (width, height) => {
       contained: theater.top >= 0 && actions.bottom <= innerHeight
         && transport.height > 0 && strip.height > 0 && actions.height > 0
         && transport.top >= media.bottom - 1 && strip.top >= transport.bottom - 1 && actions.top >= strip.bottom - 1,
+      type: Object.fromEntries(Object.entries({
+        chyron: '.gi-chyron-k',
+        action: '.gi-theater-actions button',
+        autoplay: '.gi-autoplay-toggle',
+        playMeta: '.gi-play-card > span',
+      }).map(([key, selector]) => [key, parseFloat(getComputedStyle(document.querySelector(selector)).fontSize)])),
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
 };
@@ -290,6 +296,9 @@ ok(wide.picture[0] >= 1400 && wide.picture[1] >= 795,
   '1920 theater meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-Part-1 1500x840)', JSON.stringify(wide));
 ok(desktop.contained && wide.contained,
   'Desktop theater keeps transport, strip, and play actions inside the working viewport', JSON.stringify({ desktop, wide }));
+ok(desktop.type.chyron >= 12 && desktop.type.action >= 12.5
+  && desktop.type.autoplay >= 12.5 && desktop.type.playMeta >= 13,
+  'Desktop theater keeps lower-third, action, and play-strip type on the consumer scale', JSON.stringify(desktop.type));
 const tablet = await geometryAt(768, 1024);
 if (shotDir) console.log('  QA    desktop geometry', JSON.stringify({ desktop, wide }));
 await page.setViewport({ width: 1920, height: 1080 });

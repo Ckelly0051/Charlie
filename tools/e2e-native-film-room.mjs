@@ -218,10 +218,17 @@ for (const viewport of [[1440,900],[1280,800],[768,1024],[390,844]]) {
     pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     internal: document.querySelector('.gi-film-table-wrap').scrollWidth >= document.querySelector('.gi-film-table-wrap').clientWidth,
     short: [...document.querySelectorAll('.gi-film-room button')].filter(button => button.getBoundingClientRect().height < (matchMedia('(pointer:coarse)').matches ? 44 : 28)).length,
+    type: {
+      control: parseFloat(getComputedStyle(document.querySelector('.gi-film-room button')).fontSize),
+      table: parseFloat(getComputedStyle(document.querySelector('.gi-film-table-wrap tbody td > button')).fontSize),
+      header: parseFloat(getComputedStyle(document.querySelector('.gi-film-table-wrap thead th')).fontSize),
+    },
   }));
 }
 ok(Object.values(geometry).every(item => !item.pageOverflow && item.internal), 'All release widths keep table overflow internal', JSON.stringify(geometry));
 ok(Object.values(geometry).every(item => item.short === 0), 'Native Film Room controls meet pointer-dependent hit targets', JSON.stringify(geometry));
+ok(geometry[1440].type.control >= 12.5 && geometry[1440].type.table >= 13 && geometry[1440].type.header >= 12,
+  'Desktop Film Room keeps controls, table data, and headers on the consumer scale', JSON.stringify(geometry[1440].type));
 
 await page.click('[data-film-columns]');
 await page.waitForSelector('.gi-film-columns');

@@ -73,7 +73,7 @@
 .gi-chyron-id { background: var(--gi-bd-gold); color: var(--gi-bd-gold-ink); }
 .gi-chyron-id .gi-chyron-k { opacity: .75; }
 .gi-chyron-k {
-  font: 700 9.5px/1 var(--gi-bd-cond); font-stretch: 87.5%; letter-spacing: .15em;
+  font: var(--gi-text-eyebrow); letter-spacing: var(--gi-track-label);
   text-transform: uppercase; color: var(--gi-11);
 }
 .gi-chyron-id .gi-chyron-k { color: inherit; }
@@ -103,7 +103,7 @@
 .gi-theater-transport-tools { flex: 0 0 auto; display: flex; align-items: center; gap: var(--gi-1x); }
 .gi-icon-command, .gi-play-command, .gi-theater-command, .gi-theater-actions button {
   min-height: var(--gi-hit); border: 1px solid var(--gi-7); border-radius: var(--gi-radius);
-  color: var(--gi-12); background: var(--gi-3); font: 600 12px/1 var(--gi-sans); cursor: pointer;
+  color: var(--gi-12); background: var(--gi-3); font: var(--gi-text-control); cursor: pointer;
   transition: color var(--gi-quick), background var(--gi-quick), border-color var(--gi-quick);
 }
 .gi-icon-command, .gi-play-command {
@@ -131,11 +131,11 @@
 }
 .gi-breakdown-theater select, .gi-theater-anglebar input {
   min-height: var(--gi-hit); border: 1px solid var(--gi-7); border-radius: var(--gi-radius);
-  color: var(--gi-12); background: var(--gi-3); font: 500 12px/1 var(--gi-mono);
+  color: var(--gi-12); background: var(--gi-3); font: 500 12.5px/1 var(--gi-mono);
 }
 .gi-theater-anglebar {
   min-height: 34px; padding: 3px var(--gi-2x); display: flex;
-  align-items: center; gap: var(--gi-2x); color: var(--gi-11); font-size: 11px;
+  align-items: center; gap: var(--gi-2x); color: var(--gi-11); font: var(--gi-text-control);
 }
 .gi-theater-anglebar strong { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gi-theater-anglebar label { display: flex; align-items: center; gap: var(--gi-1x); font-family: var(--gi-mono); }
@@ -155,7 +155,7 @@
 .gi-drive-strip > header strong { color: var(--gi-12); }
 .gi-drive-strip > header button {
   min-height: 22px; margin-left: auto; padding: 0 var(--gi-1x); border: 0;
-  color: var(--gi-11); background: transparent; font: 600 12px/1 var(--gi-sans); cursor: pointer;
+  color: var(--gi-11); background: transparent; font: var(--gi-text-control); cursor: pointer;
 }
 .gi-drive-strip > header button:hover { color: var(--gi-12); }
 .gi-drive-strip.is-collapsed { padding-bottom: 0; }
@@ -220,7 +220,7 @@
   .gi-theater-transport { flex-wrap: wrap; gap: var(--gi-1x); }
   .gi-theater-transport-main { flex-basis: 100%; }
   .gi-theater-transport-tools { width: 100%; justify-content: flex-end; }
-  .gi-theater-time { min-width: 40px; font-size: 10px; }
+  .gi-theater-time { min-width: 40px; font-size: 12px; }
   .gi-theater-anglebar { overflow-x: auto; }
   .gi-play-card { flex-basis: 220px; width: 220px; height: 66px; scroll-snap-align: start; }
   .gi-drive-scroll { scroll-snap-type: x proximity; }
@@ -268,7 +268,7 @@
 }
 .gi-play-card > small { font: var(--gi-text-caption); color: var(--gi-12); }
 .gi-drive-strip > header { font: var(--gi-text-label); letter-spacing: var(--gi-track-label); }
-.gi-theater-anglebar, .gi-autoplay-toggle { font-size: 11.5px; }
+.gi-theater-anglebar, .gi-autoplay-toggle { font: var(--gi-text-control); }
 
 /* Broadcast Density: keep six nearby plays visible at a 1440px workstation.
    Cards stay fixed-width so content and selection never reflow the strip. */
