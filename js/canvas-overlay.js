@@ -283,7 +283,7 @@ export class CanvasOverlay {
   }
 
   clearAnnotationsForTime(timestamp, tolerance) {
-    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const frameDur = 1 / (Number(this.vc.fps) || 30);
     const tol = tolerance || frameDur / 2;
     this.annotations = this.annotations.filter(
       a => Math.abs(a.timestamp - timestamp) > tol
@@ -311,7 +311,7 @@ export class CanvasOverlay {
 
     const rect = this.canvas.getBoundingClientRect();
     const currentTime = this.vc.currentTime;
-    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const frameDur = 1 / (Number(this.vc.fps) || 30);
 
     let hasVisible = false;
     // Render finalized annotations near current time
@@ -333,7 +333,7 @@ export class CanvasOverlay {
    *  call render() immediately, so drawing behavior is unchanged. */
   renderPlaybackFrame() {
     const currentTime = this.vc.currentTime;
-    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const frameDur = 1 / (Number(this.vc.fps) || 30);
     const hasVisible = this.annotations.some(
       annotation => Math.abs(annotation.timestamp - currentTime) <= frameDur / 2
     );

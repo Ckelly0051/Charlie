@@ -195,27 +195,12 @@ export class PlayTagger {
     this.listeners = {};
     this.nextId = 1;
 
-    // #giMediaHost is the permanent native-owned media host (S7-d2) and is
-    // untouched by this pass — these five resolve to real, always-present
-    // markup.
-    this.playSelect = document.getElementById('playSelect');
-    this.btnMarkStart = document.getElementById('btnMarkStart');
-    this.btnMarkEnd = document.getElementById('btnMarkEnd');
-    this.btnDeletePlay = document.getElementById('btnDeletePlay');
-    this.btnClearTags = document.getElementById('btnClearTags');
-    // The remaining four were legacy .tag-section buttons/select with no
-    // permanent native counterpart. native-tagging.jsx's own "Same as Last" /
-    // "Save Template" / "Delete" actions call PlayTagger's methods directly
-    // (copyFromPrevious/saveTemplate/deleteSelectedTemplate) and never touch
-    // these — every consumer below is already null-guarded. `templateSelect`
-    // is the one exception: NativeTaggingScreen.deleteTemplate() sets
-    // `.value` on it before calling deleteSelectedTemplate(), so it needs a
-    // real (DOM-free) value holder, not null.
+    // Templates retain a DOM-free value/event holder; native tagging owns the UI.
     this.btnCopyPrev = null;
     this.templateSelect = new PlainInput();
     this.btnSaveTemplate = null;
     this.btnDeleteTemplate = null;
-    this.timelineBar = document.getElementById('timelineBar');
+
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
     const fieldMap = {
@@ -373,12 +358,6 @@ export class PlayTagger {
   }
 
   _bindEvents() {
-    this.btnMarkStart.addEventListener('click', () => this.markStart());
-    this.btnMarkEnd.addEventListener('click', () => this.markEnd());
-    this.btnDeletePlay.addEventListener('click', () => this.deleteCurrentPlay());
-    if (this.btnClearTags) {
-      this.btnClearTags.addEventListener('click', () => this.clearCurrentTags());
-    }
     if (this.btnCopyPrev) this.btnCopyPrev.addEventListener('click', () => this.copyFromPrevious());
     if (this.btnSaveTemplate) this.btnSaveTemplate.addEventListener('click', () => this.saveTemplate());
     if (this.btnDeleteTemplate) this.btnDeleteTemplate.addEventListener('click', () => this.deleteSelectedTemplate());
@@ -388,10 +367,6 @@ export class PlayTagger {
       });
       this._refreshTemplateSelect();
     }
-    this.playSelect.addEventListener('change', () => {
-      const id = parseInt(this.playSelect.value);
-      if (id) this.selectPlay(id);
-    });
 
     // Tag form changes — save only the changed field, not all fields,
     // so clicking one chip doesn't overwrite other fields with stale values.
@@ -467,8 +442,7 @@ export class PlayTagger {
       clipName: name || ''
     };
     this.plays.push(play);
-    this._updatePlaySelect();
-    this._updateTimeline();
+    this._updateFormEnabled();
     this.selectPlay(play.id);
     this._emit('play-created', play);
     return play;
@@ -498,8 +472,6 @@ export class PlayTagger {
   markStart() {
     if (!this._requireVideo()) return;
     this.pendingStart = this.vc.currentTime;
-    this.btnMarkStart.textContent = `Start: ${this._fmt(this.pendingStart)}`;
-    this.btnMarkStart.classList.add('btn-active');
   }
 
   markEnd() {
@@ -521,10 +493,7 @@ export class PlayTagger {
       placeholder.timestamp = { start: this.pendingStart, end: endTime };
       delete placeholder.autoFull;
       this.pendingStart = null;
-      this.btnMarkStart.textContent = 'Mark Start';
-      this.btnMarkStart.classList.remove('btn-active');
-      this._updatePlaySelect();
-      this._updateTimeline();
+      this._updateFormEnabled();
       this.selectPlay(placeholder.id);
       this._emit('play-updated', placeholder);
       return;
@@ -577,23 +546,13 @@ export class PlayTagger {
     if (insertAt === -1 || insertAt >= this.plays.length) this.plays.push(play);
     else this.plays.splice(insertAt, 0, play);
     this.pendingStart = null;
-    this.btnMarkStart.textContent = 'Mark Start';
-    this.btnMarkStart.classList.remove('btn-active');
 
-    this._updatePlaySelect();
-    this._updateTimeline();
+    this._updateFormEnabled();
     this.selectPlay(play.id);
     this._emit('play-created', play);
   }
 
   async deleteCurrentPlay() {
-    // Fall back to the dropdown selection if no play is actively loaded
-    // (e.g. after importing/loading plays without re-selecting one), so the
-    // Delete button always acts on the play the user can see.
-    let id = this.currentPlayId;
-    if (!id && this.playSelect && this.playSelect.value) {
-      id = parseInt(this.playSelect.value);
-    }
     if (!id) return;
 
     // Folder/multi-clip mode: the play is backed by a playlist clip. Deleting
@@ -649,8 +608,7 @@ export class PlayTagger {
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
-    this._updatePlaySelect();
-    this._updateTimeline();
+    this._updateFormEnabled();
     this._emit('play-deleted');
     undoToast();
     if (this.plays.length > 0) {
@@ -672,9 +630,6 @@ export class PlayTagger {
    */
   async clearCurrentTags() {
     let id = this.currentPlayId;
-    if (!id && this.playSelect && this.playSelect.value) {
-      id = parseInt(this.playSelect.value);
-    }
     const play = id ? this.getPlay(id) : null;
 
     const msg = play
@@ -693,8 +648,7 @@ export class PlayTagger {
         stType: '', players: {}, grades: {}, custom: [], customFields: {}
       };
       play.notes = '';
-      this._updatePlaySelect();
-      this._updateTimeline();
+      this._updateFormEnabled();
       this._emit('play-updated', play);
     }
 
@@ -737,7 +691,6 @@ export class PlayTagger {
     // it just copied are forbidden and must be stripped (ST invariant, any op).
     this._stripStAlignment(play);
     this._loadTagForm(play);
-    this._updateTimeline();
     this._emit('play-updated', play);
   }
 
@@ -787,7 +740,6 @@ export class PlayTagger {
     // mis-tagged play); strip it when the result is special (ST invariant).
     this._stripStAlignment(play);
     this._loadTagForm(play);
-    this._updateTimeline();
     this._emit('play-updated', play);
   }
 
@@ -965,10 +917,7 @@ export class PlayTagger {
     const play = this.getPlay(id);
     this._updateFormEnabled();
     if (!play) return;
-
-    this.playSelect.value = id;
     this._loadTagForm(play);
-    this._updateTimeline();
 
     // If this play is tied to a clip, emit event so playlist can switch.
     // Otherwise seek within the current video (single-video mode).
@@ -1043,8 +992,6 @@ export class PlayTagger {
     if (key === 'yardage' || key === 'result') {
       this._applyYardageSign(play);
     }
-
-    this._updateTimeline();
     this._emit('play-updated', play);
   }
 
@@ -1167,7 +1114,6 @@ export class PlayTagger {
       }
     }
     if (!changed) return;
-    this._updateTimeline();
     this._emit('play-updated', play);
   }
 
@@ -1639,7 +1585,6 @@ export class PlayTagger {
       }
       if (changed) {
         this._loadTagForm(next);
-        this._updateTimeline();
         this._emit('play-updated', next);
       }
       return;
@@ -1652,7 +1597,6 @@ export class PlayTagger {
     if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
     next._autoSit = true;
     this._loadTagForm(next);
-    this._updateTimeline();
     this._emit('play-updated', next);
   }
 
@@ -1691,151 +1635,7 @@ export class PlayTagger {
     });
   }
 
-  _updatePlaySelect() {
-    const currentVal = this.currentPlayId;
-    // "No plays yet" — this placeholder shows when the game has NO plays; it
-    // used to say "No plays tagged", which misread as a tagging-status claim.
-    this.playSelect.innerHTML = '<option value="">No plays yet</option>';
-    this.plays.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      let label;
-      if (p.clipName) {
-        label = `Play ${p.id}: ${p.clipName}`;
-      } else {
-        label = `Play ${p.id}: ${this._fmt(p.timestamp.start)}-${this._fmt(p.timestamp.end)}`;
-      }
-      const type = p.tags.playType ? ` (${p.tags.playType})` : '';
-      opt.textContent = label + type;
-      this.playSelect.appendChild(opt);
-    });
-    if (currentVal) this.playSelect.value = currentVal;
-    this._updateFormEnabled();
-  }
-
-  /**
-   * Timeline segment color class. Run/pass come from the run-pass classifier;
-   * otherwise a TAGGED non-run/pass snap (special teams, penalty, defense with
-   * no run/pass) is 'other', and only a genuinely UNTAGGED play is 'untagged'.
-   * Without the split, a tagged kick-return rendered identically to an empty
-   * play (both fell through to the gray 'other'), so tagged ST/defense snaps
-   * looked untagged on the strip. isPlayTagged is the shared "is this tagged"
-   * rule (same one the counter + Film Room grid use).
-   */
-  _timelineTypeClass(p) {
-    const rp = p.tags.runPass;
-    const t = (p.tags.playType || '').toLowerCase();
-    if (rp === 'Run' || (!rp && t.includes('run'))) return 'run';
-    if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) return 'pass';
-    return isPlayTagged(p) ? 'other' : 'untagged';
-  }
-
-  _updateTimeline() {
-    this.timelineBar.innerHTML = '';
-    this.timelineBar.style.width = '';   // reset any high-N expansion
-
-    // Multi-clip mode: per-play timestamps are all clip-relative (0..clipDur),
-    // so positioning them against the CURRENT clip's duration stacks every
-    // play at left:0. Render one equal segment per play in playlist order
-    // instead — the strip becomes a clip navigator.
-    const playlist = this.playlist;
-    if (playlist && playlist.hasClips) {
-      const n = this.plays.length;
-      if (!n) return;
-      this.plays.forEach((p, i) => {
-        const div = document.createElement('div');
-        const typeClass = this._timelineTypeClass(p);
-        div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
-        div.style.left = (i / n) * 100 + '%';
-        div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
-        div.textContent = n <= 40 ? `${p.id}` : '';
-        div.title = `Play ${p.id}: ${p.tags.playType || p.tags.stType || p.tags.defFront || (isPlayTagged(p) ? 'tagged' : 'Untagged')}`;
-        div.addEventListener('click', () => this.selectPlay(p.id));
-        this.timelineBar.appendChild(div);
-      });
-      // Expand AFTER appending: while the bar is empty the strip is
-      // display:none (the :empty collapse), so clientWidth reads 0.
-      this._expandTimelineFor(n);
-      this._centerActiveTimeline();
-      return;
-    }
-
-    const duration = this.vc.duration;
-    if (!duration) return;
-
-    this.plays.forEach(p => {
-      const left = (p.timestamp.start / duration) * 100;
-      const width = ((p.timestamp.end - p.timestamp.start) / duration) * 100;
-      const div = document.createElement('div');
-
-      const typeClass = this._timelineTypeClass(p);
-
-      div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
-      div.style.left = left + '%';
-      div.style.width = Math.max(width, 0.5) + '%';
-      div.textContent = `${p.id}`;
-      div.title = `Play ${p.id}: ${p.tags.playType || p.tags.stType || p.tags.defFront || (isPlayTagged(p) ? 'tagged' : 'Untagged')}`;
-      div.addEventListener('click', () => this.selectPlay(p.id));
-      this.timelineBar.appendChild(div);
-    });
-    this._expandTimelineFor(this.plays.length);
-    this._centerActiveTimeline();
-  }
-
-  /** High clip counts turned the Field Strip into un-clickable slivers
-   *  (81 clips ≈ 6px each). Guarantee each marker ~16px by widening the BAR
-   *  (markers are %-positioned, so they scale with it) and letting the strip
-   *  scroll horizontally; the active play is kept centered in view. */
-  _expandTimelineFor(n) {
-    const MIN_MARKER = 16;
-    const strip = this.timelineBar.parentElement;
-    if (!strip) return;
-    const need = n * MIN_MARKER;
-    if (need > strip.clientWidth && strip.clientWidth > 0) {
-      this.timelineBar.style.width = need + 'px';
-    }
-    // Wheel scrolls the strip horizontally when it overflows (one-time bind).
-    if (!strip._ffaWheelBound) {
-      strip._ffaWheelBound = true;
-      strip.addEventListener('wheel', (e) => {
-        if (strip.scrollWidth <= strip.clientWidth) return;
-        e.preventDefault();
-        strip.scrollLeft += (e.deltaY || e.deltaX);
-      }, { passive: false });
-    }
-  }
-
-  _centerActiveTimeline() {
-    const strip = this.timelineBar.parentElement;
-    if (!strip || strip.scrollWidth <= strip.clientWidth) return;
-    const act = this.timelineBar.querySelector('.timeline-play.active');
-    if (!act) return;
-    strip.scrollLeft = act.offsetLeft - strip.clientWidth / 2 + act.offsetWidth / 2;
-  }
-
-  // Also update scrub bar play markers
-  updateScrubBarPlays() {
-    const container = document.getElementById('scrubBarPlays');
-    if (!container) return;
-    container.innerHTML = '';
-    // Multi-clip mode: clip-relative timestamps would draw one overlapping
-    // blob over the whole bar — the scrub bar tracks ONE clip, so skip them.
-    if (this.playlist && this.playlist.hasClips) return;
-    const duration = this.vc.duration;
-    if (!duration) return;
-
-    this.plays.forEach(p => {
-      const left = (p.timestamp.start / duration) * 100;
-      const width = ((p.timestamp.end - p.timestamp.start) / duration) * 100;
-      const marker = document.createElement('div');
-      marker.className = 'play-marker';
-      marker.style.left = left + '%';
-      marker.style.width = Math.max(width, 0.3) + '%';
-      container.appendChild(marker);
-    });
-  }
-
-  _fmt(sec) {
+_fmt(sec) {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;

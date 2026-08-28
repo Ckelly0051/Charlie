@@ -34,7 +34,7 @@ export class BreakdownTheaterScreen {
   }
 
   _bindDomainEvents() {
-    ['video-loaded', 'video-unloaded', 'play-state-change']
+    ['video-loaded', 'video-unloaded', 'play-state-change', 'loop-change', 'rate-change']
       .forEach(event => this.app.vc?.on(event, () => this._publish()));
     this.app.vc?.on('time-update', () => {
       if ((document.fullscreenElement || document.webkitFullscreenElement) === this.fullscreenTarget) {
@@ -459,8 +459,7 @@ export class BreakdownTheaterScreen {
 
   setSpeed(value) {
     const rate = Number(value) || 1;
-    this.app.vc.videoElement.playbackRate = rate;
-    if (this.app.vc.speedSelect) this.app.vc.speedSelect.value = String(rate);
+    this.app.vc.setPlaybackRate?.(rate);
     this._publish();
   }
 
@@ -496,8 +495,6 @@ export class BreakdownTheaterScreen {
   deletePlay() { return this.app.tagger?.deleteCurrentPlay?.(); }
   setAutoplay(enabled) {
     this.app.autoPlayNext = !!enabled;
-    const legacy = document.getElementById('autoplayNextToggle');
-    if (legacy) legacy.checked = this.app.autoPlayNext;
     try { localStorage.setItem('ffa_autoplay_next', this.app.autoPlayNext ? '1' : '0'); } catch {}
     this._publish();
   }

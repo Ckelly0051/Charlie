@@ -16,7 +16,7 @@ await page.evaluate(async()=>{
   await app.storage.createSeason({name:'S5d Geometry',team:'Mavericks',year:'2026'});
   const game=app.storage.seasonStore.activeGame();
   game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',down:'1',distance:'10',formation:'I-Form',backfield:'I',runPass:'Run',playType:'Run Inside',result:'Gain',yardage:'6',players:{},grades:{},custom:[]}}];
-  app.tagger.plays=game.plays;app.tagger.nextId=2;app.tagger._updatePlaySelect();app.tagger._updateTimeline();app.tagger._emit('plays-loaded');app.tagger.selectPlay(1);
+  app.tagger.plays=game.plays;app.tagger.nextId=2;app.tagger._updateFormEnabled();app.tagger._emit('plays-loaded');app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
 });
 const measure=async(width,height,focus)=>{

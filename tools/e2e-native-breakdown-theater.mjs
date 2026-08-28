@@ -32,7 +32,7 @@ const mounted = await page.evaluate(async () => {
       result: index === 6 ? 'Interception + Touchdown' : index === 9 ? 'Touchdown' : 'Gain',
       yardage: index === 6 ? '-12' : String(index + 2), players: {}, grades: {}, custom: [] }, notes: '', analysis: null,
   }));
-  app.tagger.plays = game.plays; app.tagger.nextId = 13; app.tagger._updatePlaySelect(); app.tagger._updateTimeline(); app.tagger._emit('plays-loaded'); app.tagger.selectPlay(1);
+  app.tagger.plays = game.plays; app.tagger.nextId = 13; app.tagger._updateFormEnabled();  app.tagger._emit('plays-loaded'); app.tagger.selectPlay(1);
   const before = JSON.stringify(app.storage.seasonStore.data);
   const media = document.getElementById('videoContainer');
   const host = document.createElement('div'); host.id = 's5aTestHost';
@@ -233,9 +233,9 @@ ok(Object.values(state).every(value => value === 1), 'Transport, drawing, angle,
 
 await page.click('.gi-autoplay-toggle input');
 state = await page.evaluate(() => ({ app: window.app.autoPlayNext,
-  stored: localStorage.getItem('ffa_autoplay_next'), legacy: document.getElementById('autoplayNextToggle').checked }));
-ok(state.app === false && state.stored === '0' && state.legacy === false,
-  'Autoplay stays synchronized across native, app, storage, and compatibility state', JSON.stringify(state));
+  stored: localStorage.getItem('ffa_autoplay_next'), obsoleteControl: !!document.getElementById('autoplayNextToggle') }));
+ok(state.app === false && state.stored === '0' && state.obsoleteControl === false,
+  'Autoplay persists through native state with no hidden compatibility control', JSON.stringify(state));
 
 if (shotDir) await (await page.$('.gi-breakdown-theater')).screenshot({ path: path.join(shotDir, 'breakdown-theater-1440.png') });
 console.log('\n== 3. Theater geometry spends the viewport on film ==');
@@ -394,10 +394,13 @@ const d2 = await page.evaluate(async () => {
     parkedInApp: !!parked?.closest('#app'),
     // The theater's captured home must BE the permanent host, not legacy markup.
     homeOutsideApp: !!theater._home?.parent && !theater._home.parent.closest('#app'),
-    // Every piece of the media foundation travelled together.
-    pieces: ['videoPlayer', 'drawingCanvas', 'angleWrapper2', 'videoPlayer2',
-             'btnPlayPause', 'scrubBar', 'timelineBar', 'playSelect']
+    // The permanent host owns media only; controls belong to the native theater.
+    mediaPieces: ['videoPlayer', 'drawingCanvas', 'angleWrapper2', 'videoPlayer2',
+                  'videoPlaceholder', 'videoLoadState']
       .filter(id => !!document.getElementById(id)?.closest('#giMediaHost, .gi-theater-media-slot')),
+    retiredControls: ['btnPlayPause', 'scrubBar', 'timelineBar', 'playSelect',
+                      'btnMarkStart', 'btnMarkEnd', 'angleControls']
+      .filter(id => !!document.getElementById(id)),
   };
   await app.workspaceShell.show('breakdown');
   await new Promise(r => setTimeout(r, 400));
@@ -408,8 +411,8 @@ ok(d2.hostExists && d2.hostOutsideApp,
   'A permanent media host exists on body, outside the legacy shell', JSON.stringify(d2));
 ok(d2.parkedInHost && !d2.parkedInApp && d2.homeOutsideApp,
   'Restoring the theater parks the media in the permanent host, never back inside #app', JSON.stringify(d2));
-ok(d2.pieces.length === 8,
-  'Video, canvas, multi-angle, transport, scrub/timeline and play controls all moved together', JSON.stringify(d2));
+ok(d2.mediaPieces.length === 6 && d2.retiredControls.length === 0,
+  'The permanent host parks canonical media while native theater owns all controls', JSON.stringify(d2));
 ok(d2.remountedOutsideApp,
   'Re-entering Break Down re-adopts the media without reaching into the legacy shell', JSON.stringify(d2));
 

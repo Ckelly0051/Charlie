@@ -33,8 +33,7 @@ let state = await page.evaluate(async () => {
   ];
   app.tagger.plays = game.plays;
   app.tagger.nextId = 4;
-  app.tagger._updatePlaySelect();
-  app.tagger._updateTimeline();
+  app.tagger._updateFormEnabled();
   app.tagger._emit('plays-loaded');
   app.tagger.selectPlay(1);
   const before = JSON.stringify(app.storage.seasonStore.data);

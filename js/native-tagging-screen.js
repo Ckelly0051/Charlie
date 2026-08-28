@@ -163,7 +163,6 @@ export class NativeTaggingScreen {
     if (!play || !StatsEngine.hasResult(play, 'Fumble')) return false;
     const owner = ['subject', 'opponent', 'unknown'].includes(value) ? value : 'unknown';
     play.tags.fumbleRecovery = owner;
-    this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
     this._queuePublish();
     return true;
@@ -185,7 +184,6 @@ export class NativeTaggingScreen {
     PlayCallModel.apply(play, value, this.app.playbook,
       playType => this.tagger?.constructor?.runPassForPlayType?.(playType));
     this.tagger._loadTagForm(play);
-    this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
     this._queuePublish();
     return true;

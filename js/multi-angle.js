@@ -30,32 +30,11 @@ export class MultiAngle {
   }
 
   _bindUI() {
-    const btnAdd = document.getElementById('btnAddAngle');
     const fileInput = document.getElementById('angle2FileInput');
-    const btnRemove = document.getElementById('btnRemoveAngle');
-    const viewSelect = document.getElementById('angleViewMode');
-    const btnSwap = document.getElementById('btnSwapAngle');
-    const offsetInput = document.getElementById('angleSyncOffset');
-
-    if (btnAdd && fileInput) {
-      btnAdd.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) this.loadAngle2(file);
-        fileInput.value = '';
-      });
-    }
-
-    btnRemove?.addEventListener('click', () => this.removeAngle2());
-    btnSwap?.addEventListener('click', () => this.swapActive());
-
-    viewSelect?.addEventListener('change', () => {
-      this.setViewMode(viewSelect.value);
-    });
-
-    offsetInput?.addEventListener('change', () => {
-      this.offset = parseFloat(offsetInput.value) || 0;
-      this._syncTime();
+    fileInput?.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) this.loadAngle2(file);
+      event.target.value = '';
     });
 
     const wrapper2 = document.getElementById('angleWrapper2');
@@ -113,8 +92,6 @@ export class MultiAngle {
     if (!this._userSetViewMode) {
       const mode = window.innerWidth >= 1100 ? 'sideBySide' : 'single';
       this.viewMode = mode;
-      const vs = document.getElementById('angleViewMode');
-      if (vs) vs.value = mode;
     }
 
     this._updateUI();
@@ -157,19 +134,8 @@ export class MultiAngle {
   _updateUI() {
     const c = this.container;
     if (!c) return;
-
-    const info = document.getElementById('angle2Info');
-    const nameEl = document.getElementById('angle2Name');
     const label1 = document.getElementById('angleLabel1');
     const label2 = document.getElementById('angleLabel2');
-
-    if (info) info.classList.toggle('hidden', !this.enabled);
-    // The angle-controls row now collapses when no 2nd angle is loaded (the
-    // +Angle button moved into the play-control bar), so only reveal the row's
-    // 2nd-angle controls when one is actually active.
-    const ac = document.getElementById('angleControls');
-    if (ac) ac.classList.toggle('ang-open', this.enabled);
-    if (nameEl) nameEl.textContent = this.enabled ? this.angle2Name : '';
 
     c.classList.toggle('has-angle2', this.enabled);
     c.classList.remove('angle-single', 'angle-sbs', 'angle-pip');

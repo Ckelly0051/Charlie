@@ -16,7 +16,7 @@ const fixture=await page.evaluate(async()=>{
   await app.storage.createSeason({name:'S5d Native Breakdown',team:'Mavericks',year:'2026'});
   const game=app.storage.seasonStore.activeGame();
   game.plays=Array.from({length:12},(_,index)=>({id:index+1,timestamp:{start:index*7,end:index*7+5},notes:'',tags:{unit:'offense',down:String(index%4+1),distance:'10',formation:index%2?'Trips':'I-Form',backfield:index%2?'Single':'I',runPass:index%2?'Pass':'Run',playType:index%2?'Short Pass':'Run Inside',result:'Gain',yardage:String(index+1),players:{},grades:{},custom:[]}}));
-  app.tagger.plays=game.plays;app.tagger.nextId=13;app.tagger._updatePlaySelect();app.tagger._updateTimeline();app.tagger._emit('plays-loaded');app.tagger.selectPlay(1);
+  app.tagger.plays=game.plays;app.tagger.nextId=13;app.tagger._updateFormEnabled();app.tagger._emit('plays-loaded');app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   return {gameId:game.id};

@@ -749,17 +749,6 @@ class App {
       this.tagger.createWholeVideoPlay(duration, this.vc.currentFile?.name || '');
     });
 
-    // Update timeline markers when plays change
-    this.tagger.on('play-created', () => {
-      this.tagger.updateScrubBarPlays();
-    });
-    this.tagger.on('play-deleted', () => {
-      this.tagger.updateScrubBarPlays();
-    });
-    this.tagger.on('play-updated', () => {
-      this.tagger.updateScrubBarPlays();
-    });
-
     // When a play is selected and it has a clip, switch the playlist to that clip
     this.tagger.on('play-selected', (play) => {
       if (play.clipId && this.playlist.hasClips) {
@@ -1211,15 +1200,6 @@ class App {
     const yardsMinus = document.getElementById('yardsMinus');
     const yardsPlus = document.getElementById('yardsPlus');
     const yardsInput = document.getElementById('tagYardage');
-    const autoplayNext = document.getElementById('autoplayNextToggle');
-
-    if (autoplayNext) {
-      autoplayNext.checked = this.autoPlayNext;
-      autoplayNext.addEventListener('change', () => {
-        this.autoPlayNext = autoplayNext.checked;
-        try { localStorage.setItem('ffa_autoplay_next', this.autoPlayNext ? '1' : '0'); } catch {}
-      });
-    }
 
     btnPrev?.addEventListener('click', () => {
       this.notes?.flush();

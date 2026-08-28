@@ -1454,9 +1454,7 @@ export class StorageManager {
       window.app.roster.loadFrom(data.roster);
     }
 
-    this.tagger._updatePlaySelect();
-    this.tagger._updateTimeline();
-    this.tagger.updateScrubBarPlays();
+    this.tagger._updateFormEnabled();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
 
     if (data.currentPlayId) {
@@ -1653,7 +1651,7 @@ export class StorageManager {
 
     // Draw annotations on top (scale from normalized to video resolution)
     const currentTime = this.vc.currentTime;
-    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value, 10) || 30);
+    const frameDur = 1 / (Number(this.vc.fps) || 30);
 
     for (const a of this.canvas.annotations) {
       if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
@@ -1964,9 +1962,7 @@ export class StorageManager {
     }
 
     if (count > 0) {
-      this.tagger._updatePlaySelect();
-      this.tagger._updateTimeline();
-      this.tagger.updateScrubBarPlays();
+      this.tagger._updateFormEnabled();
       this.tagger._emit('play-created');
     }
 

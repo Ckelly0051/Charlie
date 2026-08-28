@@ -14,29 +14,15 @@ export class VideoController {
     this.folderLoadBadge = document.getElementById('folderLoadBadge');
     this.dropZone = document.getElementById('videoDropZone');
     this.fileLabel = document.getElementById('fileLabel');
-    this.btnPlayPause = document.getElementById('btnPlayPause');
-    this.iconPlayPause = document.getElementById('iconPlayPause');
-    this.btnStepBack = document.getElementById('btnStepBack');
-    this.btnStepForward = document.getElementById('btnStepForward');
-    this.timeDisplay = document.getElementById('timeDisplay');
-    this.scrubBar = document.getElementById('scrubBar');
-    this.scrubBarFill = document.getElementById('scrubBarFill');
-    this.scrubBarHandle = document.getElementById('scrubBarHandle');
-    this.speedSelect = document.getElementById('speedSelect');
-    this.fpsInput = document.getElementById('fpsInput');
-    this.btnLoop = document.getElementById('btnLoop');
-    this.btnLoopA = document.getElementById('btnLoopA');
-    this.btnLoopB = document.getElementById('btnLoopB');
 
     this.fps = 30;
+    this.playbackRate = 1;
     // S7-d2: the loaded film's display name lives here, not in #fileLabel.
     // _handleMediaError used to read the name back out of that label's
     // textContent — the top-bar label was acting as state, and it is markup
     // S7-d8 deletes. The label is now an optional MIRROR of this field.
     this.currentFileName = '';
     this.objectUrl = null;
-    this.isScrubbing = false;
-    this._wasPlayingBeforeScrub = false;
     // Loop playback. loopRegion = { start, end }; loopMode = 'play' | 'ab' | null.
     this.loopRegion = null;
     this.loopMode = null;
@@ -49,7 +35,6 @@ export class VideoController {
     // mid-retry on.
     this.corsBlocked = false;
     this._corsRetryPending = null;
-    this._lastTimeText = '';
 
     this._bindEvents();
   }
@@ -98,26 +83,6 @@ export class VideoController {
     this._bindDropTarget(this.dropZone);
     this._bindDropTarget(this.placeholder);
 
-    // Playback controls
-    this.btnPlayPause.addEventListener('click', () => this.togglePlay());
-    this.btnStepBack.addEventListener('click', () => this.stepBack());
-    this.btnStepForward.addEventListener('click', () => this.stepForward());
-
-    // Loop controls
-    if (this.btnLoop) this.btnLoop.addEventListener('click', () => this.toggleLoopPlay());
-    if (this.btnLoopA) this.btnLoopA.addEventListener('click', () => this.setLoopA());
-    if (this.btnLoopB) this.btnLoopB.addEventListener('click', () => this.setLoopB());
-
-    // Speed
-    this.speedSelect.addEventListener('change', () => {
-      this.video.playbackRate = parseFloat(this.speedSelect.value);
-    });
-
-    // FPS
-    this.fpsInput.addEventListener('change', () => {
-      this.fps = parseInt(this.fpsInput.value) || 30;
-    });
-
     // Video events
     this.video.addEventListener('loadedmetadata', () => {
       // A load that reaches metadata is valid — if it was a no-crossOrigin
@@ -125,9 +90,8 @@ export class VideoController {
       // the next clip switch, so we don't re-error+retry on every clip.
       this._promoteCorsRetry();
       this.placeholder.classList.add('hidden');
-      this._updateTime();
       // Reapply playback speed — the load algorithm resets playbackRate to 1.0
-      const rate = parseFloat(this.speedSelect.value) || 1;
+      const rate = this.playbackRate || 1;
       if (this.video.playbackRate !== rate) this.video.playbackRate = rate;
       this._emit('video-loaded', {
         duration: this.video.duration,
@@ -138,31 +102,24 @@ export class VideoController {
 
     this.video.addEventListener('timeupdate', () => {
       // Loop: jump back to the region start once we pass the end.
-      if (this.loopRegion && !this.isScrubbing) {
+      if (this.loopRegion) {
         if (this.video.currentTime >= this.loopRegion.end - 0.02 ||
             this.video.currentTime < this.loopRegion.start - 0.3) {
           this.video.currentTime = this.loopRegion.start;
         }
       }
-      if (!this.isScrubbing) {
-        this._updateScrubBar();
-        this._updateTime();
-      }
       this._emit('time-update', { time: this.video.currentTime });
     });
 
     this.video.addEventListener('play', () => {
-      this._updatePlayPauseIcon(true);
       this._emit('play-state-change', { playing: true });
     });
 
     this.video.addEventListener('pause', () => {
-      this._updatePlayPauseIcon(false);
       this._emit('play-state-change', { playing: false });
     });
 
     this.video.addEventListener('ended', () => {
-      this._updatePlayPauseIcon(false);
       this._emit('video-ended', {});
     });
 
@@ -190,20 +147,6 @@ export class VideoController {
       this._setLoadState();
     });
 
-    // Scrub bar interaction (pointer events cover mouse + touch)
-    this.scrubBar.addEventListener('pointerdown', (e) => {
-      this.scrubBar.setPointerCapture(e.pointerId);
-      this._startScrub(e);
-    });
-    this.scrubBar.addEventListener('pointermove', (e) => {
-      if (this.isScrubbing) this._doScrub(e);
-    });
-    this.scrubBar.addEventListener('pointerup', (e) => {
-      if (this.isScrubbing) {
-        this.scrubBar.releasePointerCapture(e.pointerId);
-        this._endScrub();
-      }
-    });
   }
 
   /**
@@ -277,7 +220,6 @@ export class VideoController {
 
   _handleMediaError() {
     this.video.classList.remove('is-buffering');
-    this._updatePlayPauseIcon(false);
     if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
     const me = this.video.error;
     const code = me ? me.code : '?';
@@ -345,9 +287,6 @@ export class VideoController {
     if (this.placeholder) this.placeholder.classList.remove('hidden');
     this._setFilmStatus('Drop video(s) / folder or click to load');
     if (this.folderLoadBadge) this.folderLoadBadge.classList.add('hidden');
-    this._setScrubPosition(0);
-    this._updatePlayPauseIcon(false);
-    if (this.timeDisplay) this.timeDisplay.textContent = '0:00 / 0:00';
     this._emit('video-unloaded', {});
   }
 
@@ -464,9 +403,7 @@ export class VideoController {
   togglePlay() {
     if (!this.video.src) return;
     if (this.video.paused) {
-      this.video.play().catch(() => {
-        this._updatePlayPauseIcon(false);
-      });
+      this.video.play().catch(() => {});
     } else {
       this.video.pause();
     }
@@ -518,9 +455,7 @@ export class VideoController {
   }
 
   _updateLoopUI() {
-    if (this.btnLoop) this.btnLoop.classList.toggle('active', this.loopMode === 'play');
-    if (this.btnLoopA) this.btnLoopA.classList.toggle('set', this._abA != null || this.loopMode === 'ab');
-    if (this.btnLoopB) this.btnLoopB.classList.toggle('set', this.loopMode === 'ab');
+    this._emit('loop-change', { mode: this.loopMode, region: this.loopRegion });
   }
 
   stepForward() {
@@ -530,8 +465,6 @@ export class VideoController {
       this.video.currentTime + 1 / this.fps,
       this.video.duration
     );
-    this._updateScrubBar();
-    this._updateTime();
     this._emit('time-update', { time: this.video.currentTime });
   }
 
@@ -539,16 +472,12 @@ export class VideoController {
     if (!this.video.src) return;
     this.video.pause();
     this.video.currentTime = Math.max(this.video.currentTime - 1 / this.fps, 0);
-    this._updateScrubBar();
-    this._updateTime();
     this._emit('time-update', { time: this.video.currentTime });
   }
 
   seekTo(time) {
     if (!this.video.src || !isFinite(this.video.duration)) return;
     this.video.currentTime = Math.max(0, Math.min(time, this.video.duration));
-    this._updateScrubBar();
-    this._updateTime();
   }
 
   get currentTime() {
@@ -567,69 +496,18 @@ export class VideoController {
     return this.video;
   }
 
-  _startScrub(e) {
-    this._wasPlayingBeforeScrub = !this.video.paused;
-    if (this._wasPlayingBeforeScrub) this.video.pause();
-    this.isScrubbing = true;
-    this._doScrub(e);
+  setPlaybackRate(rate) {
+    const next = Number(rate);
+    this.playbackRate = Number.isFinite(next) && next > 0 ? next : 1;
+    this.video.playbackRate = this.playbackRate;
+    this._emit('rate-change', { rate: this.playbackRate });
+    return this.playbackRate;
   }
 
-  _doScrub(e) {
-    const rect = this.scrubBar.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    this.video.currentTime = pct * this.video.duration;
-    this._setScrubPosition(pct);
-    this._updateTime();
-    this._emit('time-update', { time: this.video.currentTime });
-  }
-
-  _endScrub() {
-    this.isScrubbing = false;
-    if (this._wasPlayingBeforeScrub) {
-      this.video.play().catch(() => {
-        this._updatePlayPauseIcon(false);
-      });
-      this._wasPlayingBeforeScrub = false;
-    }
-  }
-
-  _updateScrubBar() {
-    if (!this.video.duration) return;
-    const pct = this.video.currentTime / this.video.duration;
-    this._setScrubPosition(pct);
-  }
-
-  _setScrubPosition(pct) {
-    pct = Math.max(0, Math.min(1, Number(pct) || 0));
-    const pctStr = (pct * 100) + '%';
-    // Transform stays on the compositor; animating width forced layout during
-    // playback and made high-resolution desktop film feel less stable.
-    this.scrubBarFill.style.transform = `scaleX(${pct})`;
-    this.scrubBarHandle.style.left = pctStr;
-  }
-
-  _updateTime() {
-    const cur = this._formatTime(this.video.currentTime);
-    const dur = this._formatTime(this.video.duration || 0);
-    const text = `${cur} / ${dur}`;
-    if (text !== this._lastTimeText) {
-      this.timeDisplay.textContent = text;
-      this._lastTimeText = text;
-    }
-  }
-
-  _formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  }
-
-  _updatePlayPauseIcon(playing) {
-    const use = this.iconPlayPause.querySelector('use');
-    if (use) {
-      use.setAttribute('href', `assets/icons.svg#icon-${playing ? 'pause' : 'play'}`);
-    }
+  setFrameRate(fps) {
+    const next = Number(fps);
+    this.fps = Number.isFinite(next) && next > 0 ? next : 30;
+    return this.fps;
   }
 
   // Simple event system

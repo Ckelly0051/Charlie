@@ -25,9 +25,6 @@ export class PlaylistManager {
     this.clipCountEl = document.getElementById('clipCount');
     this.btnAddClips = document.getElementById('btnAddClips');
     this.clipFileInput = document.getElementById('clipFileInput');
-    this.btnPrevClip = document.getElementById('btnPrevClip');
-    this.btnNextClip = document.getElementById('btnNextClip');
-    this.clipIndicator = document.getElementById('clipIndicator');
 
     this._nextClipId = 1;
     this._nextPreloadEl = null;
@@ -51,8 +48,6 @@ export class PlaylistManager {
     });
 
     // Prev/next clip
-    this.btnPrevClip?.addEventListener('click', () => this.prevClip());
-    this.btnNextClip?.addEventListener('click', () => this.nextClip());
 
     // Drop handling is centralized in VideoController → files-selected → App.
     // No duplicate handler here — that caused double-adds.
@@ -158,7 +153,6 @@ export class PlaylistManager {
     const relinked = this._relinkSavedPlays(newClips, liveIds);
 
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._updateClipCount();
 
     // Persist genuinely-new film to the desktop library through the single
@@ -307,10 +301,8 @@ export class PlaylistManager {
     // correct game, so this can never misplace or lose them.
     this._backfillDurations(newClips);
 
-    this.tagger._updatePlaySelect();
-    this.tagger._updateTimeline();
+    this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._updateClipCount();
     // Plays were pushed directly (not via tagger.createPlay), so listeners —
     // the Film Room grid, the play strip — only hear about them via this emit
@@ -424,7 +416,6 @@ export class PlaylistManager {
     for (const entry of entries) this.clips.push(entry);
 
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._updateClipCount();
   }
 
@@ -459,10 +450,8 @@ export class PlaylistManager {
       this.clips.push(clip);
     }
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._updateClipCount();
-    this.tagger._updatePlaySelect();
-    this.tagger._updateTimeline();
+    this.tagger._updateFormEnabled();
 
     const cur = this.tagger.getCurrentPlay();
     if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
@@ -558,16 +547,13 @@ export class PlaylistManager {
       this.tagger.currentPlayId = clip.playId;
       const play = this.tagger.getPlay(clip.playId);
       if (play) {
-        this.tagger.playSelect.value = clip.playId;
         this.tagger._loadTagForm(play);
-        this.tagger._updateTimeline();
         this.tagger._emit('play-selected', play);
       }
     }
 
     this._preloadNext(index);
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._emit('clip-switched', { index, clip });
   }
 
@@ -633,10 +619,8 @@ export class PlaylistManager {
     // index > activeClipIndex: the active clip's position is unchanged.
     if (this.clips.length && !wasActive) this._preloadNext(this.activeClipIndex);
 
-    this.tagger._updatePlaySelect();
-    this.tagger._updateTimeline();
+    this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._updateClipCount();
     // The playlist panel's per-clip ✕ calls this directly (not through
     // tagger.deleteCurrentPlay), so the play removal must be announced here
@@ -659,7 +643,6 @@ export class PlaylistManager {
     this.activeClipIndex = -1;
     this._nextClipId = 1;
     this._updatePlaylistUI();
-    this._updateClipIndicator();
     this._updateClipCount();
   }
 
@@ -715,14 +698,6 @@ export class PlaylistManager {
     });
   }
 
-  _updateClipIndicator() {
-    if (!this.clipIndicator) return;
-    if (this.clips.length === 0) {
-      this.clipIndicator.textContent = '';
-    } else {
-      this.clipIndicator.textContent = `Clip ${this.activeClipIndex + 1}/${this.clips.length}`;
-    }
-  }
 
   _updateClipCount() {
     if (!this.clipCountEl) return;

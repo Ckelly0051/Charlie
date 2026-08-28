@@ -18,7 +18,6 @@ export class BreakdownChartingService {
   _savePenaltyPlay(play, invalidateSituation = false) {
     if (invalidateSituation && play.resultingSituation?.confirmed) play.resultingSituation.confirmed = false;
     PenaltyModel.normalizePlay(play);
-    this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
     return true;
   }
@@ -86,7 +85,6 @@ export class BreakdownChartingService {
     if (!play || !current) return false;
     update(current);
     play.specialTeams = SpecialTeamsModel.normalize(current);
-    this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
     return true;
   }
@@ -113,7 +111,6 @@ export class BreakdownChartingService {
       if (!ok) return false;
     }
     play.specialTeams = this._newSpecial(unit);
-    this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
     return true;
   }
