@@ -1,3 +1,10 @@
+### CODEX FINAL REPORTS ISLAND RETIREMENT (2026-08-27)
+
+The last live Reports presentation islands are now removed rather than hidden. Offense Heat Maps and Visualizations render as real Preact components over the new pure `report-visual-data.js` seam; interactive field dots call the canonical film-navigation boundary directly with exact composite refs. The obsolete `HeatMaps`, `Visualizations`, `LegacyWidget`, and generic `ReportPane` HTML fallback are deleted. The only raw failure write left is the deliberate outer-host emergency path used when the Preact Reports content root itself does not exist.
+
+Adversarial verification caught two defects before commit: field-map dots initially omitted their exact identity attributes, which broke cross-game duplicate-id film routing, and Team Profile never applied its existing layout class, stranding a small radar in a full-width empty band. Both are repaired. Production build is green; native Reports is 93/93; report-view parity is 7/7; analytics parity is 2/2. The migrated Offense visual deck was captured and inspected at desktop width after the layout repair.
+
+Documentation correction: the 2026-08-26 Reports-retirement entry below overstated completion while these two Offense widgets and the generic pane fallback remained. This checkpoint closes that specific gap; `ChartBody` remains a narrow trusted adapter for pure SVG returned by `Charts.*`, not a StatsEngine/Reports renderer or interactive legacy island.
 # GridIron IQ — Architecture & Reference
 
 > Formerly "Football Film Analyzer". The product is now branded **GridIron IQ**;

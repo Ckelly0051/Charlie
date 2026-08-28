@@ -82,8 +82,13 @@ export class ReportsScreen {
   }
 
   _renderFailure(message) {
+    if (this.content) {
+      const failure = h('div', { class: 'stats-section gi-reports-empty gi-reports-failure', role: 'alert' },
+        h('h3', null, 'Reports unavailable'), h('p', null, String(message || '')));
+      render(h(ReportPane, { tab: 'failure' }, failure), this.content);
+      return;
+    }
     const html = `<section class="gi-report-pane stats-section gi-reports-empty gi-reports-failure" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
-    if (this.content) { render(h(ReportPane, { tab: 'failure', html }), this.content); return; }
     // The one legitimate case for a raw write: `this.content` itself is
     // absent, so there is no Preact root left to render into and the outer
     // native chrome (host) is the only thing left to show anything at all.

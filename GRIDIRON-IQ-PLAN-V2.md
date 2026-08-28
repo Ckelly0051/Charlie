@@ -404,6 +404,13 @@ Retain every meaningful production field while reducing everyday clutter.
 > future visual composition, or mobile work. Retained StatsEngine code is football
 > analytics, film resolution, or the active PDF export path, not a second UI.
 >
+> **Final island correction (2026-08-27):** The prior completion note was
+> premature: Offense Heat Maps and Visualizations still entered the native route
+> through LegacyWidget, and ReportPane retained a generic raw-HTML fallback.
+> Those islands and their obsolete source modules are now deleted. Both sections
+> are native Preact over structured data with direct, exact-film actions; the
+> migrated desktop composition was visually inspected.
+>
 
 > **STUDY PRESENTATION INDEPENDENCE (completed 2026-08-26):**
 > The live Study route is now one Preact-owned analytical workspace. Query

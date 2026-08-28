@@ -8,10 +8,10 @@
  * post-render DOM query/rebind pass.
  */
 import { useState } from 'preact/hooks';
-import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, LegacyWidget, Gauge, DefMark, EmptyState } from './native-report-kit.jsx';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, Gauge, DefMark, EmptyState } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
-import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
+import { NativeHeatMaps, NativeOffenseVisualizations } from './native-offense-visuals.jsx';
 
 const breakdownColumns = [
   { key: 'name', label: 'Name' }, { key: 'count', label: 'Plays', numeric: true },
@@ -280,7 +280,7 @@ function TeamProfile({ profile }) {
   const best = axis => typeof axis.best === 'number'
     ? (Number.isInteger(axis.best) ? axis.best : axis.best.toFixed(1))
     : axis.best;
-  return <Module title="Team profile" meta="this game vs our season average">
+  return <Module title="Team profile" meta="this game vs our season average" cls="gi-team-profile">
     <div class="gi-tp-layout">
       <ChartBody html={chart} />
       <div class="gi-tp-table-wrap"><table class="stats-table gi-tp-table">
@@ -349,10 +349,8 @@ export function OffenseTab({ stats, screen }) {
           <tbody>{sit.byQuarter.map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody></table> : <p style="opacity:.6">No quarter data tagged.</p>}</div>
       </div>
     </Module> : null; })()}
-    <LegacyWidget html={engine.heatMaps.render(stats.offPlays)} bind={node => {
-      try { engine.heatMaps.bind(node); } catch { /* heat-map tab wiring */ }
-    }} />
-    <LegacyWidget html={Visualizations.render(stats.offPlays)} />
+    <NativeHeatMaps plays={stats.offPlays} screen={screen} />
+    <NativeOffenseVisualizations plays={stats.offPlays} />
     <TeamProfile profile={shape?.teamProfile} />
     <AdvancedEpa data={advanced} />
   </div>;
@@ -1221,21 +1219,9 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
     <div class="gi-selfscout-tier"><span>Defensive self-scout</span></div><SelfScoutDefense defScout={defScout} performance={performance} screen={screen}/>
   </div>;
 }
-export function ReportPane({ tab, html, children, opponent }) {
-  // The real fix for the LegacyHtml/component reconciliation hazard lives in
-  // ReportsScreen._renderActiveTab(), which calls `render(null, this.content)`
-  // before every tab switch — a genuine full unmount, so no diff is ever
-  // computed against a tree a LegacyHtml sibling's raw `innerHTML=` write may
-  // have invalidated. (Reproduced live: without it, switching straight from
-  // Defense (legacy) to Offense (native) left the OLD legacy empty-state text
-  // on screen with zero errors thrown anywhere.) `key` here is now inert
-  // (nothing survives the unmount for a key to distinguish) but harmless.
+export function ReportPane({ tab, children, opponent }) {
   return <section class="gi-report-pane stats-tab-pane active" data-native-main-report data-pane={tab}
     data-report-perspective-pane={opponent ? 'opponent' : undefined}>
-    {children != null ? <div key={`native-${tab}`}>{children}</div> : <LegacyHtml key={`legacy-${tab}`} html={html} />}
+    <div>{children}</div>
   </section>;
-}
-
-function LegacyHtml({ html }) {
-  return <div ref={el => { if (el && el.__lastHtml !== html) { el.innerHTML = html; el.__lastHtml = html; } }} />;
 }

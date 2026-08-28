@@ -1267,6 +1267,13 @@ ok(!shape.overflow, 'The visual deck does not push the page sideways', JSON.stri
 if (screenshotDir) {
   await page.evaluate(() => {
     window.app.reportsScreen.show();
+    window.app.reportsScreen.selectTab('offense');
+    document.querySelector('.heatmap-tabs')?.scrollIntoView({ block: 'start' });
+  });
+  await sleep(150);
+  await capture('desktop-offense-native-visuals');
+  await page.evaluate(() => {
+    window.app.reportsScreen.show();
     window.app.reportsScreen.defenseScope = 'season';
     window.app.reportsScreen.selectTab('defense');
   });

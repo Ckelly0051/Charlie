@@ -171,24 +171,6 @@ export function ChartBody({ note, html }) {
   return <div>{note ? <p class="viz-caption">{note}</p> : null}<div dangerouslySetInnerHTML={{ __html: html }} /></div>;
 }
 
-/** A DIFFERENT, narrower case than ChartBody: legacy HTML that owns genuine
- *  interactive behavior of its own (HeatMaps' multi-tab picker, whose tab
- *  switching and click-to-film wiring live in `heatMaps.bind(node)`, the
- *  same call `_bindContent`'s rebind pass used to make). `bind` runs via a
- *  ref callback exactly once per HTML change — never on every re-render —
- *  mirroring `ReportPane`'s own `LegacyHtml` idempotence guard. Reserved for
- *  the specific, disclosed widgets that still need it; not a general escape
- *  hatch. */
-export function LegacyWidget({ html, bind }) {
-  if (!html) return null;
-  return <div ref={el => {
-    if (!el || el.__lastHtml === html) return;
-    el.innerHTML = html;
-    el.__lastHtml = html;
-    try { bind?.(el); } catch { /* a disabled/missing owner must not break the tab */ }
-  }} />;
-}
-
 export function EmptyState({ title, body }) {
   return <div class="stats-section gi-reports-empty"><h3>{title}</h3><p>{body}</p></div>;
 }

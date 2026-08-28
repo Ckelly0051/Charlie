@@ -4,9 +4,7 @@
  * All stats are derived live from the play entries in PlayTagger.
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
-import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
-import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 import { AnalyticsMetrics } from './analytics-metrics.js';
 import { gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './football-rules.js';
@@ -273,7 +271,6 @@ export class StatsEngine {
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
-    this.heatMaps = new HeatMaps();
     this.advanced = new AdvancedMetrics();
   }
 
