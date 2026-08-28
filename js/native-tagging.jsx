@@ -322,7 +322,7 @@ function NativeTagging({screen}) {
   return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging>
     <header class="gi-tag-context">
       <div class="gi-tag-title">
-        <div class="gi-tag-play-identity"><span class="gi-eyebrow">Charting</span><h2>{state.currentPlayId == null ? 'SELECT A PLAY' : `PLAY ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
+        <div class="gi-tag-play-identity"><span class="gi-eyebrow">Charting</span><h2>{state.currentPlayId == null ? 'SELECT PLAY' : `PLAY ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
       </div>
       {/* F2c — one click, not two. Unit is the single most-used control on this
           screen and a dropdown made every change a two-step. F2a's perspective

@@ -1,3 +1,8 @@
+### CODEX BREAKDOWN CONSUMER TYPOGRAPHY BASE (2026-08-28)
+
+The first comp-governed Breakdown presentation slice removes the normal-desktop shrink-to-fit strategy. At 1440px the charting deck had deliberately reduced identity copy to 9.5px, unit labels to 11px, utility controls to 10.5px/25px, and charting chips to 11px/26px. The deck now consumes the canonical display, eyebrow, and control tokens; ordinary controls hold the 30px desktop floor; utility controls wrap instead of shrinking; the play identity has a non-clipping width and concise empty label; and Own/Opp uses two explicit equal 44px tracks. Density remains in the 4px group-body rhythm and bounded 424px deck geometry rather than miniature type.
+
+The focused geometry harness now measures computed desktop typography, control height, title containment, deck containment, film overlap, and page overflow. Verification: production build green; native charting 68/68; Breakdown geometry 13/13; 48 distinct release-viewport captures completed. The final 1440px Chart view was directly inspected. No football field, play identity, persistence path, or film behavior changed.
 ### CODEX BREAKDOWN MEDIA CASCADE OWNERSHIP (2026-08-28)
 
 The final Breakdown cascade-control blocker is closed. The permanent video, canvas, multi-angle, brand, empty-film, loading/buffering, and fullscreen rules now live in `css/media-foundation.css`, loaded explicitly after the historical global stylesheet. `css/styles.css` no longer owns any media or retired transport/play-control selector. The extraction also deleted 181 complete historical rules and 19 dead branches for the old CTA, playback controls, timeline, scrub bar, selector, angle controls, and mobile patches.

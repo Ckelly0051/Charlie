@@ -252,48 +252,49 @@
    control, it is an ordinary selection chip and gets the ordinary floor. */
 .gi-play-call-quick button{min-height:30px}
 
-/* Broadcast Density Break Down composition. This is a workstation layout,
-   not a palette pass: the header and common chip groups occupy deliberate
-   rows so more charting is visible without reducing touch layouts. */
+/* Broadcast Density Break Down composition. Density comes from deliberate
+   rows and wrapping, never miniature type. The approved comp keeps ordinary
+   controls readable at workstation widths; wide utility rows reflow instead
+   of shrinking the entire charting surface to fit one line. */
 @media (min-width:1181px) and (pointer:fine){
   .gi-breakdown-deck .gi-tag-context{
     position:sticky;display:flex;flex-wrap:nowrap;align-items:stretch;gap:0;
-    min-height:42px;padding:0;border-bottom:1px solid var(--gi-bd-gold);
+    min-height:50px;padding:0;border-bottom:1px solid var(--gi-bd-gold);
     background:var(--gi-1)
   }
   .gi-breakdown-deck .gi-tag-title{
-    display:flex;align-items:center;flex:0 0 108px;min-width:0;grid-column:auto
+    display:flex;align-items:center;flex:0 0 140px;min-width:0;grid-column:auto
   }
   .gi-breakdown-deck .gi-tag-play-identity{
     align-self:stretch;display:flex;flex-direction:column;justify-content:center;
-    min-width:108px;padding:4px 10px;border-right:1px solid var(--gi-7);
+    min-width:140px;padding:6px 10px;border-right:1px solid var(--gi-7);
     background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)
   }
   .gi-breakdown-deck .gi-tag-title .gi-eyebrow{
-    margin:0;color:inherit;font-size:9.5px;line-height:1
+    margin:0;color:inherit;font:var(--gi-text-eyebrow)
   }
-  .gi-breakdown-deck .gi-tag-title h2{font-size:15px;line-height:1.05}
+  .gi-breakdown-deck .gi-tag-title h2{font:var(--gi-text-display)}
   .gi-breakdown-deck .gi-tag-title p{
-    margin:2px 0 0;padding:0;color:var(--gi-bd-gold-ink);font-size:9.5px;line-height:1;white-space:nowrap
+    margin:2px 0 0;padding:0;color:var(--gi-bd-gold-ink);font:600 12px/1 var(--gi-sans);white-space:nowrap
   }
   .gi-breakdown-deck .gi-unit-switch{
     flex:1 1 auto;align-self:stretch;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0
   }
   .gi-breakdown-deck .gi-unit-switch button{
-    min-height:0;padding:0 7px;border-width:0 0 0 1px;border-radius:0;font-size:11px
+    min-height:0;padding:0 8px;border-width:0 0 0 1px;border-radius:0;font:var(--gi-text-control)
   }
   .gi-breakdown-deck .gi-tag-subject{display:none}
   .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions{
-    min-height:31px;padding:3px 6px;gap:3px;background:var(--gi-2)
+    min-height:38px;padding:4px 6px;gap:4px;flex-wrap:wrap;background:var(--gi-2)
   }
   .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions button,
   .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions select{
-    min-height:25px;height:25px;padding-inline:7px;font-size:10.5px
+    min-height:var(--gi-hit);height:var(--gi-hit);padding-inline:8px;font:var(--gi-text-control)
   }
-  .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions select{min-width:112px}
-  .gi-breakdown-deck .gi-native-form{padding-top:1px}
+  .gi-breakdown-deck .gi-native-tagging>.gi-tag-actions select{min-width:124px;flex:1 1 124px}
+  .gi-breakdown-deck .gi-native-form{padding-top:4px}
   .gi-breakdown-deck .gi-tag-group-body{gap:5px;padding:4px 9px}
-  .gi-breakdown-deck .gi-tag-group>summary{min-height:28px}
+  .gi-breakdown-deck .gi-tag-group>summary{min-height:32px}
   .gi-breakdown-deck .gi-tag-situation-row.is-primary,
   .gi-breakdown-deck .gi-tag-situation-row.is-field{
     grid-template-columns:minmax(0,190px) minmax(0,116px) 66px;gap:6px
@@ -303,7 +304,9 @@
   .gi-breakdown-deck .gi-tag-input-distance input,
   .gi-breakdown-deck .gi-tag-input-yardLine input{width:66px;min-width:0;padding-inline:9px}
   .gi-breakdown-deck .gi-tag-chips{gap:3px}
-  .gi-breakdown-deck .gi-tag-chips button{min-width:0;min-height:26px;padding-inline:4px;font-size:11px;white-space:nowrap}
+  .gi-breakdown-deck .gi-tag-spot .gi-tag-chips{display:grid;grid-template-columns:repeat(2,44px)}
+  .gi-breakdown-deck .gi-tag-spot .gi-tag-chips button{width:44px}
+  .gi-breakdown-deck .gi-tag-chips button{min-width:0;min-height:var(--gi-hit);padding-inline:5px;font:var(--gi-text-control);white-space:nowrap}
   .gi-breakdown-deck [data-native-field="defFront"] .gi-tag-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
   .gi-breakdown-deck [data-native-field="coverage"] .gi-tag-chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
   .gi-breakdown-deck [data-native-field="coverageFamily"] .gi-tag-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}

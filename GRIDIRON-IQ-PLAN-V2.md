@@ -7,6 +7,9 @@
 > coach explicitly activates Plan V2. This document records product direction;
 > it is not authorization to modify, migrate, or delete customer data.
 
+## Active Breakdown Redesign Checkpoint (2026-08-28)
+
+The pre-redesign ownership blockers are closed. The comp-governed presentation phase has begun with a binding rule: density must come from layout and progressive disclosure, never from reducing ordinary coach-facing text and controls below the shared design-system sizes. The first production slice replaces Breakdown's 1440px shrink-to-fit rules with canonical typography, 30px desktop controls, wrapping utilities, aligned field-position controls, and an automated computed-style/containment gate. Continue route-by-route against the approved Breakdown comp; do not introduce another parallel visual language or re-open retired global ownership.
 ## 1. Product Goal
 
 GridIron IQ should feel like one coherent coaching workspace rather than a
