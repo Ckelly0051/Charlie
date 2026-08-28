@@ -47,6 +47,13 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX NATIVE-SHELL CASCADE BOUNDARY (2026-08-28)
+
+Historical generic `.btn`, button-state, input, select, and textarea selectors in `css/styles.css` are now explicitly excluded from `.ws-shell`. Native routes therefore resolve their controls through the design-system material layer and their route-local styles instead of inheriting a second, later desktop-era presentation pass. The empty-film Add Video/Add Folder actions, which remain inside the permanent media node, now have an explicit native theater owner so they retain complete hover, accent, type, border, and hit-target treatment after the boundary.
+
+The source-aware Breakdown audit fell from 94 possible `css/styles.css` matches to 37. Every remaining match is either universal box-sizing/visibility or the permanent video/media foundation: video, canvas, placeholder/load state, multi-angle wrapper, fullscreen, brand bug, and empty-film container. No generic legacy control rule can now influence any native shell route. The CSS bundle is 570.13 kB after the explicit selector guards, still below the 576.67 kB pre-retirement baseline; the small increase from pass 1 buys an enforceable native/obsolete boundary rather than relying on stylesheet order.
+
+Verification: production build green; native tagging 68/68; Breakdown lifecycle 39/39; native theater 55/55; native Film Room 24/24; workspace shell 90/90; native Reports 97/97. Fresh 1440x900 and 390x844 Breakdown captures were inspected: controls remain complete, aligned, and contained with no presentation regression. No football, film, play, persistence, or season behavior changed. Next: extract the remaining permanent media foundation from global `styles.css` into its own explicit owner, then establish the canonical consumer-facing base before redesign.
 ### CODEX BREAKDOWN CSS OWNERSHIP PASS 1 (2026-08-28)
 
 The first cascade-retirement pass removed 151 selectors (137 complete rules plus dead branches from nine mixed rules) owned solely by the deleted `.tag-section`, `.play-grid-section`, and `.pg-*` renderers. Mixed live selectors were retained. The production CSS bundle fell from 576.67 kB to 566.30 kB. Real 1440x900 and 390x844 captures were inspected after the deletion; composition and containment were unchanged.

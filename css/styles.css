@@ -1,6 +1,6 @@
 /* Inline SVG icon sprite: keep it out of layout flow. Hidden via this
    stylesheet rule (not an inline style attribute) because Tauri's CSP
-   nonces the <style> block, which disables 'unsafe-inline' for style
+   nonces the \3c style> block, which disables 'unsafe-inline' for style
    attributes — an inline style="display:none" gets blocked in WebView2
    and the sprite balloons to its default 300x150 box, shoving the whole
    app down. width=0/height=0 attributes on the <svg> are the backstop. */
@@ -115,8 +115,7 @@ body {
   transition: all var(--transition);
 }
 
-.file-input-label:hover,
-.file-input-label.drag-over {
+.file-input-label:hover, .file-input-label.drag-over {
   border-color: var(--highlight);
   color: var(--text);
   background: var(--bg-surface);
@@ -128,7 +127,7 @@ body {
 }
 
 /* ===== Buttons ===== */
-.btn {
+.btn:not(.ws-shell *) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -143,31 +142,31 @@ body {
   white-space: nowrap;
 }
 
-.btn:hover {
+.btn:hover:not(.ws-shell *) {
   background: var(--accent);
   border-color: var(--accent-hover);
 }
 
-.btn-sm {
+.btn-sm:not(.ws-shell *) {
   padding: 3px 8px;
   font-size: 11px;
 }
 
-.btn-accent {
+.btn-accent:not(.ws-shell *) {
   background: var(--accent);
   border-color: var(--accent-hover);
 }
 
-.btn-accent:hover {
+.btn-accent:hover:not(.ws-shell *) {
   background: var(--accent-hover);
 }
 
-.btn-danger {
+.btn-danger:not(.ws-shell *) {
   border-color: var(--danger);
   color: var(--danger);
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(.ws-shell *) {
   background: var(--danger);
   color: var(--text-bright);
 }
@@ -469,7 +468,7 @@ body {
   transition: all var(--transition);
 }
 /* Swatch colors via CSS (not inline style) so they survive Tauri's CSP,
-   which nonces the <style> block and thereby blocks style="" attributes. */
+   which nonces the \3c style> block and thereby blocks style="" attributes. */
 .swatch[data-color="#ffffff"] { background: #ffffff; }
 .swatch[data-color="#ffff00"] { background: #ffff00; }
 .swatch[data-color="#ff4444"] { background: #ff4444; }
@@ -494,7 +493,7 @@ body {
   color: var(--text-dim);
 }
 
-.line-width-control input[type="range"] {
+.line-width-control input[type="range"]:not(.ws-shell *) {
   flex: 1;
   accent-color: var(--highlight);
   height: 4px;
@@ -546,9 +545,7 @@ body {
   margin-bottom: 2px;
 }
 
-.tag-row select,
-.tag-row input[type="number"],
-.tag-row input[type="text"] {
+.tag-row select:not(.ws-shell *), .tag-row input[type="number"]:not(.ws-shell *), .tag-row input[type="text"]:not(.ws-shell *) {
   width: 100%;
   background: var(--bg-tertiary);
   color: var(--text);
@@ -564,8 +561,7 @@ body {
   gap: 6px;
 }
 
-.tag-row-inline select,
-.tag-row-inline input {
+.tag-row-inline select:not(.ws-shell *), .tag-row-inline input:not(.ws-shell *) {
   flex: 1;
 }
 
@@ -693,7 +689,7 @@ body {
   font-size: 13px;
   font-weight: 600;
 }
-.btn-nudge {
+.btn-nudge:not(.ws-shell *) {
   padding: 3px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -704,7 +700,7 @@ body {
   line-height: 1;
   font-family: inherit;
 }
-.btn-nudge:hover { background: var(--bg-surface); }
+.btn-nudge:hover:not(.ws-shell *) { background: var(--bg-surface); }
 .chip-details {
   border-top: 1px solid var(--border);
   margin-top: 4px;
@@ -954,23 +950,23 @@ body {
   margin-bottom: 6px;
 }
 
-.btn-detect {
+.btn-detect:not(.ws-shell *) {
   background: #1a4a1a;
   border-color: #2a6a2a;
   color: var(--success);
   flex: 1;
 }
 
-.btn-detect:hover {
+.btn-detect:hover:not(.ws-shell *) {
   background: #2a6a2a;
 }
 
-.btn-detect:disabled {
+.btn-detect:disabled:not(.ws-shell *) {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-detect.scanning {
+.btn-detect.scanning:not(.ws-shell *) {
   animation: pulse-scan 1.5s ease-in-out infinite;
 }
 
@@ -1050,13 +1046,13 @@ body {
   flex-shrink: 0;
 }
 
-.detect-setting input[type="range"] {
+.detect-setting input[type="range"]:not(.ws-shell *) {
   flex: 1;
   accent-color: var(--success);
   height: 4px;
 }
 
-.detect-setting input[type="number"] {
+.detect-setting input[type="number"]:not(.ws-shell *) {
   width: 55px;
   background: var(--bg-surface);
   color: var(--text);
@@ -1074,7 +1070,7 @@ body {
   text-align: right;
 }
 
-.btn-link {
+.btn-link:not(.ws-shell *) {
   background: none;
   border: none;
   color: var(--text-dim);
@@ -1084,7 +1080,7 @@ body {
   text-decoration: underline;
 }
 
-.btn-link:hover {
+.btn-link:hover:not(.ws-shell *) {
   color: var(--text);
   background: none;
   border: none;
@@ -1215,18 +1211,15 @@ body {
 .timeline-play.other { background: #aa6622; }
 
 /* ===== Scrollbar ===== */
-.sidebar::-webkit-scrollbar,
-.notes-area::-webkit-scrollbar {
+.sidebar::-webkit-scrollbar, .notes-area::-webkit-scrollbar {
   width: 6px;
 }
 
-.sidebar::-webkit-scrollbar-track,
-.notes-area::-webkit-scrollbar-track {
+.sidebar::-webkit-scrollbar-track, .notes-area::-webkit-scrollbar-track {
   background: var(--bg-primary);
 }
 
-.sidebar::-webkit-scrollbar-thumb,
-.notes-area::-webkit-scrollbar-thumb {
+.sidebar::-webkit-scrollbar-thumb, .notes-area::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
@@ -1244,25 +1237,25 @@ body {
   .bottom-panel {
     grid-template-columns: 1fr;
   }
-  .top-bar-right .btn span {
+  .top-bar-right .btn span:not(.ws-shell *) {
     display: none;
   }
 }
 
 /* ===== Quick Chart Button ===== */
-.btn-highlight {
+.btn-highlight:not(.ws-shell *) {
   background: var(--highlight);
   border-color: var(--highlight);
   color: var(--text-bright);
   font-weight: 600;
 }
 
-.btn-highlight:hover {
+.btn-highlight:hover:not(.ws-shell *) {
   background: var(--highlight-hover);
   border-color: var(--highlight-hover);
 }
 
-.btn-highlight.active {
+.btn-highlight.active:not(.ws-shell *) {
   background: var(--highlight-hover);
   box-shadow: 0 0 0 2px var(--text-bright);
 }
@@ -1416,8 +1409,7 @@ body {
   font-size: 12px;
 }
 
-.stats-table td,
-.stats-table th {
+.stats-table td, .stats-table th {
   padding: 4px 8px;
   text-align: left;
   border-bottom: 1px solid var(--bg-tertiary);
@@ -1427,8 +1419,7 @@ body {
   color: var(--text-dim);
 }
 
-.stats-table td:last-child,
-.stats-table th:last-child {
+.stats-table td:last-child, .stats-table th:last-child {
   text-align: right;
 }
 
@@ -1452,7 +1443,7 @@ body {
 /* --- Tendency Matrix --- */
 .tm-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
 .tm-controls label { display: flex; align-items: center; gap: 4px; font-size: 13px; }
-.tm-controls select { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 13px; }
+.tm-controls select:not(.ws-shell *) { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 13px; }
 .tm-legend { font-size: 11px; opacity: .6; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
 .tm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tm-table td, .tm-table th { text-align: center; padding: 4px 6px; font-size: 11px; }
@@ -1549,12 +1540,11 @@ body {
   color: var(--text-bright);
 }
 
-.filter-chip input[type="checkbox"] {
+.filter-chip input[type="checkbox"]:not(.ws-shell *) {
   display: none;
 }
 
-.filter-multi,
-.filter-select {
+.filter-multi, .filter-select {
   width: 100%;
   background: var(--bg-tertiary);
   color: var(--text);
@@ -1671,7 +1661,7 @@ body {
   border-radius: var(--radius);
 }
 
-.comparison-header select {
+.comparison-header select:not(.ws-shell *) {
   background: var(--bg-surface);
   color: var(--text);
   border: 1px solid var(--border);
@@ -1750,7 +1740,7 @@ body {
   z-index: 100;
 }
 
-.text-input-overlay input {
+.text-input-overlay input:not(.ws-shell *) {
   background: var(--bg-surface);
   color: var(--text-bright);
   border: 2px solid var(--highlight);
@@ -1769,7 +1759,7 @@ body {
   gap: 6px;
 }
 
-.game-info-form input[type="date"] {
+.game-info-form input[type="date"]:not(.ws-shell *) {
   width: 100%;
   background: var(--bg-tertiary);
   color: var(--text);
@@ -1821,7 +1811,7 @@ body {
   color: var(--text-bright);
 }
 
-.filter-chip input[type="checkbox"] {
+.filter-chip input[type="checkbox"]:not(.ws-shell *) {
   display: none;
 }
 
@@ -2053,7 +2043,7 @@ body {
   gap: 6px;
   margin-bottom: 8px;
 }
-.version-controls input {
+.version-controls input:not(.ws-shell *) {
   flex: 1;
   background: #232830;
   border: 1px solid #2d3454;
@@ -2108,16 +2098,16 @@ body {
   gap: 4px;
   flex-shrink: 0;
 }
-.version-actions .btn {
+.version-actions .btn:not(.ws-shell *) {
   padding: 2px 6px;
   font-size: 10px;
 }
 
 
-.btn-icon {
+.btn-icon:not(.ws-shell *) {
   padding: 6px 8px;
 }
-.btn-icon:disabled {
+.btn-icon:disabled:not(.ws-shell *) {
   opacity: 0.35;
   cursor: not-allowed;
 }
@@ -2148,7 +2138,7 @@ body {
   gap: 4px;
 }
 .ocr-controls { display: flex; gap: 6px; margin-bottom: 6px; }
-.ocr-controls .btn { flex: 1; }
+.ocr-controls .btn:not(.ws-shell *) { flex: 1; }
 .ocr-status {
   font-size: 11px;
   color: #888;
@@ -2168,7 +2158,7 @@ body {
   display: flex;
   gap: 6px;
 }
-.ocr-actions .btn { flex: 1; }
+.ocr-actions .btn:not(.ws-shell *) { flex: 1; }
 .ocr-raw {
   background: #2a2a3e;
   padding: 4px 6px;
@@ -2314,9 +2304,7 @@ body {
   margin: 8px 0;
   font-size: 12px;
 }
-.dd-grid th, .dd-grid td,
-.fxp-grid th, .fxp-grid td,
-.hash-grid th, .hash-grid td {
+.dd-grid th, .dd-grid td, .fxp-grid th, .fxp-grid td, .hash-grid th, .hash-grid td {
   border: 1px solid #2d3454;
   padding: 8px;
   text-align: center;
@@ -2588,7 +2576,7 @@ body {
 }
 
 /* --- Buttons: touch-friendly, subtle depth --- */
-.btn {
+.btn:not(.ws-shell *) {
   min-height: 34px;
   padding: 7px 12px;
   font-size: 12px;
@@ -2599,31 +2587,31 @@ body {
   transition: all 160ms ease;
   box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.25);
 }
-.btn:hover {
+.btn:hover:not(.ws-shell *) {
   background: var(--accent);
   border-color: var(--accent-hover);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0,0,0,0.35);
 }
-.btn:active { transform: translateY(0); }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn:active:not(.ws-shell *) { transform: translateY(0); }
+.btn:disabled:not(.ws-shell *) { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-.btn-icon {
+.btn-icon:not(.ws-shell *) {
   min-width: 34px;
   padding: 7px;
   justify-content: center;
 }
-.btn-sm { min-height: 28px; padding: 4px 10px; font-size: 11px; }
-.btn-highlight {
+.btn-sm:not(.ws-shell *) { min-height: 28px; padding: 4px 10px; font-size: 11px; }
+.btn-highlight:not(.ws-shell *) {
   background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
   border-color: #c93552;
   color: #fff;
 }
-.btn-highlight:hover {
+.btn-highlight:hover:not(.ws-shell *) {
   background: linear-gradient(180deg, var(--highlight-hover) 0%, var(--highlight) 100%);
   border-color: var(--highlight);
 }
-.btn-accent {
+.btn-accent:not(.ws-shell *) {
   background: linear-gradient(180deg, #2563c4 0%, #1b4791 100%);
   border-color: #1b4791;
 }
@@ -2669,8 +2657,7 @@ body {
 }
 
 /* --- Input / select polish (also prevents iOS zoom with 16px on mobile) --- */
-input[type="text"], input[type="number"], input[type="date"],
-select, textarea {
+input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) {
   background: var(--bg-primary);
   color: var(--text);
   border: 1px solid var(--border);
@@ -2680,7 +2667,7 @@ select, textarea {
   font-family: inherit;
   transition: border-color 150ms, box-shadow 150ms;
 }
-input:focus, select:focus, textarea:focus {
+input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(.ws-shell *) {
   outline: none;
   border-color: var(--highlight);
   box-shadow: 0 0 0 2px rgba(239,71,102,0.15);
@@ -2709,15 +2696,9 @@ input:focus, select:focus, textarea:focus {
 .ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
 
 /* --- Scrollbars --- */
-.sidebar::-webkit-scrollbar,
-.stats-body::-webkit-scrollbar,
-.panel-body::-webkit-scrollbar { width: 8px; }
-.sidebar::-webkit-scrollbar-track,
-.stats-body::-webkit-scrollbar-track,
-.panel-body::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb,
-.stats-body::-webkit-scrollbar-thumb,
-.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.sidebar::-webkit-scrollbar, .stats-body::-webkit-scrollbar, .panel-body::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-track, .stats-body::-webkit-scrollbar-track, .panel-body::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb, .stats-body::-webkit-scrollbar-thumb, .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 .sidebar::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
 
 /* --- Sidebar scrim for mobile --- */
@@ -2733,8 +2714,8 @@ input:focus, select:focus, textarea:focus {
 /* ============  TABLET: <= 1100px  ============ */
 @media (max-width: 1100px) {
   .main-content { grid-template-columns: 1fr 280px; }
-  .btn-label { display: none; }
-  .btn-highlight .btn-label { display: inline; }
+  .btn-label:not(.ws-shell *) { display: none; }
+  .btn-highlight .btn-label:not(.ws-shell *) { display: inline; }
   .app-title { display: none; }
   .file-input-label { padding: 7px 12px; font-size: 12px; }
 }
@@ -2766,12 +2747,11 @@ input:focus, select:focus, textarea:focus {
   .sidebar.open { transform: translateX(0); }
 
   /* 16px inputs to prevent iOS auto-zoom */
-  input[type="text"], input[type="number"], input[type="date"],
-  select, textarea { font-size: 16px; padding: 10px 12px; }
+  input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) { font-size: 16px; padding: 10px 12px; }
 
-  .btn { min-height: 40px; padding: 9px 12px; font-size: 13px; }
-  .btn-sm { min-height: 34px; padding: 7px 10px; font-size: 12px; }
-  .btn-icon { min-width: 40px; }
+  .btn:not(.ws-shell *) { min-height: 40px; padding: 9px 12px; font-size: 13px; }
+  .btn-sm:not(.ws-shell *) { min-height: 34px; padding: 7px 10px; font-size: 12px; }
+  .btn-icon:not(.ws-shell *) { min-width: 40px; }
   .ctrl-btn { min-width: 44px; min-height: 44px; }
 
   .top-bar-right { gap: 4px; }
@@ -2800,17 +2780,14 @@ input:focus, select:focus, textarea:focus {
 /* ============  SMALL MOBILE: <= 500px  ============ */
 @media (max-width: 500px) {
   .app-title { display: none; }
-  .btn-label { display: none; }
-  .btn-highlight .btn-label { display: none; }
+  .btn-label:not(.ws-shell *) { display: none; }
+  .btn-highlight .btn-label:not(.ws-shell *) { display: none; }
   .top-bar-center .file-input-label span { display: none; }
   .more-dropdown { min-width: 180px; }
 }
 
 /* --- Focus accessibility --- */
-.btn:focus-visible,
-.ctrl-btn:focus-visible,
-input:focus-visible,
-select:focus-visible {
+.btn:focus-visible:not(.ws-shell *), .ctrl-btn:focus-visible, input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--highlight);
   outline-offset: 1px;
 }
@@ -3055,8 +3032,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   background: var(--bg-tertiary);
   font-weight: 500;
 }
-.file-input-label:hover,
-.file-input-label.drag-over {
+.file-input-label:hover, .file-input-label.drag-over {
   border-color: var(--highlight);
   background: var(--highlight-soft);
   color: var(--text);
@@ -3079,16 +3055,16 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 .panel-title .icon { color: var(--highlight); opacity: 0.9; }
 
 /* --- Buttons --- */
-.btn {
+.btn:not(.ws-shell *) {
   border-radius: var(--radius-sm);
   font-weight: 600;
   letter-spacing: 0.1px;
 }
-.btn-highlight {
+.btn-highlight:not(.ws-shell *) {
   background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
   border-color: #be123c;
 }
-.btn-accent {
+.btn-accent:not(.ws-shell *) {
   background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
   border-color: var(--accent);
 }
@@ -3439,7 +3415,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   justify-content: space-between;
   gap: 10px;
 }
-.detect-setting-toggle input[type="checkbox"] {
+.detect-setting-toggle input[type="checkbox"]:not(.ws-shell *) {
   width: 18px;
   height: 18px;
   accent-color: var(--accent, #10b981);
@@ -3629,7 +3605,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   align-items: center;
   gap: 4px;
 }
-.btn-xs {
+.btn-xs:not(.ws-shell *) {
   padding: 3px 8px;
   font-size: 11px;
   background: rgba(148, 163, 184, 0.12);
@@ -3639,7 +3615,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   cursor: pointer;
   font-family: inherit;
 }
-.btn-xs:hover {
+.btn-xs:hover:not(.ws-shell *) {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.35);
   color: #bfdbfe;
@@ -3657,7 +3633,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   cursor: pointer;
   user-select: none;
 }
-.drr-check input[type="checkbox"] {
+.drr-check input[type="checkbox"]:not(.ws-shell *) {
   width: 18px;
   height: 18px;
   accent-color: #10b981;
@@ -3827,8 +3803,7 @@ body { background: var(--bg-primary); color: var(--text); }
   border: 1px dashed var(--border-bright);
   color: var(--text-dim);
 }
-.file-input-label:hover,
-.file-input-label.drag-over {
+.file-input-label:hover, .file-input-label.drag-over {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-hover);
@@ -3851,48 +3826,47 @@ body { background: var(--bg-primary); color: var(--text); }
 .panel-badge { background: var(--accent); color: #fff; }
 
 /* --- Buttons --- */
-.btn {
+.btn:not(.ws-shell *) {
   background: var(--bg-tertiary);
   color: var(--text);
   border: 1px solid var(--border);
   box-shadow: 0 1px 2px rgba(15,23,42,0.05);
 }
-.btn:hover {
+.btn:hover:not(.ws-shell *) {
   background: var(--accent);
   border-color: var(--accent-hover);
   color: #fff;
   box-shadow: 0 2px 6px rgba(16,24,40,0.30);
 }
-.btn:hover .icon { color: #fff; }
-.btn-accent {
+.btn:hover .icon:not(.ws-shell *) { color: #fff; }
+.btn-accent:not(.ws-shell *) {
   background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
   color: #fff;
 }
-.btn-accent:hover { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); color: #fff; }
-.btn-highlight {
+.btn-accent:hover:not(.ws-shell *) { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); color: #fff; }
+.btn-highlight:not(.ws-shell *) {
   background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
   color: #fff;
 }
-.btn-highlight:hover { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); }
-.btn-danger { border-color: var(--danger); color: var(--danger); background: var(--bg-tertiary); }
-.btn-danger:hover { background: var(--danger); color: #fff; }
-.btn-detect { background: #dcfce7; border-color: #86efac; color: #15803d; }
-.btn-detect:hover { background: #bbf7d0; }
+.btn-highlight:hover:not(.ws-shell *) { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); }
+.btn-danger:not(.ws-shell *) { border-color: var(--danger); color: var(--danger); background: var(--bg-tertiary); }
+.btn-danger:hover:not(.ws-shell *) { background: var(--danger); color: #fff; }
+.btn-detect:not(.ws-shell *) { background: #dcfce7; border-color: #86efac; color: #15803d; }
+.btn-detect:hover:not(.ws-shell *) { background: #bbf7d0; }
 .more-dropdown { background: var(--bg-secondary); border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
-.more-dropdown .btn { background: transparent; border-color: transparent; color: var(--text); }
-.more-dropdown .btn:hover { background: var(--accent); color: #fff; }
+.more-dropdown .btn:not(.ws-shell *) { background: transparent; border-color: transparent; color: var(--text); }
+.more-dropdown .btn:hover:not(.ws-shell *) { background: var(--accent); color: #fff; }
 .more-divider { background: var(--border); }
 
 /* --- Inputs --- */
-input[type="text"], input[type="number"], input[type="date"],
-select, textarea {
+input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) {
   background: var(--bg-secondary);
   color: var(--text);
   border: 1px solid var(--border-bright);
 }
-input:focus, select:focus, textarea:focus {
+input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(.ws-shell *) {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -3973,9 +3947,7 @@ input:focus, select:focus, textarea:focus {
    Scope dark variables onto their roots so existing light-on-dark
    styling renders correctly over the light app. Blue accent carries
    through from :root. --- */
-.stats-overlay,
-.season-overlay,
-.epa-overlay {
+.stats-overlay, .season-overlay, .epa-overlay {
   --bg-primary:   #0b1020;
   --bg-secondary: #111827;
   --bg-tertiary:  #1a2236;
@@ -3994,9 +3966,9 @@ input:focus, select:focus, textarea:focus {
 /* --- Final light-theme contrast polish --- */
 .swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16,24,40,0.30); }
 /* On-video text annotation input: light field, dark text */
-.text-input-overlay input { background: var(--bg-secondary); color: var(--text); border-color: var(--accent); }
+.text-input-overlay input:not(.ws-shell *) { background: var(--bg-secondary); color: var(--text); border-color: var(--accent); }
 /* Generic input focus ring recolor (was rose) */
-input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(.ws-shell *) { box-shadow: 0 0 0 3px var(--accent-soft); }
 
 /* ================================================================== */
 /* ==================  ROSTER & PLAYER ATTRIBUTION  ================= */
@@ -4009,7 +3981,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
   gap: 4px;
   margin-bottom: 8px;
 }
-.roster-add input, .roster-add select { min-width: 0; }
+.roster-add input:not(.ws-shell *), .roster-add select:not(.ws-shell *) { min-width: 0; }
 .roster-list { display: flex; flex-direction: column; gap: 3px; max-height: 220px; overflow-y: auto; }
 .roster-empty { font-size: 11px; color: var(--text-dim); padding: 6px 2px; line-height: 1.4; }
 .roster-row {
@@ -4090,8 +4062,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
    appears on hover so it's discoverable as a "watch these plays" control. */
 .cut-row { cursor: pointer; transition: background var(--transition); }
 .cut-row:hover { background: rgba(16,24,40,0.12); }
-.cut-row td:first-child::before,
-.chart-eff-row.cut-row .chart-eff-label::before {
+.cut-row td:first-child::before, .chart-eff-row.cut-row .chart-eff-label::before {
   content: '▶';
   font-size: 9px;
   color: var(--accent);
@@ -4099,8 +4070,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
   margin-right: 5px;
   transition: opacity var(--transition);
 }
-.cut-row:hover td:first-child::before,
-.chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
+.cut-row:hover td:first-child::before, .chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
 /* Season overlay reuses the same renderers but never binds the click —
    neutralize the affordance there so rows don't look clickable. */
 .stats-cut-hint {
@@ -4173,11 +4143,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 /* =====================  TOUCH RESPONSIVENESS  ==================== */
 /* Remove the 300ms tap delay / double-tap zoom on interactive bits. */
 /* ================================================================== */
-.panel-title,
-.pick, .btn, .ctrl-btn, .btn-nudge,
-.player-role, .player-num,
-.quickpick-chip, .roster-del, .roster-add .btn,
-.cutup-btn, .tool-btn, .bt-tab, .playlist-item {
+.panel-title, .pick, .btn:not(.ws-shell *), .ctrl-btn, .btn-nudge:not(.ws-shell *), .player-role, .player-num, .quickpick-chip, .roster-del, .roster-add .btn:not(.ws-shell *), .cutup-btn, .tool-btn, .bt-tab, .playlist-item {
   touch-action: manipulation;
 }
 
@@ -4227,8 +4193,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
    - offense mode, where the "Defense Faced" group is the OPPONENT's defense
      (our own defensive calls have no place there). They only show when we're
      charting our own defense (mode-defense, non-scout). */
-.tag-form.is-scout .our-def-only,
-.tag-form.mode-offense .our-def-only { display: none; }
+.tag-form.is-scout .our-def-only, .tag-form.mode-offense .our-def-only { display: none; }
 
 /* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
 .unit-toggle-section { padding: 2px 0 0; margin-bottom: 6px; background: transparent; }
@@ -4265,11 +4230,11 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .mode-special .core-hide-st { display: none; }
 /* Auto down & distance toggle (above the tag nav) */
 .auto-dd-toggle { display: flex; align-items: center; gap: 6px; margin: 8px 2px 0; font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none; }
-.auto-dd-toggle input { accent-color: var(--accent); }
+.auto-dd-toggle input:not(.ws-shell *) { accent-color: var(--accent); }
 .auto-dd-toggle:hover { color: var(--text); }
 /* Primary manual play-marking row at the top of the tagger */
 .play-mark-primary { margin-top: 2px; }
-.play-mark-primary .btn { flex: 1; }
+.play-mark-primary .btn:not(.ws-shell *) { flex: 1; }
 .auto-detect-tools .auto-detect-section { margin-top: 4px; }
 
 /* --- Keyboard Shortcuts Legend --- */
@@ -4303,7 +4268,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 }
 .ffa-confirm-input:focus { outline: 2px solid var(--accent, #1D4ED8); outline-offset: -1px; }
 .ffa-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.ffa-confirm-actions .btn { min-width: 88px; justify-content: center; }
+.ffa-confirm-actions .btn:not(.ws-shell *) { min-width: 88px; justify-content: center; }
 
 /* ================================================================== */
 /* ==========  SINGLE-COLUMN LAYOUT — tag form below video  ========= */
@@ -4526,8 +4491,7 @@ body {
 
 /* Keep overlay-scoped vars dark so var(--surface)/(--canvas) resolve
    correctly over the dark analytics modals. */
-.stats-overlay, .season-overlay,
-.epa-overlay {
+.stats-overlay, .season-overlay, .epa-overlay {
   --surface: #161d2e;
   --canvas:  #0b1020;
   --chip-border: #2a3552;
@@ -4684,8 +4648,8 @@ body { background: var(--canvas); }
   font-size: 12px;
   padding: 5px 8px;
 }
-.tag-helpers .btn { flex: 0 0 auto; }
-.tag-helpers .btn-icon-only { padding: 5px 8px; }
+.tag-helpers .btn:not(.ws-shell *) { flex: 0 0 auto; }
+.tag-helpers .btn-icon-only:not(.ws-shell *) { padding: 5px 8px; }
 
 /* Loop + A/B loop controls in the playback bar */
 .ctrl-btn.ab-btn {
@@ -4695,8 +4659,7 @@ body { background: var(--canvas); }
   min-width: 26px;
   padding: 0 7px;
 }
-#btnLoop.active,
-.ctrl-btn.ab-btn.set {
+#btnLoop.active, .ctrl-btn.ab-btn.set {
   background: var(--accent, #1D4ED8);
   border-color: var(--accent, #1D4ED8);
   color: #fff;
@@ -4746,7 +4709,7 @@ body { background: var(--canvas); }
 }
 
 /* ---- Buttons: consistent depth + smooth motion ---- */
-.btn {
+.btn:not(.ws-shell *) {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
   font-weight: 500;
@@ -4754,16 +4717,15 @@ body { background: var(--canvas); }
               background var(--transition), border-color var(--transition),
               color var(--transition);
 }
-.btn:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: var(--text-bright); }
-.btn:active { transform: translateY(0); }
-.btn-accent, .btn-highlight { box-shadow: none; }
-.btn-accent:hover, .btn-highlight:hover { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
+.btn:hover:not(.ws-shell *) { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: var(--text-bright); }
+.btn:active:not(.ws-shell *) { transform: translateY(0); }
+.btn-accent:not(.ws-shell *), .btn-highlight:not(.ws-shell *) { box-shadow: none; }
+.btn-accent:hover:not(.ws-shell *), .btn-highlight:hover:not(.ws-shell *) { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
 .ctrl-btn { border-radius: var(--radius-sm); transition: all var(--transition); }
 .ctrl-btn:hover { transform: translateY(-1px); }
 
 /* ---- Inputs: match the crisp chip border + radius ---- */
-input[type="text"], input[type="number"], input[type="date"],
-select, textarea, .compact-input, .yards-input, .play-select {
+input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *), .compact-input, .yards-input, .play-select {
   border-radius: var(--radius-sm);
   border-color: var(--chip-border);
 }
@@ -4791,8 +4753,7 @@ select, textarea, .compact-input, .yards-input, .play-select {
 .more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
 
 /* ---- Accessible focus ring ---- */
-.pick:focus-visible, .btn:focus-visible, .ctrl-btn:focus-visible,
-input:focus-visible, select:focus-visible, textarea:focus-visible {
+.pick:focus-visible, .btn:focus-visible:not(.ws-shell *), .ctrl-btn:focus-visible, input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *), textarea:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -4817,7 +4778,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   position: relative;
   z-index: 2;
 }
-.video-play-controls .btn { flex: 0 0 auto; }
+.video-play-controls .btn:not(.ws-shell *) { flex: 0 0 auto; }
 .autoplay-next-toggle {
   display: inline-flex;
   align-items: center;
@@ -4830,7 +4791,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   white-space: nowrap;
   cursor: pointer;
 }
-.autoplay-next-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.autoplay-next-toggle input:not(.ws-shell *) { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .autoplay-next-toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
 .video-play-controls .play-select {
   flex: 1 1 160px;
@@ -4881,12 +4842,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* (.play-select, .speed-select, .tag-row select…) that set a         */
 /* `background:` shorthand can't wipe out our arrow image.            */
 /* ================================================================== */
-select,
-.play-select,
-.speed-select,
-.filter-select,
-.tag-row select,
-.tag-row-inline select {
+select:not(.ws-shell *), .play-select, .speed-select, .filter-select, .tag-row select:not(.ws-shell *), .tag-row-inline select:not(.ws-shell *) {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -4897,18 +4853,10 @@ select,
   background-size: 16px 16px !important;
   cursor: pointer;
 }
-select:hover,
-.play-select:hover,
-.speed-select:hover,
-.filter-select:hover,
-.tag-row select:hover {
+select:hover:not(.ws-shell *), .play-select:hover, .speed-select:hover, .filter-select:hover, .tag-row select:hover:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
-select:focus,
-.play-select:focus,
-.speed-select:focus,
-.filter-select:focus,
-.tag-row select:focus {
+select:focus:not(.ws-shell *), .play-select:focus, .speed-select:focus, .filter-select:focus, .tag-row select:focus:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 
@@ -4989,8 +4937,7 @@ select:focus,
 
 /* --- Side-by-side: both wrappers share space 50/50 --- */
 .video-container.angle-sbs { flex-direction: row !important; gap: 2px; }
-.video-container.angle-sbs .angle-wrapper,
-.video-container.angle-sbs .angle-wrapper-2 {
+.video-container.angle-sbs .angle-wrapper, .video-container.angle-sbs .angle-wrapper-2 {
   position: relative;
   inset: auto;
   flex: 1 1 50%;
@@ -4998,8 +4945,7 @@ select:focus,
   align-self: stretch;
 }
 .video-container.angle-sbs .angle-wrapper-2 { display: flex; }
-.video-container.angle-sbs.active-angle-1 #angleWrapper1,
-.video-container.angle-sbs.active-angle-2 #angleWrapper2 {
+.video-container.angle-sbs.active-angle-1 #angleWrapper1, .video-container.angle-sbs.active-angle-2 #angleWrapper2 {
   outline: 2px solid rgba(59,130,246,0.5);
   outline-offset: -2px;
   border-radius: 3px;
@@ -5264,7 +5210,7 @@ video.is-buffering { opacity: 0.82; }
     padding: 4px 8px !important;
     gap: 4px !important;
   }
-  .video-play-controls .btn {
+  .video-play-controls .btn:not(.ws-shell *) {
     padding: 3px 7px !important;
     min-height: 28px !important;
     font-size: 11px !important;
@@ -5472,8 +5418,7 @@ video.is-buffering { opacity: 0.82; }
 .sm-cell.cut-row td:first-child::before { content: none; }   /* it's a cell, not a row — suppress the row ▶ */
 
 /* Personnel → Formation Diversity */
-.ss-pd-table td:nth-child(3),
-.ss-pd-table td:nth-child(5) { text-align: center; }
+.ss-pd-table td:nth-child(3), .ss-pd-table td:nth-child(5) { text-align: center; }
 .pd-bars {
   display: flex; height: 18px; border-radius: 3px; overflow: hidden; min-width: 100px;
 }
@@ -5814,10 +5759,7 @@ body {
 }
 
 /* --- Charts: track backgrounds --- */
-.chart-hbar-track,
-.chart-eff-track,
-.chart-minibar,
-.viz-q-bars {
+.chart-hbar-track, .chart-eff-track, .chart-minibar, .viz-q-bars {
   background: var(--bg-tertiary) !important;
 }
 
@@ -5870,7 +5812,7 @@ body {
 }
 
 /* --- Print button upgrade --- */
-.stats-header-actions .btn {
+.stats-header-actions .btn:not(.ws-shell *) {
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.3px;
@@ -5917,8 +5859,8 @@ body {
 
 /* ================================================================== */
 /* ==========  Desktop auto-update banner / toast (updater.js)  ===== */
-/* Must live here (not injected from JS): Tauri nonces this <style>,   */
-/* disabling 'unsafe-inline', so a runtime-injected <style> would be   */
+/* Must live here (not injected from JS): Tauri nonces this \3c style>,   */
+/* disabling 'unsafe-inline', so a runtime-injected \3c style> would be   */
 /* CSP-blocked and the banner/toast would render unstyled/invisible.   */
 /* ================================================================== */
 .gi-update-banner { position: fixed; right: 18px; bottom: 18px; z-index: 99999;
@@ -5963,9 +5905,9 @@ body {
 .lib-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 .library-form label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600;
   color: #9fb1c9; text-transform: uppercase; letter-spacing: .4px; }
-.library-form input, .library-form select { background: #161e2b; border: 1px solid #2c3a52; color: #e6edf3;
+.library-form input:not(.ws-shell *), .library-form select:not(.ws-shell *) { background: #161e2b; border: 1px solid #2c3a52; color: #e6edf3;
   border-radius: 8px; padding: 9px 11px; font-size: 14px; text-transform: none; letter-spacing: 0; }
-.library-form input:focus, .library-form select:focus { outline: none; border-color: #3b82f6; }
+.library-form input:focus:not(.ws-shell *), .library-form select:focus:not(.ws-shell *) { outline: none; border-color: #3b82f6; }
 .lib-form-name { margin-bottom: 14px; }
 .lib-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .library-list { display: flex; flex-direction: column; gap: 10px; }
@@ -6042,10 +5984,10 @@ body {
 .team-setup { padding: 20px 0 8px; }
 .team-setup.hidden { display: none; }
 .team-setup-fields { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
-.team-setup-fields input, .team-setup-fields select { background: #161e2b; border: 1px solid #2c3a52;
+.team-setup-fields input:not(.ws-shell *), .team-setup-fields select:not(.ws-shell *) { background: #161e2b; border: 1px solid #2c3a52;
   color: #e6edf3; border-radius: 8px; padding: 10px 12px; font-size: 14px; min-width: 0; flex: 1; }
-.team-setup-fields input:focus, .team-setup-fields select:focus { outline: none; border-color: #3b82f6; }
-.team-setup-fields .btn { flex: 0 0 auto; }
+.team-setup-fields input:focus:not(.ws-shell *), .team-setup-fields select:focus:not(.ws-shell *) { outline: none; border-color: #3b82f6; }
+.team-setup-fields .btn:not(.ws-shell *) { flex: 0 0 auto; }
 .team-setup-import {
   margin-top: 14px;
   font-size: 12.5px;
@@ -6055,7 +5997,7 @@ body {
   padding-top: 12px;
 }
 .team-setup-import code { background: #161e2b; padding: 1px 5px; border-radius: 4px; font-size: 11.5px; }
-.btn-link {
+.btn-link:not(.ws-shell *) {
   background: none;
   border: none;
   padding: 0;
@@ -6065,15 +6007,15 @@ body {
   text-decoration: underline;
   cursor: pointer;
 }
-.btn-link:hover { color: #9dd8ff; }
+.btn-link:hover:not(.ws-shell *) { color: #9dd8ff; }
 
 /* Inline team edit */
 .team-edit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
   background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
 .team-edit.hidden { display: none; }
-.team-edit input, .team-edit select { background: #161e2b; border: 1px solid #2c3a52;
+.team-edit input:not(.ws-shell *), .team-edit select:not(.ws-shell *) { background: #161e2b; border: 1px solid #2c3a52;
   color: #e6edf3; border-radius: 8px; padding: 9px 11px; font-size: 14px; min-width: 0; flex: 1; }
-.team-edit input:focus, .team-edit select:focus { outline: none; border-color: #3b82f6; }
+.team-edit input:focus:not(.ws-shell *), .team-edit select:focus:not(.ws-shell *) { outline: none; border-color: #3b82f6; }
 
 /* Get Started checklist (progressive onboarding) */
 .gs-checklist { background: linear-gradient(135deg, #10243a, #0c1726); border: 1px solid #244766;
@@ -6102,8 +6044,8 @@ body {
 .gs-go { color: #6ea8ff; font-weight: 700; }
 
 /* Explore-demo button + demo badge */
-.btn-demo { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.4); color: #4ade80; }
-.btn-demo:hover { background: rgba(34,197,94,.2); }
+.btn-demo:not(.ws-shell *) { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.4); color: #4ade80; }
+.btn-demo:hover:not(.ws-shell *) { background: rgba(34,197,94,.2); }
 .season-card-badge.demo { color: #4ade80; border-color: #22c55e; }
 .season-card.is-demo { border-style: dashed; }
 
@@ -6141,7 +6083,7 @@ body {
   border-bottom: 1px solid rgba(255,255,255,.08); color: #06b6d4; }
 .game-dropdown-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
 .game-dropdown-foot { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.08); }
-.game-dropdown-foot .btn { flex: 1; font-size: 12px; }
+.game-dropdown-foot .btn:not(.ws-shell *) { flex: 1; font-size: 12px; }
 
 /* Individual game row in the dropdown */
 .gd-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px;
@@ -6180,10 +6122,10 @@ body {
 .finish-game-card p { margin: 0 0 16px; font-size: 13px; color: rgba(255,255,255,.6); }
 .finish-game-scores { display: flex; gap: 12px; margin-bottom: 20px; }
 .finish-game-scores label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: rgba(255,255,255,.5); }
-.finish-game-scores input { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+.finish-game-scores input:not(.ws-shell *) { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
   border-radius: 6px; padding: 8px 10px; color: #e6edf3; font-size: 15px; text-align: center; }
 .finish-game-btns { display: flex; gap: 10px; justify-content: flex-end; }
-.finish-game-btns .btn { font-size: 13px; }
+.finish-game-btns .btn:not(.ws-shell *) { font-size: 13px; }
 
 /* Games panel in the settings drawer */
 .games-panel-list { display: flex; flex-direction: column; gap: 6px; }
@@ -6198,7 +6140,7 @@ body {
 .gp-card-badges { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
 .gp-card-meta { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 3px; }
 .gp-card-actions { display: flex; gap: 6px; margin-top: 8px; }
-.gp-card-actions .btn { font-size: 11px; padding: 3px 8px; }
+.gp-card-actions .btn:not(.ws-shell *) { font-size: 11px; padding: 3px 8px; }
 .gp-card .gd-score { font-size: 11px; }
 .gp-card .gd-badge { font-size: 9px; }
 
@@ -6425,15 +6367,12 @@ body {
 
 /* ---- Expand video to full screen — the "watch the play bigger" toggle.
    Keeps the default size as-is; fullscreen only applies while toggled on. ---- */
-#videoContainer:fullscreen,
-#videoContainer:-webkit-full-screen {
+#videoContainer:fullscreen, #videoContainer:-webkit-full-screen {
   width: 100vw; height: 100vh; max-width: none; background: var(--gi-film);
   display: flex; flex-direction: column; justify-content: center;
 }
-#videoContainer:fullscreen .angle-wrapper,
-#videoContainer:-webkit-full-screen .angle-wrapper { flex: 1 1 auto; min-height: 0; }
-#videoContainer:fullscreen #videoPlayer,
-#videoContainer:-webkit-full-screen #videoPlayer { width: 100%; height: 100%; object-fit: contain; background: var(--gi-film); }
+#videoContainer:fullscreen .angle-wrapper, #videoContainer:-webkit-full-screen .angle-wrapper { flex: 1 1 auto; min-height: 0; }
+#videoContainer:fullscreen #videoPlayer, #videoContainer:-webkit-full-screen #videoPlayer { width: 100%; height: 100%; object-fit: contain; background: var(--gi-film); }
 #btnExpandVideo.is-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 
 /* ---- Phase-aware special-teams detail fields (PlayTagger._applyStPhase) ---- */
@@ -6552,7 +6491,7 @@ body { font-size: 13px; }
 /* Chips & buttons — one size; selected is heavier not louder */
 .pick { font-size: 12.5px; font-weight: 500; }
 .pick.active { font-weight: 600; }
-.btn-label { font-size: 12.5px; font-weight: 500; }
+.btn-label:not(.ws-shell *) { font-size: 12.5px; font-weight: 500; }
 
 /* Tabular numerals wherever numbers appear (scorebug discipline) */
 .time-display, .fps-input, .stat-card-value, .ov-val, .dd-badge, .sb-score, .stat-num, .kpi-value, .season-chip, .gd-plays, .sch-score {
@@ -6618,30 +6557,30 @@ body { font-size: 13px; }
    Flat solid buttons (no gradients), four tiers, one dashed dropzone.
    ===================================================================== */
 /* Primary — solid accent, flat (was a 2-stop gradient). */
-.btn-accent, .btn-highlight, .btn-demo {
+.btn-accent:not(.ws-shell *), .btn-highlight:not(.ws-shell *), .btn-demo:not(.ws-shell *) {
   background: var(--accent); border: 1px solid var(--accent); color: var(--text-bright); box-shadow: none;
 }
-.btn-accent:hover, .btn-highlight:hover, .btn-demo:hover {
+.btn-accent:hover:not(.ws-shell *), .btn-highlight:hover:not(.ws-shell *), .btn-demo:hover:not(.ws-shell *) {
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
-.btn-highlight.active { background: var(--accent); border-color: var(--accent); color: var(--text-bright); }
+.btn-highlight.active:not(.ws-shell *) { background: var(--accent); border-color: var(--accent); color: var(--text-bright); }
 
 /* Secondary — white surface, hairline border. Base .btn adopts this so a
    plain .btn no longer floods solid blue on hover. */
-.btn, .btn-secondary {
+.btn:not(.ws-shell *), .btn-secondary:not(.ws-shell *) {
   background: var(--surface); border: 1px solid var(--border-bright); color: var(--text);
 }
-.btn:hover, .btn-secondary:hover {
+.btn:hover:not(.ws-shell *), .btn-secondary:hover:not(.ws-shell *) {
   background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text);
 }
 
 /* Ghost — transparent (toolbar/nav icon buttons). */
-.btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); box-shadow: none; }
-.btn-ghost:hover { background: var(--bg-tertiary); color: var(--text); border-color: transparent; }
+.btn-ghost:not(.ws-shell *) { background: transparent; border-color: transparent; color: var(--text-dim); box-shadow: none; }
+.btn-ghost:hover:not(.ws-shell *) { background: var(--bg-tertiary); color: var(--text); border-color: transparent; }
 
 /* Danger — ghost red; solid red only inside confirm dialogs. */
-.btn-danger { background: transparent; border: 1px solid transparent; color: var(--danger); }
-.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: var(--text-bright); }
+.btn-danger:not(.ws-shell *) { background: transparent; border: 1px solid transparent; color: var(--danger); }
+.btn-danger:hover:not(.ws-shell *) { background: var(--danger); border-color: var(--danger); color: var(--text-bright); }
 
 /* Toolbar — white, single hairline bottom border, no shadow. */
 .top-bar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
@@ -6657,22 +6596,22 @@ body { font-size: 13px; }
 .dropzone-title { font-size: 15px; font-weight: 700; color: var(--text); }
 .dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
 /* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
-.dropzone-actions .btn-secondary {
+.dropzone-actions .btn-secondary:not(.ws-shell *) {
   background: transparent; border-color: var(--border-bright); color: var(--text);
 }
-.dropzone-actions .btn-secondary:hover { background: var(--bg-tertiary); color: var(--text-bright); }
+.dropzone-actions .btn-secondary:hover:not(.ws-shell *) { background: var(--bg-tertiary); color: var(--text-bright); }
 .dropzone-card .empty-hint { color: var(--text-hint); font-size: 11px; margin-top: 2px; }
 
 /* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
    single-class, and .btn is later in source). Raise specificity so the primary
    fill always wins regardless of order — Save Season stays the one blue button. */
-.btn.btn-accent, .btn.btn-highlight, .btn.btn-demo {
+.btn.btn-accent:not(.ws-shell *), .btn.btn-highlight:not(.ws-shell *), .btn.btn-demo:not(.ws-shell *) {
   background: var(--accent); border-color: var(--accent); color: var(--text-bright);
 }
-.btn.btn-accent:hover, .btn.btn-highlight:hover, .btn.btn-demo:hover {
+.btn.btn-accent:hover:not(.ws-shell *), .btn.btn-highlight:hover:not(.ws-shell *), .btn.btn-demo:hover:not(.ws-shell *) {
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
-.btn.btn-highlight.active { background: var(--accent); border-color: var(--accent); }
+.btn.btn-highlight.active:not(.ws-shell *) { background: var(--accent); border-color: var(--accent); }
 
 /* =====================================================================
    DESIGN REFRESH v2 — play table, transport & the signature D&D badge
@@ -6708,17 +6647,14 @@ body { font-size: 13px; }
    inherit the new tokens (white cards, flat shadows); this unifies the
    modal backdrop and adds a subtle, reduced-motion-safe entrance.
    ===================================================================== */
-.ffa-confirm-backdrop, .play-import-backdrop, .shortcuts-backdrop,
-.detect-review-backdrop { background: rgba(0,0,0,0.62); }
+.ffa-confirm-backdrop, .play-import-backdrop, .shortcuts-backdrop, .detect-review-backdrop { background: rgba(0,0,0,0.62); }
 
 @keyframes ffaModalIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
-.ffa-confirm-card, .season-modal-content, .play-import-card,
-.shortcuts-card, .modal-card, .finish-modal-card {
+.ffa-confirm-card, .season-modal-content, .play-import-card, .shortcuts-card, .modal-card, .finish-modal-card {
   animation: ffaModalIn 140ms cubic-bezier(.4,0,.2,1);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ffa-confirm-card, .season-modal-content, .play-import-card,
-  .shortcuts-card, .modal-card, .finish-modal-card { animation: none; }
+  .ffa-confirm-card, .season-modal-content, .play-import-card, .shortcuts-card, .modal-card, .finish-modal-card { animation: none; }
 }
 
 /* Cards are border-only; shadows are reserved for floating layers. */
@@ -6736,9 +6672,9 @@ body { font-size: 13px; }
    knocked the baseline off), one primary (New Season); demo → secondary. */
 .library-new { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .library-new .library-form { flex-basis: 100%; }
-.btn.btn-demo { background: var(--surface); border: 1px solid var(--border-bright); color: var(--text); }
-.btn.btn-demo:hover { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text); }
-.btn.btn-demo .icon { color: var(--accent); }
+.btn.btn-demo:not(.ws-shell *) { background: var(--surface); border: 1px solid var(--border-bright); color: var(--text); }
+.btn.btn-demo:hover:not(.ws-shell *) { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text); }
+.btn.btn-demo .icon:not(.ws-shell *) { color: var(--accent); }
 
 /* +Angle moved into the play-control bar; its old standalone row now collapses
    until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
@@ -6877,7 +6813,7 @@ body { font-size: 13px; }
   border-radius: 5px; margin-left: 2px; align-self: center;
 }
 .schedule-bar { display: flex; align-items: center; gap: 12px; }
-.schedule-bar .btn-accent { margin-left: auto; }
+.schedule-bar .btn-accent:not(.ws-shell *) { margin-left: auto; }
 .schedule-table .sch-row td { height: 46px; }
 .sch-name { font-family: var(--display); font-size: 16.5px; font-weight: 600;
   text-transform: uppercase; letter-spacing: .02em; }
@@ -6911,8 +6847,8 @@ body { font-size: 13px; }
 /* Chip + button press: instant tactile darkening. */
 .pick:active { background: #2A3441; }
 .pick.active:active { background: var(--accent-hover); }
-.btn:active { background: var(--bg-tertiary); }
-.btn.btn-accent:active, .btn.btn-highlight:active { background: var(--accent-hover); }
+.btn:active:not(.ws-shell *) { background: var(--bg-tertiary); }
+.btn.btn-accent:active:not(.ws-shell *), .btn.btn-highlight:active:not(.ws-shell *) { background: var(--accent-hover); }
 
 /* Save & Next acknowledgment — "SAVED ✓" settles green for ~0.6s, then the
    button returns to its blue call-to-action. The ✓ is state (kept under
@@ -7002,8 +6938,8 @@ body { font-size: 13px; }
    ===================================================================== */
 /* Save-state on the top-bar Save button: ● while a debounced write is
    armed, ✓ once persisted. State, not motion. */
-#btnSave.save-pending .btn-label::before { content: "● "; color: var(--warning); }
-#btnSave.save-ok .btn-label::before { content: "✓ "; }
+#btnSave.save-pending .btn-label:not(.ws-shell *)::before { content: "● "; color: var(--warning); }
+#btnSave.save-ok .btn-label:not(.ws-shell *)::before { content: "✓ "; }
 #btnSave.save-ok { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text-dim); }
 #btnSave.save-ok .icon { opacity: .6; }
 
@@ -7043,7 +6979,7 @@ body { font-size: 13px; }
 #btnClearTags:hover { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.55); color: var(--warning); }
 
 /* Demo button subtitle. */
-.btn-sub { font-size: 11px; color: var(--text-hint); font-weight: 500; margin-left: 4px; }
+.btn-sub:not(.ws-shell *) { font-size: 11px; color: var(--text-hint); font-weight: 500; margin-left: 4px; }
 
 /* Get Started checklist pulse — one attention beat after team setup. */
 .gs-pulse { animation: gsPulse 1s ease 2; }
