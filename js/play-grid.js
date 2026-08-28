@@ -1,35 +1,11 @@
 /**
- * PlayGrid — the Film Room breakdown grid (Phase 2/v2 of the Hudl-style
- * redesign).
+ * Film Room state and command model.
  *
- * v1 made the play list co-equal with the video (click-to-seek rows, chip
- * filter bar, bulk Watch). v2 turns it into the BREAKDOWN TABLE — the
- * spreadsheet surface Hudl coaches live in:
- *
- *  - INLINE EDITING: click a cell once to select the play (video follows),
- *    click again / Enter / double-click to edit it in place. Enum fields get
- *    a chip popover (options read live from the tag form, so the grid can
- *    never drift from it); yardage/distance/notes get inputs. Enter commits
- *    and moves DOWN (same column, next play); Tab commits and moves RIGHT —
- *    a full game can be charted without touching the form.
- *  - CUSTOM COLUMNS: a Columns popover picks which tag fields show, with
- *    one-tap Offense / Defense / Special Teams presets. Persisted in
- *    `ffa_film_room_cols`.
- *  - SAVED FILTERS: name the current chip-filter combination and recall it
- *    from the Filters menu in any game (persisted in
- *    `ffa_film_room_filters`).
- *  - COLUMN TENDENCIES: a summary line under each header — top value + share
- *    for enum columns ("Shotgun 48%"), run/pass lean, avg yards — computed
- *    over the VISIBLE (filtered) plays, so filtering IS the tendency query.
- *
- * Editing semantics mirror the tag form exactly: picking an unambiguous play
- * type auto-fills Run/Pass; yardage is a magnitude whose sign comes from the
- * Result (Loss/Sack ⇒ negative). Edits to the selected play reload the form.
- *
- * The chip filters here stay independent of the drawer's "Filter Plays"
- * panel (PlayFilter keeps driving the cut-up exporter).
- */
-import { StatsEngine } from './stats-engine.js';
+ * Owns persisted columns and saved filters, filtered-row/tendency math,
+ * selection and cut-up commands, and the football semantics of inline edits.
+ * It does not own markup or browser event wiring; NativeFilmRoom is the sole
+ * Film Room presentation.
+ */import { StatsEngine } from './stats-engine.js';
 import { TagProjection } from './tag-projection.js';
 import { PlayTagger } from './play-tagger.js';
 
@@ -134,41 +110,15 @@ export class PlayGrid {
     // reads -- injected explicitly rather than reached for off `window.app`.
     this.customChips = customChips;
 
-    // Final Engine Independence: #playGridSection is a legacy authored
-    // element the native Film Room route (native-film-room.jsx via
-    // NativeFilmRoomScreen) never renders into or reads from directly --
-    // it only checks this.section's PRESENCE as a mount guard, a vestige of
-    // when the classic renderer was the only implementation. All state below
-    // is now initialized unconditionally, and only the classic-DOM-specific
-    // setup (_inject/_wireClassic) is gated on this.section existing, so a
-    // coach on the native/shell route (unconditional since S7) is fully
-    // functional with #playGridSection absent from the document entirely.
-    this.section = document.getElementById('playGridSection');
-
     // Filter state: AND across groups, OR within a group.
     this.f = { unit: '', downs: new Set(), rp: '', flags: new Set() };
-    this.selected = new Set();    // play ids checked for bulk actions
+    this.selected = new Set();
     this._raf = null;
-    this._focus = null;           // { playId, colKey } — roving cell focus
-    this._editor = null;          // open editor popover { close() }
     this._optionCache = {};
     this._nativeListeners = new Set();
-
-    this._nativePresentation = false;
-    this._nativeTextTemplate = document.createElement('template');
-    const saved = localStorage.getItem('ffa_film_room_collapsed');
-    this.collapsed = saved === null ? window.innerWidth < 1100 : saved === '1';
     this.cols = this._loadCols();
     this.savedFilters = this._loadSavedFilters();
 
-    if (this.section) {
-      this._inject();
-      this._wireClassic();
-    }
-    // Domain-event subscriptions (play-created/updated/deleted/plays-loaded/
-    // play-selected) drive BOTH the classic re-render and the native
-    // subscriber notification (_notifyNative, inside refresh()) -- these must
-    // be registered unconditionally, not folded into the classic-only wiring.
     this._wireDomainEvents();
     this.refresh();
   }
@@ -213,186 +163,15 @@ export class PlayGrid {
     try { localStorage.setItem('ffa_film_room_filters', JSON.stringify(this.savedFilters)); } catch (e) {}
   }
 
-  // ---------- DOM ----------
-
-  _inject() {
-    this.section.innerHTML = `
-      <div class="pg-head" id="pgHead">
-        <button class="pg-collapse" id="pgCollapse" type="button" title="Show / hide the play grid">▾</button>
-        <span class="pg-title" title="The breakdown table — every play, spreadsheet-style">Film Room <span class="pg-count" id="pgCount"></span></span>
-        <div class="pg-filters" id="pgFilters">
-          <span class="pg-fgroup" data-group="unit">
-            <button class="pg-chip" data-val="offense" type="button" title="Offense plays">Off</button>
-            <button class="pg-chip" data-val="defense" type="button" title="Defense plays">Def</button>
-            <button class="pg-chip" data-val="special" type="button" title="Special-teams plays">ST</button>
-          </span>
-          <span class="pg-fgroup" data-group="downs">
-            <button class="pg-chip" data-val="1" type="button">1st</button>
-            <button class="pg-chip" data-val="2" type="button">2nd</button>
-            <button class="pg-chip" data-val="3" type="button">3rd</button>
-            <button class="pg-chip" data-val="4" type="button">4th</button>
-          </span>
-          <span class="pg-fgroup" data-group="rp">
-            <button class="pg-chip" data-val="Run" type="button">Run</button>
-            <button class="pg-chip" data-val="Pass" type="button">Pass</button>
-          </span>
-          <span class="pg-fgroup" data-group="flags">
-            <button class="pg-chip" data-val="td" type="button" title="Touchdowns">TD</button>
-            <button class="pg-chip" data-val="to" type="button" title="Turnovers (INT + fumble)">TO</button>
-            <button class="pg-chip" data-val="pen" type="button" title="Penalties">Pen</button>
-            <button class="pg-chip" data-val="untagged" type="button" title="Plays with no tags yet">Untagged</button>
-          </span>
-          <button class="pg-clear hidden" id="pgClear" type="button">Clear</button>
-          <button class="pg-clear hidden" id="pgSaveFilter" type="button" title="Save this filter to reuse in any game">☆ Save</button>
-          <button class="pg-chip pg-menu-btn hidden" id="pgFiltersMenu" type="button" title="Apply a saved filter">Filters ▾</button>
-        </div>
-        <span class="pg-showing" id="pgShowing"></span>
-        <button class="pg-chip pg-menu-btn" id="pgColsBtn" type="button" title="Choose columns">▦ Columns</button>
-        <button class="btn btn-sm pg-watch" id="pgWatch" type="button" title="Play these back-to-back as a cut-up">▶ Watch</button>
-      </div>
-      <div class="pg-edit-hint" id="pgEditHint" hidden>
-        <span>Click any cell to edit it in place — Enter saves &amp; moves down the column.</span>
-        <button type="button" id="pgHintX" title="Got it — dismiss">×</button>
-      </div>
-      <div class="pg-body" id="pgBody">
-        <table class="pg-table">
-          <thead id="pgThead"></thead>
-          <tbody id="pgRows"></tbody>
-        </table>
-        <div class="pg-empty hidden" id="pgEmpty"></div>
-      </div>`;
-    this.rowsEl = this.section.querySelector('#pgRows');
-    this.theadEl = this.section.querySelector('#pgThead');
-    this.section.classList.toggle('collapsed', this.collapsed);
-    // One-time editability hint (UX audit C1: the killer feature had zero
-    // affordance). Shows until dismissed; the choice persists.
-    const hint = this.section.querySelector('#pgEditHint');
-    let hintOff = false;
-    try { hintOff = localStorage.getItem('ffa_film_room_hint_dismissed') === '1'; } catch (e) {}
-    if (hint && !hintOff) hint.hidden = false;
-    this.section.querySelector('#pgHintX')?.addEventListener('click', () => {
-      if (hint) hint.hidden = true;
-      try { localStorage.setItem('ffa_film_room_hint_dismissed', '1'); } catch (e) {}
-    });
-  }
-
-  _wireClassic() {
-    this.section.querySelector('#pgCollapse').addEventListener('click', () => this._toggleCollapsed());
-    this.section.querySelector('#pgHead').addEventListener('click', (e) => {
-      if (e.target.closest('.pg-chip, .pg-clear, .pg-watch, #pgCollapse, .pg-menu-btn')) return;
-      this._toggleCollapsed();
-    });
-
-    this.section.querySelector('#pgFilters').addEventListener('click', (e) => {
-      const chip = e.target.closest('.pg-chip');
-      if (!chip || chip.id === 'pgFiltersMenu') return;
-      e.stopPropagation();
-      this._toggleFilter(chip.closest('.pg-fgroup').dataset.group, chip.dataset.val);
-    });
-    this.section.querySelector('#pgClear').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.f = { unit: '', downs: new Set(), rp: '', flags: new Set() };
-      this.refresh();
-    });
-    this.section.querySelector('#pgSaveFilter').addEventListener('click', (e) => {
-      e.stopPropagation(); this._openSaveFilter(e.currentTarget);
-    });
-    this.section.querySelector('#pgFiltersMenu').addEventListener('click', (e) => {
-      e.stopPropagation(); this._openFiltersMenu(e.currentTarget);
-    });
-    this.section.querySelector('#pgColsBtn').addEventListener('click', (e) => {
-      e.stopPropagation(); this._openColumnsMenu(e.currentTarget);
-    });
-
-    this.section.querySelector('#pgWatch').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._watch();
-    });
-
-    // Header select-all (thead is re-rendered, so delegate).
-    this.theadEl.addEventListener('change', (e) => {
-      if (e.target.id !== 'pgCheckAll') return;
-      const visible = this._visiblePlays();
-      if (e.target.checked) visible.forEach(p => this.selected.add(p.id));
-      else visible.forEach(p => this.selected.delete(p.id));
-      this.refresh();
-    });
-
-    // Cell interaction: first click selects the play (video follows); a click
-    // on the already-focused cell — or dblclick / Enter — opens the editor.
-    this.rowsEl.addEventListener('click', (e) => {
-      const row = e.target.closest('.pg-row');
-      if (!row) return;
-      const id = parseInt(row.dataset.id, 10);
-      if (e.target.classList.contains('pg-check')) {
-        if (e.target.checked) this.selected.add(id);
-        else this.selected.delete(id);
-        this._updateBar();
-        return;
-      }
-      const cell = e.target.closest('td[data-k]');
-      const colKey = cell ? cell.dataset.k : null;
-      const wasFocused = this._focus && this._focus.playId === id && this._focus.colKey === colKey;
-      if (id !== this.tagger.currentPlayId) this.tagger.selectPlay(id);
-      if (colKey) {
-        this._setFocus(id, colKey);
-        if (wasFocused) this._openEditor(id, colKey);
-      }
-    });
-    this.rowsEl.addEventListener('dblclick', (e) => {
-      const row = e.target.closest('.pg-row');
-      const cell = e.target.closest('td[data-k]');
-      if (!row || !cell) return;
-      this._openEditor(parseInt(row.dataset.id, 10), cell.dataset.k);
-    });
-
-    // Grid-level keys (cell focus). stopPropagation keeps the app's global
-    // single-letter tagging shortcuts from double-firing underneath.
-    this.section.addEventListener('keydown', (e) => {
-      if (!this._focus || this._editor) return;
-      const nav = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
-      if (nav) {
-        e.preventDefault(); e.stopPropagation();
-        this._moveFocus(nav[0], nav[1]);
-      } else if (e.key === 'Enter') {
-        e.preventDefault(); e.stopPropagation();
-        this._openEditor(this._focus.playId, this._focus.colKey);
-      } else if (e.key === 'Escape') {
-        e.stopPropagation();
-        this._setFocus(null);
-      }
-    });
-  }
-
-  /** Registered unconditionally (both classic and headless/native-only
-   *  construction) -- these are what drive refresh()'s native-mode
-   *  notification, not just the classic re-render. */
+  /** Domain events drive the one native Film Room model. */
   _wireDomainEvents() {
-    // Data changes → re-render; selection changes → just move the highlight.
-    this.tagger.on('play-created', () => this.refresh());
-    this.tagger.on('play-updated', () => this.refresh());
-    this.tagger.on('play-deleted', () => this.refresh());
-    // Wholesale plays replacement (game switch, undo/redo, project load):
-    // checked ids from the old play set are meaningless (ids restart at 1 per
-    // game, so they'd silently transfer to unrelated plays) — drop them.
+    ['play-created', 'play-updated', 'play-deleted'].forEach(event =>
+      this.tagger.on(event, () => this.refresh()));
     this.tagger.on('plays-loaded', () => {
       this.selected.clear();
-      this._setFocus(null);
-      this._closeEditor();
       this.refresh();
     });
-    // Only an explicit selection auto-scrolls; re-renders must never yank the
-    // grid (or, on narrow layouts, the page) while the coach is tagging.
-    this.tagger.on('play-selected', (play) => {
-      if (!this._nativePresentation) this._highlight(play && play.id, true);
-      this._notifyNative();
-    });
-  }
-
-  _toggleCollapsed() {
-    this.collapsed = !this.collapsed;
-    localStorage.setItem('ffa_film_room_collapsed', this.collapsed ? '1' : '0');
-    this.section.classList.toggle('collapsed', this.collapsed);
+    this.tagger.on('play-selected', () => this._notifyNative());
   }
 
   _toggleFilter(group, val) {
@@ -455,167 +234,23 @@ export class PlayGrid {
     this.refresh();
   }
 
-  _openSaveFilter(anchor) {
-    if (!this._filterActive()) return;
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `
-      <div class="pg-pop-title">Save this filter</div>
-      <input type="text" class="pg-pop-input" id="pgFilterName" placeholder="e.g. 3rd &amp; long passes" maxlength="40">
-      <div class="pg-pop-actions"><button class="btn btn-sm btn-accent" id="pgFilterSaveOk" type="button">Save</button></div>`;
-    const pop = this._popover(anchor, wrap);
-    const input = wrap.querySelector('#pgFilterName');
-    const save = () => {
-      const name = input.value.trim();
-      if (!name) { input.focus(); return; }
-      this.savedFilters = this.savedFilters.filter(x => x.name !== name);   // overwrite same name
-      this.savedFilters.push({ name, f: this._serializeFilter() });
-      this._saveSavedFilters();
-      pop.close();
-      this.refresh();
-    };
-    wrap.querySelector('#pgFilterSaveOk').addEventListener('click', save);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
-    setTimeout(() => input.focus(), 30);
-  }
-
-  _openFiltersMenu(anchor) {
-    if (!this.savedFilters.length) return;
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `<div class="pg-pop-title">Saved filters</div>` +
-      this.savedFilters.map((x, i) => `
-        <div class="pg-pop-row" data-i="${i}">
-          <button class="pg-pop-item" data-apply="${i}" type="button">${this._esc(x.name)}</button>
-          <button class="pg-pop-del" data-del="${i}" type="button" title="Delete this saved filter">✕</button>
-        </div>`).join('');
-    const pop = this._popover(anchor, wrap);
-    wrap.addEventListener('click', (e) => {
-      const apply = e.target.closest('[data-apply]');
-      const del = e.target.closest('[data-del]');
-      if (apply) { this._applySavedFilter(this.savedFilters[+apply.dataset.apply].f); pop.close(); }
-      else if (del) {
-        this.savedFilters.splice(+del.dataset.del, 1);
-        this._saveSavedFilters();
-        pop.close();
-        this.refresh();
-      }
-    });
-  }
-
   // ---------- Columns ----------
 
   _visibleCols() {
     return this.cols.map(k => PlayGrid.COLUMNS.find(c => c.key === k)).filter(Boolean);
   }
 
-  _openColumnsMenu(anchor) {
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `
-      <div class="pg-pop-title">Columns</div>
-      <div class="pg-pop-presets">
-        <button class="pg-chip" data-preset="offense" type="button">Offense</button>
-        <button class="pg-chip" data-preset="defense" type="button">Defense</button>
-        <button class="pg-chip" data-preset="special" type="button">Special</button>
-        <button class="pg-chip" data-preset="default" type="button">Default</button>
-      </div>` +
-      PlayGrid.COLUMNS.map(c => `
-        <label class="pg-pop-check"><input type="checkbox" data-col="${c.key}"${this.cols.includes(c.key) ? ' checked' : ''}> ${this._esc(c.label)}</label>`).join('');
-    this._popover(anchor, wrap);
-    wrap.addEventListener('click', (e) => {
-      const preset = e.target.closest('[data-preset]');
-      if (preset) {
-        this.cols = PlayGrid.PRESETS[preset.dataset.preset].slice();
-        this._saveCols();
-        wrap.querySelectorAll('input[data-col]').forEach(cb => { cb.checked = this.cols.includes(cb.dataset.col); });
-        this.refresh();
-      }
-    });
-    wrap.addEventListener('change', (e) => {
-      const cb = e.target.closest('input[data-col]');
-      if (!cb) return;
-      const key = cb.dataset.col;
-      if (cb.checked) {
-        // Insert in registry order so the table reads consistently.
-        const order = PlayGrid.COLUMNS.map(c => c.key);
-        this.cols = order.filter(k => k === key || this.cols.includes(k));
-      } else {
-        if (this.cols.length === 1) { cb.checked = true; return; }   // never zero columns
-        this.cols = this.cols.filter(k => k !== key);
-      }
-      this._saveCols();
-      this.refresh();
-    });
-  }
+  // ---------- View data ----------
 
-  // ---------- Rendering ----------
-
-  /** Re-render on the next frame (coalesces bursts of play-updated events). */
+  /** Coalesce bursts of domain events before publishing one native snapshot. */
   refresh() {
     if (this._raf) return;
     this._raf = requestAnimationFrame(() => {
       this._raf = null;
-      if (!this._nativePresentation) this._render();
+      const ids = new Set((this.tagger.plays || []).map(play => play.id));
+      for (const id of [...this.selected]) if (!ids.has(id)) this.selected.delete(id);
       this._notifyNative();
     });
-  }
-
-  _render() {
-    if (!this.section) return;
-    const plays = this.tagger.plays;
-    this.section.hidden = plays.length === 0;
-    if (plays.length === 0) {
-      this.selected.clear();
-      this._focus = null;
-      this.rowsEl.innerHTML = '';        // don't keep stale rows in hidden DOM
-      this.theadEl.innerHTML = '';
-      return;
-    }
-
-    // Prune selections for plays that no longer exist.
-    const ids = new Set(plays.map(p => p.id));
-    for (const id of [...this.selected]) if (!ids.has(id)) this.selected.delete(id);
-    if (this._focus && !ids.has(this._focus.playId)) this._focus = null;
-
-    const visible = this._visiblePlays();
-    const cols = this._visibleCols();
-
-    this.theadEl.innerHTML = this._headHtml(cols, visible);
-    this.rowsEl.innerHTML = visible.map(p => this._rowHtml(p, cols)).join('');
-
-    const empty = this.section.querySelector('#pgEmpty');
-    empty.classList.toggle('hidden', visible.length > 0);
-    if (!visible.length) empty.textContent = 'No plays match these filters.';
-
-    // Chip active states.
-    this.section.querySelectorAll('.pg-fgroup').forEach(g => {
-      const group = g.dataset.group;
-      g.querySelectorAll('.pg-chip').forEach(c => {
-        const on = (group === 'unit' || group === 'rp')
-          ? this.f[group] === c.dataset.val
-          : this.f[group].has(c.dataset.val);
-        c.classList.toggle('active', on);
-      });
-    });
-
-    const all = this.section.querySelector('#pgCheckAll');
-    if (all) all.checked = visible.length > 0 && visible.every(p => this.selected.has(p.id));
-
-    this._updateBar(visible, plays);
-    this._highlight(this.tagger.currentPlayId);
-    this._restoreFocusClass();
-  }
-
-  _headHtml(cols, visible) {
-    const tend = visible.length >= 5 ? `
-      <tr class="pg-tend">
-        <td></td><td></td>
-        ${cols.map(c => `<td class="pg-c-${c.key}">${this._tendency(c, visible)}</td>`).join('')}
-      </tr>` : '';
-    return `
-      <tr>
-        <th class="pg-c-check"><input type="checkbox" id="pgCheckAll" title="Select all shown plays"></th>
-        <th class="pg-c-num">#</th>
-        ${cols.map(c => `<th class="pg-c-${c.key}">${this._esc(c.label)}</th>`).join('')}
-      </tr>${tend}`;
   }
 
   /** One-line tendency under a column header, over the VISIBLE plays. */
@@ -657,176 +292,53 @@ export class PlayGrid {
       });
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
       if (!top || total < 3) return '';
-      return `${this._esc(top[0])} ${Math.round((top[1] / total) * 100)}%`;
+      return `${top[0]} ${Math.round((top[1] / total) * 100)}%`;
     }
     return '';
   }
 
-  _updateBar(visible, plays) {
-    visible = visible || this._visiblePlays();
-    plays = plays || this.tagger.plays;
-    this.section.querySelector('#pgCount').textContent = `(${plays.length})`;
-    const showing = this.section.querySelector('#pgShowing');
-    showing.textContent = this._filterActive() ? `${visible.length} of ${plays.length}` : '';
-    this.section.querySelector('#pgClear').classList.toggle('hidden', !this._filterActive());
-    this.section.querySelector('#pgSaveFilter').classList.toggle('hidden', !this._filterActive());
-    this.section.querySelector('#pgFiltersMenu').classList.toggle('hidden', !this.savedFilters.length);
-
-    const pool = this._watchPool(visible);
-    const watch = this.section.querySelector('#pgWatch');
-    watch.textContent = `▶ Watch (${pool.length})`;
-    watch.disabled = pool.length === 0;
-  }
-
-  _rowHtml(p, cols) {
-    const t = p.tags || {};
-    // `unit` lands in a class name / chip letter UNescaped — pin it to the
-    // three known values (imported CSVs / foreign season files can hold
-    // arbitrary strings in any tag, and innerHTML would execute them).
-    const unit = t.unit === 'defense' || t.unit === 'special' ? t.unit : 'offense';
-    const u = unit === 'defense' ? 'D' : unit === 'special' ? 'S' : 'O';
-    const checked = this.selected.has(p.id) ? ' checked' : '';
-    const cur = p.id === this.tagger.currentPlayId ? ' is-current' : '';
-    const dim = PlayGrid.isUntagged(p) ? ' is-untagged' : '';
-    const time = p.clipName ? p.clipName : `${this._fmt(p.timestamp.start)}–${this._fmt(p.timestamp.end)}`;
-    return `
-      <tr class="pg-row${cur}${dim}" data-id="${p.id}" title="Play ${p.id} · ${this._esc(time)}">
-        <td class="pg-c-check"><input type="checkbox" class="pg-check"${checked}></td>
-        <td class="pg-c-num"><span class="pg-unit pg-unit-${unit}">${u}</span>${p.id}</td>
-        ${cols.map(c => `<td class="pg-c-${c.key} pg-edit" data-k="${c.key}">${this._cellHtml(p, c)}</td>`).join('')}
-      </tr>`;
-  }
-
-  _cellHtml(p, col) {
-    const t = p.tags || {};
+  _cellText(play, col) {
+    const tags = play.tags || {};
     if (col.type === 'pen-readonly') {
-      const penalties = PenaltyModel.normalizeList(p.penalties);
-      if (!penalties.length) {
-        return StatsEngine.hasResult(p, 'Penalty')
-          ? '<span class="pg-dim">Legacy · details uncharted</span>'
-          : '<span class="pg-dim">—</span>';
-      }
-      if (col.key === 'penalty') {
-        return this._esc(penalties.map(penalty => [penalty.foul || 'Unspecified', penalty.disposition === 'unknown' ? '' : penalty.disposition].filter(Boolean).join(' · ')).join(' / '));
-      }
-      return this._esc(penalties.map(penalty => {
+      const penalties = PenaltyModel.normalizeList(play.penalties);
+      if (!penalties.length) return StatsEngine.hasResult(play, 'Penalty')
+        ? 'Legacy · details uncharted' : '—';
+      if (col.key === 'penalty') return penalties.map(penalty =>
+        [penalty.foul || 'Unspecified', penalty.disposition === 'unknown' ? '' : penalty.disposition]
+          .filter(Boolean).join(' · ')).join(' / ');
+      return penalties.map(penalty => {
         if (penalty.disposition !== 'accepted') return penalty.disposition;
-        const team = penalty.team === 'subject' ? 'Subject' : penalty.team === 'opponent' ? 'Opponent' : 'Unknown';
+        const team = penalty.team === 'subject' ? 'Subject'
+          : penalty.team === 'opponent' ? 'Opponent' : 'Unknown';
         return `${team} ${penalty.yards == null ? '—' : penalty.yards}`;
-      }).join(' / '));
+      }).join(' / ');
     }
     if (col.type === 'st-readonly') {
-      const st = SpecialTeamsModel.normalize(p.specialTeams);
-      if (!st) return '<span class="pg-dim">—</span>';
+      const special = SpecialTeamsModel.normalize(play.specialTeams);
+      if (!special) return '—';
       const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block', try:'Try - Attempting', tryDefense:'Try - Defending' };
-      if (col.key === 'stUnit') return this._esc(names[st.unit] || st.unit);
-      if (col.key === 'stOutcome') return this._esc([st.attemptType, st.result || st.outcome.status, st.events?.badSnap ? 'badSnap' : '', st.events?.blocked ? 'blocked' : '', st.events?.turnover || '', st.events?.defensiveReturn ? 'defensiveReturn' : '', st.outcome.returnAward || '', st.outcome.score].filter(Boolean).join(' · '));
-      if (col.key === 'stKick') return this._esc([st.kick.distance == null ? '' : `${st.kick.distance} yds`, st.kick.hangTime == null ? '' : `${st.kick.hangTime}s`].filter(Boolean).join(' · '));
-      if (col.key === 'stReturn') return this._esc([st.return.yards == null ? '' : `${st.return.yards} yds`, st.outcome.recoveredBy ? `possession: ${st.outcome.recoveredBy}` : ''].filter(Boolean).join(' · '));
+      if (col.key === 'stUnit') return names[special.unit] || special.unit;
+      if (col.key === 'stOutcome') return [special.attemptType, special.result || special.outcome.status, special.events?.badSnap ? 'badSnap' : '', special.events?.blocked ? 'blocked' : '', special.events?.turnover || '', special.events?.defensiveReturn ? 'defensiveReturn' : '', special.outcome.returnAward || '', special.outcome.score].filter(Boolean).join(' · ');
+      if (col.key === 'stKick') return [special.kick.distance == null ? '' : `${special.kick.distance} yds`, special.kick.hangTime == null ? '' : `${special.kick.hangTime}s`].filter(Boolean).join(' · ');
+      if (col.key === 'stReturn') return [special.return.yards == null ? '' : `${special.return.yards} yds`, special.outcome.recoveredBy ? `possession: ${special.outcome.recoveredBy}` : ''].filter(Boolean).join(' · ');
     }
-    if (col.type === 'sit') return this._sit(t);
+    if (col.type === 'sit') {
+      if (!tags.down) return '—';
+      const ordinal = { 1:'1st', 2:'2nd', 3:'3rd', 4:'4th' }[tags.down] || String(tags.down);
+      return tags.distance ? `${ordinal} & ${tags.distance}` : ordinal;
+    }
     if (col.type === 'yds') {
-      const n = parseInt(t.yardage, 10);
-      if (!Number.isFinite(n)) return '';   // CSV imports can carry junk like '—'
-      const cls = n > 0 ? 'pos' : (n < 0 ? 'neg' : '');
-      // True minus sign (−, U+2212) for losses, not an ASCII hyphen.
-      const disp = n > 0 ? '+' + n : (n < 0 ? '−' + Math.abs(n) : '0');
-      return `<span class="${cls}">${disp}</span>`;
+      const yards = parseInt(tags.yardage, 10);
+      if (!Number.isFinite(yards)) return '';
+      return yards > 0 ? `+${yards}` : yards < 0 ? `−${Math.abs(yards)}` : '0';
     }
-    if (col.key === 'notes') return this._esc(p.notes || '');
-    // E3b/E4-2: every cell for one of the six projected fields shows the PROJECTED
-    // value — never the raw legacy token. A play charted only as "Shotgun" has no
-    // structural formation, so Formation reads "Not charted" (NOT "Shotgun", which
-    // would re-assert the misclassification E1 removed, and NOT "Unknown", which
-    // reads like a real analytics category rather than missing optional data).
+    if (col.key === 'notes') return String(play.notes || '');
     if (StatsEngine.PROJECTED_FIELDS.includes(col.key)) {
-      const v = StatsEngine.projField(p, col.key);
-      if (v) return this._esc(v);
-      if (col.key === 'formation') {
-        return '<span class="pg-notcharted" title="QB alignment is charted separately">Not charted</span>';
-      }
-      return '';
+      const value = StatsEngine.projField(play, col.key);
+      if (value) return String(value);
+      return col.key === 'formation' ? 'Not charted' : '';
     }
-    return this._esc(t[col.key] || '');
-  }
-
-  _sit(t) {
-    if (!t.down) return '<span class="pg-dim">—</span>';
-    // The fallback is raw tag data (CSV imports) — escape it.
-    const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || this._esc(t.down);
-    const txt = t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
-    // Signature scorebug badge; 3rd & 4th down get the emphasis variant (a
-    // football-true use of accent). CSS uppercases + tabular-figures it.
-    const key = (String(t.down) === '3' || String(t.down) === '4') ? ' dd-badge--key' : '';
-    return `<span class="dd-badge${key}">${txt}</span>`;
-  }
-
-  /** Move the current-row highlight without a full re-render. `scroll` is only
-   *  true on an explicit play selection — never on data re-renders, where
-   *  scrolling would yank the grid (or the whole page, on narrow layouts
-   *  where the document scrolls) on every tag edit. */
-  _highlight(id, scroll = false) {
-    if (!this.rowsEl) return;
-    this.rowsEl.querySelectorAll('.pg-row.is-current').forEach(r => r.classList.remove('is-current'));
-    if (!id) return;
-    const row = this.rowsEl.querySelector(`.pg-row[data-id="${id}"]`);
-    if (!row) return;
-    row.classList.add('is-current');
-    if (scroll) this._scrollRowIntoView(row);
-  }
-
-  /** Scroll ONLY the grid's own body — scrollIntoView would also scroll every
-   *  scrollable ancestor, including the page itself below 1100px. */
-  _scrollRowIntoView(row) {
-    const body = this.section.querySelector('#pgBody');
-    if (!body) return;
-    const headH = 44;   // keep the sticky column headers + tendency row clear
-    const top = row.offsetTop;
-    const bottom = top + row.offsetHeight;
-    if (top - headH < body.scrollTop) body.scrollTop = top - headH;
-    else if (bottom > body.scrollTop + body.clientHeight) body.scrollTop = bottom - body.clientHeight;
-  }
-
-  // ---------- Cell focus (spreadsheet navigation) ----------
-
-  _setFocus(playId, colKey) {
-    this._focus = playId == null ? null : { playId, colKey };
-    this._restoreFocusClass();
-  }
-
-  _restoreFocusClass() {
-    if (!this.rowsEl) return;
-    this.rowsEl.querySelectorAll('td.pg-cell-focus').forEach(td => td.classList.remove('pg-cell-focus'));
-    if (!this._focus) return;
-    const td = this._cellEl(this._focus.playId, this._focus.colKey);
-    if (td) {
-      td.classList.add('pg-cell-focus');
-      // Make the section focusable so grid keys work after a click.
-      if (!this.section.hasAttribute('tabindex')) this.section.setAttribute('tabindex', '-1');
-      if (!this.section.contains(document.activeElement) || document.activeElement === document.body) {
-        this.section.focus({ preventScroll: true });
-      }
-    }
-  }
-
-  _cellEl(playId, colKey) {
-    return this.rowsEl.querySelector(`.pg-row[data-id="${playId}"] td[data-k="${colKey}"]`);
-  }
-
-  _moveFocus(dx, dy) {
-    if (!this._focus) return;
-    const visible = this._visiblePlays();
-    const cols = this._visibleCols();
-    let r = visible.findIndex(p => p.id === this._focus.playId);
-    let c = cols.findIndex(col => col.key === this._focus.colKey);
-    if (r < 0 || c < 0) return;
-    r = Math.max(0, Math.min(visible.length - 1, r + dy));
-    c = Math.max(0, Math.min(cols.length - 1, c + dx));
-    const play = visible[r];
-    this._setFocus(play.id, cols[c].key);
-    if (dy !== 0 && play.id !== this.tagger.currentPlayId) this.tagger.selectPlay(play.id);
-    const td = this._cellEl(play.id, cols[c].key);
-    if (td) this._scrollRowIntoView(td.parentElement);
+    return String(tags[col.key] || '');
   }
 
   // ---------- Inline editing ----------
@@ -867,130 +379,6 @@ export class PlayGrid {
       all = all.filter(v => !TagProjection[pair.excludeFrom].includes(v));
     }
     return all;
-  }
-
-  _openEditor(playId, colKey) {
-    const play = this.tagger.getPlay(playId);
-    const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
-    const cell = this._cellEl(playId, colKey);
-    if (!play || !col || !cell) return;
-    if (col.type === 'st-readonly' || col.type === 'pen-readonly') return;
-    this._closeEditor();
-
-    const wrap = document.createElement('div');
-    let commit;   // (value) => void, set per editor type
-
-    // Commit direction: keyboard Enter advances DOWN (spreadsheet charting
-    // flow), Tab hops sideways, mouse commits stay on the play — advancing
-    // the selection (and seeking the video) on a mouse pick is disorienting.
-    if (col.type === 'enum' && !col.multi) {
-      // E3b-P1: seed the editor from the PROJECTED view for the six projected
-      // fields. Seeding from RAW would hand `_options` a legacy alignment token as
-      // `current`, and _options deliberately re-adds the current value even when
-      // it is absent from the library — putting "Shotgun" back into the STRUCTURAL
-      // Formation picker and re-offering the exact misclassification E1 removed.
-      const cur = String(StatsEngine.projField(play, col.key) || '');
-      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [cur]).map(o =>
-        `<button class="pg-chip${o === cur ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}
-        <button class="pg-chip pg-chip-clear" data-v="" type="button">✕ none</button></div>`;
-      wrap.addEventListener('click', (e) => {
-        const b = e.target.closest('[data-v]');
-        if (b) commit(b.dataset.v);
-      });
-    } else if (col.type === 'enum' && col.multi) {
-      // E3b-P1: projected seed (see the single-value branch above).
-      const cur = new Set(String(StatsEngine.projField(play, col.key) || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean));
-      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [...cur]).map(o =>
-        `<button class="pg-chip${cur.has(o) ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}</div>
-        <div class="pg-pop-actions">
-          <button class="btn btn-sm" data-act="clear" type="button">Clear</button>
-          <button class="btn btn-sm btn-accent" data-act="done" type="button">Done</button>
-        </div>`;
-      const groups = PlayTagger.EXCLUSIVE_GROUPS[col.key] || [];
-      wrap.addEventListener('click', (e) => {
-        const chip = e.target.closest('.pg-chip[data-v]');
-        if (chip) {
-          const turningOn = !chip.classList.contains('active');
-          chip.classList.toggle('active');
-          // Mirror the tag form: activating a member of an exclusive group
-          // deselects its rivals so the cell can never become "Gain + Loss".
-          if (turningOn) {
-            const v = chip.dataset.v;
-            const grp = groups.find(g => g.includes(v));
-            if (grp) wrap.querySelectorAll('.pg-chip.active').forEach(c => {
-              if (c !== chip && grp.includes(c.dataset.v)) c.classList.remove('active');
-            });
-          }
-          return;
-        }
-        const act = e.target.closest('[data-act]');
-        if (!act) return;
-        if (act.dataset.act === 'clear') commit('');
-        else commit([...wrap.querySelectorAll('.pg-chip.active')].map(c => c.dataset.v).join(' + '));
-      });
-    } else if (col.type === 'sit') {
-      const t = play.tags;
-      wrap.innerHTML = `
-        <div class="pg-pop-chips">${['1', '2', '3', '4'].map(d =>
-          `<button class="pg-chip${String(t.down) === d ? ' active' : ''}" data-v="${d}" type="button">${({1:'1st',2:'2nd',3:'3rd',4:'4th'})[d]}</button>`).join('')}
-          <button class="pg-chip pg-chip-clear" data-v="" type="button">✕</button></div>
-        <input type="number" class="pg-pop-input" id="pgSitDist" placeholder="Distance" min="1" max="99" value="${this._esc(t.distance || '')}">
-        <div class="pg-pop-actions"><button class="btn btn-sm btn-accent" data-act="done" type="button">Done</button></div>`;
-      let down = String(t.down || '');
-      wrap.addEventListener('click', (e) => {
-        const chip = e.target.closest('.pg-chip[data-v]');
-        if (chip) {
-          down = chip.dataset.v;
-          wrap.querySelectorAll('.pg-chip').forEach(c => c.classList.toggle('active', c === chip && !!down));
-          return;
-        }
-        if (e.target.closest('[data-act="done"]')) commit({ down, distance: wrap.querySelector('#pgSitDist').value.trim() });
-      });
-      const dist = wrap.querySelector('#pgSitDist');
-      dist.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); commit({ down, distance: dist.value.trim() }, 'down'); }
-      });
-    } else {   // yds / text / call
-      const isYds = col.type === 'yds';
-      const cur = isYds ? String(play.tags.yardage ?? '')
-        : col.key === 'notes' ? String(play.notes || '') : String(play.tags[col.key] || '');
-      const callOptions = col.type === 'call'
-        ? `<datalist id="pgCallOptions">${(this.playbook?.list?.() || []).map(call => `<option value="${this._esc(call.name)}"></option>`).join('')}</datalist>` : '';
-      wrap.innerHTML = `<input type="${isYds ? 'number' : 'text'}" class="pg-pop-input pg-pop-wide" id="pgCellInput"
-        value="${this._esc(cur)}"${isYds ? '' : ` maxlength="200"${col.type === 'call' ? ' list="pgCallOptions" placeholder="e.g. 26 Blast"' : ''}`}>${callOptions}`;
-      const input = wrap.querySelector('#pgCellInput');
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); commit(input.value.trim(), 'down'); }
-      });
-      setTimeout(() => { input.focus(); input.select(); }, 30);
-    }
-
-    const pop = this._popover(cell, wrap, () => { this._editor = null; });
-    this._editor = pop;
-
-    // Tab / Shift+Tab inside any editor: commit the current state where it's
-    // unambiguous (inputs), then hop horizontally. Enter-driven commits hop
-    // DOWN via _afterCommit.
-    wrap.addEventListener('keydown', (e) => {
-      e.stopPropagation();   // never leak keys to the app's global shortcuts
-      if (e.key === 'Escape') { e.preventDefault(); pop.close(); this.section.focus({ preventScroll: true }); }
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const input = wrap.querySelector('#pgCellInput, #pgSitDist');
-        if (input && input.id === 'pgCellInput') commit(input.value.trim(), e.shiftKey ? 'left' : 'right');
-        else { pop.close(); this._moveFocus(e.shiftKey ? -1 : 1, 0); }
-      }
-    });
-
-    commit = (value, dir) => {
-      pop.close();
-      this._applyEdit(play, col, value);
-      this._afterCommit(playId, colKey, dir || null);   // mouse commits stay put
-    };
-  }
-
-  _closeEditor() {
-    if (this._editor) { this._editor.close(); this._editor = null; }
   }
 
   /** Apply an inline edit with the SAME semantics as the tag form. */
@@ -1053,61 +441,6 @@ export class PlayGrid {
     this.tagger._emit('play-updated', play);
   }
 
-  /** After a commit: restore focus, and for keyboard commits move it (down =
-   *  next play same column, spreadsheet style) once the rAF re-render has
-   *  rebuilt the rows. Mouse commits (dir null) stay on the edited cell. */
-  _afterCommit(playId, colKey, dir) {
-    this._setFocus(playId, colKey);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (dir === 'down') this._moveFocus(0, 1);
-      else if (dir === 'right') this._moveFocus(1, 0);
-      else if (dir === 'left') this._moveFocus(-1, 0);
-      else this._restoreFocusClass();
-      this.section.focus({ preventScroll: true });
-    }));
-  }
-
-  // ---------- Popover infrastructure ----------
-
-  /** Small fixed-position popover anchored under `anchor`. Closes on outside
-   *  mousedown or Esc; swallows its own keydowns so the app's global
-   *  single-letter shortcuts can't fire underneath. */
-  _popover(anchor, contentEl, onClose) {
-    // One popover at a time: opening any (cell editor, Columns, Filters)
-    // closes whatever is already open — stacked popovers collided (audit A9).
-    if (this._openPop) { try { this._openPop.close(); } catch (e) {} }
-    const pop = document.createElement('div');
-    pop.className = 'pg-pop';
-    pop.appendChild(contentEl);
-    document.body.appendChild(pop);
-
-    const r = anchor.getBoundingClientRect();
-    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
-    const below = r.bottom + 4;
-    const h = pop.offsetHeight;
-    pop.style.top = (below + h > window.innerHeight - 8 && r.top - h - 4 > 8 ? r.top - h - 4 : below) + 'px';
-
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      if (this._openPop && this._openPop.el === pop) this._openPop = null;
-      document.removeEventListener('mousedown', onDown, true);
-      document.removeEventListener('keydown', onKey, true);
-      pop.remove();
-      if (onClose) onClose();
-    };
-    const onDown = (e) => { if (!pop.contains(e.target) && e.target !== anchor) close(); };
-    const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
-    };
-    document.addEventListener('mousedown', onDown, true);
-    document.addEventListener('keydown', onKey, true);
-    const handle = { el: pop, close };
-    this._openPop = handle;
-    return handle;
-  }
-
   // ---------- Bulk watch ----------
 
   /** The plays Watch actually operates on: checked-AND-visible rows, or every
@@ -1134,7 +467,7 @@ export class PlayGrid {
     }
   }
 
-  // ---------- Native Film Room adapter ----------
+  // ---------- Film Room presentation API ----------
 
   subscribeNative(listener) {
     this._nativeListeners.add(listener);
@@ -1148,17 +481,9 @@ export class PlayGrid {
     for (const listener of this._nativeListeners) listener(snapshot);
   }
 
-  _plainCell(play, col) {
-    const template = this._nativeTextTemplate;
-    template.innerHTML = this._cellHtml(play, col);
-    return (template.content.textContent || '').trim();
-  }
+  _plainCell(play, col) { return this._cellText(play, col); }
 
-  _plainTendency(col, visible) {
-    const template = this._nativeTextTemplate;
-    template.innerHTML = this._tendency(col, visible);
-    return (template.content.textContent || '').trim();
-  }
+  _plainTendency(col, visible) { return this._tendency(col, visible); }
 
   nativeSnapshot() {
     const plays = this.tagger.plays || [];
@@ -1192,12 +517,6 @@ export class PlayGrid {
       activeColumns: [...this.cols],
     };
   }
-  nativePresentation(active) {
-    this._nativePresentation = !!active;
-    if (!active) this.refresh();
-    else this._notifyNative();
-  }
-
 
   nativeToggleFilter(group, value) { this._toggleFilter(group, value); }
   nativeClearFilters() {
@@ -1284,11 +603,4 @@ export class PlayGrid {
     return true;
   }
 
-  // ---------- Utils ----------
-
-  _fmt(sec) { return this.tagger._fmt(sec || 0); }
-
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 }

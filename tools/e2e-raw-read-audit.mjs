@@ -70,15 +70,8 @@ const ACK = [
   { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
   { file: 'js/stats-engine.js', method: 'projField', code: 'p.tags[key]', count: 1, reason: "E3b: projField IS the sanctioned by-key projection seam — it returns proj(p)[key] for the six PROJECTED_FIELDS and reaches this raw read ONLY for non-projected keys. Method-scoped (E3b-P5): this same expression text is forbidden in a display method." },
   { file: 'js/advanced-metrics.js', method: 'summarize', code: 'x.play.tags[key]', count: 1, reason: "E3b: EPA groupBy() branches on StatsEngine.PROJECTED_FIELDS — the six go through projField(), and this raw read is reachable ONLY for non-projected keys (playType, down, …), which keep their existing 'Unknown' bucket." },
-  // play-grid holds ALLOWED editor reads and FORBIDDEN display reads in one module
-  // with identical expression text — the exact case method-scoped ACKs exist for.
-  // DISPLAY (_cellHtml, _tendency) goes through projField and is NOT listed here;
-  // only the editor may touch the coach's stored value.
-  // NOTE: the former `_openEditor` ACK (count 2) is GONE on purpose — E3b-P1
-  // `_openEditor` may read generic text/call columns raw, but projected enum
-  // columns still seed exclusively through projField(). Its ACK below is method-
-  // scoped and multiplicity-pinned so another generic branch cannot inherit it.
-  { file: 'js/play-grid.js', method: '_openEditor', code: 'play.tags[col.key]', count: 1, reason: "EDITOR seed for yds/text/call columns only. The six projected fields are enum columns and take the projField branches above, so this path cannot bypass projection." },
+  // PlayGrid presentation reads and native editor seeds go through projField;
+  // only the explicit edit commit may write the coach's stored value directly.
   { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 1, reason: "EDITOR write: commits the coach's explicit choice to the stored tag. Raw by design — display never writes." },
   // E4-2: the former `_applyEdit` `play.tags[sibling]` ACK (count 2) is GONE on
   // purpose — the promote-then-strip logic moved into

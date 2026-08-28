@@ -68,7 +68,7 @@ const out = await page.evaluate(() => {
   };
   res.routes = {
     home:      hostInfo('#wsHome', []),
-    breakdown: hostInfo('#wsBreakdown', ['.video-section', '.tag-section', '#playGridSection']),
+    breakdown: hostInfo('#wsBreakdown', ['.video-section', '.tag-section']),
     study:     hostInfo('#wsStudy', ['#statsDashboard', '.video-section']),
     reports:   hostInfo('#wsReports', [], ['[data-native-reports]#statsDashboard']),
     plan:      hostInfo('#wsPlan', ['#statsDashboard']),

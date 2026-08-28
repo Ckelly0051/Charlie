@@ -145,7 +145,7 @@ Acceptance for opening the next broad redesign:
 - The live global CSS affecting the redesigned surface is known and controlled.
 - Real-data captures at the agreed desktop viewports match the same composition used for approval.
 
-> **PROGRESS (2026-08-28):** The first blocker is closed. BreakdownVideo, BreakdownForm, their mount/restore hooks, feature flags, bridge exports, and dedicated CSS are deleted. Structured penalty and Special Teams behavior now lives in the DOM-free BreakdownChartingService. Film Room separation and cascade control remain open.
+> **PROGRESS (2026-08-28):** The first two blockers are closed. BreakdownVideo, BreakdownForm, their mount/restore hooks, feature flags, bridge exports, and dedicated CSS are deleted. Structured penalty and Special Teams behavior now lives in the DOM-free BreakdownChartingService. PlayGrid is now a DOM-free state/command model, while NativeFilmRoom is the only presentation owner; the classic renderer, event wiring, collapse preference, and HTML-to-text bridge are deleted. CSS cascade inventory and control remain open.
 
 
 ## 3C. Binding Consumer Presentation Standard

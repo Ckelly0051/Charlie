@@ -408,15 +408,13 @@ for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
 }
 
 console.log('\n== 8d. E3b/E4-2: projected cells + editable projected columns + saved-column upgrade ==');
-// Fully pure -- _cellHtml/_cell, PG.COLUMNS, PG._upgradeCols and _loadCols
+// Fully pure -- _cellText/_cell, PG.COLUMNS, PG._upgradeCols and _loadCols
 // never touch the classic .pg-* markup, so this section is unaffected by the
 // #playGridSection deletion.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
-  const cell = (p, key) => grid._cellHtml
-    ? grid._cellHtml(p, PG.COLUMNS.find(c => c.key === key))
-    : grid._cell(p, PG.COLUMNS.find(c => c.key === key));
+  const cell = (p, key) => grid._cellText(p, PG.COLUMNS.find(c => c.key === key));
   const alignOnly = mk(1, { formation: 'Under Center' });      // projects to NO structural formation
   const structural = mk(2, { formation: 'Shotgun + Trips' });  // projects to Trips
   const defFam = mk(3, { unit: 'defense', coverage: 'Cover 3', coverageFamily: 'Zone' });
@@ -440,8 +438,6 @@ r = await page.evaluate(() => {
 });
 ok(/Not charted/.test(r.alignFormation) && !/Shotgun/.test(r.alignFormation) && !/Unknown/.test(r.alignFormation),
   'alignment-only play: Formation cell reads "Not charted" (never Shotgun/Unknown)', JSON.stringify(r.alignFormation));
-ok(/QB alignment is charted separately/.test(r.alignFormation),
-  'the "Not charted" cell carries the explanatory tooltip', JSON.stringify(r.alignFormation));
 ok(/Under Center/.test(r.alignQb), 'QB Alignment column shows the projected alignment', JSON.stringify(r.alignQb));
 ok(/Trips/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
   'structural play: Formation cell shows projected structure only', JSON.stringify(r.structFormation));
@@ -1144,7 +1140,7 @@ r = await page.evaluate(() => {
   const runClear = (siblingKey, primaryKey, primaryLegacy, unit, id) => {
     const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit, down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], [primaryKey]: primaryLegacy } };
     tagger.plays.push(play);
-    const derivedBefore = grid._cellHtml(play, PG.COLUMNS.find(c => c.key === siblingKey));
+    const derivedBefore = grid._cellText(play, PG.COLUMNS.find(c => c.key === siblingKey));
     hist.reset();
     const depth0 = hist.stack.length;
     // A direct commit of '' on the SIBLING's own column -- exactly what the
@@ -1157,9 +1153,9 @@ r = await page.evaluate(() => {
     const undone = now();
     hist.redo();
     const redone = now();
-    // Revisit: re-read the cell through _cellHtml from scratch -- proves
+    // Revisit: re-read the cell through _cellText from scratch -- proves
     // the clear is durable in the DATA, not merely a transient DOM state.
-    const revisitCell = grid._cellHtml(tagger.getPlay(id), PG.COLUMNS.find(c => c.key === siblingKey));
+    const revisitCell = grid._cellText(tagger.getPlay(id), PG.COLUMNS.find(c => c.key === siblingKey));
     tagger.plays = tagger.plays.filter(pl => pl.id !== id);
     return { derivedBefore, entries, afterCommit, undone, redone, revisitCell };
   };

@@ -47,6 +47,13 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX FILM ROOM RENDERER RETIREMENT (2026-08-28)
+
+The classic Film Room document renderer is deleted. `PlayGrid` now owns only persisted column/filter state, tendency calculations, row selection and cut-up commands, and canonical inline-edit football semantics. It no longer creates, queries, hides, restores, or converts HTML. `NativeFilmRoom` is the sole presentation owner, and `NativeFilmRoomScreen` no longer carries a legacy-hidden state or presentation-mode switch.
+
+The removal deleted the classic table/header/row renderer, popovers, delegated events, focus/editor DOM state, collapse behavior and `ffa_film_room_collapsed` production read, plus the detached-template HTML-to-text bridge. Cell and tendency values now reach Preact as structured text. The adversarial pass caught a stale projection-audit exemption for the deleted `_openEditor`; removing it returned the audit to zero allowlisted PlayGrid reads. The shell dependency audit no longer lists `#playGridSection` as a possible relocated owner.
+
+Verification: production build green; native Film Room 24/24; complete Film Room workflow 174/174; projection raw-read audit 11/11. The Vite JavaScript bundle fell by roughly 20.5 kB minified. No film identity, play data, persistence, tag vocabulary, edit semantics, or cut-up behavior changed. The next pre-redesign blocker is the Breakdown CSS cascade inventory and retirement pass.
 ### CODEX V2-H MANAGED-FILM MANIFEST REUSE (2026-08-27)
 
 The first V2-H performance slice removes repeated per-clip URL resolution when an unchanged managed-film game is reopened. `StorageManager` now keeps a bounded twelve-game LRU of deterministic managed-film path/URL manifests, keyed by season, game, exact ordered file signature, and backend instance. The filesystem list remains authoritative on every open; a changed list or backend misses the cache, linked coach-owned folders remain uncached, and the existing latest-load-wins token still fences every shared-player mutation.

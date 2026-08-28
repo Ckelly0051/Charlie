@@ -7,29 +7,17 @@ export class NativeFilmRoomScreen {
     this.overlays = app.overlays;
     this.host = null;
     this._view = null;
-    this._legacyHidden = null;
   }
 
   mount(host) {
-    // Final Engine Independence: #playGridSection is a legacy authored
-    // element PlayGrid's classic renderer used; the native route never reads
-    // or writes it directly, only toggled it hidden as a belt-and-braces
-    // precaution while it still existed. this.grid?.section may now be
-    // genuinely absent (deleted from index.html) -- that is the expected,
-    // fully-supported state, not a missing dependency.
     if (!host || !this.grid) return false;
     if (this.host === host && this._view) return true;
     if (this.host) this.restore();
     this.host = host;
-    this._legacyHidden = this.grid.section?.hidden ?? null;
-    if (this.grid.section) this.grid.section.hidden = true;
-    this.grid.nativePresentation(true);
     try {
       this._view = mountNativeFilmRoom({ host, screen: this });
       return true;
     } catch (error) {
-      this.grid.nativePresentation(false);
-      if (this.grid.section) this.grid.section.hidden = this._legacyHidden;
       this.host = null;
       this._view = null;
       throw error;
@@ -44,9 +32,6 @@ export class NativeFilmRoomScreen {
     }
     this._view?.unmount?.();
     this._view = null;
-    this.grid.nativePresentation(false);
-    if (this.grid.section) this.grid.section.hidden = this._legacyHidden;
-    this._legacyHidden = null;
     this.host = null;
     return true;
   }
