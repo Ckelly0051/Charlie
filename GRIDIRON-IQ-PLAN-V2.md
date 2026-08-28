@@ -10,6 +10,10 @@
 ## Active Breakdown Redesign Checkpoint (2026-08-28)
 
 The pre-redesign ownership blockers are closed. The comp-governed presentation phase has begun with a binding rule: density must come from layout and progressive disclosure, never from reducing ordinary coach-facing text and controls below the shared design-system sizes. The first production slice replaces Breakdown's 1440px shrink-to-fit rules with canonical typography, 30px desktop controls, wrapping utilities, aligned field-position controls, and an automated computed-style/containment gate. Continue route-by-route against the approved Breakdown comp; do not introduce another parallel visual language or re-open retired global ownership. The Theater and Film Room now follow the same type rhythm: lower-third keys, route/actions, table headers, and table data consume the shared tokens rather than route-local 9.5-12px values. The native template row no longer reads or mutates a detached legacy selector; explicit template selection and deletion state now belongs to the live charting API. Its permanent utility row now matches the approved comp: only per-play template actions remain visible, while vocabulary-changing charting setup lives under More Tools.
+Current accepted implementation range: `a3cc8b4`, `574493a`, `e5481e5`, and `4c8c1c5`. The next checkpoint is deliberately two steps, not a review per small edit and not one review deferred until all of Breakdown is finished:
+
+1. Finish the populated Chart form body and commit bar as one comp-governed consumer workflow. This includes scan order, group hierarchy, spacing, chip geometry, progressive disclosure, Players & Grades, all three units, scout mode, and responsive containment. Visual migration happens in this step; it is not deferred as later polish.
+2. Run an adversarial review of the complete Chart checkpoint, repair all validated findings, and only then proceed to Film Room composition and the final route-wide review.
 ## 1. Product Goal
 
 GridIron IQ should feel like one coherent coaching workspace rather than a
