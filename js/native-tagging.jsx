@@ -129,8 +129,16 @@ function ResultField({screen, state}) {
   </div>;
 }
 
-function Group({title, detail='', open=false, children}) {
+function Group({title, detail='', open=false, syncOpen=false, children}) {
   const [expanded,setExpanded] = useState(open);
+  // Offense/Defense/Special Teams groups pass syncOpen: their `open` prop is
+  // a function of the active unit, not a one-time default. useState only
+  // reads its argument on mount, so a coach who mounted the form on Defense
+  // then clicked back to Offense saw the Offense group stay collapsed --
+  // the primary group for the unit they were actually charting. Re-syncing
+  // whenever `open` itself changes (i.e. the unit changed) fixes that while
+  // still letting a manual toggle stick within one unit's session.
+  useLayoutEffect(() => { if (syncOpen) setExpanded(open); }, [open, syncOpen]);
   return <details class="gi-tag-group" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
     <summary><strong>{title}</strong>{detail && <span>{detail}</span>}<i aria-hidden="true">▾</i></summary>
     <div class="gi-tag-group-body">{children}</div>
@@ -374,14 +382,14 @@ function NativeTagging({screen}) {
       {state.unit === 'special' ? <SpecialTeams screen={screen} state={state}/> : (() => {
         // Charting defense, OUR call comes first and the offense we faced
         // second. The group a coach is actually charting leads.
-        const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open={state.unit !== 'defense'}>
+        const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open={state.unit !== 'defense'} syncOpen>
           <PlayCallField screen={screen} state={state}/>
           {chips('formation','Formation',state.libraries.formation,'select all','formation')}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment,'optional')}
           {chips('backfield','Backfield',state.libraries.backfield,'optional','backfield')}
           {chips('strength','Strength',OPTIONS.strength)}{chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
         </Group>;
-        const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} detail="front, coverage, pressure" open={state.unit === 'defense'}>
+        const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} detail="front, coverage, pressure" open={state.unit === 'defense'} syncOpen>
           {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;

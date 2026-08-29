@@ -263,19 +263,24 @@
     background:var(--gi-1)
   }
   .gi-breakdown-deck .gi-tag-title{
-    display:flex;align-items:center;flex:0 0 140px;min-width:0;grid-column:auto
+    display:flex;align-items:center;flex:0 0 auto;min-width:0;grid-column:auto
   }
+  /* A solid gold panel just to name the selected play outweighed everything
+     it sits beside -- Offense/Defense/ST, the utility row, even the play
+     itself. The comp names the play in plain type on the header's own
+     ground, no fill, no fixed column; gold stays reserved for the state
+     that means something (an active unit, the commit action). Font sizes
+     are unchanged -- the geometry harness pins the eyebrow/title floors. */
   .gi-breakdown-deck .gi-tag-play-identity{
-    align-self:stretch;display:flex;flex-direction:column;justify-content:center;
-    min-width:140px;padding:6px 10px;border-right:1px solid var(--gi-7);
-    background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)
+    align-self:center;display:flex;flex-direction:column;justify-content:center;
+    min-width:0;padding:0 var(--gi-3x) 0 var(--gi-2x);
   }
   .gi-breakdown-deck .gi-tag-title .gi-eyebrow{
-    margin:0;color:inherit;font:var(--gi-text-eyebrow)
+    margin:0;color:var(--gi-9);font:var(--gi-text-eyebrow)
   }
-  .gi-breakdown-deck .gi-tag-title h2{font:var(--gi-text-display)}
+  .gi-breakdown-deck .gi-tag-title h2{font:var(--gi-text-display);color:var(--gi-12)}
   .gi-breakdown-deck .gi-tag-title p{
-    margin:2px 0 0;padding:0;color:var(--gi-bd-gold-ink);font:600 12px/1 var(--gi-sans);white-space:nowrap
+    margin:2px 0 0;padding:0;color:var(--gi-10);font:600 12px/1 var(--gi-sans);white-space:nowrap
   }
   .gi-breakdown-deck .gi-unit-switch{
     flex:1 1 auto;align-self:stretch;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0
