@@ -163,7 +163,7 @@ r = await page.evaluate(() => ({ tool: window.app.canvas.currentTool }));
 r.form = await formState();
 ok(r.tool === 'circle', 'digit with NO play selected still arms the tool', JSON.stringify(r));
 ok(r.form.disabled, 'form disabled while no play is selected', JSON.stringify(r.form));
-ok(r.form.headline === 'SELECT A PLAY', 'headline prompts the coach to select a play', JSON.stringify(r.form));
+ok(r.form.headline === 'SELECT PLAY', 'headline prompts the coach to select a play', JSON.stringify(r.form));
 await page.evaluate(() => { // restore
   window.app.canvas.currentTool = null;
   const t = window.app.tagger;
@@ -206,6 +206,65 @@ ok(carried.down === '2' && carried.dist === '6' && carried.cur === carried.bId,
    'Save & Next pre-filled 2nd & 6 on the next play', JSON.stringify(carried));
 ok(skipped.down === '' && skipped.dist === '' && skipped.cur === carried.bId,
    'Skip advanced WITHOUT carrying the situation', JSON.stringify(skipped));
+console.log('\n== 7b. Save & Next preserves the selected unit across seeded placeholders ==');
+r = await page.evaluate(() => {
+  const t = window.app.tagger;
+  const [a, b, c, d] = t.plays.slice(10, 14);
+  const originals = [a, b, c, d].map(play => ({
+    tags: structuredClone(play.tags),
+    specialTeams: play.specialTeams ? structuredClone(play.specialTeams) : null,
+  }));
+  const clearMeaningful = play => {
+    play.tags = {
+      ...play.tags,
+      unit: 'special',
+      formation: '', playType: '', runPass: '', result: '', stType: '',
+      defFront: '', coverage: '', blitz: '',
+    };
+    delete play.specialTeams;
+  };
+  clearMeaningful(b);
+  clearMeaningful(c);
+  clearMeaningful(d);
+  a.tags.unit = 'offense';
+  d.tags.unit = 'special';
+  d.tags.stType = 'Punt'; // genuinely charted: must not be overwritten
+  t.autoDD = false;
+  t.selectPlay(a.id);
+  return { ids: [a.id, b.id, c.id, d.id], originals };
+});
+await clickSaveNext();
+const unitCarryOne = await page.evaluate(() => {
+  const play = window.app.tagger.getCurrentPlay();
+  return { id: play.id, stored: play.tags.unit, shown: window.app.nativeTagging.snapshot().unit };
+});
+await clickSaveNext();
+const unitCarryTwo = await page.evaluate(() => {
+  const play = window.app.tagger.getCurrentPlay();
+  return { id: play.id, stored: play.tags.unit, shown: window.app.nativeTagging.snapshot().unit };
+});
+await clickSaveNext();
+const unitCarryCharted = await page.evaluate(() => {
+  const play = window.app.tagger.getCurrentPlay();
+  return { id: play.id, stored: play.tags.unit, shown: window.app.nativeTagging.snapshot().unit, stType: play.tags.stType };
+});
+await page.evaluate(({ ids, originals }) => {
+  const t = window.app.tagger;
+  ids.forEach((id, index) => {
+    const play = t.getPlay(id);
+    play.tags = originals[index].tags;
+    if (originals[index].specialTeams) play.specialTeams = originals[index].specialTeams;
+    else delete play.specialTeams;
+  });
+  t.autoDD = true;
+  t.selectPlay(ids[0]);
+}, r);
+ok(unitCarryOne.id === r.ids[1] && unitCarryOne.stored === 'offense' && unitCarryOne.shown === 'offense'
+   && unitCarryTwo.id === r.ids[2] && unitCarryTwo.stored === 'offense' && unitCarryTwo.shown === 'offense',
+   'Save & Next keeps the coach-selected unit across untouched plays seeded as Special Teams', JSON.stringify({ unitCarryOne, unitCarryTwo }));
+ok(unitCarryCharted.id === r.ids[3] && unitCarryCharted.stored === 'special'
+   && unitCarryCharted.shown === 'special' && unitCarryCharted.stType === 'Punt',
+   'Save & Next preserves a genuinely charted next play with a different unit', JSON.stringify(unitCarryCharted));
 
 console.log('\n== 8. Penalty replays the down in Auto D&D ==');
 r = await page.evaluate(() => {

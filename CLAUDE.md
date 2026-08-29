@@ -119,6 +119,28 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX SAVE & NEXT UNIT-STICKINESS REPAIR (2026-08-29)
+
+A coach-found Breakdown regression is fixed: games created with Special Teams as
+their starting perspective seed untouched placeholder plays with
+`unit:'special'`. Save & Next previously treated that seed as a deliberate
+unit assignment and refused to carry the unit the coach had selected, so the
+charting deck snapped back to Special Teams after every saved play.
+
+`PlayTagger.nextPlayWithSituation()` now distinguishes an untouched placeholder
+from a genuinely charted next play through the canonical `isPlayTagged()`
+predicate already shared by progress, Film Room, and analytics. The selected
+unit carries across untouched plays, while a next play with real charting keeps
+its stored unit. No football classification, persistence, or film identity
+changed.
+
+Regression coverage in `tools/e2e-tagging.mjs` drives the native Save & Next
+button through two Special Teams-seeded untouched plays, then proves a genuinely
+charted Punt remains Special Teams. The same focused run also corrected its one
+stale copy assertion from the retired `SELECT A PLAY` wording to the accepted
+native `SELECT PLAY` heading. Verification: production build clean;
+`e2e-tagging` 30/30, `e2e-native-tagging` 69/69, and `e2e-core` 25/25,
+with zero page errors.
 ### CLAUDE V2-H REPAIR: VIRTUALIZER PIN + STALE-SCROLL FIX (2026-08-29)
 
 **Builder: Claude. Repairs both findings from Codex's review of the V2-H

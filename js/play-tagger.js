@@ -1364,9 +1364,13 @@ export class PlayTagger {
       const next = this.getCurrentPlay();
       if (next) {
         if (this.autoDD && prev) this.applyNextSituation(prev, next);
-        // Carry the side forward only when the next play hasn't been set yet,
-        // so we never overwrite a play already tagged as a different unit.
-        if (carryUnit && !next.tags.unit) this.setUnit(carryUnit);
+        // Placeholder plays are seeded with the game's starting unit when
+        // they are created. That seed is not a coach decision: once the coach
+        // changes units, Save & Next must keep that choice across untouched
+        // plays instead of snapping back to the original seed on every play.
+        // Preserve a different unit only when the next play is genuinely
+        // charted, using the same canonical rule as progress and Film Room.
+        if (carryUnit && !isPlayTagged(next)) this.setUnit(carryUnit);
         if (this.carryScheme && prev) this.applyCarryScheme(prev, next);
       }
     }
