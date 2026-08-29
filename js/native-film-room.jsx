@@ -10,6 +10,32 @@ import '../css/native-film-room.css';
 const ROW_HEIGHT_FALLBACK = 34;
 const OVERSCAN_PX = 480;
 
+// V2-H repair (Codex review): the active row used to be pinned by EXPANDING
+// the single contiguous scroll window to also cover it -- so a coach parked
+// on row 1 who scrolled to row 700 got a window spanning rows 0..700,
+// rendering almost the whole table and defeating the point of windowing.
+// This instead returns disjoint, non-overlapping row ranges: the scroll
+// window, plus (only when the active row falls outside it) one separate
+// single-row range for the active cell. Overlapping/adjacent ranges are
+// merged so a zero-width gap never renders its own spacer. Pure and
+// exported so the bounded-DOM guarantee is directly unit-testable.
+export function computeRowSegments(total, windowStart, windowEnd, activeRowIndex) {
+  const ranges = [];
+  if (windowStart < windowEnd) ranges.push([windowStart, windowEnd]);
+  if (activeRowIndex >= 0 && activeRowIndex < total) {
+    const covered = ranges.some(([start, end]) => activeRowIndex >= start && activeRowIndex < end);
+    if (!covered) ranges.push([activeRowIndex, activeRowIndex + 1]);
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const range of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+    else merged.push([range[0], range[1]]);
+  }
+  return merged;
+}
+
 const FILTERS = [
   { group: 'unit', value: 'offense', label: 'Offense' },
   { group: 'unit', value: 'defense', label: 'Defense' },
@@ -113,15 +139,29 @@ function NativeFilmRoom({ screen }) {
   // self-correcting re-render, never a lasting inaccuracy.
   const [viewport, setViewport] = useState({ height: 800, rowHeight: ROW_HEIGHT_FALLBACK });
   const scrollRaf = useRef(null);
+  // V2-H repair (Codex review): the scroll handler used to capture scrollTop
+  // once per animation frame and DROP every scroll event that landed before
+  // that frame fired -- a fast scrollbar drag could leave the rendered window
+  // one or more events behind the real position. This ref always holds the
+  // MOST RECENT position; the queued frame reads it, not whatever value was
+  // current when the frame was scheduled.
+  const latestScrollTop = useRef(0);
   useEffect(() => screen.subscribe(setState), [screen]);
   // A wholesale play-list replacement (game switch, season open, a full
   // undo/redo) must not leave a scroll position sized for the PREVIOUS
   // game's row count. Left uncorrected, a large offset from a longer game
   // could window past the end of a shorter one and render nothing at all.
   useEffect(() => {
+    if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; }
+    latestScrollTop.current = 0;
     setScrollTop(0);
     if (tableRef.current) tableRef.current.scrollTop = 0;
   }, [state.loadGeneration]);
+  // Never let a frame scheduled by a still-mounted table keep running (and
+  // call setState) after Film Room itself unmounts.
+  useEffect(() => () => {
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+  }, []);
   useLayoutEffect(() => {
     const wrap = tableRef.current;
     if (!wrap || typeof ResizeObserver === 'undefined') return;
@@ -145,11 +185,14 @@ function NativeFilmRoom({ screen }) {
     return () => observer.disconnect();
   }, []);
   const onTableScroll = event => {
-    const top = event.currentTarget.scrollTop;
+    // Record the LATEST position on every event, even while a frame is
+    // already queued -- only the scheduling (one requestAnimationFrame per
+    // batch of scroll events) is throttled, never the position itself.
+    latestScrollTop.current = event.currentTarget.scrollTop;
     if (scrollRaf.current) return;
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
-      setScrollTop(top);
+      setScrollTop(latestScrollTop.current);
     });
   };
   const activeVisible = !!active && state.rows.some(row => row.id === active.playId)
@@ -167,9 +210,6 @@ function NativeFilmRoom({ screen }) {
   // rendered as real <tr> elements. Below the window's natural capacity --
   // every existing fixture, and any ordinary game -- start/end span the
   // whole list, so the rendered rows are identical to rendering everything.
-  // The active/focused row is always force-included regardless of scroll
-  // position: keyboard navigation (`move`/`focusCell` below) must never race
-  // a scroll-driven window update to find the cell it just focused.
   const rowHeight = viewport.rowHeight || ROW_HEIGHT_FALLBACK;
   const total = state.rows.length;
   const activeRowIndex = active ? state.rows.findIndex(row => row.id === active.playId) : -1;
@@ -180,28 +220,27 @@ function NativeFilmRoom({ screen }) {
     windowStart = Math.floor(scrollTop / rowHeight) - overscanRows;
     windowEnd = Math.ceil((scrollTop + viewport.height) / rowHeight) + overscanRows;
   }
-  if (activeRowIndex >= 0) {
-    windowStart = Math.min(windowStart, activeRowIndex);
-    windowEnd = Math.max(windowEnd, activeRowIndex + 1);
-  }
-  // Clamp last, independent of cause: a filter or a game switch can shrink
-  // `total` out from under a scroll position sized for a much longer list
-  // (the reset effect above only covers the game-switch case explicitly).
-  // Clamping here means an out-of-range scroll position can never slice past
-  // the end of the current list and render an empty table -- worst case it
-  // shows the tail of the list for one frame until scroll/active corrects it.
-  // Clamp last, independent of cause. In testing, a shrinking scroll range
-  // (game switch, filter narrowing) recovers on its own because the browser
-  // re-clamps a scroll container's own scrollTop when its content shrinks --
-  // but that is implicit platform behavior this file has no control over.
-  // The windowing math should not depend on it: clamping here guarantees
-  // start/end always stay in range regardless of scroll-event timing, at
-  // zero cost to the common case.
+  // Clamp BEFORE the active row is considered at all: a filter or a game
+  // switch can shrink `total` out from under a scroll position sized for a
+  // much longer list (the reset effect above only covers the game-switch
+  // case explicitly). In testing, a shrinking scroll range also recovers on
+  // its own because the browser re-clamps a scroll container's own
+  // scrollTop when its content shrinks -- but that is implicit platform
+  // behavior this file has no control over, so the windowing math does not
+  // depend on it: clamping here guarantees the scroll window always stays in
+  // range regardless of scroll-event timing, at zero cost to the common case.
   windowStart = Math.max(0, Math.min(windowStart, Math.max(0, total - 1)));
   windowEnd = Math.max(windowStart, Math.min(windowEnd, total));
-  const windowRows = state.rows.slice(windowStart, windowEnd);
-  const topSpacerHeight = windowStart * rowHeight;
-  const bottomSpacerHeight = (total - windowEnd) * rowHeight;
+  // The active/focused row is always force-included regardless of scroll
+  // position -- keyboard navigation (`move`/`focusCell` below) must never
+  // race a scroll-driven window update to find the cell it just focused --
+  // but as a SEPARATE, disjoint single-row range, never by expanding the
+  // scroll window to span the gap between it and the active row. Expanding
+  // the window used to render almost the entire table the moment a coach
+  // scrolled far from a still-active row (e.g. row 1 active, scrolled near
+  // row 700 -> a rendered window of rows 0..700), defeating windowing
+  // entirely. See computeRowSegments() above.
+  const segments = computeRowSegments(total, windowStart, windowEnd, activeRowIndex);
 
   const openColumns = anchor => screen.overlays.sheet({
     title: 'Film Room columns',
@@ -256,6 +295,43 @@ function NativeFilmRoom({ screen }) {
     const col = state.columns[Math.max(0, Math.min(state.columns.length - 1, colIndex + dx))];
     focusCell({ playId: row.id, colKey: col.key });
   };
+  const renderSpacer = (key, rowCount) => {
+    const height = rowCount * rowHeight;
+    return <tr aria-hidden="true" class="gi-film-row-spacer" key={key} style={{ height: height + 'px' }}><td colSpan={state.columns.length + 2} style={{ border: 'none', padding: 0, height: height + 'px' }} /></tr>;
+  };
+  const renderDataRow = (row, rowIndex) => <tr key={row.id} class={`is-${row.unit}${row.current ? ' is-current' : ''}${row.untagged ? ' is-untagged' : ''}`}>
+    <td class="is-check"><input type="checkbox" aria-label={'Select play ' + row.id} checked={row.selected} onChange={event => screen.setSelected(row.id, event.currentTarget.checked)} /></td>
+    <th class="is-play" scope="row"><button type="button" onClick={() => screen.selectPlay(row.id)}><span>{row.unit.charAt(0).toUpperCase()}</span>{row.id}</button></th>
+    {state.columns.map((col, colIndex) => <td key={col.key}><button
+      type="button"
+      data-cell={row.id + ':' + col.key}
+      tabIndex={(activeVisible ? active?.playId === row.id && active?.colKey === col.key : rowIndex === 0 && colIndex === 0) ? 0 : -1}
+      class={active?.playId === row.id && active?.colKey === col.key ? 'is-focus' : ''}
+      title={col.editable ? 'Select play; activate again to edit' : 'Select play'}
+      onClick={event => {
+        const next = { playId: row.id, colKey: col.key };
+        const same = active?.playId === row.id && active?.colKey === col.key;
+        focusCell(next);
+        if (same) openEditor(event.currentTarget, row, col);
+      }}
+      onDblClick={event => openEditor(event.currentTarget, row, col)}
+    >{row.cells[col.key] || <span class="is-empty">--</span>}</button></td>)}
+  </tr>;
+  // Walks the disjoint segments in order, inserting a spacer for the gap
+  // before each one (and a trailing spacer after the last), so the rendered
+  // DOM is always exactly the segments plus their surrounding gaps -- never
+  // a single span that happens to cover everything in between.
+  const buildTbodyChildren = () => {
+    const nodes = [];
+    let cursor = 0;
+    for (const [start, end] of segments) {
+      if (start > cursor) nodes.push(renderSpacer(`gap-${cursor}`, start - cursor));
+      for (let rowIndex = start; rowIndex < end; rowIndex++) nodes.push(renderDataRow(state.rows[rowIndex], rowIndex));
+      cursor = end;
+    }
+    if (cursor < total) nodes.push(renderSpacer(`gap-${cursor}`, total - cursor));
+    return nodes;
+  };
 
   return <section class="gi-film-room" data-native-film-room aria-label="Film Room breakdown table">
     <header class="gi-film-room-head">
@@ -297,31 +373,7 @@ function NativeFilmRoom({ screen }) {
           <th class="is-play">Play</th>
           {state.columns.map(col => <th key={col.key}><span>{col.label}</span>{col.tendency && <small>{col.tendency}</small>}</th>)}
         </tr></thead>
-        <tbody>
-          {topSpacerHeight > 0 && <tr aria-hidden="true" class="gi-film-row-spacer" style={{ height: topSpacerHeight + 'px' }}><td colSpan={state.columns.length + 2} style={{ border: 'none', padding: 0, height: topSpacerHeight + 'px' }} /></tr>}
-          {windowRows.map((row, offset) => {
-            const rowIndex = windowStart + offset;
-            return <tr key={row.id} class={`is-${row.unit}${row.current ? ' is-current' : ''}${row.untagged ? ' is-untagged' : ''}`}>
-              <td class="is-check"><input type="checkbox" aria-label={'Select play ' + row.id} checked={row.selected} onChange={event => screen.setSelected(row.id, event.currentTarget.checked)} /></td>
-              <th class="is-play" scope="row"><button type="button" onClick={() => screen.selectPlay(row.id)}><span>{row.unit.charAt(0).toUpperCase()}</span>{row.id}</button></th>
-              {state.columns.map((col, colIndex) => <td key={col.key}><button
-                type="button"
-                data-cell={row.id + ':' + col.key}
-                tabIndex={(activeVisible ? active?.playId === row.id && active?.colKey === col.key : rowIndex === 0 && colIndex === 0) ? 0 : -1}
-                class={active?.playId === row.id && active?.colKey === col.key ? 'is-focus' : ''}
-                title={col.editable ? 'Select play; activate again to edit' : 'Select play'}
-                onClick={event => {
-                  const next = { playId: row.id, colKey: col.key };
-                  const same = active?.playId === row.id && active?.colKey === col.key;
-                  focusCell(next);
-                  if (same) openEditor(event.currentTarget, row, col);
-                }}
-                onDblClick={event => openEditor(event.currentTarget, row, col)}
-              >{row.cells[col.key] || <span class="is-empty">--</span>}</button></td>)}
-            </tr>;
-          })}
-          {bottomSpacerHeight > 0 && <tr aria-hidden="true" class="gi-film-row-spacer" style={{ height: bottomSpacerHeight + 'px' }}><td colSpan={state.columns.length + 2} style={{ border: 'none', padding: 0, height: bottomSpacerHeight + 'px' }} /></tr>}
-        </tbody>
+        <tbody>{buildTbodyChildren()}</tbody>
       </table>
       {!state.rows.length && <div class="gi-film-empty">No plays match these filters.</div>}
     </div>

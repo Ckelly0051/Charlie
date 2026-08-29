@@ -119,6 +119,49 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CLAUDE V2-H REPAIR: VIRTUALIZER PIN + STALE-SCROLL FIX (2026-08-29)
+
+**Builder: Claude. Repairs both findings from Codex's review of the V2-H
+checkpoint below. Awaiting re-review — do not package, tag, or release.**
+
+1. **P1, closed.** `native-film-room.jsx`'s active-row pin used to EXPAND the
+   single contiguous scroll window to also cover the active row, so a coach
+   parked on row 1 who scrolled near row 700 got a window spanning rows
+   0..700 — rendering almost the entire table and defeating windowing
+   entirely. Fixed with a new pure, exported `computeRowSegments(total,
+   windowStart, windowEnd, activeRowIndex)`: it returns DISJOINT row ranges —
+   the scroll window, plus (only when the active row falls outside it) one
+   separate single-row range for the active cell — merging only genuinely
+   overlapping/adjacent ranges. The tbody now walks these segments, inserting
+   a spacer for each real gap, so the active row and the scroll window can
+   sit far apart with a real, un-rendered gap between them.
+2. **P2, closed.** The scroll handler captured `scrollTop` once per animation
+   frame and silently dropped every scroll event that landed before that
+   frame fired, so a fast scrollbar drag could leave the rendered window
+   stuck behind the true position. A new `latestScrollTop` ref now records
+   the position on every event regardless of whether a frame is already
+   queued; the queued frame reads the ref, not a value captured at scheduling
+   time. The frame is also explicitly cancelled on unmount and on a
+   game-switch scroll reset, closing a stray-setState-after-teardown risk in
+   the same mechanism.
+
+**New tests, both mutation-verified.** `e2e-film-room-virtualization.mjs`
+section 6 pins row 1 active, scrolls a 300-play game to the bottom, and
+asserts the rendered DOM stays bounded (<100 rows) while both the active row
+and the scrolled-to rows are present and everything strictly between them is
+absent. Section 7 dispatches three `scrollTop` changes synchronously in one
+script turn (before any animation frame can fire) and asserts the FINAL
+position wins, not the first. Reverting the P1 fix reproduces the exact
+symptom (`domRows:300`, the whole table); reverting the P2 fix reproduces the
+exact symptom (final position ignored, stuck at the first/near-top window) —
+each mutation isolated to its own two sections, the other's assertions
+staying green throughout. File total 15/15 (was 8/8); `e2e-film-room` 175/175
+and `e2e-native-film-room` 25/25 unchanged. Focused suites only, no full
+gate, per this repair's explicit scope.
+
+No football rule, persistence contract, film identity, or unrelated route
+changed. Awaiting Codex's independent re-review.
+
 ### CLAUDE V2-H: PLAYBACK OWNERSHIP AND LARGE-GAME PERFORMANCE — CLOSES V2-H (2026-08-29)
 
 **Builder: Claude. Awaiting Codex's independent adversarial review — do not

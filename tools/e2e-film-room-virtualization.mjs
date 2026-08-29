@@ -130,6 +130,81 @@ r = await page.evaluate(async () => {
 });
 ok(r.total === 12 && r.domRows === 12, 'switching to a much shorter game while deeply scrolled renders every one of its rows', JSON.stringify(r));
 
+// Re-seed the original 300-play fixture -- section 5 replaced it with a
+// 12-play game.
+await page.evaluate(async (n) => {
+  await app.storage.createSeason({ name: 'Virtualization 2', team: 'Mavs', year: '2026' });
+  const g = app.storage.seasonStore.activeGame();
+  const plays = [];
+  for (let i = 1; i <= n; i++) {
+    plays.push({
+      id: i, timestamp: { start: i * 3, end: i * 3 + 4 }, notes: '',
+      tags: { unit: 'offense', down: '1', distance: '10', formation: 'Ace', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} },
+      annotations: [],
+    });
+  }
+  g.plays = plays; g.nextId = n + 1;
+  app.tagger.plays = g.plays; app.tagger.nextId = n + 1; app.tagger._emit('plays-loaded');
+  await app.storage.commitActive();
+}, N);
+await settle(page);
+
+console.log('\n== 6. A far-away active row stays PINNED, not spanned -- the DOM stays bounded ==');
+// Codex review (P1): the active row used to be pinned by EXPANDING the
+// scroll window to cover it, so a coach parked on row 1 who scrolled near
+// the bottom of a 300-play game rendered a window spanning nearly the
+// entire table -- exactly defeating the point of windowing. This proves the
+// disjoint-segment repair: both the active row and the scrolled-to rows
+// render, everything strictly between them does not, and the total DOM row
+// count stays a small, bounded number regardless of how far apart they are.
+r = await page.evaluate(async (n) => {
+  const wrap = document.querySelector('.gi-film-table-wrap');
+  wrap.scrollTop = 0; wrap.dispatchEvent(new Event('scroll'));
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  document.querySelector('[data-cell="1:sit"]').click(); // play 1 becomes the active/focused cell
+  await new Promise(res => requestAnimationFrame(res));
+  wrap.scrollTop = wrap.scrollHeight - wrap.clientHeight; // scroll to the very bottom, far from play 1
+  wrap.dispatchEvent(new Event('scroll'));
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  return {
+    domRows: document.querySelectorAll('[data-native-film-room] tbody tr:not(.gi-film-row-spacer)').length,
+    activeRowPresent: !!document.querySelector('[data-cell="1:sit"]'),
+    nearBottomPresent: !!document.querySelector(`[data-cell="${n}:sit"]`),
+    midRowAbsent: !document.querySelector(`[data-cell="${Math.round(n / 2)}:sit"]`),
+  };
+}, N);
+ok(r.domRows < 100, 'the rendered row count stays bounded, not one span covering the gap to the active row', JSON.stringify(r));
+ok(r.activeRowPresent, 'the far-away active row is still individually pinned in the DOM', JSON.stringify(r));
+ok(r.nearBottomPresent, 'the rows actually scrolled to are rendered', JSON.stringify(r));
+ok(r.midRowAbsent, 'rows strictly between the active row and the scroll position are NOT rendered', JSON.stringify(r));
+
+console.log('\n== 7. Several scroll events inside one animation frame resolve to the LATEST position ==');
+// Codex review (P2): the scroll handler used to capture scrollTop once and
+// discard it if a frame was already queued, so a fast scrollbar drag could
+// leave the rendered window stuck at whichever position happened to be
+// current for the FIRST event in the batch. These three scrollTop changes
+// are dispatched synchronously, in the same script turn -- strictly before
+// the animation frame queued by the first one can possibly run -- exactly
+// reproducing "several scroll events land before the frame fires".
+r = await page.evaluate(async (n) => {
+  const wrap = document.querySelector('.gi-film-table-wrap');
+  document.activeElement?.blur?.();
+  wrap.scrollTop = 0; wrap.dispatchEvent(new Event('scroll'));
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  wrap.scrollTop = 40; wrap.dispatchEvent(new Event('scroll'));
+  wrap.scrollTop = Math.round(wrap.scrollHeight / 2); wrap.dispatchEvent(new Event('scroll'));
+  wrap.scrollTop = wrap.scrollHeight - wrap.clientHeight; wrap.dispatchEvent(new Event('scroll'));
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  return {
+    domRows: document.querySelectorAll('[data-native-film-room] tbody tr:not(.gi-film-row-spacer)').length,
+    nearBottomPresent: !!document.querySelector(`[data-cell="${n}:sit"]`),
+    nearTopPresent: !!document.querySelector('[data-cell="2:sit"]'),
+  };
+}, N);
+ok(r.nearBottomPresent, 'the final (third, same-frame) scroll position wins -- rows near the bottom render', JSON.stringify(r));
+ok(!r.nearTopPresent, 'an earlier, superseded same-frame scroll position is not what gets rendered', JSON.stringify(r));
+ok(r.domRows < 100, 'the resolved window is still a bounded slice, not the stale first position plus drift', JSON.stringify(r));
+
 console.log('\nPage errors:', errors.length, errors.slice(0, 5).join(' | '));
 ok(errors.length === 0, 'Film Room virtualization journey has zero page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
