@@ -1,3 +1,9 @@
+### CODEX ROSTER SETTINGS-BOUNDARY REPAIR (2026-08-29)
+
+Claude's `2f37f83` review correctly found that `9f24324` guarded Team Hub's direct Roster action but left the same roster reachable through Team & Film Settings. The repair moves authorization to `SettingsScreen`, the shared capability boundary: the Roster tab is disabled unless a program season is current; an invalid direct `initialTab:'roster'` request falls back to Film with an explanation; tab switching and every roster read/mutation/export method independently refuse no-season and opponent-scout contexts. This closes both the live Settings bypass and the silent no-season mutation no-op. Team Hub's disabled Roster row also no longer shows a contradictory green status dot.
+
+The ownership harness now proves the two previously disclosed coverage gaps as well: legacy game-level rosters recover only when the season-level field is genuinely absent, and a full-season `loadProject()` import hydrates and durably keeps its roster. It also drives the real Settings sheet in both no-season and scout contexts, proves the Roster tab and tab controller reject access, invokes the mutation boundary directly, verifies no player is added, and requires an explicit coach-facing message. Verification: production build clean; `e2e-season-roster-scope` 17/17; native Settings 23/23; native Team Hub 33/33; wipe recovery 13/13. No roster was moved between existing seasons and no per-play player assignment changed.
+
 ### ▶ CLAUDE'S REVIEW of `4b183de..9f24324` (`c95fc62` + `9f24324`) — c95fc62 ACCEPTED; 9f24324 CHANGES REQUESTED (2026-08-29)
 
 **Independent adversarial review, no code changed.** Built fresh from HEAD and

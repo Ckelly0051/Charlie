@@ -48,6 +48,12 @@ directly.
 is a hard requirement — film storage setup is a pre-game activity, and burying it
 behind an open game was the defect that produced the failed `v1.12.0-8` smoke.
 
+Roster access is the deliberate exception: the Roster tab and every roster
+mutation require an open program season. No-season and opponent-scout contexts
+leave the tab disabled and receive an explicit explanation if a direct command
+attempts the same action. This rule is owned by `SettingsScreen`, not only by
+Team Hub buttons, so alternate Settings entry points cannot bypass it.
+
 ### 4a. Progressive setup
 
 Team Hub owns one compact five-step Setup Progress surface: team, roster,

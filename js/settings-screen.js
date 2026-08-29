@@ -13,7 +13,9 @@ export class SettingsScreen {
 
   open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formation', initialPlayCall = '' } = {}) {
     if (this.handle) return this.handle.result;
-    this.activeTab = required ? 'film' : initialTab;
+    const requestedTab = required ? 'film' : initialTab;
+    this.activeTab = requestedTab === 'roster' && !this.canManageRoster() ? 'film' : requestedTab;
+    if (requestedTab === 'roster' && this.activeTab !== 'roster') this._toast(this.rosterUnavailableMessage(), 'info');
     const finish = value => this.close(value);
     const handle = this.overlays.sheet({
       id: 'team-film-settings',
@@ -35,7 +37,14 @@ export class SettingsScreen {
     return result.then(value => required && value !== 'linked' && value !== 'managed' ? '' : value);
   }
 
-  setActiveTab(tab) { this.activeTab = tab; }
+  setActiveTab(tab) {
+    if (tab === 'roster' && !this.canManageRoster()) {
+      this._toast(this.rosterUnavailableMessage(), 'info');
+      return false;
+    }
+    this.activeTab = tab;
+    return true;
+  }
 
   openPlaybook({ name = '', returnFocus = null } = {}) {
     return this.open({ initialTab: 'team', initialPlayCall: name, returnFocus });
@@ -253,14 +262,38 @@ export class SettingsScreen {
     return true;
   }
 
-  rosterSnapshot() { return clone(this.app.roster?.players || []); }
+  rosterAccess() {
+    const season = this._store()?.data;
+    if (!season) return { ok:false, message:'Open a program season before editing its roster.' };
+    if (season.kind === 'scout') return { ok:false, message:'Opponent scout seasons do not use your program roster.' };
+    return { ok:true, message:'' };
+  }
+  canManageRoster() { return this.rosterAccess().ok; }
+  rosterUnavailableMessage() { return this.rosterAccess().message; }
+  _requireRosterAccess() {
+    const access = this.rosterAccess();
+    if (!access.ok) this._toast(access.message, 'info');
+    return access.ok;
+  }
+  rosterSnapshot() { return this.canManageRoster() ? clone(this.app.roster?.players || []) : []; }
   addPlayer(player) {
+    if (!this._requireRosterAccess()) return [];
     this.app.roster?.addPlayer?.(player.num, player.name, player.pos, player.side);
     return this.rosterSnapshot();
   }
-  removePlayer(num) { this.app.roster?.removePlayer?.(num); return this.rosterSnapshot(); }
-  importRoster(text) { return this.app.roster?.importFromText?.(text) || 0; }
-  exportDepthChart() { return this.app.roster?.exportDepthChart?.(); }
+  removePlayer(num) {
+    if (!this._requireRosterAccess()) return [];
+    this.app.roster?.removePlayer?.(num);
+    return this.rosterSnapshot();
+  }
+  importRoster(text) {
+    if (!this._requireRosterAccess()) return 0;
+    return this.app.roster?.importFromText?.(text) || 0;
+  }
+  exportDepthChart() {
+    if (!this._requireRosterAccess()) return false;
+    return this.app.roster?.exportDepthChart?.();
+  }
 
   chartingSnapshot(group = 'formation') {
     const meta = {

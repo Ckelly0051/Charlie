@@ -230,10 +230,12 @@ function AnalysisSettings({ screen }) {
 
 const TABS=[['film','Film'],['team','Team'],['roster','Roster'],['charting','Charting'],['cutup','Cut-ups'],['drawing','Drawing'],['recovery','Recovery'],['analysis','Analysis']];
 export function NativeSettingsContent({ screen, required = false, finish, initialTab='film', chartGroup='formation', initialPlayCall='' }) {
-  const [tab,setTabState]=useState(required?'film':initialTab);
-  const setTab=next=>{setTabState(next);screen.setActiveTab(next);};
+  const rosterAllowed=screen.canManageRoster();
+  const requestedTab=required?'film':initialTab;
+  const [tab,setTabState]=useState(requestedTab==='roster'&&!rosterAllowed?'film':requestedTab);
+  const setTab=next=>{if(screen.setActiveTab(next)===false)return;setTabState(next);};
   const tabsRef=useRef(null);
   useEffect(()=>{const nav=tabsRef.current,active=nav?.querySelector('[aria-current="page"]');if(!nav||!active)return;nav.scrollLeft=Math.max(0,active.offsetLeft-(nav.clientWidth-active.offsetWidth)/2);},[tab]);
   const content = tab==='film'?<FilmSettings screen={screen} required={required} finish={finish}/>:tab==='team'?<TeamSettings screen={screen} initialPlayCall={initialPlayCall}/>:tab==='roster'?<RosterSettings screen={screen}/>:tab==='charting'?<ChartingSettings screen={screen} initialGroup={chartGroup}/>:tab==='cutup'?<CutupSettings screen={screen}/>:tab==='drawing'?<DrawingSettings screen={screen}/>:tab==='recovery'?<RecoverySettings screen={screen}/>:<AnalysisSettings screen={screen}/>;
-  return <div class="gi-settings" data-native-settings><nav ref={tabsRef} class="gi-settings-tabs" aria-label="Settings sections">{(required?TABS.slice(0,1):TABS).map(([key,label])=><button key={key} type="button" data-settings-tab={key} class={tab===key?'is-active':''} aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}>{label}</button>)}</nav>{content}</div>;
+  return <div class="gi-settings" data-native-settings><nav ref={tabsRef} class="gi-settings-tabs" aria-label="Settings sections">{(required?TABS.slice(0,1):TABS).map(([key,label])=>{const disabled=key==='roster'&&!rosterAllowed;return <button key={key} type="button" data-settings-tab={key} class={tab===key?'is-active':''} aria-current={tab===key?'page':undefined} disabled={disabled} title={disabled?screen.rosterUnavailableMessage():undefined} onClick={()=>setTab(key)}>{label}</button>;})}</nav>{content}</div>;
 }

@@ -54,6 +54,23 @@ ok(ids.varsityStartsEmpty, 'a newly-created season starts with an empty roster')
 ok(ids.rosterAfterGameSwitch.join('|') === 'Varsity Quarterback', 'switching games leaves the season roster unchanged', JSON.stringify(ids));
 ok(ids.restored && ids.rosterAfterRestore.join('|') === 'Varsity Quarterback', 'restoring a season backup hydrates its restored roster', JSON.stringify(ids));
 
+const legacyBoundaries = await page.evaluate(() => {
+  const store = window.app.storage.seasonStore;
+  const game = { id:'legacy-game', roster:[{ num:'8', name:'Legacy Player' }], plays:[] };
+  const rosterNames = payload => store._normalize(structuredClone(payload)).roster.map(player => player.name);
+  return {
+    absent: rosterNames({ id:'legacy-absent', games:[game] }),
+    explicitEmpty: rosterNames({ id:'legacy-empty', roster:[], games:[game] }),
+    explicitNull: rosterNames({ id:'legacy-null', roster:null, games:[game] }),
+    nowhere: rosterNames({ id:'legacy-nowhere', games:[{ id:'empty-game', plays:[] }] }),
+  };
+});
+ok(legacyBoundaries.absent.join('|') === 'Legacy Player'
+  && legacyBoundaries.explicitEmpty.length === 0
+  && legacyBoundaries.explicitNull.length === 0
+  && legacyBoundaries.nowhere.length === 0,
+  'legacy game rosters recover only when the season roster field is genuinely absent', JSON.stringify(legacyBoundaries));
+
 let result = await page.evaluate(async ({ jv, varsity }) => {
   const app = window.app;
   const store = app.storage.seasonStore;
@@ -108,6 +125,78 @@ const rosterAfterDelete = await page.evaluate(async varsity => {
   return window.app.roster.players.length;
 }, ids.varsity);
 ok(rosterAfterDelete === 0, 'deleting the open season clears its now-unowned live roster');
+
+const noSeasonGuard = await page.evaluate(async () => {
+  const app = window.app;
+  const notices = [];
+  const originalToast = app.settingsScreen.overlays.toast;
+  app.settingsScreen.overlays.toast = function(payload) {
+    notices.push(payload?.message || '');
+    return originalToast.call(this, payload);
+  };
+  app.settingsScreen.open({ initialTab:'film' });
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const tab = document.querySelector('[data-settings-tab="roster"]');
+  const tabSwitch = app.settingsScreen.setActiveTab('roster');
+  const result = app.settingsScreen.addPlayer({ num:'55', name:'Unowned Player', pos:'LB', side:'D' });
+  const state = { disabled:!!tab?.disabled, tabSwitch, activeTab:app.settingsScreen.activeTab, result, players:app.roster.players.map(player => player.name), notices };
+  app.settingsScreen.close('guard-checked');
+  app.settingsScreen.overlays.toast = originalToast;
+  return state;
+});
+ok(noSeasonGuard.disabled && noSeasonGuard.tabSwitch === false && noSeasonGuard.activeTab === 'film' && noSeasonGuard.players.length === 0
+  && noSeasonGuard.notices.some(message => /open a program season/i.test(message)),
+  'Settings disables roster access with no season and mutation methods fail visibly', JSON.stringify(noSeasonGuard));
+
+const imported = await page.evaluate(async () => {
+  const app = window.app;
+  const rec = await app.storage.createSeason({ name:'Import Target', team:'Mavericks', teamId:'mavericks', kind:'program' });
+  const payload = structuredClone(app.storage.seasonStore.data);
+  payload.id = 'foreign-season-id';
+  payload.name = 'Imported Program Season';
+  payload.roster = [{ num:'22', name:'Imported Tailback', pos:'RB', side:'O' }];
+  const file = new File([JSON.stringify(payload)], 'imported-season.json', { type:'application/json' });
+  app.storage.loadProject(file);
+  const deadline = Date.now() + 3000;
+  while (Date.now() < deadline && app.roster.players[0]?.name !== 'Imported Tailback') {
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  const durable = await app.storage.seasonStore.backend.loadSeason(rec.id);
+  return {
+    id:rec.id,
+    currentId:app.storage.seasonStore.currentSeasonId,
+    live:app.roster.players.map(player => player.name),
+    durable:(durable?.roster || []).map(player => player.name),
+  };
+});
+ok(imported.currentId === imported.id && imported.live.join('|') === 'Imported Tailback'
+  && imported.durable.join('|') === 'Imported Tailback',
+  'full-season import hydrates and durably keeps the imported roster', JSON.stringify(imported));
+await page.evaluate(id => window.app.storage.deleteSeason(id), imported.id);
+
+const scoutGuard = await page.evaluate(async () => {
+  const app = window.app;
+  const rec = await app.storage.createSeason({ name:'Opponent Scout', team:'Opponent', teamId:'mavericks', kind:'scout' });
+  const notices = [];
+  const originalToast = app.settingsScreen.overlays.toast;
+  app.settingsScreen.overlays.toast = function(payload) {
+    notices.push(payload?.message || '');
+    return originalToast.call(this, payload);
+  };
+  app.settingsScreen.open({ initialTab:'film' });
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const tab = document.querySelector('[data-settings-tab="roster"]');
+  const result = app.settingsScreen.importRoster('44, Scout Season Leak, QB, O');
+  const state = { id:rec.id, disabled:!!tab?.disabled, result, players:app.roster.players.map(player => player.name), notices };
+  app.settingsScreen.close('guard-checked');
+  app.settingsScreen.overlays.toast = originalToast;
+  return state;
+});
+ok(scoutGuard.disabled && scoutGuard.result === 0 && scoutGuard.players.length === 0
+  && scoutGuard.notices.some(message => /opponent scout seasons/i.test(message)),
+  'Settings blocks roster visibility and mutations for opponent scout seasons', JSON.stringify(scoutGuard));
+await page.evaluate(id => window.app.storage.deleteSeason(id), scoutGuard.id);
+
 ok(errors.length === 0, 'no page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
