@@ -1,3 +1,102 @@
+### ▶ CLAUDE'S REVIEW of `4b183de..9f24324` (`c95fc62` + `9f24324`) — c95fc62 ACCEPTED; 9f24324 CHANGES REQUESTED (2026-08-29)
+
+**Independent adversarial review, no code changed.** Built fresh from HEAD and
+drove the live app (not just source tracing) for every claim below.
+
+**`c95fc62` (preserve charting unit across Save & Next) — ACCEPTED, no
+blocking findings.** Traced `nextPlayWithSituation()` (`js/play-tagger.js:
+1359-1378`): `carryUnit` now applies whenever `!isPlayTagged(next)` (the same
+canonical predicate as progress/Film Room, `js/football-rules.js:42-54`)
+instead of the old `!next.tags.unit`, which could almost never fire since
+every play-creation path seeds a truthy `unit`. Confirmed
+`SpecialTeamsModel.normalize(undefined)` returns `null`
+(`js/special-teams.js:53`), so an untouched Special-Teams-seeded placeholder
+correctly reads as untagged. Live-probed all five required behaviors: the
+coach's active unit carries across untouched placeholders regardless of their
+seeded unit; explicit `selectPlay()` always shows that play's own stored unit
+(`_loadTagForm` reads `play.tags.unit` directly, untouched by this diff) even
+when `defaultUnit` disagrees with every play in the fixture; Offense/Defense/
+Special Teams and a genuinely-charted next play (e.g. a real Punt) are never
+clobbered; scout/program perspective is unaffected (the carry is unit-only);
+and `setUnit()`/`applyCarryScheme()` resolve strictly through
+`getCurrentPlay()` synchronously, so no other play or game is ever touched.
+`tools/e2e-tagging.mjs` 30/30 on the fresh build. One non-blocking nit:
+`setUnit(carryUnit)` now fires (and emits `play-updated`, arming `_autoSave`/
+a history entry) on every Save & Next through a run of untouched plays even
+when the value is unchanged — necessary churn for the fix, idempotent and
+still covered by the existing `sid`-pinned autosave debounce, just worth
+knowing about for rapid Quick-Chart-style sessions.
+
+**`9f24324` (scope rosters to seasons) — CHANGES REQUESTED. One P1, reachable
+and reproduced live; two test-coverage gaps (production behavior verified
+correct); one low-severity nit.**
+
+1. **[P1] The scout/no-season roster guard covers only one of several
+   equivalent entry points — requirement "scout seasons do not gain
+   program-roster editing behavior accidentally" fails.**
+   `TeamHubScreen.openRoster()` (`js/team-hub-screen.js:200-208`) correctly
+   refuses when `!current || current.kind === 'scout'`. But
+   `js/native-team-hub.jsx:334` (the always-visible "Team & Film Settings"
+   header button) and `:313` (the Control Center "Film storage" row) both
+   call `screen.openSettings(invoker, 'film')` directly — bypassing
+   `openRoster()` entirely. Once Settings is open, `NativeSettingsContent`
+   (`js/native-settings.jsx:231-238`) renders all 8 tabs, including
+   `'roster'`, unconditionally; `RosterSettings` (`:125-136`) and
+   `SettingsScreen.rosterSnapshot/addPlayer/removePlayer/importRoster`
+   (`js/settings-screen.js:256-262`) contain no `kind` check at all.
+   **Reproduced live:** created a scout season, confirmed `openRoster()`
+   returns `false`, then clicked the real "Team & Film Settings" button → the
+   real Roster tab → typed a player and clicked the real "Add player" button.
+   Result: `{"kindStillScout":true,"rosterAfter":[{"num":"44","name":"Scout
+   Season Leak",...}]}` — a real write into the active scout season's
+   `data.roster`. A second variant with **no season open at all** reaches the
+   same panel and accepts an edit that is silently never persisted
+   (`updateSeasonRoster` returns `false` when `seasonStore.data` is null,
+   `js/storage.js:608-615`, with no coach-facing message) — the exact
+   silent-no-op this checkpoint's own UI copy claims to prevent. The write
+   never leaks into another season either way. **Required repair:** gate the
+   `'roster'` tab / its screen methods on the same
+   `!current || current.kind === 'scout'` condition `openRoster()` already
+   uses, and surface an explicit message when there's no season to persist
+   into.
+2. **[Low, coverage gap only] Requirement "legacy game-record recovery only
+   when the season-level field is genuinely absent" has no dedicated
+   regression.** Verified `SeasonStore._normalize()` (`js/season-store.js:
+   347-355`) directly against all four boundary cases (key absent + legacy
+   game roster → recovers; explicit `roster:[]` + legacy game roster → stays
+   empty; `roster:null` → stays empty, no crash; nothing anywhere → stays
+   empty) — production is correct, only untested by this diff.
+3. **[Low, coverage gap only] "Full-season import hydrates the imported
+   roster" is untested** (`tools/e2e-season-roster-scope.mjs` covers backup
+   restore only, not `loadProject`/`adopt()` with a `parsed.games` shape).
+   Verified `SeasonStore.adopt()` directly for both the full-season and
+   legacy-single-game shapes, with and without an incoming roster — correct
+   in every case.
+4. **[Nit] The Control Center Roster row's status dot** (`gi-hub-control-
+   state is-ok`) is computed from `control.rosterCount` independent of
+   `control.canReviewSetup`, so a non-empty non-program roster (e.g. via
+   finding 1) would show a green dot beside a row simultaneously disabled and
+   labeled "Unavailable." Cosmetic only.
+
+Everything else in the ownership contract verified correct, both by source
+trace and live probes: two seasons under one program stay isolated
+(`e2e-season-roster-scope.mjs` 13/13 fresh); switching games never touches
+roster (`newGame`/`switchToGame` have zero roster references in
+`storage.js`); an explicit empty roster replaces a populated one on season
+switch, including after a reload (`e2e-wipe-recovery.mjs` 13/13); `ffa_roster`
+and `ffa_roster_<teamId>` have zero remaining references anywhere in `js/`
+(grep-confirmed) and are proven inert even when poisoned; per-play attribution
+is untouched by any roster/season operation; and a roster edit immediately
+followed by a season switch, with the debounced durable write allowed to fire
+1.4s later, does not cross-contaminate — the edit durably lands on the season
+it was made in, the season switched to stays empty. `e2e-team-registry.mjs`
+21/21, `e2e-native-team-hub.mjs` 33/33, `e2e-film-room.mjs` 175/175,
+`e2e-onboarding.mjs` 33/33, all fresh.
+
+No code changed by this review. No installer, package, or release. **Next
+action:** Codex closes finding 1 (and may fold in 2/3 as coverage, at its
+discretion), then returns for re-review.
+
 ### CODEX SEASON-SCOPED ROSTER OWNERSHIP REPAIR (2026-08-29)
 
 Roster ownership is now one season, shared by that season's games. The previous implementation had three competing authorities: ambient `ffa_roster`, per-team `ffa_roster_<teamId>` snapshots, and season/game-embedded copies. Team switching could load one cache and opening a game could then overwrite it from another, allowing the same roster to appear across JV, Varsity, and unrelated teams.
