@@ -62,9 +62,13 @@
  * The cell carrying our defensive call gets the cyan defensive-context rule;
  * everything else stays neutral so the strip reads as information, not paint. */
 .gi-theater-chyron {
-  min-width: 0; display: flex; align-items: stretch;
+  min-width: 0; display: flex; align-items: stretch; position: relative;
   background: var(--gi-bd-stage); border-top: 2px solid var(--gi-bd-gold);
 }
+/* The strip is a horizontally-scrolling group at narrow widths (below), so it
+   must be a real keyboard stop -- a mouse/touch-only affordance would leave
+   the later cells (Result included) unreachable without a pointer. */
+.gi-theater-chyron:focus-visible { outline: none; box-shadow: var(--gi-focus); }
 .gi-chyron-id, .gi-chyron-cell {
   padding: 5px 14px; display: flex; flex-direction: column; justify-content: center;
   border-right: 1px solid var(--gi-6);
@@ -100,6 +104,15 @@
   .gi-chyron-id, .gi-chyron-cell { flex: 0 0 auto; min-width: 0; padding: 4px 12px; }
   .gi-chyron-cell.is-wide { flex: 0 1 auto; max-width: 200px; }
   .gi-chyron-id .gi-chyron-v { font-size: 16px; }
+  /* A hidden scrollbar is not a visible affordance -- a coach glancing at
+     the row has no way to know Result is off the right edge. A sticky
+     fade pinned to the scroll container's own edge stays put regardless of
+     scroll position, so it reads as "more here", not as decoration. */
+  .gi-theater-chyron::after {
+    content: ''; flex: 0 0 24px; margin-left: -24px; position: sticky; right: 0;
+    align-self: stretch; pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--gi-bd-stage));
+  }
 }
 
 .gi-theater-transport, .gi-theater-anglebar, .gi-theater-actions {

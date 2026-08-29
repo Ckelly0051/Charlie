@@ -12,13 +12,25 @@ function Icon({ name }) {
  * by this fixed-height row, so a chyron pixel can never sit on a video pixel.
  * Renders nothing when no play is selected, rather than an empty shell.
  */
+// Native focus+scroll on a tabIndex-0 overflow container is real browser
+// behavior, but it shouldn't be the ONLY path to the cells it hides at
+// narrow widths — an explicit handler makes reaching Result deterministic
+// rather than dependent on a platform default nobody guaranteed.
+function scrollChyron(event) {
+  const el = event.currentTarget;
+  if (event.key === 'ArrowRight') { el.scrollBy({ left: 110, behavior: 'smooth' }); event.preventDefault(); }
+  else if (event.key === 'ArrowLeft') { el.scrollBy({ left: -110, behavior: 'smooth' }); event.preventDefault(); }
+  else if (event.key === 'Home') { el.scrollTo({ left: 0, behavior: 'smooth' }); event.preventDefault(); }
+  else if (event.key === 'End') { el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' }); event.preventDefault(); }
+}
+
 function Chyron({ state }) {
   const c = state.chyron;
   if (!c) return null;
   // title exposes the full value when the cell ellipsizes — a coach can
   // still read a long custom Front/Coverage/Front+Blitz combination that
   // doesn't fit the fixed-width cell.
-  return <div class="gi-theater-chyron" data-native-chyron aria-label="Current play">
+  return <div class="gi-theater-chyron" data-native-chyron role="group" aria-label="Current play, scrollable with arrow keys" tabIndex="0" onKeyDown={scrollChyron}>
     <div class="gi-chyron-id"><span class="gi-chyron-k">Play</span><span class="gi-chyron-v">{c.playId}</span></div>
     <div class="gi-chyron-cell"><span class="gi-chyron-k">Down &amp; Distance</span><span class="gi-chyron-v is-cond" title={c.situation}>{c.situation}</span></div>
     <div class="gi-chyron-cell"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond" title={c.ball}>{c.ball}</span></div>
