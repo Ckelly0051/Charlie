@@ -34,7 +34,7 @@ let r;
 console.log('\n== 1. The service exists, owns no DOM, and replaced the overlay ==');
 r = await page.evaluate(() => {
   const reg = window.app.teamRegistry;
-  const api = ['teams', 'activeTeamId', 'teamProfile', 'hasTeam', 'rosterKey', 'newTeamId',
+  const api = ['teams', 'activeTeamId', 'teamProfile', 'hasTeam', 'newTeamId',
     'seasonsForTeam', 'saveTeams', 'saveTeamProfile', 'setActiveTeamId', 'saveTeamIdentity',
     'clearIdentity', 'ensureRegistry', 'recoverFromWipe', 'checklistDismissed',
     'dismissChecklist', 'checklistItems'];
@@ -54,22 +54,20 @@ ok(r.legacyOverlayGone, 'The legacy SeasonLibrary controller and overlay are abs
 console.log('\n== 2. Registry reconciliation — every branch ==');
 r = await page.evaluate(() => {
   const reg = window.app.teamRegistry;
-  const keys = ['ffa_teams', 'ffa_team_profile', 'ffa_active_team_id', 'ffa_roster'];
+  const keys = ['ffa_teams', 'ffa_team_profile', 'ffa_active_team_id'];
   const saved = Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)]));
   const wipe = () => keys.forEach(k => localStorage.removeItem(k));
   const out = {};
   try {
-    // (a) a pre-registry install: one profile, no registry. Becomes team one,
-    //     and the existing roster belongs to it.
+    // (a) a pre-registry install: one profile, no registry. Becomes team one;
+    //     rosters remain owned by seasons, not the identity registry.
     wipe();
     localStorage.setItem('ffa_team_profile', JSON.stringify({ teamName: 'Mavericks', jerseyColor: 'blue' }));
-    localStorage.setItem('ffa_roster', JSON.stringify([{ num: '7', name: 'QB' }]));
     reg.ensureRegistry();
     const migrated = reg.teams();
     out.migrate = {
       count: migrated.length, name: migrated[0]?.teamName,
       active: reg.activeTeamId() === migrated[0]?.id,
-      rosterAdopted: localStorage.getItem(reg.rosterKey(migrated[0].id)) === JSON.stringify([{ num: '7', name: 'QB' }]),
     };
 
     // (b) self-heal: a registry with no active profile must re-adopt a team,
@@ -98,8 +96,8 @@ r = await page.evaluate(() => {
   }
   return out;
 });
-ok(r.migrate.count === 1 && r.migrate.name === 'Mavericks' && r.migrate.active && r.migrate.rosterAdopted,
-  'A pre-registry install migrates to one team that owns the existing roster', JSON.stringify(r.migrate));
+ok(r.migrate.count === 1 && r.migrate.name === 'Mavericks' && r.migrate.active,
+  'A pre-registry install migrates to one team while rosters remain season-owned', JSON.stringify(r.migrate));
 ok(r.selfHeal.profile === 'JV' && r.selfHeal.active === 'jv',
   'A registry with no active profile self-heals instead of showing first-run setup', JSON.stringify(r.selfHeal));
 ok(r.mirror.name === 'Renamed' && r.mirror.color === 'navy',

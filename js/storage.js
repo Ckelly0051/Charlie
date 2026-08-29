@@ -426,7 +426,10 @@ export class StorageManager {
       return false;
     }
     if (wasDemo) this._teardownDemo();
-    if (wasCurrent) this._clearForNewGame();
+    if (wasCurrent) {
+      this._clearForNewGame();
+      window.app?.roster?.loadFrom?.([], { persist: false });
+    }
     return true;
   }
 
@@ -552,6 +555,11 @@ export class StorageManager {
     if (app?.playbook && !app.playbook.hasStored(teamId) && this.seasonStore.data?.playbook) {
       app.playbook.replace(this.seasonStore.data.playbook, teamId);
     }
+    // A roster belongs to one season and is shared only by that season's games.
+    // Hydration must replace the live roster even when the saved roster is empty;
+    // retaining the prior non-empty value is how JV/Varsity rosters leaked into
+    // one another. `persist:false` prevents a read from scheduling a write.
+    app?.roster?.loadFrom?.(this.seasonStore.data?.roster || [], { persist: false });
     this._clearForNewGame();
     // _loadActiveGame already refreshes the season chip + games panel and resets
     // the finish hint, so only the season-level UI (history/versions) is left.
@@ -575,31 +583,12 @@ export class StorageManager {
     if (this._loadedGameId == null || this._loadedGameId !== this.seasonStore.data.activeGameId) return;
     this.seasonStore.updateActiveGame(this._serialize());
     const app = window.app;
-    // PC-4 lifecycle audit: roster and playbook get the SAME "only adopt a real
-    // identity" protection teamProfile has had all along (see below). They are
-    // mirrored into the season file specifically so TeamRegistry.recoverFromWipe()
-    // can rebuild a wiped install from it -- so stamping an EMPTY value over a
-    // populated one destroys the very copy recovery depends on. The live objects
-    // read their localStorage keys, and those keys are exactly what a wipe
-    // removes, so "live is empty" does NOT reliably mean "the coach cleared it".
-    //
-    // Reproduced: with a pending autosave armed, an app shutdown after those keys
-    // went missing persisted roster:[] and playbook:{calls:[]} over a season that
-    // held a real roster and a real play call, and the next launch's recovery
-    // then found nothing to restore. The asymmetry was pre-existing -- any
-    // _commitAndPersist() after a "Switch team" (which empties the profile) could
-    // already do this -- and PC-4's shutdown flush made it reachable at a new
-    // moment, which is how it surfaced.
-    //
-    // Disclosed trade-off, matching the teamProfile precedent exactly: an empty
-    // live roster/playbook is not mirrored over a populated saved one, so
-    // clearing every player does not propagate into the season file through an
-    // autosave. Losing a coach's saved roster silently is far worse than
-    // retaining one they emptied, and the season's copy is a recovery mirror,
-    // not the live authority (localStorage is).
+    // The active season is the roster authority. Unlike the former ambient
+    // localStorage cache, an intentionally empty roster is meaningful and must
+    // replace the prior value rather than retaining players from another season.
     if (app && app.roster) {
       const roster = app.roster.toJSON();
-      if ((roster && roster.length) || !(this.seasonStore.data.roster || []).length) this.seasonStore.data.roster = roster;
+      this.seasonStore.data.roster = Array.isArray(roster) ? roster.map(player => ({ ...player })) : [];
     }
     if (app && app.playbook) {
       const playbook = app.playbook.snapshot();
@@ -613,6 +602,16 @@ export class StorageManager {
       // and stamping {} here would strip the old season's saved team.
       if (prof.teamName) this.seasonStore.data.teamProfile = prof;
     } catch (e) {}
+  }
+
+  /** Persist a roster edit into the active season, never an ambient team/global cache. */
+  updateSeasonRoster(roster) {
+    if (!this.seasonStore?.data) return false;
+    this.seasonStore.data.roster = Array.isArray(roster)
+      ? roster.filter(player => player && player.num != null).map(player => ({ ...player }))
+      : [];
+    this._autoSave();
+    return true;
   }
 
   _loadActiveGame({ renderGames = true } = {}) {
@@ -1366,7 +1365,6 @@ export class StorageManager {
       version: 4,
       videoFileName: this.videoFileName,
       gameInfo: this.gameInfo,
-      roster: (window.app && window.app.roster) ? window.app.roster.toJSON() : [],
       plays: plays,
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
@@ -1447,13 +1445,6 @@ export class StorageManager {
       }
     }
 
-    // Only adopt a project's roster when it actually has players. An empty
-    // roster array would otherwise wipe the coach's persisted roster, which
-    // is meant to carry forward across games.
-    if (Array.isArray(data.roster) && data.roster.length && window.app && window.app.roster) {
-      window.app.roster.loadFrom(data.roster);
-    }
-
     this.tagger._updateFormEnabled();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
 
@@ -1505,8 +1496,7 @@ export class StorageManager {
     this._cancelPendingSaves();
     const data = await this.seasonStore.restoreBackup(id);
     if (!data) return false;
-    this._clearForNewGame();
-    this._loadActiveGame();
+    this._afterSeasonLoaded();
     return true;
   }
 
@@ -1565,8 +1555,8 @@ export class StorageManager {
         //      it's given (it only clears the live editor if that id is
         //      still the ambient current season), so this is safe regardless
         //      of what's current now.
-        //   4. On SUCCESS, the final `_clearForNewGame()`/`_loadActiveGame()`
-        //      reload is gated on the store still owning `destSeasonId` too
+        //   4. On SUCCESS, the final `_afterSeasonLoaded()` reload is gated on
+        //      the store still owning `destSeasonId` too
         //      -- a stale but genuinely successful import (its own durable
         //      write to its own destination completed fine) must not yank
         //      the coach's video/playlist/form out from under them on
@@ -1616,8 +1606,7 @@ export class StorageManager {
           // doing now for no reason connected to it, so skip it silently.
           return;
         }
-        this._clearForNewGame();
-        this._loadActiveGame();
+        this._afterSeasonLoaded();
       } else if (parsed && Array.isArray(parsed.plays)) {
         this.addGameFromData(parsed);
       } else {

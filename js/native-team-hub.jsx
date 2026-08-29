@@ -311,7 +311,7 @@ function ControlCenter({ control, screen }) {
   return <aside class="gi-hub-control" aria-labelledby="giHubControlTitle">
     <header><span class="gi-hub-kicker">Team &amp; Film</span><h2 id="giHubControlTitle">Control Center</h2></header>
     <button class="gi-hub-control-row" onClick={event => screen.openSettings(event.currentTarget, 'film')}><i class={`gi-hub-control-state ${storageReady ? 'is-ok' : 'is-warn'}`} /><span><strong>Film storage</strong><small>{control.root || control.storageLabel}</small></span><b>Manage</b></button>
-    <button class="gi-hub-control-row" onClick={event => screen.openRoster(event.currentTarget)}><i class={`gi-hub-control-state ${control.rosterCount ? 'is-ok' : ''}`} /><span><strong>Roster</strong><small>{control.rosterCount ? `${control.rosterCount} players ready for attribution` : 'Add players or import a roster'}</small></span><b>Open</b></button>
+    <button class="gi-hub-control-row" disabled={!control.canReviewSetup} onClick={event => screen.openRoster(event.currentTarget)}><i class={`gi-hub-control-state ${control.rosterCount ? 'is-ok' : ''}`} /><span><strong>Roster</strong><small>{control.canReviewSetup ? (control.rosterCount ? `${control.rosterCount} players ready for attribution` : 'Add players or import a roster') : 'Open a program season to manage its roster'}</small></span><b>{control.canReviewSetup ? 'Open' : 'Unavailable'}</b></button>
     {control.canReviewSetup && <button class="gi-hub-control-row" data-native-hub-review-setup onClick={event => screen.openSeasonSetup(event.currentTarget)}><i class={`gi-hub-control-state ${control.setupReady ? 'is-ok' : 'is-warn'}`} /><span><strong>Season setup</strong><small>{control.setupLabel}</small></span><b>Review</b></button>}
     {screen.canRecoverSeasons() && <button class="gi-hub-control-row" data-native-hub-recover onClick={event => screen.recoverSeasons(event.currentTarget)}><i class="gi-hub-control-state is-ok" /><span><strong>Backups &amp; recovery</strong><small>{control.recovery}</small></span><b>Review</b></button>}
     <div class="gi-hub-control-facts"><span><b>{control.games}</b>games</span><span><b>{control.plays}</b>plays</span><span><b>{control.rosterCount}</b>players</span></div>
@@ -338,7 +338,7 @@ function NativeTeamHub({ screen }) {
         {state.teams.map(team => <button data-hub-team={team.id} class={team.id === state.activeTeamId ? 'is-active' : ''} aria-pressed={team.id === state.activeTeamId} onClick={() => screen.switchTeam(team.id)}><i data-color={team.jerseyColor || 'none'} />{team.teamName}</button>)}
         <button class="gi-hub-add-team" onClick={event => screen.openAddTeam(event.currentTarget)}>+ Add team</button>
       </div>
-      <div class="gi-hub-team-actions"><button onClick={event => screen.openRoster(event.currentTarget)}>Roster</button><button class="is-danger" onClick={event => screen.removeActiveTeam(event.currentTarget)}>Remove team</button></div>
+      <div class="gi-hub-team-actions"><button disabled={!state.currentSeasonId || scout} onClick={event => screen.openRoster(event.currentTarget)}>Roster</button><button class="is-danger" onClick={event => screen.removeActiveTeam(event.currentTarget)}>Remove team</button></div>
     </div>
     <main class="gi-hub-body gi-hub-command-body">
       <WorkspaceChoice mode={state.workspaceMode} screen={screen} compact />

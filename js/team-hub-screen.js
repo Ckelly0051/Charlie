@@ -198,7 +198,14 @@ export class TeamHubScreen {
   close() { return this.app.workspaceShell?.closeTeamHub?.(); }
 
   openSettings(invoker, initialTab = 'film') { return this.app.settingsScreen?.open?.({ initialTab, returnFocus: invoker }); }
-  openRoster(invoker = null) { return this.app.settingsScreen?.open?.({ initialTab:'roster', returnFocus:invoker || document.activeElement }); }
+  openRoster(invoker = null) {
+    const current = this._store()?.data;
+    if (!current || current.kind === 'scout') {
+      this.overlays.toast({ tone: 'info', message: 'Open a program season before editing its roster.' });
+      return false;
+    }
+    return this.app.settingsScreen?.open?.({ initialTab:'roster', returnFocus:invoker || document.activeElement });
+  }
 
   dismissChecklist() {
     this._registry().dismissChecklist();
@@ -235,7 +242,6 @@ export class TeamHubScreen {
     if (!next) return false;
     const storage = this._storage();
     const store = this._store();
-    const previousId = this._registry().activeTeamId() || '';
     if (store?.hasCurrent?.()) {
       storage.commitActive();
       const saved = await store.persist();
@@ -246,14 +252,11 @@ export class TeamHubScreen {
       store.closeSeason();
       storage._clearForNewGame();
     }
-    if (previousId) {
-      try { localStorage.setItem(this._registry().rosterKey(previousId), localStorage.getItem('ffa_roster') || '[]'); } catch {}
-    }
     this._registry().setActiveTeamId(id);
     this._registry().saveTeamProfile({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
-    let roster = [];
-    try { roster = JSON.parse(localStorage.getItem(this._registry().rosterKey(id)) || '[]') || []; } catch {}
-    this.app.roster?.loadFrom?.(roster);
+    // No season is open after a team switch, so no roster has an owner yet.
+    // The selected season will hydrate its own roster when the coach opens it.
+    this.app.roster?.loadFrom?.([], { persist: false });
     this.app.customChips?.reload?.();
     await this.load();
     this.app.workspaceShell?._syncChrome?.();
@@ -267,12 +270,10 @@ export class TeamHubScreen {
     const teams = registry.teams();
     const team = { id: registry.newTeamId(clean, teams.map(item => item.id)), teamName: clean, jerseyColor: String(jerseyColor || '') };
     registry.saveTeams([...teams, team]);
-    try { localStorage.setItem(registry.rosterKey(team.id), teams.length ? '[]' : (localStorage.getItem('ffa_roster') || '[]')); } catch {}
     if (teams.length) {
       const switched = await this.switchTeam(team.id);
       if (!switched) {
         registry.saveTeams(teams);
-        try { localStorage.removeItem(registry.rosterKey(team.id)); } catch {}
         return { ok: false, message: 'The new team was not added because the open season could not be saved.' };
       }
     } else {
@@ -532,23 +533,20 @@ export class TeamHubScreen {
     }
     const choice = await this.overlays.dialog({
       title: `Remove ${team.teamName}?`, destructive: true, returnFocus: invoker,
-      message: 'This removes the team identity and its roster snapshot. No seasons or film are deleted.',
+      message: 'This removes the team identity. No seasons, rosters, or film are deleted.',
       actions: [{ key: 'cancel', label: 'Cancel', default: true }, { key: 'delete', label: 'Remove team', tone: 'danger' }],
     }).result;
     if (choice !== 'delete') return false;
     const rest = this._state.teams.filter(item => item.id !== id);
     this._registry().saveTeams(rest);
-    try { localStorage.removeItem(this._registry().rosterKey(id)); } catch {}
     try { localStorage.removeItem(this._registry().playbookKey(id)); } catch {}
     if (rest.length) {
       this._registry().setActiveTeamId(rest[0].id);
       this._registry().saveTeamProfile({ teamName: rest[0].teamName, jerseyColor: rest[0].jerseyColor || '' });
-      let roster = [];
-      try { roster = JSON.parse(localStorage.getItem(this._registry().rosterKey(rest[0].id)) || '[]') || []; } catch {}
-      this.app.roster?.loadFrom?.(roster);
+      this.app.roster?.loadFrom?.([], { persist: false });
     } else {
       this._registry().clearIdentity();
-      this.app.roster?.loadFrom?.([]);
+      this.app.roster?.loadFrom?.([], { persist: false });
     }
     await this.load();
     this.app.workspaceShell?._syncChrome?.();

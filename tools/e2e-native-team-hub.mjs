@@ -164,7 +164,7 @@ r = await page.evaluate(() => ({
   activeId: localStorage.getItem('ffa_active_team_id'),
   current: window.app.storage.seasonStore.currentSeasonId,
   seasons: document.querySelectorAll('[data-season-id]').length,
-  roster: JSON.parse(localStorage.getItem('ffa_roster') || '[]'),
+  roster: window.app.roster.players,
 }));
 ok(r.activeId === 'mavericks-jv' && !r.current && r.seasons === 0 && r.roster.length === 0,
   'Adding a team starts blank, closes outgoing season context, and scopes its season list', JSON.stringify(r));

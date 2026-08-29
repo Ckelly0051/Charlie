@@ -347,7 +347,15 @@ export class SeasonStore {
       d.activeGameId = d.games[0].id;
     }
     d.teamProfile = d.teamProfile || {};
-    d.roster = Array.isArray(d.roster) ? d.roster : [];
+    // Season is the roster boundary. Older single-game saves carried the roster
+    // on the game node; recover it once only when the season-level field is truly
+    // absent. An explicit empty season roster remains empty.
+    if (!Object.prototype.hasOwnProperty.call(d, 'roster')) {
+      const legacyRoster = d.games.find(game => Array.isArray(game?.roster))?.roster;
+      d.roster = Array.isArray(legacyRoster) ? legacyRoster : [];
+    } else {
+      d.roster = Array.isArray(d.roster) ? d.roster : [];
+    }
     d.playbook = d.playbook && Array.isArray(d.playbook.calls)
       ? { version: Number(d.playbook.version) || 1, calls: d.playbook.calls }
       : { version: 1, calls: [] };
@@ -1177,7 +1185,7 @@ export class SeasonStore {
     if (parsed && Array.isArray(parsed.games)) {
       next = this._normalize({ ...parsed, id: destSeasonId });
     } else if (parsed && Array.isArray(parsed.plays)) {
-      next = this._normalize({ id: destSeasonId, games: [this.gameFromLegacy(parsed)] });
+      next = this._normalize({ id: destSeasonId, roster: parsed.roster, games: [this.gameFromLegacy(parsed)] });
     } else {
       return { ok: false, data: null };
     }

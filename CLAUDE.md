@@ -1,3 +1,11 @@
+### CODEX SEASON-SCOPED ROSTER OWNERSHIP REPAIR (2026-08-29)
+
+Roster ownership is now one season, shared by that season's games. The previous implementation had three competing authorities: ambient `ffa_roster`, per-team `ffa_roster_<teamId>` snapshots, and season/game-embedded copies. Team switching could load one cache and opening a game could then overwrite it from another, allowing the same roster to appear across JV, Varsity, and unrelated teams.
+
+`season.roster` is now the sole canonical owner. Opening or creating a season hydrates its exact roster, including an intentional empty array; switching games never touches roster state; roster edits update the active season immediately and enter the normal autosave path; game serialization no longer duplicates roster data; switching teams clears the unowned live view until a season opens; and Team Hub disables roster editing when no program season owns it. Legacy single-game files recover a game-level roster only when the season-level field is truly absent. Existing season rosters are preserved exactly and are never redistributed or rewritten by migration, so any already-contaminated seasons can be corrected independently without the app guessing player ownership. Per-play jersey assignments remain untouched.
+
+Focused proof: production build; `e2e-season-roster-scope` 13/13; native tagging 69/69; wipe recovery 13/13; TeamRegistry 21/21; Film Room/team switching 175/175; onboarding 33/33; native Team Hub 33/33; projection-form durability 53/53. The dedicated isolation journey covers two seasons under one program, distinct canonical rosters, genuine game switching, backup restore, restart, an intentionally cleared roster, poisoned legacy cache keys, deletion of the open season, and preserved per-play attribution.
+
 ### FINAL ROUTE-WIDE ADVERSARIAL REVIEW — BREAKDOWN ACCEPTED, NO BUGS FOUND (2026-08-28)
 
 Reviewed the complete live Breakdown route as one workflow across Chart, Film Room, and the shared Theater at baseline `9b73789` (Film Room composition `9815685`, its keyboard-accessibility repair `ea8b431`, and Chart header/scheme-group synchronization `9b73789`). This was a bug review, not another design pass — no code changed as a result.
@@ -17830,7 +17838,7 @@ src-tauri/                    # Tauri v2 desktop shell
 
 Box-score style per-player stats, modeled on Hudl/QwikCut:
 
-1. **Roster panel** (`roster-manager.js`): add players (jersey #, name, position, side O/D/B). Stored in `localStorage` (`ffa_roster`) and in project saves (`roster` key, schema v4).
+1. **Roster panel** (`roster-manager.js`): add players (jersey #, name, position, side O/D/B). The open season's root `roster` array is canonical; every game in that season shares it, while another season under the same program remains isolated. `RosterManager` is only the live view/editor for the currently open season.
 2. **Roster import**: CSV file upload or paste-from-spreadsheet with smart header detection (`#`/`Num`/`Jersey` → num, `Name`/`Player` → name, `Pos`/`Position` → pos, `Side`/`Unit` → side). Delimiter auto-detected (tab/comma/semicolon). No external libraries.
 3. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`. **Tackler accepts multiple #s** (shared/assisted tackles): the input is a text field and the quick-pick chips *toggle* membership in a `"55, 22"` list (`RosterManager.multiRoles`) instead of replacing. Other roles stay single-value.
 4. **Per-play grading**: each role has a grade select (++/+/0/−/−−, stored as -2 to +2 in `play.tags.grades`). Average grades appear in the individual stats tables.
@@ -18022,11 +18030,12 @@ The library has two views, toggled by `_setLevel('seasons'|'schedule')`:
     in BOTH backends' `createSeason`); `_render` filters via `_teamSeasons()`;
     legacy metas without `teamId` belong to the FIRST registry team. The demo
     season stamps the active `teamId` (storage.js `loadDemoSeason`).
-  - **Rosters are per team**: snapshots in `ffa_roster_<teamId>`; live
-    `ffa_roster` is always the active team's (RosterManager untouched).
-    `_setActiveTeam` snapshots the outgoing roster, loads the incoming one.
+  - **Rosters are per season**: the season root `roster` array is canonical.
+    Opening a season replaces the live roster even when the saved value is empty;
+    switching games never reloads it, and switching teams clears the live view
+    until a season is explicitly opened.
   - **Switching** (`_setActiveTeam`): commits+persists+**closes** any open
-    season (it belongs to the outgoing team), swaps profile+roster, lands on
+    season (it belongs to the outgoing team), swaps profile, lands on
     the new team's Team Home.
   - **Removing** (`_removeTeam`, "Remove this team…" in the edit panel): only
     allowed when the team has **no seasons** (guard message otherwise) —
@@ -18969,10 +18978,10 @@ jerseyColor }`), separate from any project save.
   fields on a fresh session **only when empty**. A loaded project always wins:
   `_loadGameInfo` overwrites these when the project has its own values, and
   falls back to the carried-forward identity only when the project omits them.
-- **Roster** already persists globally via `ffa_roster` (RosterManager). To stop
-  an older project from wiping it, `StorageManager._deserialize` adopts a
-  project's roster **only when it's a non-empty array** — an empty `roster:[]`
-  no longer clears the coach's persisted roster.
+- **Roster** persists at the season root. `StorageManager._afterSeasonLoaded`
+  always hydrates that exact roster, including an intentional empty array;
+  game deserialization never changes it. Roster edits write directly to the
+  active season and schedule its canonical autosave.
 
 ### Visual Analytics (`js/charts.js`)
 

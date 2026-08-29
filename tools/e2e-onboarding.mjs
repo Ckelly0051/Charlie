@@ -80,7 +80,7 @@ ok(r, 'sample action begins as Explore sample season');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
   games: document.querySelectorAll('.ws-game-row').length,
-  roster: JSON.parse(localStorage.getItem('ffa_roster') || '[]').length,
+  roster: window.app.roster.players.length,
 }));
 ok(r.games === 2, 'Home film inbox shows both sample games', JSON.stringify(r));
 ok(r.roster === 0, 'sample season leaves the active team roster untouched', JSON.stringify(r));
@@ -117,7 +117,7 @@ await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
 r = await page.evaluate(() => ({
   player: document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'),
   seen: localStorage.getItem('ffa_seen_stats'),
-  roster: JSON.parse(localStorage.getItem('ffa_roster') || '[]').length,
+  roster: window.app.roster.players.length,
 }));
 ok(r.player, 'sample player labels render in native Reports', JSON.stringify(r));
 ok(!r.seen && r.roster === 0, 'sample Reports neither completes real-data progress nor changes the roster', JSON.stringify(r));

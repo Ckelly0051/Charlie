@@ -667,7 +667,7 @@ ok(r.name === 'JV Squad' && r.profile === 'JV Squad', 'native Hub and profile sh
 ok(r.seasons === 0, 'JV hub shows no seasons because the sample belongs to Mavericks', String(r.seasons));
 ok(!r.hasCurrent, 'open season was closed on team switch');
 
-console.log('\n== 10. Per-team rosters ==');
+console.log('\n== 10. No-season roster state cannot leak across teams ==');
 await page.evaluate(() => window.app.roster.loadFrom([{ num: '7', name: 'JV Kid', pos: 'QB', side: 'O' }]));
 await page.click('[data-hub-team="mavericks"]');
 await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
@@ -676,7 +676,7 @@ await page.click('[data-hub-team="jv-squad"]');
 await page.waitForFunction(() => document.querySelector('[data-hub-team="jv-squad"]')?.classList.contains('is-active'));
 r = await page.evaluate(() => ({ count:window.app.roster.players.length, name:window.app.roster.players[0]?.name || '' }));
 ok(mavCount === 0, 'Mavericks roster untouched by JV player', String(mavCount));
-ok(r.count === 1 && r.name === 'JV Kid', 'JV roster restored on switch back', JSON.stringify(r));
+ok(r.count === 0 && !r.name, 'a roster with no owning season is not restored on switch back', JSON.stringify(r));
 
 console.log('\n== 11. Mavericks hub still owns the sample; remove-team guard ==');
 await page.click('[data-hub-team="mavericks"]');
@@ -701,10 +701,10 @@ await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').le
 r = await page.evaluate(() => ({
   teams:document.querySelectorAll('[data-hub-team]').length,
   active:JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
-  jvRosterKey:localStorage.getItem('ffa_roster_jv-squad'),
+  rosterCount:window.app.roster.players.length,
 }));
 ok(r.teams === 1 && r.active === 'Mavericks', 'JV removed and Mavericks active again', JSON.stringify(r));
-ok(!r.jvRosterKey, 'JV roster snapshot deleted');
+ok(r.rosterCount === 0, 'removing a team does not hydrate an ambient roster');
 
 // Grid inline editor must match the tag form's semantics exactly (v1.9.30):
 // exclusivity (no "Gain + Loss"), auto-Gain on positive yardage, and clearing

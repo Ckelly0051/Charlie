@@ -6,8 +6,8 @@
  * focused player-role input (Ball Carrier / Passer / Receiver / Tackler),
  * so a coach can attribute players to a play in a couple of taps.
  *
- * Roster persists to localStorage and is included in project saves via
- * StorageManager (which reads window.app.roster). Per-play attribution
+ * The active season owns the roster. StorageManager hydrates this service when
+ * a season opens and writes edits back to that season. Per-play attribution
  * lives on play.tags.players and is handled by PlayTagger.
  */
 export class RosterManager {
@@ -40,7 +40,6 @@ export class RosterManager {
     // replacing the single value.
     this.multiRoles = new Set(['tackler']);
 
-    this._load();
     this._bind();
     this._bindImport();
     document.getElementById('btnDepthChart')?.addEventListener('click', () => this.exportDepthChart());
@@ -194,22 +193,15 @@ export class RosterManager {
 
   toJSON() { return this.players; }
 
-  loadFrom(arr) {
+  loadFrom(arr, { persist = true } = {}) {
     this.players = Array.isArray(arr) ? arr.filter(p => p && p.num != null) : [];
-    this._save();
+    if (persist) this._save();
     this.renderList();
     this.renderQuickPick();
   }
 
   _save() {
-    try { localStorage.setItem('ffa_roster', JSON.stringify(this.players)); } catch (e) {}
-  }
-
-  _load() {
-    try {
-      const raw = localStorage.getItem('ffa_roster');
-      if (raw) this.players = JSON.parse(raw) || [];
-    } catch (e) { this.players = []; }
+    window.app?.storage?.updateSeasonRoster?.(this.players);
   }
 
   // --- Rendering ---

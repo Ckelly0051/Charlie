@@ -3,8 +3,8 @@
  *
  * WHY THIS EXISTS (S7-c). SeasonLibrary is the legacy Team Hub overlay, and the
  * overlay itself is dead — nothing opens it. But the module is NOT dead: the
- * native Team Hub reaches into TWELVE of its private members for the team
- * registry, team switching, season scoping, roster keys, post-wipe recovery and
+ * native Team Hub reaches into this service for the team registry, team
+ * switching, season scoping, post-wipe recovery and
  * checklist state, and settings/workspace-context reach in for three more.
  * Deleting the file on "the overlay is unreachable" would have taken team
  * switching and wipe recovery with it.
@@ -24,7 +24,6 @@
  *   ffa_team_profile      the ACTIVE team's profile — every existing reader
  *                         (Game Info sync, checklist, commitActive) keeps
  *                         working unchanged; switching teams rewrites it
- *   ffa_roster_<teamId>   per-team roster snapshot (live ffa_roster is active)
  *   ffa_playbook_<teamId> durable call definitions mirrored into season files
  *   ffa_checklist_dismissed
  * Seasons carry `teamId` in their library meta; metas without one are legacy
@@ -64,7 +63,6 @@ export class TeamRegistry {
     try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (e) { return ''; }
   }
 
-  rosterKey(id) { return 'ffa_roster_' + id; }
   playbookKey(id) { return 'ffa_playbook_' + id; }
 
   /** A team id that does not collide with `existingIds`. */
@@ -149,7 +147,7 @@ export class TeamRegistry {
   /**
    * One-time migration + reconcile. Run before reading the registry.
    * - A pre-registry install (single ffa_team_profile) becomes the first
-   *   registry team, owning the existing roster and all existing seasons.
+   *   registry team, owning all existing seasons.
    * - A registry with no active profile (partial clear / old bug) re-adopts a
    *   team, so pills and profile never disagree.
    * - Game Info edits write ffa_team_profile directly, so mirror those back
@@ -163,7 +161,6 @@ export class TeamRegistry {
       teams = [t];
       this.saveTeams(teams);
       this.setActiveTeamId(t.id);
-      try { localStorage.setItem(this.rosterKey(t.id), localStorage.getItem('ffa_roster') || '[]'); } catch (e) {}
       return;
     }
     if (teams.length && !profile.teamName) {
@@ -183,13 +180,13 @@ export class TeamRegistry {
 
   /**
    * Post-wipe auto-recovery. A desktop app update (or a browser storage clear
-   * that spares the season files) can wipe localStorage — registry, profile,
-   * roster — while the seasons survive on disk. Without this the app showed
+   * that spares the season files) can wipe localStorage identity while the
+   * seasons survive on disk. Without this the app showed
    * FIRST-RUN SETUP over the coach's data, and the rebuilt registry's new
    * teamId matched no season, so every season was filtered out of view. That
    * was field-reported as "you deleted my season".
    *
-   * Each season file carries teamProfile + roster, so identity is fully
+   * Each season file carries teamProfile, so identity is fully
    * reconstructable: rebuild one registry entry per distinct stamped teamId,
    * KEEPING the original ids so the metas still match.
    */
@@ -217,31 +214,25 @@ export class TeamRegistry {
         groups.get(tid).push(m);
       });
       const teams = [];
-      const rosters = {};
       const playbooks = {};
       for (const [tid, group] of groups) {
-          let profile = null, roster = null, playbook = null;
+          let profile = null, playbook = null;
           for (const m of group) {                 // newest first wins per durable field
             const data = await peek(m.id);
             if (!data) continue;
-            if (roster === null && Array.isArray(data.roster)) roster = data.roster;
             if (playbook === null && data.playbook && Array.isArray(data.playbook.calls)) playbook = data.playbook;
             if (!profile && data.teamProfile && data.teamProfile.teamName) profile = data.teamProfile;
-            if (profile && roster !== null && playbook !== null) break;
+            if (profile && playbook !== null) break;
           }
           const name = (profile && profile.teamName) || group[0].name || 'My Team';
           const id = tid || this.newTeamId(name, teams.map(t => t.id));
           teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
-          if (roster !== null) rosters[id] = roster;
         if (playbook !== null) playbooks[id] = playbook;
       }
       if (!teams.length) return false;
       this.saveTeams(teams);
       this.setActiveTeamId(teams[0].id);
       this.saveTeamProfile({ teamName: teams[0].teamName, jerseyColor: teams[0].jerseyColor || '' });
-      Object.entries(rosters).forEach(([id, roster]) => {
-        try { localStorage.setItem(this.rosterKey(id), JSON.stringify(roster)); } catch (e) {}
-      });
       Object.entries(playbooks).forEach(([id, playbook]) => {
         try {
           const library = this._app()?.playbook;
@@ -249,16 +240,8 @@ export class TeamRegistry {
           else localStorage.setItem(this.playbookKey(id), JSON.stringify(playbook));
         } catch (e) {}
       });
-      // Live roster = the active team's. Refresh RosterManager's in-memory copy
-      // too, or its next _save() would clobber the recovery with [].
-      const rm = this._app()?.roster;
-      const liveEmpty = !(rm && rm.players && rm.players.length);
-      if (liveEmpty && rosters[teams[0].id]) {
-        try { localStorage.setItem('ffa_roster', JSON.stringify(rosters[teams[0].id])); } catch (e) {}
-        if (rm) { rm._load(); rm.renderList(); rm.renderQuickPick(); }
-      }
       console.warn('GridIron IQ: rebuilt team identity from season files after a storage wipe.');
-      if (this._notify) this._notify('Recovered your team, seasons, and roster from disk.');
+      if (this._notify) this._notify('Recovered your team and seasons from disk. Rosters load with their seasons.');
       return true;
     } catch (e) {
       console.warn('Wipe recovery failed:', e);

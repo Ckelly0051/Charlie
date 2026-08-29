@@ -24,8 +24,9 @@ directly.
 - Teams render as a switcher (multi-team is supported: `ffa_teams`,
   `ffa_active_team_id`, with `ffa_team_profile` mirroring the **active** team).
 - **Switching a team is destructive to open context** and must: commit and persist
-  the open season, close it, swap roster (`ffa_roster_<teamId>`) and profile, then
-  land on the incoming team's hub. No implicit game stays open across a switch.
+  the open season, close it, swap profile, clear the now-unowned live roster, then
+  land on the incoming team's hub. The roster hydrates only after the coach opens
+  one of that team's seasons. No implicit game stays open across a switch.
 - **Add team** opens an empty form — never pre-filled with a prior value (a
   first-run leftover previously concatenated into the new name).
 - **Remove team is permitted only when the team owns zero seasons.** Otherwise

@@ -1,17 +1,17 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 // Regression harness for the update-wipe data-loss bug (field-reported).
 // A desktop app update can wipe WebView localStorage (team registry, profile,
-// roster) while the season files survive on disk. Before the fix, the app
+// identity) while the season files survive on disk. Before the fix, the app
 // showed FIRST-RUN SETUP over the coach's data and every season was filtered
 // out of view (teamId matched no registry team) — reading as total data loss.
 //
 // Models the wipe in the browser build by clearing ONLY the identity keys
-// (ffa_teams / ffa_team_profile / ffa_active_team_id / ffa_roster*) while
+// (ffa_teams / ffa_team_profile / ffa_active_team_id) while
 // keeping ffa_library + ffa_season_* (the "files on disk" equivalent).
 //
 // Asserts: auto-recovery rebuilds the registry from season files, the team
 // card shows the original name (no setup screen), the seasons list shows the
-// season, opening it restores plays, and the roster comes back.
+// season, and opening it restores both plays and its season-owned roster.
 import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -39,13 +39,12 @@ await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mave
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForSelector('[data-hub-team].is-active');
 await page.evaluate(async () => {
-  window.app.roster.players = [
+  await window.app.storage.createSeason({ name: 'Fall 2026' });
+  window.app.roster.loadFrom([
     { num: '22', name: 'Marcus Carter', pos: 'RB', side: 'O' },
     { num: '55', name: 'Dee Jones', pos: 'LB', side: 'D' },
-  ];
-  window.app.roster._save();
+  ]);
   window.app.playbook.add({ name: '26 Blast', concept: 'Blast', defaults: { runPass: 'Run', playType: 'Run Inside', playDir: 'Right' } });
-  await window.app.storage.createSeason({ name: 'Fall 2026' });
   const t = window.app.tagger;
   t.plays.push(
     { id: 1, timestamp: { start: 0, end: 10 }, tags: { down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '7', unit: 'offense', players: {}, grades: {}, custom: [] }, notes: 'Power R 34' },
@@ -69,8 +68,6 @@ await page.evaluate(() => {
   localStorage.removeItem('ffa_teams');
   localStorage.removeItem('ffa_team_profile');
   localStorage.removeItem('ffa_active_team_id');
-  localStorage.removeItem('ffa_roster');
-  teams.forEach(t => localStorage.removeItem('ffa_roster_' + t.id));
   teams.forEach(t => localStorage.removeItem('ffa_playbook_' + t.id));
   localStorage.removeItem('ffa_checklist_dismissed');
   localStorage.removeItem('ffa_seen_stats');
@@ -82,7 +79,6 @@ await new Promise(r => setTimeout(r, 1000));
 const rec = await page.evaluate(() => {
   const teams = JSON.parse(localStorage.getItem('ffa_teams') || '[]');
   const profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}');
-  const roster = JSON.parse(localStorage.getItem('ffa_roster') || '[]');
   const hub = document.querySelector('[data-native-team-hub]');
   return {
     setupHidden: !document.querySelector('.gi-hub-first'),
@@ -91,7 +87,6 @@ const rec = await page.evaluate(() => {
     teamCount: teams.length,
     teamName: (teams[0] || {}).teamName,
     profileName: profile.teamName,
-    rosterCount: roster.length,
     rosterInMemory: window.app.roster.players.length,
     playbook: window.app.playbook.list(),
     listText: hub?.textContent || '',
@@ -101,8 +96,7 @@ check('NO first-run setup screen over existing data', rec.setupHidden, JSON.stri
 check('native Team Hub restores the original team', rec.teamShown && rec.teamText.includes('Mavericks'));
 check('registry rebuilt with original team', rec.teamCount === 1 && rec.teamName === 'Mavericks', JSON.stringify(rec));
 check('profile restored', rec.profileName === 'Mavericks');
-check('roster restored from season file', rec.rosterCount === 2, 'got ' + rec.rosterCount);
-check('roster manager in-memory copy refreshed', rec.rosterInMemory === 2, 'got ' + rec.rosterInMemory);
+check('no roster is overlaid before a season is opened', rec.rosterInMemory === 0, 'got ' + rec.rosterInMemory);
 check('team playbook restored from the newest season mirror', rec.playbook.length === 1 && rec.playbook[0].name === '26 Blast' && rec.playbook[0].defaults.playDir === 'Right', JSON.stringify(rec.playbook));
 check('recovered season is visible in Team Hub', rec.listText.includes('Fall 2026'), rec.listText.slice(0, 200));
 
@@ -115,11 +109,13 @@ const opened = await page.evaluate(async () => {
   return {
     plays: window.app.tagger.plays.length,
     notes: (window.app.tagger.plays[0] || {}).notes,
+    roster: window.app.roster.players.map(player => player.name),
   };
 });
 await new Promise(r => setTimeout(r, 300));
 check('recovered season opens with both plays', opened.plays === 2, JSON.stringify(opened));
 check('play data intact (notes survived)', opened.notes === 'Power R 34');
+check('season-owned roster restores only when its season opens', opened.roster.join('|') === 'Marcus Carter|Dee Jones', JSON.stringify(opened.roster));
 
 // ---- Orphan fallback: user re-did setup BEFORE getting the fix ----
 await page.evaluate(() => {
