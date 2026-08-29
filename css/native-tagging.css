@@ -314,3 +314,184 @@
   .gi-breakdown-deck [data-native-field="runPass"] .gi-tag-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
   .gi-breakdown-deck [data-native-field="playType"] .gi-tag-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+
+/* ══ Breakdown Chart workflow — canonical comp body (2026-08-28) ═══════════
+   This is the complete populated-form composition owner. It follows the FPO
+   deck's scan order and control hierarchy without changing football state. */
+.gi-tag-group>summary{
+  grid-template-columns:auto minmax(0,1fr) auto;
+  min-height:38px;
+  padding-right:var(--gi-3x);
+}
+.gi-tag-group>summary strong{
+  min-height:24px;
+  padding-inline:var(--gi-3x) var(--gi-6x);
+  font:600 12.5px/1 var(--gi-sans);
+  letter-spacing:var(--gi-track-label);
+}
+.gi-tag-group>summary span{
+  min-width:0;
+  overflow:hidden;
+  color:var(--gi-11);
+  font:var(--gi-text-caption);
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.gi-tag-group>summary i{
+  margin-right:0;
+  color:var(--gi-10);
+  transition:transform var(--gi-quick);
+}
+.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
+.gi-tag-group[open]>summary i{color:var(--gi-12)}
+.gi-tag-group-body{gap:var(--gi-3x);padding:var(--gi-3x) var(--gi-4x) var(--gi-4x)}
+.gi-tag-group-body>.gi-tag-field+.gi-tag-field,
+.gi-tag-group-body>.gi-tag-input+.gi-tag-field{margin-top:var(--gi-1x)}
+.gi-native-form{padding-top:1px}
+.gi-tag-field-label{min-height:16px}
+.gi-tag-field-label>span{letter-spacing:var(--gi-track-label)}
+.gi-tag-field-label small{color:var(--gi-11)}
+.gi-tag-chips{gap:var(--gi-1x)}
+.gi-tag-chips button{transition:border-color var(--gi-quick),background var(--gi-quick),color var(--gi-quick)}
+.gi-tag-chips button.is-active{
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.22);
+}
+.gi-tag-group:has([data-native-field="defFront"]) .gi-tag-chips button.is-active,
+.gi-tag-group:has([data-native-field="coverage"]) .gi-tag-chips button.is-active{
+  border-color:var(--gi-bd-cyan);
+  background:var(--gi-bd-cyan);
+  color:var(--gi-bd-cyan-ink);
+}
+
+/* Players & Grades mirrors the comp: two usable role cards, one focused
+   number picker, and a real Grade control whose full label always fits. */
+.gi-tag-players{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x)}
+.gi-tag-players>div{
+  grid-template-columns:minmax(0,1fr) 92px;
+  align-content:start;
+  gap:var(--gi-1x);
+  padding:var(--gi-2x) var(--gi-3x) var(--gi-3x);
+  border-color:var(--gi-6);
+  background:var(--gi-3);
+}
+.gi-tag-players>div.is-active{
+  border-color:var(--gi-bd-gold);
+  background:var(--gi-accent-surface);
+  box-shadow:inset 0 0 0 1px var(--gi-bd-gold);
+}
+.gi-tag-players strong{
+  color:var(--gi-11);
+  font:var(--gi-text-label);
+  letter-spacing:var(--gi-track-label);
+  text-transform:uppercase;
+}
+.gi-tag-players input{
+  font:650 15px var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);
+}
+.gi-player-roster-toggle{
+  grid-column:1/-1;
+  justify-self:start;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:30px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--gi-accent-text);
+  font:600 var(--gi-text-caption);
+  cursor:pointer;
+}
+.gi-player-roster-toggle:hover{color:var(--gi-12)}
+.gi-player-roster-toggle span{font-size:12px}
+.gi-player-quick{margin-top:0;padding-top:0}
+
+/* The commit bar is a separate, pinned decision surface. Navigation stays
+   quiet; the one completion action gets the width, color, and key hint. */
+.gi-tag-nav{
+  grid-template-columns:auto auto minmax(154px,1fr);
+  align-items:center;
+  min-height:56px;
+  padding:var(--gi-2x) var(--gi-4x);
+  border-top:1px solid var(--gi-6);
+  background:var(--gi-2);
+  box-shadow:0 -10px 20px rgba(0,0,0,.16);
+}
+.gi-tag-nav>button{
+  min-height:40px;
+  padding-inline:var(--gi-4x);
+  font:var(--gi-text-control);
+}
+.gi-tag-nav>button:disabled{opacity:.42}
+.gi-tag-nav .is-primary{
+  margin-left:var(--gi-2x);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:var(--gi-2x);
+  padding-inline:var(--gi-5x);
+}
+.gi-tag-nav kbd{
+  padding:2px 5px;
+  border:0;
+  border-radius:2px;
+  background:rgba(0,0,0,.2);
+  color:inherit;
+  font:var(--gi-text-eyebrow);
+  letter-spacing:var(--gi-track-label);
+  text-transform:uppercase;
+}
+
+/* The empty-play surface retains the same header/utility geometry and gives
+   the instruction enough breathing room to read as a deliberate state. */
+.gi-native-tagging.is-disabled .gi-tag-actions{opacity:.58}
+.gi-native-tagging.is-disabled .gi-tag-empty{
+  display:grid;
+  min-height:180px;
+  place-items:center;
+  margin:var(--gi-4x);
+  padding:var(--gi-6x);
+  background:var(--gi-2);
+  font:var(--gi-text-body);
+}
+
+/* In the fixed 424px workstation deck, composition carries density. */
+@media (min-width:1181px) and (pointer:fine){
+  .gi-breakdown-deck .gi-tag-group-body{gap:var(--gi-2x);padding:var(--gi-2x) var(--gi-3x) var(--gi-3x)}
+  .gi-breakdown-deck .gi-tag-group>summary{min-height:36px}
+  .gi-breakdown-deck .gi-tag-field{gap:var(--gi-1x)}
+  .gi-breakdown-deck .gi-tag-players>div{padding:var(--gi-2x)}
+  .gi-breakdown-deck .gi-player-roster-toggle{min-height:28px}
+}
+
+/* Narrow is one readable column; touch floors remain owned by the existing
+   coarse-pointer rules below 720px. */
+@media(max-width:720px){
+  .gi-tag-group>summary{grid-template-columns:minmax(0,1fr) auto;min-height:44px}
+  .gi-tag-group>summary strong{min-height:26px}
+  .gi-tag-group>summary span{grid-column:1/-1;margin:-5px var(--gi-3x) var(--gi-2x);white-space:normal}
+  .gi-tag-players{grid-template-columns:1fr}
+  .gi-player-roster-toggle{min-height:44px}
+  .gi-tag-nav{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    min-height:0;
+    padding:var(--gi-2x);
+  }
+  .gi-tag-nav .is-primary{
+    grid-column:1/-1;
+    grid-row:1;
+    margin-left:0;
+  }
+  .gi-tag-nav>button:first-child,.gi-tag-nav>button:nth-child(2){grid-row:2}
+}
+
+@media(pointer:coarse){
+  .gi-tag-nav>button,.gi-player-roster-toggle{min-height:44px}
+}
+
+@media(max-width:1180px){
+  .gi-tag-group{scroll-margin-top:160px}
+  .gi-native-form :is(button,input,select,textarea,summary){scroll-margin-block:170px 132px}
+}

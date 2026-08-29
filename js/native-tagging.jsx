@@ -129,10 +129,10 @@ function ResultField({screen, state}) {
   </div>;
 }
 
-function Group({title, open=false, children}) {
+function Group({title, detail='', open=false, children}) {
   const [expanded,setExpanded] = useState(open);
   return <details class="gi-tag-group" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-    <summary><strong>{title}</strong><i aria-hidden="true">▾</i></summary>
+    <summary><strong>{title}</strong>{detail && <span>{detail}</span>}<i aria-hidden="true">▾</i></summary>
     <div class="gi-tag-group-body">{children}</div>
   </details>;
 }
@@ -291,26 +291,38 @@ function SpecialTeams({screen, state}) {
 
 function Players({screen, state}) {
   const roles = state.unit === 'special' ? ['kicker','returner'] : state.unit === 'defense' ? ['tackler','takeaway'] : ['ballCarrier','passer','receiver'];
+  const [rosterRole,setRosterRole] = useState(roles.includes(state.activeRole) ? state.activeRole : roles[0]);
+  useLayoutEffect(() => {
+    if (!roles.includes(rosterRole)) setRosterRole(roles[0]);
+    if (!roles.includes(state.activeRole)) screen.setActiveRole(roles[0]);
+  }, [state.unit]);
   const allowed = role => state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'tackler' || role === 'takeaway'
     ? player.side !== 'O' : player.side !== 'D');
   // Player attribution is charted on nearly every snap — tacklers on defense,
   // ball carrier / passer / receiver on offense — so this group opens with the
-  // form. Collapsed by default, tackle charting was effectively missing.
+  // form. The focused role owns the only open roster picker, matching the comp
+  // without hiding one-click jersey-number attribution.
   const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
     passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner' };
   return <Group title="Players & Grades" detail={state.unit === 'defense' ? 'tacklers and takeaways — separate multiple with a comma' : 'individual performance'} open>
-    <div class="gi-tag-players">{roles.map(role => <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
-      <strong>{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
-      <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => screen.setActiveRole(role)} onClick={() => screen.setActiveRole(role)}
-        onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
-      <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
-        <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
-      </select>
-      {allowed(role).length > 0 && <div class="gi-player-quick">{allowed(role).map(player =>
-        <button type="button" key={player.num} class={selected(state.players[role]?.replace(/,\s*/g,' + '),String(player.num)) ? 'is-active' : ''}
-          title={player.name ? `#${player.num} ${player.name}` : `#${player.num}`}
-          onClick={() => { screen.setActiveRole(role); screen.quickPickPlayer(player.num); }}>{player.num}</button>)}</div>}
-    </div>)}</div>
+    <div class="gi-tag-players">{roles.map(role => {
+      const rosterOpen = rosterRole === role && allowed(role).length > 0;
+      return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
+        <strong>{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
+        <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); setRosterRole(role); }} onClick={() => { screen.setActiveRole(role); setRosterRole(role); }}
+          onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
+        <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); setRosterRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
+          <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
+        </select>
+        {allowed(role).length > 0 && <button type="button" class="gi-player-roster-toggle" aria-expanded={rosterOpen}
+          onClick={() => { screen.setActiveRole(role); setRosterRole(rosterOpen ? '' : role); }}>
+          <span aria-hidden="true">{rosterOpen ? '▾' : '▸'}</span>{rosterOpen ? 'Hide roster' : 'Show roster'}
+        </button>}
+        {rosterOpen && <div class="gi-player-quick">{allowed(role).map(player =>
+          <button type="button" key={player.num} class={selected(state.players[role]?.replace(/,\s*/g,' + '),String(player.num)) ? 'is-active' : ''}
+            title={player.name ? `#${player.num} ${player.name}` : `#${player.num}`}
+            onClick={() => { screen.setActiveRole(role); screen.quickPickPlayer(player.num); }}>{player.num}</button>)}</div>}
+      </div>})}</div>
   </Group>;
 }
 
@@ -380,8 +392,8 @@ function NativeTagging({screen}) {
         </Group>;
         return <>{state.unit === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;
       })()}
-      <Penalties screen={screen} state={state}/>
       <Players screen={screen} state={state}/>
+      <Penalties screen={screen} state={state}/>
       <Group title="Notes & Details" detail="staff notes and situation">
         <label class="gi-tag-input"><span>Play notes</span><textarea value={state.notes} onInput={e => screen.setNotes(e.currentTarget.value)}/></label>
         <button type="button" onClick={() => screen.addNoteTimestamp()}>Add video time</button>
@@ -396,15 +408,15 @@ function NativeTagging({screen}) {
           <input value={customTag} placeholder="Custom tag" onInput={e => setCustomTag(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); screen.addCustomTag(customTag); setCustomTag(''); }}}/></div>
         <button type="button" onClick={() => screen.openCustomFields()}>Edit custom fields</button>
       </Group>
-      <div class="gi-tag-toggles">
-        <label class="gi-tag-check"><input type="checkbox" checked={state.autoDD} onChange={e => screen.setAutoDD(e.currentTarget.checked)}/> Auto down &amp; distance</label>
-        <label class="gi-tag-check"><input type="checkbox" checked={state.carryScheme} onChange={e => screen.setCarryScheme(e.currentTarget.checked)}/> Carry formation to next play</label>
-      </div>
       <Group title="Play Diagram" detail="saved with this play">
         <div class="gi-tag-actions"><button type="button" onClick={() => screen.clearDiagram()}>Clear</button><button type="button" onClick={() => screen.drawDiagram()}>Draw</button></div>
         {state.diagram && <img src={state.diagram} alt="Current play diagram"/>}
       </Group>
       <Group title="More Tools" detail="charting setup, scoreboard OCR and play detection">
+        <div class="gi-tag-toggles">
+          <label class="gi-tag-check"><input type="checkbox" checked={state.autoDD} onChange={e => screen.setAutoDD(e.currentTarget.checked)}/> Auto down &amp; distance</label>
+          <label class="gi-tag-check"><input type="checkbox" checked={state.carryScheme} onChange={e => screen.setCarryScheme(e.currentTarget.checked)}/> Carry formation to next play</label>
+        </div>
         <label class="gi-tag-input"><span>Charting setup</span>
           <select aria-label="Charting preset" value="" onChange={e => screen.applyChartingPreset(e.currentTarget.value)}>
             <option value="">Choose preset</option>{state.chartingPresets.map(item => <option key={item.id} value={item.id}>{item.name} · {item.role}</option>)}
@@ -426,9 +438,9 @@ function NativeTagging({screen}) {
           </select></label>
         <p class="gi-tag-hint">Only used by play detection. Leave unset unless you are running auto-detect.</p>
       </Group>
-      <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>Previous</button>
-        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : 'Save & Next'}</button>
-        <button type="button" onClick={() => screen.skip()}>Skip</button></footer>
+      <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>← Previous</button>
+        <button type="button" onClick={() => screen.skip()}>Skip</button>
+        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : <><span>Save & Next</span><kbd>Enter</kbd></>}</button></footer>
     </main>}
   </section>;
 }
