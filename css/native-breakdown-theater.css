@@ -88,8 +88,18 @@
 .gi-chyron-cell.is-pos .gi-chyron-v { color: var(--gi-ok); }
 .gi-chyron-cell.is-neg .gi-chyron-v { color: var(--gi-turnover); }
 @media (max-width: 800px) {
-  .gi-theater-chyron { flex-wrap: wrap; }
-  .gi-chyron-id, .gi-chyron-cell { flex: 1 1 45%; min-width: 130px; }
+  /* The comp's situational badges are small, unobtrusive chips — not a
+     dominant block. Wrapping seven cells into a 2-column grid produced an
+     oversized slab that ate the video's vertical budget for its own sake;
+     a single scrollable row keeps every cell readable at the comp's weight
+     while costing one compact row instead of up to four wrapped ones. */
+  .gi-theater-chyron {
+    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+  }
+  .gi-theater-chyron::-webkit-scrollbar { display: none; }
+  .gi-chyron-id, .gi-chyron-cell { flex: 0 0 auto; min-width: 0; padding: 4px 12px; }
+  .gi-chyron-cell.is-wide { flex: 0 1 auto; max-width: 200px; }
+  .gi-chyron-id .gi-chyron-v { font-size: 16px; }
 }
 
 .gi-theater-transport, .gi-theater-anglebar, .gi-theater-actions {
@@ -225,8 +235,16 @@
   .gi-play-card { flex-basis: 220px; width: 220px; height: 66px; scroll-snap-align: start; }
   .gi-drive-scroll { scroll-snap-type: x proximity; }
   .gi-theater-actions { flex-wrap: wrap; }
-  .gi-theater-actions-primary { order: 1; width: 100%; }
-  .gi-theater-actions-primary button { flex: 1; }
+  /* Three equal flex:1 slabs read as one undifferentiated wall. Mark
+     start/end are one two-state control and stay visually joined; Copy last
+     is a separate, secondary action and gets real space from it instead of
+     matching its width. Content-sized + scrollable, matching the drive
+     strip's own overflow pattern, rather than force-stretched to fill. */
+  .gi-theater-actions-primary { order: 1; width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 0; scrollbar-width: none; }
+  .gi-theater-actions-primary::-webkit-scrollbar { display: none; }
+  .gi-theater-actions-primary button { flex: 0 0 auto; white-space: nowrap; }
+  .gi-theater-actions-primary button:first-child { border-right-width: 0; border-radius: var(--gi-radius) 0 0 var(--gi-radius); }
+  .gi-theater-actions-primary button:nth-child(2) { border-radius: 0 var(--gi-radius) var(--gi-radius) 0; margin-right: var(--gi-2x); }
   .gi-autoplay-toggle { order: 2; }
   .gi-theater-actions-risk { order: 3; margin-left: auto; }
 }

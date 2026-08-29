@@ -157,7 +157,7 @@ function NativeFilmRoom({ screen }) {
 
   return <section class="gi-film-room" data-native-film-room aria-label="Film Room breakdown table">
     <header class="gi-film-room-head">
-      <div><span class="gi-eyebrow">Breakdown table</span><h2>FILM ROOM</h2><p>{state.visible === state.total ? state.total + ' plays' : state.visible + ' of ' + state.total + ' plays'}</p></div>
+      <div class="gi-film-room-head-id"><span class="gi-eyebrow">Breakdown table</span><p>{state.visible === state.total ? state.total + ' plays' : state.visible + ' of ' + state.total + ' plays'}</p></div>
       <div class="gi-film-room-actions">
         {state.filterActive && <button type="button" onClick={() => screen.clearFilters()}>Clear filters</button>}
         {state.filterActive && <button type="button" onClick={event => saveFilter(event.currentTarget)}>Save filter</button>}

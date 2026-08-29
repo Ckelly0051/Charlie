@@ -36,6 +36,15 @@
   .gi-breakdown-view { margin-left: auto; }
   .gi-breakdown-composition { display: block; }
   .gi-breakdown-theater-host { height: auto; min-height: 540px; border-right: 0; border-bottom: 1px solid var(--gi-7); }
+  /* Pre-existing shared-geometry defect, found via the Film Room screenshot
+     review and reproduced in Chart mode too: the theater's own internal grid
+     (.gi-breakdown-theater / .gi-theater-player) keeps Chart's 326px/280px
+     stage floors even though the host's real height here computes short of
+     what stage+chyron+transport need, and overflow:hidden silently clips the
+     bottom of the chyron instead of showing it. Same class already fixed once
+     at the 1181-1499px bracket below -- extending the identical remedy here. */
+  .gi-breakdown-theater { grid-template-rows: minmax(160px, 1fr) auto auto auto; }
+  .gi-theater-player { grid-template-rows: minmax(120px, 1fr) auto auto; }
   .gi-breakdown-deck { overflow: visible; }
   .gi-breakdown-tagging-host, .gi-breakdown-film-room-host { height: auto; overflow: visible; }
 }
