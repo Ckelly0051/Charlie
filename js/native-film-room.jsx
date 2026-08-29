@@ -1,6 +1,14 @@
 import { render } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import '../css/native-film-room.css';
+
+// V2-H large-game performance: a fixed fallback row height, used only until
+// the real rendered height is measured (see the ResizeObserver in
+// NativeFilmRoom). Matches the CSS `.gi-film-table-wrap th,td{height:34px}`
+// base rule -- the coarse-pointer override measures its own real 44px height
+// once visible, so nothing here needs to track that media query.
+const ROW_HEIGHT_FALLBACK = 34;
+const OVERSCAN_PX = 480;
 
 const FILTERS = [
   { group: 'unit', value: 'offense', label: 'Offense' },
@@ -89,7 +97,61 @@ function NativeFilmRoom({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
   const [active, setActive] = useState(null);
   const tableRef = useRef(null);
+  // V2-H row windowing state. `viewport` is measured, not assumed, and is
+  // deliberately never reset back to zero once known -- Film Room stays
+  // mounted (just `hidden`) while Chart is showing, so a measurement taken
+  // the first time the table was visible must survive the hide/show cycle,
+  // or every single switch back to Film Room would re-pay a full, unwindowed
+  // layout before the next measurement could shrink it back down.
+  const [scrollTop, setScrollTop] = useState(0);
+  // A generous initial guess, not a real measurement -- Film Room mounts
+  // while `hidden` (display:none) alongside Chart, so the real height reads
+  // 0 until the coach's first switch. Guessing a reasonable desktop height
+  // up front means that FIRST switch is windowed too, not just every one
+  // after it; the ResizeObserver below immediately corrects it to the real
+  // value once genuinely visible, so a wrong guess only ever costs one
+  // self-correcting re-render, never a lasting inaccuracy.
+  const [viewport, setViewport] = useState({ height: 800, rowHeight: ROW_HEIGHT_FALLBACK });
+  const scrollRaf = useRef(null);
   useEffect(() => screen.subscribe(setState), [screen]);
+  // A wholesale play-list replacement (game switch, season open, a full
+  // undo/redo) must not leave a scroll position sized for the PREVIOUS
+  // game's row count. Left uncorrected, a large offset from a longer game
+  // could window past the end of a shorter one and render nothing at all.
+  useEffect(() => {
+    setScrollTop(0);
+    if (tableRef.current) tableRef.current.scrollTop = 0;
+  }, [state.loadGeneration]);
+  useLayoutEffect(() => {
+    const wrap = tableRef.current;
+    if (!wrap || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const height = wrap.clientHeight;
+      const sample = wrap.querySelector('tbody tr:not(.gi-film-row-spacer)');
+      const rowHeight = sample ? sample.getBoundingClientRect().height : 0;
+      // Both read 0 while an ancestor is `hidden` (display:none) -- that is
+      // not a real "the table is now 0px tall" resize, it is "we can't see
+      // it right now." Only a genuine, nonzero measurement may update state.
+      if (height > 0 || rowHeight > 0) {
+        setViewport(prev => ({
+          height: height > 0 ? height : prev.height,
+          rowHeight: rowHeight > 0 ? rowHeight : prev.rowHeight,
+        }));
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, []);
+  const onTableScroll = event => {
+    const top = event.currentTarget.scrollTop;
+    if (scrollRaf.current) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = null;
+      setScrollTop(top);
+    });
+  };
   const activeVisible = !!active && state.rows.some(row => row.id === active.playId)
     && state.columns.some(col => col.key === active.colKey);
   useEffect(() => {
@@ -100,6 +162,46 @@ function NativeFilmRoom({ screen }) {
     else if (!first && active) setActive(null);
   }, [activeVisible, state.rows, state.columns]);
   const allVisibleSelected = state.rows.length > 0 && state.rows.every(row => row.selected);
+
+  // Only the rows near the current scroll position (plus overscan) are
+  // rendered as real <tr> elements. Below the window's natural capacity --
+  // every existing fixture, and any ordinary game -- start/end span the
+  // whole list, so the rendered rows are identical to rendering everything.
+  // The active/focused row is always force-included regardless of scroll
+  // position: keyboard navigation (`move`/`focusCell` below) must never race
+  // a scroll-driven window update to find the cell it just focused.
+  const rowHeight = viewport.rowHeight || ROW_HEIGHT_FALLBACK;
+  const total = state.rows.length;
+  const activeRowIndex = active ? state.rows.findIndex(row => row.id === active.playId) : -1;
+  let windowStart = 0;
+  let windowEnd = total;
+  if (viewport.height > 0 && viewport.rowHeight > 0) {
+    const overscanRows = Math.max(6, Math.ceil(OVERSCAN_PX / rowHeight));
+    windowStart = Math.floor(scrollTop / rowHeight) - overscanRows;
+    windowEnd = Math.ceil((scrollTop + viewport.height) / rowHeight) + overscanRows;
+  }
+  if (activeRowIndex >= 0) {
+    windowStart = Math.min(windowStart, activeRowIndex);
+    windowEnd = Math.max(windowEnd, activeRowIndex + 1);
+  }
+  // Clamp last, independent of cause: a filter or a game switch can shrink
+  // `total` out from under a scroll position sized for a much longer list
+  // (the reset effect above only covers the game-switch case explicitly).
+  // Clamping here means an out-of-range scroll position can never slice past
+  // the end of the current list and render an empty table -- worst case it
+  // shows the tail of the list for one frame until scroll/active corrects it.
+  // Clamp last, independent of cause. In testing, a shrinking scroll range
+  // (game switch, filter narrowing) recovers on its own because the browser
+  // re-clamps a scroll container's own scrollTop when its content shrinks --
+  // but that is implicit platform behavior this file has no control over.
+  // The windowing math should not depend on it: clamping here guarantees
+  // start/end always stay in range regardless of scroll-event timing, at
+  // zero cost to the common case.
+  windowStart = Math.max(0, Math.min(windowStart, Math.max(0, total - 1)));
+  windowEnd = Math.max(windowStart, Math.min(windowEnd, total));
+  const windowRows = state.rows.slice(windowStart, windowEnd);
+  const topSpacerHeight = windowStart * rowHeight;
+  const bottomSpacerHeight = (total - windowEnd) * rowHeight;
 
   const openColumns = anchor => screen.overlays.sheet({
     title: 'Film Room columns',
@@ -173,7 +275,7 @@ function NativeFilmRoom({ screen }) {
       aria-pressed={filterOn(state.filters, item.group, item.value)}
       onClick={() => screen.toggleFilter(item.group, item.value)}
     >{item.label}</button>)}</div>
-    <div class="gi-film-table-wrap" ref={tableRef} onKeyDown={event => {
+    <div class="gi-film-table-wrap" ref={tableRef} onScroll={onTableScroll} onKeyDown={event => {
       if (event.key === 'ArrowUp') move(event, 0, -1);
       else if (event.key === 'ArrowDown') move(event, 0, 1);
       else if (event.key === 'ArrowLeft') move(event, -1, 0);
@@ -195,24 +297,31 @@ function NativeFilmRoom({ screen }) {
           <th class="is-play">Play</th>
           {state.columns.map(col => <th key={col.key}><span>{col.label}</span>{col.tendency && <small>{col.tendency}</small>}</th>)}
         </tr></thead>
-        <tbody>{state.rows.map((row, rowIndex) => <tr key={row.id} class={`is-${row.unit}${row.current ? ' is-current' : ''}${row.untagged ? ' is-untagged' : ''}`}>
-          <td class="is-check"><input type="checkbox" aria-label={'Select play ' + row.id} checked={row.selected} onChange={event => screen.setSelected(row.id, event.currentTarget.checked)} /></td>
-          <th class="is-play" scope="row"><button type="button" onClick={() => screen.selectPlay(row.id)}><span>{row.unit.charAt(0).toUpperCase()}</span>{row.id}</button></th>
-          {state.columns.map((col, colIndex) => <td key={col.key}><button
-            type="button"
-            data-cell={row.id + ':' + col.key}
-            tabIndex={(activeVisible ? active?.playId === row.id && active?.colKey === col.key : rowIndex === 0 && colIndex === 0) ? 0 : -1}
-            class={active?.playId === row.id && active?.colKey === col.key ? 'is-focus' : ''}
-            title={col.editable ? 'Select play; activate again to edit' : 'Select play'}
-            onClick={event => {
-              const next = { playId: row.id, colKey: col.key };
-              const same = active?.playId === row.id && active?.colKey === col.key;
-              focusCell(next);
-              if (same) openEditor(event.currentTarget, row, col);
-            }}
-            onDblClick={event => openEditor(event.currentTarget, row, col)}
-          >{row.cells[col.key] || <span class="is-empty">--</span>}</button></td>)}
-        </tr>)}</tbody>
+        <tbody>
+          {topSpacerHeight > 0 && <tr aria-hidden="true" class="gi-film-row-spacer" style={{ height: topSpacerHeight + 'px' }}><td colSpan={state.columns.length + 2} style={{ border: 'none', padding: 0, height: topSpacerHeight + 'px' }} /></tr>}
+          {windowRows.map((row, offset) => {
+            const rowIndex = windowStart + offset;
+            return <tr key={row.id} class={`is-${row.unit}${row.current ? ' is-current' : ''}${row.untagged ? ' is-untagged' : ''}`}>
+              <td class="is-check"><input type="checkbox" aria-label={'Select play ' + row.id} checked={row.selected} onChange={event => screen.setSelected(row.id, event.currentTarget.checked)} /></td>
+              <th class="is-play" scope="row"><button type="button" onClick={() => screen.selectPlay(row.id)}><span>{row.unit.charAt(0).toUpperCase()}</span>{row.id}</button></th>
+              {state.columns.map((col, colIndex) => <td key={col.key}><button
+                type="button"
+                data-cell={row.id + ':' + col.key}
+                tabIndex={(activeVisible ? active?.playId === row.id && active?.colKey === col.key : rowIndex === 0 && colIndex === 0) ? 0 : -1}
+                class={active?.playId === row.id && active?.colKey === col.key ? 'is-focus' : ''}
+                title={col.editable ? 'Select play; activate again to edit' : 'Select play'}
+                onClick={event => {
+                  const next = { playId: row.id, colKey: col.key };
+                  const same = active?.playId === row.id && active?.colKey === col.key;
+                  focusCell(next);
+                  if (same) openEditor(event.currentTarget, row, col);
+                }}
+                onDblClick={event => openEditor(event.currentTarget, row, col)}
+              >{row.cells[col.key] || <span class="is-empty">--</span>}</button></td>)}
+            </tr>;
+          })}
+          {bottomSpacerHeight > 0 && <tr aria-hidden="true" class="gi-film-row-spacer" style={{ height: bottomSpacerHeight + 'px' }}><td colSpan={state.columns.length + 2} style={{ border: 'none', padding: 0, height: bottomSpacerHeight + 'px' }} /></tr>}
+        </tbody>
       </table>
       {!state.rows.length && <div class="gi-film-empty">No plays match these filters.</div>}
     </div>

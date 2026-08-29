@@ -4,15 +4,7 @@ import '../css/native-breakdown-route.css';
 export class BreakdownWorkspace {
   constructor(app) {
     this.app = app;
-    // S7 demolition: #app is gone. .grid/.tags were assigned and never read,
-    // same dead-field pattern as the S7-d2 .video-section field — PlayGrid and
-    // NativeTaggingScreen each resolve their own backing element by id/selector
-    // now that it lives in the permanent #giLegacyEngineHost.
-    this.unitControl = document.querySelector('#tagForm .unit-toggle-section');
-    this.unitParent = this.unitControl?.parentNode || null;
-    this.unitNext = this.unitControl?.nextSibling || null;
     // S7-d1: game context comes from the service, not a hidden <select>.
-
     this.host = null;
     this.saveState = 'saved';
     this.view = 'chart';
@@ -85,7 +77,6 @@ export class BreakdownWorkspace {
         .forEach(event => this.app.tagger?.on(event, () => requestAnimationFrame(() => this.render())));
       this.app.quickChart?.on('mode-changed', () => requestAnimationFrame(() => this.render()));
       this.app.gameContext?.subscribe(() => this.render());
-      this.unitControl?.addEventListener('click', () => requestAnimationFrame(() => this.render()));
     }
     this.host?.querySelector('[data-bd-tools-toggle]')?.addEventListener('click', () => this._toggleTools());
     this.host?.querySelector('.gi-breakdown-tools')?.addEventListener('keydown', event => {
@@ -209,13 +200,6 @@ export class BreakdownWorkspace {
     const unit = this.app.tagger?.defaultUnit || 'offense';
     if (this.app.tagger?.unitField) this.app.tagger.unitField.value = unit;
     this.app.tagger?.applyUnitMode?.(unit);
-  }
-
-  _unit() {
-    const playUnit = this.app.tagger?.getCurrentPlay()?.tags?.unit;
-    if (playUnit === 'defense' || playUnit === 'special') return playUnit;
-    const active = this.unitControl?.querySelector('.pick.active')?.dataset?.value;
-    return active === 'defense' || active === 'special' ? active : 'offense';
   }
 
   setSaveState(state) {

@@ -223,6 +223,14 @@ video.is-buffering { opacity: .82; }
 }
 .dropzone-actions .btn-secondary:hover { background: var(--bg-tertiary); color: var(--text-bright); }
 .dropzone-card .empty-hint { margin-top: 2px; color: var(--text-hint); font-size: 11px; }
+/* V2-H: the coach-facing "couldn't play / re-link" message has a real,
+   stable target now -- see video-controller.js _setPlaceholderText(). It used
+   to write into a <p> this same empty-state rebuild silently detached on
+   every boot, so a failed/missing clip showed the generic "Add game film"
+   card with no explanation at all. */
+.dropzone-status { margin: 0; max-width: 320px; font-size: 12px; line-height: 1.4; color: var(--text-dim); text-align: center; }
+.dropzone-status[hidden] { display: none; }
+.dropzone-status.is-error { color: var(--danger); font-weight: 600; }
 
 @media (max-width: 800px) {
   .video-placeholder { gap: 8px; padding: 12px 10px; }

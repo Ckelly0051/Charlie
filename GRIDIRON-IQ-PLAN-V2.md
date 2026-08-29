@@ -532,6 +532,119 @@ Plan should turn Study findings into something a staff can teach and use.
 > instruction; unload restores the normal empty state. This does not complete
 > V2-H; measured large-grid work and broader playback responsiveness remain.
 >
+> **PLAYBACK OWNERSHIP AND LARGE-GAME PERFORMANCE (fourth slice, closes V2-H,
+> 2026-08-29):** Mapped the complete live playback path (VideoController,
+> PlaylistManager, MultiAngle, the shared Breakdown Theater, Film Room, and
+> every game/season-switch entry point) before editing. `VideoController` and
+> `PlaylistManager` are confirmed clean single owners of the canonical media
+> element and preload/relink state — no competing implementation, no
+> DOM-as-hidden-state pattern remained to remove there.
+>
+> **Two measured, demonstrated bottlenecks fixed, both on the shared theater:**
+> (1) `BreakdownTheaterScreen`'s `time-update` handler ran a full snapshot
+> rebuild — including a duplicate `_playView` map over every play, computed a
+> second time for a value the play strip only ever reads the `.length` of — on
+> every media tick outside fullscreen. Now a single direct write to the two
+> transport time nodes and the scrub value; nothing else in the snapshot
+> depends on playback time. Measured on a representative game: ~0.6ms per tick
+> down to ~0.006ms, continuous for as long as the route is mounted, in or out
+> of fullscreen. (2) The Film Room table rendered one `<tr>` per play
+> unconditionally, so every Chart&#8596;Film Room switch paid a full,
+> un-windowed layout pass scaling with total play count. Film Room now
+> **windows its rendered rows** to the scroll position plus a fixed overscan
+> band (spacer `<tr>`s preserve true scroll height; the active/focused cell is
+> always force-included regardless of scroll position, so keyboard navigation
+> can never race a scroll-driven window update). Measured switch cost on a
+> 700-play game: ~230-250ms down to ~55-110ms per switch (a real
+> `content-visibility:auto` attempt was tried first, measured to provide zero
+> benefit on this specific table, and fully reverted before the windowing
+> approach was built). A defensive scroll-reset-on-game-switch guard is also
+> included, disclosed as unproven by reproduction (see Residual risks) rather
+> than measured necessary.
+>
+> **Confirmed-dead code removed in the same change, per the explicit
+> instruction:** `BreakdownWorkspace`'s `unitControl`/`unitParent`/
+> `unitNext`/`_unit()` (targeted a `#tagForm .unit-toggle-section` selector
+> retired by earlier work; zero remaining references anywhere in the repo
+> after deletion). One further dead mechanism found and removed in the same
+> pass: `App._flashSaved()` targeted a legacy `#btnTagSaveNext` button that no
+> longer exists — Save & Next's "Saved" acknowledgment lives entirely on the
+> native button now (`NativeTaggingScreen.saveNext`'s own `saveConfirmed`
+> flag), so the dead method and both call sites are gone.
+>
+> **One real coach-facing correctness defect found and fixed, surfaced
+> directly by this checkpoint's own required visual verification of the
+> "missing/failed film with recovery action" state:** `VideoController`
+> cached `this.placeholderText = this.placeholder?.querySelector('p')` once
+> in its constructor, but `UIPolish._initEmptyStateCTA()` — which runs moments
+> later in the same boot sequence — replaces the placeholder's entire
+> `innerHTML` with the empty-state dropzone card, detaching that cached `<p>`
+> from the document. Every terminal media failure since has been silently
+> writing "Couldn't play X.mp4 — re-link the film or use MP4, MOV, or WebM"
+> into a node no coach could ever see; the placeholder box still appeared, but
+> always showing the generic "Add game film" card with no explanation of what
+> actually failed. Fixed by giving the coach-facing status a stable, live-
+> queried element (`#videoPlaceholderStatus`) inside the dropzone card instead
+> of a cached reference, and swapping the dropzone title to "Film unavailable"
+> only while a real failure message is showing (never for the ordinary empty
+> state). Mutation-verified: reverting the fix reproduces the exact original
+> defect (an empty, hidden status line) in a new permanent regression.
+>
+> Verified against the coach workflow, not just dimensions/overflow: focused
+> suites green (`e2e-film-room` 175/175, `e2e-native-film-room` 25/25,
+> `e2e-native-breakdown-theater` 56/56, `e2e-breakdown-video` 19/19 — new
+> section 4 pins the placeholder fix — `e2e-video-cors` 25/25, `e2e-breakdown-
+> lifecycle` 39/39, `e2e-breakdown-geometry` 13/13, `e2e-breakdown-a11y`
+> 10/10, `e2e-multi-angle` 6/6, `e2e-native-tagging` 69/69, `e2e-mark-flow`
+> 13/13, plus a new permanent `e2e-film-room-virtualization` 8/8 covering a
+> 300-play game's windowed rendering, scroll-to-bottom reaching the final row,
+> 60 consecutive keyboard steps reaching and correctly editing a row far
+> outside the initial window, true-total select-all beyond the windowed DOM,
+> and a wholesale game switch mid-scroll rendering the new game's full row
+> set). Full canonical gate re-run clean at 80/93 green, 13 pre-existing/
+> unrelated failures independently reproduced on the untouched baseline via
+> `git stash` comparison (version-sync, undefined CSS tokens in unrelated
+> files, Study/Reports/Plan delegation, play-call/Reports rendering, Special
+> Teams try contracts, a copy-standard sweep, the P0 capabilities inventory, a
+> pre-existing workspace-shell teardown assertion, and the documented
+> intermittent Puppeteer/CDP crash class) — zero new failures from this
+> checkpoint's complete change set. Screenshots captured and actually opened
+> at 1440x900/1280x720/768x1024/390x844 for all six required states in
+> `design-comps/visual-reset-2026-08/part1-verification/
+> v2h-playback-performance/`; composition holds up across viewports with no
+> new clipping or overflow. One disclosed capture-environment limitation: this
+> headless sandbox cannot decode ANY video (neither a hand-built MP4 data URI
+> nor a browser-recorded MediaRecorder WebM played), so "normal loaded film"
+> is represented via the theater's real post-`video-loaded` state (placeholder
+> hidden, transport/chyron/strip populated) rather than an actual decoded
+> frame — a capture-environment constraint, not a product gap; real decode
+> paths remain covered by `e2e-video-cors`/`e2e-breakdown-video`.
+>
+> **Residual risks, disclosed rather than silently carried:** the scroll-
+> reset-on-game-switch defensive guard in `native-film-room.jsx` could not be
+> proven necessary by adversarial reproduction (deep-scroll then switch/filter
+> attempts, with the guard disabled, never produced the empty-table failure it
+> guards against — Chromium's own scroll-position re-clamping on content
+> shrink appears to already prevent it in practice); kept anyway since it is
+> zero-cost for the working case. The pre-existing narrow-viewport (390px)
+> horizontal chyron truncation and quick-filter-row truncation were observed
+> during visual verification but are unchanged, already-reviewed, already-
+> accepted behavior from an earlier checkpoint (documented scroll-cue fix)
+> and were not touched, per the instruction to preserve the accepted
+> composition rather than perform a broader redesign.
+>
+> **This closes V2-H.** Every remaining bullet below is satisfied: playlists
+> are not rebuilt/re-resolved unnecessarily (prior slices); only the next
+> useful clip is preloaded and stale media is released (prior slices);
+> unchanged managed-film games stay fast to reopen (prior slice); game
+> switching is responsive under large clip/play counts (this slice); loading,
+> buffering, missing-film, and recovery states are honest (prior slice + this
+> slice's placeholder-text fix); autoplay preference persists across sessions
+> (unchanged, verified still correct); movable controls/drawing tools/touch
+> remain accessible without covering film (verified, unchanged); and Film Room
+> now virtualizes — added only after measurement showed the un-windowed table
+> was the actual switch-cost bottleneck on a large game, not speculatively.
+>
 - Avoid rebuilding playlists or re-resolving every clip unnecessarily.
 - Preload only the next useful clip and release stale media resources.
 - Keep game switching responsive under large clip counts.

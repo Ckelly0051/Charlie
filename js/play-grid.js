@@ -113,6 +113,12 @@ export class PlayGrid {
     // Filter state: AND across groups, OR within a group.
     this.f = { unit: '', downs: new Set(), rp: '', flags: new Set() };
     this.selected = new Set();
+    // V2-H: bumped only on a wholesale play-list replacement (plays-loaded --
+    // game switch, season open, undo/redo of the whole list). The windowed
+    // native table uses this to reset its scroll position; a stale scroll
+    // offset left over from a much longer previous game could otherwise slice
+    // a shorter new list out of range and render nothing.
+    this.loadGeneration = 0;
     this._raf = null;
     this._optionCache = {};
     this._nativeListeners = new Set();
@@ -169,6 +175,7 @@ export class PlayGrid {
       this.tagger.on(event, () => this.refresh()));
     this.tagger.on('plays-loaded', () => {
       this.selected.clear();
+      this.loadGeneration++;
       this.refresh();
     });
     this.tagger.on('play-selected', () => this._notifyNative());
@@ -505,6 +512,7 @@ export class PlayGrid {
     return {
       total: plays.length,
       visible: visible.length,
+      loadGeneration: this.loadGeneration,
       rows,
       columns,
       selected: [...selected],

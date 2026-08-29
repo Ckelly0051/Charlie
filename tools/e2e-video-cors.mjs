@@ -146,9 +146,16 @@ r = await page.evaluate((ASSET, ASSET2) => {
   vc.video.removeAttribute('crossorigin');
   vc.video.setAttribute('src', ASSET2);
   vc._handleMediaError();
-  const failed = { stateHidden: vc.loadState.classList.contains('hidden'), placeholderVisible: !vc.placeholder.classList.contains('hidden'), message: vc.placeholderText.textContent };
+  // V2-H: the coach-facing status text now lives at a stable, live-queried
+  // id (#videoPlaceholderStatus) rather than a <p> UIPolish's empty-state
+  // rebuild used to detach from the document moments after the constructor
+  // cached it -- that stale cache was WHY a real failure never showed a
+  // message at all. See video-controller.js _setPlaceholderText().
+  const statusEl = () => vc.placeholder.querySelector('#videoPlaceholderStatus');
+  const titleEl = () => vc.placeholder.querySelector('#dropzoneTitle');
+  const failed = { stateHidden: vc.loadState.classList.contains('hidden'), placeholderVisible: !vc.placeholder.classList.contains('hidden'), message: statusEl()?.textContent || '', title: titleEl()?.textContent };
   vc.unloadVideo();
-  const reset = { stateHidden: vc.loadState.classList.contains('hidden'), message: vc.placeholderText.textContent };
+  const reset = { stateHidden: vc.loadState.classList.contains('hidden'), message: statusEl()?.textContent || '', hidden: statusEl()?.hidden, title: titleEl()?.textContent };
   return { loading, buffering, ready, failed, reset };
 }, ASSET, ASSET2);
 ok(r.loading.visible && r.loading.state === 'loading' && r.loading.text === 'Loading film',
@@ -156,9 +163,9 @@ ok(r.loading.visible && r.loading.state === 'loading' && r.loading.text === 'Loa
 ok(r.buffering.visible && r.buffering.state === 'buffering' && r.buffering.text === 'Buffering film',
    'waiting playback shows an explicit buffering state', JSON.stringify(r.buffering));
 ok(r.ready.hidden, 'canplay clears the transient load state', JSON.stringify(r.ready));
-ok(r.failed.stateHidden && r.failed.placeholderVisible && r.failed.message.includes("Couldn't play Broken clip") && r.failed.message.includes('Re-link the film'),
+ok(r.failed.stateHidden && r.failed.placeholderVisible && r.failed.message.includes("Couldn't play Broken clip") && r.failed.message.includes('Re-link the film') && r.failed.title === 'Film unavailable',
    'terminal media failure shows a useful recovery message in the player', JSON.stringify(r.failed));
-ok(r.reset.stateHidden && r.reset.message === 'Load a video file to begin',
+ok(r.reset.stateHidden && r.reset.hidden && r.reset.message === '' && r.reset.title === 'Add game film',
    'unload restores the honest empty state', JSON.stringify(r.reset));
 console.log('\n== 6. Multi-clip switchToClip delegates to setSrc (corsBlocked honored) ==');
 r = await page.evaluate((ASSET) => {

@@ -5,7 +5,12 @@ export class VideoController {
   constructor() {
     this.video = document.getElementById('videoPlayer');
     this.placeholder = document.getElementById('videoPlaceholder');
-    this.placeholderText = this.placeholder?.querySelector('p') || null;
+    // V2-H: NOT cached. UIPolish._initEmptyStateCTA() rewrites the
+    // placeholder's entire innerHTML (the empty-state dropzone card) right
+    // after this constructor runs, so a reference captured here would point
+    // at a node detached moments later -- exactly what silently broke the
+    // "couldn't play / re-link the film" message for every session. Queried
+    // live, by the stable id that markup owns, at the one call site below.
     this.loadState = document.getElementById('videoLoadState');
     this.loadStateText = document.getElementById('videoLoadStateText');
     this.fileInput = document.getElementById('videoFileInput');
@@ -168,8 +173,17 @@ export class VideoController {
     this.loadState.classList.remove('hidden');
   }
 
-  _setPlaceholderText(text) {
-    if (this.placeholderText) this.placeholderText.textContent = text;
+  _setPlaceholderText(text, { error = false } = {}) {
+    const el = this.placeholder?.querySelector('#videoPlaceholderStatus');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('is-error', !!text && error);
+    // "Add game film" reads as a fresh empty state, not "this specific file
+    // just failed" -- swap the title so a real failure never looks like an
+    // ordinary invitation to load a first video.
+    const title = this.placeholder?.querySelector('#dropzoneTitle');
+    if (title) title.textContent = error && text ? 'Film unavailable' : 'Add game film';
   }
 
   setSrc(url) {
@@ -248,7 +262,7 @@ export class VideoController {
     this._corsRetryPending = null;
     const name = this.currentFile?.name || this.currentFileName || 'this file';
     this._setLoadState();
-    this._setPlaceholderText(`Couldn't play ${name}. Re-link the film or use MP4, MOV, or WebM.`);
+    this._setPlaceholderText(`Couldn't play ${name}. Re-link the film or use MP4, MOV, or WebM.`, { error: true });
     this.placeholder.classList.remove('hidden');
     // remember:false — an error message is not the film's name.
     this._setFilmStatus(`⚠ Couldn't play ${name} — try MP4, MOV, or WebM`, { remember: false });
@@ -283,7 +297,10 @@ export class VideoController {
     this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
     this._setLoadState();
-    this._setPlaceholderText('Load a video file to begin');
+    // Clear rather than restate the neutral case -- the dropzone card's own
+    // "Add game film" / "or drop a video or folder here" copy already covers
+    // it, and this status line's only job now is a genuine failure message.
+    this._setPlaceholderText('');
     if (this.placeholder) this.placeholder.classList.remove('hidden');
     this._setFilmStatus('Drop video(s) / folder or click to load');
     if (this.folderLoadBadge) this.folderLoadBadge.classList.add('hidden');

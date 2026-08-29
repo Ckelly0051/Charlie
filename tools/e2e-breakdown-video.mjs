@@ -73,6 +73,42 @@ for(const [width,height] of [[1280,720],[768,1024],[390,844]]){
   state=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,route:!!document.querySelector('[data-native-breakdown-route]'),min:Math.min(...[...document.querySelectorAll('.gi-breakdown-toolbar button')].filter(button=>button.getClientRects().length).map(button=>button.getBoundingClientRect().height))}));
   ok(!state.overflow&&state.route&&(width>620||state.min>=44),`${width}x${height} keeps the native route contained and usable`,JSON.stringify(state));
 }
+console.log('\n== 4. Missing/failed film shows a real, visible recovery message ==');
+await page.setViewport({width:1440,height:900});
+// V2-H: _setPlaceholderText() used to write into a <p> that UIPolish's
+// empty-state rebuild (ui-polish.js _initEmptyStateCTA) detaches from the
+// document moments after VideoController's constructor caches it -- so a
+// failed/missing clip silently fell back to the generic "Add game film"
+// card with no explanation at all, on every single session. Drives the
+// real error path (an invalid src, the genuine `error` event) rather than
+// calling the private method directly, so this can't pass on a broken wire.
+state=await page.evaluate(()=>new Promise(resolve=>{
+  const vc=window.app.vc;
+  vc.video.addEventListener('error',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const status=vc.placeholder.querySelector('#videoPlaceholderStatus');
+    resolve({
+      placeholderVisible:!vc.placeholder.classList.contains('hidden'),
+      statusHidden:status?.hidden,
+      statusText:status?.textContent||'',
+      isError:status?.classList.contains('is-error'),
+      title:vc.placeholder.querySelector('#dropzoneTitle')?.textContent,
+      dropzoneStillThere:!!vc.placeholder.querySelector('[data-action="file"]'),
+    });
+  })),{once:true});
+  vc.corsBlocked=true; // skip the CORS-retry branch -- go straight to the real failure path
+  vc.video.src='data:video/mp4;base64,AAAA';
+  vc.video.load();
+}));
+ok(state.placeholderVisible&&!state.statusHidden&&state.isError,'A genuine media error shows a visible, styled recovery message',JSON.stringify(state));
+ok(state.statusText.startsWith("Couldn't play")&&state.statusText.includes('Re-link the film'),'The message names the failure and the fix, not a generic empty state',JSON.stringify(state));
+ok(state.title==='Film unavailable','A real failure swaps the title instead of reading like a fresh empty state',JSON.stringify(state));
+ok(state.dropzoneStillThere,'Add Video / Add Folder stay reachable as the actual recovery actions',JSON.stringify(state));
+state=await page.evaluate(()=>{
+  window.app.vc.unloadVideo();
+  const status=window.app.vc.placeholder.querySelector('#videoPlaceholderStatus');
+  return {statusHidden:status?.hidden,statusText:status?.textContent||'',title:window.app.vc.placeholder.querySelector('#dropzoneTitle')?.textContent};
+});
+ok(state.statusHidden&&state.statusText===''&&state.title==='Add game film','Unloading clears the failure message and title back to the neutral empty state',JSON.stringify(state));
 ok(errors.length===0,'Native Breakdown journey has zero page errors',errors.join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

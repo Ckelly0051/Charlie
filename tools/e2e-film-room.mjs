@@ -106,11 +106,17 @@ await frame();
 console.log('\n== 2. Grid renders on demo data ==');
 let r = await page.evaluate(() => {
   const owners = document.querySelectorAll('[data-native-film-room]').length;
-  const rows = document.querySelectorAll('[data-native-film-room] tbody tr').length;
-  return { owners, rows, plays: window.app.tagger.plays.length };
+  const domRows = document.querySelectorAll('[data-native-film-room] tbody tr:not(.gi-film-row-spacer)').length;
+  const snapshot = window.app.playGrid.nativeSnapshot();
+  return { owners, domRows, plays: window.app.tagger.plays.length, visible: snapshot.visible, total: snapshot.total };
 });
 ok(r.owners === 1, 'exactly one native Film Room owner mounted', JSON.stringify(r));
-ok(r.rows === r.plays && r.rows > 50, 'one row per play', JSON.stringify(r));
+// V2-H: a game this large (the demo season, 70 plays) is now windowed --
+// the DOM renders only the rows near the current scroll position, not one
+// <tr> per play. The model is the source of truth for "every play has a
+// row"; the DOM only needs to be a genuinely smaller, nonempty subset.
+ok(r.visible === r.plays && r.total === r.plays, 'every play is represented in the Film Room model', JSON.stringify(r));
+ok(r.domRows > 0 && r.domRows < r.plays, 'the rendered table is a nonempty, windowed subset of a large game', JSON.stringify(r));
 
 console.log('\n== 3. Row click selects the play (click-to-seek path) ==');
 r = await page.evaluate(() => {
@@ -144,7 +150,11 @@ console.log('\n== 4. Filters ==');
 r = await page.evaluate(async () => {
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const chip = (group, val) => document.querySelector(`.gi-film-filters button[data-filter="${group}:${val}"]`);
-  const rows = () => document.querySelectorAll('[data-native-film-room] tbody tr').length;
+  // V2-H: a large game windows its rendered rows, so a literal DOM <tr> count
+  // is no longer "how many plays match this filter" -- the model's own
+  // visible count is, and is exactly what every comparison below already
+  // means by "rows()".
+  const rows = () => window.app.playGrid.nativeSnapshot().visible;
   const clearFilters = () => [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   const all = rows();
   chip('downs', '3').click();
@@ -220,12 +230,15 @@ r = await page.evaluate(async () => {
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   document.querySelector('[data-native-film-room] thead input[type="checkbox"]').click();
   await raf2();
-  const total = document.querySelectorAll('[data-native-film-room] tbody td.is-check input').length;
-  const checked = document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length;
+  // V2-H: the checkbox column selects every VISIBLE play in the model, not
+  // just the ones currently windowed into the DOM -- app.playGrid.selected
+  // is the true selection set the Watch button and any bulk action consume.
+  const total = window.app.playGrid.nativeSnapshot().visible;
+  const checked = window.app.playGrid.selected.size;
   const label = document.querySelector('[data-film-watch]').textContent;
   document.querySelector('[data-native-film-room] thead input[type="checkbox"]').click();
   await raf2();
-  const after = document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length;
+  const after = window.app.playGrid.selected.size;
   return { total, checked, label, after };
 });
 ok(r.checked === r.total && new RegExp(`Watch ${r.total}\\b`).test(r.label), 'select-all checks every visible row', JSON.stringify(r));
@@ -298,12 +311,16 @@ r = await page.evaluate(async () => {
   await raf2();
   return { selected: grid.selected.size,
            checked: document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length,
-           rows: document.querySelectorAll('[data-native-film-room] tbody tr').length,
+           // V2-H: a large game's rows are windowed in the DOM -- the model's
+           // own total is "did game 2's plays actually load", not a literal
+           // per-play <tr> count.
+           total: grid.nativeSnapshot().total,
+           domRows: document.querySelectorAll('[data-native-film-room] tbody tr:not(.gi-film-row-spacer)').length,
            current: document.querySelectorAll('[data-native-film-room] tbody tr.is-current').length,
            taggerCur: window.app.tagger.currentPlayId };
 });
 ok(r.selected === 0 && r.checked === 0, 'game switch clears row selection', JSON.stringify(r));
-ok(r.rows > 50, 'game 2 plays render after switch', String(r.rows));
+ok(r.total > 50, 'game 2 plays render after switch', JSON.stringify(r));
 
 console.log('\n== 8c. v2: tendency row + inline editing ==');
 r = await page.evaluate(() => {

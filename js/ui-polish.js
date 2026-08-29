@@ -110,6 +110,7 @@ export class UIPolish {
           <path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>
         </svg>
         <div class="dropzone-title" id="dropzoneTitle">Add game film</div>
+        <p class="dropzone-status" id="videoPlaceholderStatus" hidden></p>
         <div class="dropzone-actions">
           <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
           <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>

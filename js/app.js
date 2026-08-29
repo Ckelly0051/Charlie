@@ -1285,17 +1285,6 @@ class App {
     this.breakdownWorkspace?.setSaveState(state);
   }
 
-  /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest
-   *  action in the app. Pure class toggle; CSS renders it (and the ✓ shows
-   *  even under prefers-reduced-motion — it's state, not motion). */
-  _flashSaved() {
-    const btn = document.getElementById('btnTagSaveNext');
-    if (!btn) return;
-    btn.classList.add('just-saved');
-    clearTimeout(this._savedFlashTimer);
-    this._savedFlashTimer = setTimeout(() => btn.classList.remove('just-saved'), 650);
-  }
-
   _advancePlay(opts = {}) {
     // Commit a value still being edited (yardage/notes) before advancing,
     // then blur so the next keystrokes hit the shortcuts, not the input.
@@ -1312,7 +1301,6 @@ class App {
     // the grouping the coach asked to review. Do not carry situation/scheme to
     // a filtered example because those plays are usually nonconsecutive.
     if (this.cutupPlayer?.active) {
-      if (!opts.skip) this._flashSaved();
       this.cutupPlayer.next();
       return;
     }
@@ -1336,7 +1324,9 @@ class App {
       ? this.tagger.nextPlay()
       : this.tagger.nextPlayWithSituation();
     if (advanced) {
-      if (!opts.skip) this._flashSaved();
+      // "Saved" acknowledgment on Save & Next lives entirely on the native
+      // Save & Next button now (NativeTaggingScreen.saveNext's saveConfirmed
+      // flag) -- there is no separate top-bar button here to flash any more.
       this._autoPlayCurrent();
       return;
     }

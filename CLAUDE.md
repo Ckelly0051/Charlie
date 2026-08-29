@@ -119,6 +119,96 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CLAUDE V2-H: PLAYBACK OWNERSHIP AND LARGE-GAME PERFORMANCE — CLOSES V2-H (2026-08-29)
+
+**Builder: Claude. Awaiting Codex's independent adversarial review — do not
+package, tag, or release from this checkpoint.** Baseline `5e1c489`. Full
+detail, measurements, and disclosed residual risks are recorded in
+`GRIDIRON-IQ-PLAN-V2.md` under V2-H's "fourth slice" entry; this is the
+condensed handoff.
+
+**Dependency map done before editing.** `VideoController` and
+`PlaylistManager` (bounded next-clip preload, relink/identity) are confirmed
+clean single owners — no competing implementation, no DOM-as-hidden-state
+pattern to remove. `MultiAngle` is likewise a clean single owner. The two real
+bottlenecks were both on the shared `BreakdownTheaterScreen`/Film Room path.
+
+**Two measured, demonstrated bottlenecks fixed:**
+1. `BreakdownTheaterScreen`'s `time-update` handler ran a full snapshot
+   rebuild — including a second, duplicate `_playView` map over every play
+   computed only so the play strip could read its `.length` — on every media
+   tick outside fullscreen. Now one direct write to the transport's time/scrub
+   nodes; nothing else in the snapshot depends on playback time. ~0.6ms per
+   tick down to ~0.006ms, continuous for the life of the mounted route.
+2. Film Room rendered one `<tr>` per play unconditionally, so every
+   Chart↔Film Room switch paid a full un-windowed layout pass scaling with
+   total play count. Film Room now windows its rendered rows to the scroll
+   position plus overscan (spacer rows preserve true scroll height; the
+   active/focused cell is always force-included so keyboard navigation can't
+   race a scroll-driven window update). ~230-250ms down to ~55-110ms per
+   switch on a 700-play game. A `content-visibility:auto` attempt was tried
+   first, measured to give zero benefit on this specific table, and fully
+   reverted before building the real windowing fix.
+
+**Confirmed-dead code removed, per the explicit instruction:**
+`BreakdownWorkspace`'s `unitControl`/`unitParent`/`unitNext`/`_unit()`
+(targeted a retired `#tagForm .unit-toggle-section` selector; zero remaining
+references anywhere after deletion) and — found in the same pass —
+`App._flashSaved()`, which targeted a legacy `#btnTagSaveNext` button that no
+longer exists; Save & Next's "Saved" acknowledgment lives entirely on the
+native button now.
+
+**One real coach-facing defect found and fixed, surfaced directly by this
+checkpoint's own required visual verification of the "missing/failed film
+with recovery action" state.** `VideoController` cached its placeholder's
+`<p>` reference once in the constructor, but `UIPolish._initEmptyStateCTA()`
+— which runs moments later in the same boot sequence — replaces the whole
+placeholder subtree with the empty-state dropzone card, detaching that cached
+node. Every terminal media failure since has silently written its "Couldn't
+play X.mp4 — re-link the film" message into a node no coach could ever see;
+the placeholder box appeared, but always showed the generic "Add game film"
+card with zero explanation. Fixed with a stable, live-queried status element
+inside the dropzone card, plus a title swap ("Film unavailable") that only
+engages for a real failure. Mutation-verified in a new permanent regression.
+
+**Verification.** Focused: `e2e-film-room` 175/175, `e2e-native-film-room`
+25/25, `e2e-native-breakdown-theater` 56/56, `e2e-breakdown-video` 19/19 (new
+section pins the placeholder fix), `e2e-video-cors` 25/25, `e2e-breakdown-
+lifecycle` 39/39, `e2e-breakdown-geometry` 13/13, `e2e-breakdown-a11y` 10/10,
+`e2e-multi-angle` 6/6, `e2e-native-tagging` 69/69, `e2e-mark-flow` 13/13, plus
+a new permanent `e2e-film-room-virtualization` 8/8 (300-play windowing, scroll-
+to-bottom, 60-step keyboard navigation reaching and correctly editing a row
+outside the initial window, true-total select-all beyond the windowed DOM,
+and a mid-scroll wholesale game switch). Full canonical gate: 80/93 green — the
+13 remaining failures were independently reproduced on the untouched baseline
+via `git stash` comparison (version-sync, undefined CSS tokens in unrelated
+files, Study/Reports/Plan delegation, play-call/Reports rendering, Special
+Teams try contracts, a copy-standard sweep, the P0 capabilities inventory, one
+pre-existing workspace-shell teardown assertion, and the documented
+intermittent Puppeteer/CDP crash class) — zero new failures from this
+checkpoint. Screenshots captured and actually opened at all four release
+viewports for all six required states in `design-comps/visual-reset-2026-08/
+part1-verification/v2h-playback-performance/`; composition holds up with no
+new clipping or overflow. Disclosed capture-environment limitation: this
+headless sandbox cannot decode any video at all (both a hand-built MP4 data
+URI and a browser-recorded MediaRecorder WebM failed to play), so "normal
+loaded film" is represented via the theater's real post-`video-loaded` state
+rather than an actual decoded frame — a capture constraint, not a product gap.
+
+**Residual risks, disclosed:** the scroll-reset-on-game-switch guard in
+`native-film-room.jsx` could not be proven necessary by adversarial
+reproduction (Chromium's own scroll-clamping on content shrink appears to
+already prevent the failure it guards against) — kept anyway since it is
+zero-cost. The pre-existing narrow-viewport (390px) chyron/quick-filter
+horizontal truncation was observed during visual verification but is
+unchanged, already-reviewed behavior from an earlier checkpoint, not touched
+here.
+
+**This closes V2-H** — see `GRIDIRON-IQ-PLAN-V2.md` for the full bullet-by-
+bullet closure accounting. No football rule, persistence contract, film
+identity, schema, or unrelated route changed. No installer, package, or
+release. Awaiting Codex's independent review.
+
 ### CODEX NATIVE-SHELL CASCADE BOUNDARY (2026-08-28)
 
 Historical generic `.btn`, button-state, input, select, and textarea selectors in `css/styles.css` are now explicitly excluded from `.ws-shell`. Native routes therefore resolve their controls through the design-system material layer and their route-local styles instead of inheriting a second, later desktop-era presentation pass. The empty-film Add Video/Add Folder actions, which remain inside the permanent media node, now have an explicit native theater owner so they retain complete hover, accent, type, border, and hit-target treatment after the boundary.
