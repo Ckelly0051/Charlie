@@ -213,12 +213,21 @@ await page.waitForFunction(() => window.__replacedPopoverResult === 'replaced');
 await page.waitForFunction(() => document.activeElement?.dataset?.popoverItem === 'new');
 state = await page.evaluate(() => ({ count: window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length, result: window.__replacedPopoverResult, focus: document.activeElement?.dataset?.popoverItem }));
 ok(state.count === 1 && state.result === 'replaced' && state.focus === 'new', 'opening a second popover replaces and settles the first without stealing the new menu focus', JSON.stringify(state));
-// A coordinate click at a fixed pixel is fragile against real app content --
-// this route now renders real Home/Team Hub copy at that position, so the
-// click can land on live text instead of empty space. Dispatch the outside
-// pointerdown directly on body, which is exactly what the popover's own
-// capture-phase listener (native-popover.jsx) checks for.
-await page.evaluate(() => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })));
+// A coordinate click at an arbitrary fixed pixel is fragile against real app
+// content -- this route now renders real Home/Team Hub copy, so a blind
+// coordinate can land on live text instead of empty space. Give Puppeteer a
+// real, test-owned target to click instead: a genuine CDP-dispatched mouse
+// click (not a JS-synthesized event) on a visible element placed well clear
+// of the popover panel (which anchors near the top-right corner).
+await page.evaluate(() => {
+  const target = document.createElement('button');
+  target.id = 'outside-click-probe';
+  target.textContent = 'Outside';
+  target.style.cssText = 'position:fixed;left:12px;bottom:12px;width:60px;height:40px;z-index:99';
+  document.body.append(target);
+});
+await page.click('#outside-click-probe');
+await page.evaluate(() => document.getElementById('outside-click-probe')?.remove());
 await page.waitForFunction(() => !document.querySelector('[role="menu"][aria-label="New menu"]'));
 await page.waitForFunction(() => document.activeElement?.id === 'popover-anchor');
 ok(await page.evaluate(() => document.activeElement?.id === 'popover-anchor'), 'outside click dismisses the popover and returns focus');

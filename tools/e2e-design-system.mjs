@@ -47,6 +47,30 @@ const missing = sources.flatMap(({ path, source }) =>
     .map(name => `${path}:${name}`));
 ok(missing.length === 0, 'every native design token reference resolves', missing.join(', '));
 
+// The allowlist above is a bare exclusion -- nothing previously checked that
+// its stated condition (a real runtime style= setter) actually holds. Removing
+// the setter from the JSX component would leave this exception silently in
+// place. Scan every native JSX component for a `style={...}` occurrence whose
+// content names the variable; a template-literal style attribute can contain
+// its own `${...}` braces, so scan a bounded window after `style={` rather
+// than stopping at the first `}`.
+const jsxDir = resolve(root, 'js');
+const jsxSources = await Promise.all((await readdir(jsxDir))
+  .filter(name => name.endsWith('.jsx'))
+  .map(async name => readFile(resolve(jsxDir, name), 'utf8')));
+const hasRuntimeSetter = varName => jsxSources.some(source => {
+  let index = source.indexOf('style={');
+  while (index !== -1) {
+    if (source.slice(index, index + 200).includes(varName)) return true;
+    index = source.indexOf('style={', index + 1);
+  }
+  return false;
+});
+const uncheckedInstanceScoped = [...instanceScopedVars].filter(name => !hasRuntimeSetter(name));
+ok(uncheckedInstanceScoped.length === 0,
+  'every declared instance-scoped custom property has a real inline-style runtime setter',
+  uncheckedInstanceScoped.join(', '));
+
 const literalFonts = sources.flatMap(({ path, source }) =>
   /font(?:-family)?\s*:[^;]*(?:IBM Plex|system-ui)/i.test(source) ? [path] : []);
 ok(literalFonts.length === 0, 'native styles consume typography tokens instead of local font stacks', literalFonts.join(', '));

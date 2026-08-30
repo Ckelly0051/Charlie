@@ -1516,6 +1516,97 @@ ok(result.sprayAxis.includes('0') && result.sprayAxis.includes('20'),
   'Yardage spray retains both zero and maximum Y-axis context', JSON.stringify(result.sprayAxis));
 ok(result.zoneTitles.length === 5 && result.zoneTitles.every(Boolean) && result.quarterTitles.length === 4 && result.quarterTitles.every(Boolean),
   'Field-zone and quarter marks retain their exact hover context', JSON.stringify(result));
+
+console.log('\n== F13c. The Formation x Play heat map reads the PROJECTED formation, not the raw legacy string ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: '2026 Heat Map Projection QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
+  const play = (id, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit: 'offense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  app.storage.seasonStore.data.games = [{
+    id: 'g-hm-proj', name: 'Heat Map Projection', nextId: 3,
+    gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+    plays: [
+      // Legacy-shaped: the stored Formation string embeds a QB-alignment
+      // token ("Shotgun") ahead of the real structure ("Trips"). Projection
+      // must strip the alignment and key this row on the structure alone.
+      play(1, { formation: 'Shotgun + Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5' }),
+      // Alignment-only: the entire stored value IS the alignment token, so
+      // the projected structural formation is blank. This play must be
+      // OMITTED from the matrix, never bucketed under its raw alignment or
+      // an invented "Unknown" row.
+      play(2, { formation: 'Under Center', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3' }),
+    ],
+  }];
+  app.storage.seasonStore.data.activeGameId = 'g-hm-proj';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+  app.reportsScreen.selectTab('offense');
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  const fxpTab = [...document.querySelectorAll('.hm-tab')].find(button => /Formation x Play/i.test(button.textContent || ''));
+  fxpTab?.click();
+  await new Promise(r => requestAnimationFrame(r));
+  const formationRows = [...document.querySelectorAll('.fxp-grid tbody tr th')].map(node => (node.textContent || '').trim());
+  return { fxpTabFound: !!fxpTab, formationRows };
+});
+ok(result.fxpTabFound, 'The Formation x Play heat-map tab is reachable from the real Offense report', JSON.stringify(result));
+ok(result.formationRows.includes('Trips'),
+  'The rendered heat map keys the legacy-shaped play on its PROJECTED structure (Trips), not the raw compound string', JSON.stringify(result));
+ok(!result.formationRows.includes('Shotgun'),
+  'The rendered heat map has NO row for the raw QB-alignment token Shotgun', JSON.stringify(result));
+ok(!result.formationRows.includes('Under Center') && !result.formationRows.includes('Unknown'),
+  'An alignment-only play is omitted from the heat map rather than shown under its raw alignment or an invented Unknown row', JSON.stringify(result));
+
+console.log('\n== F13d. The Reports Players tab renders a real box-score leaderboard, and each row resolves exactly that player\'s own film ==');
+result = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: '2026 Players Tab QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
+  const play = (id, tags = {}) => ({
+    id, timestamp: { start: id * 10, end: id * 10 + 5 },
+    tags: { unit: 'offense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
+  });
+  app.storage.seasonStore.data.games = [{
+    id: 'g-players-qa', name: 'Players Tab QA', nextId: 4,
+    gameInfo: { opponent: 'Wildcats', perspective: 'self' },
+    plays: [
+      play(1, { playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', players: { ballCarrier: '22' } }),
+      play(2, { playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3', players: { ballCarrier: '22' } }),
+      // A second ball carrier -- proves activating #22's row plays ONLY #22's
+      // two snaps, never every rusher's plays.
+      play(3, { playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '9', players: { ballCarrier: '10' } }),
+    ],
+  }];
+  app.storage.seasonStore.data.activeGameId = 'g-players-qa';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+  app.reportsScreen.selectTab('players');
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  const calls = [];
+  const original = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label || '' }); return Promise.resolve({ completed: true }); };
+
+  const rows = [...document.querySelectorAll('[data-pane="players"] .stats-table tbody tr')];
+  const row22 = rows.find(row => (row.querySelector('td[data-col="player"]')?.textContent || '').includes('22'));
+  const boxScore = row22 ? {
+    att: row22.querySelector('td[data-col="att"]')?.textContent.trim(),
+    yds: row22.querySelector('td[data-col="yds"]')?.textContent.trim(),
+  } : null;
+  row22?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const watched = calls.at(-1) || null;
+
+  app.filmNavigation.watch = original;
+  return { rowFound: !!row22, boxScore, watched };
+});
+ok(result.rowFound, 'The real Reports Players tab renders a leaderboard row for the charted rusher', JSON.stringify(result));
+ok(result.boxScore?.att === '2' && result.boxScore?.yds === '8',
+  'The Players tab leaderboard row is a real, non-empty box score aggregated from the plays charted for that rusher (2 att, 8 yds)', JSON.stringify(result));
+ok(JSON.stringify(result.watched?.refs?.slice().sort()) === JSON.stringify(['g-players-qa::1', 'g-players-qa::2']),
+  'Activating a Players tab leaderboard row resolves the exact composite film refs for only that rusher, never the other player sharing the game', JSON.stringify(result));
+
 console.log('\n== F14. The Defense report never mislabels opponent-scout film as the coach\'s own defense ==');
 result = await page.evaluate(async () => {
   const app = window.app;

@@ -11,7 +11,6 @@ import { PlanExport } from './plan-export.js';
 import { PlayGrid } from './play-grid.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { PlayTagger } from './play-tagger.js';
-import { offenseHeatMapData, offenseVisualizationData } from './report-visual-data.js';
 import { SeasonStore } from './season-store.js';
 import { SnapshotEnvelope } from './snapshot-envelope.js';
 import { SpecialTeamsModel } from './special-teams.js';
@@ -41,8 +40,6 @@ Object.assign(globalThis, {
   CutupPlayer,
   HistoryManager,
   isPlayTagged,
-  offenseHeatMapData,
-  offenseVisualizationData,
   PenaltyModel,
   PlanExport,
   PlayGrid,
