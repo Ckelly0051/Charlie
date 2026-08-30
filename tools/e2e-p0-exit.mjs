@@ -79,9 +79,14 @@ ok(nativeRoot.includes('NativeOverlayService') && nativeRoot.includes('giNativeR
 ok(nativeRoot.includes('service.subscribe') && nativeRoot.includes('render(null')
   && existsSync(resolve(root, 'tools/e2e-native-overlay.mjs')),
   'native test route has explicit service injection and clean unmount coverage');
+// reports.includes('setDashboardTarget') was dropped -- that concept was
+// retired with the Final Reports Retirement migration (Reports no longer
+// adopts/restores a legacy dashboard target). The remaining clauses already
+// prove the real guarantee: all three screens route composite-ref playback
+// through the shared FilmNavigationService.
 ok(filmNav.includes('refsForGame') && filmNav.includes('gameId}::${play.id}')
   && study.includes('filmNavigation.watch') && reports.includes('filmNavigation?.watch')
-  && reports.includes('setDashboardTarget') && plan.includes('filmNavigation.watch') && stats.includes('filmNavigation.refsForGame'),
+  && plan.includes('filmNavigation.watch') && stats.includes('filmNavigation.refsForGame'),
   'Study, Reports, and Plan share composite-ref film navigation');
 
 const capabilityIds = new Set(P0_CAPABILITIES.map(item => item.id));

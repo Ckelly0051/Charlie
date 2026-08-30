@@ -86,8 +86,28 @@ await page.waitForSelector('[data-overlay-scrim]');
 await page.evaluate(() => document.querySelector('[data-overlay-scrim]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })));
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-dialog'));
 await page.waitForFunction(() => document.activeElement?.hasAttribute('data-probe-dialog'));
-await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-state=await page.evaluate(() => ({restored:document.activeElement?.hasAttribute('data-probe-dialog'),active:document.activeElement?.outerHTML?.slice(0,180)}));
+// A fixed two-frame wait is a race, not a settle check -- under headless
+// Chromium's rAF throttling (background/CPU-contended tabs) two frames can
+// span far less real time than the overlay service's own retry schedule
+// needs, so a snapshot taken right then can catch focus mid-transit rather
+// than settled. Poll for genuine settlement instead: several consecutive
+// frames on the expected target, with generous headroom for a throttled tab.
+state = await page.evaluate(() => new Promise(resolve => {
+  let stableFrames = 0, frame = 0;
+  const maxFrames = 90;
+  const check = () => {
+    frame++;
+    const active = document.activeElement;
+    if (active?.hasAttribute('data-probe-dialog')) {
+      if (++stableFrames >= 5) return resolve({ restored: true, active: active.outerHTML.slice(0, 180) });
+    } else {
+      stableFrames = 0;
+    }
+    if (frame >= maxFrames) return resolve({ restored: false, active: active?.outerHTML?.slice(0, 180) });
+    requestAnimationFrame(check);
+  };
+  requestAnimationFrame(check);
+}));
 ok(state.restored, 'dismissible dialog scrim is Cancel and keeps focus restored after pending frames settle', JSON.stringify(state));
 await page.evaluate(() => document.getElementById('late-body-control')?.remove());
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'dialog journeys do not mutate season data');
@@ -193,7 +213,12 @@ await page.waitForFunction(() => window.__replacedPopoverResult === 'replaced');
 await page.waitForFunction(() => document.activeElement?.dataset?.popoverItem === 'new');
 state = await page.evaluate(() => ({ count: window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length, result: window.__replacedPopoverResult, focus: document.activeElement?.dataset?.popoverItem }));
 ok(state.count === 1 && state.result === 'replaced' && state.focus === 'new', 'opening a second popover replaces and settles the first without stealing the new menu focus', JSON.stringify(state));
-await page.mouse.click(400, 400);
+// A coordinate click at a fixed pixel is fragile against real app content --
+// this route now renders real Home/Team Hub copy at that position, so the
+// click can land on live text instead of empty space. Dispatch the outside
+// pointerdown directly on body, which is exactly what the popover's own
+// capture-phase listener (native-popover.jsx) checks for.
+await page.evaluate(() => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })));
 await page.waitForFunction(() => !document.querySelector('[role="menu"][aria-label="New menu"]'));
 await page.waitForFunction(() => document.activeElement?.id === 'popover-anchor');
 ok(await page.evaluate(() => document.activeElement?.id === 'popover-anchor'), 'outside click dismisses the popover and returns focus');

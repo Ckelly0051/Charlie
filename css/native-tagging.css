@@ -360,7 +360,7 @@
 .gi-tag-chips{gap:var(--gi-1x)}
 .gi-tag-chips button{transition:border-color var(--gi-quick),background var(--gi-quick),color var(--gi-quick)}
 .gi-tag-chips button.is-active{
-  box-shadow:inset 0 -2px 0 rgba(0,0,0,.22);
+  box-shadow:var(--gi-press);
 }
 .gi-tag-group:has([data-native-field="defFront"]) .gi-tag-chips button.is-active,
 .gi-tag-group:has([data-native-field="coverage"]) .gi-tag-chips button.is-active{
@@ -422,7 +422,7 @@
   padding:var(--gi-2x) var(--gi-4x);
   border-top:1px solid var(--gi-6);
   background:var(--gi-2);
-  box-shadow:0 -10px 20px rgba(0,0,0,.16);
+  box-shadow:var(--gi-raise-sticky);
 }
 .gi-tag-nav>button{
   min-height:40px;
@@ -442,7 +442,7 @@
   padding:2px 5px;
   border:0;
   border-radius:2px;
-  background:rgba(0,0,0,.2);
+  background:var(--gi-scrim-soft);
   color:inherit;
   font:var(--gi-text-eyebrow);
   letter-spacing:var(--gi-track-label);

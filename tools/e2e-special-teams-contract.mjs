@@ -165,7 +165,7 @@ test('structured conversion totals and score labels do not depend on legacy tags
   // bare fixture objects with no `__gid`, so StatsEngine._compositeRef can't
   // resolve an identity and both ref lists are honestly empty -- not a bug,
   // just this fixture never carrying a game/season context.
-  assert.deepEqual(engine._conversionStats([xp, missed]).xp, { att: 2, made: 1, pct: 50, refs: { att: [], made: [] } });
+  assert.deepEqual(engine._conversionStats([xp, missed]).xp, { att: 2, made: 1, pct: 50, refs: { att: [], made: [], missed: [] } });
 });
 
 test('scoreboard tracks ambiguous points without assigning them to either team', () => {

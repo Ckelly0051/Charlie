@@ -182,10 +182,11 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
 
 // 8. Consumer ownership: no UI reaches through another UI or starts the player directly.
 {
-  const [study, plan, stats] = await Promise.all([
+  const [study, plan, stats, nativeStudy] = await Promise.all([
     readFile(new URL('../js/study-screen.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/plan-screen.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/stats-engine.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/native-study.jsx', import.meta.url), 'utf8'),
   ]);
   // Five Plan watch surfaces since S6-3 added section Watch: whole plan, item,
   // section, presented play, presented item. The count is a deliberate
@@ -194,8 +195,16 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
   // no player and reaches through no other screen.
   ok(!plan.includes('studyScreen._watch') && !/cutupPlayer|crossGameCutup/.test(plan) && (plan.match(/filmNavigation\.watch/g) || []).length === 5,
     'all five Plan watch actions use the shared service and Plan starts no player itself');
-  ok(!study.includes('cutupPlayer.start') && (study.match(/filmNavigation\.watch/g) || []).length === 3,
-    'Study delegates playback and retains only a compatibility adapter');
+  // study-screen.js now shares one thin watch(refs, label) delegate consumed
+  // by every native-study.jsx JSX call site (query bars/deltas, pivot cells,
+  // the aggregate "Watch results" action) instead of study-screen.js itself
+  // repeating a filmNavigation.watch call per surface -- a real DRY-up, so the
+  // owner's own occurrence count correctly dropped to exactly one.
+  const studyDelegateCount = (study.match(/filmNavigation\.watch/g) || []).length;
+  const nativeStudyCallSites = (nativeStudy.match(/screen\.watch\(/g) || []).length;
+  ok(!study.includes('cutupPlayer.start') && studyDelegateCount === 1 && nativeStudyCallSites >= 3,
+    'Study delegates playback through one shared watch() method consumed by multiple native call sites',
+    JSON.stringify({ studyDelegateCount, nativeStudyCallSites }));
   ok(!stats.includes('window.app.cutupPlayer') && stats.includes('filmNavigation.refsForGame') && stats.includes('filmNavigation.watch'),
     'Reports create composite refs before using the shared service');
 }

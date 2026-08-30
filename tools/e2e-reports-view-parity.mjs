@@ -42,7 +42,12 @@ const result = await page.evaluate(async () => {
     }],
   });
   store.currentSeasonId = 'parity';
-  await window.app.storage._loadActiveGame({ renderGames: false });
+  // Hydrate through the real season-open lifecycle hook rather than calling
+  // the lower-level _loadActiveGame directly -- _afterSeasonLoaded is what
+  // populates window.app.roster from the season's canonical roster (per the
+  // accepted "rosters belong exclusively to seasons" contract), which is
+  // required for the Players tab to resolve jersey numbers to names.
+  window.app.storage._afterSeasonLoaded();
   window.app.reportsScreen.show();
   const stats = window.app.stats.compute();
   const textFor = tab => {

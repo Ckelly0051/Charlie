@@ -765,7 +765,11 @@ r = await page.evaluate(() => {
   const dialog = document.querySelector('.ws-plan-picker');
   const pickerWasOpen = !!dialog?.open;
   window.app.workspaceShell.disable();
-  const media = document.querySelector('#giMediaHost > .video-section');
+  // The permanent media host's real structure since the media-cascade
+  // ownership work (css/media-foundation.css) is #giMediaHost > #videoContainer
+  // (class "video-container") -- the legacy ".video-section" class this
+  // assertion was written against no longer exists anywhere in the app.
+  const media = document.querySelector('#giMediaHost #videoContainer');
   return {
     studyClean: pickerWasOpen && !dialog.open && study.host === null && study._native === null
       && study._nativeMount === null && study._planPicker === null && study._pendingPlanItems.length === 0,
@@ -774,7 +778,7 @@ r = await page.evaluate(() => {
     // adopted chrome there, not to a container that no longer exists.
     restored: media != null
       && !media.closest('#giLegacyEngineHost')
-      && document.querySelectorAll('.video-section').length === 1
+      && document.querySelectorAll('#videoContainer').length === 1
       // Final Engine Independence: .tag-section AND #playGridSection are
       // both deleted entirely, not adopted/relocated -- there is no backing
       // store to return to on teardown any more. Absence is the assertion

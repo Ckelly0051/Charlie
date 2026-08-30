@@ -141,8 +141,10 @@ test('conversion totals use official score, exclude no-play and playCounts false
   // the exact eligible-cohort composite refs behind att/made. This fixture's
   // plays carry no `__gid`, so StatsEngine._compositeRef can't resolve an
   // identity and both ref lists are honestly empty.
-  assert.deepEqual(stats.two, { att: 3, made: 2, pct: 67, refs: { att: [], made: [] } });
-  assert.deepEqual(stats.xp, { att: 0, made: 0, pct: 0, refs: { att: [], made: [] } });
+  // refs.missed is additive too (Special Teams Presentation Independence) --
+  // the exact complement of made within att; empty here for the same reason.
+  assert.deepEqual(stats.two, { att: 3, made: 2, pct: 67, refs: { att: [], made: [], missed: [] } });
+  assert.deepEqual(stats.xp, { att: 0, made: 0, pct: 0, refs: { att: [], made: [], missed: [] } });
 });
 
 test('scoreboard follows explicit try ownership and ignores no-play', () => {

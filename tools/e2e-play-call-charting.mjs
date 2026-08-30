@@ -186,12 +186,23 @@ state = await page.evaluate(async () => {
   app.reportsScreen.selectTab('offense');
   await new Promise(resolve => setTimeout(resolve, 100));
   const root = document.querySelector('#wsReports');
-  const callRows = [...root.querySelectorAll('.gi-call-table tbody tr')];
-  const blastRow = callRows.find(row => row.cells[0]?.textContent.trim() === '26 Blast');
+  // The two "Play Calls" module tables (call performance, concept roll-up)
+  // both render through the shared DataTable component and share its default
+  // 'stats-table stats-table-full' class with nothing distinguishing them --
+  // find each by its own sibling <h4> label instead of a dedicated class.
+  const callGrid = [...root.querySelectorAll('.gi-call-grid > div')];
+  const callModule = callGrid.find(node => node.querySelector('h4')?.textContent.trim() === 'Call performance');
+  const conceptModule = callGrid.find(node => node.querySelector('h4')?.textContent.trim() === 'Concept roll-up');
+  const blastRow = [...(callModule?.querySelectorAll('tbody tr') || [])]
+    .find(row => row.cells[0]?.textContent.trim() === '26 Blast');
   const contexts = [...root.querySelectorAll('.gi-call-context')];
   const downTable = contexts.find(node => node.querySelector('h4')?.textContent.trim() === 'Down & Distance');
   const situationRow = [...(downTable?.querySelectorAll('tbody tr') || [])]
     .find(row => row.cells[0]?.textContent.trim() === '1st & Long');
+  // Rows are wrapped by the Watchable component, which carries onActivate/
+  // label as closures rather than a data-* refs attribute; spying on the
+  // shared service is the real (and only) way to observe the exact refs a
+  // row's click resolves to.
   const calls = [];
   const original = app.filmNavigation.watch;
   app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label }); return Promise.resolve({ completed: true }); };
@@ -200,9 +211,8 @@ state = await page.evaluate(async () => {
   return {
     analysis,
     callText: blastRow?.textContent || '',
-    conceptText: root.querySelector('.gi-call-concepts')?.textContent || '',
+    conceptText: conceptModule?.textContent || '',
     lenses: contexts.map(node => node.querySelector('h4')?.textContent.trim()),
-    situationRefs: (situationRow?.dataset.playCallRefs || '').split(',').filter(Boolean),
     calls,
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   };
@@ -218,9 +228,8 @@ ok(state.callText.includes('26 Blast') && state.callText.includes('Blast') && st
 ok(['Down & Distance', 'Formation', 'Personnel', 'Field Position', 'Direction vs Strength']
   .every(label => state.lenses.includes(label)),
   'Reports answers what we call by situation, structure, personnel, field position, and strength relationship', JSON.stringify(state.lenses));
-ok(state.situationRefs.length === 1 && state.calls.length === 1
-  && JSON.stringify(state.calls[0].refs) === JSON.stringify(state.situationRefs)
-  && /^[^:]+::1$/.test(state.situationRefs[0]) && !state.overflow,
+ok(state.calls.length === 1 && state.calls[0].refs?.length === 1
+  && /^[^:]+::1$/.test(state.calls[0].refs[0]) && !state.overflow,
   'A situational result opens only its exact composite-ref film cohort without horizontal page overflow', JSON.stringify(state));
 
 state = await page.evaluate(() => {

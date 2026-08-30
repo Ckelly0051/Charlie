@@ -33,7 +33,7 @@ export const P0_CAPABILITIES = [
   { id:'breakdown.autoplay-choice', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Video action bar exposes Autoplay next with the backward-compatible ON default' },
   { id:'breakdown.all-fields', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Every production offense, defense, player, custom, note, and situation control remains present in the native form' },
   { id:'breakdown.tag-save', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'All 20 plays retain multi-select Play Type and Result' },
-  { id:'breakdown.special-teams', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native Special Teams exposes dedicated kick, return, field-goal, and try units while hiding the legacy Scored-by control' },
+  { id:'breakdown.special-teams', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native Special Teams stores its structured returner and exposes dedicated kick, return, field-goal, and try units without the legacy Scored-by control' },
   { id:'breakdown.penalties', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native penalty editor stores multiple independent fouls and actual enforcement' },
   { id:'breakdown.save-next', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback' },
   { id:'breakdown.drawing-tools', surface:'breakdown', evidence:'behavior', harness:'e2e-tagging.mjs', assertion:'digit with NO play selected still arms the tool' },
@@ -46,11 +46,11 @@ export const P0_CAPABILITIES = [
   { id:'breakdown.unit-one-click', surface:'breakdown', evidence:'behavior', harness:'e2e-native-tagging.mjs', assertion:'Unit is a one-click segmented control, not a dropdown' },
   { id:'breakdown.play-diagram', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'A relaunched saved play diagram remains byte-stable and produces its Call Sheet thumbnail' },
   { id:'breakdown.scoreboard-ocr', surface:'breakdown', evidence:'behavior', harness:'e2e-native-tagging.mjs', assertion:'Scoreboard OCR preserves region, read-now, and auto-read commands' },
-  { id:'breakdown.templates', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Same-as-Last and a saved template round-trip remain live canonical actions' },
+  { id:'breakdown.templates', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'A saved template applies and remains explicitly selected with no detached compatibility control' },
   { id:'breakdown.auto-detect', surface:'breakdown', evidence:'behavior', harness:'e2e-native-tagging.mjs', assertion:'Review and Apply All are genuinely on-screen for a multi-play scan -- the exact capability the hidden host made unreachable' },
   { id:'breakdown.multi-angle-load', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Loading a second angle syncs playback and opens the desktop side-by-side view' },
   { id:'breakdown.multi-angle-sync', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Second-angle sync corrects real drift, tolerates sub-threshold jitter, and follows transport state' },
-  { id:'breakdown.multi-angle-view', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'PiP click and V-key swap the active camera through the production controls' },
+  { id:'breakdown.multi-angle-view', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'PiP click and V-key swap the active camera through the production command API' },
   { id:'breakdown.multi-angle-remove', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Removing the second angle revokes its media and restores the single-camera workspace' },
 
   // Film Room spreadsheet
@@ -68,7 +68,7 @@ export const P0_CAPABILITIES = [
   { id:'study.advanced-reports', surface:'study', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Reaching Advanced Reports no longer exposes the classic outlet' },
 
   // Reports: preserve football analysis breadth and canonical actions
-  { id:'reports.native-owner', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Reports has one native owner; StatsEngine.dashboardEl is exactly the live, connected content node it owns' },
+  { id:'reports.native-owner', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Reports has one native owner and StatsEngine has no second presentation controller' },
   { id:'reports.eight-views', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'All eight report views render a real pane' },
   { id:'reports.lens-board', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Overview reads canonical totals, success, and yards per play' },
   { id:'reports.lens-routing', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'A highlighted Overview result opens a non-empty composite-ref film cohort' },
@@ -77,12 +77,17 @@ export const P0_CAPABILITIES = [
   { id:'reports.opponent-cohorts', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Watch controls launch the exact displayed unit cohorts' },
   { id:'reports.opponent-special-teams', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST' },
   { id:'reports.season', surface:'reports', evidence:'data', harness:'e2e-native-season.mjs', assertion:'Native Season report aggregates both games and includes an uncommitted live edit without writing it' },
-  { id:'reports.players', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'a rushing leaderboard with player rows rendered' },
-  { id:'reports.special-teams', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Special Teams section renders' },
-  { id:'reports.self-scout', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Self-Scout surfaces a strength / Formation×Strength tell' },
-  { id:'reports.opponent-scout', surface:'reports', evidence:'behavior', harness:'e2e-season-tab.mjs', assertion:'Scout-Opponent button sits in the dashboard header' },
+  // These four moved off e2e-season-tab.mjs, which was narrowed to a focused
+  // native-Season-report contract (9 assertions) with no remaining coverage
+  // of rushing leaderboards, Special Teams, self-scout tells, the Scout
+  // Opponent action, or play-call composition. Re-homed to the harnesses
+  // that actually cover each capability today.
+  { id:'reports.players', surface:'reports', evidence:'data', harness:'e2e-study-players.mjs', assertion:'produces a non-empty leaderboard under the UNTOUCHED default Unit=Offense state, with Unit visibly disabled' },
+  { id:'reports.special-teams', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Special Teams, Self-Scout, and Season retain their football-specific surfaces' },
+  { id:'reports.self-scout', surface:'reports', evidence:'data', harness:'e2e-self-scout.mjs', assertion:'Formation × Down tell uses the down|bucket key' },
+  { id:'reports.opponent-scout', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Every opponent with charted film is listed as scoutable, so a scout report exists for each' },
   { id:'reports.csv-roundtrip', surface:'reports', evidence:'data', harness:'e2e-csv-roundtrip.mjs', assertion:'export→import preserves multiple structured penalties' },
-  { id:'reports.call-sheet', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'a modern split play composes qbAlignment + formation the same way' },
+  { id:'reports.call-sheet', surface:'reports', evidence:'data', harness:'e2e-play-call-charting.mjs', assertion:'Call Sheet leads with the exact call while retaining legacy fallback only for plays without one' },
 
   // Plan
   { id:'plan.reorder', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan items reorder through accessible buttons and desktop drag without losing items' },

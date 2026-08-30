@@ -121,10 +121,15 @@ const results = await page.evaluate(() => {
   t('projField passes NON-projected keys through raw', SE.projField(OFF, 'playType') === 'Short Pass', SE.projField(OFF, 'playType'));
 
   // --- heat maps (Formation × Play Type) ---
-  const hm = eng.heatMaps._renderFormationByPlay([OFF, ALIGN_ONLY]);
-  t('heat map rows use PROJECTED formation (Trips present)', /Trips/.test(hm), '');
-  t('heat map has NO raw Shotgun formation row', !/Shotgun/.test(hm), '');
-  t('heat map has NO invented Unknown formation row', !/Unknown/.test(hm), '');
+  // HeatMaps (the classic renderer) is retired; offenseHeatMapData is the
+  // accepted replacement data seam (Final Reports Retirement) consumed by
+  // NativeHeatMaps. formationPlayData already builds its formation set from
+  // StatsEngine.proj(play).formation, so projection correctness here is a
+  // property of that seam, not of this test.
+  const hmRows = window.offenseHeatMapData([OFF, ALIGN_ONLY]).formationPlay.rows;
+  t('heat map rows use PROJECTED formation (Trips present)', hmRows.some(r => r.formation === 'Trips'), JSON.stringify(hmRows));
+  t('heat map has NO raw Shotgun formation row', !hmRows.some(r => r.formation === 'Shotgun'), JSON.stringify(hmRows));
+  t('heat map has NO invented Unknown formation row', !hmRows.some(r => r.formation === 'Unknown'), JSON.stringify(hmRows));
 
   // --- play-filter (drawer "Filter Plays" → cut-up exporter) EQUALITY ---
   // This filter selects the film the coach exports, so its set must EQUAL the

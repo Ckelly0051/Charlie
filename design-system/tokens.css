@@ -76,10 +76,19 @@
    * draws the boundary, the edge light gives it thickness. */
   --gi-edge:inset 0 1px 0 rgba(255,255,255,.055);
   --gi-edge-strong:inset 0 1px 0 rgba(255,255,255,.085);
+  /* The inverse of an edge light: a dark bottom inset marking a pressed or
+   * actively-selected chip. */
+  --gi-press:inset 0 -2px 0 rgba(0,0,0,.22);
   /* Elevation, in the order a coach meets it: seated, raised, floating. */
   --gi-raise-1:0 1px 2px rgba(0,0,0,.5);
   --gi-raise-2:0 6px 18px rgba(0,0,0,.42);
   --gi-raise-film:0 20px 44px rgba(0,0,0,.58);
+  /* Cast upward, for a sticky bar pinned to the bottom of a route -- it lifts
+   * above the content scrolling beneath it rather than the content above it. */
+  --gi-raise-sticky:0 -10px 20px rgba(0,0,0,.16);
+  /* A light dim, distinct from the heavier full-screen --gi-scrim -- for a
+   * subtle chip/badge backing such as a keyboard-shortcut hint. */
+  --gi-scrim-soft:rgba(0,0,0,.2);
   /* A top-lit ramp over a flat fill. Deliberately near-invisible in isolation —
    * it is felt across a whole panel, not seen on one. */
   --gi-ramp:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0) 46%);
@@ -89,6 +98,10 @@
   --gi-shadow-overlay:0 24px 72px rgba(0,0,0,.62);
   --gi-shadow-toast:0 14px 34px rgba(0,0,0,.44);
   --gi-on-solid:#f5fbff;
+  /* A printable-document preview (Call Sheet) shows what will actually print
+   * -- genuine white paper, not a themeable UI surface. Named so the native
+   * stylesheet consuming it has zero raw color literals of its own. */
+  --gi-paper:#fff;
   --gi-info-surface:#10293a;
   --gi-info-control:#183d52;
   --gi-info-border:#3f6f91;

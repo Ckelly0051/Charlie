@@ -30,7 +30,7 @@
 .gi-call-sheet-output>header strong{font-family:var(--gi-cond);font-size:19px}
 .gi-call-sheet-print{min-width:96px;height:42px;border:1px solid var(--gi-warn);border-radius:var(--gi-radius);background:var(--gi-warn);color:var(--gi-1);font:800 13px var(--gi-sans);text-transform:uppercase}
 .gi-call-sheet-print:disabled{border-color:var(--gi-7);background:var(--gi-4);color:var(--gi-9)}
-.gi-call-sheet-preview{display:block;width:min(720px,calc(100% - 32px));height:calc(100% - 96px);min-height:520px;margin:16px auto;border:0;background:#fff;box-shadow:var(--gi-shadow-card)}
+.gi-call-sheet-preview{display:block;width:min(720px,calc(100% - 32px));height:calc(100% - 96px);min-height:520px;margin:16px auto;border:0;background:var(--gi-paper);box-shadow:var(--gi-raise-2)}
 .gi-call-sheet-preview.is-wristband{width:min(430px,calc(100% - 32px));height:min(645px,calc(100% - 32px));min-height:520px;flex:0 0 auto}
 .gi-call-sheet-empty{display:grid;place-content:center;justify-items:center;gap:6px;min-height:300px;flex:1;color:var(--gi-11);text-align:center}
 .gi-call-sheet-empty strong{color:var(--gi-12);font-family:var(--gi-cond);font-size:24px}

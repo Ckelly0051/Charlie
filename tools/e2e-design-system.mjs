@@ -35,9 +35,15 @@ const legacyVars = sources.flatMap(({ path, source }) => source.includes('var(--
 ok(legacyVars.length === 0, 'native styles contain no legacy workspace-token fallback', legacyVars.join(', '));
 
 const definitions = new Set([...tokens.matchAll(/(--gi-[\w-]+)\s*:/g)].map(match => match[1]));
+// A small number of --gi-* custom properties are deliberately instance-scoped:
+// set as an inline style by a JSX component at render time (a genuine, dynamic
+// per-instance value) rather than declared once in the shared palette. These
+// are not design-system tokens and have no business living in tokens.css --
+// keep this list explicit and require a real inline-style setter for each.
+const instanceScopedVars = new Set(['--gi-kpi-cols']);
 const missing = sources.flatMap(({ path, source }) =>
   [...new Set([...source.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))]
-    .filter(name => !definitions.has(name))
+    .filter(name => !definitions.has(name) && !instanceScopedVars.has(name))
     .map(name => `${path}:${name}`));
 ok(missing.length === 0, 'every native design token reference resolves', missing.join(', '));
 
