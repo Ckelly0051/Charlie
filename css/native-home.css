@@ -15,6 +15,40 @@
 .ws-empty-panel h3{margin:0 0 8px;font:700 22px/1.2 var(--gi-cond)}
 .ws-empty-panel p{margin:0 0 16px;color:var(--gi-bd-copy);font-size:13px;line-height:1.5}
 
+/* Season rail + library (2026-08-31 review repair). The rail is a LIVE view
+   onto TeamHubScreen -- year-grouped seasons, create/open/delete, and the
+   season-scoped tools -- so a coach never has to leave Home to switch or
+   manage a season. It reuses the design-system tokens and .gi-hub-kicker
+   label treatment already established in native-team-hub.css (imported
+   transitively wherever SeasonRow/WorkspaceChoice/FirstTeam are used here). */
+.ws-home-page .home-with-rail{display:grid;grid-template-columns:236px minmax(0,1fr);gap:20px;align-items:start}
+.ws-home-page .rail-year{position:sticky;top:0;display:flex;flex-direction:column;gap:14px;min-width:0;padding:14px;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel)}
+.ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
+.ws-home-page .rail-library-link{background:none;border:0;height:auto;padding:0;color:var(--gi-bd-gold);font-size:12px;font-weight:600;text-align:left;text-decoration:underline}
+.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:12px;max-height:52vh;overflow-y:auto}
+.ws-home-page .rail-group{display:flex;flex-direction:column;gap:6px}
+.ws-home-page .rail-year-label{color:var(--gi-bd-copy);font:700 11px/1 var(--gi-cond);letter-spacing:.06em;text-transform:uppercase}
+.ws-home-page .rail-empty{margin:0;color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .rail-year .gi-hub-season{background:transparent;border-bottom:0}
+.ws-home-page .rail-year .gi-hub-season-summary{grid-template-columns:1fr;gap:2px;min-height:0;padding:6px 0}
+.ws-home-page .rail-year .gi-hub-season-state{display:none}
+.ws-home-page .rail-year .gi-hub-season-counts{gap:10px}
+.ws-home-page .rail-year .gi-hub-season-actions{flex-wrap:wrap;padding:0 0 8px}
+.ws-home-page .rail-tools{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--gi-bd-line)}
+.ws-home-page .rail-tools button{justify-content:flex-start;background:none;border:0;height:auto;padding:4px 0;color:var(--gi-bd-strong);font-size:12.5px;font-weight:500;text-align:left}
+.ws-home-page .rail-tools button:hover{color:var(--gi-bd-gold)}
+.ws-home-page .rail-foot{display:flex;flex-direction:column;gap:2px;padding-top:12px;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}
+
+.ws-home-page .library-panel{display:flex;flex-direction:column;gap:16px}
+.ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.ws-home-page .library-panel-head h2{margin:2px 0 0;font:700 24px/1 var(--gi-cond)}
+.ws-home-page .library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.ws-home-page .library-grid .gi-hub-season{border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel)}
+.ws-home-page .library-recover-link{align-self:flex-start;background:none;border:0;height:auto;padding:0;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
+
+.ws-home-page [data-first-use]{max-width:none}
+
 .ws-home-page .game-workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:22px;align-items:start}
 .ws-home-page .library-pane{min-width:0}
 .ws-home-page .library-tools{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -35,7 +69,14 @@
 .ws-home-page .game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media(min-width:1620px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-.ws-home-page .ws-game-row{display:flex;flex-direction:column;min-width:0;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1);text-align:left;font-weight:400;overflow:hidden;height:auto;cursor:pointer}
+/* Own alignment explicitly -- the legacy shell row (workspace-shell.css
+   .ws-game-row, unscoped, a 5-column grid predating this card) sets
+   align-items:center. This rule's higher specificity (.ws-home-page
+   .ws-game-row) wins on display/flex-direction, but CSS resolves per
+   property, not per rule -- align-items was never declared here, so the
+   legacy center value still applied and shrank the thumbnail to its own
+   height instead of stretching to the card's full content width. */
+.ws-home-page .ws-game-row{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1);text-align:left;font-weight:400;overflow:hidden;height:auto;cursor:pointer}
 .ws-home-page .ws-game-row:hover{border-color:var(--gi-bd-bone)}
 .ws-home-page .ws-game-row.selected{border-color:var(--gi-bd-gold);box-shadow:0 0 0 1px var(--gi-bd-gold)}
 .ws-home-page .ws-game-row:focus-visible{outline:0;box-shadow:var(--gi-focus)}
@@ -104,6 +145,9 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
 @media(max-width:1180px){
   .ws-home-page .game-workspace{grid-template-columns:1fr}
   .ws-home-page .detail-pane{position:static}
+  .ws-home-page .home-with-rail{grid-template-columns:1fr}
+  .ws-home-page .rail-year{position:static}
+  .ws-home-page .rail-groups{max-height:none}
 }
 @media(max-width:760px){
   .ws-home-page .ws-home-head{flex-wrap:wrap}

@@ -123,6 +123,11 @@ export class WorkspaceShell {
     // current Home visit, so it resets on a genuine season change AND on any
     // route round trip back to Home (2026-08-31 Home rebuild).
     if (routeId==='home') { await this.app.homeScreen?.show(previousRoute); }
+    // Every route's Preact tree stays mounted (hidden), never torn down, for
+    // the app's whole life -- this is what lets Home's season rail flag
+    // itself inactive rather than rendering a second hidden copy of Team
+    // Hub's own season-row markup once the coach navigates elsewhere.
+    else { this.app.homeScreen?.leave(); }
     if (routeId==='breakdown') {}
     if (routeId==='study') { this.app.studyScreen?.show(); }
     if (routeId==='reports') { this.app.reportsScreen?.show(); this.app._markSeenStats?.(); }
@@ -210,6 +215,7 @@ export class WorkspaceShell {
     this.root.querySelectorAll('[data-ws-route]').forEach(button=>button.classList.remove('active'));
     this._setRouteVisibility('hub');
     this._syncChrome();
+    this.app.homeScreen?.leave();
     await this.app.teamHubScreen?.show?.();
     return true;
   }

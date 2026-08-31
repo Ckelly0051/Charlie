@@ -64,7 +64,7 @@ export class SettingsScreen {
   _toast(message, tone = 'success') { this.overlays.toast({ message, tone }); }
 
   teamProfile() { return this.app.teamRegistry.teamProfile(); }
-  saveTeam(name, color) { return this.app.teamRegistry.saveTeamIdentity(name, color) === true; }
+  saveTeam(school, nickname, color) { return this.app.teamRegistry.saveTeamIdentity(school, nickname, color) === true; }
 
   playbookSnapshot() { return this.app.playbook?.list?.() || []; }
   playbookDefaultOptions() {

@@ -26,9 +26,16 @@ function arrowFocus(event, selector) {
   items[(index + delta + items.length) % items.length].focus();
 }
 
-function TeamFormFields() {
+/** School/organization and nickname are separate fields (2026-08-31 Home
+ *  naming contract) so a compact matchup label can read "Mavericks" while
+ *  the full identity ("St. Joseph Mavericks") stays available everywhere
+ *  else. Nickname is always optional. */
+function TeamFormFields({ school = '', nickname = '' }) {
   return <>
-    <label class="gi-hub-field"><span>Team name</span><input name="teamName" autoFocus required placeholder="St. Joseph Mavericks" /></label>
+    <div class="gi-hub-field-row">
+      <label class="gi-hub-field"><span>Program: school / organization</span><input name="school" autoFocus required defaultValue={school} placeholder="e.g. St. Joseph" /></label>
+      <label class="gi-hub-field"><span>Nickname <small>Optional</small></span><input name="nickname" defaultValue={nickname} placeholder="e.g. Mavericks" /></label>
+    </div>
     <label class="gi-hub-field"><span>Jersey color</span><select name="jerseyColor" defaultValue="">{COLORS.map(value => <option value={value}>{value ? value[0].toUpperCase() + value.slice(1) : 'Not set'}</option>)}</select></label>
   </>;
 }
@@ -40,7 +47,7 @@ export function AddTeamForm({ onSubmit, onCancel }) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     setBusy(true); setError('');
-    const result = await onSubmit({ name: values.get('teamName'), jerseyColor: values.get('jerseyColor') });
+    const result = await onSubmit({ school: values.get('school'), nickname: values.get('nickname'), jerseyColor: values.get('jerseyColor') });
     if (!result?.ok) { setError(result?.message || 'The team could not be added.'); setBusy(false); }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
@@ -95,17 +102,43 @@ export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onS
   </form>;
 }
 
-export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, onCancel }) {
+const LEVEL_OPTIONS = ['Varsity', 'JV', 'Freshman', 'Other'];
+
+/** Shared by season and scout creation: Year + a Level select with an
+ *  explicit custom option (2026-08-31 Home naming contract — "an explicit
+ *  custom level for legitimate alternatives such as JV A/JV B", never a
+ *  free-text field masquerading as one of the three standard levels). The
+ *  generated label is a preview only; the caller composes the real one so
+ *  duplicate detection and display stay in agreement. */
+function YearLevelFields({ year, setYear, level, setLevel, customLevel, setCustomLevel }) {
+  return <>
+    <div class="gi-hub-field-row">
+      <label class="gi-hub-field"><span>Year</span><input name="year" value={year} onInput={e => setYear(e.currentTarget.value)} inputMode="numeric" required /></label>
+      <label class="gi-hub-field"><span>Level</span><select name="level" value={level} onChange={e => setLevel(e.currentTarget.value)}>{LEVEL_OPTIONS.map(value => <option key={value} value={value}>{value === 'Other' ? 'Other…' : value}</option>)}</select></label>
+    </div>
+    {level === 'Other' && <label class="gi-hub-field gi-hub-field-full"><span>Level name</span><input name="customLevel" value={customLevel} onInput={e => setCustomLevel(e.currentTarget.value)} placeholder="e.g. 8th grade" required /></label>}
+  </>;
+}
+
+export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, onOpenExisting, onCancel }) {
   const yearNow = String(new Date().getFullYear());
   const [setupMode, setSetupMode] = useState(hasExistingData ? 'quick' : 'guided');
+  const [year, setYear] = useState(yearNow);
+  const [level, setLevel] = useState('Varsity');
+  const [customLevel, setCustomLevel] = useState('');
   const [error, setError] = useState('');
+  const [duplicate, setDuplicate] = useState(null);
   const [busy, setBusy] = useState(false);
+  const resolvedLevel = level === 'Other' ? (customLevel.trim() || 'Level') : level;
   const submit = async event => {
     event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    setBusy(true); setError('');
-    const result = await onSubmit({ name: values.get('seasonName'), year: values.get('year'), level: values.get('level'), setupMode });
-    if (!result?.ok) { setError(result?.message || 'The season could not be created.'); setBusy(false); }
+    setBusy(true); setError(''); setDuplicate(null);
+    const result = await onSubmit({ year: year.trim(), level: resolvedLevel, setupMode });
+    if (!result?.ok) {
+      setError(result?.message || 'The season could not be created.');
+      setDuplicate(result?.duplicateId ? { id: result.duplicateId, name: result.duplicateName } : null);
+      setBusy(false);
+    }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
     <p>For <strong>{teamName || 'this team'}</strong>. Choose how much help you want setting up the season.</p>
@@ -119,13 +152,43 @@ export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, 
         {hasExistingData && <b>Default</b>}
       </button>
     </div>
-    <label class="gi-hub-field"><span>Season name</span><input name="seasonName" autoFocus required placeholder={`${yearNow} ${teamName || 'Season'}`} /></label>
-    <div class="gi-hub-field-row">
-      <label class="gi-hub-field"><span>Year</span><input name="year" defaultValue={yearNow} inputMode="numeric" /></label>
-      <label class="gi-hub-field"><span>Level</span><input name="level" defaultValue="Varsity" placeholder="Varsity" /></label>
-    </div>
+    <YearLevelFields year={year} setYear={setYear} level={level} setLevel={setLevel} customLevel={customLevel} setCustomLevel={setCustomLevel} />
+    <div class="gi-hub-name-preview"><small>Season name</small><strong>{(year.trim() || 'Year')} · {resolvedLevel}</strong></div>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
+    {duplicate && <p class="gi-hub-error-action"><button type="button" onClick={() => onOpenExisting?.(duplicate.id)}>Open existing season</button></p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : setupMode === 'guided' ? 'Create and start guide' : 'Create season'}</button></div>
+  </form>;
+}
+
+/** Explicit correction for an existing season's year/level — never
+ *  reconstructs its id, games, or roster; only the two structured metadata
+ *  fields plus the generated name they produce. */
+export function EditSeasonForm({ year, level, onSubmit, onOpenExisting, onCancel }) {
+  const [y, setY] = useState(year || '');
+  const isStandard = LEVEL_OPTIONS.slice(0, -1).includes(level);
+  const [lvl, setLvl] = useState(isStandard ? level : 'Other');
+  const [customLevel, setCustomLevel] = useState(isStandard ? '' : (level || ''));
+  const [error, setError] = useState('');
+  const [duplicate, setDuplicate] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const resolvedLevel = lvl === 'Other' ? (customLevel.trim() || 'Level') : lvl;
+  const submit = async event => {
+    event.preventDefault();
+    setBusy(true); setError(''); setDuplicate(null);
+    const result = await onSubmit({ year: y.trim(), level: resolvedLevel });
+    if (!result?.ok) {
+      setError(result?.message || 'Season details could not be saved.');
+      setDuplicate(result?.duplicateId ? { id: result.duplicateId } : null);
+      setBusy(false);
+    }
+  };
+  return <form class="gi-hub-dialog-form" onSubmit={submit}>
+    <p>Correct the year or level. This never changes the season's id, games, or roster.</p>
+    <YearLevelFields year={y} setYear={setY} level={lvl} setLevel={setLvl} customLevel={customLevel} setCustomLevel={setCustomLevel} />
+    <div class="gi-hub-name-preview"><small>Season name</small><strong>{(y.trim() || 'Year')} · {resolvedLevel}</strong></div>
+    {error && <p class="gi-hub-error" role="alert">{error}</p>}
+    {duplicate && <p class="gi-hub-error-action"><button type="button" onClick={() => onOpenExisting?.(duplicate.id)}>Open existing season</button></p>}
+    <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button></div>
   </form>;
 }
 
@@ -147,28 +210,51 @@ export function SeasonSetupGuide({ setup, onAction, onClose }) {
     <div class="gi-hub-form-actions"><button type="button" onClick={onClose}>Skip guide and go to Home</button></div>
   </div>;
 }
-export function CreateScoutForm({ onSubmit, onCancel }) {
+export function CreateScoutForm({ onSubmit, onOpenExisting, onCancel }) {
   const yearNow = String(new Date().getFullYear());
+  const [year, setYear] = useState(yearNow);
+  const [level, setLevel] = useState('Varsity');
+  const [customLevel, setCustomLevel] = useState('');
   const [error, setError] = useState('');
+  const [duplicate, setDuplicate] = useState(null);
   const [busy, setBusy] = useState(false);
+  const resolvedLevel = level === 'Other' ? (customLevel.trim() || 'Level') : level;
   const submit = async event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
-    setBusy(true); setError('');
-    const result = await onSubmit({ opponent: values.get('opponent'), year: values.get('year'), sourceTeamA: values.get('sourceTeamA'), sourceTeamB: values.get('sourceTeamB'), date: values.get('date') });
-    if (!result?.ok) { setError(result?.message || 'The opponent scout could not be created.'); setBusy(false); }
+    setBusy(true); setError(''); setDuplicate(null);
+    const result = await onSubmit({
+      opponent: values.get('opponent'), opponentNickname: values.get('opponentNickname'),
+      year: year.trim(), level: resolvedLevel,
+      sourceTeamA: values.get('sourceTeamA'), sourceTeamANickname: values.get('sourceTeamANickname'),
+      sourceTeamB: values.get('sourceTeamB'), sourceTeamBNickname: values.get('sourceTeamBNickname'),
+      date: values.get('date'),
+    });
+    if (!result?.ok) {
+      setError(result?.message || 'The opponent scout could not be created.');
+      setDuplicate(result?.duplicateId ? { id: result.duplicateId, name: result.duplicateName } : null);
+      setBusy(false);
+    }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
     <p>Create a separate scouting workspace. Its games use the same charting and analytics engine, but never count in your program record or season totals.</p>
-    <label class="gi-hub-field"><span>Opponent</span><input name="opponent" autoFocus required placeholder="Holy Family Wildcats" /></label>
-    <label class="gi-hub-field"><span>Season</span><input name="year" defaultValue={yearNow} inputMode="numeric" /></label>
+    <YearLevelFields year={year} setYear={setYear} level={level} setLevel={setLevel} customLevel={customLevel} setCustomLevel={setCustomLevel} />
+    <div class="gi-hub-field-row">
+      <label class="gi-hub-field"><span>Opponent being scouted: school / organization</span><input name="opponent" autoFocus required placeholder="e.g. Holy Family" /></label>
+      <label class="gi-hub-field"><span>Nickname <small>Optional</small></span><input name="opponentNickname" placeholder="e.g. Wildcats" /></label>
+    </div>
     <div class="gi-hub-field-row gi-hub-scout-matchup">
-      <label class="gi-hub-field"><span>Team A</span><input name="sourceTeamA" required placeholder="Opponent" /></label>
-      <label class="gi-hub-field"><span>Team B</span><input name="sourceTeamB" required placeholder="Film opponent" /></label>
+      <label class="gi-hub-field"><span>Source game: Team A: school / organization</span><input name="sourceTeamA" required placeholder="e.g. St. Joseph" /></label>
+      <label class="gi-hub-field"><span>Nickname <small>Optional</small></span><input name="sourceTeamANickname" placeholder="e.g. Mavericks" /></label>
+    </div>
+    <div class="gi-hub-field-row gi-hub-scout-matchup">
+      <label class="gi-hub-field"><span>Source game: Team B: school / organization</span><input name="sourceTeamB" required placeholder="e.g. Central" /></label>
+      <label class="gi-hub-field"><span>Nickname <small>Optional</small></span><input name="sourceTeamBNickname" placeholder="e.g. Tigers" /></label>
     </div>
     <label class="gi-hub-field"><span>Game date</span><input name="date" type="date" /></label>
     <p class="gi-hub-form-note">After creation, link the source game's folder in Team &amp; Film Settings. Film stays in its existing location.</p>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
+    {duplicate && <p class="gi-hub-error-action"><button type="button" onClick={() => onOpenExisting?.(duplicate.id)}>Open existing season</button></p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : 'Create scout'}</button></div>
   </form>;
 }
@@ -232,7 +318,7 @@ export function RecoverSeasonsForm({ candidates, onRecover }) {
   </div>;
 }
 
-function WorkspaceChoice({ mode = 'program', screen, compact = false }) {
+export function WorkspaceChoice({ mode = 'program', screen, compact = false }) {
   return <div class={`gi-hub-workspace-choice${compact ? ' is-compact' : ''}`} role="group" aria-label="Football workspace">
     <button class={mode === 'program' ? 'is-active' : ''} aria-pressed={mode === 'program'} onClick={() => screen.selectWorkspace('program')}>
       <span class="gi-hub-workspace-icon">O</span><span><strong>Our Program</strong><small>Chart our games, manage the season, and measure our team.</small></span>
@@ -243,14 +329,14 @@ function WorkspaceChoice({ mode = 'program', screen, compact = false }) {
   </div>;
 }
 
-function FirstTeam({ screen, mode }) {
+export function FirstTeam({ screen, mode }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     setBusy(true); setError('');
-    const result = await screen.addTeam({ name: values.get('teamName'), jerseyColor: values.get('jerseyColor') });
+    const result = await screen.addTeam({ school: values.get('school'), nickname: values.get('nickname'), jerseyColor: values.get('jerseyColor') });
     if (!result?.ok) { setError(result?.message || 'The team could not be saved.'); setBusy(false); }
   };
   return <section class="gi-hub-onboarding gi-hub-first" aria-labelledby="giHubFirstTitle">
@@ -269,7 +355,7 @@ function FilmBadge({ film }) {
   return <span class={`gi-hub-film is-${film?.state || 'checking'}`}><i />{film?.label || 'Checking film'}</span>;
 }
 
-function SeasonRow({ season, screen }) {
+export function SeasonRow({ season, screen }) {
   const meta = [season.year, season.level, formatDate(season.lastOpened) && `opened ${formatDate(season.lastOpened)}`].filter(Boolean).join(' · ');
   return <article class={`gi-hub-season${season.current ? ' is-current' : ''}`} data-season-id={season.id}>
     <div class="gi-hub-season-summary">

@@ -30,7 +30,7 @@ export class HomeScreen {
     this._listeners = new Set();
     this._filmToken = 0;
     this._state = {
-      status: 'idle', seasonId: '', selectedGameId: null,
+      status: 'idle', active: false, seasonId: '', selectedGameId: null,
       query: '', sort: 'newest', filter: 'all', view: 'grid',
       filmHealth: {}, thumbnails: {},
     };
@@ -82,16 +82,41 @@ export class HomeScreen {
     const seasonId = this._store()?.currentSeasonId || '';
     const seasonChanged = seasonId !== this._state.seasonId;
     if (seasonChanged) {
-      this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'newest' };
+      // A new season starts with no verified film health and no cached
+      // thumbnails of its own -- carrying the OUTGOING season's maps forward
+      // (keyed by bare game id) let a stale frame or a stale "Film linked"
+      // read paint under the new season's identical/reused game ids. The
+      // thumbnail service's own cache is now season-scoped internally, but
+      // reset() is the documented season-switch fence for its in-flight
+      // queue too -- belt-and-braces, not a substitute for that scoping.
+      this._thumbGen = new Map();
+      this.thumbnails?.reset?.();
+      this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'newest', filmHealth: {}, thumbnails: {} };
     } else if (previousRoute !== 'home') {
       this._state = { ...this._state, selectedGameId: null };
     }
     this._resolveSelection();
-    this._set({ status: 'ready' });
+    this._set({ status: 'ready', active: true });
     this._syncTopFilm();
     this._verifyFilm();
     return true;
   }
+
+  /** Called by WorkspaceShell.show() whenever the route changes AWAY from
+   *  Home. This route's Preact tree stays mounted (hidden), never torn down,
+   *  for the app's whole life -- every other route works the same way. The
+   *  season rail and library panel reuse TeamHubScreen's OWN components
+   *  (SeasonRow, WorkspaceChoice), which render Team Hub's exact class names
+   *  and ids. Once genuinely absent stops meaning "reachable on no route"
+   *  and starts meaning "still in the DOM, just display:none", a second copy
+   *  of Team Hub's own markup sitting hidden behind it is EXACTLY the class
+   *  of defect this project's history is about (hidden markup that
+   *  resurfaced, twice, when an overlay revealed the outlet it lived in) --
+   *  here reachable by any unscoped selector, not an overlay revealing it.
+   *  `active` gates that reused content off while Home is not the visible
+   *  route; everything else in this route's own markup (never shared with
+   *  another screen) is safe to stay rendered exactly as it always has. */
+  leave() { if (this._state.active) this._set({ active: false }); }
 
   _resolveSelection() {
     const games = this._games();
@@ -282,12 +307,22 @@ export class HomeScreen {
   }
 
   // -- Thumbnails -----------------------------------------------------------
+  /** A generation counter per game id -- guards against TWO overlapping
+   *  requests for the SAME game (a relink mid-flight issues a second request
+   *  before the first's capture has resolved) applying out of order. Only
+   *  the request that was MOST RECENTLY issued for a given game id may ever
+   *  write that game's thumbnail; an older capture that resolves after a
+   *  newer one is silently discarded rather than clobbering the fresh frame. */
   requestThumbnail(game) {
     if (!this.thumbnails || !game) return;
     const key = String(game.id);
     const seasonId = this._state.seasonId;
+    const gens = (this._thumbGen ||= new Map());
+    const myGen = (gens.get(key) || 0) + 1;
+    gens.set(key, myGen);
     this.thumbnails.request(game).then(dataUrl => {
       if (this._state.seasonId !== seasonId) return; // a stale in-flight capture from a season the coach has left
+      if (this._thumbGen?.get(key) !== myGen) return; // superseded by a newer request for this same game
       if (this._state.thumbnails[key] === dataUrl) return;
       this._set({ thumbnails: { ...this._state.thumbnails, [key]: dataUrl } });
     }).catch(() => {});

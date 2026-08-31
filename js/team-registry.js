@@ -105,24 +105,34 @@ export class TeamRegistry {
 
   /**
    * Rename / recolor the active team. Writes the profile, mirrors it into the
-   * registry entry, and propagates the two identity fields into the active
+   * registry entry, and propagates the identity fields into the active
    * game's canonical metadata through the injected hook.
    *
    * The hook matters: this used to write through the hidden #gameTeamName /
    * #gameJerseyColor inputs inside #app, which S7-d deletes — it would have
    * become a silent no-op that still reported success.
    *
+   * `school`/`nickname` are additive companion fields (2026-08-31 Home
+   * naming contract): `teamName` stays the composed compatibility identity
+   * every existing reader (Team Hub, chrome, checklist) already consumes
+   * unchanged. Passing only a school (blank nickname) reproduces the exact
+   * prior `teamName` — never a heuristic split of an existing name.
+   *
    * Returns true when the identity was saved. Presentation is the caller's.
    */
-  saveTeamIdentity(name, jerseyColor = '') {
-    const clean = String(name || '').trim();
-    if (!clean) return false;
-    const profile = { ...this.teamProfile(), teamName: clean, jerseyColor: String(jerseyColor || '') };
+  saveTeamIdentity(school, nickname = '', jerseyColor = '') {
+    const cleanSchool = String(school || '').trim();
+    const cleanNickname = String(nickname || '').trim();
+    if (!cleanSchool) return false;
+    const name = [cleanSchool, cleanNickname].filter(Boolean).join(' ');
+    const profile = { ...this.teamProfile(), teamName: name, school: cleanSchool, nickname: cleanNickname, jerseyColor: String(jerseyColor || '') };
     this.saveTeamProfile(profile);
     const teams = this.teams();
     const active = teams.find(team => team.id === this.activeTeamId());
     if (active) {
-      active.teamName = clean;
+      active.teamName = name;
+      active.school = cleanSchool;
+      active.nickname = cleanNickname;
       active.jerseyColor = profile.jerseyColor;
       this.saveTeams(teams);
     }
@@ -157,7 +167,7 @@ export class TeamRegistry {
     let teams = this.teams();
     const profile = this.teamProfile();
     if (!teams.length && profile.teamName) {
-      const t = { id: this.newTeamId(profile.teamName, []), teamName: profile.teamName, jerseyColor: profile.jerseyColor || '' };
+      const t = { id: this.newTeamId(profile.teamName, []), teamName: profile.teamName, school: profile.school || '', nickname: profile.nickname || '', jerseyColor: profile.jerseyColor || '' };
       teams = [t];
       this.saveTeams(teams);
       this.setActiveTeamId(t.id);
@@ -166,13 +176,16 @@ export class TeamRegistry {
     if (teams.length && !profile.teamName) {
       const first = teams.find(t => t.id === this.activeTeamId()) || teams[0];
       this.setActiveTeamId(first.id);
-      this.saveTeamProfile({ teamName: first.teamName, jerseyColor: first.jerseyColor || '' });
+      this.saveTeamProfile({ teamName: first.teamName, school: first.school || '', nickname: first.nickname || '', jerseyColor: first.jerseyColor || '' });
       return;
     }
     const active = teams.find(t => t.id === this.activeTeamId());
     if (active && profile.teamName &&
-        (active.teamName !== profile.teamName || (active.jerseyColor || '') !== (profile.jerseyColor || ''))) {
+        (active.teamName !== profile.teamName || (active.jerseyColor || '') !== (profile.jerseyColor || '') ||
+         (active.school || '') !== (profile.school || '') || (active.nickname || '') !== (profile.nickname || ''))) {
       active.teamName = profile.teamName;
+      active.school = profile.school || '';
+      active.nickname = profile.nickname || '';
       active.jerseyColor = profile.jerseyColor || '';
       this.saveTeams(teams);
     }
@@ -226,13 +239,13 @@ export class TeamRegistry {
           }
           const name = (profile && profile.teamName) || group[0].name || 'My Team';
           const id = tid || this.newTeamId(name, teams.map(t => t.id));
-          teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
+          teams.push({ id, teamName: name, school: (profile && profile.school) || '', nickname: (profile && profile.nickname) || '', jerseyColor: (profile && profile.jerseyColor) || '' });
         if (playbook !== null) playbooks[id] = playbook;
       }
       if (!teams.length) return false;
       this.saveTeams(teams);
       this.setActiveTeamId(teams[0].id);
-      this.saveTeamProfile({ teamName: teams[0].teamName, jerseyColor: teams[0].jerseyColor || '' });
+      this.saveTeamProfile({ teamName: teams[0].teamName, school: teams[0].school || '', nickname: teams[0].nickname || '', jerseyColor: teams[0].jerseyColor || '' });
       Object.entries(playbooks).forEach(([id, playbook]) => {
         try {
           const library = this._app()?.playbook;

@@ -1,3 +1,142 @@
+### CLAUDE REPAIR OF THE ccce567 REVIEW - AWAITING RE-REVIEW (2026-08-31)
+
+All five findings from the CODEX REVIEW OF ccce567 (recorded immediately
+below) are closed as real, tested production changes -- not disclosure, not
+scope-narrowing. Built on top of the existing dirty tree; the concurrent
+Breakdown repair entry above this one is untouched.
+
+**1. Season rail, library, and first-use states are real Home content now.**
+`native-home.jsx` gained a `SeasonRail` (year-grouped, reusing the SAME
+`TeamHubScreen`/`SeasonRow` data and actions Team Hub itself renders --
+create/open/delete a season, plus Roster/Film & storage/Season setup/Manage
+program tools, directly) and a `SeasonLibraryPanel` (the real season grid +
+`WorkspaceChoice` + create action, shown whenever no season is open). Neither
+duplicates Team Hub's own first-team form: this route's Preact tree never
+unmounts (every route mounts once at shell init and only toggles `hidden`),
+so a genuinely-duplicated `FirstTeam`/`SeasonRow` copy would sit hidden in
+the DOM for the rest of the session, reachable by any unscoped selector --
+exactly the "hidden markup resurfaced" class this project's history already
+names twice. Closed instead with `HomeScreen.leave()` (called by
+`WorkspaceShell.show()`/`_openLibrary()` whenever the route changes away from
+Home), which flags the reused content inactive so it renders nothing while
+hidden and repopulates the instant the coach returns. Two real bugs were
+found and fixed while building this, both caught by the SAME class of test
+this project has been burned by before -- a fixture that bypasses the normal
+creation path: (a) gating first-use/library purely on `TeamHubScreen`'s own
+cached team list broke `e2e-workspace-shell.mjs`'s direct-API season fixture,
+which never registers a team; fixed by letting an already-open season always
+win regardless of the cache. (b) `TeamHubScreen.load()` was only called once
+on first idle, so a season created or explored WHILE Team Hub was the active
+route (the sample-season action, a fresh season) left the rail showing a
+stale empty list until something unrelated triggered a reload; fixed by
+reloading whenever Home's own `active` state flips true, mirroring the
+existing `_verifyFilm()` "re-check every visit" discipline.
+
+**2. Committed dependencies are now school/nickname-split-complete for this
+scope.** Verified by reverting `js/team-registry.js`, `js/game-screen.js`,
+and `js/settings-screen.js` to HEAD one at a time and re-running the full
+Home/Team-Hub-adjacent battery: `team-registry.js` and `settings-screen.js`
+are genuine dependencies (`e2e-team-registry.mjs` and `e2e-native-settings.mjs`
+each fail without them); `game-screen.js` is not (every suite in scope stays
+green with it reverted, so it is left as unrelated in-flight work, not swept
+in). Both required files carry only the additive `saveTeamIdentity(school,
+nickname, jerseyColor)` extension, the same shape already committed for
+`team-hub-screen.js`/`native-team-hub.jsx`.
+
+**3. Thumbnail resolution is now season/identity-fenced, not force-completed.**
+`GameThumbnailService.request()` captures the backend's season identity
+(`currentId`) at request time, includes it in the cache key, and re-checks it
+at every subsequent await (`_firstFile()`'s own async lookups, the deferred
+`filmUrl()`/`linkedFilmUrl()` call -- both of which read `this.currentId`
+live inside `storage-backend.js`, confirmed by reading their real
+implementations, not assumed) -- aborting to `null` rather than resolving
+under a season the request was never made for. `HomeScreen.show()` now clears
+`filmHealth`/`thumbnails` on a genuine season change; `requestThumbnail()`
+gained a per-game generation counter so an older in-flight relink capture
+resolving after a newer one can never clobber the fresher frame. Deliberately
+does NOT try to force-complete a stale request under the new season's own
+identity (the review's own diagnostic implies this might be expected) --
+aborting is the safer, established pattern here (the codebase's own
+documented `_filmLoadSeq` precedent), and the caller already re-requests
+correctly the moment the real season change is reflected in Home's own state.
+
+**4. Thumbnail decode is visibility-driven.** `Thumbnail`'s effect now uses an
+`IntersectionObserver` (200px lookahead margin, fires once, disconnects) --
+request-on-mount only for the selected-game detail panel, which is on screen
+by construction the instant it renders. A 40-card synthetic season now issues
+far fewer decode requests than card count, confirmed directly rather than
+inferred from geometry.
+
+**5. `.ws-game-row`'s thumbnail now stretches to the card's full width.**
+Root cause, confirmed by reading the actual cascade rather than guessing:
+`workspace-shell.css`'s unscoped, pre-existing `.ws-game-row` (a five-column
+grid predating this card, `align-items:center`) and `native-home.css`'s
+higher-specificity `.ws-home-page .ws-game-row` (flex, no `align-items`
+declared) both match the same element -- CSS resolves per property, not per
+rule, so the undeclared property fell through to the lower-specificity
+rule. Fixed by declaring `align-items:stretch` explicitly.
+
+**New regression coverage**, `tools/e2e-home-review-repair.mjs` (10
+assertions, all mutation-verified against the exact fix they guard -- CSS
+`align-items` reverted reproduces `alignment:"center"`/`128.33px` byte-for-byte
+matching the review's own evidence; the cache-key season binding reverted
+reproduces `b === a` byte-for-byte matching the review's own evidence; both
+restored and reconfirmed green). Also reran: `e2e-workspace-shell.mjs` 90/90,
+`e2e-native-team-hub.mjs` 33/33, `e2e-onboarding.mjs` 33/33,
+`e2e-native-game.mjs` 16/16, `e2e-team-registry.mjs` 21/21,
+`e2e-native-settings.mjs` 23/23, `e2e-native-mirror-recovery.mjs` 15/15,
+`e2e-wipe-recovery.mjs` 13/13, `e2e-v2b-control-center.mjs` 15/15,
+`e2e-film-room.mjs` 175/175 -- all green, no regression from the repair.
+
+**Four pre-existing, unrelated failures confirmed via direct reversion, not
+assumed.** A full canonical gate run (94 harnesses) came back with four reds:
+`e2e-game-context.mjs`, `e2e-native-quick-chart.mjs`, `e2e-tagging.mjs`,
+`e2e-xss-names.mjs`. All four traced to the OTHER already-in-flight,
+already-dirty Breakdown/tagging/school-nickname work this session did not
+touch -- `e2e-game-context.mjs` calls the OLD 2-argument
+`saveTeamIdentity('Mavericks','navy')`, which the (unrelated, pre-existing)
+3-argument signature now composes into `"Mavericks navy"`, a stale test
+contract; `e2e-native-quick-chart.mjs`'s mobile-hit-target failure was
+reproduced identically with `workspace-shell.js` reverted to HEAD, ruling out
+my one touch to that file; `e2e-tagging.mjs`'s headline mismatch and
+`e2e-xss-names.mjs`'s `shell._gameRowHtml is not a function` (a method
+deleted by the ORIGINAL Home rebuild, predating this repair) were both
+already disclosed as pre-existing in this session's own prior handoff. None
+were fixed here -- out of this repair's scope.
+
+**Not done, disclosed rather than silently narrowed:** no speculative
+redesign of the rail/library beyond the comp's stated contract; the deferred
+Breakdown Edit Library width repair remains deferred, untouched. No installer,
+package, tag, push, or release. Awaiting re-review.
+
+### CODEX BREAKDOWN REPAIRS - WORKING TREE (2026-08-31)
+
+Fixed two coach-reported defects without changing stored play data. The play rail and its accessible label now read structured Special Teams phase/outcome through the existing model and chyron formatter, preserving legacy display fallback. A selected Kick Return no longer displays Untagged; an unresolved outcome remains No result.
+
+Reproduced internal form overflow: 176px field-position controls occupied smaller generic grid tracks (25px overflow at 1920); the non-wrapping OCR/auto-detect action row also exceeded the panel (6px at 1440/1280). Special Teams metrics now reserve appropriate track width and in-group command rows wrap. Notes commands now use native charting button styles. No overflow-hiding workaround.
+
+Verification: fresh production build; theater 59/59, geometry 33/33 (expanded groups across Offense, Defense, Kick Return and Punt at five widths), tagging 69/69. Inspected rendered Notes section in artifacts/chart-overflow.png. Isolated browser data only; live catalog untouched. Uncommitted repair on the existing dirty tree; no installer/release. The Home review below remains CHANGES REQUESTED.
+
+Follow-up on the coach's overlapping Yard line / Return yards screenshot: confirmed the same track-width repair fixes the collision. Added text-range intersection assertions for Special Teams labels at all five widths (geometry now 43/43) and visually inspected artifacts/chart-special-labels.png. No further production change was necessary.
+
+### CODEX REVIEW OF ccce567 - CHANGES REQUESTED (2026-08-31)
+
+Independent review of the commit and its integration with the existing dirty working tree. The comp is still approved; the implementation is NOT accepted. Five required repair groups:
+
+1. **P1 - Complete the approved composition and entry flows.** `js/native-home.jsx:186-198` renders a season-only workspace or placeholder and delegates library/first use to the old Team Hub. The year-grouped season rail, scoped tools and approved first-use/library states are absent. The handoff explicitly required these and distinguished context navigation from duplicate global navigation. The disclosed decision to omit them is not coach authorization. Actual screenshots confirm the mismatch. Implement the approved design using existing services; do not edit the comp to match this deviation.
+
+2. **P1 - Integrate the checkpoint's actual dependencies.** Changed tests (`tools/e2e-native-team-hub.mjs:36`, `tools/hub-setup.mjs:29-30`, others) require school/nickname controls/APIs whose production changes exist only in uncommitted Team Hub/Game/Settings/Registry files. A separate clean archive of ccce567 builds, then its own native-Team-Hub suite fails immediately: `No element found for selector: .gi-hub-first input[name="school"]`. The commit still contains the old teamName/free-text season forms. Identify the precise dependent changes and include them as reviewed scope, without absorbing unrelated dirty work. Mixed-tree results cannot prove that this commit contains the claimed creation/naming workflow.
+
+3. **P1 - Scope thumbnails and view state by season AND film source/generation.** `js/game-thumbnail.js:60-78` omits season from the managed cache key and defers `backend.filmUrl()` until a queued job executes under a possibly different mutable backend season. Actual service reproductions with controlled backend/decode boundaries: B/same-game/first.mp4 receives A's cached frame; a queued A job resolves its URL under B after switching. `HomeScreen.show()` (`js/home-screen.js:83-86`) also retains bare-game-ID filmHealth/thumbnails maps across season changes. `requestThumbnail()` (`285-292`) checks only season ID: an older same-season relink completion overwrites a newer frame. The Thumbnail effect (`js/native-home.jsx:19`) omits season/source-file revision. Bind source resolution and completion to captured identity/generation, invalidate view state, and re-request when the actual source changes. Preserve Checking while revalidating. Calling reset alone does not fence active work or the deferred URL lookup.
+
+4. **P2 - Actually defer offscreen thumbnail work.** `js/native-home.jsx:19,170` requests on mount for every filtered card. A 60-game isolated season issues 61 requests including detail, with only six cards visible. `loading="lazy"` does not defer that effect. The concurrency cap bounds simultaneous decodes, not the backlog or unbounded session cache. Add visibility-driven demand, bounded retention, and lifecycle cancellation/settling of abandoned work. A small visibility-aware thumbnail owner suffices; no new broad virtualization project is required.
+
+5. **P2 - Remove obsolete row alignment from new cards.** `css/native-home.css:38` changes `.ws-game-row` to a flex column but inherits the old shell row's `align-items:center` and child treatment. Live measurement: a 462px card contains a centered 128.33px thumbnail. Changing only align-items to stretch in the browser makes the same thumbnail 460px wide. This is a CSS defect, not a missing-film fixture explanation. Own card alignment/media sizing explicitly; inspect image and fallback states in grid/list against the approved full-width media treatment.
+
+**Evidence:** current working-tree build passed. `artifacts/review-home-ccce567/review.mjs` drives real Team Hub/demo setup in a fresh isolated browser, then probes the actual Home and thumbnail classes. `evidence.json` records cache/queue/relink failures, actual season-change state retention, request counts and CSS before/after geometry. Thumbnail backend/decode boundaries are controlled for deterministic race proofs, not a native-WebView playback smoke. `home-1440.png` and `first-use.png` were opened and compared with the approved comp. A clean `git archive` under `artifacts/review-home-ccce567/committed/` builds independently and reproduces the committed suite failure. No live data touched; no production fixes, full gate, stash/revert, commit, push, installer or release. Unrelated uncommitted metadata work has not been fully reviewed.
+
+Repair in one focused batch, preserve unrelated changes, add discriminating regression checks and inspect actual comp-versus-production views. Return for review. No speculative redesign; the deferred Breakdown request stays deferred.
+
 ### COACH HOME COMP APPROVED - PRODUCTION HANDOFF (2026-08-31)
 
 Charlie approved the revised Home comp: "looks great" and requested a precise Claude implementation prompt. The approved reference is the CURRENT LOCAL `design-comps/home-workspace-2026-08-31/` folder, not an older Home comp or Git HEAD. `BUILD-HANDOFF.md` in that folder is the implementation instruction; read it and `RATIONALE.md` before editing. Approval covers the revised visual composition and structured setup/nickname workflow, not a claim that production already implements either. Preserve all data and existing routes; the Breakdown Edit Library width repair remains deferred. No installer or release is authorized by this handoff.
