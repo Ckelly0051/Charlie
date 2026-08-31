@@ -112,13 +112,23 @@ function PlaybookSettings({ screen, initialName = '' }) {
 
 function TeamSettings({ screen, initialPlayCall = '' }) {
   const profile = screen.teamProfile();
-  const [name, setName] = useState(profile.teamName || '');
+  // School/nickname are additive companion fields (2026-08-31 Home naming
+  // contract). An existing profile predating them has no `school` — its
+  // intact `teamName` is the honest default, never a heuristic split, so an
+  // unmodified re-save reproduces the exact prior identity.
+  const [school, setSchool] = useState(profile.school || profile.teamName || '');
+  const [nickname, setNickname] = useState(profile.nickname || '');
   const [color, setColor] = useState(profile.jerseyColor || '');
   const [saved, setSaved] = useState(false);
+  const composed = [school.trim(), nickname.trim()].filter(Boolean).join(' ');
   return <div class="gi-settings-team" data-settings-panel="team"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">TEAM IDENTITY</span><h3>Coach-facing name and jersey</h3></div></header><div class="gi-settings-section-body">
-    <label class="gi-settings-field"><span>Team name</span><input value={name} onInput={event => { setName(event.currentTarget.value); setSaved(false); }} /></label>
+    <div class="gi-settings-field-row">
+      <label class="gi-settings-field"><span>Program: school / organization</span><input value={school} onInput={event => { setSchool(event.currentTarget.value); setSaved(false); }} placeholder="e.g. St. Joseph" /></label>
+      <label class="gi-settings-field"><span>Nickname <small>Optional</small></span><input value={nickname} onInput={event => { setNickname(event.currentTarget.value); setSaved(false); }} placeholder="e.g. Mavericks" /></label>
+    </div>
+    {composed && <p class="gi-settings-name-preview"><small>Full identity</small><strong>{composed}</strong></p>}
     <fieldset class="gi-settings-swatches"><legend>Jersey color</legend>{JERSEY_COLORS.map(value => <button key={value} type="button" class={color === value ? 'is-selected' : ''} aria-label={`${value} jersey`} aria-pressed={color === value} data-color={value} onClick={() => { setColor(value); setSaved(false); }} />)}</fieldset>
-    <button type="button" class="gi-settings-primary" disabled={!name.trim()} onClick={() => setSaved(screen.saveTeam(name, color))}>Save team identity</button>{saved && <span class="gi-settings-saved" role="status">Team identity saved</span>}
+    <button type="button" class="gi-settings-primary" disabled={!school.trim()} onClick={() => setSaved(screen.saveTeam(school, nickname, color))}>Save team identity</button>{saved && <span class="gi-settings-saved" role="status">Team identity saved</span>}
   </div></section><PlaybookSettings screen={screen} initialName={initialPlayCall}/></div>;
 }
 

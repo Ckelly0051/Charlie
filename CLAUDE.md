@@ -1,3 +1,122 @@
+### CLAUDE REPAIR OF THE 66ccbd2 RE-REVIEW - AWAITING RE-REVIEW (2026-08-31)
+
+All four findings from the CODEX RE-REVIEW OF 66ccbd2 (recorded immediately
+below) are closed. The root cause of findings 1 and 2 was exactly what the
+reviewer named: `66ccbd2`'s claim of "verified against the actual committed
+artifact" was false. Verification had only run against the dirty working
+tree, where two files this change genuinely depends on --
+`js/team-hub-screen.js` (the `addTeam({school,nickname})`/
+`createSeason({year,level})`/structured-duplicate-detection controller) and
+`js/native-settings.jsx` (the `saveTeam(school,nickname,color)` caller) --
+were already dirty from a separate, unrelated in-flight effort and happened
+to already match the new API shapes. That made the mixed tree pass while the
+committed artifact could not. Both files are additive, coherent, and consistent
+with the existing school/nickname naming contract; both are included in this
+commit. **This time, "verified against the clean commit" is real**, done the
+same way the review itself did it: `git write-tree` on exactly the staged fix
+set (no unrelated dirty files), `git archive` that tree to an isolated
+directory, a fresh `npm run build` there, then every assertion and screenshot
+run against that isolated `dist/` via `GIQ_APP_ROOT` -- never the live working
+tree. The commit that follows this entry is that exact tree.
+
+**1. Team/season creation now works on the real committed controller.**
+`TeamHubScreen.addTeam({school,nickname,jerseyColor})` and
+`createSeason({year,level})` are committed alongside `native-team-hub.jsx`'s
+forms that submit them. Verified on the clean build: a real first-use
+"St. Joseph" / "Mavericks" submit creates a team with that identity intact
+(no "Enter a team name." refusal); a real Year+Level season submission with no
+free-text name field creates a real program season named `2027 · Varsity`.
+
+**2. Settings no longer corrupts team identity.** `native-settings.jsx`'s
+`TeamSettings` now calls `screen.saveTeam(school, nickname, color)` --
+committed alongside `settings-screen.js`'s already-committed 3-argument
+`saveTeam`. Verified on the clean build: saving Settings with no field changes
+does not rewrite `St. Joseph Mavericks` into `St. Joseph Mavericks navy`, and
+the jersey color is never absorbed into the composed name.
+
+**3. The season rail now matches the approved composition, and a second
+instance of the same defect was found and fixed while inspecting it.** The
+reviewer's instruction to "inspect actual library/first-use states too" was
+followed literally, and it found a real defect: the no-season library grid
+(`SeasonLibraryPanel`, untouched by the original fix) reused the same
+full-width Team Hub `SeasonRow` in a ~320px card, and its Return-to-Home/
+Remove buttons visibly overlapped the game/play counts -- the identical
+"controls crowd the counts" defect, one surface over. Both are fixed:
+- **The rail** no longer reuses `SeasonRow` at all. A new purpose-built
+  `RailSeasonRow` (native-home.jsx) renders one label, one count, one click --
+  no Team Hub action buttons, no film badge, no state pill squeezed into a
+  236px column. `.rail-year-label` is now a real `<h3>` at 20px/700 weight
+  (was 11px uppercase caption). `.rail-year` is a genuine full-height context
+  rail on a single right hairline border (`border-right`, no radius, no
+  padding-island background) instead of an inset floating card. The current
+  season gets a gold-bordered, gold-surface-filled row using the design
+  system's own existing `--gi-bd-gold-surface` token.
+- **The library grid** cards are re-flowed from a horizontal flex row (summary
+  beside actions, which is what produced the overlap at card width) to a
+  vertical stack: summary content top to bottom, then Open/Delete as their own
+  full-width row below it, never sharing a line with the counts.
+- Both states were visually re-inspected against
+  `design-comps/home-workspace-2026-08-31/captures/1440-season.png` on the
+  clean isolated build -- screenshots taken, not inferred from a DOM query --
+  and the season-rail test assertion was rewritten to check the new
+  `RailSeasonRow` markup's actual rendered text (a real year, a real label,
+  a real "N game(s)" count) instead of the retired `.gi-hub-season` selector.
+
+**4. Thumbnail relink invalidation (unchanged from before this repair round --
+already fixed and re-verified on the clean build).** `HomeScreen` tracks the
+film-source identity (`filmMode::filmDir`) a resolved thumbnail was fetched
+for, separately from the game id; `native-home.jsx`'s `Thumbnail` effect
+re-requests whenever that source identity no longer matches, instead of
+skipping the moment any URL exists. Verified through the real mounted Preact
+component, not the isolated service: relinking a game to a new folder issues a
+new request and the displayed frame updates, on the clean build.
+
+**Design-token discipline caught by the project's own gate, fixed before
+commit:** the first version of the gold-surface rule used an invented
+`--gi-bd-gold-wash` token with a raw `rgba(...)` fallback -- `e2e-design-
+system.mjs` correctly reds both ("no raw colors in native styles" and "every
+token reference resolves"). Replaced with the design system's own already-
+declared `--gi-bd-gold-surface` token (used identically elsewhere in
+`native-reports.css`), re-verified 17/17.
+
+**Verification, all on the isolated clean-tree build described above, plus a
+full canonical gate on the working tree:** `tools/e2e-home-review-repair.mjs`
+16/16, run twice clean (one earlier run in this same session hit a single
+transient Puppeteer/CDP teardown crash after all 16 assertions had already
+printed PASS -- reran clean immediately after and again on a third run,
+matching this project's long-documented intermittent-teardown class, not a
+regression). Full canonical gate: **95 harnesses | 90 green | 0 skipped | 5
+failed** -- `e2e-design-system.mjs` (the token finding above, fixed and
+re-confirmed 17/17 standalone after the fix), `e2e-game-context.mjs`,
+`e2e-native-quick-chart.mjs`, `e2e-tagging.mjs`, `e2e-xss-names.mjs`. The
+latter four are the exact four pre-existing, already-disclosed failures this
+file's own prior entries trace to the separate, already-dirty, already-
+in-flight Breakdown/tagging work sitting in the same working tree
+(`js/native-tagging.jsx`, `js/stats-engine.js`, `js/breakdown-theater-
+screen.js`, etc.) -- none of them touch a file this repair changed, and none
+were fixed here, per standing scope discipline.
+
+**Not done, disclosed rather than silently narrowed:** no push, tag,
+installer, or release. The unrelated dirty Breakdown/tagging/packaging work
+already sitting in this working tree (recorded at the top of this file by its
+own owner) is untouched and not part of this commit. Awaiting re-review.
+
+### CODEX RE-REVIEW OF 66ccbd2 - CHANGES REQUESTED (2026-08-31)
+
+Reviewed the actual committed artifact, not the mixed working tree: git archive of 66ccbd2 extracted to artifacts/review-home-66ccbd2-committed, fresh Vite build, then isolated Puppeteer interactions against that bundle. Four remaining findings:
+
+1. **P1 - Commit the matching Team Hub controller with the new forms.** js/native-team-hub.jsx:339 submits school/nickname, but the committed js/team-hub-screen.js still accepts addTeam({name}). A real first-use submit of St. Joseph / Mavericks returns "Enter a team name." and creates no team. The new CreateSeasonForm at line 136 submits year/level without name, while the committed createSeason still requires name: real submit returns "Enter a season name." The required controller changes remain uncommitted. Include the exact controller dependencies and verify the resulting clean commit, including structured naming/duplicate/edit behaviors, rather than inferring dependency completeness from passing mixed-tree suites.
+
+2. **P1 - Migrate Settings' caller with its changed save signature.** js/settings-screen.js:67 now takes (school,nickname,color), but committed js/native-settings.jsx still invokes saveTeam(name,color). Real Settings -> Team -> Save changes {teamName:'St. Joseph Mavericks',jerseyColor:'navy'} to {teamName:'St. Joseph Mavericks navy',school:'St. Joseph Mavericks',nickname:'navy',jerseyColor:''}. The corrected JSX caller is still dirty/uncommitted. This is an introduced product defect in the commit, not merely a stale test or unrelated two-argument caller.
+
+3. **P2 - Finish the rail composition, not just its existence.** css/native-home.css:33-37 reuses the horizontal Team Hub row without replacing its flex layout or bringing its scoped button styling along. At 1440 and 1920 the season name receives only 75.5px, truncates to "2026 Var...", counts crowd under the action row, and Return to Home/Remove appear as raw tiny controls. The year heading is 11px despite the explicitly approved prominent hierarchy. The page is still the old max-width layout with an inset rail card, not the approved full-height context rail. Compared actual screenshots with design-comps/home-workspace-2026-08-31/captures/1440-season.png. Repair the approved composition and inspect actual library/first-use states too; checking for .rail-year does not validate design acceptance.
+
+4. **P2 - Invalidate the displayed thumbnail when film changes.** js/native-home.jsx:31 exits its effect whenever a URL already exists, even when filmDir/filmMode changes. Reproduced on real mounted Thumbnail components: load an old-folder frame, change the selected game's filmDir to new and publish Home state; both card/detail retain the old URL and issue zero new requests. The per-game request counter protects two manually issued requests, but cannot protect this production path because the second request never occurs. Track displayed identity/invalidation at the view boundary and exercise relinking after a successful thumbnail, not only overlapping service requests. Include same-directory source-file replacement/root changes in the refresh contract.
+
+Good changes: service cache now includes season identity; queued work checks the captured season; Home clears outgoing season maps; request generations protect out-of-order completion when actually requested; IntersectionObserver limits initial decode demand; card image alignment now stretches. These do not close the four issues above.
+
+Evidence: artifacts/review-home-66ccbd2.mjs, artifacts/home-66ccbd2-evidence.json, artifacts/home-66ccbd2-1440.png and home-66ccbd2-1920.png (toast-free final captures). No production edits, live catalog writes, full-gate run, installer, release, or push in this review. Existing Breakdown repairs and unrelated dirty work preserved.
+
 ### CLAUDE REPAIR OF THE ccce567 REVIEW - AWAITING RE-REVIEW (2026-08-31)
 
 All five findings from the CODEX REVIEW OF ccce567 (recorded immediately

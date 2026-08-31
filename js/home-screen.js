@@ -32,7 +32,7 @@ export class HomeScreen {
     this._state = {
       status: 'idle', active: false, seasonId: '', selectedGameId: null,
       query: '', sort: 'newest', filter: 'all', view: 'grid',
-      filmHealth: {}, thumbnails: {},
+      filmHealth: {}, thumbnails: {}, thumbSources: {},
     };
   }
 
@@ -91,7 +91,7 @@ export class HomeScreen {
       // queue too -- belt-and-braces, not a substitute for that scoping.
       this._thumbGen = new Map();
       this.thumbnails?.reset?.();
-      this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'newest', filmHealth: {}, thumbnails: {} };
+      this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'newest', filmHealth: {}, thumbnails: {}, thumbSources: {} };
     } else if (previousRoute !== 'home') {
       this._state = { ...this._state, selectedGameId: null };
     }
@@ -307,6 +307,14 @@ export class HomeScreen {
   }
 
   // -- Thumbnails -----------------------------------------------------------
+  /** The film-source identity a resolved thumbnail is FOR. `requestThumbnail`
+   *  stamps every write with it; `thumbnailSourceMatches` lets the view layer
+   *  tell "a frame exists" apart from "a frame exists for the game's CURRENT
+   *  film" -- a relink changes `filmMode`/`filmDir` on the game object with
+   *  no guarantee the game id (the thumbnail cache's only key) changes too,
+   *  so the id-keyed map alone cannot detect a stale display. */
+  _thumbSourceKey(game) { return `${game?.filmMode || ''}::${game?.filmDir || ''}`; }
+
   /** A generation counter per game id -- guards against TWO overlapping
    *  requests for the SAME game (a relink mid-flight issues a second request
    *  before the first's capture has resolved) applying out of order. Only
@@ -317,17 +325,29 @@ export class HomeScreen {
     if (!this.thumbnails || !game) return;
     const key = String(game.id);
     const seasonId = this._state.seasonId;
+    const sourceKey = this._thumbSourceKey(game);
     const gens = (this._thumbGen ||= new Map());
     const myGen = (gens.get(key) || 0) + 1;
     gens.set(key, myGen);
     this.thumbnails.request(game).then(dataUrl => {
       if (this._state.seasonId !== seasonId) return; // a stale in-flight capture from a season the coach has left
       if (this._thumbGen?.get(key) !== myGen) return; // superseded by a newer request for this same game
-      if (this._state.thumbnails[key] === dataUrl) return;
-      this._set({ thumbnails: { ...this._state.thumbnails, [key]: dataUrl } });
+      if (this._state.thumbnails[key] === dataUrl && this._state.thumbSources[key] === sourceKey) return;
+      this._set({
+        thumbnails: { ...this._state.thumbnails, [key]: dataUrl },
+        thumbSources: { ...this._state.thumbSources, [key]: sourceKey },
+      });
     }).catch(() => {});
   }
   thumbnailFor(id) { return this._state.thumbnails[String(id)]; }
+  /** True only when the cached thumbnail (if any) was resolved for this
+   *  game's CURRENT film source. A relink/root change/source-file swap
+   *  changes `filmMode`/`filmDir` without changing the game id, so an id-only
+   *  cache hit is not sufficient evidence the displayed frame is current. */
+  thumbnailSourceMatches(game) {
+    if (!game) return false;
+    return this._state.thumbSources[String(game.id)] === this._thumbSourceKey(game);
+  }
 
   // -- Actions ---------------------------------------------------------------
   /** Home's direct "+ Add game" action -- no season open sends the coach to

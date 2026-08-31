@@ -1,5 +1,6 @@
 import { h } from 'preact';
-import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, SeasonSetupGuide, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
+import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, EditSeasonForm, SeasonSetupGuide, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
+import { fullIdentity } from './identity-labels.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -263,12 +264,17 @@ export class TeamHubScreen {
     return true;
   }
 
-  async addTeam({ name, jerseyColor = '' }) {
-    const clean = String(name || '').trim();
-    if (!clean) return { ok: false, message: 'Enter a team name.' };
+  async addTeam({ school, nickname = '', jerseyColor = '' }) {
+    const cleanSchool = String(school || '').trim();
+    const cleanNickname = String(nickname || '').trim();
+    if (!cleanSchool) return { ok: false, message: 'Enter a school or organization name.' };
+    const clean = [cleanSchool, cleanNickname].filter(Boolean).join(' ');
     const registry = this._registry();
     const teams = registry.teams();
-    const team = { id: registry.newTeamId(clean, teams.map(item => item.id)), teamName: clean, jerseyColor: String(jerseyColor || '') };
+    if (teams.some(item => String(item.school || item.teamName || '').trim().toLowerCase() === cleanSchool.toLowerCase())) {
+      return { ok: false, message: `A program named ${cleanSchool} already exists.` };
+    }
+    const team = { id: registry.newTeamId(clean, teams.map(item => item.id)), teamName: clean, school: cleanSchool, nickname: cleanNickname, jerseyColor: String(jerseyColor || '') };
     registry.saveTeams([...teams, team]);
     if (teams.length) {
       const switched = await this.switchTeam(team.id);
@@ -278,7 +284,7 @@ export class TeamHubScreen {
       }
     } else {
       registry.setActiveTeamId(team.id);
-      registry.saveTeamProfile({ teamName: team.teamName, jerseyColor: team.jerseyColor });
+      registry.saveTeamProfile({ teamName: team.teamName, school: team.school, nickname: team.nickname, jerseyColor: team.jerseyColor });
       await this.load();
       this.overlays.toast({ tone: 'success', message: 'Team saved. Start a season when you are ready.' });
     }
@@ -304,23 +310,46 @@ export class TeamHubScreen {
       id: 'team-hub-create-scout', title: 'Create opponent scout', returnFocus: invoker, actions: [],
       content: h(CreateScoutForm, {
         onCancel: () => handle.close('cancel'),
+        onOpenExisting: async id => { handle.close('open-existing'); await this.openSeason(id); },
         onSubmit: async values => { const result = await this.createScout(values); if (result.ok) handle.close('created'); return result; },
       }),
     });
     return handle.result;
   }
 
-  async createScout({ opponent, year = '', sourceTeamA = '', sourceTeamB = '', date = '' }) {
+  /** Duplicate program/year/level/opponent detection for a new opponent
+   *  scout, at the actual shared creation boundary (2026-08-31 Home naming
+   *  contract) — never bypassable by a stale form snapshot, since it reads
+   *  the live library fresh at submit time (`listSeasons()`, not cached
+   *  state), including a submission that overlaps another in-flight one. */
+  async _findDuplicateScout(year, level, opponentSchool) {
+    const all = await this._storage().listSeasons();
+    return all.find(s => s.kind === 'scout' && String(s.teamId || '') === this._state.activeTeamId
+      && String(s.year || '').trim() === year && String(s.level || '').trim().toLowerCase() === level.toLowerCase()
+      && String(s.opponentSchool || s.opponent || '').trim().toLowerCase() === opponentSchool.toLowerCase());
+  }
+
+  async createScout({ opponent, opponentNickname = '', year = '', level = 'Varsity', sourceTeamA = '', sourceTeamANickname = '', sourceTeamB = '', sourceTeamBNickname = '', date = '' }) {
     const cleanOpponent = String(opponent || '').trim();
-    const a = String(sourceTeamA || '').trim();
-    const b = String(sourceTeamB || '').trim();
+    const cleanOpponentNickname = String(opponentNickname || '').trim();
+    const aSchool = String(sourceTeamA || '').trim();
+    const aNickname = String(sourceTeamANickname || '').trim();
+    const bSchool = String(sourceTeamB || '').trim();
+    const bNickname = String(sourceTeamBNickname || '').trim();
+    const a = fullIdentity(aSchool, aNickname);
+    const b = fullIdentity(bSchool, bNickname);
     if (!cleanOpponent) return { ok: false, message: 'Enter the opponent you are scouting.' };
-    if (!a || !b) return { ok: false, message: 'Enter both teams from the source film.' };
+    if (!aSchool || !bSchool) return { ok: false, message: 'Enter both teams from the source film.' };
+    if (a.toLowerCase() === b.toLowerCase()) return { ok: false, message: 'Name the opponent and enter two different source-game teams.' };
     const cleanYear = String(year || '').trim();
-    const seasonName = [cleanYear, cleanOpponent, 'Scout'].filter(Boolean).join(' ');
+    const cleanLevel = String(level || '').trim() || 'Varsity';
+    const opponentIdentity = fullIdentity(cleanOpponent, cleanOpponentNickname);
+    const duplicate = await this._findDuplicateScout(cleanYear, cleanLevel, cleanOpponent);
+    if (duplicate) return { ok: false, message: `A ${cleanYear} · ${cleanLevel} scout of ${cleanOpponent} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
+    const seasonName = [cleanYear, cleanLevel, opponentIdentity, 'Scout'].filter(Boolean).join(' · ');
     try {
       const rec = await this._storage().createSeason({
-        name: seasonName, year: cleanYear, level: 'Opponent scout', kind: 'scout',
+        name: seasonName, year: cleanYear, level: cleanLevel, kind: 'scout',
         team: this._state.profile.teamName || '', teamId: this._state.activeTeamId,
       });
       if (!rec) return { ok: false, message: 'The opponent scout could not be created. Nothing changed.' };
@@ -328,10 +357,11 @@ export class TeamHubScreen {
       const game = store?.activeGame?.();
       if (!game) return { ok: false, message: 'The source game could not be created.' };
       store.data.kind = 'scout';
-      store.data.scout = { opponent: cleanOpponent, year: cleanYear };
+      store.data.scout = { opponent: opponentIdentity, opponentSchool: cleanOpponent, opponentNickname: cleanOpponentNickname, year: cleanYear, level: cleanLevel };
       this.app._applyGameInfoDraft({
-        opponent: cleanOpponent, date: String(date || '').trim(), perspective: 'scout', gameType: 'scout',
-        sourceTeamA: a, sourceTeamB: b,
+        opponent: opponentIdentity, date: String(date || '').trim(), perspective: 'scout', gameType: 'scout',
+        sourceTeamA: a, sourceTeamASchool: aSchool, sourceTeamANickname: aNickname,
+        sourceTeamB: b, sourceTeamBSchool: bSchool, sourceTeamBNickname: bNickname,
       });
       game.name = `${a} vs ${b}`;
       this._storage().gameInfo.projectName = game.name;
@@ -406,18 +436,37 @@ export class TeamHubScreen {
         teamName: this._state.profile.teamName || '',
         hasExistingData: this._state.allTeamSeasonCount > 0,
         onCancel: () => handle.close('cancel'),
+        onOpenExisting: async id => { handle.close('open-existing'); await this.openSeason(id); },
         onSubmit: async values => { const result = await this.createSeason(values); if (result.ok) { handle.close('created'); if (values.setupMode === 'guided') setTimeout(() => this.openSeasonSetup(null), 0); } return result; },
       }),
     });
     return handle.result;
   }
 
-  async createSeason({ name, year = '', level = '' }) {
-    const clean = String(name || '').trim();
-    if (!clean) return { ok: false, message: 'Enter a season name.' };
+  /** Same shared-boundary discipline as `_findDuplicateScout`: reads the
+   *  live library fresh at the moment of the check, so two overlapping
+   *  submissions (e.g. a double click) both see the same, current answer
+   *  rather than each trusting a stale snapshot taken when the dialog opened.
+   *  An explicit custom level (e.g. "JV A") never collides with the
+   *  standard "JV" it was distinguished from — the match is exact, not
+   *  fuzzy, by design (2026-08-31 Home naming contract). */
+  async _findDuplicateSeason(year, level, excludeId = null) {
+    const all = await this._storage().listSeasons();
+    return all.find(s => s.kind !== 'scout' && String(s.teamId || '') === this._state.activeTeamId
+      && String(s.id) !== String(excludeId || '')
+      && String(s.year || '').trim() === year && String(s.level || '').trim().toLowerCase() === level.toLowerCase());
+  }
+
+  async createSeason({ year = '', level = '' }) {
+    const cleanYear = String(year || '').trim();
+    const cleanLevel = String(level || '').trim() || 'Varsity';
+    if (!/^\d{4}$/.test(cleanYear)) return { ok: false, message: 'Enter a four-digit year.' };
+    const duplicate = await this._findDuplicateSeason(cleanYear, cleanLevel);
+    if (duplicate) return { ok: false, message: `${cleanYear} · ${cleanLevel} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
+    const name = `${cleanYear} · ${cleanLevel}`;
     try {
       const rec = await this._storage().createSeason({
-        name: clean, year: String(year || '').trim(), level: String(level || '').trim(),
+        name, year: cleanYear, level: cleanLevel,
         team: this._state.profile.teamName || '', teamId: this._state.activeTeamId, kind: 'program'
       });
       if (!rec) return { ok: false, message: 'The season could not be created. Nothing changed.' };
@@ -426,6 +475,50 @@ export class TeamHubScreen {
       await this.app.workspaceShell.show('home');
       return { ok: true };
     } catch (error) { return { ok: false, message: String(error?.message || 'The season could not be created.') }; }
+  }
+
+  /** Explicit metadata correction for the OPEN season (2026-08-31 Home naming
+   *  contract: "allow explicit metadata correction without reconstructing
+   *  their IDs or ownership"). Never touches the season id, games, roster,
+   *  or film — only the year/level/generated-name fields, and only for a
+   *  program season (a scout season's identity is its opponent, corrected
+   *  through `createScout`'s own form, not this one). */
+  async updateSeasonDetails({ year = '', level = '' }) {
+    const store = this._store();
+    if (!store?.hasCurrent?.() || store.data?.kind === 'scout') return { ok: false, message: 'Open a program season to edit its details.' };
+    const cleanYear = String(year || '').trim();
+    const cleanLevel = String(level || '').trim() || 'Varsity';
+    if (!/^\d{4}$/.test(cleanYear)) return { ok: false, message: 'Enter a four-digit year.' };
+    const duplicate = await this._findDuplicateSeason(cleanYear, cleanLevel, store.currentSeasonId);
+    if (duplicate) return { ok: false, message: `${cleanYear} · ${cleanLevel} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
+    store.data.year = cleanYear;
+    store.data.level = cleanLevel;
+    store.data.seasonName = `${cleanYear} · ${cleanLevel}`;
+    this._storage().commitActive();
+    const saved = await store.persist();
+    if (saved === false) return { ok: false, message: 'Season details could not be saved. Nothing changed.' };
+    await this.load();
+    this.app.workspaceShell?._syncChrome?.();
+    return { ok: true };
+  }
+
+  openEditSeason(invoker) {
+    const store = this._store();
+    if (!store?.hasCurrent?.() || store.data?.kind === 'scout') {
+      this.overlays.toast({ tone: 'info', message: 'Open a program season to edit its details.' });
+      return Promise.resolve(false);
+    }
+    let handle;
+    handle = this.overlays.dialog({
+      id: 'team-hub-edit-season', title: 'Edit season details', returnFocus: invoker, actions: [],
+      content: h(EditSeasonForm, {
+        year: store.data.year || '', level: store.data.level || 'Varsity',
+        onCancel: () => handle.close('cancel'),
+        onOpenExisting: async id => { handle.close('open-existing'); await this.openSeason(id); },
+        onSubmit: async values => { const result = await this.updateSeasonDetails(values); if (result.ok) handle.close('saved'); return result; },
+      }),
+    });
+    return handle.result;
   }
 
   /** PC-3 (Convergence Plan Invariant #6): desktop-only capability check for

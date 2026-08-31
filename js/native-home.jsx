@@ -28,7 +28,12 @@ function Thumbnail({ screen, game, detail = false }) {
   const film = screen.rowFilmView(game.id);
   const nodeRef = useRef(null);
   useEffect(() => {
-    if (url) return undefined; // already have a frame for this identity
+    // A cached frame is only "already have it" when it was resolved for
+    // THIS game's CURRENT film source -- a relink/root change/source-file
+    // swap changes filmMode/filmDir with no guarantee the game id (the only
+    // thing `url` is keyed by) changes too, so `url` alone cannot tell a
+    // fresh frame from a stale one left over from the prior source.
+    if (url && screen.thumbnailSourceMatches(game)) return undefined;
     if (detail) { screen.requestThumbnail(game); return undefined; }
     const el = nodeRef.current;
     if (!el || typeof IntersectionObserver !== 'function') { screen.requestThumbnail(game); return undefined; }
@@ -229,6 +234,25 @@ function groupByYear(seasons) {
  *  the approved comp specifies. "Season library" opens the full Team Hub
  *  screen for anything the compact rail doesn't surface here (team
  *  switching, backup recovery, the control center). */
+/** A season's row inside the compact context rail. Deliberately NOT the
+ *  full Team Hub `SeasonRow` -- that card carries a 4-column grid, a state
+ *  pill, a film badge, and Open/Delete action buttons sized for a full-width
+ *  list, and squeezing it into a 236px column is exactly what left the
+ *  season name a 75px sliver (the reviewed regression). The rail's job is
+ *  identity + a count, at a glance, in a year-grouped list a coach scans
+ *  in half a second -- so this is a purpose-built compact row: one label,
+ *  one count, one click. Delete/rename stay in Team Hub and the full season
+ *  library grid (SeasonLibraryPanel below still renders the real
+ *  `SeasonRow`), which is the only place this app offers that destructive
+ *  action -- not duplicated here. */
+function RailSeasonRow({ season, hub }) {
+  const label = (!season.isScout && season.level) ? season.level : (season.name || 'Season');
+  const count = season.gameCount === 1 ? '1 game' : `${season.gameCount || 0} games`;
+  return <button type="button" class={`rail-row${season.current ? ' is-current' : ''}`}
+    onClick={() => hub.openSeason(season.id)}>
+    <strong>{label}</strong><small>{count}</small>
+  </button>;
+}
 function SeasonRail({ screen, hub, hubState }) {
   const scout = hubState.workspaceMode === 'scout';
   const seasons = (hubState.seasons || []).filter(s => !!s.isScout === scout);
@@ -243,8 +267,8 @@ function SeasonRail({ screen, hub, hubState }) {
     <div class="rail-groups">
       {groups.length
         ? groups.map(([year, rows]) => <div class="rail-group" key={year}>
-            <span class="rail-year-label">{year}</span>
-            {rows.map(season => <SeasonRow key={season.id} season={season} screen={hub} />)}
+            <h3 class="rail-year-label">{year}</h3>
+            {rows.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
           </div>)
         : <p class="rail-empty">{scout ? 'No opponents yet.' : 'No other seasons yet.'}</p>}
     </div>
