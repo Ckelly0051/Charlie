@@ -28,7 +28,7 @@ await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-team-hub]'));
 
 // First-run team setup, so Team Hub renders its normal (non-first-team) shell.
-await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Recovery Test');
+await page.type('.gi-hub-first input[name="school"]', 'Recovery Test');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
 

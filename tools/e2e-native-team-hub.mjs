@@ -30,7 +30,10 @@ let r = await page.evaluate(() => ({
 ok(r.native === 1 && r.first && !r.legacy && !r.outlet && r.route === 'team-hub',
   'Startup has one native Team Hub owner and never reveals the classic outlet', JSON.stringify(r));
 
-await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+// School/nickname are separate fields now; type only the school so the
+// composed teamName ([school, nickname].filter(Boolean).join(' ')) stays
+// exactly "Mavericks", matching every downstream assertion below unchanged.
+await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
 await page.select('.gi-hub-first select', 'blue');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
@@ -55,9 +58,14 @@ ok(r.options.length === 2 && /Guided setup/.test(r.options[0].text) && r.options
   'First season defaults to Guided setup and offers a full manual bypass', JSON.stringify(r));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'first-season-choice.png'), fullPage: true });
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:nth-child(2)');
-await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
-const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
-ok(seasonNameAtSubmit === '2026 Mavericks', 'rapid season-name entry reaches the submit boundary intact', JSON.stringify(seasonNameAtSubmit));
+// Structured season creation (2026-08-31 Home naming contract) replaced the
+// free-text season-name field with Year + Level, composed as "Year · Level".
+// Prove rapid typed entry still reaches the submit boundary intact on the
+// one remaining free-text field: the custom "Other" level name.
+await page.select('[data-overlay-id="team-hub-create-season"] select[name="level"]', 'Other');
+await page.type('[data-overlay-id="team-hub-create-season"] input[name="customLevel"]', 'Mavericks');
+const levelAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="customLevel"]', input => input.value);
+ok(levelAtSubmit === 'Mavericks', 'rapid season-detail entry reaches the submit boundary intact', JSON.stringify(levelAtSubmit));
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
@@ -66,7 +74,8 @@ r = await page.evaluate(() => ({
   home: !document.getElementById('wsHome')?.hidden,
   games: window.app.storage.seasonStore.data?.games?.length,
 }));
-ok(r.season === '2026 Mavericks' && r.teamId === 'mavericks' && r.home && r.games === 1,
+const seasonName = `${new Date().getFullYear()} · Mavericks`;
+ok(r.season === seasonName && r.teamId === 'mavericks' && r.home && r.games === 1,
   'Create season stores active-team ownership and hands off to Home', JSON.stringify(r));
 ok(!await page.$('[data-overlay-id="team-hub-season-setup"]'),
   'Set up manually bypasses the entire guided workflow');
@@ -102,7 +111,8 @@ await page.evaluate(() => {
   hub.openSeasonSetup = () => { window.__guidedSetupProbe.opens += 1; return Promise.resolve(true); };
 });
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:first-child');
-await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', 'Guided Probe');
+// createSeason is mocked above; only setupMode/opens are asserted from it,
+// so the default valid Year + Level (Varsity) needs no typing to submit.
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => window.__guidedSetupProbe?.opens === 1);
 r = await page.evaluate(() => {
@@ -121,7 +131,7 @@ r = await page.evaluate(() => ({
   steps: [...document.querySelectorAll('.gi-season-guide-steps li')].map(row => row.textContent.trim()),
   skip: document.querySelector('.gi-season-guide .gi-hub-form-actions button')?.textContent,
 }));
-ok(r.title === '2026 Mavericks' && r.steps.length === 5 && /Season details/.test(r.steps[0]) && /Roster/.test(r.steps[1]) && /Film storage/.test(r.steps[2]) && /First game/.test(r.steps[3]) && /Ready to chart/.test(r.steps[4]) && /Skip guide/.test(r.skip),
+ok(r.title === seasonName && r.steps.length === 5 && /Season details/.test(r.steps[0]) && /Roster/.test(r.steps[1]) && /Film storage/.test(r.steps[2]) && /First game/.test(r.steps[3]) && /Ready to chart/.test(r.steps[4]) && /Skip guide/.test(r.skip),
   'Review season setup reopens one resumable, fully skippable guide', JSON.stringify(r));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'season-setup-guide.png'), fullPage: true });
 await page.click('.gi-season-guide .gi-hub-form-actions button');
@@ -155,8 +165,10 @@ if (shotDir) await page.screenshot({ path: path.join(shotDir, 'team-hub-1280.png
 
 await page.click('.gi-hub-add-team');
 await page.waitForSelector('[data-overlay-id="team-hub-add-team"]');
-await page.type('[data-overlay-id="team-hub-add-team"] input[placeholder="St. Joseph Mavericks"]', 'Mavericks JV');
-ok(await page.$eval('[data-overlay-id="team-hub-add-team"] input[name="teamName"]', input => input.value === 'Mavericks JV'),
+// School/nickname are separate fields now; typing the whole label into
+// school (nickname left blank) still composes teamName === 'Mavericks JV'.
+await page.type('[data-overlay-id="team-hub-add-team"] input[name="school"]', 'Mavericks JV');
+ok(await page.$eval('[data-overlay-id="team-hub-add-team"] input[name="school"]', input => input.value === 'Mavericks JV'),
   'Rapid team-name entry reaches the submit boundary intact');
 await page.click('[data-overlay-id="team-hub-add-team"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active')?.textContent.includes('JV'));

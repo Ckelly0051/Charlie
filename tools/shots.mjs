@@ -33,7 +33,7 @@ await page.waitForFunction(() => window.app?.workspaceShell && window.app?.teamH
 
 // Deterministic sample state, reached through the native Team Hub controls.
 await page.waitForSelector('.gi-hub-first');
-await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'St. Joseph Mavericks');
+await page.type('.gi-hub-first input[name="school"]', 'St. Joseph Mavericks');
 await page.select('.gi-hub-first select', 'navy');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForSelector('[data-hub-team].is-active');

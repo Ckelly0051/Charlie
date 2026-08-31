@@ -57,7 +57,10 @@ let r = await page.evaluate(() => ({
 ok(r.route === 'team-hub' && /Set up your program/.test(r.first) && !r.legacy && !r.outlet,
   'First-run Team Hub offers team setup before any season', JSON.stringify(r));
 
-await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+// School/nickname are separate fields now; type only the school so the
+// composed teamName ([school, nickname].filter(Boolean).join(' ')) stays
+// exactly "Mavericks", matching every downstream assertion below unchanged.
+await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
 await page.select('.gi-hub-first select', 'navy');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active'));
@@ -110,7 +113,11 @@ r = await page.evaluate(() => ({
 }));
 ok(r.route === 'breakdown', 'opening a game lands in Break Down', JSON.stringify(r));
 ok(r.team === 'Mavericks', 'sample workspace retains the owning team identity', JSON.stringify(r));
-ok(/Demo/.test(r.season || '') && /Riverside|Hawks/.test(r.game || ''),
+// Home's default sort is newest-first, so index 0 is whichever demo game has
+// the later date (Central Tigers, 09-11) -- not necessarily Riverside Hawks
+// (09-04). The assertion only cares that a real opponent name is explicit,
+// not which of the two demo games landed first.
+ok(/Demo/.test(r.season || '') && /Riverside|Hawks|Central|Tigers/.test(r.game || ''),
   'sample season and opponent remain explicit in shell context', JSON.stringify(r));
 await showStats();
 await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
@@ -171,9 +178,15 @@ ok(await clickButtonText('.gi-hub-workspace-hero button', /New season/),
   'returning coach can start a new season from the program workspace');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:nth-child(2)');
-await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
-const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
-ok(seasonNameAtSubmit === '2026 Mavericks', 'rapid season-name entry reaches the submit boundary intact', JSON.stringify(seasonNameAtSubmit));
+// Structured season creation (2026-08-31 Home naming contract) replaced the
+// free-text season-name field with Year + Level, composed into the season
+// name as "Year · Level" -- never coach-typed. Prove rapid typed entry still
+// reaches the submit boundary intact on the one remaining free-text field:
+// the custom "Other" level name.
+await page.select('[data-overlay-id="team-hub-create-season"] select[name="level"]', 'Other');
+await page.type('[data-overlay-id="team-hub-create-season"] input[name="customLevel"]', 'Freshman B');
+const levelAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="customLevel"]', input => input.value);
+ok(levelAtSubmit === 'Freshman B', 'rapid season-detail entry reaches the submit boundary intact', JSON.stringify(levelAtSubmit));
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
@@ -181,7 +194,8 @@ r = await page.evaluate(() => ({
   teamId: window.app.storage.seasonStore.data?.teamId,
   action: !!document.querySelector('[data-ws-action="new-game"]'),
 }));
-ok(r.name === '2026 Mavericks' && r.teamId === 'mavericks', 'real season is durably owned by the active team', JSON.stringify(r));
+const expectedSeasonName = `${new Date().getFullYear()} · Freshman B`;
+ok(r.name === expectedSeasonName && r.teamId === 'mavericks', 'real season is durably owned by the active team', JSON.stringify(r));
 await page.click('[data-ws-action="new-game"]');
 await page.waitForSelector('[data-overlay-id="game-details"] [data-native-game-form]');
 await page.type('[data-native-game-form] [name="opponent"]', 'Opening Night');

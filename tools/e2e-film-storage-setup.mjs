@@ -71,7 +71,7 @@ await page.waitForSelector('.gi-settings-callout.is-success .gi-settings-primary
 await page.click('.gi-settings-callout.is-success .gi-settings-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
-await page.type('.gi-hub-first input[name="teamName"]', 'Storage Test Team');
+await page.type('.gi-hub-first input[name="school"]', 'Storage Test Team');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForSelector('#btnNativeTeamFilmSettings');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));

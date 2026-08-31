@@ -1,3 +1,52 @@
+### COACH HOME COMP APPROVED - PRODUCTION HANDOFF (2026-08-31)
+
+Charlie approved the revised Home comp: "looks great" and requested a precise Claude implementation prompt. The approved reference is the CURRENT LOCAL `design-comps/home-workspace-2026-08-31/` folder, not an older Home comp or Git HEAD. `BUILD-HANDOFF.md` in that folder is the implementation instruction; read it and `RATIONALE.md` before editing. Approval covers the revised visual composition and structured setup/nickname workflow, not a claim that production already implements either. Preserve all data and existing routes; the Breakdown Edit Library width repair remains deferred. No installer or release is authorized by this handoff.
+
+Important baseline: local HEAD is `616ae83`, but there is substantial existing uncommitted accepted Breakdown/design-system/packaging work, and the approved Home comp itself is untracked. Use this local working tree, inventory it, and do not reset, clean, stash, overwrite or indiscriminately stage it. A fresh checkout of HEAD will not contain the approved baseline. No commit or push was performed while preparing this handoff.
+
+### CODEX HOME COMP COACH-FEEDBACK BATCH (2026-08-31)
+
+Applied the collected feedback in the design-only Home comp: bottom spacing, Local library label spacing, real right-panel inset/containment, explicit View roster actions with separate counts, Play icon for resume, raised active navigation, and clearly separated COMP ONLY / Preview scenario controls. Added explicit school/organization and optional nickname fields for programs, opponents and source teams. Compact matchup labels retain school context; absent nicknames preserve full names and collisions fall back to full identities. No name parsing, production migration or customer data changes. Focused comp verification: 87 checks, zero page errors; 23 captures with direct visual inspection, including the bottom-of-page states. RATIONALE.md records behavior and boundaries. Awaiting coach feedback; no installer or commit. The Breakdown Edit Library width request remains deferred.
+
+### CODEX HOME LIBRARY AND STRUCTURED SETUP COMP (2026-08-31)
+
+Charlie chose Home next, superseding the prior Reports recommendation. Built the design-only interactive `design-comps/home-workspace-2026-08-31/home.html`, using the real design system. Hudl Library informs navigation, film cards, context and selected-item actions; the exact Program/year/level hierarchy, generated naming and duplicate rules are our proposal, not verified Hudl requirements. Home must organize work as well as look better. `RATIONALE.md` records sources, production API mapping, current-versus-proposed behavior, privacy and legacy-data boundaries.
+
+Comp includes season library, populated/partial/empty seasons, first use, Opponent Scout, structured creation, optional guided/manual setup, search/filter/sort and scoped destination previews. Plans are correctly season-scoped. Existing IDs, rosters, film paths and saved data are untouched. Five thumbnails are private read-only extracts from coach film; other metadata includes illustrative fixtures. Do not publish them without authorization. Focused comp checks: 68 passed, zero page errors, 19 captures with representative visual inspection. No production implementation, installer, commit or release. Await coach approval before building; naming/validation and thumbnail caching are real additional implementation work, not already shipped.
+
+### COACH BREAKDOWN PRESENTATION APPROVAL (2026-08-31)
+
+Charlie approved the installed 1.12.0-68 Beta Breakdown presentation: "I like it. Approved until next pass." Keep the wide-screen vertical play rail and current composition. Slightly reducing vertical tagging padding is noted for a future pass only; do not spend another repair cycle on it now. This records visual acceptance, not an unreported full installed-workflow smoke or authorization for a GitHub release. Codex recommends Reports as the next comp-first presentation target, reusing the accepted design system and preserving analytics/film identity; that recommendation is not yet a build authorization.
+
+### CODEX LOCAL BREAKDOWN BETA INSTALLER (2026-08-31)
+
+At Charlie's explicit request, packaged the current working-tree Breakdown implementation as **1.12.0-68 Beta**, Windows x64 NSIS. Synchronized APP_VERSION, Cargo.toml, Cargo.lock and tauri.conf.json. `cargo tauri build --bundles nsis --config artifacts/local-installer-config.json` rebuilt Vite and the native executable successfully; the local override disables updater-artifact signing only, leaving the committed updater configuration unchanged. No GitHub release, tag, push or installation was performed. No season data was read or modified during packaging.
+
+Delivery: `GridIron-IQ-1.12.0-68-Beta-Setup.exe` (3,986,171 bytes), embedded product version verified. SHA-256: `505CBD7F8B9B382746636EE35311D90BEEFD602EB02768F9015EA8C0BBF71699`, identical to the NSIS build output. Prior focused verification is recorded below; no full gate or installed-desktop smoke was run in this packaging turn. Coach visual/runtime check is next.
+
+### CODEX LIVE BREAKDOWN COMP IMPLEMENTATION (2026-08-30)
+
+Implemented the reviewed `design-comps/breakdown-workspace-2026-08/breakdown.html` in the production route, at Charlie's request. This is live source work, not another prototype. No installer, release, or persistence migration in this checkpoint; visual acceptance remains Charlie's.
+
+- Chart now uses theater/vertical play rail/deck at >=1700px; theater/deck with an 84px horizontal strip at 1350-1699px; an explicit Plays browser below that. The compact browser has keyboard focus containment, Escape/focus return, live overflow direction, and game/mode/resize dismissal. It overlays the deck, not the film. Film Focus still uses the existing controller and preference.
+- Film Room gives the table 64% of desktop width. Its film is width-sized at 16:9, top-aligned with real selected-play details underneath, rather than floating inside tall letterbox margins. Virtualization and exact Watch/edit ownership are unchanged.
+- Replaced accumulated route/theater/tagging CSS overrides with their current composition owners. Compact play identity has no redundant Charting eyebrow; phase controls are content-sized, Situation is two aligned rows, numeric spots are bounded, labels are neutral gray, and the commit bar stays visible. Player jersey/92px grade controls align, and each roster disclosure expands independently without stretching its neighbor. Kept every real vocabulary option and advanced charting capability, including the third offensive player role absent from the simplified comp fixture.
+- Fixed defects found during implementation: Film Room min-content video shrink; compact strip min-content width growth; mobile touch floors; modal focus restoration attempted before its trigger became visible; and an initial `preact/compat` portal import that changed native input change events globally. The compatibility import is gone. Theater and rail are separate native roots subscribed to the same existing snapshot controller, both cleaned up on unmount. No football formula or saved-data schema changed.
+
+Focused verification: build clean; native tagging **69/69**, native theater **56/56**, route lifecycle **39/39**, native Film Room **25/25**, geometry **13/13**, accessibility **10/10**, virtualization **15/15**, mark flow **13/13**. No full gate was run. Four harness files were updated only where they asserted the superseded design (160px cards, collapse button, stacked desktop Film Room, old deck/eyebrow/type/picture budgets, single-row squeezed coverage). Data, input, persistence and controller assertions were retained; new responsive-browser assertions replace the retired collapse interaction.
+
+`node tools/verify-breakdown-comp.mjs` drives an isolated browser with a read-only copy of the actual six-game season and a real Holy Family clip. It captures Chart/Film Room at 1920, 1440, 1280, 768 and 390; Defense/ST at the three desktop widths; open Plays/tools, expanded roster roles, missing-film and empty-game states. **21 captures** plus `geometry.json` are under `artifacts/breakdown-comp-live/`. Desktop compositions, narrow Chart, expanded players, open controls and empty state were directly viewed, not accepted solely from dimensions. The footage is a visual fixture from the same game, not a claim of relinked playback for every seeded play. The source season's SHA-256 is checked unchanged. Browser launch still needs elevation on this machine; ordinary file reads, patches and image viewing do not.
+
+Known scope boundaries: full real libraries make the deck longer than the comp's hand-picked options; no controls were removed to fake equal density. The generic onboarding toast and other routes were not redesigned. Existing uncommitted `js/stats-engine.js` work and previously approved token changes were not reverted or absorbed as new domain work. Review the actual live captures against the comp before packaging.
+
+### CODEX BREAKDOWN COMP FINAL RAIL REPAIRS (2026-08-30)
+
+Closed the two remaining design-review findings in `design-comps/breakdown-workspace-2026-08/breakdown.html`: the close button is hidden on the docked rail; a pinned, overflow-aware direction indicator makes offscreen plays discoverable without relying on OS scrollbars. Resizing an open panel into docked/strip mode clears its scrim. Focused `verify-rail.mjs` checks passed for visibility, top/middle/bottom scrolling, fitting/empty lists, Escape/focus return, and responsive transition; zero page errors. Refreshed docked/open/top/bottom captures were directly inspected. RATIONALE.md records the closeout. Comp only: no production route changes, installer, or release. File/image sandbox access works, but Chromium launch timed out sandboxed and the browser check required elevation. This closes Codex's remaining comp findings; production implementation must follow the reviewed comp, not treat these changes as already shipped.
+
+### CODEX WINDOWS SANDBOX ACCESS CHECK (2026-08-30)
+
+After Charlie reported fixing the Windows sandbox configuration, Codex verified ordinary workspace file reads through `exec_command` and direct local screenshot viewing through `view_image`, both without elevation or workarounds. Neither reproduced the previous `apply deny-read ACLs` failure. Use the normal sandboxed tools first; do not assume screenshot access remains blocked or default to elevated/base64 reads. This confirms those two access paths, not every sandbox operation. The configuration change itself was made by Charlie and was not inspected by Codex. Direct screenshot inspection is now available with less overhead; visual review must still judge composition, spacing, readability, and clipping rather than rely on geometry checks alone.
+
 ### CODEX ROSTER SETTINGS-BOUNDARY REPAIR (2026-08-29)
 
 Claude's `2f37f83` review correctly found that `9f24324` guarded Team Hub's direct Roster action but left the same roster reachable through Team & Film Settings. The repair moves authorization to `SettingsScreen`, the shared capability boundary: the Roster tab is disabled unless a program season is current; an invalid direct `initialTab:'roster'` request falls back to Film with an explanation; tab switching and every roster read/mutation/export method independently refuse no-season and opponent-scout contexts. This closes both the live Settings bypass and the silent no-season mutation no-op. Team Hub's disabled Roster row also no longer shows a contradictory green status dot.
@@ -232,6 +281,173 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CLAUDE HOME IMPLEMENTATION — REAL PRODUCTION ROUTE, AWAITING CODEX REVIEW (2026-08-31)
+
+**Executor: Claude, per `design-comps/home-workspace-2026-08-31/BUILD-HANDOFF.md`.**
+The coach-approved Home comp is now the real production Home route — not a
+wrapper or a prototype. No installer, push, tag, or release. Codex reviews
+next.
+
+**New files:** `js/home-screen.js` (the `HomeScreen` route controller,
+following the established `TeamHubScreen`/`native-team-hub.jsx` native
+route-controller pattern — `mount()`/`restore()`/`subscribe()`/`snapshot()`),
+`js/native-home.jsx` (the Preact presentation), `css/native-home.css`
+(scoped under `.ws-home-page` per the project's cascade-safety convention),
+`js/identity-labels.js` (pure school/nickname composition + collision-safe
+matchup labels), `js/game-thumbnail.js` (a small, season-token-guarded, lazy
+thumbnail service).
+
+**Modified:** `js/workspace-shell.js` (Home's own actions — Add game,
+Continue Charting, preview selection, Open Study/Reports for the previewed
+game, Season report — moved off the shell's delegated click handler onto
+`HomeScreen`/`native-home.jsx`'s own `onClick` wiring; `WorkspaceShell.show()`
+now captures and passes `previousRoute` into `HomeScreen.show(previousRoute)`
+so a Home-return preview reset works correctly; `refreshHome()`/
+`_seasonRecord()`/`_gameRowHtml()`/`_renderGameDetail()`/etc. — the old
+string-built Home render — are removed, superseded by the native component),
+`js/app.js` (constructs `GameThumbnailService` + `HomeScreen`), plus two small
+additive CSS rules in `css/native-team-hub.css` (a full-width field row and an
+inline error-action row, both reused by the season-create/edit forms).
+
+**Behavioral contract, matching the handoff:**
+- **Real navigation.** Every action reuses `App.openGame(id, {route})` — the
+  one authoritative game-open command. A Home row click only sets
+  `HomeScreen.selectedGameId` (a **preview**, never mutating
+  `SeasonStore.data.activeGameId`); Continue Charting / Open Study / Open
+  Reports / Game Settings / Link Film all activate the previewed game through
+  `App.openGame()` before acting. **Fixed during this session:** the action
+  buttons initially closed over the `game` prop at render time — two
+  back-to-back synchronous clicks (row-select then immediately Continue
+  Charting, exactly the shape `e2e-workspace-shell.mjs`'s "Delayed game switch"
+  test drives) could act on the previous selection if Preact's re-render
+  hadn't flushed yet. Fixed by reading `screen.selectedGameId` (a live getter)
+  at click time instead of the closed-over prop, in every action button inside
+  `GameDetail`/`Thumbnail`.
+- **Preview reset.** The preview resets to the canonical active game whenever
+  the coach returns to Home from any other route (not just on a season
+  change) — `previousRoute !== 'home'` is the reset condition, matching the
+  original workspace-shell.js behavior this replaces.
+- **Structured season creation, duplicate detection, guided/manual/skip/reopen
+  setup, roster/setup following the open season (including an empty one),
+  film links following the game with a shared non-overwritable library root,
+  and honest film-health states** are all unchanged — this work reuses
+  `TeamHubScreen`/`GameScreen`/`WorkspaceContext.filmHealth()` exactly as they
+  already existed; Home is a consumer, not a second implementation.
+- **Backward-compatible DOM contract.** ~15 old ids/classes/data-attributes
+  are deliberately preserved on the new Preact-rendered elements
+  (`wsHome`, `wsHomeEyebrow`, `wsHomeSummary`, `wsContinueTitle`,
+  `wsContinueCharting`, `wsDetailName`, `wsDetailMeta`, `wsDetailUsScore`,
+  `wsDetailThemScore`, `wsFactPlays`, `wsFactCharted`, `wsFactPhase`,
+  `wsPhaseRows`/`.ws-phase-row`, `wsFactFilm`, `.ws-game-row` with
+  `data-ws-preview`+`data-game-id`, `[data-film-health]`,
+  `[data-ws-action="new-game"|"open-study"|"open-reports"|"settings"|
+  "season-report"]`) so the ~15 dependent test files kept working with
+  targeted fixes rather than a parallel rewrite.
+
+**Disclosed deviation from the comp, not a silent scope cut.** Home does
+**not** build the comp's vertical year-grouped season rail. The shell's
+existing persistent Program/Season/Game context bar — coach-approved and
+extensively tested since V2-A/V2-B — already covers season/program switching
+on every route; adding a second rail here would itself become the "duplicate
+global nav" the comp's own rationale explicitly warns against. Everything
+else in the binding visual/data contract (search/sort/filter/view toggle,
+year+level structured creation, duplicate prevention with "Open existing
+season", guided/manual/skip/reopen, roster access on an empty season, real
+bounded lazy thumbnails, keyboard/focus, nickname matchup composition) is
+implemented. Production screenshots were captured via `tools/shots.mjs`
+(48 distinct captures, 4 viewports, zero page overflow, zero duplicate bytes)
+and directly opened beside `design-comps/home-workspace-2026-08-31/captures/
+1440-season.png` for comparison — card visual density (no large photo-style
+thumbnails; the comp shows linked-film games, the verification fixture has
+none) and the missing rail are the two visible differences; hierarchy,
+spacing, and control legibility otherwise match.
+
+**Two real bugs found and fixed by extending the test suite, not just
+patching assertions to pass:**
+1. `HomeScreen.isScout()` read only the currently-open season's `kind`
+   (`this._data()?.kind === 'scout'`), so the eyebrow/sort/matchup-line logic
+   silently defaulted to "Our Program" whenever NO season was open yet —
+   exactly the historical `_isScoutWorkspace()` bug class this project's own
+   V2-B review chain closed once already (see the dated entries further down
+   this file). Fixed by having `HomeScreen.isScout()` fall back to the single
+   canonical `WorkspaceShell._isScoutWorkspace()` owner (season kind when a
+   season is open; the persisted `giq_home_workspace` choice otherwise) when
+   no season is open, instead of reimplementing the check. Caught by
+   `e2e-v2b-control-center.mjs`'s "Scout choice and Home copy remain aligned
+   after leaving Team Hub before any season exists" assertion.
+2. `matchupTitle()`/`fullTitle()` composed matchup labels with `' vs. '`
+   (a period) — inconsistent with the app's one established convention
+   (`gameInfo.opponent` → `` `vs ${opponent}` ``, no period, in both
+   `season-store.js` and `demo-season.js`). Fixed to `' vs '` in both methods.
+
+**Test-contract updates, all driven by a genuinely pre-existing,
+already-in-flight, uncommitted change elsewhere in the tree** (Team Hub's
+own school/nickname split and structured year+level season creation, both
+already dirty in `js/team-hub-screen.js`/`js/native-team-hub.jsx` before this
+session started — **not** authored by this Home work, but several shared test
+harnesses hadn't caught up to it yet and needed updating to keep exercising
+the real path):
+- `tools/hub-setup.mjs` (the shared first-run helper 7+ harnesses import) and
+  8 individual harness files (`e2e-onboarding.mjs`, `e2e-native-team-hub.mjs`,
+  `e2e-film-room.mjs`, `e2e-wipe-recovery.mjs`, `e2e-native-mirror-recovery.mjs`,
+  `e2e-native-settings.mjs`, `e2e-film-storage-setup.mjs`, `shots.mjs`) —
+  `input[placeholder="St. Joseph Mavericks"]` → `input[name="school"]`
+  (school/nickname compose additively; typing only the school preserves every
+  downstream `teamName` assertion unchanged).
+- `e2e-onboarding.mjs`, `e2e-native-team-hub.mjs`, `e2e-v2b-control-center.mjs`
+  — the season-create form no longer takes a free-text name; it composes
+  `` `${year} · ${level}` `` from structured Year + Level fields. Assertions
+  updated to type into the one remaining free-text field (the custom "Other"
+  level name) to preserve the "rapid entry survives to the submit boundary"
+  proof, and to expect the real composed name.
+- `e2e-team-registry.mjs`, `e2e-v2b-control-center.mjs` — direct API calls to
+  `saveTeamIdentity`/`addTeam` used the old 2-argument
+  `(teamName, jerseyColor)`/`{name, jerseyColor}` shapes; both are now
+  `(school, nickname, jerseyColor)`/`{school, nickname, jerseyColor}`. Fixed
+  call sites (an empty nickname preserves the exact same composed name every
+  downstream assertion already expected).
+- `e2e-native-settings.mjs` — its `saveTeamIdentity` spy captured only 2 of
+  the 3 real arguments (silently dropping jersey color into what it thought
+  was the name); fixed to the real 3-arg signature. Its form-interaction step
+  also needed the field split into school+nickname, plus restoring the
+  select-all+backspace clear it had before typing (the school field now
+  starts pre-filled from the stubbed `teamProfile()`'s `teamName` fallback).
+
+**Disclosed, deliberately NOT touched — belongs to other in-flight,
+already-uncommitted work, not this Home task:** `tools/e2e-tagging.mjs` has
+one pre-existing failure (`headline prompts the coach to select a play` —
+expects `'SELECT PLAY'`, actual DOM text is `'Select play'`) caused by
+`js/native-tagging.jsx` already being dirty in the working tree before this
+session started (a separate, unrelated Breakdown/tagging copy-standard
+effort, evidenced by `js/native-tagging.jsx`/`css/native-tagging.css`/
+`tools/e2e-native-tagging.mjs` all already showing as modified). Fixing it
+here would step on that in-flight work's own eventual fix.
+
+**Verification.** Every test file above rerun clean after fixes:
+`e2e-workspace-shell.mjs` 90/90 (was 89/90 before the closure-staleness fix),
+`e2e-onboarding.mjs` 33/33, `e2e-native-team-hub.mjs` 33/33,
+`e2e-film-room.mjs` 175/175, `e2e-team-registry.mjs` 21/21,
+`e2e-wipe-recovery.mjs` 13/13, `e2e-native-mirror-recovery.mjs` 15/15,
+`e2e-native-settings.mjs` 23/23, `e2e-film-storage-setup.mjs` 34/34,
+`e2e-breakdown-lifecycle.mjs` 39/39 (unaffected, run to confirm),
+`e2e-native-season.mjs` 10/10 (unaffected), `e2e-self-scout.mjs` 48/48
+(unaffected), `audit-shell-deps.mjs` 1/1 (unaffected),
+`e2e-v2b-control-center.mjs` 15/15 (was 11/15 before the two real-bug fixes
+above plus the addTeam/season-name test-contract fixes),
+`e2e-tag-projform.mjs` 55/55 (unaffected). `npm run build` clean throughout.
+No full canonical gate re-run — per the handoff's own instruction, a final
+gate is warranted only when shared bootstrap/navigation/persistence contracts
+change; this work's shared-contract touch is `WorkspaceShell.show()`'s
+`previousRoute` threading, already covered directly by the suites above.
+
+**Not done in this checkpoint, disclosed rather than silently dropped:** the
+comp's vertical season rail (see above); a broader visual pass to match the
+comp's large photo-card thumbnail treatment (functional parity achieved;
+visual density differs, most visibly on cards with linked film — not
+exercised by the verification fixture, which has none); the deferred
+Breakdown Edit Library width repair (explicitly out of scope per both the
+handoff and `GRIDIRON-IQ-PLAN-V2.md`). No installer, package, tag, or release.
+
 ### CLAUDE GATE RESTORATION CHECKPOINT (2026-08-29)
 
 **One bounded checkpoint, not another cleanup campaign.** Baseline `a829a1e`

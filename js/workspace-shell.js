@@ -10,13 +10,15 @@ export class WorkspaceShell {
   constructor(app) {
     this.app = app;
     this.root = null;
-    this._homeToken = 0;
-    this._homeSelectedGameId = null;
-    this._homeFilmHealth = new Map();
     this._btnUndo = null;
     this._btnRedo = null;
     this._historyUnsub = null;
   }
+  /** Read-only compatibility pointer: HomeScreen owns the actual preview
+   *  selection now (2026-08-31 Home rebuild); kept so anything still reading
+   *  the shell for the previewed-but-not-active game id has one stable
+   *  place to look. */
+  get _homeSelectedGameId() { return this.app.homeScreen?.selectedGameId || null; }
   // The redesigned workspace is THE product — there is no classic-layout escape
   // hatch and no second game-entry route (C1, binding amendment 2026-07-23). The
   // shell mounts unconditionally on every build.
@@ -31,7 +33,7 @@ export class WorkspaceShell {
   // product path: there is no user affordance that reaches it.
   disable() {
     if (!this.root) return;
-    this._homeToken++;
+    this.app.homeScreen?.restore();
     this.app.studyScreen?.restore();
     this.app.reportsScreen?.restore();
     this.app.teamHubScreen?.restore();
@@ -52,29 +54,12 @@ export class WorkspaceShell {
         <div class="ws-workspace-switch" role="group" aria-label="Workspace"><button type="button" data-ws-action="workspace-program" aria-pressed="true">Our Program</button><button type="button" class="is-scout" data-ws-action="workspace-scout" aria-pressed="false">Opponent Scout</button></div>
       </section>
       <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" id="btnNativeMoreMobile" data-ws-action="more" aria-label="Settings and more" aria-haspopup="menu" aria-expanded="false">⋯</button></header>
-      <section class="ws-home" id="wsHome">
-        <div class="ws-home-head"><div><div class="ws-eyebrow" id="wsHomeEyebrow">Our Program / Season Home</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><div class="ws-home-actions"><button class="ws-btn" data-ws-action="settings">Team &amp; Film Settings</button><button class="ws-btn ws-primary" data-ws-action="new-game">+ Add game</button></div></div>
-        <div class="ws-season-rail" id="wsSeasonRail" hidden><div class="ws-metric"><label id="wsRailPrimaryLabel">Season record</label><strong id="wsRailRecord">—</strong></div><div class="ws-metric"><label>Games</label><strong id="wsRailGames">0</strong></div><div class="ws-metric"><label>Plays charted</label><strong id="wsRailPlays">0</strong></div><div class="ws-metric"><label>Charting</label><strong id="wsRailPct">0%</strong></div><div class="ws-metric"><label>Film health</label><strong class="ws-metric-small" id="wsRailFilm">—</strong></div><div class="ws-metric"><label>Last opened</label><strong class="ws-metric-small" id="wsRailOpened">—</strong></div></div>
-        <div class="ws-workspace-grid">
-          <section class="ws-games-col"><div class="ws-section-head"><h2 id="wsGamesHeading">Games</h2><button class="ws-link" data-ws-action="season-report">Season report →</button></div><div class="ws-game-list" id="wsGameList"></div>
-            <div class="ws-continue-row"><div class="ws-continue-block"><span class="ws-mini-label">Continue where you left off</span><strong id="wsContinueTitle">No game open</strong><small id="wsContinueMeta">Open a season to continue.</small><div class="ws-mini-progress"><i id="wsProgressBar"></i></div></div><div class="ws-continue-block"><span class="ws-mini-label" id="wsSeasonProgressLabel">Season progress</span><strong id="wsSeasonProgressTitle">No plays charted</strong><small id="wsSeasonProgressMeta">Add a game to get started.</small><div class="ws-mini-progress"><i id="wsSeasonProgressBar" class="is-season"></i></div></div></div>
-          </section>
-          <aside class="ws-detail" id="wsGameDetail"><div class="ws-section-head"><h2 id="wsDetailHeading">Selected game</h2><button class="ws-link" data-ws-action="settings">Game settings</button></div>
-            <div class="ws-detail-empty" id="wsDetailEmpty">No games in the active season.</div>
-            <div class="ws-detail-body" id="wsDetailBody" hidden>
-              <div class="ws-opponent"><div class="ws-badge" id="wsDetailBadge">GI</div><div><h3 id="wsDetailName">Opponent</h3><p id="wsDetailMeta">Week · Date</p></div></div>
-              <div class="ws-score"><div><label id="wsDetailUsLabel">Us</label><strong id="wsDetailUsScore">—</strong></div><span class="ws-dash">-</span><div class="ws-score-them"><label id="wsDetailThemLabel">Them</label><strong id="wsDetailThemScore">—</strong></div></div>
-              <div class="ws-facts"><div class="ws-fact"><label>Total plays</label><strong id="wsFactPlays">0</strong></div><div class="ws-fact"><label>Plays charted</label><strong id="wsFactCharted">0 / 0</strong></div><div class="ws-fact"><label>Plays per phase</label><strong id="wsFactPhase">O 0 · D 0 · ST 0</strong></div><div class="ws-fact"><label>Film</label><strong id="wsFactFilm" class="ws-fact-green">—</strong></div></div>
-              <div class="ws-phase"><div class="ws-phase-head"><span>Charting by phase</span><span>Complete</span></div><ul id="wsPhaseRows" class="ws-phase-rows"></ul></div>
-              <div class="ws-detail-actions"><button class="ws-btn ws-gold" id="wsContinueCharting" disabled>Continue charting</button><button class="ws-btn" data-ws-action="open-study">Open Study</button><button class="ws-btn" data-ws-action="open-reports">Open Reports</button></div>
-            </div>
-          </aside>
-        </div>
-      </section>
+      <section class="ws-home" id="wsHome" hidden></section>
       <section class="ws-team-hub" id="wsTeamHub" hidden></section><section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
     document.body.appendChild(root);
     this.root = root;
     this._mountChrome();
+    this.app.homeScreen?.mount(root.querySelector('#wsHome'));
     this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown'));
     this.app.studyScreen?.mount(root.querySelector('#wsStudy'));
     this.app.reportsScreen?.mount(root.querySelector('#wsReports'));
@@ -108,26 +93,16 @@ export class WorkspaceShell {
         return;
       }
       if (action === 'seasons') await this._openLibrary();
-      if (action === 'new-game') { await this._newGame(); return; }
+      // Home's own actions (Add game, Continue Charting, preview selection,
+      // Open Study/Reports for the previewed game, Season report) are owned
+      // by the native HomeScreen/native-home.jsx component now (2026-08-31
+      // Home rebuild) -- wired directly as onClick handlers there, not
+      // through this delegated shell handler.
       if (action === 'settings') this.app.settingsScreen?.open?.({ returnFocus: e.target.closest('[data-ws-action]') });
       if (action === 'more') { this._openMore(e.target.closest('[data-ws-action]')); return; }
       if (action === 'game-switch') { await this._openGameSwitch(e.target.closest('[data-ws-action]')); return; }
       if (action === 'program-switch') { await this._openProgramSwitch(e.target.closest('[data-ws-action]')); return; }
       if (action === 'season-switch') { await this._openSeasonSwitch(e.target.closest('[data-ws-action]')); return; }
-      if (action === 'season-report') { await this.show('reports'); return; }
-      // Open Study / Open Reports act on the PREVIEWED game, not whichever
-      // game happens to already be active -- routed through the one
-      // authoritative App.openGame() seam (same as Continue Charting), so
-      // the coach lands on their own preview's analysis, never a stale
-      // active game's. No preview selected (defensive only -- these buttons
-      // live inside the hidden-until-selected detail body) falls back to a
-      // plain route switch rather than silently doing nothing.
-      if (action === 'open-study') { if (this._homeSelectedGameId) await this.app.openGame(this._homeSelectedGameId, { route: 'study' }); else await this.show('study'); return; }
-      if (action === 'open-reports') { if (this._homeSelectedGameId) await this.app.openGame(this._homeSelectedGameId, { route: 'reports' }); else await this.show('reports'); return; }
-      const previewId = e.target.closest('[data-ws-preview]')?.dataset.wsPreview;
-      if (previewId) { this._selectHomeGame(previewId); return; }
-      const continueBtn = e.target.closest('#wsContinueCharting');
-      if (continueBtn && !continueBtn.disabled && this._homeSelectedGameId) { await this.app.openGame(this._homeSelectedGameId); return; }
     });
   }
   async show(routeId) {
@@ -144,12 +119,10 @@ export class WorkspaceShell {
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
     this._setRouteVisibility(routeId);
-    if (routeId==='home') {
-      // A preview belongs only to the current Home visit. Returning from a game
-      // must highlight the canonical active game, not the prior Home preview.
-      if (previousRoute !== 'home') this._homeSelectedGameId = null;
-      await this.refreshHome();
-    }
+    // HomeScreen owns preview-reset itself: a preview belongs only to the
+    // current Home visit, so it resets on a genuine season change AND on any
+    // route round trip back to Home (2026-08-31 Home rebuild).
+    if (routeId==='home') { await this.app.homeScreen?.show(previousRoute); }
     if (routeId==='breakdown') {}
     if (routeId==='study') { this.app.studyScreen?.show(); }
     if (routeId==='reports') { this.app.reportsScreen?.show(); this.app._markSeenStats?.(); }
@@ -211,160 +184,11 @@ export class WorkspaceShell {
     this.root.querySelectorAll('[data-ws-route="breakdown"]').forEach(b => b.disabled = !c.capabilities.canBreakDown);
     this.root.querySelectorAll('[data-ws-route="study"],[data-ws-route="reports"],[data-ws-route="plan"]').forEach(b => b.disabled = !c.capabilities.canStudy);
   }
-  /** V2-A season command center. Rewrites the whole Home surface to the
-   *  approved canon (design-comps/home-context-v2a-2026-08/home.html): a
-   *  page-head, a season-record rail, a whole-row-clickable games list, and a
-   *  selected-game detail panel — replacing the old two-band (Film Inbox /
-   *  Seasons) layout, whose season-switching role now belongs to the Season
-   *  context selector (_openSeasonSwitch). Same canonical sources as before
-   *  (`WorkspaceContext.snapshot()`, `SeasonStore.data`, `WorkspaceContext.
-   *  filmHealth()`) — no new context pointer. */
-  async refreshHome() {
-    if (!this.root) return;
-    const token = ++this._homeToken;
-    this._syncChrome();
-    const c = this.app.workspace.snapshot();
-    const store = this.app.storage.seasonStore;
-    const data = store.data;
-    const games = data?.games || [];
-    const game = data ? store.activeGame?.() : null;
-    const scout = this._isScoutWorkspace();
-    const scoutTarget = String(data?.scout?.opponent || '').trim();
-    const workspaceName = scoutTarget || c.season?.name || 'Opponent';
-    const record = scout ? { text: workspaceName } : this._seasonRecord(games, store);
-
-    this._text('wsHomeEyebrow', scout ? 'Opponent Scout / Film Library' : (c.team ? 'Our Program / Season Home' : 'Team workspace'));
-    this._text('wsGreeting', c.season ? (scout ? `${workspaceName.toUpperCase()} SCOUT` : c.season.name.toUpperCase()) : (c.team ? `${c.team.name.toUpperCase()} HOME` : 'TEAM HOME'));
-    this._text('wsHomeSummary', c.season
-      ? (scout ? `${games.length} source game${games.length === 1 ? '' : 's'} · isolated from our schedule and team totals` : [c.team?.name, record.text, `${games.length} game${games.length === 1 ? '' : 's'}`].filter(Boolean).join(' · '))
-      : (c.team ? 'Choose or create a season to get started.' : 'Set up your team to get started.'));
-    this._text('wsRailPrimaryLabel', scout ? 'Opponent' : 'Season record');
-    this._text('wsGamesHeading', scout ? 'Source games' : 'Games');
-    this._text('wsDetailHeading', scout ? 'Selected source game' : 'Selected game');
-    this._text('wsSeasonProgressLabel', scout ? 'Scout progress' : 'Season progress');
-    const addButton = this.root.querySelector('[data-ws-action="new-game"]');
-    if (addButton) addButton.textContent = scout ? '+ Add source game' : '+ Add game';
-
-    const rail = this.root.querySelector('#wsSeasonRail');
-    if (rail) rail.hidden = !c.season;
-    const list = this.root.querySelector('#wsGameList');
-    if (!c.season || !games.length) {
-      this._homeSelectedGameId = null;
-      this._renderGameDetail(null, c);
-      if (list) list.innerHTML = `<div class="ws-empty">${c.season ? (scout ? 'No source games yet. Add film the opponent played against another team.' : 'No games in the active season yet.') : (c.team ? 'Open or create a season to see games here.' : 'Set up your team, then start a season.')}</div>`;
-      this._setTopFilm(null);
-      if (rail) {
-        this._text('wsRailRecord', scout ? workspaceName : '—');
-        this._text('wsRailGames', '0'); this._text('wsRailPlays', '0'); this._text('wsRailPct', '0%');
-        this._text('wsRailFilm', '—'); this._text('wsRailOpened', '—');
-      }
-      return;
-    }
-
-    this._text('wsRailRecord', record.text);
-    this._text('wsRailGames', String(games.length));
-    const totalPlays = games.reduce((n, g) => n + (g.plays?.length || 0), 0);
-    const totalCharted = games.reduce((n, g) => n + (g.plays || []).filter(isPlayTagged).length, 0);
-    this._text('wsRailPlays', String(totalCharted));
-    this._text('wsRailPct', `${totalPlays ? Math.round(totalCharted / totalPlays * 100) : 0}%`);
-    this._text('wsRailOpened', game ? this._gameName(game) : 'No source game opened yet');
-    const selected = games.find(g => String(g.id) === String(this._homeSelectedGameId)) || game || games[0];
-    this._homeSelectedGameId = String(selected.id);
-    this._homeFilmHealth.clear();
-    this._renderGameDetail(selected, c);
-    list.innerHTML = games.map(g => this._gameRowHtml(g, c)).join('');
-    const health = await Promise.all(games.map(g => this.app.workspace.filmHealth(g).catch(() => ({ state: 'missing', label: 'Film unavailable', action: 'repair', expected: 0, found: 0 }))));
-    if (token !== this._homeToken || !this.root || c.season?.id !== this.app.workspace.snapshot().season?.id) return;
-    games.forEach((g, i) => { this._homeFilmHealth.set(String(g.id), health[i]); this._renderGameRowHealth(g, health[i]); });
-    const linked = health.filter(h => h.state === 'linked' || h.state === 'managed').length;
-    this._text('wsRailFilm', health.length ? `${linked} of ${health.length} linked` : '—');
-    const selectedIndex = games.findIndex(g => String(g.id) === this._homeSelectedGameId);
-    this._setTopFilm(selectedIndex >= 0 ? health[selectedIndex] : null);
-    if (selectedIndex >= 0) this._patchDetailFilmFact(health[selectedIndex]);
-  }
-  /** W-L-T computed from every FINAL game with an entered score — the same
-   *  score fields `_gameRowInfo`/the score pill already read, so this can
-   *  never disagree with what a game row itself shows. */
-  _seasonRecord(games,store){let w=0,l=0,t=0;games.forEach((g,i)=>{const r=this.app._gameRowInfo(g,i,store,store.data.activeGameId);if(!r.isFinal||!r.hasScore)return;const u=Number(r.u),th=Number(r.t);if(u>th)w++;else if(u<th)l++;else t++;});const text=t?`${w}-${l}-${t}`:(w||l?`${w}-${l}`:'');return{w,l,t,text:text||'—'};}
-  /** The whole row is the preview control (canon: no per-row Open button —
-   *  Continue Charting in the detail panel is the one way to open a game). */
-  _gameRowHtml(g,c){const info=this.app._gameRowInfo(g,g.__idx??0,this.app.storage.seasonStore,this.app.storage.seasonStore.data.activeGameId);const idx=this.app.storage.seasonStore.data.games.indexOf(g);const selected=String(g.id)===this._homeSelectedGameId;const result=info.hasScore?`${Number(info.u)>Number(info.t)?'Final ':Number(info.u)<Number(info.t)?'Final ':'Final '}${info.u}-${info.t}`:(info.isFinal?'Final':'Not played');const tagged=(g.plays||[]).filter(isPlayTagged).length;
-    return `<button type="button" class="ws-game-row${selected?' selected':''}" data-ws-preview="${this._esc(g.id)}" data-game-id="${this._esc(g.id)}" aria-pressed="${selected?'true':'false'}">
-      <span class="ws-game-name"><strong>${this._esc(this._gameName(g,idx))}</strong><small>${this._esc([this._dateLabel(g.gameInfo?.date),result].filter(Boolean).join(' · '))}</small></span>
-      <span class="ws-game-cell"><strong>${(g.plays||[]).length}</strong><small>plays</small></span>
-      <span class="ws-game-cell"><strong>${tagged}</strong><small>charted</small></span>
-      <span class="ws-game-cell" data-film-health><strong class="ws-loading">Checking…</strong><small>&nbsp;</small></span>
-      <span class="ws-game-arrow" aria-hidden="true">›</span>
-    </button>`;}
-  _renderGameRowHealth(game,h){const row=this.root.querySelector(`[data-game-id="${CSS.escape(String(game.id))}"]`);if(!row)return;const cell=row.querySelector('[data-film-health]');if(!cell)return;const ready=h.state==='linked'||h.state==='managed';const detail=h.progress?`${h.progress.done} of ${h.progress.total||'?'} clips`:h.expected?`${h.found} of ${h.expected} clips`:'';cell.innerHTML=`<strong class="${ready?'ws-fact-green':'ws-fact-warn'}">${ready?'● Film linked':this._esc(h.label||'Film needed')}</strong><small>${this._esc(detail)}</small>`;}
-  _selectHomeGame(gameId){const games=this.app.storage.seasonStore.data?.games||[];const game=games.find(g=>String(g.id)===String(gameId));if(!game)return false;this._homeSelectedGameId=String(game.id);this.root.querySelectorAll('.ws-game-row').forEach(row=>{const selected=row.dataset.gameId===this._homeSelectedGameId;row.classList.toggle('selected',selected);row.setAttribute('aria-pressed',String(selected));});this._renderGameDetail(game,this.app.workspace.snapshot());const h=this._homeFilmHealth.get(this._homeSelectedGameId);if(h)this._setTopFilm(h);return true;}
-  /** The selected-game detail panel + the "Continue where you left off" row.
-   *  `game` is the coach's current PREVIEW selection, which is not necessarily
-   *  the canonically active/open game — Continue Charting always opens
-   *  whichever game is previewed, via the one authoritative `App.openGame()`. */
-  _renderGameDetail(game, context) {
-    const empty = this.root.querySelector('#wsDetailEmpty');
-    const body = this.root.querySelector('#wsDetailBody');
-    const continueBtn = this.root.querySelector('#wsContinueCharting');
-    const data = this.app.storage.seasonStore.data;
-    const scout = data?.kind === 'scout';
-    const scoutTarget = String(data?.scout?.opponent || '').trim();
-    if (!game) {
-      if (empty) {
-        empty.hidden = false;
-        empty.textContent = context?.season ? (scout ? 'No source games in this opponent scout.' : 'No games in the active season.') : 'Open a season to see games here.';
-      }
-      if (body) body.hidden = true;
-      if (continueBtn) continueBtn.disabled = true;
-      this._text('wsContinueTitle', 'No game open');
-      this._text('wsContinueMeta', scout ? 'Add a source game to begin the scout.' : 'Open a season to continue.');
-      const bar = this.root.querySelector('#wsProgressBar'); if (bar) bar.style.width = '0%';
-      this._text('wsSeasonProgressTitle', 'No plays charted');
-      this._text('wsSeasonProgressMeta', scout ? 'Add opponent film to begin.' : 'Add a game to get started.');
-      const sbar = this.root.querySelector('#wsSeasonProgressBar'); if (sbar) sbar.style.width = '0%';
-      return;
-    }
-    if (empty) empty.hidden = true;
-    if (body) body.hidden = false;
-    if (continueBtn) continueBtn.disabled = false;
-    const summary = this._gameSummary(game);
-    const active = String(data?.activeGameId || '') === String(game.id);
-    const sourceA = String(game.gameInfo?.sourceTeamA || scoutTarget || 'Team A').trim();
-    const sourceB = String(game.gameInfo?.sourceTeamB || game.gameInfo?.opponent || 'Team B').trim();
-    const matchup = scout ? [sourceA, sourceB].filter(Boolean).join(' vs ') : this._gameName(game);
-    this._text('wsContinueTitle', active ? `${matchup} · ${this._activeRouteLabel()}` : matchup);
-    this._text('wsContinueMeta', active ? 'Continue where you left off' : [summary.date, summary.status].filter(Boolean).join(' · '));
-    const bar = this.root.querySelector('#wsProgressBar'); if (bar) bar.style.width = `${summary.pct}%`;
-    const games = data?.games || [];
-    const seasonTotal = games.reduce((n, g) => n + (g.plays?.length || 0), 0);
-    const seasonTagged = games.reduce((n, g) => n + (g.plays || []).filter(isPlayTagged).length, 0);
-    this._text('wsSeasonProgressTitle', seasonTotal ? (seasonTagged === seasonTotal ? `All ${seasonTotal} plays charted` : `${seasonTagged} of ${seasonTotal} plays charted`) : 'No plays charted');
-    this._text('wsSeasonProgressMeta', scout ? `${games.length} source game${games.length === 1 ? '' : 's'} ready for Study and Reports` : `${games.length} game${games.length === 1 ? '' : 's'} ready for Study and Reports`);
-    const sbar = this.root.querySelector('#wsSeasonProgressBar'); if (sbar) sbar.style.width = `${seasonTotal ? Math.round(seasonTagged / seasonTotal * 100) : 0}%`;
-    this._text('wsDetailBadge', (scout ? sourceA : (game.gameInfo?.opponent || context?.team?.name || 'GI')).trim().slice(0, 2).toUpperCase() || 'GI');
-    this._text('wsDetailName', (scout ? matchup : (game.gameInfo?.opponent || this._gameName(game))).toUpperCase());
-    this._text('wsDetailMeta', scout ? [scoutTarget && `Scouting ${scoutTarget}`, summary.date, summary.status].filter(Boolean).join(' · ') : [this._gameName(game), summary.date, summary.status].filter(Boolean).join(' · '));
-    const hasScore = summary.score !== 'Not entered';
-    this._text('wsDetailUsLabel', scout ? sourceA : (context?.team?.name || 'Us'));
-    this._text('wsDetailUsScore', hasScore ? summary.score.split('–')[0] : '—');
-    this._text('wsDetailThemLabel', scout ? sourceB : (game.gameInfo?.opponent || 'Them'));
-    this._text('wsDetailThemScore', hasScore ? summary.score.split('–')[1] : '—');
-    this._text('wsFactPlays', String(summary.total));
-    this._text('wsFactCharted', `${summary.tagged} / ${summary.total}`);
-    this._text('wsFactPhase', `O ${summary.offense} · D ${summary.defense} · ST ${summary.special}`);
-    this._patchDetailFilmFact(this._homeFilmHealth.get(String(game.id)));
-    const rows = this.root.querySelector('#wsPhaseRows');
-    if (rows) rows.innerHTML = summary.unitProgress.map(u => `<li class="ws-phase-row"><b>${u.short}</b><span class="ws-bar ${u.key === 'defense' ? 'cyan' : u.key === 'special' ? 'gold' : ''}"><i style="width:${u.total ? u.pct : 0}%"></i></span><span>${u.total}</span></li>`).join('');
-    if (continueBtn) continueBtn.textContent = active ? 'Continue charting' : (scout ? 'Open source game' : 'Open selected game');
-  }
-  _activeRouteLabel(){const labels={home:'Home',breakdown:'Break Down',study:'Study',reports:'Reports',plan:'Plan'};return labels[this.app.workspace.currentRoute()]||'Reports';}
-  /** Shared by _renderGameDetail's own initial paint AND refreshHome's later
-   *  async health resolution, so the detail panel's Film fact never gets
-   *  stuck on "Checking film…" once the real answer is known. */
-  /** A managed copy and a linked external folder must never read identically
-   *  here -- that ambiguity is exactly what made the 1.12.0-8 smoke
-   *  unprovable (see CLAUDE.md). Ready film discloses which one it is. */
-  _patchDetailFilmFact(h){const filmEl=this.root?.querySelector('#wsFactFilm');if(!filmEl)return;const ready=h&&(h.state==='linked'||h.state==='managed');const source=h?.state==='linked'?'linked':h?.state==='managed'?'managed copy':'';filmEl.textContent=h?(ready?`${h.expected||h.found||0} clips · ${source}`:(h.label||'Checking film…')):'Checking film…';filmEl.className=`ws-fact-${ready?'green':h?'warn':'muted'}`;}
+  /** Season/game presentation formatting still shared with `_switchDetail`
+   *  (the Game context-switcher popover, still shell-owned) -- Home's own
+   *  rendering moved entirely to `HomeScreen`/`native-home.jsx` in the
+   *  2026-08-31 rebuild, which carries its own copies of these formulas
+   *  rather than reaching back into the shell. */
   /** Progress is per unit, not just a play count per unit: a coach needs to see
    *  WHICH side is behind, and "O 24 · D 18 · ST 6" never said that. Charted
    *  uses the same isPlayTagged predicate as the overall figure, so the unit
@@ -395,13 +219,11 @@ export class WorkspaceShell {
     const guarded=this.app.workspace.guard?.(target);
     return this.show(guarded?.ok?target:'home');
   }
-  /** Home's direct "New game" action (C1 finding 4): with Home the sole game
-   * entry, creating a game belongs on Home, not buried under More. Creates the
-   * game in the active season (reusing a still-empty active game rather than
-   * stacking husks — GameScreen owns that transaction) and opens it into Break Down
-   * through the one authoritative open command. No season open → send the coach
-   * to the library to pick or create one first. */
-  async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const id=await this.app.gameScreen.open({mode:'create'});if(id&&id!=='cancel')await this.app.openGame(id);}
+  /** Home's direct "New game" action (C1 finding 4), reused by the mobile More
+   *  menu -- HomeScreen.addGame() owns the one transaction (GameScreen create
+   *  + the authoritative App.openGame() open, or a trip to the library with no
+   *  season open) so there is exactly one implementation. */
+  async _newGame(){ await this.app.homeScreen?.addGame?.(); }
   /** Own global chrome directly: real buttons rendered by this class, wired
    *  to the underlying services in _bind()'s data-ws-tool branch. Append
    *  order IS the visual order: history first, then help, then settings.
@@ -450,7 +272,7 @@ export class WorkspaceShell {
     const registry=this.app.teamRegistry; const activeId=registry.activeTeamId();
     const teams=registry.teams();
     const items=teams.map(team=>({key:`team-${team.id}`,label:team.teamName,selected:team.id===activeId,
-      onSelect:async()=>{ if(await this.app.teamHubScreen?.switchTeam?.(team.id)) { this._homeSelectedGameId=null; await this.show('home'); } }}));
+      onSelect:async()=>{ if(await this.app.teamHubScreen?.switchTeam?.(team.id)) { await this.show('home'); } }}));
     items.push({key:'new-program',label:'+ New program',separator:!!teams.length,
       onSelect:()=>this.app.teamHubScreen?.openAddTeam?.(anchor)});
     anchor.setAttribute('aria-expanded','true');
@@ -481,7 +303,7 @@ export class WorkspaceShell {
       : seasons.map(season=>({key:`season-${season.id}`,label:season.name||'Untitled Season',
           detail:`${season.games||0} game${season.games===1?'':'s'} · ${season.plays||0} play${season.plays===1?'':'s'}`,
           selected:String(season.id)===String(currentId),
-          onSelect:async()=>{ if(String(season.id)===String(currentId)) return; await this.app.storage.openSeasonById(season.id); this._homeSelectedGameId=null; await this.show('home'); }}));
+          onSelect:async()=>{ if(String(season.id)===String(currentId)) return; await this.app.storage.openSeasonById(season.id); await this.show('home'); }}));
     items.push({key:'season-library',label:'Season Library',detail:scoutMode?'Manage opponent scout seasons':'View and manage all program seasons',separator:!!items.length,
       onSelect:()=>this._openLibrary()});
     items.push({key:scoutMode?'new-scout':'new-season',label:scoutMode?'+ New opponent scout':'+ New season',separator:false,

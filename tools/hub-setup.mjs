@@ -23,8 +23,11 @@ export async function createFirstTeam(page, teamName = 'Mavericks', color = 'nav
       else window.app?.workspaceShell?._openLibrary?.();
     });
   }
-  await page.waitForSelector('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', { timeout: 15000 });
-  await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', teamName);
+  // School/nickname are separate fields (2026-08-31 Home naming contract);
+  // typing the whole label into school (nickname left blank) composes the
+  // resulting teamName === teamName, unchanged for every caller here.
+  await page.waitForSelector('.gi-hub-first input[name="school"]', { timeout: 15000 });
+  await page.type('.gi-hub-first input[name="school"]', teamName);
   if (color) { try { await page.select('.gi-hub-first select', color); } catch (e) {} }
   await page.click('.gi-hub-first .gi-hub-primary');
   await page.waitForFunction(() => !document.querySelector('.gi-hub-first'), { timeout: 15000 });

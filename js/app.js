@@ -28,6 +28,8 @@ import { PlayImportScreen } from './play-import-screen.js';
 import { ShortcutsScreen } from './shortcuts-screen.js';
 import { TeamHubScreen } from './team-hub-screen.js';
 import { GameScreen } from './game-screen.js';
+import { HomeScreen } from './home-screen.js';
+import { GameThumbnailService } from './game-thumbnail.js';
 import { getNativeOverlayService } from './native-root.jsx';
 import { h } from 'preact';
 import { ConfirmDeleteForm } from './native-team-hub.jsx';
@@ -75,7 +77,7 @@ import '../design-system/material.css';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-67';
+const APP_VERSION = '1.12.0-68';
 
 class App {
   constructor() {
@@ -166,6 +168,8 @@ class App {
     });
     this.teamHubScreen = new TeamHubScreen(this, this.overlays);
     this.gameScreen = new GameScreen(this, this.overlays);
+    this.gameThumbnails = new GameThumbnailService(this);
+    this.homeScreen = new HomeScreen(this, this.overlays, this.gameThumbnails);
     this.workspace = new WorkspaceContext(this);
     this.breakdownWorkspace = new BreakdownWorkspace(this);
     this.workspaceShell = new WorkspaceShell(this);

@@ -28,7 +28,9 @@ ok(/film stays where you keep it/i.test(r.storage) && /Team & Film Settings/i.te
   'First run explains film storage before a game is opened', JSON.stringify(r));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-first-run.png'), fullPage: true });
 
-r = await page.evaluate(async () => window.app.teamHubScreen.addTeam({ name: 'Mavericks', jerseyColor: 'blue' }));
+// addTeam takes {school, nickname, jerseyColor} now (2026-08-31 Home naming
+// contract); an empty nickname keeps teamName exactly "Mavericks".
+r = await page.evaluate(async () => window.app.teamHubScreen.addTeam({ school: 'Mavericks', jerseyColor: 'blue' }));
 ok(r?.ok, 'Team setup completes without verbal instruction', JSON.stringify(r));
 
 // No season exists yet: the persisted football workspace must still own the
@@ -121,7 +123,10 @@ r = await page.evaluate(() => ({
   rows: [...document.querySelectorAll('[data-season-id]')].map(row => row.textContent),
   mode: localStorage.getItem('giq_home_workspace'),
 }));
-ok(r.mode === 'program' && r.rows.length === 1 && /2026 Mavericks/.test(r.rows[0]) && !/Holy Family/.test(r.rows[0]),
+// createSeason composes its own name as "Year · Level" now (2026-08-31 Home
+// naming contract); the caller's "name" field above is ignored, so the real
+// season reads "2026 · JV", never "2026 Mavericks".
+ok(r.mode === 'program' && r.rows.length === 1 && /2026 · JV/.test(r.rows[0]) && !/Holy Family/.test(r.rows[0]),
   'Explicitly switching back to Program wins even while a scout season is open', JSON.stringify(r));
 
 await page.evaluate(id => window.app.teamHubScreen.openSeason(id), program.id);

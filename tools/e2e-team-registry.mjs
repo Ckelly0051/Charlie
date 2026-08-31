@@ -158,7 +158,10 @@ r = await page.evaluate(async () => {
       const el = document.getElementById(id);
       if (el) { removed.push([el, el.parentElement, el.nextSibling]); el.remove(); }
     }
-    const saved = reg.saveTeamIdentity('Bulldogs', 'maroon');
+    // saveTeamIdentity is now (school, nickname, jerseyColor) -- the
+    // 2026-08-31 Home naming contract. An empty nickname keeps the composed
+    // teamName exactly "Bulldogs", matching every assertion below unchanged.
+    const saved = reg.saveTeamIdentity('Bulldogs', '', 'maroon');
     const result = {
       saved,
       profile: reg.teamProfile(),

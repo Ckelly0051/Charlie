@@ -87,7 +87,7 @@ const reopenFilmRoom = async () => {
 console.log('\n== 1. Setup: team + demo season + open game ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.gi-hub-first');
-await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForSelector('[data-hub-team].is-active');
 await page.evaluate(() => {
@@ -651,7 +651,7 @@ r = await page.evaluate(() => ({
   cancel: [...document.querySelectorAll('[data-overlay-id="team-hub-add-team"] button')].some(button => button.textContent.trim() === 'Cancel'),
 }));
 ok(r.form && r.cancel, 'native add-team dialog shows with Cancel', JSON.stringify(r));
-await page.type('[data-overlay-id="team-hub-add-team"] input[placeholder="St. Joseph Mavericks"]', 'JV Squad');
+await page.type('[data-overlay-id="team-hub-add-team"] input[name="school"]', 'JV Squad');
 await page.click('[data-overlay-id="team-hub-add-team"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active')?.textContent.trim() === 'JV Squad');
 r = await page.evaluate(() => ({

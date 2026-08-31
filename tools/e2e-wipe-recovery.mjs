@@ -35,7 +35,7 @@ await page.reload({ waitUntil: 'load' });
 await page.waitForSelector('.gi-hub-first');
 
 // ---- Seed: team + roster + season + tagged plays ----
-await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
 await page.click('.gi-hub-first .gi-hub-primary');
 await page.waitForSelector('[data-hub-team].is-active');
 await page.evaluate(async () => {

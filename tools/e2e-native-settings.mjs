@@ -44,7 +44,13 @@ await page.evaluate(() => {
     : { state:'managed', mode:'managed', expected:12, found:12, missing:0 };
   // S7-c: team identity is owned by TeamRegistry, not the deleted overlay.
   window.app.teamRegistry.teamProfile = () => ({ teamName:'Mavericks', jerseyColor:'blue' });
-  window.app.teamRegistry.saveTeamIdentity = (name, color) => { state.teamSave = { name, color }; return true; };
+  // saveTeamIdentity is now (school, nickname, jerseyColor) -- the
+  // 2026-08-31 Home naming contract. Compose the same {name, color} shape
+  // this spy always exposed so every downstream assertion stays unchanged.
+  window.app.teamRegistry.saveTeamIdentity = (school, nickname, jerseyColor) => {
+    state.teamSave = { name: [school, nickname].filter(Boolean).join(' '), color: jerseyColor };
+    return true;
+  };
   window.__nativeSettingsState = state;
   const invoker = document.createElement('button');
   invoker.id = 'settings-test-invoker'; invoker.textContent = 'Open settings';
@@ -72,10 +78,16 @@ ok(r.rows[1]?.title?.includes('/g-managed') && /Managed copy.*Ready.*12 \/ 12/.t
 ok(r.seasonSame, 'Opening Settings is a canonical-season no-op');
 
 await page.click('.gi-settings-tabs button:nth-child(2)');
-await page.click('.gi-settings-field input');
+// School/nickname are separate fields now (2026-08-31 Home naming contract).
+// School starts pre-filled from the stubbed teamProfile() ("Mavericks", via
+// its teamName fallback), so it must be cleared before typing or the new
+// text appends instead of replacing. Composing "St. Joseph" + "Mavericks"
+// produces the same "St. Joseph Mavericks" the downstream assertion expects.
+await page.click('.gi-settings-field input[placeholder="e.g. St. Joseph"]');
 await page.keyboard.down('Control'); await page.keyboard.press('A'); await page.keyboard.up('Control');
 await page.keyboard.press('Backspace');
-await page.type('.gi-settings-field input', 'St. Joseph Mavericks');
+await page.type('.gi-settings-field input[placeholder="e.g. St. Joseph"]', 'St. Joseph');
+await page.type('.gi-settings-field input[placeholder="e.g. Mavericks"]', 'Mavericks');
 await page.click('.gi-settings-swatches [data-color="navy"]');
 await page.click('.gi-settings-team .gi-settings-primary');
 r = await page.evaluate(() => ({ saved:window.__nativeSettingsState.teamSave, status:document.querySelector('.gi-settings-saved')?.textContent }));
