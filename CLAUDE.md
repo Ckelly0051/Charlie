@@ -1,3 +1,45 @@
+### CODEX TEAM LOGO OWNERSHIP - IMPLEMENTED LOCALLY (2026-08-31)
+
+Team logos now live once on the active `ffa_teams` registry entry, beside team identity and outside every season/game payload. PNG, JPEG, and WebP uploads are decoded in the browser, proportionally fit without cropping onto a transparent 256x256 canvas, and stored as a bounded WebP data URL. Settings offers immediate Add/Change/Remove actions independent of the team-name save; a failed persistence write preserves the prior logo. Non-image data URLs are rejected at the registry boundary.
+
+The active logo appears in populated Home's identity lockup and season rail, and in Team Hub's team switcher. Another team's logo never appears after switching, removing one logo leaves the others intact, and the compatibility `ffa_team_profile` remains logo-free so one large image is not copied through legacy identity/game synchronization.
+
+Verification on the current tree: production build clean; TeamRegistry 24/24; native Settings 25/25; Home review/repair 26/26. The real Settings file input normalized a non-square PNG to 256x256, previewed it, propagated it into Home, and removed it cleanly. Desktop and 390px Team Settings were visually inspected; the image uses `object-fit: contain`, and both the page and working sheet remain exactly viewport-width at 390px with no horizontal overflow. No installer, release, push, or coach-data migration was performed.
+
+### CODEX APPROVED HOME ENTRY IMPLEMENTATION - COMPLETE LOCALLY (2026-08-31)
+
+The approved Home comp now owns first launch in production. Startup opens the real Home route in every data state; it no longer exposes Team Hub's retired centered `Set up your team` panel. With no data, the coach sees the approved Home composition: persistent workspace switch and season rail, `Your football workspace`, Program/Opponent cards, structured school/nickname/year/level fields, generated season identity, guided/manual choice, and the recovery/sample actions. Opponent-first setup uses the same composition with real source-team identities. The obsolete `FirstTeam` component was deleted rather than hidden.
+
+Creation still flows through the existing canonical owners: `TeamHubScreen.addTeam()`, `createSeason()`, `createScout()`, and `openSeasonSetup()`. Guided setup remains the first-season default and fully skippable; manual setup bypasses it. Existing structured school/nickname data is preserved when the compatibility team profile is saved, fixing a real loss discovered by driving the new form. Team switching/removal also preserves those fields. Team Hub remains the one season-library/management route after setup; it is no longer a competing first-run presentation.
+
+Visual verification used the approved comp itself as the reference, not only CSS measurements. Fresh-data captures were opened at 1440 and 390 pixels after the final build; the desktop hierarchy, spacing, two-column choices, field geometry, and gold primary action match the approved composition. A mobile override that re-showed and clipped the shell's Program context control was found in the capture and removed. The new permanent first-launch harness captures 1440, 1280, 768, and 390 widths and proves no page overflow or label/control overlap.
+
+Focused verification on the current tree: production build clean; approved first-launch Home 11/11; Home/library/identity/thumbnail repair 25/25; native Team Hub 29/29. The broader workspace-shell harness now has its stale first-use assertions corrected to Home/Create season; one unrelated import-cancel snapshot assertion remains red in the already-dirty mixed working tree and is not claimed as a Home failure or fixed here. No installer, release, push, or customer-data rewrite was performed. Existing unrelated Breakdown/tagging/packaging work remains untouched.
+
+### CODEX HOME REPAIR OF e3930fb - IMPLEMENTED LOCALLY (2026-08-31)
+
+At Charlie's instruction, Codex repaired the three remaining groups directly. No installer, release, push, or live catalog write in this pass. Existing unrelated Breakdown/tagging/packaging changes remain untouched.
+
+- **Duplicate boundary:** TeamHubScreen serializes create/edit check-and-write operations. Scout checks read the canonical season body's scout identity through peekSeason(), not absent library-summary fields. Concurrent Program and Scout creates produce one record and a duplicate refusal; sequential Scout duplicates normalize case/spacing, while another opponent remains allowed. Queued work refuses a changed team/season context. A false save result restores the edited year/level/name in memory.
+- **Thumbnail refresh:** Home's film-refresh revision invalidates displayed frames and re-requests only visible card/detail sources. The existing service resolves root/first-file identity and reuses unchanged decoded frames. Settings close triggers the same refresh. Older requests cannot publish into a newer revision. Verified root changes and first-filename replacements with unchanged relative filmDir through real mounted Preact and the real thumbnail service; only filesystem/decode boundaries were controlled. Same-path, same-filename byte replacement is not detected by this session cache and is not claimed here.
+- **Composition:** Home now places its year-grouped rail at the left edge beside the header/game workspace, removing the old 1280px outer cap. Season tools follow the selected context without flex-created dead space. On Home, the rail/cards replace redundant Season/Game header controls; working routes retain their switchers. Edit season details is directly reachable; Manage program opens the Team tab. Season-less Home hides season-scoped tools, and the rail reloads on same-route season changes. Actual screenshot inspection also caught and repaired card film-status clipping and low-contrast game-menu text. Library action buttons now have explicit control sizing.
+
+**Isolated verification:** exported HEAD e3930fb into artifacts/home-repair-clean, copied only this repair's five production files and two test files, and built that tree. No dirty Breakdown files or design-system token edits were included. Home repair 25/25, native Team Hub 33/33, native Settings 23/23, workspace shell 90/90. The shell test now checks the visible first-use Create team action instead of a hidden Add game control, and expects the universal game selector on working routes, with Home cards independently exercised. Its Study click initially hit the fixture's recovery toast; recorded click targets proved the cause, and the test waits for that transient toast before clicking.
+
+**Visual evidence:** artifacts/home-repaired-season-{1920,1440,1280,768,390}.png, home-repaired-library-1440.png, and home-repaired-visuals.json. Six-game data is a read-only copy of the coach's Documents mirror seeded into a disposable browser; film stills are controlled visual fixtures from the approved comp, not a claim of desktop film access. Zero page errors and horizontal page overflow at these widths. Desktop populated captures were opened and inspected. No full canonical gate or installed-app smoke was run. Current work is uncommitted; prior review records below are historical, not current repair status.
+
+### CODEX RE-REVIEW OF e3930fb - CHANGES REQUESTED (2026-08-31)
+
+Fresh git archive of e3930fb, separately built under artifacts/review-home-e3930fb-committed. Its own e2e-home-review-repair.mjs passes 16/16. The prior team/season-form signature failure and Settings identity/color corruption are CLOSED on the clean artifact. Rail labels are readable and prominent now, and changing filmDir refreshes the displayed thumbnail. Three remaining repair groups:
+
+1. **P2 - Duplicate prevention does not meet the shared-boundary contract.** Two independent reproduced paths in the newly committed js/team-hub-screen.js: (a) Promise.all of two real createSeason({year:'2031',level:'JV'}) calls returns ok:true twice and stores 2031-jv plus 2031-jv-2. `_findDuplicateSeason()` at lines 453-464 reads before writing but does not serialize/reserve the identity across the async gap. A disabled form button is not the agreed shared-boundary guard. (b) Even sequential identical createScout calls for Central / 2032 / Varsity both succeed. `_findDuplicateScout()` at lines 325-329 checks s.opponentSchool/s.opponent on listSeasons summaries, which contain neither field; the actual identity is under the season body's scout object. Browser reproduction and SqlCatalog.listSeasons source confirm the mismatch. Protect check-plus-create/update atomically at the shared owner and read actual persisted scout identity without parsing display names. Test both overlap and ordinary sequential scout duplicate rejection.
+
+2. **P2 - Root/source-file changes still keep the wrong thumbnail.** js/home-screen.js:316 keys displayed identity only by filmMode::filmDir; js/native-home.jsx:36 and the effect dependency list trust those fields. A library-root change explicitly leaves relative filmDir unchanged (Settings tells the coach this), and replacing the first file does too. Reproduced using the real service/Home/Preact stack with only filesystem/decode boundaries controlled: C:/old-root/Week1/first.mp4 captured once, root changed to D:/new-root, then first file changed to replacement.mp4, Home re-entered after each; the old frame remains and no new capture occurs. The service already knows the resolved directory/file, but it is never asked again. Use one actual source identity or explicit invalidation at root/relink/film refresh boundaries; do not claim a relative-folder-only key covers root/file changes.
+
+3. **P2 - The approved full-width Home composition remains unimplemented.** The rail row collision is fixed, but css/native-home.css:25-26 still nests the entire rail/workspace below the old header inside `.ws-home>*{max-width:1280px}` from workspace-shell.css:42. At 1920 the whole page remains inset 320px on each side rather than putting the rail on the left edge and using the available workspace. The new flex:1 rail-groups/min-height also creates a large empty gap before the season tools (tools begin around y=856 at 1920x1080). Inspected toast-free actual screenshots at 1440 and 1920 against the approved 1440-season reference: this is not a match to the approved composition. Move the rail/header/workspace into the approved hierarchy and retire conflicting Home-only layout rules, rather than calling the current inner rail full-height comp parity. Keep selected-season context with the tools and check populated/library/first-use at matching viewports.
+
+Evidence: artifacts/review-home-e3930fb.mjs; artifacts/home-e3930fb-evidence.json; artifacts/home-e3930fb-1440.png and home-e3930fb-1920.png. Duplicate probes use real storage and controllers in a disposable browser profile, no mocked duplicate answers. Thumbnail probes control filesystem/decode responses but retain the real cache/controller/mounted-component path. No live catalog access/writes, production modifications, full gate, installer, release, or push. Existing dirty Breakdown work preserved.
+
 ### CLAUDE REPAIR OF THE 66ccbd2 RE-REVIEW - AWAITING RE-REVIEW (2026-08-31)
 
 All four findings from the CODEX RE-REVIEW OF 66ccbd2 (recorded immediately
@@ -20126,3 +20168,36 @@ This is a composition migration, not a color pass. The first viewport must read 
 - Keep visual iterations local and uncommitted.
 - Show the coach a real-app screenshot for PASS / REVISE / REJECT before a commit.
 - After Break Down passes, commit and push the approved Reports + Break Down work together, run focused checks and one canonical full gate, then package only if requested.
+
+# CODEX CHECKPOINT — WORKSPACE PANEL + HOME IDENTITY (2026-08-31)
+
+Implemented the approved workspace-panel composition in production. This is a
+shared-system rebuild, not a tab-by-tab recolor:
+
+- Team & Film Settings is one 920px desktop sheet with a 64px header, 44px
+  raised tab row, one body scroll owner, and a 56px attached footer. At 700px
+  and below it becomes a true full-screen sheet with 44px controls.
+- Removed the competing widths, negative-margin tab geometry, clipped
+  lower-third headings, uppercase mono labels, nested section cards, and
+  accent-blue secondary copy from native-settings.css.
+- All eight tabs now share IBM Plex Sans hierarchy, stacked field labels,
+  unframed section bands, responsive dense grids, honest sparse layouts, and
+  internal table/tab scrolling only. Team labels no longer clip; populated
+  Roster, Charting, Cut-ups, Drawing, Recovery, and Analysis were visually
+  inspected, not inferred from geometry.
+- On narrow Film, the current season now precedes storage configuration and
+  each game renders as a populated stacked row. The prior desktop table left
+  its header orphaned above the footer while its game rows sat below a second
+  scroll; a numeric conditional also leaked a literal zero for healthy film.
+- Season identity now uses one pure year / full program identity / level
+  composer for creation preview, canonical season metadata, Home heading, and
+  season rail. School and nickname remain structured fields.
+- Opening Season Library with no program now stays on approved first-launch
+  Home and focuses program setup; the defensive Team Hub fallback remains
+  unreachable in normal navigation.
+
+Visual evidence:
+artifacts/settings-workspace-verification/ at 1280x800, 1440x900, 768x900,
+and 390x844. Focused verification is green: native Settings 23/23, Team Hub
+29/29, Home first launch 13/13, Home review repair 25/25, tag-library Settings
+17/17, native overlay 42/42, workspace shell 90/90.

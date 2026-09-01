@@ -15,7 +15,7 @@
 export async function createFirstTeam(page, teamName = 'Mavericks', color = 'navy') {
   // Some harnesses boot straight onto the hub and some start on Home, so only
   // navigate when the setup form is not already on screen.
-  const alreadyThere = await page.evaluate(() => !!document.querySelector('.gi-hub-first'));
+  const alreadyThere = await page.evaluate(() => !!document.querySelector('[data-first-launch]'));
   if (!alreadyThere) {
     await page.evaluate(() => {
       const seasons = document.querySelector('[data-ws-action="seasons"]');
@@ -26,15 +26,17 @@ export async function createFirstTeam(page, teamName = 'Mavericks', color = 'nav
   // School/nickname are separate fields (2026-08-31 Home naming contract);
   // typing the whole label into school (nickname left blank) composes the
   // resulting teamName === teamName, unchanged for every caller here.
-  await page.waitForSelector('.gi-hub-first input[name="school"]', { timeout: 15000 });
-  await page.type('.gi-hub-first input[name="school"]', teamName);
-  if (color) { try { await page.select('.gi-hub-first select', color); } catch (e) {} }
-  await page.click('.gi-hub-first .gi-hub-primary');
-  await page.waitForFunction(() => !document.querySelector('.gi-hub-first'), { timeout: 15000 });
+  await page.waitForSelector('[data-first-launch] input[name="school"]', { timeout: 15000 });
+  await page.type('[data-first-launch] input[name="school"]', teamName);
+  if (color) { try { await page.select('[data-first-launch] select[name="jerseyColor"]', color); } catch (e) {} }
+  await page.click('[data-first-launch] [role="radio"][aria-checked="false"]');
+  await page.click('[data-first-launch] .ws-primary');
+  await page.waitForFunction(() => !document.querySelector('[data-first-launch]'), { timeout: 15000 });
 }
 
 /** Load the sample season through the Team Hub's own action. */
 export async function exploreSampleSeason(page) {
+  await page.evaluate(() => window.app?.workspaceShell?._openLibrary?.());
   await page.waitForFunction(() => [...document.querySelectorAll('.gi-hub-section-head button')]
     .some(b => /sample season/i.test(b.textContent)), { timeout: 15000 });
   await page.evaluate(() => {

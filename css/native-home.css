@@ -7,9 +7,63 @@
    ws-bar are the shell's own, reused as-is; everything below is additive,
    matching the approved comp
    design-comps/home-workspace-2026-08-31/home.html almost verbatim. */
-.ws-home-page{min-width:0}
+body.ws-route-home .ws-home{padding:0}
+body.ws-route-home .ws-home>.ws-home-page{max-width:none;margin:0}
+.ws-home-page{min-width:0;min-height:100%;display:grid;color:var(--gi-bd-strong);font-family:var(--gi-sans)}
+.ws-home-page .home-content{min-width:0;padding:24px 28px 20px}
+.ws-home-page #wsGreeting{font:600 26px/1.2 var(--gi-sans);margin:6px 0;overflow-wrap:anywhere}
+.ws-home-page #wsHomeEyebrow{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.ws-home-page .home-library-back{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--gi-bd-copy);font:600 12px var(--gi-sans);padding:0;min-height:26px}
+.ws-home-page .icon{width:18px;height:18px;flex-shrink:0}
+.ws-home-page .ws-primary{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+body.ws-route-home .ws-contextbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:18px}
+body.ws-route-home :is(#wsCtxSeason,#wsCtxGame){display:none}
+body.ws-route-home #wsCtxProgram{order:2;flex:0 1 330px;min-width:0;border:0;display:flex;align-items:center;gap:12px;padding:0}
+body.ws-route-home #wsCtxProgram .ws-ctx-value{padding:8px 12px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius)}
+body.ws-route-home .ws-workspace-switch{order:1;border:1px solid var(--gi-bd-line);padding:3px;gap:4px}
+body.ws-route-home .ws-workspace-switch button{min-height:36px;min-width:140px;border:0}
+body.ws-route-home .ws-workspace-switch button[aria-pressed=true]{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .ws-home-page .ws-home-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}
+.ws-home-page .ws-home-title-lockup{display:flex;align-items:center;gap:14px}.ws-home-page .ws-home-title-lockup>div{min-width:0}.ws-home-page .ws-home-logo{width:64px;height:64px;flex:0 0 64px;object-fit:contain}
 .ws-home-page #wsHomeSummary{margin-top:7px;color:var(--gi-bd-copy);font-size:13px}
+
+/* Approved first-launch Home composition. This is part of Home, not the
+   retired centered Team Hub onboarding panel. */
+.ws-home-page .first-launch{width:min(100%,1040px);padding:4px 0 24px}
+.ws-home-page .first-launch>header{margin-bottom:28px}
+.ws-home-page .first-launch>header h1{margin:0;font:600 30px/1.2 var(--gi-sans)}
+.ws-home-page .first-launch>header p{margin:9px 0 0;color:var(--gi-bd-copy);font-size:14px}
+.ws-home-page .first-launch .gi-hub-workspace-choice{grid-template-columns:1fr 1fr;margin:0 0 26px;gap:16px}
+.ws-home-page .first-launch .gi-hub-workspace-choice button{min-height:124px;padding:20px 24px;border:1px solid var(--gi-bd-bone);background:var(--gi-bd-panel);text-align:left}
+.ws-home-page .first-launch .gi-hub-workspace-choice button{display:block;grid-template-columns:1fr}
+.ws-home-page .first-launch .gi-hub-workspace-choice button.is-active{border-color:var(--gi-bd-gold);border-top-width:3px;background:var(--gi-3)}
+.ws-home-page .first-launch .gi-hub-workspace-icon{display:none}
+.ws-home-page .first-launch .gi-hub-workspace-choice strong{font:600 20px/1.2 var(--gi-sans)}
+.ws-home-page .first-launch .gi-hub-workspace-choice small{margin-top:8px;color:var(--gi-bd-copy);font-size:13px}
+.ws-home-page .first-launch form{padding-top:24px;border-top:1px solid var(--gi-bd-line)}
+.ws-home-page .first-launch form h2{margin:0 0 22px;font:600 22px/1.25 var(--gi-sans)}
+.ws-home-page .first-identity-row,.ws-home-page .first-season-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.ws-home-page .first-launch label{display:grid;gap:8px;min-width:0;color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .first-launch label span{min-width:0;overflow-wrap:anywhere}
+.ws-home-page .first-launch label small{margin-left:6px;color:var(--gi-bd-muted);font-size:11px}
+.ws-home-page .first-launch :is(input,select){box-sizing:border-box;width:100%;height:40px;padding:0 12px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);background:var(--gi-bd-stage);color:var(--gi-bd-strong);font:500 14px var(--gi-sans)}
+.ws-home-page .first-launch .first-compat-color{display:none}
+.ws-home-page .first-launch :is(input,select):focus-visible{outline:0;box-shadow:var(--gi-focus)}
+.ws-home-page .first-full-field{margin-bottom:18px}
+.ws-home-page .first-name-preview{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gi-bd-line);padding:8px 0 14px;color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .first-name-preview strong{color:var(--gi-bd-strong);font-size:15px}
+.ws-home-page .first-setup-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0}
+.ws-home-page .first-setup-choice button{display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 16px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);background:transparent;color:var(--gi-bd-strong);text-align:left}
+.ws-home-page .first-setup-choice button.is-selected{border-color:var(--gi-bd-gold);background:var(--gi-3)}
+.ws-home-page .first-setup-choice i{width:16px;height:16px;border:1px solid var(--gi-bd-copy);border-radius:50%;box-shadow:inset 0 0 0 4px var(--gi-bd-stage);background:transparent;flex:none}
+.ws-home-page .first-setup-choice .is-selected i{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold)}
+.ws-home-page .first-setup-choice span{display:grid;gap:4px}.ws-home-page .first-setup-choice strong{font-size:13px}.ws-home-page .first-setup-choice small{color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .first-actions{display:flex;justify-content:flex-end}.ws-home-page .first-actions button{min-width:150px;min-height:40px}
+.ws-home-page .first-error{margin:0 0 14px;padding:10px 12px;border-left:3px solid var(--gi-turnover);background:var(--gi-danger-surface);color:var(--gi-bd-strong)}
+.ws-home-page .first-secondary{display:flex;gap:22px;margin-top:24px}
+.ws-home-page .first-secondary button{border:0;background:transparent;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
+.ws-home-page .rail-library-link.is-current{color:var(--gi-bd-strong);background:var(--gi-3);box-shadow:inset 3px 0 var(--gi-bd-gold)}
 
 .ws-empty-panel{max-width:680px;margin:32px auto;padding:28px;border:1px solid var(--gi-bd-line);border-left:3px solid var(--gi-bd-gold);background:var(--gi-bd-panel)}
 .ws-empty-panel h3{margin:0 0 8px;font:700 22px/1.2 var(--gi-cond)}
@@ -22,27 +76,29 @@
    1440-season.png. Rows are the purpose-built RailSeasonRow (see
    native-home.jsx) -- no Team Hub action buttons squeezed into a 236px
    column, which is what previously left the season name a 75px sliver. */
-.ws-home-page .home-with-rail{display:grid;grid-template-columns:236px minmax(0,1fr);gap:24px;align-items:start}
-.ws-home-page .rail-year{position:sticky;top:0;align-self:stretch;display:flex;flex-direction:column;gap:18px;min-width:0;height:100%;min-height:calc(100vh - 220px);padding:18px 20px;border-right:1px solid var(--gi-bd-line);background:transparent}
+.ws-home-page .home-with-rail{display:grid;grid-template-columns:224px minmax(0,1fr);align-items:stretch;min-height:100%}
+.ws-home-page .rail-year{display:flex;flex-direction:column;gap:22px;min-width:0;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
-.ws-home-page .rail-library-link{align-self:flex-start;background:none;border:0;height:auto;padding:0;color:var(--gi-bd-copy);font-size:11.5px;font-weight:600;text-align:left;text-decoration:underline;text-underline-offset:2px}
+.ws-home-page .rail-library-link{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:36px;padding:0 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
 .ws-home-page .rail-library-link:hover{color:var(--gi-bd-gold)}
-.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:20px;min-height:0;flex:1;overflow-y:auto}
+.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:22px;min-height:0}
 .ws-home-page .rail-group{display:flex;flex-direction:column;gap:6px}
-.ws-home-page .rail-year-label{margin:0 0 2px;color:var(--gi-bd-strong);font:700 20px/1.1 var(--gi-cond)}
+.ws-home-page .rail-year-label{margin:0 0 2px;padding:0 10px;color:var(--gi-bd-strong);font:600 20px/1.2 var(--gi-sans)}
 .ws-home-page .rail-empty{margin:0;color:var(--gi-bd-copy);font-size:12px}
 /* RailSeasonRow -- one label, one count, one click. */
-.ws-home-page .rail-row{display:flex;flex-direction:column;gap:2px;width:100%;padding:8px 10px;border:1px solid transparent;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-strong);text-align:left;cursor:pointer}
+.ws-home-page .rail-row{display:flex;align-items:center;gap:10px;width:100%;min-height:54px;padding:8px 10px;border:1px solid transparent;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-strong);text-align:left;cursor:pointer}
+.ws-home-page .rail-row>span{min-width:0}.ws-home-page .rail-row :is(strong,small){display:block}
 .ws-home-page .rail-row:hover{background:var(--gi-bd-control)}
 .ws-home-page .rail-row strong{overflow:hidden;font:600 15px/1.3 var(--gi-sans);text-overflow:ellipsis;white-space:nowrap}
 .ws-home-page .rail-row small{color:var(--gi-bd-copy);font-size:12px}
-.ws-home-page .rail-row.is-current{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold-surface)}
-.ws-home-page .rail-row.is-current strong{color:var(--gi-bd-gold)}
+.ws-home-page .rail-row.is-current{border-color:var(--gi-bd-bone);background:var(--gi-3);box-shadow:inset 3px 0 var(--gi-bd-gold)}
+.ws-home-page .rail-row.is-current strong{color:var(--gi-bd-strong)}
 .ws-home-page .rail-tools{display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:1px solid var(--gi-bd-line)}
-.ws-home-page .rail-tools button{justify-content:flex-start;background:none;border:0;height:auto;padding:4px 0;color:var(--gi-bd-strong);font-size:12.5px;font-weight:500;text-align:left}
+.ws-home-page .rail-tools button{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:40px;padding:4px 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
+.ws-home-page .rail-scope{padding:0 10px 4px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .rail-tools button:hover{color:var(--gi-bd-gold)}
-.ws-home-page .rail-foot{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:16px;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .rail-foot{display:flex;flex-direction:row;align-items:center;gap:10px;padding:16px 10px 0;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}.ws-home-page .rail-foot>span{display:flex;min-width:0;flex-direction:column;gap:8px}.ws-home-page .rail-logo{width:36px;height:36px;flex:0 0 36px;object-fit:contain}
 
 .ws-home-page .library-panel{display:flex;flex-direction:column;gap:16px}
 .ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
@@ -55,10 +111,12 @@
    "controls crowd the counts" defect, found here too on inspection). Stack
    the card vertically instead: summary content top to bottom, actions as
    their own full-width row below it, never sharing a line with the counts. */
-.ws-home-page .library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.ws-home-page .library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
 .ws-home-page .library-grid .gi-hub-season{flex-direction:column;align-items:stretch;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel)}
 .ws-home-page .library-grid .gi-hub-season-summary{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:0;padding:14px 14px 4px}
 .ws-home-page .library-grid .gi-hub-season-actions{padding:8px 14px 14px;justify-content:flex-end}
+.ws-home-page .library-grid .gi-hub-season-actions button{min-height:36px;padding:6px 12px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font:600 13px var(--gi-sans)}
+.ws-home-page .library-grid .gi-hub-season-actions .gi-hub-primary{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .ws-home-page .library-recover-link{align-self:flex-start;background:none;border:0;height:auto;padding:0;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
 
 .ws-home-page [data-first-use]{max-width:none}
@@ -81,7 +139,7 @@
 .ws-home-page .filters button span{margin-left:5px;color:var(--gi-bd-copy);font-size:12px;font-weight:600}
 
 .ws-home-page .game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-@media(min-width:1620px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1400px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
 /* Own alignment explicitly -- the legacy shell row (workspace-shell.css
    .ws-game-row, unscoped, a 5-column grid predating this card) sets
@@ -105,7 +163,7 @@
 .ws-home-page .matchup-schools{margin:4px 0 0;color:var(--gi-bd-copy);font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 .ws-home-page .game-meta{display:flex;justify-content:space-between;gap:8px;margin-top:6px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .game-meta .score{color:var(--gi-bd-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
-.ws-home-page .card-status{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.ws-home-page .card-status{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
 .ws-home-page .health{display:inline-flex;align-items:center;gap:6px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .health::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gi-ok);flex-shrink:0}
 .ws-home-page .health.warning::before{background:var(--gi-warn)}
@@ -129,12 +187,12 @@
 .ws-home-page .detail-pane{position:sticky;top:0;background:var(--gi-bd-panel);border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);padding:14px 18px 16px;min-width:0}
 .ws-home-page .detail-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .ws-home-page .detail-top span{color:var(--gi-bd-copy);font-size:12px;overflow-wrap:anywhere}
-.ws-home-page .icon-btn{width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent}
+.ws-home-page .icon-btn{width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--gi-bd-copy)}
 .ws-home-page .detail-main,.ws-home-page .detail-side,.ws-home-page .detail-identity>div{min-width:0}
 .ws-home-page .detail-identity{display:grid;grid-template-columns:100px minmax(0,1fr);align-items:center;gap:12px}
 .ws-home-page .detail-identity .thumbnail{aspect-ratio:16/9}
 .ws-home-page .detail-identity .week,.ws-home-page .detail-identity .film-missing{display:none}
-.ws-home-page .detail-identity h2{margin:0;font:700 18px/1.25 var(--gi-cond);overflow-wrap:anywhere}
+.ws-home-page .detail-identity h2{margin:0;font:600 17px/1.25 var(--gi-sans);overflow-wrap:anywhere}
 .ws-home-page .detail-date{margin:6px 0 0;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .scoreboard{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;border-block:1px solid var(--gi-bd-line);margin:14px 0;padding:12px 0}
 .ws-home-page .scoreboard .team:last-child{text-align:right}
@@ -156,15 +214,31 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
 
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}
 
-@media(max-width:1180px){
+@media(min-width:1700px){.ws-home-page .home-with-rail{grid-template-columns:240px minmax(0,1fr)}.ws-home-page .home-content{padding:28px 32px 20px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 344px;gap:28px}}
+@media(max-width:1300px){.ws-home-page .home-with-rail{grid-template-columns:190px minmax(0,1fr)}.ws-home-page .home-content{padding:20px}.ws-home-page .rail-year{padding:20px 10px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 280px;gap:18px}.ws-home-page .library-tools{flex-wrap:wrap}.ws-home-page .search{flex-basis:100%}.ws-home-page .card-status,.ws-home-page .game-meta{flex-wrap:wrap}}
+@media(max-width:1050px){
   .ws-home-page .game-workspace{grid-template-columns:1fr}
   .ws-home-page .detail-pane{position:static}
+}
+@media(max-width:700px){
   .ws-home-page .home-with-rail{grid-template-columns:1fr;gap:0}
   .ws-home-page .rail-year{position:static;height:auto;min-height:0;border-right:0;border-bottom:1px solid var(--gi-bd-line);margin-bottom:20px;padding-bottom:20px}
   .ws-home-page .rail-groups{max-height:none;overflow-y:visible}
+  .ws-home-page .rail-groups,.ws-home-page .rail-group{flex-direction:row;flex-wrap:wrap;align-items:center}
+  .ws-home-page .rail-row{width:auto}.ws-home-page .rail-tools{flex-direction:row;flex-wrap:wrap;gap:4px}.ws-home-page .rail-scope{width:100%}
+  .ws-home-page .rail-foot{display:none}
+  body.ws-route-home .ws-contextbar{flex-wrap:wrap;padding:8px 12px;gap:8px}
+  body.ws-route-home #wsCtxProgram{display:none}
+  body.ws-route-home .ws-workspace-switch{width:100%}
+  body.ws-route-home .ws-workspace-switch button{min-width:0;flex:1}
+  .ws-home-page .first-launch{padding:0}.ws-home-page .first-launch>header h1{font-size:25px}
+  .ws-home-page .first-launch .gi-hub-workspace-choice,.ws-home-page .first-identity-row,.ws-home-page .first-season-row,.ws-home-page .first-setup-choice{grid-template-columns:1fr}
+  .ws-home-page .first-launch .gi-hub-workspace-choice button{min-height:92px}
+  .ws-home-page .first-actions button{width:100%}.ws-home-page .first-secondary{align-items:flex-start;flex-direction:column;gap:12px}
 }
 @media(max-width:760px){
   .ws-home-page .ws-home-head{flex-wrap:wrap}
+  .ws-home-page .ws-home-logo{width:48px;height:48px;flex-basis:48px}
   .ws-home-page .ws-home-actions{width:100%}
   .ws-home-page .ws-home-actions .ws-btn{flex:1}
   .ws-home-page .library-tools{flex-wrap:wrap}

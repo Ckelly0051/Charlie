@@ -25,7 +25,7 @@ await new Promise(r => setTimeout(r, 700));
 let r = await page.evaluate(() => ({
   shell: !!document.querySelector('#workspaceShell'),
   active: document.body.classList.contains('ws-shell-active'),
-  hub: !document.querySelector('#wsTeamHub')?.hidden && !!document.querySelector('[data-native-team-hub]'),
+  home: !document.querySelector('#wsHome')?.hidden && !!document.querySelector('[data-first-launch]'),
   // S7 demolition: #app/#wsClassicOutlet are deleted. Final Engine
   // Independence deletes #giLegacyEngineHost too -- there is no legacy host
   // sibling left at all. #giMediaHost (the permanent, accepted native-owned
@@ -35,15 +35,13 @@ let r = await page.evaluate(() => ({
   mediaHostPresent: !!document.getElementById('giMediaHost'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
   reportsDisabled: [...document.querySelectorAll('[data-ws-route="reports"]')].every(button => button.disabled),
-  // V2-A: Home has no dedicated season-less resume button -- Team Hub owns
-  // first-run setup (already proven by `hub` above) and Home's persistent
-  // header actions (Team & Film Settings / + Add game) are what keep an
-  // empty Home from reading as dead.
-  emptyAction: document.querySelector('[data-ws-action="new-game"]')?.textContent,
-  emptyActionEnabled: !document.querySelector('[data-ws-action="new-game"]')?.disabled,
-  emptyActionTarget: document.querySelector('[data-ws-action="new-game"]')?.dataset.wsAction,
+  // First use is owned by the visible setup form, not an Add game button
+  // in a hidden Home route before a season exists.
+  emptyAction: document.querySelector('[data-first-launch] .ws-primary')?.textContent,
+  emptyActionEnabled: document.querySelector('[data-first-launch] .ws-primary')?.disabled === false,
+  emptyActionVisible: !!document.querySelector('[data-first-launch] .ws-primary')?.getClientRects().length,
 }));
-ok(r.shell && r.active && r.hub && r.legacyHostGone && r.mediaHostPresent, 'Shell mounts with the native Team Hub as its single front door and no legacy host anywhere', JSON.stringify(r));
+ok(r.shell && r.active && r.home && r.legacyHostGone && r.mediaHostPresent, 'Shell mounts with the approved Home setup as its single front door and no legacy host anywhere', JSON.stringify(r));
 
 // NO JS VALUES IN THE CHROME (coach smoke, 2026-07-25). Adding the Reports
 // route without adding its nav icon rendered the literal string "undefined"
@@ -87,8 +85,8 @@ ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/un
 ok(chromeScan.navIcons.length >= 5 && chromeScan.navIcons.every(i => i && i !== '•'),
   'Every shell route carries its OWN icon, not the missing-icon fallback', JSON.stringify(chromeScan.navIcons));
 ok(r.breakdownDisabled && r.reportsDisabled, 'Guarded routes, including Reports, start disabled with no season');
-ok(r.emptyAction === '+ Add game' && r.emptyActionEnabled && r.emptyActionTarget === 'new-game',
-  'Empty Home offers an enabled primary action instead of appearing dead', JSON.stringify(r));
+ok(r.emptyAction === 'Create season' && r.emptyActionEnabled && r.emptyActionVisible,
+  'First use offers a visible, enabled Create season action', JSON.stringify(r));
 
 await page.evaluate(async () => {
   const app = window.app;
@@ -177,6 +175,9 @@ for (const [action, route] of [['open-study', 'study'], ['open-reports', 'report
     await window.app.workspaceShell.show('home');
   });
   await page.click('[data-ws-preview="preview-game"]');
+  // This fixture recovers a synthetic team and raises a temporary toast in
+  // the detail-action corner. Wait for it to leave before a real mouse click.
+  await page.waitForFunction(() => !document.querySelector('.gi-toast-stack')?.children.length);
   await page.click(`[data-ws-action="${action}"]`);
   await new Promise(res => setTimeout(res, 400));
   const outcome = await page.evaluate(() => ({
@@ -1020,7 +1021,7 @@ await page.evaluate(async () => {
 });
 r = await page.evaluate(async () => {
   const out = {};
-  for (const route of ['home', 'breakdown', 'study', 'reports', 'plan']) {
+  for (const route of ['breakdown', 'study', 'reports', 'plan']) {
     await window.app.workspaceShell.show(route);
     const button = document.querySelector('#wsCtxGame');
     const rect = button?.getBoundingClientRect();
@@ -1030,7 +1031,7 @@ r = await page.evaluate(async () => {
   return out;
 });
 ok(Object.values(r).every(entry => entry.tag === 'BUTTON' && entry.menu === 'menu' && entry.onScreen),
-  'Game context is a real switcher on every route, not a Home-only round trip', JSON.stringify(r));
+  'Every working route retains its game switcher; Home game-card navigation is exercised above', JSON.stringify(r));
 await page.evaluate(() => window.app.workspaceShell.show('reports'));
 await page.click('#wsCtxGame');
 await page.waitForSelector('.gi-popover-item', { timeout: 5000 });

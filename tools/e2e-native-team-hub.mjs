@@ -16,67 +16,33 @@ const shotDir = process.env.GIQ_TEAM_HUB_SHOTS_DIR || '';
 if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
 page.on('pageerror', error => errors.push(error.stack || error.message));
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-first-launch]'));
 
 let r = await page.evaluate(() => ({
   native: document.querySelectorAll('[data-native-team-hub]').length,
-  first: !!document.querySelector('.gi-hub-first'),
+  first: !!document.querySelector('[data-first-launch]'),
   // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
   // read true once el is gone, so this asserts absence, which cannot invert.
   legacy: !!document.getElementById('libraryOverlay'),
   outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
   route: document.getElementById('workspaceShell')?.dataset.route,
 }));
-ok(r.native === 1 && r.first && !r.legacy && !r.outlet && r.route === 'team-hub',
-  'Startup has one native Team Hub owner and never reveals the classic outlet', JSON.stringify(r));
+ok(r.native === 1 && r.first && !r.legacy && !r.outlet && r.route === 'home',
+  'Startup is owned by the approved Home first-launch state while Team Hub remains mounted but hidden', JSON.stringify(r));
 
-// School/nickname are separate fields now; type only the school so the
-// composed teamName ([school, nickname].filter(Boolean).join(' ')) stays
-// exactly "Mavericks", matching every downstream assertion below unchanged.
-await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
-await page.select('.gi-hub-first select', 'blue');
-await page.click('.gi-hub-first .gi-hub-primary');
-await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
+await page.type('[data-first-launch] input[name="school"]', 'Mavericks');
+await page.click('[data-first-launch] .first-setup-choice button:nth-child(2)');
+await page.click('[data-first-launch] .ws-primary');
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home' && !document.querySelector('[data-first-launch]'));
 r = await page.evaluate(() => ({
-  active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
-  empty: document.querySelector('.gi-hub-empty-inline')?.textContent || '',
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
-  setup: document.querySelector('.gi-hub-setup')?.textContent || '',
-  steps: document.querySelectorAll('.gi-hub-setup-steps li').length,
-}));
-ok(r.active === 'Mavericks' && /Start the football year here/.test(r.empty) && r.profile.teamName === 'Mavericks',
-  'First setup creates one active team and a clear empty-season state', JSON.stringify(r));
-ok(r.steps === 5 && /1 of 5/.test(r.setup) && /Add your roster/.test(r.setup) && /Start a season/.test(r.setup),
-  'Native Team Hub preserves the five-step setup progress with real completion state', JSON.stringify(r));
-
-await page.click('.gi-hub-hero-action');
-await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
-r = await page.evaluate(() => ({
-  options: [...document.querySelectorAll('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button')].map(button => ({ text: button.textContent.trim(), checked: button.getAttribute('aria-checked') })),
-}));
-ok(r.options.length === 2 && /Guided setup/.test(r.options[0].text) && r.options[0].checked === 'true' && /Set up manually/.test(r.options[1].text),
-  'First season defaults to Guided setup and offers a full manual bypass', JSON.stringify(r));
-if (shotDir) await page.screenshot({ path: path.join(shotDir, 'first-season-choice.png'), fullPage: true });
-await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:nth-child(2)');
-// Structured season creation (2026-08-31 Home naming contract) replaced the
-// free-text season-name field with Year + Level, composed as "Year · Level".
-// Prove rapid typed entry still reaches the submit boundary intact on the
-// one remaining free-text field: the custom "Other" level name.
-await page.select('[data-overlay-id="team-hub-create-season"] select[name="level"]', 'Other');
-await page.type('[data-overlay-id="team-hub-create-season"] input[name="customLevel"]', 'Mavericks');
-const levelAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="customLevel"]', input => input.value);
-ok(levelAtSubmit === 'Mavericks', 'rapid season-detail entry reaches the submit boundary intact', JSON.stringify(levelAtSubmit));
-await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
-await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
-r = await page.evaluate(() => ({
   season: window.app.storage.seasonStore.data?.seasonName,
   teamId: window.app.storage.seasonStore.data?.teamId,
-  home: !document.getElementById('wsHome')?.hidden,
   games: window.app.storage.seasonStore.data?.games?.length,
 }));
-const seasonName = `${new Date().getFullYear()} · Mavericks`;
-ok(r.season === seasonName && r.teamId === 'mavericks' && r.home && r.games === 1,
-  'Create season stores active-team ownership and hands off to Home', JSON.stringify(r));
+const seasonName = `${new Date().getFullYear()} · Mavericks · JV`;
+ok(r.profile.teamName === 'Mavericks' && r.season === seasonName && r.teamId === 'mavericks' && r.games === 1,
+  'Approved Home setup creates the active team and season through canonical owners', JSON.stringify(r));
 ok(!await page.$('[data-overlay-id="team-hub-season-setup"]'),
   'Set up manually bypasses the entire guided workflow');
 
@@ -298,6 +264,8 @@ await page.evaluate(() => window.app.settingsScreen.close('test-complete'));
 
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 await new Promise(resolve => setTimeout(resolve, 80));
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub');
 r = await page.evaluate(() => ({
   overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   small: [...document.querySelectorAll('[data-native-team-hub] button')].filter(button => button.getClientRects().length && button.getBoundingClientRect().height < 44).map(button => button.textContent.trim()),

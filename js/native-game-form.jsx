@@ -12,7 +12,9 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
     event.preventDefault();
     setBusy(true); setError('');
     const result = await onSubmit({
-      week: clean(values.week), opponent: clean(values.opponent), sourceTeamA: clean(values.sourceTeamA), sourceTeamB: clean(values.sourceTeamB), date: clean(values.date),
+      week: clean(values.week), opponent: clean(values.opponent), opponentNickname: clean(values.opponentNickname),
+      sourceTeamA: clean(values.sourceTeamA), sourceTeamANickname: clean(values.sourceTeamANickname),
+      sourceTeamB: clean(values.sourceTeamB), sourceTeamBNickname: clean(values.sourceTeamBNickname), date: clean(values.date),
       homeAway: clean(values.homeAway), gameType: clean(values.gameType) || 'game',
       perspective: clean(values.perspective) || 'offense', scoreUs: clean(values.scoreUs), scoreThem: clean(values.scoreThem),
     });
@@ -21,8 +23,22 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
   const applyTracked = () => setValues(current => ({ ...current, scoreUs: String(trackedScore.us), scoreThem: String(trackedScore.them) }));
   return <form class="gi-game-form" data-native-game-form data-mode={mode} onSubmit={submit}>
     <p class="gi-game-intro">{scout ? `Add a game from ${scoutTarget || 'the opponent'}'s film history. It stays outside our schedule and record.` : mode === 'create' ? 'Set the game context before film is added.' : 'Update the context coaches see across film, reports, and Study.'}</p>
+    {!scout && <label class="gi-game-field"><span>Week <small>optional</small></span><input name="week" value={values.week} onInput={update} placeholder="1" autoComplete="off" /></label>}
+    {/* School/nickname are separate fields (2026-08-31 Home naming contract).
+        Editing an existing game prefills the school input with the intact
+        stored `opponent`/`sourceTeamA`/`sourceTeamB` value and leaves nickname
+        blank — never a heuristic split — so an unmodified resave composes
+        back to the exact same identity. */}
     <div class="gi-game-grid is-identity">
-      {scout ? <><label><span>Team A</span><input name="sourceTeamA" value={values.sourceTeamA} onInput={update} placeholder={scoutTarget || 'Opponent'} autoComplete="off" required /></label><label><span>Team B</span><input name="sourceTeamB" value={values.sourceTeamB} onInput={update} placeholder="Film opponent" autoComplete="off" required /></label></> : <><label><span>Week <small>optional</small></span><input name="week" value={values.week} onInput={update} placeholder="1" autoComplete="off" /></label><label><span>Opponent</span><input name="opponent" value={values.opponent} onInput={update} placeholder="Central Tigers" autoComplete="off" /></label></>}
+      {scout ? <>
+        <label><span>Team A: school / organization</span><input name="sourceTeamA" value={values.sourceTeamA} onInput={update} placeholder={scoutTarget || 'Opponent'} autoComplete="off" required /></label>
+        <label><span>Nickname <small>Optional</small></span><input name="sourceTeamANickname" value={values.sourceTeamANickname} onInput={update} placeholder="e.g. Wildcats" autoComplete="off" /></label>
+        <label><span>Team B: school / organization</span><input name="sourceTeamB" value={values.sourceTeamB} onInput={update} placeholder="Film opponent" autoComplete="off" required /></label>
+        <label><span>Nickname <small>Optional</small></span><input name="sourceTeamBNickname" value={values.sourceTeamBNickname} onInput={update} placeholder="e.g. Tigers" autoComplete="off" /></label>
+      </> : <>
+        <label><span>Opponent: school / organization</span><input name="opponent" value={values.opponent} onInput={update} placeholder="Central" autoComplete="off" /></label>
+        <label><span>Nickname <small>Optional</small></span><input name="opponentNickname" value={values.opponentNickname} onInput={update} placeholder="e.g. Tigers" autoComplete="off" /></label>
+      </>}
     </div>
     <div class="gi-game-grid">
       <label><span>Game date</span><input name="date" type="date" value={values.date} onInput={update} /></label>

@@ -24,6 +24,16 @@ export function fullIdentity(school, nickname = '') {
   return [s, n].filter(Boolean).join(' ');
 }
 
+/** Canonical coach-facing season identity. Stable ids and structured fields
+ * remain separate; this only composes the label shown in Home, selectors,
+ * creation previews, and newly written season metadata. */
+export function seasonIdentity(year, program, level) {
+  const y = String(year ?? '').trim();
+  const p = String(program ?? '').trim();
+  const l = String(level ?? '').trim();
+  return [y || 'Year', p || 'Program name', l || 'Level'].join(' · ');
+}
+
 /** The label a coach reads for one side of a matchup: the nickname if it
  *  exists, else the intact full name. Never invents a nickname. */
 export function compactLabel(name, nickname = '') {

@@ -275,7 +275,7 @@ class App {
       await this.storage.initLibrary();
       this._bindGamesPanel();
       await this.workspaceShell.init();
-      await this.workspaceShell._openLibrary();
+      await this.workspaceShell.show('home');
       this.uiPolish.initFilmStorageSetup();
     }, 0);
 
@@ -1116,6 +1116,7 @@ class App {
       let prev = {};
       try { prev = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) {}
       const profile = {
+        ...prev,
         teamName: (this.storage.gameInfo.teamName || prev.teamName || ''),
         jerseyColor: (this.storage.gameInfo.jerseyColor || prev.jerseyColor || ''),
       };

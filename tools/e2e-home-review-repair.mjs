@@ -13,8 +13,8 @@
      5. .ws-game-row stretches its thumbnail to the card's full width instead
         of inheriting the legacy shell row's align-items:center.
 
-   Every mutation below is verified to red the assertion it guards before
-   being restored -- see the inline notes at each mutation. */
+   Original mutation evidence is recorded with the corresponding repair.
+   Sections 6-8 cover the independently reproduced e3930fb findings. */
 import fs from 'node:fs';
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
@@ -56,6 +56,20 @@ ok(r.rail && /Seasons/.test(r.railHeading) && /^\d{4}$/.test(r.railYearLabel) &&
 ok(r.railTools.includes('Roster') && r.railTools.includes('Film & storage') && r.railTools.includes('Manage program'),
   'The rail exposes season-scoped tools directly, not only via a link out', JSON.stringify(r));
 
+r = { saved:await page.evaluate(() => {
+  const saved = window.app.teamRegistry.saveTeamLogo('data:image/png;base64,AAAA');
+  window.app.homeScreen.refreshIdentity();
+  return saved;
+}) };
+await page.waitForFunction(() => document.querySelector('.ws-home-logo') && document.querySelector('.rail-logo'));
+Object.assign(r, await page.evaluate(() => ({
+  head:document.querySelector('.ws-home-logo')?.getAttribute('src'),
+  rail:document.querySelector('.rail-logo')?.getAttribute('src'),
+})));
+await page.evaluate(() => { window.app.teamRegistry.removeTeamLogo(); window.app.homeScreen.refreshIdentity(); });
+ok(r.saved && r.head === 'data:image/png;base64,AAAA' && r.rail === r.head,
+  'A team-owned logo appears in both populated Home identity surfaces', JSON.stringify(r));
+
 // Close the open season -- Home must fall back to the real library state,
 // with the actual season list/creation UI, not a bare link. Closing (rather
 // than driving the real type-to-confirm delete dialog, already covered by
@@ -95,9 +109,9 @@ await page.waitForSelector('.gi-hub-dialog-form input[name="year"]');
 await page.evaluate(() => { const input = document.querySelector('.gi-hub-dialog-form input[name="year"]'); input.value = ''; });
 await page.type('.gi-hub-dialog-form input[name="year"]', '2027');
 await page.click('.gi-hub-dialog-form .gi-hub-form-actions .is-primary');
-await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent() && window.app.storage.seasonStore.data.seasonName === '2027 · Varsity', { timeout: 15000 });
+await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent() && window.app.storage.seasonStore.data.seasonName === '2027 · St. Joseph Mavericks · Varsity', { timeout: 15000 });
 r = await page.evaluate(() => ({ seasonName: window.app.storage.seasonStore.data.seasonName, kind: window.app.storage.seasonStore.data.kind }));
-ok(r.seasonName === '2027 · Varsity' && r.kind === 'program',
+ok(r.seasonName === '2027 · St. Joseph Mavericks · Varsity' && r.kind === 'program',
   'A real Year + Level season submission (no free-text name field) is accepted and creates a real program season', JSON.stringify(r));
 
 console.log('\n== 2. Settings save does not corrupt team identity ==');
@@ -254,6 +268,94 @@ ok(r.calls.filter(c => c === 'new-folder').length > 0,
   'Relinking a game (same id, new filmDir) issues a NEW thumbnail request instead of silently trusting the cached one', JSON.stringify(r));
 ok(r.finalDisplayed === 'data:image/svg+xml;base64,NEW',
   'The displayed thumbnail updates to the relinked source rather than retaining the pre-relink frame', JSON.stringify(r));
+
+console.log('\n== 6. Root and first-file changes refresh mounted thumbnails ==');
+r = await page.evaluate(async () => {
+  const app = window.app, h = app.homeScreen, game = h.selectedGame();
+  const backend = app.storage.seasonStore.backend, service = app.gameThumbnails;
+  const methods = ['supportsFilm', 'supportsLinkedFilm', 'linkedGameDir', 'listLinkedFilm', 'linkedFilmUrl'];
+  const saved = Object.fromEntries(methods.map(key => [key, backend[key]]));
+  const capture = service._capture, request = service.request;
+  const original = { filmMode: game.filmMode, filmDir: game.filmDir };
+  const calls = [];
+  let root = 'C:/original', first = 'first.mp4';
+  const frame = path => 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7#' + path;
+  const waitForFrame = async path => {
+    const until = Date.now() + 3000;
+    while (Date.now() < until) {
+      const img = document.querySelector('.detail-pane .thumbnail img, .ws-game-row .thumbnail img');
+      if (h.thumbnailFor(game.id) === frame(path) && img?.getAttribute('src') === frame(path)) return true;
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    return false;
+  };
+  try {
+    // Restore the real service after earlier request-count fixtures. Only the
+    // filesystem and video-decode boundaries are substituted here.
+    service.request = Object.getPrototypeOf(service).request;
+    backend.supportsFilm = backend.supportsLinkedFilm = () => true;
+    backend.linkedGameDir = async dir => `${root}/${dir}`;
+    backend.listLinkedFilm = async () => [{ path: first }];
+    backend.linkedFilmUrl = async path => path;
+    service._capture = async path => { calls.push(path); return frame(path); };
+    game.filmMode = 'linked'; game.filmDir = 'Week1';
+    h.refreshFilm();
+    const initial = await waitForFrame('C:/original/Week1/first.mp4');
+    root = 'D:/replacement';
+    h.refreshFilm();
+    const rootChanged = await waitForFrame('D:/replacement/Week1/first.mp4');
+    first = 'replacement.mp4';
+    await app.workspaceShell.show('home');
+    const fileChanged = await waitForFrame('D:/replacement/Week1/replacement.mp4');
+    const before = calls.length;
+    h.refreshFilm();
+    const unchanged = await waitForFrame('D:/replacement/Week1/replacement.mp4');
+    return { initial, rootChanged, fileChanged, cached: unchanged && calls.length === before, calls };
+  } finally {
+    Object.assign(backend, saved); Object.assign(game, original);
+    service._capture = capture; service.request = request;
+  }
+});
+ok(r.initial && r.rootChanged, 'Changing library root refreshes the displayed frame without changing filmDir', JSON.stringify(r));
+ok(r.fileChanged, 'Replacing the first clip refreshes the displayed frame without changing filmDir', JSON.stringify(r));
+ok(r.cached, 'Unchanged resolved film reuses its decoded frame on refresh', JSON.stringify(r));
+
+console.log('\n== 7. Full-width desktop composition ==');
+for (const width of [1920, 1440, 1280]) {
+  await page.setViewport({ width, height: 900 });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  r = await page.evaluate(() => {
+    const rail = document.querySelector('.rail-year').getBoundingClientRect();
+    const content = document.querySelector('.home-content').getBoundingClientRect();
+    const tools = document.querySelector('.rail-tools').getBoundingClientRect();
+    const years = [...document.querySelectorAll('.rail-group')];
+    const last = years.at(-1)?.getBoundingClientRect();
+    return { left: rail.left, right: content.right, width: innerWidth,
+      overflow: document.documentElement.scrollWidth - innerWidth,
+      toolGap: last ? tools.top - last.bottom : null };
+  });
+  ok(r.left < 2 && r.right > width - 2 && r.overflow <= 1 && r.toolGap !== null && r.toolGap < 80,
+    `Home uses the available ${width}px workspace without outer gutters or horizontal overflow`, JSON.stringify(r));
+}
+
+console.log('\n== 8. Season duplicate checks serialize real writes ==');
+r = await page.evaluate(async () => {
+  const app = window.app, hub = app.teamHubScreen;
+  const program = await Promise.all([hub.createSeason({ year: '2031', level: 'JV' }), hub.createSeason({ year: '2031', level: 'JV' })]);
+  const programRows = (await app.storage.listSeasons()).filter(s => s.year === '2031' && s.level === 'JV');
+  const values = { opponent: 'Central', year: '2032', level: 'Varsity', sourceTeamA: 'Central', sourceTeamB: 'Holy Family' };
+  const scout = [await hub.createScout(values), await hub.createScout({ ...values, opponent: ' central ' })];
+  const different = await hub.createScout({ ...values, opponent: 'Riverside', sourceTeamA: 'Riverside' });
+  const concurrent = await Promise.all([hub.createScout({ ...values, year: '2033' }), hub.createScout({ ...values, year: '2033' })]);
+  const scoutRows = (await app.storage.listSeasons()).filter(s => s.year === '2033' && s.kind === 'scout');
+  return { program, programCount: programRows.length, scout, different, concurrent, scoutCount: scoutRows.length };
+});
+ok(r.program.filter(x => x.ok).length === 1 && r.programCount === 1 && r.program.some(x => x.duplicateId),
+  'Concurrent Program creates produce exactly one season and one duplicate refusal', JSON.stringify(r));
+ok(r.scout[0].ok && !r.scout[1].ok && r.scout[1].duplicateId && r.different.ok,
+  'Scout duplicate checks read canonical opponent metadata, normalize case/space, and allow another opponent', JSON.stringify(r));
+ok(r.concurrent.filter(x => x.ok).length === 1 && r.scoutCount === 1 && r.concurrent.some(x => x.duplicateId),
+  'Concurrent Scout creates also produce exactly one season', JSON.stringify(r));
 
 ok(errors.length === 0, 'No page errors', errors.join('\n'));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

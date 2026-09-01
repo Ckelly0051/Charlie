@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, EditSeasonForm, SeasonSetupGuide, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
-import { fullIdentity } from './identity-labels.js';
+import { fullIdentity, seasonIdentity } from './identity-labels.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -48,6 +48,22 @@ export class TeamHubScreen {
   _registry() { return this.app.teamRegistry; }
   _storage() { return this.app.storage; }
   _store() { return this.app.storage?.seasonStore; }
+
+  // Check and write share one queue; concurrent dialogs cannot both reserve
+  // the same identity. Queued edits retain their submitted season identity.
+  _changeSeason(work, seasonId = null) {
+    const teamId = this._registry().activeTeamId();
+    const current = () => teamId === this._registry().activeTeamId()
+      && (seasonId === null || seasonId === this._store()?.currentSeasonId);
+    const run = async () => {
+      if (!current()) return { ok: false, message: 'The workspace changed. Reopen the form and try again.' };
+      try { return await work(current); }
+      catch (error) { return { ok: false, message: error?.message || 'The season could not be saved.' }; }
+    };
+    const result = (this._seasonChanges || Promise.resolve()).then(run, run);
+    this._seasonChanges = result.then(() => undefined, () => undefined);
+    return result;
+  }
 
   async _controlStatus(teamSeasons = []) {
     const store = this._store();
@@ -254,7 +270,7 @@ export class TeamHubScreen {
       storage._clearForNewGame();
     }
     this._registry().setActiveTeamId(id);
-    this._registry().saveTeamProfile({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
+    this._registry().saveTeamProfile({ teamName: next.teamName, school:next.school || '', nickname:next.nickname || '', jerseyColor: next.jerseyColor || '' });
     // No season is open after a team switch, so no roster has an owner yet.
     // The selected season will hydrate its own roster when the coach opens it.
     this.app.roster?.loadFrom?.([], { persist: false });
@@ -324,12 +340,20 @@ export class TeamHubScreen {
    *  state), including a submission that overlaps another in-flight one. */
   async _findDuplicateScout(year, level, opponentSchool) {
     const all = await this._storage().listSeasons();
-    return all.find(s => s.kind === 'scout' && String(s.teamId || '') === this._state.activeTeamId
-      && String(s.year || '').trim() === year && String(s.level || '').trim().toLowerCase() === level.toLowerCase()
-      && String(s.opponentSchool || s.opponent || '').trim().toLowerCase() === opponentSchool.toLowerCase());
+    const candidates = all.filter(s => s.kind === 'scout' && String(s.teamId || '') === this._state.activeTeamId
+      && String(s.year || '').trim() === year && String(s.level || '').trim().toLowerCase() === level.toLowerCase());
+    for (const season of candidates) {
+      const body = await this._store().peekSeason(season.id);
+      if (!body) throw new Error('An existing scout could not be checked. Try again before creating another.');
+      const opponent = body.scout?.opponentSchool || body.scout?.opponent || '';
+      if (String(opponent).trim().toLowerCase() === opponentSchool.toLowerCase()) return season;
+    }
+    return null;
   }
 
-  async createScout({ opponent, opponentNickname = '', year = '', level = 'Varsity', sourceTeamA = '', sourceTeamANickname = '', sourceTeamB = '', sourceTeamBNickname = '', date = '' }) {
+  createScout(values) { return this._changeSeason(current => this._createScout(values, current)); }
+
+  async _createScout({ opponent, opponentNickname = '', year = '', level = 'Varsity', sourceTeamA = '', sourceTeamANickname = '', sourceTeamB = '', sourceTeamBNickname = '', date = '' }, current) {
     const cleanOpponent = String(opponent || '').trim();
     const cleanOpponentNickname = String(opponentNickname || '').trim();
     const aSchool = String(sourceTeamA || '').trim();
@@ -345,6 +369,7 @@ export class TeamHubScreen {
     const cleanLevel = String(level || '').trim() || 'Varsity';
     const opponentIdentity = fullIdentity(cleanOpponent, cleanOpponentNickname);
     const duplicate = await this._findDuplicateScout(cleanYear, cleanLevel, cleanOpponent);
+    if (!current()) return { ok: false, message: 'The workspace changed. Reopen the form and try again.' };
     if (duplicate) return { ok: false, message: `A ${cleanYear} · ${cleanLevel} scout of ${cleanOpponent} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
     const seasonName = [cleanYear, cleanLevel, opponentIdentity, 'Scout'].filter(Boolean).join(' · ');
     try {
@@ -443,13 +468,8 @@ export class TeamHubScreen {
     return handle.result;
   }
 
-  /** Same shared-boundary discipline as `_findDuplicateScout`: reads the
-   *  live library fresh at the moment of the check, so two overlapping
-   *  submissions (e.g. a double click) both see the same, current answer
-   *  rather than each trusting a stale snapshot taken when the dialog opened.
-   *  An explicit custom level (e.g. "JV A") never collides with the
-   *  standard "JV" it was distinguished from — the match is exact, not
-   *  fuzzy, by design (2026-08-31 Home naming contract). */
+  /** Runs inside _changeSeason's check-and-write queue. Custom levels are
+   *  exact identities, never fuzzy matches against a standard level. */
   async _findDuplicateSeason(year, level, excludeId = null) {
     const all = await this._storage().listSeasons();
     return all.find(s => s.kind !== 'scout' && String(s.teamId || '') === this._state.activeTeamId
@@ -457,13 +477,16 @@ export class TeamHubScreen {
       && String(s.year || '').trim() === year && String(s.level || '').trim().toLowerCase() === level.toLowerCase());
   }
 
-  async createSeason({ year = '', level = '' }) {
+  createSeason(values) { return this._changeSeason(current => this._createSeason(values, current)); }
+
+  async _createSeason({ year = '', level = '' }, current) {
     const cleanYear = String(year || '').trim();
     const cleanLevel = String(level || '').trim() || 'Varsity';
     if (!/^\d{4}$/.test(cleanYear)) return { ok: false, message: 'Enter a four-digit year.' };
     const duplicate = await this._findDuplicateSeason(cleanYear, cleanLevel);
+    if (!current()) return { ok: false, message: 'The workspace changed. Reopen the form and try again.' };
     if (duplicate) return { ok: false, message: `${cleanYear} · ${cleanLevel} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
-    const name = `${cleanYear} · ${cleanLevel}`;
+    const name = seasonIdentity(cleanYear, this._state.profile.teamName, cleanLevel);
     try {
       const rec = await this._storage().createSeason({
         name, year: cleanYear, level: cleanLevel,
@@ -483,20 +506,30 @@ export class TeamHubScreen {
    *  or film — only the year/level/generated-name fields, and only for a
    *  program season (a scout season's identity is its opponent, corrected
    *  through `createScout`'s own form, not this one). */
-  async updateSeasonDetails({ year = '', level = '' }) {
+  updateSeasonDetails(values) {
+    return this._changeSeason(current => this._updateSeasonDetails(values, current), this._store()?.currentSeasonId);
+  }
+
+  async _updateSeasonDetails({ year = '', level = '' }, current) {
     const store = this._store();
     if (!store?.hasCurrent?.() || store.data?.kind === 'scout') return { ok: false, message: 'Open a program season to edit its details.' };
     const cleanYear = String(year || '').trim();
     const cleanLevel = String(level || '').trim() || 'Varsity';
     if (!/^\d{4}$/.test(cleanYear)) return { ok: false, message: 'Enter a four-digit year.' };
     const duplicate = await this._findDuplicateSeason(cleanYear, cleanLevel, store.currentSeasonId);
+    if (!current()) return { ok: false, message: 'The workspace changed. Reopen the form and try again.' };
     if (duplicate) return { ok: false, message: `${cleanYear} · ${cleanLevel} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
+    const data = store.data;
+    const before = {year:data.year, level:data.level, seasonName:data.seasonName};
     store.data.year = cleanYear;
     store.data.level = cleanLevel;
-    store.data.seasonName = `${cleanYear} · ${cleanLevel}`;
+    store.data.seasonName = seasonIdentity(cleanYear, this._state.profile.teamName, cleanLevel);
     this._storage().commitActive();
     const saved = await store.persist();
-    if (saved === false) return { ok: false, message: 'Season details could not be saved. Nothing changed.' };
+    if (saved === false) {
+      Object.assign(data, before);
+      return { ok: false, message: 'Season details could not be saved. Nothing changed.' };
+    }
     await this.load();
     this.app.workspaceShell?._syncChrome?.();
     return { ok: true };
@@ -512,7 +545,7 @@ export class TeamHubScreen {
     handle = this.overlays.dialog({
       id: 'team-hub-edit-season', title: 'Edit season details', returnFocus: invoker, actions: [],
       content: h(EditSeasonForm, {
-        year: store.data.year || '', level: store.data.level || 'Varsity',
+        year: store.data.year || '', level: store.data.level || 'Varsity', teamName: this._state.profile.teamName || '',
         onCancel: () => handle.close('cancel'),
         onOpenExisting: async id => { handle.close('open-existing'); await this.openSeason(id); },
         onSubmit: async values => { const result = await this.updateSeasonDetails(values); if (result.ok) handle.close('saved'); return result; },
@@ -635,7 +668,7 @@ export class TeamHubScreen {
     try { localStorage.removeItem(this._registry().playbookKey(id)); } catch {}
     if (rest.length) {
       this._registry().setActiveTeamId(rest[0].id);
-      this._registry().saveTeamProfile({ teamName: rest[0].teamName, jerseyColor: rest[0].jerseyColor || '' });
+      this._registry().saveTeamProfile({ teamName: rest[0].teamName, school:rest[0].school || '', nickname:rest[0].nickname || '', jerseyColor: rest[0].jerseyColor || '' });
       this.app.roster?.loadFrom?.([], { persist: false });
     } else {
       this._registry().clearIdentity();

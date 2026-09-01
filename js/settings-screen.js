@@ -2,6 +2,38 @@ import { h } from 'preact';
 import { NativeSettingsContent } from './native-settings.jsx';
 
 const clone = value => JSON.parse(JSON.stringify(value));
+const LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const LOGO_MAX_BYTES = 8 * 1024 * 1024;
+const LOGO_EDGE = 256;
+
+export async function normalizeTeamLogo(file) {
+  if (!(file instanceof Blob) || !LOGO_TYPES.has(file.type)) throw new Error('Choose a PNG, JPEG, or WebP image.');
+  if (!file.size || file.size > LOGO_MAX_BYTES) throw new Error('Choose an image smaller than 8 MB.');
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+    if (!bitmap.width || !bitmap.height) throw new Error('That image could not be read.');
+    const canvas = document.createElement('canvas');
+    canvas.width = LOGO_EDGE;
+    canvas.height = LOGO_EDGE;
+    const scale = Math.min(LOGO_EDGE / bitmap.width, LOGO_EDGE / bitmap.height);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, LOGO_EDGE, LOGO_EDGE);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(bitmap, Math.round((LOGO_EDGE - width) / 2), Math.round((LOGO_EDGE - height) / 2), width, height);
+    const data = canvas.toDataURL('image/webp', 0.9);
+    if (!/^data:image\/(?:webp|png);base64,/i.test(data)) throw new Error('That image could not be prepared.');
+    return data;
+  } catch (error) {
+    if (error?.message && /Choose|could not/.test(error.message)) throw error;
+    throw new Error('That image could not be read.');
+  } finally {
+    bitmap?.close?.();
+  }
+}
 
 export class SettingsScreen {
   constructor(app, overlays) {
@@ -33,6 +65,7 @@ export class SettingsScreen {
       this.activeTab = null;
       // S7-c: the legacy overlay is gone; the native Team Hub owns this view.
       this.app.teamHubScreen?.load?.();
+      this.app.homeScreen?.refreshFilm?.();
     });
     return result.then(value => required && value !== 'linked' && value !== 'managed' ? '' : value);
   }
@@ -63,8 +96,23 @@ export class SettingsScreen {
   _desktop() { return !!(window.__TAURI__ && this._backend()?.supportsLinkedFilm?.()); }
   _toast(message, tone = 'success') { this.overlays.toast({ message, tone }); }
 
-  teamProfile() { return this.app.teamRegistry.teamProfile(); }
+  teamProfile() { return { ...this.app.teamRegistry.teamProfile(), logoData:this.app.teamRegistry.teamLogo?.() || '' }; }
   saveTeam(school, nickname, color) { return this.app.teamRegistry.saveTeamIdentity(school, nickname, color) === true; }
+  async saveTeamLogo(file) {
+    try {
+      const logoData = await normalizeTeamLogo(file);
+      if (!this.app.teamRegistry.saveTeamLogo?.(logoData)) return { ok:false, message:'The logo could not be saved. Your existing logo was kept.' };
+      this.app.homeScreen?.refreshIdentity?.();
+      return { ok:true, logoData };
+    } catch (error) {
+      return { ok:false, message:error?.message || 'The logo could not be saved.' };
+    }
+  }
+  removeTeamLogo() {
+    const ok = this.app.teamRegistry.removeTeamLogo?.() === true;
+    if (ok) this.app.homeScreen?.refreshIdentity?.();
+    return ok;
+  }
 
   playbookSnapshot() { return this.app.playbook?.list?.() || []; }
   playbookDefaultOptions() {

@@ -1,7 +1,14 @@
 import puppeteer from 'puppeteer';
+import fs from 'node:fs';
+import path from 'node:path';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;
+const shotDir = process.env.GI_SETTINGS_SHOTS || '';
+if (shotDir) fs.mkdirSync(shotDir, { recursive:true });
+const shot = async name => {
+  if (shotDir) await page.screenshot({ path:path.join(shotDir, name), fullPage:true });
+};
 const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log(`  PASS  ${label}`))
   : (fail++, console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`));
@@ -14,8 +21,7 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
-  && !!document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(() => !!document.getElementById('workspaceShell'));
 await page.waitForFunction(() => window.app?.settingsScreen && window.app?.workspaceShell);
 
 await page.evaluate(() => {
@@ -28,7 +34,7 @@ await page.evaluate(() => {
   localStorage.setItem('ffa_active_team_id', 'settings-team');
   localStorage.removeItem('ffa_playbook_settings-team');
   store.persist = async () => true;
-  const state = { mode:'linked', root:'D:/Football/Film', opened:[], teamSave:null };
+  const state = { mode:'linked', root:'D:/Football/Film', opened:[], teamSave:null, logo:'' };
   store.backend = {
     supportsLinkedFilm: () => true,
     supportsFilm: () => true,
@@ -44,6 +50,9 @@ await page.evaluate(() => {
     : { state:'managed', mode:'managed', expected:12, found:12, missing:0 };
   // S7-c: team identity is owned by TeamRegistry, not the deleted overlay.
   window.app.teamRegistry.teamProfile = () => ({ teamName:'Mavericks', jerseyColor:'blue' });
+  window.app.teamRegistry.teamLogo = () => state.logo;
+  window.app.teamRegistry.saveTeamLogo = logo => { state.logo = logo; return true; };
+  window.app.teamRegistry.removeTeamLogo = () => { state.logo = ''; return true; };
   // saveTeamIdentity is now (school, nickname, jerseyColor) -- the
   // 2026-08-31 Home naming contract. Compose the same {name, color} shape
   // this spy always exposed so every downstream assertion stays unchanged.
@@ -60,6 +69,7 @@ await page.evaluate(() => {
 });
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 await page.waitForFunction(() => document.querySelectorAll('[data-settings-game]').length === 2);
+await shot('settings-film-1280x800.png');
 
 let r = await page.evaluate(() => ({
   owners: document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length,
@@ -90,9 +100,33 @@ await page.type('.gi-settings-field input[placeholder="e.g. St. Joseph"]', 'St. 
 await page.type('.gi-settings-field input[placeholder="e.g. Mavericks"]', 'Mavericks');
 await page.click('.gi-settings-swatches [data-color="navy"]');
 await page.click('.gi-settings-team .gi-settings-primary');
+await shot('settings-team-1280x800.png');
 r = await page.evaluate(() => ({ saved:window.__nativeSettingsState.teamSave, status:document.querySelector('.gi-settings-saved')?.textContent }));
 ok(r.saved?.name === 'St. Joseph Mavericks' && r.saved?.color === 'navy' && /saved/i.test(r.status),
   'Team identity saves only the coach-selected name and jersey color', JSON.stringify(r));
+
+await page.$eval('.gi-team-logo input[type="file"]', async input => {
+  const canvas = document.createElement('canvas'); canvas.width = 80; canvas.height = 40;
+  const context = canvas.getContext('2d'); context.fillStyle = '#ffcc00'; context.fillRect(0, 0, 80, 40);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const transfer = new DataTransfer(); transfer.items.add(new File([blob], 'mavericks.png', { type:'image/png' }));
+  input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles:true }));
+});
+await page.waitForFunction(() => !!document.querySelector('.gi-team-logo-preview img') && !!window.__nativeSettingsState.logo);
+r = await page.evaluate(() => ({
+  logo:window.__nativeSettingsState.logo,
+  preview:document.querySelector('.gi-team-logo-preview img')?.getAttribute('src'),
+  width:document.querySelector('.gi-team-logo-preview img')?.naturalWidth,
+  height:document.querySelector('.gi-team-logo-preview img')?.naturalHeight,
+  homeLogo:document.querySelector('.ws-home-logo')?.getAttribute('src'),
+  railLogo:document.querySelector('.rail-logo')?.getAttribute('src'),
+}));
+ok(/^data:image\/(?:webp|png);base64,/.test(r.logo) && r.preview === r.logo && r.width === 256 && r.height === 256 && r.railLogo === r.logo,
+  'The real Team Settings input normalizes and previews a bounded 256px logo', JSON.stringify({ ...r, logo:r.logo?.slice(0,40) }));
+await page.click('.gi-team-logo-actions button');
+r = await page.evaluate(() => ({ logo:window.__nativeSettingsState.logo, preview:!!document.querySelector('.gi-team-logo-preview img') }));
+ok(r.logo === '' && r.preview === false,
+  'Removing a logo clears the team-owned value and returns the preview to its fallback', JSON.stringify(r));
 
 
 const playbookBefore = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data.games));
@@ -166,6 +200,7 @@ await page.click('[data-settings-panel="roster"] details .gi-settings-primary');
 r = await page.evaluate(() => ({ imported:window.app.roster.players.find(p => p.num === '55'), notice:document.querySelector('[data-settings-panel="roster"] [role="status"]')?.textContent }));
 ok(r.imported?.name === 'Alex Reed' && r.imported?.side === 'D' && /Imported 1 player/.test(r.notice),
   'Native Roster imports spreadsheet data through the canonical parser', JSON.stringify(r));
+await shot('settings-roster-populated-1280x800.png');
 
 // Cut-up filters must select the exact film set the exporter receives.
 await page.evaluate(() => {
@@ -221,12 +256,23 @@ r = await page.evaluate(() => ({
   modal:document.querySelector('[data-overlay-id="team-film-settings"] .gi-overlay-panel')?.getAttribute('aria-modal'),
   routeInert:!!document.getElementById('workspaceShell')?.closest('[inert]'),
   pageOverflow:document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  tableScrollable:(() => { const el=document.querySelector('.gi-settings-section-body.is-table'); return el && el.scrollWidth > el.clientWidth; })(),
+  gameRows:[...document.querySelectorAll('[data-settings-game]')].map(row=>({display:getComputedStyle(row).display,width:row.getBoundingClientRect().width,text:row.textContent.replace(/\s+/g,' ').trim()})),
+  strayActionZero:[...document.querySelectorAll('[data-settings-game] .gi-settings-row-actions')].some(actions=>[...actions.childNodes].some(node=>node.nodeType===Node.TEXT_NODE&&node.textContent.trim()==='0')),
+  gameListWidth:document.querySelector('.gi-settings-games')?.getBoundingClientRect().width,
+  panelWidth:document.querySelector('[data-settings-panel="film"]')?.clientWidth,
   minButton:Math.min(...[...document.querySelectorAll('[data-native-settings] button')].map(el => el.getBoundingClientRect().height).filter(Boolean)),
 }));
 ok(r.modal === 'true' && r.routeInert, 'Narrow Settings becomes modal and makes the workspace inert', JSON.stringify(r));
-ok(!r.pageOverflow && r.tableScrollable, 'Mobile game table scrolls internally with zero page overflow', JSON.stringify(r));
+ok(!r.pageOverflow && !r.strayActionZero && r.gameRows.length===2 && r.gameRows.every(row=>row.display==='grid'&&row.width<=r.panelWidth&&/Source|Linked|Managed/.test(row.text)) && r.gameListWidth<=r.panelWidth,
+  'Mobile film shows populated stacked game rows without a hidden horizontal table', JSON.stringify(r));
 ok(r.minButton >= 44, 'Mobile Settings controls meet the 44px touch target floor', JSON.stringify(r));
+await shot('settings-film-390x844.png');
+
+for (const viewport of [{width:768,height:900},{width:1440,height:900}]) {
+  await page.setViewport(viewport);
+  await page.click('[data-settings-tab="charting"]');
+  await shot(`settings-charting-${viewport.width}x${viewport.height}.png`);
+}
 
 ok(errors.length === 0, 'Native Settings journey produces zero page/console errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

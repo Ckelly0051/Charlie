@@ -6,7 +6,19 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-## Current Home — IMPLEMENTED, AWAITING CODEX REVIEW (2026-08-31)
+## Current Home - APPROVED ENTRY IMPLEMENTED LOCALLY (2026-08-31)
+
+The approved comp now governs production Home for all three meaningful states: first launch, season library/no open season, and a populated open season. First launch is part of Home, not a centered Team Hub onboarding panel. It offers the approved Program/Opponent choice, structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Team Hub remains the canonical season-library management destination after setup, while creation continues through its existing service boundaries.
+
+The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. This is local source work: no installer, release, push, or customer-data rewrite is implied.
+
+### Prior Local Home Repairs
+
+Codex directly repaired the remaining e3930fb findings: serialized duplicate checks/creation and canonical Scout identity lookup; visible-thumbnail refresh on root/first-file changes; and the approved edge-aligned rail/header/game-workspace composition without the old outer width cap. The repair was built in an isolated e3930fb archive with only its own files, excluding unrelated dirty Breakdown/token/packaging changes. Focused checks: Home 25/25, Team Hub 33/33, Settings 23/23, shell 90/90. Populated desktop screenshots were inspected; the source and docs are updated locally, not committed, installed, or released. Exact scope, evidence, and limitations are in the latest CLAUDE.md entry.
+
+### Historical Home Implementation And Review
+
+**Independent review supersedes the completion claims below.** The comp remains approved, but production is not accepted: the required rail/entry-flow composition is omitted; naming/setup dependencies are missing from the commit; thumbnail ownership fails across season/source changes; thumbnail work is eager rather than visibility-lazy; and obsolete row CSS constrains new cards. Exact evidence and repair instructions are recorded at the top of `CLAUDE.md`. Finish the approved implementation and repair these defects before packaging. The implementation account below is the builder's historical report, not the current review verdict.
 
 The approved comp is now the real production Home route (`js/home-screen.js`, `js/native-home.jsx`, `css/native-home.css`, plus `js/identity-labels.js` and `js/game-thumbnail.js`). This closes the "APPROVED FOR IMPLEMENTATION" step below; the implementation record is at the bottom of this section, and the full test-fix accounting is in `CLAUDE.md`'s matching dated changelog entry. No installer, push, or release — Codex review is the next step per the handoff.
 
@@ -760,3 +772,27 @@ Plan V2 is complete when a coach can:
    conclusion traceable to the correct film.
 7. Trust that saves, failures, migrations, and cleanup actions are visible and
    recoverable.
+
+## 9. Implemented Visual Contract: Home-Adjacent Workspace Panel
+
+The Home rebuild includes the shared Team & Film Settings surface that Home,
+Break Down, Team Hub, and the shell all open. Its implemented contract is:
+
+- Desktop sheet: min(920px, 100vw - 48px), exterior spacing, fixed
+  64px/44px/body/56px rows, and body-only vertical scrolling.
+- Narrow sheet: full screen at 700px, horizontally scrollable tabs, one-column
+  forms, and 44px minimum controls.
+- Narrow Film prioritizes the current season and uses stacked, fully labeled
+  game rows; it never asks a coach to infer that data exists below an orphaned
+  desktop table header.
+- IBM Plex Sans for coach-facing titles, tabs, headings, labels, and body copy;
+  monospace is reserved for real file paths and technical values.
+- Flat section bands with hairline dividers; no card-inside-card composition.
+- Dense content uses two columns only when each can retain 320px; sparse
+  content remains left aligned within about 720px.
+- Visual acceptance requires opened screenshots at 1440, 1280, 768, and 390,
+  populated state where applicable, plus explicit clipping and overflow checks.
+
+Home season identity is also canonicalized for display as year / full program
+identity / level. The display composer does not flatten the stored
+school/nickname fields or alter stable season ids.

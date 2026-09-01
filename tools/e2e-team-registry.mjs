@@ -36,6 +36,7 @@ r = await page.evaluate(() => {
   const reg = window.app.teamRegistry;
   const api = ['teams', 'activeTeamId', 'teamProfile', 'hasTeam', 'newTeamId',
     'seasonsForTeam', 'saveTeams', 'saveTeamProfile', 'setActiveTeamId', 'saveTeamIdentity',
+    'teamLogo', 'saveTeamLogo', 'removeTeamLogo',
     'clearIdentity', 'ensureRegistry', 'recoverFromWipe', 'checklistDismissed',
     'dismissChecklist', 'checklistItems'];
   return {
@@ -139,7 +140,43 @@ r = await page.evaluate(() => {
 ok(r.plain === 'st-joseph-mavericks' && r.collide === 'mavericks-3' && r.blank === 'team',
   'Team ids slugify, avoid collisions, and never come out empty', JSON.stringify(r));
 
-console.log('\n== 5. Team identity reaches game metadata WITHOUT hidden legacy inputs ==');
+console.log('\n== 5. Team logos are registry-owned and isolated ==');
+r = await page.evaluate(() => {
+  const reg = window.app.teamRegistry;
+  const keys = ['ffa_teams', 'ffa_team_profile', 'ffa_active_team_id'];
+  const saved = Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)]));
+  try {
+    localStorage.setItem('ffa_teams', JSON.stringify([
+      { id:'jv', teamName:'Mavericks JV' }, { id:'varsity', teamName:'Mavericks Varsity' },
+    ]));
+    localStorage.setItem('ffa_active_team_id', 'jv');
+    localStorage.setItem('ffa_team_profile', JSON.stringify({ teamName:'Mavericks JV' }));
+    const jvLogo = 'data:image/png;base64,AAAA';
+    const varsityLogo = 'data:image/webp;base64,BBBB';
+    const savedJv = reg.saveTeamLogo(jvLogo);
+    reg.setActiveTeamId('varsity');
+    const varsityBefore = reg.teamLogo();
+    const savedVarsity = reg.saveTeamLogo(varsityLogo);
+    reg.setActiveTeamId('jv');
+    const jvAfterSwitch = reg.teamLogo();
+    const removedJv = reg.removeTeamLogo();
+    const jvAfterRemove = reg.teamLogo();
+    reg.setActiveTeamId('varsity');
+    return {
+      savedJv, savedVarsity, varsityBefore, jvAfterSwitch, removedJv, jvAfterRemove,
+      varsityAfterRemove:reg.teamLogo(), invalidRejected:reg.saveTeamLogo('javascript:alert(1)') === false,
+      profileHasLogo:Object.hasOwn(reg.teamProfile(), 'logoData'),
+    };
+  } finally { keys.forEach(k => saved[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, saved[k])); }
+});
+ok(r.savedJv && r.savedVarsity && r.varsityBefore === '' && r.jvAfterSwitch === 'data:image/png;base64,AAAA',
+  'Each team reads only its own saved logo across active-team switches', JSON.stringify(r));
+ok(r.removedJv && r.jvAfterRemove === '' && r.varsityAfterRemove === 'data:image/webp;base64,BBBB',
+  'Removing one team logo leaves every other team logo intact', JSON.stringify(r));
+ok(r.invalidRejected && r.profileHasLogo === false,
+  'The registry rejects non-image payloads and never copies logos into the active profile', JSON.stringify(r));
+
+console.log('\n== 6. Team identity reaches game metadata WITHOUT hidden legacy inputs ==');
 // This is the S7-d landmine the extraction had to close. The old path poked
 // #gameTeamName / #gameJerseyColor inside #app and called _saveGameInfo(),
 // which reads those inputs back. Once #app is deleted it would have become a
@@ -184,7 +221,7 @@ ok(r.gameInfoName === 'Bulldogs' && r.gameInfoColor === 'maroon',
   'Team identity reaches the active game metadata with the hidden legacy inputs removed', JSON.stringify(r));
 ok(r.blankRejected === true, 'A blank team name is refused rather than wiping the identity', JSON.stringify(r));
 
-console.log('\n== 6. Post-wipe recovery keeps original team ids ==');
+console.log('\n== 7. Post-wipe recovery keeps original team ids ==');
 // Rebuilding a registry with FRESH ids is what made every season invisible in
 // the field-reported bug: the metas still carried the old teamId. Recovery must
 // group by the stamped id and keep it.
@@ -233,7 +270,7 @@ ok(r.names[0] === 'Recovered' && r.active === 'jv-2025',
 ok(r.secondPass === false, 'Recovery is a no-op when identity is already intact', JSON.stringify(r));
 ok(r.backendIdUnchanged === true, 'Post-wipe recovery never mutates the backend active-season pointer', JSON.stringify(r));
 
-console.log('\n== 7. Checklist truth ==');
+console.log('\n== 8. Checklist truth ==');
 r = await page.evaluate(() => {
   const reg = window.app.teamRegistry;
   const saved = localStorage.getItem('ffa_checklist_dismissed');
@@ -255,7 +292,7 @@ ok(r.beforeDismiss === false && r.afterDismiss === true,
 ok(r.steps.join(',') === 'team,roster,season,play,stats' && r.seasonStepDoneOnDemoOnly === false,
   'Sample-season data never checks off a real-data onboarding milestone', JSON.stringify(r));
 
-console.log('\n== 8. Clearing identity removes every key this service owns ==');
+console.log('\n== 9. Clearing identity removes every key this service owns ==');
 r = await page.evaluate(() => {
   const reg = window.app.teamRegistry;
   const keys = ['ffa_team_profile', 'ffa_active_team_id', 'ffa_checklist_dismissed', 'ffa_seen_stats'];

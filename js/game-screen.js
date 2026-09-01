@@ -1,6 +1,7 @@
 import { h } from 'preact';
 import { NativeGameForm } from './native-game-form.jsx';
 import { ConfirmDeleteForm } from './native-team-hub.jsx';
+import { fullIdentity } from './identity-labels.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -24,11 +25,20 @@ export class GameScreen {
     const scout = store.data?.kind === 'scout';
     const scoutTarget = String(store.data?.scout?.opponent || '').trim();
     const source = mode === 'create' ? {} : clone(storage.gameInfo || active.gameInfo || {});
+    // School/nickname prefill (2026-08-31 Home naming contract): an existing
+    // game predating these fields has no `opponentSchool`/`sourceTeamASchool`
+    // — its own intact `opponent`/`sourceTeamA`/`sourceTeamB` is the honest
+    // default (never a heuristic split), so leaving nickname untouched and
+    // resaving composes back to byte-identical prior identity.
     const initial = {
-      week: source.week || '', opponent: source.opponent || '',
+      week: source.week || '',
+      opponent: source.opponentSchool || source.opponent || '', opponentNickname: source.opponentNickname || '',
       date: source.date || (mode === 'create' ? new Date().toISOString().slice(0, 10) : ''),
       homeAway: source.homeAway || '', gameType: source.gameType || 'game',
-      perspective: scout ? 'scout' : (source.perspective || 'offense'), sourceTeamA: source.sourceTeamA || scoutTarget, sourceTeamB: source.sourceTeamB || '', scoreUs: source.scoreUs ?? '', scoreThem: source.scoreThem ?? '',
+      perspective: scout ? 'scout' : (source.perspective || 'offense'),
+      sourceTeamA: source.sourceTeamASchool || source.sourceTeamA || scoutTarget, sourceTeamANickname: source.sourceTeamANickname || '',
+      sourceTeamB: source.sourceTeamBSchool || source.sourceTeamB || '', sourceTeamBNickname: source.sourceTeamBNickname || '',
+      scoreUs: source.scoreUs ?? '', scoreThem: source.scoreThem ?? '',
     };
     const context = {
       mode, gameId: String(active.id), before: clone(store.data),
@@ -116,7 +126,25 @@ export class GameScreen {
         await storage._loadActiveGame({ renderGames: false });
       }
 
-      if (store.data?.kind === 'scout') values = { ...values, opponent: store.data?.scout?.opponent || values.opponent, perspective: 'scout', gameType: 'scout' };
+      // School/nickname compose into the compatibility identity field here,
+      // at the one seam every save passes through, so `opponent` /
+      // `sourceTeamA` / `sourceTeamB` remain the full identity every
+      // existing reader (reports, CSV, scout aggregation) already consumes
+      // unchanged (2026-08-31 Home naming contract). The raw school/nickname
+      // pair is also stored, additively, so the next edit can prefill
+      // without guessing a split of the composed name.
+      if (store.data?.kind === 'scout') {
+        const aSchool = String(values.sourceTeamA || '').trim(), aNickname = String(values.sourceTeamANickname || '').trim();
+        const bSchool = String(values.sourceTeamB || '').trim(), bNickname = String(values.sourceTeamBNickname || '').trim();
+        values = {
+          ...values, opponent: store.data?.scout?.opponent || values.opponent, perspective: 'scout', gameType: 'scout',
+          sourceTeamA: fullIdentity(aSchool, aNickname), sourceTeamASchool: aSchool, sourceTeamANickname: aNickname,
+          sourceTeamB: fullIdentity(bSchool, bNickname), sourceTeamBSchool: bSchool, sourceTeamBNickname: bNickname,
+        };
+      } else {
+        const school = String(values.opponent || '').trim(), nickname = String(values.opponentNickname || '').trim();
+        values = { ...values, opponent: fullIdentity(school, nickname), opponentSchool: school, opponentNickname: nickname };
+      }
       this.app._applyGameInfoDraft(values);
       if (store.data?.kind === 'scout') {
         const game = store.activeGame();

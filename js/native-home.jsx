@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { WorkspaceChoice, SeasonRow } from './native-team-hub.jsx';
+import { fullIdentity, seasonIdentity } from './identity-labels.js';
 import '../css/native-home.css';
 
 const icon = name => <svg class="icon" aria-hidden="true"><use href={`assets/icons.svg#icon-${name}`} /></svg>;
@@ -9,6 +10,72 @@ function useScreen(screen) {
   const [state, setState] = useState(() => screen.snapshot());
   useEffect(() => screen.subscribe(setState), [screen]);
   return state;
+}
+
+const LEVELS = ['JV', 'Varsity', 'Freshman', 'Other'];
+
+function IdentityFields({ prefix = '', label = 'Program' }) {
+  return <div class="first-identity-row">
+    <label><span>{label}: school / organization</span><input name={`${prefix}School`} required placeholder="e.g. St. Joseph" /></label>
+    <label><span>Nickname <small>Optional</small></span><input name={`${prefix}Nickname`} placeholder="e.g. Mavericks" /></label>
+  </div>;
+}
+
+function FirstLaunch({ screen, hub, mode }) {
+  const [school, setSchool] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [level, setLevel] = useState('JV');
+  const [customLevel, setCustomLevel] = useState('');
+  const [setupMode, setSetupMode] = useState('guided');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const scout = mode === 'scout';
+  const resolvedLevel = level === 'Other' ? customLevel.trim() : level;
+  const programName = fullIdentity(school, nickname);
+  const submit = async event => {
+    event.preventDefault(); setBusy(true); setError('');
+    const values = new FormData(event.currentTarget);
+    const team = await hub.addTeam({ school: values.get('school'), nickname: values.get('nickname'), jerseyColor: values.get('jerseyColor') });
+    if (!team?.ok) { setError(team?.message || 'Could not create the program.'); setBusy(false); return; }
+    const result = scout
+      ? await hub.createScout({ opponent: values.get('opponentSchool'), opponentNickname: values.get('opponentNickname'), year, level: resolvedLevel, sourceTeamA: values.get('sourceASchool'), sourceTeamANickname: values.get('sourceANickname'), sourceTeamB: values.get('sourceBSchool'), sourceTeamBNickname: values.get('sourceBNickname'), date: values.get('date') })
+      : await hub.createSeason({ year, level: resolvedLevel, setupMode });
+    if (!result?.ok) { setError(result?.message || 'Could not create the workspace.'); setBusy(false); return; }
+    if (!scout && setupMode === 'guided') setTimeout(() => hub.openSeasonSetup(null), 0);
+  };
+  return <main class="first-launch" data-first-launch aria-labelledby="firstLaunchTitle">
+    <header><h1 id="firstLaunchTitle">Your football workspace</h1><p>Start with your program, or prepare for an opponent.</p></header>
+    <WorkspaceChoice mode={mode} screen={hub} />
+    <form onSubmit={submit}>
+      <h2>{scout ? 'Create your first opponent scout' : 'Create your first season'}</h2>
+      <div class="first-identity-row">
+        <label><span>Program: school / organization</span><input name="school" required value={school} onInput={event => setSchool(event.currentTarget.value)} placeholder="e.g. St. Joseph" /></label>
+        <label><span>Nickname <small>Optional</small></span><input name="nickname" value={nickname} onInput={event => setNickname(event.currentTarget.value)} placeholder="e.g. Mavericks" /></label>
+      </div>
+      <select name="jerseyColor" class="first-compat-color" aria-hidden="true" tabIndex="-1"><option value="" /><option value="blue" /><option value="navy" /></select>
+      <div class="first-season-row">
+        <label><span>Year</span><input name="year" inputMode="numeric" required value={year} onInput={event => setYear(event.currentTarget.value)} /></label>
+        <label><span>Level</span><select name="level" value={level} onChange={event => setLevel(event.currentTarget.value)}>{LEVELS.map(value => <option value={value}>{value === 'Other' ? 'Other…' : value}</option>)}</select></label>
+      </div>
+      {level === 'Other' && <label class="first-full-field"><span>Level name</span><input required value={customLevel} onInput={event => setCustomLevel(event.currentTarget.value)} placeholder="e.g. 8th grade" /></label>}
+      {scout ? <div class="first-scout-fields">
+        <IdentityFields prefix="opponent" label="Opponent being scouted" />
+        <IdentityFields prefix="sourceA" label="Source game: Team A" />
+        <IdentityFields prefix="sourceB" label="Source game: Team B" />
+        <label class="first-full-field"><span>Game date</span><input name="date" type="date" /></label>
+      </div> : <>
+        <div class="first-name-preview"><span>Season name</span><strong>{seasonIdentity(year, programName, resolvedLevel)}</strong></div>
+        <div class="first-setup-choice" role="radiogroup" aria-label="Season setup method">
+          <button type="button" role="radio" aria-checked={setupMode === 'guided'} class={setupMode === 'guided' ? 'is-selected' : ''} onClick={() => setSetupMode('guided')}><i /><span><strong>Use guided setup</strong><small>Selected for your first season · skip any time</small></span></button>
+          <button type="button" role="radio" aria-checked={setupMode === 'quick'} class={setupMode === 'quick' ? 'is-selected' : ''} onClick={() => setSetupMode('quick')}><i /><span><strong>Set up manually</strong><small>Go straight to your season</small></span></button>
+        </div>
+      </>}
+      {error && <p class="first-error" role="alert">{error}</p>}
+      <div class="first-actions"><button class="ws-btn ws-primary" disabled={busy}>{busy ? 'Creating…' : scout ? 'Create opponent scout' : 'Create season'}</button></div>
+    </form>
+    <div class="first-secondary"><button type="button" onClick={event => hub.recoverSeasons(event.currentTarget)}>Recover existing seasons</button><button type="button" onClick={() => hub.exploreSample()}>Explore a sample season</button></div>
+  </main>;
 }
 
 /** ONE detached, muted, never-DOM-attached capture per card -- the same
@@ -24,16 +91,10 @@ function useScreen(screen) {
  *  game detail panel is exempt: it is, by construction, on screen the instant
  *  it renders, so it requests immediately rather than waiting on a callback. */
 function Thumbnail({ screen, game, detail = false }) {
-  const url = screen.thumbnailFor(game.id);
+  const url = screen.thumbnailSourceMatches(game) ? screen.thumbnailFor(game.id) : null;
   const film = screen.rowFilmView(game.id);
   const nodeRef = useRef(null);
   useEffect(() => {
-    // A cached frame is only "already have it" when it was resolved for
-    // THIS game's CURRENT film source -- a relink/root change/source-file
-    // swap changes filmMode/filmDir with no guarantee the game id (the only
-    // thing `url` is keyed by) changes too, so `url` alone cannot tell a
-    // fresh frame from a stale one left over from the prior source.
-    if (url && screen.thumbnailSourceMatches(game)) return undefined;
     if (detail) { screen.requestThumbnail(game); return undefined; }
     const el = nodeRef.current;
     if (!el || typeof IntersectionObserver !== 'function') { screen.requestThumbnail(game); return undefined; }
@@ -46,7 +107,7 @@ function Thumbnail({ screen, game, detail = false }) {
     }, { root: null, rootMargin: '200px 0px', threshold: 0.01 });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [game.id, game.filmMode, game.filmDir, detail]);
+  }, [game.id, game.filmMode, game.filmDir, detail, screen.thumbnailRevision]);
   return <div class="thumbnail" ref={nodeRef}>
     {url ? <img src={url} alt={`Game film: ${screen.matchupTitle(game)}`} loading="lazy" />
       : <span class="film-missing">{icon('film')}{film.cls === 'ws-fact-green' ? 'Film linked' : 'No film linked'}</span>}
@@ -64,18 +125,23 @@ function HomeHead({ screen, state, hasSeason, scout, c, games }) {
       ? `${games.length} source game${games.length === 1 ? '' : 's'} · isolated from our schedule and team totals`
       : [screen.teamName(), record.text, `${games.length} game${games.length === 1 ? '' : 's'}`].filter(Boolean).join(' · '))
     : (c.team ? 'Choose or create a season to get started.' : 'Set up your team to get started.');
-  const greeting = hasSeason ? (scout ? `${(c.season?.name || 'Opponent').toUpperCase()} SCOUT` : (c.season?.name || 'SEASON').toUpperCase())
-    : (c.team ? `${c.team.name.toUpperCase()} HOME` : 'TEAM HOME');
+  const season = screen.app.storage?.seasonStore?.data;
+  const greeting = hasSeason ? (scout ? (c.season?.name || 'Opponent scout') : seasonIdentity(season?.year, screen.teamName(), season?.level))
+    : (c.team ? `${c.team.name} home` : 'Team home');
+  const logo = scout ? '' : screen.teamLogo();
   return <div class="ws-home-head">
     <div>
-      <div class="ws-eyebrow" id="wsHomeEyebrow">{screen.eyebrow()}</div>
-      <h1 id="wsGreeting">{greeting}</h1>
-      <p id="wsHomeSummary">{summary}</p>
+      <button type="button" class="home-library-back" onClick={() => screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
+      <div class="ws-home-title-lockup">{logo && <img class="ws-home-logo" src={logo} alt="" />}<div>
+        <div class="ws-eyebrow" id="wsHomeEyebrow">{screen.eyebrow()}</div>
+        <h1 id="wsGreeting">{greeting}</h1>
+        <p id="wsHomeSummary">{summary}</p>
+      </div></div>
     </div>
     <div class="ws-home-actions">
-      <button type="button" class="ws-btn" data-ws-action="settings" onClick={event => screen.app.settingsScreen?.open?.({ returnFocus: event.currentTarget })}>Team &amp; Film Settings</button>
+      {!hasSeason && <button type="button" class="ws-btn" data-ws-action="settings" onClick={event => screen.app.settingsScreen?.open?.({ returnFocus: event.currentTarget })}>Team &amp; Film Settings</button>}
       {hasSeason && games.length ? <button type="button" class="ws-btn" data-ws-action="season-report" onClick={() => screen.openSeasonReport()}>{scout ? 'Scout report' : 'Season report'}</button> : null}
-      <button type="button" class="ws-btn ws-primary" data-ws-action="new-game" onClick={() => screen.addGame()}>+ {scout ? 'Add source game' : 'Add game'}</button>
+      {hasSeason && <button type="button" class="ws-btn ws-primary" data-ws-action="new-game" onClick={() => screen.addGame()}>+ {scout ? 'Add source game' : 'Add game'}</button>}
     </div>
   </div>;
 }
@@ -130,7 +196,7 @@ function GameDetail({ screen, game, c, scout }) {
       <div class="detail-identity">
         <Thumbnail screen={screen} game={game} detail />
         <div>
-          <h2 id="wsDetailName">{(scout ? matchup : (game.gameInfo?.opponent || matchup)).toUpperCase()}</h2>
+          <h2 id="wsDetailName">{matchup}</h2>
           <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p>
           <p class="detail-date" id="wsDetailMeta">{[summary.date, summary.status].filter(Boolean).join(' · ')}</p>
         </div>
@@ -249,37 +315,41 @@ function RailSeasonRow({ season, hub }) {
   const label = (!season.isScout && season.level) ? season.level : (season.name || 'Season');
   const count = season.gameCount === 1 ? '1 game' : `${season.gameCount || 0} games`;
   return <button type="button" class={`rail-row${season.current ? ' is-current' : ''}`}
-    onClick={() => hub.openSeason(season.id)}>
-    <strong>{label}</strong><small>{count}</small>
+    aria-current={season.current ? 'true' : undefined} title={season.name || label} onClick={() => hub.openSeason(season.id)}>
+    {icon('folder')}<span><strong>{label}</strong><small>{count}</small></span>
   </button>;
 }
 function SeasonRail({ screen, hub, hubState }) {
   const scout = hubState.workspaceMode === 'scout';
+  const hasSeason = !!screen.app.storage?.seasonStore?.hasCurrent?.();
   const seasons = (hubState.seasons || []).filter(s => !!s.isScout === scout);
   const groups = groupByYear(seasons);
   const create = event => scout ? hub.openCreateScout(event.currentTarget) : hub.openCreateSeason(event.currentTarget);
+  const logo = scout ? '' : screen.teamLogo();
   return <nav class="rail-year" aria-label={scout ? 'Opponents' : 'Seasons'}>
     <div class="rail-head">
       <span class="gi-hub-kicker">{scout ? 'Opponents' : 'Seasons'}</span>
       <button type="button" class="icon-btn" aria-label={scout ? 'New opponent scout' : 'New season'} title={scout ? 'New opponent scout' : 'New season'} onClick={create}>+</button>
     </div>
-    <button type="button" class="rail-library-link" onClick={() => screen.openSeasonLibrary()}>Season library</button>
+    <button type="button" class="rail-library-link" onClick={() => hubState.teams?.length && screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
+    {!hubState.teams?.length && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
     <div class="rail-groups">
       {groups.length
         ? groups.map(([year, rows]) => <div class="rail-group" key={year}>
             <h3 class="rail-year-label">{year}</h3>
             {rows.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
           </div>)
-        : <p class="rail-empty">{scout ? 'No opponents yet.' : 'No other seasons yet.'}</p>}
+        : hubState.teams?.length ? <p class="rail-empty">{scout ? 'No opponents yet.' : 'No other seasons yet.'}</p> : null}
     </div>
     <div class="rail-tools">
-      <span class="gi-hub-kicker">Season tools</span>
-      <button type="button" onClick={event => screen.openRoster(event.currentTarget)}>Roster</button>
-      <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>Film &amp; storage</button>
-      {hubState.control?.canReviewSetup ? <button type="button" onClick={event => screen.openSeasonSetup(event.currentTarget)}>Season setup</button> : null}
-      <button type="button" onClick={event => screen.manageProgram(event.currentTarget)}>Manage program</button>
+      {hasSeason && <span class="rail-scope">{seasonIdentity(screen.app.storage?.seasonStore?.data?.year, screen.teamName(), screen.app.storage?.seasonStore?.data?.level)}</span>}
+      {hasSeason && !scout && <button type="button" onClick={event => screen.openRoster(event.currentTarget)}>{icon('notes')}Roster</button>}
+      {hasSeason && <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>{icon('film')}Film &amp; storage</button>}
+      {hasSeason && hubState.control?.canReviewSetup ? <button type="button" onClick={event => screen.openSeasonSetup(event.currentTarget)}>{icon('tag')}Season setup</button> : null}
+      {hasSeason && !scout && <button type="button" onClick={event => screen.openEditSeason(event.currentTarget)}>{icon('pencil')}Edit season details</button>}
+      <button type="button" onClick={event => screen.manageProgram(event.currentTarget)}>{icon('folder')}Manage program</button>
     </div>
-    <div class="rail-foot"><span class="gi-hub-kicker">Local library</span><span>{hubState.profile?.teamName || screen.teamName() || 'This team'}</span></div>
+    <div class="rail-foot">{logo && <img class="rail-logo" src={logo} alt="" />}<span><span class="gi-hub-kicker">Local library</span><span>{hubState.profile?.teamName || screen.teamName() || 'Your coaching workspace'}</span></span></div>
   </nav>;
 }
 
@@ -335,7 +405,7 @@ function NativeHome({ screen }) {
   // second time. Without this, the rail/library can render a stale,
   // pre-change season list (including "no seasons" right after one was
   // just created) until something UNRELATED happens to trigger a reload.
-  useEffect(() => { if (hub && state.active) hub.load(); }, [hub, state.active]);
+  useEffect(() => { if (hub && state.active) hub.load(); }, [hub, state.active, state.seasonId]);
   const store = app.storage?.seasonStore;
   const hasSeason = !!store?.hasCurrent?.();
   const games = hasSeason ? (store.data.games || []) : [];
@@ -365,14 +435,15 @@ function NativeHome({ screen }) {
   // the rest of the session. GameWorkspace/EmptySeasonPanel render only
   // Home-scoped markup shared with nothing else, so they are unaffected.
   return <div class="ws-home-page" data-native-home>
-    <HomeHead screen={screen} state={state} hasSeason={hasSeason} scout={scout} c={c} games={games} />
-    {state.status !== 'ready' || !state.active ? null
-      : hasSeason
-        ? <div class="home-with-rail">
-            <SeasonRail screen={screen} hub={hub} hubState={hubState} />
-            {!games.length ? <EmptySeasonPanel screen={screen} scout={scout} /> : <GameWorkspace screen={screen} state={state} games={games} scout={scout} c={c} />}
-          </div>
-        : <SeasonLibraryPanel screen={screen} hub={hub} hubState={hubState} hasTeam={hasTeam} />}
+    <div class="home-with-rail">
+      {state.active && <SeasonRail screen={screen} hub={hub} hubState={hubState} />}
+      <div class="home-content">
+        {hasTeam && <HomeHead screen={screen} state={state} hasSeason={hasSeason} scout={scout} c={c} games={games} />}
+        {state.status !== 'ready' || !state.active ? null : hasSeason
+          ? (!games.length ? <EmptySeasonPanel screen={screen} scout={scout} /> : <GameWorkspace screen={screen} state={state} games={games} scout={scout} c={c} />)
+          : hasTeam ? <SeasonLibraryPanel screen={screen} hub={hub} hubState={hubState} hasTeam={hasTeam} /> : <FirstLaunch screen={screen} hub={hub} mode={hubState.workspaceMode} />}
+      </div>
+    </div>
   </div>;
 }
 

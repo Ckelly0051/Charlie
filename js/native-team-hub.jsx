@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
+import { seasonIdentity } from './identity-labels.js';
 import '../css/native-team-hub.css';
 
 const COLORS = ['', 'white', 'black', 'red', 'blue', 'navy', 'green', 'yellow', 'orange', 'purple', 'maroon', 'gray', 'teal'];
@@ -153,7 +154,7 @@ export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, 
       </button>
     </div>
     <YearLevelFields year={year} setYear={setYear} level={level} setLevel={setLevel} customLevel={customLevel} setCustomLevel={setCustomLevel} />
-    <div class="gi-hub-name-preview"><small>Season name</small><strong>{(year.trim() || 'Year')} · {resolvedLevel}</strong></div>
+    <div class="gi-hub-name-preview"><small>Season name</small><strong>{seasonIdentity(year, teamName, resolvedLevel)}</strong></div>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
     {duplicate && <p class="gi-hub-error-action"><button type="button" onClick={() => onOpenExisting?.(duplicate.id)}>Open existing season</button></p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : setupMode === 'guided' ? 'Create and start guide' : 'Create season'}</button></div>
@@ -163,7 +164,7 @@ export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, 
 /** Explicit correction for an existing season's year/level — never
  *  reconstructs its id, games, or roster; only the two structured metadata
  *  fields plus the generated name they produce. */
-export function EditSeasonForm({ year, level, onSubmit, onOpenExisting, onCancel }) {
+export function EditSeasonForm({ year, level, teamName = '', onSubmit, onOpenExisting, onCancel }) {
   const [y, setY] = useState(year || '');
   const isStandard = LEVEL_OPTIONS.slice(0, -1).includes(level);
   const [lvl, setLvl] = useState(isStandard ? level : 'Other');
@@ -185,7 +186,7 @@ export function EditSeasonForm({ year, level, onSubmit, onOpenExisting, onCancel
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
     <p>Correct the year or level. This never changes the season's id, games, or roster.</p>
     <YearLevelFields year={y} setYear={setY} level={lvl} setLevel={setLvl} customLevel={customLevel} setCustomLevel={setCustomLevel} />
-    <div class="gi-hub-name-preview"><small>Season name</small><strong>{(y.trim() || 'Year')} · {resolvedLevel}</strong></div>
+    <div class="gi-hub-name-preview"><small>Season name</small><strong>{seasonIdentity(y, teamName, resolvedLevel)}</strong></div>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
     {duplicate && <p class="gi-hub-error-action"><button type="button" onClick={() => onOpenExisting?.(duplicate.id)}>Open existing season</button></p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button></div>
@@ -321,34 +322,12 @@ export function RecoverSeasonsForm({ candidates, onRecover }) {
 export function WorkspaceChoice({ mode = 'program', screen, compact = false }) {
   return <div class={`gi-hub-workspace-choice${compact ? ' is-compact' : ''}`} role="group" aria-label="Football workspace">
     <button class={mode === 'program' ? 'is-active' : ''} aria-pressed={mode === 'program'} onClick={() => screen.selectWorkspace('program')}>
-      <span class="gi-hub-workspace-icon">O</span><span><strong>Our Program</strong><small>Chart our games, manage the season, and measure our team.</small></span>
+      <span class="gi-hub-workspace-icon">O</span><span><strong>Our Program</strong><small>Your seasons, roster, games, and film.</small></span>
     </button>
     <button class={mode === 'scout' ? 'is-active' : ''} aria-pressed={mode === 'scout'} onClick={() => screen.selectWorkspace('scout')}>
-      <span class="gi-hub-workspace-icon is-scout">S</span><span><strong>Opponent Scout</strong><small>Chart outside film without changing our record or season totals.</small></span>
+      <span class="gi-hub-workspace-icon is-scout">S</span><span><strong>Opponent Scout</strong><small>Opponent film, source games, and scouting reports.</small></span>
     </button>
   </div>;
-}
-
-export function FirstTeam({ screen, mode }) {
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const submit = async event => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    setBusy(true); setError('');
-    const result = await screen.addTeam({ school: values.get('school'), nickname: values.get('nickname'), jerseyColor: values.get('jerseyColor') });
-    if (!result?.ok) { setError(result?.message || 'The team could not be saved.'); setBusy(false); }
-  };
-  return <section class="gi-hub-onboarding gi-hub-first" aria-labelledby="giHubFirstTitle">
-    <header><span class="gi-hub-kicker">Welcome to GridIron IQ</span><h1 id="giHubFirstTitle">What are you working on?</h1><p>Start with your program or an opponent. Both use the same film room and football analysis, while their schedules and results stay separate.</p></header>
-    <WorkspaceChoice mode={mode} screen={screen} />
-    <div class="gi-hub-onboarding-step"><span class="gi-hub-step-number">1</span><div><h2>Set up your program</h2><p>This becomes the home for seasons, roster, play library, and scouting work.</p></div></div>
-    <form onSubmit={submit}><TeamFormFields />
-      {error && <p class="gi-hub-error" role="alert">{error}</p>}
-      <button class="gi-hub-primary" disabled={busy}>{busy ? 'Saving…' : 'Create team'}</button>
-    </form>
-    <p class="gi-hub-storage-promise"><strong>Film stays where you keep it.</strong><span>Choose or change the linked library from Team &amp; Film Settings.</span></p>
-  </section>;
 }
 
 function FilmBadge({ film }) {
@@ -410,7 +389,7 @@ function NativeTeamHub({ screen }) {
   const demoExists = state.seasons.some(season => season.isDemo);
   if (state.status === 'loading' || state.status === 'idle') return <section class="gi-team-hub" data-native-team-hub><div class="gi-hub-loading" aria-live="polite"><span /><span /><span />Loading teams and seasons…</div></section>;
   if (state.status === 'error') return <section class="gi-team-hub" data-native-team-hub><div class="gi-hub-load-error" role="alert"><span class="gi-hub-kicker">Storage error</span><h1>Teams and seasons did not load</h1><p>{state.error}</p><button onClick={() => screen.load()}>Try again</button></div></section>;
-  if (!state.teams.length) return <section class="gi-team-hub" data-native-team-hub><header class="gi-hub-brand">GRIDIRON <b>IQ</b></header><FirstTeam screen={screen} mode={state.workspaceMode} /></section>;
+  if (!state.teams.length) return <section class="gi-team-hub" data-native-team-hub><div class="gi-hub-empty"><h3>Set up your program from Home</h3><button onClick={() => screen.close()}>Go to Home</button></div></section>;
 
   const scout = state.workspaceMode === 'scout';
   const create = event => scout ? screen.openCreateScout(event.currentTarget) : screen.openCreateSeason(event.currentTarget);
@@ -421,7 +400,7 @@ function NativeTeamHub({ screen }) {
     </header>
     <div class="gi-hub-teambar">
       <div class="gi-hub-team-switch" role="group" aria-label="Teams" onKeyDown={event => arrowFocus(event, '[data-hub-team]')}>
-        {state.teams.map(team => <button data-hub-team={team.id} class={team.id === state.activeTeamId ? 'is-active' : ''} aria-pressed={team.id === state.activeTeamId} onClick={() => screen.switchTeam(team.id)}><i data-color={team.jerseyColor || 'none'} />{team.teamName}</button>)}
+        {state.teams.map(team => <button data-hub-team={team.id} class={team.id === state.activeTeamId ? 'is-active' : ''} aria-pressed={team.id === state.activeTeamId} onClick={() => screen.switchTeam(team.id)}>{team.logoData ? <img class="gi-hub-team-logo" src={team.logoData} alt="" /> : <i data-color={team.jerseyColor || 'none'} />}{team.teamName}</button>)}
         <button class="gi-hub-add-team" onClick={event => screen.openAddTeam(event.currentTarget)}>+ Add team</button>
       </div>
       <div class="gi-hub-team-actions"><button disabled={!state.currentSeasonId || scout} onClick={event => screen.openRoster(event.currentTarget)}>Roster</button><button class="is-danger" onClick={event => screen.removeActiveTeam(event.currentTarget)}>Remove team</button></div>

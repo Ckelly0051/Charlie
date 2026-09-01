@@ -1,5 +1,5 @@
 import { mountNativeHome } from './native-home.jsx';
-import { matchupLabels } from './identity-labels.js';
+import { fullIdentity, matchupLabels } from './identity-labels.js';
 import { isPlayTagged } from './football-rules.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
@@ -32,7 +32,7 @@ export class HomeScreen {
     this._state = {
       status: 'idle', active: false, seasonId: '', selectedGameId: null,
       query: '', sort: 'newest', filter: 'all', view: 'grid',
-      filmHealth: {}, thumbnails: {}, thumbSources: {},
+      filmHealth: {}, thumbnails: {}, thumbSources: {}, thumbnailRevision: 0,
     };
   }
 
@@ -176,7 +176,11 @@ export class HomeScreen {
     const id = registry?.activeTeamId?.();
     return registry?.teams?.().find(t => String(t.id) === String(id)) || registry?.teamProfile?.() || {};
   }
-  teamName() { const t = this._activeTeam(); return t.school || t.teamName || ''; }
+  teamName() {
+    const t = this._activeTeam();
+    return fullIdentity(t.school || t.teamName || '', t.nickname || '');
+  }
+  teamLogo() { return this.app.teamRegistry?.teamLogo?.() || ''; }
   _teamNickname() { return this._activeTeam().nickname || ''; }
   isActive(id) { return String(this._data()?.activeGameId || '') === String(id); }
   identities(game) {
@@ -267,8 +271,14 @@ export class HomeScreen {
   }
 
   // -- Film health, background-verified per game, token-guarded -----------
+  refreshFilm() { if (this._state.active) this._verifyFilm(); }
+  refreshIdentity() { if (this._state.active) this._emit(); }
   async _verifyFilm() {
     const token = ++this._filmToken;
+    // A relative folder cannot describe a library-root or source-file change.
+    // Recheck visible sources on each film refresh; the service keeps decoded
+    // frames cached by their resolved path, so unchanged film is not decoded again.
+    this._set({thumbnailRevision:this._state.thumbnailRevision + 1, thumbnails:{}, thumbSources:{}});
     const seasonId = this._state.seasonId;
     this._games().forEach(async g => {
       let h;
@@ -326,11 +336,13 @@ export class HomeScreen {
     const key = String(game.id);
     const seasonId = this._state.seasonId;
     const sourceKey = this._thumbSourceKey(game);
+    const revision = this._state.thumbnailRevision;
     const gens = (this._thumbGen ||= new Map());
     const myGen = (gens.get(key) || 0) + 1;
     gens.set(key, myGen);
     this.thumbnails.request(game).then(dataUrl => {
       if (this._state.seasonId !== seasonId) return; // a stale in-flight capture from a season the coach has left
+      if (revision !== this._state.thumbnailRevision) return;
       if (this._thumbGen?.get(key) !== myGen) return; // superseded by a newer request for this same game
       if (this._state.thumbnails[key] === dataUrl && this._state.thumbSources[key] === sourceKey) return;
       this._set({
@@ -340,10 +352,8 @@ export class HomeScreen {
     }).catch(() => {});
   }
   thumbnailFor(id) { return this._state.thumbnails[String(id)]; }
-  /** True only when the cached thumbnail (if any) was resolved for this
-   *  game's CURRENT film source. A relink/root change/source-file swap
-   *  changes `filmMode`/`filmDir` without changing the game id, so an id-only
-   *  cache hit is not sufficient evidence the displayed frame is current. */
+  get thumbnailRevision() { return this._state.thumbnailRevision; }
+  /** Guards immediate in-place folder edits between full film refreshes. */
   thumbnailSourceMatches(game) {
     if (!game) return false;
     return this._state.thumbSources[String(game.id)] === this._thumbSourceKey(game);
@@ -369,7 +379,7 @@ export class HomeScreen {
   openFilmSettings(invoker) { return this.app.teamHubScreen?.openSettings?.(invoker, 'film'); }
   openSeasonSetup(invoker) { return this.app.teamHubScreen?.openSeasonSetup?.(invoker); }
   openEditSeason(invoker) { return this.app.teamHubScreen?.openEditSeason?.(invoker); }
-  manageProgram(invoker) { return this.app.teamHubScreen?.openSettings?.(invoker, 'film'); }
+  manageProgram(invoker) { return this.app.teamHubScreen?.openSettings?.(invoker, 'team'); }
   openSeasonLibrary() { return this.app.workspaceShell._openLibrary(); }
 
   /** Game settings / Link film both need the SELECTED (previewed) game to be

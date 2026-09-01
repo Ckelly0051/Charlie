@@ -92,7 +92,7 @@ export class TeamRegistry {
   // ------------------------------------------------------------ mutations --
 
   saveTeams(arr) {
-    try { localStorage.setItem('ffa_teams', JSON.stringify(arr)); } catch (e) {}
+    try { localStorage.setItem('ffa_teams', JSON.stringify(arr)); return true; } catch (e) { return false; }
   }
 
   saveTeamProfile(profile) {
@@ -101,6 +101,37 @@ export class TeamRegistry {
 
   setActiveTeamId(id) {
     try { localStorage.setItem('ffa_active_team_id', String(id || '')); } catch (e) {}
+  }
+
+  /** Team logos live once on the registry entry, never inside every season.
+   *  Only normalized raster data URLs from Settings cross this boundary. */
+  teamLogo() {
+    const active = this.teams().find(team => team.id === this.activeTeamId());
+    return String(active?.logoData || '');
+  }
+
+  saveTeamLogo(logoData) {
+    const value = String(logoData || '');
+    if (!/^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(value)) return false;
+    const teams = this.teams();
+    const active = teams.find(team => team.id === this.activeTeamId());
+    if (!active) return false;
+    const before = active.logoData;
+    active.logoData = value;
+    if (this.saveTeams(teams)) return true;
+    if (before == null) delete active.logoData; else active.logoData = before;
+    return false;
+  }
+
+  removeTeamLogo() {
+    const teams = this.teams();
+    const active = teams.find(team => team.id === this.activeTeamId());
+    if (!active) return false;
+    const before = active.logoData;
+    delete active.logoData;
+    if (this.saveTeams(teams)) return true;
+    if (before != null) active.logoData = before;
+    return false;
   }
 
   /**

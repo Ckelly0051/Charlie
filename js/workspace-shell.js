@@ -207,6 +207,11 @@ export class WorkspaceShell {
   showAdvancedReports(){ if(!this.root) return; return this.show('reports'); }
   async _openLibrary(){
     if(!this.root)return false;
+    if(!this.app.teamRegistry?.teams?.().length){
+      await this.show('home');
+      requestAnimationFrame(()=>document.querySelector('[data-first-launch] input[name="school"]')?.focus());
+      return false;
+    }
     if(this.root.dataset.route!=='team-hub')this._teamHubReturnRoute=this.app.workspace.currentRoute()||'home';
     this.app.cutupPlayer?.stop();
     document.body.classList.remove('ws-route-home','ws-route-breakdown','ws-route-study','ws-route-reports','ws-route-plan');

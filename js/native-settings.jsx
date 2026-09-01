@@ -40,12 +40,12 @@ function FilmSettings({ screen, required, finish }) {
     finally { setBusy(''); }
   };
   if (!model) return <div class="gi-settings-loading" role="status">Checking film storage…</div>;
-  if (!model.desktop) return <div class="gi-settings-empty"><h3>Desktop film storage</h3><p>The browser app can chart temporary video for this session. Install GridIron IQ desktop to link an existing library or use managed persistent film.</p></div>;
-  return <div class="gi-settings-film" data-settings-panel="film">
+  if (!model.desktop) return <div class="gi-settings-empty" data-settings-panel="film"><h3>Desktop film storage</h3><p>The browser app can chart temporary video for this session. Install GridIron IQ desktop to link an existing library or use managed persistent film.</p></div>;
+  return <div class={`gi-settings-film${required ? ' is-required' : ''}`} data-settings-panel="film">
     {required && <div class="gi-settings-callout is-required"><strong>Choose how film should work</strong><span>This choice affects video only. Tags, reports, seasons, and backups stay in protected app data.</span></div>}
     {notice && <div class="gi-settings-callout is-success" role="status"><span>{notice}</span>{required && readyMode && <button type="button" class="gi-settings-primary" onClick={() => finish(readyMode)}>Continue</button>}</div>}
     <section class="gi-settings-section">
-      <header><div><span class="gi-settings-kicker">FILM LIBRARY</span><h3>Storage source</h3></div><span class={`gi-settings-status is-${model.mode || 'unset'}`}>{model.mode === 'linked' ? 'Linked · no copies' : model.mode === 'managed' ? 'Managed copies' : 'Not configured'}</span></header>
+      <header><div><span class="gi-settings-kicker">Film library</span><h3>Storage source</h3></div><span class={`gi-settings-status is-${model.mode || 'unset'}`}>{model.mode === 'linked' ? 'Linked · no copies' : model.mode === 'managed' ? 'Managed copies' : 'Not configured'}</span></header>
       <div class="gi-settings-section-body">
         <div class="gi-settings-path"><span>Library root</span><strong>{model.mode === 'linked' ? (model.root || 'Choose a folder') : model.mode === 'managed' ? 'GridIron IQ private app storage' : 'Not selected'}</strong><button type="button" onClick={() => run('root', () => screen.chooseLinkedRoot())} disabled={!!busy}>{busy === 'root' ? 'Choosing…' : model.root ? 'Change root' : 'Choose folder'}</button></div>
         <div class="gi-settings-mode-actions">
@@ -56,7 +56,7 @@ function FilmSettings({ screen, required, finish }) {
       </div>
     </section>
     <section class="gi-settings-section">
-      <header><div><span class="gi-settings-kicker">CURRENT SEASON</span><h3>Per-game film</h3></div><div class="gi-settings-head-actions"><span class="gi-settings-status">{model.games.length} game{model.games.length === 1 ? '' : 's'}</span><button type="button" onClick={() => screen.addFilmClips()} disabled={!model.activeGameId}>Add clips</button></div></header>
+      <header><div><span class="gi-settings-kicker">Current season</span><h3>Per-game film</h3></div><div class="gi-settings-head-actions"><span class="gi-settings-status">{model.games.length} game{model.games.length === 1 ? '' : 's'}</span><button type="button" onClick={() => screen.addFilmClips()} disabled={!model.activeGameId}>Add clips</button></div></header>
       <div class="gi-settings-section-body is-table">
         {!model.games.length ? <div class="gi-settings-empty"><p>Open a season to see each game's actual film source and clip health.</p></div> : <div class="gi-settings-games" role="table" aria-label="Per-game film sources">
           <div class="gi-settings-game-head" role="row"><span>Game</span><span>Source</span><span>Folder</span><span>Clips</span><span>Actions</span></div>
@@ -68,7 +68,7 @@ function FilmSettings({ screen, required, finish }) {
             <div class="gi-settings-row-actions">
               {row.game.filmMode === 'linked' && <button type="button" onClick={() => run(`open:${row.game.id}`, () => screen.openFolder(row.game))} disabled={!!busy}>Open</button>}
               <button type="button" onClick={() => run(`link:${row.game.id}`, () => screen.linkGame(row.game.id))} disabled={!!busy}>{row.game.filmMode === 'linked' ? 'Change' : 'Link'}</button>
-              {row.health?.missing && <button type="button" onClick={() => screen.repairGame(row.game.id)} disabled={!!busy}>Repair</button>}
+              {!!row.health?.missing && <button type="button" onClick={() => screen.repairGame(row.game.id)} disabled={!!busy}>Repair</button>}
             </div>
           </div>)}
         </div>}
@@ -103,7 +103,7 @@ function PlaybookSettings({ screen, initialName = '' }) {
   };
   const remove=async id=>{if(busy)return;setBusy(true);const result=await screen.removePlayCall(id);setBusy(false);setCalls(result.calls);};
   const favorite=async call=>{const result=await screen.updatePlayCall(call.id,{favorite:!call.favorite});if(result.ok)setCalls(result.calls);};
-  return <section ref={sectionRef} class="gi-settings-section" data-playbook-manager><header><div><span class="gi-settings-kicker">PLAYBOOK & CALLS</span><h3>Exact calls available while charting</h3></div><span class="gi-settings-status">{calls.length} call{calls.length===1?'':'s'}</span></header><div class="gi-settings-section-body">
+  return <section ref={sectionRef} class="gi-settings-section" data-playbook-manager><header><div><span class="gi-settings-kicker">Playbook & calls</span><h3>Exact calls available while charting</h3></div><span class="gi-settings-status">{calls.length} call{calls.length===1?'':'s'}</span></header><div class="gi-settings-section-body">
     <p class="gi-settings-truth"><strong>Your language stays yours.</strong> Optional defaults speed up charting but remain visible and overridable on every play. Editing this library never rewrites an already-tagged play.</p>
     <div class="gi-playbook-list">{calls.length?calls.map(call=><div class="gi-playbook-row" key={call.id} data-play-call={call.id}><button type="button" class="gi-playbook-favorite" aria-label={`${call.favorite?'Remove':'Add'} ${call.name} ${call.favorite?'from':'to'} favorites`} aria-pressed={call.favorite} onClick={()=>favorite(call)}>{call.favorite?'★':'☆'}</button><div><strong>{call.name}</strong><span>{call.concept||'No concept'}{Object.keys(call.defaults).length?` · ${Object.keys(call.defaults).length} defaults`:''}</span></div><button type="button" onClick={()=>edit(call)}>Edit</button><button type="button" class="gi-settings-danger" onClick={()=>remove(call.id)}>Remove</button></div>):<div class="gi-settings-empty"><p>No calls yet. Add the exact language your staff uses, such as 26 Blast.</p></div>}</div>
     <form class="gi-playbook-form" onSubmit={save}><div class="gi-playbook-form-head"><strong>{draft.id?'Edit play call':'Add play call'}</strong>{draft.id&&<button type="button" onClick={cancel}>Cancel edit</button>}</div><div class="gi-playbook-primary"><label>Play call<input ref={nameRef} name="playCallName" value={draft.name} onInput={e=>setDraft({...draft,name:e.currentTarget.value})} placeholder="26 Blast" maxLength="80" required/></label><label>Concept<input value={draft.concept} onInput={e=>setDraft({...draft,concept:e.currentTarget.value})} placeholder="Blast" maxLength="60"/></label></div><details><summary>Optional charting defaults</summary><div class="gi-playbook-defaults">{PLAY_CALL_DEFAULTS.map(([key,label])=><label key={key}>{label}<select value={draft.defaults[key]||''} onChange={e=>setDraft({...draft,defaults:{...draft.defaults,[key]:e.currentTarget.value}})}><option value="">No default</option>{defaultOptions[key].map(value=><option key={value} value={value}>{value}</option>)}</select></label>)}</div></details><label class="gi-playbook-favorite-check"><input type="checkbox" checked={draft.favorite} onChange={e=>setDraft({...draft,favorite:e.currentTarget.checked})}/> Show in favorites</label><button type="submit" class="gi-settings-primary" disabled={busy||!draft.name.trim()}>{busy?'Saving...':draft.id?'Save call':'Add call'}</button>{error&&<p class="gi-settings-error" role="alert">{error}</p>}</form>
@@ -119,14 +119,39 @@ function TeamSettings({ screen, initialPlayCall = '' }) {
   const [school, setSchool] = useState(profile.school || profile.teamName || '');
   const [nickname, setNickname] = useState(profile.nickname || '');
   const [color, setColor] = useState(profile.jerseyColor || '');
+  const [logo, setLogo] = useState(profile.logoData || '');
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoError, setLogoError] = useState('');
   const [saved, setSaved] = useState(false);
   const composed = [school.trim(), nickname.trim()].filter(Boolean).join(' ');
-  return <div class="gi-settings-team" data-settings-panel="team"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">TEAM IDENTITY</span><h3>Coach-facing name and jersey</h3></div></header><div class="gi-settings-section-body">
+  const uploadLogo = async event => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file || logoBusy) return;
+    setLogoBusy(true); setLogoError('');
+    const result = await screen.saveTeamLogo(file);
+    setLogoBusy(false);
+    if (result.ok) setLogo(result.logoData);
+    else setLogoError(result.message || 'The logo could not be saved.');
+  };
+  const removeLogo = () => {
+    if (logoBusy) return;
+    if (screen.removeTeamLogo()) { setLogo(''); setLogoError(''); }
+    else setLogoError('The logo could not be removed. Your existing logo was kept.');
+  };
+  return <div class="gi-settings-team" data-settings-panel="team"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Team identity</span><h3>Coach-facing name and jersey</h3></div></header><div class="gi-settings-section-body">
     <div class="gi-settings-field-row">
       <label class="gi-settings-field"><span>Program: school / organization</span><input value={school} onInput={event => { setSchool(event.currentTarget.value); setSaved(false); }} placeholder="e.g. St. Joseph" /></label>
       <label class="gi-settings-field"><span>Nickname <small>Optional</small></span><input value={nickname} onInput={event => { setNickname(event.currentTarget.value); setSaved(false); }} placeholder="e.g. Mavericks" /></label>
     </div>
     {composed && <p class="gi-settings-name-preview"><small>Full identity</small><strong>{composed}</strong></p>}
+    <div class="gi-team-logo">
+      <div class="gi-team-logo-preview">{logo ? <img src={logo} alt={`${composed || profile.teamName || 'Team'} logo`} /> : <span aria-hidden="true">{(nickname || school || 'T').trim().charAt(0).toUpperCase()}</span>}</div>
+      <div class="gi-team-logo-copy"><strong>Team logo</strong><span>PNG, JPEG, or WebP. Scaled to fit without cropping.</span>
+        <div class="gi-team-logo-actions"><label class="gi-settings-file">{logoBusy ? 'Preparing…' : logo ? 'Change logo' : 'Add logo'}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={logoBusy} onChange={uploadLogo} /></label>{logo && <button type="button" onClick={removeLogo} disabled={logoBusy}>Remove</button>}</div>
+        {logoError && <p class="gi-settings-error" role="alert">{logoError}</p>}
+      </div>
+    </div>
     <fieldset class="gi-settings-swatches"><legend>Jersey color</legend>{JERSEY_COLORS.map(value => <button key={value} type="button" class={color === value ? 'is-selected' : ''} aria-label={`${value} jersey`} aria-pressed={color === value} data-color={value} onClick={() => { setColor(value); setSaved(false); }} />)}</fieldset>
     <button type="button" class="gi-settings-primary" disabled={!school.trim()} onClick={() => setSaved(screen.saveTeam(school, nickname, color))}>Save team identity</button>{saved && <span class="gi-settings-saved" role="status">Team identity saved</span>}
   </div></section><PlaybookSettings screen={screen} initialName={initialPlayCall}/></div>;
@@ -138,7 +163,7 @@ function RosterSettings({ screen }) {
   const [paste,setPaste]=useState(''); const [notice,setNotice]=useState('');
   const add=()=>{if(!draft.num.trim())return;setPlayers(screen.addPlayer(draft));setDraft({num:'',name:'',pos:'',side:'B'});};
   const importText=()=>{const count=screen.importRoster(paste);setPlayers(screen.rosterSnapshot());setPaste('');setNotice(count?`Imported ${count} player${count===1?'':'s'}.`:'No players found. Check the columns.');};
-  return <div data-settings-panel="roster"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">TEAM ROSTER</span><h3>Players available for charting</h3></div><button type="button" onClick={() => screen.exportDepthChart()} disabled={!players.length}>Print depth chart</button></header><div class="gi-settings-section-body">
+  return <div data-settings-panel="roster"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Team roster</span><h3>Players available for charting</h3></div><button type="button" onClick={() => screen.exportDepthChart()} disabled={!players.length}>Print depth chart</button></header><div class="gi-settings-section-body">
     <div class="gi-roster-add"><input aria-label="Jersey number" inputMode="numeric" placeholder="#" value={draft.num} onInput={e=>setDraft({...draft,num:e.currentTarget.value})}/><input aria-label="Player name" placeholder="Player name" value={draft.name} onInput={e=>setDraft({...draft,name:e.currentTarget.value})}/><input aria-label="Position" placeholder="Pos" value={draft.pos} onInput={e=>setDraft({...draft,pos:e.currentTarget.value})}/><select aria-label="Side of ball" value={draft.side} onChange={e=>setDraft({...draft,side:e.currentTarget.value})}><option value="O">Offense</option><option value="D">Defense</option><option value="B">Both / Special</option></select><button type="button" class="gi-settings-primary" onClick={add}>Add player</button></div>
     <div class="gi-roster-list">{players.length ? players.map(player=><div class="gi-roster-row" key={player.num}><strong>#{player.num}</strong><span>{player.name||'Unnamed'}</span><small>{[player.pos,player.side].filter(Boolean).join(' · ')}</small><button type="button" aria-label={`Remove #${player.num}`} onClick={()=>setPlayers(screen.removePlayer(player.num))}>×</button></div>) : <div class="gi-settings-empty"><p>No players yet. Add jersey numbers for one-tap player charting.</p></div>}</div>
     <details class="gi-settings-details"><summary>Import CSV or paste from a spreadsheet</summary><textarea rows="5" value={paste} onInput={e=>setPaste(e.currentTarget.value)} placeholder={'#, Name, Position, Side\n12, Jordan Smith, QB, O'} /><div><label class="gi-settings-file">Choose CSV<input type="file" accept=".csv,.tsv,.txt" onChange={e=>{const file=e.currentTarget.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>setPaste(String(reader.result||''));reader.readAsText(file);e.currentTarget.value='';}} /></label><button type="button" class="gi-settings-primary" onClick={importText} disabled={!paste.trim()}>Import roster</button></div>{notice&&<p role="status" class="gi-settings-saved">{notice}</p>}</details>
@@ -161,7 +186,7 @@ function ChartingSettings({ screen, initialGroup }) {
   const applyPreset=id=>{const result=screen.applyChartingPreset(id);setPresets(result.presets);setGroup(screen.chartingSnapshot(groupKey));};
   const deletePreset=id=>{const result=screen.deleteChartingPreset(id);setPresets(result.presets);};
   return <div data-settings-panel="charting">
-    <section class="gi-settings-section gi-charting-presets"><header><div><span class="gi-settings-kicker">CHARTING PRESETS</span><h3>Save a staff-ready charting layout</h3></div><span class="gi-settings-status">{presets.length} saved</span></header><div class="gi-settings-section-body">
+    <section class="gi-settings-section gi-charting-presets"><header><div><span class="gi-settings-kicker">Charting presets</span><h3>Save a staff-ready charting layout</h3></div><span class="gi-settings-status">{presets.length} saved</span></header><div class="gi-settings-section-body">
       <p class="gi-settings-truth">A preset remembers which library choices are visible, plus its unit, workspace, and staff role. It never changes tags already saved on a play.</p>
       <div class="gi-preset-form">
         <label><span>Name</span><input value={presetName} onInput={e=>setPresetName(e.currentTarget.value)} placeholder="e.g. Friday offense" maxLength="40"/></label>
@@ -172,7 +197,7 @@ function ChartingSettings({ screen, initialGroup }) {
       </div>
       {presets.length ? <div class="gi-preset-list">{presets.map(item=><div class="gi-preset-row" key={item.id} data-charting-preset={item.id}><div><strong>{item.name}</strong><span>{item.mode==='scout'?'Opponent scout':'Our program'} · {item.unit==='special'?'Special Teams':item.unit[0].toUpperCase()+item.unit.slice(1)} · {item.role}</span></div><button type="button" onClick={()=>applyPreset(item.id)}>Apply</button><button type="button" class="gi-settings-danger" aria-label={`Delete ${item.name}`} onClick={()=>deletePreset(item.id)}>×</button></div>)}</div> : null}
     </div></section>
-    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">CHARTING LIBRARIES</span><h3>Show and order the language your staff uses</h3></div><button type="button" onClick={async()=>{if(await screen.restoreTagDefaults())setGroup(screen.chartingSnapshot(groupKey));}}>Restore defaults</button></header><div class="gi-settings-section-body">
+    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Charting libraries</span><h3>Show and order the language your staff uses</h3></div><button type="button" onClick={async()=>{if(await screen.restoreTagDefaults())setGroup(screen.chartingSnapshot(groupKey));}}>Restore defaults</button></header><div class="gi-settings-section-body">
       <p class="gi-settings-truth"><strong>Hiding is not deleting.</strong> Existing plays and analytics stay unchanged. Custom play types never guess Run/Pass; chart that field explicitly.</p>
       <div class="gi-settings-segment" role="tablist" aria-label="Charting library">{CHART_GROUPS.map(([key,label])=><button key={key} type="button" role="tab" data-chart-group={key} aria-selected={groupKey===key} class={groupKey===key?'is-selected':''} onClick={()=>choose(key)}>{label}</button>)}</div>
       <div class="gi-library-summary"><strong>{group.enabled.length} shown</strong><span>{group.values.length-group.enabled.length} hidden</span></div>
@@ -189,7 +214,7 @@ function CutupSettings({ screen }) {
   const apply=next=>{setCriteria(next);screen.saveFilter(next);};
   const formations=screen.chartingSnapshot('formation').enabled;
   const count=useMemo(()=>[criteria.downs,criteria.quarters,criteria.playTypes,criteria.results,criteria.formations,criteria.personnel].reduce((n,v)=>n+(v?.length||0),0)+(criteria.situation?1:0),[criteria]);
-  return <div data-settings-panel="cutup"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">CUT-UP EXPORT</span><h3>Choose the plays to include</h3></div><span class="gi-settings-status">{count ? `${count} active` : 'All plays'}</span></header><div class="gi-settings-section-body">
+  return <div data-settings-panel="cutup"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Cut-up export</span><h3>Choose the plays to include</h3></div><span class="gi-settings-status">{count ? `${count} active` : 'All plays'}</span></header><div class="gi-settings-section-body">
     <p class="gi-settings-truth">Filters combine across rows. Choices within one row are alternatives. The export uses exactly the resulting film set.</p>
     <ToggleGroup label="Down" values={FILTERS.downs} selected={criteria.downs||[]} onChange={values=>apply({...criteria,downs:values})}/><ToggleGroup label="Quarter" values={FILTERS.quarters} selected={criteria.quarters||[]} onChange={values=>apply({...criteria,quarters:values})}/><ToggleGroup label="Play type" values={FILTERS.playTypes} selected={criteria.playTypes||[]} onChange={values=>apply({...criteria,playTypes:values})}/><ToggleGroup label="Result" values={FILTERS.results} selected={criteria.results||[]} onChange={values=>apply({...criteria,results:values})}/>
     <div class="gi-filter-selects"><label>Formation<select value={criteria.formations?.[0]||''} onChange={e=>apply({...criteria,formations:e.currentTarget.value?[e.currentTarget.value]:[]})}><option value="">All</option>{formations.map(v=><option key={v}>{v}</option>)}</select></label><label>Personnel<select value={criteria.personnel?.[0]||''} onChange={e=>apply({...criteria,personnel:e.currentTarget.value?[e.currentTarget.value]:[]})}><option value="">All</option>{FILTERS.personnel.map(v=><option key={v}>{v}</option>)}</select></label><label>Situation<select value={criteria.situation||''} onChange={e=>apply({...criteria,situation:e.currentTarget.value})}><option value="">All</option><option value="redzone">Red zone</option><option value="goalline">Goal line</option><option value="backed-up">Backed up</option><option value="3rd-long">3rd & long</option><option value="3rd-short">3rd & short</option></select></label></div>
@@ -199,7 +224,7 @@ function CutupSettings({ screen }) {
 
 function DrawingSettings({ screen }) {
   const [state,setState]=useState(()=>screen.drawingSnapshot());
-  return <div data-settings-panel="drawing"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">VIDEO DRAWING</span><h3>Choose a tool, then draw on film</h3></div><span class="gi-settings-status">{state.count} drawing{state.count===1?'':'s'}</span></header><div class="gi-settings-section-body">
+  return <div data-settings-panel="drawing"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Video drawing</span><h3>Choose a tool, then draw on film</h3></div><span class="gi-settings-status">{state.count} drawing{state.count===1?'':'s'}</span></header><div class="gi-settings-section-body">
     <div class="gi-drawing-tools">{DRAW_TOOLS.map(([key,label])=><button key={key} type="button" data-drawing-tool={key} class={state.tool===key?'is-selected':''} onClick={()=>screen.chooseDrawingTool(key)}><strong>{label}</strong><span>{key==='text'?'Place a label':'Draw on video'}</span></button>)}</div>
     <div class="gi-drawing-options"><fieldset><legend>Color</legend>{DRAW_COLORS.map(color=><button key={color} type="button" data-drawing-color={color} class={state.color===color?'is-selected':''} style={{background:color}} aria-label={`Use ${color}`} onClick={()=>setState(screen.setDrawingColor(color))}/>)}</fieldset><label>Line width<input type="range" min="2" max="10" value={state.lineWidth} onInput={e=>setState(screen.setDrawingWidth(e.currentTarget.value))}/><output>{state.lineWidth}px</output></label></div>
     <p class="gi-settings-truth">Choosing a tool closes this panel so the film stays unobstructed. Press Escape or choose the active tool again to stop drawing.</p><button type="button" class="gi-settings-danger" disabled={!state.count} onClick={async()=>{if(await screen.clearDrawings())setState(screen.drawingSnapshot());}}>Clear current-play drawings</button>
@@ -212,13 +237,13 @@ function RecoverySettings({ screen }) {
   const run=async(key,fn)=>{if(busy)return;setBusy(key);setNotice('');try{const result=await fn();if(result?.message)setNotice(result.message);await load();}catch{setNotice('That action could not be completed. Nothing was changed.');}finally{setBusy('');}};
   if(!model)return <div class="gi-settings-loading" role="status">Loading restore points…</div>;
   return <div data-settings-panel="recovery">{notice&&<div class="gi-settings-callout" role="status">{notice}</div>}
-    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">WHOLE SEASON · DURABLE</span><h3>Season restore points</h3></div><span class="gi-settings-status">{model.seasonPoints.length} saved</span></header><div class="gi-settings-section-body">
+    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Whole season · durable</span><h3>Season restore points</h3></div><span class="gi-settings-status">{model.seasonPoints.length} saved</span></header><div class="gi-settings-section-body">
       <p class="gi-settings-truth"><strong>Restores every game in {model.seasonName||'the open season'}.</strong> Before restoring, GridIron IQ saves the current season so you can reverse the decision.</p>
       <div class="gi-recovery-create"><input aria-label="Restore point label" value={label} onInput={e=>setLabel(e.currentTarget.value)} placeholder="Label, e.g. Before playoff re-tag"/><button type="button" class="gi-settings-primary" disabled={!model.hasSeason||!!busy} onClick={()=>run('create',async()=>{const r=await screen.createRestorePoint(label);if(r.ok)setLabel('');return r;})}>Create restore point</button></div>
       <div class="gi-recovery-list">{model.seasonPoints.length?model.seasonPoints.map(point=><div class="gi-recovery-row" key={point.id} data-season-restore={point.id}><div><strong>{point.label||'Save'}</strong><span>{dateLabel(point.t)} · {point.games} game{point.games===1?'':'s'} · {point.plays} plays</span></div><button type="button" disabled={!!busy} onClick={()=>run(`season:${point.id}`,()=>screen.restoreSeasonPoint(point.id))}>Restore season</button></div>):<div class="gi-settings-empty"><p>No season restore points yet.</p></div>}</div>
       {model.disk?.name&&<div class="gi-settings-command-row"><span>Protected location: {model.disk.name}</span><button type="button" onClick={()=>screen.openDataFolder()}>Open data folder</button></div>}
     </div></section>
-    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">CURRENT GAME · QUICK HISTORY</span><h3>Game versions</h3></div><span class="gi-settings-status">{model.versions.length} saved</span></header><div class="gi-settings-section-body">
+    <section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Current game · quick history</span><h3>Game versions</h3></div><span class="gi-settings-status">{model.versions.length} saved</span></header><div class="gi-settings-section-body">
       <p class="gi-settings-truth"><strong>Restores only the open game.</strong> These quick versions live on this device and do not replace season restore points.</p>
       <div class="gi-recovery-create"><input aria-label="Game version label" value={gameLabel} onInput={e=>setGameLabel(e.currentTarget.value)} placeholder="Version label"/><button type="button" onClick={()=>{screen.saveGameVersion(gameLabel);setGameLabel('');load();}}>Save game version</button></div>
       <div class="gi-recovery-list">{model.versions.length?model.versions.map(version=><div class="gi-recovery-row" key={version.id} data-game-version={version.id}><div><strong>{version.label}</strong><span>{dateLabel(version.time)} · {version.playCount} plays</span></div><div><button type="button" onClick={()=>run(`version:${version.id}`,()=>screen.restoreGameVersion(version.id))}>Restore game</button><button type="button" class="gi-settings-danger" onClick={()=>run(`delete:${version.id}`,()=>screen.deleteGameVersion(version.id))}>×</button></div></div>):<div class="gi-settings-empty"><p>No versions for the open game.</p></div>}</div>
@@ -232,7 +257,7 @@ function AnalysisSettings({ screen }) {
   const [probing,setProbing]=useState(false);
   const save=e=>{e.preventDefault();const data=new FormData(e.currentTarget);setResult(screen.saveAnalysis(data.get('apiKey'),data.get('model'))?'saved':'error');setProfile(screen.analysisProfile());};
   const enableServer=async()=>{if(probing)return;setProbing(true);await screen.enableLocalServer();setProfile(screen.analysisProfile());setProbing(false);};
-  return <div data-settings-panel="analysis"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">OPTIONAL ANALYSIS</span><h3>Vision and local auto-detect</h3></div><span class="gi-settings-status">{probing?'… probing':profile.status}</span></header><div class="gi-settings-section-body"><p class="gi-settings-truth">Core charting and reports never require AI. These preferences only enhance optional frame analysis and play detection.</p>
+  return <div data-settings-panel="analysis"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Optional analysis</span><h3>Vision and local auto-detect</h3></div><span class="gi-settings-status">{probing?'… probing':profile.status}</span></header><div class="gi-settings-section-body"><p class="gi-settings-truth">Core charting and reports never require AI. These preferences only enhance optional frame analysis and play detection.</p>
     {!profile.hasVision&&<div class="gi-settings-command-row"><span>{profile.serverAvailable?`Local CV server online${profile.capabilities.length?' · '+profile.capabilities.join(', '):''}`:profile.serverEnabled?'Local CV server not found on this machine.':'Optional companion server for real detection instead of in-browser heuristics.'}</span>{!profile.serverAvailable&&<button type="button" disabled={probing} onClick={enableServer}>{probing?'Probing…':profile.serverEnabled?'Re-probe server':'Enable local CV server'}</button>}</div>}
     <form onSubmit={save}><label class="gi-settings-field"><span>Claude API key</span><input name="apiKey" type="password" defaultValue={profile.apiKey} onInput={()=>setResult('')} autocomplete="off" spellcheck="false" /></label><label class="gi-settings-field"><span>Vision model</span><select name="model" defaultValue={profile.model} onChange={()=>setResult('')}><option value="claude-opus-4-6">Opus · most accurate</option><option value="claude-sonnet-4-6">Sonnet · faster</option></select></label><button type="submit" class="gi-settings-primary">Save analysis preferences</button>{result==='saved'&&<span class="gi-settings-saved" role="status">Analysis preferences saved</span>}{result==='error'&&<span class="gi-settings-saved is-error" role="alert">Analysis preferences could not be saved</span>}</form>
   </div></section></div>;
