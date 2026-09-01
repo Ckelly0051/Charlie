@@ -234,6 +234,24 @@ This standard survives task resets, context compaction, and builder handoffs.
 Every handoff must identify its real-app screenshots and the coach's PASS,
 REVISE, or REJECT decision.
 
+**Clarification — aligning a control to actual wrapped content (2026-09-01).**
+A control that must sit at the right edge of a group's real, currently-wrapped
+content (e.g., an "Edit library" action beside a chip cloud) cannot be solved
+by CSS `width:fit-content` alone once that content wraps across more than one
+line: CSS defines a wrapping flex container's max-content size as if no
+wrapping occurred, so `fit-content` degrades to the available track width the
+moment total content exceeds it, leaving the same gap it was meant to close.
+`fit-content` still fully closes the gap for any group whose content fits one
+unwrapped line. Do not "fix" the multi-line case by writing a JS-measured
+pixel width back onto an ancestor that itself sits inside an implicit
+`auto`-sized CSS Grid track (e.g., a `display:grid` group body with no
+`grid-template-columns`) — the track resizes to that ancestor's new content
+width, which can regrow the very row the measurement was taken against,
+producing real page overflow rather than tight alignment. A correct pixel-
+accurate fix needs the measurement written against a column that does not
+itself participate in intrinsic track sizing (a fixed or `minmax(0,…)`
+track), not an `auto` one.
+
 ## 4. Upgrade Lanes
 
 ### V2-A: Home And Context UX

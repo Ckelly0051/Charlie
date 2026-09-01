@@ -296,7 +296,7 @@ export class HomeScreen {
     if (!h) return { text: 'Checking…', cls: 'ws-loading', detail: '' };
     const ready = h.state === 'linked' || h.state === 'managed';
     const detail = h.progress ? `${h.progress.done} of ${h.progress.total || '?'} clips` : h.expected ? `${h.found} of ${h.expected} clips` : '';
-    return { text: ready ? '● Film linked' : (h.label || 'Film needed'), cls: ready ? 'ws-fact-green' : 'ws-fact-warn', detail };
+    return { text: ready ? 'Film linked' : (h.label || 'Film needed'), cls: ready ? 'ws-fact-green' : 'ws-fact-warn', detail };
   }
 
   /** The selected-game detail panel's Film fact -- a managed copy and a

@@ -1,3 +1,157 @@
+### HOME + BREAKDOWN VISUAL REPAIR BATCH - IMPLEMENTED LOCALLY (2026-09-01)
+
+Implemented all 11 recorded Home/Breakdown defects as one production batch
+against the approved Home structure and the approved vertical Breakdown
+workspace. Nothing about layout, copy, controls, behavior, or the visual
+system was invented; every fix is scoped to the exact component/selector
+named below.
+
+**Home game cards + selected-game panel:**
+1. **Play icon.** `.ws-home-page .thumbnail button` (`css/native-home.css`)
+   had no explicit `color`, so the browser's default black button color won
+   the `fill:currentColor` cascade against the near-black button background
+   — the SVG triangle rendered but was invisible. Added `color:var(--gi-bd-strong)`
+   plus hover/focus-visible states on the same rule. No new icon asset; the
+   existing `assets/icons.svg#icon-play` symbol was already correct.
+2. **Duplicate film dot.** `HomeScreen.rowFilmView()` (`js/home-screen.js`)
+   returned a literal `'● Film linked'` string on top of the CSS-generated
+   `.health::before` dot. Removed the bullet character; the CSS indicator is
+   the sole dot now.
+3. **Score/result typography.** `.ws-home-page .game-meta .score`
+   (`css/native-home.css`) inherited 12px/400 from its parent. Set to an
+   explicit 14px/600, unconditionally (no narrower-width reduction).
+4. **Action typography.** `.detail-actions` buttons already computed 12.5px
+   uniformly; the one real outlier was `.game-card-open` at 11px/700 — moved
+   to 12.5px/700, keeping weight/color as the hierarchy signal instead of size.
+5. **Manage film hover/focus.** Added `:hover`/`:focus-visible` to
+   `.ws-home-page .detail-status button`, using the existing `--gi-focus` ring.
+6. **New-season "+" control.** Added `:hover`/`:active`/`:focus-visible` to
+   `.ws-home-page .rail-head .icon-btn`; dimensions (26x26px) unchanged.
+7. **Game filter tabs.** Added a restrained `:hover:not(.active)` treatment
+   and `:focus-visible` to `.ws-home-page .filters button`, distinct from the
+   existing gold `.active` underline; "Not charted" label unchanged.
+
+**Program context control:**
+8. `body.ws-route-home #wsCtxProgram` (`css/native-home.css`) had `padding:0`
+   on Home, discarding the base `.ws-ctx` rule's right-side padding reserved
+   for the absolutely-positioned chevron — value text could render behind/
+   past the caret with no bound on its own width. Constrained to
+   `flex:0 1 250px;min-width:180px;max-width:280px`, restored right padding
+   for the chevron, and gave `.ws-ctx-value` its own `flex:1 1 auto;min-width:0`
+   with ellipsis truncation. Added a `170-220px` tightening inside the
+   existing `@media(max-width:1300px)` block. Verified against a genuinely
+   long program name ("St. Joseph Mavericks Under-A Really Long Program
+   Name"), not just "Mavericks".
+
+**Top navigation:**
+9. `.ws-top-nav button` (`css/workspace-shell.css`) was fully transparent at
+   rest (`background:transparent`, `border:0`), so it read as flat text
+   against the identically-colored topbar. Rest now uses `--ws-raised`
+   (a real, already-established "discernible surface" token in this same
+   file — the same one `.ws-btn`/`.ws-icon-btn` already use), min-width
+   92px, padding `0 17px`. Hover adds `--ws-hover` + `--ws-line-strong`
+   border + `--gi-raise-1` shadow. `.active` gains the same `--gi-raise-1`
+   shadow on top of its existing accent underline/background, for a visible
+   "raised" selected state. Added `:focus-visible{box-shadow:var(--gi-focus)}`,
+   which did not exist before. No layout shift: all state changes are
+   background/border-color/box-shadow only, at fixed dimensions.
+
+**Breakdown width and Edit Library alignment:**
+10. Investigated with a synthetic offense/defense/special-teams fixture
+    across all five required widths; `.gi-native-form`'s own
+    `scrollWidth === clientWidth` at every measurement in this environment —
+    the internal scrollbar reported on the installed desktop build could not
+    be reproduced from a fresh measurement here. The one genuinely
+    razor-thin margin found was `.gi-tag-situation-row`
+    (`css/native-tagging.css`): its fixed `178px + 108px + 66px + 2×8px gap`
+    columns needed 368px against a measured 373px available track at
+    1440/1280px — a 5px margin that a different text-rendering engine
+    (WebView2 vs. this measurement's headless Chromium) could plausibly tip
+    into a real overflow. Quarter's own 5 chips measured 162px of real
+    content against a 178px column (16px of pure slack); Down's 4 chips
+    measured 97px against 108px. Trimmed to `165px + 100px + 66px` with a
+    6px gap, restoring a genuine ~30px margin. This is a disclosed,
+    evidence-based hardening, not a confirmed reproduction of the installed
+    defect — see the residual-risk note below.
+11. `.gi-tag-field-label button` (`css/native-tagging.css`) used
+    `margin-left:auto` inside a label that stretched to the full
+    `.gi-tag-group-body` grid-track width, so "Edit library" always aligned
+    to the far edge of the whole deck regardless of how narrow the field's
+    actual chip content was. Added
+    `.gi-tag-field:has(.gi-tag-field-label button){width:fit-content;max-width:100%;justify-self:start}`.
+    A JS-measured alternative (reading each chip row's real rendered right
+    edge and setting an explicit pixel width via a Preact `useLayoutEffect`
+    in the `Chips` component, `js/native-tagging.jsx`) was built and
+    measured first — it hit exact/near-exact alignment (deltas of 0-1px) but
+    interacted destructively with `.gi-tag-group-body`'s implicit `auto`-sized
+    grid track: setting a measured width back onto an element whose
+    surrounding grid track sizes to its content created feedback growth,
+    confirmed by a real `formOverflow` of 276-347px in the same measurement
+    harness. That approach was reverted in full (including the `useRef`
+    import). The shipped `fit-content` fix is the safe one: verified zero
+    page/form overflow at all five required widths across offense/defense/
+    special-teams, and it fully closes the gap (delta 0px) for any field
+    whose chip content already fits one unwrapped row (Blitz, and
+    Defense Front at the two mid-desktop widths). For fields whose chips
+    still wrap across multiple lines with a shorter trailing row
+    (Formation, Backfield, Coverage, Play Type), CSS's own `fit-content`
+    max-content computation is defined as if wrapping never happened, so it
+    cannot track the true post-wrap row width — measured deltas there
+    dropped from up to 387px pre-fix to a worst case of 62px (Coverage)
+    post-fix, still outside the task's ~8px tolerance on those specific
+    fields. Disclosed rather than silently accepted; see residual risk below.
+
+**Residual risk, disclosed rather than hidden:**
+- Item 10's specific installed-build overflow was not reproduced in this
+  environment; the situation-row trim is a real, measured margin hardening
+  against the exact class of risk that would cause it (fixed-width columns
+  within single-digit pixels of their available track), not a confirmed
+  fix of the reported instance. If it recurs on the installed build, the
+  next-highest-risk fixed-width candidate is `.gi-tag-spot-field` (176px)
+  and the `.gi-tag-special-metrics` auto-fit grid's 182px track minimum.
+- Item 11 is a substantial, verified improvement (max misalignment cut from
+  387px to 62px) but does not meet the ~8px tolerance for every
+  multi-line-wrapping field. A pixel-accurate fix for those fields needs a
+  measurement mechanism that reads the actual post-wrap row width without
+  writing it back into an ancestor whose own size depends on that
+  measurement (e.g., measuring against a fixed, non-`auto`-track column) —
+  this is real remaining work, not a design opinion substituted for the
+  stated requirement.
+
+**New permanent regression:** `tools/e2e-home-breakdown-visual-repair.mjs`
+(111/111), covering all 11 items above via real rendered geometry/computed
+style — `page.hover()`-driven real `:hover` state comparisons (not
+`dispatchEvent` simulation), `getBoundingClientRect()`/`getComputedStyle()`
+measurements, and the exact synthetic offense/defense/special-teams
+Breakdown fixture used throughout this investigation.
+
+**Verification:** `npm run build` clean;
+`node tools/e2e-workspace-shell.mjs` 91/91;
+`node tools/e2e-home-review-repair.mjs` 26/26;
+`node tools/e2e-home-first-launch.mjs` 13/13;
+`node tools/e2e-breakdown-geometry.mjs` 43/43 (this harness's existing
+"expanded fields and tools fit without internal sideways scrolling" section
+independently confirms item 10's contract for every unit/width combination);
+`node tools/e2e-breakdown-lifecycle.mjs` 39/39;
+`node tools/e2e-native-tagging.mjs` 69/69;
+`node tools/e2e-home-breakdown-visual-repair.mjs` (new) 111/111. Zero page
+errors across every run. No full canonical gate was run — no shared boundary
+beyond what the six named + one new harness already cover was touched.
+
+Visually inspected against the real built app with a populated season
+(`artifacts/home-breakdown-repair-2026-09-01/`): Home at 1440x900, 1280x800,
+390x844 (selected card with the visible play triangle and yellow `Open game`
+command, single film-linked dot, 14px/600 score line, Program selector
+contained with a visible caret, discernible top-nav surfaces); Breakdown
+offense/defense at 1920x1080, 1440x900, 1280x720, 768px, 390px (no internal
+scrollbar, Edit Library buttons visibly closer to their option rows than
+before, film never obstructed).
+
+**Explicitly not done:** no packaging, installer, tag, or push. No change to
+season/game/roster/team/nickname/logo/film ownership, charting data/filter
+behavior, persistence, routes, football statistics, film loading, or report
+logic. No new fonts, color tokens, icon packages, or design system additions.
+
 ### HOME GAME CARD OPEN COMMAND - IMPLEMENTED LOCALLY (2026-09-01)
 
 Home game cards no longer leave the coach at a preview-only dead end. Selecting a card still updates the comparison/detail state, then reveals a compact yellow `Open game` command directly on the selected thumbnail; that command opens the exact game through `HomeScreen.continueCharting()` and the canonical `App.openGame()` boundary. The command is a real keyboard-focusable button, overlays only the static Home thumbnail, and does not resize the card grid.

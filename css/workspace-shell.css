@@ -51,7 +51,11 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}
 .ws-top-brand b{color:var(--ws-blue)}
 .ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:2px}
-.ws-top-nav button{min-width:76px;padding:0 9px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ws-muted);font:inherit;font-size:12px;font-weight:750}.ws-top-nav button span{margin-right:5px}.ws-top-nav button:hover:not(:disabled){background:var(--ws-raised);color:var(--ws-on-solid)}.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:var(--ws-sel);color:var(--ws-on-solid)}.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
+.ws-top-nav button{min-width:92px;padding:0 17px;border:1px solid transparent;border-bottom:2px solid transparent;background:var(--ws-raised);color:var(--ws-muted);font:inherit;font-size:12px;font-weight:750}.ws-top-nav button span{margin-right:5px}
+.ws-top-nav button:hover:not(:disabled):not(.active){background:var(--ws-hover);border-color:var(--ws-line-strong);color:var(--ws-text);box-shadow:var(--gi-raise-1)}
+.ws-top-nav button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:var(--ws-sel);color:var(--ws-on-solid);box-shadow:var(--gi-raise-1)}
+.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
 
 /* Keep the canonical Settings command and global history tools reachable in the compact shell. */
 .ws-global-tools{display:flex;align-items:center;gap:6px}

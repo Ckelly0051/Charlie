@@ -18,8 +18,9 @@ body.ws-route-home .ws-home>.ws-home-page{max-width:none;margin:0}
 .ws-home-page .ws-primary{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 body.ws-route-home .ws-contextbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:18px}
 body.ws-route-home :is(#wsCtxSeason,#wsCtxGame){display:none}
-body.ws-route-home #wsCtxProgram{order:2;flex:0 1 330px;min-width:0;border:0;display:flex;align-items:center;gap:12px;padding:0}
-body.ws-route-home #wsCtxProgram .ws-ctx-value{padding:8px 12px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius)}
+body.ws-route-home #wsCtxProgram{order:2;flex:0 1 250px;min-width:180px;max-width:280px;border:0;display:flex;align-items:center;gap:8px;padding:8px 30px 8px 14px}
+body.ws-route-home #wsCtxProgram .ws-ctx-label{flex:0 0 auto}
+body.ws-route-home #wsCtxProgram .ws-ctx-value{flex:1 1 auto;min-width:0;overflow:hidden;padding:8px 10px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);text-overflow:ellipsis;white-space:nowrap}
 body.ws-route-home .ws-workspace-switch{order:1;border:1px solid var(--gi-bd-line);padding:3px;gap:4px}
 body.ws-route-home .ws-workspace-switch button{min-height:36px;min-width:140px;border:0}
 body.ws-route-home .ws-workspace-switch button[aria-pressed=true]{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
@@ -80,6 +81,9 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .rail-year{display:flex;flex-direction:column;gap:22px;min-width:0;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
+.ws-home-page .rail-head .icon-btn:hover{border-color:var(--gi-bd-bone);background:var(--gi-bd-control-active)}
+.ws-home-page .rail-head .icon-btn:active{background:var(--gi-1)}
+.ws-home-page .rail-head .icon-btn:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .rail-library-link{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:36px;padding:0 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
 .ws-home-page .rail-library-link:hover{color:var(--gi-bd-gold)}
 .ws-home-page .rail-groups{display:flex;flex-direction:column;gap:22px;min-height:0}
@@ -135,6 +139,8 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .view-switch button[aria-pressed=true]{background:var(--gi-bd-control-active);color:var(--gi-bd-gold)}
 .ws-home-page .filters{display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--gi-bd-line);margin-bottom:16px;min-height:38px}
 .ws-home-page .filters button{background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;height:auto;padding:6px 0;color:var(--gi-bd-copy);font-size:13px;font-weight:600}
+.ws-home-page .filters button:hover:not(.active){color:var(--gi-bd-strong);border-bottom-color:var(--gi-bd-line)}
+.ws-home-page .filters button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .filters button.active{border-bottom-color:var(--gi-bd-gold);color:var(--gi-bd-strong)}
 .ws-home-page .filters button span{margin-left:5px;color:var(--gi-bd-copy);font-size:12px;font-weight:600}
 
@@ -154,18 +160,20 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .ws-game-row.selected{border-color:var(--gi-bd-gold);box-shadow:0 0 0 1px var(--gi-bd-gold)}
 .ws-home-page .ws-game-row:focus-within{box-shadow:var(--gi-focus)}
 .ws-home-page .game-card-select:focus-visible{outline:0}
-.ws-home-page .game-card-open{position:absolute;z-index:2;top:8px;right:8px;min-height:30px;padding:0 10px;border:1px solid var(--gi-bd-gold);border-radius:2px;background:var(--gi-bd-gold);color:var(--gi-on-solid);font:700 11px/1 var(--gi-sans);cursor:pointer}.ws-home-page .game-card-open:hover{filter:brightness(1.06)}.ws-home-page .game-card-open:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+.ws-home-page .game-card-open{position:absolute;z-index:2;top:8px;right:8px;min-height:30px;padding:0 10px;border:1px solid var(--gi-bd-gold);border-radius:2px;background:var(--gi-bd-gold);color:var(--gi-on-solid);font:700 12.5px/1 var(--gi-sans);cursor:pointer}.ws-home-page .game-card-open:hover{filter:brightness(1.06)}.ws-home-page .game-card-open:active{filter:brightness(0.94)}.ws-home-page .game-card-open:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .thumbnail{position:relative;aspect-ratio:16/9;flex-shrink:0;background:var(--gi-bd-stage);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .ws-home-page .thumbnail img{width:100%;height:100%;object-fit:cover;display:block}
 .ws-home-page .thumbnail .week{position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:2px;background:var(--gi-1);color:var(--gi-bd-strong);font-size:11px;font-weight:700}
 .ws-home-page .thumbnail .film-missing{display:flex;align-items:center;gap:8px;color:var(--gi-bd-copy);font-size:13px}
 .ws-home-page .thumbnail .film-missing .icon{width:16px;height:16px}
-.ws-home-page .thumbnail button{position:absolute;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--gi-bd-copy);background:var(--gi-bd-stage);display:grid;place-items:center}
+.ws-home-page .thumbnail button{position:absolute;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--gi-bd-copy);background:var(--gi-bd-stage);color:var(--gi-bd-strong);display:grid;place-items:center}
+.ws-home-page .thumbnail button:hover{background:var(--gi-bd-control-active);border-color:var(--gi-bd-strong)}
+.ws-home-page .thumbnail button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .game-card-copy{padding:12px 13px}
 .ws-home-page .ws-game-row h3{margin:0;font-size:14px;line-height:1.35;color:var(--gi-bd-strong);overflow-wrap:anywhere}
 .ws-home-page .matchup-schools{margin:4px 0 0;color:var(--gi-bd-copy);font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 .ws-home-page .game-meta{display:flex;justify-content:space-between;gap:8px;margin-top:6px;color:var(--gi-bd-copy);font-size:12px}
-.ws-home-page .game-meta .score{color:var(--gi-bd-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ws-home-page .game-meta .score{color:var(--gi-bd-strong);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ws-home-page .card-status{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
 .ws-home-page .health{display:inline-flex;align-items:center;gap:6px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .health::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gi-ok);flex-shrink:0}
@@ -204,6 +212,8 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .scoreboard>span{color:var(--gi-bd-copy);font-size:11px}
 .ws-home-page .detail-status{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .ws-home-page .detail-status button{border:0;background:none;height:auto;min-height:24px;padding:0;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
+.ws-home-page .detail-status button:hover{color:var(--gi-bd-strong)}
+.ws-home-page .detail-status button:focus-visible{outline:0;border-radius:var(--gi-radius);box-shadow:var(--gi-focus)}
 .ws-home-page .facts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--gi-bd-line);padding-bottom:10px;margin-bottom:10px}
 .ws-home-page .fact label{display:block;color:var(--gi-bd-copy);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
 .ws-home-page .fact strong{display:block;margin-top:3px;font-size:14px}
@@ -218,7 +228,7 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}
 
 @media(min-width:1700px){.ws-home-page .home-with-rail{grid-template-columns:240px minmax(0,1fr)}.ws-home-page .home-content{padding:28px 32px 20px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 344px;gap:28px}}
-@media(max-width:1300px){.ws-home-page .home-with-rail{grid-template-columns:190px minmax(0,1fr)}.ws-home-page .home-content{padding:20px}.ws-home-page .rail-year{padding:20px 10px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 280px;gap:18px}.ws-home-page .library-tools{flex-wrap:wrap}.ws-home-page .search{flex-basis:100%}.ws-home-page .card-status,.ws-home-page .game-meta{flex-wrap:wrap}}
+@media(max-width:1300px){.ws-home-page .home-with-rail{grid-template-columns:190px minmax(0,1fr)}.ws-home-page .home-content{padding:20px}.ws-home-page .rail-year{padding:20px 10px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 280px;gap:18px}.ws-home-page .library-tools{flex-wrap:wrap}.ws-home-page .search{flex-basis:100%}.ws-home-page .card-status,.ws-home-page .game-meta{flex-wrap:wrap}body.ws-route-home #wsCtxProgram{flex-basis:200px;min-width:170px;max-width:220px}}
 @media(max-width:1050px){
   .ws-home-page .game-workspace{grid-template-columns:1fr}
   .ws-home-page .detail-pane{position:static}

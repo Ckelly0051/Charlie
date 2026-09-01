@@ -30,6 +30,15 @@
 .gi-tag-group:has([data-native-field="defFront"]),.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
 .gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-tag-field{display:grid;gap:4px;min-width:0}
+/* A library-owning field shrinks to its own content instead of stretching
+   the "Edit library" button to the far edge of the whole deck. This closes
+   the majority of the gap on every field and closes it completely on any
+   field whose chip cloud fits one line; a field whose chips still wrap
+   across multiple lines can still leave a small remainder, since CSS
+   max-content sizing for a wrapping flex container is defined as if
+   wrapping never happened. justify-self keeps the shrunk field from being
+   stretched back out by the grid row it sits in. */
+.gi-tag-field:has(.gi-tag-field-label button){width:fit-content;max-width:100%;justify-self:start}
 .gi-tag-field-label{display:flex;align-items:baseline;gap:6px;min-width:0;color:var(--gi-bd-copy);font:600 12px/1.3 var(--gi-sans);text-transform:none}
 .gi-tag-field-label small{color:var(--gi-bd-copy);font:400 12px var(--gi-sans);text-transform:none}
 .gi-tag-field-label button{margin-left:auto;min-height:22px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);white-space:nowrap}
@@ -44,7 +53,15 @@
 .gi-tag-input{display:grid;gap:4px;min-width:0;color:var(--gi-bd-copy);font:600 12px/1.3 var(--gi-sans);text-transform:none}
 .gi-tag-input :is(input,select,textarea){width:100%;min-height:32px;padding:5px 8px}
 .gi-tag-input textarea{min-height:58px;resize:vertical}
-.gi-tag-situation-row{display:grid;grid-template-columns:minmax(0,178px) 108px 66px;align-items:end;gap:8px;min-width:0}
+/* Quarter/Down's own chip content measures 162px/97px; the prior 178px/108px
+   columns left the row within ~5px of its available track at the normal
+   desktop deck width -- razor-thin margin that a different text-rendering
+   engine (the installed WebView2 shell vs this build's own measurement
+   environment) can tip into a real horizontal scrollbar. Trimmed to their
+   measured content plus a small buffer, which is also why the internal
+   charting-pane scrollbar reported on the installed build can't be
+   reproduced from a fresh headless measurement alone. */
+.gi-tag-situation-row{display:grid;grid-template-columns:minmax(0,165px) 100px 66px;align-items:end;gap:6px;min-width:0}
 .gi-tag-situation-row .gi-tag-chips{flex-wrap:nowrap;gap:3px}
 .gi-tag-situation-row .gi-tag-chips button{padding-inline:6px}
 .gi-tag-input-distance,.gi-tag-input-yardLine{width:66px}
