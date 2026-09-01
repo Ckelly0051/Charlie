@@ -252,7 +252,7 @@ function GameWorkspace({ screen, state, games, scout, c }) {
         </div>
       </div>
       <div class="filters" role="group" aria-label="Filter games">
-        {[['all', 'All games', counts.all], ['chart', 'To chart', counts.chart], ['film', 'Film needed', counts.film]].map(([value, label, count]) =>
+        {[['all', 'All games', counts.all], ['chart', 'Not charted', counts.chart], ['film', 'Film needed', counts.film]].map(([value, label, count]) =>
           <button type="button" class={state.filter === value ? 'active' : ''} aria-pressed={state.filter === value} onClick={() => screen.setFilter(value)}>{label}<span>{count}</span></button>)}
       </div>
       <div id="wsGameList" class={`game-grid${state.view === 'list' ? ' list' : ''}`}>
