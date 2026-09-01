@@ -20,6 +20,7 @@ Pending, deliberately not repaired yet so the same card is not edited repeatedly
 - The card's score/result line (for example, `13–13 · Final`) is too small and visually bleeds. The current 12px treatment is below the desired consumer-facing readability floor for this information; the future card pass should increase its size/weight and sweep the card for any similarly undersized primary game information.
 - The selected-game action area uses too many font sizes across equivalent commands and reads as visually inconsistent. Use `Open Study` as the typography baseline for `Open selected game`, `Open Reports`, and the Season plans/Open row; create hierarchy with weight, color, spacing, and button treatment rather than smaller text.
 - `Manage film` is clickable but gives no visible hover feedback. Add a clear hover state and an equally clear `:focus-visible` state; the persistent underline alone is not enough to communicate interaction during a quick scan.
+- The compact New season `+` control and the `All games` / `Not charted` / `Film needed` filter tabs also lack sufficient hover indication. Give each a visible hover response plus a distinct keyboard `:focus-visible` treatment, preserving stable dimensions so the controls do not shift when emphasized.
 
 Batch these with the already-recorded missing play-arrow glyph and any additional Home-card findings before changing production code.
 
