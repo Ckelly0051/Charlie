@@ -2,6 +2,10 @@
 
 Home game cards no longer leave the coach at a preview-only dead end. Selecting a card still updates the comparison/detail state, then reveals a compact yellow `Open game` command directly on the selected thumbnail; that command opens the exact game through `HomeScreen.continueCharting()` and the canonical `App.openGame()` boundary. The command is a real keyboard-focusable button, overlays only the static Home thumbnail, and does not resize the card grid.
 
+### BINDING INTERACTION-STATE RULE ADDED (2026-09-01)
+
+The consumer-presentation standard in `GRIDIRON-IQ-PLAN-V2.md` now requires every enabled interactive element to provide distinct rest, hover, applicable active/selected, and keyboard `:focus-visible` states without changing layout dimensions. The rule explicitly covers navigation, tabs, filters, links, dropdown triggers, icon-only buttons, card actions, and command buttons. Missing hover/focus feedback is henceforth a product defect, not optional polish.
+
 ### RECORDED NAVIGATION AND CONTEXT-SELECTOR DESIGN DEFECTS - BATCH FOR LATER (2026-09-01)
 
 Pending, deliberately not repaired piecemeal:

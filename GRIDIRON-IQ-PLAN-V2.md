@@ -206,6 +206,17 @@ must look like a finished consumer coaching product, not a developer console.
 - Acceptance covers useful information per viewport, alignment, whitespace,
   typography, contrast, responsive containment, interaction states, and
   consistency with the shared shell and neighboring routes.
+- **Interaction-state rule:** every enabled interactive element must visibly
+  distinguish rest, pointer hover, active/pressed or selected state when
+  applicable, and keyboard `:focus-visible`; disabled controls must also read
+  as intentionally unavailable. This applies to navigation, tabs, filters,
+  links, dropdown triggers, icon buttons, card actions, and ordinary command
+  buttons, including compact controls that show only a symbol. Hover must be
+  obvious during a quick scan through a surface, border, color, or restrained
+  elevation change; keyboard focus must remain independently visible and meet
+  contrast requirements. State styling must preserve stable dimensions and
+  cannot move surrounding layout. A missing hover or focus state is a product
+  defect, not optional polish.
 - Empty space must be intentional, not compensation for unfinished composition
   or stretched low-information modules.
 - Operational copy uses one readable UI/body family. Condensed/display faces
