@@ -2,6 +2,10 @@
 
 Home game cards no longer leave the coach at a preview-only dead end. Selecting a card still updates the comparison/detail state, then reveals a compact yellow `Open game` command directly on the selected thumbnail; that command opens the exact game through `HomeScreen.continueCharting()` and the canonical `App.openGame()` boundary. The command is a real keyboard-focusable button, overlays only the static Home thumbnail, and does not resize the card grid.
 
+### INSTALLED-BUILD CONFIRMATION - BREAKDOWN SIDE SCROLL / EDIT LIBRARY (2026-09-01)
+
+Confirmed still present in desktop installer `1.12.0-68`, deliberately not repaired during the current feedback inventory: Breakdown's charting pane has internal horizontal side scrolling, and repeated `Edit Library` actions remain pushed substantially farther right than their option rows. The action placement creates dead horizontal space and contributes to the form exceeding its useful width. This is the same deferred Breakdown width defect already recorded in `GRIDIRON-IQ-PLAN-V2.md`, now confirmed against the installed production presentation rather than only the comp/source view. Repair it once in the next Breakdown layout batch by aligning the action boundary with the rightmost option controls and re-evaluating the deck's actual widest descendants; verify populated Offense, Defense, and Special Teams with no internal horizontal scroll.
+
 ### BINDING INTERACTION-STATE RULE ADDED (2026-09-01)
 
 The consumer-presentation standard in `GRIDIRON-IQ-PLAN-V2.md` now requires every enabled interactive element to provide distinct rest, hover, applicable active/selected, and keyboard `:focus-visible` states without changing layout dimensions. The rule explicitly covers navigation, tabs, filters, links, dropdown triggers, icon-only buttons, card actions, and command buttons. Missing hover/focus feedback is henceforth a product defect, not optional polish.
