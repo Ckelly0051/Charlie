@@ -1,3 +1,9 @@
+### CODEX BREAKDOWN RELEASE CHECKPOINT - COMMITTED FOR 1.12.0-68 (2026-09-01)
+
+The previously approved Breakdown visual implementation is now closed as a coherent release checkpoint rather than left as an unreproducible dirty-tree dependency. It includes the vertical Chart workspace, compact theater/chyron and play browser, bounded charting deck, corrected Special Teams field geometry, Players & Grades density, Film Focus behavior, and the responsive rules exercised during the approved comp-to-production pass. No Home, Reports, football analytics, persistence semantics, or roster ownership changed in this checkpoint.
+
+The desktop version owners are synchronized at `1.12.0-68` (`APP_VERSION`, Cargo package/lock, and Tauri config). Verification immediately before commit: production build clean; Breakdown geometry 43/43; lifecycle 39/39; native theater 59/59; native tagging 69/69. The Home checkpoint remains independently accepted at `144dc2c`, with its review harness repair at `a20e295`.
+
 ### CODEX REPAIR OF THE 144dc2c REVIEW NIT - IMPLEMENTED LOCALLY (2026-09-01)
 
 Claude's independent review accepted `144dc2c` and identified one non-blocking test-contract defect: the Import Plays Cancel journey compared the complete season object byte-for-byte, including the internal `revision` write-fence. An unrelated debounced autosave can legitimately increment only that counter during the interaction window, producing a false failure even though no game, play, tag, roster, or other coach data changed.

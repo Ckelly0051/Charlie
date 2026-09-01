@@ -220,10 +220,10 @@ function StMetric({label, code, value, screen, min, max, step='1'}) {
     onChange={event => screen.specialInput(code,event.currentTarget.value)}/></label>;
 }
 function Spot({label, code, spot, screen}) {
-  return <div class="gi-tag-field" data-native-choice={label}><div class="gi-tag-field-label"><span>{label}</span></div><div class="gi-tag-spot">
+  return <div class="gi-tag-field gi-tag-spot-field" data-native-choice={label}><div class="gi-tag-field-label"><span>{label}</span><span>Yard line</span></div><div class="gi-tag-spot">
     <div class="gi-tag-chips">{[['own','Own'],['opp','Opp']].map(([value,text]) =>
       <button type="button" key={value} class={spot.fieldSide === value ? 'is-active' : ''} onClick={() => screen.specialAction('spot',`${code}:${value}`)}>{text}</button>)}</div>
-    <input type="number" min="1" max="50" placeholder="Yard line" value={spot.yardLine || ''} onChange={event => screen.specialInput(`${code}-yard`,event.currentTarget.value)}/>
+    <input type="number" min="1" max="50" aria-label={`${label} yard line`} value={spot.yardLine || ''} onChange={event => screen.specialInput(`${code}-yard`,event.currentTarget.value)}/>
   </div></div>;
 }
 
@@ -284,7 +284,7 @@ function SpecialTeams({screen, state}) {
       </div>
       {needsOwner && <Choice label="Credited to" value={st.outcome.scoredBy} options={[['subject',subject],['opponent',other]]} choose={v => screen.specialAction('owner',v)}/>}
       {needsRecovery && <Choice label="Possession" value={st.outcome.recoveredBy} options={[['subject',subject],['opponent',other],['unknown','Unknown']]} choose={v => screen.specialAction('recovery',v)}/>}
-      <div class="gi-tag-grid">
+      <div class="gi-tag-grid gi-tag-special-metrics">
         {kickFields && <><StMetric label="Kick distance" code="kick-distance" value={st.kick.distance} screen={screen} min="0" max="99"/>
           <StMetric label="Hang time" code="hang-time" value={st.kick.hangTime} screen={screen} min="0" max="9.9" step=".1"/></>}
         {landingFields && <Spot label="Possession spot" code="landing" spot={st.kick.landing} screen={screen}/>}
@@ -299,9 +299,10 @@ function SpecialTeams({screen, state}) {
 
 function Players({screen, state}) {
   const roles = state.unit === 'special' ? ['kicker','returner'] : state.unit === 'defense' ? ['tackler','takeaway'] : ['ballCarrier','passer','receiver'];
-  const [rosterRole,setRosterRole] = useState(roles.includes(state.activeRole) ? state.activeRole : roles[0]);
+  const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) ? state.activeRole : roles[0]]));
+  const openRole = role => setOpenRoles(current => new Set([...current, role]));
   useLayoutEffect(() => {
-    if (!roles.includes(rosterRole)) setRosterRole(roles[0]);
+    setOpenRoles(new Set([roles[0]]));
     if (!roles.includes(state.activeRole)) screen.setActiveRole(roles[0]);
   }, [state.unit]);
   const allowed = role => state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'tackler' || role === 'takeaway'
@@ -314,16 +315,16 @@ function Players({screen, state}) {
     passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner' };
   return <Group title="Players & Grades" detail={state.unit === 'defense' ? 'tacklers and takeaways — separate multiple with a comma' : 'individual performance'} open>
     <div class="gi-tag-players">{roles.map(role => {
-      const rosterOpen = rosterRole === role && allowed(role).length > 0;
+      const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
         <strong>{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
-        <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); setRosterRole(role); }} onClick={() => { screen.setActiveRole(role); setRosterRole(role); }}
+        <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
-        <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); setRosterRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
+        <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
           <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
         </select>
         {allowed(role).length > 0 && <button type="button" class="gi-player-roster-toggle" aria-expanded={rosterOpen}
-          onClick={() => { screen.setActiveRole(role); setRosterRole(rosterOpen ? '' : role); }}>
+          onClick={() => { screen.setActiveRole(role); setOpenRoles(current => { const next = new Set(current); if (rosterOpen) next.delete(role); else next.add(role); return next; }); }}>
           <span aria-hidden="true">{rosterOpen ? '▾' : '▸'}</span>{rosterOpen ? 'Hide roster' : 'Show roster'}
         </button>}
         {rosterOpen && <div class="gi-player-quick">{allowed(role).map(player =>
@@ -342,7 +343,7 @@ function NativeTagging({screen}) {
   return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging>
     <header class="gi-tag-context">
       <div class="gi-tag-title">
-        <div class="gi-tag-play-identity"><span class="gi-eyebrow">Charting</span><h2>{state.currentPlayId == null ? 'SELECT PLAY' : `PLAY ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
+        <div class="gi-tag-play-identity"><h2>{state.currentPlayId == null ? 'Select play' : `Play ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
       </div>
       {/* F2c — one click, not two. Unit is the single most-used control on this
           screen and a dropdown made every change a two-step. F2a's perspective

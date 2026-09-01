@@ -195,7 +195,9 @@ ok(!state.open && state.expanded === 'false' && state.visibleCommands === 0 && s
   'Escape closes Mobile More tools and restores focus to its launcher', JSON.stringify(state));
 
 console.log('\n== 6. Film Room owns a usable data workspace ==');
-for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1440,900,true,300],[1280,720,true,200]]) {
+// The approved workspace comp gives Film Room a 64% table beside the film
+// at every desktop width; the old stacked-at-1440 layout is superseded.
+for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1440,900,false,300],[1280,720,false,200]]) {
   await page.setViewport({ width, height });
   await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room'));
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -222,7 +224,7 @@ for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1
   });
   if (stacked) ok(layout.stacked && layout.film.width >= layout.route.width - 2 && layout.film.height >= 500 && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1,
     width + 'x' + height + ' gives Film Room a full-width table with data rows in the viewport', JSON.stringify(layout));
-  else ok(layout.sideBySide && layout.film.width >= 680,
+  else ok(layout.sideBySide && layout.film.width >= layout.route.width * .63 && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1,
     width + 'x' + height + ' gives Film Room a wide side-by-side data deck', JSON.stringify(layout));
   ok(layout.tableVisible && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1 && !layout.pageOverflow,
     width + 'x' + height + ' keeps Film Room data visible with overflow contained internally', JSON.stringify(layout));

@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import '../css/native-breakdown-theater.css';
 
 function Icon({ name }) {
@@ -33,16 +33,29 @@ function Chyron({ state }) {
   return <div class="gi-theater-chyron" data-native-chyron role="group" aria-label="Current play, scrollable with arrow keys" tabIndex="0" onKeyDown={scrollChyron}>
     <div class="gi-chyron-id"><span class="gi-chyron-k">Play</span><span class="gi-chyron-v">{c.playId}</span></div>
     <div class="gi-chyron-cell"><span class="gi-chyron-k">Down &amp; Distance</span><span class="gi-chyron-v is-cond" title={c.situation}>{c.situation}</span></div>
-    <div class="gi-chyron-cell"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond" title={c.ball}>{c.ball}</span></div>
-    <div class="gi-chyron-cell"><span class="gi-chyron-k">Hash</span><span class="gi-chyron-v" title={c.hash}>{c.hash}</span></div>
-    <div class={`gi-chyron-cell${c.ourTone ? ` is-${c.ourTone}` : ''}`}><span class="gi-chyron-k">{c.ourLabel}</span><span class="gi-chyron-v" title={c.ourValue}>{c.ourValue}</span></div>
-    {c.lookLabel && <div class="gi-chyron-cell"><span class="gi-chyron-k">{c.lookLabel}</span><span class="gi-chyron-v" title={c.lookValue}>{c.lookValue}</span></div>}
+    <div class="gi-chyron-cell is-secondary"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond" title={c.ball}>{c.ball}</span></div>
+    <div class="gi-chyron-cell is-secondary"><span class="gi-chyron-k">Hash</span><span class="gi-chyron-v" title={c.hash}>{c.hash}</span></div>
+    <div class={`gi-chyron-cell is-call${c.ourTone ? ` is-${c.ourTone}` : ''}`}><span class="gi-chyron-k">{c.ourLabel}</span><span class="gi-chyron-v" title={c.ourValue}>{c.ourValue}</span></div>
+    {c.lookLabel && <div class="gi-chyron-cell is-call"><span class="gi-chyron-k">{c.lookLabel}</span><span class="gi-chyron-v" title={c.lookValue}>{c.lookValue}</span></div>}
     <div class={`gi-chyron-cell is-wide${c.resultTone ? ` is-${c.resultTone}` : ''}`}><span class="gi-chyron-k">Result</span><span class="gi-chyron-v" title={c.result}>{c.result}</span></div>
   </div>;
 }
 
 function Transport({ screen, state }) {
-  return <div class="gi-theater-transport" aria-label="Video controls">
+  const [open, setOpen] = useState(false);
+  const tools = useRef(null);
+  const trigger = useRef(null);
+  useEffect(() => setOpen(false), [state.gameKey, state.view]);
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = event => { if (!tools.current?.contains(event.target)) setOpen(false); };
+    const escape = event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); trigger.current?.focus(); } };
+    document.addEventListener('pointerdown', dismiss);
+    tools.current?.addEventListener('keydown', escape);
+    const node = tools.current;
+    return () => { document.removeEventListener('pointerdown', dismiss); node?.removeEventListener('keydown', escape); };
+  }, [open]);
+  return <div class={`gi-theater-transport${open ? ' is-tools-open' : ''}`} aria-label="Video controls">
     <div class="gi-theater-transport-main">
       <button type="button" class="gi-icon-command" aria-label="Previous clip" title="Previous clip (Shift+Left)" onClick={() => screen.previousClip()}><Icon name="prev-clip" /></button>
       <button type="button" class="gi-icon-command" aria-label="Step back one frame" title="Step back (Left Arrow)" onClick={() => screen.stepBack()}><Icon name="step-back" /></button>
@@ -53,6 +66,8 @@ function Transport({ screen, state }) {
       <input class="gi-theater-scrub" type="range" min="0" max="1" step="0.0001" value={state.progress} aria-label="Film position" onInput={event => screen.seekFraction(event.currentTarget.value)} />
       <span class="gi-theater-time">{screen.formatTime(state.duration)}</span>
     </div>
+    <div class="gi-theater-tools-wrap" ref={tools}>
+    <button type="button" class="gi-icon-command gi-transport-more-trigger" ref={trigger} aria-label="More playback tools" title="More playback tools" aria-expanded={open} onClick={() => setOpen(!open)}>⋯</button>
     <div class="gi-theater-transport-tools">
       <button type="button" class={`gi-icon-command${state.loopMode === 'play' ? ' is-active' : ''}`} aria-pressed={state.loopMode === 'play'} aria-label="Loop current play" title="Loop current play" onClick={() => screen.toggleLoop()}><Icon name="loop" /></button>
       <select value={state.speed} aria-label="Playback speed" onChange={event => screen.setSpeed(event.currentTarget.value)}>
@@ -61,6 +76,7 @@ function Transport({ screen, state }) {
       <button type="button" class="gi-icon-command" aria-label="Drawing tools" title="Drawing tools" onClick={() => screen.openDrawing()}><Icon name="pencil" /></button>
       {!state.multiAngle.enabled && <button type="button" class="gi-icon-command" aria-label="Add camera angle" title="Add camera angle" onClick={() => screen.addAngle()}><Icon name="film" /></button>}
       <button type="button" class="gi-icon-command" aria-label={state.fullscreen ? 'Exit full screen' : 'Full screen'} title={state.fullscreen ? 'Exit full screen' : 'Full screen'} onClick={() => screen.toggleFullscreen()}><span aria-hidden="true">{state.fullscreen ? '⤡' : '⤢'}</span></button>
+    </div>
     </div>
   </div>;
 }
@@ -83,11 +99,60 @@ function AngleBar({ screen, state }) {
 }
 
 function PlayStrip({ screen, state }) {
-  return <section class={`gi-drive-strip${state.stripCollapsed ? ' is-collapsed' : ''}`} aria-label="Game plays">
-    <header><strong>Plays</strong><span>{state.playCount} play{state.playCount === 1 ? '' : 's'} · grouped by drive</span>
-      <button type="button" aria-expanded={!state.stripCollapsed} aria-label={state.stripCollapsed ? 'Show play strip' : 'Hide play strip'} onClick={() => screen.toggleStrip()}>{state.stripCollapsed ? 'Show' : 'Hide'}</button>
+  const [open, setOpen] = useState(false);
+  const [directions, setDirections] = useState('');
+  const list = useRef(null), panel = useRef(null), trigger = useRef(null), close = useRef(null);
+  const wasOpen = useRef(false);
+  const dismiss = () => setOpen(false);
+  useEffect(() => setOpen(false), [state.gameKey, state.view]);
+  useEffect(() => {
+    const media = matchMedia('(min-width: 1350px)');
+    const change = () => setOpen(false);
+    media.addEventListener('change', change);
+    return () => media.removeEventListener('change', change);
+  }, []);
+  useEffect(() => {
+    const node = list.current;
+    if (!node) return;
+    const update = () => {
+      const above = node.scrollTop > 1;
+      const below = node.scrollHeight - node.clientHeight - node.scrollTop > 1;
+      setDirections(node.clientHeight && (above || below) ? (above ? (below ? '↕' : '↑') : '↓') : '');
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    node.addEventListener('scroll', update, { passive: true });
+    update();
+    return () => { observer.disconnect(); node.removeEventListener('scroll', update); };
+  }, [open, state.groups, state.stripCollapsed]);
+  useLayoutEffect(() => {
+    if (open) close.current?.focus();
+    const current = list.current?.querySelector('[aria-current="true"]');
+    if (!open && wasOpen.current) {
+      const target = trigger.current?.getClientRects().length ? trigger.current : current;
+      target?.focus();
+    }
+    wasOpen.current = open;
+    current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [open, state.currentPlayId, state.gameKey]);
+  const keyDown = event => {
+    if (!open) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dismiss(); }
+    if (event.key === 'Tab') {
+      const buttons = [...panel.current.querySelectorAll('button')].filter(el => el.getClientRects().length);
+      const first = buttons[0], last = buttons.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+  };
+  return <>
+    {open && <div class="gi-rail-scrim" onClick={dismiss} />}
+    <section ref={panel} onKeyDown={keyDown} class={`gi-drive-strip${open ? ' is-open' : ''}`} aria-label="Game plays" role={open ? 'dialog' : undefined} aria-modal={open ? 'true' : undefined}>
+    <header><strong>Plays</strong><span>{state.playCount} plays · grouped by drive</span>
+      {directions && <span class="gi-rail-scroll-hint" role="img" aria-label={directions === '↓' ? 'More plays below' : directions === '↑' ? 'More plays above' : 'More plays above and below'} title="Scroll for more plays">{directions}</span>}
+      <button type="button" class="gi-rail-close" ref={close} aria-label="Close plays browser" onClick={dismiss}>×</button>
     </header>
-    <div class="gi-drive-scroll" data-drive-scroll hidden={state.stripCollapsed}>
+    <div class="gi-drive-scroll" ref={list} data-drive-scroll>
       {state.groups.length ? state.groups.map(group => <section class="gi-drive-group" key={`${group.key}-${group.plays[0]?.id}`} aria-label={group.label}>
         <h3>{group.label}</h3>
         <div>{group.plays.map(play => <button
@@ -97,10 +162,25 @@ function PlayStrip({ screen, state }) {
           aria-current={play.id === state.currentPlayId ? 'true' : undefined}
           aria-label={play.label}
           data-native-play-id={play.id}
-          onClick={() => screen.selectPlay(play.id)}
-        ><span>Play {play.id}</span><strong>{play.situation}</strong><small><span>{play.call}</span><span>{play.result}</span></small></button>)}</div>
+          onClick={() => { screen.selectPlay(play.id); if (open) dismiss(); }}
+          title={play.label}
+        ><span>{play.id}</span><strong>{play.situation}</strong><small><span title={play.call}>{play.call}</span><span title={play.result}>{play.result}</span></small></button>)}</div>
       </section>) : <p class="gi-drive-empty">Load film or mark a play to begin.</p>}
     </div>
+    <button type="button" class="gi-plays-toggle" ref={trigger} aria-label="Show play strip" aria-expanded={open} onClick={() => setOpen(true)}>▤ Plays · {state.playCount}<span>▴ Open</span></button>
+  </section></>;
+}
+
+function SelectedPlay({ state }) {
+  const c = state.chyron;
+  if (!c || state.view !== 'film-room') return null;
+  return <section class="gi-theater-selected-play" aria-label="Selected play">
+    <header><strong>Play {c.playId}</strong><span>{[c.situation, c.ball, c.hash === '—' ? '' : `${c.hash} hash`].filter(Boolean).join(' · ')}</span></header>
+    <strong class="gi-selected-call">{c.ourValue}</strong>
+    <p>{c.result}</p>
+    {c.lookLabel && <details><summary>More detail</summary><p>{c.lookLabel}: {c.lookValue}</p></details>}
+    {state.currentNotes && <p class="gi-selected-notes">{state.currentNotes}</p>}
+    {state.currentDrive && <p>Drive {state.currentDrive}</p>}
   </section>;
 }
 
@@ -119,31 +199,37 @@ function ChartActions({ screen, state }) {
   </div>;
 }
 
-function NativeBreakdownTheater({ screen }) {
+function NativePlayRail({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
-  useEffect(() => screen.subscribe(setState), [screen]);
-  useEffect(() => {
-    const current = document.querySelector(`[data-native-play-id="${state.currentPlayId}"]`);
-    current?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
-  }, [state.currentPlayId]);
-  return <section class="gi-breakdown-theater" data-native-breakdown-theater aria-label="Film theater">
+  useLayoutEffect(() => screen.subscribe(setState), [screen]);
+  return <PlayStrip screen={screen} state={state} />;
+}
+
+function NativeBreakdownTheater({ screen, hasRailHost }) {
+  const [state, setState] = useState(() => screen.snapshot());
+  useLayoutEffect(() => screen.subscribe(setState), [screen]);
+  return <section class="gi-breakdown-theater" data-native-breakdown-theater data-unit={state.chyron?.ourTone === 'def' ? 'defense' : 'offense'} data-view={state.view} aria-label="Film theater">
     <div class="gi-theater-player" data-native-player-surface>
       <div class="gi-theater-stage">
         <div class="gi-theater-media-slot" data-native-media-slot />
+        <SelectedPlay state={state} />
       </div>
       <Chyron state={state} />
       <Transport screen={screen} state={state} />
     </div>
     <AngleBar screen={screen} state={state} />
-    <PlayStrip screen={screen} state={state} />
     <ChartActions screen={screen} state={state} />
+    {!hasRailHost && <PlayStrip screen={screen} state={state} />}
   </section>;
 }
 
-export function mountNativeBreakdownTheater({ host, screen }) {
+export function mountNativeBreakdownTheater({ host, railHost, screen }) {
   if (!host) throw new Error('Native Break Down theater requires a host.');
   if (!screen) throw new Error('Native Break Down theater requires a screen controller.');
-  render(<NativeBreakdownTheater screen={screen} />, host);
+  render(<NativeBreakdownTheater screen={screen} hasRailHost={!!railHost} />, host);
+  // Separate native roots share the same controller snapshot. Importing the
+  // React compatibility portal would also change form event semantics app-wide.
+  if (railHost) render(<NativePlayRail screen={screen} />, railHost);
   const mediaSlot = host.querySelector('[data-native-media-slot]');
   const fullscreenTarget = host.querySelector('[data-native-player-surface]');
   if (!mediaSlot) throw new Error('Native Break Down theater media slot did not mount.');
@@ -158,6 +244,6 @@ export function mountNativeBreakdownTheater({ host, screen }) {
       const scrub = fullscreenTarget.querySelector('.gi-theater-scrub');
       if (scrub) scrub.value = String(progress);
     },
-    unmount() { render(null, host); },
+    unmount() { render(null, host); if (railHost) render(null, railHost); },
   };
 }

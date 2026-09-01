@@ -27,6 +27,7 @@ export class BreakdownTheaterScreen {
     this._listeners = new Set();
     this._mounted = false;
     this.stripCollapsed = false;
+    this.view = 'chart';
     this._home = this.media
       ? { parent: this.media.parentNode, next: this.media.nextSibling }
       : null;
@@ -67,12 +68,12 @@ export class BreakdownTheaterScreen {
     this.app.gameContext?.subscribe?.(() => this._publish());
   }
 
-  mount(host) {
+  mount(host, { railHost = null } = {}) {
     if (!host || !this.media) return false;
     if (this._mounted) this.restore();
     try {
       this.host = host;
-      this._native = mountNativeBreakdownTheater({ host, screen: this });
+      this._native = mountNativeBreakdownTheater({ host, railHost, screen: this });
       this.fullscreenTarget = this._native.fullscreenTarget;
       this._native.mediaSlot.appendChild(this.media);
       this.media.classList.add('gi-native-video');
@@ -114,6 +115,11 @@ export class BreakdownTheaterScreen {
     return () => this._listeners.delete(listener);
   }
 
+  setView(view) {
+    this.view = view === 'film-room' ? 'film-room' : 'chart';
+    this._publish();
+  }
+
   _publish() {
     if (!this._mounted) return;
     const state = this.snapshot();
@@ -133,6 +139,8 @@ export class BreakdownTheaterScreen {
     const time = Number(vc?.currentTime) || 0;
     const fullscreen = (document.fullscreenElement || document.webkitFullscreenElement) === this.fullscreenTarget;
     return {
+      view: this.view,
+      gameKey: `${this.app.storage?.seasonStore?.currentSeasonId || ''}:${this.app.storage?.seasonStore?.data?.activeGameId || ''}`,
       playing: !!vc && !vc.paused,
       time,
       duration,
@@ -141,6 +149,8 @@ export class BreakdownTheaterScreen {
       loopMode: vc?.loopMode || '',
       currentPlayId: current?.id ?? null,
       currentLabel: current ? this._cardLabel(current) : 'No play selected',
+      currentNotes: current?.notes || '',
+      currentDrive: current?.tags?.driveNumber || '',
       chyron: this._chyron(current),
       // V2-H: the play strip only ever reads this count (its header line),
       // never the array itself -- mapping every play through _playView here
@@ -387,13 +397,7 @@ export class BreakdownTheaterScreen {
 
   _playView(play) {
     const tags = play.tags || {};
-    const result = tags.result || tags.kickOutcome || 'No result';
-    const rawYards = String(tags.yardage ?? '').trim();
-    const yards = rawYards ? `${Number(rawYards) > 0 ? '+' : ''}${rawYards}` : '';
-    const call = tags.playType || tags.stType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
-    const down = String(tags.down || '');
-    const ordinal = ({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || 'Down -';
-    const situation = ordinal + (tags.distance ? ` & ${tags.distance}` : '');
+    const { situation, call, result } = this._playViewShallow(play);
     const lower = `${tags.result || ''} ${tags.kickOutcome || ''}`.toLowerCase();
     const kind = lower.includes('touchdown') || lower.includes('good') ? 'score'
       : lower.includes('interception') || lower.includes('fumble') ? 'turnover'
@@ -405,7 +409,7 @@ export class BreakdownTheaterScreen {
       drive: String(tags.driveNumber || '').trim(),
       situation,
       call,
-      result: yards ? `${result}: ${yards}` : result,
+      result,
       kind,
       label: this._cardLabel(play),
     };
@@ -421,6 +425,12 @@ export class BreakdownTheaterScreen {
     const down = String(tags.down || '');
     const situation = (({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || 'Down -')
       + (tags.distance ? ` & ${tags.distance}` : '');
+    const special = SpecialTeamsModel.normalize(play.specialTeams);
+    if (special) {
+      const call = ST_UNITS.find(([value]) => value === special.unit)?.[1] || 'Special Teams';
+      const result = this._chyronSpecialResult(play).result;
+      return { situation, call, result: result === '—' ? 'No result' : result };
+    }
     const call = tags.playType || tags.stType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
     const result = tags.result || tags.kickOutcome || 'No result';
     const raw = String(tags.yardage ?? '').trim();

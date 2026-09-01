@@ -52,29 +52,34 @@ ok(mounted.dataSame, 'Mounting the theater is a season-data no-op');
 ok(mounted.cards === 12 && mounted.drives.join('|') === 'Drive 1|Drive 2|No drive', 'Strip preserves order and groups plays by drive', JSON.stringify(mounted));
 
 let state = await page.evaluate(() => {
+  document.querySelector('[data-drive-scroll]').style.maxWidth = '500px';
   const cards = [...document.querySelectorAll('.gi-play-card')];
   const long = document.querySelector('[data-native-play-id="7"] small');
   const row = long?.getBoundingClientRect();
   const children = [...(long?.children || [])];
   return { widths: [...new Set(cards.map(card => Math.round(card.getBoundingClientRect().width)))],
-    text: long?.textContent, fits: children.every(node => node.scrollWidth <= node.clientWidth)
-      && children.every(node => node.getBoundingClientRect().right <= row.right + 1),
+    text: long?.textContent, fits: children.filter(node => node.getClientRects().length).every(node => node.getBoundingClientRect().right <= row.right + 1),
+    fullLabel: document.querySelector('[data-native-play-id="7"]')?.title,
     internal: document.querySelector('[data-drive-scroll]').scrollWidth > document.querySelector('[data-drive-scroll]').clientWidth,
     pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
 });
-ok(state.widths.length === 1 && state.widths[0] === 160, 'Play cards use the approved compact, stable footprint', JSON.stringify(state));
-ok(state.fits && /Interception \+ Touchdown: -12/.test(state.text || ''), 'Long football copy is complete and not clipped', JSON.stringify(state));
+ok(state.widths.length === 1 && state.widths[0] === 78, 'Mid-width play strip uses the approved 78px footprint', JSON.stringify(state));
+ok(state.fits && /Interception \+ Touchdown: -12/.test(state.text || '') && /Interception/.test(state.fullLabel || ''), 'Compact strip preserves full football copy in its accessible label and tooltip', JSON.stringify(state));
 ok(state.internal && !state.pageOverflow, 'High play counts scroll inside the strip without page overflow', JSON.stringify(state));
 
-await page.click('[aria-label="Hide play strip"]');
+await page.evaluate(() => { document.querySelector('[data-drive-scroll]').style.maxWidth = ''; });
+await page.setViewport({width:1280,height:720});
+await page.click('[aria-label="Show play strip"]');
+await new Promise(resolve => setTimeout(resolve, 50));
 state = await page.evaluate(() => ({
-  collapsed: document.querySelector('.gi-drive-strip').classList.contains('is-collapsed'),
-  hidden: document.querySelector('[data-drive-scroll]').hidden,
+  dialog: document.querySelector('.gi-drive-strip').getAttribute('role'),
+  visible: !!document.querySelector('[data-drive-scroll]').getClientRects().length,
   expanded: document.querySelector('[aria-label="Show play strip"]')?.getAttribute('aria-expanded'),
 }));
-ok(state.collapsed && state.hidden && state.expanded === 'false',
-  'Coach can collapse the play strip to trade navigation for film pixels', JSON.stringify(state));
-await page.click('[aria-label="Show play strip"]');
+ok(state.dialog === 'dialog' && state.visible && state.expanded === 'true',
+  'Narrow play browser opens explicitly without permanently consuming film space', JSON.stringify(state));
+await page.keyboard.press('Escape');
+await page.setViewport({width:1440,height:900});
 
 // == 1b. Chyron data and semantic contract (Codex review 2d4a5df) ==========
 // Direct, discriminating assertions against _chyron() itself — none of the
@@ -177,6 +182,19 @@ ok(state.stTouchdownOurs.tone === 'pos' && /Touchdown/.test(state.stTouchdownOur
   'Structured ST scored by the subject colours positive via SpecialTeamsModel.scoringTeam', JSON.stringify(state.stTouchdownOurs));
 ok(state.stTouchdownTheirs.tone === 'neg', 'Structured ST scored by the opponent colours negative', JSON.stringify(state.stTouchdownTheirs));
 ok(state.stLegacyFallback.ourValue === 'Punt', 'Legacy stType is used only when no structured event exists', JSON.stringify(state.stLegacyFallback));
+const railSpecial = await page.evaluate(() => {
+  const screen = app.breakdownTheater;
+  const view = specialTeams => screen._playView({id:1,tags:{unit:'special'},specialTeams});
+  return {
+    selected: view({unit:'kickoffReturn'}),
+    returned: view({unit:'kickoffReturn',outcome:{status:'returned'}}),
+    retry: view({unit:'try',attemptType:'extraPoint',result:'noPlay'}),
+    legacy: screen._playView({id:2,tags:{unit:'special',stType:'Punt',kickOutcome:'Downed'}}),
+  };
+});
+ok(railSpecial.selected.call === 'Kick Return' && railSpecial.selected.result === 'No result', 'Play rail recognizes a structured phase without inventing an outcome', JSON.stringify(railSpecial));
+ok(railSpecial.returned.result === 'Returned' && railSpecial.returned.label.includes('Kick Return, Returned'), 'Play rail and accessible label use the structured outcome', JSON.stringify(railSpecial));
+ok(railSpecial.retry.result === 'No Play / Retry' && railSpecial.legacy.call === 'Punt' && railSpecial.legacy.result === 'Downed', 'Play rail preserves try rulings and legacy display compatibility', JSON.stringify(railSpecial));
 ok(state.offTd === 'pos', 'Offense Touchdown is positive');
 ok(state.offInt === 'neg', 'Offense Interception is negative');
 ok(state.offNoGood === 'neg', '"No Good" is negative, not the inverted green from the original defect');
@@ -255,7 +273,7 @@ const geometryAt = async (width, height) => {
       rows: [transport, strip, actions].map(row => [Math.round(row.top), Math.round(row.bottom), Math.round(row.height)]),
       contained: theater.top >= 0 && actions.bottom <= innerHeight
         && transport.height > 0 && strip.height > 0 && actions.height > 0
-        && transport.top >= media.bottom - 1 && strip.top >= transport.bottom - 1 && actions.top >= strip.bottom - 1,
+        && transport.top >= media.bottom - 1 && actions.top >= transport.bottom - 1 && strip.top >= actions.bottom - 1,
       type: Object.fromEntries(Object.entries({
         chyron: '.gi-chyron-k',
         action: '.gi-theater-actions button',
@@ -296,9 +314,10 @@ ok(wide.picture[0] >= 1400 && wide.picture[1] >= 795,
   '1920 theater meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-Part-1 1500x840)', JSON.stringify(wide));
 ok(desktop.contained && wide.contained,
   'Desktop theater keeps transport, strip, and play actions inside the working viewport', JSON.stringify({ desktop, wide }));
-ok(desktop.type.chyron >= 12 && desktop.type.action >= 12.5
-  && desktop.type.autoplay >= 12.5 && desktop.type.playMeta >= 13,
-  'Desktop theater keeps lower-third, action, and play-strip type on the consumer scale', JSON.stringify(desktop.type));
+// The approved comp reserves 11px for terse metadata; commands stay 12px.
+ok(desktop.type.chyron >= 11 && desktop.type.action >= 12
+  && desktop.type.autoplay >= 12 && desktop.type.playMeta >= 11,
+  'Desktop theater follows the approved command and metadata type hierarchy', JSON.stringify(desktop.type));
 const tablet = await geometryAt(768, 1024);
 if (shotDir) console.log('  QA    desktop geometry', JSON.stringify({ desktop, wide }));
 await page.setViewport({ width: 1920, height: 1080 });
@@ -356,12 +375,15 @@ await page.waitForFunction(() => !(document.fullscreenElement || document.webkit
 const mobile = await geometryAt(390, 844);
 ok(!desktop.pageOverflow && !wide.pageOverflow && !tablet.pageOverflow && !mobile.pageOverflow,
   'Theater has zero page-level horizontal overflow at all release widths', JSON.stringify({ desktop, wide, tablet, mobile }));
+await page.click('[aria-label="Show play strip"]');
+await new Promise(resolve => setTimeout(resolve, 50));
 state = await page.evaluate(() => {
-  const hits = [...document.querySelectorAll('.gi-breakdown-theater button')].map(node => ({ label: node.getAttribute('aria-label') || node.textContent.trim(), height: node.getBoundingClientRect().height }));
+  const hits = [...document.querySelectorAll('.gi-breakdown-theater button')].filter(node => node.getClientRects().length).map(node => ({ label: node.getAttribute('aria-label') || node.textContent.trim(), height: node.getBoundingClientRect().height }));
   return { minHit: Math.min(...hits.map(item => item.height)), short: hits.filter(item => item.height < 44),
-    internal: document.querySelector('[data-drive-scroll]').scrollWidth > document.querySelector('[data-drive-scroll]').clientWidth };
+    internal: document.querySelector('[data-drive-scroll]').scrollHeight > document.querySelector('[data-drive-scroll]').clientHeight };
 });
-ok(state.minHit >= 44 && state.internal, 'Mobile controls meet touch targets and the strip remains swipeable', JSON.stringify(state));
+ok(state.minHit >= 44 && state.internal, 'Visible mobile controls meet touch targets and the open play browser scrolls internally', JSON.stringify(state));
+await page.keyboard.press('Escape');
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'breakdown-theater-390.png') });
 
 console.log('\n== 4. Exact restore leaves current route ownership untouched ==');

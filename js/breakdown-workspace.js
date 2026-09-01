@@ -24,8 +24,8 @@ export class BreakdownWorkspace {
       <div class="gi-breakdown-route" data-native-breakdown-route>
         <header class="gi-breakdown-toolbar" aria-label="Break Down tools">
           <div class="gi-breakdown-context" role="group" aria-label="Film context">
-            <button type="button" data-bd-context="self">SELF SCOUT</button>
-            <button type="button" data-bd-context="scout">OPPONENT SCOUT</button>
+            <button type="button" data-bd-context="self">Our Program</button>
+            <button type="button" data-bd-context="scout">Opponent Scout</button>
           </div>
           <div class="gi-breakdown-view" role="group" aria-label="Break Down view">
             <button type="button" class="active" data-bd-view="chart" aria-pressed="true">Chart</button>
@@ -34,16 +34,17 @@ export class BreakdownWorkspace {
           <div class="gi-breakdown-tools">
             <button type="button" data-bd-tools-toggle aria-haspopup="menu" aria-controls="bdMoreTools" aria-expanded="false">More tools</button>
             <div class="gi-breakdown-commands" id="bdMoreTools" role="menu">
-              <button type="button" role="menuitem" data-bd-context="quick">Quick chart</button>
-              <button type="button" role="menuitem" data-bd-customize>Customize fields</button>
-              <button type="button" role="menuitem" data-bd-game>Game settings</button>
-              <button type="button" role="menuitem" data-bd-film-focus aria-pressed="false">Film focus</button>
+              <button type="button" role="menuitem" data-bd-context="quick"><svg aria-hidden="true"><use href="assets/icons.svg#icon-chart"/></svg>Quick chart</button>
+              <button type="button" role="menuitem" data-bd-customize><svg aria-hidden="true"><use href="assets/icons.svg#icon-tag"/></svg>Customize fields</button>
+              <button type="button" role="menuitem" data-bd-game><svg aria-hidden="true"><use href="assets/icons.svg#icon-notes"/></svg>Game settings</button>
+              <button type="button" role="menuitem" data-bd-film-focus aria-pressed="false"><svg aria-hidden="true"><use href="assets/icons.svg#icon-scan"/></svg><span>Film focus</span></button>
             </div>
           </div>
           <span class="gi-breakdown-save is-saved" id="bdSaveState">Saved</span>
         </header>
         <div class="gi-breakdown-composition">
           <section class="gi-breakdown-theater-host" data-breakdown-theater-host></section>
+          <aside class="gi-breakdown-rail-host" data-breakdown-rail-host aria-label="Game plays"></aside>
           <aside class="gi-breakdown-deck" aria-label="Charting deck">
             <div class="gi-breakdown-tagging-host" data-breakdown-tagging-host></div>
             <div class="gi-breakdown-film-room-host" data-breakdown-film-room-host hidden></div>
@@ -51,7 +52,7 @@ export class BreakdownWorkspace {
         </div>
       </div>`;
     try {
-      if (!this.app.breakdownTheater.mount(host.querySelector('[data-breakdown-theater-host]'))) throw new Error('Break Down theater did not mount.');
+      if (!this.app.breakdownTheater.mount(host.querySelector('[data-breakdown-theater-host]'), { railHost: host.querySelector('[data-breakdown-rail-host]') })) throw new Error('Break Down theater did not mount.');
       if (!this.app.nativeTagging.mount(host.querySelector('[data-breakdown-tagging-host]'))) throw new Error('Break Down tagging did not mount.');
       if (!this.app.nativeFilmRoom.mount(host.querySelector('[data-breakdown-film-room-host]'))) throw new Error('Break Down Film Room did not mount.');
       this._bind();
@@ -134,6 +135,7 @@ export class BreakdownWorkspace {
     // regression that harness exists for.
     if (userInitiated && this.filmFocus) this._setFilmFocus(false);
     this.view = filmRoom ? 'film-room' : 'chart';
+    this.app.breakdownTheater?.setView(this.view);
     const tagging = this.host?.querySelector('[data-breakdown-tagging-host]');
     const grid = this.host?.querySelector('[data-breakdown-film-room-host]');
     if (tagging) tagging.hidden = filmRoom;
@@ -161,7 +163,7 @@ export class BreakdownWorkspace {
     if (button) {
       button.classList.toggle('active', this.filmFocus);
       button.setAttribute('aria-pressed', String(this.filmFocus));
-      button.textContent = this.filmFocus ? 'Show charting' : 'Film focus';
+      button.querySelector('span').textContent = this.filmFocus ? 'Show charting' : 'Film focus';
     }
     if (persist) localStorage.setItem('ffa_breakdown_film_focus', this.filmFocus ? '1' : '0');
   }

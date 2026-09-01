@@ -1,193 +1,65 @@
-.ws-breakdown { min-width: 0; min-height: 0; overflow: hidden; }
-.gi-breakdown-route { width: 100%; height: 100%; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--gi-1); color: var(--gi-12); font-family: var(--gi-sans); }
-.gi-breakdown-toolbar { min-width: 0; min-height: 42px; padding: var(--gi-1x) var(--gi-2x); display: flex; align-items: center; gap: var(--gi-2x); border-bottom: 1px solid var(--gi-7); background: var(--gi-2); }
-.gi-breakdown-context, .gi-breakdown-commands, .gi-breakdown-view { display: flex; align-items: center; gap: var(--gi-1x); }
-.gi-breakdown-toolbar button { min-height: var(--gi-control); padding: 0 var(--gi-2x); border: 1px solid var(--gi-7); border-radius: var(--gi-radius); color: var(--gi-11); background: var(--gi-3); font: var(--gi-text-control); cursor: pointer; }
-.gi-breakdown-toolbar button:hover { color: var(--gi-12); border-color: var(--gi-8); background: var(--gi-4); }
-.gi-breakdown-toolbar button.active { color: var(--gi-12); border-color: var(--gi-9); background: var(--gi-5); }
-.gi-breakdown-toolbar button.active small { color: var(--gi-11); }
-.gi-breakdown-commands { margin-left: auto; }
-.gi-breakdown-view { padding-left: var(--gi-2x); border-left: 1px solid var(--gi-7); }
-.gi-breakdown-save { flex: 0 0 auto; color: var(--gi-10); font: 600 11.5px/1 var(--gi-sans); }
-.gi-breakdown-save::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: var(--gi-1x); border-radius:var(--gi-radius); background: var(--gi-ok); }
-.gi-breakdown-save.is-pending::before { background: var(--gi-first-down); }
-.gi-breakdown-composition { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(420px, 28vw, 500px); }
-.gi-breakdown-theater-host, .gi-breakdown-deck, .gi-breakdown-tagging-host, .gi-breakdown-film-room-host { min-width: 0; min-height: 0; }
-.gi-breakdown-theater-host { overflow: hidden; border-right: 1px solid var(--gi-7); background: var(--gi-film); }
-.gi-breakdown-deck { overflow: hidden; background: var(--gi-1); }
-.gi-breakdown-tagging-host, .gi-breakdown-film-room-host { width: 100%; height: 100%; overflow: auto; }
-.gi-breakdown-tagging-host[hidden], .gi-breakdown-film-room-host[hidden] { display: none; }
-.gi-breakdown-film-room-host .gi-film-room { min-height: 100%; }
-.gi-breakdown-route.is-film-focus .gi-breakdown-composition { grid-template-columns: minmax(0, 1fr); }
-.gi-breakdown-route.is-film-focus .gi-breakdown-deck { display: none; }
-.gi-breakdown-route.is-film-focus .gi-breakdown-theater-host { border-right: 0; }
-.gi-breakdown-deck .gi-tag-context { grid-template-columns: 1fr 1fr; }
-.gi-breakdown-deck .gi-tag-title { grid-column: 1 / -1; }
-.gi-breakdown-toolbar button:focus-visible { outline: none; box-shadow: var(--gi-focus); }
-@media (min-width: 1181px) {
-  .gi-breakdown-composition { grid-template-columns: minmax(0, 1fr) 424px; }
+/* Approved Breakdown workspace comp: one composition owner, three rail placements. */
+.ws-breakdown{min-width:0;min-height:0;overflow:hidden}
+.gi-breakdown-route{width:100%;height:100%;min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--gi-1);color:var(--gi-12);font-family:var(--gi-sans)}
+.gi-breakdown-toolbar{min-width:0;min-height:44px;padding:4px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-breakdown-toolbar button{min-height:30px;padding:0 12px;border:1px solid var(--gi-7);border-radius:0;color:var(--gi-bd-copy);background:var(--gi-3);font:600 12px var(--gi-sans);cursor:pointer;white-space:nowrap}
+.gi-breakdown-toolbar button:hover{color:var(--gi-12);border-color:var(--gi-8);background:var(--gi-4)}
+.gi-breakdown-toolbar button:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+.gi-breakdown-context,.gi-breakdown-view{display:flex;flex:0 0 auto;gap:0;border:1px solid var(--gi-7)}
+.gi-breakdown-context>button,.gi-breakdown-view>button{border:0;min-height:32px;background:transparent}
+.gi-breakdown-context>button+button,.gi-breakdown-view>button+button{border-left:1px solid var(--gi-7)}
+.gi-breakdown-view>button{min-width:90px}
+.gi-breakdown-context>button.active,.gi-breakdown-view>button.active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-breakdown-tools{display:flex;min-width:0;padding-left:12px;border-left:1px solid var(--gi-7)}
+.gi-breakdown-tools>[data-bd-tools-toggle]{display:none}
+.gi-breakdown-commands{display:flex;gap:6px;min-width:0}
+.gi-breakdown-commands>button{display:inline-flex;align-items:center;gap:6px}.gi-breakdown-commands svg{width:14px;height:14px;flex:0 0 auto}
+.gi-breakdown-commands>button.active{color:var(--gi-12);border-color:var(--gi-bd-gold)}
+.gi-breakdown-save{margin-left:auto;padding-left:12px;border-left:1px solid var(--gi-6);flex:0 0 auto;color:var(--gi-bd-copy);font:600 11px var(--gi-sans);text-transform:uppercase}
+.gi-breakdown-save::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;background:var(--gi-ok)}
+.gi-breakdown-save.is-pending::before{background:var(--gi-warn)}
+.gi-breakdown-composition{display:grid;min-width:0;min-height:0;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:minmax(0,1fr) 34px;grid-template-areas:'theater deck' 'rail deck'}
+.gi-breakdown-theater-host,.gi-breakdown-deck,.gi-breakdown-rail-host,.gi-breakdown-tagging-host,.gi-breakdown-film-room-host{min-width:0;min-height:0}
+.gi-breakdown-theater-host{grid-area:theater;overflow:hidden;border-right:1px solid var(--gi-7);background:var(--gi-film)}
+.gi-breakdown-rail-host{grid-area:rail;overflow:hidden}
+.gi-breakdown-deck{grid-area:deck;overflow:hidden;background:var(--gi-1)}
+.gi-breakdown-tagging-host,.gi-breakdown-film-room-host{width:100%;height:100%;overflow:hidden}
+.gi-breakdown-tagging-host[hidden],.gi-breakdown-film-room-host[hidden]{display:none}
+.ws-breakdown.is-film-room .gi-breakdown-composition{grid-template-columns:minmax(0,36%) minmax(0,1fr);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater deck'}
+.ws-breakdown.is-film-room .gi-breakdown-rail-host{display:none}
+.gi-breakdown-route.is-film-focus .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater'}
+.gi-breakdown-route.is-film-focus .gi-breakdown-deck,.gi-breakdown-route.is-film-focus .gi-breakdown-rail-host{display:none}
+@media(min-width:1350px) and (max-width:1699.98px){.gi-breakdown-composition{grid-template-rows:minmax(0,1fr) 84px}}
+@media(min-width:1700px){
+  .gi-breakdown-composition{grid-template-columns:minmax(0,1fr) clamp(230px,15vw,300px) clamp(430px,24vw,480px);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater rail deck'}
 }
-@media (max-width: 1180px) {
-  .ws-breakdown { overflow-y: auto; }
-  .gi-breakdown-route { height: auto; min-height: 100%; }
-  .gi-breakdown-toolbar { position: sticky; top: 0; z-index: 6; flex-wrap: wrap; }
-  .gi-breakdown-context { flex: 1 1 auto; overflow-x: auto; }
-  .gi-breakdown-commands { margin-left: 0; }
-  .gi-breakdown-view { margin-left: auto; }
-  .gi-breakdown-composition { display: block; }
-  .gi-breakdown-theater-host { height: auto; min-height: 540px; border-right: 0; border-bottom: 1px solid var(--gi-7); }
-  /* Pre-existing shared-geometry defect, found via the Film Room screenshot
-     review and reproduced in Chart mode too: the theater's own internal grid
-     (.gi-breakdown-theater / .gi-theater-player) keeps Chart's 326px/280px
-     stage floors even though the host's real height here computes short of
-     what stage+chyron+transport need, and overflow:hidden silently clips the
-     bottom of the chyron instead of showing it. Same class already fixed once
-     at the 1181-1499px bracket below -- extending the identical remedy here. */
-  .gi-breakdown-theater { grid-template-rows: minmax(160px, 1fr) auto auto auto; }
-  .gi-theater-player { grid-template-rows: minmax(120px, 1fr) auto auto; }
-  .gi-breakdown-deck { overflow: visible; }
-  .gi-breakdown-tagging-host, .gi-breakdown-film-room-host { height: auto; overflow: visible; }
+/* Existing context commands remain, in the comp's compact breadcrumb band. */
+@media(min-width:1001px){
+  body.ws-shell-active.ws-route-breakdown .ws-contextbar{display:flex;justify-content:flex-start;gap:12px}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx{flex:0 1 auto;max-width:45%;padding:0 18px 0 12px;border:0;gap:6px}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx-label{display:inline;color:var(--gi-bd-copy);font-size:10px}
 }
-@media (max-width: 620px) {
-  .gi-breakdown-toolbar { padding: var(--gi-1x); gap: var(--gi-1x); }
-  /* The segmented groups below run edge-to-edge on a phone; a fixed outline
-     around a wrapping group boxes in a line break. */
-  .gi-breakdown-context, .gi-breakdown-view { flex-wrap: nowrap; }
-  .gi-breakdown-toolbar button { min-height: 44px; }
-  .gi-breakdown-context { order: 1; width: 100%; }
-  .gi-breakdown-context button { flex: 1 0 auto; }
-  .gi-breakdown-commands { order: 2; }
-  .gi-breakdown-view { order: 2; margin-left: auto; padding-left: var(--gi-1x); }
-  .gi-breakdown-save { order: 3; width: 100%; }
-  .gi-breakdown-theater-host { min-height: 0; }
+@media(max-width:1100px){
+  .gi-breakdown-tools{position:relative;margin-left:auto;padding:0;border:0}
+  .gi-breakdown-tools>[data-bd-tools-toggle]{display:block}
+  .gi-breakdown-commands{position:absolute;right:0;top:calc(100% + 6px);z-index:9;width:200px;display:grid;padding:6px;background:var(--gi-2);border:1px solid var(--gi-7)}
+  .gi-breakdown-tools:not(.is-open) .gi-breakdown-commands{display:none}
+  .gi-breakdown-commands button{text-align:left}
 }
-
-/* ══ S6-6a — DESIGN RULES LAST ═══════════════════════════════════════════════
-   Placed at the END of the file for the reason recorded in native-tagging.css:
-   a rule that loses on source order is invisible — the CSS is present, correct
-   and inert. Nothing generic goes in this block; catch-alls belong at the top.
-
-   THE PROBLEM THIS SOLVES. The toolbar held three groups — film context, route
-   commands, view switch — drawn identically, so a mode switch, a one-shot
-   action and a surface switch were indistinguishable. Three roles, one look.
-   They are now three shapes: context and view are SEGMENTED (joined by 1px
-   seams inside one outline, the way a picker reads), commands are QUIET (no
-   chrome until hover, the way an action reads). */
-
-.gi-breakdown-context, .gi-breakdown-view {
-  gap: 0; padding-left: 0; border: 1px solid var(--gi-7); background: var(--gi-2);
+@media(max-width:1000px){
+  .ws-breakdown{overflow:auto}
+  .gi-breakdown-route{height:auto;min-height:100%}
+  .gi-breakdown-toolbar{flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:5;padding:4px 8px}
+  .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:520px 34px auto;grid-template-areas:'theater' 'rail' 'deck'}
+  .gi-breakdown-deck{overflow:visible}
+  .gi-breakdown-tagging-host{height:auto;overflow:visible}
+  .gi-breakdown-film-room-host{height:600px}
+  .ws-breakdown.is-film-room .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:520px 600px;grid-template-areas:'theater' 'deck'}
+  .gi-breakdown-route.is-film-focus .gi-breakdown-composition{grid-template-rows:70vh}
 }
-.gi-breakdown-context > button, .gi-breakdown-view > button {
-  border: 0; border-left: 1px solid var(--gi-7); background: transparent;
-}
-.gi-breakdown-context > button:first-child, .gi-breakdown-view > button:first-child { border-left: 0; }
-.gi-breakdown-context > button:hover, .gi-breakdown-view > button:hover { background: var(--gi-4); }
-/* Broadcast Density: the active route/context tab is active CONTEXT, so it
-   takes gold rather than the app-wide "current" blue — scoped to this file
-   (Break Down's own toolbar), not a redefinition of --gi-los itself. */
-.gi-breakdown-context > button.active, .gi-breakdown-view > button.active {
-  background: var(--gi-5); box-shadow: inset 0 -2px 0 var(--gi-bd-gold);
-}
-
-.gi-breakdown-commands > button {
-  border-color: transparent; background: transparent; color: var(--gi-11);
-}
-.gi-breakdown-commands > button:hover {
-  border-color: var(--gi-7); background: var(--gi-3); color: var(--gi-12);
-}
-
-/* S6-4e raised labels to 11.5px because legibility comes from SIZE, not
-   brightness — but the sweep never reached this file, so the film-context
-   sub-label stayed 8px mono AND was pushed to the accent blue to compensate.
-   That is the exact glow-on-near-black the sweep existed to remove. */
-.gi-breakdown-toolbar button small {
-  margin-top: 3px; color: var(--gi-11);
-  font: var(--gi-text-caption); font-family: var(--gi-sans);
-  letter-spacing: var(--gi-track-label); text-transform: uppercase;
-}
-
-/* S6 design completion: Chart and Film Room are different jobs. Chart keeps
-   the bounded tagging deck; Film Room gets a real data workspace instead of
-   inheriting the 420-500px charting column. */
-.gi-breakdown-tools { display: contents; }
-.gi-breakdown-tools > [data-bd-tools-toggle] { display: none; }
-.ws-breakdown.is-film-room .gi-breakdown-composition {
-  grid-template-columns: minmax(680px, 1.15fr) minmax(680px, 1fr);
-}
-
-@media (min-width: 1181px) and (max-width: 1499px) {
-  .ws-breakdown.is-film-room { overflow-y: auto; }
-  .ws-breakdown.is-film-room .gi-breakdown-route { height: auto; min-height: 100%; }
-  .ws-breakdown.is-film-room .gi-breakdown-toolbar {
-    position: sticky; top: 0; z-index: 6;
-  }
-  .ws-breakdown.is-film-room .gi-breakdown-composition { display: block; }
-  .ws-breakdown.is-film-room .gi-breakdown-theater-host {
-    height: clamp(350px, 52vh, 500px); min-height: 350px;
-    border-right: 0; border-bottom: 1px solid var(--gi-7);
-  }
-  /* Charlie Gate (real screenshots, not DOM inspection) caught this: the
-     theater's own grid still enforced Chart mode's stage floor (326px outer /
-     280px inner) inside a host clamped to 350-500px total. At 1440x900 that
-     left the transport clear but squeezed the actions row (Mark Start/End,
-     Copy Last, Autoplay, Clear Tags, Delete Play) to an ~14px sliver; at
-     1280x720 it disappeared under the ancestor's overflow:hidden entirely --
-     a coach could not mark, clear, or delete a play from Film Room mode at
-     either tested desktop width. Film Room's job here is the breakdown
-     table, not primary film-watching, so the picture may run smaller than
-     Chart's; the play-marking commands may not disappear. */
-  .ws-breakdown.is-film-room .gi-breakdown-theater { grid-template-rows: minmax(170px, 1fr) auto auto auto; }
-  .ws-breakdown.is-film-room .gi-theater-player { grid-template-rows: minmax(120px, 1fr) auto auto; }
-  .ws-breakdown.is-film-room .gi-breakdown-deck,
-  .ws-breakdown.is-film-room .gi-breakdown-film-room-host {
-    height: min(720px, calc(100vh - 54px)); min-height: 520px; overflow: hidden;
-  }
-}
-
-@media (max-width: 1180px) {
-  .ws-breakdown.is-film-room .gi-breakdown-film-room-host { min-height: 520px; }
-}
-
-@media (max-width: 620px) {
-  .gi-breakdown-toolbar { z-index: 30; }
-  /* Two first-level rows on a phone: film context, then workspace mode.
-     Advanced commands remain present in one native disclosure. */
-  .gi-breakdown-view { order: 2; margin-left: 0; padding-left: 0; }
-  .gi-breakdown-view button { min-width: 88px; }
-  .gi-breakdown-tools {
-    position: relative; order: 2; display: block; margin-left: auto;
-  }
-  .gi-breakdown-tools > [data-bd-tools-toggle] {
-    min-height: 44px; display: flex; align-items: center; padding: 0 var(--gi-2x);
-    border: 1px solid var(--gi-7); border-radius: var(--gi-radius);
-    background: var(--gi-3); color: var(--gi-11);
-    font: var(--gi-text-control); cursor: pointer;
-  }
-  .gi-breakdown-tools.is-open > [data-bd-tools-toggle] {
-    border-color: var(--gi-9); background: var(--gi-5); color: var(--gi-12);
-  }
-  .gi-breakdown-tools .gi-breakdown-commands {
-    position: absolute; z-index: 12; top: calc(100% + var(--gi-1x)); right: 0;
-    width: 190px; display: grid; gap: var(--gi-1x); margin-left: 0;
-    padding: var(--gi-1x); border: 1px solid var(--gi-7);
-    background: var(--gi-2); box-shadow: var(--gi-shadow-overlay);
-  }
-  .gi-breakdown-tools:not(.is-open) .gi-breakdown-commands { display: none; }
-  .gi-breakdown-tools .gi-breakdown-commands button {
-    width: 100%; display: flex; align-items: center; justify-content: flex-start;
-    text-align: left;
-  }
-  .gi-breakdown-save {
-    order: 2; width: auto; margin-left: var(--gi-1x); padding-left: var(--gi-2x);
-  }
-  .gi-breakdown-tools [data-bd-tools-toggle]:focus-visible { outline: none; box-shadow: var(--gi-focus); }
-}
-.gi-breakdown-toolbar button.active small { color: var(--gi-12); }
-
-/* Save state is a fact, not a control — it takes the label role and a seam so
-   it stops competing with the buttons beside it. */
-.gi-breakdown-save {
-  padding-left: var(--gi-3x); border-left: 1px solid var(--gi-6);
-  color: var(--gi-11); font: var(--gi-text-label);
-  letter-spacing: var(--gi-track-label); text-transform: uppercase;
+@media(max-width:620px){
+  .gi-breakdown-context{width:100%}.gi-breakdown-context>button{flex:1}
+  .gi-breakdown-toolbar button{min-height:44px}
+  .gi-breakdown-save{font-size:10px;padding-left:6px}
+  .gi-breakdown-composition{grid-template-rows:460px 40px auto}
 }

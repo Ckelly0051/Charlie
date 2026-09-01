@@ -77,11 +77,15 @@ const measure=async(width,height,focus)=>{
 console.log('\n== 1. Default split improves film without crowding charting ==');
 let state=await measure(1440,900,false);
 ok(state.media.width>=895&&state.media.height>=500,'1440 split meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 945x531.5)',JSON.stringify(state));
-ok(state.deck.width>=420&&state.deck.width<=501&&state.tagOverflow<=1,'1440 charting deck remains usable at its bounded width',JSON.stringify(state));
-ok(state.type.route.font>=12.5&&state.type.eyebrow.font>=12&&state.type.title.font>=19&&state.type.unit.font>=12.5&&state.type.action.font>=12.5&&state.type.action.height>=30&&state.type.chip.font>=12.5&&state.type.chip.height>=30&&!state.type.title.clipped,'1440 charting keeps canonical consumer-size type and controls without clipping',JSON.stringify(state.type));
+// August 30's reviewed comp replaces the wide deck/Charting eyebrow with a
+// 400px deck, compact 18px play identity, and 12px/30px selection controls.
+ok(state.deck.width===400&&state.tagOverflow<=1,'1440 charting deck matches the approved bounded width',JSON.stringify(state));
+ok(state.type.route.font>=12&&state.type.eyebrow===null&&state.type.title.font>=18&&state.type.unit.font>=12&&state.type.action.font>=12&&state.type.action.height>=30&&state.type.chip.font>=12&&state.type.chip.height>=30&&!state.type.title.clipped,'1440 charting matches the compact comp without redundant Charting copy or clipped controls',JSON.stringify(state.type));
 ok(state.overlap===0&&state.overflow<=1,'1440 split never overlays film or overflows the page',JSON.stringify(state));
 state=await measure(1920,1080,false);
-ok(state.media.width>=1215&&state.media.height>=680,'1920 split meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 1265x711.5)',JSON.stringify(state));
+// The new vertical rail deliberately spends horizontal room on navigation:
+// picture ~1162x654 vs ~1226x690 in the old two-column composition.
+ok(state.media.width>=1150&&state.media.height>=645,'1920 three-column layout matches the approved comp picture budget',JSON.stringify(state));
 ok(state.deck.width>=420&&state.deck.width<=501&&state.overlap===0,'1920 keeps a bounded non-overlay charting deck',JSON.stringify(state));
 console.log('\n== 2. Film Focus is explicit, larger, and durable ==');
 state=await measure(1440,900,true);
@@ -98,6 +102,39 @@ ok(state.overflow<=1&&state.media.width>0&&state.overlap===0,'Tablet stacks with
 state=await measure(390,844,false);
 const touch=await page.evaluate(()=>Math.min(...[...document.querySelectorAll('.gi-breakdown-toolbar button')].filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect().height)));
 ok(state.overflow<=1&&state.media.width>0&&touch>=44,'Mobile stays overflow-free with touch-sized route controls',JSON.stringify({...state,touch}));
+console.log('\n== 4. Expanded charting groups fit inside the form ==');
+for (const unit of ['offense','defense','kickoffReturn','punt']) {
+  await page.evaluate(unit => {
+    const play = app.tagger.plays[0];
+    play.tags.unit = ['offense','defense'].includes(unit) ? unit : 'special';
+    if (play.tags.unit === 'special') play.specialTeams = {unit,outcome:{status:'returned'}};
+    else delete play.specialTeams;
+    app.tagger.selectPlay(play.id);
+  }, unit);
+  for (const width of [1920,1440,1280,768,390]) {
+    await measure(width,900,false);
+    await page.evaluate(() => document.querySelectorAll('.gi-tag-group').forEach(node => {node.open=true}));
+    const fit = await page.evaluate(() => {
+      const form = document.querySelector('.gi-native-form'), bounds = form.getBoundingClientRect();
+      const outside = [...form.querySelectorAll('button,input,select,textarea')].filter(node => {
+        const r=node.getBoundingClientRect();
+        return r.width>0 && (r.right>bounds.right+1 || r.left<bounds.left-1);
+      }).map(node => node.textContent || node.getAttribute('aria-label') || node.tagName);
+      const labels = [...form.querySelectorAll('.gi-tag-special-metrics .gi-tag-field-label>span,.gi-tag-special-metrics label>span')];
+      const textRects = labels.map(node => {
+        const range=document.createRange();range.selectNodeContents(node);
+        return {text:node.textContent,rect:range.getBoundingClientRect()};
+      }).filter(item=>item.rect.width>0);
+      const collisions = textRects.flatMap((a,index)=>textRects.slice(index+1).filter(b=>
+        Math.min(a.rect.right,b.rect.right)>Math.max(a.rect.left,b.rect.left) &&
+        Math.min(a.rect.bottom,b.rect.bottom)>Math.max(a.rect.top,b.rect.top)
+      ).map(b=>`${a.text} / ${b.text}`));
+      return {width:form.clientWidth,scroll:form.scrollWidth,outside,collisions,labelCount:textRects.length};
+    });
+    ok(fit.scroll<=fit.width+1 && fit.outside.length===0,`${unit} at ${width}: expanded fields and tools fit without internal sideways scrolling`,JSON.stringify(fit));
+    if (['kickoffReturn','punt'].includes(unit)) ok(fit.labelCount>=6 && fit.collisions.length===0,`${unit} at ${width}: field-position labels never overlap adjacent metric labels`,JSON.stringify(fit));
+  }
+}
 ok(errors.length===0,'Geometry journey has zero page errors',errors.join(' | '));
 console.log('\n== RESULT: '+pass+' passed, '+fail+' failed ==');
 await browser.close();

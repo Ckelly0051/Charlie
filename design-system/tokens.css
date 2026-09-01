@@ -206,7 +206,15 @@
   --gi-bd-control-active:#1b242e;
   --gi-bd-line:#222d38;
   --gi-bd-muted:#66727e;
-  --gi-bd-copy:#9daab7;
+  /* Was #9daab7 -- a real blue-gray (R157/G170/B183, ~15% cool cast), not a
+     neutral. Flagged across two review rounds on the Break Down comp; fixed
+     here at the shared token rather than worked around locally, since this
+     is the system's actual "operational secondary text" step and several
+     screens (Break Down, Reports' scorebug/story text and --bd-ink-2 alias)
+     already depend on it reading as gray, not blue. True neutral (R=G=B) at
+     matching lightness -- confirmed consistent on both surfaces before this
+     value shipped. */
+  --gi-bd-copy:#a6a6a6;
   --gi-bd-strong:#f2f5f8;
   --gi-bd-win:#3fa96b;
   --gi-bd-loss:#d2564f;

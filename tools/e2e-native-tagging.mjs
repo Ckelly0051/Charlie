@@ -283,8 +283,10 @@ state=await page.evaluate(()=>{
     pageOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
   };
 });
-ok(state.covCount>=7&&state.covRows===1&&state.covOverflow<=0&&state.covFont>=11,
-  'Coverage Call keeps every call on one row in the charting deck without shrinking its type',JSON.stringify(state));
+// The approved comp uses content-sized vocabulary chips, wrapping rather
+// than squeezing seven labels into equal-width tracks.
+ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,
+  'Coverage Call keeps all labels readable in compact wrapping rows',JSON.stringify(state));
 ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='8/12',
   'Every native charting group body owns the approved 8px lead and 12px closing rhythm',JSON.stringify(state));
 ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])

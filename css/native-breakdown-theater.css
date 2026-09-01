@@ -1,311 +1,125 @@
-.gi-breakdown-theater {
-  width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden;
-  display: grid; grid-template-rows: minmax(326px, 1fr) auto auto auto;
-  background: var(--gi-film); color: var(--gi-12); font-family: var(--gi-sans); letter-spacing: 0;
+/* Shared real-media theater and responsive play browser, from the approved comp. */
+.gi-breakdown-theater{width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--gi-film);color:var(--gi-12);font-family:var(--gi-sans);letter-spacing:0}
+.gi-theater-player{flex:1;min-width:0;min-height:0;overflow:hidden;display:grid;grid-template-rows:minmax(0,1fr) auto auto;background:var(--gi-film)}
+.gi-theater-stage{min-width:0;min-height:0;padding:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--gi-film)}
+.gi-theater-media-slot{width:100%;height:100%;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.gi-theater-media-slot>#videoContainer.gi-native-video{position:relative;width:100%;height:100%;max-width:100%;max-height:100%;min-width:0;min-height:0;aspect-ratio:auto;overflow:hidden;background:var(--gi-film);border:0}
+.gi-theater-media-slot #videoPlayer,.gi-theater-media-slot #videoPlayer2{width:100%;height:100%;object-fit:contain;image-rendering:auto;transform:none;filter:none}
+.gi-theater-media-slot .dropzone-actions button{min-height:34px;padding:0 12px;border:1px solid var(--gi-7);border-radius:0;background:var(--gi-3);color:var(--gi-12);font:600 12px var(--gi-sans);cursor:pointer}
+.gi-theater-media-slot .dropzone-actions .btn-accent{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-theater-media-slot .dropzone-card{width:min(100%,460px);max-width:100%;padding:24px;border:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-theater-media-slot .dropzone-icon,.gi-theater-media-slot .empty-hint,.gi-theater-media-slot .dropzone-status{color:var(--gi-bd-copy)}
+.gi-theater-media-slot .empty-hint{font:400 12px/1.5 var(--gi-sans);text-align:center}
+.gi-theater-media-slot .dropzone-title{font:600 18px var(--gi-sans)}
+.gi-theater-media-slot .dropzone-actions{flex-wrap:wrap;justify-content:center}
+.gi-theater-media-slot .dropzone-status.is-error{color:var(--gi-turnover)}
+.gi-theater-player:fullscreen,.gi-theater-player:-webkit-full-screen{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;display:grid;grid-template-rows:minmax(0,1fr) auto;background:var(--gi-film)}
+.gi-theater-player:fullscreen .gi-theater-stage,.gi-theater-player:-webkit-full-screen .gi-theater-stage{padding:0;display:flex}
+.gi-theater-player:fullscreen .gi-theater-chyron,.gi-theater-player:-webkit-full-screen .gi-theater-chyron,.gi-theater-player:fullscreen .gi-theater-selected-play,.gi-theater-player:-webkit-full-screen .gi-theater-selected-play{display:none}
+.gi-theater-player:fullscreen .gi-theater-media-slot,.gi-theater-player:-webkit-full-screen .gi-theater-media-slot{height:100%}
+.gi-theater-chyron{min-width:0;display:flex;align-items:stretch;background:var(--gi-bd-stage);border-top:2px solid var(--gi-bd-gold)}
+[data-unit="defense"]>.gi-theater-player .gi-theater-chyron{border-top-color:var(--gi-bd-cyan)}
+.gi-chyron-id,.gi-chyron-cell{padding:4px 12px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--gi-6);min-width:0;flex:0 1 auto}
+.gi-chyron-cell.is-call{flex:1 1 160px;max-width:30%}
+.gi-chyron-cell.is-wide{flex:1 1 110px;min-width:90px;border-right:0}
+.gi-chyron-id{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);flex-shrink:0}
+[data-unit="defense"]>.gi-theater-player .gi-chyron-id{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-chyron-k{font:600 11px var(--gi-sans);text-transform:uppercase;color:var(--gi-bd-copy)}
+.gi-chyron-id .gi-chyron-k{color:inherit}
+.gi-chyron-v{margin-top:3px;font:600 13px/1.25 var(--gi-sans);color:var(--gi-12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-chyron-id .gi-chyron-v{font:600 21px/1.1 var(--gi-cond)}
+.gi-chyron-cell.is-def .gi-chyron-v{color:var(--gi-bd-cyan)}
+.gi-chyron-cell.is-off .gi-chyron-v{color:var(--gi-bd-gold)}
+.gi-chyron-cell.is-pos .gi-chyron-v{color:var(--gi-ok)}
+.gi-chyron-cell.is-neg .gi-chyron-v{color:var(--gi-turnover)}
+.gi-theater-transport,.gi-theater-anglebar,.gi-theater-actions{min-width:0;border-top:1px solid var(--gi-6);background:var(--gi-1)}
+.gi-theater-transport{min-height:40px;padding:4px 8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.gi-theater-transport-main{min-width:0;flex:1 1 auto;display:flex;align-items:center;gap:4px}
+.gi-theater-tools-wrap,.gi-theater-transport-tools{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+.gi-icon-command,.gi-play-command,.gi-theater-command,.gi-theater-actions button{min-height:30px;border:1px solid var(--gi-7);border-radius:0;color:var(--gi-12);background:var(--gi-3);font:600 12px var(--gi-sans);cursor:pointer}
+.gi-icon-command,.gi-play-command{flex:0 0 auto;width:34px;height:34px;padding:0;display:inline-grid;place-items:center}
+.gi-icon-command svg,.gi-play-command svg{width:16px;height:16px}
+.gi-play-command{color:var(--gi-1);background:var(--gi-12);border-color:var(--gi-12)}
+.gi-icon-command:hover,.gi-theater-command:hover,.gi-theater-actions button:hover{background:var(--gi-4);border-color:var(--gi-8)}
+.gi-icon-command.is-active{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-breakdown-theater :is(button,input,select):focus-visible,.gi-theater-chyron:focus-visible,.gi-drive-strip button:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+.gi-theater-time{flex:0 0 auto;min-width:36px;color:var(--gi-bd-copy);font:500 11px var(--gi-mono);text-align:center;white-space:nowrap}
+.gi-theater-scrub{width:0;min-width:64px;flex:1 1 0;height:30px;margin:0 4px;accent-color:var(--gi-bd-gold)}
+.gi-breakdown-theater select,.gi-theater-anglebar input{min-height:30px;min-width:0;border:1px solid var(--gi-7);border-radius:0;color:var(--gi-12);background:var(--gi-3);font:500 12px var(--gi-sans)}
+.gi-theater-anglebar{flex:0 0 auto;min-height:34px;padding:3px 8px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--gi-bd-copy);font:12px var(--gi-sans)}
+.gi-theater-anglebar strong{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-theater-anglebar label{display:flex;align-items:center;gap:4px}
+.gi-theater-anglebar input{width:58px}
+.gi-theater-command{padding:0 8px}
+.gi-theater-command.is-danger,.gi-theater-actions button.is-danger{color:var(--gi-turnover);border-color:var(--gi-danger-border);background:var(--gi-danger-surface)}
+.gi-theater-actions{flex:0 0 auto;padding:3px 8px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:37px}
+.gi-theater-actions-primary,.gi-theater-actions-risk{display:flex;align-items:center;gap:4px}
+.gi-theater-actions-primary{gap:0}.gi-theater-actions-primary>button:nth-child(2){border-left:0}.gi-theater-actions-primary>button:last-child{margin-left:8px}
+.gi-theater-actions-risk{margin-left:auto}
+.gi-theater-actions button{padding:0 8px;white-space:nowrap}
+.gi-theater-actions button.is-active{color:var(--gi-bd-gold-ink);background:var(--gi-bd-gold);border-color:var(--gi-bd-gold)}
+.gi-autoplay-toggle{display:inline-flex;align-items:center;gap:5px;color:var(--gi-bd-copy);font:12px var(--gi-sans);white-space:nowrap;cursor:pointer}
+.gi-autoplay-toggle input{accent-color:var(--gi-bd-gold)}
+.gi-transport-more-trigger{display:none}
+.gi-theater-selected-play{width:100%;padding:12px;border:1px solid var(--gi-7);border-top:2px solid var(--gi-bd-gold);background:var(--gi-2);font:13px var(--gi-sans)}
+.gi-theater-selected-play header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:8px}
+.gi-theater-selected-play header span{color:var(--gi-bd-copy);font-size:11px}
+.gi-theater-selected-play .gi-selected-call{color:var(--gi-bd-gold)}
+.gi-theater-selected-play p{margin:6px 0;color:var(--gi-bd-copy)}
+.gi-theater-selected-play summary{cursor:pointer;color:var(--gi-bd-copy);font:600 11px var(--gi-sans)}
+.gi-breakdown-theater[data-view="film-room"] .gi-theater-stage{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:12px;padding:12px;overflow-y:auto}
+.gi-breakdown-theater[data-view="film-room"] .gi-theater-media-slot{flex:0 0 auto;width:100%;height:auto;aspect-ratio:16/9}
+.gi-breakdown-theater[data-view="film-room"] .gi-theater-selected-play{flex:0 0 auto}
+.gi-theater-player:fullscreen .gi-theater-media-slot,.gi-theater-player:-webkit-full-screen .gi-theater-media-slot{flex:1;aspect-ratio:auto;height:100%}
+.gi-breakdown-theater[data-view="film-room"] .gi-theater-chyron .is-call,.gi-breakdown-theater[data-view="film-room"] .gi-theater-chyron .is-wide{display:none}
+/* The same play buttons become a docked rail, horizontal strip, or explicit dialog. */
+.gi-drive-strip{height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--gi-2);border-top:1px solid var(--gi-7)}
+.gi-breakdown-theater>.gi-drive-strip{height:84px;flex:0 0 84px}
+.gi-drive-strip>header{display:flex;align-items:center;gap:8px;flex:0 0 38px;padding:0 8px 0 12px;border-bottom:1px solid var(--gi-6);color:var(--gi-bd-copy);font:12px var(--gi-sans)}
+.gi-drive-strip>header strong{font:600 11px var(--gi-sans);text-transform:uppercase}
+.gi-drive-strip>header>span:not(.gi-rail-scroll-hint){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-drive-strip .gi-rail-scroll-hint{margin-left:auto;font:600 18px var(--gi-sans)}
+.gi-drive-scroll{flex:1;min-width:0;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--gi-7) var(--gi-2)}
+.gi-drive-scroll[hidden]{display:none}
+.gi-drive-group{min-width:0}
+.gi-drive-group h3{display:inline-flex;align-items:center;min-height:19px;margin:8px 0 4px 8px;padding:0 18px 0 8px;background:var(--gi-bd-lower-third-fill-bone);clip-path:var(--gi-lower-third);color:var(--gi-12);font:600 11px var(--gi-sans)}
+.gi-drive-group:has(.is-current) h3{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-play-card{position:relative;display:grid;grid-template-columns:24px 56px minmax(0,1fr);align-items:center;gap:4px;min-height:38px;width:100%;padding:4px 8px 4px 10px;border:0;border-radius:0;text-align:left;background:transparent;color:var(--gi-12);font:12px var(--gi-sans);cursor:pointer}
+.gi-play-card::before{content:'';position:absolute;inset:2px auto 2px 0;width:3px;background:var(--gi-8)}
+.gi-play-card.is-run::before{background:var(--gi-run)}.gi-play-card.is-pass::before{background:var(--gi-pass)}.gi-play-card.is-score::before{background:var(--gi-first-down)}.gi-play-card.is-turnover::before{background:var(--gi-turnover)}
+.gi-play-card:hover{background:var(--gi-4)}.gi-play-card.is-current{background:var(--gi-5);box-shadow:inset 3px 0 var(--gi-los)}
+.gi-play-card>span{color:var(--gi-bd-copy);font-size:11px}
+.gi-play-card>strong{font-size:12px;white-space:nowrap}
+.gi-play-card small{min-width:0;display:flex;gap:8px;color:var(--gi-bd-copy);font:11px var(--gi-sans)}
+.gi-play-card small span:first-child{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-play-card small span:last-child{flex:0 1 auto;min-width:0;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gi-play-card.is-turnover small span:last-child{color:var(--gi-turnover)}.gi-play-card.is-score small span:last-child{color:var(--gi-first-down)}
+.gi-drive-empty{padding:12px;color:var(--gi-bd-copy);font:13px var(--gi-sans)}
+.gi-rail-close{display:none;flex:0 0 auto;margin-left:auto;width:28px;height:28px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);cursor:pointer}
+.gi-plays-toggle{display:none;align-items:center;justify-content:space-between;min-height:34px;width:100%;padding:0 12px;border:0;color:var(--gi-bd-copy);background:var(--gi-2);font:600 12px var(--gi-sans);cursor:pointer}
+.gi-rail-scrim{position:fixed;inset:0;z-index:20;background:var(--gi-scrim)}
+@media(min-width:1350px) and (max-width:1699.98px){
+ .gi-drive-strip>header{display:none}.gi-drive-scroll{display:flex;padding:8px 12px;gap:4px;overflow-y:hidden}
+ .gi-drive-group,.gi-drive-group>div{display:contents}.gi-drive-group h3{display:none}
+ .gi-play-card{display:flex;flex:0 0 78px;min-width:0;width:78px;max-width:78px;flex-direction:column;align-items:flex-start;justify-content:center;min-height:64px;gap:0;padding:4px 10px}
+ .gi-play-card small{font-size:11px;max-width:100%}.gi-play-card small span:first-child{display:none}.gi-play-card small span:last-child{max-width:100%}
 }
-.gi-theater-player {
-  min-width: 0; min-height: 0; overflow: hidden;
-  display: grid; grid-template-rows: minmax(280px, 1fr) auto auto;
-  background: var(--gi-film);
+@media(max-width:1349.98px){
+ .gi-drive-strip>header,.gi-drive-scroll{display:none}.gi-plays-toggle{display:flex}
+ .gi-drive-strip.is-open{position:fixed;right:12px;bottom:12px;z-index:21;width:min(380px,calc(100vw - 24px));height:min(56vh,420px);border:1px solid var(--gi-7);box-shadow:var(--gi-raise-2)}
+ .gi-drive-strip.is-open>header{display:flex}.gi-drive-strip.is-open .gi-drive-scroll{display:block}.gi-drive-strip.is-open .gi-rail-close{display:block}.gi-drive-strip.is-open .gi-plays-toggle{display:none}
+ .gi-theater-chyron .is-secondary{display:none}.gi-chyron-id .gi-chyron-v{font-size:16px}
+ .gi-transport-more-trigger{display:inline-grid}.gi-theater-transport-tools{display:none}
+ .gi-theater-tools-wrap{flex-wrap:wrap;max-width:100%}.is-tools-open .gi-theater-transport-tools{display:flex;order:-1}
+ .gi-theater-transport.is-tools-open{flex-wrap:wrap}
+ .gi-breakdown-theater[data-view="film-room"] .gi-theater-transport.is-tools-open .gi-theater-tools-wrap{flex-basis:100%}
+ .gi-breakdown-theater[data-view="film-room"] .gi-theater-actions-risk{margin-left:0}
+ .gi-theater-transport-main .gi-icon-command,.gi-theater-transport-main .gi-play-command{width:32px}
 }
-.gi-theater-stage {
-  min-width: 0; min-height: 0; padding: var(--gi-2x); display: flex;
-  align-items: center; justify-content: center; overflow: hidden; background: var(--gi-film);
+@media(max-width:800px){
+ .gi-theater-chyron{overflow-x:auto}.gi-chyron-cell,.gi-chyron-cell.is-call,.gi-chyron-cell.is-wide{flex:0 0 auto;max-width:200px}
+ .gi-theater-transport-main{flex-wrap:wrap}.gi-theater-anglebar{max-height:100px;overflow:auto}
+ .gi-theater-actions-primary{max-width:100%;overflow:auto}
 }
-.gi-theater-media-slot {
-  width: 100%; height: 100%; min-width: 0; min-height: 0;
-  display: flex; align-items: center; justify-content: center;
-}
-/* The empty-film actions live inside the permanent media node, but their
-   presentation belongs to the native theater while that node is adopted. */
-.gi-theater-media-slot .dropzone-actions button {
-  min-height: var(--gi-hit); padding: 0 var(--gi-2x); border: 1px solid var(--gi-7);
-  border-radius: var(--gi-radius); background: var(--gi-3); color: var(--gi-12);
-  font: var(--gi-text-control); cursor: pointer; box-shadow: var(--gi-edge);
-}
-.gi-theater-media-slot .dropzone-actions button:hover { background: var(--gi-4); border-color: var(--gi-8); }
-.gi-theater-media-slot .dropzone-actions .btn-accent {
-  background: var(--gi-los); border-color: var(--gi-los); color: var(--gi-on-solid);
-}
-.gi-theater-media-slot .dropzone-actions .btn-accent:hover { background: var(--gi-bd-gold); border-color: var(--gi-bd-gold); }
-.gi-theater-media-slot > #videoContainer.gi-native-video {
-  position: relative; width: 100%; height: 100%; max-width: 100%; max-height: 100%;
-  min-width: 0; min-height: 0; aspect-ratio: auto; overflow: hidden;
-  border: 1px solid var(--gi-6); background: var(--gi-film);
-}
-.gi-theater-media-slot #videoPlayer,
-.gi-theater-media-slot #videoPlayer2 {
-  width: 100%; height: 100%; object-fit: contain; image-rendering: auto;
-  transform: none; filter: none;
-}
-.gi-theater-player:fullscreen,
-.gi-theater-player:-webkit-full-screen {
-  position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
-  margin: 0; padding: 0; border: 0; box-sizing: border-box; background: var(--gi-film);
-  display: grid; grid-template-rows: minmax(0, 1fr) auto;
-}
-.gi-theater-player:fullscreen .gi-theater-stage,
-.gi-theater-player:-webkit-full-screen .gi-theater-stage { padding: 0; }
-/* Fullscreen keeps its existing two-row contract (stage, transport) exactly
-   as before this change — display:none removes the chyron from grid flow
-   entirely rather than requiring a third fullscreen row. */
-.gi-theater-player:fullscreen .gi-theater-chyron,
-.gi-theater-player:-webkit-full-screen .gi-theater-chyron { display: none; }
-.gi-theater-player:fullscreen #videoContainer.gi-native-video,
-.gi-theater-player:-webkit-full-screen #videoContainer.gi-native-video {
-  width: 100%; height: 100%; max-width: none; max-height: none; border: 0;
-}
-.gi-theater-player:fullscreen .angle-wrapper,
-.gi-theater-player:-webkit-full-screen .angle-wrapper { min-width: 0; min-height: 0; }
-/* ── Broadcast Density Part 1 — the below-film lower-third ──────────────────
- * Gold marks the play identity (the ONE thing every cell agrees is "current").
- * The cell carrying our defensive call gets the cyan defensive-context rule;
- * everything else stays neutral so the strip reads as information, not paint. */
-.gi-theater-chyron {
-  min-width: 0; display: flex; align-items: stretch; position: relative;
-  background: var(--gi-bd-stage); border-top: 2px solid var(--gi-bd-gold);
-}
-/* The strip is a horizontally-scrolling group at narrow widths (below), so it
-   must be a real keyboard stop -- a mouse/touch-only affordance would leave
-   the later cells (Result included) unreachable without a pointer. */
-.gi-theater-chyron:focus-visible { outline: none; box-shadow: var(--gi-focus); }
-.gi-chyron-id, .gi-chyron-cell {
-  padding: 5px 14px; display: flex; flex-direction: column; justify-content: center;
-  border-right: 1px solid var(--gi-6);
-}
-.gi-chyron-cell.is-wide { flex: 1; border-right: 0; }
-.gi-chyron-id { background: var(--gi-bd-gold); color: var(--gi-bd-gold-ink); }
-.gi-chyron-id .gi-chyron-k { opacity: .75; }
-.gi-chyron-k {
-  font: var(--gi-text-eyebrow); letter-spacing: var(--gi-track-label);
-  text-transform: uppercase; color: var(--gi-11);
-}
-.gi-chyron-id .gi-chyron-k { color: inherit; }
-.gi-chyron-v {
-  margin-top: 3px; font: 600 13px/1 var(--gi-sans); color: var(--gi-12);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.gi-chyron-id .gi-chyron-v { font: 700 21px/1 var(--gi-bd-cond); font-stretch: 75%; }
-.gi-chyron-v.is-cond { font-family: var(--gi-bd-cond); font-stretch: 87.5%; font-weight: 700; }
-.gi-chyron-cell.is-def .gi-chyron-v { color: var(--gi-bd-cyan); }
-.gi-chyron-cell.is-off .gi-chyron-v { color: var(--gi-bd-gold); }
-.gi-chyron-cell.is-pos .gi-chyron-v { color: var(--gi-ok); }
-.gi-chyron-cell.is-neg .gi-chyron-v { color: var(--gi-turnover); }
-@media (max-width: 800px) {
-  /* The comp's situational badges are small, unobtrusive chips — not a
-     dominant block. Wrapping seven cells into a 2-column grid produced an
-     oversized slab that ate the video's vertical budget for its own sake;
-     a single scrollable row keeps every cell readable at the comp's weight
-     while costing one compact row instead of up to four wrapped ones. */
-  .gi-theater-chyron {
-    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
-  }
-  .gi-theater-chyron::-webkit-scrollbar { display: none; }
-  .gi-chyron-id, .gi-chyron-cell { flex: 0 0 auto; min-width: 0; padding: 4px 12px; }
-  .gi-chyron-cell.is-wide { flex: 0 1 auto; max-width: 200px; }
-  .gi-chyron-id .gi-chyron-v { font-size: 16px; }
-  /* A hidden scrollbar is not a visible affordance -- a coach glancing at
-     the row has no way to know Result is off the right edge. A sticky
-     fade pinned to the scroll container's own edge stays put regardless of
-     scroll position, so it reads as "more here", not as decoration. */
-  .gi-theater-chyron::after {
-    content: ''; flex: 0 0 24px; margin-left: -24px; position: sticky; right: 0;
-    align-self: stretch; pointer-events: none;
-    background: linear-gradient(to right, transparent, var(--gi-bd-stage));
-  }
-}
-
-.gi-theater-transport, .gi-theater-anglebar, .gi-theater-actions {
-  min-width: 0; border-top: 1px solid var(--gi-6); background: var(--gi-1);
-}
-.gi-theater-transport {
-  min-height: 46px; padding: var(--gi-1x) var(--gi-2x);
-  display: flex; align-items: center; gap: var(--gi-2x);
-}
-.gi-theater-transport-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: var(--gi-1x); }
-.gi-theater-transport-tools { flex: 0 0 auto; display: flex; align-items: center; gap: var(--gi-1x); }
-.gi-icon-command, .gi-play-command, .gi-theater-command, .gi-theater-actions button {
-  min-height: var(--gi-hit); border: 1px solid var(--gi-7); border-radius: var(--gi-radius);
-  color: var(--gi-12); background: var(--gi-3); font: var(--gi-text-control); cursor: pointer;
-  transition: color var(--gi-quick), background var(--gi-quick), border-color var(--gi-quick);
-}
-.gi-icon-command, .gi-play-command {
-  width: var(--gi-control); height: var(--gi-control); padding: 0; display: inline-grid; place-items: center;
-}
-.gi-icon-command svg, .gi-play-command svg { width: 16px; height: 16px; }
-.gi-play-command { color: var(--gi-1); background: var(--gi-12); border-color: var(--gi-12); }
-.gi-icon-command:hover, .gi-theater-command:hover, .gi-theater-actions button:hover {
-  background: var(--gi-4); border-color: var(--gi-8);
-}
-.gi-play-command:hover { background: var(--gi-on-solid); }
-.gi-icon-command.is-active { color: var(--gi-bd-gold-ink); background: var(--gi-bd-gold); border-color: var(--gi-bd-gold); }
-.gi-icon-command:focus-visible, .gi-play-command:focus-visible, .gi-theater-command:focus-visible,
-.gi-theater-actions button:focus-visible, .gi-play-card:focus-visible, .gi-theater-scrub:focus-visible,
-.gi-breakdown-theater select:focus-visible, .gi-breakdown-theater input:focus-visible {
-  outline: none; box-shadow: var(--gi-focus);
-}
-.gi-theater-time {
-  flex: 0 0 auto; min-width: 46px; color: var(--gi-11); font: 600 12px/1 var(--gi-mono);
-  font-variant-numeric: var(--gi-num-feat); text-align: center; white-space: nowrap;
-}
-.gi-theater-scrub {
-  min-width: 80px; flex: 1; height: var(--gi-hit); margin: 0 var(--gi-1x);
-  accent-color: var(--gi-bd-gold); cursor: pointer;
-}
-.gi-breakdown-theater select, .gi-theater-anglebar input {
-  min-height: var(--gi-hit); border: 1px solid var(--gi-7); border-radius: var(--gi-radius);
-  color: var(--gi-12); background: var(--gi-3); font: 500 12.5px/1 var(--gi-mono);
-}
-.gi-theater-anglebar {
-  min-height: 34px; padding: 3px var(--gi-2x); display: flex;
-  align-items: center; gap: var(--gi-2x); color: var(--gi-11); font: var(--gi-text-control);
-}
-.gi-theater-anglebar strong { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gi-theater-anglebar label { display: flex; align-items: center; gap: var(--gi-1x); font-family: var(--gi-mono); }
-.gi-theater-anglebar input { width: 58px; padding: 0 var(--gi-1x); }
-.gi-theater-command { padding: 0 var(--gi-2x); }
-.gi-theater-command.is-danger, .gi-theater-actions button.is-danger {
-  color: var(--gi-turnover); border-color: var(--gi-danger-border); background: var(--gi-danger-surface);
-}
-.gi-drive-strip {
-  min-width: 0; padding: 0 var(--gi-2x) var(--gi-2x);
-  border-top: 1px solid var(--gi-6); background: var(--gi-2);
-}
-.gi-drive-strip > header {
-  height: 25px; display: flex; align-items: center; gap: var(--gi-2x); color: var(--gi-11);
-  font: 500 12px/1 var(--gi-mono); letter-spacing: .08em; text-transform: uppercase;
-}
-.gi-drive-strip > header strong { color: var(--gi-12); }
-.gi-drive-strip > header button {
-  min-height: 22px; margin-left: auto; padding: 0 var(--gi-1x); border: 0;
-  color: var(--gi-11); background: transparent; font: var(--gi-text-control); cursor: pointer;
-}
-.gi-drive-strip > header button:hover { color: var(--gi-12); }
-.gi-drive-strip.is-collapsed { padding-bottom: 0; }
-.gi-drive-scroll {
-  min-width: 0; display: flex; gap: var(--gi-3x); overflow-x: auto; overflow-y: hidden;
-  scrollbar-width: thin; scrollbar-color: var(--gi-8) var(--gi-2);
-}
-.gi-drive-scroll::-webkit-scrollbar { height: 7px; }
-.gi-drive-scroll::-webkit-scrollbar-track { background: var(--gi-2); }
-.gi-drive-scroll::-webkit-scrollbar-thumb { background: var(--gi-8); border: 1px solid var(--gi-2); }
-.gi-drive-group { flex: 0 0 auto; min-width: 0; border-left: 1px solid var(--gi-6); padding-left: var(--gi-2x); }
-.gi-drive-group:first-child { border-left: 0; padding-left: 0; }
-.gi-drive-group h3 {
-  height: 14px; margin: 0 0 3px; color: var(--gi-11);
-  font: 500 8px/1 var(--gi-mono); letter-spacing: .08em; text-transform: uppercase;
-}
-.gi-drive-group > div { display: flex; gap: var(--gi-1x); }
-.gi-play-card {
-  position: relative; flex: 0 0 220px; width: 220px; height: 66px;
-  padding: 5px var(--gi-2x) 5px 10px; display: grid; grid-template-columns: 1fr;
-  align-content: center; gap: 2px; overflow: hidden; text-align: left;
-  color: var(--gi-12); background: var(--gi-3); border: 1px solid var(--gi-6);
-  border-radius: var(--gi-radius); cursor: pointer;
-}
-.gi-play-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--gi-8); }
-.gi-play-card.is-run::before { background: var(--gi-run); }
-.gi-play-card.is-pass::before { background: var(--gi-pass); }
-.gi-play-card.is-score::before { background: var(--gi-first-down); }
-.gi-play-card.is-turnover::before { background: var(--gi-turnover); }
-.gi-play-card:hover { background: var(--gi-4); border-color: var(--gi-8); }
-.gi-play-card.is-current { background: var(--gi-5); border-color: var(--gi-bd-gold); box-shadow: inset 0 -2px var(--gi-bd-gold); }
-.gi-play-card > span { color: var(--gi-11); font: 500 8px/1 var(--gi-mono); letter-spacing: .05em; text-transform: uppercase; }
-.gi-play-card > strong { font: 700 14px/1 var(--gi-cond); font-variant-numeric: var(--gi-num-feat); white-space: nowrap; }
-.gi-play-card > small {
-  display: flex; gap: var(--gi-2x); color: var(--gi-12); font: 500 11.5px/1.2 var(--gi-sans); white-space: nowrap;
-}
-.gi-play-card > small span:last-child { margin-left: auto; }
-.gi-drive-empty { min-height: 58px; margin: 0; display: flex; align-items: center; color: var(--gi-11); }
-.gi-theater-actions {
-  min-height: 40px; padding: var(--gi-1x) var(--gi-2x); display: flex;
-  align-items: center; gap: var(--gi-3x); padding-bottom: max(var(--gi-1x), env(safe-area-inset-bottom));
-}
-.gi-theater-actions-primary, .gi-theater-actions-risk { display: flex; align-items: center; gap: var(--gi-1x); }
-.gi-theater-actions-risk { margin-left: auto; }
-.gi-theater-actions button { padding: 0 var(--gi-2x); white-space: nowrap; }
-.gi-theater-actions button.is-active { color: var(--gi-bd-gold-ink); background: var(--gi-bd-gold); border-color: var(--gi-bd-gold); }
-.gi-autoplay-toggle {
-  min-height: var(--gi-hit); display: inline-flex; align-items: center; gap: var(--gi-1x);
-  color: var(--gi-11); font-size: 11px; white-space: nowrap; cursor: pointer;
-}
-.gi-autoplay-toggle input { accent-color: var(--gi-bd-gold); }
-@media (max-width: 800px) {
-  .gi-breakdown-theater {
-    --gi-hit: 44px; --gi-control: 44px;
-    height: auto; min-height: 0; grid-template-rows: clamp(220px, 34vh, 300px) auto auto auto auto;
-  }
-  .gi-theater-stage { padding: 0; }
-  .gi-drive-strip > header { height: 44px; }
-  .gi-drive-strip > header button { min-height: 44px; }
-  #videoContainer.gi-native-video button { min-height: 44px; }
-  .gi-theater-media-slot > #videoContainer.gi-native-video { border-width: 0 0 1px; }
-  .gi-theater-transport { flex-wrap: wrap; gap: var(--gi-1x); }
-  .gi-theater-transport-main { flex-basis: 100%; }
-  .gi-theater-transport-tools { width: 100%; justify-content: flex-end; }
-  .gi-theater-time { min-width: 40px; font-size: 12px; }
-  .gi-theater-anglebar { overflow-x: auto; }
-  .gi-play-card { flex-basis: 220px; width: 220px; height: 66px; scroll-snap-align: start; }
-  .gi-drive-scroll { scroll-snap-type: x proximity; }
-  .gi-theater-actions { flex-wrap: wrap; }
-  /* Three equal flex:1 slabs read as one undifferentiated wall. Mark
-     start/end are one two-state control and stay visually joined; Copy last
-     is a separate, secondary action and gets real space from it instead of
-     matching its width. Content-sized + scrollable, matching the drive
-     strip's own overflow pattern, rather than force-stretched to fill. */
-  .gi-theater-actions-primary { order: 1; width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 0; scrollbar-width: none; }
-  .gi-theater-actions-primary::-webkit-scrollbar { display: none; }
-  .gi-theater-actions-primary button { flex: 0 0 auto; white-space: nowrap; }
-  .gi-theater-actions-primary button:first-child { border-right-width: 0; border-radius: var(--gi-radius) 0 0 var(--gi-radius); }
-  .gi-theater-actions-primary button:nth-child(2) { border-radius: 0 var(--gi-radius) var(--gi-radius) 0; margin-right: var(--gi-2x); }
-  .gi-autoplay-toggle { order: 2; }
-  .gi-theater-actions-risk { order: 3; margin-left: auto; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .gi-icon-command, .gi-play-command, .gi-theater-command, .gi-theater-actions button { transition: none; }
-}
-
-/* ══ S6-6a — DESIGN RULES LAST ═══════════════════════════════════════════════
-
-   THE DRIVE IS A GROUP, SO IT TAKES THE GROUP MARK. Reports gives every section
-   heading a lower-third plate and the charting deck gives one to every group
-   header. The drive strip is the theater's grouping element and had none, so
-   the one surface a coach looks at most was the only one not speaking the
-   system's vocabulary. */
-.gi-drive-group h3 {
-  display: inline-flex; align-items: center; height: auto; min-height: 18px;
-  margin: 0 0 var(--gi-1x); padding: 0 17px 0 7px;
-  background: var(--gi-3); color: var(--gi-12);
-  /* Broadcast Density: the SAME lower-third shape, a gold-leading fill instead
-     of the shared blue --gi-lower-third-fill token — reassigned locally so
-     Reports/Study, which still read that shared token, are unaffected. */
-  clip-path:var(--gi-lower-third);background:var(--gi-bd-lower-third-fill);
-  font: var(--gi-text-eyebrow); letter-spacing: var(--gi-track-label);
-  text-transform: uppercase;
-}
-/* The drive the coach is inside takes gold — play identity, per the
-   Broadcast Density rule, scoped to this file only. */
-.gi-drive-group:has(.gi-play-card.is-current) h3 {
-  background: var(--gi-bd-gold); color: var(--gi-bd-gold-ink);
-}
-
-/* The S6-4e sweep covered 16 stylesheets and missed this file,
-   so the play card's situation line and the drive label stayed at a size that
-   had to be pushed bright to stay legible. Buying the size back is the fix;
-   shrinking type and raising luminance is what made labels glow. */
-.gi-play-card > span {
-  color: var(--gi-11); font: var(--gi-text-caption); font-family: var(--gi-sans);
-  letter-spacing: var(--gi-track-label);
-}
-.gi-play-card > small { font: var(--gi-text-caption); color: var(--gi-12); }
-.gi-drive-strip > header { font: var(--gi-text-label); letter-spacing: var(--gi-track-label); }
-.gi-theater-anglebar, .gi-autoplay-toggle { font: var(--gi-text-control); }
-
-/* Broadcast Density: keep six nearby plays visible at a 1440px workstation.
-   Cards stay fixed-width so content and selection never reflow the strip. */
-@media (min-width: 1181px) {
-  .gi-drive-scroll { gap: 4px; }
-  .gi-drive-group { padding-left: 4px; }
-  .gi-drive-group > div { gap: 4px; }
-  .gi-play-card { flex-basis: 160px; width: 160px; padding-inline: 9px 6px; }
-}
+@media(max-width:1000px){.gi-breakdown-rail-host:has(.is-open){position:relative;overflow:visible;z-index:21}.gi-breakdown-rail-host .gi-drive-strip.is-open{position:absolute;inset:0 0 auto;width:100%;height:320px}.gi-breakdown-theater>.gi-drive-strip{height:34px;flex-basis:34px}}
+@media(pointer:coarse){.gi-icon-command,.gi-play-command,.gi-theater-actions button,.gi-breakdown-theater select,.gi-plays-toggle,.gi-rail-close{min-height:44px}.gi-icon-command,.gi-play-command{min-width:38px}}
+@media(max-width:620px){.gi-breakdown-theater button,.gi-breakdown-theater select,.gi-theater-media-slot .dropzone-actions button,.gi-plays-toggle,.gi-rail-close,.gi-play-card{min-height:44px}.gi-theater-transport-main .gi-icon-command,.gi-theater-transport-main .gi-play-command{width:38px}.gi-theater-selected-play header{align-items:flex-start}.gi-theater-selected-play header span{line-height:1.5}}
