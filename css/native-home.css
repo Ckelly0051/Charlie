@@ -148,10 +148,13 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
    property, not per rule -- align-items was never declared here, so the
    legacy center value still applied and shrank the thumbnail to its own
    height instead of stretching to the card's full content width. */
-.ws-home-page .ws-game-row{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1);text-align:left;font-weight:400;overflow:hidden;height:auto;cursor:pointer}
+.ws-home-page .ws-game-row{position:relative;display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1);text-align:left;font-weight:400;overflow:hidden;height:auto}
+.ws-home-page .game-card-select{display:flex;flex:1;flex-direction:column;align-items:stretch;width:100%;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer}
 .ws-home-page .ws-game-row:hover{border-color:var(--gi-bd-bone)}
 .ws-home-page .ws-game-row.selected{border-color:var(--gi-bd-gold);box-shadow:0 0 0 1px var(--gi-bd-gold)}
-.ws-home-page .ws-game-row:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+.ws-home-page .ws-game-row:focus-within{box-shadow:var(--gi-focus)}
+.ws-home-page .game-card-select:focus-visible{outline:0}
+.ws-home-page .game-card-open{position:absolute;z-index:2;top:8px;right:8px;min-height:30px;padding:0 10px;border:1px solid var(--gi-bd-gold);border-radius:2px;background:var(--gi-bd-gold);color:var(--gi-on-solid);font:700 11px/1 var(--gi-sans);cursor:pointer}.ws-home-page .game-card-open:hover{filter:brightness(1.06)}.ws-home-page .game-card-open:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .thumbnail{position:relative;aspect-ratio:16/9;flex-shrink:0;background:var(--gi-bd-stage);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .ws-home-page .thumbnail img{width:100%;height:100%;object-fit:cover;display:block}
 .ws-home-page .thumbnail .week{position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:2px;background:var(--gi-1);color:var(--gi-bd-strong);font-size:11px;font-weight:700}
@@ -173,7 +176,7 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .tiny-progress{height:3px;margin-top:8px;background:var(--gi-bd-line);overflow:hidden}
 .ws-home-page .tiny-progress span{display:block;height:100%;background:var(--gi-bd-gold)}
 .ws-home-page .game-grid.list{grid-template-columns:1fr;gap:8px}
-.ws-home-page .game-grid.list .ws-game-row{flex-direction:row}
+.ws-home-page .game-grid.list .game-card-select{flex-direction:row}
 .ws-home-page .game-grid.list .thumbnail{width:136px;height:auto;aspect-ratio:auto;min-height:96px}
 .ws-home-page .game-grid.list .game-card-copy{padding:10px 14px;flex:1}
 .ws-home-page .game-grid.list .tiny-progress{display:none}

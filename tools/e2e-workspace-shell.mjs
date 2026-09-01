@@ -141,6 +141,7 @@ r = await page.evaluate(() => ({
   continueText: document.querySelector('#wsContinueCharting')?.textContent,
   selected: document.querySelector('.ws-game-row.selected')?.dataset.gameId,
   pressed: document.querySelector('[data-ws-preview="preview-game"]')?.getAttribute('aria-pressed'),
+  openCardText: document.querySelector('.ws-game-row.selected .game-card-open')?.textContent,
 }));
 ok(r.previewId === 'preview-game' && r.activeGameId !== 'preview-game' && r.selected === 'preview-game' && r.pressed === 'true',
   'Selecting a Home game previews it without opening or changing the active editor game', JSON.stringify(r));
@@ -150,11 +151,13 @@ ok(r.plays === '3' && r.charted === '2 / 3' && r.phase === 'O 1 · D 1 · ST 1' 
   'Selected-game summary shows total, canonical charted count, unit mix, and per-unit phase rows', JSON.stringify(r));
 ok(r.continueText === 'Open selected game',
   'The previewed (non-active) game reads as an explicit open command, not a resume', JSON.stringify(r));
-await page.click('#wsContinueCharting');
+ok(r.openCardText === 'Open game',
+  'Selecting a Home card reveals a direct yellow Open game command on that card', JSON.stringify(r));
+await page.click('.ws-game-row.selected .game-card-open');
 await new Promise(res => setTimeout(res, 400));
 const openCalls = await page.evaluate(() => window.__openGameCalls);
 ok(openCalls.length === 1 && openCalls[0] === 'preview-game',
-  'Continue charting opens exactly the previewed game through the one canonical App.openGame command', JSON.stringify(openCalls));
+  'The card-level Open game command opens exactly the previewed game through the canonical App.openGame command', JSON.stringify(openCalls));
 
 // Restore the real App.openGame (the "Continue charting" proof above
 // deliberately stubbed it to a single-argument shape to count calls, which

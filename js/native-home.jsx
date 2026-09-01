@@ -157,25 +157,26 @@ function EmptySeasonPanel({ screen, scout }) {
 function GameCard({ screen, game, selected }) {
   const summary = screen.gameSummary(game);
   const film = screen.rowFilmView(game.id);
-  return <button type="button" class={`ws-game-row${selected ? ' selected' : ''}`}
-    data-ws-preview={game.id} data-game-id={game.id} aria-pressed={selected ? 'true' : 'false'}
-    aria-label={`Select ${screen.matchupTitle(game)}`}
-    onClick={() => screen.selectGame(game.id)}>
-    <Thumbnail screen={screen} game={game} />
-    <div class="game-card-copy">
-      <h3>{screen.matchupTitle(game)}</h3>
-      <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p>
-      <div class="game-meta">
-        <span>{screen.dateLabel(game.gameInfo?.date) || 'Date not set'}</span>
-        <span class="score">{summary.score !== 'Not entered' ? `${summary.score} · Final` : summary.total ? 'Score not set' : 'Scheduled'}</span>
+  return <article class={`ws-game-row${selected ? ' selected' : ''}`} data-game-id={game.id}>
+    <button type="button" class="game-card-select" data-ws-preview={game.id} aria-pressed={selected ? 'true' : 'false'}
+      aria-label={`Select ${screen.matchupTitle(game)}`} onClick={() => screen.selectGame(game.id)}>
+      <Thumbnail screen={screen} game={game} />
+      <div class="game-card-copy">
+        <h3>{screen.matchupTitle(game)}</h3>
+        <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p>
+        <div class="game-meta">
+          <span>{screen.dateLabel(game.gameInfo?.date) || 'Date not set'}</span>
+          <span class="score">{summary.score !== 'Not entered' ? `${summary.score} · Final` : summary.total ? 'Score not set' : 'Scheduled'}</span>
+        </div>
+        <div class="card-status">
+          <span>{summary.tagged} / {summary.total} charted</span>
+          <span class={`health ${film.cls === 'ws-fact-green' ? '' : 'warning'}`} data-film-health><strong class={film.cls}>{film.text}</strong></span>
+        </div>
+        {summary.tagged < summary.total ? <div class="tiny-progress"><span style={{ width: `${summary.pct}%` }} /></div> : null}
       </div>
-      <div class="card-status">
-        <span>{summary.tagged} / {summary.total} charted</span>
-        <span class={`health ${film.cls === 'ws-fact-green' ? '' : 'warning'}`} data-film-health><strong class={film.cls}>{film.text}</strong></span>
-      </div>
-      {summary.tagged < summary.total ? <div class="tiny-progress"><span style={{ width: `${summary.pct}%` }} /></div> : null}
-    </div>
-  </button>;
+    </button>
+    {selected && <button type="button" class="game-card-open" onClick={() => screen.continueCharting(game.id)}>Open game</button>}
+  </article>;
 }
 
 function GameDetail({ screen, game, c, scout }) {
