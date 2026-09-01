@@ -1,3 +1,7 @@
+### RECORDED HOME VISUAL DEFECT - PLAY ARROW MISSING (2026-09-01)
+
+Pending, not repaired in this checkpoint: on Home's selected-game detail card, the circular Play overlay renders over the film thumbnail but its arrow glyph does not. The control therefore appears as a blank black circle. Scope the future repair to the icon/rendering boundary and verify the populated selected-game state against the installed desktop build; do not use this note as authorization for a broader Home polish pass.
+
 ### CODEX BREAKDOWN RELEASE CHECKPOINT - COMMITTED FOR 1.12.0-68 (2026-09-01)
 
 The previously approved Breakdown visual implementation is now closed as a coherent release checkpoint rather than left as an unreproducible dirty-tree dependency. It includes the vertical Chart workspace, compact theater/chyron and play browser, bounded charting deck, corrected Special Teams field geometry, Players & Grades density, Film Focus behavior, and the responsive rules exercised during the approved comp-to-production pass. No Home, Reports, football analytics, persistence semantics, or roster ownership changed in this checkpoint.
