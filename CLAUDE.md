@@ -2,6 +2,16 @@
 
 Home game cards no longer leave the coach at a preview-only dead end. Selecting a card still updates the comparison/detail state, then reveals a compact yellow `Open game` command directly on the selected thumbnail; that command opens the exact game through `HomeScreen.continueCharting()` and the canonical `App.openGame()` boundary. The command is a real keyboard-focusable button, overlays only the static Home thumbnail, and does not resize the card grid.
 
+### RECORDED NAVIGATION AND CONTEXT-SELECTOR DESIGN DEFECTS - BATCH FOR LATER (2026-09-01)
+
+Pending, deliberately not repaired piecemeal:
+
+- The top context bar's Program selector consumes far more horizontal width than its value requires. Constrain the control to a sensible responsive width while preserving room for real program names.
+- The Program selector has visible text/clipping trouble in the installed desktop presentation. Verify label, selected value, caret, line-height, and overflow together rather than treating it as only a width measurement.
+- Primary route navigation (Home, Break Down, Study, Reports, Plan) reads too flat and is slow to scan. Future chrome work should use wider, stable hit areas and real restrained volumetric depth for the controls, with the active route visibly raised as well as highlighted. Preserve the compact single top-navigation owner; do not reintroduce a sidebar or decorative card treatment.
+
+Treat this as one navigation/chrome composition pass and validate it visually at release desktop widths. Pixel-fit and overflow checks alone are not visual approval.
+
 ### RECORDED HOME GAME-CARD DEFECTS - BATCH FOR LATER (2026-09-01)
 
 Pending, deliberately not repaired yet so the same card is not edited repeatedly:
