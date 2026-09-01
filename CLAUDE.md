@@ -2,6 +2,15 @@
 
 Home game cards no longer leave the coach at a preview-only dead end. Selecting a card still updates the comparison/detail state, then reveals a compact yellow `Open game` command directly on the selected thumbnail; that command opens the exact game through `HomeScreen.continueCharting()` and the canonical `App.openGame()` boundary. The command is a real keyboard-focusable button, overlays only the static Home thumbnail, and does not resize the card grid.
 
+### RECORDED HOME GAME-CARD DEFECTS - BATCH FOR LATER (2026-09-01)
+
+Pending, deliberately not repaired yet so the same card is not edited repeatedly:
+
+- A linked-film game card renders two green status dots. `HomeScreen.rowFilmView()` currently includes a literal `●` in `Film linked`, while `.health::before` renders the second indicator.
+- The card's score/result line (for example, `13–13 · Final`) is too small and visually bleeds. The current 12px treatment is below the desired consumer-facing readability floor for this information; the future card pass should increase its size/weight and sweep the card for any similarly undersized primary game information.
+
+Batch these with the already-recorded missing play-arrow glyph and any additional Home-card findings before changing production code.
+
 ### RECORDED HOME VISUAL DEFECT - PLAY ARROW MISSING (2026-09-01)
 
 Pending, not repaired in this checkpoint: on Home's selected-game detail card, the circular Play overlay renders over the film thumbnail but its arrow glyph does not. The control therefore appears as a blank black circle. Scope the future repair to the icon/rendering boundary and verify the populated selected-game state against the installed desktop build; do not use this note as authorization for a broader Home polish pass.
