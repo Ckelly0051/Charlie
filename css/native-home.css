@@ -139,7 +139,8 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .view-switch button[aria-pressed=true]{background:var(--gi-bd-control-active);color:var(--gi-bd-gold)}
 .ws-home-page .filters{display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--gi-bd-line);margin-bottom:16px;min-height:38px}
 .ws-home-page .filters button{background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;height:auto;padding:6px 0;color:var(--gi-bd-copy);font-size:13px;font-weight:600}
-.ws-home-page .filters button:hover:not(.active){color:var(--gi-bd-strong);border-bottom-color:var(--gi-bd-line)}
+.ws-home-page .filters button:hover{color:var(--gi-bd-strong);border-bottom-color:var(--gi-bd-line);background:var(--gi-bd-control)}
+.ws-home-page .filters button.active:hover{border-bottom-color:var(--gi-bd-gold);background:var(--gi-bd-control-active)}
 .ws-home-page .filters button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .filters button.active{border-bottom-color:var(--gi-bd-gold);color:var(--gi-bd-strong)}
 .ws-home-page .filters button span{margin-left:5px;color:var(--gi-bd-copy);font-size:12px;font-weight:600}

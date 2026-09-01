@@ -43,12 +43,15 @@ await new Promise(r => setTimeout(r, 200));
 // 1. rowFilmView text is exactly "Film linked" -- no bullet character.
 ok(seedResult.filmView.text === 'Film linked', 'rowFilmView() returns exactly "Film linked" with no bullet', seedResult.filmView);
 
-// 2. Exactly one film-status indicator renders per game card.
+// 2. Each film status has one CSS dot and no literal bullet in its text.
 let r = await page.evaluate(() => {
   const health = document.querySelectorAll('.detail-pane .health, .ws-game-row.selected .health');
-  return { count: health.length, texts: [...health].map(h => h.textContent.trim()) };
+  return { count: health.length, statuses: [...health].map(h => ({
+    text: h.textContent.trim(),
+    marker: getComputedStyle(h, '::before').content,
+  })) };
 });
-ok(r.count >= 1 && r.texts.every(t => (t.match(/Film linked/g) || []).length <= 1), 'Exactly one film-status indicator renders (no duplicate "Film linked" text)', r);
+ok(r.count >= 1 && r.statuses.every(s => /linked/i.test(s.text) && !s.text.includes('●') && s.marker !== 'none'), 'Each linked-film status has one CSS marker and no literal bullet', r);
 
 // 3. Play icon: nonzero rendered dimensions and visible (non-black-on-black) computed color.
 r = await page.evaluate(() => {
@@ -78,12 +81,11 @@ r = await page.evaluate(() => {
     || [...document.querySelectorAll('.detail-actions button')].find(b => /open study/i.test(b.textContent));
   if (!studyBtn) return { found: false };
   const baseline = parseFloat(getComputedStyle(studyBtn).fontSize);
-  const openGameBtn = document.querySelector('.ws-game-row.selected .game-card-open');
-  const sizes = { study: baseline };
-  if (openGameBtn) sizes.gameCardOpen = parseFloat(getComputedStyle(openGameBtn).fontSize);
+  const actions = [...document.querySelectorAll('.detail-actions button'), document.querySelector('.ws-game-row.selected .game-card-open')].filter(Boolean);
+  const sizes = Object.fromEntries(actions.map((button, index) => [`${index}:${button.textContent.trim()}`, parseFloat(getComputedStyle(button).fontSize)]));
   return { found: true, baseline, sizes };
 });
-ok(r.found && Object.values(r.sizes).every(s => Math.abs(s - r.baseline) < 0.5), 'Selected-game action labels share the Open Study computed font size', r);
+ok(r.found && Object.keys(r.sizes).length === 5 && Object.values(r.sizes).every(s => Math.abs(s - r.baseline) < 0.5), 'All selected-game action labels share the Open Study computed font size', r);
 
 // 6/7. Hover states produce a real computed style change (no layout shift).
 // Real :hover state cannot be forced via dispatchEvent in Chromium's style
@@ -113,10 +115,35 @@ async function realHoverCheck(selector, label) {
   ok(stable, `${label} -- no layout shift on hover`, { before, after });
 }
 
-await realHoverCheck('.detail-pane .detail-status button, .ws-game-row.selected .detail-status button', 'Manage film has a computed hover change');
+await realHoverCheck('.detail-pane .detail-status button', 'Manage film has a computed hover change');
 await realHoverCheck('.rail-head .icon-btn', 'New-season "+" control has a computed hover change');
-await realHoverCheck('.filters button:not(.active)', 'A non-selected game filter has a computed hover change');
-await realHoverCheck('.ws-top-nav button:not(.active)', 'A non-selected top-nav item has a computed hover change');
+for (let index = 1; index <= await page.$$eval('.filters button', els => els.length); index++) {
+  await realHoverCheck(`.filters button:nth-of-type(${index})`, `Game filter ${index} has a computed hover change`);
+}
+for (let index = 1; index <= await page.$$eval('.ws-top-nav button', els => els.length); index++) {
+  await realHoverCheck(`.ws-top-nav button:nth-of-type(${index})`, `Top-nav item ${index} has a computed hover change`);
+}
+
+async function keyboardFocusCheck(selector, label) {
+  await page.keyboard.press('Tab');
+  const focus = await page.evaluate(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return { found: false };
+    el.focus();
+    const cs = getComputedStyle(el);
+    return { found: true, focused: document.activeElement === el, visible: el.matches(':focus-visible'), shadow: cs.boxShadow, outline: cs.outlineStyle };
+  }, selector);
+  ok(focus.found && focus.focused && focus.visible && (focus.shadow !== 'none' || focus.outline !== 'none'), label, focus);
+}
+
+await keyboardFocusCheck('.detail-pane .detail-status button', 'Manage film exposes keyboard focus');
+await keyboardFocusCheck('.rail-head .icon-btn', 'New-season "+" exposes keyboard focus');
+for (let index = 1; index <= await page.$$eval('.filters button', els => els.length); index++) {
+  await keyboardFocusCheck(`.filters button:nth-of-type(${index})`, `Game filter ${index} exposes keyboard focus`);
+}
+for (let index = 1; index <= await page.$$eval('.ws-top-nav button', els => els.length); index++) {
+  await keyboardFocusCheck(`.ws-top-nav button:nth-of-type(${index})`, `Top-nav item ${index} exposes keyboard focus`);
+}
 
 // 7b. Selected filter/nav state stays visually distinct from hover.
 r = await page.evaluate(() => {
@@ -132,8 +159,11 @@ ok(!!r.nav, 'Selected top-nav item carries a distinct selected background', r);
 
 console.log('\n== Program context selector ==');
 
-// 8. Program selector width bounds, caret visible, no overlap.
-r = await page.evaluate(() => {
+// 8. Program selector width bounds, caret visible, no overlap at both desktop breakpoints.
+async function programGeometry(width) {
+  await page.setViewport({ width, height: 900 });
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return page.evaluate(() => {
   const btn = document.getElementById('wsCtxProgram');
   const label = btn?.querySelector('.ws-ctx-label');
   const value = btn?.querySelector('.ws-ctx-value');
@@ -147,11 +177,16 @@ r = await page.evaluate(() => {
     chevVisible: c.width > 0 && c.right <= b.right && c.left >= b.left,
     valueSingleLine: getComputedStyle(value).whiteSpace === 'nowrap',
   };
-});
-ok(r.found && r.width >= 180 && r.width <= 280, 'Program selector width stays within 180-280px at desktop', r);
-ok(r.found && !r.labelValueOverlap && !r.valueChevOverlap, 'Program label/value/caret never overlap', r);
-ok(r.found && r.chevVisible, 'Program caret remains visible inside the control', r);
-ok(r.found && r.valueSingleLine, 'Program value stays single-line', r);
+  });
+}
+for (const width of [1440, 1280]) {
+  r = await programGeometry(width);
+  const bounds = width > 1300 ? [180, 280] : [170, 220];
+  ok(r.found && r.width >= bounds[0] && r.width <= bounds[1], `Program selector width stays within ${bounds[0]}-${bounds[1]}px at ${width}`, r);
+  ok(r.found && !r.labelValueOverlap && !r.valueChevOverlap, `Program label/value/caret do not overlap at ${width}`, r);
+  ok(r.found && r.chevVisible, `Program caret remains visible at ${width}`, r);
+  ok(r.found && r.valueSingleLine, `Program value stays single-line at ${width}`, r);
+}
 
 console.log('\n== Breakdown: internal overflow and Edit Library alignment ==');
 
@@ -175,6 +210,8 @@ const units = [['offense', 1], ['defense', 2], ['special', 3]];
 for (const [unit, playId] of units) {
   await page.evaluate((u, id) => { window.app.tagger.selectPlay(id); window.app.nativeTagging?.setUnit?.(u); }, unit, playId);
   await new Promise(res => setTimeout(res, 150));
+  await page.evaluate(() => document.querySelectorAll('.gi-tag-group').forEach(group => { group.open = true; }));
+  await new Promise(res => setTimeout(res, 100));
   for (const width of widths) {
     await page.setViewport({ width, height: width <= 768 ? 1400 : 900 });
     await new Promise(res => setTimeout(res, 120));
@@ -202,11 +239,10 @@ for (const [unit, playId] of units) {
     // 10. scrollWidth <= clientWidth + 1 at every required width, per unit.
     ok(data.formScroll != null && data.formScroll <= data.formClient + 1, `${unit} at ${width}: charting pane has no internal horizontal scrollbar`, data);
     ok(data.pageOverflow <= 1, `${unit} at ${width}: no page-level horizontal overflow`, data);
-    // 11. Edit Library alignment, tracked as a measured improvement (see
-    // handoff notes for the residual tolerance this closes vs. leaves open).
+    // 11. Every Edit Library right edge follows the furthest rendered chip.
     for (const entry of data.editAlign) {
       if (entry.delta == null) continue;
-      ok(entry.delta >= -1 && entry.delta < 100, `${unit} at ${width}: Edit Library (${entry.field}) stays within a measured bound of its option content, not the far edge of the deck`, entry);
+      ok(Math.abs(entry.delta) <= 8, `${unit} at ${width}: Edit Library (${entry.field}) aligns within 8px of its option content`, entry);
     }
   }
 }

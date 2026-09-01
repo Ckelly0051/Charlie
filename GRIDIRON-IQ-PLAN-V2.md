@@ -252,6 +252,14 @@ accurate fix needs the measurement written against a column that does not
 itself participate in intrinsic track sizing (a fixed or `minmax(0,…)`
 track), not an `auto` one.
 
+**Implemented pattern.** Keep the wrapping field on its stable track, measure
+the furthest rendered chip edge, and use that measurement only as the inset for
+an absolutely positioned header action. Moving the action does not affect chip
+wrapping or intrinsic track width, so there is no measurement feedback loop.
+The permanent contract is an action-to-furthest-chip right-edge delta of no
+more than 8px at every supported width, measured only while the owning group is
+expanded and participating in layout.
+
 ## 4. Upgrade Lanes
 
 ### V2-A: Home And Context UX

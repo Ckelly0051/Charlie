@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { useLayoutEffect, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -23,7 +23,26 @@ const selected = (value, option) => String(value || '').split(' + ').includes(op
 
 function Chips({screen, field, label, options, value, hint, library}) {
   const choices = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
-  return <div class={`gi-tag-field gi-tag-field-${field}`} data-native-field={field}>
+  const choiceSignature = choices.map(option => `${option.value}:${option.label}`).join('|');
+  const fieldRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!library || !fieldRef.current) return undefined;
+    const fieldEl = fieldRef.current;
+    const chipsEl = fieldEl.querySelector('.gi-tag-chips');
+    const align = () => {
+      const fieldRect = fieldEl.getBoundingClientRect();
+      const chipRights = [...(chipsEl?.children || [])].map(chip => chip.getBoundingClientRect().right);
+      if (!chipRights.length || !fieldRect.width) return;
+      const inset = Math.max(0, fieldRect.right - Math.max(...chipRights));
+      fieldEl.style.setProperty('--gi-library-inset', `${inset}px`);
+    };
+    align();
+    const observer = new ResizeObserver(align);
+    observer.observe(fieldEl);
+    if (chipsEl) observer.observe(chipsEl);
+    return () => observer.disconnect();
+  }, [library, choiceSignature]);
+  return <div ref={fieldRef} class={`gi-tag-field gi-tag-field-${field}`} data-native-field={field} data-library-align={library ? '' : undefined}>
     <div class="gi-tag-field-label">
       <span>{label}</span>{hint && <small>{hint}</small>}
       {library && <button type="button" onClick={() => screen.openLibrary(library)}>Edit library</button>}

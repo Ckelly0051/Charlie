@@ -29,19 +29,12 @@
 .gi-tag-group-body{display:grid;gap:8px;padding:8px 12px 12px}
 .gi-tag-group:has([data-native-field="defFront"]),.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
 .gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
-.gi-tag-field{display:grid;gap:4px;min-width:0}
-/* A library-owning field shrinks to its own content instead of stretching
-   the "Edit library" button to the far edge of the whole deck. This closes
-   the majority of the gap on every field and closes it completely on any
-   field whose chip cloud fits one line; a field whose chips still wrap
-   across multiple lines can still leave a small remainder, since CSS
-   max-content sizing for a wrapping flex container is defined as if
-   wrapping never happened. justify-self keeps the shrunk field from being
-   stretched back out by the grid row it sits in. */
-.gi-tag-field:has(.gi-tag-field-label button){width:fit-content;max-width:100%;justify-self:start}
+.gi-tag-field{display:grid;gap:4px;min-width:0;max-width:100%}
 .gi-tag-field-label{display:flex;align-items:baseline;gap:6px;min-width:0;color:var(--gi-bd-copy);font:600 12px/1.3 var(--gi-sans);text-transform:none}
 .gi-tag-field-label small{color:var(--gi-bd-copy);font:400 12px var(--gi-sans);text-transform:none}
 .gi-tag-field-label button{margin-left:auto;min-height:22px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);white-space:nowrap}
+.gi-tag-field[data-library-align]>.gi-tag-field-label{position:relative;min-height:22px}
+.gi-tag-field[data-library-align]>.gi-tag-field-label button{position:absolute;top:0;right:var(--gi-library-inset,0);margin-left:0}
 .gi-tag-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
 .gi-tag-chips button,.gi-tag-add,.gi-native-form>button,.gi-tag-custom button,.gi-player-quick button{min-height:30px;padding:0 8px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
 .gi-native-tagging button:hover:not(:disabled){border-color:var(--gi-9);color:var(--gi-12)}
@@ -49,7 +42,7 @@
 .gi-tag-group:has([data-native-field="defFront"]) .gi-tag-chips button.is-active,.gi-tag-group:has([data-native-field="coverage"]) .gi-tag-chips button.is-active{border-color:var(--gi-bd-cyan);background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-tag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 /* Spot controls need 176px; the generic metric grid permits smaller tracks. */
-.gi-tag-special-metrics{grid-template-columns:repeat(auto-fit,minmax(182px,1fr))}
+.gi-tag-special-metrics{grid-template-columns:repeat(auto-fit,minmax(min(182px,100%),1fr))}
 .gi-tag-input{display:grid;gap:4px;min-width:0;color:var(--gi-bd-copy);font:600 12px/1.3 var(--gi-sans);text-transform:none}
 .gi-tag-input :is(input,select,textarea){width:100%;min-height:32px;padding:5px 8px}
 .gi-tag-input textarea{min-height:58px;resize:vertical}

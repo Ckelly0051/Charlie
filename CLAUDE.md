@@ -1,3 +1,31 @@
+### CODEX CLOSEOUT - HOME/BREAKDOWN REVIEW REPAIRS + 1.12.0-69 INSTALLER (2026-09-01)
+
+Codex reviewed `4569db9`, rejected its false closure of the Breakdown alignment
+contract, and completed the repair. `Chips` now measures the furthest rendered
+chip edge and writes only a positioning inset for the absolutely positioned
+`Edit library` action. It never writes a width back into the intrinsic grid,
+so wrapped chip layout remains stable and the prior measurement feedback loop
+cannot occur. Every visible managed field is within 8px at 1920, 1440, 1280,
+768, and 390 across offense and defense; Special Teams remains overflow-free.
+The special-metrics grid also uses a bounded minimum that cannot exceed its
+available track.
+
+The active top-nav route now retains its selected elevation while exposing a
+real keyboard focus ring, and active nav/filter controls respond on hover rather
+than being excluded from the interaction-state rule. The focused regression now
+expands real groups before measuring, enforces the 8px alignment contract,
+checks every nav/filter hover and keyboard focus state, checks both Program
+selector desktop ranges, verifies all five selected-game action labels, and
+checks the CSS film marker without accepting a literal bullet.
+
+Verification on the repaired source: Vite build clean; focused Home/Breakdown
+repair 137/137; workspace shell 91/91; Home review 26/26; Home first launch
+13/13; Breakdown geometry 43/43; Breakdown lifecycle 39/39; native tagging
+69/69. `tools/verify-breakdown-comp.mjs` produced 21 real-season captures for
+Chart/Film Room, offense/defense/Special Teams, and all release widths with zero
+page errors or source-season mutation. Version owners are synchronized at
+`1.12.0-69` for the requested Windows installer.
+
 ### HOME + BREAKDOWN VISUAL REPAIR BATCH - IMPLEMENTED LOCALLY (2026-09-01)
 
 Implemented all 11 recorded Home/Breakdown defects as one production batch
