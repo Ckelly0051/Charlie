@@ -1,3 +1,61 @@
+### CLAUDE'S REVIEW of `144dc2c` - ACCEPTED, 1 non-blocking finding (2026-09-01)
+
+**Reviewed by running the code, not by reading the diff or the commit message.**
+Built fresh from `144dc2c` twice: once in the working tree, once from a fully
+isolated `git archive` with none of the unrelated dirty Breakdown/tagging
+files present, to rule out any masking or misattribution either way.
+
+**The visual-fidelity complaint that triggered this review is genuinely
+closed.** The prior "What are you working on?" screen is gone --
+`FirstTeam` is deleted from `native-team-hub.jsx`, not hidden, and
+`App`'s startup path now calls `workspaceShell.show('home')` instead of
+`_openLibrary()`. Screenshotted the actual rendered first-launch state and
+the actual populated state and compared them directly, pixel-for-pixel by
+eye, against `design-comps/home-workspace-2026-08-31/captures/1440-first.png`
+and `1440-season.png`: same rail, same gold/cyan workspace pills, same
+Program/Nickname/Year/Level fields, same guided/manual choice, same season
+card grid and selected-game detail panel. Also screenshotted the redesigned
+Team & Film Settings sheet at 1440 and 390 -- sentence-case labels, flat
+hairline-divided sections, no nested cards, the new logo upload UI rendering
+correctly with a proportionally-fit preview.
+
+**All seven claimed test suites re-run fresh against a clean build:**
+`e2e-home-first-launch` 13/13, `e2e-team-registry` 24/24, `e2e-native-settings`
+25/25, `e2e-native-team-hub` 29/29, `e2e-home-review-repair` 26/26,
+`e2e-tag-library-settings` 17/17, `e2e-native-overlay` 42/42,
+`e2e-workspace-shell` **89/90**.
+
+**The one failure, root-caused, not just observed.** "Native Import Plays...
+Cancel preserves the season" fails because `data.revision` increments (5->6)
+between the before/after snapshot -- confirmed by diffing the actual JSON
+byte-for-byte; it is the ONLY difference, no play/tag/game/roster data
+changes. Traced `PlayImportScreen.close()`: it never calls `apply()`, so
+Cancel genuinely writes nothing. The revision counter is an internal
+write-fencing field that ticks from an unrelated debounced autosave landing
+during the test's own type/click/screenshot sequence, not from the import
+dialog itself. Low severity, no data-safety implication.
+
+**One correction to this commit's own self-report.** The `CODEX APPROVED
+HOME ENTRY IMPLEMENTATION` entry below attributes this exact failure to "the
+already-dirty mixed working tree." That is wrong -- it reproduces identically
+on the fully isolated clean archive with zero unrelated files present. The
+failure is real and belongs to the reviewed commit itself, not to the dirty
+tree it was blamed on. Not a data-safety issue, but the misattribution should
+not be repeated in a future entry.
+
+Source-level spot checks beyond the tests: the logo pipeline
+(`createImageBitmap` -> proportional scale -> centered draw on a cleared
+256x256 canvas -> WebP encode, MIME allow-list, 8MB cap, rollback-on-failed-
+save in both `settings-screen.js` and `team-registry.js`) is correctly
+built. The school/nickname -> compatibility-field composition in
+`game-screen.js` (`fullIdentity()`) preserves every existing single-string
+reader (reports, CSV, scout aggregation) while additively storing the
+structured fields -- a real fix, not just a claim.
+
+**Verdict: ACCEPTED.** No installer, package, tag, release, or push. Working
+tree confirmed unchanged beyond this entry -- no scratch/debug instrumentation
+left behind, no unrelated dirty file touched.
+
 ### CODEX TEAM LOGO OWNERSHIP - IMPLEMENTED LOCALLY (2026-08-31)
 
 Team logos now live once on the active `ffa_teams` registry entry, beside team identity and outside every season/game payload. PNG, JPEG, and WebP uploads are decoded in the browser, proportionally fit without cropping onto a transparent 256x256 canvas, and stored as a bounded WebP data URL. Settings offers immediate Add/Change/Remove actions independent of the team-name save; a failed persistence write preserves the prior logo. Non-image data URLs are rejected at the registry boundary.
