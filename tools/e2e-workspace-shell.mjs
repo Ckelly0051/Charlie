@@ -278,7 +278,10 @@ await page.waitForSelector('[data-popover-item="import"]');
 // Import Plays is a distinct workflow from export/import data parity. Prove the
 // live shell affordance opens the canonical importer and that cancelling it is
 // a canonical-season no-op; a storage-only CSV round trip cannot cover either.
-const beforeImport = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
+const beforeImport = await page.evaluate(() => {
+  const { revision, ...coachData } = structuredClone(window.app.storage.seasonStore.data);
+  return JSON.stringify(coachData);
+});
 await page.click('[data-popover-item="import"]');
 await page.waitForSelector('[data-overlay-id="play-import"] [data-native-play-import]');
 await page.type('#playImportText', 'Unit,QB Alignment,Backfield,Strength,Coverage Call,Coverage Family,Play Type,Result,Yards\nOffense,Shotgun,Empty,Right,Cover 3,Zone,Run Inside,Gain,5');
@@ -300,7 +303,7 @@ const importJourney = await page.evaluate(before => {
     mappingValues,
     legacyGone,
     popoverClosed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
-    unchanged: before === JSON.stringify(window.app.storage.seasonStore.data),
+    unchanged: before === JSON.stringify((({ revision, ...coachData }) => coachData)(structuredClone(window.app.storage.seasonStore.data))),
   };
 }, beforeImport);
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="play-import"]'));

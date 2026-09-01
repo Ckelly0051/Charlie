@@ -1,3 +1,9 @@
+### CODEX REPAIR OF THE 144dc2c REVIEW NIT - IMPLEMENTED LOCALLY (2026-09-01)
+
+Claude's independent review accepted `144dc2c` and identified one non-blocking test-contract defect: the Import Plays Cancel journey compared the complete season object byte-for-byte, including the internal `revision` write-fence. An unrelated debounced autosave can legitimately increment only that counter during the interaction window, producing a false failure even though no game, play, tag, roster, or other coach data changed.
+
+The harness now removes only `revision` from both snapshots and continues to compare the complete remaining season payload byte-for-byte. This preserves the intended Cancel safety proof without accepting any coach-data mutation. No production code changed.
+
 ### CLAUDE'S REVIEW of `144dc2c` - ACCEPTED, 1 non-blocking finding (2026-09-01)
 
 **Reviewed by running the code, not by reading the diff or the commit message.**
