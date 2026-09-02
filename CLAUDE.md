@@ -2,9 +2,9 @@
 
 Browser + Windows-desktop football film analysis for coaches. Load game film,
 mark plays, tag them, get stats, tendencies, cut-ups, call sheets, and game
-plans. Formerly "Football Film Analyzer"; the branch name
-`claude/football-film-analyzer-GRiCW` is unchanged deliberately — renaming it
-breaks the deploy/build path.
+plans. Formerly "Football Film Analyzer". The current working branch is
+`claude/football-film-analyzer-GRiCW`; nothing depends on that name — CI runs on
+`branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
 **Current version:** `1.12.0-70` (`js/app.js` `APP_VERSION`,
@@ -238,19 +238,28 @@ rendered interaction hook on rail rows.
 
 ## Open and deferred
 
-1. **This documentation pass** (Step 2 of the repository-efficiency milestone).
-2. **Global-bridge cleanup** — separately reviewed commit.
-3. **CSS-ownership cleanup** — separately reviewed commit. `css/styles.css` and
+1. **Global-bridge cleanup** — separately reviewed commit.
+   `js/legacy-global-bridge.js` exists only for harnesses that consume contracts
+   directly rather than through a route or journey API.
+2. **CSS-ownership cleanup** — separately reviewed commit. `css/styles.css` and
    `css/redesign-stats.css` are both still live and carry dead rules; a sweep
    needs static ownership analysis plus a route × state × viewport screenshot
-   matrix, not a runtime-coverage guess.
-4. **Rail allocation at 1280×800** — the pane floor and the fixed tools cannot
-   both be satisfied at that height with the current tool stack (measured: rail
-   682px = padding 40 + link 36 + gaps 66 + trees 194 + tools 291 + foot 55).
-   Resolving it means freeing space from the tools or the foot. Open decision.
-5. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
-6. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
+   matrix, not a runtime-coverage guess. Two known items to fold in: a raw color
+   in `css/native-settings.css` and an undefined `--gi-library-inset` token in
+   `css/native-tagging.css`, which `e2e-design-system` reports as its standing
+   15/2.
+3. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
+4. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
+
+**Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
+sit at their 112px floor and a scout row falls just below the fold inside its
+own pane (measured: rail 682px = padding 40 + link 36 + gaps 66 + trees 194 +
+tools 291 + foot 55). Both headings stay visible and every fixed tool stays
+reachable, which is the contract. Freeing enough space for a visible row would
+have to come out of the tools or the foot, which the approved composition
+reserves. This is accepted for `1.12.0-70`; reopen it only if installed smoke
+raises it.
 
 ---
 
@@ -300,7 +309,11 @@ Non-negotiable:
   carries untracked installers, artifacts, design comps, and scratch files that
   must survive. A `git add -A` once swept 267 local-only files, including real
   team film, into history.
-- Bash is broken on this machine (`ENAMETOOLONG` on `uv_spawn`); use PowerShell.
+- **Shell on this host:** bare `bash` is not on the PowerShell PATH, and the
+  agent Bash tool fails with `ENAMETOOLONG` on `uv_spawn`. Git Bash itself works
+  through its explicit path. Use PowerShell for ordinary work, and for the gate
+  use the invocation documented in `docs/TESTING.md`:
+  `& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --self-test'`
 - Do not commit `dist/`, `node_modules/`, or `src-tauri/target/`.
 
 ---

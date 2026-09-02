@@ -81,9 +81,26 @@ not just the one you were working in.
 
 ## Tier 3 — Release
 
+In CI and any environment where Bash is on the PATH:
+
 ```bash
 bash tools/run-gate.sh              # build + full gate
 bash tools/run-gate.sh --no-build   # gate only, when dist/ is already fresh
+```
+
+**On this Windows host those bare commands do not run** — `bash` is not on the
+PowerShell PATH. Use Git Bash through its explicit path, as a login shell, with
+an absolute `cd` (verified working):
+
+```powershell
+# build + full gate
+& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh'
+
+# gate only, when dist/ is already fresh
+& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --no-build'
+
+# detector self-test
+& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --self-test'
 ```
 
 Plus:
@@ -101,7 +118,14 @@ Plus:
 
 ---
 
-## `bash tools/run-gate.sh --self-test`
+## The detector self-test
+
+```bash
+bash tools/run-gate.sh --self-test
+```
+```powershell
+& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --self-test'
+```
 
 Run this whenever you doubt a gate result, and after touching the runner.
 
@@ -146,9 +170,23 @@ that cannot fail for the reason its name claims is not coverage.
 the stated requirement, or stop and report the exact conflict. Disclosure in
 prose is not a substitute for a test that holds the line.
 
-**Baseline "pre-existing" against committed HEAD**, never against your own
-uncommitted work. Stash, rebuild, re-run, and compare — a failure you assume is
-pre-existing is often yours.
+**Baseline "pre-existing" against a committed commit, never against the current
+dirty working tree.** A failure you assume is pre-existing is often yours. The
+method — and it must not involve stashing, because the working tree may carry
+another agent's uncommitted work (see the working-tree rule in `CLAUDE.md`):
+
+1. Check the committed baseline out into a **throwaway worktree** or a
+   `git archive` export:
+   `git worktree add "$env:TEMP\gi-baseline" <commit>`
+2. Build there and run the **same command against the same fixture** you ran on
+   the candidate.
+3. Compare the two results, then remove the worktree
+   (`git worktree remove --force …`).
+
+Never stash, reset, clean, or overwrite work you did not create. This is exactly
+how the standing `e2e-design-system` 15/2 was shown to predate the documentation
+milestone: the identical two failures reproduced at the prior commit in a
+throwaway worktree, with the repository's own working tree untouched.
 
 **Regenerate an analytics golden only as a reviewed, audited correction** called
 out in the diff, never to make a test pass.
