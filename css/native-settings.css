@@ -13,7 +13,7 @@
 .gi-settings-tabs{display:flex;min-width:0;gap:2px;margin:0;padding:0 20px;border-bottom:1px solid var(--gi-7);overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--gi-8) var(--gi-2)}
 .gi-settings-tabs button{flex:0 0 auto;min-height:44px;padding:0 14px;border:1px solid transparent;border-bottom:0;border-radius:0;background:transparent;color:var(--gi-11);font:600 13px/1 var(--gi-sans);letter-spacing:0;cursor:pointer}
 .gi-settings-tabs button:hover:not(:disabled){background:var(--gi-3);color:var(--gi-12)}
-.gi-settings-tabs button.is-active{position:relative;z-index:1;transform:translateY(1px);border-color:var(--gi-7);border-bottom-color:var(--gi-3);background:var(--gi-3);box-shadow:inset 0 3px var(--gi-first-down),0 -2px 8px rgba(0,0,0,.18);color:var(--gi-12)}
+.gi-settings-tabs button.is-active{position:relative;z-index:1;transform:translateY(1px);border-color:var(--gi-7);border-bottom-color:var(--gi-3);background:var(--gi-3);box-shadow:inset 0 3px var(--gi-first-down),var(--gi-raise-tab);color:var(--gi-12)}
 .gi-settings-tabs button:disabled{cursor:not-allowed;opacity:.45}
 .gi-settings>[data-settings-panel],.gi-settings>.gi-settings-loading,.gi-settings>.gi-settings-empty{min-width:0;min-height:0;overflow-x:hidden;overflow-y:auto;padding:20px 24px 24px;scrollbar-color:var(--gi-8) var(--gi-2)}
 .gi-settings>[data-settings-panel="film"]>.gi-settings-section,.gi-settings>[data-settings-panel="drawing"]>.gi-settings-section,.gi-settings>[data-settings-panel="analysis"]>.gi-settings-section,.gi-settings>.gi-settings-empty>*{max-width:720px}

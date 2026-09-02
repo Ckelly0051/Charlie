@@ -81,16 +81,6 @@
 }
 :is(.stats-overlay,.gi-reports) .stats-body { padding: 18px; background: var(--gi-panel); }
 
-:is(.stats-overlay,.gi-reports) .stats-cut-hint {
-  color: var(--gi-dim);
-  background: #10151c;
-  border: 1px dashed #2a323d;
-  border-radius: 8px;
-  padding: 9px 12px;
-  font-size: 12px;
-  margin-bottom: 14px;
-}
-
 /* ---- KPI hero row ---- */
 :is(.stats-overlay,.gi-reports) .gi-hero {
   display: grid;
@@ -150,16 +140,6 @@
   margin-bottom: 12px;
 }
 
-/* 2-up cluster for the medium-width sections (efficiency/drives/etc.) */
-:is(.stats-overlay,.gi-reports) .gi-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 12px;
-  align-items: start;
-  margin-bottom: 12px;
-}
-:is(.stats-overlay,.gi-reports) .gi-card-grid > .stats-section { margin-bottom: 0; }
-
 /* ---- nested stat cards ---- */
 :is(.stats-overlay,.gi-reports) .stat-card {
   background: var(--gi-card-2);
@@ -189,17 +169,6 @@
 /* ---- Defense / Self-Scout: scale their summaries up to hero weight ---- */
 /* Defense already emits a stat-card summary row; bump it to broadcast scale. */
 :is(.stats-overlay,.gi-reports) .def-top-row .stat-card-value { font-size: 30px; }
-
-/* Self-Scout Predictability index → big condensed hero number (keeps its
-   inline meter color: green balanced → amber → red predictable). */
-:is(.stats-overlay,.gi-reports) .ss-meter-val {
-  font-family: var(--gi-display);
-  font-weight: 700;
-  font-size: 46px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-:is(.stats-overlay,.gi-reports) .ss-meter-val span { font-size: 18px; color: var(--gi-dim); }
 
 /* Sub-section headers (Defense breakdowns, etc.) in the display face so they
    read as part of the broadcast system, not stray <h4>s. */
@@ -257,19 +226,6 @@
 :is(.stats-overlay,.gi-reports) .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
 :is(.stats-overlay,.gi-reports) .gi-trend-legend span:last-child { text-align: right; }
 
-/* ---- Sortable leaderboard headers (individual-stat tables) ---- */
-table.stats-table-full th.gi-sort-th {
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-  transition: color .12s ease;
-}
-table.stats-table-full th.gi-sort-th:hover { color: var(--gi-accent, #3b82f6); }
-table.stats-table-full th.gi-sort-asc,
-table.stats-table-full th.gi-sort-desc { color: var(--gi-accent, #3b82f6); }
-table.stats-table-full th.gi-sort-asc::after { content: '▲'; font-size: 8px; margin-left: 4px; vertical-align: middle; }
-table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; margin-left: 4px; vertical-align: middle; }
-
 /* ---- Season tab header: map the legacy .season-summary onto the .gi-hero
    KPI-card look so it matches the Game/Offense heroes. Scoped to :is(.stats-overlay,.gi-reports)
    only — the legacy Season modal (.season-overlay) and the standalone export
@@ -282,30 +238,6 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
   padding: 0;
   margin-bottom: 16px;
   justify-content: stretch;
-}
-:is(.stats-overlay,.gi-reports) .season-summary .ss-stat {
-  background: var(--gi-card);
-  border: 1px solid var(--gi-line);
-  border-radius: 10px;
-  padding: 12px 14px;
-  text-align: left;
-}
-:is(.stats-overlay,.gi-reports) .season-summary .ss-num {
-  font-family: var(--gi-display);
-  font-weight: 700;
-  font-size: 38px;
-  line-height: 1;
-  color: var(--gi-text);
-  font-variant-numeric: tabular-nums;
-}
-:is(.stats-overlay,.gi-reports) .season-summary .ss-lbl {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--gi-faint);
-  opacity: 1;
-  margin-top: 6px;
 }
 
 /* ---- Season tab sub-navigation (Overview / Breakdown / Players / Self-Scout).
@@ -346,17 +278,12 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 :is(.stats-overlay,.gi-reports) .drive-row { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
 :is(.stats-overlay,.gi-reports) .drive-row:hover { background: var(--gi-card-2, #1c232d); }
 :is(.stats-overlay,.gi-reports) .drive-num { width: 46px; font-size: 12px; font-weight: 600; color: var(--gi-faint, #8a97a8); flex: none; }
-:is(.stats-overlay,.gi-reports) .drive-bar-wrap { flex: 1; height: 14px; background: var(--gi-card-2, #1c232d); border-radius: 4px; overflow: hidden; }
 :is(.stats-overlay,.gi-reports) .drive-bar { display: block; height: 100%; border-radius: 4px; min-width: 3px; }
 :is(.stats-overlay,.gi-reports) .drive-yards { width: 120px; text-align: right; font-size: 12px; color: var(--gi-dim, #93a1b2); flex: none; font-variant-numeric: tabular-nums; }
 :is(.stats-overlay,.gi-reports) .drive-out { width: 66px; text-align: right; font-size: 12px; font-weight: 700; flex: none; }
 
 /* ---- Matchup tab: our offense beside the opponent's defense ---- */
 :is(.stats-overlay,.gi-reports) .gi-matchup { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
-:is(.stats-overlay,.gi-reports) .gi-matchup-col { min-width: 0; }
-:is(.stats-overlay,.gi-reports) .gi-matchup-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
-:is(.stats-overlay,.gi-reports) .gi-mh-off { background: rgba(34, 197, 94, .15); color: #22c55e; }
-:is(.stats-overlay,.gi-reports) .gi-mh-def { background: rgba(239, 68, 68, .15); color: #ef4444; }
 
 /* "Big 12" core-calls report */
 :is(.stats-overlay,.gi-reports) .bt-table td.bt-call { font-weight: 600; }
@@ -439,21 +366,14 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 /* --- Wins vs Losses table + per-game INT± cells --- */
 :is(.stats-overlay,.gi-reports) .gi-wl-table td:nth-child(2), :is(.stats-overlay,.gi-reports) .gi-wl-table th:nth-child(2) { text-align: right; }
 :is(.stats-overlay,.gi-reports) .gi-wl-table td:nth-child(3), :is(.stats-overlay,.gi-reports) .gi-wl-table th:nth-child(3) { text-align: right; }
-:is(.stats-overlay,.gi-reports) .gi-wl-w { color: var(--gi-green); font-weight: 700; }
-:is(.stats-overlay,.gi-reports) .gi-wl-l { color: var(--gi-red); font-weight: 700; }
 
 /* --- Exact play-call analysis: dense tables, no decorative empty panels --- */
-:is(.stats-overlay,.gi-reports) .gi-call-note { margin: 0 0 10px; color: var(--gi-dim); }
 :is(.stats-overlay,.gi-reports) .gi-call-grid {
   display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 14px; align-items: start;
 }
 :is(.stats-overlay,.gi-reports) .gi-call-grid > div,
 :is(.stats-overlay,.gi-reports) .gi-call-context { min-width: 0; overflow-x: auto; }
-:is(.stats-overlay,.gi-reports) .gi-call-table,
-:is(.stats-overlay,.gi-reports) .gi-call-concepts,
 :is(.stats-overlay,.gi-reports) .gi-call-context table { white-space: nowrap; }
-:is(.stats-overlay,.gi-reports) .gi-call-concept { background: var(--gi-card-2); }
-:is(.stats-overlay,.gi-reports) .gi-call-child td:first-child { padding-left: 24px; color: var(--gi-dim); }
 :is(.stats-overlay,.gi-reports) .gi-call-context-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 12px 16px; align-items: start;
 }

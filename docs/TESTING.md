@@ -214,6 +214,17 @@ Required installed smoke, on the built installer:
 3. Chart a play, close, reopen — data and film both survive.
 4. Switch seasons — counts, tags, and film identity survive.
 
+**A screenshot comparison must be shown capable of failing, and the pointer must
+be parked.** Two traps, both hit during the CSS-ownership cleanup. First, a
+capture harness proves nothing until a deliberate visible change is shown to
+alter the image — a mutation that turns out to be invisible (a `body` background
+the shell paints over) reads as a passing comparison. Second, fixture setup
+clicks real controls, which leaves the mouse inside the layout; whatever sits
+under it renders its `:hover` state, and the capture stops being deterministic.
+That produced a stable, reproducible, entirely false "regression" in Study and
+Film Room. Move the pointer to a neutral corner before every shot, and establish
+the noise floor by capturing the same build twice before trusting any diff.
+
 **Automated geometry is not visual approval.** Overflow and hit-target checks
 prove containment, not legibility. Visual acceptance requires *inspecting*
 populated screenshots at the release widths with real multi-season data: zero

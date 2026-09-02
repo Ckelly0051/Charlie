@@ -86,6 +86,14 @@
   /* Cast upward, for a sticky bar pinned to the bottom of a route -- it lifts
    * above the content scrolling beneath it rather than the content above it. */
   --gi-raise-sticky:0 -10px 20px rgba(0,0,0,.16);
+  /* The same upward cast at CONTROL scale: a selected tab lifting out of the
+   * strip it sits in, so the seam between tab and panel reads as a join rather
+   * than a line. The family already named seated, raised, floating and the
+   * upward bar cast; this is the upward cast a 44px control needs --
+   * --gi-raise-sticky's 10/20px blur is bar scale and reads as a smudge under a
+   * tab. A tab strip is a system control, not a Settings feature, so the role
+   * belongs here rather than in one route's stylesheet. */
+  --gi-raise-tab:0 -2px 8px rgba(0,0,0,.18);
   /* A light dim, distinct from the heavier full-screen --gi-scrim -- for a
    * subtle chip/badge backing such as a keyboard-shortcut hint. */
   --gi-scrim-soft:rgba(0,0,0,.2);

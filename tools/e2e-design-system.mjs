@@ -40,7 +40,7 @@ const definitions = new Set([...tokens.matchAll(/(--gi-[\w-]+)\s*:/g)].map(match
 // per-instance value) rather than declared once in the shared palette. These
 // are not design-system tokens and have no business living in tokens.css --
 // keep this list explicit and require a real inline-style setter for each.
-const instanceScopedVars = new Set(['--gi-kpi-cols']);
+const instanceScopedVars = new Set(['--gi-kpi-cols', '--gi-library-inset']);
 const missing = sources.flatMap(({ path, source }) =>
   [...new Set([...source.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))]
     .filter(name => !definitions.has(name) && !instanceScopedVars.has(name))
@@ -58,7 +58,13 @@ const jsxDir = resolve(root, 'js');
 const jsxSources = await Promise.all((await readdir(jsxDir))
   .filter(name => name.endsWith('.jsx'))
   .map(async name => readFile(resolve(jsxDir, name), 'utf8')));
+// Two real setter shapes exist, and both must count: a declarative `style={...}`
+// attribute, and an imperative `el.style.setProperty('--x', ...)` on a ref --
+// which is how a value measured from laid-out geometry has to be written. The
+// check stays honest either way: delete the setter and the allowlist entry goes
+// unbacked and reds.
 const hasRuntimeSetter = varName => jsxSources.some(source => {
+  if (new RegExp(`\\.style\\.setProperty\\(\\s*['"\`]${varName}['"\`]`).test(source)) return true;
   let index = source.indexOf('style={');
   while (index !== -1) {
     if (source.slice(index, index + 200).includes(varName)) return true;

@@ -7,10 +7,13 @@
 > customer data.
 
 > **Release checkpoint:** Home is accepted through `f615fcd` and packaged as
-> the Windows x64 `1.12.0-70` Beta smoke candidate. The next milestone is the
-> behavior-neutral Step 2 documentation consolidation and repository hygiene
-> pass, followed by separately reviewed global-bridge and CSS-ownership cleanup
-> commits. Historical incomplete-state notes below are not open Home work.
+> the Windows x64 `1.12.0-70` Beta smoke candidate. The behavior-neutral Step 2
+> documentation consolidation and repository hygiene pass, the global-bridge
+> retirement, and the CSS-ownership cleanup have all landed as separately
+> reviewed commits. `e2e-design-system` is now 17/0 — its two standing failures
+> are repaired, and `css/styles.css` and `css/redesign-stats.css` no longer
+> carry rules without a production presentation owner. Historical
+> incomplete-state notes below are not open Home work.
 
 ## Current Home - APPROVED AND RELEASE-READY (2026-09-02)
 

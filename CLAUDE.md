@@ -243,19 +243,25 @@ page is genuinely required. Nothing may reintroduce it under another name:
 at runtime that no engine class resolves as a global — by class identity, not by
 name, since `StorageManager` collides with a real DOM interface.
 
+**CSS ownership is settled.** Every stylesheet is reachable from the Vite graph
+(7 linked from `index.html`, 15 imported through the module graph), and
+`css/styles.css` and `css/redesign-stats.css` no longer carry selector branches
+whose required classes production cannot produce. Ownership is decided
+statically from `index.html`, the JSX views, the screen controllers, and the
+export paths — never from runtime coverage, which cannot see empty, error, or
+responsive states. Dynamically composed classes (`` `tone-${row.tone}` ``) and
+data-driven `class={…}` values are retained as ambiguous, because a template
+fragment ending in `-` makes its suffix unknowable. `e2e-design-system` is 17/0:
+the Settings active-tab elevation is the shared `--gi-raise-tab` token, and
+`--gi-library-inset` is a declared instance-scoped property backed by a real
+`style.setProperty` setter.
+
 ---
 
 ## Open and deferred
 
-1. **CSS-ownership cleanup** — separately reviewed commit. `css/styles.css` and
-   `css/redesign-stats.css` are both still live and carry dead rules; a sweep
-   needs static ownership analysis plus a route × state × viewport screenshot
-   matrix, not a runtime-coverage guess. Two known items to fold in: a raw color
-   in `css/native-settings.css` and an undefined `--gi-library-inset` token in
-   `css/native-tagging.css`, which `e2e-design-system` reports as its standing
-   15/2.
-2. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
-3. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
+1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
+2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
