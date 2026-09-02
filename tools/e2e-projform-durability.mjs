@@ -239,7 +239,10 @@ const before = await page.evaluate(async (ids) => {
     await tick();
     out[key] = {
       tags: JSON.parse(JSON.stringify(play.tags)),
-      projected: TagProjection.project(play.tags),
+      // `StatsEngine.proj(play)` IS `TagProjection.project(play.tags)`
+      // (stats-engine.js) -- the canonical read-side accessor every display
+      // surface uses, reached through the live public service that owns it.
+      projected: window.app.stats.constructor.proj(play),
       chips: {
         formation: active('formation'),
         qbAlignment: active('qbAlignment'),
@@ -301,7 +304,7 @@ const after = await page.evaluate(async (ids) => {
     await tick();
     out[key] = {
       tags: JSON.parse(JSON.stringify(play.tags)),
-      projected: TagProjection.project(play.tags),
+      projected: window.app.stats.constructor.proj(play),
       chips: {
         formation: active('formation'),
         qbAlignment: active('qbAlignment'),
@@ -390,7 +393,7 @@ if (!realFiles.length) {
   const realSnapshotBefore = await page.evaluate((id) => {
     const t = window.app.tagger;
     const play = t.getPlay(id);
-    return { tags: JSON.parse(JSON.stringify(play.tags)), projected: TagProjection.project(play.tags) };
+    return { tags: JSON.parse(JSON.stringify(play.tags)), projected: window.app.stats.constructor.proj(play) };
   }, realBefore.id);
 
   ok(realBefore.chipFound, 'real-data: the Trips Formation chip is reachable on the edited (offense) play', JSON.stringify(realBefore));
@@ -414,7 +417,7 @@ if (!realFiles.length) {
       playCount: t.plays.length,
       playCountMatches: t.plays.length === playCountBefore,
       tags: JSON.parse(JSON.stringify(play.tags)),
-      projected: TagProjection.project(play.tags),
+      projected: window.app.stats.constructor.proj(play),
     };
   }, { seasonId: realSeasonId, playId: realBefore.id, playCountBefore: realBefore.playCount });
 

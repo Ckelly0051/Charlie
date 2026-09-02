@@ -234,22 +234,28 @@ grid. Games are ordered chronologically oldest-first by date, with a valid
 numeric week only as a same-date tiebreaker. `data-season-id` is the stable
 rendered interaction hook on rail rows.
 
+**No test-only production API.** The legacy global bridge, which published 30
+engine classes onto `globalThis` so harnesses could reach them, is deleted. A
+test now imports the owning module directly when the logic is DOM-free, or goes
+through a live controller/service (`window.app.<service>.constructor`) when the
+page is genuinely required. Nothing may reintroduce it under another name:
+`e2e-p0-exit` pins the absence in source and `tools/audit-shell-deps.mjs` proves
+at runtime that no engine class resolves as a global — by class identity, not by
+name, since `StorageManager` collides with a real DOM interface.
+
 ---
 
 ## Open and deferred
 
-1. **Global-bridge cleanup** — separately reviewed commit.
-   `js/legacy-global-bridge.js` exists only for harnesses that consume contracts
-   directly rather than through a route or journey API.
-2. **CSS-ownership cleanup** — separately reviewed commit. `css/styles.css` and
+1. **CSS-ownership cleanup** — separately reviewed commit. `css/styles.css` and
    `css/redesign-stats.css` are both still live and carry dead rules; a sweep
    needs static ownership analysis plus a route × state × viewport screenshot
    matrix, not a runtime-coverage guess. Two known items to fold in: a raw color
    in `css/native-settings.css` and an undefined `--gi-library-inset` token in
    `css/native-tagging.css`, which `e2e-design-system` reports as its standing
    15/2.
-3. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
-4. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
+2. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
+3. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes

@@ -1,7 +1,12 @@
 # Testing
 
 There are **98 harnesses** in `tools/e2e-*.mjs`. Each is a standalone Node
-script driving the built app in headless Chromium via Puppeteer:
+script. Most drive the built app in headless Chromium via Puppeteer; a handful
+that test DOM-free logic import the owning module directly and need no browser
+at all (`e2e-core`, `e2e-catalog-backend`, `e2e-analytics-metrics`,
+`e2e-catalog-versions`, `e2e-raw-read-audit`). Booting the app merely to reach a
+pure class is not a supported pattern — there is no global bridge to reach it
+through.
 
 ```bash
 node tools/<harness>.mjs

@@ -73,6 +73,21 @@ const deadStylesheets = cssFiles.filter(name => !viteSources.includes(`css/${nam
 ok(deadStylesheets.length === 0,
   'every stylesheet is reachable from the Vite product', deadStylesheets.join(', '));
 
+// The legacy global bridge published 30 engine classes onto globalThis purely so
+// harnesses could reach them. It is retired: a test now imports the owning module
+// directly, or goes through a live controller/service. Nothing may reintroduce it
+// under any name -- a test-only global is a production API that only the tests
+// are honest about using, and it is the thing that lets a harness drift away from
+// the path a coach actually takes.
+const bridgeModuleGone = !existsSync(resolve(root, 'js/legacy-global-bridge.js'));
+const bridgeEntryGone = !viteSources.includes('legacy-global-bridge');
+const globalPublishers = (await Promise.all(jsFiles.map(async name =>
+  /(?:Object\.assign|Object\.defineProperties)\(\s*(?:globalThis|window)\s*,/.test(await read(`js/${name}`)) ? name : null
+))).filter(Boolean);
+ok(bridgeModuleGone && bridgeEntryGone && globalPublishers.length === 0,
+  'no module publishes engine classes onto globalThis -- the legacy test bridge is deleted, not merely unreferenced',
+  JSON.stringify({ bridgeModuleGone, bridgeEntryGone, globalPublishers }));
+
 ok(nativeRoot.includes('NativeOverlayService') && nativeRoot.includes('giNativeRoot')
   && overlay.includes('dialog(options') && overlay.includes('sheet(options') && overlay.includes('toast(options'),
   'one native host exposes dialog, sheet, and toast primitives');

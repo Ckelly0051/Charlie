@@ -1,10 +1,9 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* A3 TauriBackend delegation regression (Codex review, flag-ON failure paths),
    extended for PC-1's explicit-identity API (js/storage-backend.js).
    The flag-OFF 33/33 suite never exercises these because BrowserBackend is the
-   headless default. Here we construct a TauriBackend in-page with a FAKE
-   window.__TAURI__ fs + an INJECTED fake catalog, so the delegation contract is
-   verified without the real wasm/desktop:
+   headless default. Here we construct a TauriBackend directly from its owning
+   module with a FAKE window.__TAURI__ fs + an INJECTED fake catalog, so the
+   delegation contract is verified without the real wasm/desktop:
      1. saveSeason() must PROPAGATE the catalog's boolean — a canonical (db) write
         that returns false must NOT be reported as success.
      2. deleteSeason() must RETAIN the season.json / mirror / library entry when
@@ -58,22 +57,30 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
         contract directly at this layer: two genuinely separate calls with
         identical data create two genuinely separate rows (no cache), and a
         failed catalog write is never masked as a truthy id. */
-import puppeteer from 'puppeteer';
+import { TauriBackend } from '../js/storage-backend.js';
+import { SnapshotEnvelope } from '../js/snapshot-envelope.js';
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage();
+// Every backend dependency here is injected (a fake fs, a fake catalog), so this
+// is DOM-free logic and runs directly on the owning modules -- no app boot, no
+// browser. The two host globals the backend reads are stubbed to match what it
+// would find in the desktop WebView.
 const errors = [];
-page.on('pageerror', e => errors.push(e.message));
-const URL = TEST_APP_URL;
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 300));
+process.on('uncaughtException', e => errors.push(String((e && e.message) || e)));
+process.on('unhandledRejection', e => errors.push(String((e && e.message) || e)));
+globalThis.window = globalThis;
+globalThis.localStorage = {
+  _v: new Map(),
+  getItem(k) { return this._v.has(k) ? this._v.get(k) : null; },
+  setItem(k, v) { this._v.set(k, String(v)); },
+  removeItem(k) { this._v.delete(k); },
+};
 
-const result = await page.evaluate(async () => {
-  // A fresh TauriBackend (the bundle declares it at top level). The real app keeps
-  // its BrowserBackend; we only exercise this throwaway instance.
+const result = await (async () => {
+  // A fresh, throwaway TauriBackend. Nothing else in this harness constructs one,
+  // so it cannot disturb any other backend instance.
   window.__TAURI__ = { fs: { BaseDirectory: { AppData: 14, Document: 1 } } };
   const out = {};
 
@@ -436,7 +443,7 @@ const result = await page.evaluate(async () => {
     out.legacyRecoverSaveCalled = saveCalled;
   }
   return out;
-});
+})();
 
 ok(result.saveFalse === false, 'saveSeason propagates a canonical db-write FAILURE (not reported as success)', JSON.stringify(result.saveFalse));
 ok(result.rejectedSaveLibUnchanged === true, 'a rejected canonical save performs zero library.json metadata writes -- _touchMeta() is gated on the canonical result, not called unconditionally', JSON.stringify({ before: result.rejectedSaveLibBefore, after: result.rejectedSaveLibAfter }));
@@ -470,8 +477,7 @@ ok(result.folderMismatchRecover.ok === false && result.folderMismatchRecover.rea
 ok(result.folderMatchRecover.ok === true && result.folderMatchSaveCalls.length === 1 && result.folderMatchSaveCalls[0].id === 's-C' && result.folderMatchSaveCalls[0].dataId === 's-C', 'PC-2: a genuinely folder-matching snapshot still recovers normally, proving the identity check above is not disabling recovery entirely', JSON.stringify(result));
 ok(result.existsCheckFailedResult.ok === false && result.existsCheckFailedResult.reason === 'exists-check-failed' && result.existsCheckFailedSaveCalled === false, 'PC-2: a failed conflict check (listSeasons() throws) fails CLOSED -- recovery refuses and performs zero writes, rather than defaulting to "no conflict" and saving on the one-click path', JSON.stringify(result));
 ok(result.legacyRecoverResult.ok === false && result.legacyRecoverResult.reason === 'legacy-unenveloped' && result.legacyRecoverSaveCalled === false, 'PC-2: recoverSeasonFromMirror() refuses a bare legacy-unenveloped snapshot at the production boundary itself, with zero catalog writes -- not merely a disabled UI button', JSON.stringify(result));
-ok(errors.length === 0, 'No page errors', errors.join(' | '));
+ok(errors.length === 0, 'No uncaught errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-await browser.close();
 process.exit(fail ? 1 : 0);

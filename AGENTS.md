@@ -107,11 +107,16 @@ measures), `analytics-metrics.js`, `study-query.js`, `study-view.js`,
 `backend-client.js`, `scoreboard-ocr.js`, `suggestion-engine.js`,
 `quick-chart.js`, `play-filter.js`, `play-grid.js` (Film Room model and edit
 semantics), `demo-season.js`, `identity-labels.js`, `ui-polish.js`,
-`updater.js`, `beta-config.js`, `app.js` (composition root),
-`legacy-global-bridge.js` (temporary test bridge, scheduled for removal)
+`updater.js`, `beta-config.js`, `app.js` (composition root)
 
 **Deleted — do not reintroduce:** `season-library.js`, `wizard.js`,
-`heat-maps.js`, `visualizations.js`, `command-palette.js`.
+`heat-maps.js`, `visualizations.js`, `command-palette.js`,
+`legacy-global-bridge.js`.
+
+No module publishes engine classes onto `globalThis`. A harness reaches a class
+by importing its owning module (when the logic is DOM-free) or through a live
+controller/service on `window.app`. `e2e-p0-exit` and `tools/audit-shell-deps.mjs`
+both enforce this.
 
 ---
 

@@ -164,10 +164,12 @@ r = await page.evaluate(async () => {
   chip('rp', 'Pass').click();
   await raf2();
   const thirdPass = rows();
-  // StatsEngine is a top-level class in the bundle's script scope (global
-  // lexical binding) -- use the canonical classifier as the expected value.
+  // The canonical classifier supplies the expected value -- never a second
+  // run/pass rule written here. Reached through the live public service that
+  // owns the class, not through a test-only global.
+  const SE = window.app.stats.constructor;
   const expectedThirdPass = window.app.tagger.plays.filter(p =>
-    String(p.tags.down) === '3' && StatsEngine.isPass(p)).length;
+    String(p.tags.down) === '3' && SE.isPass(p)).length;
   const showing = document.querySelector('.gi-film-room-head p').textContent;
   clearFilters();
   await raf2();

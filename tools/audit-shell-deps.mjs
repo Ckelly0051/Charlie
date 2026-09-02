@@ -125,6 +125,37 @@ ok(
   "Reports' #statsDashboard is native-owned (data-native-reports), not relocated legacy markup",
   JSON.stringify(out.routes.reports),
 );
+
+// The retired legacy global bridge published engine classes onto globalThis so
+// harnesses could reach them. e2e-p0-exit pins its absence from source; this is
+// the runtime half -- with the shell mounted and a game open, a representative
+// spread of those classes must be unreachable as globals.
+const globals = await page.evaluate(() => {
+  const app = window.app;
+  // Some engine names collide with a platform global -- `StorageManager` is a real
+  // DOM interface (navigator.storage), so "the name is taken" proves nothing. Where
+  // a live instance exists, compare CLASS IDENTITY instead; only fall back to name
+  // absence for the classes the running app holds no instance of.
+  const live = {
+    StatsEngine: app?.stats?.constructor,
+    SeasonStore: app?.storage?.seasonStore?.constructor,
+    StorageManager: app?.storage?.constructor,
+    PlayTagger: app?.tagger?.constructor,
+    StudyScreen: app?.studyScreen?.constructor,
+    WorkspaceShell: app?.workspaceShell?.constructor,
+  };
+  const leaked = [];
+  for (const [name, cls] of Object.entries(live)) {
+    if (cls && globalThis[name] === cls) leaked.push(name);
+  }
+  for (const name of ['TauriBackend', 'Charts', 'TagProjection', 'SnapshotEnvelope']) {
+    if (typeof globalThis[name] !== 'undefined') leaked.push(name);
+  }
+  return leaked;
+});
+ok(globals.length === 0,
+  'no engine class is published as a global at runtime -- the app boots with the bridge gone',
+  `still global: ${globals.join(', ')}`);
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 if (fail) process.exitCode = 1;

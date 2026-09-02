@@ -26,6 +26,8 @@ await new Promise(r => setTimeout(r, 350));
 
 const res = await page.evaluate(async () => {
   const sm = window.app.storage, store = sm.seasonStore;
+  // The StatsEngine class, reached through the live public service that owns it.
+  const SE = window.app.stats.constructor;
   const blank = () => ({ custom: [], players: {}, grades: {} });
   store.data = store._normalize({
     version: 5, type: 'season', id: 'csvproj', seasonName: 'CSVProj', activeGameId: 'g1',
@@ -96,7 +98,7 @@ const res = await page.evaluate(async () => {
   // Per-row projected equality: every exported look cell equals StatsEngine.proj().
   const mismatches = [];
   sm.tagger.plays.forEach((p, r) => {
-    const proj = StatsEngine.proj(p);
+    const proj = SE.proj(p);
     COLS.forEach((col, k) => {
       const got = cell(r, col);
       const want = proj[KEYS[k]] ?? '';
@@ -117,12 +119,12 @@ const res = await page.evaluate(async () => {
   const imported = sm.tagger.plays.map(p => ({
     raw: { formation: p.tags.formation, qbAlignment: p.tags.qbAlignment, backfield: p.tags.backfield, strength: p.tags.strength, coverage: p.tags.coverage, coverageFamily: p.tags.coverageFamily },
     proj: (({ formation, qbAlignment, backfield, strength, coverage, coverageFamily }) =>
-      ({ formation, qbAlignment, backfield, strength, coverage, coverageFamily }))(StatsEngine.proj(p)),
+      ({ formation, qbAlignment, backfield, strength, coverage, coverageFamily }))(SE.proj(p)),
   }));
 
   const importedUnits = sm.tagger.plays.map(p => p.tags.unit);
   const importedLooks = sm.tagger.plays.map(p => {
-    const q = StatsEngine.proj(p);
+    const q = SE.proj(p);
     return { formation: q.formation, qbAlignment: q.qbAlignment, coverage: q.coverage, coverageFamily: q.coverageFamily };
   });
 
