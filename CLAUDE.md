@@ -1,3 +1,30 @@
+### 1.12.0-70 HOME RELEASE CHECKPOINT (2026-09-02)
+
+The approved Home rebuild and its complete repair sequence through `f615fcd`
+are accepted and packaged for coach smoke testing. The candidate includes the
+approved first-launch and populated Home compositions, structured program and
+opponent identities, lazy season-fenced thumbnails, oldest-first game order,
+literal product copy, Game Plan action, visible interaction states, persistent
+Program Seasons and Opponent Scouts trees, route-frame containment, and the
+final two-pane rail allocation. `data-season-id` remains the stable rendered
+interaction hook. No season schema, football rule, film identity, or customer
+data was changed by the packaging checkpoint.
+
+All four version owners are synchronized at `1.12.0-70` (`js/app.js`,
+`src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and
+`src-tauri/tauri.conf.json`). The Windows x64 NSIS candidate was built with the
+local no-updater-artifact override, which does not alter committed updater
+configuration. Delivery:
+`GridIron-IQ-1.12.0-70-Beta-Setup.exe` (3,995,402 bytes), SHA-256
+`1E575EC615FC19B31126DA93C98693A942E46C5D5AB572904E40B85DF27A3677`.
+
+Verification immediately before packaging: production Vite build clean except
+for the existing bundle-size warning; `e2e-home-deferred-repair` 100/100;
+`e2e-home-review-repair` 26/26; direct visual inspection at 1440x900 and
+768x900. The coach owns the installed WebView2 smoke. The next repository
+milestone is Step 2 documentation consolidation and repository hygiene; it is
+not unfinished Home work and must remain behavior-neutral.
+
 ### RAIL ALLOCATION - TWO PERMANENT PANES (2026-09-02)
 
 The coach reviewed the three-finding repair, kept `data-season-id`, and called

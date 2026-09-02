@@ -6,21 +6,27 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-## Current Home - APPROVED ENTRY IMPLEMENTED LOCALLY (2026-08-31)
+> **Release checkpoint:** Home is accepted through `f615fcd` and packaged as
+> the Windows x64 `1.12.0-70` Beta smoke candidate. The next milestone is the
+> behavior-neutral Step 2 documentation consolidation and repository hygiene
+> pass, followed by separately reviewed global-bridge and CSS-ownership cleanup
+> commits. Historical incomplete-state notes below are not open Home work.
+
+## Current Home - APPROVED AND RELEASE-READY (2026-09-02)
 
 The approved comp now governs production Home for all three meaningful states: first launch, season library/no open season, and a populated open season. First launch is part of Home, not a centered Team Hub onboarding panel. It offers the approved Program/Opponent choice, structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Team Hub remains the canonical season-library management destination after setup, while creation continues through its existing service boundaries.
 
-The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. This is local source work: no installer, release, push, or customer-data rewrite is implied.
+The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 
-### Prior Local Home Repairs
+### Accepted Home Repair Sequence
 
-Codex directly repaired the remaining e3930fb findings: serialized duplicate checks/creation and canonical Scout identity lookup; visible-thumbnail refresh on root/first-file changes; and the approved edge-aligned rail/header/game-workspace composition without the old outer width cap. The repair was built in an isolated e3930fb archive with only its own files, excluding unrelated dirty Breakdown/token/packaging changes. Focused checks: Home 25/25, Team Hub 33/33, Settings 23/23, shell 90/90. Populated desktop screenshots were inspected; the source and docs are updated locally, not committed, installed, or released. Exact scope, evidence, and limitations are in the latest CLAUDE.md entry.
+The accepted sequence includes serialized duplicate checks and canonical Scout identity lookup; season/source-fenced lazy thumbnails; the approved edge-aligned rail/header/game workspace; literal concise copy; oldest-first chronological game ordering; direct Game Plan navigation; persistent Program Seasons and Opponent Scouts trees; and the final two-pane rail allocation. Program and scout trees remain simultaneously visible, each owns its own bounded scroller, route-frame containment keeps all fixed tools reachable, and `data-season-id` remains the stable rendered interaction hook. Exact scope and evidence are in the latest `CLAUDE.md` entries.
 
-### Historical Home Implementation And Review
+### Historical Home Implementation And Review (Superseded)
 
-**Independent review supersedes the completion claims below.** The comp remains approved, but production is not accepted: the required rail/entry-flow composition is omitted; naming/setup dependencies are missing from the commit; thumbnail ownership fails across season/source changes; thumbnail work is eager rather than visibility-lazy; and obsolete row CSS constrains new cards. Exact evidence and repair instructions are recorded at the top of `CLAUDE.md`. Finish the approved implementation and repair these defects before packaging. The implementation account below is the builder's historical report, not the current review verdict.
+**The account below is retained as history only and is superseded by the accepted status above.** Its missing-rail, naming/setup, thumbnail-ownership, eager-work, and inherited-row-CSS findings were repaired and reviewed in later commits. It must not be used as current implementation guidance or as a packaging hold.
 
-The approved comp is now the real production Home route (`js/home-screen.js`, `js/native-home.jsx`, `css/native-home.css`, plus `js/identity-labels.js` and `js/game-thumbnail.js`). This closes the "APPROVED FOR IMPLEMENTATION" step below; the implementation record is at the bottom of this section, and the full test-fix accounting is in `CLAUDE.md`'s matching dated changelog entry. No installer, push, or release — Codex review is the next step per the handoff.
+The approved comp is the real production Home route (`js/home-screen.js`, `js/native-home.jsx`, `css/native-home.css`, plus `js/identity-labels.js` and `js/game-thumbnail.js`). The full test-fix accounting is in `CLAUDE.md`; later repair entries supersede any incomplete-state language in the historical implementation narrative below.
 
 Charlie approved the revised comp ("looks great"). Claude implemented it under `design-comps/home-workspace-2026-08-31/BUILD-HANDOFF.md`. The current local comp remains the visual reference. This does not authorize rewriting existing identities, changing film paths, an installer, or a release.
 
@@ -38,7 +44,7 @@ The reviewed `design-comps/breakdown-workspace-2026-08/breakdown.html` has now b
 
 Build and focused behavioral checks passed; populated production screenshots and open/empty states are recorded in `artifacts/breakdown-comp-live/`. Charlie approved the installed **1.12.0-68 Beta** presentation on 2026-08-31, including the wide-screen vertical play rail. Slightly tighter vertical tagging padding is a deferred next-pass nit, not a blocker or authorization to reopen this layout now. This is presentation acceptance, not a claim that every installed workflow has been tested or that the whole app's design is finished. See the current `CLAUDE.md` handoff for test changes, discovered defects, and exact scope.
 
-**Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home remains the current work.
+**Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
 
 ## Prior Breakdown Checkpoint — ACCEPTED (2026-08-28)
 
@@ -241,17 +247,17 @@ This standard survives task resets, context compaction, and builder handoffs.
 Every handoff must identify its real-app screenshots and the coach's PASS,
 REVISE, or REJECT decision.
 
-**Deferred small-polish copy repair (2026-09-01).** The opponent empty state
+**Resolved small-polish copy repair (recorded 2026-09-01; shipped in 1.12.0-70).** The opponent empty state
 currently says `Scout an opponent without touching our season` in both
 `js/native-home.jsx` and `js/native-team-hub.jsx`; the team-hub hero also
 explains that opponent film stays isolated from `our schedule, record, and team
 totals`. Replace the empty-state heading with `No opponent scouts`, its helper
 with `Add an opponent and source game, then link film.`, and the hero helper
 with `Opponent games, film, and charting.` Preserve behavior and verify both
-render paths together at release widths. This repair is deferred and is not in
-the `1.12.0-69` installer.
+render paths together at release widths. This paragraph records the original
+defect; the approved replacement copy is implemented in `1.12.0-70`.
 
-**Deferred Home navigation-state bug (2026-09-01).** Entering Opponent Scout
+**Resolved Home navigation-state bug (recorded 2026-09-01; shipped in 1.12.0-70).** Entering Opponent Scout
 persists `giq_home_workspace=scout`; the current `SeasonRail` then filters its
 rows to scouts and removes the program-season hierarchy. Returning Home does
 not restore it. The persistent rail must always render two simultaneously
@@ -263,9 +269,10 @@ rail. Opening a row must load its correct isolated context and update the
 current-row treatment without removing the other tree. Regression coverage must
 use entries across at least two years and include mode transitions,
 cross-section row opening, returning Home, and reload with scout mode persisted.
-This is a real navigation/state defect and is not fixed in `1.12.0-69`.
+This paragraph records the original defect. The persistent two-tree rail and
+cross-section navigation are implemented in `1.12.0-70`.
 
-**Deferred Home default-order adjustment (2026-09-01).** This supersedes the
+**Resolved Home default-order adjustment (recorded 2026-09-01; shipped in 1.12.0-70).** This supersedes the
 initial request to force numeric week order. Week is metadata rather than the
 canonical sequence because scrimmages, preseason games, byes, and postseason
 rounds do not reliably map to ordinary week numbers. Home must default to
@@ -276,7 +283,8 @@ then stable game id, with invalid or missing weeks last. `Newest first` remains
 an explicit alternate only. Filters, search, grid/list switching, route returns,
 and season changes preserve the applicable order. Rendered-order tests must
 include preseason/scrimmage, regular season, postseason, duplicate-date, and
-undated cases. This adjustment is not in `1.12.0-69`.
+undated cases. The final visible label is `Oldest first`; the behavior is
+implemented in `1.12.0-70`.
 
 **IMPLEMENTED (2026-09-02) — all four deferred Home items above.** The copy
 repair, the rail navigation-state bug, the default-order adjustment, and the
