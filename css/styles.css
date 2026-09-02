@@ -3085,9 +3085,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   display: flex;
   gap: 6px;
 }
-/* Final Engine Independence: #btnReviewDetected lived inside the deleted
-   #giAutoDetectHost; the native panel's "Review…" button is Preact-owned
-   and needs no id-scoped style here. */
 
 /* Review modal ------------------------------------------------ */
 
@@ -5444,14 +5441,6 @@ body {
 .team-pill-add:hover { color: #fff; border-color: rgba(255,255,255,.4); }
 
 /* ================================================================== */
-/* Final Engine Independence: the "TOP BAR — progressive collapse"    */
-/* block that lived here is deleted. Every selector it styled         */
-/* (.top-bar, .top-bar-left/center/right, .file-input-label #fileLabel, */
-/* #btnShortcuts, .app-title, .backend-status-badge, .top-bar .bc-seg) */
-/* lived exclusively inside <header class="top-bar">, which was       */
-/* deleted with #giLegacyEngineHost. Nothing in this block could      */
-/* still match a live element.                                       */
-/* ================================================================== */
 /* ====  FILM ROOM v2 — inline editing, columns, saved filters  ===== */
 /* ================================================================== */                 /* many columns scroll sideways */
 
@@ -5937,9 +5926,9 @@ body { font-size: 13px; }
 
    Same shape as the S6-4d palette flip: the NAME stays so every existing
    consumer keeps working, the SOURCE moves so there is one owner. Nothing was
-   deleted — fonts.css still bundles Barlow for the reference bundle and the
-   export/print documents in stats-engine.js, which are standalone files a
-   recipient opens outside the app.
+   deleted — fonts.css still bundles Barlow for the export/print documents in
+   stats-engine.js, which are standalone files a recipient opens outside the
+   app and which therefore cannot rely on the app's own type tokens.
    ===================================================================== */
 :root { --display: var(--gi-cond); }
 

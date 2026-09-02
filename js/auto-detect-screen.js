@@ -4,9 +4,8 @@ import { AutoDetectContent } from './native-autodetect.jsx';
 /**
  * Native Auto-Detect operation + state API.
  *
- * Final Engine Independence: this replaces App._bindAutoDetect(), which read
- * settings off hidden DOM sliders and wrote progress/results directly into
- * descendants of the permanently hidden `#giAutoDetectHost`. The scan
+ * This replaced an earlier implementation that read settings off hidden DOM
+ * and wrote progress/results into elements no coach could see. The scan
  * orchestration itself (PlayDetector + Vision/local-CV fallback + tag
  * stamping) is UNCHANGED -- only its presentation moved. This class owns
  * live state (settings, status, progress, results) and a native

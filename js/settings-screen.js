@@ -170,12 +170,10 @@ export class SettingsScreen {
     return { ok:durable, durable, calls:this.playbookSnapshot() };
   }
 
-  /** Final Engine Independence: status is computed directly from the live
-   *  backend/vision state, never read off a hidden legacy badge's textContent
-   *  -- that badge lived inside #giLegacyEngineHost and could never be
-   *  observed by a coach, so reading it was a hidden-DOM-as-data-source. An
-   *  explicit Claude Vision key always takes precedence (mirrors the
-   *  historical badge priority), then the optional local CV server. */
+  /** Status is computed directly from the live backend/vision state, never
+   *  read back out of rendered text. Reading the DOM as a data source is how
+   *  this once reported a status no coach could actually see. An explicit
+   *  Claude Vision key takes precedence, then the optional local CV server. */
   analysisProfile() {
     const app = this.app;
     const hasVision = !!app.vision?.apiKey;
@@ -204,9 +202,8 @@ export class SettingsScreen {
   }
 
   /** Opt in to the optional local Python CV server: until this is called we
-   *  never touch the network (unchanged behavior, moved from the legacy
-   *  badge's click handler in app.js, which lived inside the permanently
-   *  hidden #giLegacyEngineHost and so could never actually be clicked). */
+   *  never touch the network. This is the only reachable opt-in -- the earlier
+   *  entry point was never clickable by a coach. */
   async enableLocalServer() {
     const backend = this.app.backend;
     if (!backend) return { ok: false, message: 'No local CV backend is configured.' };

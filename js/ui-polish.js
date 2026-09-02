@@ -164,9 +164,8 @@ export class UIPolish {
       : mode === 'managed'
         ? 'Imported film is copied into GridIron IQ. Link a folder to use it in place.'
         : 'Choose where film should live before adding it.';
-    // Final Engine Independence: #fileLabel and #btnLoadFolder were the top-bar
-    // owners of this status text -- both deleted with #giLegacyEngineHost. The
-    // native empty-state hint above is the sole surviving surface for it.
+    // The native empty-state hint above is the sole surface for this status
+    // text; the former top-bar owners are deleted.
   }
 
   /**

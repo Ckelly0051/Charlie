@@ -176,8 +176,8 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media(min-width:1400px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-/* Own alignment explicitly -- the legacy shell row (workspace-shell.css
-   .ws-game-row, unscoped, a 5-column grid predating this card) sets
+/* Own alignment explicitly -- the unscoped shell rule (workspace-shell.css
+   .ws-game-row, a 5-column grid predating this card) sets
    align-items:center. This rule's higher specificity (.ws-home-page
    .ws-game-row) wins on display/flex-direction, but CSS resolves per
    property, not per rule -- align-items was never declared here, so the

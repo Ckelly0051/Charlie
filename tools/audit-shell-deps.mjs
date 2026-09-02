@@ -8,8 +8,9 @@ import { resolve } from 'node:path';
 import puppeteer from 'puppeteer';
 const URL = TEST_APP_URL;
 
-// A stylesheet that is reachable only from build.sh is dead in the Vite/Tauri
-// product. This exact drift blanked Reports in the 1.12.0-13 installed smoke.
+// A stylesheet that is not reachable from the Vite entry is dead in the
+// product, however correct it looks in isolation. This exact drift blanked
+// Reports in the 1.12.0-13 installed smoke.
 const root = resolve(import.meta.dirname, '..');
 const cssFiles = (await readdir(resolve(root, 'css'))).filter(name => name.endsWith('.css'));
 const jsFiles = (await readdir(resolve(root, 'js'))).filter(name => /\.(?:js|jsx)$/.test(name));

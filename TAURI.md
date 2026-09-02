@@ -15,8 +15,8 @@ browser backend on the web — no UI changes.
 
 ## Prerequisites
 
-- Rust (`https://rustup.rs`)
-- Node 18+
+- Rust — stable toolchain (CI uses `dtolnay/rust-toolchain@stable`)
+- Node 22 (both CI workflows pin `node-version: '22'`)
 - Tauri CLI v2: `cargo install tauri-cli --version "^2"`
 - System deps (Ubuntu/Debian):
   ```bash
@@ -28,11 +28,13 @@ browser backend on the web — no UI changes.
 
 ```
 src-tauri/
-├── Cargo.toml            # Rust crate: tauri + plugins (fs, dialog, shell)
+├── Cargo.toml            # tauri (devtools, protocol-asset) + plugins:
+│                         #   fs, dialog, updater, process, opener
 ├── tauri.conf.json        # App config: window, CSP, bundle settings
 ├── build.rs               # Tauri build script
 ├── capabilities/
-│   └── default.json       # v2 permissions: fs scope, dialog, shell
+│   └── default.json       # v2 permissions: fs scope, dialog, updater,
+│                          #   process, opener
 ├── icons/                 # App icons (placeholder — replace for production)
 │   ├── 32x32.png
 │   ├── 128x128.png
@@ -48,9 +50,8 @@ output (`dist/index.html` + hashed `dist/assets/*.js`/`*.css`/media) —
 `src-tauri/tauri.conf.json`'s `beforeBuildCommand` (`"npm run build"`) runs
 Vite automatically as part of `cargo tauri build`, so no separate copy step
 is needed. The retired single-file concatenated bundle (`build.sh` →
-`football-film-analyzer.html`) is deleted; it stopped being the frontend
-`dist/` is built from once the project moved to Vite (Final Engine
-Independence, 2026-08).
+`football-film-analyzer.html`) is deleted. There is no second build path and
+no separate copy step.
 
 ## Build
 
@@ -88,11 +89,69 @@ With `withGlobalTauri: true` in `tauri.conf.json`, plugin APIs are on
 ## Capabilities (permissions)
 
 Tauri v2 requires explicit permission grants in `capabilities/default.json`:
+- `core:default`, `core:window:default`, `core:window:allow-set-title`,
+  `core:window:allow-close`, `core:path:default`
 - `fs:allow-exists`, `fs:allow-read-text-file`, `fs:allow-write-text-file`,
-  `fs:allow-mkdir`, `fs:allow-read-dir`, `fs:allow-remove`
-- `fs:scope` with `$APPDATA/**`, `$DOCUMENT/**`, `$HOME/**`
+  `fs:allow-read-file`, `fs:allow-write-file`, `fs:allow-mkdir`,
+  `fs:allow-read-dir`, `fs:allow-remove`
+- `fs:scope` with `$APPDATA/**`, `$RESOURCE/**`, `$DOCUMENT/**`,
+  `$DOWNLOAD/**`, `$DESKTOP/**`
 - `dialog:allow-open`, `dialog:allow-save`
-- `shell:allow-open`
+- `updater:default`, `process:default`
+- `opener:default`, plus `opener:allow-open-path` and
+  `opener:allow-reveal-item-in-dir` scoped to `$APPDATA` and `$DOCUMENT`
+
+A coach-chosen linked-film folder is granted at runtime by the `allow_library_dir`
+command in `src/main.rs`, which extends the asset-protocol and fs scopes to that
+directory only. An imported season cannot widen scope on its own: a `filmDir`
+outside the granted library root is refused and prompts a re-link.
+
+## Asset protocol and CSP — do not "clean this up"
+
+Film is served to the WebView through Tauri's asset protocol
+(`assetProtocol.enable`, scoped to `$APPDATA/**` plus any coach-granted library
+directory). `convertFileSrc()` produces the URL.
+
+**On Windows/WebView2 that URL scheme is `http://asset.localhost`, not
+`https://`.** macOS produces `asset://localhost`. The CSP in `tauri.conf.json`
+therefore lists **all** of `asset:`, `http://asset.localhost`, and
+`https://asset.localhost` in `media-src` / `img-src`, and
+`http://asset.localhost` in `connect-src` for diagnostic probes.
+
+Dropping the `http://` origin looks harmless and silently blocks **every** video
+load with "Media load rejected by URL safety check" — not a CORS error, not a
+codec error, a CSP violation. That cost multiple releases to diagnose. Both
+origins stay.
+
+`connect-src` also allows `http://127.0.0.1:*` and `http://localhost:*` for the
+optional local CV server, and `script-src` allows `wasm-unsafe-eval` so sql.js
+can load the SQLite catalog.
+
+## Film storage: desktop and browser are NOT equivalent
+
+- **Desktop** has a persistent film library. Managed film is copied under
+  `$APPDATA/seasons/<season>/films/<game>/` and auto-loads on game open; linked
+  film is referenced in place in the coach's own folder and never copied.
+- **Browser** has **no** persistent film library. Each game records its
+  `videoFileName` and the coach re-links film every session. This is a real
+  capability difference, not a configuration detail — do not document them as
+  interchangeable.
+
+Season JSON and backups mirror to `Documents/GridIron IQ/`; **film is not
+mirrored** (too large, and linked originals are re-linkable).
+
+## Required installed smoke
+
+Puppeteer cannot certify this build. Codecs, the asset protocol, native
+dialogs, filesystem scope, and app lifecycle are only real in installed
+WebView2. Before accepting any desktop release, on the installed app:
+
+1. Open a season with **linked** film on its real drive and confirm playback,
+   with no managed-copy fallback.
+2. Open a season with **managed** film and confirm it auto-loads after a
+   restart.
+3. Chart a play, close the app, reopen, and confirm both data and film.
+4. Switch seasons and confirm counts, tags, and film identity survive.
 
 ## Why this is the robust answer
 
@@ -101,10 +160,11 @@ Tauri v2 requires explicit permission grants in `capabilities/default.json`:
 - **True backups + undo.** The backup ring (`backups/`) is real timestamped
   files; Restore rolls back to any of them, and restoring snapshots the current
   state first (reversible).
-- **Offsite for free.** Point the storage folder at a cloud-synced folder
-  (Dropbox / Google Drive / OneDrive / iCloud) → survives the machine dying and
-  the file can be shared with other coaches, who open it in the zero-install web
-  build to review.
+- **A copy outside app data.** Season JSON and backups also mirror to
+  `Documents/GridIron IQ/`, so clearing application data on uninstall does not
+  take the seasons with it, and the mirror is what post-wipe recovery reads.
+  Season files can be shared with other coaches, who open them in the
+  zero-install web build to review.
 - **Same UI everywhere.** Only the storage backend differs.
 
 ## Auto-update (tauri-plugin-updater)
@@ -157,6 +217,14 @@ launch.
       `_PASSWORD` secret is intentionally omitted (empty passphrase); the
       workflow references it and resolves to "" when absent.
 - [ ] Code-sign for macOS notarization + Windows SmartScreen
+
+**Unsigned local packages.** `cargo tauri build --no-sign` (or a local config
+that disables updater-artifact signing) produces working installers without the
+private key, which is how local smoke candidates are built. Those artifacts are
+**not** updater-publishable: installed apps only accept updates signed with the
+committed `pubkey`. Windows also shows a SmartScreen "unknown publisher" prompt
+for unsigned installers, which the coach must click through with
+**More info → Run anyway** until OS code-signing is in place.
 
 ### First signed release — verified (v1.0.3)
 

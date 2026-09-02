@@ -135,13 +135,8 @@ export class WorkspaceShell {
     return result;
   }
   /** Re-apply the CURRENT route's visibility with NO navigation side effects.
-   *
-   * Historical note (coach smoke, 2026-07-24): this used to also manage a
-   * `#wsClassicOutlet` that could be left visible underneath the shell —
-   * S7 deleted that outlet and `#app` with it, so there is nothing left to
-   * leak. Kept as route-visibility-only, since callers still need a
-   * non-navigating re-apply (`show()` calls `library.hide()`, which calls
-   * this — routing through `show()` would recurse). */
+   *  Callers need a non-navigating re-apply: `show()` calls `library.hide()`,
+   *  which calls this, so routing back through `show()` would recurse. */
   restoreRouteVisibility() {
     if (!this.root) return;
     this._setRouteVisibility(this.app.workspace.currentRoute() || 'home');

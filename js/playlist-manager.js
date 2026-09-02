@@ -536,8 +536,8 @@ export class PlaylistManager {
       this.vc.video.load();
     }
 
-    // Route through VideoController's own status seam -- fileLabel is optional
-    // (deleted with #giLegacyEngineHost); currentFileName is the real owner.
+    // Route through VideoController's own status seam: currentFileName is the
+    // sole owner of the film-name status.
     this.vc._setFilmStatus(clip.file ? clip.file.name : clip.name);
     this.vc.placeholder.classList.add('hidden');
 

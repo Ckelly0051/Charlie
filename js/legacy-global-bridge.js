@@ -27,9 +27,9 @@ import { VersionManager } from './version-manager.js';
 import { VideoController } from './video-controller.js';
 import { WorkspaceShell } from './workspace-shell.js';
 
-// Temporary P0 bridge: build.sh exposed every top-level declaration globally.
-// Existing regression harnesses consume these contracts directly. Keep this list
-// explicit and delete entries as those tests move to route/journey APIs.
+// Temporary bridge: some regression harnesses consume these contracts directly
+// instead of through a route or journey API. Keep the list explicit and delete
+// entries as those tests migrate. Scheduled for its own reviewed cleanup.
 Object.assign(globalThis, {
   AnalyticsRegistry,
   BrowserBackend,

@@ -34,8 +34,8 @@ resume_qa_rewritten/
 .tmp-*
 _shots-*/
 
-# Local agent context is machine-specific and must not ship with the product.
-AGENTS.md
+# Machine-local scratch. AGENTS.md is NOT here: it is shared repository
+# guidance and is version-controlled (2026-09-02).
 tmpdur.mjs
 tools/.tmp-*
 # Real film frames are never committed (see design-comps README).
@@ -43,3 +43,14 @@ design-comps/**/assets/film-frame.*
 
 # Local forensic snapshots may contain full seasons and film.
 incident-backups/
+
+# Generated or machine-local output, anchored to the repository root so a
+# same-named directory deeper in the tree is never silently hidden.
+# .claude/ is machine-local agent config.
+/.claude/
+# artifacts/ and scratchpad/ hold capture output, probes and gate logs; several
+# contain real season data and frames of the coach's team film.
+/artifacts/
+/scratchpad/
+# Built Windows installers.
+/GridIron-IQ-*-Beta-Setup.exe

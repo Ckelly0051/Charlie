@@ -961,12 +961,10 @@ class App {
    * computes its own status/enable affordance directly from backend.
    * isAvailable()/vision.apiKey) never reads a stale probe result.
    *
-   * Final Engine Independence: there is no status badge to write into --
-   * that badge lived inside the permanently hidden #giLegacyEngineHost, which
-   * made its click-to-enable affordance genuinely unreachable to a coach. The
-   * opt-in action now lives in Settings → Analysis (SettingsScreen.
-   * enableLocalServer()); this method only keeps backend.probe()'s own
-   * network-only-when-enabled invariant doing its background work.
+   * There is no status badge to write into. The coach-facing opt-in lives in
+   * Settings → Analysis (SettingsScreen.enableLocalServer()); this method only
+   * keeps backend.probe()'s own network-only-when-enabled invariant doing its
+   * background work.
    */
   _bindBackendStatus() {
     // Kick off an initial probe (non-blocking; probe() itself no-ops with no

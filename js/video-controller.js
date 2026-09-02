@@ -77,14 +77,10 @@ export class VideoController {
 
     // Drag and drop — supports single files, multi-files, AND dropped folders.
     //
-    // S7-b: this was bound ONLY to #videoDropZone, the top-bar label, which the
-    // shell hides inside #wsClassicOutlet — measured 0x0 with a hidden ancestor.
-    // So dropping film had been dead for the whole shell era while the native
-    // empty state still said "or drop a video or folder anywhere". The live
-    // #videoPlaceholder is now a drop target too, which both restores the
-    // advertised behavior and frees S7-d to delete the label. The label keeps
-    // its binding while it exists, and is optional so its removal cannot throw
-    // in this constructor.
+    // The live #videoPlaceholder is the drop target. This was once bound only
+    // to a top-bar label that the shell rendered at 0x0, so dropping film was
+    // silently dead while the empty state advertised it. Both targets are
+    // optional here, so a missing element cannot throw in this constructor.
     this._bindDropTarget(this.dropZone);
     this._bindDropTarget(this.placeholder);
 
@@ -308,21 +304,20 @@ export class VideoController {
   }
 
   /**
-   * Make an element accept dropped video files or folders. One implementation
-   * for every drop target, so the legacy label and the native empty state
-   * cannot diverge in what they accept. A missing element is a no-op: S7-d
-   * deletes the label, and a drop target is a convenience, not the film path.
-   */
-  /**
-   * Set the film-name status text. The top-bar label is optional: it is
-   * entombed inside the hidden legacy shell today and deleted at S7-d8, so its
-   * absence must not throw on the film-loading path.
+   * Set the film-name status text. `currentFileName` is the owner; any label
+   * element is optional, so its absence must not throw on the film path.
    */
   _setFilmStatus(text, { remember = true } = {}) {
     if (remember) this.currentFileName = text;
     if (this.fileLabel) this.fileLabel.textContent = text;
   }
 
+  /**
+   * Make an element accept dropped video files or folders. One implementation
+   * for every drop target, so no two targets can diverge in what they accept.
+   * A missing element is a no-op: a drop target is a convenience, not the
+   * film-loading path.
+   */
   _bindDropTarget(el) {
     if (!el) return;
     el.addEventListener('dragover', (e) => {

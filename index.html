@@ -55,34 +55,19 @@
             </div>
           </div>
   </div>
-  <!-- Final Engine Independence: PlayTagger's tag/player/grade fields are
-       DOM-free (js/play-tagger.js's PlainField/PlainInput) and the coach
-       tag form (native-tagging.jsx) never reads this markup. Auto-Detect's
-       scan/progress/settings/results/Review/Apply are now a real native
-       operation + state API (js/auto-detect-screen.js) rendered as a visible
-       NativeOverlayService sheet (js/native-autodetect.jsx) -- the prior
-       #giAutoDetectHost this comment used to describe is deleted, not hidden.
-       Its Review step opens a modal that was always appended directly to
-       document.body (never inside the hidden host); that construction is
-       unchanged, only relocated onto AutoDetectScreen. -->
-  <!-- Final Engine Independence: #giLegacyEngineHost is deleted. It held two
-       generations of legacy markup, both now genuinely gone: #playGridSection
-       (native Film Room, native-film-room.jsx via NativeFilmRoomScreen, has
-       owned presentation through PlayGrid's DOM-free native*()/
-       nativeSnapshot() API all along) and the classic top-bar chrome
-       (#btnSidebarToggle/#btnShortcuts/#videoDropZone/#btnLoadFolder/
-       #backendStatusBadge/#btnUndoAction/#btnRedoAction/#btnQuickChart/
-       #btnShowStats/#btnSave). Every one of those controls now has a real
-       native owner that calls the underlying service directly instead of
-       adopting/relocating/`.click()`-proxying a hidden legacy element:
-       Undo/Redo/Shortcuts/Settings are WorkspaceShell's own
-       `.ws-global-tools` buttons; film loading is the native empty-state CTA
-       (ui-polish.js `_initEmptyStateCTA`) plus Settings' film-storage tools;
-       Quick Chart is the Break Down toolbar's [data-bd-context="quick"];
-       Stats/Reports is [data-ws-route="reports"]; Save is the More menu's
-       "Save season" (and Ctrl+S). The optional local CV server's status/
-       enable action -- unreachable while it lived on this hidden badge --
-       now lives in Settings -> Analysis (SettingsScreen.enableLocalServer()). -->
+  <!-- PlayTagger's tag/player/grade fields are DOM-free (js/play-tagger.js's
+       PlainField/PlainInput) and the coach tag form (native-tagging.jsx) never
+       reads this markup. Auto-Detect's scan/progress/settings/results/Review/
+       Apply are a native operation + state API (js/auto-detect-screen.js)
+       rendered as a NativeOverlayService sheet (js/native-autodetect.jsx). -->
+  <!-- Where the global controls live, since none of them are markup here:
+       Undo/Redo/Shortcuts/Settings are WorkspaceShell's `.ws-global-tools`
+       buttons; film loading is the native empty-state CTA (ui-polish.js
+       `_initEmptyStateCTA`) plus Settings' film-storage tools; Quick Chart is
+       the Break Down toolbar's [data-bd-context="quick"]; Reports is
+       [data-ws-route="reports"]; Save is the More menu's "Save season" (and
+       Ctrl+S); the optional local CV server's enable action is
+       Settings -> Analysis (SettingsScreen.enableLocalServer()). -->
 
   <script type="module" src="js/native-root.jsx"></script>
   <script type="module" src="js/legacy-global-bridge.js"></script>

@@ -13,7 +13,7 @@
  * by the plugin, so a tampered update is refused.
  *
  * APIs are reached through `window.__TAURI__` because the app runs with
- * `withGlobalTauri: true` (no ES-module imports in the single-file bundle):
+ * `withGlobalTauri: true`:
  *   - window.__TAURI__.updater.check()  -> Update | null
  *   - update.downloadAndInstall(onEvent)
  *   - window.__TAURI__.process.relaunch()

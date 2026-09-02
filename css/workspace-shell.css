@@ -79,18 +79,11 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 
 .ws-link-strong{color:var(--ws-sel-text);font-weight:600}
 .ws-section-head .ws-link+.ws-link{margin-left:10px}
-/* A `body.ws-shell-active #breadcrumb{display:none}` rule lived here, hiding the
-   classic breadcrumb + game dropdown whenever the shell owned the product. Both
-   are now DELETED from index.html along with their app.js machinery, so the rule
-   has no element to match and is gone with them. Hiding was always the weaker
-   contract: hidden markup is exactly what resurfaced when an overlay revealed
-   #wsClassicOutlet (coach smoke, 2026-07-24). NOTE gd-score must survive any
-   future dead-CSS sweep of `_scorePillHtml`'s remaining rules: it is that
-   helper's default class and the live games panel still renders with it.
-   V2-A (2026-08-23): the single `.ws-context`/`#wsContextTeam`/
-   `#wsContextSeason`/`#wsContextGame` breadcrumb-as-switcher this section
-   used to style is retired the same way — replaced by the three persistent
-   `.ws-ctx` selectors above, deleted here rather than left inert. */
+/* Retired breadcrumb/game-dropdown and breadcrumb-as-switcher rules were
+   deleted here rather than left inert, along with the markup they styled.
+   NOTE for any dead-CSS sweep: `gd-score` MUST survive. It is
+   `_scorePillHtml`'s default class and the live games panel still renders
+   with it, so it reads as dead by name association and is not. */
 
 /* ══ S6-6c — DESIGN RULES LAST ══════════════════════════════════════════════
    Home carries the shell chrome and was the last big surface still speaking a

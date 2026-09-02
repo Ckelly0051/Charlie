@@ -2,9 +2,9 @@
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
 /* Everything here is scoped under :is(.stats-overlay,.gi-reports) so it NEVER leaks into */
-/* the light main app UI (CLAUDE.md lessons #12/#13). Loaded AFTER       */
-/* styles.css (build.sh + index.html) so it wins the cascade. Display    */
-/* face = bundled Barlow Condensed (css/fonts.css, base64, offline).     */
+/* the rest of the app (see the theme-variable rules in CLAUDE.md).      */
+/* Linked after styles.css in index.html so it wins the cascade. The     */
+/* display face comes from the --gi-display token, not a hardcoded face. */
 /* Matches the Hudl IQ direction the coach locked 2026-06-14.            */
 /* ==================================================================== */
 
