@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo } from './hub-setup.mjs';
 /* E2E Film Room harness -- drives the built bundle headless through the
    NATIVE Film Room route/mode (window.app.nativeFilmRoom / native-film-room.jsx,
    window.app.playGrid's native* API): render on demo data, row click-to-select,
@@ -86,14 +87,7 @@ const reopenFilmRoom = async () => {
 
 console.log('\n== 1. Setup: team + demo season + open game ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
-await page.waitForSelector('.gi-hub-first');
-await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
-await page.click('.gi-hub-first .gi-hub-primary');
-await page.waitForSelector('[data-hub-team].is-active');
-await page.evaluate(() => {
-  [...document.querySelectorAll('.gi-hub-section-head button')]
-    .find(button => /Explore sample season/i.test(button.textContent || ''))?.click();
-});
+await setupTeamAndDemo(page);
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.click('.ws-game-row');
 await page.click('#wsContinueCharting');
@@ -683,12 +677,18 @@ ok(r.count === 0 && !r.name, 'a roster with no owning season is not restored on 
 console.log('\n== 11. Mavericks hub still owns the sample; remove-team guard ==');
 await page.click('[data-hub-team="mavericks"]');
 await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
-r = await page.evaluate(() => ({ seasons:document.querySelectorAll('[data-season-id]').length }));
-ok(r.seasons === 1, 'Mavericks hub still lists the sample season', String(r.seasons));
+r = await page.evaluate(() => ({
+  seasonIds: [...document.querySelectorAll('[data-season-id]')].map(node => node.dataset.seasonId),
+  demoId: localStorage.getItem('ffa_demo_season_id') || '',
+}));
+const mavericksSeasonCount = r.seasonIds.length;
+ok(mavericksSeasonCount >= 1 && r.demoId && r.seasonIds.includes(r.demoId),
+  'Mavericks hub still lists the sample season by canonical id', JSON.stringify(r));
 await page.click('.gi-hub-team-actions .is-danger');
 await page.waitForSelector('.gi-overlay-panel');
 r = await page.evaluate(() => document.querySelector('.gi-overlay-panel')?.textContent || '');
-ok(/owns 1 season/i.test(r), 'team with seasons cannot be removed', r);
+ok(new RegExp(`owns ${mavericksSeasonCount} seasons?`, 'i').test(r),
+  'team with seasons cannot be removed and reports the current season count', r);
 await page.click('[data-overlay-action="ok"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
 

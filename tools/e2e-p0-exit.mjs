@@ -81,8 +81,32 @@ ok(deadStylesheets.length === 0,
 // the path a coach actually takes.
 const bridgeModuleGone = !existsSync(resolve(root, 'js/legacy-global-bridge.js'));
 const bridgeEntryGone = !viteSources.includes('legacy-global-bridge');
+const retiredBridgeGlobals = [
+  'AnalyticsRegistry', 'BrowserBackend', 'CatalogPersistence', 'Charts',
+  'CrossGameCutup', 'FilmNavigationService', 'CutupPlayer', 'HistoryManager',
+  'isPlayTagged', 'PenaltyModel', 'PlanExport', 'PlayGrid', 'PlaylistManager',
+  'PlayTagger', 'SeasonStore', 'SnapshotEnvelope', 'SpecialTeamsModel',
+  'SqlCatalog', 'StatsEngine', 'StorageBackend', 'StorageManager', 'StudyPlan',
+  'StudyQuery', 'StudyScreen', 'TagLibrary', 'TagProjection', 'TauriBackend',
+  'VersionManager', 'VideoController', 'WorkspaceShell',
+];
+const retiredGlobalPattern = retiredBridgeGlobals.map(escapeRegExp).join('|');
+const publishesRetiredGlobal = source => [
+  new RegExp(`\\b(?:globalThis|window)\\s*(?:\\.\\s*(?:${retiredGlobalPattern})\\b|\\[\\s*['\"](?:${retiredGlobalPattern})['\"]\\s*\\])\\s*=`),
+  /\b(?:Object\.assign|Object\.defineProperties)\(\s*(?:globalThis|window)\s*,/,
+  new RegExp(`\\bObject\\.defineProperty\\(\\s*(?:globalThis|window)\\s*,\\s*['\"](?:${retiredGlobalPattern})['\"]`),
+].some(pattern => pattern.test(source));
+const missedPublisherMutations = [
+  'globalThis.StatsEngine = StatsEngine;',
+  "window['SeasonStore'] = SeasonStore;",
+  'Object.assign(globalThis, { Charts });',
+  "Object.defineProperty(window, 'PlayGrid', { value: PlayGrid });",
+].filter(source => !publishesRetiredGlobal(source));
+ok(missedPublisherMutations.length === 0,
+  'legacy-global guard detects direct, computed, bulk, and defineProperty publication mutations',
+  missedPublisherMutations.join(' | '));
 const globalPublishers = (await Promise.all(jsFiles.map(async name =>
-  /(?:Object\.assign|Object\.defineProperties)\(\s*(?:globalThis|window)\s*,/.test(await read(`js/${name}`)) ? name : null
+  publishesRetiredGlobal(await read(`js/${name}`)) ? name : null
 ))).filter(Boolean);
 ok(bridgeModuleGone && bridgeEntryGone && globalPublishers.length === 0,
   'no module publishes engine classes onto globalThis -- the legacy test bridge is deleted, not merely unreferenced',
