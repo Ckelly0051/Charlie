@@ -9,7 +9,7 @@
    design-comps/home-workspace-2026-08-31/home.html almost verbatim. */
 body.ws-route-home .ws-home{padding:0}
 body.ws-route-home .ws-home>.ws-home-page{max-width:none;margin:0}
-.ws-home-page{min-width:0;min-height:100%;display:grid;color:var(--gi-bd-strong);font-family:var(--gi-sans)}
+.ws-home-page{min-width:0;height:100%;min-height:0;display:grid;color:var(--gi-bd-strong);font-family:var(--gi-sans)}
 .ws-home-page .home-content{min-width:0;padding:24px 28px 20px}
 .ws-home-page #wsGreeting{font:600 26px/1.2 var(--gi-sans);margin:6px 0;overflow-wrap:anywhere}
 .ws-home-page #wsHomeEyebrow{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
@@ -77,12 +77,20 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
    1440-season.png. Rows are the purpose-built RailSeasonRow (see
    native-home.jsx) -- no Team Hub action buttons squeezed into a 236px
    column, which is what previously left the season name a 75px sliver. */
-.ws-home-page .home-with-rail{display:grid;grid-template-columns:224px minmax(0,1fr);align-items:stretch;min-height:100%}
-/* Sticky and viewport-bounded so a long multi-year history scrolls INSIDE
-   the rail (.rail-trees) instead of pushing the rail tools off the bottom
-   of a growing page. Entries are never dropped to avoid scrolling; the
-   trees just take the scroll. */
-.ws-home-page .rail-year{position:sticky;top:0;align-self:start;display:flex;flex-direction:column;gap:22px;min-width:0;max-height:100vh;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .home-with-rail{display:grid;grid-template-columns:224px minmax(0,1fr);align-items:stretch;height:100%;min-height:0}
+/* The rail is bounded by the ROUTE frame, never 100vh. `.ws-home` is a grid
+   item of `.ws-main`'s minmax(0,1fr) row, so it already excludes the shell
+   chrome above it AND the fixed bottom navigation at <=900px -- 100vh
+   overshot that frame by the height of the chrome (118px at desktop, 110px
+   at 768), which pushed `Manage program` and the rail foot off-screen at
+   EVERY width, not just tablet. Home therefore owns no page scroll: the
+   route is the definite-height frame, the game grid scrolls inside
+   `.home-content`, and a long multi-year history scrolls inside
+   `.rail-trees`. Entries are never dropped to avoid scrolling, and every
+   rail action stays reachable without scrolling the main panel. */
+body.ws-route-home .ws-home{overflow:hidden}
+.ws-home-page .rail-year{display:flex;flex-direction:column;gap:22px;min-width:0;height:100%;min-height:0;overflow:hidden;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .home-content{min-height:0;overflow-y:auto}
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
 .ws-home-page .rail-head .icon-btn:hover{border-color:var(--gi-bd-bone);background:var(--gi-bd-control-active)}
@@ -256,8 +264,13 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .detail-pane{position:static}
 }
 @media(max-width:700px){
+  /* The rail stacks above the content here, so the route-frame scroll owner
+     from the desktop rule set is handed back to the page. */
+  body.ws-route-home .ws-home{overflow-y:auto}
+  .ws-home-page,.ws-home-page .home-with-rail{height:auto;min-height:100%}
+  .ws-home-page .home-content{overflow-y:visible}
   .ws-home-page .home-with-rail{grid-template-columns:1fr;gap:0}
-  .ws-home-page .rail-year{position:static;height:auto;min-height:0;border-right:0;border-bottom:1px solid var(--gi-bd-line);margin-bottom:20px;padding-bottom:20px}
+  .ws-home-page .rail-year{position:static;height:auto;min-height:0;overflow:visible;border-right:0;border-bottom:1px solid var(--gi-bd-line);margin-bottom:20px;padding-bottom:20px}
   .ws-home-page .rail-groups{max-height:none;overflow-y:visible}
   .ws-home-page .rail-groups,.ws-home-page .rail-group{flex-direction:row;flex-wrap:wrap;align-items:center}
   .ws-home-page .rail-row{width:auto}.ws-home-page .rail-tools{flex-direction:row;flex-wrap:wrap;gap:4px}.ws-home-page .rail-scope{width:100%}

@@ -37,6 +37,9 @@ const built = await page.evaluate(async () => {
   await hub.createSeason({ year: '2025', level: 'JV' });
   await hub.createSeason({ year: '2026', level: 'Varsity' });
   await hub.createScout({ opponent: 'Holy Family', year: '2025', level: 'Varsity', sourceTeamA: 'Holy Family', sourceTeamB: 'Central', date: '2025-09-05' });
+  // Same opponent, same year, DIFFERENT level -- level is an identity
+  // breakpoint, so these two rows must not read identically.
+  await hub.createScout({ opponent: 'Holy Family', year: '2025', level: 'JV', sourceTeamA: 'Holy Family', sourceTeamB: 'Central', date: '2025-09-06' });
   await hub.createScout({ opponent: 'Riverside', year: '2026', level: 'Varsity', sourceTeamA: 'Riverside', sourceTeamB: 'Central', date: '2026-09-04' });
   await hub.load();
   const s = hub.snapshot();
@@ -48,7 +51,7 @@ const built = await page.evaluate(async () => {
     mode: s.workspaceMode,
   };
 });
-ok(built.railPrograms >= 2 && built.railScouts === 2,
+ok(built.railPrograms >= 2 && built.railScouts === 3,
   'The rail collection is the COMPLETE team collection, not the main-panel filter', built);
 ok(built.mainPanel < built.railTotal,
   'The main-panel collection stays filtered and is a strict subset of the rail collection', built);
@@ -74,7 +77,7 @@ const railShape = async () => page.evaluate(() => {
 const bothVisible = (shape, when) => {
   ok(shape.count === 2 && /Program Seasons/.test(shape.titles[0]) && /Opponent Scouts/.test(shape.titles[1]),
     `Both rail sections are present ${when}`, shape);
-  ok(shape.rows[0].length >= 2 && shape.rows[1].length === 2,
+  ok(shape.rows[0].length >= 2 && shape.rows[1].length === 3,
     `Both rail sections still list their own entries ${when}`, shape);
 };
 
@@ -98,20 +101,52 @@ await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace
 await new Promise(r => setTimeout(r, 250));
 bothVisible(await railShape(), 'after switching the workspace back to Program');
 
-// Cross-section opening: from a program season, open a SCOUT row.
+// Scout rows must stay distinguishable. Level is an identity breakpoint: the
+// tree already states the year, but two same-year scouts of the SAME opponent
+// at different levels are otherwise the same string with the same game count.
+const scoutRows = await page.evaluate(() => [...document.querySelectorAll('[data-rail-section="Opponent Scouts"] .rail-row')]
+  .map(b => ({ label: b.querySelector('strong')?.textContent || '', id: b.dataset.seasonId })));
+const holyFamily = scoutRows.filter(r => /Holy Family/.test(r.label));
+ok(holyFamily.length === 2 && holyFamily[0].label !== holyFamily[1].label,
+  'Two same-year scouts of one opponent render DISTINCT rows', scoutRows);
+ok(holyFamily.some(r => /Varsity/.test(r.label)) && holyFamily.some(r => /JV/.test(r.label)),
+  'Scout rows keep the level that distinguishes them', scoutRows);
+ok(new Set(scoutRows.map(r => r.label)).size === scoutRows.length,
+  'Every scout row label is unique within its tree', scoutRows);
+
+// Cross-section opening drives the REAL rendered rows: click the actual
+// `.rail-row` element and wait for the resulting season context, so a
+// regression that renders an unclickable or unreachable row is caught here
+// rather than passing on a direct controller call.
+const clickRailRow = async (seasonId, when) => {
+  const sel = `.rail-row[data-season-id="${seasonId}"]`;
+  await page.waitForSelector(sel, { visible: true, timeout: 5000 });
+  const before = await page.evaluate(s => {
+    const row = document.querySelector(s);
+    const box = row.getBoundingClientRect();
+    return { section: row.closest('.rail-section')?.dataset.railSection || '', width: box.width, height: box.height };
+  }, sel);
+  ok(before.width > 0 && before.height > 0, `The rail row is a real rendered, clickable target ${when}`, before);
+  await page.click(sel);
+  await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, { timeout: 8000 }, seasonId);
+  await new Promise(r => setTimeout(r, 400));
+  return before;
+};
+
+// Cross-section opening: from a program season, CLICK a SCOUT row.
 const scoutId = await page.evaluate(() => window.app.teamHubScreen.snapshot().railSeasons.find(s => s.isScout).id);
-await page.evaluate(async id => { await window.app.teamHubScreen.openSeason(id); }, scoutId);
-await new Promise(r => setTimeout(r, 400));
+const scoutClick = await clickRailRow(scoutId, 'in the Opponent Scouts tree');
+ok(scoutClick.section === 'Opponent Scouts', 'That row really lives in the Opponent Scouts tree', scoutClick);
 shape = await railShape();
 ok(shape.openSeasonId === scoutId && shape.openKind === 'scout',
   'Clicking an Opponent Scout row from the program workspace opens that scout', { shape, scoutId });
 bothVisible(shape, 'after opening a scout from the program workspace');
 ok(shape.activeCount === 1, 'Exactly one rail row is highlighted as open', shape);
 
-// Cross-section opening the other way: from the open scout, open a PROGRAM season.
+// Cross-section opening the other way: from the open scout, CLICK a PROGRAM season.
 const programId = await page.evaluate(() => window.app.teamHubScreen.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id);
-await page.evaluate(async id => { await window.app.teamHubScreen.openSeason(id); }, programId);
-await new Promise(r => setTimeout(r, 400));
+const programClick = await clickRailRow(programId, 'in the Program Seasons tree');
+ok(programClick.section === 'Program Seasons', 'That row really lives in the Program Seasons tree', programClick);
 shape = await railShape();
 ok(shape.openSeasonId === programId && shape.openKind !== 'scout',
   'Clicking a Program Season row while a scout is open opens that program season', { shape, programId });
@@ -150,8 +185,55 @@ const isolation = await page.evaluate(async () => {
 });
 ok(isolation.every(x => x.opened === x.id),
   'Every rail row opens its own season, never another one', isolation);
-ok(isolation.filter(x => x.kind === 'scout').length === 2,
+ok(isolation.filter(x => x.kind === 'scout').length === 3,
   'Opened scouts report scout kind; opened program seasons do not', isolation);
+
+// Every fixed rail action must be reachable at every release width WITHOUT
+// scrolling the main game grid. The rail is bounded by the route frame, which
+// already excludes the shell chrome above it and the fixed bottom navigation
+// below it at narrow widths; a viewport-height cap overshoots that frame and
+// pushes the last tools and the rail foot off-screen.
+await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  const program = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo);
+  if (program) await hub.openSeason(program.id);
+});
+await new Promise(r => setTimeout(r, 400));
+for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280, 800], ['768x900', 768, 900]]) {
+  await page.setViewport({ width, height });
+  await new Promise(r => setTimeout(r, 350));
+  const reach = await page.evaluate(() => {
+    const rail = document.querySelector('.rail-year').getBoundingClientRect();
+    const nav = document.querySelector('.ws-mobile-nav');
+    const navBox = nav && getComputedStyle(nav).display !== 'none' ? nav.getBoundingClientRect() : null;
+    const limit = Math.min(innerHeight, navBox ? navBox.top : Infinity);
+    const named = el => (el.textContent || '').replace(/\s+/g, ' ').trim();
+    const fixed = [...document.querySelectorAll('.rail-tools button'), ...document.querySelectorAll('.rail-foot')];
+    return {
+      railBottom: Math.round(rail.bottom), railTop: Math.round(rail.top), limit: Math.round(limit),
+      tools: fixed.map(named),
+      cutOff: fixed.filter(el => el.getBoundingClientRect().bottom > limit + 1).map(named),
+      pageOverflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+    };
+  });
+  ok(reach.railBottom <= reach.limit + 1,
+    `The rail ends inside the route frame at ${label}`, reach);
+  ok(reach.tools.length >= 5 && reach.cutOff.length === 0,
+    `Every fixed rail action is reachable without scrolling at ${label}`, reach);
+  // The grid owning its own scroll is what keeps the rail in place; prove the
+  // rail does not move when the coach scrolls the main panel to the bottom.
+  const held = await page.evaluate(() => {
+    const content = document.querySelector('.home-content');
+    const before = document.querySelector('.rail-tools').getBoundingClientRect().top;
+    content.scrollTop = content.scrollHeight;
+    return { scrolled: content.scrollTop, before: Math.round(before), after: Math.round(document.querySelector('.rail-tools').getBoundingClientRect().top) };
+  });
+  ok(held.before === held.after,
+    `Rail actions stay put while the main game grid scrolls at ${label}`, held);
+  await page.evaluate(() => { document.querySelector('.home-content').scrollTop = 0; });
+}
+await page.setViewport({ width: 1440, height: 900 });
+await new Promise(r => setTimeout(r, 300));
 
 // Reload with scout mode persisted -- both trees must come back.
 await page.evaluate(() => localStorage.setItem('giq_home_workspace', 'scout'));

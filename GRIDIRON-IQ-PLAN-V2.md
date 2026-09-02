@@ -301,6 +301,29 @@ source — `TeamHubScreen.state.seasons` stays the main-panel filtered list and
 against the filtered list is what would make every cross-section row dead, so
 that lookup is the load-bearing part, not the rendering.
 
+**REVIEW REPAIR (2026-09-02).** The review of that implementation filed three
+findings; all are closed, each mutation-verified. Two are worth carrying as
+standing constraints rather than one-off fixes:
+
+- **Bound the rail to the ROUTE frame, never to `100vh`.** `.ws-home` is a grid
+  item of `.ws-main`'s `minmax(0,1fr)` row, so it already excludes the shell
+  chrome above and the fixed bottom navigation below. A viewport-height cap
+  overshoots that frame by the chrome's height and pushes the last rail tools
+  off-screen — measured at 1440x900 and 1280x800, not only at tablet height,
+  which is how the finding was reported. Home therefore owns no page scroll:
+  the route is the definite-height frame and the game grid scrolls inside
+  `.home-content`, so rail actions cannot scroll away.
+- **Level is an identity breakpoint on a scout row.** The tree already states
+  the year, so the year is redundant in the row; the level is not. Two
+  same-year scouts of one opponent at different levels are otherwise the same
+  string with the same game count. Rows read `opponent · level`.
+
+The third finding is a testing standard, not a Home behaviour: a regression
+that claims to test a click must click the rendered element and wait for the
+resulting context. Calling the controller directly proves the controller, and
+would pass against a row that renders unreachable or without a handler — which
+is exactly what the mutation now reproduces.
+
 **Clarification — aligning a control to actual wrapped content (2026-09-01).**
 A control that must sit at the right edge of a group's real, currently-wrapped
 content (e.g., an "Edit library" action beside a chip cloud) cannot be solved

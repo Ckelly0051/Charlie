@@ -1,3 +1,73 @@
+### REVIEW REPAIR OF e48fa46 - THREE FINDINGS CLOSED (2026-09-02)
+
+The review of `e48fa46` filed one P1 and two P2s. All three verified against
+source and reproduced before any code changed; each fix is mutation-verified.
+
+**[P1] The rail was capped at `100vh`, which overshoots the route frame at
+EVERY width - not only at tablet height.** The reviewer measured it at 768x900,
+where the fixed bottom navigation hides the lower rail. Measuring first showed
+it is worse: `.ws-home` is a grid item of `.ws-main`'s `minmax(0,1fr)` row, so
+it already starts BELOW the shell chrome (118px at desktop, 48px at 768) and
+already ends ABOVE the mobile navigation. A `100vh` rail therefore ran past the
+frame by the height of that chrome, and `Manage program` plus the rail foot
+were cut off at **1440x900 and 1280x800 as well** (railBottom 1018 vs a 900
+viewport; 918 vs 800; 948 vs an 838 limit at 768).
+
+Fixed by making the route the definite-height frame instead of guessing a
+viewport figure: `.ws-home-page` and `.home-with-rail` take `height:100%`,
+`.rail-year` takes `height:100%` with no viewport cap, and `.home-content`
+becomes the scroll owner so Home has no page scroll. The rail therefore cannot
+scroll away, which is what "reachable without scrolling the main game grid"
+requires. The `<=700px` block hands the scroll back to the page, because the
+rail stacks above the content there. Measured after: railBottom equals the
+frame limit exactly at all three widths (900/900, 800/800, 838/838), zero
+actions cut off, zero page overflow.
+
+**[P2] Scout rows dropped the level, so same-opponent scouts collided.**
+`railLabel()` stripped both the year and the level; two 2026 Holy Family scouts
+(Varsity and JV) rendered as identical `Holy Family` rows with identical game
+counts. The year is genuinely redundant - the tree states it as the group
+heading - but **level is an identity breakpoint**. Rows now read
+`opponent · level` (`Holy Family · Varsity`), opponent first because that is
+what a coach scans for.
+
+**[P2] The regression claimed to test clicks and called the controller.**
+Lines 103/113 called `teamHubScreen.openSeason()` directly, which proves the
+controller and not that a rendered rail row is reachable or clickable. Rows now
+carry `data-season-id` (matching the existing `data-game-id`/`data-hub-team`
+convention) and the harness performs a real `page.click()` on the `.rail-row`
+element, then waits for the resulting season context. Screenshots are
+re-captured only after transient setup toasts have EXPIRED on their own - the
+capture refuses to run while one is on screen, rather than deleting the node,
+which would mask a real toast defect.
+
+**Mutation proof, each fix independently:** restoring the `100vh` cap reds six
+assertions naming `Manage program` and the rail foot as cut off at all three
+widths; restoring the level-stripping label reds three assertions with two
+identical `Holy Family` rows as evidence; removing the row's `onClick` makes
+the click test time out waiting for the season context - a failure the previous
+direct-controller call could not produce.
+
+**Verification:** `e2e-home-deferred-repair` **93/93** (was 77 - the fixture
+gains a same-year/same-opponent/different-level scout, three label-uniqueness
+assertions, nine reachability assertions across three widths, and the real
+click assertions). `e2e-home-review-repair` 26/26; `e2e-workspace-shell` 91/91;
+`e2e-native-season` 10/10; `e2e-home-first-launch` 13/13; `e2e-native-team-hub`
+29/29; `e2e-native-settings` 25/25; `e2e-team-registry` 24/24;
+`e2e-tag-library-settings` 17/17; `e2e-responsive-containment` 105/105.
+`npm run build` clean.
+
+**Visual verification** re-captured toast-free at 1440x900, 1280x800 and
+768x900 plus the long-history rail in both scroll states and the detail
+actions: `artifacts/home-deferred-repair-2026-09-02/`. Inspected directly - all
+six rail actions visible above the mobile navigation at 768, scout rows
+distinct, chronological card order intact, Game Plan matching its siblings.
+**Disclosed:** with a fully populated season the rail trees get ~286px at
+1440x900, so a coach sees Program Seasons and scrolls the rail to reach
+Opponent Scouts. That is the intended "long histories scroll inside the rail"
+behavior and is strictly better than the prior state, where the trees were
+taller but the tools were off-screen; the allocation is worth revisiting if the
+coach finds it tight.
 ### DEFERRED HOME REPAIR BATCH - ALL FIVE ITEMS IMPLEMENTED (2026-09-02)
 
 The five deferred Home items recorded below are implemented as one batch. The

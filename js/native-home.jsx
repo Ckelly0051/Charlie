@@ -315,25 +315,30 @@ function groupByYear(seasons) {
 /** The row's label inside a tree that is ALREADY grouped by year, so the
  *  year never repeats in the row itself. A program season is identified by
  *  its level; a scout season's name composes as
- *  `year · level · opponent · Scout`, so strip the parts the tree already
- *  states and keep the opponent -- the only part that distinguishes one
- *  scout row from another. Falls back to the full stored name whenever the
- *  name does not match that composition. */
+ *  `year · level · opponent · Scout`, so the year and the `Scout` suffix are
+ *  dropped and the row reads `opponent · level`. LEVEL IS AN IDENTITY
+ *  BREAKPOINT, not decoration: two same-year scouts of the same opponent at
+ *  different levels are otherwise indistinguishable, so it is kept and the
+ *  opponent leads because that is what a coach scans for. Falls back to the
+ *  full stored name whenever the name does not match that composition. */
 function railLabel(season) {
   if (!season.isScout) return season.level || season.name || 'Season';
+  const year = String(season.year || '');
+  const level = String(season.level || '');
   const parts = String(season.name || '').split(' · ').filter(Boolean);
-  const trimmed = parts.filter((part, index) => {
-    if (index === 0 && part === String(season.year)) return false;
-    if (index === 1 && part === String(season.level)) return false;
+  const opponent = parts.filter((part, index) => {
+    if (index === 0 && year && part === year) return false;
+    if (index === 1 && level && part === level) return false;
     return part !== 'Scout';
-  });
-  return trimmed.join(' · ') || season.name || 'Opponent';
+  }).join(' · ');
+  if (!opponent) return season.name || 'Opponent';
+  return level ? `${opponent} · ${level}` : opponent;
 }
 
 function RailSeasonRow({ season, hub }) {
   const label = railLabel(season);
   const count = season.gameCount === 1 ? '1 game' : `${season.gameCount || 0} games`;
-  return <button type="button" class={`rail-row${season.current ? ' is-current' : ''}`}
+  return <button type="button" class={`rail-row${season.current ? ' is-current' : ''}`} data-season-id={season.id}
     aria-current={season.current ? 'true' : undefined} title={season.name || label} onClick={() => hub.openSeason(season.id)}>
     {icon('folder')}<span><strong>{label}</strong><small>{count}</small></span>
   </button>;
