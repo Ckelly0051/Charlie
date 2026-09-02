@@ -1,3 +1,217 @@
+### DEFERRED HOME REPAIR BATCH - ALL FIVE ITEMS IMPLEMENTED (2026-09-02)
+
+The five deferred Home items recorded below are implemented as one batch. The
+approved Home structure and the approved vertical Breakdown workspace are
+unchanged; Breakdown, Study, Reports, Plan, packaging, and the version are
+untouched.
+
+**1. Persistent Program Seasons + Opponent Scouts rails.** `TeamHubScreen.load()`
+now derives two collections from the one `teamSeasons` source: `seasons` stays
+the main-panel filtered collection, and a new `railSeasons` carries the
+complete team collection. `SeasonRail` (`js/native-home.jsx`) renders two
+permanent `RailSection` trees from `railSeasons` and never reads
+`workspaceMode`, so entering Opponent Scout can no longer replace the program
+hierarchy. Each tree groups independently by year, newest year first, with the
+established level ordering retained inside a program year. `openSeason()`
+resolves through a new `_findSeasonRow()` against the complete collection —
+resolving from the filtered list would have made exactly the cross-section rows
+dead. `_verifyFilmHealth` patches both collections so a background film check
+cannot desynchronise them. `giq_home_workspace` is never cleared and Program
+mode is never forced; season-scoped rail tools (Roster, Edit season details)
+now derive from the OPEN SEASON's kind rather than the main-panel filter, so
+they stay available while a program season is open regardless of what the coach
+is browsing. `No opponents yet` renders only inside an empty Opponent Scouts
+section. Scout rows label by opponent (`railLabel()`) rather than repeating the
+year already shown as the group heading, which was truncating to
+`2026 · Varsity · Riv…`. The rail is sticky and viewport-bounded so a long
+multi-year history scrolls inside `.rail-trees` (measured: 1428px of content in
+a 419px box, all 15 rows retained, rail tools still visible) instead of
+dropping entries or pushing the tools off a growing page.
+
+**2. Chronological game order.** `HomeScreen`'s initial sort and its
+season-change reset are both `oldest`; the visible label is `Oldest first` and
+`Newest first` remains an explicit alternate that is never the default. The
+comparator is extracted into `_compareGames()`/`_weekRank()`: game date is the
+primary key, dated games precede undated ones in BOTH directions, and week only
+breaks a tie within one date. A blank, zero, negative or nonnumeric week is not
+treated as "week 0" — it ranks after every validly numbered week — and weeks
+compare numerically so Week 10 follows Week 2. `filteredGames()` still slices
+before sorting, so the stored games array is never reordered. Returning Home
+within the same season preserves an explicitly selected sort; opening a
+different season resets to oldest first.
+
+**3. Game Plan.** The split `Season plans` / `Open →` row is replaced by one
+ordinary `Game Plan` detail action carrying the same `ws-btn` +
+`.detail-actions button` rules as Open Study and Open Reports, so its
+typography, dimensions, hover, pressed and focus states match by construction
+rather than by three hand-synced rules. `screen.openPlan()` and the Plan route
+are unchanged. The obsolete `.plan-link` CSS is deleted. `.detail-actions
+button` gained a shared `:active` and `:focus-visible` treatment, which the
+binding interaction-state rule already required of all three.
+
+**4/5. Copy.** Every replacement listed in the deferred notes is applied
+verbatim across `js/native-home.jsx` and `js/native-team-hub.jsx`, including
+both opponent empty states, the opponent library hero, first-launch headings
+and setup helpers, the scout Home summary (source-game count only), Team Hub's
+workspace choice and subtitle, and the create-season / edit-season /
+setup-guide / create-scout dialog copy. **Scope note:** `Our Program` also
+appears in `js/workspace-shell.js` (the shell's Program/Opponent Scout switch)
+and `js/home-screen.js` (the Home eyebrow). Those files were not in the
+approved copy list and the instruction was to make only the listed
+replacements, so they deliberately still carry it; the regression scopes that
+particular phrase to `native-team-hub.jsx` for exactly that reason. No
+validation error, destructive confirmation, recovery warning, toast, or
+safeguard was rewritten.
+
+**Two test corrections, neither a loosened threshold.** The full-width rail
+assertion in `e2e-home-review-repair.mjs` anchored its dead-space measurement
+to "the last `.rail-group`", which stopped describing the layout once a second
+permanent tree legitimately sits between that group and the rail tools. It now
+anchors to the lowest real content inside `.rail-trees` at the same 80px
+threshold, and additionally requires both sections to exist. `.rail-trees` is
+`flex:0 1 auto` specifically so it cannot grow and reintroduce the dead space
+that check exists to catch. `e2e-home-first-launch.mjs` pinned the superseded
+first-launch title and workspace-choice labels; it now pins the newly approved
+strings.
+
+**New permanent regression:** `tools/e2e-home-deferred-repair.mjs` — **77/77**.
+Covers both trees across two years through workspace changes, cross-section
+openings in both directions, leaving and returning Home, and a reload with
+scout mode persisted; per-row isolation after every open; the complete
+chronological fixture (scrimmage, preseason, Weeks 1/2/10, postseason,
+duplicate dates, undated, and a zero week) in both sort directions and through
+search, filters and grid/list; Game Plan's copy, route, state parity with Open
+Study and absence of the retired row; every approved string rendered in first
+launch, populated Home, empty states, dialogs and the setup guide; every
+superseded phrase absent from both source and rendered UI; and unchanged
+duplicate-season validation plus the typed delete confirmation.
+
+**Verification:** `npm run build` clean. `e2e-home-deferred-repair` 77/77;
+`e2e-home-review-repair` 26/26; `e2e-workspace-shell` 91/91;
+`e2e-native-season` 10/10; `e2e-home-first-launch` 13/13;
+`e2e-native-team-hub` 29/29; `e2e-native-settings` 25/25; `e2e-team-registry`
+24/24; `e2e-tag-library-settings` 17/17. Zero page errors.
+
+**Pre-existing failures, confirmed not caused by this batch.**
+`e2e-onboarding`, `e2e-v2b-control-center`, `e2e-film-room`,
+`e2e-wipe-recovery` and `e2e-native-mirror-recovery` all fail waiting on
+`.gi-hub-first` — the app boots to the approved first-launch Home rather than
+the retired Team Hub first-run panel, which `e2e-home-first-launch` asserts as
+correct. Each was re-run at HEAD with this batch stashed and failed
+identically, so they are stale first-run contracts, not regressions. They are
+reported rather than repaired here: rewriting five harnesses' first-run setup
+is its own reviewed change, not part of a Home repair batch.
+
+**Visual verification** (real built app, program seasons and opponent scouts
+across 2022-2026, nine-game chronological schedule):
+`artifacts/home-deferred-repair-2026-09-02/` — Home at 1440x900, 1280x800 and
+768x900, plus the long-history rail in both scroll states and the detail
+actions. Inspected directly: both trees with correct year grouping and one
+highlighted row, chronological cards, Game Plan matching its siblings, no
+clipping, no overlap, and zero horizontal overflow at every width.
+
+### BINDING PRODUCT COPY RULE + DEFERRED OPPONENT COPY REPAIR (2026-09-01)
+
+Coach-facing UI copy must be literal, concise, and operational. State the
+object, current state, or available action directly. Do not use conversational
+reassurance, rationale, promises, second-person narration, or implementation /
+data-safety language in routine headings, labels, helper text, or empty states.
+Avoid `our` and `your` when the product noun is clearer. Use labels such as
+`Program season`, `Opponent scout`, `Add film`, and `No opponent scouts`.
+Supporting copy is permitted only when it supplies information required to
+make the next decision. Data separation must be enforced by the model and
+tests; describe it in UI only at a consequential boundary where the coach must
+understand the effect of an action.
+
+Add the following exact production repair to the next small-polish batch; do
+not change the current `1.12.0-69` installer for this note:
+
+- In both `js/native-home.jsx` and `js/native-team-hub.jsx`, replace the
+  opponent empty-state heading `Scout an opponent without touching our season`
+  with `No opponent scouts`.
+- Replace its supporting sentence with `Add an opponent and source game, then
+  link film.`
+- In `js/native-team-hub.jsx`, replace the Opponent Scouting Library hero
+  sentence about film staying isolated from `our schedule, record, and team
+  totals` with `Opponent games, film, and charting.`
+- Preserve the existing opponent-scoping behavior, routes, and actions. This is
+  a copy repair, not permission to redesign the screen or invent workflow.
+- Review the completed Home workspace and team-hub opponent states together at
+  release widths so duplicate copy paths cannot drift and text cannot clip.
+
+### BUG - OPPONENT MODE HIDES PROGRAM SEASONS FROM THE HOME RAIL (2026-09-01)
+
+Deferred for the next repair batch; not fixed in `1.12.0-69`.
+
+**Reproduction:** Open Home with a program season visible in the persistent
+left rail. Enter `Opponent Scout`, then return to Home. The rail changes to
+`Opponents`, reports `No opponents yet`, and the program season hierarchy is no
+longer available even though the program season still exists and remains the
+displayed season scope.
+
+**Confirmed cause:** `TeamHubScreen.selectWorkspace('scout')` persists
+`giq_home_workspace=scout`. `SeasonRail` derives its identity from that global
+workspace mode and filters its rows with `isScout === scout`, so switching the
+main library to opponent scouting also removes every program-season row. Home
+reuses the persisted mode instead of restoring the rail navigation.
+
+**Required behavior:** The persistent Home rail is a complete context navigator,
+not a view of the currently selected workspace mode. It must always render two
+simultaneously visible trees: `Program Seasons` and `Opponent Scouts`. Neither
+tree may be conditionally hidden, replaced, or automatically collapsed when a
+workspace is selected, opened, closed, or revisited. Each tree must group its
+own entries by year so a coach can retain and open program seasons and opponent
+scouts spanning multiple football years. An empty Opponent Scouts tree may show
+`No opponents yet` inside that section, but it must not consume or replace the
+Program Seasons tree. Long histories may scroll within the rail; they may not
+be removed from navigation. A click on any program season must open that season
+and restore program context. A click on any opponent scout must open that scout
+without destroying the program-season navigation. The active row must remain
+clearly identified in whichever tree owns it. Do not solve this by deleting the
+saved workspace preference or by forcing Home to program mode; separate
+main-panel mode from persistent rail contents.
+
+**Regression coverage:** Use program seasons and opponent scouts in at least two
+different years. Verify both complete year-grouped trees before and after
+Program -> Opponent Scout -> Home, Opponent Scout -> program-season row, program
+season -> opponent-scout row, and an app reload while the saved workspace mode
+is `scout`. In every case both trees remain expanded and available, the current
+row is accurate, and opening a row loads the correct isolated season/scout data.
+
+### HOME GAME LIBRARY DEFAULT ORDER - CHRONOLOGICAL SCHEDULE (2026-09-01)
+
+Deferred for the next repair batch; not changed in `1.12.0-69`. This supersedes
+the initial request to force numeric week order.
+
+Week is descriptive metadata, not the canonical schedule sequence. Scrimmages,
+preseason games, bye weeks, and postseason rounds may not have ordinary numeric
+week values. The Home game library must therefore default to `Schedule order`,
+with game date ascending as the primary key and cards rendered left-to-right,
+then top-to-bottom. The existing `Newest first` option may remain as an explicit
+coach-selected alternate, but a season change must not reset the default view
+to it.
+
+For games sharing the same date, use a valid numeric week ascending and then a
+stable game id. Dated games sort before undated games. Within the undated group,
+use valid numeric week ascending, then stable game id; blank, zero, negative, or
+nonnumeric weeks follow valid numbered weeks. Never compare numeric week values
+lexically. Search and status filters preserve the selected ordering of the
+remaining cards.
+
+**Regression coverage:** Include a scrimmage or preseason game, ordinary Weeks
+1, 2, and 10, a postseason game, duplicate dates, and an undated game. Verify
+rendered order in grid/list views, filters, search, season switching, route
+returns, and the explicit `Newest first` alternate.
+
+### FUTURE HOME DETAIL ACTION - GAME PLAN (2026-09-01)
+
+In the selected-game Home panel, replace the current full-width action row that
+splits `Season plans` on the left and `Open ->` on the far right with one normal
+button labeled **Game Plan**. Preserve the existing canonical Plan destination;
+this is a label/control-composition change, not a new route or a second planning
+workflow. Deferred by the coach for a future update; do not change the current
+`1.12.0-69` installer for this note.
+
 ### CODEX CLOSEOUT - HOME/BREAKDOWN REVIEW REPAIRS + 1.12.0-69 INSTALLER (2026-09-01)
 
 Codex reviewed `4569db9`, rejected its false closure of the Breakdown alignment

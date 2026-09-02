@@ -26,7 +26,7 @@ let r=await scenario(async page=>{
   return{initial,guardedLibrary,responsive,preview,saved};
 });
 ok(r.initial.route==='home'&&r.initial.hubHidden&&r.initial.first&&r.initial.rail,'First launch is the real Home route with its persistent rail, never the old Team Hub panel',JSON.stringify(r));
-ok(r.initial.title==='Your football workspace'&&r.initial.choices.join('|')==='Our Program|Opponent Scout'&&/Your coaching workspace/.test(r.initial.library),'First launch renders the approved Home copy rather than the rejected onboarding copy',JSON.stringify(r.initial));
+ok(r.initial.title==='Football workspace'&&r.initial.choices.join('|')==='Program|Opponent Scout'&&/Your coaching workspace/.test(r.initial.library),'First launch renders the approved Home copy rather than the rejected onboarding copy',JSON.stringify(r.initial));
 ok(r.guardedLibrary.route==='home'&&r.guardedLibrary.hubHidden&&r.guardedLibrary.first,'Season Library cannot strand a no-program coach in Team Hub',JSON.stringify(r.guardedLibrary));
 ok(r.initial.overflow<=1&&!r.initial.overlap,'First-launch fields have no page overflow or label/control overlap',JSON.stringify(r.initial));
 ok(r.responsive.every(item=>item.overflow<=1&&item.first.left>=0&&item.first.right<=item.width+1),'Approved first-launch composition remains contained at all release widths',JSON.stringify(r.responsive));

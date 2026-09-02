@@ -31,7 +31,7 @@ export class HomeScreen {
     this._filmToken = 0;
     this._state = {
       status: 'idle', active: false, seasonId: '', selectedGameId: null,
-      query: '', sort: 'newest', filter: 'all', view: 'grid',
+      query: '', sort: 'oldest', filter: 'all', view: 'grid',
       filmHealth: {}, thumbnails: {}, thumbSources: {}, thumbnailRevision: 0,
     };
   }
@@ -91,7 +91,7 @@ export class HomeScreen {
       // queue too -- belt-and-braces, not a substitute for that scoping.
       this._thumbGen = new Map();
       this.thumbnails?.reset?.();
-      this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'newest', filmHealth: {}, thumbnails: {}, thumbSources: {} };
+      this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'oldest', filmHealth: {}, thumbnails: {}, thumbSources: {} };
     } else if (previousRoute !== 'home') {
       this._state = { ...this._state, selectedGameId: null };
     }
@@ -135,7 +135,7 @@ export class HomeScreen {
   }
 
   setQuery(value) { this._set({ query: String(value ?? '') }); }
-  setSort(value) { this._set({ sort: value === 'schedule' ? 'schedule' : 'newest' }); }
+  setSort(value) { this._set({ sort: value === 'newest' ? 'newest' : 'oldest' }); }
   setFilter(value) { this._set({ filter: ['chart', 'film'].includes(value) ? value : 'all' }); }
   setView(value) { this._set({ view: value === 'list' ? 'list' : 'grid' }); }
 
@@ -160,14 +160,39 @@ export class HomeScreen {
       const hay = [this.matchupTitle(g), this.fullTitle(g), g.gameInfo?.week ? `Week ${g.gameInfo.week}` : ''].join(' ').toLowerCase();
       return hay.includes(q);
     });
-    return filtered.slice().sort((a, b) => {
-      const da = a.gameInfo?.date || '', db = b.gameInfo?.date || '';
-      if (!da) return db ? 1 : String(a.id).localeCompare(String(b.id));
-      if (!db) return -1;
-      const byDate = this._state.sort === 'newest' ? db.localeCompare(da) : da.localeCompare(db);
+    // .slice() first -- the stored games array is never reordered in place.
+    const newestFirst = this._state.sort === 'newest';
+    return filtered.slice().sort((a, b) => this._compareGames(a, b, newestFirst));
+  }
+
+  /** Week is descriptive metadata, not the canonical schedule sequence:
+   *  scrimmages, preseason games, byes and postseason rounds may carry no
+   *  ordinary numeric week. A blank, zero, negative or nonnumeric week is
+   *  therefore NOT "week 0" -- it sorts AFTER every validly numbered week,
+   *  never ahead of Week 1. Compared numerically so Week 10 follows Week 2,
+   *  never lexically (where "10" precedes "2"). */
+  _weekRank(game) {
+    const raw = game?.gameInfo?.week;
+    const week = Number(raw);
+    const valid = raw !== '' && raw !== null && raw !== undefined && Number.isFinite(week) && week > 0;
+    return valid ? week : Number.POSITIVE_INFINITY;
+  }
+
+  /** Chronological order by game date -- the coach's real schedule sequence.
+   *  Date is the primary key; week only breaks a tie within one date. Dated
+   *  games always precede undated ones, in BOTH directions, so an undated
+   *  game never jumps to the front of a reversed list. */
+  _compareGames(a, b, newestFirst) {
+    const da = String(a.gameInfo?.date || ''), db = String(b.gameInfo?.date || '');
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    if (da && db) {
+      const byDate = newestFirst ? db.localeCompare(da) : da.localeCompare(db);
       if (byDate) return byDate;
-      return (Number(a.gameInfo?.week || 0) - Number(b.gameInfo?.week || 0)) || String(a.id).localeCompare(String(b.id));
-    });
+    }
+    const wa = this._weekRank(a), wb = this._weekRank(b);
+    if (wa !== wb) return wa - wb;
+    return String(a.id).localeCompare(String(b.id));
   }
 
   // -- Identity (2026-08-31 Home naming contract: school/nickname compose) --

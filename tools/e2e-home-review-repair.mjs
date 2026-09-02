@@ -328,13 +328,20 @@ for (const width of [1920, 1440, 1280]) {
     const rail = document.querySelector('.rail-year').getBoundingClientRect();
     const content = document.querySelector('.home-content').getBoundingClientRect();
     const tools = document.querySelector('.rail-tools').getBoundingClientRect();
-    const years = [...document.querySelectorAll('.rail-group')];
-    const last = years.at(-1)?.getBoundingClientRect();
+    // The rail now carries TWO permanent trees (Program Seasons + Opponent
+    // Scouts), so "the last year group" is no longer the last thing above
+    // the tools -- an empty Opponent Scouts section legitimately sits
+    // between them. Anchor to the lowest real content inside the trees
+    // instead, which measures the same guarantee (no dead space before the
+    // tools) against the current structure at the same 80px threshold.
+    const content_els = [...document.querySelectorAll('.rail-trees .rail-group, .rail-trees .rail-empty')];
+    const last = content_els.length ? Math.max(...content_els.map(el => el.getBoundingClientRect().bottom)) : null;
     return { left: rail.left, right: content.right, width: innerWidth,
       overflow: document.documentElement.scrollWidth - innerWidth,
-      toolGap: last ? tools.top - last.bottom : null };
+      sections: document.querySelectorAll('.rail-section').length,
+      toolGap: last !== null ? tools.top - last : null };
   });
-  ok(r.left < 2 && r.right > width - 2 && r.overflow <= 1 && r.toolGap !== null && r.toolGap < 80,
+  ok(r.left < 2 && r.right > width - 2 && r.overflow <= 1 && r.sections === 2 && r.toolGap !== null && r.toolGap < 80,
     `Home uses the available ${width}px workspace without outer gutters or horizontal overflow`, JSON.stringify(r));
 }
 

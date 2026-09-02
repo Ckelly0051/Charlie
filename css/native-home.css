@@ -78,7 +78,11 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
    native-home.jsx) -- no Team Hub action buttons squeezed into a 236px
    column, which is what previously left the season name a 75px sliver. */
 .ws-home-page .home-with-rail{display:grid;grid-template-columns:224px minmax(0,1fr);align-items:stretch;min-height:100%}
-.ws-home-page .rail-year{display:flex;flex-direction:column;gap:22px;min-width:0;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+/* Sticky and viewport-bounded so a long multi-year history scrolls INSIDE
+   the rail (.rail-trees) instead of pushing the rail tools off the bottom
+   of a growing page. Entries are never dropped to avoid scrolling; the
+   trees just take the scroll. */
+.ws-home-page .rail-year{position:sticky;top:0;align-self:start;display:flex;flex-direction:column;gap:22px;min-width:0;max-height:100vh;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
 .ws-home-page .rail-head .icon-btn:hover{border-color:var(--gi-bd-bone);background:var(--gi-bd-control-active)}
@@ -86,6 +90,13 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .rail-head .icon-btn:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .rail-library-link{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:36px;padding:0 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
 .ws-home-page .rail-library-link:hover{color:var(--gi-bd-gold)}
+/* Two permanent trees. Both always render; long histories scroll inside
+   the rail rather than dropping entries out of navigation. */
+/* flex:0 1 auto -- sizes to its content and SHRINKS (scrolls) when the rail
+   is short, but never grows to fill leftover height. A growing tree box is
+   exactly what previously left a large dead gap above the rail tools. */
+.ws-home-page .rail-trees{display:flex;flex:0 1 auto;flex-direction:column;gap:20px;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.ws-home-page .rail-section{display:flex;flex:0 0 auto;flex-direction:column;gap:10px;min-height:0}
 .ws-home-page .rail-groups{display:flex;flex-direction:column;gap:22px;min-height:0}
 .ws-home-page .rail-group{display:flex;flex-direction:column;gap:6px}
 .ws-home-page .rail-year-label{margin:0 0 2px;padding:0 10px;color:var(--gi-bd-strong);font:600 20px/1.2 var(--gi-sans)}
@@ -222,8 +233,18 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .detail-actions .ws-gold{grid-column:1/-1;background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:800}
 .ws-home-page .detail-actions .ws-gold:disabled{opacity:.45}
 .ws-home-page .detail-actions button{min-height:38px;font-size:12.5px;white-space:normal}
-.ws-home-page .detail-actions .plan-link{grid-column:1/-1;justify-content:space-between;display:flex;align-items:center;border:0;border-top:1px solid var(--gi-bd-line);border-radius:0;background:transparent;margin-top:6px;padding:11px 0;color:var(--gi-bd-copy)}
-.ws-home-page .detail-actions .plan-link strong{font-weight:500;color:var(--gi-bd-strong)}
+/* One shared interaction contract for every selected-game action, so Game
+   Plan, Open Study and Open Reports are identical by construction rather
+   than by three rules kept in sync by hand. Background/border/shadow only:
+   dimensions never move on hover or press. */
+.ws-home-page .detail-actions button:active:not(:disabled){background:var(--gi-1)}
+.ws-home-page .detail-actions button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+/* Game Plan is an ordinary detail action, sharing Open Study/Open Reports'
+   own `.ws-btn` + `.detail-actions button` typography, dimensions, hover,
+   pressed, and focus states. The retired split Season plans / Open -> row
+   had its own borderless full-width treatment; that CSS is deleted rather
+   than left inert. */
+.ws-home-page .detail-actions [data-ws-action="game-plan"]{grid-column:1/-1}
 body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-scout] .ws-game-row.selected{border-color:var(--gi-bd-cyan);box-shadow:0 0 0 1px var(--gi-bd-cyan)}
 
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}

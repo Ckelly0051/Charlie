@@ -14,7 +14,7 @@ export class TeamHubScreen {
     this.host = null;
     this._native = null;
     this._listeners = new Set();
-    this._state = { status: 'idle', teams: [], seasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, workspaceMode: (() => { try { return localStorage.getItem('giq_home_workspace') === 'scout' ? 'scout' : 'program'; } catch { return 'program'; } })(), allTeamSeasonCount: 0, control: null, error: '' };
+    this._state = { status: 'idle', teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, workspaceMode: (() => { try { return localStorage.getItem('giq_home_workspace') === 'scout' ? 'scout' : 'program'; } catch { return 'program'; } })(), allTeamSeasonCount: 0, control: null, error: '' };
     this._loadToken = 0;
   }
 
@@ -122,6 +122,13 @@ export class TeamHubScreen {
       const currentSeasonId = this._store()?.currentSeasonId || '';
       let workspaceMode = this._state.workspaceMode;
       if (!['program', 'scout'].includes(workspaceMode)) workspaceMode = 'program';
+      // `seasons` stays the MAIN-PANEL filtered collection (the library grid
+      // and Team Hub's own list follow the coach's workspace choice).
+      // `railSeasons` is the COMPLETE team collection, unfiltered: the Home
+      // rail is a context navigator, not a view of the selected workspace
+      // mode, so entering Opponent Scout must never remove the program
+      // seasons from navigation (the recorded rail defect). Two collections,
+      // one source -- no second storage or ownership path.
       const seasons = teamSeasons.filter(season => workspaceMode === 'scout' ? season.kind === 'scout' : season.kind !== 'scout');
       // Season rows render immediately from list metadata (name, counts,
       // current) so a large library or a slow film check never blocks Team
@@ -131,14 +138,15 @@ export class TeamHubScreen {
       // wrong "not checked" placeholder that never resolves for a season the
       // coach has not personally reopened this session.
       const rows = seasons.map(season => this._seasonRowShell(season, currentSeasonId));
+      const railRows = teamSeasons.map(season => this._seasonRowShell(season, currentSeasonId));
       const items = teams.length ? registry.checklistItems(seasons) : [];
       const doneCount = items.filter(item => item.done).length;
       const checklist = { items, doneCount, visible: !!teams.length && !!items.length && doneCount < items.length && !registry.checklistDismissed() };
       if (token !== this._loadToken) return false;
       const control = await this._controlStatus(teamSeasons);
       if (token !== this._loadToken) return false;
-      this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, checklist, workspaceMode, allTeamSeasonCount: teamSeasons.length, control, error: '' });
-      this._verifyFilmHealth(rows, currentSeasonId, token);
+      this._set({ status: 'ready', teams, seasons: rows, railSeasons: railRows, activeTeamId, currentSeasonId, profile, checklist, workspaceMode, allTeamSeasonCount: teamSeasons.length, control, error: '' });
+      this._verifyFilmHealth(railRows, currentSeasonId, token);
       return true;
     } catch (error) {
       if (token !== this._loadToken) return false;
@@ -180,7 +188,8 @@ export class TeamHubScreen {
       if (token !== this._loadToken) return;
       const film = await this._aggregateFilm(games);
       if (token !== this._loadToken) return;
-      this._set({ seasons: this._state.seasons.map(season => String(season.id) === String(row.id) ? { ...season, film } : season) });
+      const patch = list => list.map(season => String(season.id) === String(row.id) ? { ...season, film } : season);
+      this._set({ seasons: patch(this._state.seasons), railSeasons: patch(this._state.railSeasons || []) });
     });
   }
 
@@ -589,8 +598,20 @@ export class TeamHubScreen {
     return true;
   }
 
+  /** Resolves against the COMPLETE team collection, not the main-panel
+   *  filtered one: the persistent Home rail lists every program season and
+   *  every opponent scout at once, so a coach in Opponent Scout mode
+   *  clicking a program-season row must open it. Resolving from the filtered
+   *  list would make exactly those rows dead. */
+  _findSeasonRow(id) {
+    const wanted = String(id);
+    return (this._state.railSeasons || []).find(season => season.id === wanted)
+      || this._state.seasons.find(season => season.id === wanted)
+      || null;
+  }
+
   async openSeason(id) {
-    const row = this._state.seasons.find(season => season.id === String(id));
+    const row = this._findSeasonRow(id);
     if (!row) return false;
     try {
       if (!row.current) await this._storage().openSeasonById(row.id);

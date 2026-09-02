@@ -222,6 +222,13 @@ must look like a finished consumer coaching product, not a developer console.
 - Operational copy uses one readable UI/body family. Condensed/display faces
   are reserved for true headings and major numbers. Only supplied font weights
   may be used; synthetic weights and tiny low-contrast metadata fail review.
+- **Product-copy rule:** coach-facing copy states the object, state, or action
+  directly. It does not use conversational reassurance, rationale, promises,
+  second-person narration, or implementation/data-safety language in routine
+  UI. Prefer explicit product nouns over `our` or `your`. Supporting copy is
+  present only when it supplies information needed for the next decision.
+  Data isolation belongs in behavior and tests unless a consequential action
+  requires an explicit warning or confirmation.
 - Home, Reports, and Break Down are the reference screens for typography and
   cross-route visual coherence.
 - Pretty and functional are one acceptance requirement. Automated tests prove
@@ -233,6 +240,66 @@ must look like a finished consumer coaching product, not a developer console.
 This standard survives task resets, context compaction, and builder handoffs.
 Every handoff must identify its real-app screenshots and the coach's PASS,
 REVISE, or REJECT decision.
+
+**Deferred small-polish copy repair (2026-09-01).** The opponent empty state
+currently says `Scout an opponent without touching our season` in both
+`js/native-home.jsx` and `js/native-team-hub.jsx`; the team-hub hero also
+explains that opponent film stays isolated from `our schedule, record, and team
+totals`. Replace the empty-state heading with `No opponent scouts`, its helper
+with `Add an opponent and source game, then link film.`, and the hero helper
+with `Opponent games, film, and charting.` Preserve behavior and verify both
+render paths together at release widths. This repair is deferred and is not in
+the `1.12.0-69` installer.
+
+**Deferred Home navigation-state bug (2026-09-01).** Entering Opponent Scout
+persists `giq_home_workspace=scout`; the current `SeasonRail` then filters its
+rows to scouts and removes the program-season hierarchy. Returning Home does
+not restore it. The persistent rail must always render two simultaneously
+visible, non-collapsing trees: Program Seasons and Opponent Scouts. Each tree is
+grouped by year because both program and scouting workspaces may span multiple
+football seasons. Main-panel filtering may change; neither rail tree may be
+hidden, replaced, or automatically collapsed. Long histories scroll within the
+rail. Opening a row must load its correct isolated context and update the
+current-row treatment without removing the other tree. Regression coverage must
+use entries across at least two years and include mode transitions,
+cross-section row opening, returning Home, and reload with scout mode persisted.
+This is a real navigation/state defect and is not fixed in `1.12.0-69`.
+
+**Deferred Home default-order adjustment (2026-09-01).** This supersedes the
+initial request to force numeric week order. Week is metadata rather than the
+canonical sequence because scrimmages, preseason games, byes, and postseason
+rounds do not reliably map to ordinary week numbers. Home must default to
+`Schedule order`: dated games sort chronologically ascending and render
+left-to-right, then top-to-bottom. Same-date games use valid numeric week and
+stable game id. Undated games follow dated games and use valid numeric week,
+then stable game id, with invalid or missing weeks last. `Newest first` remains
+an explicit alternate only. Filters, search, grid/list switching, route returns,
+and season changes preserve the applicable order. Rendered-order tests must
+include preseason/scrimmage, regular season, postseason, duplicate-date, and
+undated cases. This adjustment is not in `1.12.0-69`.
+
+**IMPLEMENTED (2026-09-02) — all four deferred Home items above.** The copy
+repair, the rail navigation-state bug, the default-order adjustment, and the
+Game Plan action are complete; see the dated CLAUDE.md entry for the exact
+owners changed and the measured evidence. Two corrections to the recorded
+requirements, both deliberate:
+
+- **The default order is labelled `Oldest first`, not `Schedule order`.** The
+  behaviour is exactly as specified above — chronological ascending by game
+  date, week only as a same-date tiebreaker — but the coach asked for the
+  visible label to name what it does. `Newest first` remains the explicit
+  alternate and is never the default.
+- **Week validity is explicit.** A blank, zero, negative or nonnumeric week is
+  not "week 0": it ranks after every validly numbered week, in both the dated
+  tiebreaker and the undated group. Weeks compare numerically so Week 10
+  follows Week 2.
+
+Rail implementation note worth keeping: the fix is two collections from one
+source — `TeamHubScreen.state.seasons` stays the main-panel filtered list and
+`state.railSeasons` carries the complete team collection — with
+`openSeason()` resolving against the complete one. Resolving a rail click
+against the filtered list is what would make every cross-section row dead, so
+that lookup is the load-bearing part, not the rendering.
 
 **Clarification — aligning a control to actual wrapped content (2026-09-01).**
 A control that must sit at the right edge of a group's real, currently-wrapped

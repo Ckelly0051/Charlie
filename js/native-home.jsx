@@ -45,7 +45,7 @@ function FirstLaunch({ screen, hub, mode }) {
     if (!scout && setupMode === 'guided') setTimeout(() => hub.openSeasonSetup(null), 0);
   };
   return <main class="first-launch" data-first-launch aria-labelledby="firstLaunchTitle">
-    <header><h1 id="firstLaunchTitle">Your football workspace</h1><p>Start with your program, or prepare for an opponent.</p></header>
+    <header><h1 id="firstLaunchTitle">Football workspace</h1><p>Program seasons and opponent scouting.</p></header>
     <WorkspaceChoice mode={mode} screen={hub} />
     <form onSubmit={submit}>
       <h2>{scout ? 'Create your first opponent scout' : 'Create your first season'}</h2>
@@ -67,8 +67,8 @@ function FirstLaunch({ screen, hub, mode }) {
       </div> : <>
         <div class="first-name-preview"><span>Season name</span><strong>{seasonIdentity(year, programName, resolvedLevel)}</strong></div>
         <div class="first-setup-choice" role="radiogroup" aria-label="Season setup method">
-          <button type="button" role="radio" aria-checked={setupMode === 'guided'} class={setupMode === 'guided' ? 'is-selected' : ''} onClick={() => setSetupMode('guided')}><i /><span><strong>Use guided setup</strong><small>Selected for your first season · skip any time</small></span></button>
-          <button type="button" role="radio" aria-checked={setupMode === 'quick'} class={setupMode === 'quick' ? 'is-selected' : ''} onClick={() => setSetupMode('quick')}><i /><span><strong>Set up manually</strong><small>Go straight to your season</small></span></button>
+          <button type="button" role="radio" aria-checked={setupMode === 'guided'} class={setupMode === 'guided' ? 'is-selected' : ''} onClick={() => setSetupMode('guided')}><i /><span><strong>Use guided setup</strong><small>Roster, film storage, and first-game setup</small></span></button>
+          <button type="button" role="radio" aria-checked={setupMode === 'quick'} class={setupMode === 'quick' ? 'is-selected' : ''} onClick={() => setSetupMode('quick')}><i /><span><strong>Set up manually</strong><small>Create without the setup guide</small></span></button>
         </div>
       </>}
       {error && <p class="first-error" role="alert">{error}</p>}
@@ -122,7 +122,7 @@ function HomeHead({ screen, state, hasSeason, scout, c, games }) {
   const record = scout ? { text: c.season?.name || 'Opponent' } : screen.seasonRecord();
   const summary = hasSeason
     ? (scout
-      ? `${games.length} source game${games.length === 1 ? '' : 's'} · isolated from our schedule and team totals`
+      ? `${games.length} source game${games.length === 1 ? '' : 's'}`
       : [screen.teamName(), record.text, `${games.length} game${games.length === 1 ? '' : 's'}`].filter(Boolean).join(' · '))
     : (c.team ? 'Choose or create a season to get started.' : 'Set up your team to get started.');
   const season = screen.app.storage?.seasonStore?.data;
@@ -149,7 +149,7 @@ function HomeHead({ screen, state, hasSeason, scout, c, games }) {
 function EmptySeasonPanel({ screen, scout }) {
   return <div class="ws-empty-panel">
     <h3>{scout ? 'No source games yet' : 'No games in this season yet'}</h3>
-    <p>{scout ? 'Add film the opponent played against another team, keeping both real team names.' : 'Add the opponent and date. Film can be linked now or later.'}</p>
+    <p>{scout ? 'Add a source game and link film.' : 'Add the opponent and date. Film can be linked now or later.'}</p>
     <button type="button" class="ws-btn ws-primary" onClick={() => screen.addGame()}>+ {scout ? 'Add source game' : 'Add game'}</button>
   </div>;
 }
@@ -228,7 +228,7 @@ function GameDetail({ screen, game, c, scout }) {
         </button>
         <button type="button" class="ws-btn" data-ws-action="open-study" onClick={() => screen.openStudy(screen.selectedGameId)}>Open Study</button>
         <button type="button" class="ws-btn" data-ws-action="open-reports" onClick={() => screen.openReportsForGame(screen.selectedGameId)}>Open Reports</button>
-        <button type="button" class="ws-btn plan-link" onClick={() => screen.openPlan()}><strong>Season plans</strong><span>Open &rarr;</span></button>
+        <button type="button" class="ws-btn" data-ws-action="game-plan" onClick={() => screen.openPlan()}>Game Plan</button>
       </div>
     </div>
   </aside>;
@@ -243,8 +243,8 @@ function GameWorkspace({ screen, state, games, scout, c }) {
       <div class="library-tools">
         <label class="search"><input id="game-search" aria-label="Search games" placeholder={scout ? 'Search source games…' : 'Search games…'} value={state.query} onInput={event => screen.setQuery(event.currentTarget.value)} /></label>
         <select class="sort" aria-label="Sort games" value={state.sort} onChange={event => screen.setSort(event.currentTarget.value)}>
+          <option value="oldest">Oldest first</option>
           <option value="newest">Newest first</option>
-          <option value="schedule">Schedule order</option>
         </select>
         <div class="view-switch" role="group" aria-label="Game view">
           <button type="button" aria-label="Grid view" title="Grid view" aria-pressed={state.view === 'grid'} onClick={() => screen.setView('grid')}>&#9638;</button>
@@ -312,42 +312,86 @@ function groupByYear(seasons) {
  *  library grid (SeasonLibraryPanel below still renders the real
  *  `SeasonRow`), which is the only place this app offers that destructive
  *  action -- not duplicated here. */
+/** The row's label inside a tree that is ALREADY grouped by year, so the
+ *  year never repeats in the row itself. A program season is identified by
+ *  its level; a scout season's name composes as
+ *  `year · level · opponent · Scout`, so strip the parts the tree already
+ *  states and keep the opponent -- the only part that distinguishes one
+ *  scout row from another. Falls back to the full stored name whenever the
+ *  name does not match that composition. */
+function railLabel(season) {
+  if (!season.isScout) return season.level || season.name || 'Season';
+  const parts = String(season.name || '').split(' · ').filter(Boolean);
+  const trimmed = parts.filter((part, index) => {
+    if (index === 0 && part === String(season.year)) return false;
+    if (index === 1 && part === String(season.level)) return false;
+    return part !== 'Scout';
+  });
+  return trimmed.join(' · ') || season.name || 'Opponent';
+}
+
 function RailSeasonRow({ season, hub }) {
-  const label = (!season.isScout && season.level) ? season.level : (season.name || 'Season');
+  const label = railLabel(season);
   const count = season.gameCount === 1 ? '1 game' : `${season.gameCount || 0} games`;
   return <button type="button" class={`rail-row${season.current ? ' is-current' : ''}`}
     aria-current={season.current ? 'true' : undefined} title={season.name || label} onClick={() => hub.openSeason(season.id)}>
     {icon('folder')}<span><strong>{label}</strong><small>{count}</small></span>
   </button>;
 }
-function SeasonRail({ screen, hub, hubState }) {
-  const scout = hubState.workspaceMode === 'scout';
-  const hasSeason = !!screen.app.storage?.seasonStore?.hasCurrent?.();
-  const seasons = (hubState.seasons || []).filter(s => !!s.isScout === scout);
+/** One of the rail's two permanent trees. Both render unconditionally
+ *  whenever a team exists -- neither is hidden, replaced, or collapsed
+ *  because a workspace, season, scout, or route was selected. That was the
+ *  recorded defect: entering Opponent Scout swapped the whole rail to
+ *  Opponents and reported "No opponents yet" while the coach's program
+ *  seasons still existed and were still the open season scope. */
+function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText }) {
   const groups = groupByYear(seasons);
-  const create = event => scout ? hub.openCreateScout(event.currentTarget) : hub.openCreateSeason(event.currentTarget);
-  const logo = scout ? '' : screen.teamLogo();
-  return <nav class="rail-year" aria-label={scout ? 'Opponents' : 'Seasons'}>
+  return <section class="rail-section" data-rail-section={title} aria-label={title}>
     <div class="rail-head">
-      <span class="gi-hub-kicker">{scout ? 'Opponents' : 'Seasons'}</span>
-      <button type="button" class="icon-btn" aria-label={scout ? 'New opponent scout' : 'New season'} title={scout ? 'New opponent scout' : 'New season'} onClick={create}>+</button>
+      <span class="gi-hub-kicker">{title}</span>
+      <button type="button" class="icon-btn" aria-label={createLabel} title={createLabel} onClick={onCreate}>+</button>
     </div>
-    <button type="button" class="rail-library-link" onClick={() => hubState.teams?.length && screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
-    {!hubState.teams?.length && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
     <div class="rail-groups">
       {groups.length
         ? groups.map(([year, rows]) => <div class="rail-group" key={year}>
             <h3 class="rail-year-label">{year}</h3>
             {rows.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
           </div>)
-        : hubState.teams?.length ? <p class="rail-empty">{scout ? 'No opponents yet.' : 'No other seasons yet.'}</p> : null}
+        : <p class="rail-empty">{emptyText}</p>}
     </div>
+  </section>;
+}
+
+function SeasonRail({ screen, hub, hubState }) {
+  const store = screen.app.storage?.seasonStore;
+  const hasSeason = !!store?.hasCurrent?.();
+  // Season-scoped tools follow the OPEN SEASON's kind, never the main-panel
+  // workspace filter -- Roster and Edit season details belong to a program
+  // season and must stay available while it is the open season, whatever
+  // the coach is currently browsing in the main panel.
+  const openScout = hasSeason && store?.data?.kind === 'scout';
+  const all = hubState.railSeasons || [];
+  const programs = all.filter(season => !season.isScout);
+  const scouts = all.filter(season => season.isScout);
+  const logo = openScout ? '' : screen.teamLogo();
+  const hasTeam = !!hubState.teams?.length;
+  return <nav class="rail-year" aria-label="Program seasons and opponent scouts">
+    <button type="button" class="rail-library-link" onClick={() => hasTeam && screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
+    {!hasTeam && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
+    {hasTeam && <div class="rail-trees">
+      <RailSection title="Program Seasons" seasons={programs} hub={hub}
+        createLabel="New season" onCreate={event => hub.openCreateSeason(event.currentTarget)}
+        emptyText="No program seasons yet." />
+      <RailSection title="Opponent Scouts" seasons={scouts} hub={hub}
+        createLabel="New opponent scout" onCreate={event => hub.openCreateScout(event.currentTarget)}
+        emptyText="No opponents yet" />
+    </div>}
     <div class="rail-tools">
-      {hasSeason && <span class="rail-scope">{seasonIdentity(screen.app.storage?.seasonStore?.data?.year, screen.teamName(), screen.app.storage?.seasonStore?.data?.level)}</span>}
-      {hasSeason && !scout && <button type="button" onClick={event => screen.openRoster(event.currentTarget)}>{icon('notes')}Roster</button>}
+      {hasSeason && <span class="rail-scope">{seasonIdentity(store?.data?.year, screen.teamName(), store?.data?.level)}</span>}
+      {hasSeason && !openScout && <button type="button" onClick={event => screen.openRoster(event.currentTarget)}>{icon('notes')}Roster</button>}
       {hasSeason && <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>{icon('film')}Film &amp; storage</button>}
       {hasSeason && hubState.control?.canReviewSetup ? <button type="button" onClick={event => screen.openSeasonSetup(event.currentTarget)}>{icon('tag')}Season setup</button> : null}
-      {hasSeason && !scout && <button type="button" onClick={event => screen.openEditSeason(event.currentTarget)}>{icon('pencil')}Edit season details</button>}
+      {hasSeason && !openScout && <button type="button" onClick={event => screen.openEditSeason(event.currentTarget)}>{icon('pencil')}Edit season details</button>}
       <button type="button" onClick={event => screen.manageProgram(event.currentTarget)}>{icon('folder')}Manage program</button>
     </div>
     <div class="rail-foot">{logo && <img class="rail-logo" src={logo} alt="" />}<span><span class="gi-hub-kicker">Local library</span><span>{hubState.profile?.teamName || screen.teamName() || 'Your coaching workspace'}</span></span></div>
@@ -368,7 +412,7 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
   if (!hasTeam) {
     return <div class="ws-empty-panel">
       <h3>Set up your team first</h3>
-      <p>Team &amp; Film Settings and the Season selector both get you there.</p>
+      <p>Create a program before adding seasons.</p>
       <button type="button" class="ws-btn ws-primary" onClick={() => screen.openSeasonLibrary()}>Open Season Library</button>
     </div>;
   }
@@ -385,8 +429,8 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
     {ordered.length
       ? <div class="library-grid" role="list">{ordered.map(season => <SeasonRow key={season.id} season={season} screen={hub} />)}</div>
       : <div class="ws-empty-panel">
-          <h3>{scout ? 'Scout an opponent without touching our season' : 'Start the football year here'}</h3>
-          <p>{scout ? 'Create an opponent, name the two teams in the source film, then link that game folder and chart it normally.' : 'Create your first season, then add games from Home.'}</p>
+          <h3>{scout ? 'No opponent scouts' : 'Start the football year here'}</h3>
+          <p>{scout ? 'Add an opponent and source game, then link film.' : 'Create your first season, then add games from Home.'}</p>
           <button type="button" class="ws-btn ws-primary" onClick={create}>{scout ? 'Create first opponent scout' : 'Create first season'}</button>
         </div>}
     {hub.canRecoverSeasons() ? <button type="button" class="library-recover-link" onClick={event => hub.recoverSeasons(event.currentTarget)}>Recover seasons</button> : null}

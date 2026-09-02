@@ -142,14 +142,14 @@ export function CreateSeasonForm({ teamName, hasExistingData = false, onSubmit, 
     }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
-    <p>For <strong>{teamName || 'this team'}</strong>. Choose how much help you want setting up the season.</p>
+    <p>Season for <strong>{teamName || 'this team'}</strong>.</p>
     <div class="gi-hub-setup-mode" role="radiogroup" aria-label="Season setup method">
       <button type="button" role="radio" aria-checked={setupMode === 'guided'} class={setupMode === 'guided' ? 'is-selected' : ''} onClick={() => setSetupMode('guided')}>
-        <span><strong>{hasExistingData ? 'Use guided setup' : 'Guided setup'}</strong><small>Walk through roster, film storage, and the first game. You can skip anything.</small></span>
+        <span><strong>{hasExistingData ? 'Use guided setup' : 'Guided setup'}</strong><small>Roster, film storage, and first-game setup.</small></span>
         {!hasExistingData && <b>Recommended</b>}
       </button>
       <button type="button" role="radio" aria-checked={setupMode === 'quick'} class={setupMode === 'quick' ? 'is-selected' : ''} onClick={() => setSetupMode('quick')}>
-        <span><strong>{hasExistingData ? 'Quick create' : 'Set up manually'}</strong><small>Create the season and go straight to Home. The full guide is skipped.</small></span>
+        <span><strong>{hasExistingData ? 'Quick create' : 'Set up manually'}</strong><small>Create the season without the setup guide.</small></span>
         {hasExistingData && <b>Default</b>}
       </button>
     </div>
@@ -184,7 +184,7 @@ export function EditSeasonForm({ year, level, teamName = '', onSubmit, onOpenExi
     }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
-    <p>Correct the year or level. This never changes the season's id, games, or roster.</p>
+    <p>Changes year and level only. Season ID, games, and roster remain unchanged.</p>
     <YearLevelFields year={y} setYear={setY} level={lvl} setLevel={setLvl} customLevel={customLevel} setCustomLevel={setCustomLevel} />
     <div class="gi-hub-name-preview"><small>Season name</small><strong>{seasonIdentity(y, teamName, resolvedLevel)}</strong></div>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
@@ -198,7 +198,7 @@ export function SeasonSetupGuide({ setup, onAction, onClose }) {
     <header class="gi-season-guide-head">
       <span class="gi-hub-kicker">Season setup</span>
       <h2>{setup.seasonName}</h2>
-      <p>Pick up wherever you need. Completed work stays untouched, and every step is optional.</p>
+      <p>Roster, film storage, and first-game setup. All steps are optional.</p>
     </header>
     <ol class="gi-season-guide-steps">
       {setup.steps.map((step, index) => <li class={step.done ? 'is-done' : ''}>
@@ -207,7 +207,7 @@ export function SeasonSetupGuide({ setup, onAction, onClose }) {
         {step.action && <button type="button" onClick={() => onAction(step.action)}>{step.done ? 'Review' : step.button}</button>}
       </li>)}
     </ol>
-    <p class="gi-season-guide-note">You can reopen this guide from Team &amp; Film Control Center at any time.</p>
+    <p class="gi-season-guide-note">Reopen from Team &amp; Film Control Center.</p>
     <div class="gi-hub-form-actions"><button type="button" onClick={onClose}>Skip guide and go to Home</button></div>
   </div>;
 }
@@ -238,7 +238,7 @@ export function CreateScoutForm({ onSubmit, onOpenExisting, onCancel }) {
     }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
-    <p>Create a separate scouting workspace. Its games use the same charting and analytics engine, but never count in your program record or season totals.</p>
+    <p>Opponent scouts are excluded from program schedules, records, and season totals.</p>
     <YearLevelFields year={year} setYear={setYear} level={level} setLevel={setLevel} customLevel={customLevel} setCustomLevel={setCustomLevel} />
     <div class="gi-hub-field-row">
       <label class="gi-hub-field"><span>Opponent being scouted: school / organization</span><input name="opponent" autoFocus required placeholder="e.g. Holy Family" /></label>
@@ -253,7 +253,7 @@ export function CreateScoutForm({ onSubmit, onOpenExisting, onCancel }) {
       <label class="gi-hub-field"><span>Nickname <small>Optional</small></span><input name="sourceTeamBNickname" placeholder="e.g. Tigers" /></label>
     </div>
     <label class="gi-hub-field"><span>Game date</span><input name="date" type="date" /></label>
-    <p class="gi-hub-form-note">After creation, link the source game's folder in Team &amp; Film Settings. Film stays in its existing location.</p>
+    <p class="gi-hub-form-note">Link the source-game folder in Team &amp; Film Settings. Film location is unchanged.</p>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
     {duplicate && <p class="gi-hub-error-action"><button type="button" onClick={() => onOpenExisting?.(duplicate.id)}>Open existing season</button></p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : 'Create scout'}</button></div>
@@ -322,7 +322,7 @@ export function RecoverSeasonsForm({ candidates, onRecover }) {
 export function WorkspaceChoice({ mode = 'program', screen, compact = false }) {
   return <div class={`gi-hub-workspace-choice${compact ? ' is-compact' : ''}`} role="group" aria-label="Football workspace">
     <button class={mode === 'program' ? 'is-active' : ''} aria-pressed={mode === 'program'} onClick={() => screen.selectWorkspace('program')}>
-      <span class="gi-hub-workspace-icon">O</span><span><strong>Our Program</strong><small>Your seasons, roster, games, and film.</small></span>
+      <span class="gi-hub-workspace-icon">O</span><span><strong>Program</strong><small>Seasons, roster, games, and film.</small></span>
     </button>
     <button class={mode === 'scout' ? 'is-active' : ''} aria-pressed={mode === 'scout'} onClick={() => screen.selectWorkspace('scout')}>
       <span class="gi-hub-workspace-icon is-scout">S</span><span><strong>Opponent Scout</strong><small>Opponent film, source games, and scouting reports.</small></span>
@@ -395,7 +395,7 @@ function NativeTeamHub({ screen }) {
   const create = event => scout ? screen.openCreateScout(event.currentTarget) : screen.openCreateSeason(event.currentTarget);
   return <section class="gi-team-hub" data-native-team-hub aria-labelledby="giHubTitle">
     <header class="gi-hub-head gi-hub-command-head">
-      <div><span class="gi-hub-kicker">Football workspace</span><h1 id="giHubTitle">{active?.teamName || state.profile.teamName || 'Team Hub'}</h1><p>Choose what you are preparing for, then open the right film workspace.</p></div>
+      <div><span class="gi-hub-kicker">Football workspace</span><h1 id="giHubTitle">{active?.teamName || state.profile.teamName || 'Team Hub'}</h1><p>Program seasons and opponent scouting.</p></div>
       <div class="gi-hub-head-actions">{state.currentSeasonId && <button onClick={() => screen.close()}>Back</button>}<button id="btnNativeTeamFilmSettings" onClick={event => screen.openSettings(event.currentTarget, 'film')}>Team &amp; Film Settings</button></div>
     </header>
     <div class="gi-hub-teambar">
@@ -407,11 +407,11 @@ function NativeTeamHub({ screen }) {
     </div>
     <main class="gi-hub-body gi-hub-command-body">
       <WorkspaceChoice mode={state.workspaceMode} screen={screen} compact />
-      <section class={`gi-hub-workspace-hero${scout ? ' is-scout' : ''}`}><div><span class="gi-hub-kicker">{scout ? 'Opponent preparation' : 'Program operations'}</span><h2>{scout ? 'Opponent Scouting Library' : `${active?.teamName || 'Our Program'} Seasons`}</h2><p>{scout ? 'Chart games the opponent played against other teams. Their film stays isolated from our schedule, record, and team totals.' : 'Manage our seasons, chart our games, and carry the same roster and football language through the year.'}</p></div><button class="gi-hub-primary gi-hub-hero-action" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button></section>
+      <section class={`gi-hub-workspace-hero${scout ? ' is-scout' : ''}`}><div><span class="gi-hub-kicker">{scout ? 'Opponent preparation' : 'Program operations'}</span><h2>{scout ? 'Opponent Scouting Library' : `${active?.teamName || 'Program'} Seasons`}</h2><p>{scout ? 'Opponent games, film, and charting.' : 'Program seasons, games, roster, and play library.'}</p></div><button class="gi-hub-primary gi-hub-hero-action" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button></section>
       {!scout && <SetupProgress checklist={state.checklist} screen={screen} />}
       <div class="gi-hub-command-grid">
         <section class="gi-hub-library"><div class="gi-hub-section-head"><div><span class="gi-hub-kicker">{scout ? 'Scouting workspaces' : 'Season library'}</span><h2>{scout ? 'Opponents' : 'Seasons'}</h2></div>{!scout && <div><button onClick={() => screen.exploreSample()}>{demoExists ? 'Open sample season' : 'Explore sample season'}</button></div>}</div>
-          {state.seasons.length ? <div class="gi-hub-seasons" role="list" onKeyDown={event => arrowFocus(event, '[data-hub-open-season]')}>{state.seasons.map(season => <SeasonRow key={season.id} season={season} screen={screen} />)}</div> : <div class="gi-hub-empty-inline"><span class="gi-hub-kicker">Nothing here yet</span><h3>{scout ? 'Scout an opponent without touching our season' : 'Start the football year here'}</h3><p>{scout ? 'Create an opponent, name the two teams in the source film, then link that game folder and chart it normally.' : `Create a season for ${active?.teamName || 'this team'}, then add games from Home.`}</p><button class="gi-hub-primary" onClick={create}>{scout ? 'Create first opponent scout' : 'Create first season'}</button></div>}
+          {state.seasons.length ? <div class="gi-hub-seasons" role="list" onKeyDown={event => arrowFocus(event, '[data-hub-open-season]')}>{state.seasons.map(season => <SeasonRow key={season.id} season={season} screen={screen} />)}</div> : <div class="gi-hub-empty-inline"><span class="gi-hub-kicker">Nothing here yet</span><h3>{scout ? 'No opponent scouts' : 'Start the football year here'}</h3><p>{scout ? 'Add an opponent and source game, then link film.' : `Create a season for ${active?.teamName || 'this team'}, then add games from Home.`}</p><button class="gi-hub-primary" onClick={create}>{scout ? 'Create first opponent scout' : 'Create first season'}</button></div>}
         </section>
         <ControlCenter control={state.control} screen={screen} />
       </div>
