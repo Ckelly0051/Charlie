@@ -103,9 +103,18 @@ body.ws-route-home .ws-home{overflow:hidden}
 /* flex:0 1 auto -- sizes to its content and SHRINKS (scrolls) when the rail
    is short, but never grows to fill leftover height. A growing tree box is
    exactly what previously left a large dead gap above the rail tools. */
-.ws-home-page .rail-trees{display:flex;flex:0 1 auto;flex-direction:column;gap:20px;min-height:0;overflow-y:auto;scrollbar-width:thin}
-.ws-home-page .rail-section{display:flex;flex:0 0 auto;flex-direction:column;gap:10px;min-height:0}
-.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:22px;min-height:0}
+/* TWO PERMANENT PANES, not one shared scroll area. A single scroller made
+   Opponent Scouts read as absent or collapsed whenever Program Seasons
+   filled the visible area -- which conflicts with the requirement that both
+   trees stay continuously visible. Each section is its own row, each scrolls
+   its OWN year groups, and both headings therefore always render inside the
+   rail frame. `.rail-trees` grows to claim the rail's free space so the two
+   1fr rows are bounded; the fixed tools and the rail foot keep their own
+   space below it. */
+.ws-home-page .rail-trees{display:grid;grid-template-rows:minmax(112px,1fr) minmax(112px,1fr);flex:1 1 auto;gap:20px;min-height:0;overflow:hidden}
+.ws-home-page .rail-section{display:flex;flex-direction:column;gap:10px;min-height:0}
+.ws-home-page .rail-head{flex:none}
+.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:22px;min-height:0;overflow-y:auto;scrollbar-width:thin}
 .ws-home-page .rail-group{display:flex;flex-direction:column;gap:6px}
 .ws-home-page .rail-year-label{margin:0 0 2px;padding:0 10px;color:var(--gi-bd-strong);font:600 20px/1.2 var(--gi-sans)}
 .ws-home-page .rail-empty{margin:0;color:var(--gi-bd-copy);font-size:12px}
@@ -271,6 +280,7 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .home-content{overflow-y:visible}
   .ws-home-page .home-with-rail{grid-template-columns:1fr;gap:0}
   .ws-home-page .rail-year{position:static;height:auto;min-height:0;overflow:visible;border-right:0;border-bottom:1px solid var(--gi-bd-line);margin-bottom:20px;padding-bottom:20px}
+  .ws-home-page .rail-trees{display:flex;flex-direction:column;overflow:visible}
   .ws-home-page .rail-groups{max-height:none;overflow-y:visible}
   .ws-home-page .rail-groups,.ws-home-page .rail-group{flex-direction:row;flex-wrap:wrap;align-items:center}
   .ws-home-page .rail-row{width:auto}.ws-home-page .rail-tools{flex-direction:row;flex-wrap:wrap;gap:4px}.ws-home-page .rail-scope{width:100%}

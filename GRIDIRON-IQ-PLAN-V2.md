@@ -324,6 +324,32 @@ resulting context. Calling the controller directly proves the controller, and
 would pass against a row that renders unreachable or without a handler — which
 is exactly what the mutation now reproduces.
 
+**RAIL ALLOCATION (2026-09-02, coach decision).** The rail is **two permanent
+panes**, not one shared scroll area: a single scroller let Program Seasons fill
+the visible space so Opponent Scouts read as absent, which contradicts the
+requirement that both trees stay continuously visible. `.rail-trees` is a
+two-row grid with a `minmax(112px,1fr)` floor per section and each section owns
+its own scroller, so a long history in one tree can never push the other out of
+view.
+
+Two things worth carrying rather than rediscovering:
+
+- **Pane share, not heading visibility, is the discriminating measurement.** A
+  shared scroller also clips both headings into frame, so "both headings
+  visible" passes on the broken layout. What separates them is how the space is
+  split — measured 170/111 at 1440x900 and 106/68 at 1280x800 for the shared
+  scroller (the scouts show a heading and zero rows) against 141/141 and
+  112/112 for two panes.
+- **At 1280x800 the stated constraints do not all fit, and that is a
+  measurement, not an opinion.** The rail is 682px: padding 40 + library link
+  36 + gaps 66 + trees 194 + tools 291 + foot 55. Two panes get 87px each,
+  under the floor, so a scout row sits below the fold inside its own pane. A
+  floor high enough to guarantee one visible row needs ~244px of trees, which
+  cannot coexist with 291px of tools and a 55px foot at that height. Resolving
+  it means freeing space from the tools or the foot — both of which the current
+  requirements reserve — so it stays an open allocation question rather than a
+  silently re-picked number.
+
 **Clarification — aligning a control to actual wrapped content (2026-09-01).**
 A control that must sit at the right edge of a group's real, currently-wrapped
 content (e.g., an "Edit library" action beside a chip cloud) cannot be solved

@@ -106,8 +106,35 @@ await page.evaluate(() => {
   button?.click();
 });
 await page.waitForSelector('.gi-hub-dialog-form input[name="year"]');
-await page.evaluate(() => { const input = document.querySelector('.gi-hub-dialog-form input[name="year"]'); input.value = ''; });
-await page.type('.gi-hub-dialog-form input[name="year"]', '2027');
+// Clear the way a coach does -- select-all + Backspace through the real
+// keyboard -- not by assigning `.value`, which changes the DOM without firing
+// an input event and lets a re-render swallow the next keystroke. That race
+// was dropping a character (observed `202` for a typed `2027`), so the season
+// name never matched and the wait below timed out. Assert the field holds the
+// complete value BEFORE submitting, so silent input loss fails here with the
+// actual value rather than as an opaque timeout.
+// The overlay service moves the dialog's initial focus on a DEFERRED frame.
+// Typing before that lands sends the first character to the field and every
+// character after it to whatever the service focuses next -- observed as a
+// year of "2" with document.activeElement on a BUTTON. Instantaneous test
+// typing used to beat that frame, which is why this raced intermittently
+// rather than failing outright. Wait for focus to settle inside the dialog
+// first, then take the field deliberately, then assert the whole value landed
+// so silent input loss reports the actual value instead of a bare timeout.
+await page.waitForFunction(() => {
+  const form = document.querySelector('.gi-hub-dialog-form');
+  return form && form.contains(document.activeElement);
+}, { timeout: 5000 });
+await page.click('.gi-hub-dialog-form input[name="year"]');
+await page.keyboard.down('Control');
+await page.keyboard.press('KeyA');
+await page.keyboard.up('Control');
+await page.type('.gi-hub-dialog-form input[name="year"]', '2027', { delay: 20 });
+await page.waitForFunction(() => document.querySelector('.gi-hub-dialog-form input[name="year"]')?.value === '2027', { timeout: 5000 })
+  .catch(async () => {
+    const got = await page.evaluate(() => document.querySelector('.gi-hub-dialog-form input[name="year"]')?.value);
+    throw new Error(`year field lost input: expected "2027", got "${got}"`);
+  });
 await page.click('.gi-hub-dialog-form .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent() && window.app.storage.seasonStore.data.seasonName === '2027 · St. Joseph Mavericks · Varsity', { timeout: 15000 });
 r = await page.evaluate(() => ({ seasonName: window.app.storage.seasonStore.data.seasonName, kind: window.app.storage.seasonStore.data.kind }));

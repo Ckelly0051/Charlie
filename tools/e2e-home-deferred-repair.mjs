@@ -209,10 +209,21 @@ for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280
     const limit = Math.min(innerHeight, navBox ? navBox.top : Infinity);
     const named = el => (el.textContent || '').replace(/\s+/g, ' ').trim();
     const fixed = [...document.querySelectorAll('.rail-tools button'), ...document.querySelectorAll('.rail-foot')];
+    const inFrame = box => box.top >= rail.top - 1 && box.bottom <= Math.min(rail.bottom, limit) + 1 && box.height > 0;
+    const headings = [...document.querySelectorAll('.rail-section .gi-hub-kicker')];
     return {
       railBottom: Math.round(rail.bottom), railTop: Math.round(rail.top), limit: Math.round(limit),
       tools: fixed.map(named),
       cutOff: fixed.filter(el => el.getBoundingClientRect().bottom > limit + 1).map(named),
+      headings: headings.map(named),
+      headingsInFrame: headings.filter(el => inFrame(el.getBoundingClientRect())).map(named),
+      // Pane share is the real discriminator, not heading visibility: a single
+      // shared scroller ALSO clips both headings into frame, but starves the
+      // second tree (measured 170/111 at 1440x900, 106/68 at 1280x800) so the
+      // scouts show a heading and zero rows. Two bounded panes hold the
+      // minmax floor for both.
+      sectionHeights: [...document.querySelectorAll('.rail-section')]
+        .map(s => ({ name: s.dataset.railSection, h: Math.round(s.getBoundingClientRect().height) })),
       pageOverflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight,
     };
   });
@@ -220,6 +231,11 @@ for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280
     `The rail ends inside the route frame at ${label}`, reach);
   ok(reach.tools.length >= 5 && reach.cutOff.length === 0,
     `Every fixed rail action is reachable without scrolling at ${label}`, reach);
+  ok(reach.headingsInFrame.length === 2
+    && /Program Seasons/.test(reach.headingsInFrame[0]) && /Opponent Scouts/.test(reach.headingsInFrame[1]),
+    `BOTH tree headings are visible inside the rail frame at ${label}`, reach);
+  ok(reach.sectionHeights.length === 2 && reach.sectionHeights.every(s => s.h >= 112),
+    `Neither tree is starved below its pane floor at ${label}`, reach);
   // The grid owning its own scroll is what keeps the rail in place; prove the
   // rail does not move when the coach scrolls the main panel to the bottom.
   const held = await page.evaluate(() => {
@@ -270,14 +286,30 @@ ok(emptyCase.sections === 2 && emptyCase.programRows >= 2 && emptyCase.programEm
 ok(emptyCase.scoutRows === 0 && emptyCase.scoutEmptyText === 'No opponents yet',
   '"No opponents yet" renders only inside the empty Opponent Scouts section', emptyCase);
 
-// Long histories scroll inside the rail; entries are never dropped.
+// Long histories scroll inside the rail; entries are never dropped. The rail
+// is TWO PERMANENT PANES rather than one shared scroller: a single scroll
+// area let Program Seasons fill the visible space so Opponent Scouts read as
+// absent, which conflicts with the requirement that both trees stay
+// continuously visible. Each section owns its own scroller, so a long history
+// in one tree can never push the other out of view.
 const scrollCase = await page.evaluate(() => {
   const trees = document.querySelector('.rail-trees');
   const cs = getComputedStyle(trees);
-  return { overflowY: cs.overflowY, flexGrow: cs.flexGrow, rows: document.querySelectorAll('.rail-row').length };
+  const sections = [...document.querySelectorAll('.rail-section')];
+  const groups = sections.map(s => s.querySelector('.rail-groups'));
+  return {
+    display: cs.display,
+    rowCount: cs.gridTemplateRows.split(/\s+/).filter(Boolean).length,
+    treesOverflow: cs.overflowY,
+    groupOverflow: groups.map(g => getComputedStyle(g).overflowY),
+    groupScrolls: groups.map(g => g.scrollHeight > g.clientHeight),
+    rows: document.querySelectorAll('.rail-row').length,
+  };
 });
-ok(scrollCase.overflowY === 'auto' && scrollCase.flexGrow === '0',
-  'The rail trees scroll internally and never stretch to create dead space', scrollCase);
+ok(scrollCase.display === 'grid' && scrollCase.rowCount === 2,
+  'The rail is two permanent panes, not one shared scroll area', scrollCase);
+ok(scrollCase.groupOverflow.length === 2 && scrollCase.groupOverflow.every(o => o === 'auto'),
+  'Each tree scrolls its OWN year groups independently', scrollCase);
 
 // ---------------------------------------------------------------------------
 console.log('\n== 2. Chronological (oldest-first) default game order ==');

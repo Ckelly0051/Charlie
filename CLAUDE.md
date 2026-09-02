@@ -1,3 +1,65 @@
+### RAIL ALLOCATION - TWO PERMANENT PANES (2026-09-02)
+
+The coach reviewed the three-finding repair, kept `data-season-id`, and called
+the rail allocation for revision: with one shared scroll area, Program Seasons
+filled the visible space and Opponent Scouts read as absent or collapsed even
+though it existed lower down. That conflicts with the requirement that both
+trees stay continuously visible.
+
+`.rail-trees` is now a two-row grid (`minmax(112px,1fr)` twice) with
+`overflow:hidden`; each `.rail-section` is `min-height:0` and each
+`.rail-groups` owns its own `overflow-y:auto`. Both headings therefore always
+render, neither section collapses, a long history in one tree can never push
+the other out of view, and the fixed tools plus the rail foot keep their own
+space below. The `<=700px` stacked rail returns to normal page flow.
+
+**A weak assertion of mine, caught before it shipped.** The first version
+asserted "both headings inside the visible rail frame", which does NOT
+discriminate: with a long history the single shared scroller also clips both
+headings into frame. Measured on identical fixtures, the real discriminator is
+pane share - single scroller gives Program/Scouts **170/111** at 1440x900 and
+**106/68** at 1280x800, so the scouts show a heading and ZERO rows, while two
+bounded panes give 141/141 and 112/112. The assertion now checks the pane
+floor, and dropping the second explicit grid row reds it with named evidence
+(`Opponent Scouts h:62`).
+
+**Disclosed measurement conflict at 1280x800.** The rail is 682px: padding 40 +
+library link 36 + gaps 66 + trees 194 + tools **291** + foot 55. Two panes can
+therefore only get 87px each, under the 112px floor, so the grid clips and a
+scout row falls below the fold inside its own pane - the heading and the year
+render, the row needs a short scroll in that pane. Raising the floor to the
+~140px that guarantees one visible row needs 244px of trees, which does not
+exist alongside 291px of tools and a 55px foot at that height. The three named
+requirements (both headings visible, a row visible, tools and Local Library
+visible) cannot all hold at 1280x800 without freeing space from the tools or
+the foot, which the coach's own constraints reserve. Implemented as specified
+and reported rather than silently re-picking a number.
+
+**Pre-existing harness flake closed while verifying.** `e2e-home-review-repair`
+crashed **4/4 at HEAD without this change** on a 15s timeout, having passed
+earlier in the same session - so it was baselined against the committed HEAD,
+not against this work, before being touched. Root cause traced rather than
+re-run until green: the overlay service moves the season-create dialog's
+initial focus on a DEFERRED frame, and the harness typed before that landed, so
+the first character reached the year field and the rest went to the button the
+service focused (`document.activeElement` a BUTTON, value `"2"`). Instantaneous
+test typing used to beat that frame, which is why it raced rather than failing
+outright. **Not coach-facing:** a coach who clicks the field types after the
+steal has already happened - verified directly, `2026` -> `20262027` with focus
+retained on every keystroke. The harness now waits for the dialog's focus to
+settle, takes the field deliberately, clears with a real keyboard select-all
+(a triple-click select was silently not taking, leaving `2022027`), and asserts
+the complete value landed so input loss reports the actual value instead of a
+bare timeout. **6/6 green after the fix, 0/4 before.**
+
+**Verification:** `e2e-home-deferred-repair` **100/100** (was 93 - adds the
+two-pane contract, per-section scrollers, both-headings-in-frame and the
+pane-floor assertions at all three widths); `e2e-home-review-repair` 26/26 x6;
+`e2e-home-first-launch` 13/13; `e2e-workspace-shell` 91/91; `e2e-native-season`
+10/10; `e2e-native-team-hub` 29/29; `e2e-native-settings` 25/25;
+`e2e-team-registry` 24/24; `e2e-tag-library-settings` 17/17;
+`e2e-responsive-containment` 105/105. Build clean. Screenshots re-captured
+toast-free and inspected at all three widths.
 ### REVIEW REPAIR OF e48fa46 - THREE FINDINGS CLOSED (2026-09-02)
 
 The review of `e48fa46` filed one P1 and two P2s. All three verified against
