@@ -350,9 +350,18 @@ function TeamProfile({ profile, cls = '' }) {
 /** The Identity strip: existing breakdowns surfaced in the first viewport. */
 function IdentityStrip({ items, screen }) {
   if (!items?.length) return null;
+  // `_playCallAnalysis` supplies bare `playIds` and leaves `refs` empty for a
+  // single-game cohort, so a tile fed from it had no film action at all. The
+  // Play Calls table already composes ids into `gameId::playId` (playCallParts
+  // `refsFor`); the same composition is used here so both entry points open
+  // the identical cut from the identical identity.
+  const gameId = screen.app.storage?.seasonStore?.activeGame?.()?.id || '';
+  const refsOf = item => (item.refs?.length ? item.refs
+    : (item.playIds || []).map(id => `${gameId}::${id}`));
   return <div class="gi-off-identity-strip">{items.map(item => {
-    const onActivate = item.refs?.length
-      ? () => screen.watchRefs(item.refs, item.cutLabel)
+    const refs = refsOf(item);
+    const onActivate = refs.length
+      ? () => screen.watchRefs(refs, item.cutLabel)
       : item.cutType ? () => screen.watchCut(item.cutType, item.cutVal, item.cutLabel) : undefined;
     return <Watchable key={item.label} onActivate={onActivate} label={item.cutLabel}>
       <span>{item.label}</span><strong>{item.value}</strong><small>{item.sub}</small>
@@ -1180,6 +1189,10 @@ export function SeasonTab({ model, screen }) {
     watchRefs:(refs,label)=>screen.watchRefs(refs,label),
     watchCut:(type,val,label)=>screen.watchRefs(refsFor(engine._buildCutFilter(type,val)),label),
     watchPredicate:(predicate,label)=>screen.watchRefs(refsFor(predicate),label),
+    // OffenseTab renders inside SeasonOffense, so this shim must answer every
+    // call that tab makes. Its empty-state command is one of them: without
+    // openBreakDown the Season copy of the tab throws on click.
+    openBreakDown:()=>screen.openBreakDown?.(),
     export:kind=>screen.export(kind==='html'?'season-html':kind)};
   const s=model.summary;
   const hero=[{label:'Games',value:s.games},{label:'Record',value:s.played?s.record:'—'},{label:'Points For / Against',value:s.played?`${s.pointsFor}-${s.pointsAgainst}`:'—'},...view.offenseHero(model.stats,engine).slice(0,3)];

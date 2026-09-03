@@ -40,7 +40,10 @@ await page.evaluate(async () => {
       id: 'g-self', name: 'Week 1 vs Wildcats', nextId: 4,
       gameInfo: { opponent: 'Wildcats', perspective: 'self', scoreUs: 21, scoreThem: 14 },
       plays: [
-        play(1, 'offense', { formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
+        // playCall is charted so the exact-call cohort exists: the composite-ref
+        // assertion below reads a Play calls row, and _playCallAnalysis produces
+        // nothing at all without an exact call on the play.
+        play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
         play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
         play(3, 'special', { stType: 'Kickoff', kickOutcome: 'Returned', kickDistance: '55', returnYards: '18' }),
       ],
@@ -206,7 +209,11 @@ result = await page.evaluate(async () => {
     app.storage.seasonStore.data.activeGameId = id;
     app.storage._loadActiveGame();
     await app.workspaceShell.show('reports');
-    app.reportsScreen.selectTab('offense');
+    // The KPI rail is retired on Overview and Offense, which now carry the
+    // shared scorebug instead. Defense still owns the rail, so it is the tab
+    // that exercises this block's real subject -- the Turnovers tile and the
+    // Plays per Phase label.
+    app.reportsScreen.selectTab('defense');
     await new Promise(r => setTimeout(r, 200));
     return readRail();
   };
@@ -263,7 +270,10 @@ await page.evaluate(async () => {
       id: 'g-self', name: 'Week 1 vs Wildcats', nextId: 4,
       gameInfo: { opponent: 'Wildcats', perspective: 'self', scoreUs: 21, scoreThem: 14 },
       plays: [
-        play(1, 'offense', { formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
+        // playCall is charted so the exact-call cohort exists: the composite-ref
+        // assertion below reads a Play calls row, and _playCallAnalysis produces
+        // nothing at all without an exact call on the play.
+        play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
         play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
         play(3, 'special', { stType: 'Kickoff', kickOutcome: 'Returned', kickDistance: '55', returnYards: '18' }),
       ],
@@ -344,7 +354,7 @@ result = await page.evaluate(async () => {
   const drive = pane.querySelector('.gi-overview-drives [role="button"]');
   drive?.click();
   await clickTab('offense');
-  clickModuleRow('Play Calls');
+  clickModuleRow('Play calls');
   await clickTab('players');
   clickModuleRow('Individual Rushing');
   const model = app.season.reportModel();
@@ -941,7 +951,16 @@ result = await page.evaluate(() => {
   // canonical film seam exactly once, and every returned ref is a genuine
   // composite `gameId::playId` naming a play that actually belongs to the
   // active game (never a bare id, never another game's play).
-  const row = document.querySelector('[data-pane="offense"] .cut-row');
+  // Name the subject rather than taking whatever row happens to be first.
+  // Offense opens on the identity strip, whose tiles activate through
+  // `watchCut` -> `stats._watchPlays` (a canonical seam, but a predicate one
+  // that never produces composite refs), so "the first .cut-row" silently
+  // stopped being a refs-bearing row when the composition changed. This
+  // assertion is about composite-ref exactness, so it reads a row that
+  // actually carries refs.
+  const callsModule = [...document.querySelectorAll('[data-pane="offense"] .gi-overview-module')]
+    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Play calls');
+  const row = callsModule?.querySelector('tbody tr.cut-row');
   if (!row) return { row: false };
   const activeGameId = app.storage.seasonStore.data.activeGameId;
   const activePlayIds = new Set((app.storage.seasonStore.data.games.find(g => g.id === activeGameId)?.plays || []).map(p => String(p.id)));
@@ -1226,7 +1245,7 @@ const shape = await page.evaluate(async () => {
   // sortable, film-linked DataTable every other breakdown uses. The proof of
   // "multiple exact-film entry points" is that table's real onClick rows, not
   // a `.gi-ramp-row` mark that no longer exists by design.
-  const formationModule = [...root.querySelectorAll('.gi-overview-module')].find(m => m.querySelector('header strong')?.textContent.trim() === 'Formation frequency and success rate');
+  const formationModule = [...root.querySelectorAll('.gi-overview-module')].find(m => m.querySelector('header strong')?.textContent.trim() === 'Formation');
   const resolveToken = name => { const probe = document.createElement('div'); probe.style.background = `var(${name})`;
     document.body.appendChild(probe); const value = getComputedStyle(probe).backgroundColor; probe.remove(); return value; };
   const tokens = { turnover: resolveToken('--gi-turnover'), neutral: resolveToken('--gi-7'), cat1: resolveToken('--gi-cat-1') };

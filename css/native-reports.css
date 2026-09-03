@@ -1664,11 +1664,16 @@
    column labels (600 12px body sans). Secondary ink across the board moves
    from --gi-bd-muted to --gi-bd-copy, measured at 7.66:1. Row height is
    untouched: --gi-row is 36px and already carries a 12px label, so the type
-   grows without costing a single row of density. */
-.gi-reports .gi-offense-board .gi-overview-module th{
+   grows without costing a single row of density.
+
+   Applied to .gi-overview-board, so Overview and Offense share one readable
+   treatment rather than Offense carrying an exception. Composition, geometry
+   and density on Overview are untouched: this changes only the ink and the
+   column-label face. */
+.gi-reports .gi-overview-board .gi-overview-module th{
   font:var(--gi-text-label);letter-spacing:0;color:var(--gi-bd-copy)
 }
-.gi-reports .gi-offense-board .gi-overview-module>header span,
-.gi-reports .gi-offense-board .gi-zone-rule p,
-.gi-reports .gi-offense-board .gi-overview-kpi span,
-.gi-reports .gi-offense-board .gi-overview-kpi small{ color:var(--gi-bd-copy) }
+.gi-reports .gi-overview-board .gi-overview-module>header span,
+.gi-reports .gi-overview-board .gi-zone-rule p,
+.gi-reports .gi-overview-board .gi-overview-kpi span,
+.gi-reports .gi-overview-board .gi-overview-kpi small{ color:var(--gi-bd-copy) }

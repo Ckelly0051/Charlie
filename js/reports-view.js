@@ -204,10 +204,18 @@ export function offenseKpis(stats) {
                   : (v >= good ? 'is-good' : v >= ok ? 'is-warn' : 'is-bad');
   };
   const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
-  const third = num(downs.thirdDownPct);
+  // `thirdDownConv` is a "made/attempted" STRING and `thirdDownPct` falls back
+  // to '0.0' when no third down was charted, so neither can be read as a
+  // number or as a truth test: a game of first downs only would otherwise
+  // report a real 0% conversion rate on 0/0. The attempt count is the gate.
+  const thirdAtt = parseInt(String(downs.thirdDownConv || '').split('/')[1], 10) || 0;
+  const third = thirdAtt ? num(downs.thirdDownPct) : null;
   const kpis = [];
+  // StatsEngine's efficiency block names this `successes`. It has no
+  // `successfulPlays` key, so reading that name reported every game as
+  // "0 of N snaps" regardless of how many actually succeeded.
   kpis.push({ label: 'Success rate', value: succ != null ? `${Math.round(succ)}%` : '—',
-    sub: `${e.successfulPlays || 0} of ${stats.totalPlays} snaps`, cls: 'is-gold', tone: tone(succ, 45, 33) });
+    sub: `${e.successes || 0} of ${stats.totalPlays} snaps`, cls: 'is-gold', tone: tone(succ, 45, 33) });
   kpis.push({ label: 'Explosive', value: expl != null ? `${Math.round(expl)}%` : '—',
     sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
   kpis.push({ label: 'Negative', value: neg != null ? `${Math.round(neg)}%` : '—',
@@ -218,7 +226,7 @@ export function offenseKpis(stats) {
   kpis.push({ label: 'Points / drive', value: drives.pointsPerDrive != null ? drives.pointsPerDrive : '—',
     sub: drives.total ? `${drives.scoringDrives || 0} of ${drives.total} scored` : 'no drives charted' });
   kpis.push({ label: '3rd down', value: third != null ? `${Math.round(third)}%` : '—',
-    sub: downs.thirdDownConv ? `${downs.thirdDownConv} converted` : 'none charted' });
+    sub: thirdAtt ? `${downs.thirdDownConv} converted` : 'none charted' });
   return kpis;
 }
 
