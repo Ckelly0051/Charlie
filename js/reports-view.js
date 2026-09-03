@@ -153,6 +153,12 @@ function groupBreakdown(rows, cutType) {
   }));
 }
 
+/**
+ * The pre-redesign Offense KPI set. The Offense tab no longer uses it —
+ * `offenseKpis` below is that tab's owner — but the Season and Matchup tabs
+ * still render it, and neither is in the Offense redesign's scope. It stays
+ * unchanged until those tabs get their own passes.
+ */
 export function offenseHero(stats, engine) {
   if (!stats || !stats.totalPlays) return [];
   const ypp = engine.constructor.yardsPerPlay(stats);
@@ -172,6 +178,120 @@ export function offenseHero(stats, engine) {
   kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
   kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
   return kpis;
+}
+
+/**
+ * The approved Offense KPI band (design-comps/reports-offense-2026-09-03).
+ * SIX equal columns, and deliberately NO Yards/play: the shared scorebug above
+ * this band already leads with yards per play as its story metric, and showing
+ * it twice on one screen is the duplication the comp review removed. Nothing
+ * replaced it — the band is six, not seven.
+ *
+ * Every value is read off the already-computed `stats` object. Points/drive is
+ * `stats.drives.pointsPerDrive` and 3rd down is `stats.downs.thirdDownPct` /
+ * `thirdDownConv`; neither is re-derived here.
+ */
+export function offenseKpis(stats) {
+  if (!stats || !stats.totalPlays) return [];
+  const e = stats.efficiency || {};
+  const tend = stats.tendencies || {};
+  const drives = stats.drives || {};
+  const downs = stats.downs || {};
+  const num = v => (v == null ? null : parseFloat(v));
+  const tone = (v, good, ok, invert) => {
+    if (v == null || isNaN(v)) return '';
+    return invert ? (v <= good ? 'is-good' : v <= ok ? 'is-warn' : 'is-bad')
+                  : (v >= good ? 'is-good' : v >= ok ? 'is-warn' : 'is-bad');
+  };
+  const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
+  const third = num(downs.thirdDownPct);
+  const kpis = [];
+  kpis.push({ label: 'Success rate', value: succ != null ? `${Math.round(succ)}%` : '—',
+    sub: `${e.successfulPlays || 0} of ${stats.totalPlays} snaps`, cls: 'is-gold', tone: tone(succ, 45, 33) });
+  kpis.push({ label: 'Explosive', value: expl != null ? `${Math.round(expl)}%` : '—',
+    sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
+  kpis.push({ label: 'Negative', value: neg != null ? `${Math.round(neg)}%` : '—',
+    sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
+  kpis.push({ label: 'Run / pass',
+    value: `${Math.round(parseFloat(tend.runPct) || 0)} / ${Math.round(parseFloat(tend.passPct) || 0)}`,
+    sub: `${tend.runs || 0}R · ${tend.passes || 0}P` });
+  kpis.push({ label: 'Points / drive', value: drives.pointsPerDrive != null ? drives.pointsPerDrive : '—',
+    sub: drives.total ? `${drives.scoringDrives || 0} of ${drives.total} scored` : 'no drives charted' });
+  kpis.push({ label: '3rd down', value: third != null ? `${Math.round(third)}%` : '—',
+    sub: downs.thirdDownConv ? `${downs.thirdDownConv} converted` : 'none charted' });
+  return kpis;
+}
+
+/**
+ * Zone 1's Identity strip: the offense's signature, drawn entirely from
+ * breakdowns this report already computes and surfaces further down the page
+ * (personnel groupings, formation frequency, QB alignment, play calls). It
+ * calculates nothing new — it answers "who are we" in the first viewport
+ * instead of making the coach scroll for four separate tables.
+ *
+ * `calls` is `StatsEngine._playCallAnalysis(stats.offPlays)`, passed in so this
+ * module never invokes an engine internal itself.
+ */
+export function offenseIdentity(stats, engine, calls = null) {
+  const plays = stats?.offPlays || [];
+  if (!plays.length) return [];
+  const total = plays.length;
+  const share = n => (total ? `${Math.round((n / total) * 100)}%` : '—');
+  const items = [];
+
+  const personnel = (personnelGroups(stats) || [])[0];
+  items.push(personnel
+    ? { label: 'Base personnel', value: personnel.name, sub: `${personnel.count} snaps · ${share(personnel.count)}`,
+        cutType: 'personnel', cutVal: personnel.name, cutLabel: `Personnel ${personnel.name} — ${personnel.count} plays` }
+    : { label: 'Base personnel', value: '—', sub: 'none charted' });
+
+  const formation = (stats.tendencies?.formationList || [])[0];
+  items.push(formation
+    ? { label: 'Primary formation', value: formation.name, sub: `${formation.count} snaps · ${share(formation.count)}`,
+        cutType: 'formation', cutVal: formation.name, cutLabel: `${formation.name} — ${formation.count} plays` }
+    : { label: 'Primary formation', value: '—', sub: 'none charted' });
+
+  // QB alignment has a registered dimension and its own film cut type, but no
+  // pre-grouped list on `stats`; group it the same way backfieldStrength does,
+  // using StatsEngine's own read-time projection.
+  const alignments = {};
+  plays.forEach(p => {
+    const v = (engine.constructor.proj(p).qbAlignment || '').trim();
+    if (v) alignments[v] = (alignments[v] || 0) + 1;
+  });
+  const topAlignment = Object.entries(alignments).sort((a, b) => b[1] - a[1])[0];
+  items.push(topAlignment
+    ? { label: 'QB alignment', value: topAlignment[0], sub: `${topAlignment[1]} snaps · ${share(topAlignment[1])}`,
+        cutType: 'qbAlignment', cutVal: topAlignment[0], cutLabel: `${topAlignment[0]} — ${topAlignment[1]} plays` }
+    : { label: 'QB alignment', value: '—', sub: 'none charted' });
+
+  const topCall = calls?.eligible ? (calls.calls || [])[0] : null;
+  items.push(topCall
+    ? { label: 'Top call', value: topCall.name, sub: `${topCall.n} snaps · ${Math.round(topCall.successRate)}% success`,
+        refs: topCall.refs || null, playIds: topCall.playIds || null, cutLabel: `Play Call: ${topCall.name}` }
+    : { label: 'Top call', value: '—', sub: 'no exact calls charted' });
+  return items;
+}
+
+/** Zone 1's run/pass balance by down. Grouped from offPlays with StatsEngine's
+ *  own run/pass classifiers — the identical pattern backfieldStrength uses. */
+export function runPassByDown(stats, engine) {
+  const labels = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' };
+  const plays = stats?.offPlays || [];
+  return [1, 2, 3, 4].map(down => {
+    const ps = plays.filter(p => String(p.tags?.down) === String(down));
+    const runs = ps.filter(p => engine.constructor.isRun(p)).length;
+    const passes = ps.filter(p => engine.constructor.isPass(p)).length;
+    const classified = runs + passes;
+    const yards = ps.reduce((s, p) => s + (parseInt(p.tags.yardage, 10) || 0), 0);
+    return {
+      down: labels[down], snaps: ps.length,
+      runPct: classified ? Math.round((runs / classified) * 100) : 0,
+      passPct: classified ? 100 - Math.round((runs / classified) * 100) : 0,
+      ypp: ps.length ? (yards / ps.length).toFixed(1) : '—',
+      cutType: 'down', cutVal: String(down), cutLabel: `${labels[down]} down — ${ps.length} plays`,
+    };
+  }).filter(row => row.snaps > 0);
 }
 
 export function tendencyBreakdown(stats) {

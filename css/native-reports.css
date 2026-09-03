@@ -1412,3 +1412,263 @@
   .gi-season-native .gi-overview-module>header{align-items:flex-start;flex-direction:column;gap:3px}
 }
 .gi-season-native .gi-subnav{flex-wrap:nowrap;margin:0}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REPORTS · OFFENSE — approved six-zone composition
+   (design-comps/reports-offense-2026-09-03). Placed last, per this file's own
+   standing discipline: a later same-specificity rule wins, so anything
+   intended to be final goes at the end.
+
+   Everything here reuses the Overview board vocabulary already defined above
+   (`--bd-*` locals, 1px rules as grid gaps, the 3px module accent, condensed
+   tracked labels). No new palette, radius, shadow or font size is introduced.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── SCORE GRID ──────────────────────────────────────────────────────────
+   The scorebug used one content-measured cell per team, so a long team name
+   pushed its own score, the opposing score, the quarter line and the game
+   column sideways. Names and scores now occupy SEPARATE fixed tracks:
+   `.gi-scorebug-team` is display:contents, so each team contributes its name
+   to a bounded name track and its score to a fixed score track. Score
+   position is therefore independent of name length, and a 1-, 2- or 3-digit
+   score changes nothing but its own glyphs. */
+.gi-reports .gi-reports-scorebug{
+  --sb-name:170px; --sb-score:78px;
+  grid-template-columns:
+    minmax(0,var(--sb-name)) var(--sb-score)
+    minmax(0,var(--sb-name)) var(--sb-score)
+    auto minmax(0,1fr) auto
+}
+.gi-reports .gi-scorebug-team{display:contents}
+.gi-reports .gi-scorebug-team>span{
+  display:block;align-self:end;min-width:0;padding:9px 0 9px 16px;
+  color:var(--gi-bd-copy);font:700 11px/1.2 var(--gi-cond);letter-spacing:.14em;
+  text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.gi-reports .gi-scorebug-team>strong{
+  display:flex;align-items:center;justify-content:flex-start;min-width:0;
+  padding:9px 16px 9px 10px;color:var(--gi-bd-strong);
+  font:700 35px/.88 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)
+}
+@media(max-width:1360px){
+  .gi-reports .gi-reports-scorebug{--sb-name:132px;--sb-score:70px}
+  .gi-reports .gi-scorebug-team>strong{font-size:30px}
+}
+
+/* ── ZONE HEADERS ───────────────────────────────────────────────────────── */
+.gi-reports .gi-zone-rule{
+  display:flex;align-items:baseline;gap:var(--gi-3x);
+  margin:0 0 4px;padding:9px 12px 7px;
+  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-gold)
+}
+.gi-reports .gi-zone-rule h2{
+  margin:0;color:var(--gi-bd-gold);font:700 11px/1 var(--gi-cond);
+  letter-spacing:.18em;text-transform:uppercase
+}
+.gi-reports .gi-zone-rule p{
+  margin:0;color:var(--gi-bd-muted);font:400 10.5px/1.25 var(--gi-sans)
+}
+.gi-reports .gi-zone-rule em{
+  margin-left:auto;color:var(--gi-bd-muted);font:400 10.5px/1.25 var(--gi-sans);
+  font-style:normal;white-space:nowrap
+}
+/* A jumped-to zone must clear the sticky navigation above it. */
+.gi-reports .gi-offense-board .gi-zone-rule{scroll-margin-top:46px}
+
+/* ── ZONE NAVIGATION ────────────────────────────────────────────────────
+   Real buttons on the established tab treatment: a stable hit area, a raised
+   selected surface, the gold underline, and a visible hover. Sticky so it
+   stays reachable in a long report, and it sits ABOVE the board's own top
+   edge rather than over any module. */
+/* Not sticky. Two non-scrolling overflow:auto ancestors (.gi-report-pane and
+   .gi-reports) sit between this nav and the element that actually scrolls
+   (.ws-reports), so a sticky nav binds to a scrollport that never moves and
+   simply scrolls away — it looked pinned in review and was not. Making it
+   genuinely pin means changing which element owns the route's scroll, which
+   is shell architecture and outside this tab's scope. */
+.gi-reports .gi-zone-nav{
+  display:flex;align-items:stretch;gap:1px;
+  margin:0 0 4px;padding:0 var(--gi-3x);
+  background:var(--gi-bd-line)
+}
+.gi-reports .gi-zone-nav-item{
+  flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;
+  padding:0 var(--gi-3x);border:0;border-radius:0;background:var(--gi-bd-stage);
+  color:var(--gi-bd-muted);font:600 11px/1 var(--gi-cond);letter-spacing:.08em;
+  text-transform:uppercase;text-align:left;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;cursor:pointer
+}
+.gi-reports .gi-zone-nav-item>b{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:17px;height:17px;background:var(--gi-bd-control-active);
+  color:var(--gi-bd-muted);font:700 10px/1 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-zone-nav-item:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.gi-reports .gi-zone-nav-item:hover>b{background:var(--gi-bd-draw);color:var(--gi-bd-stage)}
+.gi-reports .gi-zone-nav-item:focus-visible{outline:2px solid var(--gi-bd-gold);outline-offset:-2px}
+.gi-reports .gi-zone-nav-item.is-active{
+  color:var(--gi-bd-strong);background:var(--gi-bd-control-active);
+  box-shadow:inset 0 -3px var(--gi-bd-gold),var(--gi-raise-tab)
+}
+.gi-reports .gi-zone-nav-item.is-active>b{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+@media(prefers-reduced-motion:reduce){
+  .gi-reports .gi-offense-board{scroll-behavior:auto}
+}
+
+/* ── OFFENSE BANDS ─────────────────────────────────────────────────────── */
+.gi-reports .gi-off-identity{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
+.gi-reports .gi-off-even{grid-template-columns:repeat(2,minmax(0,1fr))}
+.gi-reports .gi-off-full{grid-template-columns:minmax(0,1fr)}
+/* At 1280 the three-column structure bands STAY three columns: each module is
+   ~423px, which fits its five data columns with no clipping. Dropping to two
+   would spread four values across the full width and reproduce the long
+   eye-traverse this composition exists to remove. */
+@media(max-width:1180px){
+  .gi-reports .gi-off-identity,.gi-reports .gi-off-even{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Zone 1 identity strip — the tile vocabulary already used by Situational.
+   The module stretches to its taller neighbour (run/pass balance carries four
+   down rows), so the strip must FILL rather than leave a dead panel under the
+   bottom row. House rule: fill the space or kill the space. */
+.gi-reports .gi-off-identity>.gi-overview-module{display:flex;flex-direction:column}
+.gi-reports .gi-off-identity>.gi-overview-module>header{flex:0 0 auto}
+.gi-reports .gi-off-identity-strip{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-auto-rows:minmax(0,1fr);gap:1px;flex:1 1 auto;
+  margin:-1px -12px -10px;background:var(--gi-bd-line);
+  border-top:1px solid var(--gi-bd-line)
+}
+.gi-reports .gi-off-identity-strip>div{
+  min-width:0;padding:7px 11px 8px;background:var(--gi-bd-panel)
+}
+.gi-reports .gi-off-identity-strip span{
+  display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);
+  letter-spacing:.15em;text-transform:uppercase
+}
+.gi-reports .gi-off-identity-strip strong{
+  display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 19px/1 var(--gi-cond);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.gi-reports .gi-off-identity-strip small{
+  display:block;margin-top:3px;color:var(--gi-bd-muted);font:400 10.5px/1.3 var(--gi-sans)
+}
+.gi-reports .gi-off-identity-strip .cut-row:hover{background:var(--gi-bd-control)}
+.gi-reports .gi-off-identity-strip .cut-row:focus-visible{outline:2px solid var(--gi-bd-gold);outline-offset:-2px}
+
+/* Play-action's four KPI tiles sit under its table, in the tile vocabulary. */
+.gi-reports .gi-off-pa-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* A LABEL column keeps its text beside the row key; only measurements are
+   right-aligned. Without this a situation or concept name is thrown to the far
+   edge of a wide module, away from the row it belongs to. */
+.gi-reports .gi-overview-module th.tl,.gi-reports .gi-overview-module td.tl{text-align:left}
+/* Concept roll-up children read as children of the concept above them. */
+.gi-reports .gi-overview-module tbody tr.is-sub td:first-child{
+  padding-left:var(--gi-3x);color:var(--gi-bd-muted)
+}
+/* Sparse module copy: state the reason, never render an empty table. */
+.gi-reports .gi-offense-board .gi-table-empty{
+  margin:0;padding:6px 0;color:var(--gi-bd-muted);font:400 12.5px/1.4 var(--gi-sans)
+}
+/* Only Play calls may scroll inside itself, and only when it genuinely
+   cannot fit -- every other table reflows. */
+/* overflow-x:auto computes overflow-y to auto, so the wrap — not the page —
+   is the sticky containing block for the table header. The route-wide
+   .gi-reports th{top:42px} is measured against the page scroller, so inside
+   a wrap it pins the header 42px below the wrap's own top and holds it there,
+   covering the first data row. Against the wrap the correct offset is 0. */
+.gi-reports .gi-offense-board .gi-table-wrap{overflow-x:auto;scrollbar-width:thin}
+.gi-reports .gi-offense-board .gi-table-wrap th{top:0}
+
+/* ── COMPACT EMPTY STATE ────────────────────────────────────────────────
+   A state, not a framed vacancy: band width, deliberate height, and the
+   route's own navigation command. The rest of the page stays background. */
+.gi-reports .gi-reports-empty{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--gi-3x) var(--gi-5x);
+  margin:0;padding:var(--gi-4x) 18px;background:var(--gi-bd-panel);
+  border:0;border-left:3px solid var(--gi-bd-gold);border-radius:0
+}
+.gi-reports .gi-reports-empty>div{flex:1 1 320px;min-width:0}
+.gi-reports .gi-reports-empty h3{
+  margin:0 0 4px;color:var(--gi-bd-strong);font:700 11px/1 var(--gi-cond);
+  letter-spacing:.16em;text-transform:uppercase
+}
+.gi-reports .gi-reports-empty p{
+  margin:0;color:var(--gi-bd-copy);font:400 12.5px/1.4 var(--gi-sans)
+}
+.gi-reports .gi-reports-empty-cta{
+  flex:0 0 auto;min-height:32px;padding:8px 16px;border:0;border-radius:0;
+  background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);
+  font:700 11.5px/1 var(--gi-sans);cursor:pointer
+}
+.gi-reports .gi-reports-empty-cta:hover{background:var(--gi-first-down)}
+.gi-reports .gi-reports-empty-cta:focus-visible{outline:2px solid var(--gi-bd-strong);outline-offset:2px}
+
+/* ── Offense board: shared column rhythm ──────────────────────────────────
+   Every vertical rule on this tab must land on a gridline the KPI band also
+   uses, or adjacent bands miss each other by ~1% and read as a mistake. The
+   KPI band is six equal columns, so its rules sit at 2/12, 4/12, 6/12, 8/12
+   and 10/12. Two-column bands therefore run 8fr/4fr (8/12) or 6fr/6fr
+   (6/12), and three-column bands run three 4fr tracks (4/12 and 8/12).
+   `gi-overview-band-2`'s general 1.45fr/.75fr ratio lands at 65.9%, which is
+   the near-miss; it is overridden here rather than globally, because the
+   other tabs do not sit under a six-column KPI band. */
+.gi-reports .gi-offense-board .gi-overview-band-2,
+.gi-reports .gi-off-identity{ grid-template-columns:minmax(0,8fr) minmax(0,4fr) }
+.gi-reports .gi-offense-board .gi-overview-band-3{ grid-template-columns:repeat(3,minmax(0,4fr)) }
+.gi-reports .gi-off-even{ grid-template-columns:repeat(2,minmax(0,6fr)) }
+
+/* No fill rule here, deliberately. A module in a band is as tall as its
+   tallest neighbour, and short content leaves space at the bottom. Making the
+   module a flex column to absorb that space changes the containing block of
+   its sticky table header, which then renders 34px low and covers its own
+   first row. Height is therefore balanced by pairing modules of similar
+   shape in a band, not by stretching content inside one. */
+
+/* Edge cells clear the module wall. The route's shared cell padding
+   (0 var(--gi-3x)) is sized for the gap BETWEEN columns; at the first and
+   last column that same 12px is all that separates a value from the panel
+   edge, which reads as text pressed against the border. */
+.gi-reports .gi-offense-board th:first-child,
+.gi-reports .gi-offense-board td:first-child{ padding-left:var(--gi-4x) }
+.gi-reports .gi-offense-board th:last-child,
+.gi-reports .gi-offense-board td:last-child{ padding-right:var(--gi-4x) }
+
+/* Advanced-metrics sub-headings. Previously inline-styled <h4>s, two of them
+   carrying raw hex green and red — a second, brighter palette inside a
+   broadcast-dark report. They now read as the module labels the rest of the
+   board uses, with win/loss tone from the board's own tokens. */
+.gi-reports .gi-offense-board .gi-epa-subhead{
+  margin:var(--gi-4x) 0 var(--gi-2x);
+  color:var(--gi-bd-copy);font:700 11px/1 var(--gi-cond);
+  letter-spacing:.14em;text-transform:uppercase
+}
+.gi-reports .gi-offense-board .gi-epa-subhead.is-win{color:var(--gi-bd-gold)}
+.gi-reports .gi-offense-board .gi-epa-subhead.is-loss{color:var(--gi-bd-loss)}
+.gi-reports .gi-offense-board .gi-table-empty-cell{color:var(--gi-bd-muted)}
+
+/* ── OFFENSE BOARD TYPE: ALIGNED TO THE DESIGN-SYSTEM TOKENS ──────────────
+   PLAN-V2 §"Operational copy uses one readable UI/body family. Condensed and
+   display faces are reserved for true headings and major numbers. Synthetic
+   weights and tiny low-contrast metadata fail review."
+
+   The broadcast block styled table column headers as 9.5px CONDENSED in
+   --gi-bd-muted, which breaks that rule twice: a column label is operational
+   copy, not a heading or a major number, and at 9.5px in that ink it measures
+   3.63:1 against the panel — below the 4.5:1 minimum for small text, and the
+   literal definition of tiny low-contrast metadata.
+
+   Column labels now take --gi-text-label, the token designated for field and
+   column labels (600 12px body sans). Secondary ink across the board moves
+   from --gi-bd-muted to --gi-bd-copy, measured at 7.66:1. Row height is
+   untouched: --gi-row is 36px and already carries a 12px label, so the type
+   grows without costing a single row of density. */
+.gi-reports .gi-offense-board .gi-overview-module th{
+  font:var(--gi-text-label);letter-spacing:0;color:var(--gi-bd-copy)
+}
+.gi-reports .gi-offense-board .gi-overview-module>header span,
+.gi-reports .gi-offense-board .gi-zone-rule p,
+.gi-reports .gi-offense-board .gi-overview-kpi span,
+.gi-reports .gi-offense-board .gi-overview-kpi small{ color:var(--gi-bd-copy) }

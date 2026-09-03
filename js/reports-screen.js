@@ -6,6 +6,18 @@ import { buildDefenseHtmlReport, buildSelfScoutHtmlReport } from './html-report.
 
 const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']);
 
+/**
+ * Tabs whose game context is the shared SCOREBUG rather than the generic KPI
+ * rail. This set is the single owner of that rule: a tab in here shows the
+ * scorebug and hides the rail, and a tab outside it does the reverse, so the
+ * two can never appear together.
+ *
+ * It grows one tab at a time as each self-report tab receives its design pass.
+ * Overview (2026-08) and Offense (2026-09-03) are done; Defense, Special Teams,
+ * Players, Self-Scout and Matchup still render the rail.
+ */
+const SCOREBUG_TABS = new Set(['overview', 'offense']);
+
 /** Native Reports route controller. StatsEngine owns formulas; this class owns all live presentation. */
 export class ReportsScreen {
   constructor(app) {
@@ -178,14 +190,26 @@ export class ReportsScreen {
     return true;
   }
 
+  /** The Reports empty states' primary command. Uses the app's own route
+   *  navigation — Reports never gets a second route mechanism of its own. */
+  openBreakDown() {
+    return this.app.workspaceShell?.show?.('breakdown');
+  }
+
   _syncKpiRail() {
     const rail = this.host?.querySelector('[data-reports-rail]');
     if (!rail) return;
     const stats = this.app.stats;
     const data = stats?._kpiRailData?.(stats.compute());
     this._syncScorebug(data);
+    // The shared scorebug is the game-context header for the redesigned
+    // self-report tabs, so those tabs must not ALSO carry the generic KPI rail
+    // -- two stacked KPI strips is the duplication the Offense design review
+    // removed. Overview and Offense are redesigned; Defense, Special Teams,
+    // Players, Self-Scout and Matchup keep the rail until they get their own
+    // design pass. Season carries its own season-scope rail.
     if (this._mode !== 'main' || this.perspective !== 'self'
-      || this.activeTab === 'season' || this.activeTab === 'overview') { rail.hidden = true; return; }
+      || this.activeTab === 'season' || SCOREBUG_TABS.has(this.activeTab)) { rail.hidden = true; return; }
     if (!data || !data.totalPlays) { rail.hidden = true; return; }
     const esc = Charts._esc;
     const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
@@ -248,9 +272,12 @@ export class ReportsScreen {
   _syncScorebug(data) {
     const bug = this.host?.querySelector('[data-reports-scorebug]');
     if (!bug) return;
+    // Self perspective only: an opponent scout has no "our score", and the
+    // Season tab is season-scope. Empty data leaves the container hidden rather
+    // than rendering a blank scorebug shell.
     const visible = this._mode === 'main' && this.perspective === 'self'
-      && this.activeTab === 'overview' && data?.totalPlays;
-    if (!visible) { bug.hidden = true; return; }
+      && SCOREBUG_TABS.has(this.activeTab) && data?.totalPlays;
+    if (!visible) { bug.hidden = true; bug.innerHTML = ''; return; }
     const esc = Charts._esc;
     const game = this.app.storage?.gameInfo || {};
     const context = this.app.workspace?.snapshot?.() || {};
@@ -265,11 +292,15 @@ export class ReportsScreen {
     const offense = computed.offPlays?.length || 0;
     const yards = (computed.rushing?.yards || 0) + (computed.passing?.yards || 0);
     const ypp = offense ? (yards / offense).toFixed(1) : '—';
-    bug.innerHTML = `<div class="gi-scorebug-team"><span>${esc(team)}</span><strong>${esc(String(scoreUs))}</strong></div>
-
-      <div class="gi-scorebug-team is-opponent"><span>${esc(opponent)}</span><strong>${esc(String(scoreThem))}</strong></div>
+    // SCORE GRID: `.gi-scorebug-team` is `display:contents`, so each team's
+    // NAME and SCORE land in their own fixed track on the scorebug grid rather
+    // than sharing one content-measured cell. That is what keeps a score's
+    // position independent of how long the team name is. The `title` carries
+    // the full name because a long one truncates inside its own bounded track.
+    bug.innerHTML = `<div class="gi-scorebug-team"><span title="${esc(team)}">${esc(team)}</span><strong>${esc(String(scoreUs))}</strong></div>
+      <div class="gi-scorebug-team is-opponent"><span title="${esc(opponent)}">${esc(opponent)}</span><strong>${esc(String(scoreThem))}</strong></div>
       <div class="gi-scorebug-line">${quarters}</div>
-      <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play.</b> ${yards} yards on ${offense} offensive snaps.</span></div>
+      <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds · ${offense}&nbsp;snaps</span></div>
       <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
     bug.hidden = false;
   }
@@ -310,7 +341,7 @@ export class ReportsScreen {
       const plays = this.app.tagger?.plays?.length || 0;
       const season = context?.season?.name ? `${context.season.name} · ` : '';
       const filtered = this.app.filter?.active ? ' · filtered view' : '';
-      sub.textContent = `${season}${plays} play${plays === 1 ? '' : 's'}${filtered} · every highlighted row links to film`;
+      sub.textContent = `${season}${plays} play${plays === 1 ? '' : 's'}${filtered}`;
     }
   }
 

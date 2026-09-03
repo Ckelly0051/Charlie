@@ -8,7 +8,7 @@
  * post-render DOM query/rebind pass.
  */
 import { useState } from 'preact/hooks';
-import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, Gauge, DefMark, EmptyState } from './native-report-kit.jsx';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, Gauge, DefMark, EmptyState, ZoneNav, ZoneRule } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { Charts } from './charts.js';
 import { NativeHeatMaps, NativeOffenseVisualizations } from './native-offense-visuals.jsx';
@@ -126,7 +126,14 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
   </div>;
 }
 
-function PlayCalls({ stats, screen }) {
+/**
+ * The three Play Calls surfaces the approved Offense composition places in two
+ * different bands: call performance (wide), the concept roll-up (narrow), and
+ * calls-by-situation. They share one `_playCallAnalysis` result so the engine
+ * is asked once, and every row keeps the exact composite-ref film activation it
+ * had when all three lived inside a single module.
+ */
+function playCallParts({ stats, screen }) {
   const engine = screen.app.stats;
   const analysis = engine._playCallAnalysis(stats.offPlays);
   if (!analysis.eligible) return null;
@@ -134,39 +141,63 @@ function PlayCalls({ stats, screen }) {
   const pct = v => `${Number(v || 0).toFixed(1).replace(/\.0$/, '')}%`;
   const refsFor = row => row.refs?.length ? row.refs : row.playIds.map(id => `${gameId}::${id}`);
   const watch = (row, label) => () => screen.watchRefs(refsFor(row), label);
-  return <Module title="Play Calls" meta={`${analysis.eligible} offensive snaps have an exact call. Frequency uses those call-charted snaps; every row opens its exact film.`}>
-    <div class="gi-call-grid">
-      <div><h4>Call performance</h4><DataTable columns={[
-        { key: 'name', label: 'Play Call' }, { key: 'concept', label: 'Concept' }, { key: 'n', label: 'Plays', numeric: true },
-        { key: 'share', label: 'Frequency', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true },
-        { key: 'ypp', label: 'Yds/Play', numeric: true }, { key: 'explosive', label: 'Explosive', numeric: true }, { key: 'negative', label: 'Negative', numeric: true },
-      ]} rows={analysis.calls.map(row => ({
-        id: row.name, name: row.name, concept: row.concept || '—', n: row.n, share: pct(row.sharePct), success: pct(row.successRate),
-        ypp: row.yardsPerPlay.toFixed(1), explosive: pct(row.explosiveRate), negative: pct(row.negativeRate),
-        onActivate: watch(row, `Play Call: ${row.name}`), label: `Play Call: ${row.name}`,
-      }))} /></div>
-      <div><h4>Concept roll-up</h4>{analysis.concepts.length ? <DataTable columns={[
-        { key: 'name', label: 'Concept / Call' }, { key: 'n', label: 'Plays', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
-      ]} rows={analysis.concepts.flatMap(concept => [
-        { id: `c-${concept.name}`, name: concept.name, n: concept.n, success: pct(concept.successRate), ypp: concept.yardsPerPlay.toFixed(1), onActivate: watch(concept, `Concept: ${concept.name}`), label: `Concept: ${concept.name}` },
-        ...concept.calls.map(call => ({ id: `${concept.name}-${call.name}`, name: call.name, n: call.n, success: pct(call.successRate), ypp: call.yardsPerPlay.toFixed(1), onActivate: watch(call, `Play Call: ${call.name}`), label: `Play Call: ${call.name}` })),
-      ])} /> : <p>No concepts assigned yet.</p>}</div>
-    </div>
-    <h4>What we call by situation</h4>
-    <div class="gi-call-context-grid">{[...new Set(analysis.situations.map(row => row.lens))].map(lens => {
+
+  const calls = <Module title="Play calls" cls="is-offense"
+    meta={`${analysis.eligible} plays`}>
+    <DataTable emptyText="Insufficient charted data" columns={[
+      { key: 'name', label: 'Play Call' }, { key: 'concept', label: 'Concept', tl: true }, { key: 'n', label: 'Plays', numeric: true },
+      { key: 'share', label: 'Frequency', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true },
+      { key: 'ypp', label: 'Yds/Play', numeric: true }, { key: 'explosive', label: 'Explosive', numeric: true }, { key: 'negative', label: 'Negative', numeric: true },
+    ]} rows={analysis.calls.map(row => ({
+      id: row.name, name: row.name, concept: row.concept || '—', n: row.n, share: pct(row.sharePct), success: pct(row.successRate),
+      ypp: row.yardsPerPlay.toFixed(1), explosive: pct(row.explosiveRate), negative: pct(row.negativeRate),
+      onActivate: watch(row, `Play Call: ${row.name}`), label: `Play Call: ${row.name}`,
+    }))} />
+  </Module>;
+
+  const concepts = <Module title="Concepts" meta="by concept">
+    {analysis.concepts.length ? <DataTable emptyText="Insufficient charted data" columns={[
+      { key: 'name', label: 'Concept / Call' }, { key: 'n', label: 'Plays', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
+    ]} rows={analysis.concepts.flatMap(concept => [
+      { id: `c-${concept.name}`, name: concept.name, n: concept.n, success: pct(concept.successRate), ypp: concept.yardsPerPlay.toFixed(1), onActivate: watch(concept, `Concept: ${concept.name}`), label: `Concept: ${concept.name}` },
+      ...concept.calls.map(call => ({ id: `${concept.name}-${call.name}`, class: 'is-sub', name: call.name, n: call.n, success: pct(call.successRate), ypp: call.yardsPerPlay.toFixed(1), onActivate: watch(call, `Play Call: ${call.name}`), label: `Play Call: ${call.name}` })),
+    ])} /> : <p class="gi-table-empty">Insufficient charted data</p>}
+  </Module>;
+
+  const lenses = [...new Set(analysis.situations.map(row => row.lens))];
+  const situations = <Module title="Calls by situation" meta="top call">
+    {lenses.length ? <div class="gi-call-context-grid">{lenses.map(lens => {
       const rows = analysis.situations.filter(row => row.lens === lens).sort((a, b) => b.contextN - a.contextN || a.value.localeCompare(b.value));
-      return <div class="gi-call-context" key={lens}><h4>{lens}</h4><DataTable columns={[
-        { key: 'value', label: 'Situation' }, { key: 'call', label: 'Top Call' }, { key: 'use', label: 'Use' }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
+      return <div class="gi-call-context" key={lens}><h4>{lens}</h4><DataTable emptyText="Insufficient charted data" columns={[
+        { key: 'value', label: 'Situation' }, { key: 'call', label: 'Top Call', tl: true }, { key: 'use', label: 'Use' }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
       ]} rows={rows.map(row => ({ id: `${lens}-${row.value}`, value: row.value, call: row.call, use: `${row.n}/${row.contextN}`, success: pct(row.successRate), ypp: row.yardsPerPlay.toFixed(1),
         onActivate: watch(row, `${lens}: ${row.value} — ${row.call}`), label: `${lens}: ${row.value} — ${row.call}` }))} /></div>;
-    })}</div>
+    })}</div> : <p class="gi-table-empty">Insufficient charted data</p>}
   </Module>;
+
+  return { calls, concepts, situations };
 }
 
-function BigTwelve({ data, screen }) {
+
+/**
+ * `data.to90` is the computed count of calls covering 90% of snaps, so the
+ * "Big N" is derived from the eligible rows in BOTH variants — never a literal.
+ *
+ * `variant='zone'` is the redesigned Offense tab's shortened title (approved
+ * label change, RATIONALE §5: the team name is already in the context bar and
+ * the page title). `variant='legacy'` is what OPPONENT Offense still renders;
+ * that tab has not had its design pass and must not change here.
+ */
+function BigTwelve({ data, screen, cls = '', variant = 'legacy' }) {
   if (!data) return null;
-  return <Module title={`The “Big ${data.to90}” — ${data.label}'s Core Tendencies`} meta="Snaps sorted by frequency; click any column or row to sort. Click any row to watch the film.">
-    <DataTable columns={[
+  const title = variant === 'zone'
+    ? `Core tendencies · Big ${data.to90}`
+    : `The “Big ${data.to90}” — ${data.label}'s Core Tendencies`;
+  const meta = variant === 'zone'
+    ? `${data.label} · sorted by frequency`
+    : 'Snaps sorted by frequency; click any column or row to sort. Click any row to watch the film.';
+  return <Module title={title} cls={cls} meta={meta}>
+    <DataTable emptyText="Insufficient charted data" columns={[
       { key: 'form', label: 'Formation' }, { key: 'qb', label: 'QB align' }, { key: 'bf', label: 'Backfield' }, { key: 'str', label: 'Strength' }, { key: 'mot', label: 'Motion' }, { key: 'pt', label: 'Play' },
       { key: 'n', label: 'N', numeric: true }, { key: 'succ', label: 'Success', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true },
     ]} rows={data.rows.map(row => ({ ...row, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, row.cutLabel) : row.cutType ? () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
@@ -237,31 +268,42 @@ function AdvancedEpa({ data }) {
     </div>
     <div class="stats-two-col">
       <EpaGroupTable title="Personnel" rows={data.byPersonnel} />
-      <div><h4 style="margin:8px 0 4px">By Down</h4><table class="stats-table stats-table-full epa-table">
+      <div><h4 class="gi-epa-subhead">By down</h4><table class="stats-table stats-table-full epa-table">
         <thead><tr><th>Down</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
-        <tbody>{data.byDown.length ? data.byDown.map(d => <tr key={d.down}><td>{d.down}</td><td>{d.count}</td><td class={d.totalClass}>{d.total}</td><td class={d.perPlayClass}>{d.perPlay}</td></tr>) : <tr><td colspan="4" style="opacity:.6">No data</td></tr>}</tbody>
+        <tbody>{data.byDown.length ? data.byDown.map(d => <tr key={d.down}><td>{d.down}</td><td>{d.count}</td><td class={d.totalClass}>{d.total}</td><td class={d.perPlayClass}>{d.perPlay}</td></tr>) : <tr><td colspan="4" class="gi-table-empty-cell">No data</td></tr>}</tbody>
       </table></div>
     </div>
     <div class="stats-two-col">
-      <EpaPlayTable title="Top 5 EPA Plays" color="#44ff88" rows={data.top} />
-      <EpaPlayTable title="Worst 5 EPA Plays" color="#ff6666" rows={data.worst} />
+      <EpaPlayTable title="Top 5 EPA plays" tone="is-win" rows={data.top} />
+      <EpaPlayTable title="Worst 5 EPA plays" tone="is-loss" rows={data.worst} />
     </div>
   </Module>;
 }
 function EpaGroupTable({ title, rows }) {
   if (!rows.length) return null;
-  return <div><h4 style="margin:8px 0 4px">{title}</h4><table class="stats-table stats-table-full epa-table">
+  return <div><h4 class="gi-epa-subhead">{title}</h4><table class="stats-table stats-table-full epa-table">
     <thead><tr><th>{title}</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
     <tbody>{rows.map(r => <tr key={r.name}><td>{r.name}</td><td>{r.count}</td><td class={r.totalClass}>{r.total}</td><td class={r.perPlayClass}>{r.perPlay}</td></tr>)}</tbody>
   </table></div>;
 }
-function EpaPlayTable({ title, color, rows }) {
-  return <div><h4 style={`margin:8px 0 4px;color:${color}`}>{title}</h4><table class="stats-table stats-table-full epa-table">
+function EpaPlayTable({ title, tone, rows }) {
+  return <div><h4 class={`gi-epa-subhead ${tone}`}>{title}</h4><table class="stats-table stats-table-full epa-table">
     <thead><tr><th>#</th><th>Situation</th><th>Yds</th><th>EPA</th></tr></thead>
     <tbody>{rows.map(r => <tr key={r.id}><td>#{r.id}</td><td>{r.label}</td><td>{r.yards}</td><td class={r.epaClass}>{r.epaText}</td></tr>)}</tbody>
   </table></div>;
 }
 
+/**
+ * The four "offensive shape" graphics, returned individually so the approved
+ * composition can place them in Zone 5's equal-width bands instead of letting
+ * them inherit whatever width is left beside an unrelated narrow table.
+ */
+/**
+ * The original paired shape layout. Still the presentation for OPPONENT
+ * Offense, which has not had its own design pass — Offense's own zone-5 bands
+ * use `shapeParts` instead. Do not fold these together until the opponent tab
+ * is redesigned.
+ */
 function ShapePanels({ shape }) {
   if (!shape) return null;
   return <>
@@ -273,14 +315,25 @@ function ShapePanels({ shape }) {
     {shape.downs && <Module title="Run/pass split and success rate by down"><ChartBody {...shape.downs} /></Module>}
   </>;
 }
-function TeamProfile({ profile }) {
+
+function shapeParts(shape) {
+  if (!shape) return {};
+  return {
+    histogram: shape.histogram ? <Module title="Yards per play" meta="distribution"><ChartBody {...shape.histogram} /></Module> : null,
+    scatter: shape.scatter ? <Module title="Yards vs distance to go" meta="by distance to go"><ChartBody {...shape.scatter} /></Module> : null,
+    zones: shape.zones ? <Module title="Success by field position" meta="by field zone"><ChartBody {...shape.zones} /></Module> : null,
+    downs: shape.downs ? <Module title="Run / pass by down" meta="by down"><ChartBody {...shape.downs} /></Module> : null,
+  };
+}
+
+function TeamProfile({ profile, cls = '' }) {
   if (!profile?.axes?.length) return null;
   const chart = Charts.radar(profile.axes, { label: 'Team profile: this game vs season average', compareName: 'season average' });
   if (!chart) return null;
   const best = axis => typeof axis.best === 'number'
     ? (Number.isInteger(axis.best) ? axis.best : axis.best.toFixed(1))
     : axis.best;
-  return <Module title="Team profile" meta="this game vs our season average" cls="gi-team-profile">
+  return <Module title="Team profile" meta="vs season average" cls={`gi-team-profile ${cls}`}>
     <div class="gi-tp-layout">
       <ChartBody html={chart} />
       <div class="gi-tp-table-wrap"><table class="stats-table gi-tp-table">
@@ -293,69 +346,182 @@ function TeamProfile({ profile }) {
     </div>
   </Module>;
 }
+
+/** The Identity strip: existing breakdowns surfaced in the first viewport. */
+function IdentityStrip({ items, screen }) {
+  if (!items?.length) return null;
+  return <div class="gi-off-identity-strip">{items.map(item => {
+    const onActivate = item.refs?.length
+      ? () => screen.watchRefs(item.refs, item.cutLabel)
+      : item.cutType ? () => screen.watchCut(item.cutType, item.cutVal, item.cutLabel) : undefined;
+    return <Watchable key={item.label} onActivate={onActivate} label={item.cutLabel}>
+      <span>{item.label}</span><strong>{item.value}</strong><small>{item.sub}</small>
+    </Watchable>;
+  })}</div>;
+}
+
+/** A module that states why it is thin instead of rendering an empty table. */
+function SparseModule({ title, meta, cls = '', rows, children }) {
+  return <Module title={title} meta={meta} cls={cls}>
+    {rows && rows.length ? children : <p class="gi-table-empty">Insufficient charted data</p>}
+  </Module>;
+}
+
+const OFFENSE_ZONES = [
+  { id: 'gi-off-z1', label: 'Offensive identity' },
+  { id: 'gi-off-z2', label: 'Calls and tendencies' },
+  { id: 'gi-off-z3', label: 'Structure and deployment' },
+  { id: 'gi-off-z4', label: 'Situational analysis' },
+  { id: 'gi-off-z5', label: 'Field and production' },
+  { id: 'gi-off-z6', label: 'Advanced metrics' },
+];
+
+/**
+ * The approved six-zone Offense composition
+ * (design-comps/reports-offense-2026-09-03). Every section the flat stack
+ * carried is still here — the change is composition, not content. The mapping
+ * from the old stack to these zones is RATIONALE.md §2.
+ */
 export function OffenseTab({ stats, screen }) {
   const engine = screen.app.stats;
-  if (!stats.offPlays.length) return <EmptyState title="No offensive snaps charted" body="Set Unit to Offense to populate this report." />;
+  if (!stats.offPlays.length) {
+    return <EmptyState
+      title="No offensive snaps charted"
+      body="Chart offensive plays to populate this report."
+      action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown() }} />;
+  }
   const shape = engine._dataShape(stats);
+  const parts = shapeParts(shape);
   const tend = view.tendencyBreakdown(stats);
   const bf = view.backfieldStrength(stats, engine);
   const dm = view.directionMotion(stats);
   const pa = view.playAction(stats);
   const advanced = view.advancedData(stats, engine);
+  const personnel = view.personnelGroups(stats);
+  const hash = view.hashTendencies(stats);
+  const personnelSit = view.personnelSituation(stats);
+  const sit = view.situationalBreakdown(stats);
+  const calls = playCallParts({ stats, screen });
+  const identity = view.offenseIdentity(stats, engine, calls ? engine._playCallAnalysis(stats.offPlays) : null);
+  const byDown = view.runPassByDown(stats, engine);
   const cut = (type, val, label) => () => screen.watchCut(type, val, label);
-  return <div class="gi-overview-board">
-    <Hero kpis={view.offenseHero(stats, engine)} />
-    <PlayCalls stats={stats} screen={screen} />
-    <div class="gi-overview-band gi-overview-band-2">
-      <Module title="Formation frequency and success rate" meta="each row opens film">
-        <DataTable columns={breakdownColumns} rows={breakdownRows(tend.formations, screen)} />
+
+  return <div class="gi-overview-board gi-offense-board">
+    <ZoneNav zones={OFFENSE_ZONES} ariaLabel="Offense report sections" />
+
+    {/* ── ZONE 1 — offensive identity ───────────────────────────────── */}
+    <ZoneRule id="gi-off-z1" title="Offensive identity" label="Personnel, formation, alignment, and primary call" />
+    <KpiBand items={view.offenseKpis(stats)} />
+    <div class="gi-overview-band gi-off-identity">
+      <Module title="Identity" cls="is-offense" meta={`${stats.offPlays.length} snaps`}>
+        <IdentityStrip items={identity} screen={screen} />
       </Module>
-      <Module title="Play type breakdown" meta="each row opens film">
-        <DataTable columns={breakdownColumns} rows={breakdownRows(tend.playTypes, screen)} />
+      <SparseModule title="Run / pass balance" meta="by down" rows={byDown}>
+        <table><thead><tr><th>Down</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th></tr></thead><tbody>
+          {byDown.map(row => <Watchable key={row.down} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
+            <td>{row.down}</td><td>{row.snaps}</td>
+            <td><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</td>
+            <td>{row.ypp}</td>
+          </Watchable>)}
+        </tbody></table>
+      </SparseModule>
+    </div>
+
+    {/* ── ZONE 2 — calls and tendencies ─────────────────────────────── */}
+    <ZoneRule id="gi-off-z2" title="Calls and tendencies" label="Frequency and production" note="Opens film" />
+    {calls && <div class="gi-overview-band gi-overview-band-2">{calls.calls}{calls.concepts}</div>}
+    <div class="gi-overview-band gi-overview-band-3">
+      <SparseModule title="Formation" meta="frequency &amp; success" cls="is-offense" rows={tend.formations}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(tend.formations, screen)} />
+      </SparseModule>
+      <SparseModule title="Play type" meta="frequency &amp; success" cls="is-offense" rows={tend.playTypes}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(tend.playTypes, screen)} />
+      </SparseModule>
+      <Module title="Play-action" meta="vs dropback" cls="is-offense">
+        {pa ? <>
+          {pa.formations.length > 0
+            ? <DataTable emptyText="Insufficient charted data" columns={[{ key: 'name', label: 'Formation' }, { key: 'count', label: 'PA Plays', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]} rows={pa.formations.map((f, i) => ({ id: i, ...f }))} />
+            : <p class="gi-table-empty">Insufficient charted data</p>}
+          <div class="gi-overview-tiles gi-off-pa-tiles">
+            <div><span>PA rate</span><strong>{pa.paRate}%</strong><small>{pa.paPlays} of dropbacks</small></div>
+            <div><span>PA comp</span><strong>{pa.paCompPct}%</strong><small>completion</small></div>
+            <div><span>PA YPA</span><strong>{pa.paYPA}</strong><small>per attempt</small></div>
+            <div><span>Straight YPA</span><strong>{pa.straightYPA}</strong><small>no play-action</small></div>
+          </div>
+        </> : <p class="gi-table-empty">Insufficient charted data</p>}
       </Module>
     </div>
-    <ShapePanels shape={shape} />
+    {/* Each takes a full band: paired, "Calls by situation" stacks three lens
+        tables in the narrow track and runs ~1330px tall, leaving ~960px dead
+        beside it. Full width lets its lens grid run as three columns. */}
+    <div class="gi-overview-band gi-off-full">
+      <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
+    </div>
+    <div class="gi-overview-band gi-off-full">
+      {calls ? calls.situations : <Module title="Calls by situation" meta="top call"><p class="gi-table-empty">Insufficient charted data</p></Module>}
+    </div>
 
-    {pa && <Module title="Play-Action">
-      <div class="stats-grid stats-grid-flex">
-        <div class="stat-card"><div class="stat-card-title">PA Rate</div><div class="stat-card-value">{pa.paRate}%</div><div class="stat-card-sub">{pa.paPlays} of dropbacks</div></div>
-        <div class="stat-card"><div class="stat-card-title">PA Comp%</div><div class="stat-card-value">{pa.paCompPct}%</div></div>
-        <div class="stat-card"><div class="stat-card-title">PA YPA</div><div class="stat-card-value">{pa.paYPA}</div></div>
-        <div class="stat-card"><div class="stat-card-title">Straight YPA</div><div class="stat-card-value">{pa.straightYPA}</div></div>
-      </div>
-      {pa.formations.length > 0 && <DataTable columns={[{ key: 'name', label: 'Formation' }, { key: 'count', label: 'PA Plays', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]} rows={pa.formations.map((f, i) => ({ id: i, ...f }))} />}
-    </Module>}
-    <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} />
-    <PairedBand cls="gi-overview-band gi-overview-band-2" slots={[
-      bf.backfield.length > 0 ? <Module title="Backfield"><DataTable columns={breakdownColumns} rows={breakdownRows(bf.backfield, screen)} /></Module> : null,
-      bf.strength.length > 0 ? <Module title="Strength"><DataTable columns={breakdownColumns} rows={breakdownRows(bf.strength, screen)} /></Module> : null,
-    ]} />
-    {view.personnelGroups(stats).length > 0 && <Module title="Personnel Groupings"><DataTable columns={breakdownColumns} rows={breakdownRows(view.personnelGroups(stats), screen)} /></Module>}
-    <PairedBand slots={[
-      dm?.direction.length > 0 ? <Module title="Play Direction"><DataTable columns={breakdownColumns} rows={breakdownRows(dm.direction, screen)} /></Module> : null,
-      dm?.motion.length > 0 ? <Module title="Motion"><DataTable columns={breakdownColumns} rows={breakdownRows(dm.motion, screen)} /></Module> : null,
-    ]} />
-    {view.hashTendencies(stats).length > 0 && <Module title="Hash Tendencies"><DataTable columns={breakdownColumns} rows={breakdownRows(view.hashTendencies(stats), screen)} /></Module>}
-    {view.personnelSituation(stats).length > 0 && <Module title="Personnel × Situation">
-      <DataTable columns={[{ key: 'personnel', label: 'Personnel' }, { key: 'situation', label: 'Situation' }, { key: 'count', label: 'Plays', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]}
-        rows={view.personnelSituation(stats).map((row, i) => ({ id: i, ...row }))} />
-    </Module>}
-    <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
-    {(() => { const sit = view.situationalBreakdown(stats); return sit.rows.length ? <Module title="Situational">
-      <div class="stats-two-col">
-        <DataTable columns={[{ key: 'name', label: 'Situation' }, { key: 'total', label: '#', numeric: true }, { key: 'yards', label: 'Yds', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Succ%' }, { key: 'tds', label: 'TD', numeric: true }]}
+    {/* ── ZONE 3 — structure and deployment ─────────────────────────── */}
+    <ZoneRule id="gi-off-z3" title="Structure and deployment" label="Personnel, alignment, motion, direction, and hash" note="Opens film" />
+    <div class="gi-overview-band gi-overview-band-3">
+      <SparseModule title="Personnel" meta="grouping" cls="is-offense" rows={personnel}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(personnel, screen)} />
+      </SparseModule>
+      <SparseModule title="Backfield" meta="alignment" cls="is-offense" rows={bf.backfield}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(bf.backfield, screen)} />
+      </SparseModule>
+      <SparseModule title="Motion" meta="pre-snap" cls="is-offense" rows={dm?.motion}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(dm?.motion || [], screen)} />
+      </SparseModule>
+    </div>
+    <div class="gi-overview-band gi-overview-band-3">
+      <SparseModule title="Play direction" meta="ball direction" cls="is-offense" rows={dm?.direction}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(dm?.direction || [], screen)} />
+      </SparseModule>
+      <SparseModule title="Strength" meta="declared side" cls="is-offense" rows={bf.strength}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(bf.strength, screen)} />
+      </SparseModule>
+      <SparseModule title="Field hash" meta="starting position" cls="is-offense" rows={hash}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(hash, screen)} />
+      </SparseModule>
+    </div>
+
+    {/* ── ZONE 4 — situational analysis ─────────────────────────────── */}
+    <ZoneRule id="gi-off-z4" title="Situational analysis" label="Down, distance, quarter, and personnel" note="Opens film" />
+    <div class="gi-overview-band gi-off-even">
+      <SparseModule title="Personnel × situation" meta="by down &amp; distance" cls="is-offense" rows={personnelSit}>
+        <DataTable emptyText="Insufficient charted data"
+          columns={[{ key: 'personnel', label: 'Personnel' }, { key: 'situation', label: 'Situation', tl: true }, { key: 'count', label: 'Plays', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]}
+          rows={personnelSit.map((row, i) => ({ id: i, ...row }))} />
+      </SparseModule>
+      <SparseModule title="Situational" meta="by situation" cls="is-offense" rows={sit.rows}>
+        <DataTable emptyText="Insufficient charted data"
+          columns={[{ key: 'name', label: 'Situation' }, { key: 'total', label: '#', numeric: true }, { key: 'yards', label: 'Yds', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Succ%' }, { key: 'tds', label: 'TD', numeric: true }]}
           rows={sit.rows.map(row => ({ ...row, id: row.key, onActivate: cut('situation', row.key, `${row.name} — ${row.total} plays`), label: `${row.name} — ${row.total} plays` }))} />
-        <div><h4 style="margin:0 0 6px">By Quarter</h4>{sit.byQuarter.length ? <table class="stats-table stats-table-full"><thead><tr><th>Q</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
-          <tbody>{sit.byQuarter.map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody></table> : <p style="opacity:.6">No quarter data tagged.</p>}</div>
-      </div>
-    </Module> : null; })()}
-    <NativeHeatMaps plays={stats.offPlays} screen={screen} />
-    <NativeOffenseVisualizations plays={stats.offPlays} />
-    <TeamProfile profile={shape?.teamProfile} />
-    <AdvancedEpa data={advanced} />
+      </SparseModule>
+    </div>
+    <div class="gi-overview-band gi-overview-band-2">
+      <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
+      <SparseModule title="By quarter" meta="plays, yards, TD" rows={sit.byQuarter}>
+        <table><thead><tr><th>Qtr</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
+          <tbody>{sit.byQuarter.map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody>
+        </table>
+      </SparseModule>
+    </div>
+
+    {/* ── ZONE 5 — field and production ─────────────────────────────── */}
+    <ZoneRule id="gi-off-z5" title="Field and production" label="Distribution and field position" />
+    <div class="gi-overview-band gi-off-full"><NativeHeatMaps plays={stats.offPlays} screen={screen} /></div>
+    {(parts.histogram || parts.scatter) && <div class="gi-overview-band gi-off-even">{[parts.histogram, parts.scatter].filter(Boolean)}</div>}
+    {(parts.zones || parts.downs) && <div class="gi-overview-band gi-off-even">{[parts.zones, parts.downs].filter(Boolean)}</div>}
+    <div class="gi-overview-band gi-off-full"><NativeOffenseVisualizations plays={stats.offPlays} /></div>
+
+    {/* ── ZONE 6 — advanced metrics ─────────────────────────────────── */}
+    <ZoneRule id="gi-off-z6" title="Advanced metrics" label="Team profile and EPA" />
+    {shape?.teamProfile && <div class="gi-overview-band gi-off-full"><TeamProfile profile={shape.teamProfile} cls="is-offense" /></div>}
+    {advanced && <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} /></div>}
   </div>;
 }
-
 export function PlayersTab({ stats, screen, labels = null }) {
   const engine = screen.app.stats;
   const playerLabel = num => labels?.[String(num)] ? `#${num} ${labels[String(num)]}` : engine._playerLabel(num);

@@ -12,7 +12,7 @@
  * pattern). A row with no resolvable refs renders with no click affordance
  * at all, never a dead click.
  */
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 
 export function KpiBand({ items }) {
   if (!items?.length) return null;
@@ -94,15 +94,19 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
     ? (current.dir === 'desc' ? { key, dir: 'asc' } : null)
     : { key, dir: 'desc' });
   if (!rows.length) return <p class="gi-table-empty">{emptyText}</p>;
+  // `col.tl` marks a LABEL column. The stylesheet right-aligns every column
+  // after the first because they are measurements; a text label right-aligned
+  // beside a number throws a wide gap between a row's key and its data, which
+  // is the eye-traverse problem the approved Offense comp removed.
   return <div class="gi-table-wrap"><table class={className}>
     <thead><tr>{columns.map(col => <th key={col.key}
-      class={sort?.key === col.key ? `is-sorted is-${sort.dir}` : ''}
+      class={`${sort?.key === col.key ? `is-sorted is-${sort.dir}` : ''}${col.tl ? ' tl' : ''}`.trim()}
       onClick={() => toggle(col.key)}
       role="button" tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(col.key); } }}
     >{col.label}</th>)}</tr></thead>
     <tbody>{sorted.map((row, i) => <Watchable key={row.id ?? i} tag="tr" class={row.class} onActivate={row.onActivate} label={row.label}>
-      {columns.map(col => <td key={col.key} data-col={col.key}>{col.render ? col.render(row) : row[col.key]}</td>)}
+      {columns.map(col => <td key={col.key} data-col={col.key} class={col.tl ? 'tl' : undefined}>{col.render ? col.render(row) : row[col.key]}</td>)}
     </Watchable>)}</tbody>
   </table></div>;
 }
@@ -171,6 +175,72 @@ export function ChartBody({ note, html }) {
   return <div>{note ? <p class="viz-caption">{note}</p> : null}<div dangerouslySetInnerHTML={{ __html: html }} /></div>;
 }
 
-export function EmptyState({ title, body }) {
-  return <div class="stats-section gi-reports-empty"><h3>{title}</h3><p>{body}</p></div>;
+/**
+ * The compact report empty state. `action` is optional; when present it is a
+ * real command button, not a link — the caller passes the app's own navigation
+ * command so there is never a second route mechanism. Deliberately short: it
+ * sits at the top of the report and reserves no height, leaving the rest of the
+ * route as ordinary background.
+ */
+export function EmptyState({ title, body, action = null }) {
+  return <div class="gi-reports-empty">
+    <div><h3>{title}</h3><p>{body}</p></div>
+    {action ? <button type="button" class="gi-reports-empty-cta" onClick={action.onSelect}>{action.label}</button> : null}
+  </div>;
+}
+
+/**
+ * A zone header. Offense carries roughly three times as many bands as Overview,
+ * so the board needs a scan structure Overview's four bands never required.
+ * Same type, colour and geometry as every other module header — the only new
+ * thing is the level in the hierarchy.
+ */
+export function ZoneRule({ id, title, label, note = null }) {
+  return <div class="gi-zone-rule" id={id}>
+    <h2>{title}</h2>{label ? <p>{label}</p> : null}{note ? <em>{note}</em> : null}
+  </div>;
+}
+
+/**
+ * Secondary navigation for a long report. Real buttons with a stable hit area,
+ * hover, `:focus-visible`, and an active state that follows the coach down the
+ * page via IntersectionObserver — the observer is disconnected on unmount, and
+ * a route/tab/game/season/perspective change unmounts this component, so the
+ * active zone resets by construction rather than by a reset call.
+ *
+ * `zones` is [{ id, label }]. Jumping honours `prefers-reduced-motion`.
+ */
+export function ZoneNav({ zones, ariaLabel = 'Report sections' }) {
+  const [active, setActive] = useState(zones[0]?.id || null);
+  useEffect(() => {
+    const targets = zones.map(zone => document.getElementById(zone.id)).filter(Boolean);
+    if (!targets.length || typeof IntersectionObserver !== 'function') return undefined;
+    // A zone counts as current once its header crosses the upper third of the
+    // scroller; the last one to cross wins, which is what reading down the page
+    // feels like. rootMargin keeps a zone current while its body is on screen.
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible.length) setActive(visible[0].target.id);
+    }, { rootMargin: '-72px 0px -62% 0px', threshold: 0 });
+    targets.forEach(target => observer.observe(target));
+    return () => observer.disconnect();
+  }, [zones.map(zone => zone.id).join('|')]);
+  const jump = id => {
+    const target = document.getElementById(id);
+    if (!target) return;
+    setActive(id);
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  };
+  return <nav class="gi-zone-nav" aria-label={ariaLabel}>
+    {zones.map((zone, index) => <button
+      key={zone.id}
+      type="button"
+      class={`gi-zone-nav-item${active === zone.id ? ' is-active' : ''}`}
+      data-zone-jump={zone.id}
+      aria-current={active === zone.id ? 'true' : undefined}
+      onClick={() => jump(zone.id)}
+    ><b>{index + 1}</b>{zone.label}</button>)}
+  </nav>;
 }
