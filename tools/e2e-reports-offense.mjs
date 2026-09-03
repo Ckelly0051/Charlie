@@ -42,7 +42,7 @@ const load = async (opts) => {
       id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 }, notes: '', annotations: [],
       tags: { custom: [], players: {}, grades: {}, unit: 'offense', formation: 'Ace',
         runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5',
-        down: '1', distance: '10', quarter: '1', ...tags },
+        down: '1', distance: '10', quarter: 'Q1', ...tags },
     }));
     store.data.games = [{
       id: o.gameId || 'g-off', name: o.opponent || 'Wildcats', nextId: plays.length + 1, plays,
@@ -71,7 +71,7 @@ const FULL = Array.from({ length: 16 }, (_, i) => {
     ['Four Verts', 'Drop Back', 'Pass', 'Deep Pass', 'Incomplete', '0'],
   ][i % 4];
   return { playCall: c[0], playConcept: c[1], runPass: c[2], playType: c[3], result: c[4], yardage: c[5],
-    down: String((i % 3) + 1), distance: '10', quarter: String((i % 4) + 1) };
+    down: String((i % 3) + 1), distance: '10', quarter: 'Q' + ((i % 4) + 1) };
 });
 
 console.log('\n== 1. The approved six-zone composition ==');
