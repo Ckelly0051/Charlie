@@ -71,7 +71,11 @@ const FULL = Array.from({ length: 16 }, (_, i) => {
     ['Four Verts', 'Drop Back', 'Pass', 'Deep Pass', 'Incomplete', '0'],
   ][i % 4];
   return { playCall: c[0], playConcept: c[1], runPass: c[2], playType: c[3], result: c[4], yardage: c[5],
-    down: String((i % 3) + 1), distance: '10', quarter: 'Q' + ((i % 4) + 1) };
+    down: String((i % 3) + 1), distance: '10', quarter: 'Q' + ((i % 4) + 1),
+    // Field position, so the spray chart in Zone 5 actually renders. Without
+    // it `offenseVisualizationData` produces no `spray`, the chart is absent,
+    // and any assertion about its axis labels passes on an empty board.
+    fieldSide: i % 2 ? 'Own' : 'Opp', yardLine: String(20 + (i % 60)), hash: ['Left', 'Middle', 'Right'][i % 3] };
 });
 
 console.log('\n== 1. The approved six-zone composition ==');
@@ -397,14 +401,28 @@ ok(widths.every(r => r.bandTracks.length > 0 && r.bandTracks.every(n => n === 3)
 
 console.log('\n== 17. Nothing on the board renders below the type floor ==');
 await load({ plays: FULL });
-const tiny = await page.evaluate(() => [...document.querySelectorAll('.gi-offense-board *')]
-  .filter(el => el.childElementCount === 0 && (el.textContent || '').trim())
-  .map(el => ({ tag: el.tagName, text: el.textContent.trim().slice(0, 12),
-    size: parseFloat(getComputedStyle(el).fontSize) }))
-  .filter(o => o.size && o.size < 9.5));
-ok(tiny.length === 0,
-  'no text on the Offense board renders below the 9.5px floor, chart axis labels included',
-  JSON.stringify(tiny.slice(0, 6)));
+const floor = await page.evaluate(() => {
+  const all = [...document.querySelectorAll('.gi-offense-board *')]
+    .filter(el => el.childElementCount === 0 && (el.textContent || '').trim())
+    .map(el => ({ tag: el.tagName, text: el.textContent.trim().slice(0, 12),
+      size: parseFloat(getComputedStyle(el).fontSize) }));
+  const spray = [...document.querySelectorAll('.gi-offense-board .viz-svg text')]
+    .map(el => ({ text: el.textContent.trim(), size: parseFloat(getComputedStyle(el).fontSize) }));
+  return { tiny: all.filter(o => o.size && o.size < 9.5), spray, total: all.length };
+});
+// The chart has to be on screen before its labels can be judged. Asserting
+// only "nothing is under the floor" passes just as happily when the chart
+// never rendered at all, which is exactly what happened while the fixture
+// carried no field position.
+ok(floor.spray.length >= 8,
+  'the spray chart renders, so its axis labels are actually on the board to measure',
+  JSON.stringify({ sprayLabels: floor.spray.length, boardText: floor.total }));
+ok(floor.spray.length >= 8 && floor.spray.every(o => o.size >= 9.5),
+  'every spray-chart axis label clears the 9.5px floor',
+  JSON.stringify(floor.spray.filter(o => o.size < 9.5)));
+ok(floor.tiny.length === 0,
+  'no text anywhere on the Offense board renders below the 9.5px floor',
+  JSON.stringify(floor.tiny.slice(0, 6)));
 
 ok(errors.length === 0, 'the Offense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 
