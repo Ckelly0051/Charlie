@@ -1,11 +1,3 @@
-/* Inline SVG icon sprite: keep it out of layout flow. Hidden via this
-   stylesheet rule (not an inline style attribute) because Tauri's CSP
-   nonces the \3c style> block, which disables 'unsafe-inline' for style
-   attributes — an inline style="display:none" gets blocked in WebView2
-   and the sprite balloons to its default 300x150 box, shoving the whole
-   app down. width=0/height=0 attributes on the <svg> are the backstop. */
-.svg-sprite { display: none !important; }
-
 /* ===== CSS Custom Properties ===== */
 :root {
   --bg-primary: #1b1f27;
@@ -52,14 +44,6 @@ body {
   width: 100vw;
 }
 
-#app {
-  display: grid;
-  grid-template-rows: 48px 1fr auto;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-}
-
 /* ===== Icons ===== */
 .icon {
   width: 16px;
@@ -72,38 +56,6 @@ body {
 .icon-large {
   width: 48px;
   height: 48px;
-}
-
-/* ===== Top Bar ===== */
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  padding: 0 12px;
-  gap: 12px;
-  z-index: 10;
-}
-
-.app-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--highlight);
-  white-space: nowrap;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.top-bar-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.top-bar-right {
-  display: flex;
-  gap: 6px;
 }
 
 /* ===== Buttons ===== */
@@ -151,185 +103,11 @@ body {
   color: var(--text-bright);
 }
 
-/* ===== Main Content ===== */
-.main-content {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  overflow: hidden;
-}
-
 /* ===== Video Section ===== */
 
 /* ===== Playback Controls ===== */
 
-/* ===== Sidebar ===== */
-.sidebar {
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Float the Play Tagger to the top of the sidebar so the tool used on
-   every play needs no scrolling; secondary panels sort below it. */
-
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-dim);
-  cursor: pointer;
-  user-select: none;
-}
-
-.panel-title:hover {
-  color: var(--text);
-}
-
-.panel-body {
-  padding: 8px 12px 12px;
-}
-
-.panel-body.collapsed {
-  display: none;
-}
-
-/* ===== Drawing Tools ===== */
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
-.tool-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  background: var(--bg-tertiary);
-  border: 2px solid transparent;
-  border-radius: var(--radius);
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 10px;
-  transition: all var(--transition);
-}
-
-.tool-btn:hover {
-  color: var(--text);
-  background: var(--bg-surface);
-}
-
-.tool-btn.active {
-  border-color: var(--highlight);
-  color: var(--highlight);
-  background: var(--bg-surface);
-}
-
-.tool-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.color-swatches {
-  display: flex;
-  gap: 4px;
-}
-
-.swatch {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-/* Swatch colors via CSS (not inline style) so they survive Tauri's CSP,
-   which nonces the \3c style> block and thereby blocks style="" attributes. */
-.swatch[data-color="#ffffff"] { background: #ffffff; }
-.swatch[data-color="#ffff00"] { background: #ffff00; }
-.swatch[data-color="#ff4444"] { background: #ff4444; }
-.swatch[data-color="#4488ff"] { background: #4488ff; }
-.swatch[data-color="#44ff44"] { background: #44ff44; }
-.swatch[data-color="#ff8800"] { background: #ff8800; }
-
-.swatch:hover {
-  transform: scale(1.15);
-}
-
-.swatch.active {
-  border-color: var(--text-bright);
-  box-shadow: 0 0 6px rgba(255,255,255,0.3);
-}
-
-.tool-actions {
-  display: flex;
-  gap: 4px;
-}
-
-/* ===== Play Tagger ===== */
-
-.play-selector {
-  margin-bottom: 10px;
-}
-
-.play-selector label {
-  font-size: 11px;
-  color: var(--text-dim);
-  display: block;
-  margin-bottom: 3px;
-}
-
-.tag-form {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tag-row label {
-  font-size: 11px;
-  color: var(--text-dim);
-  display: block;
-  margin-bottom: 2px;
-}
-
-.tag-row select:not(.ws-shell *), .tag-row input[type="number"]:not(.ws-shell *), .tag-row input[type="text"]:not(.ws-shell *) {
-  width: 100%;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  font-size: 12px;
-}
-
-/* Live "tracked" score computed from tagged scoring plays */
-.tracked-score {
-  flex: 1;
-  font-weight: 700;
-  font-size: 15px !important;
-  color: var(--text) !important;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.5px;
-}
-.tracked-score.has-score { color: var(--accent) !important; }
-
 /* ===== Chip-based tag form ===== */
-.chip-section {
-  margin-bottom: 8px;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: var(--radius);
-}
 .chip-label {
   display: block;
   font-size: 10px;
@@ -343,17 +121,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-}
-.chip-inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.chip-sep {
-  color: var(--text-dim);
-  font-weight: bold;
-  font-size: 13px;
 }
 .pick {
   display: inline-flex;
@@ -401,81 +168,6 @@ body {
   padding: 3px 6px;
   font-size: 10px;
 }
-.compact-input {
-  width: 72px;
-  padding: 4px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  color: var(--text);
-  font-size: 12px;
-}
-.yards-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.yards-input {
-  width: 48px;
-  text-align: center;
-  padding: 4px 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-}
-.btn-nudge:not(.ws-shell *) {
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  color: var(--text);
-  font-size: 14px;
-  cursor: pointer;
-  line-height: 1;
-  font-family: inherit;
-}
-.btn-nudge:hover:not(.ws-shell *) { background: var(--bg-surface); }
-.chip-details {
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-  padding-top: 2px;
-}
-.chip-details summary {
-  font-size: 11px;
-  color: var(--text-dim);
-  cursor: pointer;
-  padding: 4px 0;
-  user-select: none;
-  list-style: none;
-}
-.chip-details summary::-webkit-details-marker { display: none; }
-.chip-details summary::before {
-  content: '▸ ';
-  display: inline-block;
-  transition: transform var(--transition);
-}
-.chip-details[open] summary::before { transform: rotate(90deg); }
-.chip-details summary:hover { color: var(--text); }
-.tag-nav {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-.tag-nav-main {
-  flex: 1;
-  font-weight: 600;
-}
-
-.tag-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
 
 .tag-chip {
   display: inline-flex;
@@ -500,26 +192,6 @@ body {
 }
 
 /* ===== Playlist ===== */
-.playlist-controls {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 6px;
-}
-
-.playlist-list {
-  max-height: 200px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.playlist-empty {
-  font-size: 11px;
-  color: var(--text-dim);
-  padding: 8px 0;
-  text-align: center;
-}
 
 .playlist-item {
   display: flex;
@@ -594,103 +266,13 @@ body {
   color: var(--danger);
 }
 
-.panel-badge {
-  margin-left: auto;
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-dim);
-  background: var(--bg-tertiary);
-  padding: 1px 6px;
-  border-radius: 8px;
-}
-
-.clip-indicator {
-  font-size: 11px;
-  color: var(--highlight);
-  font-weight: 600;
-  margin-left: 4px;
-  white-space: nowrap;
-}
-
-/* ===== Auto-Detect ===== */
-.auto-detect-section {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
 /* Collapsible secondary tools inside the Play Tagger panel. Keeps the
    manual marking, scoreboard OCR, and suggestions available but out of the
    way so auto-detect + tag review is the focus. */
-.tagger-tools {
-  margin-top: 10px;
-  border-top: 1px solid var(--border);
-  padding-top: 6px;
-}
-.tagger-tools > summary {
-  cursor: pointer;
-  list-style: none;
-  font-size: 12px;
-  color: var(--text-dim);
-  padding: 4px 2px;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.tagger-tools > summary::-webkit-details-marker { display: none; }
-.tagger-tools > summary::before {
-  content: '▸';
-  font-size: 10px;
-  transition: transform var(--transition);
-}
-.tagger-tools[open] > summary::before { transform: rotate(90deg); }
-.tagger-tools > summary:hover { color: var(--text); }
-
-.auto-detect-header {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 6px;
-}
-
-.btn-detect:not(.ws-shell *) {
-  background: #1a4a1a;
-  border-color: #2a6a2a;
-  color: var(--success);
-  flex: 1;
-}
-
-.btn-detect:hover:not(.ws-shell *) {
-  background: #2a6a2a;
-}
-
-.btn-detect:disabled:not(.ws-shell *) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-detect.scanning:not(.ws-shell *) {
-  animation: pulse-scan 1.5s ease-in-out infinite;
-}
 
 @keyframes pulse-scan {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
-}
-
-.auto-detect-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--bg-tertiary);
-  border-radius: 3px;
-  overflow: hidden;
 }
 /* Indeterminate "busy" style used while the AI server is crunching */
 @keyframes ffa-progress-busy {
@@ -698,236 +280,11 @@ body {
   100% { background-position: -200% 0; }
 }
 
-.progress-label {
-  font-size: 11px;
-  color: var(--text-dim);
-  min-width: 30px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.auto-detect-settings {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-bottom: 6px;
-  padding: 6px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-}
-
-.detect-setting {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-}
-
-.detect-setting label {
-  color: var(--text-dim);
-  min-width: 80px;
-  flex-shrink: 0;
-}
-
-.detect-setting input[type="range"]:not(.ws-shell *) {
-  flex: 1;
-  accent-color: var(--success);
-  height: 4px;
-}
-
-.detect-setting input[type="number"]:not(.ws-shell *) {
-  width: 55px;
-  background: var(--bg-surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 2px 4px;
-  font-size: 11px;
-  text-align: center;
-}
-
-.setting-value {
-  font-size: 10px;
-  color: var(--text-dim);
-  min-width: 28px;
-  text-align: right;
-}
-
-.btn-link:not(.ws-shell *) {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 10px;
-  padding: 2px 0;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.btn-link:hover:not(.ws-shell *) {
-  color: var(--text);
-  background: none;
-  border: none;
-}
-
-.auto-detect-results {
-  margin-top: 6px;
-}
-
-/* ===== Bottom Panel ===== */
-.bottom-panel {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-  max-height: 180px;
-  min-height: 120px;
-}
-
-.notes-section {
-  padding: 6px 12px;
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-}
-
-.notes-section .panel-title {
-  padding: 4px 0 6px;
-}
-
-.notes-area {
-  flex: 1;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px 8px;
-  font-size: 12px;
-  font-family: 'Menlo', 'Consolas', monospace;
-  resize: none;
-  line-height: 1.5;
-}
-
-.notes-area:focus {
-  outline: none;
-  border-color: var(--accent-hover);
-}
-
-.timeline-section {
-  padding: 6px 12px;
-  display: flex;
-  flex-direction: column;
-}
-
-.timeline-section .panel-title {
-  padding: 4px 0 6px;
-}
-
 /* Play type colors */
 
-/* ===== Scrollbar ===== */
-.sidebar::-webkit-scrollbar, .notes-area::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track, .notes-area::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-}
-
-.sidebar::-webkit-scrollbar-thumb, .notes-area::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
 /* ===== Responsive ===== */
-@media (max-width: 900px) {
-  .main-content {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    border-left: none;
-    border-top: 1px solid var(--border);
-    max-height: 250px;
-  }
-  .bottom-panel {
-    grid-template-columns: 1fr;
-  }
-  .top-bar-right .btn span:not(.ws-shell *) {
-    display: none;
-  }
-}
-
-/* ===== Quick Chart Button ===== */
-.btn-highlight:not(.ws-shell *) {
-  background: var(--highlight);
-  border-color: var(--highlight);
-  color: var(--text-bright);
-  font-weight: 600;
-}
-
-.btn-highlight:hover:not(.ws-shell *) {
-  background: var(--highlight-hover);
-  border-color: var(--highlight-hover);
-}
-
-.btn-highlight.active:not(.ws-shell *) {
-  background: var(--highlight-hover);
-  box-shadow: 0 0 0 2px var(--text-bright);
-}
 
 /* ===== Stats Dashboard ===== */
-.stats-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  padding: 20px;
-}
-
-.stats-container {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  max-width: 900px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.stats-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--bg-secondary);
-  z-index: 3;
-}
-
-.stats-header h2 {
-  font-size: 18px;
-  color: var(--highlight);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.stats-header-actions {
-  display: flex;
-  gap: 6px;
-}
 
 .stats-tabs {
   display: flex;
@@ -959,10 +316,6 @@ body {
 }
 .stats-tab-pane { display: none; }
 .stats-tab-pane.active { display: block; overflow-x: auto; }
-
-.stats-body {
-  padding: 16px 20px;
-}
 
 .stats-section {
   margin-bottom: 20px;
@@ -1069,349 +422,9 @@ body {
 .tm-split { font-size: 9px; opacity: .7; }
 .tm-succ { font-size: 10px; font-weight: 600; }
 
-.tendency-bar {
-  display: flex;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin-bottom: 10px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.tendency-run {
-  background: var(--run-color, #f97316);
-  color: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-}
-
-.tendency-pass {
-  background: var(--pass-color, #38bdf8);
-  color: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-}
-
-/* ===== Game Info ===== */
-.game-info-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  font-size: 11px;
-  color: var(--text-dim);
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border);
-}
-
-.game-info-header strong {
-  color: var(--text);
-}
-
-/* ===== Filter Panel ===== */
-.filter-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-group label:first-child {
-  font-size: 10px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  display: block;
-  margin-bottom: 3px;
-}
-
-.filter-checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 10px;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.filter-chip:has(input:checked) {
-  background: var(--accent);
-  border-color: var(--accent-hover);
-  color: var(--text-bright);
-}
-
-.filter-chip input[type="checkbox"]:not(.ws-shell *) {
-  display: none;
-}
-
-.filter-multi, .filter-select {
-  width: 100%;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px 4px;
-  font-size: 11px;
-}
-
-.filter-multi option:checked {
-  background: var(--accent);
-  color: var(--text-bright);
-}
-
-.filter-actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 4px;
-}
-
-/* ===== Drive Summary in Stats ===== */
-.drive-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 8px;
-}
-
-.drive-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-}
-
-.drive-num {
-  font-weight: 700;
-  color: var(--text-dim);
-  min-width: 24px;
-}
-
-.drive-bar {
-  flex: 1;
-  height: 16px;
-  background: var(--bg-surface);
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-}
-
-.drive-result {
-  font-size: 10px;
-  font-weight: 600;
-  min-width: 50px;
-  text-align: right;
-}
-
-/* ===== Efficiency Stats ===== */
-.success-rate-bar {
-  display: flex;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin-bottom: 6px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.success-fill {
-  background: var(--success);
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fail-fill {
-  background: var(--danger);
-  color: var(--text-bright);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ===== Comparison View ===== */
-.comparison-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius);
-}
-
-.comparison-header select:not(.ws-shell *) {
-  background: var(--bg-surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 12px;
-}
-
-.comparison-header span {
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.comparison-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.comparison-col {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-}
-
-.comparison-col h4 {
-  font-size: 13px;
-  color: var(--highlight);
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-/* ===== Situational tabs ===== */
-.situation-tabs {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 12px;
-}
-
-.situation-tab {
-  padding: 4px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  font-size: 11px;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.situation-tab.active {
-  background: var(--bg-surface);
-  border-bottom-color: var(--bg-surface);
-  color: var(--highlight);
-  font-weight: 600;
-}
-
-.situation-content {
-  display: none;
-}
-
-.situation-content.active {
-  display: block;
-}
-
 /* ===== Utility ===== */
 .hidden {
   display: none !important;
-}
-
-/* ===== Game Info ===== */
-.game-info-form {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.game-info-form input[type="date"]:not(.ws-shell *) {
-  width: 100%;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  font-size: 12px;
-}
-
-/* ===== Filter Panel ===== */
-.filter-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-row label:first-child {
-  font-size: 10px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: block;
-  margin-bottom: 3px;
-}
-
-.filter-checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 10px;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.filter-chip:has(input:checked) {
-  background: var(--accent);
-  border-color: var(--highlight);
-  color: var(--text-bright);
-}
-
-.filter-chip input[type="checkbox"]:not(.ws-shell *) {
-  display: none;
-}
-
-.filter-multi {
-  width: 100%;
-  background: var(--bg-tertiary);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  padding: 2px;
-}
-
-.filter-multi option {
-  padding: 2px 4px;
-}
-
-.filter-multi option:checked {
-  background: var(--accent);
-  color: var(--text-bright);
 }
 
 /* ===== Situational Stats ===== */
@@ -1446,79 +459,6 @@ body {
   background: var(--bg-secondary);
 }
 
-/* ===== Success Rate Visual ===== */
-.success-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-/* ===== Comparison View ===== */
-.comparison-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.comparison-col {
-  background: var(--bg-tertiary);
-  border-radius: var(--radius);
-  padding: 12px;
-  border: 1px solid var(--border);
-}
-
-.comparison-col h4 {
-  font-size: 12px;
-  color: var(--highlight);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-/* ===== Drive Chart ===== */
-.drive-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.drive-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  padding: 4px 6px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-}
-
-.drive-num {
-  font-weight: 700;
-  color: var(--text-dim);
-  min-width: 24px;
-}
-
-.drive-bar {
-  flex: 1;
-  height: 14px;
-  background: var(--bg-surface);
-  border-radius: 7px;
-  overflow: hidden;
-  position: relative;
-}
-
-.drive-result {
-  font-weight: 600;
-  min-width: 60px;
-  text-align: right;
-}
-
-.drive-result.td { color: var(--success); }
-.drive-result.fg { color: var(--warning); }
-.drive-result.turnover { color: var(--danger); }
-
 /* ===== Print ===== */
 @media print {
   body {
@@ -1530,33 +470,6 @@ body {
   /* body-prefixed so these light-theme vars out-rank the dark dashboard
      palette block (also `.stats-overlay`, but later in the file — equal
      specificity would let it win even inside @media print). */
-  body .stats-overlay {
-    position: static;
-    background: none;
-    padding: 0;
-    --text: #111;
-    --text-dim: #555;
-    --text-bright: #000;
-    --highlight: #1a1a2e;
-    --surface: #fff;
-    --bg: #fff;
-    --bg-card: #f5f5f5;
-    --border: #ccc;
-    --gauge-track: #e5e7eb;
-  }
-  .stats-overlay, .stats-overlay * {
-    color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  .stats-container {
-    max-height: none;
-    box-shadow: none;
-    border: none;
-    background: #fff;
-  }
-  .stats-body { color: #111; }
-  .stats-header { background: #1a1a2e; }
-  .stats-header-actions { display: none; }
   .stats-tabs { display: none; }
   .stats-tab-pane { display: block !important; }
   .stat-card {
@@ -1564,37 +477,14 @@ body {
     background: #f5f5f5;
   }
   .stat-card-value { color: #000; }
-  .stat-card-label { color: #555; }
   .stats-table td, .stats-table th {
     border-bottom: 1px solid #ddd;
     color: #111;
   }
-  .tendency-run, .tendency-pass { color: #fff; }
 }
 
 
 /* ===== Version History & Undo Toast ===== */
-.version-controls {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-.version-controls input:not(.ws-shell *) {
-  flex: 1;
-  background: #232830;
-  border: 1px solid #2d3454;
-  color: #e0e0e0;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 3px;
-}
-.version-list {
-  max-height: 240px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 .version-empty {
   color: #888;
   font-size: 12px;
@@ -1640,48 +530,8 @@ body {
 }
 
 
-.btn-icon:not(.ws-shell *) {
-  padding: 6px 8px;
-}
-.btn-icon:disabled:not(.ws-shell *) {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-
 
 /* ===== Scoreboard OCR & Suggestions ===== */
-.ocr-section {
-  background: #232830;
-  border: 1px solid #2d3454;
-  border-radius: 4px;
-  padding: 8px;
-  margin-bottom: 8px;
-}
-.ocr-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-.ocr-title { font-size: 12px; font-weight: 600; color: #e0e0e0; }
-.ocr-toggle {
-  font-size: 11px;
-  color: #aaa;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.ocr-controls { display: flex; gap: 6px; margin-bottom: 6px; }
-.ocr-controls .btn:not(.ws-shell *) { flex: 1; }
-.ocr-status {
-  font-size: 11px;
-  color: #888;
-  min-height: 14px;
-}
-.ocr-preview { margin-top: 6px; }
-.ocr-preview:empty { display: none; }
 .ocr-fields {
   background: #2c323c;
   padding: 6px 8px;
@@ -1703,16 +553,6 @@ body {
   font-family: monospace;
   border-radius: 3px;
   word-break: break-all;
-}
-
-.suggestion-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #aaa;
-  margin-bottom: 8px;
-  cursor: pointer;
 }
 
 .field-suggested {
@@ -1871,54 +711,6 @@ body {
 .hash-grid td { min-width: 60px; }
 .hm-scroll { overflow-x: auto; }
 
-
-/* Season analytics content is rendered by native Reports. */
-.season-empty-stats {
-  text-align: center;
-  color: #888;
-  padding: 60px 20px;
-  font-size: 14px;
-}
-
-/* Season name (the project IS the season — named up front). */
-.season-title-wrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-.season-name-label {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--text-dim, #8b949e); font-weight: 700;
-}
-.season-name-input {
-  flex: 1; min-width: 0; max-width: 360px;
-  background: #161d2e; border: 1px solid #2d3454; border-radius: 6px;
-  color: #fff; font-size: 15px; font-weight: 700; padding: 6px 10px;
-}
-.season-name-input::placeholder { color: #5c6680; font-weight: 500; }
-
-/* Backup status line + restore panel. */
-.season-backup-status {
-  padding: 8px 20px; font-size: 12px; border-bottom: 1px solid #2d3454;
-  background: #12161f;
-}
-.season-backup-status .bk-ok { color: #3fb950; font-weight: 600; }
-.season-backup-status .bk-ok b { color: #fff; }
-.season-backup-status .bk-warn { color: #e3b341; font-weight: 600; }
-.season-backup-status .bk-dim { color: #8b949e; }
-
-.season-restore-panel {
-  margin: 12px 20px; padding: 14px 16px;
-  background: #12161f; border: 1px solid #2d3454; border-radius: 8px;
-}
-.season-restore-panel .restore-head { display: flex; justify-content: space-between; align-items: center; }
-.season-restore-panel h3 { margin: 0; color: #fff; font-size: 15px; }
-.restore-intro { color: #8b949e; font-size: 12px; margin: 6px 0 12px; }
-.season-restore-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
-.restore-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 10px; background: #1a2030; border: 1px solid #2d3454; border-radius: 6px;
-}
-.restore-when { color: #e6edf3; font-size: 13px; }
-.restore-label { color: #8b949e; font-weight: 500; margin-left: 6px; font-size: 12px; }
-.restore-meta { color: #8b949e; font-size: 11px; margin-top: 2px; }
-
 /* Season progression cards — better/worse over the year. */
 .prog-headline { font-size: 13px; color: #c9d1d9; margin: 4px 0 10px; }
 .prog-headline .prog-up { color: #3fb950; }
@@ -1952,82 +744,6 @@ body {
   justify-content: space-around;
   border: 1px solid #2d3454;
 }
-.trend-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
-}
-.trend-grid h4 {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: #ccc;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.trend-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  margin: 3px 0;
-}
-.trend-label {
-  width: 100px;
-  flex-shrink: 0;
-  color: #ccc;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.trend-bar {
-  flex: 1;
-  height: 12px;
-  background: #232830;
-  border-radius: 2px;
-  overflow: hidden;
-  border: 1px solid #2d3454;
-}
-.trend-bar > div {
-  height: 100%;
-}
-.trend-val {
-  width: 70px;
-  text-align: right;
-  color: #aaa;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-.self-scout {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0;
-}
-.self-scout li {
-  padding: 8px 12px;
-  background: #232830;
-  border-left: 3px solid #f59e0b;
-  margin: 4px 0;
-  border-radius: 3px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #ddd;
-}
-.self-scout li.ok {
-  border-left-color: #44aa44;
-  color: #aaa;
-}
-.self-scout li b { color: #06b6d4; }
-.self-scout-intro {
-  font-size: 12px;
-  color: #888;
-  font-style: italic;
-  margin: 4px 0;
-}
-
-@media (max-width: 700px) {
-  .trend-label { width: 70px; }
-  .trend-val { width: 56px; }
-}
 
 /* ===== EPA / Advanced Metrics ===== */
 .epa-curve-wrap {
@@ -2039,10 +755,6 @@ body {
 }
 .epa-curve { width: 100%; height: auto; display: block; }
 .epa-table td, .epa-table th { font-size: 12px; padding: 4px 6px; }
-.epa-pos { color: #44ff88; font-weight: 600; }
-.epa-neg { color: #ff6666; font-weight: 600; }
-.stat-card-value.epa-pos { color: #44ff88; }
-.stat-card-value.epa-neg { color: #ff6666; }
 
 /* ================================================================== */
 /* ============  UX PASS — polish, mobile, touch targets  =========== */
@@ -2071,23 +783,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- Top bar polish --- */
-.top-bar {
-  padding: 0 14px;
-  background: linear-gradient(180deg, #151d33 0%, #0f1527 100%);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 2px 8px rgba(0,0,0,0.25);
-}
-.top-bar-left { display: flex; align-items: center; gap: 10px; }
-.app-title {
-  font-size: 13px;
-  letter-spacing: 0.8px;
-  background: linear-gradient(90deg, #06b6d4, #f59e0b);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
 /* --- Buttons: touch-friendly, subtle depth --- */
 .btn:not(.ws-shell *) {
   min-height: 34px;
@@ -2108,62 +803,10 @@ body {
 }
 .btn:active:not(.ws-shell *) { transform: translateY(0); }
 .btn:disabled:not(.ws-shell *) { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-.btn-icon:not(.ws-shell *) {
-  min-width: 34px;
-  padding: 7px;
-  justify-content: center;
-}
 .btn-sm:not(.ws-shell *) { min-height: 28px; padding: 4px 10px; font-size: 11px; }
-.btn-highlight:not(.ws-shell *) {
-  background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
-  border-color: #c93552;
-  color: #fff;
-}
-.btn-highlight:hover:not(.ws-shell *) {
-  background: linear-gradient(180deg, var(--highlight-hover) 0%, var(--highlight) 100%);
-  border-color: var(--highlight);
-}
 .btn-accent:not(.ws-shell *) {
   background: linear-gradient(180deg, #2563c4 0%, #1b4791 100%);
   border-color: #1b4791;
-}
-
-/* --- Sidebar polish --- */
-.main-content { grid-template-columns: 1fr 300px; }
-.sidebar {
-  background: linear-gradient(180deg, #131a2e 0%, #0f1527 100%);
-  border-left: 1px solid var(--border);
-  box-shadow: inset 1px 0 0 rgba(255,255,255,0.02);
-}
-.panel-title {
-  padding: 12px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  user-select: none;
-  transition: background 150ms;
-}
-.panel-title:hover { background: rgba(255,255,255,0.02); color: var(--text); }
-.panel-title .icon { color: var(--highlight); }
-.panel-body { padding: 4px 14px 14px; }
-.panel-body.collapsed { display: none; }
-.panel-badge {
-  margin-left: auto;
-  background: var(--accent);
-  color: #fff;
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 10px;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 /* --- Input / select polish (also prevents iOS zoom with 16px on mobile) --- */
@@ -2185,117 +828,27 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 
 /* --- Playback controls --- */
 
-/* --- Scrollbars --- */
-.sidebar::-webkit-scrollbar, .stats-body::-webkit-scrollbar, .panel-body::-webkit-scrollbar { width: 8px; }
-.sidebar::-webkit-scrollbar-track, .stats-body::-webkit-scrollbar-track, .panel-body::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb, .stats-body::-webkit-scrollbar-thumb, .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-.sidebar::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
-
 /* ============  TABLET: <= 1100px  ============ */
-@media (max-width: 1100px) {
-  .main-content { grid-template-columns: 1fr 280px; }
-  .btn-label:not(.ws-shell *) { display: none; }
-  .btn-highlight .btn-label:not(.ws-shell *) { display: inline; }
-  .app-title { display: none; }
-}
 
 /* ============  MOBILE: <= 800px  ============ */
 @media (max-width: 800px) {
-  #app { grid-template-rows: 52px 1fr auto; }
-  .top-bar { padding: 0 10px; gap: 8px; }
-  .top-bar-center { flex: 1; min-width: 0; }
-
-  .main-content { grid-template-columns: 1fr; position: relative; }
-
-  .sidebar {
-    position: fixed;
-    top: 52px;
-    right: 0;
-    bottom: 0;
-    width: 85vw;
-    max-width: 340px;
-    transform: translateX(100%);
-    transition: transform 260ms ease;
-    z-index: 100;
-    overflow-y: auto;
-    box-shadow: -8px 0 30px rgba(0,0,0,0.5);
-  }
-  .sidebar.open { transform: translateX(0); }
 
   /* 16px inputs to prevent iOS auto-zoom */
   input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) { font-size: 16px; padding: 10px 12px; }
 
   .btn:not(.ws-shell *) { min-height: 40px; padding: 9px 12px; font-size: 13px; }
   .btn-sm:not(.ws-shell *) { min-height: 34px; padding: 7px 10px; font-size: 12px; }
-  .btn-icon:not(.ws-shell *) { min-width: 40px; }
-
-  .top-bar-right { gap: 4px; }
-
-  .bottom-panel {
-    display: flex;
-    flex-direction: column;
-    max-height: 30vh;
-  }
-  .notes-area { min-height: 60px; }
 
   /* Stats overlay full screen */
-  .stats-container { width: 100vw !important; height: 100vh !important; max-width: none; max-height: none; border-radius: 0; }
   .stats-tab { padding: 8px 12px; font-size: 12px; }
 }
 
 /* ============  SMALL MOBILE: <= 500px  ============ */
-@media (max-width: 500px) {
-  .app-title { display: none; }
-  .btn-label:not(.ws-shell *) { display: none; }
-  .btn-highlight .btn-label:not(.ws-shell *) { display: none; }
-  .more-dropdown { min-width: 180px; }
-}
 
 /* --- Focus accessibility --- */
 .btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--highlight);
   outline-offset: 1px;
-}
-
-/* --- Tool button polish --- */
-.tool-btn {
-  min-height: 52px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px;
-  font-size: 10px;
-  transition: all 150ms;
-}
-.tool-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
-.tool-btn.active {
-  background: var(--highlight);
-  border-color: var(--highlight);
-  color: #fff;
-}
-
-/* --- Swatch polish --- */
-.swatch {
-  width: 26px;
-  height: 26px;
-  border: 2px solid var(--border);
-  border-radius: 50%;
-  cursor: pointer;
-  padding: 0;
-  transition: transform 150ms;
-}
-.swatch:hover { transform: scale(1.1); }
-.swatch.active {
-  border-color: var(--highlight);
-  box-shadow: 0 0 0 2px rgba(239,71,102,0.35);
-  transform: scale(1.1);
 }
 
 /* --- Card / panel subtle polish --- */
@@ -2307,9 +860,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 
 /* --- Safe area (iPhone notch) --- */
-@supports (padding: env(safe-area-inset-top)) {
-  .top-bar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
-}
 
 /* --- Sidebar toggle visibility & style --- */
 
@@ -2393,43 +943,13 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 
 body { font-size: 14px; letter-spacing: -0.01em; }
 
-/* --- Refined top bar --- */
-.top-bar {
-  background: linear-gradient(180deg, #111827 0%, #0a0e1a 100%);
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  height: 52px;
-}
-#app { grid-template-rows: 52px auto 1fr auto; }
-.app-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  background: linear-gradient(90deg, #f43f5e 0%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
 /* --- Empty CTA refinement --- */
-
-/* --- Elevated sidebar panels --- */
-.panel-title {
-  font-size: 11px;
-  letter-spacing: 0.6px;
-  padding: 14px 16px;
-}
-.panel-title .icon { color: var(--highlight); opacity: 0.9; }
 
 /* --- Buttons --- */
 .btn:not(.ws-shell *) {
   border-radius: var(--radius-sm);
   font-weight: 600;
   letter-spacing: 0.1px;
-}
-.btn-highlight:not(.ws-shell *) {
-  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
-  border-color: #be123c;
 }
 .btn-accent:not(.ws-shell *) {
   background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
@@ -2452,24 +972,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 
 /* ================================================================== */
 /* ================  TAG WORKSPACE — primary view  ================== */
-/* ================================================================== */
-
-.main-content {
-  display: grid;
-  grid-template-columns: 1fr 380px 300px;
-  overflow: hidden;
-}
-
-.tw {
-  background: linear-gradient(180deg, #131a2e 0%, #0c1322 100%);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-  transition: width 220ms ease, transform 220ms ease;
-}
-.tw.collapsed { width: 0 !important; min-width: 0; transform: translateX(100%); border-left: none; }
 
 /* Footer with Save & Next */
 @keyframes twBurst {
@@ -2478,51 +980,13 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   100% { opacity: 0; transform: scale(1); }
 }
 
-/* Reopen pill */
-#twReopenBadge {
-  background: rgba(255,255,255,0.25);
-  border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 11px;
-  margin-left: 6px;
-}
-
 /* When workspace is collapsed, video gets the freed space */
-@media (min-width: 1101px) {
-  .main-content:has(.tw.collapsed) {
-    grid-template-columns: 1fr 0 300px;
-  }
-}
 
 /* Tablet */
-@media (max-width: 1100px) {
-  .main-content { grid-template-columns: 1fr 340px; }
-  .sidebar { display: none; }
-}
 
 /* Mobile: workspace takes over */
 @media (max-width: 800px) {
-  .main-content { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
-  .tw {
-    border-left: none;
-    border-top: 1px solid var(--border);
-    width: 100%;
-  }
   /* Hide bottom tab bar Tag tab effect — workspace is always visible now */
-}
-
-/* ===========================================================
-   AUTO-DETECT v2 — settings refresh + detection review modal
-   =========================================================== */
-.detect-hint {
-  font-size: 11px;
-  color: var(--text-muted, #94a3b8);
-  line-height: 1.5;
-  padding: 8px 10px;
-  margin-top: 4px;
-  background: rgba(148, 163, 184, 0.08);
-  border-left: 3px solid var(--accent, #10b981);
-  border-radius: 4px;
 }
 
 /* Review modal ------------------------------------------------ */
@@ -2674,9 +1138,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   font-size: 11px;
   font-weight: 600;
 }
-.drr-conf.hi  { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.drr-conf.med { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }
-.drr-conf.lo  { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
 
 .drr-controls {
   display: flex;
@@ -2763,9 +1224,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   border: 1px solid transparent;
   font-variant-numeric: tabular-nums;
 }
-.drr-tag.hi  { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
-.drr-tag.med { background: rgba(251, 191, 36, 0.18); color: #fcd34d; border-color: rgba(251, 191, 36, 0.35); }
-.drr-tag.lo  { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.25); }
 
 /* ===========================================================
    BACKEND STATUS BADGE — top-bar indicator for local CV server
@@ -2803,43 +1261,8 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 }
 
 body { background: var(--bg-primary); color: var(--text); }
-
-/* --- Layout: collapse the dead 3-column TagWorkspace grid to 2 --- */
-.main-content { grid-template-columns: 1fr 320px; }
 /* Re-show the sidebar at all widths (old design hid it for the removed
    .tw workspace) and keep sane columns per breakpoint. */
-@media (max-width: 1100px) {
-  .sidebar { display: flex; }
-  .main-content { grid-template-columns: 1fr 300px; }
-}
-@media (max-width: 800px) {
-  .main-content { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
-  .sidebar { display: flex; border-left: none; border-top: 1px solid var(--border); }
-}
-
-/* --- Top bar: clean white with a blue brand wordmark --- */
-.top-bar {
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(15,23,42,0.06);
-}
-.app-title {
-  background: linear-gradient(90deg, #1D4ED8 0%, #2f4fc4 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* --- Sidebar & panels: white surfaces, subtle dividers --- */
-.sidebar {
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  box-shadow: none;
-}
-.panel-title { color: var(--text-dim); }
-.panel-title:hover { background: var(--bg-tertiary); color: var(--text); }
-.panel-title .icon { color: var(--accent); opacity: 1; }
-.panel-badge { background: var(--accent); color: #fff; }
 
 /* --- Buttons --- */
 .btn:not(.ws-shell *) {
@@ -2861,20 +1284,8 @@ body { background: var(--bg-primary); color: var(--text); }
   color: #fff;
 }
 .btn-accent:hover:not(.ws-shell *) { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); color: #fff; }
-.btn-highlight:not(.ws-shell *) {
-  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
-  border-color: var(--accent-hover);
-  color: #fff;
-}
-.btn-highlight:hover:not(.ws-shell *) { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); }
 .btn-danger:not(.ws-shell *) { border-color: var(--danger); color: var(--danger); background: var(--bg-tertiary); }
 .btn-danger:hover:not(.ws-shell *) { background: var(--danger); color: #fff; }
-.btn-detect:not(.ws-shell *) { background: #dcfce7; border-color: #86efac; color: #15803d; }
-.btn-detect:hover:not(.ws-shell *) { background: #bbf7d0; }
-.more-dropdown { background: var(--bg-secondary); border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
-.more-dropdown .btn:not(.ws-shell *) { background: transparent; border-color: transparent; color: var(--text); }
-.more-dropdown .btn:hover:not(.ws-shell *) { background: var(--accent); color: #fff; }
-.more-divider { background: var(--border); }
 
 /* --- Inputs --- */
 input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) {
@@ -2886,10 +1297,8 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.compact-input, .yards-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
 /* --- Chip tag form --- */
-.chip-section { background: var(--bg-tertiary); }
 .pick {
   background: var(--bg-secondary);
   border: 1px solid var(--border-bright);
@@ -2905,7 +1314,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .pick kbd { color: var(--text-dim); border-color: var(--border-bright); }
 .pick.active kbd { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.4); }
 .tag-chip { background: var(--accent); color: #fff; }
-.chip-details { border-top-color: var(--border); }
 
 /* --- Playback controls: light bar under the (dark) video --- */
 
@@ -2921,34 +1329,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .playlist-item.active { background: var(--accent-soft); border-color: var(--accent); }
 .playlist-num { background: var(--bg-secondary); color: var(--text-dim); }
 .playlist-item.active .playlist-num { background: var(--accent); color: #fff; }
-
-/* --- Drawing tools --- */
-.tool-btn { background: var(--bg-tertiary); color: var(--text-dim); }
-.tool-btn:hover { background: var(--bg-secondary); color: var(--text); }
-.tool-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-
-/* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
-   Scope dark variables onto their roots so existing light-on-dark
-   styling renders correctly over the light app. Blue accent carries
-   through from :root. --- */
-.stats-overlay, .season-overlay, .epa-overlay {
-  --bg-primary:   #0b1020;
-  --bg-secondary: #111827;
-  --bg-tertiary:  #1a2236;
-  --bg-surface:   #202b45;
-  --bg-elevated:  #26314d;
-  --text:         #e5e7eb;
-  --text-dim:     #9ca3af;
-  --text-bright:  #ffffff;
-  --border:       #2a3552;
-  --border-bright:#3d4a70;
-  /* These overlays are always dark; force light default text so table
-     data cells & paragraphs don't inherit the light-theme dark body
-     color (inherited colors are literal, not live var() references). */
-  color: var(--text);
-}
-/* --- Final light-theme contrast polish --- */
-.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16,24,40,0.30); }
 /* Generic input focus ring recolor (was rose) */
 input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(.ws-shell *) { box-shadow: 0 0 0 3px var(--accent-soft); }
 
@@ -2957,14 +1337,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 /* ================================================================== */
 
 /* Roster panel add-row */
-.roster-add {
-  display: grid;
-  grid-template-columns: 48px 1fr 52px 64px auto;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-.roster-add input:not(.ws-shell *), .roster-add select:not(.ws-shell *) { min-width: 0; }
-.roster-list { display: flex; flex-direction: column; gap: 3px; max-height: 220px; overflow-y: auto; }
 .roster-empty { font-size: 11px; color: var(--text-dim); padding: 6px 2px; line-height: 1.4; }
 .roster-row {
   display: grid;
@@ -2987,62 +1359,15 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 .roster-del:hover { color: var(--danger); }
 
-/* Player-role inputs in the tag form */
-.player-roles {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
-  margin-bottom: 6px;
-}
-.player-role {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 5px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.player-role.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-}
-.player-role-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-dim);
-  font-weight: 600;
-}
-.player-role.active .player-role-label { color: var(--accent); }
-.player-num {
-  width: 100%;
-  text-align: center;
-  padding: 3px 2px;
-  border: 1px solid var(--border-bright);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-}
-
 /* Roster quick-pick chip bar (stamps the active role) */
-.player-quickpick { display: flex; flex-wrap: wrap; gap: 3px; }
 .quickpick-hint { font-size: 10px; color: var(--text-dim); font-style: italic; }
 .quickpick-chip { font-variant-numeric: tabular-nums; }
-
-/* Clickable player stat rows in the dashboard */
-.player-row { cursor: pointer; transition: background var(--transition); }
-.player-row:hover { background: rgba(16,24,40,0.12); }
 
 /* Click-to-film: any stat row that maps to a set of plays. A small ▶ hint
    appears on hover so it's discoverable as a "watch these plays" control. */
 .cut-row { cursor: pointer; transition: background var(--transition); }
 .cut-row:hover { background: rgba(16,24,40,0.12); }
-.cut-row td:first-child::before, .chart-eff-row.cut-row .chart-eff-label::before {
+.cut-row td:first-child::before {
   content: '▶';
   font-size: 9px;
   color: var(--accent);
@@ -3050,7 +1375,7 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   margin-right: 5px;
   transition: opacity var(--transition);
 }
-.cut-row:hover td:first-child::before, .chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
+.cut-row:hover td:first-child::before { opacity: 1; }
 
 /* ================================================================== */
 /* ========================  CUT-UP REVIEW  ======================== */
@@ -3112,90 +1437,9 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 /* =====================  TOUCH RESPONSIVENESS  ==================== */
 /* Remove the 300ms tap delay / double-tap zoom on interactive bits. */
 /* ================================================================== */
-.panel-title, .pick, .btn:not(.ws-shell *), .btn-nudge:not(.ws-shell *), .player-role, .player-num, .quickpick-chip, .roster-del, .roster-add .btn:not(.ws-shell *), .cutup-btn, .tool-btn, .bt-tab, .playlist-item {
+.pick, .btn:not(.ws-shell *), .quickpick-chip, .roster-del, .cutup-btn, .playlist-item {
   touch-action: manipulation;
 }
-
-/* --- Play Import Modal --- */
-.play-import-modal { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; }
-.play-import-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.5); }
-.play-import-card { position:relative; background:var(--bg-secondary); border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,.3); width:90%; max-width:700px; max-height:85vh; overflow-y:auto; }
-.play-import-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; border-bottom:1px solid var(--border); }
-.play-import-head h3 { margin:0; font-size:16px; }
-.play-import-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-secondary); padding:0 4px; }
-.play-import-body { padding:16px 20px; }
-.play-import-hint { font-size:13px; color:var(--text-secondary); margin:0 0 12px; }
-.play-import-upload { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.play-import-filename { font-size:12px; color:var(--text-secondary); }
-.play-import-text { width:100%; font-size:12px; font-family:monospace; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
-.play-import-mapping { margin-top:12px; }
-.play-import-mapping h4 { margin:0 0 8px; font-size:14px; }
-.play-import-preview { margin-top:12px; }
-.play-import-preview h4 { margin:0 0 8px; font-size:14px; }
-.play-import-foot { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px; border-top:1px solid var(--border); }
-
-/* --- Player Grades --- */
-.player-grade { width:48px; padding:2px 4px; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:4px; }
-.grade-pos { color:#22c55e; font-weight:600; }
-.grade-neg { color:#ef4444; font-weight:600; }
-
-/* --- Scout Mode --- */
-.scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
-.scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
-
-/* Hide our-defense-only fronts (Maverick/Eagle/Falcon) when they don't apply:
-   - opponent scout mode (we're charting the opponent throughout), and
-   - offense mode, where the "Defense Faced" group is the OPPONENT's defense
-     (our own defensive calls have no place there). They only show when we're
-     charting our own defense (mode-defense, non-scout). */
-.tag-form.is-scout .our-def-only, .tag-form.mode-offense .our-def-only { display: none; }
-
-/* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
-.unit-toggle { display: flex; gap: 4px; }
-.unit-toggle .pick { flex: 1; justify-content: center; padding: 8px 6px; font-weight: 600; }
-.tag-group-head {
-  display: none;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 7px 10px;
-  margin-bottom: 6px;
-  color: var(--text-dim);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  cursor: pointer;
-  font-family: inherit;
-}
-.tag-group-head:hover { color: var(--text); border-color: var(--accent-hover); }
-.tag-group.is-secondary > .tag-group-head { display: flex; }
-.tag-group.is-hidden { display: none; }
-/* In Defense mode the defensive group leads (above the offense "faced" group) */
-.mode-defense .group-defense { order: -1; }
-/* Primary manual play-marking row at the top of the tagger */
-.auto-detect-tools .auto-detect-section { margin-top: 4px; }
-
-/* --- Keyboard Shortcuts Legend --- */
-.shortcuts-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; }
-.shortcuts-modal.hidden { display: none; }
-.shortcuts-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
-.shortcuts-card { position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.35); width: 92%; max-width: 760px; max-height: 86vh; overflow-y: auto; }
-.shortcuts-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg-secondary); }
-.shortcuts-head h3 { margin: 0; font-size: 16px; }
-.shortcuts-close { background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-secondary); padding: 0 4px; }
-.shortcuts-close:hover { color: var(--text); }
-.shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; padding: 16px 20px 20px; }
-.shortcuts-group h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--accent); }
-.shortcuts-note { text-transform: none; letter-spacing: 0; color: var(--text-dim); font-weight: 400; }
-.shortcuts-group dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; align-items: baseline; }
-.shortcuts-group dt { white-space: nowrap; }
-.shortcuts-group dd { margin: 0; font-size: 12px; color: var(--text-secondary); }
-.shortcuts-group kbd { display: inline-block; font-family: inherit; font-size: 11px; line-height: 1; padding: 3px 5px; margin: 1px; border: 1px solid var(--border-bright, var(--border)); border-bottom-width: 2px; border-radius: 4px; background: var(--bg-tertiary); color: var(--text); }
-@media (max-width: 640px) { .shortcuts-grid { grid-template-columns: 1fr; } }
 
 /* --- In-app confirmation modal (reliable replacement for window.confirm) --- */
 .ffa-confirm-modal { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; }
@@ -3226,35 +1470,6 @@ body {
   min-height: 100vh;
 }
 
-#app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  height: auto;
-  width: 100%;
-  overflow: visible;
-  grid-template-rows: none;
-}
-
-/* Top bar stays pinned */
-.top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  flex: 0 0 auto;
-}
-
-/* Main content is a single vertical column (kills the old 2/3-col grid) */
-.main-content {
-  display: flex !important;
-  flex-direction: column;
-  grid-template-columns: none !important;
-  grid-template-rows: none !important;
-  flex: 1 1 auto;
-  overflow: visible;
-  min-height: 0;
-}
-
 /* Video stays in view (sticky) while the tag form scrolls underneath */
 
 /* Timeline strip under the video */
@@ -3265,36 +1480,8 @@ body {
 /* Separation between adjacent markers so a dense strip reads as plays,
    not one smear (active's glow rule overrides this shadow, which is fine). */
 
-/* Notes embedded in the tag flow */
-.tag-notes { margin: 8px 0; }
-.tag-notes .notes-area {
-  width: 100%;
-  min-height: 46px;
-  max-height: 120px;
-  resize: vertical;
-  background: var(--bg-secondary);
-  color: var(--text);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-size: 13px;
-  font-family: inherit;
-  line-height: 1.4;
-}
-.tag-notes .notes-area:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-/* Old containers no longer rendered — make sure they never reserve space */
-.bottom-panel { display: none !important; }
-.sidebar { display: none !important; }
-
 /* Mobile: shorter video, comfortable chips, account for bottom tab bar */
 @media (max-width: 800px) {
-  /* Bottom tabs no longer need to reserve the old layout's space */
-  #app { padding-bottom: 0; }
 }
 
 /* Settings button must be reachable on desktop now that the secondary
@@ -3310,24 +1497,6 @@ body {
 @media (min-width: 1100px) {
   html { height: 100vh; overflow: hidden; }
   body { height: 100vh; margin: 0; padding: 0; overflow: hidden; }
-  #app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .top-bar { position: static; flex: 0 0 52px; }
-  .main-content {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) clamp(460px, 40vw, 760px) !important;
-    grid-template-rows: minmax(0, 1fr) minmax(0, auto) !important;
-    grid-template-areas: "video tags" "grid tags";
-    align-items: stretch;
-    flex: 1 1 0;
-    min-height: 0;
-    gap: 0;
-  }
 
   /* Left column: video centered in its column, sized to its 16:9 box. */
 }
@@ -3351,17 +1520,8 @@ body {
   --transition: 140ms cubic-bezier(.4,0,.2,1);
 }
 
-/* Keep overlay-scoped vars dark so var(--surface)/(--canvas) resolve
-   correctly over the dark analytics modals. */
-.stats-overlay, .season-overlay, .epa-overlay {
-  --surface: #161d2e;
-  --canvas:  #0b1020;
-  --chip-border: #2a3552;
-}
-
 /* ---- Work surfaces ---- */
 body { background: var(--canvas); }
-.top-bar { background: var(--surface); box-shadow: 0 1px 0 var(--border), var(--shadow-xs); }
 
 /* ---- Chips: white, tactile, unmistakably tappable ---- */
 .pick {
@@ -3407,11 +1567,6 @@ body { background: var(--canvas); }
 }
 
 /* ---- Field groups: drop muddy fills; group by label + spacing ---- */
-.chip-section {
-  background: transparent;
-  padding: 0;
-  margin-bottom: 11px;
-}
 .chip-label {
   color: #475569;
   font-weight: 700;
@@ -3419,8 +1574,6 @@ body { background: var(--canvas); }
   letter-spacing: 0.7px;
   margin-bottom: 5px;
 }
-/* Run / Pass: two big segmented toggles */
-.runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
 
 /* Stats-dashboard visualizations (field zones, spray, quarter bars) */
 .viz-block { margin: 14px 0 18px; }
@@ -3447,11 +1600,9 @@ body { background: var(--canvas); }
 .viz-q-n { width: 28px; text-align: right; color: #7d8aa5; }
 
 /* Play diagram (X's & O's) */
-#playDiagramSection:not(.has-diagram) #btnClearDiagram { display: none; }
 .pd-editor { max-width: 700px; width: 96%; text-align: left; }
 .pd-title { margin: 0 0 8px; font-size: 16px; }
 .pd-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.pd-tool.active { background: var(--accent, #1D4ED8); border-color: var(--accent, #1D4ED8); color: #fff; }
 .pd-canvas {
   width: 100%;
   height: auto;
@@ -3464,12 +1615,9 @@ body { background: var(--canvas); }
 .pd-help { font-size: 11px; color: var(--text-dim, #64748b); margin: 6px 0 4px; }
 
 /* Custom user-defined tag fields */
-#customFieldsSection.cf-empty #tagCustomFields { display: none; }
-.cf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cf-field { margin-bottom: 8px; }
 .cf-field .chip-label { margin-bottom: 4px; }
 .cf-text { width: 100%; font-size: 13px; padding: 6px 9px; }
-#btnEditCustomFields { font-size: 11px; padding: 4px 8px; }
 /* Field-definition manager modal */
 .cf-manager { max-width: 520px; width: 94%; text-align: left; }
 .cf-mgr-title { margin: 0 0 6px; font-size: 16px; }
@@ -3483,72 +1631,6 @@ body { background: var(--canvas); }
 .cf-mgr-empty { font-size: 12px; color: var(--text-dim, #64748b); margin: 4px 0; }
 .cf-add { margin-bottom: 8px; }
 
-/* Tagging-speed helpers row (copy from previous + templates) */
-.tag-helpers {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 8px;
-  flex-wrap: wrap;
-}
-.tag-helpers .template-select {
-  flex: 1 1 120px;
-  min-width: 110px;
-  font-size: 12px;
-  padding: 5px 8px;
-}
-.tag-helpers .btn:not(.ws-shell *) { flex: 0 0 auto; }
-
-/* Loop + A/B loop controls in the playback bar */
-#btnLoop.active {
-  background: var(--accent, #1D4ED8);
-  border-color: var(--accent, #1D4ED8);
-  color: #fff;
-}
-#btnLoop.active { box-shadow: 0 0 0 2px rgba(16,24,40,0.25); }
-.chip-hint {
-  font-weight: 600;
-  font-size: 9.5px;
-  letter-spacing: 0.3px;
-  text-transform: none;
-  color: var(--accent, #1D4ED8);
-  background: rgba(16,24,40,0.10);
-  padding: 1px 6px;
-  border-radius: 999px;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
-/* ---- Unit toggle: premium segmented control ---- */
-.unit-toggle {
-  gap: 4px;
-  background: var(--surface);
-  padding: 4px;
-  border: 1px solid var(--chip-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-}
-.unit-toggle .pick {
-  background: transparent;
-  border: 1px solid transparent;
-  box-shadow: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-}
-.unit-toggle .pick:hover {
-  background: var(--canvas);
-  border-color: transparent;
-  color: var(--accent-hover);
-  transform: none;
-  box-shadow: none;
-}
-.unit-toggle .pick.active {
-  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
-  border-color: var(--accent-hover);
-  box-shadow: none;
-  transform: none;
-}
-
 /* ---- Buttons: consistent depth + smooth motion ---- */
 .btn:not(.ws-shell *) {
   border-radius: var(--radius-sm);
@@ -3560,43 +1642,20 @@ body { background: var(--canvas); }
 }
 .btn:hover:not(.ws-shell *) { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: var(--text-bright); }
 .btn:active:not(.ws-shell *) { transform: translateY(0); }
-.btn-accent:not(.ws-shell *), .btn-highlight:not(.ws-shell *) { box-shadow: none; }
-.btn-accent:hover:not(.ws-shell *), .btn-highlight:hover:not(.ws-shell *) { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
+.btn-accent:not(.ws-shell *) { box-shadow: none; }
+.btn-accent:hover:not(.ws-shell *) { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
 
 /* ---- Inputs: match the crisp chip border + radius ---- */
-input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *), .compact-input, .yards-input {
+input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) {
   border-radius: var(--radius-sm);
   border-color: var(--chip-border);
 }
-.tag-group-head {
-  background: var(--surface);
-  border: 1px solid var(--chip-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
-  color: var(--text);
-  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition);
-}
-.tag-group-head:hover {
-  color: var(--accent-hover);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ---- Play selector + progress: tidy ---- */
-.play-selector label { font-weight: 600; color: var(--text-dim); }
-
-/* ---- Depth on key surfaces ---- */
-.more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
 
 /* ---- Accessible focus ring ---- */
 .pick:focus-visible, .btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *), textarea:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-/* (Removed the multi-select ✓ corner tick: selected chips are now ONE
-   consistent solid-blue style across single- and multi-select groups.) */
-.pick-group.multi .pick.active::after { content: none; }
 
 /* ================================================================== */
 /* ====  SELECTS v7 — prominent dropdown arrows                    == */
@@ -3605,7 +1664,7 @@ input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), inpu
 /* (.play-select, .speed-select, .tag-row select…) that set a         */
 /* `background:` shorthand can't wipe out our arrow image.            */
 /* ================================================================== */
-select:not(.ws-shell *), .filter-select, .tag-row select:not(.ws-shell *) {
+select:not(.ws-shell *) {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -3616,10 +1675,10 @@ select:not(.ws-shell *), .filter-select, .tag-row select:not(.ws-shell *) {
   background-size: 16px 16px !important;
   cursor: pointer;
 }
-select:hover:not(.ws-shell *), .filter-select:hover, .tag-row select:hover:not(.ws-shell *) {
+select:hover:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
-select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.ws-shell *) {
+select:focus:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 
@@ -3656,7 +1715,6 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
 /* --- Donut -------------------------------------------------------- */
 .chart-donut { display: block; }
 .chart-donut-wrap { display: flex; align-items: center; gap: 12px; }
-.chart-donut-label { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 .chart-legend { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text); }
 .chart-leg-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .chart-leg-item i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
@@ -3693,8 +1751,6 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
 .chart-eff-bar-head { flex: 1; }
 .chart-eff-meta-head { display: flex; gap: 0; width: 140px; flex-shrink: 0; }
 .chart-eff-meta-head > span { width: 46px; text-align: right; }
-.chart-eff-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-.chart-eff-row:hover { background: rgba(255,255,255,0.03); }
 .chart-eff-label { width: 110px; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
 .chart-eff-bar-wrap { flex: 1; }
 .chart-eff-track { height: 18px; background: #1b2436; border-radius: 3px; overflow: hidden; position: relative; }
@@ -3708,54 +1764,9 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
 /* --- Game Flow --------------------------------------------------- */
 .chart-gameflow { max-height: 200px; }
 
-/* --- Team Summary Layout ----------------------------------------- */
-.team-summary-row { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
-.team-summary-row .stats-grid { flex: 1; min-width: 280px; }
-.team-summary-donuts { display: flex; gap: 20px; flex-shrink: 0; align-items: center; }
-.team-donut-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-
-/* --- Efficiency Layout ------------------------------------------- */
-.stat-card-sm { padding: 8px 12px !important; }
-
-/* --- Scoreboard -------------------------------------------------- */
-.scoreboard-final {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  margin: 4px 0 14px;
-}
-.scoreboard-team { text-align: center; min-width: 120px; }
-.scoreboard-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 4px;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.scoreboard-pts { font-size: 52px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-.scoreboard-sep { font-size: 34px; font-weight: 300; color: var(--text-dim); }
-.scoreboard-quarters { max-width: 480px; }
-.scoreboard-quarters th, .scoreboard-quarters td { text-align: center; }
-.scoreboard-quarters th:first-child, .scoreboard-quarters td:first-child { text-align: left; }
-
-/* --- Drives Layout ----------------------------------------------- */
-.drives-donut { flex-shrink: 0; }
-.drive-num { width: 28px; font-weight: 700; font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
-.drive-meta { width: 85px; text-align: right; font-size: 11px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
-.drive-outcome { width: 65px; text-align: right; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-
 /* --- Defensive Top Row ------------------------------------------- */
 .def-top-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
 .def-top-row .stats-grid { flex: 1; min-width: 280px; }
-
-/* --- Play Type Visual -------------------------------------------- */
-.play-type-visual { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
 
 /* --- Stats Grid Flex (auto-flow cards) --------------------------- */
 .stats-grid-flex { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -3767,9 +1778,6 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
 .dot.pass { background: #6cc4ff; }
 
 /* Compact the global toolbar on narrow screens. */
-@media (max-width: 800px) {
-  .top-bar { gap: 6px; }
-}
 
 
 /* ================================================================== */
@@ -3779,7 +1787,6 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
 /* ================================================================== */
 
 /* Coaching notes (replaces the old <ul> recs) */
-.ss-recs-section { margin-top: 4px; }
 .ss-recs {
   display: flex;
   flex-direction: column;
@@ -3880,8 +1887,6 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
   color: #0b1020;
   background: linear-gradient(90deg, var(--c, #ffd23f) var(--p, 50%), rgba(255, 255, 255, 0.08) var(--p, 50%));
 }
-.ss-split-tell td { font-weight: 600; }
-.ss-split-tell td:first-child { border-left: 3px solid #fbbf24; }
 
 /* Split tables: tell vs balanced flags */
 .ss-flag {
@@ -3957,16 +1962,6 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
   .ss-insight { flex-direction: column; gap: 6px; }
 }
 
-/* Defensive report empty state */
-.def-empty p { color: #cdd6e6; line-height: 1.55; }
-.def-empty kbd {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid #2a3552;
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 12px;
-}
-
 /* ================================================================== */
 /* ===================  GRIDIRON PRO — v3  ========================== */
 /* ================================================================== */
@@ -3983,62 +1978,11 @@ select:focus:not(.ws-shell *), .filter-select:focus, .tag-row select:focus:not(.
 /* Gridiron Pro dashboard palette — blue accents on dark slate (was gold; the
    coach scrapped it). Scoped to the stats overlay so the light app shell
    (tag form, top bar) is untouched. */
-.stats-overlay {
-  --bg-primary:    #0d1117;
-  --bg-secondary:  #151b23;
-  --bg-tertiary:   #1c2128;
-  --bg-surface:    #262c36;
-  --bg-elevated:   #2d333b;
-  --gauge-track:   var(--bg-tertiary);
-  --accent:          #3b82f6;
-  --accent-hover:    #60a5fa;
-  --accent-soft:     rgba(59,130,246,0.10);
-  --highlight:       #3b82f6;
-  --highlight-hover: #60a5fa;
-  --highlight-soft:  rgba(59,130,246,0.10);
-  --info:          #00bcd4;
-  --success:       #22c55e;
-  --warning:       #f59e0b;
-  --danger:        #ef4444;
-  --text:          #e6edf3;
-  --text-dim:      #8b949e;
-  --text-bright:   #ffffff;
-  --border:        #30363d;
-  --border-bright: #484f58;
-}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* --- Stats overlay: frosted dark --- */
-.stats-overlay {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.stats-container {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(201,162,39,0.08);
-  max-width: 940px;
-}
-
-/* --- Stats header --- */
-.stats-header {
-  background: linear-gradient(180deg, #1a2028 0%, var(--bg-secondary) 100%);
-  border-bottom: 1px solid var(--border);
-  padding: 18px 24px;
-}
-.stats-header h2 {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--highlight);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
 }
 
 /* --- Stats tabs: underlined gold --- */
@@ -4062,12 +2006,6 @@ body {
 .stats-tab.active {
   color: var(--highlight) !important;
   border-bottom-color: var(--highlight) !important;
-}
-
-/* --- Stats body --- */
-.stats-body {
-  padding: 20px 24px;
-  color: var(--text);
 }
 
 /* --- Section headings --- */
@@ -4136,45 +2074,6 @@ body {
 }
 
 /* --- Takeaways: gold-themed --- */
-/* --- Game Plan section --- */
-.game-plan-section {
-  border: 1px solid rgba(201, 162, 39, 0.22);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-}
-.game-plan-section h3 { margin-top: 0; }
-.gp-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-@media (max-width: 700px) { .gp-grid { grid-template-columns: 1fr; } }
-.gp-head {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  margin: 0 0 8px;
-  padding-bottom: 5px;
-  border-bottom: 2px solid;
-}
-.gp-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.gp-item {
-  font-size: 12.5px;
-  line-height: 1.6;
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-}
-.gp-item:last-child { border-bottom: none; }
-/* F10 (coach smoke, 1.12.0-19): the icon ran straight into the first letter.
-   A trailing space inside `content` collapses, so the gap has to be real
-   spacing. Colors move onto the semantic roles — these were live raw hex. */
-.gp-good::before { content: '\2713'; margin-right: 7px; color: var(--success); font-weight: 700; }
-.gp-fix::before  { content: '\26A0'; margin-right: 7px; color: var(--danger); }
 
 /* --- Charts: track backgrounds --- */
 .chart-hbar-track, .chart-eff-track, .chart-minibar, .viz-q-bars {
@@ -4184,7 +2083,6 @@ body {
 /* --- Effectiveness chart: gold run / blue pass --- */
 .chart-eff-fill { background: var(--pass-color); }
 .chart-eff-run { background: var(--run-color); }
-.chart-eff-row:hover { background: rgba(201, 162, 39, 0.04); }
 .chart-eff-head {
   border-bottom-color: rgba(201, 162, 39, 0.15);
 }
@@ -4201,38 +2099,8 @@ body {
 /* --- Game flow chart background --- */
 .viz-svg { background: var(--bg-tertiary); border-color: var(--border); }
 
-/* --- Self-scout tells --- */
-.self-scout li {
-  background: var(--bg-tertiary);
-  border-left-color: var(--warning);
-  color: var(--text);
-}
-.self-scout li.ok {
-  border-left-color: var(--success);
-  color: var(--text-dim);
-}
-.self-scout li b { color: var(--highlight); }
-
 /* --- Tendency matrix hover --- */
 .tm-cell:hover { outline: 1px solid var(--highlight); }
-
-/* --- Drive colors --- */
-.drive-row { background: var(--bg-tertiary); }
-.drive-row:hover { background: var(--bg-surface); }
-
-/* --- Scoreboard emphasis --- */
-.scoreboard-quarters th {
-  background: var(--bg-tertiary) !important;
-  color: var(--text-dim);
-}
-
-/* --- Print button upgrade --- */
-.stats-header-actions .btn:not(.ws-shell *) {
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
 
 /* --- Two-column layout refinement --- */
 .stats-two-col {
@@ -4261,13 +2129,9 @@ body {
 
 /* --- Mobile stats refinement --- */
 @media (max-width: 800px) {
-  .stats-header { padding: 14px 16px; }
-  .stats-header h2 { font-size: 16px; letter-spacing: 1px; }
-  .stats-body { padding: 14px 16px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   .stats-tabs { padding: 0 12px; overflow-x: auto; }
   .stat-card-value { font-size: 20px; }
 }
-.stats-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ================================================================== */
 /* ==========  Desktop auto-update banner / toast (updater.js)  ===== */
@@ -4299,150 +2163,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 .gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ===== SEASON LIBRARY (front door) — dark palette scoped to the overlay ===== */
-.library-overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center;
-  background: rgba(8,12,20,.86); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); padding: 24px; color: #e6edf3; }
-.library-overlay.hidden { display: none; }
-.library-modal { width: min(720px, 96vw); max-height: 90vh; overflow-y: auto;
-  background: #111722; color: #e6edf3; border: 1px solid #243044; border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 24px; }
-.library-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.library-brand { font-size: 22px; font-weight: 700; color: #fff; }
-.library-brand b { color: var(--accent); }
-.library-intro { color: #9fb1c9; font-size: 14px; margin: 0 0 18px; }
-.library-new { margin-bottom: 18px; }
-.library-form { margin-top: 14px; background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 16px; }
-.library-form.hidden { display: none; }
-.library-form label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600;
-  color: #9fb1c9; text-transform: uppercase; letter-spacing: .4px; }
-.library-form input:not(.ws-shell *), .library-form select:not(.ws-shell *) { background: #161e2b; border: 1px solid #2c3a52; color: #e6edf3;
-  border-radius: 8px; padding: 9px 11px; font-size: 14px; text-transform: none; letter-spacing: 0; }
-.library-form input:focus:not(.ws-shell *), .library-form select:focus:not(.ws-shell *) { outline: none; border-color: #3b82f6; }
-.library-list { display: flex; flex-direction: column; gap: 10px; }
-.library-empty { text-align: center; color: #9fb1c9; padding: 30px 10px; }
-.library-empty p { margin: 4px 0; }
-.season-card { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; cursor: pointer;
-  transition: border-color .15s, transform .05s; }
-.season-card:hover { border-color: #3b82f6; }
-.season-card:active { transform: translateY(1px); }
-.season-card.is-current { border-color: #2f6df0; }
-.season-card-main { min-width: 0; }
-.season-card-name { font-size: 16px; font-weight: 700; color: #fff; }
-.season-card-badge { font-size: 11px; font-weight: 700; color: #6ea8ff; border: 1px solid #2f6df0;
-  border-radius: 6px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
-.season-card-sub { font-size: 13px; color: #9fb1c9; margin-top: 3px; }
-.season-card-meta { font-size: 12px; color: #6f8197; margin-top: 5px; }
-.season-card-del { background: transparent; border: none; color: #6f8197; font-size: 16px; cursor: pointer;
-  padding: 6px 8px; border-radius: 8px; line-height: 1; flex: 0 0 auto; }
-.season-card-del:hover { background: rgba(220,60,60,.15); color: #ff6b6b; }
-
-/* Schedule level (the open season's games — the spine) */
-.schedule-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.schedule-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.schedule-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.schedule-table thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
-  color: #6f8197; font-weight: 700; padding: 6px 10px; border-bottom: 1px solid #243044; }
-.schedule-table tbody td { padding: 11px 10px; border-bottom: 1px solid #1b2535; color: #c7d3e3; vertical-align: middle; }
-
-/* Team card (library home — above seasons list) */
-.team-card { display: flex; align-items: center; gap: 14px;
-  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
-.team-card.hidden { display: none; }
-.team-card-swatch { width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto;
-  border: 2px solid rgba(255,255,255,.15); }
-.team-card-info { flex: 1; min-width: 0; }
-.team-card-name { font-size: 18px; font-weight: 700; color: #fff; }
-.team-card-meta { font-size: 12px; color: #6f8197; margin-top: 2px; }
-.team-card-actions { display: flex; gap: 8px; flex: 0 0 auto; }
-.team-seasons-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
-  color: #6f8197; margin: 18px 0 10px; }
-
-/* Team setup (first time) */
-.team-setup { padding: 20px 0 8px; }
-.team-setup.hidden { display: none; }
-.team-setup-fields { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
-.team-setup-fields input:not(.ws-shell *), .team-setup-fields select:not(.ws-shell *) { background: #161e2b; border: 1px solid #2c3a52;
-  color: #e6edf3; border-radius: 8px; padding: 10px 12px; font-size: 14px; min-width: 0; flex: 1; }
-.team-setup-fields input:focus:not(.ws-shell *), .team-setup-fields select:focus:not(.ws-shell *) { outline: none; border-color: #3b82f6; }
-.team-setup-fields .btn:not(.ws-shell *) { flex: 0 0 auto; }
-.team-setup-import {
-  margin-top: 14px;
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: #8b97b0;
-  border-top: 1px solid #243044;
-  padding-top: 12px;
-}
-.team-setup-import code { background: #161e2b; padding: 1px 5px; border-radius: 4px; font-size: 11.5px; }
-.btn-link:not(.ws-shell *) {
-  background: none;
-  border: none;
-  padding: 0;
-  color: #6cc4ff;
-  font-size: inherit;
-  font-family: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
-.btn-link:hover:not(.ws-shell *) { color: #9dd8ff; }
-
-/* Inline team edit */
-.team-edit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
-.team-edit.hidden { display: none; }
-.team-edit input:not(.ws-shell *), .team-edit select:not(.ws-shell *) { background: #161e2b; border: 1px solid #2c3a52;
-  color: #e6edf3; border-radius: 8px; padding: 9px 11px; font-size: 14px; min-width: 0; flex: 1; }
-.team-edit input:focus:not(.ws-shell *), .team-edit select:focus:not(.ws-shell *) { outline: none; border-color: #3b82f6; }
-
-/* Explore-demo button + demo badge */
-.btn-demo:not(.ws-shell *) { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.4); color: #4ade80; }
-.btn-demo:hover:not(.ws-shell *) { background: rgba(34,197,94,.2); }
-.season-card-badge.demo { color: #4ade80; border-color: #22c55e; }
-.season-card.is-demo { border-style: dashed; }
-
-/* Season context chip (lives in the light top bar) */
-.season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
-.season-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft);
-  border: 1px solid var(--accent-border); color: var(--accent-hover); border-radius: 999px; padding: 5px 12px;
-  font-size: 13px; font-weight: 600; cursor: pointer; max-width: 320px; margin-left: 0; }
-.season-chip:hover { background: rgba(61,123,253,.24); }
-.season-chip .icon { width: 14px; height: 14px; flex: 0 0 auto; }
-.season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.season-chip-caret { font-size: 10px; opacity: .6; margin-left: 2px; }
-.season-chip[hidden] { display: none; }
-
-/* Breadcrumb nav (Seasons ▸ Season ▸ Game) — replaces the old season chip */
-.breadcrumb { display: inline-flex; align-items: center; gap: 4px; }
-.breadcrumb[hidden] { display: none; }
-.bc-seg { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-soft);
-  border: 1px solid var(--accent-border); color: var(--accent-hover); border-radius: 999px; padding: 5px 11px;
-  font-size: 13px; font-weight: 600; cursor: pointer; max-width: 240px; transition: background .12s; }
-.bc-seg:hover { background: rgba(61,123,253,.24); }
-.bc-seg > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bc-home { padding: 5px 11px; font-weight: 700; }
-.bc-game { background: rgba(56,189,248,.10); border-color: rgba(56,189,248,.40); color: #38BDF8; }
-.bc-game:hover { background: rgba(56,189,248,.20); }
-.bc-sep { color: rgba(233,238,245,.30); font-size: 11px; flex: 0 0 auto; }
-
-/* Game switcher dropdown (anchored to season chip) */
-.game-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1100;
-  background: #1e2330; border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
-  box-shadow: 0 12px 36px rgba(0,0,0,.5); min-width: 320px; max-width: 400px;
-  color: #e6edf3; font-size: 13px; overflow: hidden; }
-.game-dropdown.hidden { display: none; }
-.game-dropdown-head { padding: 12px 16px 8px; font-weight: 700; font-size: 14px;
-  border-bottom: 1px solid rgba(255,255,255,.08); color: #06b6d4; }
-.game-dropdown-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
-.game-dropdown-foot { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.08); }
-.game-dropdown-foot .btn:not(.ws-shell *) { flex: 1; font-size: 12px; }
-
 /* Individual game row in the dropdown */
 .gd-score { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
-.gd-score.win { background: rgba(34,197,94,.2); color: #22c55e; }
-.gd-score.loss { background: rgba(239,68,68,.15); color: #ef4444; }
-.gd-score.tie { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
 .gd-badge { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
   padding: 2px 6px; border-radius: 4px; }
 .gd-badge.badge-final { background: rgba(34,197,94,.15); color: #22c55e; }
@@ -4479,12 +2201,6 @@ body {
 .gp-card .gd-score { font-size: 11px; }
 .gp-card .gd-badge { font-size: 9px; }
 
-@media (max-width: 640px) {
-  .season-chip { max-width: 160px; }
-  .bc-seg { max-width: 110px; padding: 5px 8px; font-size: 12px; }
-  .game-dropdown { min-width: 280px; left: auto; right: -20px; }
-}
-
 /* ================================================================== */
 /* ==========  FILM ROOM — play grid (Phase 2)  ===================== */
 /* The play grid sits between the video and the tag form. Narrow      */
@@ -4498,38 +2214,6 @@ body {
    (grid-template-areas "video tags" / "grid tags") — not in a second
    @media block here, so there's only one place that owns .main-content
    rows at that breakpoint. */
-
-/* "Switch to a different team…" link in the team edit panel (library overlay
-   is dark, so the generic .btn-link dim color needs a light override). */
-.team-switch-link { flex-basis: 100%; text-align: left; font-size: 11px;
-  color: rgba(255,255,255,.45); }
-.team-switch-link:hover { color: #fff; }
-
-/* Team switcher pills (multi-team hub: JV / Varsity / …) — library overlay */
-.team-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-.team-pills.hidden { display: none; }
-.team-pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 999px;
-  color: rgba(255,255,255,.75);
-  font-size: 12.5px; font-weight: 600;
-  padding: 6px 14px;
-  cursor: pointer;
-  transition: border-color .15s, background .15s, color .15s;
-}
-.team-pill:hover { border-color: rgba(59,130,246,.6); color: #fff; }
-.team-pill.active {
-  background: rgba(59,130,246,.14);
-  border-color: #3b82f6;
-  color: #fff;
-  cursor: default;
-}
-.team-pill-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
-.team-pill-add { border-style: dashed; color: rgba(255,255,255,.5); font-weight: 500; }
-.team-pill-add:hover { color: #fff; border-color: rgba(255,255,255,.4); }
 
 /* ================================================================== */
 /* ====  FILM ROOM v2 — inline editing, columns, saved filters  ===== */
@@ -4554,137 +2238,13 @@ body {
 /* Disabled form: children are inert but the FORM still receives clicks so a
    tap on the gray area can explain what to do (a silent dead UI reads as a
    bug). The nav bar stays fully active (Save & Next can start at play 1). */
-#tagForm.form-disabled {
-  user-select: none;
-  cursor: not-allowed;
-}
-#tagForm.form-disabled > *:not(.tag-nav) {
-  opacity: .45;
-  pointer-events: none;
-}
-
-.tag-form-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(217, 119, 6, .45);
-  border-left: 4px solid #d97706;
-  border-radius: 9px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text, #0f172a);
-  background: rgba(245, 158, 11, .08);
-}
-.tag-form-hint.hidden { display: none; }
-.tag-form-hint.hint-pulse { animation: hintPulse .6s ease 2; }
 @keyframes hintPulse {
   0%, 100% { box-shadow: none; }
   50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, .25); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .tag-form-hint.hint-pulse { animation: none; }
-}
-.tag-form-hint kbd {
-  font-family: inherit;
-  font-size: 11px;
-  padding: 1px 6px;
-  border: 1px solid var(--chip-border, #cbd3e0);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: var(--bg-elevated);
-}
-
-/* Rare result chips (FG / Good / No Good / Kneel / Spike / Safety) collapse
-   behind "More" so the common row stays scannable. display:contents keeps the
-   revealed chips flowing in the same wrap as the rest of the group. */
-.pick-rare { display: none; }
-.pick-rare.show { display: contents; }
-.pick.pick-more {
-  border-style: dashed;
-  color: var(--text-dim, #64748b);
-}
-.pick.pick-more.open {
-  border-style: solid;
-}
-
-/* ============================================================================
-   GAME HEADER BAR — an always-visible summary of the current game that opens the
-   native Game settings dialog. Light theme (matches the main UI), explicit
-   colors to avoid theme-var pitfalls.
-   ============================================================================ */
-.game-header-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; box-sizing: border-box; text-align: left;
-  padding: 11px 16px; margin: 0 0 12px;
-  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px;
-  cursor: pointer; font: inherit; color: var(--text);
-  transition: border-color .12s ease, background .12s ease;
-}
-.game-header-bar:hover { background: #212936; border-color: var(--border-bright); }
-.game-header-bar:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
-.game-header-bar .ghb-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.game-header-bar .ghb-name.is-empty { color: var(--text-hint); font-weight: 500; }
-.game-header-bar .ghb-meta { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.settings-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0 0 12px; }
-
-/* ---- Desktop film storage setup ---- */
-.film-storage-status { display: grid; gap: 4px; margin: 0 0 12px; }
-.film-storage-status strong { font-size: 13px; color: var(--text); }
-.film-storage-status span { font-size: 11px; line-height: 1.45; color: var(--text-dim); overflow-wrap: anywhere; }
-.team-film-storage { margin: 16px 0; padding: 15px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.settings-subhead { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--text); font-size: 13px; font-weight: 750; }
-.settings-subhead .icon { width: 15px; height: 15px; color: var(--accent-hover); }
-.film-storage-label { color: var(--text-hint) !important; font-size: 9px !important; font-weight: 800; }
-.game-film-source { display: grid; gap: 4px; margin-top: 16px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; }
-.game-film-source[hidden] { display: none; }
-.game-film-source strong { color: var(--text); font-size: 13px; }
-.game-film-source > span:not(.film-storage-label) { color: var(--text-dim); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
-.game-film-source-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.film-storage-confirmation { display: flex; align-items: center; gap: 12px; margin: 22px 0 14px; padding: 16px; background: rgba(52, 211, 153, .08); border: 1px solid rgba(52, 211, 153, .35); border-radius: 7px; }
-.film-storage-confirmation > div { min-width: 0; display: grid; gap: 4px; }
-.film-storage-confirmation strong { font-size: 11px; color: #8ee8c5; }
-.film-storage-confirmation span:not(.film-storage-confirm-icon) { color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
-.team-card-actions { flex-wrap: wrap; justify-content: flex-end; }
-.film-storage-modal { position: fixed; inset: 0; z-index: 12000; display: grid; place-items: center; padding: 20px; }
-.film-storage-backdrop { position: absolute; inset: 0; background: rgba(3, 7, 12, .78); backdrop-filter: blur(3px); }
-.film-storage-card {
-  position: relative; width: min(680px, 100%); max-height: calc(100vh - 40px); overflow-y: auto;
-  box-sizing: border-box; padding: 26px; color: var(--text); background: var(--bg-elevated);
-  border: 1px solid var(--border-bright); border-radius: 8px; box-shadow: var(--shadow-lg);
-}
-.film-storage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.film-storage-head h2 { margin: 3px 0 0; font-size: 23px; line-height: 1.2; }
-.film-storage-kicker { color: var(--accent-hover); font-size: 10px; font-weight: 800; }
-.film-storage-close { width: 36px; height: 36px; border: 0; border-radius: 6px; color: var(--text-dim); background: transparent; font-size: 23px; cursor: pointer; }
-.film-storage-close:hover, .film-storage-close:focus-visible { color: var(--text); background: var(--bg-tertiary); outline: none; }
-.film-storage-intro, .film-storage-footnote { color: var(--text-dim); font-size: 13px; line-height: 1.55; }
-.film-storage-intro { margin: 12px 0 18px; }
-.film-storage-footnote { margin: 16px 0 0; font-size: 11px; }
-.film-storage-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.film-storage-option {
-  min-width: 0; min-height: 184px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
-  padding: 18px; text-align: left; color: var(--text); background: var(--bg-primary);
-  border: 1px solid var(--border-bright); border-radius: 8px; cursor: pointer;
-}
-.film-storage-option:hover, .film-storage-option:focus-visible { border-color: var(--accent-hover); outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
-.film-storage-option.is-recommended { border-color: var(--accent-border); }
-.film-storage-option strong { font-size: 15px; line-height: 1.3; }
-.film-storage-option em { flex: none; color: var(--accent-hover); font-size: 9px; font-style: normal; font-weight: 800; }
-.film-storage-option > span:not(.film-storage-option-top) { color: var(--text-dim); font-size: 12px; line-height: 1.5; }
-.film-storage-option b { margin-top: auto; color: var(--accent-hover); font-size: 12px; }
-@media (max-width: 620px) {
-  .film-storage-card { padding: 20px; }
-  .film-storage-options { grid-template-columns: 1fr; }
-  .film-storage-option { min-height: 0; }
-}
 
 /* ---- Expand video to full screen — the "watch the play bigger" toggle.
    Keeps the default size as-is; fullscreen only applies while toggled on. ---- */
-
-/* ---- Phase-aware special-teams detail fields (PlayTagger._applyStPhase) ---- */
-.st-hidden { display: none !important; }
 
 /* =====================================================================
    THE THEATER (v1.10.0) — consolidated token layer. THE winning :root:
@@ -4787,35 +2347,19 @@ body { font-size: 13px; }
   font-size: 11px; font-weight: 650; letter-spacing: .07em;
   text-transform: uppercase; color: var(--text-hint);
 }
-/* Helper microcopy — quiet hint text: sentence case, never blue, no pill */
-.chip-hint {
-  font-size: 11px; font-weight: 450; letter-spacing: normal;
-  text-transform: none; color: var(--text-hint);
-  background: none; padding: 0; border-radius: 0;
-}
 
 /* Chips & buttons — one size; selected is heavier not louder */
 .pick { font-size: 12.5px; font-weight: 500; }
 .pick.active { font-weight: 600; }
-.btn-label:not(.ws-shell *) { font-size: 12.5px; font-weight: 500; }
 
 /* Tabular numerals wherever numbers appear (scorebug discipline) */
-.stat-card-value, .dd-badge, .sb-score, .stat-num, .season-chip {
+.stat-card-value {
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
 }
 
 /* Stat card numerals (light-UI cards; the dark dashboard keeps its own
    heavier treatment from redesign-stats.css, which loads after this) */
 .stat-card-value { font-size: 24px; font-weight: 650; }
-
-/* Wordmark — GRIDIRON IQ, letterspaced, IQ in accent, no gradient fill */
-.app-title {
-  font-size: 13px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .12em; color: var(--text);
-  background: none; -webkit-text-fill-color: currentColor;
-  background-clip: border-box; -webkit-background-clip: border-box;
-}
-.app-iq { color: var(--accent); -webkit-text-fill-color: var(--accent); }
 
 /* =====================================================================
    DESIGN REFRESH v2 — chips & segmented controls (§4.1). The single
@@ -4855,21 +2399,17 @@ body { font-size: 13px; }
 }
 .pick.active kbd { opacity: 1; color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.35); }
 
-/* Unit toggle stays a full-width segmented control (single-choice colors). */
-.unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
-
 /* =====================================================================
    DESIGN REFRESH v2 — buttons & toolbar & dropzone (§4.2–4.4).
    Flat solid buttons (no gradients), four tiers, one dashed dropzone.
    ===================================================================== */
 /* Primary — solid accent, flat (was a 2-stop gradient). */
-.btn-accent:not(.ws-shell *), .btn-highlight:not(.ws-shell *), .btn-demo:not(.ws-shell *) {
+.btn-accent:not(.ws-shell *) {
   background: var(--accent); border: 1px solid var(--accent); color: var(--text-bright); box-shadow: none;
 }
-.btn-accent:hover:not(.ws-shell *), .btn-highlight:hover:not(.ws-shell *), .btn-demo:hover:not(.ws-shell *) {
+.btn-accent:hover:not(.ws-shell *) {
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
-.btn-highlight.active:not(.ws-shell *) { background: var(--accent); border-color: var(--accent); color: var(--text-bright); }
 
 /* Secondary — white surface, hairline border. Base .btn adopts this so a
    plain .btn no longer floods solid blue on hover. */
@@ -4880,16 +2420,9 @@ body { font-size: 13px; }
   background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text);
 }
 
-/* Ghost — transparent (toolbar/nav icon buttons). */
-.btn-ghost:not(.ws-shell *) { background: transparent; border-color: transparent; color: var(--text-dim); box-shadow: none; }
-.btn-ghost:hover:not(.ws-shell *) { background: var(--bg-tertiary); color: var(--text); border-color: transparent; }
-
 /* Danger — ghost red; solid red only inside confirm dialogs. */
 .btn-danger:not(.ws-shell *) { background: transparent; border: 1px solid transparent; color: var(--danger); }
 .btn-danger:hover:not(.ws-shell *) { background: var(--danger); border-color: var(--danger); color: var(--text-bright); }
-
-/* Toolbar — white, single hairline bottom border, no shadow. */
-.top-bar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
 
 /* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
    one accent (the primary). No glow tiles, no cyan. */
@@ -4898,26 +2431,18 @@ body { font-size: 13px; }
 /* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
    single-class, and .btn is later in source). Raise specificity so the primary
    fill always wins regardless of order — Save Season stays the one blue button. */
-.btn.btn-accent:not(.ws-shell *), .btn.btn-highlight:not(.ws-shell *), .btn.btn-demo:not(.ws-shell *) {
+.btn.btn-accent:not(.ws-shell *) {
   background: var(--accent); border-color: var(--accent); color: var(--text-bright);
 }
-.btn.btn-accent:hover:not(.ws-shell *), .btn.btn-highlight:hover:not(.ws-shell *), .btn.btn-demo:hover:not(.ws-shell *) {
+.btn.btn-accent:hover:not(.ws-shell *) {
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
-.btn.btn-highlight.active:not(.ws-shell *) { background: var(--accent); border-color: var(--accent); }
 
 /* =====================================================================
    DESIGN REFRESH v2 — play table, transport & the signature D&D badge
    (§4.5–4.7).
    ===================================================================== */
 /* Signature scorebug badge — used in the play table, tagging readout, header. */
-.dd-badge {
-  display: inline-block; padding: 2px 7px;
-  background: var(--bg-tertiary); border-radius: 4px;
-  font-size: 11.5px; font-weight: 650; letter-spacing: .05em; line-height: 1.35;
-  text-transform: uppercase; color: var(--text);
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
-}
 .dd-badge--key { background: var(--accent-soft); color: var(--accent-hover); }  /* 3rd/4th down */
 
 /* Play table (§4.6) — quiet header, crisp row states, colored numeric text. */
@@ -4925,28 +2450,23 @@ body { font-size: 13px; }
 
 /* Video transport (§4.7) — thin track, accent progress, hover-only handle. */
 
-/* D&D readout badge in the tag form — hidden until a down is set. */
-.dd-label { display: flex; align-items: center; gap: 8px; }
-.dd-readout { text-transform: uppercase; }
-.dd-readout:empty { display: none; }
-
 /* =====================================================================
    DESIGN REFRESH v2 — overlays & cards (§4.8). Light overlays already
    inherit the new tokens (white cards, flat shadows); this unifies the
    modal backdrop and adds a subtle, reduced-motion-safe entrance.
    ===================================================================== */
-.ffa-confirm-backdrop, .play-import-backdrop, .shortcuts-backdrop, .detect-review-backdrop { background: rgba(0,0,0,0.62); }
+.ffa-confirm-backdrop, .detect-review-backdrop { background: rgba(0,0,0,0.62); }
 
 @keyframes ffaModalIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
-.ffa-confirm-card, .season-modal-content, .play-import-card, .shortcuts-card, .modal-card {
+.ffa-confirm-card {
   animation: ffaModalIn 140ms cubic-bezier(.4,0,.2,1);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ffa-confirm-card, .season-modal-content, .play-import-card, .shortcuts-card, .modal-card { animation: none; }
+  .ffa-confirm-card { animation: none; }
 }
 
 /* Cards are border-only; shadows are reserved for floating layers. */
-.gi-card, .season-card, .team-card, .stat-card { box-shadow: none; }
+.stat-card { box-shadow: none; }
 
 /* =====================================================================
    DESIGN REFRESH — post-review polish (user feedback)
@@ -4955,14 +2475,6 @@ body { font-size: 13px; }
    borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
 .pick { background: var(--bg-tertiary); }
 .pick:not(.active):hover { background: #232B37; }
-
-/* Library actions: one aligned row (was inline-block → the demo button's icon
-   knocked the baseline off), one primary (New Season); demo → secondary. */
-.library-new { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.library-new .library-form { flex-basis: 100%; }
-.btn.btn-demo:not(.ws-shell *) { background: var(--surface); border: 1px solid var(--border-bright); color: var(--text); }
-.btn.btn-demo:hover:not(.ws-shell *) { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text); }
-.btn.btn-demo .icon:not(.ws-shell *) { color: var(--accent); }
 
 /* +Angle moved into the play-control bar; its old standalone row now collapses
    until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
@@ -4975,16 +2487,7 @@ body { font-size: 13px; }
 /* Fold the timeline into the transport line's center column (under the seek
    bar) instead of its own dedicated row — reclaims the vertical space while
    keeping the play/clip navigator exactly where film segments render. When
-   there's no film (empty .timeline-bar) it takes no space at all. */
-
-/* Custom user chips (CustomChips): a "+" add affordance + custom chips that
-   carry a × remove. Idle/active states otherwise inherit the normal chip look. */
-.pick-add { color: var(--text-hint); font-weight: 700; padding: 0 11px; }
-.pick-add:hover { background: var(--accent-soft); color: var(--accent); }
-.pick-custom { padding-right: 7px; }
-.pick-custom .pick-x { margin-left: 5px; opacity: .5; font-weight: 700; line-height: 1; cursor: pointer; }
-.pick-custom .pick-x:hover { opacity: 1; color: var(--danger); }
-.pick-custom.active .pick-x { color: rgba(255,255,255,.8); opacity: .85; }   /* on the solid-blue selected chip */
+   there's no film (empty .timeline-bar) it takes no space at all. */   /* on the solid-blue selected chip */
 
 /* =====================================================================
    DESIGN DEEP-DIVE P1 — one broadcast type voice, one wordmark.
@@ -5008,30 +2511,7 @@ body { font-size: 13px; }
    stats-engine.js, which are standalone files a recipient opens outside the
    app and which therefore cannot rely on the app's own type tokens.
    ===================================================================== */
-:root { --display: var(--gi-cond); }
-
-/* Wordmark — ONE mark. Condensed caps, IQ in blue (the hub's gold IQ dies). */
-.app-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; }
-.library-brand { font-family: var(--display); text-transform: uppercase; letter-spacing: .07em; }
-.library-brand b { color: var(--accent); }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
-
-/* Game header — the matchup reads like a broadcast lower third. */
-.game-header-bar .ghb-name {
-  font-family: var(--display); font-size: 19px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .015em;
-}
-
-/* Signature D&D badge speaks the same voice. */
-.dd-badge { font-family: var(--display); font-size: 12.5px; letter-spacing: .06em; }
-
-/* Panel titles, drawer header, Film Room title. */
-.panel-title {
-  font-family: var(--display); text-transform: uppercase; letter-spacing: .05em;
-}
-
-/* Unit toggle — the O / D / ST call is a scorebug moment. */
-.unit-toggle .pick { font-family: var(--display); font-size: 14.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
-.unit-toggle .pick.active { font-weight: 700; }
+:root { --display: var(--gi-cond); }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
 
 /* Light-UI stat numerals match the dashboard's. */
 .stat-card-value { font-family: var(--display); font-weight: 700; }
@@ -5042,71 +2522,10 @@ body { font-size: 13px; }
    surface: slate, faint chalk yard lines, the team name as a nameplate.
    Same DOM, same ids — presentation only.
    ===================================================================== */
-/* The overlay IS the page: opaque slate + chalk yard lines (pure CSS,
-   ~3% white so it reads as texture, not decoration). Top-aligned like a
-   page, scrolls itself; nothing behind it to blur. */
-.library-overlay {
-  align-items: flex-start; justify-content: center;
-  overflow-y: auto; padding: 0;
-  background:
-    repeating-linear-gradient(to bottom, transparent 0 119px, rgba(255,255,255,0.03) 119px 120px),
-    linear-gradient(to right, rgba(255,255,255,0.035) 0 2px, transparent 2px 100%),
-    #0D1117;
-  -webkit-backdrop-filter: none; backdrop-filter: none;
-}
-/* The "modal" becomes the page column. */
-.library-modal {
-  width: min(920px, 94vw); max-height: none; overflow: visible;
-  background: transparent; border: none; border-radius: 0; box-shadow: none;
-  padding: 44px 24px 72px;
-}
-.library-head { margin-bottom: 22px; }
-
-/* First-run — one clear headline, one action. */
-.setup-headline {
-  font-family: var(--display); font-size: clamp(30px, 4.5vw, 42px);
-  font-weight: 700; text-transform: uppercase; letter-spacing: .02em;
-  color: #fff; margin: 18px 0 4px;
-}
-.team-setup .library-intro { font-size: 14.5px; margin-bottom: 20px; }
-.team-setup-import { font-size: 12px; color: #6b7b93; margin-top: 22px; }
-
-/* Team nameplate — the hero of Team Home. Not a boxed card: a name on the
-   slate with a hairline under it, actions kept quietly to the right. */
-.team-card { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,.09);
-  border-radius: 0; padding: 8px 0 18px; }
-.team-card-name {
-  font-family: var(--display); font-size: clamp(30px, 4.5vw, 44px);
-  font-weight: 700; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05;
-}
-.team-card-meta { font-size: 13px; color: #8aa0bd; margin-top: 2px; }
-
-/* Schedule — the season reads like a scorebug line: name + record. */
-.schedule-title {
-  font-family: var(--display); font-size: clamp(22px, 3vw, 30px);
-  font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: #fff;
-}
-.season-record {
-  font-family: var(--display); font-size: 19px; font-weight: 700;
-  font-variant-numeric: tabular-nums; letter-spacing: .04em;
-  color: var(--accent); padding: 1px 9px; border: 1px solid var(--accent-border);
-  border-radius: 5px; margin-left: 2px; align-self: center;
-}
-.schedule-bar { display: flex; align-items: center; gap: 12px; }
-.schedule-bar .btn-accent:not(.ws-shell *) { margin-left: auto; }
 
 /* =====================================================================
    DESIGN DEEP-DIVE P3 — rail rhythm, dead weight, quiet guidance.
    ===================================================================== */
-/* The guidance banner directs, it doesn't alarm: neutral well + a blue
-   directional edge instead of the amber warning treatment. */
-.tag-form-hint {
-  background: var(--bg-tertiary);
-  border: none; border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
-  color: var(--text-dim); font-size: 12.5px;
-  padding: 10px 12px;
-}
 
 /* Rail rhythm: a touch more air between tag groups so sections read as
    sections while scanning fast. */
@@ -5120,17 +2539,7 @@ body { font-size: 13px; }
 .pick:active { background: #2A3441; }
 .pick.active:active { background: var(--accent-hover); }
 .btn:active:not(.ws-shell *) { background: var(--bg-tertiary); }
-.btn.btn-accent:active:not(.ws-shell *), .btn.btn-highlight:active:not(.ws-shell *) { background: var(--accent-hover); }
-
-/* Save & Next acknowledgment — "SAVED ✓" settles green for ~0.6s, then the
-   button returns to its blue call-to-action. The ✓ is state (kept under
-   prefers-reduced-motion); only the color ease is motion. */
-#btnTagSaveNext { transition: background 160ms cubic-bezier(.4,0,.2,1), border-color 160ms cubic-bezier(.4,0,.2,1); }
-#btnTagSaveNext.just-saved { background: var(--success); border-color: var(--success); color: #fff; }
-#btnTagSaveNext.just-saved::after { content: " ✓"; font-weight: 700; }
-@media (prefers-reduced-motion: reduce) {
-  #btnTagSaveNext { transition: none; }
-}
+.btn.btn-accent:active:not(.ws-shell *) { background: var(--accent-hover); }
 
 /* Play-table row focus eases in rather than snapping (background only). */
 
@@ -5151,35 +2560,6 @@ body { font-size: 13px; }
   }
 }
 
-/* Scorebug on the game breadcrumb segment — condensed tabular score, tinted
-   by result (W green / L red), with a FINAL underline state. Display-only. */
-.bc-score {
-  font-family: var(--display); font-weight: 700; font-size: 13.5px;
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
-  letter-spacing: .04em; padding: 0 6px; border-radius: 4px; line-height: 1.5;
-  background: rgba(233,238,245,0.08); color: var(--text);
-}
-.bc-score[hidden] { display: none; }
-/* Give the game segment room for the scorebug; the name ellipsizes first. */
-.bc-seg.bc-game { max-width: 260px; gap: 7px; }
-/* No top-bar region may paint over another. The center drop-target clips to
-   its own box instead of spilling its 275px label over the breadcrumb (a
-   pre-existing overflow the scorebug made visible); the breadcrumb pills cap
-   their width so the center keeps a usable size. The video area holds the
-   primary Add-film zone — this top-bar one is the compact secondary. */
-.top-bar-center { overflow: hidden; }
-#bcSeason { max-width: 190px; }
-/* The game name must be the (only) shrinkable item so the scorebug + caret
-   never spill past the pill: flex min-width:0 on the text, none on the rest. */
-.bc-seg.bc-game #bcGameText { min-width: 0; flex: 0 1 auto; }
-.bc-seg.bc-game .bc-score, .bc-seg.bc-game .season-chip-caret { flex: none; }
-/* The breadcrumb must SHRINK inside the top bar, not paint over the center
-   drop-target: extend the min-width:0 chain down to the segments so the game
-   pill's name ellipsizes when the bar tightens (was a pre-existing overflow —
-   the scorebug just made it visible more often). */
-.breadcrumb { min-width: 0; flex: 0 1 auto; }
-.breadcrumb .bc-seg { min-width: 44px; flex: 0 1 auto; }
-
 /* =====================================================================
    THE THEATER T6 — selection glow. On dark, the selected element is the
    brightest chrome on screen: a 1px bright ring + a soft halo. This
@@ -5190,9 +2570,6 @@ body { font-size: 13px; }
 .pick.active {
   box-shadow: 0 0 0 1px rgba(123,164,255,.85), 0 2px 10px rgba(61,123,253,.40);
 }
-.unit-toggle .pick.active {
-  box-shadow: 0 0 0 1px rgba(123,164,255,.90), 0 2px 14px rgba(61,123,253,.50);
-}
 /* keep the lift on hover, just add the halo under it */
 .pick.active:hover {
   box-shadow: 0 0 0 1px rgba(123,164,255,.9), 0 6px 18px rgba(0,0,0,.5);
@@ -5202,12 +2579,6 @@ body { font-size: 13px; }
 /* =====================================================================
    UX PASS U1 — the trust layer.
    ===================================================================== */
-/* Save-state on the top-bar Save button: ● while a debounced write is
-   armed, ✓ once persisted. State, not motion. */
-#btnSave.save-pending .btn-label:not(.ws-shell *)::before { content: "● "; color: var(--warning); }
-#btnSave.save-ok .btn-label:not(.ws-shell *)::before { content: "✓ "; }
-#btnSave.save-ok { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text-dim); }
-#btnSave.save-ok .icon { opacity: .6; }
 
 
 /* =====================================================================
@@ -5226,27 +2597,13 @@ body { font-size: 13px; }
 /* =====================================================================
    UX PASS U3 — IA: menu groups, grid affordance.
    ===================================================================== */
-/* More-menu section labels. */
-.more-label {
-  font-family: var(--display); font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .08em; color: var(--text-hint);
-  padding: 7px 14px 3px;
-}
 
 /* =====================================================================
    UX PASS U4 — first-session guidance.
    ===================================================================== */
-/* Clear Tags is a reset, not a delete — give it warning-tier identity so
-   it can't be confused with the red Delete Play beside it. */
-#btnClearTags { color: var(--warning); border-color: rgba(251,191,36,.35); }
-#btnClearTags:hover { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.55); color: var(--warning); }
-
-/* Demo button subtitle. */
-.btn-sub:not(.ws-shell *) { font-size: 11px; color: var(--text-hint); font-weight: 500; margin-left: 4px; }
 
 /* Get Started checklist pulse — one attention beat after team setup. */
 @keyframes gsPulse {
   0%, 100% { box-shadow: none; }
   50% { box-shadow: 0 0 0 2px var(--accent-border), 0 0 18px rgba(61,123,253,.35); }
 }
-.pick.library-hidden:not(.active){display:none}

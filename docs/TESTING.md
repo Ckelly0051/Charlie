@@ -1,12 +1,12 @@
 # Testing
 
-There are **98 harnesses** in `tools/e2e-*.mjs`. Each is a standalone Node
+There are **99 harnesses** in `tools/e2e-*.mjs`. Each is a standalone Node
 script. Most drive the built app in headless Chromium via Puppeteer; a handful
 that test DOM-free logic import the owning module directly and need no browser
 at all (`e2e-core`, `e2e-catalog-backend`, `e2e-analytics-metrics`,
-`e2e-catalog-versions`, `e2e-raw-read-audit`). Booting the app merely to reach a
-pure class is not a supported pattern — there is no global bridge to reach it
-through.
+`e2e-catalog-versions`, `e2e-raw-read-audit`, `e2e-css-ownership`). Booting the
+app merely to reach a pure class is not a supported pattern — there is no global
+bridge to reach it through.
 
 ```bash
 node tools/<harness>.mjs
@@ -67,7 +67,7 @@ The smallest existing harness for the route or domain you touched.
 | Persistence / catalog | `e2e-sql-catalog`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions`, `e2e-revision-fence`, `e2e-snapshot-envelope` |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
 | Import / export | `e2e-csv-roundtrip`, `e2e-csv-projection`, `e2e-legacy-film-fields` |
-| Cross-cutting guards | `e2e-design-system`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
+| Cross-cutting guards | `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
 
 ## Tier 2 — Affected route
 

@@ -243,18 +243,35 @@ page is genuinely required. Nothing may reintroduce it under another name:
 at runtime that no engine class resolves as a global — by class identity, not by
 name, since `StorageManager` collides with a real DOM interface.
 
-**CSS ownership is settled.** Every stylesheet is reachable from the Vite graph
-(7 linked from `index.html`, 15 imported through the module graph), and
-`css/styles.css` and `css/redesign-stats.css` no longer carry selector branches
-whose required classes production cannot produce. Ownership is decided
-statically from `index.html`, the JSX views, the screen controllers, and the
-export paths — never from runtime coverage, which cannot see empty, error, or
-responsive states. Dynamically composed classes (`` `tone-${row.tone}` ``) and
-data-driven `class={…}` values are retained as ambiguous, because a template
-fragment ending in `-` makes its suffix unknowable. `e2e-design-system` is 17/0:
-the Settings active-tab elevation is the shared `--gi-raise-tab` token, and
-`--gi-library-inset` is a declared instance-scoped property backed by a real
-`style.setProperty` setter.
+**CSS ownership is enforced, not merely asserted.** Every stylesheet is
+reachable from the Vite graph (7 linked from `index.html`, 15 imported through
+the module graph), and `e2e-css-ownership` proves on every run that no selector
+branch in `css/styles.css` or `css/redesign-stats.css` requires an identifier
+production cannot produce, and that no `:is()` list carries an alternative that
+can never match. The model is `tools/css-ownership.mjs`.
+
+**A producer is not a mention.** The distinction is the whole point, and getting
+it wrong is what let a first attempt at this cleanup declare completion while
+785 dead branches remained. Producers are `class`/`className` attributes,
+`classList` calls, `className` assignment, `setAttribute('class', …)`, and the
+static parts of template literals in those positions — including class
+attributes inside emitted HTML strings, which is how the print/export paths
+count. Readers are not producers: `querySelector('.stats-overlay')` reads a
+class and never creates one. Comments are not producers either, and in this repo
+they are often documentation that the thing is *gone* — `.top-bar` survived a
+sweep on sixteen occurrences, every one a comment recording its deletion.
+Ownership is never decided from runtime coverage, which cannot see empty, error,
+or responsive states.
+
+Only two things are retained without a literal producer: a class reached through
+a template fragment ending in `-` before an interpolation (`` `tone-${row.tone}` ``),
+whose suffix is unknowable, and ids. A brace-balanced reader is required for
+`class={…}`, because a JSX class expression contains its own `}` via `${…}` and
+a non-greedy match silently loses every class after the first interpolation.
+
+`e2e-design-system` is 17/0: the Settings active-tab elevation is the shared
+`--gi-raise-tab` token, and `--gi-library-inset` is a declared instance-scoped
+property backed by a real `style.setProperty` setter.
 
 ---
 
