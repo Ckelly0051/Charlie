@@ -277,11 +277,69 @@ property backed by a real `style.setProperty` setter.
 
 ---
 
+**Reports > Offense is implemented and independently reviewed, but NOT coach
+accepted.** Built to the approved comp (`design-comps/reports-offense-2026-09-03`)
+across `dc93429`; Codex reviewed the range and found no remaining concrete
+regression. It has not had a Charlie Gate, so it is not accepted state.
+
+Its composition is six zones — Offensive identity, Calls and tendencies,
+Structure and deployment, Situational analysis, Field and production, Advanced
+metrics — over a **12-column rhythm**. Every band divides on a gridline the
+six-column KPI band also uses (two-column bands run 8fr/4fr or 6fr/6fr,
+three-column bands three 4fr tracks), because the generic band's 65.9% split
+missed the KPI band's 66.7% by under a percent and read as a defect rather
+than a design. Bands are `align-items:start` and paint their column rules with
+a box-shadow into the existing 1px gap: sized to content, the band's own
+`--bd-rule` background would otherwise show under a short module as a solid
+slab, and collapsing the gap moves every rule ~1.4px out of alignment.
+
+**The shared scorebug is owned by one set.** `SCOREBUG_TABS` in
+`js/reports-screen.js` is the single owner of the scorebug/rail rule: a tab in
+it shows the scorebug and hides the generic `gi-reports-rail`; a tab outside it
+does the reverse. The two can therefore never appear together. It holds
+`overview` and `offense` today and grows one tab at a time as each self-report
+tab gets its design pass — Defense, Special Teams, Players, Self-Scout and
+Matchup still render the rail, and their behavior is unchanged.
+
+Score spacing is structural, not tuned: `.gi-scorebug-team` is `display:contents`
+so each team's name and score land in the scorebug's own fixed tracks. Score
+cells never move for a name length or a 1-, 2- or 3-digit value; names truncate
+inside their own bounded track with the full value in a tooltip.
+
+**Type on the Overview and Offense boards follows the design-system tokens.**
+Table column labels take `--gi-text-label` (the token whose own comment reads
+"field + column labels"), not the 9.5px condensed face the broadcast block used
+— a column label is operational copy, not a heading or a major number, and at
+9.5px in `--gi-bd-muted` it measured 3.63:1, below the 4.5:1 small-text
+minimum. Secondary ink is `--gi-bd-copy` at 7.66:1. Row height is unchanged:
+`--gi-row` already carried a 12px label. The coach's decision was that both
+boards share this treatment rather than Offense carrying an exception, so it
+is scoped to `.gi-overview-board`; Overview's composition is untouched.
+
+**A fixture is part of the evidence.** Three "defects" reported during this
+work were unrepresentative fixtures, each caught only in review: quarters
+tagged `'1'` when production writes `'Q1'` (`native-tagging.jsx` OPTIONS), so
+By quarter rendered empty and the linescore showed all zeros; play-action
+tagged as a *concept* when `_playActionStats` keys on the play **type**; and a
+type-floor assertion that protected a spray chart the fixture gave no field
+position to render. Chart the real tag vocabulary before concluding the
+product is wrong.
+
+---
+
 ## Open and deferred
 
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
+3. **Reports > Offense Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT. Open question carried into it:
+   Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
+   the data holds fewer distinct backfield values than personnel values. That
+   may be the honest floor rather than something to fill.
+4. **The remaining Reports tabs** — Defense, Special Teams, Players,
+   Self-Scout and Matchup have not had a design pass and still use the generic
+   rail.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its
@@ -305,9 +363,21 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 104)
+and `tools/e2e-reports-offense.mjs` (the Offense composition, its football
+contracts and the shared scorebug rule, 45).
+
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the
   right reason before you trust it.
+- **Give the fixture the same scrutiny as the assertion.** Three assertions in
+  the Offense work passed while measuring something other than their subject:
+  one clicked the main Reports tab strip instead of Season's own sub-nav and
+  left the tab it was testing; one measured a route that a prior block had
+  navigated away from, so page overflow was trivially zero on an unrendered
+  board; one checked a type floor on a chart the fixture never let render.
+  Each was green, and each was found by review. Assert that the subject is on
+  screen before asserting anything about it.
 - **Never redefine a test's threshold to match what the implementation
   achieved.** Meet the requirement or stop and report the exact conflict.
   Disclosure in prose does not substitute for a test that holds the line.
