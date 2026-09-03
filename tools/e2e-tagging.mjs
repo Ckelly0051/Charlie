@@ -163,7 +163,7 @@ r = await page.evaluate(() => ({ tool: window.app.canvas.currentTool }));
 r.form = await formState();
 ok(r.tool === 'circle', 'digit with NO play selected still arms the tool', JSON.stringify(r));
 ok(r.form.disabled, 'form disabled while no play is selected', JSON.stringify(r.form));
-ok(r.form.headline === 'SELECT PLAY', 'headline prompts the coach to select a play', JSON.stringify(r.form));
+ok(r.form.headline === 'Select play', 'headline prompts the coach to select a play', JSON.stringify(r.form));
 await page.evaluate(() => { // restore
   window.app.canvas.currentTool = null;
   const t = window.app.tagger;

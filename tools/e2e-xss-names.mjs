@@ -86,39 +86,40 @@ ok(res.liveImgs === 0, 'no live <img src=x> payload element was injected into th
 ok(res.escapedPresent, 'the payload text is preserved but escaped (rendered as literal text)', JSON.stringify(res));
 ok(!res.matrixRawImg && res.matrixEscaped, 'Native Offense escapes coach-controlled formation values (no raw <img in the grid)', JSON.stringify(res));
 
-// V2-A: Home's game-row metadata line (`_gameRowHtml`) composes a date label
-// and a score string, both of which can carry unescaped coach/import data --
-// `_dateLabel()` deliberately returns the raw string for an invalid date, and
-// imported/legacy scoreUs/scoreThem are never guaranteed numeric or safe.
-// Both flowed into innerHTML unescaped until this checkpoint's repair
-// (Codex review f1a90c2, finding 2). Drive the actual sink function directly
-// so this is independent of the Team Hub/route-guard boot sequence.
+// Home's game card composes a date label and a score string, both of which can
+// carry unescaped coach/import data -- `dateLabel()` deliberately returns the
+// raw string for an invalid date, and imported/legacy scoreUs/scoreThem are
+// never guaranteed numeric or safe. This once flowed through a string-HTML sink
+// (`WorkspaceShell._gameRowHtml`, repaired at Codex review f1a90c2 finding 2)
+// which was deleted with the Home comp migration; Home is a Preact route now and
+// the values are text children. Drive the REAL route rather than a sink
+// function, so this keeps its meaning against whatever renders Home: it fails if
+// anyone reintroduces dangerouslySetInnerHTML or an innerHTML assignment here.
 const rowRes = await page.evaluate(async () => {
   window.__xssRow = 0;
   const P = '<img src=x onerror="window.__xssRow=(window.__xssRow||0)+1">';
-  const shell = window.app.workspaceShell;
-  const game = {
-    id: 'row-xss', name: '', status: 'active',
-    gameInfo: { opponent: 'Opponent', date: P, scoreUs: P, scoreThem: '3' },
-    plays: [], __idx: 0,
-  };
-  // A minimal season context so _gameRowHtml's internal store reads resolve.
-  const store = window.app.storage.seasonStore;
+  const app = window.app, store = app.storage.seasonStore;
   const priorData = store.data, priorSeasonId = store.currentSeasonId;
-  store.data = store._normalize({ version: 5, type: 'season', id: 'row-xss-season', seasonName: 'Row XSS', activeGameId: 'row-xss', games: [game] });
+  store.data = store._normalize({
+    version: 5, type: 'season', id: 'row-xss-season', seasonName: 'Row XSS', activeGameId: 'row-xss',
+    games: [{
+      id: 'row-xss', name: '', status: 'active',
+      gameInfo: { opponent: 'Opponent', date: P, scoreUs: P, scoreThem: '3' },
+      plays: [], annotations: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false,
+    }],
+  });
   store.currentSeasonId = 'row-xss-season';
-  const html = shell._gameRowHtml(store.data.games[0], { season: { id: 'row-xss-season' }, team: null });
-  const container = document.createElement('div');
-  container.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
-  document.body.appendChild(container);
-  container.innerHTML = html;
-  await new Promise(r => setTimeout(r, 60));
-  const liveImgs = [...container.querySelectorAll('img')].filter(im => (im.getAttribute('src') || '') === 'x').length;
-  const escapedPresent = container.innerHTML.includes('&lt;img');
-  const rawImgPresent = /<img\s/i.test(html.replace(/\s(class|type|aria-pressed|data-[\w-]+)="[^"]*"/g, ''));
-  container.remove();
+  await app.workspaceShell.show('home');
+  await new Promise(r => setTimeout(r, 400));
+  const host = document.querySelector('.ws-home') || document.body;
+  const liveImgs = [...host.querySelectorAll('img')].filter(im => (im.getAttribute('src') || '') === 'x').length;
+  const text = host.textContent || '';
+  // The payload must survive as literal text, not vanish: silently dropping a
+  // hostile value would also pass an "is it escaped" check while losing data.
+  const escapedPresent = text.includes('<img src=x');
   store.data = priorData; store.currentSeasonId = priorSeasonId;
-  return { xss: window.__xssRow, liveImgs, escapedPresent, htmlLength: html.length, rawImgPresent };
+  await app.workspaceShell.show('home');
+  return { xss: window.__xssRow, liveImgs, escapedPresent, textLength: text.length };
 });
 ok(rowRes.xss === 0 && rowRes.liveImgs === 0, 'a hostile Home game-row date/score value fires no handler and creates no live element', JSON.stringify(rowRes));
 ok(rowRes.escapedPresent, 'the hostile date/score text is preserved but escaped, not silently dropped', JSON.stringify(rowRes));

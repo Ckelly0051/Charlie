@@ -19,7 +19,7 @@ await page.evaluate(() => {
   window.__TAURI__ = { desktopTest: true };
   const state = {
     mode: '', root: '', picked: 'D:/Football/Film', setRootCalls: 0,
-    saveOk: true, saved: null, saveAttempts: 0, imported: 0, remembered: [],
+    saveOk: true, saved: null, saveAttempts: 0, imported: 0, remembered: [], seasonsCreated: 0, currentSeasonId: '',
   };
   const backend = {
     supportsLinkedFilm: () => true,
@@ -43,6 +43,16 @@ await page.evaluate(() => {
     saveSeason: async (_seasonId, data) => { state.saveAttempts++; if (!state.saveOk) return false; state.saved = structuredClone(data); return true; },
     createBackup: async () => true,
     listSeasons: async () => [],
+    // Creating the first team also creates its first season, which goes through
+    // the canonical SeasonStore -- a wider slice of the backend contract than
+    // the film-storage surface itself touches. Without these the create fails
+    // CLOSED and silently: no error, no toast, the first-run form simply never
+    // closes. `createSeason` must return a record carrying the new id.
+    createSeason: async (meta = {}) => ({ id: `fake-season-${++state.seasonsCreated}`, ...meta }),
+    setCurrentSeason: id => { state.currentSeasonId = id; },
+    loadSeason: async () => null,
+    touchOpened: async () => true,
+    supportsDisk: () => false,
   };
   window.__filmSetupState = state;
   window.app.storage.seasonStore.backend = backend;
@@ -71,8 +81,23 @@ await page.waitForSelector('.gi-settings-callout.is-success .gi-settings-primary
 await page.click('.gi-settings-callout.is-success .gi-settings-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
-await page.type('.gi-hub-first input[name="school"]', 'Storage Test Team');
-await page.click('.gi-hub-first .gi-hub-primary');
+// This harness owns the desktop FILM-STORAGE surface, not the first-run journey
+// (that belongs to e2e-home-first-launch / e2e-native-team-hub). Its fake
+// backend is deliberately narrow, and the desktop-test first-run path will not
+// complete against it, so establish team + season context through the canonical
+// services and then open the Team Hub the settings action lives on.
+await page.evaluate(async () => {
+  const app = window.app;
+  app.teamRegistry.saveTeamIdentity('Storage Test Team');
+  await app.storage.seasonStore.createSeason({ name: '2026 Varsity', teamId: app.teamRegistry.activeTeamId() });
+  await app.teamHubScreen.load();
+  await app.workspaceShell._openLibrary();
+});
+await page.waitForFunction(() => {
+  const hub = document.querySelector('[data-native-team-hub]');
+  const box = hub && hub.getBoundingClientRect();
+  return !!box && box.width > 0 && box.height > 0;
+});
 await page.waitForSelector('#btnNativeTeamFilmSettings');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
 await page.click('#btnNativeTeamFilmSettings');

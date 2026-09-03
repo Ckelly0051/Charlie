@@ -14,6 +14,7 @@
 
    Run:  node tools/e2e-native-mirror-recovery.mjs */
 import puppeteer from 'puppeteer';
+import { createFirstTeam } from './hub-setup.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;
@@ -28,8 +29,17 @@ await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-team-hub]'));
 
 // First-run team setup, so Team Hub renders its normal (non-first-team) shell.
-await page.type('.gi-hub-first input[name="school"]', 'Recovery Test');
-await page.click('.gi-hub-first .gi-hub-primary');
+await createFirstTeam(page, 'Recovery Test');
+// createFirstTeam leaves the coach on the approved Home first-launch outcome;
+// Team Hub stays mounted but hidden, so its controls exist yet are unclickable.
+// This journey is about Team Hub, so open it explicitly.
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForFunction(() => {
+  const hub = document.querySelector('[data-native-team-hub]');
+  if (!hub) return false;
+  const box = hub.getBoundingClientRect();
+  return box.width > 0 && box.height > 0;
+});
 await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
 
 // ---- 1. BrowserBackend has no recovery concept: the button is genuinely absent ----

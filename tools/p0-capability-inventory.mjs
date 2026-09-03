@@ -4,7 +4,7 @@
  */
 export const P0_CAPABILITIES = [
   // Home / shell ownership
-  { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'First-run Team Hub offers team setup before any season' },
+  { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'First run offers team setup before any season' },
   { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home New Game action opens a chartable game in Break Down' },
   { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
   { id:'home.unit-progress', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Home shows charting progress per unit matching the canonical play data' },
@@ -13,7 +13,7 @@ export const P0_CAPABILITIES = [
   { id:'shell.containment-live', surface:'shell', evidence:'behavior', harness:'e2e-responsive-containment.mjs', assertion:'The escape detector fires on a genuinely over-wide element (the check can fail)' },
   { id:'shell.palette', surface:'shell', evidence:'data', harness:'e2e-design-system.mjs', assertion:'every shell colour role derives from a design-system token — one palette, not two' },
   { id:'shell.contrast', surface:'shell', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Shell text stays at or above WCAG AA contrast on every surface it sits on' },
-  { id:'shell.game-switch', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Game context is a real switcher on every route, not a Home-only round trip' },
+  { id:'shell.game-switch', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Every working route retains its game switcher; Home game-card navigation is exercised above' },
   { id:'shell.game-switch-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Switching a game from Reports changes the canonical active game and stays on Reports' },
   { id:'shell.game-naming', surface:'shell', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'The context bar, the mobile context and the switcher all name a game with the one canonical rule' },
   { id:'shell.breakdown-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Break Down opens its dedicated production route' },
@@ -100,9 +100,15 @@ export const P0_CAPABILITIES = [
   { id:'plan.strip', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Selecting a strip entry moves the stage and scrolls the strip without starting film' },
 
   // Team Hub / season library
-  { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup has one native Team Hub owner and never reveals the classic outlet' },
-  { id:'team-hub.onboarding-progress', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Native Team Hub preserves the five-step setup progress with real completion state' },
-  { id:'team-hub.create-season', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Create season stores active-team ownership and hands off to Home' },
+  { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup is owned by the approved Home first-launch state while Team Hub remains mounted but hidden' },
+  // The five-step progress indicator this capability originally named is retired
+  // from production; nothing renders step counts any more. The coach-facing
+  // guarantee that survived it is that setup stays RESUMABLE -- a coach who
+  // stops half way can reopen the guide and carry on -- so that is what this
+  // critical capability now certifies. Re-pointed rather than dropped, because
+  // deleting a critical capability to make a guard green is how coverage is lost.
+  { id:'team-hub.onboarding-progress', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Review season setup reopens one resumable, fully skippable guide' },
+  { id:'team-hub.create-season', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Approved Home setup creates the active team and season through canonical owners' },
   { id:'team-hub.team-switch', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Team switch fails closed when the outgoing canonical season save fails' },
   { id:'team-hub.delete-impact', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Season delete names game/play impact and managed-versus-linked film consequences' },
   { id:'team-hub.mobile', surface:'team-hub', evidence:'a11y', harness:'e2e-native-team-hub.mjs', assertion:'Mobile Team Hub preserves complete touch access without page-level scrolling traps' },

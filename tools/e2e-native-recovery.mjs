@@ -14,7 +14,7 @@ await page.evaluate(async()=>{
 });
 await page.waitForSelector('[data-settings-panel="recovery"]');
 let r=await page.evaluate(()=>({seasonCopy:document.querySelector('[data-settings-panel="recovery"]')?.textContent||'',legacy:!!document.getElementById('versionPanel')||!!document.getElementById('settingsDrawer')}));
-ok(/WHOLE SEASON/.test(r.seasonCopy)&&/CURRENT GAME/.test(r.seasonCopy)&&/Restores every game/.test(r.seasonCopy)&&/Restores only the open game/.test(r.seasonCopy)&&!r.legacy,'Recovery distinguishes durable whole-season restore points from current-game versions',JSON.stringify(r));
+ok(/Whole season/.test(r.seasonCopy)&&/Current game/.test(r.seasonCopy)&&/Restores every game/.test(r.seasonCopy)&&/Restores only the open game/.test(r.seasonCopy)&&!r.legacy,'Recovery distinguishes durable whole-season restore points from current-game versions',JSON.stringify(r));
 
 await page.click('[aria-label="Restore point label"]');for(const ch of 'Before re-tag'){await page.keyboard.type(ch,{delay:15});}await page.click('[data-settings-panel="recovery"] .gi-settings-section:first-child .gi-settings-primary');await page.waitForFunction(()=>[...document.querySelectorAll('[data-season-restore] strong')].some(el=>el.textContent==='Before re-tag'));
 r=await page.evaluate(async()=>({points:await window.app.storage.seasonStore.listBackups(),canonical:await window.app.storage.seasonStore.backend.loadSeason(window.app.storage.seasonStore.currentSeasonId)}));

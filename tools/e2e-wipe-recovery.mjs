@@ -32,11 +32,18 @@ page.on('pageerror', e => errors.push(String(e)));
 await page.goto(bundle, { waitUntil: 'load' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'load' });
-await page.waitForSelector('.gi-hub-first');
+await page.waitForSelector('[data-first-launch]');
 
 // ---- Seed: team + roster + season + tagged plays ----
-await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
-await page.click('.gi-hub-first .gi-hub-primary');
+// Team ONLY: this journey seeds its own 'Fall 2026' season below and then
+// asserts the registry rebuilds to exactly one team with that season's
+// playbook as the newest mirror. The shared createFirstTeam helper also
+// creates a season, which would become the newest mirror and carry no
+// playbook, so it is deliberately not used here.
+await page.evaluate(() => { window.app.teamRegistry.saveTeamIdentity('Mavericks'); });
+await page.evaluate(async () => { await window.app.teamHubScreen.load(); });
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+
 await page.waitForSelector('[data-hub-team].is-active');
 await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: 'Fall 2026' });
@@ -81,7 +88,7 @@ const rec = await page.evaluate(() => {
   const profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}');
   const hub = document.querySelector('[data-native-team-hub]');
   return {
-    setupHidden: !document.querySelector('.gi-hub-first'),
+    setupHidden: !document.querySelector('[data-first-launch]'),
     teamShown: !!document.querySelector('[data-hub-team].is-active'),
     teamText: document.querySelector('[data-hub-team].is-active')?.textContent || '',
     teamCount: teams.length,

@@ -49,7 +49,13 @@
 @media(max-width:1000px){
   .ws-breakdown{overflow:auto}
   .gi-breakdown-route{height:auto;min-height:100%}
-  .gi-breakdown-toolbar{flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:5;padding:4px 8px}
+  /* `position:sticky` + a z-index makes this toolbar a STACKING CONTEXT, so the
+     More menu inside it can never outrank a sibling of the toolbar no matter
+     what z-index the menu carries. At 5 the whole toolbar sat under the film
+     empty-state placeholder (media-foundation.css, z-index 10), which left every
+     More command unclickable on a phone with no film loaded. 15 clears the media
+     layer (which tops out at 12) and stays below the theater overlays at 20+. */
+  .gi-breakdown-toolbar{flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:15;padding:4px 8px}
   .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:520px 34px auto;grid-template-areas:'theater' 'rail' 'deck'}
   .gi-breakdown-deck{overflow:visible}
   .gi-breakdown-tagging-host{height:auto;overflow:visible}

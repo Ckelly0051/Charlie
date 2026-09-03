@@ -22,10 +22,13 @@ let r = await page.evaluate(() => ({
   choices: [...document.querySelectorAll('.gi-hub-workspace-choice button')].map(button => button.textContent.trim()),
   storage: document.querySelector('.gi-hub-storage-promise')?.textContent || '',
 }));
-ok(r.choices.length === 2 && /Our Program/.test(r.choices[0]) && /Opponent Scout/.test(r.choices[1]),
+ok(r.choices.length === 2 && /Program/.test(r.choices[0]) && /Opponent Scout/.test(r.choices[1]),
   'First run presents Program and Opponent Scout as explicit football workflows', JSON.stringify(r));
-ok(/film stays where you keep it/i.test(r.storage) && /Team & Film Settings/i.test(r.storage),
-  'First run explains film storage before a game is opened', JSON.stringify(r));
+// The first-run film-storage promise (.gi-hub-storage-promise) is retired
+// from production -- the approved first-launch composition does not disclose
+// storage before a season exists. Film-storage disclosure is proven where it
+// now lives, in Team & Film Settings: see e2e-film-storage-setup's "Choice copy
+// clearly distinguishes link-in-place from managed copies".
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-first-run.png'), fullPage: true });
 
 // addTeam takes {school, nickname, jerseyColor} now (2026-08-31 Home naming
@@ -53,7 +56,7 @@ await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('program');
   await window.app.workspaceShell._openLibrary();
 });
-await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Our Program');
+await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Program');
 r = await page.evaluate(async () => window.app.teamHubScreen.createSeason({ name: '2026 Mavericks', year: '2026', level: 'JV' }));
 ok(r?.ok, 'Program season creation uses the program path', JSON.stringify(r));
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
@@ -71,17 +74,22 @@ r = await page.evaluate(() => ({
   control: [...document.querySelectorAll('.gi-hub-control-row strong')].map(node => node.textContent.trim()),
   mode: document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent,
 }));
-ok(r.mode === 'Our Program' && ['Film storage', 'Roster'].every(label => r.control.includes(label)),
+ok(r.mode === 'Program' && ['Film storage', 'Roster'].every(label => r.control.includes(label)),
   'Program Home exposes one clear control center for film and roster', JSON.stringify(r));
 
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('scout'));
 await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Opponent Scout');
 r = await page.evaluate(() => ({
-  rows: document.querySelectorAll('[data-season-id]').length,
+  rows: document.querySelectorAll('[data-native-team-hub] [data-season-id]').length,
   empty: document.querySelector('.gi-hub-empty-inline')?.textContent || '',
 }));
-ok(r.rows === 0 && /without touching our season/.test(r.empty),
-  'Scout library starts empty and explicitly promises program isolation', JSON.stringify(r));
+// The old copy promised isolation in words ("without touching our season").
+// The copy standard now forbids data-safety language in an empty state, so that
+// clause is deliberately gone; isolation is a DATA guarantee, proven by the
+// season-isolation and integrity harnesses rather than by reassuring text. What
+// the empty state must still do is name the object and the next action.
+ok(r.rows === 0 && /No opponent scouts/.test(r.empty) && /Create first opponent scout/.test(r.empty),
+  'Scout library starts empty and names the object and its next action', JSON.stringify(r));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-scout-library.png'), fullPage: true });
 
 r = await page.evaluate(async () => window.app.teamHubScreen.createScout({
@@ -118,7 +126,7 @@ if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-scout-home.pn
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
 await page.waitForSelector('[data-native-team-hub]');
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
-await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Our Program');
+await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Program');
 r = await page.evaluate(() => ({
   rows: [...document.querySelectorAll('[data-season-id]')].map(row => row.textContent),
   mode: localStorage.getItem('giq_home_workspace'),

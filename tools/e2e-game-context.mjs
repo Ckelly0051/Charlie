@@ -164,7 +164,7 @@ r = await page.evaluate(async () => {
   // Set identity the way a coach does — through the canonical team registry,
   // which is what carries forward. The old carry rode on a hidden input keeping
   // its value across a game load; that is not an owner.
-  app.teamRegistry.saveTeamIdentity('Mavericks', 'navy');
+  app.teamRegistry.saveTeamIdentity('Mavericks', '', 'navy');
   app.gameContext.update({ perspective: 'scout' });
   await app.storage.newGame();
   const fresh = app.gameContext.snapshot();

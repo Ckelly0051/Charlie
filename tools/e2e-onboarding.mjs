@@ -45,24 +45,31 @@ const clickButtonText = async (selector, pattern) => page.evaluate((sel, source)
 
 console.log('\n== 1. First-run Team Hub ==');
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => document.querySelector('.gi-hub-first'));
+await page.waitForFunction(() => document.querySelector('[data-first-launch]'));
 let r = await page.evaluate(() => ({
   route: document.getElementById('workspaceShell')?.dataset.route,
-  first: document.querySelector('.gi-hub-first')?.textContent || '',
+  first: document.querySelector('[data-first-launch]')?.textContent || '',
   // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
   // read true once el is gone, so this asserts absence, which cannot invert.
   legacy: !!document.getElementById('libraryOverlay'),
   outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
 }));
-ok(r.route === 'team-hub' && /Set up your program/.test(r.first) && !r.legacy && !r.outlet,
-  'First-run Team Hub offers team setup before any season', JSON.stringify(r));
+// The approved first-launch front door is Home, not the retired Team Hub
+// first-run panel (e2e-home-first-launch owns that contract).
+ok(r.route === 'home' && /Create your first season/.test(r.first) && !r.legacy && !r.outlet,
+  'First run offers team setup before any season', JSON.stringify(r));
 
 // School/nickname are separate fields now; type only the school so the
 // composed teamName ([school, nickname].filter(Boolean).join(' ')) stays
 // exactly "Mavericks", matching every downstream assertion below unchanged.
-await page.type('.gi-hub-first input[name="school"]', 'Mavericks');
-await page.select('.gi-hub-first select', 'navy');
-await page.click('.gi-hub-first .gi-hub-primary');
+// Sections 2+ assert the onboarding MILESTONES (team done, season not yet),
+// so the team is created on its own here. The approved Home first-launch
+// form creates a team AND its first season in one step -- section 1 above
+// asserts that real front door; driving it here would complete two
+// milestones at once and make every milestone assertion below vacuous.
+await page.evaluate(() => { window.app.teamRegistry.saveTeamIdentity('Mavericks', '', 'navy'); });
+await page.evaluate(async () => { await window.app.teamHubScreen.load(); });
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
 await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active'));
 r = await page.evaluate(() => ({
   active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
@@ -89,8 +96,11 @@ ok(r.games === 2, 'Home film inbox shows both sample games', JSON.stringify(r));
 ok(r.roster === 0, 'sample season leaves the active team roster untouched', JSON.stringify(r));
 r = await page.evaluate(async () => {
   const scores = [];
-  for (const button of document.querySelectorAll('.ws-game-row')) {
-    button.click();
+  // .ws-game-row is the card ARTICLE; the selection handler lives on the
+  // inner .game-card-select button. Clicking the wrapper changes nothing, so
+  // this read every game's score from whichever card was already selected.
+  for (const row of document.querySelectorAll('.ws-game-row')) {
+    (row.querySelector('.game-card-select') || row).click();
     await new Promise(resolve => setTimeout(resolve, 80));
     const us = document.getElementById('wsDetailUsScore')?.textContent || '';
     const them = document.getElementById('wsDetailThemScore')?.textContent || '';
@@ -136,8 +146,8 @@ ok(await page.evaluate(() => document.querySelector('[data-pane="players"]')?.te
 console.log('\n== 4. Sample persistence and removal ==');
 await openHub();
 r = await page.evaluate(() => ({
-  rows: document.querySelectorAll('[data-season-id]').length,
-  sample: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+  rows: document.querySelectorAll('[data-native-team-hub] [data-season-id]').length,
+  sample: document.querySelector('[data-native-team-hub] [data-season-id] .gi-hub-season-state')?.textContent,
   action: [...document.querySelectorAll('.gi-hub-section-head button')].find(button => /sample season/i.test(button.textContent))?.textContent,
 }));
 ok(r.rows === 1 && r.sample === 'Current' && /Open sample season/.test(r.action || ''),
@@ -148,8 +158,8 @@ await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => document.querySelector('[data-native-team-hub] [data-season-id]'));
 r = await page.evaluate(() => ({
   team: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
-  rows: document.querySelectorAll('[data-season-id]').length,
-  sample: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+  rows: document.querySelectorAll('[data-native-team-hub] [data-season-id]').length,
+  sample: document.querySelector('[data-native-team-hub] [data-season-id] .gi-hub-season-state')?.textContent,
 }));
 ok(r.team === 'Mavericks' && r.rows === 1 && /Current|Sample/.test(r.sample || ''),
   'team and sample season persist across reload', JSON.stringify(r));
@@ -194,7 +204,7 @@ r = await page.evaluate(() => ({
   teamId: window.app.storage.seasonStore.data?.teamId,
   action: !!document.querySelector('[data-ws-action="new-game"]'),
 }));
-const expectedSeasonName = `${new Date().getFullYear()} · Freshman B`;
+const expectedSeasonName = `${new Date().getFullYear()} · Mavericks · Freshman B`;
 ok(r.name === expectedSeasonName && r.teamId === 'mavericks', 'real season is durably owned by the active team', JSON.stringify(r));
 await page.click('[data-ws-action="new-game"]');
 await page.waitForSelector('[data-overlay-id="game-details"] [data-native-game-form]');
@@ -216,8 +226,8 @@ ok(await page.evaluate(() => localStorage.getItem('ffa_seen_stats') === '1'),
   'real-data Reports records that analytics were reached');
 await openHub();
 r = await page.evaluate(() => ({
-  rows: document.querySelectorAll('[data-season-id]').length,
-  state: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+  rows: document.querySelectorAll('[data-native-team-hub] [data-season-id]').length,
+  state: document.querySelector('[data-native-team-hub] [data-season-id] .gi-hub-season-state')?.textContent,
   done: document.querySelectorAll('.gi-hub-setup-steps .is-done').length,
   setup: document.querySelector('.gi-hub-setup')?.textContent || '',
 }));
@@ -234,7 +244,7 @@ await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => document.querySelector('[data-native-team-hub] [data-season-id]'));
 r = await page.evaluate(() => ({
   pointer: localStorage.getItem('ffa_demo_season_id'),
-  state: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+  state: document.querySelector('[data-native-team-hub] [data-season-id] .gi-hub-season-state')?.textContent,
 }));
 ok(!r.pointer && r.state !== 'Sample', 'stale demo pointer cannot relabel a real season', JSON.stringify(r));
 await page.evaluate(() => localStorage.setItem('ffa_demo_season_id', 'missing-demo-season'));
@@ -255,9 +265,9 @@ await page.evaluate(() => {
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => document.querySelector('[data-native-team-hub]'));
 r = await page.evaluate(() => ({
-  first: !!document.querySelector('.gi-hub-first'),
+  first: !!document.querySelector('[data-first-launch]'),
   team: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
-  seasons: document.querySelectorAll('[data-season-id]').length,
+  seasons: document.querySelectorAll('[data-native-team-hub] [data-season-id]').length,
 }));
 ok(!r.first && !!r.team && r.seasons === 1, 'existing season rebuilds team identity instead of showing destructive first-run setup', JSON.stringify(r));
 await page.click('[data-hub-open-season]');
