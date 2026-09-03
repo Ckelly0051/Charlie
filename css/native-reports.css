@@ -1677,3 +1677,59 @@
 .gi-reports .gi-overview-board .gi-zone-rule p,
 .gi-reports .gi-overview-board .gi-overview-kpi span,
 .gi-reports .gi-overview-board .gi-overview-kpi small{ color:var(--gi-bd-copy) }
+
+/* Dead space: modules take their content height, not their tallest neighbour's.
+   A band stretches its children by default, so a 4-row table paired with a
+   14-row one carried ~350px of empty panel below its last row. Overview
+   already settled this -- `.gi-overview-production` and `.gi-overview-support`
+   are `align-items:start` -- and the module's own --bd-panel background means
+   the 1px rule gap still reads between columns. Following that pattern here
+   rather than stretching content to fill: no row is resized, nothing detaches
+   from its header, and no internal scroller is introduced. */
+.gi-reports .gi-offense-board .gi-overview-band{
+  align-items:start;
+  /* The band paints separators by showing its own --bd-rule background
+     through 1px gaps, which only works while every module is the same
+     height. Sized to content, the area under a short module exposed that
+     rule colour as a solid slab -- a worse artefact than the empty panel it
+     replaced. The rule is drawn on the module itself instead, so it is
+     exactly as tall as the column it divides and the space below is board
+     background.
+
+     The gap itself is kept at 1px so the column tracks resolve exactly as the
+     KPI band's do -- collapsing it moved every rule about 1.4px out of
+     alignment -- and the rule is painted into that gap with a box-shadow,
+     which occupies no layout space. */
+  background:transparent
+}
+.gi-reports .gi-offense-board .gi-overview-band>.gi-overview-module+.gi-overview-module{
+  box-shadow:-1px 0 var(--gi-bd-line)
+}
+
+/* ── LINESCORE ───────────────────────────────────────────────────────────
+   The quarter block sat in an `auto` track at its 40px floor, so four
+   quarters were squeezed into a column of stacked pairs while the row had
+   width to spare. It now takes a flexible track and lays the quarters out as
+   a real linescore: one row of quarter labels, our figures on the row below,
+   the opponent's under those, reading left to right the way the final score
+   above it does. The name and score tracks stay fixed, so the block's left
+   edge -- and every score position -- is unaffected. */
+.gi-reports .gi-reports-scorebug{
+  grid-template-columns:
+    minmax(0,var(--sb-name)) var(--sb-score)
+    minmax(0,var(--sb-name)) var(--sb-score)
+    minmax(190px,.9fr) minmax(0,1fr) auto
+}
+.gi-reports .gi-scorebug-line{
+  display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
+  align-items:center;gap:0;padding:6px 20px
+}
+.gi-reports .gi-scorebug-quarter{
+  min-width:0;padding:4px 2px;background:transparent;text-align:center
+}
+.gi-reports .gi-scorebug-quarter b,
+.gi-reports .gi-scorebug-quarter i{
+  display:block;margin-top:3px;font:600 18px/1.15 var(--gi-cond);font-style:normal;
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-scorebug-quarter b{ color:var(--gi-bd-strong) }

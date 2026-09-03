@@ -273,6 +273,23 @@ export function offenseIdentity(stats, engine, calls = null) {
         cutType: 'qbAlignment', cutVal: topAlignment[0], cutLabel: `${topAlignment[0]} — ${topAlignment[1]} plays` }
     : { label: 'QB alignment', value: '—', sub: 'none charted' });
 
+  // Run/pass and the primary play type complete the strip. Two tiles short,
+  // the module ran ~60px under its neighbour in the band and left the balance
+  // as empty panel. `runPass` has no registered cut type -- it is a ratio, not
+  // a cohort -- so that tile carries no film action rather than a dead click.
+  const tend = stats.tendencies || {};
+  const runs = tend.runs || 0, passes = tend.passes || 0;
+  items.push(runs || passes
+    ? { label: 'Run / pass', value: `${Math.round(parseFloat(tend.runPct) || 0)} / ${Math.round(parseFloat(tend.passPct) || 0)}`,
+        sub: `${runs} run · ${passes} pass` }
+    : { label: 'Run / pass', value: '—', sub: 'none charted' });
+
+  const playType = (tend.playTypeList || [])[0];
+  items.push(playType
+    ? { label: 'Primary play type', value: playType.name, sub: `${playType.count} snaps · ${share(playType.count)}`,
+        cutType: 'playType', cutVal: playType.name, cutLabel: `${playType.name} — ${playType.count} plays` }
+    : { label: 'Primary play type', value: '—', sub: 'none charted' });
+
   const topCall = calls?.eligible ? (calls.calls || [])[0] : null;
   items.push(topCall
     ? { label: 'Top call', value: topCall.name, sub: `${topCall.n} snaps · ${Math.round(topCall.successRate)}% success`,

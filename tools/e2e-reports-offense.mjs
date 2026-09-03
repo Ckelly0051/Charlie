@@ -166,7 +166,9 @@ const identity = await page.evaluate(() => {
     clickable: tiles.filter(t => t.classList.contains('cut-row')).length,
   };
 });
-ok(identity.tiles === 4, 'the identity strip renders its four tiles', JSON.stringify(identity));
+ok(identity.tiles === 6,
+  'the identity strip renders its six tiles -- personnel, formation, alignment, run/pass, play type, and top call',
+  JSON.stringify(identity));
 ok(identity.topClickable && identity.topFocusable,
   'the Top call tile opens film and is keyboard reachable -- its analysis supplies bare playIds and no composite refs in single-game scope, so a tile that reads only `refs` is a dead tile',
   JSON.stringify(identity));
@@ -392,6 +394,17 @@ ok(widths.every(r => r.pageX === 0), 'no page-level horizontal overflow at 1920,
 ok(widths.every(r => r.bandTracks.length > 0 && r.bandTracks.every(n => n === 3)),
   'the three-column structure bands resolve to three real grid tracks at every release width',
   JSON.stringify(widths.map(r => ({ w: r.w, tracks: r.bandTracks }))));
+
+console.log('\n== 17. Nothing on the board renders below the type floor ==');
+await load({ plays: FULL });
+const tiny = await page.evaluate(() => [...document.querySelectorAll('.gi-offense-board *')]
+  .filter(el => el.childElementCount === 0 && (el.textContent || '').trim())
+  .map(el => ({ tag: el.tagName, text: el.textContent.trim().slice(0, 12),
+    size: parseFloat(getComputedStyle(el).fontSize) }))
+  .filter(o => o.size && o.size < 9.5));
+ok(tiny.length === 0,
+  'no text on the Offense board renders below the 9.5px floor, chart axis labels included',
+  JSON.stringify(tiny.slice(0, 6)));
 
 ok(errors.length === 0, 'the Offense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 

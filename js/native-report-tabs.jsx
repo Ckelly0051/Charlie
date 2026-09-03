@@ -438,7 +438,8 @@ export function OffenseTab({ stats, screen }) {
 
     {/* ── ZONE 2 — calls and tendencies ─────────────────────────────── */}
     <ZoneRule id="gi-off-z2" title="Calls and tendencies" label="Frequency and production" note="Opens film" />
-    {calls && <div class="gi-overview-band gi-overview-band-2">{calls.calls}{calls.concepts}</div>}
+    {calls && <div class="gi-overview-band gi-off-full">{calls.calls}</div>}
+    {calls && <div class="gi-overview-band gi-off-full">{calls.concepts}</div>}
     <div class="gi-overview-band gi-overview-band-3">
       <SparseModule title="Formation" meta="frequency &amp; success" cls="is-offense" rows={tend.formations}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(tend.formations, screen)} />
@@ -497,20 +498,25 @@ export function OffenseTab({ stats, screen }) {
 
     {/* ── ZONE 4 — situational analysis ─────────────────────────────── */}
     <ZoneRule id="gi-off-z4" title="Situational analysis" label="Down, distance, quarter, and personnel" note="Opens film" />
-    <div class="gi-overview-band gi-off-even">
+    {/* The two tall tables take a band each and the two short ones pair with
+        each other. Stretched against a tall neighbour instead, Situational
+        and By quarter carried 324px and 342px of empty panel. */}
+    <div class="gi-overview-band gi-off-full">
       <SparseModule title="Personnel × situation" meta="by down &amp; distance" cls="is-offense" rows={personnelSit}>
         <DataTable emptyText="Insufficient charted data"
           columns={[{ key: 'personnel', label: 'Personnel' }, { key: 'situation', label: 'Situation', tl: true }, { key: 'count', label: 'Plays', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]}
           rows={personnelSit.map((row, i) => ({ id: i, ...row }))} />
       </SparseModule>
+    </div>
+    <div class="gi-overview-band gi-off-full">
+      <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
+    </div>
+    <div class="gi-overview-band gi-off-even">
       <SparseModule title="Situational" meta="by situation" cls="is-offense" rows={sit.rows}>
         <DataTable emptyText="Insufficient charted data"
           columns={[{ key: 'name', label: 'Situation' }, { key: 'total', label: '#', numeric: true }, { key: 'yards', label: 'Yds', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Succ%' }, { key: 'tds', label: 'TD', numeric: true }]}
           rows={sit.rows.map(row => ({ ...row, id: row.key, onActivate: cut('situation', row.key, `${row.name} — ${row.total} plays`), label: `${row.name} — ${row.total} plays` }))} />
       </SparseModule>
-    </div>
-    <div class="gi-overview-band gi-overview-band-2">
-      <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
       <SparseModule title="By quarter" meta="plays, yards, TD" rows={sit.byQuarter}>
         <table><thead><tr><th>Qtr</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
           <tbody>{sit.byQuarter.map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody>
