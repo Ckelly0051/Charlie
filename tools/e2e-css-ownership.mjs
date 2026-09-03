@@ -32,6 +32,37 @@ const { classes, prefixes } = harvestProducers(sources);
 const ids = harvestIds(sources);
 const producible = makeProducible({ classes, prefixes, ids });
 
+// Mutation fixtures for the ownership model itself. Positive functional
+// selectors are requirements, while class-removal calls are consumers. These
+// assertions prevent the guard from going green by confusing either with a
+// producer again.
+const fixtureProducible = makeProducible({
+  classes: new Set(['live', 'alternative']),
+  prefixes: new Set(),
+  ids: new Set(),
+});
+const whereDead = classifyBranch('.live:where(.missing)', fixtureProducible);
+const hasDead = classifyBranch('.live:has(.missing)', fixtureProducible);
+const notLive = classifyBranch('.live:not(.missing)', fixtureProducible);
+const whereMixed = classifyBranch('.live:where(.missing,.alternative)', fixtureProducible);
+ok(whereDead.verdict === 'DEAD' && hasDead.verdict === 'DEAD' && notLive.verdict === 'LIVE',
+  ':where() and :has() are positive requirements while :not() remains an exclusion',
+  JSON.stringify({ whereDead, hasDead, notLive }));
+ok(whereMixed.verdict === 'LIVE' && whereMixed.deadAlternatives.includes('.missing'),
+  'positive functional lists retain live alternatives and report dead alternatives',
+  JSON.stringify(whereMixed));
+
+const operationFixture = harvestProducers([`
+  node.classList.add('added', 'also-added');
+  node.classList.toggle('toggled', enabled);
+  node.classList.replace('retired', 'replacement');
+  node.classList.remove('removed');
+`]).classes;
+ok(['added', 'also-added', 'toggled', 'replacement'].every(name => operationFixture.has(name))
+  && !operationFixture.has('retired') && !operationFixture.has('removed'),
+  'classList harvesting counts only operations and arguments that can produce a class',
+  JSON.stringify([...operationFixture]));
+
 console.log(`producers: ${classes.size} classes, ${ids.size} ids, ${prefixes.size} dynamic prefixes`);
 
 const totals = { branches: 0, live: 0, ambiguous: 0, dead: 0, deadAlts: 0 };
@@ -63,7 +94,7 @@ for (const file of AUDITED) {
   console.log(`  ${file}: ${fileDead.length} dead branches`);
 }
 
-console.log(`\nbranches ${totals.branches}  live ${totals.live}  ambiguous ${totals.ambiguous}  dead ${totals.dead}  dead :is() alternatives ${totals.deadAlts}`);
+console.log(`\nbranches ${totals.branches}  live ${totals.live}  ambiguous ${totals.ambiguous}  dead ${totals.dead}  dead functional alternatives ${totals.deadAlts}`);
 
 if (list) {
   for (const d of deadBranches.slice(0, 60)) console.log(`  DEAD ${d.file}:${d.line}  ${d.branch}  (${d.missing.join(',')})`);
@@ -77,7 +108,7 @@ ok(totals.dead === 0,
   'every selector branch in the audited stylesheets has a production owner',
   deadBranches.slice(0, 6).map(d => `${d.file}:${d.line} ${d.branch}`).join(' | '));
 ok(totals.deadAlts === 0,
-  'no :is()/:matches() list carries an alternative production can never produce',
+  'no positive functional-selector list carries an alternative production can never produce',
   deadAlternatives.slice(0, 6).map(d => `${d.file}:${d.line} ${d.alt}`).join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

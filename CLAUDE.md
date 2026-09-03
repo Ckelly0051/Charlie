@@ -247,14 +247,16 @@ name, since `StorageManager` collides with a real DOM interface.
 reachable from the Vite graph (7 linked from `index.html`, 15 imported through
 the module graph), and `e2e-css-ownership` proves on every run that no selector
 branch in `css/styles.css` or `css/redesign-stats.css` requires an identifier
-production cannot produce, and that no `:is()` list carries an alternative that
-can never match. The model is `tools/css-ownership.mjs`.
+production cannot produce, and that no positive `:is()` / `:where()` / `:has()`
+list carries an alternative that can never match. `:not()` remains an exclusion,
+not a producer requirement. The model is `tools/css-ownership.mjs`.
 
 **A producer is not a mention.** The distinction is the whole point, and getting
 it wrong is what let a first attempt at this cleanup declare completion while
 785 dead branches remained. Producers are `class`/`className` attributes,
-`classList` calls, `className` assignment, `setAttribute('class', …)`, and the
-static parts of template literals in those positions — including class
+producing `classList` operations, `className` assignment,
+`setAttribute('class', …)`, and the static parts of template literals in those
+positions — including class
 attributes inside emitted HTML strings, which is how the print/export paths
 count. Readers are not producers: `querySelector('.stats-overlay')` reads a
 class and never creates one. Comments are not producers either, and in this repo

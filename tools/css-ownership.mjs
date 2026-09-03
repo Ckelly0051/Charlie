@@ -46,7 +46,7 @@ export function stripComments(source) {
   return out;
 }
 
-const CLASSLIST = /\.classList\.(?:add|toggle|replace|remove)\(([^)]*)\)/g;
+const CLASSLIST = /\.classList\.(add|toggle|replace|remove)\(([^)]*)\)/g;
 
 /**
  * Read a balanced `{...}` (or quoted string) after `class=` / `className=`.
@@ -135,7 +135,15 @@ export function harvestProducers(sources) {
       if (value.literal !== undefined) addLiteralRun(value.literal);
       else addExpression(value.expression);
     }
-    for (const m of src.matchAll(CLASSLIST)) addExpression(m[1]);
+    for (const m of src.matchAll(CLASSLIST)) {
+      const [method, rawArgs] = [m[1], m[2]];
+      const args = splitTopLevel(rawArgs);
+      if (method === 'add') args.forEach(addExpression);
+      else if (method === 'toggle' && args[0]) addExpression(args[0]);
+      else if (method === 'replace' && args[1]) addExpression(args[1]);
+      // remove() and replace()'s first argument consume classes; they do not
+      // prove that production can ever put those classes on an element.
+    }
     for (const m of src.matchAll(CLASSNAME_ASSIGN)) addExpression(m[1]);
     for (const m of src.matchAll(SET_ATTR)) addExpression(m[1]);
     // A class attribute written inside an emitted HTML string, e.g.
@@ -166,9 +174,9 @@ export async function loadProduction(root) {
   return sources;
 }
 
-/** Split a selector into its top-level compound parts, tracking :is()/:where() groups. */
-const FUNCTIONAL_LIST = /:(?:is|matches|-moz-any|-webkit-any)\(/;
-const IGNORED_FUNCTIONAL = /:(?:not|has|where)\(/;
+/** Positive functional selectors are alternatives, but every live member still has to match. */
+const FUNCTIONAL_LIST = /:(?:is|where|has|matches|-moz-any|-webkit-any)\(/;
+const IGNORED_FUNCTIONAL = /:not\(/;
 
 function sliceGroup(sel, openIdx) {
   let depth = 0;
@@ -179,7 +187,7 @@ function sliceGroup(sel, openIdx) {
   return sel.length - 1;
 }
 
-/** Remove :not()/:has()/:where() contents — an absent class there is not required. */
+/** Remove :not() contents -- an absent excluded class cannot make the selector dead. */
 export function stripIgnored(sel) {
   let out = sel;
   for (let guard = 0; guard < 60; guard++) {
@@ -204,14 +212,17 @@ export function makeProducible({ classes, prefixes, ids }) {
 /**
  * Classify one selector branch.
  * Returns { verdict, missing, deadAlternatives } where deadAlternatives lists
- * `:is(...)` members that can never match and should be pruned from the list.
+ * positive functional-selector members that can never match and should be
+ * pruned from the list.
  */
 export function classifyBranch(branch, producible) {
   const deadAlternatives = [];
+  let functionalAmbiguous = false;
   let working = stripIgnored(branch);
 
-  // Resolve :is()/:matches() groups: the group is satisfiable when at least one
-  // alternative is producible. Dead alternatives are reported for pruning.
+  // Resolve positive functional groups: the group is satisfiable when at least
+  // one alternative is producible. This applies equally to :is(), :where(),
+  // and :has(); only :not() is safe to ignore for liveness.
   for (let guard = 0; guard < 40; guard++) {
     const m = FUNCTIONAL_LIST.exec(working);
     if (!m) break;
@@ -221,9 +232,13 @@ export function classifyBranch(branch, producible) {
     const alts = splitTopLevel(inner);
     const liveAlts = [];
     for (const alt of alts) {
-      const ids = requiredIdentifiers(alt);
-      const ok = ids.every(i => producible(i.kind, i.name));
-      if (ok) liveAlts.push(alt); else deadAlternatives.push(alt.trim());
+      const result = classifyBranch(alt, producible);
+      deadAlternatives.push(...result.deadAlternatives);
+      if (result.verdict === 'DEAD') deadAlternatives.push(alt.trim());
+      else {
+        liveAlts.push(alt);
+        if (result.verdict === 'AMBIGUOUS') functionalAmbiguous = true;
+      }
     }
     if (liveAlts.length === 0) {
       return { verdict: 'DEAD', missing: alts.map(a => a.trim()), deadAlternatives };
@@ -236,7 +251,7 @@ export function classifyBranch(branch, producible) {
   const missing = ids.filter(i => !producible(i.kind, i.name));
   const soft = ids.filter(i => producible(i.kind, i.name) === 'dynamic');
   return {
-    verdict: missing.length ? 'DEAD' : (soft.length ? 'AMBIGUOUS' : 'LIVE'),
+    verdict: missing.length ? 'DEAD' : (soft.length || functionalAmbiguous ? 'AMBIGUOUS' : 'LIVE'),
     missing: missing.map(i => (i.kind === 'id' ? '#' : '.') + i.name),
     deadAlternatives,
   };
@@ -244,10 +259,18 @@ export function classifyBranch(branch, producible) {
 
 export function splitTopLevel(list) {
   const out = [];
-  let depth = 0, cur = '';
+  let depth = 0, cur = '', quote = null, escaped = false;
   for (const ch of list) {
-    if (ch === '(' || ch === '[') depth++;
-    else if (ch === ')' || ch === ']') depth--;
+    if (quote) {
+      cur += ch;
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; cur += ch; continue; }
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') depth--;
     if (ch === ',' && depth === 0) { out.push(cur); cur = ''; continue; }
     cur += ch;
   }
