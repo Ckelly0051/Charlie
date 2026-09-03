@@ -319,33 +319,41 @@ console.log('\n== 15. Season > Offense embeds the same board without duplicate i
 await load({ plays: FULL, tab: 'season' });
 // Season carries its own sub-tabs and opens on Overview; the embedded
 // OffenseTab only exists once its Offense sub-tab is selected.
-await page.evaluate(() => [...document.querySelectorAll('button')]
-  .find(b => b.textContent.trim() === 'Offense' && b.closest('.gi-season-tabs, .gi-reports-subtabs, nav, [role="tablist"]'))?.click());
+await page.evaluate(() => [...document.querySelectorAll('.gi-subnav .gi-subtab')]
+  .find(b => b.textContent.trim() === 'Offense')?.click());
 await sleep(700);
 const season = await page.evaluate(() => ({
+  activeTab: window.app.reportsScreen.activeTab,
+  stack: document.querySelectorAll('.gi-season-stack').length,
   boards: document.querySelectorAll('.gi-offense-board').length,
+  inStack: document.querySelectorAll('.gi-season-stack .gi-offense-board').length,
   z1: document.querySelectorAll('#gi-off-z1').length,
   navs: document.querySelectorAll('.gi-zone-nav').length,
 }));
-ok(season.boards === 1, 'the Season tab renders exactly one offense board', JSON.stringify(season));
+ok(season.activeTab === 'season' && season.stack === 1,
+  'the route is still on the Season tab -- a document-wide "Offense" lookup leaves it for the main tab of that name',
+  JSON.stringify(season));
+ok(season.boards === 1 && season.inStack === 1,
+  'the Season tab renders exactly one offense board, inside the Season stack', JSON.stringify(season));
 ok(season.z1 <= 1 && season.navs <= 1, 'no zone id or zone nav is duplicated across the mounted tabs', JSON.stringify(season));
 
 // SeasonOffense passes OffenseTab a plain shim object, not ReportsScreen, so
 // every method the tab calls has to exist on it. A season with no offensive
 // snaps renders the tab's empty state there, whose command is one such call.
 await load({ plays: [{ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }], tab: 'season' });
-await page.evaluate(() => [...document.querySelectorAll('button')]
-  .find(b => b.textContent.trim() === 'Offense' && b.closest('.gi-season-tabs, .gi-reports-subtabs, nav, [role="tablist"]'))?.click());
+await page.evaluate(() => [...document.querySelectorAll('.gi-subnav .gi-subtab')]
+  .find(b => b.textContent.trim() === 'Offense')?.click());
 await sleep(700);
 const seasonCta = await page.evaluate(async () => {
-  const cta = document.querySelector('.gi-reports-empty-cta');
-  if (!cta) return { cta: false, threw: null, route: null };
+  if (window.app.reportsScreen.activeTab !== 'season') return { onSeason: false };
+  const cta = document.querySelector('.gi-season-stack .gi-reports-empty-cta');
+  if (!cta) return { onSeason: true, cta: false, threw: null, route: null };
   let threw = null;
   try { cta.click(); } catch (e) { threw = e.message; }
   await new Promise(r => setTimeout(r, 600));
-  return { cta: true, threw, route: window.app.workspace.currentRoute?.() || null };
+  return { onSeason: true, cta: true, threw, route: window.app.workspace.currentRoute?.() || null };
 });
-ok(seasonCta.cta && !seasonCta.threw && String(seasonCta.route || '').includes('breakdown'),
+ok(seasonCta.onSeason && seasonCta.cta && !seasonCta.threw && String(seasonCta.route || '').includes('breakdown'),
   'the empty-state command works in the Season copy of the tab, whose screen is a shim rather than ReportsScreen',
   JSON.stringify(seasonCta));
 
@@ -354,16 +362,36 @@ const widths = [];
 for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720]]) {
   await page.setViewport({ width: w, height: h });
   await sleep(350);
-  await page.evaluate(() => window.app.reportsScreen.selectTab('offense'));
-  await sleep(500);
-  widths.push(await page.evaluate(v => ({ w: v,
-    pageX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    bands: [...document.querySelectorAll('.gi-offense-board .gi-overview-band-3')]
-      .every(b => b.children.length === 3),
-  }), w));
+  // The preceding block's empty-state command navigates to Break Down, so
+  // Reports must be reopened with real data. Measuring a hidden route passes
+  // both assertions for free: nothing is laid out, so page overflow is 0 and
+  // a band's child count is whatever the markup says regardless of geometry.
+  await load({ plays: FULL, tab: 'offense' });
+  widths.push(await page.evaluate(v => {
+    const board = document.querySelector('.gi-offense-board');
+    const rect = board?.getBoundingClientRect();
+    const bands = [...document.querySelectorAll('.gi-offense-board .gi-overview-band-3')];
+    return { w: v,
+      route: window.app.workspace.currentRoute?.() || null,
+      tab: window.app.reportsScreen.activeTab,
+      visible: !!board && !!rect.width && !!rect.height && getComputedStyle(board).visibility !== 'hidden',
+      boardWidth: Math.round(rect?.width || 0),
+      pageX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      // Count the tracks the grid actually resolved, not the children the
+      // markup declares: a three-child band collapsed to one column by a
+      // media query still has three children.
+      bandTracks: bands.map(b => getComputedStyle(b).gridTemplateColumns.trim().split(/\s+/).length),
+    };
+  }, w));
 }
-ok(widths.every(r => r.pageX === 0), 'no page-level horizontal overflow at 1920, 1440 or 1280', JSON.stringify(widths));
-ok(widths.every(r => r.bands), 'the three-column structure bands stay three columns at every release width', JSON.stringify(widths));
+ok(widths.every(r => r.route === 'reports' && r.tab === 'offense' && r.visible && r.boardWidth > 600),
+  'each width is measured on a visible, populated Offense board rather than a hidden route',
+  JSON.stringify(widths.map(r => ({ w: r.w, route: r.route, tab: r.tab, visible: r.visible, boardWidth: r.boardWidth }))));
+ok(widths.every(r => r.pageX === 0), 'no page-level horizontal overflow at 1920, 1440 or 1280',
+  JSON.stringify(widths.map(r => ({ w: r.w, pageX: r.pageX }))));
+ok(widths.every(r => r.bandTracks.length > 0 && r.bandTracks.every(n => n === 3)),
+  'the three-column structure bands resolve to three real grid tracks at every release width',
+  JSON.stringify(widths.map(r => ({ w: r.w, tracks: r.bandTracks }))));
 
 ok(errors.length === 0, 'the Offense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 
