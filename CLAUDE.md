@@ -326,13 +326,77 @@ were both tried and rejected — the first distorts the row rhythm to fill space
 the second reintroduces the long horizontal eye travel the pairing exists to
 avoid. Carried into the Charlie Gate.
 
+**Reports > Special Teams is implemented and gate-verified, but NOT coach
+accepted.** Built to the approved comp
+(`design-comps/reports-special-teams-2026-09-04`, whose RATIONALE is the
+decision record and carries all eight coach rulings). No Charlie Gate and no
+installed smoke, so it is not accepted state.
+
+Special Teams runs a **six-column rhythm** — its own number, because the model
+defines six units. Six KPI tiles, a six-card **unit ledger** showing every unit
+including the empty ones, and **five section surfaces** (All units / Kickoff &
+Kick Return / Punt & Punt Return / Kicking game / Specialists). Kickoff stays
+distinct from kick return and punt from punt return: each pair is co-located
+for comparison, never merged. Its bands are `align-items:stretch`, which is
+*not* the treatment Offense and Defense rejected — those bands paint their rule
+colour as a background so a stretched short module showed a slab; this band's
+background is transparent and its rules are box-shadows, so stretching paints
+only the module's own panel and the rows keep their rhythm.
+
+**One absence label: `No data`.** Everywhere, in every position. An earlier
+pass drew three ("not charted", "not derivable — legacy charting", "not
+derivable — no ruleset") plus a sentence per module; the coach removed all of
+it, along with the legacy disclaimer band, the section definition footnotes,
+and every descriptive meta. **A measured zero is not an absence** and keeps its
+number with its denominator — 0% touchbacks on 21 kickoffs, 0 returns
+attempted, a scoreless unit. An absent value drops to copy weight so it cannot
+read as a headline figure, and a blank KPI drops its sub rather than printing
+the same two words twice.
+
+**Two engine corrections, both coach-approved 2026-09-04.**
+`StatsEngine.isFieldGoalAttempt`/`isFieldGoalMade` are now the single canonical
+Field Goal cohort that the team report and the kicker rollup both call:
+`_individualStats` counted `stType:'XP'` as a field-goal attempt, which is why
+the coach's season showed a kicker at 0/1 FG beside a unit reporting 0
+attempts. An extra point is not a field goal. And the legacy punt net no longer
+subtracts a flat 20 yards on a touchback — placement is ruleset-dependent, no
+season configures one, and the structured branch never did it. Both are
+mutation-verified in `e2e-reports-special-teams`.
+
+**`tries.n` is a real count for legacy seasons.** Legacy charts tries as
+`stType` `XP`/`2-Pt` (SPECIAL-TEAMS-MODEL §4b.1), so the old structural `null`
+contradicted `conversions.xp.att` on the same cohort and swallowed
+charted-but-unattributed tries. It is counted over the **same population** as
+the snap count (`unit:'special'`); gating on `stType` alone picked up a try
+charted outside the unit, made the units sum to exactly the snap count, and
+masked the one play that genuinely belongs to no unit.
+
+**The report shows only the exception, never the arithmetic.** A full
+"74 snaps = 21 kickoff + …" line restated the ledger above it and is gone. What
+survives is the one fact no ledger card can show: a snap belonging to no unit —
+the coach's single legacy `Fake` play — rendered only when it exists.
+
+**Special Teams is NOT in `SCOREBUG_TABS`** and still renders the generic rail.
+Ruling 8: it takes the shared report header when that rolls across Reports, and
+no Special-Teams-only scorebug variant is invented. Export reuses the existing
+mechanism (`exportSpecialTeams` → `buildSpecialTeamsHtmlReport` → the shared
+`documentShell` and `window.ffaSaveBlob`), never a second export subsystem.
+
+**Two approved production changes are still pending, carried by no file:**
+the context bar wrapping long game names at 1280 instead of clipping (shared
+shell owner — and the shell's response to a taller bar still needs verifying),
+and nothing else. Generic `yardage`/`result` on ST plays stay unread by design:
+dedicated ST fields remain authoritative, and that data is recorded as an input
+to a later projection decision.
+
 **The shared scorebug is owned by one set.** `SCOREBUG_TABS` in
 `js/reports-screen.js` is the single owner of the scorebug/rail rule: a tab in
 it shows the scorebug and hides the generic `gi-reports-rail`; a tab outside it
 does the reverse. The two can therefore never appear together. It holds
 `overview`, `offense` and `defense`, and grows one tab at a time as each
-self-report tab gets its design pass — Special Teams, Players, Self-Scout and
-Matchup still render the rail, and their behavior is unchanged.
+self-report tab gets its design pass. Special Teams has had its design pass but
+stays OUT by ruling 8 — it joins when the approved shared header rolls across
+Reports. Players, Self-Scout and Matchup still render the rail unchanged.
 
 Score spacing is structural, not tuned: `.gi-scorebug-team` is `display:contents`
 so each team's name and score land in the scorebug's own fixed tracks. Score
@@ -388,8 +452,14 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Special Teams, Players, Self-Scout and
-   Matchup have not had a design pass and still use the generic rail.
+4. **The remaining Reports tabs** — Players, Self-Scout and Matchup have not
+   had a design pass and still use the generic rail.
+   **Reports > Special Teams Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT.
+   **Two approved Special Teams changes not yet built:** the context bar
+   wrapping long game names at 1280 rather than clipping (shared shell owner;
+   the shell's response to a taller bar still needs verifying), and Special
+   Teams joining the shared report header when that rolls across Reports.
 5. **Reports > Defense Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT, plus an installed smoke.
 6. **Offense still scrolls; Defense uses tabs.** The coach approved section
@@ -423,9 +493,11 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
-Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 104)
-and `tools/e2e-reports-offense.mjs` (the Offense composition, its football
-contracts and the shared scorebug rule, 45).
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
+`tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
+and the shared scorebug rule, 46) and `tools/e2e-reports-special-teams.mjs`
+(the Special Teams composition, its absence contract and the two engine
+corrections, 40).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the
