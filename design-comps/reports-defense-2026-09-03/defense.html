@@ -81,35 +81,41 @@ button{font-family:inherit}
    bounded on its own and truncates with the full value in a tooltip.
    ─────────────────────────────────────────────────────────────────────── */
 .scorebug{
-  --sb-name:clamp(220px,26vw,340px); --sb-q:46px; --sb-tot:66px;
-  display:grid;grid-template-columns:auto minmax(0,1fr) auto;
-  grid-template-rows:auto auto auto;background:var(--gi-bd-panel)
+  --sb-name:clamp(260px,30vw,430px); --sb-q:44px; --sb-tot:64px;
+  display:grid;grid-template-columns:auto auto minmax(370px,1fr) auto;
+  background:var(--gi-bd-panel)
 }
-.scorebug>.sb-line{grid-column:1}
-.scorebug>.sb-line:first-child{padding-bottom:0}
-.scorebug>.sb-line+.sb-line{padding-top:0}
-.sb-story{grid-column:2;grid-row:1/4}
-.sb-meta{grid-column:3;grid-row:1/4}
-.sb-line{
+.scorebug>.sb-score{grid-column:1;grid-row:1}
+
+
+.sb-story{grid-column:2;grid-row:1}
+.sb-ident{grid-column:3;grid-row:1;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:center;padding:0 var(--gi-4x);box-shadow:-1px 0 var(--gi-bd-line)}
+.sb-ident>div{min-width:0;padding:0 var(--gi-3x)}
+.sb-ident span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase;white-space:normal}
+.sb-ident strong{display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 19px/1.1 var(--gi-cond);white-space:normal;overflow-wrap:anywhere}
+.sb-ident small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);white-space:normal}
+.sb-meta{grid-column:4;grid-row:1}
+.sb-score{
   display:grid;align-items:center;
-  grid-template-columns:var(--sb-name) repeat(4,var(--sb-q)) var(--sb-tot);
-  padding:7px var(--gi-4x) 9px;column-gap:0
+  grid-template-columns:fit-content(var(--sb-name)) repeat(4,var(--sb-q)) var(--sb-tot);
+  padding:7px var(--gi-4x) 9px
 }
-.sb-line>*{padding:2px 0;text-align:right}
+.sb-line{display:contents}
+.sb-score>*{padding:2px 0;text-align:right}
 .sb-hd{color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
 .sb-hd.tot{color:var(--gi-bd-copy)}
 .sb-name{
   min-width:0;padding-right:var(--gi-3x)!important;text-align:left!important;
-  color:var(--gi-bd-strong);font:700 12px/1.25 var(--gi-cond);letter-spacing:.13em;text-transform:uppercase;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+  color:var(--gi-bd-strong);font:700 12.5px/1.25 var(--gi-cond);letter-spacing:.04em;text-transform:uppercase;
+  white-space:normal;overflow-wrap:anywhere
 }
 .sb-q{color:var(--gi-bd-strong);font:600 15px/1.25 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 .sb-tot{color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 /* Both rows read the same. Dimming the losing team costs legibility to
    restate what the numbers already say. */
-.sb-story{display:flex;align-items:center;gap:14px;padding:0 18px;box-shadow:-1px 0 var(--gi-bd-line)}
+.sb-story{display:flex;align-items:center;gap:14px;padding:0 var(--gi-6x);box-shadow:-1px 0 var(--gi-bd-line);white-space:nowrap}
 .sb-story>strong{color:var(--gi-bd-cyan);font:700 30px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.sb-story>span{max-width:30ch;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans)}
+.sb-story>span{max-width:none;white-space:normal;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans)}
 .sb-story b{color:var(--gi-bd-strong);font-weight:600}
 .sb-meta{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;
   padding:0 var(--gi-4x);text-align:right;box-shadow:-1px 0 var(--gi-bd-line)}
@@ -189,7 +195,7 @@ button{font-family:inherit}
 .dtoolbar .btn{margin-left:auto}
 
 /* KPI band */
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
+.kpis{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
 .kpi{padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel)}
 .kpi span{display:block;color:var(--gi-bd-copy);font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase}
 .kpi strong{display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 30px/1 var(--gi-cond);
@@ -254,10 +260,10 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 
 /* Self-scout */
 .pred{display:flex;align-items:center;gap:var(--gi-3x);padding:var(--gi-2x) 0 var(--gi-3x)}
-.pred .val{color:var(--gi-bd-strong);font:700 26px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.pred .val{flex:0 0 auto;color:var(--gi-bd-strong);font:700 26px/1.15 var(--gi-cond);font-variant-numeric:var(--gi-num-feat);white-space:nowrap}
 .pred .meter{flex:1 1 auto;height:6px;background:var(--gi-bd-control-active)}
 .pred .meter i{display:block;height:100%;background:var(--gi-bd-cyan)}
-.pred .lab{color:var(--gi-bd-copy);font:var(--gi-text-label);font-weight:400}
+.pred .lab{flex:0 0 auto;color:var(--gi-bd-copy);font:var(--gi-text-label);font-weight:400;white-space:nowrap}
 .recs{display:grid;gap:1px;background:var(--gi-bd-line)}
 .rec{padding:var(--gi-2x) var(--gi-3x);background:var(--gi-bd-panel);color:var(--gi-bd-copy);
   font:400 12px/1.45 var(--gi-sans)}
@@ -319,6 +325,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
      on Overview and Offense. The old rail reported offense KPIs (Success Rate,
      Plays per Phase) on a defensive report. -->
 <div class="scorebug" id="scorebug">
+  <div class="sb-score">
   <div class="sb-line">
     <div class="sb-hd"></div>
     <div class="sb-hd">Q1</div><div class="sb-hd">Q2</div><div class="sb-hd">Q3</div><div class="sb-hd">Q4</div>
@@ -334,6 +341,8 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     <div class="sb-q">7</div><div class="sb-q">0</div><div class="sb-q">7</div><div class="sb-q">7</div>
     <div class="sb-tot" id="sbThem">21</div>
   </div>
+  </div>
+  <div class="sb-ident" id="sbIdent"></div>
   <div class="sb-story"><strong id="sbYpp">5.1</strong><span id="sbYppSub"><b>Yards per play allowed</b> 887&nbsp;yds &middot; 174&nbsp;snaps</span></div>
   <div class="sb-meta"><strong id="sbMeta">Full season &middot; 3 games</strong><span id="sbMetaSub">174 of 174 defensive snaps charted</span></div>
 </div>
@@ -590,6 +599,7 @@ const SEASON = {
     ['Blitz havoc', '25.0%', '18 of 72 pressures'], ['3-and-outs', '9', 'of 31 drives'],
     ['Havoc snaps', '34', '19.5% rate'],
   ],
+  ident: [['Base front','4-3','62 snaps · 36%'],['Base coverage','Cover 3','58 snaps · 33%'],['Blitz rate','41.4%','72 of 174 snaps']],
   pred: [58, 'Moderate', '174 defensive snaps'],
   recs: [
     ['', '<b>2 exploitable defensive tendencies</b> — a prepared OC will identify and attack these alignments.'],
@@ -670,6 +680,7 @@ const GAME = {
     ['Blitz havoc', '25.0%', '6 of 24 pressures'], ['3-and-outs', '4', 'of 10 drives'],
     ['Havoc snaps', '13', '24.1% rate'],
   ],
+  ident: [['Base front','4-3','18 snaps · 33%'],['Base coverage','Cover 3','18 snaps · 33%'],['Blitz rate','44.4%','24 of 54 snaps']],
   pred: [61, 'Moderate', '54 defensive snaps'],
   recs: [
     ['', '<b>1 exploitable defensive tendency</b> — a prepared OC will identify and attack this alignment.'],
@@ -704,6 +715,7 @@ const SPARSE = {
   faced: [['All runs', 5, '7.2 yds/play · 40.0% stop · 20.0% explosive'],
           ['All passes', 7, '5.3 yds/play · 71.4% stop · 14.3% explosive']],
   facedNote: '41.7% of snaps were runs.',
+  ident: [['Base front','4-3','5 snaps · 42%'],['Base coverage','Cover 3','4 snaps · 33%'],['Blitz rate','33.3%','4 of 12 snaps']],
   sparse: true,
 };
 
@@ -783,6 +795,8 @@ function applyScope(d, longNames) {
   $('#sbMeta').textContent = d.scopeLabel;
   $('#sbMetaSub').textContent = d.charted;
   $('.rhead .sub').textContent = d.headSub;
+  $('#sbIdent').innerHTML = d.ident
+    .map(([l, v, s]) => `<div><span>${l}</span><strong>${v}</strong><small>${s}</small></div>`).join('');
   const us = longNames ? 'Immaculate Heart of Mary Catholic Academy' : 'St. Joseph Mavericks';
   const them = longNames ? 'Our Lady of Perpetual Help Prep' : 'Northgate';
   $('#sbUsName').textContent = $('#sbUsName').title = us;
