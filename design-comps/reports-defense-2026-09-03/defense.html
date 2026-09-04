@@ -202,7 +202,7 @@ td{color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat)}
 th:first-child,td:first-child{padding-left:var(--gi-4x);text-align:left}
 th:last-child,td:last-child{padding-right:var(--gi-4x)}
 td:first-child{color:var(--gi-bd-strong);font-weight:600}
-td.tl{text-align:left}
+td.tl,th.tl{text-align:left}
 tbody tr.cut{cursor:pointer}
 tbody tr.cut:hover td{background:var(--gi-bd-control)}
 tbody tr.cut:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
@@ -225,6 +225,9 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 .tile small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)}
 
 .faced{display:grid;grid-template-columns:minmax(0,1fr);gap:1px;background:var(--gi-bd-line)}
+/* Sparse has one game row beside it, so the two buttons sit side by side and
+   the pair matches height instead of running 78px past its neighbour. */
+.faced.is-thin{grid-template-columns:repeat(2,minmax(0,1fr))}
 .faced button{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px var(--gi-3x);
   padding:var(--gi-3x);background:var(--gi-bd-panel);border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .faced button:hover{background:var(--gi-bd-control)}
@@ -318,7 +321,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     <div class="sb-q"><span>Q3</span><b>0</b><i>7</i></div>
     <div class="sb-q"><span>Q4</span><b>7</b><i>7</i></div>
   </div>
-  <div class="sb-story"><strong id="sbYpp">5.1</strong><span><b>Yards per play allowed</b> 887&nbsp;yds · 174&nbsp;snaps</span></div>
+  <div class="sb-story"><strong id="sbYpp">5.1</strong><span id="sbYppSub"><b>Yards per play allowed</b> 887&nbsp;yds · 174&nbsp;snaps</span></div>
   <div class="sb-meta"><strong id="sbMeta">Full season · 3 games</strong><span id="sbMetaSub">174 of 174 defensive snaps charted</span></div>
 </div>
 
@@ -343,9 +346,9 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
   </div>
 </div>
 
+
 <div class="board" id="board">
 
-  <!-- EMPTY STATE -->
   <div class="empty" id="emptyState" hidden>
     <div>
       <h3>No defensive snaps charted</h3>
@@ -355,11 +358,10 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
   </div>
 
   <div id="report">
-
     <div class="dtoolbar">
       <span class="lbl">Scope</span>
       <div class="scope" role="group" aria-label="Defense report scope">
-        <button type="button" data-scope="season" class="on">Full season</button>
+        <button type="button" data-scope="season" class="on" aria-current="true">Full season</button>
         <button type="button" data-scope="game">Current game</button>
       </div>
       <button type="button" class="btn">Export Report</button>
@@ -373,224 +375,108 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <button type="button" data-sec="d5"><b>5</b>Self-scout</button>
     </div>
 
-    <!-- ── 1 · DEFENSIVE PERFORMANCE ─────────────────────────────────── -->
     <div class="srule" id="d1"><h2>Defensive performance</h2><p>Snaps, efficiency, and the games in the sample</p></div>
-
-    <div class="kpis">
-      <div class="kpi is-cyan"><span>Stop rate</span><strong>63.8%</strong><small>111 of 174 snaps</small></div>
-      <div class="kpi"><span>Yards / play allowed</span><strong>5.1</strong><small>887 yards</small></div>
-      <div class="kpi"><span>Havoc rate</span><strong>19.5%</strong><small>34 disruptive snaps</small></div>
-      <div class="kpi"><span>Takeaways</span><strong>11</strong><small>7 INT · 4 FR</small></div>
-      <div class="kpi"><span>Explosives allowed</span><strong>27</strong><small>15.5% of snaps</small></div>
-      <div class="kpi"><span>3rd down stop</span><strong>61.9%</strong><small>26 of 42 stopped</small></div>
-      <div class="kpi"><span>Red zone TD rate</span><strong>47.1%</strong><small>8 of 17 drives</small></div>
-      <div class="kpi"><span>Defensive snaps</span><strong>174</strong><small>3 games charted</small></div>
-    </div>
-
+    <div class="kpis" id="kpiBand"></div>
     <div class="band b-2">
       <section class="mod">
         <header><strong>Sample by game</strong><span>opens film</span></header>
         <div class="twrap"><table>
           <thead><tr><th>Game</th><th>Snaps</th><th>Yds/play</th><th>Stop%</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>Wk 1 · Central</td><td>58</td><td>5.4</td><td>60.3%</td><td>10</td><td>10</td><td>3</td></tr>
-            <tr class="cut" tabindex="0"><td>Wk 2 · Riverside</td><td>62</td><td>5.5</td><td>59.7%</td><td>11</td><td>11</td><td>4</td></tr>
-            <tr class="cut" tabindex="0"><td>Wk 3 · Northgate</td><td>54</td><td>4.3</td><td>72.2%</td><td>6</td><td>13</td><td>2</td></tr>
-          </tbody>
+          <tbody id="tByGame"></tbody>
         </table></div>
       </section>
       <section class="mod">
         <header><strong>Run / pass faced</strong><span>opens film</span></header>
-        <div class="faced">
-          <button type="button">
-            <span class="n">All runs</span><span class="v">60</span>
-            <span class="s">5.8 yds/play · 61.7% stop · 11.7% explosive</span>
-          </button>
-          <button type="button">
-            <span class="n">All passes</span><span class="v">114</span>
-            <span class="s">4.7 yds/play · 64.9% stop · 17.5% explosive</span>
-          </button>
-        </div>
-        <p class="note">34.5% of snaps were runs. Pass rate rose to 71.4% on 3rd down.</p>
+        <div class="faced" id="tFaced"></div>
+        <p class="note" id="facedNote"></p>
       </section>
     </div>
 
-    <!-- ── 2 · WHAT THE OFFENSE RAN ──────────────────────────────────── -->
     <div class="srule" id="d2"><h2>Opponent Offense</h2><p>Opponent play type, frequency, and production</p><em>Opens film</em></div>
-
     <div class="band b-2">
       <section class="mod">
-        <header><strong>Opponent play type</strong><span>174 snaps</span></header>
+        <header><strong>Opponent play type</strong><span id="ptMeta"></span></header>
         <div class="twrap"><table>
           <thead><tr><th>Play run against us</th><th>Snaps</th><th>Yds/play</th><th>Stop%</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>Short Pass</td><td>44</td><td>4.1</td><td>68.2%</td><td>11.4%</td><td>18.2%</td><td>2</td></tr>
-            <tr class="cut" tabindex="0"><td>Run Inside</td><td>34</td><td>5.2</td><td>64.7%</td><td>8.8%</td><td>23.5%</td><td>3</td></tr>
-            <tr class="cut" tabindex="0"><td>RPO</td><td>28</td><td>5.4</td><td>60.7%</td><td>17.9%</td><td>14.3%</td><td>1</td></tr>
-            <tr class="cut" tabindex="0"><td>Run Outside</td><td>26</td><td>6.6</td><td>57.7%</td><td>15.4%</td><td>19.2%</td><td>2</td></tr>
-            <tr class="cut" tabindex="0"><td>Deep Pass</td><td>22</td><td>6.8</td><td>59.1%</td><td>31.8%</td><td>27.3%</td><td>1</td></tr>
-            <tr class="cut" tabindex="0"><td>Screen</td><td>20</td><td>3.9</td><td>70.0%</td><td>10.0%</td><td>15.0%</td><td>0</td></tr>
-          </tbody>
+          <tbody id="tPlayTypes"></tbody>
         </table></div>
       </section>
       <section class="mod">
         <header><strong>Best call by play type</strong><span>front · coverage · pressure</span></header>
         <div class="twrap"><table>
           <thead><tr><th>Play type</th><th>Best front</th><th>Best coverage</th><th>Blitz decision</th></tr></thead>
-          <tbody>
-            <tr><td>Short Pass<br><span class="nosample">44 snaps</span></td>
-              <td><button class="answer" type="button"><strong>Nickel</strong><span>76% stop · 3.2 y/p · 17</span></button></td>
-              <td><button class="answer" type="button"><strong>Cover 3</strong><span>73% stop · 3.6 y/p · 15</span></button></td>
-              <td><button class="answer" type="button"><strong>No pressure</strong><span>71% stop · 3.8 y/p · 24</span></button></td></tr>
-            <tr><td>Run Inside<br><span class="nosample">34 snaps</span></td>
-              <td><button class="answer" type="button"><strong>Bear</strong><span>82% stop · 3.1 y/p · 11</span></button></td>
-              <td><button class="answer" type="button"><strong>Cover 1</strong><span>70% stop · 4.4 y/p · 10</span></button></td>
-              <td><button class="answer" type="button"><strong>Mike</strong><span>75% stop · 3.6 y/p · 12</span></button></td></tr>
-            <tr><td>RPO<br><span class="nosample">28 snaps</span></td>
-              <td><button class="answer" type="button"><strong>4-2-5</strong><span>67% stop · 4.6 y/p · 9</span></button></td>
-              <td><button class="answer" type="button"><strong>Quarters</strong><span>69% stop · 4.2 y/p · 13</span></button></td>
-              <td><span class="nosample">Not enough snaps</span></td></tr>
-            <tr><td>Run Outside<br><span class="nosample">26 snaps</span></td>
-              <td><button class="answer" type="button"><strong>4-3</strong><span>64% stop · 5.5 y/p · 14</span></button></td>
-              <td><button class="answer" type="button"><strong>Cover 3</strong><span>62% stop · 5.8 y/p · 13</span></button></td>
-              <td><button class="answer" type="button"><strong>Edge</strong><span>70% stop · 4.9 y/p · 10</span></button></td></tr>
-            <tr><td>Deep Pass<br><span class="nosample">22 snaps</span></td>
-              <td><button class="answer" type="button"><strong>Nickel</strong><span>67% stop · 5.9 y/p · 12</span></button></td>
-              <td><button class="answer" type="button"><strong>Quarters</strong><span>73% stop · 4.8 y/p · 11</span></button></td>
-              <td><button class="answer" type="button"><strong>No pressure</strong><span>64% stop · 6.1 y/p · 14</span></button></td></tr>
-          </tbody>
+          <tbody id="tBestCalls"></tbody>
         </table></div>
-        <p class="note">1 more opponent play type (Screen) has not reached the sample a best-answer call requires.</p>
+        <p class="note" id="bestCallNote"></p>
       </section>
     </div>
 
-    <!-- ── 3 · SCHEME ────────────────────────────────────────────────── -->
     <div class="srule" id="d3"><h2>Scheme</h2><p>Fronts, coverage, and pressure</p><em>Opens film</em></div>
-
     <div class="band b-2">
       <section class="mod">
         <header><strong>Front</strong><span>alignment</span></header>
         <div class="twrap"><table>
           <thead><tr><th>Front</th><th>Snaps</th><th>Run/pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>4-3</td><td>62</td><td>26 / 36</td><td>331</td><td>5.3</td><td>62.9%</td><td>17.7%</td></tr>
-            <tr class="cut" tabindex="0"><td>Nickel</td><td>48</td><td>9 / 39</td><td>221</td><td>4.6</td><td>68.8%</td><td>20.8%</td></tr>
-            <tr class="cut" tabindex="0"><td>3-4</td><td>34</td><td>13 / 21</td><td>187</td><td>5.5</td><td>58.8%</td><td>17.6%</td></tr>
-            <tr class="cut" tabindex="0"><td>Bear</td><td>18</td><td>9 / 9</td><td>77</td><td>4.3</td><td>72.2%</td><td>27.8%</td></tr>
-            <tr class="cut" tabindex="0"><td>4-2-5</td><td>12</td><td>3 / 9</td><td>71</td><td>5.9</td><td>58.3%</td><td>16.7%</td></tr>
-          </tbody>
+          <tbody id="tFronts"></tbody>
         </table></div>
       </section>
       <section class="mod">
         <header><strong>Coverage</strong><span>shell</span></header>
         <div class="twrap"><table>
           <thead><tr><th>Coverage</th><th>Snaps</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Avg</th><th>Stop%</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>Cover 3</td><td>58</td><td>24</td><td>13</td><td>3</td><td>4</td><td>4.9</td><td>65.5%</td></tr>
-            <tr class="cut" tabindex="0"><td>Cover 1</td><td>41</td><td>18</td><td>9</td><td>2</td><td>3</td><td>5.2</td><td>61.0%</td></tr>
-            <tr class="cut" tabindex="0"><td>Quarters</td><td>33</td><td>12</td><td>10</td><td>2</td><td>2</td><td>4.4</td><td>69.7%</td></tr>
-            <tr class="cut" tabindex="0"><td>Cover 2</td><td>27</td><td>13</td><td>6</td><td>0</td><td>2</td><td>5.6</td><td>59.3%</td></tr>
-            <tr class="cut" tabindex="0"><td>Cover 0</td><td>15</td><td>6</td><td>4</td><td>0</td><td>3</td><td>5.8</td><td>60.0%</td></tr>
-          </tbody>
+          <tbody id="tCoverages"></tbody>
         </table></div>
       </section>
     </div>
-
     <div class="band b-2">
       <section class="mod">
-        <header><strong>Pressure</strong><span>41.4% blitz rate · 72 snaps</span></header>
+        <header><strong>Pressure</strong><span id="pressMeta"></span></header>
         <div class="twrap"><table>
           <thead><tr><th>Pressure</th><th>Snaps</th><th>Sacks</th><th>Havoc%</th><th>Avg yds</th><th>Stop%</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>No pressure</td><td>102</td><td>4</td><td>14.7%</td><td>5.4</td><td>60.8%</td></tr>
-            <tr class="cut" tabindex="0"><td>Edge</td><td>34</td><td>6</td><td>26.5%</td><td>4.6</td><td>67.6%</td></tr>
-            <tr class="cut" tabindex="0"><td>Mike</td><td>22</td><td>3</td><td>27.3%</td><td>4.5</td><td>68.2%</td></tr>
-            <tr class="cut" tabindex="0"><td>Nickel</td><td>16</td><td>1</td><td>18.8%</td><td>5.1</td><td>62.5%</td></tr>
-            <tr class="cut" tabindex="0"><td>All pressure</td><td>72</td><td>10</td><td>25.0%</td><td>4.7</td><td>66.7%</td></tr>
-          </tbody>
+          <tbody id="tPressure"></tbody>
         </table></div>
       </section>
       <section class="mod">
         <header><strong>Front by situation</strong><span>early vs passing downs</span></header>
         <div class="twrap"><table>
           <thead><tr><th>Front</th><th>Early downs</th><th>%</th><th>Passing downs</th><th>%</th></tr></thead>
-          <tbody>
-            <tr><td>4-3</td><td>44</td><td>40.0%</td><td>18</td><td>28.1%</td></tr>
-            <tr><td>Nickel</td><td>17</td><td>15.5%</td><td>31</td><td>48.4%</td></tr>
-            <tr><td>3-4</td><td>26</td><td>23.6%</td><td>8</td><td>12.5%</td></tr>
-            <tr><td>Bear</td><td>15</td><td>13.6%</td><td>3</td><td>4.7%</td></tr>
-            <tr><td>4-2-5</td><td>8</td><td>7.3%</td><td>4</td><td>6.3%</td></tr>
-          </tbody>
+          <tbody id="tFrontSit"></tbody>
         </table></div>
-        <p class="note">110 early-down snaps · 64 passing-down snaps.</p>
+        <p class="note" id="frontSitNote"></p>
       </section>
     </div>
 
-    <!-- ── 4 · SITUATIONAL RESULTS ───────────────────────────────────── -->
     <div class="srule" id="d4"><h2>Situational results</h2><p>Down, distance, field position, and disruption</p><em>Opens film</em></div>
-
     <div class="band b-2">
       <section class="mod">
         <header><strong>Situational defense</strong><span>by situation</span></header>
         <div class="twrap"><table>
           <thead><tr><th>Situation</th><th>Snaps</th><th>Yds/play</th><th>Stop%</th><th>Explosive</th><th>Havoc</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>1st down</td><td>74</td><td>5.4</td><td>62.2%</td><td>16.2%</td><td>17.6%</td></tr>
-            <tr class="cut" tabindex="0"><td>2nd down</td><td>52</td><td>5.1</td><td>63.5%</td><td>15.4%</td><td>19.2%</td></tr>
-            <tr class="cut" tabindex="0"><td>3rd down</td><td>42</td><td>4.5</td><td>61.9%</td><td>14.3%</td><td>23.8%</td></tr>
-            <tr class="cut" tabindex="0"><td>3rd &amp; short</td><td>17</td><td>3.1</td><td>70.6%</td><td>5.9%</td><td>17.6%</td></tr>
-            <tr class="cut" tabindex="0"><td>3rd &amp; long</td><td>25</td><td>5.4</td><td>56.0%</td><td>20.0%</td><td>28.0%</td></tr>
-            <tr class="cut" tabindex="0"><td>Red zone</td><td>17</td><td>2.9</td><td>58.8%</td><td>0%</td><td>23.5%</td></tr>
-            <tr class="cut" tabindex="0"><td>Backed up</td><td>9</td><td>6.2</td><td>55.6%</td><td>22.2%</td><td>11.1%</td></tr>
-          </tbody>
+          <tbody id="tSituational"></tbody>
         </table></div>
       </section>
       <section class="mod">
         <header><strong>Disruption</strong><span>opens film</span></header>
-        <div class="tiles c2">
-          <button class="tile" type="button"><span>Sacks</span><strong>14</strong><small>96 yds</small></button>
-          <button class="tile" type="button"><span>TFL</span><strong>20</strong><small>behind the line</small></button>
-          <button class="tile" type="button"><span>Interceptions</span><strong>7</strong><small>on 114 pass snaps</small></button>
-          <button class="tile" type="button"><span>Fumbles rec.</span><strong>4</strong><small>of 6 forced</small></button>
-          <button class="tile" type="button"><span>Forced inc.</span><strong>42</strong><small>36.8% of passes</small></button>
-          <button class="tile" type="button"><span>Blitz havoc</span><strong>25.0%</strong><small>18 of 72 pressures</small></button>
-          <button class="tile" type="button"><span>3-and-outs</span><strong>9</strong><small>of 31 drives</small></button>
-          <button class="tile" type="button"><span>Havoc snaps</span><strong>34</strong><small>19.5% rate</small></button>
-        </div>
+        <div class="tiles c2" id="tDisruption"></div>
       </section>
     </div>
 
-    <!-- ── 5 · SELF-SCOUT ────────────────────────────────────────────── -->
     <div class="srule" id="d5"><h2>Self-scout</h2><p>Predictability and tendency tells</p><em>Opens film</em></div>
-
     <div class="band b-2">
       <section class="mod">
-        <header><strong>Predictability</strong><span>174 defensive snaps</span></header>
+        <header><strong>Predictability</strong><span id="predMeta"></span></header>
         <div class="pred">
-          <span class="val">58/100</span>
-          <span class="meter"><i style="width:58%"></i></span>
-          <span class="lab">Moderate</span>
+          <span class="val" id="predVal"></span>
+          <span class="meter"><i id="predBar"></i></span>
+          <span class="lab" id="predLab"></span>
         </div>
-        <div class="recs">
-          <div class="rec"><b>2 exploitable defensive tendencies</b> — a prepared OC will identify and attack these alignments.</div>
-          <div class="rec"><span class="tag">3rd &amp; long</span>: Front tell — Nickel 78% of the time (n=25), but only 56% stop rate. Mix in alternative looks.</div>
-          <div class="rec"><span class="tag">Red zone</span>: Coverage tell — Cover 1 71% of the time (n=17), but only 59% stop rate. Mix in alternative looks.</div>
-          <div class="rec"><b>3 more alignments</b> tip the same way (2nd &amp; long, Backed up, 1st &amp; 10). One change of look covers all of them.</div>
-          <div class="rec"><span class="tag">3rd &amp; short</span>: Blitz 59% is predictable but <b>working</b> — 70.6% stop rate, 17.6% havoc. The alignment is earning its keep.</div>
-        </div>
+        <div class="recs" id="tRecs"></div>
       </section>
       <section class="mod">
         <header><strong>Scheme by situation</strong><span>top call per bucket</span></header>
         <div class="twrap"><table>
-          <thead><tr><th>Situation</th><th>Snaps</th><th>Top front</th><th>Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th></tr></thead>
-          <tbody>
-            <tr><td>1st &amp; 10</td><td>68</td><td class="tl">4-3 44%</td><td class="tl">Cover 3 38%</td><td>32.4%</td><td>62.2%</td><td>17.6%</td></tr>
-            <tr><td>2nd &amp; short</td><td>21</td><td class="tl">Bear 43%</td><td class="tl">Cover 1 38%</td><td>47.6%</td><td>66.7%</td><td>19.0%</td></tr>
-            <tr><td>2nd &amp; long</td><td>31</td><td class="tl">Nickel 52%</td><td class="tl">Quarters 39%</td><td>38.7%</td><td>61.3%</td><td>19.4%</td></tr>
-            <tr><td>3rd &amp; short</td><td>17</td><td class="tl">Bear 47%</td><td class="tl">Cover 1 41%</td><td>58.8%</td><td>70.6%</td><td>17.6%</td></tr>
-            <tr><td>3rd &amp; long</td><td>25</td><td class="tl">Nickel 78%</td><td class="tl">Cover 3 44%</td><td>56.0%</td><td>56.0%</td><td>28.0%</td></tr>
-            <tr><td>Red zone</td><td>17</td><td class="tl">Bear 41%</td><td class="tl">Cover 1 71%</td><td>52.9%</td><td>58.8%</td><td>23.5%</td></tr>
-          </tbody>
+          <thead><tr><th>Situation</th><th>Snaps</th><th class="tl">Top front</th><th class="tl">Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th></tr></thead>
+          <tbody id="tSchemeSit"></tbody>
         </table></div>
       </section>
     </div>
@@ -599,25 +485,17 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <section class="mod">
         <header><strong>Tendency tells</strong><span>opens film</span></header>
         <div class="twrap"><table>
-          <thead><tr><th>Situation</th><th>Dimension</th><th>Type</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
-          <tbody>
-            <tr class="cut" tabindex="0"><td>3rd &amp; long</td><td class="tl">Front</td><td class="tl">Alignment</td>
-              <td class="tl"><span class="lean" style="--p:78%">Nickel 78%</span></td><td>56.0%</td><td>28.0%</td>
-              <td class="tl"><span class="verdict v-exploitable">▼ Exploitable</span></td><td>25</td></tr>
-            <tr class="cut" tabindex="0"><td>Red zone</td><td class="tl">Coverage</td><td class="tl">Shell</td>
-              <td class="tl"><span class="lean" style="--p:71%">Cover 1 71%</span></td><td>58.8%</td><td>23.5%</td>
-              <td class="tl"><span class="verdict v-exploitable">▼ Exploitable</span></td><td>17</td></tr>
-            <tr class="cut" tabindex="0"><td>3rd &amp; short</td><td class="tl">Pressure</td><td class="tl">Blitz</td>
-              <td class="tl"><span class="lean" style="--p:59%">Blitz 59%</span></td><td>70.6%</td><td>17.6%</td>
-              <td class="tl"><span class="verdict v-dominant">▲ Dominant</span></td><td>17</td></tr>
-            <tr class="cut" tabindex="0"><td>2nd &amp; long</td><td class="tl">Front</td><td class="tl">Alignment</td>
-              <td class="tl"><span class="lean" style="--p:52%">Nickel 52%</span></td><td>61.3%</td><td>19.4%</td>
-              <td class="tl"><span class="verdict v-effective">▬ Effective</span></td><td>31</td></tr>
-            <tr class="cut" tabindex="0"><td>1st &amp; 10</td><td class="tl">Coverage</td><td class="tl">Shell</td>
-              <td class="tl"><span class="lean" style="--p:38%">Cover 3 38%</span></td><td>62.2%</td><td>17.6%</td>
-              <td class="tl"><span class="verdict v-effective">▬ Effective</span></td><td>68</td></tr>
-          </tbody>
+          <thead><tr><th>Situation</th><th class="tl">Dimension</th><th class="tl">Type</th><th class="tl">Lean</th><th>Stop%</th><th>Havoc%</th><th class="tl">Assessment</th><th>n</th></tr></thead>
+          <tbody id="tTells"></tbody>
         </table></div>
+      </section>
+    </div>
+
+    <div class="band b-1" id="sparseNote" hidden>
+      <section class="mod">
+        <header><strong>Scheme, situational and self-scout</strong><span>12 snaps charted</span></header>
+        <p class="sparse">Insufficient charted data. Front, coverage, pressure and tendency analytics
+          report once this defense has a workable sample.</p>
       </section>
     </div>
 
@@ -625,124 +503,324 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 </div>
 
 <script>
-/* Comp interactions only. Production owns the real behavior; this exists so
-   the composition can be judged in its real states rather than described. */
+/* ─────────────────────────────────────────────────────────────────────────
+   The comp renders from data so every scope is internally consistent. An
+   earlier pass swapped only the scorebug label, which left "54 of 54 snaps
+   charted" above a board still reporting all 174 — the kind of thing a
+   reviewer has to catch because the screenshot was never read.
+
+   Every value below is one production already computes. Nothing is inferred
+   and no metric or football term is invented. Within each scope the totals
+   reconcile: fronts, coverages, pressure and opponent play types each sum to
+   the snap count, and runs + passes equals it too.
+   ───────────────────────────────────────────────────────────────────────── */
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
-/* Scope toggle — the full-season / current-game control the tab has today. */
+const SEASON = {
+  scopeLabel: 'Full season · 3 games', snaps: 174, yards: 887, ypp: '5.1',
+  headSub: '2026 Varsity · 174 defensive snaps',
+  charted: '174 of 174 defensive snaps charted',
+  kpis: [
+    ['Stop rate', '63.8%', '111 of 174 snaps', 'is-cyan'], ['Yards / play allowed', '5.1', '887 yards', ''],
+    ['Havoc rate', '19.5%', '34 disruptive snaps', ''],    ['Takeaways', '11', '7 INT · 4 FR', ''],
+    ['Explosives allowed', '27', '15.5% of snaps', ''],    ['3rd down stop', '61.9%', '26 of 42 stopped', ''],
+    ['Red zone TD rate', '47.1%', '8 of 17 drives', ''],   ['Defensive snaps', '174', '3 games charted', ''],
+  ],
+  byGame: [
+    ['Wk 1 · Central', 58, '5.4', '60.3%', 10, 10, 3], ['Wk 2 · Riverside', 62, '5.5', '59.7%', 11, 11, 4],
+    ['Wk 3 · Northgate', 54, '4.3', '72.2%', 6, 13, 2],
+  ],
+  faced: [['All runs', 60, '5.8 yds/play · 61.7% stop · 11.7% explosive'],
+          ['All passes', 114, '4.7 yds/play · 64.9% stop · 17.5% explosive']],
+  facedNote: '34.5% of snaps were runs. Pass rate rose to 71.4% on 3rd down.',
+  playTypes: [
+    ['Short Pass', 44, '4.1', '68.2%', '11.4%', '18.2%', 2], ['Run Inside', 34, '5.2', '64.7%', '8.8%', '23.5%', 3],
+    ['RPO', 28, '5.4', '60.7%', '17.9%', '14.3%', 1],        ['Run Outside', 26, '6.6', '57.7%', '15.4%', '19.2%', 2],
+    ['Deep Pass', 22, '6.8', '59.1%', '31.8%', '27.3%', 1],  ['Screen', 20, '3.9', '70.0%', '10.0%', '15.0%', 0],
+  ],
+  bestCalls: [
+    ['Short Pass', 44, ['Nickel', '76% stop · 3.2 y/p · 17'], ['Cover 3', '73% stop · 3.6 y/p · 15'], ['No pressure', '71% stop · 3.8 y/p · 24']],
+    ['Run Inside', 34, ['Bear', '82% stop · 3.1 y/p · 11'], ['Cover 1', '70% stop · 4.4 y/p · 10'], ['Mike', '75% stop · 3.6 y/p · 12']],
+    ['RPO', 28, ['4-2-5', '67% stop · 4.6 y/p · 9'], ['Quarters', '69% stop · 4.2 y/p · 13'], null],
+    ['Run Outside', 26, ['4-3', '64% stop · 5.5 y/p · 14'], ['Cover 3', '62% stop · 5.8 y/p · 13'], ['Edge', '70% stop · 4.9 y/p · 10']],
+    ['Deep Pass', 22, ['Nickel', '67% stop · 5.9 y/p · 12'], ['Quarters', '73% stop · 4.8 y/p · 11'], ['No pressure', '64% stop · 6.1 y/p · 14']],
+  ],
+  bestCallNote: '1 more opponent play type (Screen) has not reached the sample a best-answer call requires.',
+  fronts: [
+    ['4-3', 62, '26 / 36', 331, '5.3', '62.9%', '17.7%'], ['Nickel', 48, '9 / 39', 221, '4.6', '68.8%', '20.8%'],
+    ['3-4', 34, '13 / 21', 187, '5.5', '58.8%', '17.6%'], ['Bear', 18, '9 / 9', 77, '4.3', '72.2%', '27.8%'],
+    ['4-2-5', 12, '3 / 9', 71, '5.9', '58.3%', '16.7%'],
+  ],
+  coverages: [
+    ['Cover 3', 58, 24, 13, 3, 4, '4.9', '65.5%'], ['Cover 1', 41, 18, 9, 2, 3, '5.2', '61.0%'],
+    ['Quarters', 33, 12, 10, 2, 2, '4.4', '69.7%'], ['Cover 2', 27, 13, 6, 0, 2, '5.6', '59.3%'],
+    ['Cover 0', 15, 6, 4, 0, 3, '5.8', '60.0%'],
+  ],
+  pressure: [
+    ['No pressure', 102, 4, '14.7%', '5.4', '60.8%'], ['Edge', 34, 6, '26.5%', '4.6', '67.6%'],
+    ['Mike', 22, 3, '27.3%', '4.5', '68.2%'], ['Nickel', 16, 1, '18.8%', '5.1', '62.5%'],
+    ['All pressure', 72, 10, '25.0%', '4.7', '66.7%'],
+  ],
+  pressMeta: '41.4% blitz rate · 72 snaps',
+  frontSit: [['4-3', 44, '40.0%', 18, '28.1%'], ['Nickel', 17, '15.5%', 31, '48.4%'],
+             ['3-4', 26, '23.6%', 8, '12.5%'], ['Bear', 15, '13.6%', 3, '4.7%'], ['4-2-5', 8, '7.3%', 4, '6.3%']],
+  frontSitNote: '110 early-down snaps · 64 passing-down snaps.',
+  situational: [
+    ['1st down', 74, '5.4', '62.2%', '16.2%', '17.6%'], ['2nd down', 52, '5.1', '63.5%', '15.4%', '19.2%'],
+    ['3rd down', 42, '4.5', '61.9%', '14.3%', '23.8%'], ['3rd & short', 17, '3.1', '70.6%', '5.9%', '17.6%'],
+    ['3rd & long', 25, '5.4', '56.0%', '20.0%', '28.0%'], ['Red zone', 17, '2.9', '58.8%', '0%', '23.5%'],
+    ['Backed up', 9, '6.2', '55.6%', '22.2%', '11.1%'],
+  ],
+  disruption: [
+    ['Sacks', '14', '96 yds'], ['TFL', '20', 'behind the line'], ['Interceptions', '7', 'on 114 pass snaps'],
+    ['Fumbles rec.', '4', 'of 6 forced'], ['Forced inc.', '42', '36.8% of passes'],
+    ['Blitz havoc', '25.0%', '18 of 72 pressures'], ['3-and-outs', '9', 'of 31 drives'],
+    ['Havoc snaps', '34', '19.5% rate'],
+  ],
+  pred: [58, 'Moderate', '174 defensive snaps'],
+  recs: [
+    ['', '<b>2 exploitable defensive tendencies</b> — a prepared OC will identify and attack these alignments.'],
+    ['3rd & long', 'Front tell — Nickel 78% of the time (n=25), but only 56% stop rate. Mix in alternative looks.'],
+    ['Red zone', 'Coverage tell — Cover 1 71% of the time (n=17), but only 59% stop rate. Mix in alternative looks.'],
+    ['', '<b>3 more alignments</b> tip the same way (2nd &amp; long, Backed up, 1st &amp; 10). One change of look covers all of them.'],
+    ['3rd & short', 'Blitz 59% is predictable but <b>working</b> — 70.6% stop rate, 17.6% havoc. The alignment is earning its keep.'],
+  ],
+  schemeSit: [
+    ['1st & 10', 68, '4-3 44%', 'Cover 3 38%', '32.4%', '62.2%', '17.6%'],
+    ['2nd & short', 21, 'Bear 43%', 'Cover 1 38%', '47.6%', '66.7%', '19.0%'],
+    ['2nd & long', 31, 'Nickel 52%', 'Quarters 39%', '38.7%', '61.3%', '19.4%'],
+    ['3rd & short', 17, 'Bear 47%', 'Cover 1 41%', '58.8%', '70.6%', '17.6%'],
+    ['3rd & long', 25, 'Nickel 78%', 'Cover 3 44%', '56.0%', '56.0%', '28.0%'],
+    ['Red zone', 17, 'Bear 41%', 'Cover 1 71%', '52.9%', '58.8%', '23.5%'],
+  ],
+  tells: [
+    ['3rd & long', 'Front', 'Alignment', 'Nickel', 78, '56.0%', '28.0%', 'exploitable', 25],
+    ['Red zone', 'Coverage', 'Shell', 'Cover 1', 71, '58.8%', '23.5%', 'exploitable', 17],
+    ['3rd & short', 'Pressure', 'Blitz', 'Blitz', 59, '70.6%', '17.6%', 'dominant', 17],
+    ['2nd & long', 'Front', 'Alignment', 'Nickel', 52, '61.3%', '19.4%', 'effective', 31],
+    ['1st & 10', 'Coverage', 'Shell', 'Cover 3', 38, '62.2%', '17.6%', 'effective', 68],
+  ],
+};
+
+const GAME = {
+  scopeLabel: 'Week 3 vs Northgate', snaps: 54, yards: 232, ypp: '4.3',
+  headSub: '2026 Varsity · 54 defensive snaps',
+  charted: '54 of 54 defensive snaps charted',
+  kpis: [
+    ['Stop rate', '72.2%', '39 of 54 snaps', 'is-cyan'], ['Yards / play allowed', '4.3', '232 yards', ''],
+    ['Havoc rate', '24.1%', '13 disruptive snaps', ''],  ['Takeaways', '4', '3 INT · 1 FR', ''],
+    ['Explosives allowed', '6', '11.1% of snaps', ''],   ['3rd down stop', '69.2%', '9 of 13 stopped', ''],
+    ['Red zone TD rate', '40.0%', '2 of 5 drives', ''],  ['Defensive snaps', '54', '1 game charted', ''],
+  ],
+  byGame: [['Wk 3 · Northgate', 54, '4.3', '72.2%', 6, 13, 2]],
+  faced: [['All runs', 19, '5.1 yds/play · 68.4% stop · 10.5% explosive'],
+          ['All passes', 35, '3.9 yds/play · 74.3% stop · 11.4% explosive']],
+  facedNote: '35.2% of snaps were runs. Pass rate rose to 76.9% on 3rd down.',
+  playTypes: [
+    ['Short Pass', 14, '3.6', '71.4%', '7.1%', '21.4%', 0], ['Run Inside', 11, '4.5', '72.7%', '9.1%', '27.3%', 1],
+    ['RPO', 9, '4.7', '66.7%', '11.1%', '22.2%', 0],        ['Run Outside', 8, '6.0', '62.5%', '12.5%', '25.0%', 1],
+    ['Deep Pass', 7, '5.4', '71.4%', '28.6%', '28.6%', 0],  ['Screen', 5, '3.2', '80.0%', '0%', '20.0%', 0],
+  ],
+  bestCalls: [
+    ['Short Pass', 14, ['Nickel', '80% stop · 2.9 y/p · 10'], ['Cover 3', '75% stop · 3.4 y/p · 8'], null],
+    ['Run Inside', 11, ['Bear', '86% stop · 2.8 y/p · 7'], null, ['Mike', '78% stop · 3.1 y/p · 9']],
+  ],
+  bestCallNote: '4 more opponent play types (RPO, Run Outside, Deep Pass, Screen) have not reached the sample a best-answer call requires.',
+  fronts: [
+    ['4-3', 18, '8 / 10', 92, '5.1', '66.7%', '22.2%'], ['Nickel', 16, '3 / 13', 61, '3.8', '75.0%', '25.0%'],
+    ['3-4', 10, '4 / 6', 47, '4.7', '70.0%', '20.0%'],  ['Bear', 7, '3 / 4', 21, '3.0', '85.7%', '28.6%'],
+    ['4-2-5', 3, '1 / 2', 11, '3.7', '66.7%', '33.3%'],
+  ],
+  coverages: [
+    ['Cover 3', 18, 7, 5, 1, 2, '4.0', '72.2%'], ['Cover 1', 13, 5, 3, 1, 1, '4.4', '69.2%'],
+    ['Quarters', 11, 4, 4, 1, 1, '3.6', '81.8%'], ['Cover 2', 8, 4, 2, 0, 0, '5.1', '62.5%'],
+    ['Cover 0', 4, 2, 1, 0, 1, '4.8', '75.0%'],
+  ],
+  pressure: [
+    ['No pressure', 30, 1, '16.7%', '4.7', '70.0%'], ['Edge', 12, 3, '33.3%', '3.6', '75.0%'],
+    ['Mike', 8, 1, '25.0%', '4.0', '75.0%'], ['Nickel', 4, 0, '25.0%', '4.3', '75.0%'],
+    ['All pressure', 24, 4, '29.2%', '3.8', '75.0%'],
+  ],
+  pressMeta: '44.4% blitz rate · 24 snaps',
+  frontSit: [['4-3', 13, '38.2%', 5, '25.0%'], ['Nickel', 5, '14.7%', 11, '55.0%'],
+             ['3-4', 8, '23.5%', 2, '10.0%'], ['Bear', 6, '17.6%', 1, '5.0%'], ['4-2-5', 2, '5.9%', 1, '5.0%']],
+  frontSitNote: '34 early-down snaps · 20 passing-down snaps.',
+  situational: [
+    ['1st down', 23, '4.6', '73.9%', '13.0%', '21.7%'], ['2nd down', 16, '4.3', '68.8%', '12.5%', '25.0%'],
+    ['3rd down', 13, '3.8', '69.2%', '7.7%', '30.8%'],  ['3rd & short', 5, '2.6', '80.0%', '0%', '20.0%'],
+    ['3rd & long', 8, '4.6', '62.5%', '12.5%', '37.5%'], ['Red zone', 5, '2.2', '60.0%', '0%', '20.0%'],
+    ['Backed up', 3, '5.7', '66.7%', '33.3%', '0%'],
+  ],
+  disruption: [
+    ['Sacks', '5', '34 yds'], ['TFL', '7', 'behind the line'], ['Interceptions', '3', 'on 35 pass snaps'],
+    ['Fumbles rec.', '1', 'of 2 forced'], ['Forced inc.', '14', '40.0% of passes'],
+    ['Blitz havoc', '25.0%', '6 of 24 pressures'], ['3-and-outs', '4', 'of 10 drives'],
+    ['Havoc snaps', '13', '24.1% rate'],
+  ],
+  pred: [61, 'Moderate', '54 defensive snaps'],
+  recs: [
+    ['', '<b>1 exploitable defensive tendency</b> — a prepared OC will identify and attack this alignment.'],
+    ['3rd & long', 'Front tell — Nickel 75% of the time (n=8), but only 63% stop rate. Mix in alternative looks.'],
+    ['3rd & short', 'Blitz 60% is predictable but <b>working</b> — 80.0% stop rate, 20.0% havoc. The alignment is earning its keep.'],
+  ],
+  schemeSit: [
+    ['1st & 10', 21, '4-3 43%', 'Cover 3 38%', '33.3%', '76.2%', '19.0%'],
+    ['2nd & long', 10, 'Nickel 50%', 'Quarters 40%', '40.0%', '70.0%', '30.0%'],
+    ['3rd & short', 5, 'Bear 60%', 'Cover 1 40%', '60.0%', '80.0%', '20.0%'],
+    ['3rd & long', 8, 'Nickel 75%', 'Cover 3 38%', '62.5%', '62.5%', '37.5%'],
+    ['Red zone', 5, 'Bear 40%', 'Cover 1 60%', '60.0%', '60.0%', '20.0%'],
+  ],
+  tells: [
+    ['3rd & long', 'Front', 'Alignment', 'Nickel', 75, '62.5%', '37.5%', 'exploitable', 8],
+    ['3rd & short', 'Pressure', 'Blitz', 'Blitz', 60, '80.0%', '20.0%', 'dominant', 5],
+    ['1st & 10', 'Coverage', 'Shell', 'Cover 3', 38, '76.2%', '19.0%', 'effective', 21],
+  ],
+};
+
+const SPARSE = {
+  scopeLabel: 'Week 3 vs Northgate', snaps: 12, yards: 73, ypp: '6.1',
+  headSub: '2026 Varsity · 12 defensive snaps',
+  charted: '12 of 12 defensive snaps charted',
+  kpis: [
+    ['Stop rate', '58.3%', '7 of 12 snaps', 'is-cyan'], ['Yards / play allowed', '6.1', '73 yards', ''],
+    ['Havoc rate', '16.7%', '2 disruptive snaps', ''],  ['Takeaways', '1', '1 INT · 0 FR', ''],
+    ['Explosives allowed', '2', '16.7% of snaps', ''],  ['3rd down stop', '—', 'none charted', ''],
+    ['Red zone TD rate', '—', 'none charted', ''],      ['Defensive snaps', '12', '1 game charted', ''],
+  ],
+  byGame: [['Wk 3 · Northgate', 12, '6.1', '58.3%', 2, 2, 1]],
+  faced: [['All runs', 5, '7.2 yds/play · 40.0% stop · 20.0% explosive'],
+          ['All passes', 7, '5.3 yds/play · 71.4% stop · 14.3% explosive']],
+  facedNote: '41.7% of snaps were runs.',
+  sparse: true,
+};
+
+const VERDICT = { dominant: ['▲', 'Dominant'], effective: ['▬', 'Effective'], exploitable: ['▼', 'Exploitable'] };
+const cut = 'class="cut" tabindex="0"';
+const num = v => `<td>${v}</td>`;
+const cells = a => a.map(num).join('');
+
+function render(d) {
+  $('#kpiBand').innerHTML = d.kpis
+    .map(([l, v, s, c]) => `<div class="kpi ${c}"><span>${l}</span><strong>${v}</strong><small>${s}</small></div>`).join('');
+
+  $('#tByGame').innerHTML = d.byGame
+    .map(r => `<tr ${cut}><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+
+  $('#tFaced').innerHTML = d.faced.map(([n, v, s]) =>
+    `<button type="button"><span class="n">${n}</span><span class="v">${v}</span><span class="s">${s}</span></button>`).join('');
+  $('#facedNote').textContent = d.facedNote;
+  /* One game row is much shorter than two stacked film buttons, so the pair
+     sits side by side whenever the sample is a single game. */
+  $('#tFaced').classList.toggle('is-thin', d.byGame.length < 2);
+
+  /* Sections 2-5 need a workable sample; with a sparse one they state that
+     rather than rendering an empty frame. */
+  const thin = !!d.sparse;
+  $('#sparseNote').hidden = !thin;
+  ['d2', 'd3', 'd4', 'd5'].forEach(id => { $('#' + id).hidden = thin; });
+  $$('#report .band').forEach((b, i) => { if (i > 0 && b.id !== 'sparseNote') b.hidden = thin; });
+  $$('.snav button').forEach(b => { b.disabled = thin && b.dataset.sec !== 'd1'; });
+  if (thin) return;
+
+  $('#ptMeta').textContent = `${d.snaps} snaps`;
+  $('#tPlayTypes').innerHTML = d.playTypes
+    .map(r => `<tr ${cut}><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+
+  const answer = a => a
+    ? `<td><button class="answer" type="button"><strong>${a[0]}</strong><span>${a[1]}</span></button></td>`
+    : `<td><span class="nosample">Not enough snaps</span></td>`;
+  $('#tBestCalls').innerHTML = d.bestCalls.map(([name, n, f, c, p]) =>
+    `<tr><td>${name}<br><span class="nosample">${n} snaps</span></td>${answer(f)}${answer(c)}${answer(p)}</tr>`).join('');
+  $('#bestCallNote').textContent = d.bestCallNote;
+
+  $('#tFronts').innerHTML = d.fronts.map(r => `<tr ${cut}><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+  $('#tCoverages').innerHTML = d.coverages.map(r => `<tr ${cut}><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+  $('#tPressure').innerHTML = d.pressure.map(r => `<tr ${cut}><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+  $('#pressMeta').textContent = d.pressMeta;
+  $('#tFrontSit').innerHTML = d.frontSit.map(r => `<tr><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+  $('#frontSitNote').textContent = d.frontSitNote;
+  $('#tSituational').innerHTML = d.situational.map(r => `<tr ${cut}><td>${r[0]}</td>${cells(r.slice(1))}</tr>`).join('');
+  $('#tDisruption').innerHTML = d.disruption.map(([l, v, s]) =>
+    `<button class="tile" type="button"><span>${l}</span><strong>${v}</strong><small>${s}</small></button>`).join('');
+
+  const [score, label, meta] = d.pred;
+  $('#predVal').textContent = `${score}/100`;
+  $('#predBar').style.width = `${score}%`;
+  $('#predLab').textContent = label;
+  $('#predMeta').textContent = meta;
+  $('#tRecs').innerHTML = d.recs.map(([tag, body]) =>
+    `<div class="rec">${tag ? `<span class="tag">${tag}</span>: ` : ''}${body}</div>`).join('');
+
+  $('#tSchemeSit').innerHTML = d.schemeSit.map(r =>
+    `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="tl">${r[2]}</td><td class="tl">${r[3]}</td>${cells(r.slice(4))}</tr>`).join('');
+
+  $('#tTells').innerHTML = d.tells.map(([sit, dim, type, val, pct, stop, havoc, verdict, n]) => {
+    const [icon, text] = VERDICT[verdict];
+    return `<tr ${cut}><td>${sit}</td><td class="tl">${dim}</td><td class="tl">${type}</td>
+      <td class="tl"><span class="lean" style="--p:${pct}%">${val} ${pct}%</span></td>
+      <td>${stop}</td><td>${havoc}</td>
+      <td class="tl"><span class="verdict v-${verdict}">${icon} ${text}</span></td><td>${n}</td></tr>`;
+  }).join('');
+}
+
+function applyScope(d, longNames) {
+  render(d);
+  $('#sbYpp').textContent = d.ypp;
+  $('#sbYppSub').innerHTML = `<b>Yards per play allowed</b> ${d.yards}&nbsp;yds · ${d.snaps}&nbsp;snaps`;
+  $('#sbMeta').textContent = d.scopeLabel;
+  $('#sbMetaSub').textContent = d.charted;
+  $('.rhead .sub').textContent = d.headSub;
+  const us = longNames ? 'Immaculate Heart of Mary Catholic Academy' : 'St. Joseph Mavericks';
+  const them = longNames ? 'Our Lady of Perpetual Help Prep' : 'Northgate';
+  $('#sbUsName').textContent = $('#sbUsName').title = us;
+  $('#sbThemName').textContent = $('#sbThemName').title = them;
+  $('#sbUs').textContent = longNames ? '118' : '28';
+  $('#sbThem').textContent = longNames ? '107' : '21';
+}
+
+let scope = 'season', state = 'full';
+const dataFor = () => state === 'sparse' ? SPARSE : (scope === 'season' ? SEASON : GAME);
+const paint = () => applyScope(dataFor(), state === 'longnames');
+
 $$('.scope button').forEach(b => b.addEventListener('click', () => {
   $$('.scope button').forEach(x => { x.classList.remove('on'); x.removeAttribute('aria-current'); });
   b.classList.add('on'); b.setAttribute('aria-current', 'true');
-  const season = b.dataset.scope === 'season';
-  $('#sbMeta').textContent = season ? 'Full season · 3 games' : 'Week 3 vs Northgate';
-  $('#sbMetaSub').textContent = season ? '174 of 174 defensive snaps charted' : '54 of 54 defensive snaps charted';
+  scope = b.dataset.scope; paint();
 }));
 
-/* Section nav + scroll spy. */
-$$('.snav button').forEach(b => b.addEventListener('click', () => {
-  const target = document.getElementById(b.dataset.sec);
-  if (!target) return;
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-}));
-const spy = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    $$('.snav button').forEach(b => b.classList.toggle('on', b.dataset.sec === e.target.id));
-  });
-}, { rootMargin: '-90px 0px -62% 0px' });
-$$('.srule').forEach(s => spy.observe(s));
-
-/* Comp states. */
-const SPARSE_HIDE = ['d2', 'd3', 'd5'];
 $$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
   $$('.comp-bar .grp button').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
-  const s = b.dataset.state;
-
-  $('#emptyState').hidden = s !== 'empty';
-  $('.rhead .sub').textContent = s === 'empty' ? '2026 Varsity' :
-    (s === 'sparse' ? '2026 Varsity &middot; 12 defensive snaps' : '2026 Varsity &middot; 174 defensive snaps');
-  $('#report').hidden = s === 'empty';
-  $('#scorebug').hidden = s === 'empty';
-
-  if (s === 'longnames') {
-    $('#sbUsName').textContent = $('#sbUsName').title = 'Immaculate Heart of Mary Catholic Academy';
-    $('#sbThemName').textContent = $('#sbThemName').title = 'Our Lady of Perpetual Help Prep';
-    $('#sbUs').textContent = '118'; $('#sbThem').textContent = '107';
-  } else {
-    $('#sbUsName').textContent = $('#sbUsName').title = 'St. Joseph Mavericks';
-    $('#sbThemName').textContent = $('#sbThemName').title = 'Northgate';
-    $('#sbUs').textContent = '28'; $('#sbThem').textContent = '21';
-  }
-
-  /* Sparse: one lightly-charted game. Sections whose analytics need a sample
-     state that plainly, rather than rendering an empty frame. */
-  const sparse = s === 'sparse';
-  /* The bug states the same sample the board does. */
-  $('#sbYpp').textContent = sparse ? '6.1' : '5.1';
-  $('#sbYpp').nextElementSibling.innerHTML = sparse
-    ? '<b>Yards per play allowed</b> 73&nbsp;yds &middot; 12&nbsp;snaps'
-    : '<b>Yards per play allowed</b> 887&nbsp;yds &middot; 174&nbsp;snaps';
-  $('#sbMeta').textContent = sparse ? 'Week 3 vs Northgate' : 'Full season &middot; 3 games';
-  $('#sbMetaSub').textContent = sparse ? '12 of 12 defensive snaps charted' : '174 of 174 defensive snaps charted';
-  $$('.srule').forEach(r => { if (SPARSE_HIDE.includes(r.id)) r.hidden = sparse; });
-  $$('[data-sparse-hide]').forEach(n => { n.hidden = sparse; });
-  $$('[data-sparse-only]').forEach(n => { n.hidden = !sparse; });
-  document.body.dataset.state = s;
+  state = b.dataset.state;
+  const empty = state === 'empty';
+  $('#emptyState').hidden = !empty;
+  $('#report').hidden = empty;
+  $('#scorebug').hidden = empty;
+  if (empty) { $('.rhead .sub').textContent = '2026 Varsity'; return; }
+  paint();
 }));
 
-/* Sparse variants are declared inline so the populated markup stays readable. */
-(function buildSparse() {
-  const kpi = $('.kpis');
-  const sparseKpis = [
-    ['Stop rate', '58.3%', '7 of 12 snaps', 'is-cyan'], ['Yards / play allowed', '6.1', '73 yards', ''],
-    ['Havoc rate', '16.7%', '2 disruptive snaps', ''], ['Takeaways', '1', '1 INT · 0 FR', ''],
-    ['Explosives allowed', '2', '16.7% of snaps', ''], ['3rd down stop', '—', 'none charted', ''],
-    ['Red zone TD rate', '—', 'none charted', ''], ['Defensive snaps', '12', '1 game charted', ''],
-  ];
-  const alt = document.createElement('div');
-  alt.className = 'kpis'; alt.setAttribute('data-sparse-only', ''); alt.hidden = true;
-  alt.innerHTML = sparseKpis.map(([l, v, s, c]) =>
-    `<div class="kpi ${c}"><span>${l}</span><strong>${v}</strong><small>${s}</small></div>`).join('');
-  kpi.setAttribute('data-sparse-hide', '');
-  kpi.after(alt);
+/* Section nav. The active item is derived from scroll position on every
+   scroll, so it can never be left pointing at a section that scrolled past —
+   an IntersectionObserver alone left "Self-scout" lit at the top of the page. */
+$$('.snav button').forEach(b => b.addEventListener('click', () => {
+  const t = document.getElementById(b.dataset.sec);
+  if (!t) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+}));
+const syncNav = () => {
+  const rules = $$('.srule').filter(r => !r.hidden);
+  let active = rules[0]?.id;
+  rules.forEach(r => { if (r.getBoundingClientRect().top <= 140) active = r.id; });
+  $$('.snav button').forEach(b => b.classList.toggle('on', b.dataset.sec === active));
+};
+addEventListener('scroll', syncNav, { passive: true });
+addEventListener('resize', syncNav);
 
-  const bands = $$('#report .band');
-  bands.forEach(b => b.setAttribute('data-sparse-hide', ''));
-
-  /* One lightly-charted game: the sample band states what it has rather than
-     showing full-season rows beside a 12-snap KPI band. */
-  const s1 = document.createElement('div');
-  s1.className = 'band b-2'; s1.setAttribute('data-sparse-only', ''); s1.hidden = true;
-  s1.innerHTML = `<section class="mod">
-      <header><strong>Sample by game</strong><span>opens film</span></header>
-      <div class="twrap"><table>
-        <thead><tr><th>Game</th><th>Snaps</th><th>Yds/play</th><th>Stop%</th><th>Explosive</th><th>Havoc</th><th>TD</th></tr></thead>
-        <tbody><tr class="cut" tabindex="0"><td>Wk 3 &middot; Northgate</td><td>12</td><td>6.1</td><td>58.3%</td><td>2</td><td>2</td><td>1</td></tr></tbody>
-      </table></div>
-    </section>
-    <section class="mod">
-      <header><strong>Run / pass faced</strong><span>opens film</span></header>
-      <div class="faced">
-        <button type="button"><span class="n">All runs</span><span class="v">5</span>
-          <span class="s">7.2 yds/play &middot; 40.0% stop &middot; 20.0% explosive</span></button>
-        <button type="button"><span class="n">All passes</span><span class="v">7</span>
-          <span class="s">5.3 yds/play &middot; 71.4% stop &middot; 14.3% explosive</span></button>
-      </div>
-    </section>`;
-  bands[0].after(s1);
-
-  const note = document.createElement('div');
-  note.className = 'band b-1'; note.setAttribute('data-sparse-only', ''); note.hidden = true;
-  note.innerHTML = `<section class="mod">
-      <header><strong>Scheme, situational and self-scout</strong><span>12 snaps charted</span></header>
-      <p class="sparse">Insufficient charted data. Front, coverage, pressure and tendency analytics
-      report once this defense has a workable sample.</p>
-    </section>`;
-  bands[bands.length - 1].after(note);
-})();
+paint();
+syncNav();
 </script>
 </body>
 </html>
