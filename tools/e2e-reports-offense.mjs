@@ -214,7 +214,7 @@ ok(JSON.stringify(zone3[1]) === JSON.stringify(['Play direction', 'Strength', 'F
 
 console.log('\n== 9. The scorebug and the generic rail are mutually exclusive ==');
 const chrome = {};
-for (const tab of ['overview', 'offense', 'defense', 'special']) {
+for (const tab of ['overview', 'offense', 'defense', 'special', 'players']) {
   await page.evaluate(t => window.app.reportsScreen.selectTab(t), tab);
   await sleep(450);
   chrome[tab] = await page.evaluate(() => ({
@@ -224,7 +224,11 @@ for (const tab of ['overview', 'offense', 'defense', 'special']) {
 }
 ok(chrome.overview.bug && !chrome.overview.rail, 'Overview shows the scorebug and hides the rail', JSON.stringify(chrome.overview));
 ok(chrome.offense.bug && !chrome.offense.rail, 'Offense shows the scorebug and hides the rail', JSON.stringify(chrome.offense));
-ok(!chrome.defense.bug && chrome.defense.rail, 'Defense keeps the existing rail until its own design pass', JSON.stringify(chrome.defense));
+ok(chrome.defense.bug && !chrome.defense.rail,
+  'Defense shows the scorebug and hides the rail -- it joined SCOREBUG_TABS with its own design pass (2026-09-04)',
+  JSON.stringify(chrome.defense));
+ok(chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome.players.bug,
+  'Special Teams and Players still render the rail, unchanged by the Defense pass', JSON.stringify([chrome.special, chrome.players]));
 ok(Object.values(chrome).every(c => !(c.bug && c.rail)),
   'no tab ever shows the scorebug and the generic rail at the same time', JSON.stringify(chrome));
 
