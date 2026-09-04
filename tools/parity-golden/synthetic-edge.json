@@ -1265,7 +1265,18 @@
        "g1::16"
       ],
       "retAllowedAvg": []
-     }
+     },
+     "outcomes": [
+      {
+       "key": "downed",
+       "label": "Downed",
+       "n": 1,
+       "tone": "",
+       "refs": [
+        "g1::16"
+       ]
+      }
+     ]
     },
     "kickoffs": {
      "n": 0,
@@ -1285,7 +1296,8 @@
       "onsideRecovered": [],
       "avg": [],
       "retAllowedAvg": []
-     }
+     },
+     "outcomes": []
     },
     "fg": {
      "att": 1,
@@ -1310,7 +1322,18 @@
        "g1::17"
       ],
       "missed": []
-     }
+     },
+     "outcomes": [
+      {
+       "key": "good",
+       "label": "Good",
+       "n": 1,
+       "tone": "",
+       "refs": [
+        "g1::17"
+       ]
+      }
+     ]
     },
     "returns": {
      "kick": {
@@ -1326,7 +1349,8 @@
        "attempts": [],
        "td": [],
        "muffed": []
-      }
+      },
+      "outcomes": []
      },
      "punt": {
       "n": 0,
@@ -1341,7 +1365,8 @@
        "attempts": [],
        "td": [],
        "muffed": []
-      }
+      },
+      "outcomes": []
      }
     },
     "blocks": {
@@ -1353,7 +1378,7 @@
      }
     },
     "tries": {
-     "n": null,
+     "n": 0,
      "refs": {
       "all": []
      }
@@ -4208,7 +4233,8 @@
         "netAvg": [],
         "hangAvg": [],
         "retAllowedAvg": []
-       }
+       },
+       "outcomes": []
       },
       "kickoffs": {
        "n": 0,
@@ -4228,7 +4254,8 @@
         "onsideRecovered": [],
         "avg": [],
         "retAllowedAvg": []
-       }
+       },
+       "outcomes": []
       },
       "fg": {
        "att": 0,
@@ -4240,7 +4267,8 @@
         "all": [],
         "made": [],
         "missed": []
-       }
+       },
+       "outcomes": []
       },
       "returns": {
        "kick": {
@@ -4256,7 +4284,8 @@
          "attempts": [],
          "td": [],
          "muffed": []
-        }
+        },
+        "outcomes": []
        },
        "punt": {
         "n": 0,
@@ -4271,7 +4300,8 @@
          "attempts": [],
          "td": [],
          "muffed": []
-        }
+        },
+        "outcomes": []
        }
       },
       "blocks": {
@@ -4283,7 +4313,7 @@
        }
       },
       "tries": {
-       "n": null,
+       "n": 0,
        "refs": {
         "all": []
        }
@@ -5942,7 +5972,18 @@
        "g1::16"
       ],
       "retAllowedAvg": []
-     }
+     },
+     "outcomes": [
+      {
+       "key": "downed",
+       "label": "Downed",
+       "n": 1,
+       "tone": "",
+       "refs": [
+        "g1::16"
+       ]
+      }
+     ]
     },
     "kickoffs": {
      "n": 0,
@@ -5962,7 +6003,8 @@
       "onsideRecovered": [],
       "avg": [],
       "retAllowedAvg": []
-     }
+     },
+     "outcomes": []
     },
     "fg": {
      "att": 1,
@@ -5987,7 +6029,18 @@
        "g1::17"
       ],
       "missed": []
-     }
+     },
+     "outcomes": [
+      {
+       "key": "good",
+       "label": "Good",
+       "n": 1,
+       "tone": "",
+       "refs": [
+        "g1::17"
+       ]
+      }
+     ]
     },
     "returns": {
      "kick": {
@@ -6003,7 +6056,8 @@
        "attempts": [],
        "td": [],
        "muffed": []
-      }
+      },
+      "outcomes": []
      },
      "punt": {
       "n": 0,
@@ -6018,7 +6072,8 @@
        "attempts": [],
        "td": [],
        "muffed": []
-      }
+      },
+      "outcomes": []
      }
     },
     "blocks": {
@@ -6030,7 +6085,7 @@
      }
     },
     "tries": {
-     "n": null,
+     "n": 0,
      "refs": {
       "all": []
      }
@@ -8134,7 +8189,8 @@
         "netAvg": [],
         "hangAvg": [],
         "retAllowedAvg": []
-       }
+       },
+       "outcomes": []
       },
       "kickoffs": {
        "n": 0,
@@ -8154,7 +8210,8 @@
         "onsideRecovered": [],
         "avg": [],
         "retAllowedAvg": []
-       }
+       },
+       "outcomes": []
       },
       "fg": {
        "att": 0,
@@ -8166,7 +8223,8 @@
         "all": [],
         "made": [],
         "missed": []
-       }
+       },
+       "outcomes": []
       },
       "returns": {
        "kick": {
@@ -8182,7 +8240,8 @@
          "attempts": [],
          "td": [],
          "muffed": []
-        }
+        },
+        "outcomes": []
        },
        "punt": {
         "n": 0,
@@ -8197,7 +8256,8 @@
          "attempts": [],
          "td": [],
          "muffed": []
-        }
+        },
+        "outcomes": []
        }
       },
       "blocks": {
@@ -8209,7 +8269,7 @@
        }
       },
       "tries": {
-       "n": null,
+       "n": 0,
        "refs": {
         "all": []
        }
@@ -9350,7 +9410,8 @@
       "netAvg": [],
       "hangAvg": [],
       "retAllowedAvg": []
-     }
+     },
+     "outcomes": []
     },
     "kickoffs": {
      "n": 0,
@@ -9370,7 +9431,8 @@
       "onsideRecovered": [],
       "avg": [],
       "retAllowedAvg": []
-     }
+     },
+     "outcomes": []
     },
     "fg": {
      "att": 0,
@@ -9382,7 +9444,8 @@
       "all": [],
       "made": [],
       "missed": []
-     }
+     },
+     "outcomes": []
     },
     "returns": {
      "kick": {
@@ -9398,7 +9461,8 @@
        "attempts": [],
        "td": [],
        "muffed": []
-      }
+      },
+      "outcomes": []
      },
      "punt": {
       "n": 0,
@@ -9413,7 +9477,8 @@
        "attempts": [],
        "td": [],
        "muffed": []
-      }
+      },
+      "outcomes": []
      }
     },
     "blocks": {
@@ -9425,7 +9490,7 @@
      }
     },
     "tries": {
-     "n": null,
+     "n": 0,
      "refs": {
       "all": []
      }
@@ -10754,7 +10819,8 @@
         "netAvg": [],
         "hangAvg": [],
         "retAllowedAvg": []
-       }
+       },
+       "outcomes": []
       },
       "kickoffs": {
        "n": 0,
@@ -10774,7 +10840,8 @@
         "onsideRecovered": [],
         "avg": [],
         "retAllowedAvg": []
-       }
+       },
+       "outcomes": []
       },
       "fg": {
        "att": 0,
@@ -10786,7 +10853,8 @@
         "all": [],
         "made": [],
         "missed": []
-       }
+       },
+       "outcomes": []
       },
       "returns": {
        "kick": {
@@ -10802,7 +10870,8 @@
          "attempts": [],
          "td": [],
          "muffed": []
-        }
+        },
+        "outcomes": []
        },
        "punt": {
         "n": 0,
@@ -10817,7 +10886,8 @@
          "attempts": [],
          "td": [],
          "muffed": []
-        }
+        },
+        "outcomes": []
        }
       },
       "blocks": {
@@ -10829,7 +10899,7 @@
        }
       },
       "tries": {
-       "n": null,
+       "n": 0,
        "refs": {
         "all": []
        }

@@ -300,7 +300,11 @@ result = await page.evaluate(() => {
   const evidence = {};
   const needles = {
     overview: ['Team Stats', 'Down'], offense: ['Offense'], defense: ['Defense'],
-    special: ['Special Teams'], players: ['Individual'], selfscout: ['Self-Scout'],
+    // The approved 2026-09-04 composition dropped the redundant "Special
+    // Teams" toolbar label -- the tab strip already names the report. Its
+    // football-specific surface is the unit ledger, which always names every
+    // unit of the model, so that is what proves the surface is really there.
+    special: ['Kickoff', 'Punt Return'], players: ['Individual'], selfscout: ['Self-Scout'],
     season: ['Season'], matchup: ['Matchup'],
   };
   for (const tab of Object.keys(needles)) {
@@ -847,31 +851,39 @@ result = await page.evaluate(async () => {
   const originalWatch = app.filmNavigation.watch;
   app.filmNavigation.watch = refs => { watched = refs; return true; };
 
-  // Phase card: Kickoffs, mouse activation. Bare id 2 spans both games.
-  const kickoffCard = [...(pane?.querySelectorAll('.gi-overview-band-auto .gi-overview-module') || [])]
-    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Kickoffs');
-  kickoffCard?.querySelector('.cut-row')?.click();
+  // The Kickoff ledger card, mouse activation. Bare id 2 spans both games.
+  // Repointed from the retired phase card to the unit ledger the approved
+  // 2026-09-04 composition replaced it with -- the SURFACE moved, the
+  // capability did not, and this asserts the capability.
+  const kickoffCard = [...(pane?.querySelectorAll('.gi-st-unit-card') || [])]
+    .find(node => node.querySelector('.gi-st-unit-name')?.textContent.trim() === 'Kickoff');
+  kickoffCard?.click();
   const watchedKickoffs = watched;
   watched = null;
 
-  // Same phase card, KEYBOARD activation -- must resolve the identical cohort.
-  kickoffCard?.querySelector('.cut-row')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  // Same card, KEYBOARD activation -- must resolve the identical cohort.
+  kickoffCard?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   const watchedKickoffsKeyboard = watched;
   watched = null;
 
-  // Field Goal by-distance table row -- bare id 1's make (game 'a', <30 bucket).
-  const fgTable = [...(pane?.querySelectorAll('.gi-overview-module') || [])]
-    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Field Goals by Distance');
-  const fgRow = [...(fgTable?.querySelectorAll('tbody tr') || [])].find(row => row.cells[0]?.textContent.trim() === '<30');
-  fgRow?.click();
+  // Field-goal distance bucket -- bare id 1's make (game 'a', <30 bucket).
+  // Lives in the Kicking game section now, so select it first.
+  pane?.querySelector('[data-st-section="st4"]')?.click();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const fgBucket = [...(pane?.querySelectorAll('.gi-st-bucket') || [])]
+    .find(node => node.querySelector('span')?.textContent.trim() === '<30 yds');
+  fgBucket?.click();
   const watchedFgBucket = watched;
   watched = null;
 
   // Individual kicker row -- must span BOTH games' FG attempts (bare id 1
   // reused), proving the individual table is season-wide, not the active
   // game -- and the hostile roster name must render as plain text nearby.
+  // Specialists section in the approved composition.
+  pane?.querySelector('[data-st-section="st5"]')?.click();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const kickerTable = [...(pane?.querySelectorAll('.gi-overview-module') || [])]
-    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Kicking / Punting');
+    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Kicking and punting');
   // Found by its hostile roster name rather than row order (kicker #9 and
   // punter #15 tie on the table's own made+punts sort key) -- this also
   // doubles as the escaping proof: if the name had executed as markup
@@ -886,16 +898,16 @@ result = await page.evaluate(async () => {
   // The compact Impact Plays detail is not just a summary: each result row
   // opens the exact exceptional plays behind that count.
   const impactTable = [...(pane?.querySelectorAll('.gi-overview-module') || [])]
-    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Impact Plays');
-  const missedFgRow = [...(impactTable?.querySelectorAll('tbody tr') || [])]
-    .find(row => row.cells[0]?.textContent.trim() === 'Field goals missed');
+    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Impact plays');
+  const missedFgRow = [...(impactTable?.querySelectorAll('.gi-st-impact-row') || [])]
+    .find(row => row.querySelector('span')?.textContent.trim() === 'Field goals missed');
   missedFgRow?.click();
   const watchedMissedFg = watched;
   app.filmNavigation.watch = originalWatch;
 
   // Current-game scope must shrink to game 'a' only.
-  pane?.querySelector('.gi-st-scope button:last-child')?.click();
-  const gameActive = document.querySelector('[data-pane="special"] .gi-st-scope button.active')?.textContent.trim() === 'Current game';
+  pane?.querySelector('[data-st-scope="game"]')?.click();
+  const gameActive = document.querySelector('[data-pane="special"] [data-st-scope="game"].active')?.textContent.trim() === 'Current game';
   const { scoped: gameScoped } = app.reportsScreen._specialTeamsCohort();
   const gameOnlyStats = app.stats.compute(gameScoped);
   app.reportsScreen.specialTeamsScope = 'season';
@@ -926,11 +938,11 @@ ok(result.seasonActive, 'Special Teams defaults to full season', JSON.stringify(
 ok(result.fgAtt === 2 && result.fgMade === 1 && result.kickoffN === 2 && result.scoutExcluded,
   'Special Teams aggregates the exact self-perspective season cohort and excludes the opponent-scout game', JSON.stringify(result));
 ok(Array.isArray(result.watchedKickoffs) && JSON.stringify(result.watchedKickoffs) === JSON.stringify(['a::2', 'b::2']),
-  'The season-wide Kickoffs phase card opens its exact cross-game cohort, duplicate bare id included', JSON.stringify(result));
+  'The season-wide Kickoff ledger card opens its exact cross-game cohort, duplicate bare id included', JSON.stringify(result));
 ok(JSON.stringify(result.watchedKickoffsKeyboard) === JSON.stringify(result.watchedKickoffs),
-  'Keyboard activation of the same phase card resolves the identical cohort as a mouse click', JSON.stringify(result));
+  'Keyboard activation of the same ledger card resolves the identical cohort as a mouse click', JSON.stringify(result));
 ok(Array.isArray(result.watchedFgBucket) && result.watchedFgBucket.includes('a::1') && !result.watchedFgBucket.includes('b::1'),
-  'A Field Goal by-distance row opens only the attempts in its own bucket', JSON.stringify(result));
+  'A field-goal distance bucket opens only the attempts in its own range', JSON.stringify(result));
 ok(Array.isArray(result.watchedKicker) && JSON.stringify(result.watchedKicker) === JSON.stringify(['a::1', 'b::1']),
   "The kicker's Individual Performance row is season-wide, not the active game -- both games' field-goal attempts", JSON.stringify(result));
 ok(JSON.stringify(result.watchedMissedFg) === JSON.stringify(['b::1']),
@@ -964,21 +976,35 @@ result = await page.evaluate(async () => {
   app.reportsScreen.show();
   app.reportsScreen.selectTab('special');
   const pane = document.querySelector('[data-pane="special"]');
-  const detailBand = pane?.querySelector('.gi-st-detail-band');
-  const fieldGoalModule = [...(pane?.querySelectorAll('.gi-overview-module') || [])]
-    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Field Goals by Distance');
-  const redundantConversionModule = [...(pane?.querySelectorAll('.gi-overview-module') || [])]
-    .find(node => node.querySelector('header strong')?.textContent.trim() === 'Kicking & Conversions');
+  pane?.querySelector('[data-st-section="st4"]')?.click();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const title = node => node.querySelector('header strong')?.textContent.trim();
+  const modules = [...(pane?.querySelectorAll('.gi-overview-module') || [])];
+  const fieldGoalModule = modules.find(node => title(node) === 'Field goals by distance');
+  // A try module must not appear at all when no try was charted, and a field
+  // goal and a try must never share a denominator: the original finding was a
+  // large gauge-only band repeating conversions the KPI already carried.
+  const triesModule = modules.find(node => title(node) === 'Tries');
+  const triesEmpty = !!triesModule?.classList.contains('is-none');
+  const buckets = [...(fieldGoalModule?.querySelectorAll('.gi-st-bucket') || [])];
+  // Dead space: no module on the section may be more than ~2.2x the tallest
+  // sibling in its own band, which is what a gauge-only module produced.
+  const bandRatios = [...(pane?.querySelectorAll('.gi-st-band') || [])].map(band => {
+    const kids = [...band.children].map(k => k.getBoundingClientRect().height).filter(h => h > 0);
+    return kids.length > 1 ? Math.max(...kids) / Math.min(...kids) : 1;
+  });
   app.storage.seasonStore.data.games = originalGames;
   app.storage.seasonStore.data.activeGameId = originalActiveGameId;
   await app.storage._loadActiveGame();
-  return { detailBandFound: !!detailBand, fieldGoalModuleFound: !!fieldGoalModule,
-    redundantConversionModuleFound: !!redundantConversionModule,
-    fieldGoalHasGauge: !!fieldGoalModule?.querySelector('svg'), fieldGoalHasTable: !!fieldGoalModule?.querySelector('table') };
+  return { fieldGoalModuleFound: !!fieldGoalModule, fieldGoalHasGauge: !!fieldGoalModule?.querySelector('svg'),
+    buckets: buckets.length, triesEmpty, worstRatio: Math.max(1, ...bandRatios) };
 });
-ok(result.detailBandFound && result.fieldGoalModuleFound && !result.redundantConversionModuleFound
-  && !result.fieldGoalHasGauge && result.fieldGoalHasTable,
-  'Field-goal detail stays compact and does not repeat conversions in a gauge-only dead-space band', JSON.stringify(result));
+ok(result.fieldGoalModuleFound && !result.fieldGoalHasGauge && result.buckets === 4,
+  'Field-goal detail is the compact four-bucket distance band, never a gauge', JSON.stringify(result));
+ok(result.triesEmpty,
+  'A game with field goals and no tries states the try unit as empty rather than repeating conversions', JSON.stringify(result));
+ok(result.worstRatio <= 2.2,
+  'No module towers over its own band -- the stretched panels keep a band visually even', JSON.stringify(result));
 
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
 result = await page.evaluate(() => {
