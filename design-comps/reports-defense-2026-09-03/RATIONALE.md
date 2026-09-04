@@ -27,10 +27,10 @@ Five sections, not six, and named for what a defensive coach is looking for:
 
 | # | Section | Supporting label |
 |---|---|---|
-| 1 | Defensive performance | Snaps, efficiency, and the games in the sample |
+| 1 | Defensive performance | Snaps, efficiency, disruption, and the games in the sample |
 | 2 | Opponent Offense | Opponent play type, frequency, and production |
 | 3 | Scheme | Fronts, coverage, and pressure |
-| 4 | Situational results | Down, distance, field position, and disruption |
+| 4 | Situational results | Down, distance, and scheme by situation |
 | 5 | Self-scout | Predictability and tendency tells |
 
 The five sections are a **TAB STRIP**: one section on screen at a time.

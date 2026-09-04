@@ -110,9 +110,22 @@ button{font-family:inherit}
   white-space:nowrap
 }
 .sb-q{color:var(--gi-bd-strong);font:600 15px/1.25 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.sb-tot{color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.sb-tot{color:var(--gi-bd-strong);font:700 28px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 /* Both rows read the same. Dimming the losing team costs legibility to
    restate what the numbers already say. */
+/* Separators, borrowed from broadcast practice: the two teams are divided by a
+   hairline, and the final sits in its own raised block so the eye lands on it
+   without reading the quarters first. The quarter columns stay unadorned --
+   they are supporting detail, not the headline. */
+.sb-score>.sb-tot,.sb-score>.sb-hd.tot{
+  background:var(--gi-bd-control-active);
+  border-left:1px solid var(--gi-bd-line);
+  padding-right:var(--gi-4x)!important;padding-left:var(--gi-4x)!important
+}
+.sb-score>.sb-hd.tot{color:var(--gi-bd-copy)}
+#sbRowThem>*{border-top:1px solid var(--gi-bd-line)}
+.sb-score{padding-right:0}
+.sb-name{padding-right:var(--gi-6x)!important}
 .sb-story{display:flex;align-items:center;gap:14px;padding:0 var(--gi-6x);box-shadow:-1px 0 var(--gi-bd-line);white-space:nowrap}
 .sb-story>strong{color:var(--gi-bd-cyan);font:700 30px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 .sb-story>span{max-width:none;white-space:normal;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans)}
@@ -333,19 +346,18 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     <div class="sb-hd tot">T</div>
   </div>
   <div class="sb-line" id="sbRowUs">
-    <div class="sb-name" id="sbUsName" title="St. Joseph Mavericks">St. Joseph Mavericks</div>
+    <div class="sb-name" id="sbUsName" title="St. Joseph Mavericks">Mavericks</div>
     <div class="sb-q">7</div><div class="sb-q">14</div><div class="sb-q">0</div><div class="sb-q">7</div>
     <div class="sb-tot" id="sbUs">28</div>
   </div>
   <div class="sb-line" id="sbRowThem">
-    <div class="sb-name" id="sbThemName" title="Northgate">Northgate</div>
+    <div class="sb-name" id="sbThemName" title="Northgate Ravens">Ravens</div>
     <div class="sb-q">7</div><div class="sb-q">0</div><div class="sb-q">7</div><div class="sb-q">7</div>
     <div class="sb-tot" id="sbThem">21</div>
   </div>
   </div>
   <div class="sb-ident" id="sbIdent"></div>
   <div class="sb-story"><strong id="sbYpp">5.1</strong><span id="sbYppSub"><b>Yards per play allowed</b> 887&nbsp;yds &middot; 174&nbsp;snaps</span></div>
-  <div class="sb-meta"><strong id="sbMeta">Full season &middot; 3 games</strong><span id="sbMetaSub">174 of 174 defensive snaps charted</span></div>
 </div>
 <div class="rhead">
   <div>
@@ -397,7 +409,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <button type="button" data-sec="d5"><b>5</b>Self-scout</button>
     </div>
 
-    <div class="srule" id="d1"><h2>Defensive performance</h2><p>Snaps, efficiency, and the games in the sample</p></div>
+    <div class="srule" id="d1"><h2>Defensive performance</h2><p>Snaps, efficiency, disruption, and the games in the sample</p></div>
     <div class="kpis" id="kpiBand"></div>
     <div class="band b-2">
       <section class="mod">
@@ -473,7 +485,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       </section>
     </div>
 
-    <div class="srule" id="d4"><h2>Situational results</h2><p>Down, distance, field position, and disruption</p><em>Opens film</em></div>
+    <div class="srule" id="d4"><h2>Situational results</h2><p>Down, distance, and scheme by situation</p><em>Opens film</em></div>
     <div class="band b-2">
       <section class="mod">
         <header><strong>Situational defense</strong><span>by situation</span></header>
@@ -796,23 +808,23 @@ function applyScope(d, longNames) {
   render(d);
   $('#sbYpp').textContent = d.ypp;
   $('#sbYppSub').innerHTML = `<b>Yards per play allowed</b> ${d.yards}&nbsp;yds · ${d.snaps}&nbsp;snaps`;
-  $('#sbMeta').textContent = d.scopeLabel;
-  $('#sbMetaSub').textContent = d.charted;
   $('.rhead .sub').textContent = d.headSub;
   $('#sbIdent').innerHTML = d.ident
     .map(([l, v, s]) => `<div><span>${l}</span><strong>${v}</strong><small>${s}</small></div>`).join('');
-  const us = longNames ? 'Immaculate Heart of Mary Catholic Academy' : 'St. Joseph Mavericks';
-  const them = longNames ? 'Our Lady of Perpetual Help Prep' : 'Northgate';
-  $('#sbUsName').textContent = $('#sbUsName').title = us;
+  // Nicknames in the bug; the full school identity stays in the tooltip.
+  const us = longNames ? 'Golden Bears' : 'Mavericks';
+  const them = longNames ? 'Fighting Irish' : 'Ravens';
+  $('#sbUsName').textContent = us;
+  $('#sbUsName').title = longNames ? 'Immaculate Heart of Mary Catholic Academy Golden Bears' : 'St. Joseph Mavericks';
   /* The matchup is one fact. Renaming only the scorebug left the header and
      the context bar naming a different opponent. */
   const title = longNames ? 'Week 3 vs Our Lady of Perpetual Help Prep' : 'Week 3 vs Northgate';
   $('.rhead h1').textContent = title;
   $('#ctxGame').textContent = title;
-  if (state !== 'sparse') $('#sbMeta').textContent = longNames ? title : d.scopeLabel;
-  $('#sbThemName').textContent = $('#sbThemName').title = them;
-  $('#sbUs').textContent = longNames ? '118' : '28';
-  $('#sbThem').textContent = longNames ? '107' : '21';
+  $('#sbThemName').textContent = them;
+  $('#sbThemName').title = longNames ? 'Our Lady of Perpetual Help Prep Fighting Irish' : 'Northgate Ravens';
+  $('#sbUs').textContent = longNames ? '42' : '28';
+  $('#sbThem').textContent = longNames ? '38' : '21';
 }
 
 let scope = 'season', state = 'full';
