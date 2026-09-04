@@ -295,10 +295,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 /* Notes, definitions, sparse + empty */
 .note{margin:6px 0 0;color:var(--gi-bd-copy);font:400 11px/1.45 var(--gi-sans)}
 .note b{color:var(--gi-bd-strong);font-weight:600}
-.defs{margin:0;padding:var(--gi-3x) var(--gi-4x);background:var(--gi-bd-panel);
-  color:var(--gi-bd-copy);font:400 11.5px/1.5 var(--gi-sans)}
-.defs b{color:var(--gi-bd-strong);font-weight:600}
-.defs i{font-style:normal;color:var(--gi-bd-cyan);font-weight:600}
 .sparse{margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)}
 .empty{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);
   margin:0 0 4px;padding:var(--gi-4x);background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
@@ -423,7 +419,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <div class="mod" id="m2krStat"></div>
       <div class="mod" id="m2krOut"></div>
     </div>
-    <p class="defs" data-sec="s2" id="s2defs"></p>
 
     <!-- ══ S3 · PUNT & PUNT RETURN ═════════════════════════════════════ -->
     <div class="srule" id="s3"><h2>Punt &amp; Punt Return</h2><p>Punt operation and coverage, then the return unit that faces one</p><em id="s3meta"></em></div>
@@ -435,7 +430,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <div class="mod" id="m3prStat"></div>
       <div class="mod" id="m3prOut"></div>
     </div>
-    <p class="defs" data-sec="s3" id="s3defs"></p>
 
     <!-- ══ S4 · KICKING GAME ═══════════════════════════════════════════ -->
     <div class="srule" id="s4"><h2>Kicking game</h2><p>Field goals, the block unit that defends one, and the try teams</p><em id="s4meta"></em></div>
@@ -448,7 +442,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <div class="mod" id="m4fb"></div>
       <div class="mod" id="m4tr"></div>
     </div>
-    <p class="defs" data-sec="s4" id="s4defs"></p>
 
     <!-- ══ S5 · SPECIALISTS ════════════════════════════════════════════ -->
     <div class="srule" id="s5"><h2>Specialists</h2><p>Returners, kickers and punters, and the plays that changed possession</p><em id="s5meta"></em></div>
@@ -549,14 +542,14 @@ const REAL = {
   points: { us: 10, them: 3 },
   kickoffs: { n: 21, avg: null, tb: 0, fc: 29, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
     onside: { na: true },
-    outcomes: [['Fair catch', 6, ''], ['Returned', 0, ''], ['Outcome not charted', 15, 'blank']] },
+    outcomes: [['Fair catch', 6, ''], ['Returned', 0, ''], ['No data', 15, 'blank']] },
   kr: { n: 12, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 1,
-    outcomes: [['Muffed', 1, 'bad'], ['Outcome not charted', 11, 'blank']] },
+    outcomes: [['Muffed', 1, 'bad'], ['No data', 11, 'blank']] },
   punts: { n: 10, gross: null, net: null, hang: null, tb: 0, fc: 0, blocked: 1,
     retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
-    outcomes: [['Blocked', 1, 'bad'], ['Downed', 1, ''], ['Outcome not charted', 8, 'blank']] },
+    outcomes: [['Blocked', 1, 'bad'], ['Downed', 1, ''], ['No data', 8, 'blank']] },
   pr: { n: 9, attempts: 1, yards: 5, avg: 5.0, long: 5, td: 0, muffed: 0,
-    outcomes: [['Fair catch', 3, ''], ['Outcome not charted', 6, 'blank']] },
+    outcomes: [['Fair catch', 3, ''], ['No data', 6, 'blank']] },
   fg: { att: 0, made: 0, pct: 0, long: 0, byDist: [], outcomes: [] },
   blocks: { na: true },
   tries: { xp: { att: 18, made: 10 }, two: { att: 0, made: 0 }, na: false, charted: 21 },
@@ -613,29 +606,30 @@ LONG.kickoffs.outcomes = [['Recovered by the kicking team', 2, 'warn'], ['Touchb
    drops to copy weight and says "not charted", so a coach can never read
    absence as a poor value.
    ──────────────────────────────────────────────────────────────────────── */
-const NOT_CHARTED = 'not charted';
-const NOT_LEGACY = 'not derivable — legacy charting';
-const NOT_RULESET = 'not derivable — no ruleset';
+/* ONE absence label, everywhere. An earlier pass drew three -- "not charted",
+   "not derivable - legacy charting", "not derivable - no ruleset" -- plus a
+   handful of sentence-long variants per module. That is a designer's
+   distinction; a coach reads all of them as "nothing here". DECIDED
+   2026-09-04: say No data and say it the same way every time. The reason an
+   absence exists is a RATIONALE concern, not a thing the board narrates. */
+const NO_DATA = 'No data';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const has = v => v !== null && v !== undefined;
 const pl = (n, w, p) => `${n} ${w}${n === 1 ? '' : (p || 's')}`;
 
-/** One stat line. `blank` text replaces the value when the engine had none. */
+/** One stat line. An absent value is always the same two words. */
 function srow(label, value, opts) {
   const o = opts || {};
   const cls = has(value) ? (o.cls || '') : 'blank';
-  const shown = has(value) ? value : (o.blank || NOT_CHARTED);
-  return `<div class="srow"><span>${esc(label)}</span><strong class="${cls}">${esc(shown)}</strong></div>`;
+  return `<div class="srow"><span>${esc(label)}</span><strong class="${cls}">${esc(has(value) ? value : NO_DATA)}</strong></div>`;
 }
 function rows(html) { return `<div class="srows">${html}</div>`; }
 function head(mod, title, meta, cls) {
   mod.className = `mod${cls ? ' ' + cls : ''}`;
   return `<header><strong>${esc(title)}</strong><span>${esc(meta || '')}</span></header>`;
 }
-/** A unit with no charted snaps. Says so, and shows nothing else -- no zeros. */
-function noneBody(what) {
-  return `<p class="sparse">No ${esc(what)} snaps charted in this scope.</p>`;
-}
+/** A unit with nothing in it. Two words, and no zeros. */
+function noneBody() { return `<p class="sparse">${NO_DATA}</p>`; }
 function outcomes(list, total) {
   if (!list || !list.length) return '';
   const max = Math.max(1, ...list.map(o => o[1]));
@@ -654,7 +648,7 @@ function outcomes(list, total) {
 
 function koStats(d, compact) {
   const k = d.kickoffs;
-  if (!k.n) return noneBody('kickoff');
+  if (!k.n) return noneBody();
   const onsideVal = k.onside && k.onside.na ? null
     : (k.onside && k.onside.n ? `${k.onside.recovered}/${k.onside.n}` : '0 attempted');
   return rows(
@@ -664,14 +658,14 @@ function koStats(d, compact) {
     + srow('Fair catch rate', `${k.fc}%`)
     + srow('Return yards allowed', has(k.retAllowedAvg)
         ? `${k.retAllowedAvg} avg · ${k.retAllowedYards} total`
-        : (k.retAllowedN ? null : (k.n ? 'no returns charted' : null)),
+        : (k.retAllowedN ? null : (k.n ? NO_DATA : null)),
         { cls: 'sub' })
-    + (compact ? '' : srow('Onside recovery', onsideVal, { blank: NOT_LEGACY }))
+    + (compact ? '' : srow('Onside recovery', onsideVal))
   );
 }
 function krStats(d) {
   const r = d.kr;
-  if (!r.n) return noneBody('kick return');
+  if (!r.n) return noneBody();
   return rows(
     srow('Kick return snaps', r.n)
     + srow('Returns attempted', r.attempts, { cls: r.attempts ? '' : 'sub' })
@@ -684,17 +678,16 @@ function krStats(d) {
 }
 function ptStats(d, compact) {
   const p = d.punts;
-  if (!p.n) return noneBody('punt');
-  /* DECIDED 2026-09-04: the fixed 20-yard touchback assumption is removed. On a
-     legacy season with a charted touchback and no configured ruleset, net is
-     not derivable and says so -- the app does not publish a number it knows to
-     be wrong. Distinct from "not charted", which means the input is missing;
-     here the input exists and the RULE does not. */
-  const netBlank = (d.legacy && p.tb > 0) ? NOT_RULESET : NOT_CHARTED;
+  if (!p.n) return noneBody();
+  /* DECIDED 2026-09-04: the fixed 20-yard touchback assumption is removed, so
+     a legacy touchback with no configured ruleset produces no net at all. It
+     reads No data like every other absence -- the app does not publish a
+     number it knows to be wrong, and it does not explain itself on the board
+     either. */
   return rows(
     srow('Punts', p.n)
     + srow('Gross average', has(p.gross) ? `${p.gross} yds` : null)
-    + srow('Net average', has(p.net) ? `${p.net} yds` : null, { blank: netBlank })
+    + srow('Net average', has(p.net) ? `${p.net} yds` : null)
     + srow('Hang time', has(p.hang) ? `${p.hang}s` : null)
     + srow('Touchback rate', `${p.tb}%`)
     + srow('Fair catch rate', `${p.fc}%`)
@@ -705,7 +698,7 @@ function ptStats(d, compact) {
 }
 function prStats(d) {
   const r = d.pr;
-  if (!r.n) return noneBody('punt return');
+  if (!r.n) return noneBody();
   return rows(
     srow('Punt return snaps', r.n)
     + srow('Returns attempted', r.attempts, { cls: r.attempts ? '' : 'sub' })
@@ -718,7 +711,7 @@ function prStats(d) {
 }
 function fgStats(d) {
   const f = d.fg;
-  if (!f.att) return noneBody('field goal');
+  if (!f.att) return noneBody();
   return rows(
     srow('Attempts', f.att)
     + srow('Made', f.made)
@@ -728,8 +721,7 @@ function fgStats(d) {
 }
 function fbStats(d) {
   const b = d.blocks;
-  if (b.na) return `<p class="sparse">${NOT_LEGACY[0].toUpperCase() + NOT_LEGACY.slice(1)}. A legacy season records a blocked kick on the kicking team's own attempt and never charted a block unit, so this unit has no denominator to report.</p>`;
-  if (!b.n) return noneBody('field goal block');
+  if (b.na || !b.n) return noneBody();
   return rows(
     srow('Snaps vs a kick', b.n)
     + srow('Kicks blocked', b.blocked, { cls: b.blocked ? 'good' : '' })
@@ -739,10 +731,10 @@ function fbStats(d) {
 function trStats(d) {
   const t = d.tries;
   const att = t.xp.att + t.two.att;
-  if (!att) return noneBody('try');
+  if (!att) return noneBody();
   return rows(
-    srow('Extra point kicks', t.xp.att ? `${t.xp.made}/${t.xp.att}` : null, { blank: 'none attempted' })
-    + srow('Two-point tries', t.two.att ? `${t.two.made}/${t.two.att}` : null, { blank: 'none attempted' })
+    srow('Extra point kicks', t.xp.att ? `${t.xp.made}/${t.xp.att}` : null)
+    + srow('Two-point tries', t.two.att ? `${t.two.made}/${t.two.att}` : null)
     + srow('All tries', `${t.xp.made + t.two.made}/${att}`)
     /* DECIDED 2026-09-04: the calculation denominator stays the 18 attempts
        that carry a scoring side. The three unclassified plays are stated, and
@@ -768,15 +760,12 @@ const UNITS = [
 function ledger(d) {
   return UNITS.map(([role, name, count, headline]) => {
     const n = count(d);
-    if (n === null) {
-      return `<div class="uc is-none is-na"><span class="role">${esc(role)}</span>
-        <span class="name">${esc(name)}</span><span class="n">Not derivable</span>
-        <span class="head">Legacy charting has no block unit</span></div>`;
-    }
-    if (!n) {
+    /* A unit with nothing in it -- whether it holds no snaps or the season's
+       charting model cannot express it at all -- reads the same two words as
+       every other absence on the board. */
+    if (n === null || !n) {
       return `<div class="uc is-none"><span class="role">${esc(role)}</span>
-        <span class="name">${esc(name)}</span><span class="n">Not charted</span>
-        <span class="head">No snaps in this scope</span></div>`;
+        <span class="name">${esc(name)}</span><span class="n">${NO_DATA}</span></div>`;
     }
     return `<button type="button" class="uc" title="Watch ${esc(name)} film">
       <span class="role">${esc(role)}</span><span class="name">${esc(name)}</span>
@@ -798,11 +787,14 @@ function kpis(d) {
   const covN = (d.punts.retAllowedN || 0) + (d.kickoffs.retAllowedN || 0);
   const covYds = (d.punts.retAllowedYards || 0) + (d.kickoffs.retAllowedYards || 0);
   const items = [
-    ['ST Snaps', d.snaps, d.snaps ? `of ${d.cohort} charted · ${pl(d.games, 'game')}` : 'none charted', ''],
-    ['Points', d.points.us, d.points.them ? `${d.points.them} allowed` : (d.points.us ? 'none allowed' : 'none scored'),
+    ['ST Snaps', d.snaps, d.snaps ? `of ${d.cohort} charted · ${pl(d.games, 'game')}` : '', ''],
+    /* A scoreless special teams is a real observation, not an absence, so the
+       tile shows 0 and simply carries no sub -- never "No data" beneath a
+       number the report actually computed. */
+    ['Points', d.points.us, d.points.them ? `${d.points.them} allowed` : (d.points.us ? 'none allowed' : ''),
       d.points.us > d.points.them ? 'good' : ''],
     ['Field Goals', d.fg.att ? `${d.fg.made}/${d.fg.att}` : null,
-      d.fg.att ? `${d.fg.pct}% · long ${d.fg.long}` : 'none attempted', ''],
+      d.fg.att ? `${d.fg.pct}% · long ${d.fg.long}` : NO_DATA, ''],
     /* The percentage divides by the CLASSIFIED attempts only. When some charted
        tries carry no scoring side, the sub names that denominator rather than
        leaving the reader to assume the rate covers every charted try. */
@@ -811,18 +803,20 @@ function kpis(d) {
         ? (t.charted && t.charted !== convAtt
             ? `${Math.round(convMade / convAtt * 100)}% of ${convAtt} classified`
             : `${Math.round(convMade / convAtt * 100)}% · XP and 2-point`)
-        : 'none attempted', ''],
+        : NO_DATA, ''],
     ['Return Production', retAtt ? `${retYds} yds` : null,
-      retAtt ? `${pl(retAtt, 'return')} · long ${retLong}` : 'return yardage not charted', ''],
+      retAtt ? `${pl(retAtt, 'return')} · long ${retLong}` : NO_DATA, ''],
     ['Coverage Allowed', covN ? `${(covYds / covN).toFixed(1)}` : null,
-      covN ? `yds per return · ${pl(covN, 'return')} allowed` : 'no returns charted against us', ''],
+      covN ? `yds per return · ${pl(covN, 'return')} allowed` : NO_DATA, ''],
   ];
   return items.map(([label, value, sub, tone]) => {
+    /* When the value is No data the sub is dropped, not set to No data too --
+       otherwise the tile prints the same two words twice. */
     const blank = !has(value);
     return `<div class="kpi${blank ? ' is-blank' : ''}">
       <span>${esc(label)}</span>
-      <strong class="${tone}">${esc(blank ? NOT_CHARTED : value)}</strong>
-      <small>${esc(sub)}</small></div>`;
+      <strong class="${tone}">${esc(blank ? NO_DATA : value)}</strong>
+      ${blank ? '' : `<small>${esc(sub)}</small>`}</div>`;
   }).join('');
 }
 
@@ -832,7 +826,7 @@ function kpis(d) {
    floored at zero.
    ──────────────────────────────────────────────────────────────────────── */
 function returnTable(d) {
-  if (!d.returners.length) return `<p class="sparse">No returner charted in this scope.</p>`;
+  if (!d.returners.length) return `<p class="sparse">${NO_DATA}</p>`;
   return `<div class="twrap"><table><thead><tr>
     <th class="tl">Player</th><th>Ret</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th></tr></thead><tbody>
     ${d.returners.map(([num, name, ret, yds, avg, long, td]) => `<tr class="cut" tabindex="0"
@@ -845,7 +839,7 @@ function returnTable(d) {
   </tbody></table></div>`;
 }
 function kickerTable(d) {
-  if (!d.kickers.length) return `<p class="sparse">No kicker or punter charted in this scope.</p>`;
+  if (!d.kickers.length) return `<p class="sparse">${NO_DATA}</p>`;
   return `<div class="twrap"><table><thead><tr>
     <th class="tl">Player</th><th>FG (M/A)</th><th>Punts</th><th>Punt avg</th></tr></thead><tbody>
     ${d.kickers.map(([num, name, fg, punts, avg]) => `<tr class="cut" tabindex="0"
@@ -857,7 +851,7 @@ function kickerTable(d) {
   </tbody></table></div>`;
 }
 function impactList(d) {
-  if (!d.impact.length) return `<p class="sparse">No blocked kick, missed attempt, or muffed return charted in this scope.</p>`;
+  if (!d.impact.length) return `<p class="sparse">${NO_DATA}</p>`;
   return `<div class="impact">${d.impact.map(([label, n]) =>
     `<button type="button" title="${esc(label)} — ${pl(n, 'play')}">
       <span class="l">${esc(label)}</span><span class="v">${n}</span></button>`).join('')}</div>`;
@@ -866,7 +860,7 @@ function bucketBand(d) {
   if (!d.fg.byDist.length) {
     return d.fg.att
       ? `<p class="sparse">${pl(d.fg.att, 'attempt')} charted with no distance recorded, so no distance breakdown is available.</p>`
-      : noneBody('field goal');
+      : noneBody();
   }
   const all = [['<30', 0, 29], ['30-39', 30, 39], ['40-49', 40, 49], ['50+', 50, 99]];
   const map = new Map(d.fg.byDist.map(b => [b[0], b]));
@@ -957,31 +951,26 @@ function render(d) {
   /* S2 — kickoff and kick return, each with its own outcome distribution. */
   m('#m2koStat').innerHTML = head(m('#m2koStat'), 'Kickoff', `${pl(d.kickoffs.n, 'snap')} · kicking`, d.kickoffs.n ? '' : 'is-none') + koStats(d);
   m('#m2koOut').innerHTML = head(m('#m2koOut'), 'Kickoff outcomes', 'share of charted kickoffs', d.kickoffs.n ? '' : 'is-none')
-    + (d.kickoffs.n ? outcomes(d.kickoffs.outcomes, d.kickoffs.n) : noneBody('kickoff'));
+    + (d.kickoffs.n ? outcomes(d.kickoffs.outcomes, d.kickoffs.n) : noneBody());
   m('#m2krStat').innerHTML = head(m('#m2krStat'), 'Kick Return', `${pl(d.kr.n, 'snap')} · receiving`, d.kr.n ? '' : 'is-none') + krStats(d);
   m('#m2krOut').innerHTML = head(m('#m2krOut'), 'Kick return outcomes', 'share of charted kick returns', d.kr.n ? '' : 'is-none')
-    + (d.kr.n ? outcomes(d.kr.outcomes, d.kr.n) : noneBody('kick return'));
-  $('#s2defs').innerHTML =
-    `<b>Kick distance</b> is gross, measured from the kicking spot, and is never negative. `
-    + `<b>Return yards allowed</b> run from the returner's possession to the ball being dead and may be negative. `
-    + `The two are separate measurements and are never added together.`;
+    + (d.kr.n ? outcomes(d.kr.outcomes, d.kr.n) : noneBody());
+  /* No definition footnote. The row labels already carry the distinction --
+     "Kick distance, average" is the gross kick and "Return yards allowed" is
+     the return; they sit in different modules, never share a column, and are
+     never summed. A paragraph restating that was explaining the labels to a
+     coach who wrote them. */
 
   /* S3 — punt and punt return. */
   m('#m3ptStat').innerHTML = head(m('#m3ptStat'), 'Punt', `${pl(d.punts.n, 'snap')} · kicking`, d.punts.n ? '' : 'is-none') + ptStats(d);
   m('#m3ptOut').innerHTML = head(m('#m3ptOut'), 'Punt outcomes', 'share of charted punts', d.punts.n ? '' : 'is-none')
-    + (d.punts.n ? outcomes(d.punts.outcomes, d.punts.n) : noneBody('punt'));
+    + (d.punts.n ? outcomes(d.punts.outcomes, d.punts.n) : noneBody());
   m('#m3prStat').innerHTML = head(m('#m3prStat'), 'Punt Return', `${pl(d.pr.n, 'snap')} · receiving`, d.pr.n ? '' : 'is-none') + prStats(d);
   m('#m3prOut').innerHTML = head(m('#m3prOut'), 'Punt return outcomes', 'share of charted punt returns', d.pr.n ? '' : 'is-none')
-    + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody('punt return'));
-  $('#s3defs').innerHTML =
-    `<b>Gross</b> is the punt itself, measured from the line of scrimmage. <b>Net</b> subtracts the return `
-    + `and the touchback placement. Touchback placement is set by the ruleset, so on a season charted `
-    + `without one, net on a touchback is <b>not derivable</b> and is reported that way rather than `
-    + `estimated. Observed end spots, when charted, are authoritative.`;
-
+    + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody());
   /* S4 — the kicking game. */
   m('#m4fgDist').innerHTML = head(m('#m4fgDist'), 'Field goals by distance',
-    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long || '—'}` : 'no attempt charted',
+    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long || '—'}` : NO_DATA,
     d.fg.att ? '' : 'is-none') + bucketBand(d);
   /* The attempt outcomes sit beside the distance buckets rather than under the
      Field Goal stat rows. Stacked, they made that one module ~116px taller
@@ -989,29 +978,25 @@ function render(d) {
      empty panel; split, the two heads of the band match. */
   m('#m4fgOut').innerHTML = head(m('#m4fgOut'), 'Attempt outcomes', 'share of charted attempts',
     d.fg.outcomes.length ? '' : 'is-none')
-    + (d.fg.outcomes.length ? outcomes(d.fg.outcomes, d.fg.att) : noneBody('field goal'));
+    + (d.fg.outcomes.length ? outcomes(d.fg.outcomes, d.fg.att) : noneBody());
   m('#m4fg').innerHTML = head(m('#m4fg'), 'Field Goal', 'attempting', d.fg.att ? '' : 'is-none') + fgStats(d);
   m('#m4fb').innerHTML = head(m('#m4fb'), 'FG Block', 'defending', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
   m('#m4tr').innerHTML = head(m('#m4tr'), 'Tries', 'XP and 2-point', tryCharted ? '' : 'is-none') + trStats(d);
-  $('#s4defs').innerHTML =
-    `A <b>field goal</b> and a <b>try</b> are separate events and never share a denominator; the try teams `
-    + `carry their own attempt counts. <b>FG Block</b> is our unit defending their kick, and is counted `
-    + `apart from our own attempts.`
-    + (d.tries.charted && d.tries.charted !== (t.xp.att + t.two.att)
-        ? ` Of ${d.tries.charted} charted tries, ${t.xp.att + t.two.att} carry a scoring side and set the `
-          + `conversion denominator. The other ${d.tries.charted - (t.xp.att + t.two.att)} are `
-          + `<b>unclassified, not missed</b>, and never enter a percentage.`
-        : '');
+  /* No footnote here either. Field Goal, FG Block and Tries are three separate
+     modules with three separate denominators, which is the whole point the
+     paragraph was making; the composition already makes it. The try
+     classification stays on the Tries module's own Classification row, where a
+     coach reads it beside the number it qualifies. */
 
   /* S5 — specialists. */
   m('#m5ret').innerHTML = head(m('#m5ret'), 'Return game',
-    d.returners.length ? `${pl(d.returners.length, 'returner')} charted` : 'none charted',
+    d.returners.length ? `${pl(d.returners.length, 'returner')} charted` : NO_DATA,
     d.returners.length ? '' : 'is-none') + returnTable(d);
   m('#m5imp').innerHTML = head(m('#m5imp'), 'Impact plays',
-    d.impact.length ? `${d.impact.reduce((s, i) => s + i[1], 0)} total` : 'none charted',
+    d.impact.length ? `${d.impact.reduce((s, i) => s + i[1], 0)} total` : NO_DATA,
     d.impact.length ? '' : 'is-none') + impactList(d);
   m('#m5kick').innerHTML = head(m('#m5kick'), 'Kicking and punting',
-    d.kickers.length ? `${pl(d.kickers.length, 'specialist')} charted` : 'none charted',
+    d.kickers.length ? `${pl(d.kickers.length, 'specialist')} charted` : NO_DATA,
     d.kickers.length ? '' : 'is-none') + kickerTable(d);
 }
 

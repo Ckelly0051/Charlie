@@ -53,7 +53,47 @@ performance" is the load-bearing requirement here rather than a side note.
 
 ---
 
-## 1 · Three absences that must look different
+## 1 · One absence label — `No data`
+
+**DECIDED 2026-09-04, superseding the design below.** Wherever there is no
+data, the board says **`No data`** — the same two words, every time, in every
+position: KPI tiles, unit ledger cards, stat rows, outcome bars, module bodies,
+and section metas. A blank KPI drops its sub line rather than printing the same
+two words twice.
+
+The one thing that is *not* an absence is a real zero. `0% touchback` on 21
+kickoffs, `0` returns attempted, `0` return touchdowns and `0` points on a
+scoreless unit stay full-strength numbers with their denominators, because a
+measured zero is an observation. The Points tile shows `0` and carries no sub;
+it never reads `No data` under a number the report actually computed.
+
+An absent value is still never a large em-dash: `.kpi.is-blank strong` drops
+from 30px condensed to 17px muted, so `No data` cannot be misread as a headline
+figure.
+
+### What this replaced, and why the coach was right
+
+The first pass drew **three** absence labels — `not charted`, `not derivable —
+legacy charting`, `not derivable — no ruleset` — plus a sentence-long variant
+per module (`No kickoff snaps charted in this scope.`, `No returner charted in
+this scope.`, a three-line paragraph explaining why a legacy season has no
+block unit). The reasoning was that the *cause* of an absence differs: a
+missing input is not the same as a missing rule.
+
+That is a designer's distinction. A coach reads all of them as **nothing
+here**, and paying five different sentences to say it made the sparsest state —
+the one his real film actually produces — the wordiest screen in the report.
+The cause of an absence is a RATIONALE concern; it is not something the board
+narrates. Recorded here rather than on screen:
+
+| Absence | Cause |
+|---|---|
+| Kick distance, hang time, return yardage on a legacy season | input never entered |
+| Onside recovery on a legacy season | legacy charts onside as its own `stType`, so it is not derivable from `by('Kickoff')` |
+| The whole FG Block unit on a legacy season | legacy has no block unit; a blocked kick is recorded on the kicking team's own attempt |
+| Net on a legacy touchback | touchback placement is ruleset-dependent and no ruleset is configured (§7.4) |
+
+### Historical — the three-state design
 
 The single most important design decision. The report has to distinguish:
 
@@ -121,6 +161,24 @@ hole. Measured at 1440×900 on the real season:
 Every legacy section is ~61px shorter, and Kicking Game crossed back under the
 fold. The gain lands entirely in the states built from the coach's real film,
 which is where it matters.
+
+### 2d · No definition footnotes either — removed 2026-09-04
+
+Sections 2, 3 and 4 each ended in a `.defs` paragraph: one defining kick
+distance against return yards, one defining gross against net and the ruleset
+position, one stating that a field goal and a try never share a denominator.
+**Charlie removed all three.**
+
+They were explaining the labels to the person who wrote them. The composition
+already makes each point structurally: `Kick distance, average` and `Return
+yards allowed` sit in different modules, never share a column, and are never
+summed; Field Goal, FG Block and Tries are three separate modules with three
+separate denominators. The try classification stays on the Tries module's own
+`Classification` row, beside the number it qualifies, which is where a coach
+reads it.
+
+Nothing replaces them. Each was the last band in its section, so removing it
+shortens the section and changes nothing above.
 
 ### 2a · Why the KPI band is six, not seven
 
