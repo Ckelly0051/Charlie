@@ -174,7 +174,8 @@ const direct = await page.evaluate(() => {
   //  (b) a cohort with NO structured Special Teams data at all -- onside is
   //      not a legacy concept (a legacy onside kick was its own separate
   //      stType, never a Kickoff modifier), so it is an honest structural
-  //      null regardless of whether any kickoffs were charted.
+  //      null regardless of whether any kickoffs were charted. A TRY is not
+  //      in that category: legacy charts one as stType XP / 2-Pt.
   const g2Plays = sets.season.filter(p => p.__gid === 'g-pen-st-2');
   const g2Stats = app.stats.compute(g2Plays);
   const g2PuntRate = app.analyticsRegistry.readMeasures(g2Stats, ['stPuntTouchbackPct', 'stPuntCount']);
@@ -275,8 +276,19 @@ ok(direct.stCompareARefs.join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
 
 ok(direct.g2PuntRate.stPuntTouchbackPct == null && direct.g2PuntRate.stPuntCount === 0,
   'A structured cohort with zero punts nulls the touchback RATE (never "0%") while the raw punt COUNT stays a real, informative 0', JSON.stringify(direct.g2PuntRate));
-ok(direct.g2Onside.stKickoffOnsideAtt == null && direct.g2Onside.stFieldGoalBlockSnaps == null && direct.g2Onside.stTryDownsCount == null,
-  'A cohort with no structured Special Teams data at all resolves onside/FG-block/try measures to null -- concepts legacy charting cannot represent, not silently zero', JSON.stringify(direct.g2Onside));
+ok(direct.g2Onside.stKickoffOnsideAtt == null && direct.g2Onside.stFieldGoalBlockSnaps == null,
+  'A cohort with no structured Special Teams data resolves onside and FG-block to null -- concepts legacy charting genuinely cannot represent, not silently zero', JSON.stringify(direct.g2Onside));
+// A try is NOT in that category, and this assertion used to claim it was.
+// Legacy charts tries: `stType` carries both 'XP' and '2-Pt' (SPECIAL-TEAMS-
+// MODEL §4b.1 -- "2-Pt has always been a Special Teams play here"), and
+// `_conversionStats` has always counted them. Reporting `tries.n = null` while
+// `conversions.xp.att` returned a real number on the same cohort was
+// internally inconsistent, and it silently swallowed the coach's charted-but-
+// unattributed tries into the Special Teams report's unassigned-snap line.
+// Corrected 2026-09-04 alongside the Special Teams build; the premise was
+// wrong, not the implementation.
+ok(direct.g2Onside.stTryDownsCount === 0,
+  'A try IS representable in legacy charting (stType XP / 2-Pt), so a cohort with none reports an honest 0 rather than a structural null', JSON.stringify(direct.g2Onside));
 
 ok(direct.bareIdOneRefs[0] === true && direct.bareIdOneRefs[1] === true,
   'Composite refs distinguish bare play id 1 reused across two different games', JSON.stringify(direct.bareIdOneRefs));
