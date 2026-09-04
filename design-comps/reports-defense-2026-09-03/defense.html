@@ -81,7 +81,7 @@ button{font-family:inherit}
    bounded on its own and truncates with the full value in a tooltip.
    ─────────────────────────────────────────────────────────────────────── */
 .scorebug{
-  --sb-name:520px; --sb-q:44px; --sb-tot:64px;
+  --sb-name:520px; --sb-q:52px; --sb-tot:64px;
   display:flex;flex-wrap:wrap;align-items:stretch;
   background:var(--gi-bd-panel)
 }
@@ -96,20 +96,22 @@ button{font-family:inherit}
 .sb-ident small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);white-space:nowrap}
 .sb-meta{flex:0 0 auto}
 .sb-score{
-  display:grid;align-items:center;
+  display:grid;align-items:stretch;
   grid-template-columns:max-content repeat(4,var(--sb-q)) var(--sb-tot);
   padding:7px var(--gi-4x) 9px
 }
 .sb-line{display:contents}
-.sb-score>*{padding:2px 0;text-align:right}
-.sb-hd{color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.sb-score .sb-name,.sb-score .sb-q,.sb-score .sb-tot,.sb-score .sb-hd{
+  display:flex;align-items:center;justify-content:flex-end;padding:3px 0
+}
+.sb-hd{padding-right:var(--gi-3x)!important;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
 .sb-hd.tot{color:var(--gi-bd-copy)}
 .sb-name{
-  min-width:0;padding-right:var(--gi-3x)!important;text-align:left!important;
+  min-width:0;justify-content:flex-start!important;padding-right:var(--gi-6x)!important;
   color:var(--gi-bd-strong);font:700 12.5px/1.25 var(--gi-cond);letter-spacing:.04em;text-transform:uppercase;
   white-space:nowrap
 }
-.sb-q{color:var(--gi-bd-strong);font:600 15px/1.25 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.sb-q{padding-right:var(--gi-3x)!important;color:var(--gi-bd-strong);font:600 15px/1.25 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 .sb-tot{color:var(--gi-bd-strong);font:700 28px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 /* Both rows read the same. Dimming the losing team costs legibility to
    restate what the numbers already say. */
@@ -117,12 +119,12 @@ button{font-family:inherit}
    hairline, and the final sits in its own raised block so the eye lands on it
    without reading the quarters first. The quarter columns stay unadorned --
    they are supporting detail, not the headline. */
-.sb-score>.sb-tot,.sb-score>.sb-hd.tot{
+.sb-score .sb-tot,.sb-score .sb-hd.tot{
   background:var(--gi-bd-control-active);
   border-left:1px solid var(--gi-bd-line);
   padding-right:var(--gi-4x)!important;padding-left:var(--gi-4x)!important
 }
-.sb-score>.sb-hd.tot{color:var(--gi-bd-copy)}
+.sb-score .sb-hd.tot{color:var(--gi-bd-copy)}
 #sbRowThem>*{border-top:1px solid var(--gi-bd-line)}
 .sb-score{padding-right:0}
 .sb-name{padding-right:var(--gi-6x)!important}
