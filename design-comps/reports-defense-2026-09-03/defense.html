@@ -81,23 +81,23 @@ button{font-family:inherit}
    bounded on its own and truncates with the full value in a tooltip.
    ─────────────────────────────────────────────────────────────────────── */
 .scorebug{
-  --sb-name:clamp(260px,30vw,430px); --sb-q:44px; --sb-tot:64px;
-  display:grid;grid-template-columns:auto auto minmax(370px,1fr) auto;
+  --sb-name:520px; --sb-q:44px; --sb-tot:64px;
+  display:flex;flex-wrap:wrap;align-items:stretch;
   background:var(--gi-bd-panel)
 }
-.scorebug>.sb-score{grid-column:1;grid-row:1}
+.scorebug>.sb-score{flex:0 0 auto}
 
 
-.sb-story{grid-column:2;grid-row:1}
-.sb-ident{grid-column:3;grid-row:1;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:center;padding:0 var(--gi-4x);box-shadow:-1px 0 var(--gi-bd-line)}
+.sb-story{flex:0 0 auto}
+.sb-ident{flex:1 1 auto;min-width:420px;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:center;padding:0 var(--gi-4x);box-shadow:-1px 0 var(--gi-bd-line)}
 .sb-ident>div{min-width:0;padding:0 var(--gi-3x)}
-.sb-ident span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase;white-space:normal}
-.sb-ident strong{display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 19px/1.1 var(--gi-cond);white-space:normal;overflow-wrap:anywhere}
-.sb-ident small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);white-space:normal}
-.sb-meta{grid-column:4;grid-row:1}
+.sb-ident span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.sb-ident strong{display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 19px/1.1 var(--gi-cond);white-space:nowrap}
+.sb-ident small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);white-space:nowrap}
+.sb-meta{flex:0 0 auto}
 .sb-score{
   display:grid;align-items:center;
-  grid-template-columns:fit-content(var(--sb-name)) repeat(4,var(--sb-q)) var(--sb-tot);
+  grid-template-columns:max-content repeat(4,var(--sb-q)) var(--sb-tot);
   padding:7px var(--gi-4x) 9px
 }
 .sb-line{display:contents}
@@ -107,7 +107,7 @@ button{font-family:inherit}
 .sb-name{
   min-width:0;padding-right:var(--gi-3x)!important;text-align:left!important;
   color:var(--gi-bd-strong);font:700 12.5px/1.25 var(--gi-cond);letter-spacing:.04em;text-transform:uppercase;
-  white-space:normal;overflow-wrap:anywhere
+  white-space:nowrap
 }
 .sb-q{color:var(--gi-bd-strong);font:600 15px/1.25 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 .sb-tot{color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
@@ -178,6 +178,7 @@ button{font-family:inherit}
 .snav button:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
 .snav button:hover>b{background:var(--gi-bd-draw);color:var(--gi-bd-stage)}
 .snav button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.snav button[disabled]{opacity:.45;cursor:not-allowed}
 .snav button.on{color:var(--gi-bd-strong);background:var(--gi-bd-control-active);
   box-shadow:inset 0 -3px var(--gi-bd-cyan),var(--gi-raise-tab)}
 .snav button.on>b{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
@@ -317,7 +318,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 <div class="ctxbar">
   <div><span>Program</span><strong>St. Joseph Mavericks</strong></div>
   <div><span>Season</span><strong>2026 Varsity</strong></div>
-  <div><span>Game</span><strong>Week 3 vs Northgate</strong></div>
+  <div><span>Game</span><strong id="ctxGame">Week 3 vs Northgate</strong></div>
   <div class="persp"><button type="button" class="on">Our Program</button><button type="button">Opponent Scout</button></div>
 </div>
 
@@ -413,7 +414,12 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       </section>
     </div>
 
-    <div class="srule" id="d2"><h2>Opponent Offense</h2><p>Opponent play type, frequency, and production</p><em>Opens film</em></div>
+    <div class="band b-1">
+      <section class="mod">
+        <header><strong>Disruption</strong><span>opens film</span></header>
+        <div class="tiles c4" id="tDisruption"></div>
+      </section>
+    </div>    <div class="srule" id="d2"><h2>Opponent Offense</h2><p>Opponent play type, frequency, and production</p><em>Opens film</em></div>
     <div class="band b-2">
       <section class="mod">
         <header><strong>Opponent play type</strong><span id="ptMeta"></span></header>
@@ -477,8 +483,11 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
         </table></div>
       </section>
       <section class="mod">
-        <header><strong>Disruption</strong><span>opens film</span></header>
-        <div class="tiles c2" id="tDisruption"></div>
+        <header><strong>Scheme by situation</strong><span>top call per bucket</span></header>
+        <div class="twrap"><table>
+          <thead><tr><th>Situation</th><th>Snaps</th><th class="tl">Top front</th><th class="tl">Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th></tr></thead>
+          <tbody id="tSchemeSit"></tbody>
+        </table></div>
       </section>
     </div>
 
@@ -493,13 +502,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
         </div>
         <div class="recs" id="tRecs"></div>
       </section>
-      <section class="mod">
-        <header><strong>Scheme by situation</strong><span>top call per bucket</span></header>
-        <div class="twrap"><table>
-          <thead><tr><th>Situation</th><th>Snaps</th><th class="tl">Top front</th><th class="tl">Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th></tr></thead>
-          <tbody id="tSchemeSit"></tbody>
-        </table></div>
-      </section>
+
     </div>
 
     <div class="band b-1">
@@ -745,6 +748,7 @@ function render(d) {
   ['d2', 'd3', 'd4', 'd5'].forEach(id => { $('#' + id).hidden = thin; });
   $$('#report .band').forEach((b, i) => { if (i > 0 && b.id !== 'sparseNote') b.hidden = thin; });
   $$('.snav button').forEach(b => { b.disabled = thin && b.dataset.sec !== 'd1'; });
+  if (thin) showSection('d1'); else if (section) showSection(section);
   if (thin) return;
 
   $('#ptMeta').textContent = `${d.snaps} snaps`;
@@ -800,6 +804,12 @@ function applyScope(d, longNames) {
   const us = longNames ? 'Immaculate Heart of Mary Catholic Academy' : 'St. Joseph Mavericks';
   const them = longNames ? 'Our Lady of Perpetual Help Prep' : 'Northgate';
   $('#sbUsName').textContent = $('#sbUsName').title = us;
+  /* The matchup is one fact. Renaming only the scorebug left the header and
+     the context bar naming a different opponent. */
+  const title = longNames ? 'Week 3 vs Our Lady of Perpetual Help Prep' : 'Week 3 vs Northgate';
+  $('.rhead h1').textContent = title;
+  $('#ctxGame').textContent = title;
+  if (state !== 'sparse') $('#sbMeta').textContent = longNames ? title : d.scopeLabel;
   $('#sbThemName').textContent = $('#sbThemName').title = them;
   $('#sbUs').textContent = longNames ? '118' : '28';
   $('#sbThem').textContent = longNames ? '107' : '21';
@@ -827,26 +837,34 @@ $$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
   paint();
 }));
 
-/* Section nav. The active item is derived from scroll position on every
-   scroll, so it can never be left pointing at a section that scrolled past —
-   an IntersectionObserver alone left "Self-scout" lit at the top of the page. */
-$$('.snav button').forEach(b => b.addEventListener('click', () => {
-  const t = document.getElementById(b.dataset.sec);
-  if (!t) return;
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-}));
-const syncNav = () => {
-  const rules = $$('.srule').filter(r => !r.hidden);
-  let active = rules[0]?.id;
-  rules.forEach(r => { if (r.getBoundingClientRect().top <= 140) active = r.id; });
-  $$('.snav button').forEach(b => b.classList.toggle('on', b.dataset.sec === active));
-};
-addEventListener('scroll', syncNav, { passive: true });
-addEventListener('resize', syncNav);
-
+/* Section tabs: one section at a time. The report carries five distinct
+   bodies of analysis and as scroll anchors they read as one undifferentiated
+   page, so each is now its own surface. */
+let section = 'd1';
+const SECTION_OF = new Map();
+function indexSections() {
+  SECTION_OF.clear();
+  let current = null;
+  [...$('#report').children].forEach(el => {
+    if (el.classList.contains('srule')) current = el.id;
+    if (current) SECTION_OF.set(el, current);
+  });
+}
+function showSection(id) {
+  section = id;
+  $$('.snav button').forEach(b => {
+    const on = b.dataset.sec === id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  });
+  SECTION_OF.forEach((owner, el) => { el.hidden = owner !== id; });
+  if ($('#sparseNote')) $('#sparseNote').hidden = !(section === 'd1' && dataFor().sparse);
+  scrollTo({ top: 0, behavior: 'auto' });
+}
+$$('.snav button').forEach(b => b.addEventListener('click', () => showSection(b.dataset.sec)));
+indexSections();
 paint();
-syncNav();
+showSection('d1');
 </script>
 </body>
 </html>
