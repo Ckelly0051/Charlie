@@ -362,7 +362,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
   <div class="empty" id="emptyState" hidden>
     <div>
       <h3>No Special Teams snaps charted</h3>
-      <p>Chart kickoff, return, punt, field goal, and try units to populate this report.</p>
+      
     </div>
     <button type="button" class="btn">Open Break Down</button>
   </div>
@@ -394,7 +394,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     </div>
 
     <!-- ══ S1 · ALL UNITS ══════════════════════════════════════════════ -->
-    <div class="srule" id="s1"><h2>All units</h2><p>Every special-teams unit side by side, kicking beside receiving</p><em id="s1meta"></em></div>
+    <div class="srule" id="s1"><h2>All units</h2><em id="s1meta"></em></div>
     <div class="band b-2" data-sec="s1">
       <div class="mod" id="m1ko"></div>
       <div class="mod" id="m1kr"></div>
@@ -410,7 +410,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     </div>
 
     <!-- ══ S2 · KICKOFF & KICK RETURN ══════════════════════════════════ -->
-    <div class="srule" id="s2"><h2>Kickoff &amp; Kick Return</h2><p>Our coverage unit and our return unit — two separate teams, two separate problems</p><em id="s2meta"></em></div>
+    <div class="srule" id="s2"><h2>Kickoff &amp; Kick Return</h2><em id="s2meta"></em></div>
     <div class="band b-2" data-sec="s2">
       <div class="mod" id="m2koStat"></div>
       <div class="mod" id="m2koOut"></div>
@@ -421,7 +421,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     </div>
 
     <!-- ══ S3 · PUNT & PUNT RETURN ═════════════════════════════════════ -->
-    <div class="srule" id="s3"><h2>Punt &amp; Punt Return</h2><p>Punt operation and coverage, then the return unit that faces one</p><em id="s3meta"></em></div>
+    <div class="srule" id="s3"><h2>Punt &amp; Punt Return</h2><em id="s3meta"></em></div>
     <div class="band b-2" data-sec="s3">
       <div class="mod" id="m3ptStat"></div>
       <div class="mod" id="m3ptOut"></div>
@@ -432,7 +432,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     </div>
 
     <!-- ══ S4 · KICKING GAME ═══════════════════════════════════════════ -->
-    <div class="srule" id="s4"><h2>Kicking game</h2><p>Field goals, the block unit that defends one, and the try teams</p><em id="s4meta"></em></div>
+    <div class="srule" id="s4"><h2>Kicking game</h2><em id="s4meta"></em></div>
     <div class="band b-2" data-sec="s4">
       <div class="mod" id="m4fgDist"></div>
       <div class="mod" id="m4fgOut"></div>
@@ -444,7 +444,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     </div>
 
     <!-- ══ S5 · SPECIALISTS ════════════════════════════════════════════ -->
-    <div class="srule" id="s5"><h2>Specialists</h2><p>Returners, kickers and punters, and the plays that changed possession</p><em id="s5meta"></em></div>
+    <div class="srule" id="s5"><h2>Specialists</h2><em id="s5meta"></em></div>
     <div class="band b-42" data-sec="s5">
       <div class="mod" id="m5ret"></div>
       <div class="mod" id="m5imp"></div>
@@ -764,11 +764,11 @@ function ledger(d) {
        charting model cannot express it at all -- reads the same two words as
        every other absence on the board. */
     if (n === null || !n) {
-      return `<div class="uc is-none"><span class="role">${esc(role)}</span>
+      return `<div class="uc is-none">
         <span class="name">${esc(name)}</span><span class="n">${NO_DATA}</span></div>`;
     }
     return `<button type="button" class="uc" title="Watch ${esc(name)} film">
-      <span class="role">${esc(role)}</span><span class="name">${esc(name)}</span>
+      <span class="name">${esc(name)}</span>
       <span class="n">${n} <i>snaps</i></span>
       <span class="head">${esc(headline(d))}</span></button>`;
   }).join('');
@@ -899,8 +899,7 @@ function render(d) {
   const gap = d.snaps - sum;
   $('#reconcile').innerHTML =
     `<b>${d.snaps}</b> snaps = ` + parts.filter(p => p[1]).map(p => `${p[1]} ${esc(p[0].toLowerCase())}`).join(' + ')
-    + (gap > 0 ? ` + <b>${gap}</b> not assigned to a unit` : '')
-    + (gap > 0 ? ` — charted under a label the current model has no unit for.` : '');
+    + (gap > 0 ? ` + <b>${gap}</b> unassigned` : '');
   $('#reconcile').hidden = !d.snaps;
 
   /* No legacy disclaimer band. Every field that has no sample already says
@@ -940,20 +939,20 @@ function render(d) {
      the module against Kick Return's seven rows instead of leaving it two
      short, and on a legacy season it is the line that says onside is not
      derivable at all rather than leaving the coach to assume none happened. */
-  m('#m1ko').innerHTML = head(m('#m1ko'), 'Kickoff', 'kicking', d.kickoffs.n ? '' : 'is-none') + koStats(d);
-  m('#m1kr').innerHTML = head(m('#m1kr'), 'Kick Return', 'receiving', d.kr.n ? '' : 'is-none') + krStats(d);
-  m('#m1pt').innerHTML = head(m('#m1pt'), 'Punt', 'kicking', d.punts.n ? '' : 'is-none') + ptStats(d, true);
-  m('#m1pr').innerHTML = head(m('#m1pr'), 'Punt Return', 'receiving', d.pr.n ? '' : 'is-none') + prStats(d);
-  m('#m1fg').innerHTML = head(m('#m1fg'), 'Field Goal', 'attempting', d.fg.att ? '' : 'is-none') + fgStats(d);
-  m('#m1fb').innerHTML = head(m('#m1fb'), 'FG Block', 'defending', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
-  m('#m1tr').innerHTML = head(m('#m1tr'), 'Tries', 'XP and 2-point', tryCharted ? '' : 'is-none') + trStats(d);
+  m('#m1ko').innerHTML = head(m('#m1ko'), 'Kickoff', '', d.kickoffs.n ? '' : 'is-none') + koStats(d);
+  m('#m1kr').innerHTML = head(m('#m1kr'), 'Kick Return', '', d.kr.n ? '' : 'is-none') + krStats(d);
+  m('#m1pt').innerHTML = head(m('#m1pt'), 'Punt', '', d.punts.n ? '' : 'is-none') + ptStats(d, true);
+  m('#m1pr').innerHTML = head(m('#m1pr'), 'Punt Return', '', d.pr.n ? '' : 'is-none') + prStats(d);
+  m('#m1fg').innerHTML = head(m('#m1fg'), 'Field Goal', '', d.fg.att ? '' : 'is-none') + fgStats(d);
+  m('#m1fb').innerHTML = head(m('#m1fb'), 'FG Block', '', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
+  m('#m1tr').innerHTML = head(m('#m1tr'), 'Tries', '', tryCharted ? '' : 'is-none') + trStats(d);
 
   /* S2 — kickoff and kick return, each with its own outcome distribution. */
-  m('#m2koStat').innerHTML = head(m('#m2koStat'), 'Kickoff', `${pl(d.kickoffs.n, 'snap')} · kicking`, d.kickoffs.n ? '' : 'is-none') + koStats(d);
-  m('#m2koOut').innerHTML = head(m('#m2koOut'), 'Kickoff outcomes', 'share of charted kickoffs', d.kickoffs.n ? '' : 'is-none')
+  m('#m2koStat').innerHTML = head(m('#m2koStat'), 'Kickoff', `${pl(d.kickoffs.n, 'snap')} `, d.kickoffs.n ? '' : 'is-none') + koStats(d);
+  m('#m2koOut').innerHTML = head(m('#m2koOut'), 'Kickoff outcomes', '', d.kickoffs.n ? '' : 'is-none')
     + (d.kickoffs.n ? outcomes(d.kickoffs.outcomes, d.kickoffs.n) : noneBody());
-  m('#m2krStat').innerHTML = head(m('#m2krStat'), 'Kick Return', `${pl(d.kr.n, 'snap')} · receiving`, d.kr.n ? '' : 'is-none') + krStats(d);
-  m('#m2krOut').innerHTML = head(m('#m2krOut'), 'Kick return outcomes', 'share of charted kick returns', d.kr.n ? '' : 'is-none')
+  m('#m2krStat').innerHTML = head(m('#m2krStat'), 'Kick Return', `${pl(d.kr.n, 'snap')} `, d.kr.n ? '' : 'is-none') + krStats(d);
+  m('#m2krOut').innerHTML = head(m('#m2krOut'), 'Kick return outcomes', '', d.kr.n ? '' : 'is-none')
     + (d.kr.n ? outcomes(d.kr.outcomes, d.kr.n) : noneBody());
   /* No definition footnote. The row labels already carry the distinction --
      "Kick distance, average" is the gross kick and "Return yards allowed" is
@@ -962,11 +961,11 @@ function render(d) {
      coach who wrote them. */
 
   /* S3 — punt and punt return. */
-  m('#m3ptStat').innerHTML = head(m('#m3ptStat'), 'Punt', `${pl(d.punts.n, 'snap')} · kicking`, d.punts.n ? '' : 'is-none') + ptStats(d);
-  m('#m3ptOut').innerHTML = head(m('#m3ptOut'), 'Punt outcomes', 'share of charted punts', d.punts.n ? '' : 'is-none')
+  m('#m3ptStat').innerHTML = head(m('#m3ptStat'), 'Punt', `${pl(d.punts.n, 'snap')} `, d.punts.n ? '' : 'is-none') + ptStats(d);
+  m('#m3ptOut').innerHTML = head(m('#m3ptOut'), 'Punt outcomes', '', d.punts.n ? '' : 'is-none')
     + (d.punts.n ? outcomes(d.punts.outcomes, d.punts.n) : noneBody());
-  m('#m3prStat').innerHTML = head(m('#m3prStat'), 'Punt Return', `${pl(d.pr.n, 'snap')} · receiving`, d.pr.n ? '' : 'is-none') + prStats(d);
-  m('#m3prOut').innerHTML = head(m('#m3prOut'), 'Punt return outcomes', 'share of charted punt returns', d.pr.n ? '' : 'is-none')
+  m('#m3prStat').innerHTML = head(m('#m3prStat'), 'Punt Return', `${pl(d.pr.n, 'snap')} `, d.pr.n ? '' : 'is-none') + prStats(d);
+  m('#m3prOut').innerHTML = head(m('#m3prOut'), 'Punt return outcomes', '', d.pr.n ? '' : 'is-none')
     + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody());
   /* S4 — the kicking game. */
   m('#m4fgDist').innerHTML = head(m('#m4fgDist'), 'Field goals by distance',
@@ -976,12 +975,12 @@ function render(d) {
      Field Goal stat rows. Stacked, they made that one module ~116px taller
      than FG Block and Tries beside it, so both of those carried a block of
      empty panel; split, the two heads of the band match. */
-  m('#m4fgOut').innerHTML = head(m('#m4fgOut'), 'Attempt outcomes', 'share of charted attempts',
+  m('#m4fgOut').innerHTML = head(m('#m4fgOut'), 'Attempt outcomes', '',
     d.fg.outcomes.length ? '' : 'is-none')
     + (d.fg.outcomes.length ? outcomes(d.fg.outcomes, d.fg.att) : noneBody());
-  m('#m4fg').innerHTML = head(m('#m4fg'), 'Field Goal', 'attempting', d.fg.att ? '' : 'is-none') + fgStats(d);
-  m('#m4fb').innerHTML = head(m('#m4fb'), 'FG Block', 'defending', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
-  m('#m4tr').innerHTML = head(m('#m4tr'), 'Tries', 'XP and 2-point', tryCharted ? '' : 'is-none') + trStats(d);
+  m('#m4fg').innerHTML = head(m('#m4fg'), 'Field Goal', '', d.fg.att ? '' : 'is-none') + fgStats(d);
+  m('#m4fb').innerHTML = head(m('#m4fb'), 'FG Block', '', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
+  m('#m4tr').innerHTML = head(m('#m4tr'), 'Tries', '', tryCharted ? '' : 'is-none') + trStats(d);
   /* No footnote here either. Field Goal, FG Block and Tries are three separate
      modules with three separate denominators, which is the whole point the
      paragraph was making; the composition already makes it. The try
@@ -990,13 +989,13 @@ function render(d) {
 
   /* S5 — specialists. */
   m('#m5ret').innerHTML = head(m('#m5ret'), 'Return game',
-    d.returners.length ? `${pl(d.returners.length, 'returner')} charted` : NO_DATA,
+    d.returners.length ? `${d.returners.length}` : NO_DATA,
     d.returners.length ? '' : 'is-none') + returnTable(d);
   m('#m5imp').innerHTML = head(m('#m5imp'), 'Impact plays',
     d.impact.length ? `${d.impact.reduce((s, i) => s + i[1], 0)} total` : NO_DATA,
     d.impact.length ? '' : 'is-none') + impactList(d);
   m('#m5kick').innerHTML = head(m('#m5kick'), 'Kicking and punting',
-    d.kickers.length ? `${pl(d.kickers.length, 'specialist')} charted` : NO_DATA,
+    d.kickers.length ? `${d.kickers.length}` : NO_DATA,
     d.kickers.length ? '' : 'is-none') + kickerTable(d);
 }
 

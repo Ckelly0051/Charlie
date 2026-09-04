@@ -180,6 +180,32 @@ reads it.
 Nothing replaces them. Each was the last band in its section, so removing it
 shortens the section and changes nothing above.
 
+### 2e · No explainer subtext anywhere — removed 2026-09-04
+
+The third and last sweep. Every line that described rather than measured is
+gone:
+
+| Removed | Was |
+|---|---|
+| Section rule descriptions | "Our coverage unit and our return unit — two separate teams, two separate problems" |
+| Descriptive module metas | `kicking`, `receiving`, `attempting`, `defending`, `XP and 2-point`, `share of charted kickoffs` |
+| Ledger role eyebrow | `KICKING` / `RECEIVING` / `ATTEMPTING` / `DEFENDING` above each unit name |
+| Reconciliation trailing clause | "— charted under a label the current model has no unit for" |
+| Empty-state body copy | "Chart kickoff, return, punt, field goal, and try units to populate this report." |
+
+The unit names carry the roles: a coach does not need `Kick Return` labeled
+*receiving*. The section rule keeps its name and its snap count and drops the
+sentence. The reconciliation line keeps every number and ends at
+`+ 1 unassigned`.
+
+**What was kept, and why.** Subtext that carries a number is not an explainer,
+so these stay: the KPI subs (`3 allowed`, `56% of 18 classified`, `1 return ·
+long 5`), the ledger headlines (`0% touchback`, `1 block allowed`), the section
+snap counts, and the toolbar sample line. Each is data that appears nowhere
+else on the board — `3 allowed` is the only place the opponent's special-teams
+points are stated. Say the word and they go too, but removing them deletes
+information rather than prose.
+
 ### 2a · Why the KPI band is six, not seven
 
 Production has seven KPI tiles. The seventh is **Impact Plays**, whose tile
