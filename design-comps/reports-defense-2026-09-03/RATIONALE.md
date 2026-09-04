@@ -249,6 +249,18 @@ Captures:
 5. **`Pressure` gains an `All pressure` total row.** It is a real aggregate,
    but it is a row production does not currently render.
 6. **The two empty-state and disclosure strings** are rewritten per §5.
+8. **The section nav is a TAB STRIP, not Offense's scroll-spy.** Five sections
+   shown one at a time. This is a real divergence: Offense scrolls one
+   continuous page with a sticky-style nav. If tabs are approved here, Offense
+   should follow, or the two tabs behave differently for no reason a coach can
+   explain. Approving Defense alone is a decision to live with that gap.
+9. **The scorebug is a LINESCORE, not the implemented name/score pair.** Team
+   rows with quarter columns and a total column. Same divergence question: if
+   approved, Overview and Offense should adopt it, since the pair layout has
+   the same formatting weaknesses on those tabs today.
+10. **Disruption sits in Defensive performance, not Situational results**, and
+    **Scheme by situation moved from Self-scout to Situational results.** Both
+    were rebalancing calls, not content changes -- nothing was added or lost.
 7. **Scorebug replaces the rail on Defense**, which means adding `defense` to
    `SCOREBUG_TABS` when this is implemented.
 

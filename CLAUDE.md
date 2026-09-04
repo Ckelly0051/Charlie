@@ -403,7 +403,16 @@ Non-negotiable:
   reference usually means the whole container is stranded.
 - **A check must be as strong as its name.** An assertion that cannot fail for
   the reason it claims is not coverage.
-- Commit at every baton pass. One builder and one independent reviewer per
+- **Commit the first working pass before revising it.** A coherent deliverable
+  gets a local commit as soon as it exists, so revisions have a restore point
+  and a reviewer has something fixed to read. Local is enough -- a reviewer
+  works this branch on this machine; a push is a separate decision.
+- **A design comp's decisions live in its RATIONALE.md, and every commit
+  touching a comp must name that file.** The comp directory is the deliverable;
+  the RATIONALE is where the production-to-comp mapping and the open approval
+  decisions are recorded, including any deliberate divergence from an already
+  accepted screen. **Reviewing a comp means reading its RATIONALE** -- a
+  divergence stated only in chat or only in a commit body is not recorded.- Commit at every baton pass. One builder and one independent reviewer per
   increment; documentation and the handoff are updated before the baton passes.
 - **Working tree:** never `git add -A` or `git add .`. Stage named paths. Never
   reset, clean, stash, or absorb another agent's uncommitted work — this repo
