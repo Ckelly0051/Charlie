@@ -897,10 +897,15 @@ function render(d) {
     ['Tries', tryCharted]];
   const sum = parts.reduce((s, p) => s + p[1], 0);
   const gap = d.snaps - sum;
-  $('#reconcile').innerHTML =
-    `<b>${d.snaps}</b> snaps = ` + parts.filter(p => p[1]).map(p => `${p[1]} ${esc(p[0].toLowerCase())}`).join(' + ')
-    + (gap > 0 ? ` + <b>${gap}</b> unassigned` : '');
-  $('#reconcile').hidden = !d.snaps;
+  /* Only the EXCEPTION, never the arithmetic. The full "74 snaps = 21 kickoff
+     + 12 kick return + ..." line restated the ledger directly above it, so it
+     is gone. What survives is the one fact the ledger cannot show: a snap that
+     belongs to no unit -- the legacy `Fake` label, which the model has no unit
+     for and which would otherwise vanish while still counting in ST Snaps.
+     When everything reconciles, this line does not render at all. */
+  $('#reconcile').innerHTML = gap > 0
+    ? `<b>${gap}</b> ${gap === 1 ? 'snap is' : 'snaps are'} not assigned to a unit` : '';
+  $('#reconcile').hidden = !(d.snaps && gap > 0);
 
   /* No legacy disclaimer band. Every field that has no sample already says
      "not charted" on its own row, and every unit with no snaps says so on its

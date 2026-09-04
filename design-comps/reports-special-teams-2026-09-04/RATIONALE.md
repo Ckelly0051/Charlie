@@ -131,7 +131,7 @@ Top to bottom:
 1. **Scope toolbar** — Full season / Current game, sample line, Export
 2. **KPI band, six across**
 3. **Unit ledger, six across** — every unit, always
-4. **Reconciliation line** — every snap accounted for
+4. **Unassigned-snap line** — only when one exists
 5. **Unit navigation, five surfaces**
 6. **The selected surface**
 
@@ -197,6 +197,23 @@ The unit names carry the roles: a coach does not need `Kick Return` labeled
 *receiving*. The section rule keeps its name and its snap count and drops the
 sentence. The reconciliation line keeps every number and ends at
 `+ 1 unassigned`.
+
+### 2f · The reconciliation arithmetic is gone — 2026-09-04
+
+The line under the ledger read
+`74 snaps = 21 kickoff + 12 kick return + 10 punt + 9 punt return + 21 tries + 1 unassigned`.
+**Charlie removed it: it restated the ledger sitting directly above it.**
+
+One fact in it was not a restatement — a snap belonging to **no** unit, which
+no ledger card can show, and which his own decision 6 requires stay disclosed.
+So the line now renders **only that exception** and nothing else:
+
+> **1** snap is not assigned to a unit
+
+When every snap reconciles it does not render at all, which is why it is absent
+from the populated and one-unit states and present only on the real season,
+where the legacy `Fake` play lives. The arithmetic is gone; the disclosure
+survives.
 
 **What was kept, and why.** Subtext that carries a number is not an explainer,
 so these stay: the KPI subs (`3 allowed`, `56% of 18 classified`, `1 return ·
