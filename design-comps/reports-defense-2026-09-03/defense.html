@@ -450,7 +450,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <section class="mod">
         <header><strong>Coverage</strong><span>shell</span></header>
         <div class="twrap"><table>
-          <thead><tr><th>Coverage</th><th>Snaps</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Avg</th><th>Stop%</th></tr></thead>
+          <thead><tr><th>Coverage</th><th>Snaps</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead>
           <tbody id="tCoverages"></tbody>
         </table></div>
       </section>
@@ -485,7 +485,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
       <section class="mod">
         <header><strong>Scheme by situation</strong><span>top call per bucket</span></header>
         <div class="twrap"><table>
-          <thead><tr><th>Situation</th><th>Snaps</th><th class="tl">Top front</th><th class="tl">Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th></tr></thead>
+          <thead><tr><th>Situation</th><th>Snaps</th><th class="tl">Top front</th><th class="tl">Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg yds</th></tr></thead>
           <tbody id="tSchemeSit"></tbody>
         </table></div>
       </section>
@@ -577,14 +577,14 @@ const SEASON = {
     ['4-2-5', 12, '3 / 9', 71, '5.9', '58.3%', '16.7%'],
   ],
   coverages: [
-    ['Cover 3', 58, 24, 13, 3, 4, '4.9', '65.5%'], ['Cover 1', 41, 18, 9, 2, 3, '5.2', '61.0%'],
-    ['Quarters', 33, 12, 10, 2, 2, '4.4', '69.7%'], ['Cover 2', 27, 13, 6, 0, 2, '5.6', '59.3%'],
-    ['Cover 0', 15, 6, 4, 0, 3, '5.8', '60.0%'],
+    ['Cover 3', 58, 24, 13, 3, 4, 284, '4.9', '65.5%'], ['Cover 1', 41, 18, 9, 2, 3, 213, '5.2', '61.0%'],
+    ['Quarters', 33, 12, 10, 2, 2, 145, '4.4', '69.7%'], ['Cover 2', 27, 13, 6, 0, 2, 151, '5.6', '59.3%'],
+    ['Cover 0', 15, 6, 4, 0, 3, 87, '5.8', '60.0%'],
   ],
   pressure: [
     ['No pressure', 102, 4, '14.7%', '5.4', '60.8%'], ['Edge', 34, 6, '26.5%', '4.6', '67.6%'],
     ['Mike', 22, 3, '27.3%', '4.5', '68.2%'], ['Nickel', 16, 1, '18.8%', '5.1', '62.5%'],
-    ['All pressure', 72, 10, '25.0%', '4.7', '66.7%'],
+    ['All blitzes', 72, 10, '25.0%', '4.7', '66.7%'],
   ],
   pressMeta: '41.4% blitz rate · 72 snaps',
   frontSit: [['4-3', 44, '40.0%', 18, '28.1%'], ['Nickel', 17, '15.5%', 31, '48.4%'],
@@ -599,7 +599,7 @@ const SEASON = {
   disruption: [
     ['Sacks', '14', '96 yds'], ['TFL', '20', 'behind the line'], ['Interceptions', '7', 'on 114 pass snaps'],
     ['Fumbles rec.', '4', 'of 6 forced'], ['Forced inc.', '42', '36.8% of passes'],
-    ['Blitz havoc', '25.0%', '18 of 72 pressures'], ['3-and-outs', '9', 'of 31 drives'],
+    ['Blitz havoc', '25.0%', '18 of 72 blitz snaps'], ['3-and-outs', '9', 'of 31 drives'],
     ['Havoc snaps', '34', '19.5% rate'],
   ],
   ident: [['Base front','4-3','62 snaps · 36%'],['Base coverage','Cover 3','58 snaps · 33%'],['Blitz rate','41.4%','72 of 174 snaps']],
@@ -612,12 +612,12 @@ const SEASON = {
     ['3rd & short', 'Blitz 59% is predictable but <b>working</b> — 70.6% stop rate, 17.6% havoc. The alignment is earning its keep.'],
   ],
   schemeSit: [
-    ['1st & 10', 68, '4-3 44%', 'Cover 3 38%', '32.4%', '62.2%', '17.6%'],
-    ['2nd & short', 21, 'Bear 43%', 'Cover 1 38%', '47.6%', '66.7%', '19.0%'],
-    ['2nd & long', 31, 'Nickel 52%', 'Quarters 39%', '38.7%', '61.3%', '19.4%'],
-    ['3rd & short', 17, 'Bear 47%', 'Cover 1 41%', '58.8%', '70.6%', '17.6%'],
-    ['3rd & long', 25, 'Nickel 78%', 'Cover 3 44%', '56.0%', '56.0%', '28.0%'],
-    ['Red zone', 17, 'Bear 41%', 'Cover 1 71%', '52.9%', '58.8%', '23.5%'],
+    ['1st & 10', 68, '4-3 44%', 'Cover 3 38%', '32.4%', '62.2%', '17.6%', '5.4'],
+    ['2nd & short', 21, 'Bear 43%', 'Cover 1 38%', '47.6%', '66.7%', '19.0%', '4.1'],
+    ['2nd & long', 31, 'Nickel 52%', 'Quarters 39%', '38.7%', '61.3%', '19.4%', '5.6'],
+    ['3rd & short', 17, 'Bear 47%', 'Cover 1 41%', '58.8%', '70.6%', '17.6%', '3.1'],
+    ['3rd & long', 25, 'Nickel 78%', 'Cover 3 44%', '56.0%', '56.0%', '28.0%', '5.4'],
+    ['Red zone', 17, 'Bear 41%', 'Cover 1 71%', '52.9%', '58.8%', '23.5%', '2.9'],
   ],
   tells: [
     ['3rd & long', 'Front', 'Alignment', 'Nickel', 78, '56.0%', '28.0%', 'exploitable', 25],
@@ -658,14 +658,14 @@ const GAME = {
     ['4-2-5', 3, '1 / 2', 11, '3.7', '66.7%', '33.3%'],
   ],
   coverages: [
-    ['Cover 3', 18, 7, 5, 1, 2, '4.0', '72.2%'], ['Cover 1', 13, 5, 3, 1, 1, '4.4', '69.2%'],
-    ['Quarters', 11, 4, 4, 1, 1, '3.6', '81.8%'], ['Cover 2', 8, 4, 2, 0, 0, '5.1', '62.5%'],
-    ['Cover 0', 4, 2, 1, 0, 1, '4.8', '75.0%'],
+    ['Cover 3', 18, 7, 5, 1, 2, 72, '4.0', '72.2%'], ['Cover 1', 13, 5, 3, 1, 1, 57, '4.4', '69.2%'],
+    ['Quarters', 11, 4, 4, 1, 1, 40, '3.6', '81.8%'], ['Cover 2', 8, 4, 2, 0, 0, 41, '5.1', '62.5%'],
+    ['Cover 0', 4, 2, 1, 0, 1, 19, '4.8', '75.0%'],
   ],
   pressure: [
     ['No pressure', 30, 1, '16.7%', '4.7', '70.0%'], ['Edge', 12, 3, '33.3%', '3.6', '75.0%'],
     ['Mike', 8, 1, '25.0%', '4.0', '75.0%'], ['Nickel', 4, 0, '25.0%', '4.3', '75.0%'],
-    ['All pressure', 24, 4, '29.2%', '3.8', '75.0%'],
+    ['All blitzes', 24, 4, '29.2%', '3.8', '75.0%'],
   ],
   pressMeta: '44.4% blitz rate · 24 snaps',
   frontSit: [['4-3', 13, '38.2%', 5, '25.0%'], ['Nickel', 5, '14.7%', 11, '55.0%'],
@@ -680,7 +680,7 @@ const GAME = {
   disruption: [
     ['Sacks', '5', '34 yds'], ['TFL', '7', 'behind the line'], ['Interceptions', '3', 'on 35 pass snaps'],
     ['Fumbles rec.', '1', 'of 2 forced'], ['Forced inc.', '14', '40.0% of passes'],
-    ['Blitz havoc', '25.0%', '6 of 24 pressures'], ['3-and-outs', '4', 'of 10 drives'],
+    ['Blitz havoc', '29.2%', '7 of 24 blitz snaps'], ['3-and-outs', '4', 'of 10 drives'],
     ['Havoc snaps', '13', '24.1% rate'],
   ],
   ident: [['Base front','4-3','18 snaps · 33%'],['Base coverage','Cover 3','18 snaps · 33%'],['Blitz rate','44.4%','24 of 54 snaps']],
@@ -691,11 +691,11 @@ const GAME = {
     ['3rd & short', 'Blitz 60% is predictable but <b>working</b> — 80.0% stop rate, 20.0% havoc. The alignment is earning its keep.'],
   ],
   schemeSit: [
-    ['1st & 10', 21, '4-3 43%', 'Cover 3 38%', '33.3%', '76.2%', '19.0%'],
-    ['2nd & long', 10, 'Nickel 50%', 'Quarters 40%', '40.0%', '70.0%', '30.0%'],
-    ['3rd & short', 5, 'Bear 60%', 'Cover 1 40%', '60.0%', '80.0%', '20.0%'],
-    ['3rd & long', 8, 'Nickel 75%', 'Cover 3 38%', '62.5%', '62.5%', '37.5%'],
-    ['Red zone', 5, 'Bear 40%', 'Cover 1 60%', '60.0%', '60.0%', '20.0%'],
+    ['1st & 10', 21, '4-3 43%', 'Cover 3 38%', '33.3%', '76.2%', '19.0%', '4.6'],
+    ['2nd & long', 10, 'Nickel 50%', 'Quarters 40%', '40.0%', '70.0%', '30.0%', '4.8'],
+    ['3rd & short', 5, 'Bear 60%', 'Cover 1 40%', '60.0%', '80.0%', '20.0%', '2.6'],
+    ['3rd & long', 8, 'Nickel 75%', 'Cover 3 38%', '62.5%', '62.5%', '37.5%', '4.6'],
+    ['Red zone', 5, 'Bear 40%', 'Cover 1 60%', '60.0%', '60.0%', '20.0%', '2.2'],
   ],
   tells: [
     ['3rd & long', 'Front', 'Alignment', 'Nickel', 75, '62.5%', '37.5%', 'exploitable', 8],

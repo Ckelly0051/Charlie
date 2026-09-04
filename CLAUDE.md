@@ -412,7 +412,8 @@ Non-negotiable:
   the RATIONALE is where the production-to-comp mapping and the open approval
   decisions are recorded, including any deliberate divergence from an already
   accepted screen. **Reviewing a comp means reading its RATIONALE** -- a
-  divergence stated only in chat or only in a commit body is not recorded.- Commit at every baton pass. One builder and one independent reviewer per
+  divergence stated only in chat or only in a commit body is not recorded.
+- Commit at every baton pass. One builder and one independent reviewer per
   increment; documentation and the handoff are updated before the baton passes.
 - **Working tree:** never `git add -A` or `git add .`. Stage named paths. Never
   reset, clean, stash, or absorb another agent's uncommitted work — this repo

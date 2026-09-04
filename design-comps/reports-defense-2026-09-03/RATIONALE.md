@@ -18,10 +18,10 @@ Offense runs six zones on a **12-column** rhythm because its KPI band is six
 tiles. Defense's performance band is **eight** values, and eight tiles cannot
 sit on a 12-column grid without a ragged last row.
 
-Defense therefore runs its own **4-column rhythm**: the KPI band is eight tiles
-in two rows of four, so its rules fall at 25 / 50 / 75%, and every band below
-divides at 50% or on those same three lines. It is internally consistent, and
-it is Defense's rhythm rather than Offense's forced onto it.
+Defense therefore runs its own rhythm: the KPI band is **eight tiles across in
+one row**, and every band below divides at 50%, which lands on that band's own
+centre rule. An earlier pass used two rows of four; it stretched each tile to
+~350px of mostly empty panel.
 
 Five sections, not six, and named for what a defensive coach is looking for:
 
@@ -33,9 +33,10 @@ Five sections, not six, and named for what a defensive coach is looking for:
 | 4 | Situational results | Down, distance, field position, and disruption |
 | 5 | Self-scout | Predictability and tendency tells |
 
-Section navigation is included because the report is long — production Defense
-is 4,575px at 1440 and the comp is comparable. It is the same scroll-spy
-control Offense uses.
+The five sections are a **TAB STRIP**: one section on screen at a time.
+Production Defense is a single 4,575px page at 1440, and as scroll anchors the
+five read as one undifferentiated report. This is a deliberate departure from
+Offense, which scrolls one continuous page — see decision 8.
 
 ---
 
@@ -56,15 +57,15 @@ accounted for. **Nothing was dropped to make the composition fit.**
 | Best Calls — `emptyAnswers` disclosure line | §2 note under the table | Retained verbatim in intent; wording tightened (see §5). |
 | **Game Trend** — `defGameColumns` table | §1 "Sample by game" | Retained. Moved to §1: the games charted *are* the sample, and the prompt asks the report to open with performance and sample context. |
 | **Situational Defense** — `defSitColumns` table | §4 "Situational defense" | Retained with all six columns. |
-| **Scheme Detail → Defensive Analytics** — havoc gauge + 7 stat cards | §4 "Disruption" | All values retained as film-clickable tiles. The gauge is dropped as a *drawing*; its number (havoc rate) is already a §1 KPI and appears again as a tile. See §4 decisions. |
+| **Scheme Detail → Defensive Analytics** — havoc gauge + 7 stat cards | §1 "Disruption" | All values retained as film-clickable tiles. The gauge is dropped as a *drawing*; its number (havoc rate) is already a §1 KPI and appears again as a tile. See §4 decisions. |
 | Scheme Detail — **Defensive Front Breakdown** | §3 "Front" | Retained, all seven columns. |
-| Scheme Detail — **Coverage Breakdown** | §3 "Coverage" | Retained, all nine columns. |
-| Scheme Detail — **Blitz Analysis** | §3 "Pressure" | Retained. Gains an `All pressure` aggregate row — a real total over the blitz rows, not a new metric. |
+| Scheme Detail — **Coverage Breakdown** | §3 "Coverage" | Retained, all nine columns including total Yds. |
+| Scheme Detail — **Blitz Analysis** | §3 "Pressure" | Retained. Gains an `All blitzes` aggregate row — a real total over the blitz-tagged snaps, not a new metric. |
 | Scheme Detail — **Early Downs / Passing Downs** front tables | §3 "Front by situation" | Retained. The two side-by-side tables become one table with an early-downs and a passing-downs column pair, which is the comparison the coach is actually making. |
 | **Defensive Self-Scout** — predictability meter | §5 "Predictability" | Retained. |
 | Defensive Self-Scout — `recommendations` | §5 "Predictability" | Retained, all four `DefRecommendation` kinds represented (exploitable-summary, exploitable-item, exploitable-more, dominant). |
 | Defensive Self-Scout — **Defensive Tendency Tells** table | §5 "Tendency tells" | Retained, all eight columns, including the lean bar and the verdict. Full width — it is the widest table in the report and the only one that earns it. |
-| Defensive Self-Scout — **Scheme by Situation** (`ddRows`) | §5 "Scheme by situation" | Retained. |
+| Defensive Self-Scout — **Scheme by Situation** (`ddRows`) | §4 "Scheme by situation" | Retained, with its Avg yds column. Moved beside Situational defense — see decision 10. |
 | Film activation on every row / tile / answer | Throughout | Retained. Every row that carries refs in production is a `cut` row here with hover, keyboard focus and a hand pointer. |
 | Top-level empty state | Empty state | Redesigned — see §6. |
 
@@ -106,14 +107,19 @@ Each team is now a row — name, four quarters, total — which is the box-score
 convention and answers all three at once. Score position is still structural:
 the four quarter columns and the total column are fixed and equal, so a score
 cannot move for a name length or for a 1-, 2- or 3-digit value. The name
-column is bounded on its own and truncates with the full value in a tooltip.
+column is sized to the longest name and **never truncates or wraps** — the
+scorebug's regions flow, so if they cannot share one row the bug becomes two
+rows rather than cutting a word.
 
 Measured across populated and long-name / three-digit states:
 
-| Width | Both totals | Quarter header |
+| Width | Both totals (populated) | Both totals (long names, 3-digit) |
 |---|---|---|
-| 1440 | 540 | 16 |
-| 1280 | 332 | 16 |
+| 1440 | 364 | 548 |
+| 1280 | 364 | 548 |
+
+ The pair moves together with the name column and stays in ONE track, which is
+ the property that matters: neither score can move independently of the other.
 
 **Both team rows carry the same weight and ink.** An earlier pass bolded our
 team and dimmed the opponent; that spends legibility restating what the score
@@ -130,9 +136,9 @@ six columns across 1,400px. In the comp:
 - Opponent play type (6 rows) ‖ Best call by play type (5 rows)
 - Front (5 rows) ‖ Coverage (5 rows)
 - Pressure (5 rows) ‖ Front by situation (5 rows)
-- Situational defense (7 rows) ‖ Disruption (8 tiles, 4 × 2)
-- Predictability (meter + 5 recommendations) ‖ Scheme by situation (6 rows)
-- Tendency tells — full width, 8 columns
+- Disruption — full width, 8 tiles in four columns (section 1)
+- Situational defense (7 rows) ‖ Scheme by situation (6 rows)
+- Predictability (meter + 5 recommendations) ‖ Tendency tells (5 rows, 8 columns)
 
 Measured result: **zero modules fall more than 40px short of their band** at
 1920, 1440 and 1280, in every state.
@@ -246,7 +252,8 @@ Captures:
    places and gains a film action. Confirm the arc is not wanted.
 4. **`Early Downs` and `Passing Downs` merge** into one `Front by situation`
    table with paired columns instead of two side-by-side tables.
-5. **`Pressure` gains an `All pressure` total row.** It is a real aggregate,
+5. **`Pressure` gains an `All blitzes` total row.** It is a real aggregate over
+   blitz-tagged snaps, counted as distinct plays,
    but it is a row production does not currently render.
 6. **The two empty-state and disclosure strings** are rewritten per §5.
 8. **The section nav is a TAB STRIP, not Offense's scroll-spy.** Five sections
