@@ -2014,3 +2014,74 @@
 .gi-reports [data-pane="defense"] .gi-reports-empty-cta:focus-visible{
   outline:2px solid var(--gi-bd-cyan);outline-offset:2px
 }
+
+/* Best-call answer cells arrived as bordered boxes on a filled surface, so
+   every cell read as a selected control and the four columns could not fit
+   the module -- the Blitz decision column ran off the right edge into the
+   wrap's scroller. They are plain cells now: the value in strong ink, its
+   sample beneath, cyan reserved for hover and focus. */
+.gi-reports .gi-defense-board .gi-def-answer{
+  display:block;width:100%;min-height:0;padding:5px 0;
+  border:0;border-radius:0;background:transparent;color:inherit;text-align:right
+}
+.gi-reports .gi-defense-board .gi-def-answer:hover{ background:transparent;border:0 }
+.gi-reports .gi-defense-board .gi-def-answer:hover strong{ color:var(--gi-bd-cyan) }
+.gi-reports .gi-defense-board .gi-def-answer:focus-visible{
+  outline:2px solid var(--gi-bd-cyan);outline-offset:2px;background:transparent
+}
+.gi-reports .gi-defense-board .gi-def-answer strong{
+  display:block;color:var(--bd-ink);font:600 12px/1.3 var(--gi-sans)
+}
+.gi-reports .gi-defense-board .gi-def-answer span{
+  display:block;margin-top:2px;color:var(--bd-ink-2);font:400 10.5px/1.35 var(--gi-sans)
+}
+.gi-reports .gi-defense-board .gi-def-no-sample{ color:var(--bd-ink-3);font:400 11px/1.3 var(--gi-sans) }
+.gi-reports .gi-defense-board .gi-def-answers td:first-child small{
+  display:block;margin-top:2px;color:var(--bd-ink-2);font:400 10.5px/1.35 var(--gi-sans)
+}
+
+/* Self-scout marks inherited from the pre-broadcast tab: the lean bars were
+   gold-filled (Offense's accent, on a Defense report), the assessments were
+   bright filled pills, and each recommendation carried a heavy coloured left
+   bar so the list read as a stack of alerts. Same information, board
+   treatment: the lean is a proportion bar in the board's own control surface,
+   the assessment is toned text, and a recommendation is a panel row. */
+.gi-reports .gi-defense-board .ss-bar{
+  display:inline-block;min-width:104px;padding:2px 7px;
+  background:linear-gradient(90deg,var(--bd-panel-3) var(--p,0%),transparent var(--p,0%));
+  color:var(--bd-ink);font:600 11px/1.45 var(--gi-sans);text-align:left;border-radius:0
+}
+.gi-reports .gi-defense-board .ss-bar-run,
+.gi-reports .gi-defense-board .ss-bar-pass{ background-image:linear-gradient(90deg,var(--bd-panel-3) var(--p,0%),transparent var(--p,0%)) }
+.gi-reports .gi-defense-board .ss-verdict{
+  padding:0;background:transparent;border:0;border-radius:0;
+  font:600 11px/1.45 var(--gi-sans)
+}
+.gi-reports .gi-defense-board .ss-verdict-dominant{ color:var(--gi-bd-win) }
+.gi-reports .gi-defense-board .ss-verdict-effective{ color:var(--bd-ink-2) }
+.gi-reports .gi-defense-board .ss-verdict-exploitable{ color:var(--gi-bd-loss) }
+.gi-reports .gi-defense-board .gi-def-recs .ss-rec{
+  border:0;border-left:0;border-radius:0;margin:0
+}
+.gi-reports .gi-defense-board .ss-dim{ color:var(--bd-ink-3);font:400 10.5px/1.35 var(--gi-sans) }
+
+/* A module is as tall as its band. Non-table content distributes into that
+   height rather than leaving the panel short: the run/pass film buttons, the
+   disruption tiles and the recommendation rows stretch. Tables are left alone
+   -- stretching their rows would distort the row rhythm to fill space. */
+.gi-reports .gi-defense-board .gi-overview-module{ display:flex;flex-direction:column }
+.gi-reports .gi-defense-board .gi-overview-module>header{ flex:0 0 auto }
+.gi-reports .gi-defense-board .gi-def-type-totals,
+.gi-reports .gi-defense-board .gi-def-tiles,
+.gi-reports .gi-defense-board .gi-def-recs{ flex:1 0 auto }
+.gi-reports .gi-defense-board .gi-def-type-totals{ grid-auto-rows:minmax(0,1fr) }
+/* One-line answer cells: the value and its evidence read as one statement. */
+.gi-reports .gi-defense-board .gi-def-answer strong{ display:inline;font:600 12px/1.4 var(--gi-sans) }
+.gi-reports .gi-defense-board .gi-def-answer span{ display:inline;margin:0;color:var(--bd-ink-2) }
+
+/* The play-type cell reads on one line. */
+.gi-reports .gi-defense-board .gi-def-answers td:first-child strong{ display:inline }
+.gi-reports .gi-defense-board .gi-def-answers td:first-child small{ display:inline;margin:0 }
+/* Film buttons are targets as well as readouts; two of them fill the band
+   beside a three-row table rather than ending 80px short. */
+.gi-reports .gi-defense-board .gi-def-type-summary{ min-height:74px }

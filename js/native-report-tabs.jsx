@@ -596,7 +596,7 @@ function DefAnswerCell({ answer, screen }) {
   if (!answer) return <span class="gi-def-no-sample">Not enough snaps</span>;
   const label = `${answer.name} answer`;
   return <WatchableRefs tag="button" type="button" class="gi-def-answer" refs={answer.refs} label={label} screen={screen}>
-    <strong>{answer.name}</strong><span>{answer.stopRate}% stop · {answer.yardsPerPlay.toFixed(1)} yds/play · {answer.n} snaps</span>
+    <strong>{answer.name}</strong> <span>{answer.stopRate}% stop · {answer.yardsPerPlay.toFixed(1)} y/p · {answer.n}</span>
   </WatchableRefs>;
 }
 
@@ -851,17 +851,26 @@ function schemeParts(d, screen, engine) {
     <p class="gi-def-note">All blitzes counts distinct blitz-tagged snaps. Sacks, average yards and stop rate are not aggregated across blitz types, because a snap can carry more than one blitz tag.</p>
   </Module> : null;
 
-  const sits = [d.earlyDownFronts, d.passingDownFronts].filter(s => s.fronts.length > 0);
-  const frontSituation = sits.length ? <Module title="Front by situation" meta="early vs passing downs">
-    {sits.map(sit => <div key={sit.label} class="gi-def-subtable">
-      <h4>{sit.label} ({sit.total})</h4>
-      <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
-        <thead><tr><th>Front</th><th>Snaps</th><th>%</th></tr></thead>
-        <tbody>{sit.fronts.map(([name, count]) => <tr key={name}>
-          <td>{name}</td><td>{count}</td><td>{sit.total ? (count / sit.total * 100).toFixed(0) : 0}%</td>
+  // One table with an early-downs and a passing-downs column pair, per the
+  // approved comp: the comparison a coach is making is "what do we line up in
+  // on early downs versus passing downs", which two stacked tables make the
+  // reader do in their head.
+  const early = d.earlyDownFronts, passing = d.passingDownFronts;
+  const frontNames = [...new Set([...early.fronts, ...passing.fronts].map(([name]) => name))];
+  const countIn = (sit, name) => (sit.fronts.find(([n]) => n === name) || [, 0])[1];
+  const shareIn = (sit, name) => sit.total ? (countIn(sit, name) / sit.total * 100).toFixed(0) : '0';
+  const frontSituation = frontNames.length ? <Module title="Front by situation" meta="early vs passing downs">
+    <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+      <thead><tr><th>Front</th><th>Early downs</th><th>%</th><th>Passing downs</th><th>%</th></tr></thead>
+      <tbody>{frontNames
+        .sort((a, b) => (countIn(early, b) + countIn(passing, b)) - (countIn(early, a) + countIn(passing, a)))
+        .map(name => <tr key={name}>
+          <td>{name}</td>
+          <td>{countIn(early, name)}</td><td>{shareIn(early, name)}%</td>
+          <td>{countIn(passing, name)}</td><td>{shareIn(passing, name)}%</td>
         </tr>)}</tbody>
-      </table></div>
-    </div>)}
+    </table></div>
+    <p class="gi-def-note">{early.total} early-down snaps · {passing.total} passing-down snaps.</p>
   </Module> : null;
 
   return { disruption, fronts, coverages, blitzes, frontSituation };
@@ -1027,7 +1036,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         {qualifiedAnswers.length > 0 ? <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
           <thead><tr><th>Play type</th><th>Best front</th><th>Best coverage</th><th>Blitz decision</th></tr></thead>
           <tbody>{qualifiedAnswers.map(row => <tr key={row.playType}>
-            <td><strong>{row.playType}</strong><small>{row.n} snaps</small></td>
+            <td><strong>{row.playType}</strong> <small>{row.n} snaps</small></td>
             <td><DefAnswerCell answer={row.front} screen={screen} /></td>
             <td><DefAnswerCell answer={row.coverage} screen={screen} /></td>
             <td><DefAnswerCell answer={row.pressure} screen={screen} /></td>
@@ -1037,6 +1046,12 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
       </Module>
     </div>}
 
+    {/* Paired, per the approved comp. A probe reported Front overflowing by
+        116px at half width and I widened it to a full band; that reading was
+        the DefMark tooltip, which is position:absolute and visibility:hidden,
+        so it adds to scrollWidth while occupying no visible space. Nothing was
+        cut off, and full width gave these tables the long horizontal eye
+        travel the pairing exists to avoid. */}
     {section === 'd3' && <>
       <div class="gi-def-band gi-def-band-2">{scheme.fronts}{scheme.coverages}</div>
       <div class="gi-def-band gi-def-band-2">{scheme.blitzes}{scheme.frontSituation}</div>
@@ -1051,8 +1066,12 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
       {scout.schemeBySituation}
     </div>}
 
+    {/* Stacked, not paired: the tells table runs ten rows against a meter and
+        a short list, so side by side left ~150px under Predictability. Each
+        reads at its own natural length this way. */}
     {section === 'd5' && <>
-      <div class="gi-def-band gi-def-band-2">{scout.predictability}{scout.tells}</div>
+      <div class="gi-def-band gi-def-band-1">{scout.predictability}</div>
+      <div class="gi-def-band gi-def-band-1">{scout.tells}</div>
     </>}
   </div>;
 }
