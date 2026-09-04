@@ -55,12 +55,20 @@ const scan = () => page.evaluate(() => {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };
-  [...root.querySelectorAll('h1, h2, h3, h4, h5')].filter(visible).forEach(el => {
+  // The Offense and Defense boards title their modules with
+  // <header><strong>, not <h4>. Those ARE headings in the product sense
+  // and are exactly where conversational copy would appear, so the standard
+  // has to see them -- when the boards moved to that markup the sweep silently
+  // stopped covering every module title on two routes.
+  const HEADING_SELECTOR = 'h1, h2, h3, h4, h5,'
+    + ' .gi-overview-module > header > strong, .gi-zone-rule h2, .gi-def-secrule h2';
+  [...root.querySelectorAll(HEADING_SELECTOR)].filter(visible).forEach(el => {
     headings++;
     const text = (el.textContent || '').trim();
     if (openers.test(text) || text.endsWith('?')) bad.push(`HEAD "${text}"`);
   });
-  [...root.querySelectorAll('.viz-caption, .self-scout-intro, figcaption, .gi-lens-head p')]
+  [...root.querySelectorAll('.viz-caption, .self-scout-intro, figcaption, .gi-lens-head p,'
+    + ' .gi-overview-module > header > span, .gi-zone-rule p, .gi-def-secrule p, .gi-def-note')]
     .filter(visible).forEach(el => {
       captions++;
       const text = (el.textContent || '').trim();
@@ -100,6 +108,20 @@ for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'self
   await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`)?.click(), tab);
   await new Promise(r => setTimeout(r, 600));
   record(`reports/${tab}`, await scan());
+  // Defense presents its five sections as a tab strip, so four fifths of its
+  // copy is off-DOM at any moment. The sweep walks them the same way it
+  // already walks Season's sub-tabs -- otherwise the copy standard silently
+  // stops covering most of the route.
+  if (tab === 'defense') {
+    const labels = await page.evaluate(() =>
+      [...document.querySelectorAll('.gi-def-secnav-item')].map(b => b.textContent.trim()));
+    for (const label of labels) {
+      await page.evaluate(l => [...document.querySelectorAll('.gi-def-secnav-item')]
+        .find(b => b.textContent.trim() === l)?.click(), label);
+      await new Promise(r => setTimeout(r, 450));
+      record(`reports/defense/${label.replace(/^\d/, '')}`, await scan());
+    }
+  }
   if (tab === 'season') {
     for (const sub of ['offense', 'defense', 'special', 'players', 'scout', 'trends']) {
       await page.evaluate(s => document.querySelector(`[data-pane="season"] .gi-subtab[data-subtab="${s}"]`)?.click(), sub);

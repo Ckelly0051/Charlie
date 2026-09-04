@@ -90,7 +90,7 @@ ok(r.hasDefSection, 'Self-Scout pane contains .ss-def-section', JSON.stringify(r
 ok(r.hasDefScoutHeading, 'Self-Scout pane shows the "Defensive Self-Scout" heading', JSON.stringify(r));
 
 console.log('\n== 3. Mixed offense+defense: both tabs show the defensive scheme section ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const mk = window.__mk;
   const plays = [];
   // Offensive plays so the offensive self-scout (ssReport) is non-null.
@@ -111,10 +111,17 @@ r = await page.evaluate(() => {
   window.app.reportsScreen.selectTab('selfscout');
   const selfScoutHasDef = !!document.querySelector('#statsDashboard [data-pane="selfscout"] .ss-def-section');
   window.app.reportsScreen.selectTab('defense');
+  // Defense shows one SECTION at a time (2026-09-04). The scheme tells live in
+  // section 5, so its tab is activated before the pane is read.
+  [...document.querySelectorAll('.gi-def-secnav-item')]
+    .find(b => b.textContent.includes('Self-scout'))?.click();
+  // A tab click is Preact state and flushes on a deferred frame; reading in
+  // the same tick reads the previous section.
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const def = document.querySelector('#statsDashboard [data-pane="defense"]');
   return {
     selfScoutHasDef,
-    defenseHasScheme: !!def?.querySelector('.ss-def-section'),
+    defenseHasScheme: !!def?.querySelector('.ss-tells'),
     defenseHasHavoc: /Havoc/.test(def?.innerHTML || '')
   };
 });

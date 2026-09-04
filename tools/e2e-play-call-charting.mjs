@@ -190,9 +190,18 @@ state = await page.evaluate(async () => {
   // both render through the shared DataTable component and share its default
   // 'stats-table stats-table-full' class with nothing distinguishing them --
   // find each by its own sibling <h4> label instead of a dedicated class.
-  const callGrid = [...root.querySelectorAll('.gi-call-grid > div')];
-  const callModule = callGrid.find(node => node.querySelector('h4')?.textContent.trim() === 'Call performance');
-  const conceptModule = callGrid.find(node => node.querySelector('h4')?.textContent.trim() === 'Concept roll-up');
+  // The Offense pass (2026-09-03) made Play calls and Concepts peer modules in
+  // a band and retired the .gi-call-grid wrapper, so this lookup had been
+  // finding nothing. Same two tables, same contract, addressed by their own
+  // module titles.
+  
+const callGrid = [...root.querySelectorAll('.gi-overview-module')];
+  
+const titleOf = node => node.querySelector('header strong')?.textContent.trim();
+  
+const callModule = callGrid.find(node => titleOf(node) === 'Play calls');
+  
+const conceptModule = callGrid.find(node => titleOf(node) === 'Concepts');
   const blastRow = [...(callModule?.querySelectorAll('tbody tr') || [])]
     .find(row => row.cells[0]?.textContent.trim() === '26 Blast');
   const contexts = [...root.querySelectorAll('.gi-call-context')];
