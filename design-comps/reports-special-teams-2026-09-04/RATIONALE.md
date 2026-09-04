@@ -92,9 +92,35 @@ Top to bottom:
 2. **KPI band, six across**
 3. **Unit ledger, six across** — every unit, always
 4. **Reconciliation line** — every snap accounted for
-5. **Legacy banner** — only when the season is legacy-charted
-6. **Unit navigation, five surfaces**
-7. **The selected surface**
+5. **Unit navigation, five surfaces**
+6. **The selected surface**
+
+### 2c · No legacy disclaimer band — removed 2026-09-04
+
+An earlier pass put a gold-ruled `DETAIL UNCHARTED` banner above the navigation
+on any legacy-charted season, restating in a paragraph that distance, net, and
+coverage had no sample. **Charlie removed it**, and it was the right call:
+every field without a sample already says `not charted` on its own row, every
+unit without snaps says so on its own ledger card, and the FG Block module
+still carries the legacy explanation in the one place it is load-bearing. The
+banner told the coach in prose what the numbers were already telling him —
+above the numbers, on the state he opens most often.
+
+**Nothing replaces it, and nothing should.** The board is a vertical stack of
+full-width bands, so removing one closes the stack up rather than leaving a
+hole. Measured at 1440×900 on the real season:
+
+| Section | Before | After |
+|---|---|---|
+| All units | 1221 | 1160 |
+| Kickoff & Kick Return | 1086 | 1025 |
+| Punt & Punt Return | 1160 | 1098 |
+| Kicking game | 907 | **900 — now fits one screen, no scroll** |
+| Specialists | 1134 | 1072 |
+
+Every legacy section is ~61px shorter, and Kicking Game crossed back under the
+fold. The gain lands entirely in the states built from the coach's real film,
+which is where it matters.
 
 ### 2a · Why the KPI band is six, not seven
 

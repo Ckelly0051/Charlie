@@ -300,11 +300,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 .defs b{color:var(--gi-bd-strong);font-weight:600}
 .defs i{font-style:normal;color:var(--gi-bd-cyan);font-weight:600}
 .sparse{margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)}
-.uncharted{display:flex;align-items:center;gap:var(--gi-3x);margin:0 0 4px;padding:var(--gi-3x) var(--gi-4x);
-  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-gold)}
-.uncharted strong{flex:0 0 auto;color:var(--gi-bd-gold);font:700 10px/1 var(--gi-cond);
-  letter-spacing:.15em;text-transform:uppercase}
-.uncharted p{margin:0;min-width:0;color:var(--gi-bd-copy);font:400 11.5px/1.45 var(--gi-sans)}
 .empty{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);
   margin:0 0 4px;padding:var(--gi-4x);background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
 .empty h3{margin:0 0 3px;font:700 13px/1.2 var(--gi-cond);letter-spacing:.06em;text-transform:uppercase}
@@ -393,11 +388,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
     <div class="ledger" id="ledger"></div>
 
     <p class="note" id="reconcile" style="margin:0 0 4px;padding:6px var(--gi-3x);background:var(--gi-bd-panel)"></p>
-
-    <div class="uncharted" id="unchartedBanner" hidden>
-      <strong>Detail uncharted</strong>
-      <p id="unchartedCopy"></p>
-    </div>
 
     <div class="snav" role="tablist" aria-label="Special Teams units">
       <button type="button" data-sec="s1" class="on" aria-selected="true"><b id="nAll">0</b>All units</button>
@@ -919,14 +909,11 @@ function render(d) {
     + (gap > 0 ? ` — charted under a label the current model has no unit for.` : '');
   $('#reconcile').hidden = !d.snaps;
 
-  const legacyMissing = d.legacy;
-  $('#unchartedBanner').hidden = !legacyMissing;
-  if (legacyMissing) {
-    $('#unchartedCopy').innerHTML =
-      `This season is charted in the legacy Special Teams fields. Kick distance, hang time, and return `
-      + `yardage were not entered on these plays, so distance, net, and coverage measures have no sample. `
-      + `Snap counts, outcomes, scoring, and specialists are unaffected.`;
-  }
+  /* No legacy disclaimer band. Every field that has no sample already says
+     "not charted" on its own row, and every unit with no snaps says so on its
+     own ledger card, so a banner restating that in paragraph form was telling
+     the coach something the numbers already told him -- in more words, above
+     the numbers, on the state he opens most often. */
 
   const snapsKo = d.kickoffs.n + d.kr.n, snapsPt = d.punts.n + d.pr.n;
   const snapsKg = d.fg.att + (d.blocks.na ? 0 : d.blocks.n) + tryCharted;
