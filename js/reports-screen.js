@@ -2,7 +2,7 @@ import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
 import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, OpponentOverviewTab, OpponentOffenseTab, OpponentDefenseTab, OpponentSpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Charts } from './charts.js';
-import { buildDefenseHtmlReport, buildSelfScoutHtmlReport } from './html-report.js';
+import { buildDefenseHtmlReport, buildSelfScoutHtmlReport, buildSpecialTeamsHtmlReport } from './html-report.js';
 
 const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']);
 
@@ -183,6 +183,23 @@ export class ReportsScreen {
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
     const html = buildDefenseHtmlReport({ title: `Defensive Report: ${team}`, report, stats, defScout, scopeLabel });
     window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `defensive_report_${new Date().toISOString().slice(0, 10)}.html`);
+    return true;
+  }
+
+  /**
+   * Special Teams export. Coach decision, 2026-09-04: reuse the existing
+   * Reports export mechanism, do NOT build a Special-Teams-only exporter. So
+   * this is the same shape `exportDefense`/`exportSelfScout` already use --
+   * compose the report's own model, render it through the shared HTML report
+   * builder, and save through the one `window.ffaSaveBlob` seam. No new save
+   * path, no second export subsystem.
+   */
+  exportSpecialTeams(stats, summary) {
+    if (!stats) return false;
+    const scopeLabel = this.specialTeamsScope === 'season' ? 'Full season' : 'Current game';
+    const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Special Teams';
+    const html = buildSpecialTeamsHtmlReport({ title: `Special Teams Report: ${team}`, stats, summary, scopeLabel });
+    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `special_teams_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }
 

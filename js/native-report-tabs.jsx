@@ -1221,19 +1221,71 @@ export function OpponentSpecialTeamsTab({ data, screen }) {
   return <SpecialTeamsTab stats={data.stStats} summary={summary} screen={screen} fixedScope title="Their Special Teams"
     toolbarAction={<OpponentWatch kind="special" count={data.stCount} label="Watch opponent Special Teams" screen={screen} />} />;
 }
-/** One compact phase card (Kickoffs / Kick Returns / Punts / Punt Returns /
- *  Field Goals / Conversions) -- the "phase summary" band. Unlike Defense's
- *  per-row film links, a phase card's content is a fixed handful of aligned
- *  stat lines rather than a table, so the whole card body is one click-to-
- *  film affordance (`WatchableRefs` wrapping `RowList`) instead of wiring
- *  each line separately. Renders nothing clickable when the phase has no
- *  resolvable refs, same rule as every other migrated surface. */
-function SpecialTeamsPhase({ phase, screen }) {
-  return <Module title={phase.title}>
-    <WatchableRefs tag="div" refs={phase.refs} label={phase.label} screen={screen}>
-      <RowList rows={phase.rows} />
-    </WatchableRefs>
+/** The five Special Teams surfaces. Not one tab per unit: a coordinator studies
+ *  the kicking unit against the receiving unit that faces it, so each pair is
+ *  co-located. The units stay DISTINCT inside a surface -- separate modules,
+ *  separate denominators -- they are never merged. */
+const ST_SECTIONS = [
+  { id: 'st1', label: 'All units' },
+  { id: 'st2', label: 'Kickoff & Kick Return' },
+  { id: 'st3', label: 'Punt & Punt Return' },
+  { id: 'st4', label: 'Kicking game' },
+  { id: 'st5', label: 'Specialists' },
+];
+
+/** Aligned label/value lines. A null value is the report's one absence label. */
+function StatRows({ rows }) {
+  return <div class="gi-st-rows">{rows.map((row, i) => <div key={i} class="gi-st-row">
+    <span>{row.label}</span>
+    <strong class={`${row.value == null ? 'is-blank' : (row.cls || '')}${row.sub ? ' is-sub' : ''}`}>
+      {row.value == null ? view.ST_NO_DATA : row.value}
+    </strong>
+  </div>)}</div>;
+}
+
+/** One unit module. An empty unit says so and shows nothing else -- never a
+ *  zero, because zero snaps is not zero performance. */
+function UnitModule({ title, meta, rows, refs, label, screen, cls = '' }) {
+  const empty = !rows.length;
+  return <Module title={title} meta={empty ? '' : meta} cls={`gi-st-unit${empty ? ' is-none' : ''} ${cls}`}>
+    {empty
+      ? <p class="gi-st-empty">{view.ST_NO_DATA}</p>
+      : <WatchableRefs tag="div" refs={refs} label={label} screen={screen}><StatRows rows={rows} /></WatchableRefs>}
   </Module>;
+}
+
+/** How a unit's snaps actually ended. Each bar opens exactly its own plays. */
+function OutcomeBars({ items, screen, unit }) {
+  if (!items.length) return <p class="gi-st-empty">{view.ST_NO_DATA}</p>;
+  const max = Math.max(1, ...items.map(item => item.n));
+  return <div class="gi-st-outcomes">{items.map(item => {
+    const label = `${unit} — ${item.label}`;
+    return <WatchableRefs key={item.key} tag="button" type="button" class="gi-st-outcome"
+      refs={item.refs} label={label} screen={screen} title={`${label} · ${item.n}`}>
+      <span class="gi-st-outcome-label">{item.label}</span>
+      <span class="gi-st-outcome-bar">
+        {item.tone === 'blank' ? null : <i class={item.tone ? `is-${item.tone}` : ''}
+          style={`width:${Math.round(item.n / max * 100)}%`} />}
+      </span>
+      <span class="gi-st-outcome-value">{item.n} · {item.pct}%</span>
+    </WatchableRefs>;
+  })}</div>;
+}
+
+/** The unit ledger -- all six units, always, including the empty ones. */
+function UnitLedger({ units, screen }) {
+  return <div class="gi-st-ledger">{units.map(unit => unit.blank
+    ? <div key={unit.key} class="gi-st-unit-card is-none">
+        <span class="gi-st-unit-name">{unit.name}</span>
+        <span class="gi-st-unit-n">{view.ST_NO_DATA}</span>
+      </div>
+    : <WatchableRefs key={unit.key} tag="button" type="button" class="gi-st-unit-card"
+        refs={unit.refs} label={`${unit.name} — ${unit.n} snaps`} screen={screen}>
+        <span class="gi-st-unit-name">{unit.name}</span>
+        <span class="gi-st-unit-n">{unit.n} <i>snaps</i></span>
+        <span class="gi-st-unit-head">{unit.headline}</span>
+      </WatchableRefs>)}
+  </div>;
 }
 
 /** Special Teams Presentation Independence -- a real Preact re-derivation of
@@ -1265,17 +1317,17 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
   const conv = stats.conversions;
   const hasIndividuals = (stats.individuals?.returners?.length || 0) > 0 || (stats.individuals?.kickers?.length || 0) > 0;
   if (!st?.hasData && !conv?.hasData && !hasIndividuals) {
-    return <EmptyState title="No Special Teams snaps charted" body="Chart kickoff, return, punt, field goal, and try units to populate this report." />;
+    return <EmptyState title="No Special Teams snaps charted" body=""
+      action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
   }
   const kpis = view.specialTeamsKpis(stats, summary);
-  const phases = view.specialTeamsPhases(stats);
-  const fgHasAttempts = !!st?.fg?.att;
-  const fgRows = (st?.fg?.byDist || []).map(bucket => {
-    const label = `Field goals ${bucket.label} — ${bucket.att} attempt${bucket.att === 1 ? '' : 's'}`;
-    return { id: bucket.label, label, dist: bucket.label, made: bucket.made, att: bucket.att,
-      pct: bucket.att ? Math.round(bucket.made / bucket.att * 100) : 0,
-      onActivate: bucket.refs?.length ? () => screen.watchRefs(bucket.refs, label) : undefined };
-  });
+  const [section, setSection] = useState('st1');
+  const units = view.specialTeamsUnits(stats);
+  const unit = key => units.find(u => u.key === key) || { n: null, refs: [] };
+  const rowsFor = key => view.specialTeamsUnitRows(stats, key);
+  const outcomesFor = key => view.specialTeamsOutcomes(stats, key);
+  const unassigned = view.specialTeamsUnassigned(stats, summary);
+
   const tables = view.individualStats(stats, 'special', num => engine._playerLabel(num));
   const returnTable = tables.find(table => table.key === 'returns');
   const specialistTable = tables.find(table => table.key === 'kicking');
@@ -1284,41 +1336,170 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
     return { id: item.label, type: item.label, plays: item.n,
       onActivate: item.refs?.length ? () => screen.watchRefs(item.refs, label) : undefined, label };
   });
-  return <div class="gi-overview-board">
+  const tryRows = rowsFor('tries');
+  const tryCharted = st?.tries?.n != null ? st.tries.n : ((conv?.xp?.att || 0) + (conv?.two?.att || 0));
+
+  const sectionCounts = {
+    st1: summary.snaps.n,
+    st2: (unit('kickoff').n || 0) + (unit('kickReturn').n || 0),
+    st3: (unit('punt').n || 0) + (unit('puntReturn').n || 0),
+    st4: (unit('fieldGoal').n || 0) + (unit('fieldGoalBlock').n || 0) + tryCharted,
+    st5: (returnTable?.rows.length || 0) + (specialistTable?.rows.length || 0),
+  };
+  const meta = ST_SECTIONS.find(s => s.id === section) || ST_SECTIONS[0];
+
+  // `long` is the longest MADE kick, so attempts with no make leave it
+  // unavailable. It must never render 0 -- a zero-yard field goal is not a
+  // thing, and reading an absence as one inverts the whole report.
+  const fgMeta = st?.fg?.att
+    ? `${st.fg.made}/${st.fg.att} made · ${st.fg.pct}% · long ${st.fg.long ? `${st.fg.long} yds` : view.ST_NO_DATA}`
+    : '';
+  const BUCKETS = ['<30', '30-39', '40-49', '50+'];
+  const byDist = new Map((st?.fg?.byDist || []).map(b => [b.label, b]));
+
+  return <div class="gi-overview-board gi-st-board">
     <div class="gi-st-toolbar">
-      <strong class="gi-st-toolbar-label">{title}</strong>
-      {!fixedScope && <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
-        <button type="button" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
-          onClick={() => { screen.specialTeamsScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
-        <button type="button" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
-          onClick={() => { screen.specialTeamsScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
-      </div>}
-      {toolbarAction}
-    </div>
-    <KpiBand items={kpis} />
-    {phases.length > 0 && <div class="gi-overview-band gi-overview-band-auto">
-      {phases.map(phase => <SpecialTeamsPhase key={phase.key} phase={phase} screen={screen} />)}
-    </div>}
-    {(returnTable || fgHasAttempts || specialistTable || impactRows.length > 0) &&
-      <div class={`gi-overview-band gi-st-detail-band${returnTable ? ' has-return-game' : ''}`}>
-        {returnTable && <SpecialTeamsPlayerTable table={returnTable} screen={screen} />}
-        <div class="gi-st-detail-stack">
-          {fgHasAttempts && <Module title="Field Goals by Distance"
-            meta={`${st.fg.made}/${st.fg.att} made · ${st.fg.pct}% · long ${st.fg.long || '—'}`}>
-            <DataTable columns={[
-              { key: 'dist', label: 'Distance' }, { key: 'made', label: 'Made', numeric: true },
-              { key: 'att', label: 'Att', numeric: true }, { key: 'pct', label: 'Pct', numeric: true, render: row => `${row.pct}%` },
-            ]} rows={fgRows} emptyText="Attempts charted with no distance recorded." />
-          </Module>}
-          {specialistTable && <SpecialTeamsPlayerTable table={specialistTable} screen={screen} />}
-          {impactRows.length > 0 && <Module title="Impact Plays"
-            meta={`${impactRows.reduce((sum, row) => sum + row.plays, 0)} total`}>
-            <DataTable columns={[
-              { key: 'type', label: 'Result' }, { key: 'plays', label: 'Plays', numeric: true },
-            ]} rows={impactRows} />
-          </Module>}
+      {!fixedScope && <>
+        <span class="gi-st-toolbar-label">Scope</span>
+        <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
+          <button type="button" data-st-scope="season" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
+            onClick={() => { screen.specialTeamsScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+          <button type="button" data-st-scope="game" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
+            onClick={() => { screen.specialTeamsScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
         </div>
-      </div>}
+      </>}
+      {fixedScope && <strong class="gi-st-toolbar-label">{title}</strong>}
+      {toolbarAction}
+      <button class="btn btn-sm gi-st-export"
+        onClick={() => fixedScope ? screen.export('season-html') : screen.exportSpecialTeams(stats, summary)}>Export Report</button>
+    </div>
+
+    <KpiBand items={kpis.map(k => ({ ...k, cls: `${k.cls || ''}${k.blank ? ' is-blank' : ''}` }))} />
+    <UnitLedger units={units} screen={screen} />
+
+    {/* Only the exception, never the arithmetic: the full snap reconciliation
+        restated the ledger directly above it. What survives is the one fact no
+        ledger card can show -- a snap belonging to no unit at all. */}
+    {unassigned > 0 && <p class="gi-st-unassigned">
+      <b>{unassigned}</b> {unassigned === 1 ? 'snap is' : 'snaps are'} not assigned to a unit
+    </p>}
+
+    <div class="gi-def-secnav" role="tablist" aria-label="Special Teams units">
+      {ST_SECTIONS.map(s => <button key={s.id} type="button" role="tab"
+        aria-selected={section === s.id} data-st-section={s.id}
+        class={`gi-def-secnav-item${section === s.id ? ' is-active' : ''}${sectionCounts[s.id] ? '' : ' is-none'}`}
+        onClick={() => setSection(s.id)}><b>{sectionCounts[s.id]}</b>{s.label}</button>)}
+    </div>
+    <div class="gi-def-secrule"><h2>{meta.label}</h2></div>
+
+    {section === 'st1' && <>
+      <div class="gi-st-band gi-st-band-2">
+        <UnitModule title="Kickoff" rows={rowsFor('kickoff')} refs={unit('kickoff').refs} label="Kickoffs" screen={screen} />
+        <UnitModule title="Kick Return" rows={rowsFor('kickReturn')} refs={unit('kickReturn').refs} label="Kick returns" screen={screen} />
+      </div>
+      <div class="gi-st-band gi-st-band-2">
+        <UnitModule title="Punt" rows={rowsFor('punt')} refs={unit('punt').refs} label="Punts" screen={screen} />
+        <UnitModule title="Punt Return" rows={rowsFor('puntReturn')} refs={unit('puntReturn').refs} label="Punt returns" screen={screen} />
+      </div>
+      <div class="gi-st-band gi-st-band-3">
+        <UnitModule title="Field Goal" rows={rowsFor('fieldGoal')} refs={unit('fieldGoal').refs} label="Field goals" screen={screen} />
+        <UnitModule title="FG Block" rows={rowsFor('fieldGoalBlock')} refs={unit('fieldGoalBlock').refs} label="Field goal block" screen={screen} />
+        <UnitModule title="Tries" rows={tryRows} refs={st?.tries?.refs?.all || []} label="Tries" screen={screen} />
+      </div>
+    </>}
+
+    {section === 'st2' && <>
+      <div class="gi-st-band gi-st-band-2">
+        <UnitModule title="Kickoff" meta={`${unit('kickoff').n || 0} snaps`} rows={rowsFor('kickoff')}
+          refs={unit('kickoff').refs} label="Kickoffs" screen={screen} />
+        <Module title="Kickoff outcomes" cls={`gi-st-unit${outcomesFor('kickoff').length ? '' : ' is-none'}`}>
+          <OutcomeBars items={outcomesFor('kickoff')} screen={screen} unit="Kickoff" />
+        </Module>
+      </div>
+      <div class="gi-st-band gi-st-band-2">
+        <UnitModule title="Kick Return" meta={`${unit('kickReturn').n || 0} snaps`} rows={rowsFor('kickReturn')}
+          refs={unit('kickReturn').refs} label="Kick returns" screen={screen} />
+        <Module title="Kick return outcomes" cls={`gi-st-unit${outcomesFor('kickReturn').length ? '' : ' is-none'}`}>
+          <OutcomeBars items={outcomesFor('kickReturn')} screen={screen} unit="Kick return" />
+        </Module>
+      </div>
+    </>}
+
+    {section === 'st3' && <>
+      <div class="gi-st-band gi-st-band-2">
+        <UnitModule title="Punt" meta={`${unit('punt').n || 0} snaps`} rows={rowsFor('punt')}
+          refs={unit('punt').refs} label="Punts" screen={screen} />
+        <Module title="Punt outcomes" cls={`gi-st-unit${outcomesFor('punt').length ? '' : ' is-none'}`}>
+          <OutcomeBars items={outcomesFor('punt')} screen={screen} unit="Punt" />
+        </Module>
+      </div>
+      <div class="gi-st-band gi-st-band-2">
+        <UnitModule title="Punt Return" meta={`${unit('puntReturn').n || 0} snaps`} rows={rowsFor('puntReturn')}
+          refs={unit('puntReturn').refs} label="Punt returns" screen={screen} />
+        <Module title="Punt return outcomes" cls={`gi-st-unit${outcomesFor('puntReturn').length ? '' : ' is-none'}`}>
+          <OutcomeBars items={outcomesFor('puntReturn')} screen={screen} unit="Punt return" />
+        </Module>
+      </div>
+    </>}
+
+    {section === 'st4' && <>
+      <div class="gi-st-band gi-st-band-2">
+        <Module title="Field goals by distance" meta={fgMeta} cls={`gi-st-unit${st?.fg?.att ? '' : ' is-none'}`}>
+          {st?.fg?.att ? <div class="gi-st-buckets">{BUCKETS.map(label => {
+            const bucket = byDist.get(label);
+            if (!bucket) return <div key={label} class="gi-st-bucket is-none">
+              <span>{label} yds</span><strong>{view.ST_NO_DATA}</strong></div>;
+            return <WatchableRefs key={label} tag="button" type="button" class="gi-st-bucket"
+              refs={bucket.refs} label={`Field goals ${label}`} screen={screen}>
+              <span>{label} yds</span><strong>{bucket.made}/{bucket.att}</strong>
+              <small>{Math.round(bucket.made / bucket.att * 100)}% made</small>
+            </WatchableRefs>;
+          })}</div> : <p class="gi-st-empty">{view.ST_NO_DATA}</p>}
+        </Module>
+        <Module title="Attempt outcomes" cls={`gi-st-unit${outcomesFor('fieldGoal').length ? '' : ' is-none'}`}>
+          <OutcomeBars items={outcomesFor('fieldGoal')} screen={screen} unit="Field goal" />
+        </Module>
+      </div>
+      <div class="gi-st-band gi-st-band-3">
+        <UnitModule title="Field Goal" rows={rowsFor('fieldGoal')} refs={unit('fieldGoal').refs} label="Field goals" screen={screen} />
+        <UnitModule title="FG Block" rows={rowsFor('fieldGoalBlock')} refs={unit('fieldGoalBlock').refs} label="Field goal block" screen={screen} />
+        <UnitModule title="Tries" rows={tryRows} refs={st?.tries?.refs?.all || []} label="Tries" screen={screen} />
+      </div>
+    </>}
+
+    {section === 'st5' && <>
+      <div class="gi-st-band gi-st-band-42">
+        <Module title="Return game" cls={`gi-st-unit${returnTable ? '' : ' is-none'}`}>
+          {returnTable
+            ? <div class="gi-st-table-wrap"><DataTable
+                columns={returnTable.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
+                rows={returnTable.rows.map(row => ({ ...row, id: row.num, player: row.label,
+                  onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label} returns`) : undefined,
+                  label: `${row.label} returns` }))} /></div>
+            : <p class="gi-st-empty">{view.ST_NO_DATA}</p>}
+        </Module>
+        <Module title="Impact plays" meta={impactRows.length ? `${impactRows.reduce((sum, r) => sum + r.plays, 0)} total` : ''}
+          cls={`gi-st-unit${impactRows.length ? '' : ' is-none'}`}>
+          {impactRows.length
+            ? <div class="gi-st-impact">{impactRows.map(row => <WatchableRefs key={row.id} tag="button" type="button"
+                class="gi-st-impact-row" refs={[]} label={row.label} screen={screen}
+                onActivate={row.onActivate}>
+                <span>{row.type}</span><strong>{row.plays}</strong></WatchableRefs>)}</div>
+            : <p class="gi-st-empty">{view.ST_NO_DATA}</p>}
+        </Module>
+      </div>
+      <div class="gi-st-band gi-st-band-1">
+        <Module title="Kicking and punting" cls={`gi-st-unit${specialistTable ? '' : ' is-none'}`}>
+          {specialistTable
+            ? <div class="gi-st-table-wrap"><DataTable
+                columns={specialistTable.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
+                rows={specialistTable.rows.map(row => ({ ...row, id: row.num, player: row.label,
+                  onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label} kicking`) : undefined,
+                  label: `${row.label} kicking` }))} /></div>
+            : <p class="gi-st-empty">{view.ST_NO_DATA}</p>}
+        </Module>
+      </div>
+    </>}
   </div>;
 }
 function SeasonSituational({ rows }) {

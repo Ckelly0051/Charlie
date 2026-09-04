@@ -2085,3 +2085,196 @@
 /* Film buttons are targets as well as readouts; two of them fill the band
    beside a three-row table rather than ending 80px short. */
 .gi-reports .gi-defense-board .gi-def-type-summary{ min-height:74px }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REPORTS > SPECIAL TEAMS
+   Approved comp: design-comps/reports-special-teams-2026-09-04/ (RATIONALE.md
+   is the decision record).
+
+   Special Teams runs a SIX-column master rhythm -- its own number, because the
+   model defines six units and the ledger is six cards. Offense runs twelve
+   (six KPI tiles), Defense four (eight KPI tiles). Every band below divides on
+   a line the six-tile KPI band also uses: two columns are 3fr/3fr, three are
+   2fr/2fr/2fr, the specialists split is 4fr/2fr. Nothing lands between two
+   rules, which is the correction the Offense board had to make when a generic
+   65.9% split missed its band's 66.7% by under a percent.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gi-reports .gi-st-board .gi-overview-kpis{ grid-template-columns:repeat(6,minmax(0,1fr)) }
+/* An absent value is never a big number: it drops to copy weight so a coach
+   cannot read "No data" as a headline figure. */
+.gi-reports .gi-st-board .gi-overview-kpi.is-blank strong{
+  color:var(--gi-bd-muted);font:700 17px/1.5 var(--gi-cond)
+}
+
+/* Bands. align-items:stretch, deliberately, and NOT the treatment Offense and
+   Defense rejected: those bands paint their rule colour as a background, so a
+   stretched short module showed a solid slab. This band's background is
+   transparent and its rules are box-shadows, so stretching paints the module's
+   own panel and nothing else. Rows keep their rhythm -- the rejected fix was
+   stretching table ROWS. What changes is that a short unit's leftover height
+   reads as part of its panel instead of a hole in the stage. */
+.gi-reports .gi-st-band{
+  display:grid;gap:1px;margin:0 0 4px;align-items:stretch;background:transparent
+}
+.gi-reports .gi-st-band>.gi-overview-module+.gi-overview-module{ box-shadow:-1px 0 var(--gi-bd-line) }
+.gi-reports .gi-st-band-1{ grid-template-columns:minmax(0,1fr) }
+.gi-reports .gi-st-band-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+.gi-reports .gi-st-band-3{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+.gi-reports .gi-st-band-42{ grid-template-columns:4fr 2fr }
+
+/* An empty module is stretched to its band, so its two words would otherwise
+   sit at the top of a tall panel with a void under them -- worst where one
+   populated unit sets the height for two empty ones. Centring the label makes
+   the panel read as an empty cell rather than content with a hole beneath. */
+.gi-reports .gi-st-unit.is-none{ display:flex;flex-direction:column }
+.gi-reports .gi-st-unit.is-none>header{ flex:0 0 auto }
+.gi-reports .gi-st-unit.is-none>header strong{ color:var(--gi-bd-muted) }
+.gi-reports .gi-st-empty{
+  flex:1 1 auto;display:flex;align-items:center;margin:0;padding:var(--gi-3x) 0;
+  color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)
+}
+
+/* Unit ledger: all six units, always, including the empty ones. */
+.gi-reports .gi-st-ledger{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin:0 0 4px;
+  background:var(--gi-bd-line)
+}
+.gi-reports .gi-st-unit-card{
+  min-width:0;display:block;width:100%;padding:var(--gi-2x) var(--gi-3x) 10px;
+  background:var(--gi-bd-panel);border:0;border-radius:0;color:inherit;font:inherit;
+  text-align:left;cursor:pointer
+}
+.gi-reports .gi-st-unit-card:hover{ background:var(--gi-bd-control) }
+.gi-reports .gi-st-unit-card:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-st-unit-card.is-none{ cursor:default }
+.gi-reports .gi-st-unit-card.is-none:hover{ background:var(--gi-bd-panel) }
+.gi-reports .gi-st-unit-name{
+  display:block;color:var(--gi-bd-strong);font:700 12px/1.15 var(--gi-cond);letter-spacing:.1em;
+  text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-st-unit-card.is-none .gi-st-unit-name{ color:var(--gi-bd-muted) }
+.gi-reports .gi-st-unit-n{
+  display:block;margin-top:6px;color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-st-unit-n i{ font-style:normal;color:var(--gi-bd-muted);font:400 11px/1 var(--gi-sans);letter-spacing:0 }
+.gi-reports .gi-st-unit-card.is-none .gi-st-unit-n{ color:var(--gi-bd-muted);font:700 15px/1.6 var(--gi-cond) }
+.gi-reports .gi-st-unit-head{ display:block;margin-top:4px;color:var(--gi-bd-copy);font:400 10.5px/1.3 var(--gi-sans) }
+
+/* The one fact no ledger card can show: a snap belonging to no unit at all. */
+.gi-reports .gi-st-unassigned{
+  margin:0 0 4px;padding:6px var(--gi-3x);background:var(--gi-bd-panel);
+  color:var(--gi-bd-copy);font:400 11px/1.45 var(--gi-sans)
+}
+.gi-reports .gi-st-unassigned b{ color:var(--gi-bd-strong);font-weight:600 }
+
+/* Stat rows */
+.gi-reports .gi-st-rows{ display:grid;gap:0 }
+.gi-reports .gi-st-row{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-3x);
+  min-height:26px;padding:3px 0;border-bottom:1px solid var(--gi-bd-line)
+}
+.gi-reports .gi-st-row:last-child{ border-bottom:0 }
+.gi-reports .gi-st-row>span{
+  min-width:0;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.gi-reports .gi-st-row>strong{
+  flex:0 0 auto;color:var(--gi-bd-strong);font:700 15px/1.35 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-st-row>strong.is-sub{ color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans) }
+.gi-reports .gi-st-row>strong.is-good{ color:var(--gi-bd-win) }
+.gi-reports .gi-st-row>strong.is-bad{ color:var(--gi-bd-loss) }
+.gi-reports .gi-st-row>strong.is-blank{ color:var(--gi-bd-muted);font:400 11.5px/1.55 var(--gi-sans) }
+
+/* Outcome distribution: one bar per charted outcome, sharing one grid so the
+   bars align down the module regardless of label length. */
+.gi-reports .gi-st-outcomes{
+  display:grid;grid-template-columns:minmax(0,auto) minmax(60px,1fr) max-content;
+  align-items:center;gap:4px var(--gi-3x)
+}
+.gi-reports .gi-st-outcome{
+  display:contents;border:0;background:none;color:inherit;font:inherit;cursor:pointer
+}
+.gi-reports .gi-st-outcome-label{
+  min-width:0;color:var(--gi-bd-copy);font:400 12px/1.4 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left
+}
+.gi-reports .gi-st-outcome-bar{ height:9px;background:var(--gi-bd-control-active) }
+.gi-reports .gi-st-outcome-bar i{ display:block;height:100%;background:var(--gi-bd-cyan) }
+.gi-reports .gi-st-outcome-bar i.is-warn{ background:var(--gi-bd-gold) }
+.gi-reports .gi-st-outcome-bar i.is-bad{ background:var(--gi-bd-loss) }
+.gi-reports .gi-st-outcome-value{
+  color:var(--gi-bd-strong);font:700 12px/1.4 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);text-align:right;white-space:nowrap
+}
+.gi-reports .gi-st-outcome:hover .gi-st-outcome-label{ color:var(--gi-bd-strong) }
+.gi-reports .gi-st-outcome:focus-visible .gi-st-outcome-bar{ outline:2px solid var(--gi-bd-cyan);outline-offset:2px }
+
+/* Field-goal distance buckets */
+.gi-reports .gi-st-buckets{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-st-bucket{
+  padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);border:0;border-radius:0;
+  text-align:left;color:inherit;font:inherit;cursor:pointer
+}
+.gi-reports .gi-st-bucket:hover{ background:var(--gi-bd-control) }
+.gi-reports .gi-st-bucket:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-st-bucket.is-none{ cursor:default }
+.gi-reports .gi-st-bucket.is-none:hover{ background:var(--gi-bd-panel) }
+.gi-reports .gi-st-bucket span{
+  display:block;color:var(--gi-bd-copy);font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase
+}
+.gi-reports .gi-st-bucket strong{
+  display:block;margin-top:4px;color:var(--gi-bd-strong);font:700 20px/1.1 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-st-bucket.is-none strong{ color:var(--gi-bd-muted);font:700 15px/1.45 var(--gi-cond) }
+.gi-reports .gi-st-bucket small{ display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.25 var(--gi-sans) }
+
+/* Impact plays */
+.gi-reports .gi-st-impact{ display:grid;gap:1px;background:var(--gi-bd-line) }
+.gi-reports .gi-st-impact-row{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-3x);
+  padding:var(--gi-2x) var(--gi-3x);background:var(--gi-bd-panel);border:0;border-radius:0;
+  color:inherit;font:inherit;text-align:left;cursor:pointer
+}
+.gi-reports .gi-st-impact-row:hover{ background:var(--gi-bd-control) }
+.gi-reports .gi-st-impact-row:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-st-impact-row>span{
+  min-width:0;color:var(--gi-bd-copy);font:400 12px/1.4 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.gi-reports .gi-st-impact-row>strong{
+  flex:0 0 auto;color:var(--gi-bd-strong);font:700 16px/1.3 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)
+}
+
+/* Bounded table scrolling, and the sticky-header correction the Offense board
+   needed: the route-wide `th{position:sticky;top:42px}` is measured against
+   the wrap once the wrap becomes a scroll container, which pinned headers 42px
+   down over the first data row. */
+.gi-reports .gi-st-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
+.gi-reports .gi-st-board .gi-st-table-wrap th{ top:0 }
+
+.gi-reports .gi-st-export{ margin-left:auto }
+
+@media(max-width:1360px){
+  .gi-reports .gi-st-board .gi-overview-kpis{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+  .gi-reports .gi-st-ledger{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+  .gi-reports .gi-st-band-42{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-st-band-42>.gi-overview-module+.gi-overview-module{
+    box-shadow:none;border-top:1px solid var(--gi-bd-line)
+  }
+}
+@media(max-width:900px){
+  .gi-reports .gi-st-board .gi-overview-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .gi-reports .gi-st-ledger{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .gi-reports .gi-st-band-2,
+  .gi-reports .gi-st-band-3{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-st-band-2>.gi-overview-module+.gi-overview-module,
+  .gi-reports .gi-st-band-3>.gi-overview-module+.gi-overview-module{
+    box-shadow:none;border-top:1px solid var(--gi-bd-line)
+  }
+}

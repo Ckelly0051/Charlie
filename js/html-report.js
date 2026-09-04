@@ -149,6 +149,33 @@ export function buildDefenseHtmlReport({ title, report, stats, defScout, scopeLa
     meta: `Generated ${generatedAt.toLocaleString()}`, body });
 }
 
+/**
+ * Special Teams export. Coach decision, 2026-09-04: reuse the existing Reports
+ * export mechanism rather than build a Special-Teams-only exporter. So this
+ * composes the SAME `specialTeams()` section the game and season reports
+ * already emit, through the same `documentShell`, and adds only the unit
+ * ledger and the unassigned-snap line the board itself carries. The absence
+ * label is the report's own -- an em dash here would say something different
+ * from what the screen says about the same number.
+ */
+export function buildSpecialTeamsHtmlReport({ title, stats, summary, scopeLabel, generatedAt = new Date() }) {
+  const units = view.specialTeamsUnits(stats);
+  const unassigned = view.specialTeamsUnassigned(stats, summary);
+  const ledger = table('Units', [
+    { key: 'name', label: 'Unit' }, { key: 'snaps', label: 'Snaps' }, { key: 'head', label: '' },
+  ], units.map(unit => ({
+    name: unit.name,
+    snaps: unit.blank ? view.ST_NO_DATA : unit.n,
+    head: unit.blank ? '' : unit.headline,
+  })));
+  const note = unassigned > 0
+    ? `<p class="note">${unassigned} ${unassigned === 1 ? 'snap is' : 'snaps are'} not assigned to a unit.</p>`
+    : '';
+  return documentShell({ title, subtitle: `${scopeLabel} - ${summary.snaps.n} special teams snaps`,
+    meta: `Generated ${generatedAt.toLocaleString()}`,
+    body: `${ledger}${note}${specialTeams(stats, summary)}` });
+}
+
 export function buildSelfScoutHtmlReport({ title, report, defScout, performance, callRows, generatedAt = new Date() }) {
   const efficiency = performance?.efficiency || {};
   const splitColumns = [

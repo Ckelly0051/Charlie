@@ -517,12 +517,33 @@ export function defenseDisciplineRows(stats, statsEngine) {
 }
 
 /**
- * Special Teams Presentation Independence -- the performance-band KPI tiles.
- * Every value is read straight off `stats.specialTeams`/`stats.conversions`
- * (both already fully computed, refs-carrying) plus the two new aggregates
- * StatsEngine's `_specialTeamsSummary` composed (snaps/points). No formula
- * lives here -- this only decides which already-computed numbers lead the
- * band and how to phrase them.
+ * ONE absence label for the whole Special Teams report. Coach decision,
+ * 2026-09-04: wherever there is no data the board says exactly this, in every
+ * position, rather than distinguishing "not charted" from "not derivable" --
+ * a distinction the reader does not make and the board should not narrate.
+ *
+ * A measured zero is NOT an absence and never wears it: 0% touchbacks on 21
+ * kickoffs, 0 returns attempted, 0 return touchdowns and a scoreless unit all
+ * keep their number and their denominator.
+ */
+export const ST_NO_DATA = 'No data';
+const stNum = value => (value === null || value === undefined ? null : value);
+const stPlural = (n, word, plural) => `${n} ${word}${n === 1 ? '' : (plural || 's')}`;
+
+/**
+ * Special Teams Presentation Independence -- the performance band, six tiles
+ * on the board's own six-column rhythm (six units, six KPIs, six ledger
+ * cards). Every value is read straight off `stats.specialTeams`/
+ * `stats.conversions` plus the aggregates `_specialTeamsSummary` composed. No
+ * formula lives here.
+ *
+ * Impact Plays was a seventh tile whose whole content was a count and a joined
+ * label list. It is not removed: it keeps its own module, which carries the
+ * same counts plus a film action per row, so the tile was the weaker of two
+ * presentations of one measure.
+ *
+ * A tile with no value carries `blank`, renders the label above and drops its
+ * sub entirely -- otherwise the tile prints the same two words twice.
  */
 export function specialTeamsKpis(stats, summary) {
   const st = stats.specialTeams || {};
@@ -533,24 +554,208 @@ export function specialTeamsKpis(stats, summary) {
   const convAtt = xp.att + two.att, convMade = xp.made + two.made;
   const kickRet = st.returns?.kick || { attempts: 0, yards: 0, long: 0 };
   const puntRet = st.returns?.punt || { attempts: 0, yards: 0, long: 0 };
-  const retAtt = kickRet.attempts + puntRet.attempts;
-  const retYards = (kickRet.yards || 0) + (puntRet.yards || 0);
-  const retLong = Math.max(kickRet.long || 0, puntRet.long || 0);
+  const retAtt = (kickRet.attempts || 0) + (puntRet.attempts || 0);
+  const retYards = (kickRet.attempts ? kickRet.yards : 0) + (puntRet.attempts ? puntRet.yards : 0);
+  const retLong = Math.max(kickRet.attempts ? kickRet.long : 0, puntRet.attempts ? puntRet.long : 0);
+  // Coverage divides by the cohort the AVERAGE was actually computed from
+  // (`refs.retAllowedAvg`), not by every snap charted as returned. On the
+  // coach's real season three kickoffs are charted `Returned` with no return
+  // yardage entered, and dividing by those produced a confident `0.0 yds per
+  // return` out of an absence -- the exact inversion this report exists to
+  // prevent. Those snaps now leave the denominator and the tile reads No data.
+  const covRefs = [...new Set([...(st.punts?.refs?.retAllowedAvg || []),
+    ...(st.kickoffs?.refs?.retAllowedAvg || [])])].sort();
   const covYards = (st.punts?.retAllowedYards || 0) + (st.kickoffs?.retAllowedYards || 0);
-  const covN = (st.punts?.refs?.returned?.length || 0) + (st.kickoffs?.refs?.returned?.length || 0);
-  const impact = summary.impact || [];
-  const impactN = impact.reduce((sum, item) => sum + item.n, 0);
-  return [
-    { label: 'ST Snaps', value: summary.snaps.n, sub: summary.snaps.n ? 'kick · return · punt · FG · try' : 'none charted' },
+  const covN = covRefs.length;
+  const snaps = summary.snaps.n;
+  // `long` is the longest MADE kick, so attempts with no make leave it
+  // genuinely unavailable. It must never render 0 -- that reads as a measured
+  // zero-yard field goal, the exact inversion this report exists to prevent.
+  const fgSub = fg.att ? `${fg.pct}% · long ${fg.long ? `${fg.long} yds` : ST_NO_DATA}` : '';
+  const tiles = [
+    { label: 'ST Snaps', value: snaps || null,
+      sub: snaps ? `of ${summary.cohort ?? snaps} charted` : '', refs: summary.snaps.refs },
+    // A scoreless special teams is an observation, not an absence: 0 keeps its
+    // place and simply carries no sub.
     { label: 'Points', value: summary.points.us,
-      sub: summary.points.them ? `${summary.points.them} allowed` : (summary.points.us ? 'none allowed' : '—'),
-      cls: summary.points.us > summary.points.them ? 'is-good' : '' },
-    { label: 'Field Goals', value: fg.att ? `${fg.made}/${fg.att}` : '—', sub: fg.att ? `${fg.pct}% · long ${fg.long}` : 'none attempted' },
-    { label: 'Conversions', value: convAtt ? `${convMade}/${convAtt}` : '—', sub: convAtt ? `${Math.round(convMade / convAtt * 100)}% · XP + 2pt` : 'none attempted' },
-    { label: 'Return Production', value: retAtt ? `${retYards} yds` : '—', sub: retAtt ? `${retAtt} returns · long ${retLong}` : 'none charted' },
-    { label: 'Coverage Allowed', value: covN ? `${(covYards / covN).toFixed(1)} yds/ret` : '—', sub: covN ? `${covN} return${covN === 1 ? '' : 's'} allowed` : 'none charted' },
-    { label: 'Impact Plays', value: impactN, sub: impactN ? impact.map(item => item.label).join(' · ') : 'none charted', cls: impactN ? '' : 'is-good' },
+      sub: summary.points.them ? `${summary.points.them} allowed` : (summary.points.us ? 'none allowed' : ''),
+      cls: summary.points.us > summary.points.them ? 'is-good' : '', refs: summary.points.refsUs },
+    { label: 'Field Goals', value: fg.att ? `${fg.made}/${fg.att}` : null, sub: fgSub, refs: fg.refs?.all },
+    { label: 'Conversions', value: convAtt ? `${convMade}/${convAtt}` : null,
+      sub: convAtt ? `${Math.round(convMade / convAtt * 100)}% of ${convAtt} classified` : '',
+      refs: [...new Set([...(xp.refs?.att || []), ...(two.refs?.att || [])])].sort() },
+    { label: 'Return Production', value: retAtt ? `${retYards} yds` : null,
+      sub: retAtt ? `${stPlural(retAtt, 'return')} · long ${retLong}` : '',
+      refs: [...new Set([...(kickRet.refs?.attempts || []), ...(puntRet.refs?.attempts || [])])].sort() },
+    { label: 'Coverage Allowed', value: covN ? `${(covYards / covN).toFixed(1)}` : null,
+      sub: covN ? `yds per return · ${stPlural(covN, 'return')} allowed` : '',
+      refs: covRefs },
   ];
+  return tiles.map(tile => tile.value === null || tile.value === undefined
+    ? { ...tile, value: ST_NO_DATA, sub: '', blank: true }
+    : { ...tile, blank: false });
+}
+
+/**
+ * The unit ledger -- all six units of SPECIAL-TEAMS-MODEL §1, always all six,
+ * in the model's own order. This is the one place every unit is visible at
+ * once, INCLUDING the units with nothing in them, which is the point: the
+ * old report omitted a phase card entirely at zero, so a coach could not tell
+ * "we never charted punt returns" from "punt returns aren't in this report".
+ *
+ * A unit with no snaps, and a unit the season's charting model cannot express
+ * at all (legacy has no field-goal block unit), both read `No data`. The
+ * cause of an absence is a documentation concern, not something the board
+ * narrates.
+ */
+export function specialTeamsUnits(stats) {
+  const st = stats.specialTeams || {};
+  const num = v => (Number.isFinite(v) ? v : null);
+  const defs = [
+    { key: 'kickoff', name: 'Kickoff', n: num(st.kickoffs?.n), refs: st.kickoffs?.refs?.all,
+      headline: () => (st.kickoffs?.avg != null ? `${st.kickoffs.avg} yd average` : `${st.kickoffs.tbPct}% touchback`) },
+    { key: 'kickReturn', name: 'Kick Return', n: num(st.returns?.kick?.n), refs: st.returns?.kick?.refs?.all,
+      headline: () => (st.returns.kick.avg != null ? `${st.returns.kick.avg} yd average` : `${stPlural(st.returns.kick.attempts, 'return')} charted`) },
+    { key: 'punt', name: 'Punt', n: num(st.punts?.n), refs: st.punts?.refs?.all,
+      headline: () => (st.punts.netAvg != null ? `${st.punts.netAvg} yd net` : `${stPlural(st.punts.blocked, 'block')} allowed`) },
+    { key: 'puntReturn', name: 'Punt Return', n: num(st.returns?.punt?.n), refs: st.returns?.punt?.refs?.all,
+      headline: () => (st.returns.punt.avg != null ? `${st.returns.punt.avg} yd average` : `${stPlural(st.returns.punt.attempts, 'return')} charted`) },
+    { key: 'fieldGoal', name: 'Field Goal', n: num(st.fg?.att), refs: st.fg?.refs?.all,
+      headline: () => `${st.fg.made}/${st.fg.att} · ${st.fg.pct}%` },
+    { key: 'fieldGoalBlock', name: 'FG Block', n: num(st.blocks?.n), refs: st.blocks?.refs?.all,
+      headline: () => `${stPlural(st.blocks.blocked, 'kick')} blocked` },
+  ];
+  return defs.map(def => def.n
+    ? { key: def.key, name: def.name, n: def.n, headline: def.headline(), refs: def.refs || [], blank: false }
+    : { key: def.key, name: def.name, n: null, headline: '', refs: [], blank: true });
+}
+
+/**
+ * One unit's stat rows. Every row is a field StatsEngine already computed;
+ * a `null` value becomes `No data` at the sink, never a zero, and never a
+ * sentence explaining which kind of absence it is.
+ *
+ * Kick distance, return yards and net stay three separate measurements with
+ * three separate labels (SPECIAL-TEAMS-MODEL §4/§7). They are never summed and
+ * never share a row.
+ */
+export function specialTeamsUnitRows(stats, key) {
+  const st = stats.specialTeams || {};
+  const row = (label, value, opts) => ({ label, value: stNum(value), ...(opts || {}) });
+  const yds = v => (v == null ? null : `${v} yds`);
+  if (key === 'kickoff') {
+    const k = st.kickoffs || {};
+    if (!k.n) return [];
+    return [
+      row('Kickoffs', k.n),
+      row('Kick distance, average', yds(k.avg)),
+      row('Touchback rate', `${k.tbPct}%`),
+      row('Fair catch rate', `${k.fairCatchPct}%`),
+      row('Return yards allowed', k.retAllowedAvg == null ? null : `${k.retAllowedAvg} avg · ${k.retAllowedYards} total`, { sub: true }),
+      // Legacy charts an onside kick as its own stType, so it is not derivable
+      // from the kickoff cohort at all -- an honest absence, not a zero.
+      row('Onside recovery', k.onside?.n == null ? null : `${k.onside.recovered}/${k.onside.n}`),
+    ];
+  }
+  if (key === 'punt') {
+    const p = st.punts || {};
+    if (!p.n) return [];
+    return [
+      row('Punts', p.n),
+      row('Gross average', yds(p.grossAvg)),
+      row('Net average', yds(p.netAvg)),
+      row('Hang time', p.hangAvg == null ? null : `${p.hangAvg}s`),
+      row('Touchback rate', `${p.tbPct}%`),
+      row('Fair catch rate', `${p.fairCatchPct}%`),
+      row('Return yards allowed', p.retAllowedAvg == null ? null : `${p.retAllowedAvg} avg · ${p.retAllowedYards} total`, { sub: true }),
+      row('Blocked', p.blocked, { cls: p.blocked ? 'is-bad' : '' }),
+    ];
+  }
+  if (key === 'kickReturn' || key === 'puntReturn') {
+    const r = (key === 'kickReturn' ? st.returns?.kick : st.returns?.punt) || {};
+    if (!r.n) return [];
+    return [
+      row(key === 'kickReturn' ? 'Kick return snaps' : 'Punt return snaps', r.n),
+      // `attempts` is a different denominator from `n`: a fair catch, touchback
+      // or muff is a snap for this unit but not a return.
+      row('Returns attempted', r.attempts),
+      row('Return yards', r.attempts ? `${r.yards} total` : null, { sub: true }),
+      row('Average return', yds(r.avg)),
+      row('Longest', r.attempts ? `${r.long} yds` : null),
+      row('Return touchdowns', r.td, { cls: r.td ? 'is-good' : '' }),
+      row('Muffed', r.muffed, { cls: r.muffed ? 'is-bad' : '' }),
+    ];
+  }
+  if (key === 'fieldGoal') {
+    const f = st.fg || {};
+    if (!f.att) return [];
+    return [
+      row('Attempts', f.att),
+      row('Made', f.made),
+      row('Percentage', `${f.pct}%`, { cls: f.pct >= 60 ? 'is-good' : '' }),
+      row('Longest made', f.long ? `${f.long} yds` : null),
+    ];
+  }
+  if (key === 'fieldGoalBlock') {
+    const b = st.blocks || {};
+    if (!b.n) return [];
+    return [
+      row('Snaps vs a kick', b.n),
+      row('Kicks blocked', b.blocked, { cls: b.blocked ? 'is-good' : '' }),
+      row('Block rate', `${Math.round(b.blocked / b.n * 100)}%`),
+    ];
+  }
+  if (key === 'tries') {
+    const conv = stats.conversions || {};
+    const xp = conv.xp || { att: 0, made: 0 }, two = conv.two || { att: 0, made: 0 };
+    const att = xp.att + two.att;
+    if (!att) return [];
+    const charted = st.tries?.n;
+    const rows = [
+      row('Extra point kicks', xp.att ? `${xp.made}/${xp.att}` : null),
+      row('Two-point tries', two.att ? `${two.made}/${two.att}` : null),
+      row('All tries', `${xp.made + two.made}/${att}`),
+    ];
+    // Coach decision, 2026-09-04: the classified attempts stay the calculation
+    // denominator, the unclassified are stated, and they are NEVER counted as
+    // misses or folded into a conversion percentage.
+    if (charted != null && charted > att) {
+      rows.push(row('Classification',
+        `${att} classified · ${charted - att} unclassified · ${charted} charted`, { sub: true }));
+    }
+    return rows;
+  }
+  return [];
+}
+
+/** The outcome distribution for a unit, straight off the engine. */
+export function specialTeamsOutcomes(stats, key) {
+  const st = stats.specialTeams || {};
+  const src = key === 'kickoff' ? st.kickoffs
+    : key === 'punt' ? st.punts
+    : key === 'kickReturn' ? st.returns?.kick
+    : key === 'puntReturn' ? st.returns?.punt
+    : key === 'fieldGoal' ? st.fg : null;
+  const list = src?.outcomes || [];
+  const total = key === 'fieldGoal' ? (src?.att || 0) : (src?.n || 0);
+  return list.filter(o => o.n > 0).map(o => ({ ...o, pct: total ? Math.round(o.n / total * 100) : 0 }));
+}
+
+/**
+ * Snaps this report could not assign to any unit. The full "74 snaps = 21
+ * kickoff + ..." reconciliation restated the ledger directly above it and was
+ * removed; what survives is the one fact no ledger card can show. A legacy
+ * `stType` the current model has no unit for -- `Fake` is the live example --
+ * would otherwise vanish from every module while still counting in ST Snaps.
+ * Returns 0 when everything reconciles, and the caller renders nothing.
+ */
+export function specialTeamsUnassigned(stats, summary) {
+  const st = stats.specialTeams || {};
+  const conv = stats.conversions || {};
+  const assigned = (st.kickoffs?.n || 0) + (st.returns?.kick?.n || 0) + (st.punts?.n || 0)
+    + (st.returns?.punt?.n || 0) + (st.fg?.att || 0) + (st.blocks?.n || 0)
+    + (st.tries?.n != null ? st.tries.n : ((conv.xp?.att || 0) + (conv.two?.att || 0)));
+  return Math.max(0, (summary.snaps?.n || 0) - assigned);
 }
 
 /**
