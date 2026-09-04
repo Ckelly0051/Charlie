@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports &gt; Special Teams — design comp 2026-09-04</title>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Tokens copied verbatim from design-system/tokens.css, same as the accepted
+   Overview / Offense / Defense comps. The comp must fail the same way
+   production would; it must not look better because it invented a colour,
+   a size, or a number.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --gi-sans:'IBM Plex Sans',system-ui,sans-serif;
+  --gi-cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+  --gi-num-feat:tabular-nums lining-nums;
+  --gi-text-display:700 19px/1.05 var(--gi-cond);
+  --gi-text-stat:700 26px/1.05 var(--gi-cond);
+  --gi-text-body:400 13px/1.45 var(--gi-sans);
+  --gi-text-label:600 12px/1.25 var(--gi-sans);
+  --gi-text-caption:400 13px/1.45 var(--gi-sans);
+  --gi-1x:4px; --gi-2x:8px; --gi-3x:12px; --gi-4x:16px; --gi-6x:24px;
+  --gi-row:36px;
+  --gi-raise-tab:0 -2px 8px rgba(0,0,0,.18);
+
+  --gi-bd-gold:#d9a21a; --gi-bd-gold-ink:#14100a;
+  --gi-bd-cyan:#12a9cb; --gi-bd-cyan-ink:#03151a;
+  --gi-bd-bone:#4a5765;
+  --gi-bd-stage:#06080b; --gi-bd-panel:#0e1319;
+  --gi-bd-control:#151c24; --gi-bd-control-active:#1b242e;
+  --gi-bd-line:#222d38;
+  --gi-bd-muted:#66727e; --gi-bd-copy:#a6a6a6; --gi-bd-strong:#f2f5f8;
+  --gi-bd-win:#3fa96b; --gi-bd-loss:#d2564f; --gi-bd-draw:#4a5765;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong);
+  font:var(--gi-text-body);font-family:var(--gi-sans);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+
+/* ── COMP HARNESS (not part of the design) ─────────────────────────────── */
+.comp-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:var(--gi-3x);
+  padding:6px var(--gi-4x);background:#11161d;border-bottom:1px solid var(--gi-bd-line)}
+.comp-bar b{color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.comp-bar span{color:var(--gi-bd-muted);font:var(--gi-text-label);font-weight:400}
+.comp-bar .grp{display:flex;gap:1px;margin-left:auto;background:var(--gi-bd-line)}
+.comp-bar .grp button{padding:5px 12px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer}
+.comp-bar .grp button:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
+.comp-bar .grp button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.comp-bar .grp button.on{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+
+/* ── SHELL CHROME (matches production Reports) ─────────────────────────── */
+.chrome-nav{display:flex;align-items:stretch;background:#11161d;border-bottom:1px solid var(--gi-bd-line)}
+.chrome-nav .brand{display:flex;align-items:center;padding:0 var(--gi-6x);font:700 17px/1 var(--gi-cond);letter-spacing:.02em}
+.chrome-nav .brand i{color:var(--gi-bd-cyan);font-style:normal}
+.chrome-nav a{display:flex;align-items:center;gap:7px;padding:0 var(--gi-6x);min-height:52px;
+  color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans);text-decoration:none;cursor:pointer}
+.chrome-nav a:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.chrome-nav a.on{background:var(--gi-bd-panel);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+
+.ctxbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:1px;background:var(--gi-bd-line)}
+.ctxbar>div{padding:9px var(--gi-4x);background:var(--gi-bd-panel);min-width:0}
+.ctxbar span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.ctxbar strong{display:block;margin-top:3px;font:600 13px/1.2 var(--gi-sans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctxbar .persp{display:flex;align-items:center;gap:var(--gi-4x);padding-right:var(--gi-6x)}
+.ctxbar .persp button{padding:6px 12px;border:0;background:transparent;color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.ctxbar .persp button.on{color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-gold)}
+.ctxbar .persp button:hover{color:var(--gi-bd-strong)}
+.ctxbar .persp button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+
+/* ── REPORT HEAD + TABS ────────────────────────────────────────────────── */
+.rhead{display:flex;align-items:center;gap:var(--gi-6x);padding:10px var(--gi-4x);
+  background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
+.rhead h1{margin:0;font:700 19px/1.1 var(--gi-cond);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+.rhead .sub{color:var(--gi-bd-muted);font:400 11.5px/1.2 var(--gi-sans);white-space:nowrap}
+.rhead .tabs{display:flex;gap:2px;margin-left:var(--gi-4x);min-width:0}
+.rhead .tabs button{padding:8px 13px;border:0;background:transparent;color:var(--gi-bd-muted);
+  font:600 11px/1 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.rhead .tabs button:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.rhead .tabs button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.rhead .tabs button.on{color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+.rhead .acts{display:flex;gap:var(--gi-2x);margin-left:auto}
+.btn{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 var(--gi-3x);
+  border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong);border-color:var(--gi-bd-bone)}
+.btn:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:2px}
+.btn:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+
+/* ── BOARD ─────────────────────────────────────────────────────────────────
+   Special Teams runs a SIX-column master rhythm -- its own number, because the
+   model defines six units and the ledger is six cards. The KPI band is six
+   tiles, so its rules fall at every 1/6. Every band below divides on one of
+   those same lines: a two-column band is 3fr/3fr, a three-column band is
+   2fr/2fr/2fr, and the specialists split is 4fr/2fr. Nothing is allowed to
+   land between two rules, which is the mistake Offense had to correct when a
+   generic 65.9% band missed its KPI band's 66.7% by under a percent and read
+   as a defect rather than a decision.
+   ─────────────────────────────────────────────────────────────────────── */
+.board{padding:var(--gi-4x);background:var(--gi-bd-stage)}
+/* `align-items:stretch`, deliberately, and it is NOT the treatment Offense and
+   Defense rejected. Those bands paint their own rule colour as a background,
+   so a stretched short module showed a solid slab; this band's background is
+   transparent and the rules are box-shadows, so stretching paints the module's
+   own panel and nothing else. Rows stay top-aligned and keep their rhythm --
+   the rejected fix was stretching table ROWS, which distorts them. What
+   changes is that a short unit's leftover height reads as part of its panel
+   instead of as a hole in the stage. */
+.band{display:grid;gap:1px;margin:0 0 4px;align-items:stretch;background:transparent}
+/* Content-height modules would show the band's own background as a solid slab
+   under a short module, so the column rule is painted into the 1px gap with a
+   box-shadow instead. Same fix the Offense board carries. */
+.band>.mod+.mod{box-shadow:-1px 0 var(--gi-bd-line)}
+.b-1{grid-template-columns:minmax(0,1fr)}
+.b-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.b-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.b-42{grid-template-columns:4fr 2fr}
+
+.mod{min-width:0;padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);position:relative}
+.mod>header{display:flex;align-items:baseline;gap:var(--gi-2x);margin-bottom:6px}
+.mod>header strong{color:var(--gi-bd-cyan);font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;
+  text-transform:uppercase;white-space:nowrap}
+.mod>header span{min-width:0;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mod.is-neutral>header strong{color:var(--gi-bd-copy)}
+/* A module for a unit with no charted snaps states that, and states nothing
+   else. It never shows a zero, because zero snaps is not zero performance. */
+.mod.is-none>header strong{color:var(--gi-bd-muted)}
+
+/* Section rules and unit navigation */
+.srule{display:flex;align-items:baseline;gap:var(--gi-3x);margin:0 0 4px;padding:9px var(--gi-3x) 7px;
+  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
+.srule h2{margin:0;color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.15em;
+  text-transform:uppercase;white-space:nowrap}
+.srule p{margin:0;min-width:0;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)}
+.srule em{margin-left:auto;color:var(--gi-bd-muted);font:400 10.5px/1.2 var(--gi-sans);
+  font-style:normal;white-space:nowrap}
+.snav{display:flex;align-items:stretch;gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
+.snav button{flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);
+  font:600 11px/1 var(--gi-cond);letter-spacing:.08em;text-transform:uppercase;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.snav button>b{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  min-width:17px;height:17px;padding:0 3px;background:var(--gi-bd-control-active);color:var(--gi-bd-muted);
+  font:700 10px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.snav button:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.snav button:hover>b{background:var(--gi-bd-draw);color:var(--gi-bd-stage)}
+.snav button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.snav button.on{color:var(--gi-bd-strong);background:var(--gi-bd-control-active);
+  box-shadow:inset 0 -3px var(--gi-bd-cyan),var(--gi-raise-tab)}
+.snav button.on>b{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+/* A section whose units hold no snaps stays reachable -- it explains the
+   absence. It is dimmed, never disabled: disabling it would hide the one
+   surface that says why the unit is empty. */
+.snav button.is-none{color:var(--gi-bd-muted)}
+
+/* Scope + toolbar */
+.dtoolbar{display:flex;align-items:center;gap:var(--gi-3x);margin:0 0 4px;padding:7px var(--gi-3x);
+  background:var(--gi-bd-panel);flex-wrap:wrap}
+.dtoolbar .lbl{color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;
+  text-transform:uppercase;white-space:nowrap}
+.dtoolbar .sample{color:var(--gi-bd-copy);font:400 11px/1.3 var(--gi-sans)}
+.dtoolbar .sample b{color:var(--gi-bd-strong);font-weight:600}
+.scope{display:flex;gap:1px;background:var(--gi-bd-line)}
+.scope button{padding:6px 14px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.scope button:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
+.scope button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.scope button.on{background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+.dtoolbar .btn{margin-left:auto}
+
+/* KPI band -- six across, the board's own rhythm. */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
+.kpi{min-width:0;padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel)}
+.kpi span{display:block;color:var(--gi-bd-copy);font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;
+  text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi strong{display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 30px/1.05 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap}
+.kpi small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.25 var(--gi-sans)}
+.kpi.is-cyan strong{color:var(--gi-bd-cyan)}
+.kpi .good{color:var(--gi-bd-win)} .kpi .bad{color:var(--gi-bd-loss)}
+/* "Not charted" is a different fact from a value, and it is never a big
+   number. It drops to copy weight so the eye does not read an em-dash as a
+   headline figure. */
+.kpi.is-blank strong{color:var(--gi-bd-muted);font:700 17px/1.5 var(--gi-cond)}
+
+/* ── UNIT LEDGER ───────────────────────────────────────────────────────────
+   Six units, always all six, in the model's own order. This is the summary a
+   coordinator opens the tab for, and it is the one place every unit is
+   visible at once -- including the units with nothing in them, which is the
+   point. A unit with no snaps is dimmed and says so; it never renders a 0.
+   ─────────────────────────────────────────────────────────────────────── */
+.ledger{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
+.uc{min-width:0;display:block;width:100%;text-align:left;border:0;cursor:pointer;
+  padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);color:inherit;font:inherit}
+.uc:hover{background:var(--gi-bd-control)}
+.uc:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.uc .role{display:block;color:var(--gi-bd-muted);font:700 9px/1 var(--gi-cond);letter-spacing:.14em;
+  text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc .name{display:block;margin-top:3px;color:var(--gi-bd-strong);font:700 12px/1.15 var(--gi-cond);
+  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc .n{display:block;margin-top:6px;color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)}
+.uc .n i{font-style:normal;color:var(--gi-bd-muted);font:400 11px/1 var(--gi-sans);letter-spacing:0}
+.uc .head{display:block;margin-top:4px;color:var(--gi-bd-copy);font:400 10.5px/1.3 var(--gi-sans)}
+.uc.is-none{cursor:default}
+.uc.is-none:hover{background:var(--gi-bd-panel)}
+.uc.is-none .name{color:var(--gi-bd-muted)}
+.uc.is-none .n{color:var(--gi-bd-muted);font:700 15px/1.6 var(--gi-cond)}
+/* A legacy season cannot derive this unit at all -- structurally absent, not
+   observed-as-zero. Distinct from "no snaps", which is an observation. */
+.uc.is-na .n{color:var(--gi-bd-muted);font:700 13px/1.75 var(--gi-cond)}
+
+/* Stat rows inside a unit module */
+.srows{display:grid;gap:0}
+.srow{display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-3x);
+  min-height:26px;padding:3px 0;border-bottom:1px solid var(--gi-bd-line)}
+.srow:last-child{border-bottom:0}
+.srow>span{min-width:0;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow>strong{flex:0 0 auto;color:var(--gi-bd-strong);font:700 15px/1.35 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)}
+.srow>strong.sub{color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)}
+.srow>strong.good{color:var(--gi-bd-win)} .srow>strong.bad{color:var(--gi-bd-loss)}
+/* An uncharted measurement is copy, not a headline em-dash. */
+.srow>strong.blank{color:var(--gi-bd-muted);font:400 11.5px/1.55 var(--gi-sans)}
+
+/* Tables -- column labels are the body-family label token at 12px, per the
+   readability treatment Overview and Offense now share. */
+table{width:100%;border-collapse:collapse;background:transparent}
+th,td{height:var(--gi-row);padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-bd-line);
+  font-size:12px;white-space:nowrap;text-align:right}
+th{color:var(--gi-bd-copy);font:var(--gi-text-label);text-transform:uppercase;letter-spacing:0}
+td{color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat)}
+th:first-child,td:first-child{padding-left:var(--gi-4x);text-align:left}
+th:last-child,td:last-child{padding-right:var(--gi-4x)}
+td:first-child{color:var(--gi-bd-strong);font-weight:600}
+td.tl,th.tl{text-align:left}
+td.neg{color:var(--gi-bd-loss)}
+td.blank{color:var(--gi-bd-muted);font-style:normal}
+tbody tr.cut{cursor:pointer}
+tbody tr.cut:hover td{background:var(--gi-bd-control)}
+tbody tr.cut:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+tbody tr.cut td:first-child::before{content:'▸';margin-right:6px;color:var(--gi-bd-cyan);opacity:0}
+tbody tr.cut:hover td:first-child::before,
+tbody tr.cut:focus-visible td:first-child::before{opacity:1}
+.twrap{min-width:0;overflow-x:auto;scrollbar-width:thin}
+.twrap th{position:static}
+
+/* Outcome distribution -- one bar per charted outcome, shares the row grid so
+   the bars align down the module regardless of label length. */
+.outc{display:grid;grid-template-columns:minmax(0,auto) minmax(60px,1fr) max-content;
+  align-items:center;gap:4px var(--gi-3x)}
+.outc>button{display:contents;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.obar-l{min-width:0;color:var(--gi-bd-copy);font:400 12px/1.4 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.obar{height:9px;background:var(--gi-bd-control-active)}
+.obar i{display:block;height:100%;background:var(--gi-bd-cyan)}
+.obar i.warn{background:var(--gi-bd-gold)}
+.obar i.bad{background:var(--gi-bd-loss)}
+.obar-v{color:var(--gi-bd-strong);font:700 12px/1.4 var(--gi-cond);font-variant-numeric:var(--gi-num-feat);
+  text-align:right;white-space:nowrap}
+.outc>button:hover .obar-l{color:var(--gi-bd-strong)}
+.outc>button:focus-visible .obar{outline:2px solid var(--gi-bd-cyan);outline-offset:2px}
+
+/* Distance buckets */
+.buckets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--gi-bd-line)}
+.bkt{padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);border:0;text-align:left;
+  color:inherit;font:inherit;cursor:pointer}
+.bkt:hover{background:var(--gi-bd-control)}
+.bkt:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.bkt span{display:block;color:var(--gi-bd-copy);font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase}
+.bkt strong{display:block;margin-top:4px;color:var(--gi-bd-strong);font:700 20px/1.1 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)}
+.bkt small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.25 var(--gi-sans)}
+
+/* Impact rows */
+.impact{display:grid;gap:1px;background:var(--gi-bd-line)}
+.impact button{display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-3x);
+  padding:var(--gi-2x) var(--gi-3x);background:var(--gi-bd-panel);border:0;color:inherit;font:inherit;
+  text-align:left;cursor:pointer}
+.impact button:hover{background:var(--gi-bd-control)}
+.impact button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.impact .l{min-width:0;color:var(--gi-bd-copy);font:400 12px/1.4 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.impact .v{flex:0 0 auto;color:var(--gi-bd-strong);font:700 16px/1.3 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+
+/* Notes, definitions, sparse + empty */
+.note{margin:6px 0 0;color:var(--gi-bd-copy);font:400 11px/1.45 var(--gi-sans)}
+.note b{color:var(--gi-bd-strong);font-weight:600}
+.defs{margin:0;padding:var(--gi-3x) var(--gi-4x);background:var(--gi-bd-panel);
+  color:var(--gi-bd-copy);font:400 11.5px/1.5 var(--gi-sans)}
+.defs b{color:var(--gi-bd-strong);font-weight:600}
+.defs i{font-style:normal;color:var(--gi-bd-cyan);font-weight:600}
+.sparse{margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)}
+.uncharted{display:flex;align-items:center;gap:var(--gi-3x);margin:0 0 4px;padding:var(--gi-3x) var(--gi-4x);
+  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-gold)}
+.uncharted strong{flex:0 0 auto;color:var(--gi-bd-gold);font:700 10px/1 var(--gi-cond);
+  letter-spacing:.15em;text-transform:uppercase}
+.uncharted p{margin:0;min-width:0;color:var(--gi-bd-copy);font:400 11.5px/1.45 var(--gi-sans)}
+.empty{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);
+  margin:0 0 4px;padding:var(--gi-4x);background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
+.empty h3{margin:0 0 3px;font:700 13px/1.2 var(--gi-cond);letter-spacing:.06em;text-transform:uppercase}
+.empty p{margin:0;color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)}
+.empty .btn{flex:0 0 auto}
+
+@media(max-width:1360px){
+  .rhead{gap:var(--gi-4x)}
+  .rhead .tabs{min-width:0;overflow-x:auto;scrollbar-width:none}
+  .rhead .tabs button{padding:8px 9px;letter-spacing:.08em}
+  /* The shared context bar's three tracks fall to ~340px here, and a real
+     opponent name ("Our Lady of Perpetual Help Preparatory Academy") clips by
+     48px against an ellipsis. Wrapping to a second line loses nothing and
+     costs one row of height. Recorded in RATIONALE as a SHARED-CHROME
+     proposal -- it is not owned by this tab. */
+  .ctxbar strong{white-space:normal;overflow:visible;text-overflow:clip}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ledger{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .b-42{grid-template-columns:minmax(0,1fr)}
+  .b-42>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
+}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="comp-bar">
+  <b>Comp</b><span>Reports &gt; Special Teams · 2026-09-04 · design only, not production</span>
+  <div class="grp" role="group" aria-label="Comp state">
+    <button type="button" data-state="full" class="on">Populated</button>
+    <button type="button" data-state="real">Real data</button>
+    <button type="button" data-state="oneunit">One unit</button>
+    <button type="button" data-state="empty">No ST snaps</button>
+    <button type="button" data-state="longnames">Long labels</button>
+  </div>
+</div>
+
+<nav class="chrome-nav" aria-label="Primary">
+  <div class="brand">GRIDIRON <i>IQ</i></div>
+  <a href="#" tabindex="0">Home</a><a href="#" tabindex="0">Break Down</a><a href="#" tabindex="0">Study</a>
+  <a href="#" class="on" tabindex="0">Reports</a><a href="#" tabindex="0">Plan</a>
+</nav>
+
+<div class="ctxbar">
+  <div><span>Program</span><strong id="ctxProgram">St. Joseph Mavericks</strong></div>
+  <div><span>Season</span><strong id="ctxSeason">2026 Varsity</strong></div>
+  <div><span>Game</span><strong id="ctxGame">Week 3 vs Northgate</strong></div>
+  <div class="persp"><button type="button" class="on">Our Program</button><button type="button">Opponent Scout</button></div>
+</div>
+
+<div class="rhead">
+  <h1>Reports</h1>
+  <div class="tabs" role="tablist">
+    <button type="button">Overview</button><button type="button">Offense</button>
+    <button type="button">Defense</button><button type="button" class="on" aria-selected="true">Special Teams</button>
+    <button type="button">Players</button><button type="button">Self-Scout</button><button type="button">Matchup</button>
+  </div>
+  <span class="sub" id="headSub">2026 Varsity · 155 special teams snaps</span>
+  <div class="acts"><button type="button" class="btn">Watch all ST snaps</button></div>
+</div>
+
+<div class="board">
+
+  <div class="empty" id="emptyState" hidden>
+    <div>
+      <h3>No Special Teams snaps charted</h3>
+      <p>Chart kickoff, return, punt, field goal, and try units to populate this report.</p>
+    </div>
+    <button type="button" class="btn">Open Break Down</button>
+  </div>
+
+  <div id="report">
+
+    <div class="dtoolbar">
+      <span class="lbl">Scope</span>
+      <div class="scope" role="group" aria-label="Special Teams report scope">
+        <button type="button" data-scope="season" class="on" aria-current="true">Full season</button>
+        <button type="button" data-scope="game">Current game</button>
+      </div>
+      <span class="sample" id="sampleLine"></span>
+      <button type="button" class="btn">Export</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="ledger" id="ledger"></div>
+
+    <p class="note" id="reconcile" style="margin:0 0 4px;padding:6px var(--gi-3x);background:var(--gi-bd-panel)"></p>
+
+    <div class="uncharted" id="unchartedBanner" hidden>
+      <strong>Detail uncharted</strong>
+      <p id="unchartedCopy"></p>
+    </div>
+
+    <div class="snav" role="tablist" aria-label="Special Teams units">
+      <button type="button" data-sec="s1" class="on" aria-selected="true"><b id="nAll">0</b>All units</button>
+      <button type="button" data-sec="s2" aria-selected="false"><b id="nKo">0</b>Kickoff &amp; Kick Return</button>
+      <button type="button" data-sec="s3" aria-selected="false"><b id="nPt">0</b>Punt &amp; Punt Return</button>
+      <button type="button" data-sec="s4" aria-selected="false"><b id="nKg">0</b>Kicking Game</button>
+      <button type="button" data-sec="s5" aria-selected="false"><b id="nSp">0</b>Specialists</button>
+    </div>
+
+    <!-- ══ S1 · ALL UNITS ══════════════════════════════════════════════ -->
+    <div class="srule" id="s1"><h2>All units</h2><p>Every special-teams unit side by side, kicking beside receiving</p><em id="s1meta"></em></div>
+    <div class="band b-2" data-sec="s1">
+      <div class="mod" id="m1ko"></div>
+      <div class="mod" id="m1kr"></div>
+    </div>
+    <div class="band b-2" data-sec="s1">
+      <div class="mod" id="m1pt"></div>
+      <div class="mod" id="m1pr"></div>
+    </div>
+    <div class="band b-3" data-sec="s1">
+      <div class="mod" id="m1fg"></div>
+      <div class="mod" id="m1fb"></div>
+      <div class="mod" id="m1tr"></div>
+    </div>
+
+    <!-- ══ S2 · KICKOFF & KICK RETURN ══════════════════════════════════ -->
+    <div class="srule" id="s2"><h2>Kickoff &amp; Kick Return</h2><p>Our coverage unit and our return unit — two separate teams, two separate problems</p><em id="s2meta"></em></div>
+    <div class="band b-2" data-sec="s2">
+      <div class="mod" id="m2koStat"></div>
+      <div class="mod" id="m2koOut"></div>
+    </div>
+    <div class="band b-2" data-sec="s2">
+      <div class="mod" id="m2krStat"></div>
+      <div class="mod" id="m2krOut"></div>
+    </div>
+    <p class="defs" data-sec="s2" id="s2defs"></p>
+
+    <!-- ══ S3 · PUNT & PUNT RETURN ═════════════════════════════════════ -->
+    <div class="srule" id="s3"><h2>Punt &amp; Punt Return</h2><p>Punt operation and coverage, then the return unit that faces one</p><em id="s3meta"></em></div>
+    <div class="band b-2" data-sec="s3">
+      <div class="mod" id="m3ptStat"></div>
+      <div class="mod" id="m3ptOut"></div>
+    </div>
+    <div class="band b-2" data-sec="s3">
+      <div class="mod" id="m3prStat"></div>
+      <div class="mod" id="m3prOut"></div>
+    </div>
+    <p class="defs" data-sec="s3" id="s3defs"></p>
+
+    <!-- ══ S4 · KICKING GAME ═══════════════════════════════════════════ -->
+    <div class="srule" id="s4"><h2>Kicking game</h2><p>Field goals, the block unit that defends one, and the try teams</p><em id="s4meta"></em></div>
+    <div class="band b-2" data-sec="s4">
+      <div class="mod" id="m4fgDist"></div>
+      <div class="mod" id="m4fgOut"></div>
+    </div>
+    <div class="band b-3" data-sec="s4">
+      <div class="mod" id="m4fg"></div>
+      <div class="mod" id="m4fb"></div>
+      <div class="mod" id="m4tr"></div>
+    </div>
+    <p class="defs" data-sec="s4" id="s4defs"></p>
+
+    <!-- ══ S5 · SPECIALISTS ════════════════════════════════════════════ -->
+    <div class="srule" id="s5"><h2>Specialists</h2><p>Returners, kickers and punters, and the plays that changed possession</p><em id="s5meta"></em></div>
+    <div class="band b-42" data-sec="s5">
+      <div class="mod" id="m5ret"></div>
+      <div class="mod" id="m5imp"></div>
+    </div>
+    <div class="band b-1" data-sec="s5"><div class="mod" id="m5kick"></div></div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ─── Fixtures ───────────────────────────────────────────────────────────
+   Every field below is one the production engine already computes. `null`
+   means the engine returns null (the measurement was never charted); `na`
+   means the value is structurally underivable for that season's charting
+   model -- the legacy branch returns an explicit null for onside and for the
+   whole field-goal-block unit, which is a different fact from "none happened".
+   The REAL fixture is not invented: it is the exact output of
+   StatsEngine.compute()/_specialTeamsSummary() over the coach's
+   2025-st-joseph-mavericks-jv season, read out of the running app.
+   ──────────────────────────────────────────────────────────────────────── */
+
+const SEASON = {
+  label: '2026 Varsity', game: 'Week 3 vs Northgate', legacy: false,
+  snaps: 155, cohort: 448, games: 6,
+  points: { us: 43, them: 8 },
+  kickoffs: { n: 34, avg: 52.1, tb: 38, fc: 6, retAllowedAvg: 18.4, retAllowedYards: 221, retAllowedN: 12,
+    onside: { n: 2, recovered: 1 },
+    outcomes: [['Touchback', 13, ''], ['Returned', 12, ''], ['Out of bounds', 4, 'bad'], ['Fair catch', 2, ''], ['Recovered', 2, 'warn'], ['Downed', 1, '']] },
+  kr: { n: 19, attempts: 14, yards: 287, avg: 20.5, long: 68, td: 1, muffed: 1,
+    outcomes: [['Returned', 14, ''], ['Touchback', 3, ''], ['Fair catch', 1, ''], ['Muffed', 1, 'bad']] },
+  punts: { n: 27, gross: 36.8, net: 32.1, hang: 3.9, tb: 11, fc: 30, blocked: 1,
+    retAllowedAvg: 6.2, retAllowedYards: 68, retAllowedN: 11,
+    outcomes: [['Fair catch', 8, ''], ['Returned', 11, ''], ['Downed', 3, ''], ['Touchback', 3, 'warn'], ['Out of bounds', 1, ''], ['Blocked', 1, 'bad']] },
+  pr: { n: 16, attempts: 9, yards: 94, avg: 10.4, long: 41, td: 0, muffed: 2,
+    outcomes: [['Returned', 9, ''], ['Fair catch', 4, ''], ['Muffed', 2, 'bad'], ['Let bounce', 1, '']] },
+  fg: { att: 12, made: 8, pct: 67, long: 44,
+    byDist: [['<30', 3, 3], ['30-39', 3, 4], ['40-49', 2, 4], ['50+', 0, 1]],
+    outcomes: [['Good', 8, ''], ['No good', 2, 'bad'], ['Blocked', 1, 'bad'], ['Bad snap', 1, 'bad']] },
+  blocks: { n: 9, blocked: 2, na: false },
+  tries: { xp: { att: 34, made: 31 }, two: { att: 4, made: 2 }, na: false },
+  impact: [['Field goals missed', 4], ['Tries missed', 5], ['Muffed returns', 3], ['Field goals blocked', 2], ['Punts blocked', 1]],
+  returners: [['4', 'Carter', 9, 187, 20.8, 68, 1], ['21', 'Ellis', 8, 122, 15.3, 34, 0],
+    ['2', 'Nunez', 6, 72, 12.0, 22, 0], ['33', 'Ward', 0, 0, null, 0, 0]],
+  kickers: [['19', 'Reed', '8/12', 0, null], ['35', 'Boyd', '—', 27, 36.8]],
+  unassigned: 0,
+};
+
+const GAME = {
+  label: '2026 Varsity', game: 'Week 3 vs Northgate', legacy: false,
+  snaps: 25, cohort: 71, games: 1,
+  points: { us: 8, them: 0 },
+  kickoffs: { n: 6, avg: 53.4, tb: 50, fc: 0, retAllowedAvg: 14.0, retAllowedYards: 28, retAllowedN: 2,
+    onside: { n: 0, recovered: 0 },
+    outcomes: [['Touchback', 3, ''], ['Returned', 2, ''], ['Out of bounds', 1, 'bad']] },
+  kr: { n: 3, attempts: 3, yards: 71, avg: 23.7, long: 38, td: 0, muffed: 0,
+    outcomes: [['Returned', 3, '']] },
+  punts: { n: 5, gross: 38.4, net: 35.2, hang: 4.1, tb: 0, fc: 40, blocked: 0,
+    retAllowedAvg: 4.0, retAllowedYards: 8, retAllowedN: 2,
+    outcomes: [['Fair catch', 2, ''], ['Returned', 2, ''], ['Downed', 1, '']] },
+  pr: { n: 2, attempts: 1, yards: 12, avg: 12.0, long: 12, td: 0, muffed: 0,
+    outcomes: [['Returned', 1, ''], ['Fair catch', 1, '']] },
+  fg: { att: 2, made: 1, pct: 50, long: 31,
+    byDist: [['30-39', 1, 1], ['40-49', 0, 1]],
+    outcomes: [['Good', 1, ''], ['No good', 1, 'bad']] },
+  blocks: { n: 2, blocked: 0, na: false },
+  tries: { xp: { att: 5, made: 5 }, two: { att: 0, made: 0 }, na: false },
+  impact: [['Field goals missed', 1]],
+  returners: [['4', 'Carter', 3, 71, 23.7, 38, 0], ['2', 'Nunez', 1, 12, 12.0, 12, 0]],
+  kickers: [['19', 'Reed', '1/2', 0, null], ['35', 'Boyd', '—', 5, 38.4]],
+  unassigned: 0,
+};
+
+/* The coach's real 2025 JV season, read straight out of the running app.
+   All 74 snaps are LEGACY-charted: kick distance, hang time and return
+   yardage were essentially never entered, so eight of the fourteen
+   measurement fields come back null. This is the state the report is most
+   likely to be opened in, and it is the state the design has to hold up in. */
+const REAL = {
+  label: '2025 JV', game: 'Week 1 vs St. Peter Lutheran Patriots', legacy: true,
+  snaps: 74, cohort: 449, games: 6,
+  points: { us: 10, them: 3 },
+  kickoffs: { n: 21, avg: null, tb: 0, fc: 29, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
+    onside: { na: true },
+    outcomes: [['Fair catch', 6, ''], ['Returned', 0, ''], ['Outcome not charted', 15, 'blank']] },
+  kr: { n: 12, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 1,
+    outcomes: [['Muffed', 1, 'bad'], ['Outcome not charted', 11, 'blank']] },
+  punts: { n: 10, gross: null, net: null, hang: null, tb: 0, fc: 0, blocked: 1,
+    retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
+    outcomes: [['Blocked', 1, 'bad'], ['Downed', 1, ''], ['Outcome not charted', 8, 'blank']] },
+  pr: { n: 9, attempts: 1, yards: 5, avg: 5.0, long: 5, td: 0, muffed: 0,
+    outcomes: [['Fair catch', 3, ''], ['Outcome not charted', 6, 'blank']] },
+  fg: { att: 0, made: 0, pct: 0, long: 0, byDist: [], outcomes: [] },
+  blocks: { na: true },
+  tries: { xp: { att: 18, made: 10 }, two: { att: 0, made: 0 }, na: false, charted: 21 },
+  impact: [['Tries missed', 8], ['Punts blocked', 1], ['Muffed returns', 1]],
+  returners: [['42', 'Delgado', 1, 18, 18.0, 18, 0], ['99', 'Brandt', 2, 17, 8.5, 16, 0],
+    ['2', 'Okafor', 2, 10, 5.0, 5, 0], ['18', 'Pham', 3, -2, -0.7, 3, 0],
+    ['7', 'Ruiz', 1, 0, 0.0, 0, 0], ['16', 'Salas', 1, 0, 0.0, 0, 0], ['45', 'Kowal', 1, 0, 0.0, 0, 0]],
+  kickers: [['82', 'Ivers', '—', 4, 2.8], ['27', 'Marsh', '—', 1, 0.0], ['99', 'Brandt', '0/1', 0, null]],
+  unassigned: 1,
+};
+
+/* Only the punt team has been charted this season. Every other unit reads as
+   "not charted" rather than as a zero, which is the whole point of the state. */
+const ONEUNIT = {
+  label: '2026 Varsity', game: 'Week 2 vs Bishop Carroll', legacy: false,
+  snaps: 14, cohort: 132, games: 2,
+  points: { us: 0, them: 0 },
+  kickoffs: { n: 0, avg: null, tb: 0, fc: 0, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
+    onside: { n: 0, recovered: 0 }, outcomes: [] },
+  kr: { n: 0, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 0, outcomes: [] },
+  punts: { n: 14, gross: 38.2, net: 33.6, hang: 4.1, tb: 14, fc: 36, blocked: 0,
+    retAllowedAvg: 5.1, retAllowedYards: 41, retAllowedN: 8,
+    outcomes: [['Fair catch', 5, ''], ['Returned', 8, ''], ['Touchback', 2, 'warn'], ['Downed', 1, '']] },
+  pr: { n: 0, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 0, outcomes: [] },
+  fg: { att: 0, made: 0, pct: 0, long: 0, byDist: [], outcomes: [] },
+  blocks: { n: 0, blocked: 0, na: false },
+  tries: { xp: { att: 0, made: 0 }, two: { att: 0, made: 0 }, na: false },
+  impact: [],
+  returners: [],
+  kickers: [['35', 'Boyd', '—', 14, 38.2]],
+  unassigned: 0,
+};
+
+/* Long labels: the longest realistic program, opponent, and roster names. The
+   rule is absolute -- if any word is truncated to the point of being
+   unreadable the composition has failed, so the states that truncate must
+   truncate inside their own bounded track and keep the full value reachable. */
+const LONG = JSON.parse(JSON.stringify(SEASON));
+LONG.label = '2026 Varsity — Independent Schools League';
+LONG.game = 'Week 3 vs Our Lady of Perpetual Help Preparatory Academy';
+LONG.returners = [['4', 'Vandermolen-Whitfield', 9, 187, 20.8, 68, 1],
+  ['21', 'Oyelaran-Castellanos', 8, 122, 15.3, 34, 0], ['2', 'Nunez', 6, 72, 12.0, 22, 0]];
+LONG.kickers = [['19', 'Featherstonehaugh', '8/12', 0, null], ['35', 'Boyd', '—', 27, 36.8]];
+LONG.kickoffs.outcomes = [['Recovered by the kicking team', 2, 'warn'], ['Touchback', 13, ''],
+  ['Returned', 12, ''], ['Out of bounds untouched', 4, 'bad'], ['Fair catch', 2, ''], ['Downed', 1, '']];
+
+/* ─── Formatting helpers ─────────────────────────────────────────────────
+   `val` is the single decision point for how an absent number is drawn. A
+   measurement the engine returned null for is NOT an em-dash headline: it
+   drops to copy weight and says "not charted", so a coach can never read
+   absence as a poor value.
+   ──────────────────────────────────────────────────────────────────────── */
+const NOT_CHARTED = 'not charted';
+const NOT_LEGACY = 'not derivable — legacy charting';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const has = v => v !== null && v !== undefined;
+const pl = (n, w, p) => `${n} ${w}${n === 1 ? '' : (p || 's')}`;
+
+/** One stat line. `blank` text replaces the value when the engine had none. */
+function srow(label, value, opts) {
+  const o = opts || {};
+  const cls = has(value) ? (o.cls || '') : 'blank';
+  const shown = has(value) ? value : (o.blank || NOT_CHARTED);
+  return `<div class="srow"><span>${esc(label)}</span><strong class="${cls}">${esc(shown)}</strong></div>`;
+}
+function rows(html) { return `<div class="srows">${html}</div>`; }
+function head(mod, title, meta, cls) {
+  mod.className = `mod${cls ? ' ' + cls : ''}`;
+  return `<header><strong>${esc(title)}</strong><span>${esc(meta || '')}</span></header>`;
+}
+/** A unit with no charted snaps. Says so, and shows nothing else -- no zeros. */
+function noneBody(what) {
+  return `<p class="sparse">No ${esc(what)} snaps charted in this scope.</p>`;
+}
+function outcomes(list, total) {
+  if (!list || !list.length) return '';
+  const max = Math.max(1, ...list.map(o => o[1]));
+  return `<div class="outc">${list.filter(o => o[1] > 0).map(([label, n, tone]) => {
+    const pct = total ? Math.round(n / total * 100) : 0;
+    const bar = tone === 'blank'
+      ? `<span class="obar"></span>`
+      : `<span class="obar"><i class="${tone}" style="width:${Math.round(n / max * 100)}%"></i></span>`;
+    return `<button type="button" title="${esc(label)} — ${pl(n, 'play')}">
+      <span class="obar-l">${esc(label)}</span>${bar}
+      <span class="obar-v">${n} · ${pct}%</span></button>`;
+  }).join('')}</div>`;
+}
+
+/* ─── Unit modules ──────────────────────────────────────────────────────── */
+
+function koStats(d, compact) {
+  const k = d.kickoffs;
+  if (!k.n) return noneBody('kickoff');
+  const onsideVal = k.onside && k.onside.na ? null
+    : (k.onside && k.onside.n ? `${k.onside.recovered}/${k.onside.n}` : '0 attempted');
+  return rows(
+    srow('Kickoffs', k.n)
+    + srow('Kick distance, average', has(k.avg) ? `${k.avg} yds` : null)
+    + srow('Touchback rate', `${k.tb}%`)
+    + srow('Fair catch rate', `${k.fc}%`)
+    + srow('Return yards allowed', has(k.retAllowedAvg)
+        ? `${k.retAllowedAvg} avg · ${k.retAllowedYards} total`
+        : (k.retAllowedN ? null : (k.n ? 'no returns charted' : null)),
+        { cls: 'sub' })
+    + (compact ? '' : srow('Onside recovery', onsideVal, { blank: NOT_LEGACY }))
+  );
+}
+function krStats(d) {
+  const r = d.kr;
+  if (!r.n) return noneBody('kick return');
+  return rows(
+    srow('Kick return snaps', r.n)
+    + srow('Returns attempted', r.attempts, { cls: r.attempts ? '' : 'sub' })
+    + srow('Return yards', r.attempts ? `${r.yards} total` : null, { cls: 'sub' })
+    + srow('Average return', has(r.avg) ? `${r.avg} yds` : null)
+    + srow('Longest', r.attempts ? `${r.long} yds` : null)
+    + srow('Return touchdowns', r.td, { cls: r.td ? 'good' : '' })
+    + srow('Muffed', r.muffed, { cls: r.muffed ? 'bad' : '' })
+  );
+}
+function ptStats(d, compact) {
+  const p = d.punts;
+  if (!p.n) return noneBody('punt');
+  return rows(
+    srow('Punts', p.n)
+    + srow('Gross average', has(p.gross) ? `${p.gross} yds` : null)
+    + srow('Net average', has(p.net) ? `${p.net} yds` : null)
+    + srow('Hang time', has(p.hang) ? `${p.hang}s` : null)
+    + srow('Touchback rate', `${p.tb}%`)
+    + srow('Fair catch rate', `${p.fc}%`)
+    + (compact ? '' : srow('Return yards allowed', has(p.retAllowedAvg)
+        ? `${p.retAllowedAvg} avg · ${p.retAllowedYards} total` : null, { cls: 'sub' }))
+    + srow('Blocked', p.blocked, { cls: p.blocked ? 'bad' : '' })
+  );
+}
+function prStats(d) {
+  const r = d.pr;
+  if (!r.n) return noneBody('punt return');
+  return rows(
+    srow('Punt return snaps', r.n)
+    + srow('Returns attempted', r.attempts, { cls: r.attempts ? '' : 'sub' })
+    + srow('Return yards', r.attempts ? `${r.yards} total` : null, { cls: 'sub' })
+    + srow('Average return', has(r.avg) ? `${r.avg} yds` : null)
+    + srow('Longest', r.attempts ? `${r.long} yds` : null)
+    + srow('Return touchdowns', r.td, { cls: r.td ? 'good' : '' })
+    + srow('Muffed', r.muffed, { cls: r.muffed ? 'bad' : '' })
+  );
+}
+function fgStats(d) {
+  const f = d.fg;
+  if (!f.att) return noneBody('field goal');
+  return rows(
+    srow('Attempts', f.att)
+    + srow('Made', f.made)
+    + srow('Percentage', `${f.pct}%`, { cls: f.pct >= 60 ? 'good' : '' })
+    + srow('Longest made', f.long ? `${f.long} yds` : null)
+  );
+}
+function fbStats(d) {
+  const b = d.blocks;
+  if (b.na) return `<p class="sparse">${NOT_LEGACY[0].toUpperCase() + NOT_LEGACY.slice(1)}. A legacy season records a blocked kick on the kicking team's own attempt and never charted a block unit, so this unit has no denominator to report.</p>`;
+  if (!b.n) return noneBody('field goal block');
+  return rows(
+    srow('Snaps vs a kick', b.n)
+    + srow('Kicks blocked', b.blocked, { cls: b.blocked ? 'good' : '' })
+    + srow('Block rate', `${Math.round(b.blocked / b.n * 100)}%`)
+  );
+}
+function trStats(d) {
+  const t = d.tries;
+  const att = t.xp.att + t.two.att;
+  if (!att) return noneBody('try');
+  return rows(
+    srow('Extra point kicks', t.xp.att ? `${t.xp.made}/${t.xp.att}` : null, { blank: 'none attempted' })
+    + srow('Two-point tries', t.two.att ? `${t.two.made}/${t.two.att}` : null, { blank: 'none attempted' })
+    + srow('All tries', `${t.xp.made + t.two.made}/${att}`)
+    + (t.charted && t.charted !== att
+        ? srow('Charted, not attributable', `${t.charted - att}`, { cls: 'sub' }) : '')
+  );
+}
+
+/* ─── The unit ledger ───────────────────────────────────────────────────── */
+const UNITS = [
+  ['Kicking', 'Kickoff', d => d.kickoffs.n, d => has(d.kickoffs.avg) ? `${d.kickoffs.avg} yd average` : `${d.kickoffs.tb}% touchback`],
+  ['Receiving', 'Kick Return', d => d.kr.n, d => has(d.kr.avg) ? `${d.kr.avg} yd average` : `${pl(d.kr.attempts, 'return')} charted`],
+  ['Kicking', 'Punt', d => d.punts.n, d => has(d.punts.net) ? `${d.punts.net} yd net` : `${pl(d.punts.blocked, 'block')} allowed`],
+  ['Receiving', 'Punt Return', d => d.pr.n, d => has(d.pr.avg) ? `${d.pr.avg} yd average` : `${pl(d.pr.attempts, 'return')} charted`],
+  ['Attempting', 'Field Goal', d => d.fg.att, d => `${d.fg.made}/${d.fg.att} · ${d.fg.pct}%`],
+  ['Defending', 'FG Block', d => (d.blocks.na ? null : d.blocks.n), d => `${pl(d.blocks.blocked, 'kick')} blocked`],
+];
+
+function ledger(d) {
+  return UNITS.map(([role, name, count, headline]) => {
+    const n = count(d);
+    if (n === null) {
+      return `<div class="uc is-none is-na"><span class="role">${esc(role)}</span>
+        <span class="name">${esc(name)}</span><span class="n">Not derivable</span>
+        <span class="head">Legacy charting has no block unit</span></div>`;
+    }
+    if (!n) {
+      return `<div class="uc is-none"><span class="role">${esc(role)}</span>
+        <span class="name">${esc(name)}</span><span class="n">Not charted</span>
+        <span class="head">No snaps in this scope</span></div>`;
+    }
+    return `<button type="button" class="uc" title="Watch ${esc(name)} film">
+      <span class="role">${esc(role)}</span><span class="name">${esc(name)}</span>
+      <span class="n">${n} <i>snaps</i></span>
+      <span class="head">${esc(headline(d))}</span></button>`;
+  }).join('');
+}
+
+/* ─── KPI band — six, the board's own rhythm ─────────────────────────────
+   Impact Plays was the seventh KPI tile. It is not removed: it keeps its own
+   module in Specialists, which carries the same counts plus a film link per
+   row, so the tile was the weaker of the two presentations of one measure.
+   ──────────────────────────────────────────────────────────────────────── */
+function kpis(d) {
+  const t = d.tries, convAtt = t.xp.att + t.two.att, convMade = t.xp.made + t.two.made;
+  const retAtt = d.kr.attempts + d.pr.attempts;
+  const retYds = (d.kr.attempts ? d.kr.yards : 0) + (d.pr.attempts ? d.pr.yards : 0);
+  const retLong = Math.max(d.kr.attempts ? d.kr.long : 0, d.pr.attempts ? d.pr.long : 0);
+  const covN = (d.punts.retAllowedN || 0) + (d.kickoffs.retAllowedN || 0);
+  const covYds = (d.punts.retAllowedYards || 0) + (d.kickoffs.retAllowedYards || 0);
+  const items = [
+    ['ST Snaps', d.snaps, d.snaps ? `of ${d.cohort} charted · ${pl(d.games, 'game')}` : 'none charted', ''],
+    ['Points', d.points.us, d.points.them ? `${d.points.them} allowed` : (d.points.us ? 'none allowed' : 'none scored'),
+      d.points.us > d.points.them ? 'good' : ''],
+    ['Field Goals', d.fg.att ? `${d.fg.made}/${d.fg.att}` : null,
+      d.fg.att ? `${d.fg.pct}% · long ${d.fg.long}` : 'none attempted', ''],
+    ['Conversions', convAtt ? `${convMade}/${convAtt}` : null,
+      convAtt ? `${Math.round(convMade / convAtt * 100)}% · XP and 2-point` : 'none attempted', ''],
+    ['Return Production', retAtt ? `${retYds} yds` : null,
+      retAtt ? `${pl(retAtt, 'return')} · long ${retLong}` : 'return yardage not charted', ''],
+    ['Coverage Allowed', covN ? `${(covYds / covN).toFixed(1)}` : null,
+      covN ? `yds per return · ${pl(covN, 'return')} allowed` : 'no returns charted against us', ''],
+  ];
+  return items.map(([label, value, sub, tone]) => {
+    const blank = !has(value);
+    return `<div class="kpi${blank ? ' is-blank' : ''}">
+      <span>${esc(label)}</span>
+      <strong class="${tone}">${esc(blank ? NOT_CHARTED : value)}</strong>
+      <small>${esc(sub)}</small></div>`;
+  }).join('');
+}
+
+/* ─── Tables ─────────────────────────────────────────────────────────────
+   Return yards may legitimately be negative (the real season has a returner
+   at -2 on three returns), so a negative is coloured, never suppressed or
+   floored at zero.
+   ──────────────────────────────────────────────────────────────────────── */
+function returnTable(d) {
+  if (!d.returners.length) return `<p class="sparse">No returner charted in this scope.</p>`;
+  return `<div class="twrap"><table><thead><tr>
+    <th class="tl">Player</th><th>Ret</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th></tr></thead><tbody>
+    ${d.returners.map(([num, name, ret, yds, avg, long, td]) => `<tr class="cut" tabindex="0"
+      title="${esc(name)} — ${pl(ret, 'return')}">
+      <td class="tl">#${esc(num)} ${esc(name)}</td>
+      <td>${ret}</td>
+      <td class="${yds < 0 ? 'neg' : ''}">${yds}</td>
+      <td class="${!has(avg) ? 'blank' : (avg < 0 ? 'neg' : '')}">${has(avg) ? avg.toFixed(1) : '—'}</td>
+      <td>${long}</td><td>${td}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function kickerTable(d) {
+  if (!d.kickers.length) return `<p class="sparse">No kicker or punter charted in this scope.</p>`;
+  return `<div class="twrap"><table><thead><tr>
+    <th class="tl">Player</th><th>FG (M/A)</th><th>Punts</th><th>Punt avg</th></tr></thead><tbody>
+    ${d.kickers.map(([num, name, fg, punts, avg]) => `<tr class="cut" tabindex="0"
+      title="${esc(name)} — kicking film">
+      <td class="tl">#${esc(num)} ${esc(name)}</td>
+      <td class="${fg === '—' ? 'blank' : ''}">${esc(fg)}</td>
+      <td class="${punts ? '' : 'blank'}">${punts || '—'}</td>
+      <td class="${has(avg) ? '' : 'blank'}">${has(avg) ? avg.toFixed(1) : '—'}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function impactList(d) {
+  if (!d.impact.length) return `<p class="sparse">No blocked kick, missed attempt, or muffed return charted in this scope.</p>`;
+  return `<div class="impact">${d.impact.map(([label, n]) =>
+    `<button type="button" title="${esc(label)} — ${pl(n, 'play')}">
+      <span class="l">${esc(label)}</span><span class="v">${n}</span></button>`).join('')}</div>`;
+}
+function bucketBand(d) {
+  if (!d.fg.byDist.length) {
+    return d.fg.att
+      ? `<p class="sparse">${pl(d.fg.att, 'attempt')} charted with no distance recorded, so no distance breakdown is available.</p>`
+      : noneBody('field goal');
+  }
+  const all = [['<30', 0, 29], ['30-39', 30, 39], ['40-49', 40, 49], ['50+', 50, 99]];
+  const map = new Map(d.fg.byDist.map(b => [b[0], b]));
+  return `<div class="buckets">${all.map(([label]) => {
+    const b = map.get(label);
+    if (!b) return `<div class="bkt" style="cursor:default">
+      <span>${esc(label)} yds</span><strong style="color:var(--gi-bd-muted);font-size:15px;line-height:1.45">None</strong>
+      <small>no attempt in this range</small></div>`;
+    return `<button type="button" class="bkt" title="Field goals ${esc(label)} — ${pl(b[2], 'attempt')}">
+      <span>${esc(label)} yds</span><strong>${b[1]}/${b[2]}</strong>
+      <small>${Math.round(b[1] / b[2] * 100)}% made</small></button>`;
+  }).join('')}</div>`;
+}
+
+/* ─── Render ─────────────────────────────────────────────────────────────── */
+function render(d) {
+  $('#ctxSeason').textContent = d.label;
+  $('#ctxSeason').title = d.label;
+  $('#ctxGame').textContent = d.game;
+  $('#ctxGame').title = d.game;
+  $('#headSub').textContent = `${d.label} · ${pl(d.snaps, 'special teams snap')}`;
+  $('#sampleLine').innerHTML = `<b>${d.snaps}</b> ST snaps of <b>${d.cohort}</b> charted · <b>${d.games}</b> games`;
+
+  $('#kpis').innerHTML = kpis(d);
+  $('#ledger').innerHTML = ledger(d);
+
+  /* Reconciled denominator. Every ST snap is accounted for by exactly one
+     line, including the ones no unit claims -- a legacy `Fake` belongs to no
+     unit in the current model and would otherwise silently vanish from a
+     report whose own KPI counts it. */
+  const t = d.tries, tryCharted = t.charted || (t.xp.att + t.two.att);
+  const parts = [['Kickoff', d.kickoffs.n], ['Kick Return', d.kr.n], ['Punt', d.punts.n],
+    ['Punt Return', d.pr.n], ['Field Goal', d.fg.att], ['FG Block', d.blocks.na ? 0 : d.blocks.n],
+    ['Tries', tryCharted]];
+  const sum = parts.reduce((s, p) => s + p[1], 0);
+  const gap = d.snaps - sum;
+  $('#reconcile').innerHTML =
+    `<b>${d.snaps}</b> snaps = ` + parts.filter(p => p[1]).map(p => `${p[1]} ${esc(p[0].toLowerCase())}`).join(' + ')
+    + (gap > 0 ? ` + <b>${gap}</b> not assigned to a unit` : '')
+    + (gap > 0 ? ` — charted under a label the current model has no unit for.` : '');
+  $('#reconcile').hidden = !d.snaps;
+
+  const legacyMissing = d.legacy;
+  $('#unchartedBanner').hidden = !legacyMissing;
+  if (legacyMissing) {
+    $('#unchartedCopy').innerHTML =
+      `This season is charted in the legacy Special Teams fields. Kick distance, hang time, and return `
+      + `yardage were not entered on these plays, so distance, net, and coverage measures have no sample. `
+      + `Snap counts, outcomes, scoring, and specialists are unaffected.`;
+  }
+
+  const snapsKo = d.kickoffs.n + d.kr.n, snapsPt = d.punts.n + d.pr.n;
+  const snapsKg = d.fg.att + (d.blocks.na ? 0 : d.blocks.n) + tryCharted;
+  const snapsSp = d.returners.length + d.kickers.length;
+  /* Every badge is a COUNT. An earlier pass numbered the first tab 1 and gave
+     the rest counts, which read as an ordinal beside four totals. */
+  $('#nAll').textContent = d.snaps;
+  $('#nKo').textContent = snapsKo; $('#nPt').textContent = snapsPt;
+  $('#nKg').textContent = snapsKg; $('#nSp').textContent = snapsSp;
+  $('#nAll').parentElement.title = `${pl(d.snaps, 'special teams snap')} in this scope`;
+  $$('.snav button').forEach(b => {
+    const counts = { s1: d.snaps, s2: snapsKo, s3: snapsPt, s4: snapsKg, s5: snapsSp };
+    b.classList.toggle('is-none', !counts[b.dataset.sec]);
+  });
+  $('#nKo').parentElement.title = `${pl(snapsKo, 'snap')} across kickoff and kick return`;
+  $('#nPt').parentElement.title = `${pl(snapsPt, 'snap')} across punt and punt return`;
+  $('#nKg').parentElement.title = `${pl(snapsKg, 'snap')} across field goal, block, and tries`;
+  $('#nSp').parentElement.title = `${pl(snapsSp, 'specialist')} charted`;
+
+  $('#s1meta').textContent = `${pl(d.snaps, 'snap')} · ${pl(d.games, 'game')}`;
+  $('#s2meta').textContent = `${pl(snapsKo, 'snap')}`;
+  $('#s3meta').textContent = `${pl(snapsPt, 'snap')}`;
+  $('#s4meta').textContent = `${pl(snapsKg, 'snap')}`;
+  $('#s5meta').textContent = `${pl(snapsSp, 'specialist')}`;
+
+  /* S1 — every unit side by side, kicking beside receiving. */
+  const m = id => $(id);
+  /* Kickoff carries its onside line here as well as in its own section. It is
+     the sixth of the six measures the engine computes for the unit, it pairs
+     the module against Kick Return's seven rows instead of leaving it two
+     short, and on a legacy season it is the line that says onside is not
+     derivable at all rather than leaving the coach to assume none happened. */
+  m('#m1ko').innerHTML = head(m('#m1ko'), 'Kickoff', 'kicking', d.kickoffs.n ? '' : 'is-none') + koStats(d);
+  m('#m1kr').innerHTML = head(m('#m1kr'), 'Kick Return', 'receiving', d.kr.n ? '' : 'is-none') + krStats(d);
+  m('#m1pt').innerHTML = head(m('#m1pt'), 'Punt', 'kicking', d.punts.n ? '' : 'is-none') + ptStats(d, true);
+  m('#m1pr').innerHTML = head(m('#m1pr'), 'Punt Return', 'receiving', d.pr.n ? '' : 'is-none') + prStats(d);
+  m('#m1fg').innerHTML = head(m('#m1fg'), 'Field Goal', 'attempting', d.fg.att ? '' : 'is-none') + fgStats(d);
+  m('#m1fb').innerHTML = head(m('#m1fb'), 'FG Block', 'defending', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
+  m('#m1tr').innerHTML = head(m('#m1tr'), 'Tries', 'XP and 2-point', tryCharted ? '' : 'is-none') + trStats(d);
+
+  /* S2 — kickoff and kick return, each with its own outcome distribution. */
+  m('#m2koStat').innerHTML = head(m('#m2koStat'), 'Kickoff', `${pl(d.kickoffs.n, 'snap')} · kicking`, d.kickoffs.n ? '' : 'is-none') + koStats(d);
+  m('#m2koOut').innerHTML = head(m('#m2koOut'), 'Kickoff outcomes', 'share of charted kickoffs', d.kickoffs.n ? '' : 'is-none')
+    + (d.kickoffs.n ? outcomes(d.kickoffs.outcomes, d.kickoffs.n) : noneBody('kickoff'));
+  m('#m2krStat').innerHTML = head(m('#m2krStat'), 'Kick Return', `${pl(d.kr.n, 'snap')} · receiving`, d.kr.n ? '' : 'is-none') + krStats(d);
+  m('#m2krOut').innerHTML = head(m('#m2krOut'), 'Kick return outcomes', 'share of charted kick returns', d.kr.n ? '' : 'is-none')
+    + (d.kr.n ? outcomes(d.kr.outcomes, d.kr.n) : noneBody('kick return'));
+  $('#s2defs').innerHTML =
+    `<b>Kick distance</b> is gross, measured from the kicking spot, and is never negative. `
+    + `<b>Return yards allowed</b> run from the returner's possession to the ball being dead and may be negative. `
+    + `The two are separate measurements and are never added together.`;
+
+  /* S3 — punt and punt return. */
+  m('#m3ptStat').innerHTML = head(m('#m3ptStat'), 'Punt', `${pl(d.punts.n, 'snap')} · kicking`, d.punts.n ? '' : 'is-none') + ptStats(d);
+  m('#m3ptOut').innerHTML = head(m('#m3ptOut'), 'Punt outcomes', 'share of charted punts', d.punts.n ? '' : 'is-none')
+    + (d.punts.n ? outcomes(d.punts.outcomes, d.punts.n) : noneBody('punt'));
+  m('#m3prStat').innerHTML = head(m('#m3prStat'), 'Punt Return', `${pl(d.pr.n, 'snap')} · receiving`, d.pr.n ? '' : 'is-none') + prStats(d);
+  m('#m3prOut').innerHTML = head(m('#m3prOut'), 'Punt return outcomes', 'share of charted punt returns', d.pr.n ? '' : 'is-none')
+    + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody('punt return'));
+  $('#s3defs').innerHTML =
+    `<b>Gross</b> is the punt itself. <b>Net</b> subtracts the return and the touchback placement, and is `
+    + `reported only when the punt's own distance was charted. `
+    + `<i>Open decision:</i> the legacy branch subtracts a fixed 20 yards on a touchback, which the `
+    + `Special Teams model calls ruleset-dependent — the season's ruleset is not configured today.`;
+
+  /* S4 — the kicking game. */
+  m('#m4fgDist').innerHTML = head(m('#m4fgDist'), 'Field goals by distance',
+    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long || '—'}` : 'no attempt charted',
+    d.fg.att ? '' : 'is-none') + bucketBand(d);
+  /* The attempt outcomes sit beside the distance buckets rather than under the
+     Field Goal stat rows. Stacked, they made that one module ~116px taller
+     than FG Block and Tries beside it, so both of those carried a block of
+     empty panel; split, the two heads of the band match. */
+  m('#m4fgOut').innerHTML = head(m('#m4fgOut'), 'Attempt outcomes', 'share of charted attempts',
+    d.fg.outcomes.length ? '' : 'is-none')
+    + (d.fg.outcomes.length ? outcomes(d.fg.outcomes, d.fg.att) : noneBody('field goal'));
+  m('#m4fg').innerHTML = head(m('#m4fg'), 'Field Goal', 'attempting', d.fg.att ? '' : 'is-none') + fgStats(d);
+  m('#m4fb').innerHTML = head(m('#m4fb'), 'FG Block', 'defending', (d.blocks.na || !d.blocks.n) ? 'is-none' : '') + fbStats(d);
+  m('#m4tr').innerHTML = head(m('#m4tr'), 'Tries', 'XP and 2-point', tryCharted ? '' : 'is-none') + trStats(d);
+  $('#s4defs').innerHTML =
+    `A <b>field goal</b> and a <b>try</b> are separate events and never share a denominator; the try teams `
+    + `carry their own attempt counts. <b>FG Block</b> is our unit defending their kick, and is counted `
+    + `apart from our own attempts.`
+    + (d.tries.charted && d.tries.charted !== (t.xp.att + t.two.att)
+        ? ` <i>Open decision:</i> ${d.tries.charted} tries are charted and ${t.xp.att + t.two.att} are attributable to a kicking team; the remainder carry no scoring side.`
+        : '');
+
+  /* S5 — specialists. */
+  m('#m5ret').innerHTML = head(m('#m5ret'), 'Return game',
+    d.returners.length ? `${pl(d.returners.length, 'returner')} charted` : 'none charted',
+    d.returners.length ? '' : 'is-none') + returnTable(d);
+  m('#m5imp').innerHTML = head(m('#m5imp'), 'Impact plays',
+    d.impact.length ? `${d.impact.reduce((s, i) => s + i[1], 0)} total` : 'none charted',
+    d.impact.length ? '' : 'is-none') + impactList(d);
+  m('#m5kick').innerHTML = head(m('#m5kick'), 'Kicking and punting',
+    d.kickers.length ? `${pl(d.kickers.length, 'specialist')} charted` : 'none charted',
+    d.kickers.length ? '' : 'is-none') + kickerTable(d);
+}
+
+/* ─── State ─────────────────────────────────────────────────────────────── */
+let scope = 'season', state = 'full';
+const dataFor = () => state === 'real' ? REAL
+  : state === 'oneunit' ? ONEUNIT
+  : state === 'longnames' ? LONG
+  : (scope === 'season' ? SEASON : GAME);
+const paint = () => render(dataFor());
+
+$$('.scope button').forEach(b => b.addEventListener('click', () => {
+  $$('.scope button').forEach(x => { x.classList.remove('on'); x.removeAttribute('aria-current'); });
+  b.classList.add('on'); b.setAttribute('aria-current', 'true');
+  scope = b.dataset.scope; paint();
+}));
+
+$$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
+  $$('.comp-bar .grp button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  state = b.dataset.state;
+  const empty = state === 'empty';
+  $('#emptyState').hidden = !empty;
+  $('#report').hidden = empty;
+  /* The comp's real-data, one-unit and long-label fixtures are whole seasons,
+     so the scope control must say so. Leaving it on "Current game" while
+     showing season figures made the control state a lie -- caught only by
+     looking at the capture. */
+  const seasonOnly = state !== 'full';
+  $$('.scope button').forEach(x => {
+    const on = seasonOnly ? x.dataset.scope === 'season' : x.dataset.scope === scope;
+    x.classList.toggle('on', on);
+    if (on) x.setAttribute('aria-current', 'true'); else x.removeAttribute('aria-current');
+    const off = seasonOnly && x.dataset.scope === 'game';
+    x.disabled = off;
+    x.style.opacity = off ? '.45' : '';
+    x.style.cursor = off ? 'not-allowed' : '';
+    x.title = off ? 'This comp fixture is a full season' : '';
+  });
+  if (empty) {
+    /* Reset the identity too. Leaving the previous state's long-label season
+       and opponent in the context bar made the empty capture read as if the
+       empty season were the long-label one. */
+    $('#ctxSeason').textContent = '2026 Varsity'; $('#ctxSeason').title = '';
+    $('#ctxGame').textContent = 'Week 3 vs Northgate'; $('#ctxGame').title = '';
+    $('#headSub').textContent = '2026 Varsity · no special teams snaps';
+    return;
+  }
+  paint();
+}));
+
+/* Unit navigation: five surfaces, not six, because a coordinator studies the
+   kicking unit against the receiving unit that faces it. The units stay
+   distinct inside each surface -- co-located for comparison, never merged. */
+let section = 's1';
+const SECTION_OF = new Map();
+function indexSections() {
+  SECTION_OF.clear();
+  let current = null;
+  [...$('#report').children].forEach(el => {
+    if (el.classList.contains('srule')) current = el.id;
+    if (current) SECTION_OF.set(el, current);
+  });
+}
+function showSection(id) {
+  section = id;
+  $$('.snav button').forEach(b => {
+    const on = b.dataset.sec === id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  });
+  SECTION_OF.forEach((owner, el) => { el.hidden = owner !== id; });
+  scrollTo({ top: 0, behavior: 'auto' });
+}
+$$('.snav button').forEach(b => b.addEventListener('click', () => showSection(b.dataset.sec)));
+indexSections();
+paint();
+showSection('s1');
+</script>
+</body>
+</html>
