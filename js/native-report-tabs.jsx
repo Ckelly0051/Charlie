@@ -771,9 +771,184 @@ function DefensiveSelfScout({ defScout, screen }) {
   </div>;
 }
 
+/**
+ * `SchemeDetail` rendered fronts, coverages, blitzes, the situational front
+ * tables and the disruption cards as one block. The approved composition puts
+ * disruption in section 1 and the rest in section 3, so the same content is
+ * returned as separate Modules. Nothing is recomputed: every value is read off
+ * the `_defensiveStats` object exactly as `SchemeDetail` read it, including
+ * each row's own pre-resolved composite refs.
+ */
+function schemeParts(d, screen, engine) {
+  const none = { disruption: null, fronts: null, coverages: null, blitzes: null, frontSituation: null };
+  if (!d || !d.hasData) return none;
+  const avg = (yards, count) => (count ? yards / count : 0).toFixed(1);
+  const share = (n, count) => count ? (n / count * 100).toFixed(0) : '0';
+  const watch = (refs, label) => refs?.length ? () => screen.watchRefs(refs, label) : undefined;
+
+  // The havoc arc is gone; its number, its sample and its film action are not.
+  const tiles = [
+    ['Sacks', d.sacks, `${d.sackYards} yds`],
+    ['TFL', d.tfl, 'behind the line'],
+    ['Interceptions', d.interceptions, 'on charted pass snaps'],
+    ['Fumbles rec.', d.fumblesRecovered, `of ${d.fumbles} forced`],
+    ['Forced inc.', d.incompletions, 'incompletions'],
+    ['Blitz havoc', `${d.blitzHavocRate}%`, `${d.blitzTotal} blitz snaps`],
+    ['3-and-outs', d.threeAndOuts, 'series'],
+    ['Havoc snaps', d.havocPlays, `${d.havocRate}% rate`],
+  ];
+  const disruption = <div class="gi-def-band gi-def-band-1">
+    <Module title="Disruption" meta="havoc, pressure and takeaways">
+      <div class="gi-def-tiles">{tiles.map(([label, value, sub]) =>
+        <div key={label} class="gi-def-tile"><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>)}</div>
+    </Module>
+  </div>;
+
+  const fronts = d.fronts.length ? <Module title="Front" meta="alignment">
+    <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+      <thead><tr><th>Front</th><th>Snaps</th><th>Run/pass</th><th>Yds</th><th>Avg</th>
+        <th>Stop%<DefMark text={engine.constructor.DEFINITIONS.stopPct} /></th>
+        <th>Havoc%<DefMark text={engine.constructor.DEFINITIONS.havoc} /></th></tr></thead>
+      <tbody>{d.fronts.map(f => <SchemeRow key={f.name} onActivate={watch(f.refs, `${f.name} front — ${f.count} plays`)}
+        label={`${f.name} front — ${f.count} plays`}>
+        <td>{f.name}</td><td>{f.count}</td><td>{f.runs}/{f.passes}</td><td>{f.yards}</td>
+        <td>{avg(f.yards, f.count)}</td><td>{share(f.successes, f.count)}%</td><td>{share(f.havoc, f.count)}%</td>
+      </SchemeRow>)}</tbody>
+    </table></div>
+  </Module> : null;
+
+  // All nine production columns, total Yds included (Codex correction 1).
+  const coverages = d.coverages.length ? <Module title="Coverage" meta="shell">
+    <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+      <thead><tr><th>Coverage</th><th>Snaps</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead>
+      <tbody>{d.coverages.map(c => <SchemeRow key={c.name} onActivate={watch(c.refs, `${c.name} — ${c.count} plays`)}
+        label={`${c.name} — ${c.count} plays`}>
+        <td>{c.name}</td><td>{c.count}</td><td>{c.comps}</td><td>{c.incs}</td><td>{c.ints}</td><td>{c.sacks}</td>
+        <td>{c.yards}</td><td>{avg(c.yards, c.count)}</td><td>{share(c.successes, c.count)}%</td>
+      </SchemeRow>)}</tbody>
+    </table></div>
+  </Module> : null;
+
+  // The aggregate counts DISTINCT blitz-tagged plays (`blitzTotal`) and uses
+  // the canonical `blitzHavocRate` over that same cohort. Sacks, average yards
+  // and stop rate have no canonical aggregate here, and summing the rows above
+  // would double-count any play carrying two blitz tags, so they state that
+  // rather than showing a wrong number.
+  const blitzes = d.blitzes.length ? <Module title="Pressure" meta={`${d.blitzRate}% blitz rate · ${d.blitzTotal} snaps`}>
+    <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+      <thead><tr><th>Pressure</th><th>Snaps</th><th>Sacks</th><th>Havoc%</th><th>Avg yds</th><th>Stop%</th></tr></thead>
+      <tbody>
+        {d.blitzes.map(b => <SchemeRow key={b.name} onActivate={watch(b.refs, `${b.name} blitz — ${b.count} plays`)}
+          label={`${b.name} blitz — ${b.count} plays`}>
+          <td>{b.name}</td><td>{b.count}</td><td>{b.sacks}</td><td>{share(b.havoc, b.count)}%</td>
+          <td>{avg(b.yards, b.count)}</td><td>{share(b.successes, b.count)}%</td>
+        </SchemeRow>)}
+        <tr class="gi-def-total-row">
+          <td>All blitzes</td><td>{d.blitzTotal}</td><td>—</td><td>{d.blitzHavocRate}%</td><td>—</td><td>—</td>
+        </tr>
+      </tbody>
+    </table></div>
+    <p class="gi-def-note">All blitzes counts distinct blitz-tagged snaps. Sacks, average yards and stop rate are not aggregated across blitz types, because a snap can carry more than one blitz tag.</p>
+  </Module> : null;
+
+  const sits = [d.earlyDownFronts, d.passingDownFronts].filter(s => s.fronts.length > 0);
+  const frontSituation = sits.length ? <Module title="Front by situation" meta="early vs passing downs">
+    {sits.map(sit => <div key={sit.label} class="gi-def-subtable">
+      <h4>{sit.label} ({sit.total})</h4>
+      <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
+        <thead><tr><th>Front</th><th>Snaps</th><th>%</th></tr></thead>
+        <tbody>{sit.fronts.map(([name, count]) => <tr key={name}>
+          <td>{name}</td><td>{count}</td><td>{sit.total ? (count / sit.total * 100).toFixed(0) : 0}%</td>
+        </tr>)}</tbody>
+      </table></div>
+    </div>)}
+  </Module> : null;
+
+  return { disruption, fronts, coverages, blitzes, frontSituation };
+}
+
+/**
+ * `DefensiveSelfScout`'s three bodies, split so Scheme by Situation can sit
+ * beside Situational defense in section 4 while predictability and the tells
+ * table stay in section 5. Same values, same film actions, same
+ * insufficient-sample contract: nothing renders when the scout is thin.
+ */
+function selfScoutParts(defScout, screen, engine) {
+  const none = { predictability: null, tells: null, schemeBySituation: null };
+  if (!defScout || defScout.insufficient) return none;
+  const mc = engine.constructor._meterColor(defScout.predictability);
+
+  const predictability = <Module title="Predictability" meta={`${defScout.totalPlays} defensive snaps`}>
+    <div class="gi-def-pred">
+      <span class="gi-def-pred-val" style={{ color: mc }}>{defScout.predictability}/100</span>
+      <span class="gi-def-pred-meter"><i style={{ width: `${defScout.predictability}%`, background: mc }} /></span>
+      <span class="gi-def-pred-label">{defScout.predLabel}</span>
+    </div>
+    {defScout.recommendations.length > 0 && <div class="gi-def-recs">
+      {defScout.recommendations.map((item, i) => <DefRecommendation key={i} item={item} />)}
+    </div>}
+  </Module>;
+
+  const tells = <Module title="Tendency tells" meta="opens film">
+    {defScout.tells.length ? <div class="gi-def-table-wrap"><table class="stats-table stats-table-full ss-tells">
+      <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
+      <tbody>{defScout.tells.map((t, i) => <SchemeRow key={i}
+        onActivate={t.refs?.length ? () => screen.watchRefs(t.refs, `${t.label} — ${t.n} plays`) : undefined}
+        label={`${t.label} — ${t.n} plays`}>
+        <td>{t.label}</td>
+        <td><span class="ss-dim">{t.dim}</span></td>
+        <td>{t.tellType}</td>
+        <td><span class={`ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}`} style={{ '--p': `${t.tellPct}%` }}>{t.tellVal} {t.tellPct}%</span></td>
+        <td>{t.stopRate}%</td>
+        <td>{t.havocRate}%</td>
+        <td><span class={`ss-verdict ss-verdict-${t.verdict}`}>{verdictIcon(t.verdict)} {verdictLabel(t.verdict)}</span></td>
+        <td>{t.n}</td>
+      </SchemeRow>)}</tbody>
+    </table></div> : <p class="gi-table-empty">No defensive scheme tells at the current sample size.</p>}
+  </Module>;
+
+  // Avg yds retained (Codex correction 1).
+  const schemeBySituation = defScout.ddRows.length ? <Module title="Scheme by situation" meta="top call per bucket">
+    <div class="gi-def-table-wrap"><table class="stats-table stats-table-full ss-split">
+      <thead><tr><th>Situation</th><th>Snaps</th><th>Top front</th><th>Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg yds</th></tr></thead>
+      <tbody>{defScout.ddRows.map(r => <tr key={r.key}>
+        <td>{engine._ddPretty(r.key)}</td><td>{r.n}</td>
+        <td>{r.topFrontName ? `${r.topFrontName} ${r.topFrontPct}%` : '—'}</td>
+        <td>{r.topCovName ? `${r.topCovName} ${r.topCovPct}%` : '—'}</td>
+        <td>{r.blitzPct}%</td><td>{r.stopRate}%</td><td>{r.havocRate}%</td><td>{r.avgYds}</td>
+      </tr>)}</tbody>
+    </table></div>
+  </Module> : null;
+
+  return { predictability, tells, schemeBySituation };
+}
+
+/** The five Defense sections. Tabs, not scroll anchors: as anchors the five
+ *  read as one undifferentiated 4,500px page (comp decision 8, approved
+ *  2026-09-04 for Defense; Offense converts in a later pass). */
+const DEFENSE_SECTIONS = [
+  { id: 'd1', label: 'Defensive performance', note: 'Snaps, efficiency, disruption, and the games in the sample' },
+  { id: 'd2', label: 'Opponent Offense', note: 'Opponent play type, frequency, and production' },
+  { id: 'd3', label: 'Scheme', note: 'Fronts, coverage, and pressure' },
+  { id: 'd4', label: 'Situational results', note: 'Down, distance, and scheme by situation' },
+  { id: 'd5', label: 'Self-scout', note: 'Predictability and tendency tells' },
+];
+
+function SectionTabs({ sections, active, onSelect }) {
+  return <div class="gi-def-secnav" role="tablist" aria-label="Defense report sections">
+    {sections.map((s, i) => <button key={s.id} type="button" role="tab"
+      aria-selected={active === s.id} class={`gi-def-secnav-item${active === s.id ? ' is-active' : ''}`}
+      onClick={() => onSelect(s.id)}><b>{i + 1}</b>{s.label}</button>)}
+  </div>;
+}
+
 export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
   const engine = screen.app.stats;
-  if (!report.total) return <EmptyState title="No defensive data tagged yet" body="Tag plays as Defense and add the opponent's play type, result and yardage to build this report." />;
+  const [section, setSection] = useState('d1');
+  if (!report.total) return <EmptyState
+    title="No defensive snaps charted"
+    body="Chart defensive plays to populate this report."
+    action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
   const pct = value => value == null ? 'N/A' : `${value}%`;
   const typeSummary = report.playTypes.filter(row => row.name === 'All Runs' || row.name === 'All Passes');
   const typeDetail = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes')
@@ -787,73 +962,98 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
   const emptyAnswers = report.answers.filter(row => !row.front && !row.coverage && !row.pressure);
   const scopedStats = engine.compute(scoped);
   const defScout = engine.generateDefensiveSelfScout(scoped);
-  return <div class="gi-defense-report">
+  const d = scopedStats.defensive || {};
+  const scheme = schemeParts(d, screen, engine);
+  const scout = selfScoutParts(defScout, screen, engine);
+  const meta = DEFENSE_SECTIONS.find(s => s.id === section) || DEFENSE_SECTIONS[0];
+
+  return <div class="gi-defense-report gi-overview-board gi-defense-board">
     <div class="gi-def-toolbar">
-      {!fixedScope && <div class="gi-def-scope" role="group" aria-label="Defense report scope">
-        <button type="button" data-defense-scope="season" class={screen.defenseScope === 'season' ? 'active' : ''}
-          onClick={() => { screen.defenseScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
-        <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
-          onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
-      </div>}
-      <button class="btn btn-sm" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(report, scoped)}>Export Report</button>
+      {!fixedScope && <>
+        <span class="gi-def-toolbar-label">Scope</span>
+        <div class="gi-def-scope" role="group" aria-label="Defense report scope">
+          <button type="button" data-defense-scope="season" class={screen.defenseScope === 'season' ? 'active' : ''}
+            onClick={() => { screen.defenseScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+          <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
+            onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+        </div>
+      </>}
+      <button class="btn btn-sm gi-def-export" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(report, scoped)}>Export Report</button>
     </div>
-    <DefSection title="Defensive Performance">
+
+    <SectionTabs sections={DEFENSE_SECTIONS} active={section} onSelect={setSection} />
+    <div class="gi-def-secrule"><h2>{meta.label}</h2><p>{meta.note}</p></div>
+
+    {section === 'd1' && <>
       <div class="gi-def-kpis">
-        <div class="gi-def-kpi"><span>Defensive Snaps</span><strong>{report.total}</strong></div>
-        <div class="gi-def-kpi"><span>Yards / Play Allowed</span><strong>{report.summary.yardsPerPlay.toFixed(1)}</strong></div>
-        <div class="gi-def-kpi"><span>Stop Rate</span><strong>{pct(report.summary.stopRate)}</strong></div>
-        <div class="gi-def-kpi"><span>Explosives Allowed</span><strong>{report.summary.explosives}</strong><small>{report.summary.explosiveRate}%</small></div>
-        <div class="gi-def-kpi"><span>3rd Down Stop Rate</span><strong>{pct(report.thirdDownStopRate)}</strong></div>
-        <div class="gi-def-kpi"><span>Red Zone TD Rate</span><strong>{pct(report.redZoneTdRate)}</strong></div>
-        <div class="gi-def-kpi"><span>Takeaways</span><strong>{report.takeaways}</strong></div>
-        <div class="gi-def-kpi"><span>Havoc Rate</span><strong>{pct(report.summary.havocRate)}</strong></div>
+        <div class="gi-def-kpi is-lead"><span>Stop rate</span><strong>{pct(report.summary.stopRate)}</strong><small>{report.total} snaps</small></div>
+        <div class="gi-def-kpi"><span>Yards / play allowed</span><strong>{report.summary.yardsPerPlay.toFixed(1)}</strong></div>
+        <div class="gi-def-kpi"><span>Havoc rate</span><strong>{pct(report.summary.havocRate)}</strong><small>{d.havocPlays ?? 0} snaps</small></div>
+        <div class="gi-def-kpi"><span>Takeaways</span><strong>{report.takeaways}</strong><small>{d.interceptions ?? 0} INT · {d.fumblesRecovered ?? 0} FR</small></div>
+        <div class="gi-def-kpi"><span>Explosives allowed</span><strong>{report.summary.explosives}</strong><small>{report.summary.explosiveRate}%</small></div>
+        <div class="gi-def-kpi"><span>3rd down stop</span><strong>{pct(report.thirdDownStopRate)}</strong></div>
+        <div class="gi-def-kpi"><span>Red zone TD rate</span><strong>{pct(report.redZoneTdRate)}</strong></div>
+        <div class="gi-def-kpi"><span>Defensive snaps</span><strong>{report.total}</strong></div>
       </div>
-    </DefSection>
-    <DefSection title="Opponent Offense by Play Type">
-      <div class="gi-def-type-totals">
-        {typeSummary.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-type-summary"
-          refs={row.refs} label={`${row.name} — ${row.n} defensive snaps`} screen={screen}>
-          <span>{row.name}</span><strong>{row.n} snaps</strong>
-          <small>{row.yardsPerPlay.toFixed(1)} yds/play · {row.stopRate}% stop · {row.explosiveRate}% explosive</small>
-        </WatchableRefs>)}
+      <div class="gi-def-band gi-def-band-2">
+        <Module title="Sample by game" meta="opens film">
+          <div class="gi-def-table-wrap">
+            <DataTable columns={defGameColumns} rows={defRows(report.byGame, 'defense', screen)} />
+          </div>
+        </Module>
+        <Module title="Run / pass faced" meta="opens film">
+          <div class="gi-def-type-totals">
+            {typeSummary.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-type-summary"
+              refs={row.refs} label={`${row.name} — ${row.n} defensive snaps`} screen={screen}>
+              <span>{row.name}</span><strong>{row.n} snaps</strong>
+              <small>{row.yardsPerPlay.toFixed(1)} yds/play · {row.stopRate}% stop · {row.explosiveRate}% explosive</small>
+            </WatchableRefs>)}
+          </div>
+        </Module>
       </div>
-      <div class="gi-def-table-wrap">
-        <DataTable className="stats-table stats-table-full gi-def-type" columns={defTypeColumns}
-          rows={typeDetail.map(row => ({ ...row, id: row.name,
-            onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} — ${row.n} defensive snaps`) : undefined,
-            label: `${row.name} — ${row.n} defensive snaps` }))} />
-      </div>
-    </DefSection>
-    {(qualifiedAnswers.length > 0 || emptyAnswers.length > 0) && <DefSection title="Best Calls by Opponent Play Type">
-      {qualifiedAnswers.length > 0 && <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
-        <thead><tr><th>Opponent Play Type</th><th>Best Front</th><th>Best Coverage</th><th>Blitz Decision</th></tr></thead>
-        <tbody>{qualifiedAnswers.map(row => <tr key={row.playType}>
-          <td><strong>{row.playType}</strong><small>{row.n} snaps</small></td>
-          <td><DefAnswerCell answer={row.front} screen={screen} /></td>
-          <td><DefAnswerCell answer={row.coverage} screen={screen} /></td>
-          <td><DefAnswerCell answer={row.pressure} screen={screen} /></td>
-        </tr>)}</tbody>
-      </table></div>}
-      {emptyAnswers.length > 0 && <p class="viz-caption">{emptyAnswers.length} more opponent play type{emptyAnswers.length === 1 ? '' : 's'} ({emptyAnswers.map(row => row.playType).join(', ')}) didn't have enough snaps for a best-answer call yet.</p>}
-    </DefSection>}
-    {/* Charlie Gate finding #4: pairing Game Trend with the taller Situational
-        Defense table in a fixed two-column row left the shorter side (usually
-        Game Trend -- one row per game, often just 1-6 rows) with a large empty
-        half-panel below it. Stacked full width instead. */}
-    <DefSection title="Game Trend">
-      <div class="gi-def-table-wrap">
-        <DataTable columns={defGameColumns} rows={defRows(report.byGame, 'defense', screen)} />
-      </div>
-    </DefSection>
-    <DefSection title="Situational Defense">
-      <div class="gi-def-table-wrap">
-        <DataTable columns={defSitColumns} rows={defRows(report.situations, 'defense', screen)} />
-      </div>
-    </DefSection>
-    <DefSection title="Scheme Detail">
-      <SchemeDetail defensive={scopedStats.defensive} screen={screen} />
-    </DefSection>
-    <DefensiveSelfScout defScout={defScout} screen={screen} />
+      {scheme.disruption}
+    </>}
+
+    {section === 'd2' && <div class="gi-def-band gi-def-band-2">
+      <Module title="Opponent play type" meta={`${report.total} snaps`}>
+        <div class="gi-def-table-wrap">
+          <DataTable className="stats-table stats-table-full gi-def-type" columns={defTypeColumns}
+            rows={typeDetail.map(row => ({ ...row, id: row.name,
+              onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} — ${row.n} defensive snaps`) : undefined,
+              label: `${row.name} — ${row.n} defensive snaps` }))} />
+        </div>
+      </Module>
+      <Module title="Best call by play type" meta="front · coverage · pressure">
+        {qualifiedAnswers.length > 0 ? <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
+          <thead><tr><th>Play type</th><th>Best front</th><th>Best coverage</th><th>Blitz decision</th></tr></thead>
+          <tbody>{qualifiedAnswers.map(row => <tr key={row.playType}>
+            <td><strong>{row.playType}</strong><small>{row.n} snaps</small></td>
+            <td><DefAnswerCell answer={row.front} screen={screen} /></td>
+            <td><DefAnswerCell answer={row.coverage} screen={screen} /></td>
+            <td><DefAnswerCell answer={row.pressure} screen={screen} /></td>
+          </tr>)}</tbody>
+        </table></div> : <p class="gi-table-empty">Insufficient charted data</p>}
+        {emptyAnswers.length > 0 && <p class="gi-def-note">{emptyAnswers.length} more opponent play type{emptyAnswers.length === 1 ? '' : 's'} ({emptyAnswers.map(row => row.playType).join(', ')}) {emptyAnswers.length === 1 ? 'has' : 'have'} not reached the sample a best-answer call requires.</p>}
+      </Module>
+    </div>}
+
+    {section === 'd3' && <>
+      <div class="gi-def-band gi-def-band-2">{scheme.fronts}{scheme.coverages}</div>
+      <div class="gi-def-band gi-def-band-2">{scheme.blitzes}{scheme.frontSituation}</div>
+    </>}
+
+    {section === 'd4' && <div class="gi-def-band gi-def-band-2">
+      <Module title="Situational defense" meta="by situation">
+        <div class="gi-def-table-wrap">
+          <DataTable columns={defSitColumns} rows={defRows(report.situations, 'defense', screen)} />
+        </div>
+      </Module>
+      {scout.schemeBySituation}
+    </div>}
+
+    {section === 'd5' && <>
+      <div class="gi-def-band gi-def-band-2">{scout.predictability}{scout.tells}</div>
+    </>}
   </div>;
 }
 

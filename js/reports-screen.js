@@ -13,10 +13,14 @@ const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'playe
  * two can never appear together.
  *
  * It grows one tab at a time as each self-report tab receives its design pass.
- * Overview (2026-08) and Offense (2026-09-03) are done; Defense, Special Teams,
- * Players, Self-Scout and Matchup still render the rail.
+ * Overview (2026-08), Offense (2026-09-03) and Defense (2026-09-04) are done;
+ * Special Teams, Players, Self-Scout and Matchup still render the rail.
+ *
+ * Defense renders a LINESCORE variant of the bug (`is-linescore`) instead of
+ * the name/score pair — approved for Defense only, so Overview and Offense keep
+ * the pair until their own pass.
  */
-const SCOREBUG_TABS = new Set(['overview', 'offense']);
+const SCOREBUG_TABS = new Set(['overview', 'offense', 'defense']);
 
 /** Native Reports route controller. StatsEngine owns formulas; this class owns all live presentation. */
 export class ReportsScreen {
@@ -277,7 +281,11 @@ export class ReportsScreen {
     // than rendering a blank scorebug shell.
     const visible = this._mode === 'main' && this.perspective === 'self'
       && SCOREBUG_TABS.has(this.activeTab) && data?.totalPlays;
-    if (!visible) { bug.hidden = true; bug.innerHTML = ''; return; }
+    // The linescore class is cleared here as well as on the pair path: hiding
+    // the bug returns before the pair branch, so leaving Defense for a
+    // rail-bearing tab would otherwise leave `is-linescore` set on a hidden
+    // node, and the next tab to reveal it would flash the wrong treatment.
+    if (!visible) { bug.hidden = true; bug.innerHTML = ''; bug.classList.remove('is-linescore'); return; }
     const esc = Charts._esc;
     const game = this.app.storage?.gameInfo || {};
     const context = this.app.workspace?.snapshot?.() || {};
@@ -292,6 +300,18 @@ export class ReportsScreen {
     const offense = computed.offPlays?.length || 0;
     const yards = (computed.rushing?.yards || 0) + (computed.passing?.yards || 0);
     const ypp = offense ? (yards / offense).toFixed(1) : '—';
+
+    // Defense reads its own linescore (approved 2026-09-04, Defense only —
+    // Overview and Offense keep the name/score pair until their own pass).
+    // Nicknames come from the 2026-08-31 naming contract, which stores school
+    // and nickname separately; the full identity stays in the title.
+    if (this.activeTab === 'defense') {
+      bug.classList.add('is-linescore');
+      bug.innerHTML = this._defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game });
+      bug.hidden = false;
+      return;
+    }
+    bug.classList.remove('is-linescore');
     // SCORE GRID: `.gi-scorebug-team` is `display:contents`, so each team's
     // NAME and SCORE land in their own fixed track on the scorebug grid rather
     // than sharing one content-measured cell. That is what keeps a score's
@@ -303,6 +323,61 @@ export class ReportsScreen {
       <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds · ${offense}&nbsp;snaps</span></div>
       <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
     bug.hidden = false;
+  }
+
+  /**
+   * The Defense linescore: one row per team — nickname, four quarters, total.
+   * Every value is read from the same owners the rest of the tab uses; nothing
+   * is computed here. The story metric is yards per play ALLOWED over the
+   * defensive cohort currently in scope, and the identity strip states the base
+   * front, base coverage and blitz rate straight off `_defensiveStats`, which
+   * is the same top-of-breakdown row the Scheme section shows.
+   */
+  _defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game }) {
+    const nick = (nickname, full) => String(nickname || '').trim() || full;
+    const usName = nick(context.team?.nickname, team);
+    const themName = nick(game.opponentNickname, opponent);
+    const q = (side, key) => tagged.byQuarter?.[key]?.[side] || 0;
+    const row = (name, title, side, total) => `<div class="gi-scorebug-row">
+        <div class="gi-scorebug-name" title="${esc(title)}">${esc(name)}</div>
+        ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q">${q(side, k)}</div>`).join('')}
+        <div class="gi-scorebug-total">${esc(String(total))}</div>
+      </div>`;
+
+    const { scoped } = this._defenseCohort();
+    const report = this.app.stats.defensivePerformance(scoped);
+    const def = this.app.stats.compute(scoped).defensive || {};
+    const allowed = report.total ? report.summary.yardsPerPlay.toFixed(1) : '—';
+    const yardsAllowed = report.total ? Math.round(report.summary.yardsPerPlay * report.total) : 0;
+
+    // A dimension with no charted sample says so rather than reporting a zero.
+    const top = (list, unit) => {
+      const first = (list || [])[0];
+      if (!first) return { value: '—', sub: 'none charted' };
+      const count = first.count ?? first.n ?? 0;
+      const share = report.total ? Math.round(count / report.total * 100) : 0;
+      return { value: first.name, sub: `${count} ${unit} · ${share}%` };
+    };
+    const front = top(def.fronts, 'snaps');
+    const cover = top(def.coverages, 'snaps');
+    const blitzRate = def.hasData && def.blitzRate != null ? `${def.blitzRate}%` : '—';
+    const blitzSub = def.hasData && report.total
+      ? `${def.blitzTotal || 0} of ${report.total} snaps` : 'none charted';
+    const ident = [['Base front', front.value, front.sub], ['Base coverage', cover.value, cover.sub],
+      ['Blitz rate', blitzRate, blitzSub]]
+      .map(([label, value, sub]) => `<div><span>${label}</span><strong>${esc(String(value))}</strong><small>${esc(sub)}</small></div>`).join('');
+
+    return `<div class="gi-scorebug-score">
+        <div class="gi-scorebug-row is-head">
+          <div class="gi-scorebug-name"></div>
+          ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q is-head">${k}</div>`).join('')}
+          <div class="gi-scorebug-total is-head">T</div>
+        </div>
+        ${row(usName, team, 'us', scoreUs)}
+        ${row(themName, opponent, 'them', scoreThem)}
+      </div>
+      <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds · ${report.total}&nbsp;snaps</span></div>
+      <div class="gi-scorebug-ident">${ident}</div>`;
   }
 
   _syncHeader() {

@@ -1,7 +1,12 @@
 # Reports > Defense — desktop design comp, 2026-09-03
 
-**Status: comp for coach review. Not approved, not implemented.**
-Design only. No production file was changed to produce this.
+**Status: IMPLEMENTED 2026-09-04.** The composition, the section tabs and the
+linescore scorebug are approved for Defense and are live in production. Tabs
+and the linescore are Defense-only: Offense keeps continuous scroll and
+Overview/Offense keep the name/score pair until their own passes.
+
+Implementation notes are in the commit that carries the code. Everything below
+describes the approved design and its production-to-comp mapping.
 
 Comp: `design-comps/reports-defense-2026-09-03/defense.html`
 Captures: `design-comps/reports-defense-2026-09-03/captures/`
