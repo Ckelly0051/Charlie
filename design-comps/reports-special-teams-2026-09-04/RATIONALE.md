@@ -252,6 +252,20 @@ Denominators reconcile in every fixture: the ledger sum plus the unassigned
 term equals the ST Snaps KPI, and the Conversions KPI equals the Tries module's
 attributable count.
 
+**Fixture reconciliation is mechanical, not asserted in prose.** Codex found
+two fixture defects by reading the numbers, and neither was visible to a layout
+audit. Forty checks now run before any capture is taken:
+
+- every unit's outcomes are mutually exclusive and sum to no more than its
+  snap count;
+- a returns-allowed denominator equals that unit's own `Returned` count, never
+  its snap count;
+- `points.us` equals what `StatsEngine.playPoints()` would actually score over
+  the charted events — field goal 3, kick XP 1, two-point try 2, touchdown 6.
+
+The season fixture's points are enumerated in a comment beside the value, so
+the number can be audited without re-deriving it.
+
 ---
 
 ## 7 · Open product decisions — for Charlie
@@ -318,8 +332,38 @@ None of these is implemented. Each needs a call.
   declared bounded scrollers (`.twrap`, the tab strip).
 - **Zero console or page errors.**
 - Real-season figures verified against the running engine, not recomputed.
+- **40 fixture-reconciliation checks** (§6) run before any capture.
+- **Type floor**: no text anywhere on the board renders below 9.5px, the floor
+  the Offense board already holds.
+- All four of those checks are **mutation-verified** — each was run against a
+  copy carrying its own defect and reds naming that defect.
 - Every interactive element has rest / hover / `:focus-visible` states that do
   not change layout dimensions.
+
+### Codex review, 2026-09-04 — three findings, all correct, all fixed
+
+1. **The season fixture's Points KPI reconciled to nothing.** It read 43 while
+   the same fixture charted 8 made field goals, 31 extra points, 2 two-point
+   tries, and a kick-return touchdown. Verified against `playPoints()`: that is
+   **65**. Corrected, and the composition of both sides is now enumerated in a
+   comment beside the value. `points.them` (8) was already coherent — a blocked
+   punt the opponent recovered and returned, plus a safety — and both
+   attributions are ones `scoringSide()` actually produces.
+2. **The one-unit fixture's punt outcomes exceeded its snap count** — 14 punts
+   against 16 dispositions. Outcomes are mutually exclusive, so this was
+   impossible. Corrected to 5 fair catch + 6 returned + 2 touchback + 1 downed,
+   and the returns-allowed denominator moved from 8 to the 6 returns that
+   actually occurred.
+3. **One label sat below the type floor.** The unit ledger's role label
+   (`Kicking` / `Receiving` / `Attempting` / `Defending`) shipped at 9px,
+   reproducing the undersized text already on the polish backlog. Raised to
+   9.5px in place; it sits on its own line above the unit name, so nothing else
+   tightened.
+
+Findings 1 and 2 were errors in my fixtures, not in the composition — but a
+fixture is part of the evidence, and a comp reviewed against numbers that do
+not add up is not reviewable. Both classes are now caught mechanically rather
+than by a careful reader.
 
 ### Defects found by looking at the captures, and fixed
 

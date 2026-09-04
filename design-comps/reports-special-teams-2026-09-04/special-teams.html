@@ -198,7 +198,11 @@ button{font-family:inherit}
   padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);color:inherit;font:inherit}
 .uc:hover{background:var(--gi-bd-control)}
 .uc:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
-.uc .role{display:block;color:var(--gi-bd-muted);font:700 9px/1 var(--gi-cond);letter-spacing:.14em;
+/* 9.5px is the floor the Offense board's type assertion holds; an earlier pass
+   set this one label to 9px and reproduced the undersized text already on the
+   polish backlog. Raised in place -- the label sits on its own line above the
+   unit name, so nothing else tightens. */
+.uc .role{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.14em;
   text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uc .name{display:block;margin-top:3px;color:var(--gi-bd-strong);font:700 12px/1.15 var(--gi-cond);
   letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -486,7 +490,17 @@ const $$ = s => [...document.querySelectorAll(s)];
 const SEASON = {
   label: '2026 Varsity', game: 'Week 3 vs Northgate', legacy: false,
   snaps: 155, cohort: 448, games: 6,
-  points: { us: 43, them: 8 },
+  /* Every point is enumerated, because the first pass carried a number that
+     reconciled to nothing. StatsEngine.playPoints() scores a made field goal 3,
+     a kick XP 1, a two-point try 2, and a touchdown 6:
+       us   = 8 FG x3 (24) + 31 XP x1 (31) + 2 two-point x2 (4) + 1 kick-return
+              TD x6 (6)                                                    = 65
+       them = a blocked punt the opponent recovered and returned (6) + a safety
+              on a punt snapped through our end zone (2)                   =  8
+     Both sides are attributions scoringSide() actually produces on a
+     structured season: scoringTeam() returns 'opponent' for the recovered
+     block, and a Safety on a Special Teams snap credits them. */
+  points: { us: 65, them: 8 },
   kickoffs: { n: 34, avg: 52.1, tb: 38, fc: 6, retAllowedAvg: 18.4, retAllowedYards: 221, retAllowedN: 12,
     onside: { n: 2, recovered: 1 },
     outcomes: [['Touchback', 13, ''], ['Returned', 12, ''], ['Out of bounds', 4, 'bad'], ['Fair catch', 2, ''], ['Recovered', 2, 'warn'], ['Downed', 1, '']] },
@@ -573,9 +587,13 @@ const ONEUNIT = {
   kickoffs: { n: 0, avg: null, tb: 0, fc: 0, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
     onside: { n: 0, recovered: 0 }, outcomes: [] },
   kr: { n: 0, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 0, outcomes: [] },
+  /* Outcomes are mutually exclusive and must sum to the snap count: 14 punts =
+     5 fair catch + 6 returned + 2 touchback + 1 downed. An earlier pass summed
+     to 16, which claimed two more dispositions than there were punts, and the
+     returns-allowed denominator has to be the returned count. */
   punts: { n: 14, gross: 38.2, net: 33.6, hang: 4.1, tb: 14, fc: 36, blocked: 0,
-    retAllowedAvg: 5.1, retAllowedYards: 41, retAllowedN: 8,
-    outcomes: [['Fair catch', 5, ''], ['Returned', 8, ''], ['Touchback', 2, 'warn'], ['Downed', 1, '']] },
+    retAllowedAvg: 6.8, retAllowedYards: 41, retAllowedN: 6,
+    outcomes: [['Fair catch', 5, ''], ['Returned', 6, ''], ['Touchback', 2, 'warn'], ['Downed', 1, '']] },
   pr: { n: 0, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 0, outcomes: [] },
   fg: { att: 0, made: 0, pct: 0, long: 0, byDist: [], outcomes: [] },
   blocks: { n: 0, blocked: 0, na: false },
