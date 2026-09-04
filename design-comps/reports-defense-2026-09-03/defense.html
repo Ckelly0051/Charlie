@@ -70,43 +70,49 @@ button{font-family:inherit}
 .ctxbar .persp button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
 
 /* ── SCOREBUG ──────────────────────────────────────────────────────────────
-   Same structure as the implemented Overview/Offense bug: `display:contents`
-   promotes each team's name and score into the bug's OWN fixed tracks, so a
-   score cell can never move for a name length or a 3-digit value. Defense
-   carries the cyan accent on its story metric.
+   A linescore, not two name/score pairs. The pair layout put a team's score
+   above and right of its own name, gave the name a track too narrow to hold
+   "St. Joseph Mavericks", and stacked the quarter figures with nothing saying
+   which row was which team.
+
+   Here each team is a ROW: name, four quarters, total. The quarter columns and
+   the total column are fixed and equal, so score position is independent of
+   name length and identical for a 1-, 2- or 3-digit value. The name column is
+   bounded on its own and truncates with the full value in a tooltip.
    ─────────────────────────────────────────────────────────────────────── */
 .scorebug{
-  --sb-name:170px; --sb-score:78px;
-  /* Panel background with the rules drawn as shadows, not a line-coloured
-     grid showing through 1px gaps: the name cell is bottom-aligned, so that
-     colour surfaced above it as a slab. Same technique the bands use. */
-  display:grid;align-items:stretch;gap:0;background:var(--gi-bd-panel);
-  grid-template-columns:
-    minmax(0,var(--sb-name)) var(--sb-score)
-    minmax(0,var(--sb-name)) var(--sb-score)
-    minmax(190px,.9fr) minmax(0,1fr) auto;
+  --sb-name:clamp(220px,26vw,340px); --sb-q:46px; --sb-tot:66px;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-rows:auto auto auto;background:var(--gi-bd-panel)
 }
-.sb-team{display:contents}
-.sb-team>span{display:block;align-self:end;min-width:0;padding:9px 0 9px var(--gi-4x);
-  background:var(--gi-bd-panel);color:var(--gi-bd-copy);
-  font:700 11px/1.2 var(--gi-cond);letter-spacing:.14em;text-transform:uppercase;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sb-team>strong{display:flex;align-items:center;min-width:0;box-shadow:-1px 0 var(--gi-bd-line);padding:9px var(--gi-4x) 9px 10px;
-  background:var(--gi-bd-panel);color:var(--gi-bd-strong);
-  font:700 35px/.88 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.sb-line{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:center;
-  padding:6px 20px;background:var(--gi-bd-panel);box-shadow:-1px 0 var(--gi-bd-line)}
-.sb-q{min-width:0;padding:4px 2px;text-align:center}
-.sb-q span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em}
-.sb-q b,.sb-q i{display:block;margin-top:3px;font:600 18px/1.15 var(--gi-cond);font-style:normal;
-  font-variant-numeric:var(--gi-num-feat)}
-.sb-q b{color:var(--gi-bd-strong)} .sb-q i{color:var(--gi-bd-muted)}
-.sb-story{display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--gi-bd-panel);box-shadow:-1px 0 var(--gi-bd-line)}
+.scorebug>.sb-line{grid-column:1}
+.scorebug>.sb-line:first-child{padding-bottom:0}
+.scorebug>.sb-line+.sb-line{padding-top:0}
+.sb-story{grid-column:2;grid-row:1/4}
+.sb-meta{grid-column:3;grid-row:1/4}
+.sb-line{
+  display:grid;align-items:center;
+  grid-template-columns:var(--sb-name) repeat(4,var(--sb-q)) var(--sb-tot);
+  padding:7px var(--gi-4x) 9px;column-gap:0
+}
+.sb-line>*{padding:2px 0;text-align:right}
+.sb-hd{color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.sb-hd.tot{color:var(--gi-bd-copy)}
+.sb-name{
+  min-width:0;padding-right:var(--gi-3x)!important;text-align:left!important;
+  color:var(--gi-bd-strong);font:700 12px/1.25 var(--gi-cond);letter-spacing:.13em;text-transform:uppercase;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.sb-q{color:var(--gi-bd-strong);font:600 15px/1.25 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.sb-tot{color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+/* Both rows read the same. Dimming the losing team costs legibility to
+   restate what the numbers already say. */
+.sb-story{display:flex;align-items:center;gap:14px;padding:0 18px;box-shadow:-1px 0 var(--gi-bd-line)}
 .sb-story>strong{color:var(--gi-bd-cyan);font:700 30px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.sb-story>span{max-width:26ch;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans)}
+.sb-story>span{max-width:30ch;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans)}
 .sb-story b{color:var(--gi-bd-strong);font-weight:600}
 .sb-meta{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;
-  padding:0 var(--gi-4x);background:var(--gi-bd-panel);text-align:right;box-shadow:-1px 0 var(--gi-bd-line)}
+  padding:0 var(--gi-4x);text-align:right;box-shadow:-1px 0 var(--gi-bd-line)}
 .sb-meta strong{color:var(--gi-bd-strong);font:700 11px/1.2 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase}
 .sb-meta span{margin-top:3px;color:var(--gi-bd-muted);font:400 11px/1.2 var(--gi-sans)}
 
@@ -313,18 +319,24 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
      on Overview and Offense. The old rail reported offense KPIs (Success Rate,
      Plays per Phase) on a defensive report. -->
 <div class="scorebug" id="scorebug">
-  <div class="sb-team"><span id="sbUsName" title="St. Joseph Mavericks">St. Joseph Mavericks</span><strong id="sbUs">28</strong></div>
-  <div class="sb-team"><span id="sbThemName" title="Northgate">Northgate</span><strong id="sbThem">21</strong></div>
   <div class="sb-line">
-    <div class="sb-q"><span>Q1</span><b>7</b><i>7</i></div>
-    <div class="sb-q"><span>Q2</span><b>14</b><i>0</i></div>
-    <div class="sb-q"><span>Q3</span><b>0</b><i>7</i></div>
-    <div class="sb-q"><span>Q4</span><b>7</b><i>7</i></div>
+    <div class="sb-hd"></div>
+    <div class="sb-hd">Q1</div><div class="sb-hd">Q2</div><div class="sb-hd">Q3</div><div class="sb-hd">Q4</div>
+    <div class="sb-hd tot">T</div>
   </div>
-  <div class="sb-story"><strong id="sbYpp">5.1</strong><span id="sbYppSub"><b>Yards per play allowed</b> 887&nbsp;yds · 174&nbsp;snaps</span></div>
-  <div class="sb-meta"><strong id="sbMeta">Full season · 3 games</strong><span id="sbMetaSub">174 of 174 defensive snaps charted</span></div>
+  <div class="sb-line" id="sbRowUs">
+    <div class="sb-name" id="sbUsName" title="St. Joseph Mavericks">St. Joseph Mavericks</div>
+    <div class="sb-q">7</div><div class="sb-q">14</div><div class="sb-q">0</div><div class="sb-q">7</div>
+    <div class="sb-tot" id="sbUs">28</div>
+  </div>
+  <div class="sb-line" id="sbRowThem">
+    <div class="sb-name" id="sbThemName" title="Northgate">Northgate</div>
+    <div class="sb-q">7</div><div class="sb-q">0</div><div class="sb-q">7</div><div class="sb-q">7</div>
+    <div class="sb-tot" id="sbThem">21</div>
+  </div>
+  <div class="sb-story"><strong id="sbYpp">5.1</strong><span id="sbYppSub"><b>Yards per play allowed</b> 887&nbsp;yds &middot; 174&nbsp;snaps</span></div>
+  <div class="sb-meta"><strong id="sbMeta">Full season &middot; 3 games</strong><span id="sbMetaSub">174 of 174 defensive snaps charted</span></div>
 </div>
-
 <div class="rhead">
   <div>
     <h1>Week 3 vs Northgate</h1>

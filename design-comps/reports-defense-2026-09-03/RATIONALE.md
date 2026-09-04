@@ -96,19 +96,30 @@ Defense-specific in the bug:
 - The right-hand cell states the scope and its sample, so the scope control and
   the header never disagree.
 
-**Score spacing** is structural and unchanged from the implemented bug: team
-names and scores occupy separate grid tracks; both score cells are fixed and
-equal; names are bounded independently and truncate with a tooltip. Measured
-across every state at each width — the score cells and the quarter line hold
-identical x positions:
+**The scorebug is a linescore, and that is a change from Overview/Offense.**
+The implemented bug pairs each team's name with its own score cell. On this
+comp that read badly: a team's score sat above and to the right of its own
+name, the name track was too narrow to hold "St. Joseph Mavericks", and the
+quarter figures stacked with nothing saying which row belonged to which team.
 
-| Width | Score cells | Quarter line |
+Each team is now a row — name, four quarters, total — which is the box-score
+convention and answers all three at once. Score position is still structural:
+the four quarter columns and the total column are fixed and equal, so a score
+cannot move for a name length or for a 1-, 2- or 3-digit value. The name
+column is bounded on its own and truncates with the full value in a tooltip.
+
+Measured across populated and long-name / three-digit states:
+
+| Width | Both totals | Quarter header |
 |---|---|---|
-| 1440 populated / long names + 3-digit | 170, 418 | 496 |
-| 1280 populated / long names + 3-digit | 132, 334 | 404 |
+| 1440 | 540 | 16 |
+| 1280 | 332 | 16 |
+
+**Both team rows carry the same weight and ink.** An earlier pass bolded our
+team and dimmed the opponent; that spends legibility restating what the score
+already says. Coach's call, and the right one.
 
 ---
-
 ## 4 · Composition decisions
 
 **Modules are paired by realistic content height.** Production pairs nothing —
