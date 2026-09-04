@@ -295,6 +295,14 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 /* Notes, definitions, sparse + empty */
 .note{margin:6px 0 0;color:var(--gi-bd-copy);font:400 11px/1.45 var(--gi-sans)}
 .note b{color:var(--gi-bd-strong);font-weight:600}
+/* An empty module is stretched to its band's height by `align-items:stretch`,
+   so its two words would otherwise sit at the top of a tall panel with a void
+   under them -- worst where one populated unit sets the height for two empty
+   ones. Centring the label in the leftover space makes the panel read as an
+   empty cell rather than as content with a hole beneath it. */
+.mod.is-none{display:flex;flex-direction:column}
+.mod.is-none>header{flex:0 0 auto}
+.mod.is-none .sparse{flex:1 1 auto;display:flex;align-items:center}
 .sparse{margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)}
 .empty{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);
   margin:0 0 4px;padding:var(--gi-4x);background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
@@ -501,7 +509,7 @@ const SEASON = {
   tries: { xp: { att: 34, made: 31 }, two: { att: 4, made: 2 }, na: false },
   impact: [['Field goals missed', 4], ['Tries missed', 5], ['Muffed returns', 3], ['Field goals blocked', 2], ['Punts blocked', 1]],
   returners: [['4', 'Carter', 9, 187, 20.8, 68, 1], ['21', 'Ellis', 8, 122, 15.3, 34, 0],
-    ['2', 'Nunez', 6, 72, 12.0, 22, 0], ['33', 'Ward', 0, 0, null, 0, 0]],
+    ['2', 'Nunez', 6, 72, 12.0, 22, 0]],
   kickers: [['19', 'Reed', '8/12', 0, null], ['35', 'Boyd', '—', 27, 36.8]],
   unassigned: 0,
 };
@@ -625,8 +633,12 @@ function srow(label, value, opts) {
 }
 function rows(html) { return `<div class="srows">${html}</div>`; }
 function head(mod, title, meta, cls) {
+  const none = (cls || '').includes('is-none');
   mod.className = `mod${cls ? ' ' + cls : ''}`;
-  return `<header><strong>${esc(title)}</strong><span>${esc(meta || '')}</span></header>`;
+  /* An empty module's body already says No data, so its meta is suppressed --
+     otherwise the header and the body print the same two words one above the
+     other. Same rule the KPI tiles follow. */
+  return `<header><strong>${esc(title)}</strong><span>${esc(none ? '' : (meta || ''))}</span></header>`;
 }
 /** A unit with nothing in it. Two words, and no zeros. */
 function noneBody() { return `<p class="sparse">${NO_DATA}</p>`; }
@@ -834,7 +846,7 @@ function returnTable(d) {
       <td class="tl">#${esc(num)} ${esc(name)}</td>
       <td>${ret}</td>
       <td class="${yds < 0 ? 'neg' : ''}">${yds}</td>
-      <td class="${!has(avg) ? 'blank' : (avg < 0 ? 'neg' : '')}">${has(avg) ? avg.toFixed(1) : '—'}</td>
+      <td class="${!has(avg) ? 'blank' : (avg < 0 ? 'neg' : '')}">${has(avg) ? avg.toFixed(1) : NO_DATA}</td>
       <td>${long}</td><td>${td}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
@@ -845,9 +857,9 @@ function kickerTable(d) {
     ${d.kickers.map(([num, name, fg, punts, avg]) => `<tr class="cut" tabindex="0"
       title="${esc(name)} — kicking film">
       <td class="tl">#${esc(num)} ${esc(name)}</td>
-      <td class="${fg === '—' ? 'blank' : ''}">${esc(fg)}</td>
-      <td class="${punts ? '' : 'blank'}">${punts || '—'}</td>
-      <td class="${has(avg) ? '' : 'blank'}">${has(avg) ? avg.toFixed(1) : '—'}</td></tr>`).join('')}
+      <td class="${fg === '—' ? 'blank' : ''}">${esc(fg === '—' ? NO_DATA : fg)}</td>
+      <td class="${punts ? '' : 'blank'}">${punts || NO_DATA}</td>
+      <td class="${has(avg) ? '' : 'blank'}">${has(avg) ? avg.toFixed(1) : NO_DATA}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
 function impactList(d) {
@@ -867,8 +879,8 @@ function bucketBand(d) {
   return `<div class="buckets">${all.map(([label]) => {
     const b = map.get(label);
     if (!b) return `<div class="bkt" style="cursor:default">
-      <span>${esc(label)} yds</span><strong style="color:var(--gi-bd-muted);font-size:15px;line-height:1.45">None</strong>
-      <small>no attempt in this range</small></div>`;
+      <span>${esc(label)} yds</span>
+      <strong style="color:var(--gi-bd-muted);font-size:15px;line-height:1.45">${NO_DATA}</strong></div>`;
     return `<button type="button" class="bkt" title="Field goals ${esc(label)} — ${pl(b[2], 'attempt')}">
       <span>${esc(label)} yds</span><strong>${b[1]}/${b[2]}</strong>
       <small>${Math.round(b[1] / b[2] * 100)}% made</small></button>`;
@@ -882,7 +894,9 @@ function render(d) {
   $('#ctxGame').textContent = d.game;
   $('#ctxGame').title = d.game;
   $('#headSub').textContent = `${d.label} · ${pl(d.snaps, 'special teams snap')}`;
-  $('#sampleLine').innerHTML = `<b>${d.snaps}</b> ST snaps of <b>${d.cohort}</b> charted · <b>${d.games}</b> games`;
+  /* `games` was hardcoded plural and read "1 games" on a single-game scope. */
+  $('#sampleLine').innerHTML =
+    `<b>${d.snaps}</b> ST snaps of <b>${d.cohort}</b> charted · <b>${d.games}</b> game${d.games === 1 ? '' : 's'}`;
 
   $('#kpis').innerHTML = kpis(d);
   $('#ledger').innerHTML = ledger(d);
@@ -974,7 +988,7 @@ function render(d) {
     + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody());
   /* S4 — the kicking game. */
   m('#m4fgDist').innerHTML = head(m('#m4fgDist'), 'Field goals by distance',
-    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long || '—'}` : NO_DATA,
+    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long || 0}` : NO_DATA,
     d.fg.att ? '' : 'is-none') + bucketBand(d);
   /* The attempt outcomes sit beside the distance buckets rather than under the
      Field Goal stat rows. Stacked, they made that one module ~116px taller
@@ -994,13 +1008,13 @@ function render(d) {
 
   /* S5 — specialists. */
   m('#m5ret').innerHTML = head(m('#m5ret'), 'Return game',
-    d.returners.length ? `${d.returners.length}` : NO_DATA,
+    d.returners.length ? '' : NO_DATA,
     d.returners.length ? '' : 'is-none') + returnTable(d);
   m('#m5imp').innerHTML = head(m('#m5imp'), 'Impact plays',
     d.impact.length ? `${d.impact.reduce((s, i) => s + i[1], 0)} total` : NO_DATA,
     d.impact.length ? '' : 'is-none') + impactList(d);
   m('#m5kick').innerHTML = head(m('#m5kick'), 'Kicking and punting',
-    d.kickers.length ? `${d.kickers.length}` : NO_DATA,
+    d.kickers.length ? '' : NO_DATA,
     d.kickers.length ? '' : 'is-none') + kickerTable(d);
 }
 
