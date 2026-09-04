@@ -517,7 +517,11 @@ const SEASON = {
 const GAME = {
   label: '2026 Varsity', game: 'Week 3 vs Northgate', legacy: false,
   snaps: 25, cohort: 71, games: 1,
-  points: { us: 8, them: 0 },
+  /* This game misses both field goals on purpose: it is the state where
+     `fg.long` is genuinely unavailable because no kick was made, and the one
+     that proves the report never renders that as a zero-yard field goal.
+     us = 0 FG + 5 kick XP = 5. */
+  points: { us: 5, them: 0 },
   kickoffs: { n: 6, avg: 53.4, tb: 50, fc: 0, retAllowedAvg: 14.0, retAllowedYards: 28, retAllowedN: 2,
     onside: { n: 0, recovered: 0 },
     outcomes: [['Touchback', 3, ''], ['Returned', 2, ''], ['Out of bounds', 1, 'bad']] },
@@ -528,14 +532,14 @@ const GAME = {
     outcomes: [['Fair catch', 2, ''], ['Returned', 2, ''], ['Downed', 1, '']] },
   pr: { n: 2, attempts: 1, yards: 12, avg: 12.0, long: 12, td: 0, muffed: 0,
     outcomes: [['Returned', 1, ''], ['Fair catch', 1, '']] },
-  fg: { att: 2, made: 1, pct: 50, long: 31,
-    byDist: [['30-39', 1, 1], ['40-49', 0, 1]],
-    outcomes: [['Good', 1, ''], ['No good', 1, 'bad']] },
+  fg: { att: 2, made: 0, pct: 0, long: 0,
+    byDist: [['30-39', 0, 1], ['40-49', 0, 1]],
+    outcomes: [['No good', 2, 'bad']] },
   blocks: { n: 2, blocked: 0, na: false },
   tries: { xp: { att: 5, made: 5 }, two: { att: 0, made: 0 }, na: false },
-  impact: [['Field goals missed', 1]],
+  impact: [['Field goals missed', 2]],
   returners: [['4', 'Carter', 3, 71, 23.7, 38, 0], ['2', 'Nunez', 1, 12, 12.0, 12, 0]],
-  kickers: [['19', 'Reed', '1/2', 0, null], ['35', 'Boyd', '—', 5, 38.4]],
+  kickers: [['19', 'Reed', '0/2', 0, null], ['35', 'Boyd', '—', 5, 38.4]],
   unassigned: 0,
 };
 
@@ -806,7 +810,11 @@ function kpis(d) {
     ['Points', d.points.us, d.points.them ? `${d.points.them} allowed` : (d.points.us ? 'none allowed' : ''),
       d.points.us > d.points.them ? 'good' : ''],
     ['Field Goals', d.fg.att ? `${d.fg.made}/${d.fg.att}` : null,
-      d.fg.att ? `${d.fg.pct}% · long ${d.fg.long}` : NO_DATA, ''],
+      /* `long` is the longest MADE kick, so attempts with no make leave it
+         genuinely unavailable. It must never render as 0 -- that reads as a
+         measured zero-yard field goal, which is the exact inversion this
+         report exists to prevent. */
+      d.fg.att ? `${d.fg.pct}% · long ${d.fg.long ? `${d.fg.long} yds` : NO_DATA}` : NO_DATA, ''],
     /* The percentage divides by the CLASSIFIED attempts only. When some charted
        tries carry no scoring side, the sub names that denominator rather than
        leaving the reader to assume the rate covers every charted try. */
@@ -988,7 +996,7 @@ function render(d) {
     + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody());
   /* S4 — the kicking game. */
   m('#m4fgDist').innerHTML = head(m('#m4fgDist'), 'Field goals by distance',
-    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long || 0}` : NO_DATA,
+    d.fg.att ? `${d.fg.made}/${d.fg.att} made · ${d.fg.pct}% · long ${d.fg.long ? `${d.fg.long} yds` : NO_DATA}` : NO_DATA,
     d.fg.att ? '' : 'is-none') + bucketBand(d);
   /* The attempt outcomes sit beside the distance buckets rather than under the
      Field Goal stat rows. Stacked, they made that one module ~116px taller

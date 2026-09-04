@@ -1,6 +1,17 @@
 # Reports > Special Teams — desktop design comp, 2026-09-04
 
-**Status: COMP ONLY. Not implemented.** No production file has been touched.
+**Status: APPROVED by Charlie 2026-09-04.** The composition is approved and
+production implementation is authorized. This file remains the decision record
+and the production-to-comp mapping.
+
+**Approval finding, fixed before approval was recorded.** `fg.long` is the
+longest *made* kick, so attempts with no make leave it genuinely unavailable.
+A pass of the `No data` sweep had changed its fallback from an em dash to `0`,
+which turns an absence into a measured zero-yard field goal — the exact
+inversion this report exists to prevent. Both render sites now emit `No data`,
+the `GAME` fixture was changed to miss both field goals so the state is
+actually exercised on every capture of it, and `long 0` is now a hard fail in
+the capture pass's copy audit.
 
 **All eight open product decisions were ruled on by Charlie on 2026-09-04** and
 are recorded in §7. Four are reflected in the comp; three are approved
