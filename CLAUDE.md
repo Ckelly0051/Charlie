@@ -293,18 +293,69 @@ a box-shadow into the existing 1px gap: sized to content, the band's own
 `--bd-rule` background would otherwise show under a short module as a solid
 slab, and collapsing the gap moves every rule ~1.4px out of alignment.
 
+**Reports > Defense is implemented and gate-verified, but NOT coach accepted.**
+Built to the approved comp (`design-comps/reports-defense-2026-09-03`, whose
+RATIONALE is the decision record) across `8a3525a`..`b035bac`. It has not had a
+Charlie Gate or an installed smoke, so it is not accepted state.
+
+Defense is **five sections presented as a TAB STRIP**, one on screen at a time:
+Defensive performance, Opponent Offense, Scheme, Situational results,
+Self-scout. Approved 2026-09-04 for Defense only — Offense still scrolls one
+continuous page, and the two navigate differently until Offense converts. Its
+KPI band is eight tiles across in one row; two rows of four stretched each tile
+to ~350px of mostly empty panel.
+
+Every `DefenseTab`, `SchemeDetail` and `DefensiveSelfScout` capability is
+preserved. `SchemeDetail` and `DefensiveSelfScout` are split by `schemeParts`
+and `selfScoutParts` so their bodies can sit in different sections without
+recomputing anything: the havoc gauge's stat cards became Disruption in section
+1, and Scheme by Situation moved beside Situational defense. The havoc **arc**
+is gone; its number, its sample and its film action are not.
+
+**`All blitzes` counts DISTINCT blitz-tagged plays** — the canonical
+`blitzTotal`, with the canonical `blitzHavocRate` over that same cohort. Sacks,
+average yards and stop rate state that they are not aggregated, because summing
+the per-blitz rows double-counts any snap carrying two blitz tags. Proved with
+a fixture where every ninth snap is tagged `Edge + Mike`: the row reads 111
+where the sum of rows is 131.
+
+**Three band gaps are known and accepted for now:** Run / pass faced 78px,
+Opponent play type 86px, Situational defense 72px. They come from genuinely
+different row counts in real data. Stretching table rows and full-width tables
+were both tried and rejected — the first distorts the row rhythm to fill space,
+the second reintroduces the long horizontal eye travel the pairing exists to
+avoid. Carried into the Charlie Gate.
+
 **The shared scorebug is owned by one set.** `SCOREBUG_TABS` in
 `js/reports-screen.js` is the single owner of the scorebug/rail rule: a tab in
 it shows the scorebug and hides the generic `gi-reports-rail`; a tab outside it
 does the reverse. The two can therefore never appear together. It holds
-`overview` and `offense` today and grows one tab at a time as each self-report
-tab gets its design pass — Defense, Special Teams, Players, Self-Scout and
+`overview`, `offense` and `defense`, and grows one tab at a time as each
+self-report tab gets its design pass — Special Teams, Players, Self-Scout and
 Matchup still render the rail, and their behavior is unchanged.
 
 Score spacing is structural, not tuned: `.gi-scorebug-team` is `display:contents`
 so each team's name and score land in the scorebug's own fixed tracks. Score
 cells never move for a name length or a 1-, 2- or 3-digit value; names truncate
 inside their own bounded track with the full value in a tooltip.
+
+**Defense renders a LINESCORE variant** of the bug (`is-linescore`) instead of
+that pair — approved for Defense only on 2026-09-04, so Overview and Offense
+keep the pair until their own passes. One row per team: nickname, four quarters,
+total. The quarter and total columns are fixed and equal, and the three rows
+share one grid through `display:contents`, so the name column is sized once from
+the longest nickname and both totals hold one track. It shows **nicknames**,
+from the 2026-08-31 naming contract — that retired the name-width problem
+rather than managing it, since a nickname is short by nature.
+
+**The linescore's two numbers have different sources, by design.** The total
+prefers the official Game Settings score and falls back to charted scoring; the
+quarters are always derived from charted scoring plays. They agree on every one
+of the coach's ten live games. They would disagree only if a final score were
+entered without every scoring play being charted, which the coach has ruled not
+worth designing for. Verified exact on a fully charted game including a missed
+XP, a pick-six credited to us rather than the offense on the field, and a
+safety on a defensive play: quarters sum to totals on both rows.
 
 **Type on the Overview and Offense boards follows the design-system tokens.**
 Table column labels take `--gi-text-label` (the token whose own comment reads
@@ -337,9 +388,18 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Defense, Special Teams, Players,
-   Self-Scout and Matchup have not had a design pass and still use the generic
-   rail.
+4. **The remaining Reports tabs** — Special Teams, Players, Self-Scout and
+   Matchup have not had a design pass and still use the generic rail.
+5. **Reports > Defense Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT, plus an installed smoke.
+6. **Offense still scrolls; Defense uses tabs.** The coach approved section
+   tabs for Defense on 2026-09-04 with Offense converting in a later pass, so
+   the two reports navigate differently until that lands. Recorded as a known
+   temporary inconsistency, not an oversight.
+7. **Three Defense band gaps** — Run / pass faced 78px, Opponent play type
+   86px, Situational defense 72px. They come from genuinely different row
+   counts in real data; closing them means stretching table rows or full-width
+   tables, both of which were tried and rejected. Carried into the Charlie Gate.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its
