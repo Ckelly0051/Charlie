@@ -1,7 +1,12 @@
 # Reports > Special Teams — desktop design comp, 2026-09-04
 
-**Status: COMP ONLY. Not implemented. Awaiting Charlie's approval.**
-No production file was touched.
+**Status: COMP ONLY. Not implemented.** No production file has been touched.
+
+**All eight open product decisions were ruled on by Charlie on 2026-09-04** and
+are recorded in §7. Four are reflected in the comp; three are approved
+production changes that no production file carries yet; one is recorded with no
+work attached. **The composition itself has not been approved** — that is still
+the open gate.
 
 Comp: `design-comps/reports-special-teams-2026-09-04/special-teams.html`
 Captures: `design-comps/reports-special-teams-2026-09-04/captures/` (78 files)
@@ -268,9 +273,81 @@ the number can be audited without re-deriving it.
 
 ---
 
-## 7 · Open product decisions — for Charlie
+## 7 · Product decisions — ALL EIGHT DECIDED by Charlie, 2026-09-04
 
-None of these is implemented. Each needs a call.
+The questions below were open when the comp was first posted. Every one now has
+a ruling, recorded verbatim in intent. Items marked **comp** are reflected in
+`special-teams.html` already; items marked **production** are approved work
+that the stop boundary still covers and that no production file carries yet.
+
+| # | Decision | Where it lands |
+|---|---|---|
+| 1 | Export approved — reuse the existing Reports export mechanism, no ST-only exporter | comp + production |
+| 2 | Tries: 18 stays the denominator; display `18 classified · 3 unclassified · 21 charted`; unclassified are never misses and never enter a percentage | **comp — done** |
+| 3 | Fix `_individualStats` to use the canonical Field Goal cohort | **production — pending** |
+| 4 | Remove the fixed 20-yard touchback assumption; show not-derivable | comp done, **production pending** |
+| 5 | Do not build ST measures from generic `yardage`/`result` yet; record for a later projection decision | **recorded, no work** |
+| 6 | Fake stays disclosed as unassigned; no seventh unit; correction path later | **comp — already correct** |
+| 7 | Context-bar wrapping approved, via the shared shell owner | comp done, **production pending** |
+| 8 | Special Teams uses the shared report header/scorebug when it rolls across Reports; no ST variant | **comp — already correct** |
+
+### What each ruling changed
+
+**1 · Export.** Approved, reusing the existing mechanism. `ReportsScreen`
+already owns `export(kind)` for the shared kinds and composes per-tab reports
+through `buildDefenseHtmlReport` / `buildSelfScoutHtmlReport`, saving via the
+shared `window.ffaSaveBlob`. A Special Teams export follows that same pattern —
+one composer on `ReportsScreen`, no new save path, no ST-only exporter
+subsystem. The comp's toolbar Export control is that action.
+
+**2 · Tries — done in the comp.** The conversion denominator stays the 18
+attempts carrying a scoring side. The Tries module now carries a
+`Classification` line reading `18 classified · 3 unclassified · 21 charted`,
+the Conversions KPI's sub reads `56% of 18 classified` so the denominator is
+named on the tile itself, and the section footnote states the three are
+**unclassified, not missed**. Nothing counts them as failures and nothing
+divides by 21.
+
+**3 · Field-goal cohort — production, pending.** `_individualStats` must use
+the same canonical Field Goal cohort as `_specialTeamsStats`. A player cannot
+hold an attempt the unit does not recognize. The real-data fixture still shows
+today's measured output (#99 credited 0/1 while the unit reports 0 attempts),
+because that fixture is evidence of the engine's current behavior. **Once the
+fix lands, that cell reads `—` and the discrepancy disappears from the comp's
+own real-data state.** The fixture is deliberately not pre-corrected.
+
+**4 · Punt net — done in the comp, pending in production.** The fixed 20-yard
+touchback subtraction is removed. Net on a legacy touchback with no configured
+ruleset is **not derivable**, and the comp says exactly that — a third absence
+state (`not derivable — no ruleset`), distinct from `not charted`, because here
+the input exists and the *rule* is missing. The §3 footnote now states the
+policy instead of posing it as a question. The legacy branch of
+`_specialTeamsStats` still subtracts the 20 and must be changed.
+
+**5 · Generic `yardage` / `result` — recorded, no work.** Dedicated ST fields
+stay authoritative. The real season carries Gain / No Gain / Loss / Fumble and
+a yardage on most ST snaps, and no ST measure reads them. That is now a
+recorded input to a later projection or migration decision, not a gap to close
+in this pass, and nothing in the comp consumes those fields.
+
+**6 · Fake — already correct.** No seventh unit. The one real `stType: 'Fake'`
+play stays visible in the reconciliation line as unassigned until it can be
+associated with its underlying punt, field-goal, or try unit. The correction
+path is later work.
+
+**7 · Context bar — approved, production pending.** Long game names wrap at
+1280 instead of clipping. The comp does this, but it is **shared chrome and
+belongs to the shell owner**, so the production change lands there, not in this
+tab. It must be verified that the bar's height changes cleanly and never
+overlaps route content — the comp only proves the wrap, not the shell's
+response to a taller bar.
+
+**8 · Scorebug — already correct.** Special Teams takes the shared report
+header when the approved header rolls across Reports. No ST variant is invented
+here, and the comp proposes none; the tab keeps the generic rail until that
+rollout. `SCOREBUG_TABS` gains `special` at that point, not before.
+
+### Historical — the questions as originally posed
 
 1. **Export.** The comp shows an Export control in the toolbar. Overview and
    Offense have export paths; the Special Teams tab has none today. Ship it,

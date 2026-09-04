@@ -625,6 +625,7 @@ LONG.kickoffs.outcomes = [['Recovered by the kicking team', 2, 'warn'], ['Touchb
    ──────────────────────────────────────────────────────────────────────── */
 const NOT_CHARTED = 'not charted';
 const NOT_LEGACY = 'not derivable — legacy charting';
+const NOT_RULESET = 'not derivable — no ruleset';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const has = v => v !== null && v !== undefined;
 const pl = (n, w, p) => `${n} ${w}${n === 1 ? '' : (p || 's')}`;
@@ -694,10 +695,16 @@ function krStats(d) {
 function ptStats(d, compact) {
   const p = d.punts;
   if (!p.n) return noneBody('punt');
+  /* DECIDED 2026-09-04: the fixed 20-yard touchback assumption is removed. On a
+     legacy season with a charted touchback and no configured ruleset, net is
+     not derivable and says so -- the app does not publish a number it knows to
+     be wrong. Distinct from "not charted", which means the input is missing;
+     here the input exists and the RULE does not. */
+  const netBlank = (d.legacy && p.tb > 0) ? NOT_RULESET : NOT_CHARTED;
   return rows(
     srow('Punts', p.n)
     + srow('Gross average', has(p.gross) ? `${p.gross} yds` : null)
-    + srow('Net average', has(p.net) ? `${p.net} yds` : null)
+    + srow('Net average', has(p.net) ? `${p.net} yds` : null, { blank: netBlank })
     + srow('Hang time', has(p.hang) ? `${p.hang}s` : null)
     + srow('Touchback rate', `${p.tb}%`)
     + srow('Fair catch rate', `${p.fc}%`)
@@ -747,8 +754,14 @@ function trStats(d) {
     srow('Extra point kicks', t.xp.att ? `${t.xp.made}/${t.xp.att}` : null, { blank: 'none attempted' })
     + srow('Two-point tries', t.two.att ? `${t.two.made}/${t.two.att}` : null, { blank: 'none attempted' })
     + srow('All tries', `${t.xp.made + t.two.made}/${att}`)
+    /* DECIDED 2026-09-04: the calculation denominator stays the 18 attempts
+       that carry a scoring side. The three unclassified plays are stated, and
+       are NEVER counted as misses and never enter a conversion percentage --
+       an unknown attribution is not a failed try. */
     + (t.charted && t.charted !== att
-        ? srow('Charted, not attributable', `${t.charted - att}`, { cls: 'sub' }) : '')
+        ? srow('Classification',
+            `${att} classified · ${t.charted - att} unclassified · ${t.charted} charted`,
+            { cls: 'sub' }) : '')
   );
 }
 
@@ -800,8 +813,15 @@ function kpis(d) {
       d.points.us > d.points.them ? 'good' : ''],
     ['Field Goals', d.fg.att ? `${d.fg.made}/${d.fg.att}` : null,
       d.fg.att ? `${d.fg.pct}% · long ${d.fg.long}` : 'none attempted', ''],
+    /* The percentage divides by the CLASSIFIED attempts only. When some charted
+       tries carry no scoring side, the sub names that denominator rather than
+       leaving the reader to assume the rate covers every charted try. */
     ['Conversions', convAtt ? `${convMade}/${convAtt}` : null,
-      convAtt ? `${Math.round(convMade / convAtt * 100)}% · XP and 2-point` : 'none attempted', ''],
+      convAtt
+        ? (t.charted && t.charted !== convAtt
+            ? `${Math.round(convMade / convAtt * 100)}% of ${convAtt} classified`
+            : `${Math.round(convMade / convAtt * 100)}% · XP and 2-point`)
+        : 'none attempted', ''],
     ['Return Production', retAtt ? `${retYds} yds` : null,
       retAtt ? `${pl(retAtt, 'return')} · long ${retLong}` : 'return yardage not charted', ''],
     ['Coverage Allowed', covN ? `${(covYds / covN).toFixed(1)}` : null,
@@ -967,10 +987,10 @@ function render(d) {
   m('#m3prOut').innerHTML = head(m('#m3prOut'), 'Punt return outcomes', 'share of charted punt returns', d.pr.n ? '' : 'is-none')
     + (d.pr.n ? outcomes(d.pr.outcomes, d.pr.n) : noneBody('punt return'));
   $('#s3defs').innerHTML =
-    `<b>Gross</b> is the punt itself. <b>Net</b> subtracts the return and the touchback placement, and is `
-    + `reported only when the punt's own distance was charted. `
-    + `<i>Open decision:</i> the legacy branch subtracts a fixed 20 yards on a touchback, which the `
-    + `Special Teams model calls ruleset-dependent — the season's ruleset is not configured today.`;
+    `<b>Gross</b> is the punt itself, measured from the line of scrimmage. <b>Net</b> subtracts the return `
+    + `and the touchback placement. Touchback placement is set by the ruleset, so on a season charted `
+    + `without one, net on a touchback is <b>not derivable</b> and is reported that way rather than `
+    + `estimated. Observed end spots, when charted, are authoritative.`;
 
   /* S4 — the kicking game. */
   m('#m4fgDist').innerHTML = head(m('#m4fgDist'), 'Field goals by distance',
@@ -991,7 +1011,9 @@ function render(d) {
     + `carry their own attempt counts. <b>FG Block</b> is our unit defending their kick, and is counted `
     + `apart from our own attempts.`
     + (d.tries.charted && d.tries.charted !== (t.xp.att + t.two.att)
-        ? ` <i>Open decision:</i> ${d.tries.charted} tries are charted and ${t.xp.att + t.two.att} are attributable to a kicking team; the remainder carry no scoring side.`
+        ? ` Of ${d.tries.charted} charted tries, ${t.xp.att + t.two.att} carry a scoring side and set the `
+          + `conversion denominator. The other ${d.tries.charted - (t.xp.att + t.two.att)} are `
+          + `<b>unclassified, not missed</b>, and never enter a percentage.`
         : '');
 
   /* S5 — specialists. */
