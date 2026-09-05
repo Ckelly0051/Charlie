@@ -460,13 +460,45 @@ product is wrong.
    wrapping long game names at 1280 rather than clipping (shared shell owner;
    the shell's response to a taller bar still needs verifying), and Special
    Teams joining the shared report header when that rolls across Reports.
-5. **Reports > Defense Charlie Gate** — populated real-data review at the
+5. **OPEN DEFECT — a legacy punt block is reported as a punt we allowed.**
+   Found by the coach at the board, 2026-09-05. **Assigned to Codex.**
+
+   The Punt unit reports `Blocked 1` on `2025-st-joseph-mavericks-jv`. The
+   coach charted the opposite: **we blocked their punt.** Holy Family, Q2,
+   play id 16 — 4th & 6, ball on the opponent's 8, `result: Loss`,
+   `yardage: -5`, `kickOutcome: Blocked`, and the only player charted is
+   `players.tackler: '82'`. Nobody punts from the opponent's 8; they were
+   backed up at their own 8 and #82 blocked it.
+
+   Root cause: the legacy branch of `_specialTeamsStats` treats **every**
+   `stType:'Punt'` as our own punt team — `const pp = by('Punt')`, then
+   `blocked: pp.filter(kickOutcome === 'Blocked')`. Legacy `stType` carries no
+   perspective, which `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md` §3 already names as
+   its central flaw; the structured model solves it with `subjectRole`.
+
+   The coach's charting DOES carry the signal, in the player role, and the
+   engine reads none of it: 5 punts charted with a `kicker` (ours) versus this
+   one charted with a `tackler` and no kicker (theirs). Two kickoffs match the
+   same shape — id 28 (`returner` only) and id 57 (`takeaway` only, muffed),
+   neither with a `kicker`.
+
+   Blast radius beyond the wrong label: the Punt unit's denominator is 10 when
+   only 9 punts were ours, so every punt rate is computed over a cohort that
+   includes an opponent's punt, and the play also feeds the `Punts blocked`
+   impact row and the Touchdowns/coverage refs.
+
+   Do not infer perspective from a player role without a decision — the role
+   fields were never specified for that purpose. The candidate resolutions are
+   a perspective signal in the legacy projection, an honest disclosure that
+   legacy cannot attribute the kick, or re-charting those plays structured.
+
+6. **Reports > Defense Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT, plus an installed smoke.
-6. **Offense still scrolls; Defense uses tabs.** The coach approved section
+7. **Offense still scrolls; Defense uses tabs.** The coach approved section
    tabs for Defense on 2026-09-04 with Offense converting in a later pass, so
    the two reports navigate differently until that lands. Recorded as a known
    temporary inconsistency, not an oversight.
-7. **Three Defense band gaps** — Run / pass faced 78px, Opponent play type
+8. **Three Defense band gaps** — Run / pass faced 78px, Opponent play type
    86px, Situational defense 72px. They come from genuinely different row
    counts in real data; closing them means stretching table rows or full-width
    tables, both of which were tried and rejected. Carried into the Charlie Gate.
