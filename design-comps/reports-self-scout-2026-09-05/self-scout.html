@@ -691,11 +691,11 @@ function sectionSummary(m) {
   const pass = (m.offUnit || []).find(row => row.key === 'Pass') || {};
   out.push(band('b-2',
     module('Run Offense', null, statRows([
-      ['Attempts', run.n || 0], ['Yards per carry', run.avg || 0],
+      ['Attempts', run.n || 0], ['Rushing yards', run.yards || 0], ['Yards per carry', run.avg || 0],
       ['Success rate', (run.succRate || 0) + '%'], ['Explosive runs', run.explosives || 0],
     ]), 'is-off'),
     module('Pass Offense', null, statRows([
-      ['Attempts', pass.n || 0], ['Yards per attempt', pass.avg || 0],
+      ['Attempts', pass.n || 0], ['Passing yards', pass.yards || 0], ['Yards per attempt', pass.avg || 0],
       ['Success rate', (pass.succRate || 0) + '%'], ['Explosive passes', pass.explosives || 0],
       ['Sacks', ev.sacks],
     ]), 'is-off')));

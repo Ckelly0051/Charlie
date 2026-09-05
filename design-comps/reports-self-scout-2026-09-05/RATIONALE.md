@@ -564,8 +564,9 @@ turnovers, sacks, plays for loss, and penalties.
 
 Offensive calls qualify at three plays. Ranking is success rate first, yards
 per play second, then sample size. Both tables show the call/concept, plays,
-yards per play, and success rate. Run and pass modules show attempts, yards per
-attempt, success rate, explosives, and the pass module also shows sacks.
+yards per play, and success rate. Run and pass modules show attempts, total
+rushing or passing yards, yards per attempt, success rate, explosives, and the
+pass module also shows sacks.
 
 ### Defense
 
