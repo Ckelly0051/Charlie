@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports &gt; Players — design comp 2026-09-04</title>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Tokens copied verbatim from the accepted Overview / Offense / Defense /
+   Special Teams comps. The comp must fail the same way production would; it
+   must not look better because it invented a colour, a size, or a number.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --gi-sans:'IBM Plex Sans',system-ui,sans-serif;
+  --gi-cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+  --gi-num-feat:tabular-nums lining-nums;
+  --gi-text-body:400 13px/1.45 var(--gi-sans);
+  --gi-text-label:600 12px/1.25 var(--gi-sans);
+  --gi-1x:4px; --gi-2x:8px; --gi-3x:12px; --gi-4x:16px; --gi-6x:24px;
+  --gi-row:36px;
+  --gi-raise-tab:0 -2px 8px rgba(0,0,0,.18);
+
+  --gi-bd-gold:#d9a21a; --gi-bd-gold-ink:#14100a;
+  --gi-bd-cyan:#12a9cb; --gi-bd-cyan-ink:#03151a;
+  --gi-bd-bone:#4a5765;
+  --gi-bd-stage:#06080b; --gi-bd-panel:#0e1319;
+  --gi-bd-control:#151c24; --gi-bd-control-active:#1b242e;
+  --gi-bd-line:#222d38;
+  --gi-bd-muted:#66727e; --gi-bd-copy:#a6a6a6; --gi-bd-strong:#f2f5f8;
+  --gi-bd-win:#3fa96b; --gi-bd-loss:#d2564f; --gi-bd-draw:#4a5765;
+
+  /* Players' own measure. The identity column is the anchor of every table on
+     this board, so its floor is stated once and every table obeys it. 208px
+     holds a 30-character "#22 Terrance Whitfield-Boateng" with slack, so no
+     name is ever clipped and no column moves when a sort reorders rows.
+     A measurement column is sized from its OWN header, in three steps -- a
+     single width for all of them clipped "Solo", "Sack" and "Punt Avg" at
+     1280 and forced the table into its scroller. */
+  --p-ident:208px;
+  --p-s:44px;  /* TD, FR */
+  --p-m:52px;  /* Att, Yds, Avg, Rec, Ret, Tkl, Ast, TFL, INT, Sck */
+  --p-l:64px;  /* Long, Solo, Sack, Fum, Pct, C/A, Punts */
+  --p-xl:80px; /* Grade, FG (M/A), Punt Avg */
+}
+*{box-sizing:border-box}
+/* `.empty` sets `display:flex`, which outranks the user-agent `[hidden]` rule
+   -- the empty state rendered on top of a fully populated board until this
+   was added. */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong);
+  font:var(--gi-text-body);font-family:var(--gi-sans);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+
+/* ── COMP HARNESS (not part of the design) ─────────────────────────────── */
+.comp-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:var(--gi-3x);
+  padding:6px var(--gi-4x);background:#11161d;border-bottom:1px solid var(--gi-bd-line)}
+.comp-bar b{color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.comp-bar span{color:var(--gi-bd-muted);font:var(--gi-text-label);font-weight:400}
+.comp-bar .grp{display:flex;gap:1px;margin-left:auto;background:var(--gi-bd-line)}
+.comp-bar .grp button{padding:5px 12px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer}
+.comp-bar .grp button:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
+.comp-bar .grp button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.comp-bar .grp button.on{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+
+/* ── SHELL CHROME (matches production Reports; not part of the proposal) ── */
+.chrome-nav{display:flex;align-items:stretch;background:#11161d;border-bottom:1px solid var(--gi-bd-line)}
+.chrome-nav .brand{display:flex;align-items:center;padding:0 var(--gi-6x);font:700 17px/1 var(--gi-cond);letter-spacing:.02em}
+.chrome-nav .brand i{color:var(--gi-bd-cyan);font-style:normal}
+.chrome-nav a{display:flex;align-items:center;gap:7px;padding:0 var(--gi-6x);min-height:52px;
+  color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans);text-decoration:none;cursor:pointer}
+.chrome-nav a:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.chrome-nav a.on{background:var(--gi-bd-panel);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+
+.ctxbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:1px;background:var(--gi-bd-line)}
+.ctxbar>div{padding:9px var(--gi-4x);background:var(--gi-bd-panel);min-width:0}
+.ctxbar span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.ctxbar strong{display:block;margin-top:3px;font:600 13px/1.2 var(--gi-sans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctxbar .persp{display:flex;align-items:center;gap:var(--gi-4x);padding-right:var(--gi-6x)}
+.ctxbar .persp button{padding:6px 12px;border:0;background:transparent;color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.ctxbar .persp button.on{color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-gold)}
+
+/* ── REPORT HEAD + TABS ────────────────────────────────────────────────── */
+.rhead{display:flex;align-items:center;gap:var(--gi-6x);padding:10px var(--gi-4x);
+  background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
+.rhead h1{margin:0;font:700 19px/1.1 var(--gi-cond);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+.rhead .sub{color:var(--gi-bd-muted);font:400 11.5px/1.2 var(--gi-sans);white-space:nowrap}
+.rhead .tabs{display:flex;gap:2px;margin-left:var(--gi-4x);min-width:0}
+.rhead .tabs button{padding:8px 13px;border:0;background:transparent;color:var(--gi-bd-muted);
+  font:600 11px/1 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.rhead .tabs button:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.rhead .tabs button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.rhead .tabs button.on{color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+.rhead .acts{display:flex;gap:var(--gi-2x);margin-left:auto}
+.btn{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 var(--gi-3x);
+  border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong);border-color:var(--gi-bd-bone)}
+.btn:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:2px}
+.btn:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+
+/* ── BOARD ─────────────────────────────────────────────────────────────────
+   Players has no master column count of its own to invent: the board is six
+   ROLE tables, and a table's width is set by how many measurements the role
+   actually has, not by a grid rhythm borrowed from another tab. So the bands
+   pair role tables and every band is an even split: an uneven split would put
+   the two panels' identity columns at different distances from their own
+   panel edge, and the left edge of the name is what a coach scans down.
+
+   Below 1330px the pairing stops and the board stacks. Measured, not chosen:
+   at 1280 a band half gives 599px of usable width, and Tackles (a 208px
+   identity floor plus nine measurement columns) measures 668px. Squeezing it
+   would have to come out of the identity column, which is the one column that
+   may not shrink.
+   ─────────────────────────────────────────────────────────────────────── */
+.board{padding:var(--gi-4x);background:var(--gi-bd-stage)}
+.band{display:grid;gap:1px;margin:0 0 4px;align-items:stretch;background:transparent}
+/* Content-height modules would show the band's own background as a solid slab
+   under a short module, so the column rule is painted into the 1px gap with a
+   box-shadow instead. Same fix Offense and Special Teams carry. */
+.band>.mod+.mod{box-shadow:-1px 0 var(--gi-bd-line)}
+.b-1{grid-template-columns:minmax(0,1fr)}
+.b-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+.mod{min-width:0;padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);position:relative}
+.mod>header{display:flex;align-items:baseline;gap:var(--gi-2x);margin-bottom:6px}
+.mod>header strong{color:var(--gi-bd-cyan);font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;
+  text-transform:uppercase;white-space:nowrap}
+.mod>header span{min-width:0;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Phase colour, the same one Overview and Offense already use for the same
+   idea: gold is our offense, cyan our defense. Special Teams keeps the
+   neutral bone the Special Teams board gives its own modules. */
+.mod.is-off>header strong{color:var(--gi-bd-gold)}
+.mod.is-def>header strong{color:var(--gi-bd-cyan)}
+.mod.is-st>header strong{color:var(--gi-bd-copy)}
+/* A role with no attribution states that and states nothing else. It never
+   shows a zero, because an unattributed role is not zero production. */
+.mod.is-none>header strong{color:var(--gi-bd-muted)}
+.mod .none{margin:2px 0 4px;color:var(--gi-bd-muted);font:400 12px/1.5 var(--gi-sans)}
+
+/* Section rule and role navigation — the same two components the Defense and
+   Special Teams boards already use. */
+.srule{display:flex;align-items:baseline;gap:var(--gi-3x);margin:0 0 4px;padding:9px var(--gi-3x) 7px;
+  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
+.srule h2{margin:0;color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.15em;
+  text-transform:uppercase;white-space:nowrap}
+.srule p{margin:0;min-width:0;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)}
+.srule em{margin-left:auto;color:var(--gi-bd-muted);font:400 10.5px/1.2 var(--gi-sans);
+  font-style:normal;white-space:nowrap}
+.snav{display:flex;align-items:stretch;gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
+.snav button{flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);
+  font:600 11px/1 var(--gi-cond);letter-spacing:.08em;text-transform:uppercase;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.snav button>b{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  min-width:17px;height:17px;padding:0 3px;background:var(--gi-bd-control-active);color:var(--gi-bd-muted);
+  font:700 10px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.snav button:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.snav button:hover>b{background:var(--gi-bd-draw);color:var(--gi-bd-stage)}
+.snav button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.snav button.on{color:var(--gi-bd-strong);background:var(--gi-bd-control-active);
+  box-shadow:inset 0 -3px var(--gi-bd-cyan),var(--gi-raise-tab)}
+.snav button.on>b{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+/* A section whose roles hold no attribution stays reachable -- it is the one
+   surface that says the role is unattributed. Dimmed, never disabled. */
+.snav button.is-none{color:var(--gi-bd-muted)}
+
+/* Toolbar */
+.dtoolbar{display:flex;align-items:center;gap:var(--gi-3x);margin:0 0 4px;padding:7px var(--gi-3x);
+  background:var(--gi-bd-panel);flex-wrap:wrap}
+.dtoolbar .lbl{color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;
+  text-transform:uppercase;white-space:nowrap}
+.dtoolbar .sample{color:var(--gi-bd-copy);font:400 11px/1.3 var(--gi-sans)}
+.dtoolbar .sample b{color:var(--gi-bd-strong);font-weight:600}
+.dtoolbar .btn{margin-left:auto}
+
+/* ── TABLES ────────────────────────────────────────────────────────────────
+   Identity is the anchor. The measurement columns are given fixed widths and
+   the identity column absorbs whatever is left, with a floor -- so a wide
+   band gives a long name MORE room rather than stretching the numbers apart,
+   a narrow band never squeezes the name below its floor, and a sort that
+   reorders the rows moves no column edge.
+   ─────────────────────────────────────────────────────────────────────── */
+/* `width:auto`, not `100%`. A stretched table pushes the measurements to the
+   far right of the panel and reopens the long label-to-number eye traverse the
+   approved Offense composition removed -- it was plainly visible on the 1280
+   stacked board, where a five-column Return Game table spread across 1224px.
+   The table ends where its content ends; leftover panel is whitespace beside
+   the table, never a gap inside a row. */
+table{width:auto;max-width:100%;border-collapse:collapse;background:transparent}
+col.ident{width:auto}
+col.s{width:var(--p-s)}
+col.m{width:var(--p-m)}
+col.l{width:var(--p-l)}
+col.xl{width:var(--p-xl)}
+th,td{height:var(--gi-row);padding:0 var(--gi-2x);border-bottom:1px solid var(--gi-bd-line);
+  font-size:12px;white-space:nowrap;text-align:right}
+th{color:var(--gi-bd-copy);font:var(--gi-text-label);text-transform:uppercase;letter-spacing:0;
+  cursor:pointer;user-select:none;position:relative}
+th:first-child,td:first-child{min-width:var(--p-ident)}
+td{color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat)}
+th:first-child,td:first-child{padding-left:var(--gi-2x);text-align:left}
+tbody tr:last-child td{border-bottom:0}
+/* Identity cell: jersey number and name are one string in production
+   (`#22 Terrance Whitfield-Boateng`), so they are one cell here too. The
+   number is picked out so a coach who charts by number can find a row
+   without reading the names. */
+td.ident{color:var(--gi-bd-strong);font-weight:600;font-variant-numeric:var(--gi-num-feat)}
+td.ident i{font-style:normal;color:var(--gi-bd-cyan);font-weight:700;margin-right:5px}
+/* An absence carries the one approved literal and drops to copy weight, so it
+   can never be mistaken for a measured figure. A measured zero keeps full
+   strength -- it is an observation. */
+td.blank{color:var(--gi-bd-muted);font-size:11.5px;font-weight:400}
+td.pos{color:var(--gi-bd-win)}
+td.neg{color:var(--gi-bd-loss)}
+
+/* Sortable headers. Three positions, exactly as production's DataTable
+   already implements them: descending, ascending, then off (back to the
+   engine's own order).
+
+   The direction marker is ABSOLUTELY POSITIONED in the header's own empty
+   left side. An inline caret cost 14px on every column of every table, which
+   is what pushed Tackles past half of 1280 and clipped "Solo" and "Sack"; a
+   marker that participates in layout also has to be reserved at rest, or
+   sorting shifts the header text. This one costs no width and moves nothing.
+   The sorted column is also named in the header's `title`, so the direction
+   is never carried by the glyph alone. */
+th:hover{color:var(--gi-bd-strong)}
+th:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+th.is-sorted{color:var(--gi-bd-strong);box-shadow:inset 0 -2px var(--gi-bd-cyan)}
+th.is-sorted::before{position:absolute;left:5px;top:50%;transform:translateY(-50%);
+  color:var(--gi-bd-cyan);font-size:10px;line-height:1;pointer-events:none}
+th.is-sorted.is-desc::before{content:'▼'}
+th.is-sorted.is-asc::before{content:'▲'}
+
+/* A clickable row must look clickable. */
+tbody tr.cut{cursor:pointer}
+tbody tr.cut:hover td{background:var(--gi-bd-control)}
+tbody tr.cut:hover td.ident{color:var(--gi-bd-strong)}
+tbody tr.cut:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+tbody tr.cut td.ident::after{content:'▸';margin-left:7px;color:var(--gi-bd-cyan);opacity:0}
+tbody tr.cut:hover td.ident::after,
+tbody tr.cut:focus-visible td.ident::after{opacity:1}
+
+/* Bounded scroller, used only when a table genuinely cannot fit. At the three
+   release widths it never engages -- the identity floor plus the fixed
+   measurement widths fit the widest table (Tackles, nine columns) inside half
+   of 1280. It exists so a narrower host cannot clip a column. */
+.twrap{min-width:0;overflow-x:auto;scrollbar-width:thin}
+
+/* ── EMPTY STATE ───────────────────────────────────────────────────────── */
+.empty{display:flex;align-items:center;gap:var(--gi-6x);padding:var(--gi-6x);background:var(--gi-bd-panel)}
+.empty h3{margin:0 0 5px;font:700 15px/1.2 var(--gi-cond);letter-spacing:.04em;text-transform:uppercase}
+.empty p{margin:0;max-width:62ch;color:var(--gi-bd-copy);font:400 12.5px/1.5 var(--gi-sans)}
+.empty .btn{margin-left:auto}
+
+@media(max-width:1330px){
+  /* One column below the release widths so a paired band can never squeeze an
+     identity column. Not a release width; stated so the behavior is defined. */
+  .b-2{grid-template-columns:minmax(0,1fr)}
+  .band>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
+}
+</style>
+</head>
+<body>
+
+<div class="comp-bar">
+  <b>Comp</b><span>Reports &gt; Players — 2026-09-04 — design only, not production</span>
+  <div class="grp" role="group" aria-label="Comp state">
+    <button type="button" data-state="full" class="on">Populated</button>
+    <button type="button" data-state="nograde">No grades</button>
+    <button type="button" data-state="sparse">Sparse</button>
+    <button type="button" data-state="empty">No attribution</button>
+  </div>
+</div>
+
+<nav class="chrome-nav" aria-label="Primary">
+  <div class="brand">GRIDIRON <i>IQ</i></div>
+  <a href="#" tabindex="0">Home</a><a href="#" tabindex="0">Break Down</a><a href="#" tabindex="0">Study</a>
+  <a href="#" class="on" tabindex="0">Reports</a><a href="#" tabindex="0">Plan</a>
+</nav>
+
+<div class="ctxbar">
+  <div><span>Program</span><strong>Ridgemont Ridgebacks</strong></div>
+  <div><span>Season</span><strong>2026 Varsity</strong></div>
+  <div><span>Game</span><strong id="ctxGame">Week 3 vs Northgate</strong></div>
+  <div class="persp"><button type="button" class="on">Our Program</button><button type="button">Opponent Scout</button></div>
+</div>
+
+<div class="rhead">
+  <h1>Reports</h1>
+  <div class="tabs" role="tablist">
+    <button type="button">Overview</button><button type="button">Offense</button>
+    <button type="button">Defense</button><button type="button">Special Teams</button>
+    <button type="button" class="on" aria-selected="true">Players</button>
+    <button type="button">Self-Scout</button><button type="button">Matchup</button>
+  </div>
+  <span class="sub" id="headSub">Week 3 vs Northgate — 70 plays charted</span>
+  <div class="acts"><button type="button" class="btn">Export report</button></div>
+</div>
+
+<div class="board">
+
+  <div class="empty" id="emptyState" hidden>
+    <div>
+      <h3>No player attribution</h3>
+      <p id="emptyBody">Charted plays carry no ball carrier, passer, receiver, tackler, returner, or kicker.</p>
+    </div>
+    <button type="button" class="btn">Open Break Down</button>
+  </div>
+
+  <div id="report">
+
+    <div class="dtoolbar">
+      <span class="lbl">Sample</span>
+      <span class="sample" id="sampleLine"></span>
+    </div>
+
+    <nav class="snav" id="snav" aria-label="Player roles">
+      <button type="button" data-sec="all" class="on" aria-current="true">All roles <b id="cAll">0</b></button>
+      <button type="button" data-sec="off">Offense <b id="cOff">0</b></button>
+      <button type="button" data-sec="def">Defense <b id="cDef">0</b></button>
+      <button type="button" data-sec="st">Special Teams <b id="cSt">0</b></button>
+    </nav>
+
+    <div class="srule">
+      <h2 id="secTitle">All roles</h2>
+      <p id="secNote"></p>
+      <em id="secMeta"></em>
+    </div>
+
+    <div id="sections"></div>
+
+  </div>
+</div>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════════════
+   FIXTURES — synthetic, football-plausible, and internally reconciled. No
+   coach data. Every figure below is checked against its own denominator:
+   an Avg is its Yds over its Att, a Solo plus an Ast is its Tkl, receiving
+   receptions and yards sum to the passing line that produced them.
+
+   `grade` is the AVERAGE of the per-play grades charted for that player IN
+   THAT ROLE (`gradeSum / gradeCount`, one decimal, signed) -- exactly what
+   `reports-view.js`'s `grade()` computes. `null` means no play in that role
+   carried a grade, which is not a grade of zero.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Populated: 4 rushers, 2 passers, 4 receivers, 4 tacklers, 3 returners,
+   2 specialists. #22 appears in three roles; #12 and #7 in two each. #34
+   carries no roster name, so the label falls back to the bare jersey number.
+   Passing 19/32 for 223 reconciles with receiving 19 receptions / 223 yards
+   and 2 receiving TD against 2 passing TD. */
+const FULL = {
+  label: 'Week 3 vs Northgate — 70 plays charted',
+  sample: '<b>15</b> players attributed across <b>6</b> roles — <b>70</b> plays charted',
+  rushing: [
+    { num:'22', name:'Terrance Whitfield-Boateng', att:14, yds:96, avg:'6.9', long:31, td:1, fum:0, grade:1.8 },
+    { num:'5',  name:'Malik Cordero',              att:11, yds:47, avg:'4.3', long:12, td:0, fum:1, grade:0.4 },
+    { num:'12', name:'Jaylen Ruiz',                att:6,  yds:23, avg:'3.8', long:9,  td:1, fum:0, grade:null },
+    { num:'34', name:null,                         att:4,  yds:-3, avg:'-0.8',long:2,  td:0, fum:0, grade:-1.0 },
+  ],
+  passing: [
+    { num:'12', name:'Jaylen Ruiz',      ca:'18/29', pct:'62.1%', yds:214, td:2, int:1, sck:3, grade:1.2 },
+    { num:'7',  name:'Devonte Ashworth', ca:'1/3',   pct:'33.3%', yds:9,   td:0, int:1, sck:0, grade:null },
+  ],
+  receiving: [
+    { num:'84', name:'Christopher Vanderhoeven',  rec:7, yds:104, long:38, td:1, grade:2.1 },
+    { num:'11', name:'Amari Sisk',                rec:5, yds:61,  long:22, td:1, grade:0.6 },
+    { num:'22', name:'Terrance Whitfield-Boateng',rec:4, yds:41,  long:15, td:0, grade:0.5 },
+    { num:'88', name:'Rafael Ostrowski-Vance',    rec:3, yds:17,  long:9,  td:0, grade:null },
+  ],
+  tackles: [
+    { num:'51', name:'Dominic Ferraro-Nwosu', tkl:12, solo:7, ast:5, sack:2, tfl:3, int:0, fr:1, grade:1.4 },
+    { num:'44', name:'Josiah Pemberton',      tkl:10, solo:4, ast:6, sack:0, tfl:1, int:0, fr:0, grade:0.9 },
+    { num:'23', name:'Elias Mbeki',           tkl:6,  solo:5, ast:1, sack:1, tfl:0, int:1, fr:0, grade:null },
+    /* A takeaway credited to the dedicated `takeaway` role, on a play whose
+       tackle went to someone else. Real production shape: the row exists,
+       and its tackle counts are a measured zero, not an absence. */
+    { num:'27', name:'Trey Alderson',         tkl:0,  solo:0, ast:0, sack:0, tfl:0, int:1, fr:0, grade:null },
+  ],
+  returns: [
+    { num:'7',  name:'Devonte Ashworth',           ret:5, yds:118, avg:'23.6', long:44, td:1 },
+    { num:'22', name:'Terrance Whitfield-Boateng', ret:3, yds:21,  avg:'7.0',  long:11, td:0 },
+    /* Two returns fielded for no yards. A measured zero, at full strength. */
+    { num:'16', name:'Cody Fairbanks',             ret:2, yds:0,   avg:'0.0',  long:0,  td:0 },
+  ],
+  kicking: [
+    { num:'3',  name:'Nikolas Petrakis', fg:'2/4', punts:6, puntAvg:'34.5' },
+    /* A punter who attempted no field goals. Production prints an em dash;
+       this comp prints the one approved absence literal. Open decision 3. */
+    { num:'45', name:'Harrison Blyth',   fg:null,  punts:3, puntAvg:'29.7' },
+  ],
+};
+
+/* Same roster, no grade charted anywhere. Every Grade cell is an absence;
+   no cell becomes a zero. */
+const NOGRADE = JSON.parse(JSON.stringify(FULL));
+NOGRADE.label = 'Week 4 vs Halloway — 64 plays charted';
+NOGRADE.sample = '<b>15</b> players attributed across <b>6</b> roles — <b>64</b> plays charted';
+['rushing','passing','receiving','tackles'].forEach(k => NOGRADE[k].forEach(r => { r.grade = null; }));
+
+/* Sparse: two roles carry attribution, four carry none. The four still
+   render, and say so. */
+const SPARSE = {
+  label: 'Week 1 vs Alder Creek — 58 plays charted',
+  sample: '<b>2</b> players attributed across <b>2</b> of <b>6</b> roles — <b>58</b> plays charted',
+  rushing: [{ num:'22', name:'Terrance Whitfield-Boateng', att:3, yds:11, avg:'3.7', long:6, td:0, fum:0, grade:null }],
+  passing: [],
+  receiving: [],
+  tackles: [{ num:'51', name:'Dominic Ferraro-Nwosu', tkl:2, solo:2, ast:0, sack:0, tfl:1, int:0, fr:0, grade:null }],
+  returns: [],
+  kicking: [],
+};
+
+const EMPTY = { label:'Week 2 vs Northgate — 41 plays charted', sample:'', rushing:[], passing:[], receiving:[], tackles:[], returns:[], kicking:[] };
+
+const STATES = { full: FULL, nograde: NOGRADE, sparse: SPARSE, empty: EMPTY };
+
+/* ═════════════════════════════════════════════════════════════════════════
+   ROLE DEFINITIONS — the exact production vocabulary. Columns, order and
+   labels are `reports-view.js`'s `individualStats()`; the engine's own row
+   order for each role is recorded in `sort` and is what the table shows
+   until a coach sorts a column.
+   ═════════════════════════════════════════════════════════════════════════ */
+const NO_DATA = 'No data';
+const ROLES = [
+  { key:'rushing', title:'Rushing', phase:'off', section:'off',
+    meta:'ball carrier on a run', sort:'yds desc',
+    cols:[['ident','Player'],['att','Att','m'],['yds','Yds','m'],['avg','Avg','m'],
+          ['long','Long','l'],['td','TD','s'],['fum','Fum','l'],['grade','Grade','xl']] },
+  { key:'passing', title:'Passing', phase:'off', section:'off',
+    meta:'passer on a pass', sort:'yds desc',
+    cols:[['ident','Player'],['ca','C/A','l'],['pct','Pct','l'],['yds','Yds','m'],
+          ['td','TD','s'],['int','INT','m'],['sck','Sck','m'],['grade','Grade','xl']] },
+  { key:'receiving', title:'Receiving', phase:'off', section:'off',
+    meta:'receiver on a completion', sort:'yds desc',
+    cols:[['ident','Player'],['rec','Rec','m'],['yds','Yds','m'],['long','Long','l'],
+          ['td','TD','s'],['grade','Grade','xl']] },
+  { key:'tackles', title:'Tackles', phase:'def', section:'def',
+    meta:'tackler or takeaway on a defensive snap', sort:'tkl desc',
+    cols:[['ident','Player'],['tkl','Tkl','m'],['solo','Solo','l'],['ast','Ast','m'],
+          ['sack','Sack','l'],['tfl','TFL','m'],['int','INT','m'],['fr','FR','s'],
+          ['grade','Grade','xl']] },
+  { key:'returns', title:'Return Game', phase:'st', section:'st',
+    meta:'returner on a kick or punt return', sort:'yds desc',
+    cols:[['ident','Player'],['ret','Ret','m'],['yds','Yds','m'],['avg','Avg','m'],
+          ['long','Long','l'],['td','TD','s']] },
+  { key:'kicking', title:'Kicking / Punting', phase:'st', section:'st',
+    meta:'kicker or punter on a field goal or punt', sort:'made + punts desc',
+    cols:[['ident','Player'],['fg','FG (M/A)','xl'],['punts','Punts','l'],
+          ['puntAvg','Punt Avg','xl']] },
+];
+
+/* Which role tables sit in which band, per section. Every band is an even
+   split so paired identity columns start at the same x. */
+const LAYOUT = {
+  all: [['rushing','passing'],['receiving','tackles'],['returns','kicking']],
+  off: [['rushing','passing'],['receiving']],
+  def: [['tackles']],
+  st:  [['returns','kicking']],
+};
+const SEC_TITLE = { all:'All roles', off:'Offense', def:'Defense', st:'Special Teams' };
+const SEC_NOTE = {
+  all: 'Every charted role. A role with no attribution says so rather than showing a zero.',
+  off: 'Ball carrier, passer and receiver. Each keeps its own attempts and its own grade.',
+  def: 'Tacklers and takeaways. A shared tackle credits every jersey listed on the play.',
+  st:  'Returners and specialists. Return yards and kick distance are separate measurements.',
+};
+
+/* ═════════════════════════════════════════════════════════════════════════
+   RENDER
+   ═════════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+let state = 'full';
+let section = 'all';
+/* Sort is per ROLE table and is local presentation state -- it never changes
+   a denominator, a row's identity, or a row's film cohort. Three positions,
+   matching production's DataTable: desc, asc, then off. */
+const sortState = {};
+
+const label = row => row.name ? `#${row.num} ${row.name}` : `#${row.num}`;
+
+/* Grade: the charted average, signed, one decimal, coloured by sign. A role
+   with no charted grade is an absence and takes the absence treatment -- it
+   is never rendered as 0.0, which would read as an average grade of zero. */
+function gradeCell(value) {
+  if (value == null) return { text:NO_DATA, cls:'blank' };
+  const text = `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+  return { text, cls: value > 0 ? 'pos' : value < 0 ? 'neg' : '' };
+}
+
+function cell(role, row, key) {
+  if (key === 'ident') return { text:label(row), cls:'ident', num:row.num, name:row.name };
+  if (key === 'grade') return gradeCell(row.grade);
+  const value = row[key];
+  /* An unavailable measurement -- a punter with no field-goal attempt --
+     takes the absence literal. A measured zero keeps its number. */
+  if (value == null) return { text:NO_DATA, cls:'blank' };
+  if (typeof value === 'number' && value < 0) return { text:String(value), cls:'neg' };
+  return { text:String(value), cls:'' };
+}
+
+/* Sort comparator. Every column sorts by what it MEASURES: a compound value
+   like `18/29` or `2/4` sorts on its first number, a percentage on its
+   number, a grade on its average, and an absence always sorts last in both
+   directions so it can never be read as the smallest measured value. */
+function sortValue(role, row, key) {
+  if (key === 'ident') return row.name ? row.name.toLowerCase() : `#${row.num}`;
+  if (key === 'grade') return row.grade;
+  const value = row[key];
+  if (value == null) return null;
+  if (typeof value === 'number') return value;
+  const first = parseFloat(String(value).replace('%',''));
+  return Number.isFinite(first) ? first : String(value).toLowerCase();
+}
+
+function sortedRows(role, rows) {
+  const sort = sortState[role.key];
+  if (!sort) return rows;
+  const copy = rows.slice();
+  copy.sort((a, b) => {
+    const av = sortValue(role, a, sort.key), bv = sortValue(role, b, sort.key);
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;   // absences last, both directions
+    if (bv == null) return -1;
+    let cmp;
+    if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv));
+    return sort.dir === 'desc' ? -cmp : cmp;
+  });
+  if (sort.dir === 'asc') {
+    /* Re-float the absences after an ascending flip. */
+    return [...copy.filter(r => sortValue(role, r, sort.key) != null),
+            ...copy.filter(r => sortValue(role, r, sort.key) == null)];
+  }
+  return copy;
+}
+
+function moduleFor(role, data) {
+  const rows = data[role.key] || [];
+  const none = rows.length === 0;
+  const mod = document.createElement('section');
+  mod.className = `mod is-${role.phase}${none ? ' is-none' : ''}`;
+  mod.dataset.role = role.key;
+
+  const head = document.createElement('header');
+  const strong = document.createElement('strong');
+  strong.textContent = role.title;
+  const span = document.createElement('span');
+  span.textContent = none ? NO_DATA
+    : `${rows.length} ${rows.length === 1 ? 'player' : 'players'} — ${role.meta}`;
+  head.append(strong, span);
+  mod.append(head);
+
+  if (none) {
+    const p = document.createElement('p');
+    p.className = 'none';
+    p.textContent = 'No player attribution';
+    mod.append(p);
+    return mod;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'twrap';
+  const table = document.createElement('table');
+
+  const cg = document.createElement('colgroup');
+  role.cols.forEach(([key, , size]) => {
+    const col = document.createElement('col');
+    col.className = key === 'ident' ? 'ident' : size;
+    cg.append(col);
+  });
+  table.append(cg);
+
+  const thead = document.createElement('thead');
+  const htr = document.createElement('tr');
+  role.cols.forEach(([key, text]) => {
+    const th = document.createElement('th');
+    th.tabIndex = 0;
+    th.setAttribute('role', 'button');
+    const sort = sortState[role.key];
+    const active = sort && sort.key === key;
+    if (active) th.classList.add('is-sorted', `is-${sort.dir}`);
+    th.title = active
+      ? (sort.dir === 'desc' ? `${text}, high to low` : `${text}, low to high`)
+      : `Sort by ${text}`;
+    th.append(document.createTextNode(text));
+    const toggle = () => {
+      const current = sortState[role.key];
+      if (!current || current.key !== key) sortState[role.key] = { key, dir:'desc' };
+      else if (current.dir === 'desc') sortState[role.key] = { key, dir:'asc' };
+      else delete sortState[role.key];
+      draw();
+    };
+    th.addEventListener('click', toggle);
+    th.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+    htr.append(th);
+  });
+  thead.append(htr);
+  table.append(thead);
+
+  const tbody = document.createElement('tbody');
+  sortedRows(role, rows).forEach(row => {
+    const tr = document.createElement('tr');
+    /* Every row is clickable and keeps production's exact film action: the
+       jersey cut-up, labelled with the player's own label. */
+    tr.className = 'cut';
+    tr.tabIndex = 0;
+    tr.setAttribute('role', 'button');
+    tr.title = `Watch: ${label(row)}'s plays`;
+    role.cols.forEach(([key]) => {
+      const td = document.createElement('td');
+      const c = cell(role, row, key);
+      if (c.cls) td.className = c.cls;
+      td.dataset.col = key;
+      if (key === 'ident') {
+        const i = document.createElement('i');
+        i.textContent = `#${row.num}`;
+        td.append(i);
+        /* A real space, not only the marker's margin -- the cell's text must
+           read the same way the row's film label does. */
+        if (row.name) td.append(document.createTextNode(` ${row.name}`));
+      } else {
+        td.textContent = c.text;
+      }
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
+  table.append(tbody);
+  wrap.append(table);
+  mod.append(wrap);
+  return mod;
+}
+
+function draw() {
+  const data = STATES[state];
+  const attributed = ROLES.reduce((n, r) => n + ((data[r.key] || []).length ? 1 : 0), 0);
+  const anyRows = ROLES.some(r => (data[r.key] || []).length);
+
+  $('#headSub').textContent = data.label;
+  $('#ctxGame').textContent = data.label.split(' — ')[0];
+  $('#emptyState').hidden = anyRows;
+  $('#report').hidden = !anyRows;
+  if (!anyRows) return;
+
+  $('#sampleLine').innerHTML = data.sample;
+
+  /* Section counts are DISTINCT PLAYERS in that section's roles -- a player
+     credited in two roles of the same section is one player. Roles are not
+     summed into a squad total, because the same jersey appears in several. */
+  const distinct = keys => new Set(keys.flatMap(k => (data[k] || []).map(r => r.num))).size;
+  $('#cAll').textContent = distinct(ROLES.map(r => r.key));
+  $('#cOff').textContent = distinct(['rushing','passing','receiving']);
+  $('#cDef').textContent = distinct(['tackles']);
+  $('#cSt').textContent = distinct(['returns','kicking']);
+  $$('#snav button').forEach(b => {
+    const sec = b.dataset.sec;
+    const has = LAYOUT[sec].flat().some(k => (data[k] || []).length);
+    b.classList.toggle('is-none', !has);
+    b.classList.toggle('on', sec === section);
+    if (sec === section) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
+
+  $('#secTitle').textContent = SEC_TITLE[section];
+  $('#secNote').textContent = SEC_NOTE[section];
+  const shown = LAYOUT[section].flat();
+  const withRows = shown.filter(k => (data[k] || []).length).length;
+  $('#secMeta').textContent = `${withRows} of ${shown.length} ${shown.length === 1 ? 'role' : 'roles'} attributed`;
+
+  const host = $('#sections');
+  host.replaceChildren();
+  LAYOUT[section].forEach(band => {
+    const div = document.createElement('div');
+    div.className = `band b-${band.length}`;
+    band.forEach(key => div.append(moduleFor(ROLES.find(r => r.key === key), data)));
+    host.append(div);
+  });
+}
+
+$$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
+  $$('.comp-bar .grp button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  state = b.dataset.state;
+  Object.keys(sortState).forEach(k => delete sortState[k]);
+  draw();
+}));
+$$('#snav button').forEach(b => b.addEventListener('click', () => { section = b.dataset.sec; draw(); }));
+
+draw();
+</script>
+</body>
+</html>
