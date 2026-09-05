@@ -656,10 +656,14 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Matchup has not had a design pass and
-   still uses the generic rail. Players and Self-Scout have had their design
-   passes and are built, but stay OUT of `SCOREBUG_TABS` for the same reason
-   Special Teams does, so they also still render the generic rail.
+4. **The remaining Reports tabs** — Season now has a dedicated candidate comp
+   at `design-comps/reports-season-2026-09-05`, but it has not passed the
+   Charlie Gate and no production implementation follows from it yet. Matchup
+   still awaits its comp. Both use their existing report chrome until those
+   decisions are made. Players and
+   Self-Scout have had their design passes and are built, but stay OUT of
+   `SCOREBUG_TABS` for the same reason Special Teams does, so they also still
+   render the generic rail.
    **Reports > Special Teams Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT.
    **Reports > Players Charlie Gate** — populated real-data review at the
