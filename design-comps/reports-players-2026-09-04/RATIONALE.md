@@ -709,3 +709,37 @@ silently rather than growing.
    wrapping long game names remain shared-chrome items already recorded against
    Special Teams; Players carries the same context-bar treatment and does not
    propose its own.
+
+---
+
+## 16 · Codex visual revision — 2026-09-05
+
+The aligned board was structurally correct but still read as stacked interface
+bands followed by six separate panels. This revision keeps the approved data,
+sorting, scope, role set, and responsive table behavior while improving the
+presentation:
+
+- Scope, sample size, and role navigation share one control row at release
+  widths. This removes one full-width layer before the report data.
+- The section rule was removed because it repeated the active role tab and the
+  counts already visible in the toolbar and navigation.
+- Role counts are plain text rather than boxed badges.
+- Role headings use readable IBM Plex Sans at 12.5px with no artificial
+  tracking or forced uppercase.
+- Data rows move from 36px/12px to 38px/13px. Table headers retain the accepted
+  12px label role.
+- Role bands meet on thin rules instead of four-pixel black gutters, so the six
+  tables read as one report surface.
+- The report canvas is capped at 1680px on wide displays to reduce the distance
+  between player identity and measurements.
+- Sort direction uses an 11px up/down arrow instead of an 8px triangle.
+- Sparse-state roles without attribution are consolidated into one literal
+  `No data` row that names each absent role. Populated tables pair naturally
+  above it, avoiding large synchronized grid gaps while keeping the fixed role
+  set visible.
+- The full empty-state title uses the same readable Sans heading treatment as
+  the report rather than a small condensed uppercase label.
+
+Representative review captures are generated under
+`artifacts/players-codex-review/`. The committed 93-state capture set remains
+unchanged until this visual revision is approved.
