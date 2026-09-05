@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports &gt; Self-Scout — design comp 2026-09-05</title>
+<link rel="stylesheet" href="../../design-system/plex.css">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Tokens copied verbatim from the accepted Overview / Offense / Defense /
+   Special Teams / Players comps. The comp must fail the same way production
+   would; it must not look better because it invented a colour, a size, or a
+   number.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --gi-sans:'IBM Plex Sans',system-ui,sans-serif;
+  --gi-cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+  --gi-num-feat:tabular-nums lining-nums;
+  --gi-text-body:400 13px/1.45 var(--gi-sans);
+  --gi-text-label:600 12px/1.25 var(--gi-sans);
+  --gi-1x:4px; --gi-2x:8px; --gi-3x:12px; --gi-4x:16px; --gi-6x:24px;
+  --gi-row:38px;
+
+  --gi-bd-gold:#d9a21a; --gi-bd-gold-ink:#14100a;
+  --gi-bd-cyan:#12a9cb; --gi-bd-cyan-ink:#03151a;
+  --gi-bd-bone:#4a5765;
+  --gi-bd-stage:#06080b; --gi-bd-panel:#0e1319;
+  --gi-bd-control:#151c24; --gi-bd-control-active:#1b242e;
+  --gi-bd-line:#222d38;
+  --gi-bd-muted:#66727e; --gi-bd-copy:#a6a6a6; --gi-bd-strong:#f2f5f8;
+  --gi-bd-win:#3fa96b; --gi-bd-loss:#d2564f; --gi-bd-draw:#4a5765;
+
+  /* Self-Scout's own measure. Every table on this board is a tendency table:
+     a LABEL that a coach reads (a situation, a formation, a call) followed by
+     small measurements. The label column is the anchor and absorbs the slack;
+     the measurements take fixed steps sized from the widest thing each one
+     holds -- its own header or a real value. Same discipline as the Players
+     board, re-derived for this board's own columns (see RATIONALE section 10). */
+  --s-label:220px;   /* floor for a situation / formation / call label */
+  --s-n:60px;        /* Plays, n -- header-driven */
+  --s-forms:104px;   /* Formations -- header-driven */
+  --s-pct:78px;      /* Succ%, Stop%, Havoc%, Blitz%, Top % -- "Havoc%" is widest */
+  --s-avg:78px;      /* Avg, R Avg, P Avg -- "Avg Yds" is widest */
+  --s-split:104px;   /* Run, Pass -- "Pass 100%" inside its own bar */
+  --s-dim:150px;     /* Type -- "Formation x Strength" is a real model value */
+  --s-lean:158px;    /* Tendency / Lean / Read -- a value with its own bar */
+  --s-verdict:112px; /* Assessment -- "▼ Exploitable" */
+  --s-tell:84px;     /* Tell -- "Coverage" */
+  --s-scheme:152px;  /* Top front, Top coverage, Top formation, Distribution */
+}
+*{box-sizing:border-box}
+/* `.empty` sets `display:flex`, which outranks the user-agent `[hidden]` rule. */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong);
+  font:var(--gi-text-body);font-family:var(--gi-sans);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+
+/* ── COMP HARNESS (not part of the design) ─────────────────────────────────
+   Deliberately unlike anything in the proposal: its own bar, its own colour,
+   its own label, pinned above the shell chrome. A reviewer must never mistake
+   a fixture-state control for a proposed production control. */
+.comp-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:var(--gi-3x);
+  padding:6px var(--gi-4x);background:#11161d;border-bottom:1px solid var(--gi-bd-line);flex-wrap:wrap}
+.comp-bar b{color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.comp-bar span{color:var(--gi-bd-muted);font:var(--gi-text-label);font-weight:400}
+.comp-bar .grp{display:flex;flex-wrap:wrap;gap:1px;margin-left:auto;background:var(--gi-bd-line)}
+.comp-bar .grp button{padding:5px 10px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:600 11.5px/1.3 var(--gi-sans);cursor:pointer}
+.comp-bar .grp button:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
+.comp-bar .grp button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.comp-bar .grp button.on{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+
+/* ── SHELL CHROME (matches production Reports; not part of the proposal) ── */
+.chrome-nav{display:flex;align-items:stretch;background:#11161d;border-bottom:1px solid var(--gi-bd-line)}
+.chrome-nav .brand{display:flex;align-items:center;padding:0 var(--gi-6x);font:700 17px/1 var(--gi-cond);letter-spacing:.02em}
+.chrome-nav .brand i{color:var(--gi-bd-cyan);font-style:normal}
+.chrome-nav a{display:flex;align-items:center;gap:7px;padding:0 var(--gi-6x);min-height:52px;
+  color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans);text-decoration:none;cursor:pointer}
+.chrome-nav a:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.chrome-nav a.on{background:var(--gi-bd-panel);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+
+.ctxbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:1px;background:var(--gi-bd-line)}
+.ctxbar>div{padding:9px var(--gi-4x);background:var(--gi-bd-panel);min-width:0}
+.ctxbar span{display:block;color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase}
+.ctxbar strong{display:block;margin-top:3px;font:600 13px/1.2 var(--gi-sans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctxbar .persp{display:flex;align-items:center;gap:var(--gi-4x);padding-right:var(--gi-6x)}
+.ctxbar .persp button{padding:6px 12px;border:0;background:transparent;color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.ctxbar .persp button:hover{color:var(--gi-bd-strong)}
+.ctxbar .persp button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.ctxbar .persp button.on{color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-gold)}
+
+/* ── REPORT HEAD + TABS ────────────────────────────────────────────────── */
+.rhead{display:flex;align-items:center;gap:var(--gi-6x);padding:10px var(--gi-4x);
+  background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
+.rhead h1{margin:0;font:700 19px/1.1 var(--gi-cond);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+.rhead .sub{color:var(--gi-bd-muted);font:400 11.5px/1.2 var(--gi-sans);white-space:nowrap}
+.rhead .tabs{display:flex;gap:2px;margin-left:var(--gi-4x);min-width:0}
+.rhead .tabs button{padding:8px 13px;border:0;background:transparent;color:var(--gi-bd-muted);
+  font:600 11px/1 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.rhead .tabs button:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.rhead .tabs button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.rhead .tabs button.on{color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+.rhead .acts{display:flex;gap:var(--gi-2x);margin-left:auto}
+.btn{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 var(--gi-3x);
+  border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong);border-color:var(--gi-bd-bone)}
+.btn:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:2px}
+.btn:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+
+/* ── BOARD ─────────────────────────────────────────────────────────────────
+   The board carries no padding of its own: the route already insets it, and
+   paying both costs every band half 16px (the correction the Players board
+   needed at 1440). The report canvas is capped and centred so a label on a
+   38px row is never most of a screen from its first measurement.
+   ─────────────────────────────────────────────────────────────────────── */
+.board{width:100%;margin:0;padding:0;background:var(--gi-bd-stage)}
+#report{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:4px;
+  width:min(100%,1648px);margin:0 auto}
+#sections{grid-column:1/-1;background:transparent}
+
+/* One control row: report scope on the left, section navigation filling the
+   middle, Export on the right. No second full-width toolbar. */
+.dtoolbar{grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);margin:0;
+  padding:7px var(--gi-3x);background:var(--gi-bd-panel);white-space:nowrap}
+.dtoolbar .lbl{color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);white-space:nowrap}
+.dtoolbar .sample{color:var(--gi-bd-copy);font:400 12px/1.3 var(--gi-sans)}
+.dtoolbar .sample b{color:var(--gi-bd-strong);font-weight:600}
+/* The control row carries the scope, six section tabs and Export on ONE row.
+   Below 1420 the six tabs need the width back, so the scope line drops to its
+   counts -- the same two numbers, without the words. */
+.dtoolbar .short{display:none}
+.racts{grid-column:3;display:flex;align-items:center;padding:0;background:var(--gi-bd-panel)}
+.racts .btn{height:100%;border:0;background:transparent}
+
+.snav{grid-column:2;display:flex;align-items:stretch;gap:1px;margin:0;background:var(--gi-bd-line)}
+.snav button{flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);
+  font:600 12px/1 var(--gi-sans);letter-spacing:0;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.snav button>b{flex:0 0 auto;min-width:0;padding:0;background:transparent;color:var(--gi-bd-muted);
+  font:600 11px/1 var(--gi-sans);font-variant-numeric:var(--gi-num-feat)}
+.snav button:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.snav button:hover>b{color:var(--gi-bd-copy)}
+.snav button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.snav button.on{color:var(--gi-bd-strong);background:var(--gi-bd-control-active);
+  box-shadow:inset 0 -3px var(--gi-bd-cyan)}
+.snav button.on>b{color:var(--gi-bd-cyan)}
+/* A section with nothing to show stays reachable -- it is the one surface that
+   says why. Dimmed, never disabled. */
+.snav button.is-none{color:var(--gi-bd-muted)}
+
+/* Bands and modules: the six tables read as one report surface, meeting on
+   thin rules rather than four-pixel gutters. */
+/* lign-items:stretch: the band's own background is transparent and its rules
+   are box-shadows, so a stretched short module paints only its own panel. A
+   short module beside a tall one otherwise leaves a black hole in the stage --
+   the same correction the Special Teams board carries. */
+.band{display:grid;gap:1px;align-items:stretch;margin:0;background:transparent}
+.band>.mod+.mod{box-shadow:-1px 0 var(--gi-bd-line)}
+.band+.band .mod{border-top:1px solid var(--gi-bd-line)}
+.b-1{grid-template-columns:minmax(0,1fr)}
+.b-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.b-64{grid-template-columns:6fr 4fr}
+
+.mod{min-width:0;padding:10px var(--gi-3x) 12px;background:var(--gi-bd-panel);position:relative}
+.mod>header{display:flex;align-items:baseline;gap:var(--gi-2x);margin:0 0 7px}
+.mod>header strong{color:var(--gi-bd-cyan);font:700 12.5px/1.2 var(--gi-sans);white-space:nowrap}
+.mod>header span{min-width:0;color:var(--gi-bd-copy);font:400 12px/1.2 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Phase colour, the same one the accepted boards use: gold is our offense,
+   cyan our defense. */
+.mod.is-off>header strong{color:var(--gi-bd-gold)}
+.mod.is-def>header strong{color:var(--gi-bd-cyan)}
+.mod.is-none>header strong{color:var(--gi-bd-muted)}
+.mod .none{margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)}
+
+/* ── KPI BAND ───────────────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin:0;background:var(--gi-bd-line)}
+.kpi{min-width:0;padding:10px var(--gi-3x) 12px;background:var(--gi-bd-panel)}
+.kpi span{display:block;color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi strong{display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 30px/1.05 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap}
+.kpi small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 12px/1.25 var(--gi-sans)}
+/* An absence is never a big number: it drops to copy weight so it cannot read
+   as a headline figure. */
+.kpi.is-blank strong{color:var(--gi-bd-muted);font:700 17px/1.85 var(--gi-cond)}
+
+/* ── COUNT ROWS (Negative and explosive plays) ──────────────────────────── */
+.crow{display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-3x);
+  min-height:var(--gi-row);padding:0;border-bottom:1px solid var(--gi-bd-line)}
+.crow:last-child{border-bottom:0}
+.crow>span{min-width:0;color:var(--gi-bd-copy);font:400 13px/var(--gi-row) var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crow>strong{flex:0 0 auto;color:var(--gi-bd-strong);font:700 15px/var(--gi-row) var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)}
+
+/* ── RECOMMENDATIONS AND INSIGHTS ───────────────────────────────────────── */
+.recs,.ins{display:grid;gap:0}
+.rec,.insight{padding:9px 0;border-bottom:1px solid var(--gi-bd-line);
+  color:var(--gi-bd-copy);font:400 13px/1.5 var(--gi-sans)}
+.rec:last-child,.insight:last-child{border-bottom:0}
+.rec strong,.insight strong{color:var(--gi-bd-strong);font-weight:600}
+.rec .rl{color:var(--gi-bd-gold);font-weight:600}
+.rec .rl.is-strength{color:var(--gi-bd-win)}
+.insight{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--gi-3x);align-items:baseline}
+.insight .tag{color:var(--gi-bd-cyan);font:600 12px/1.5 var(--gi-sans);white-space:nowrap}
+
+/* ── PREDICTABILITY ─────────────────────────────────────────────────────── */
+.pred{display:grid;grid-template-columns:max-content minmax(120px,1fr) max-content;
+  align-items:center;gap:var(--gi-3x);min-height:var(--gi-row)}
+.pred .val{color:var(--gi-bd-strong);font:700 30px/1.05 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.pred .val small{color:var(--gi-bd-muted);font:400 13px/1 var(--gi-sans)}
+.pred .meter{height:9px;background:var(--gi-bd-control-active)}
+.pred .meter i{display:block;height:100%}
+.pred .cls{color:var(--gi-bd-copy);font:600 13px/1.3 var(--gi-sans);white-space:nowrap}
+.pred-note{margin:8px 0 0;color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)}
+.is-p70{color:var(--gi-bd-loss)} .is-p30{color:var(--gi-bd-gold)} .is-p0{color:var(--gi-bd-win)}
+.bg-p70{background:var(--gi-bd-loss)} .bg-p30{background:var(--gi-bd-gold)} .bg-p0{background:var(--gi-bd-win)}
+
+/* ── TABLES ────────────────────────────────────────────────────────────────
+   `table-layout:fixed` so the colgroup is honoured exactly. Auto layout treats
+   a column width as a preference and discards every one of them the moment the
+   label column asks for 100%, which content-sizes the measurements and makes
+   the stated widths fiction.
+   ─────────────────────────────────────────────────────────────────────── */
+.twrap{min-width:0;overflow-x:auto;scrollbar-width:thin}
+table{width:100%;table-layout:fixed;border-collapse:collapse;background:transparent}
+col.label{width:100%}
+col.n{width:var(--s-n)} col.forms{width:var(--s-forms)} col.pct{width:var(--s-pct)} col.avg{width:var(--s-avg)}
+col.split{width:var(--s-split)} col.dim{width:var(--s-dim)} col.lean{width:var(--s-lean)}
+col.verdict{width:var(--s-verdict)} col.tell{width:var(--s-tell)} col.scheme{width:var(--s-scheme)}
+th,td{height:var(--gi-row);padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-bd-line);
+  font-size:13px;white-space:nowrap;text-align:right}
+th{position:relative;color:var(--gi-bd-copy);font:var(--gi-text-label);text-transform:uppercase;
+  letter-spacing:0;cursor:pointer;user-select:none}
+td{color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat)}
+th:first-child,td:first-child{min-width:var(--s-label);padding-left:var(--gi-4x);text-align:left}
+th:last-child,td:last-child{padding-right:var(--gi-4x)}
+tbody tr:last-child td{border-bottom:0}
+/* The label column is the anchor. It truncates rather than overrunning into the
+   measurements if a name is longer than the panel can ever give it; the full
+   value stays in the row's own title. */
+td.label{color:var(--gi-bd-strong);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+td.blank{color:var(--gi-bd-muted);font-size:12px;font-weight:400}
+
+/* Sortable headers: descending, ascending, then off. The direction marker is
+   absolutely positioned beneath the right end of the label, riding on the
+   sorted column's cyan underline, so it costs no layout width and moves
+   nothing. Same treatment the Players board carries. */
+th:hover{color:var(--gi-bd-strong)}
+th:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+th.is-sorted{color:var(--gi-bd-strong);box-shadow:inset 0 -2px var(--gi-bd-cyan)}
+th.is-sorted::before{position:absolute;right:var(--gi-3x);bottom:1px;
+  color:var(--gi-bd-cyan);font-size:11px;line-height:1;pointer-events:none}
+th:last-child.is-sorted::before{right:var(--gi-4x)}
+th.is-sorted.is-desc::before{content:'\2193'}
+th.is-sorted.is-asc::before{content:'\2191'}
+
+/* A row that opens film must look like one. The marker is absolutely
+   positioned in the label cell's own left inset so it costs the column no
+   width and still moves no text. */
+tbody tr.cut{cursor:pointer}
+tbody tr.cut:hover td{background:var(--gi-bd-control)}
+tbody tr.cut:hover td.label{color:var(--gi-bd-strong)}
+tbody tr.cut:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+td.label{position:relative}
+tbody tr.cut td.label::before{content:'\25B8';position:absolute;left:4px;top:50%;
+  transform:translateY(-50%);color:var(--gi-bd-cyan);opacity:0;pointer-events:none}
+tbody tr.cut:hover td.label::before,
+tbody tr.cut:focus-visible td.label::before{opacity:1}
+
+/* Run / pass share, and a lean, drawn as a track behind the figure. Gold is
+   run, cyan is pass -- the board's two accents, used for the two phases the
+   whole report is about. */
+.bar{position:relative;display:block;max-width:100%;padding:2px 6px;overflow:hidden;text-overflow:ellipsis;
+  color:var(--gi-bd-strong);font:600 12.5px/1.5 var(--gi-sans);font-variant-numeric:var(--gi-num-feat);
+  text-align:right;background:var(--gi-bd-control-active);overflow:hidden}
+.bar::before{content:'';position:absolute;inset:0 auto 0 0;width:var(--p);opacity:.42}
+.bar>i{position:relative;font-style:normal}
+.bar.run::before{background:var(--gi-bd-gold)}
+.bar.pass::before{background:var(--gi-bd-cyan)}
+.bar.zero{background:transparent;color:var(--gi-bd-muted);font-weight:400}
+.trunc{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+/* A verdict is text plus its glyph, in the family's own three tones. Not a
+   pill: the accepted boards carry no pills. */
+.vd{font-weight:600;white-space:nowrap}
+.vd-dominant{color:var(--gi-bd-win)}
+.vd-effective{color:var(--gi-bd-gold)}
+.vd-exploitable{color:var(--gi-bd-loss)}
+td.tone-dominant,td.tone-effective,td.tone-exploitable{font-weight:600}
+tbody tr.row-exploitable td.label{box-shadow:inset 2px 0 var(--gi-bd-loss)}
+tbody tr.row-dominant td.label{box-shadow:inset 2px 0 var(--gi-bd-win)}
+tbody tr.row-effective td.label{box-shadow:inset 2px 0 var(--gi-bd-gold)}
+
+/* ── PREDICTABILITY MAP ─────────────────────────────────────────────────── */
+.mwrap{min-width:0;overflow-x:auto;scrollbar-width:thin}
+table.map{table-layout:auto}
+table.map th.corner,table.map td.rowlab{text-align:left;color:var(--gi-bd-strong);font-weight:600}
+table.map td.rowlab i{font-style:normal;color:var(--gi-bd-muted);font-weight:400;font-size:12px}
+table.map th{cursor:default}
+table.map td.cell{text-align:right;vertical-align:middle}
+table.map td.cell.cut{cursor:pointer}
+table.map td.cell .lean{display:block;color:var(--gi-bd-strong);font:600 13px/1.3 var(--gi-sans);
+  font-variant-numeric:var(--gi-num-feat)}
+table.map td.cell .n{display:block;color:var(--gi-bd-muted);font:400 12px/1.3 var(--gi-sans);
+  font-variant-numeric:var(--gi-num-feat)}
+table.map td.is-exploit{box-shadow:inset 0 -3px var(--gi-bd-loss)}
+table.map td.is-working{box-shadow:inset 0 -3px var(--gi-bd-gold)}
+table.map td.is-balanced{box-shadow:inset 0 -3px var(--gi-bd-draw)}
+table.map td.is-low .lean{color:var(--gi-bd-copy);font-weight:400}
+table.map td.cell.cut:hover{background:var(--gi-bd-control)}
+table.map td.cell.cut:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+/* NOT .empty: that class is the full empty-state band, and display:flex on
+   a 	d collapses the row's cells into one column. Found in the capture. */
+table.map td.nodata .lean{color:var(--gi-bd-muted);font-weight:400;font-size:12px}
+.legend{display:flex;flex-wrap:wrap;gap:var(--gi-4x);margin:8px 0 0;
+  color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)}
+.legend b{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:middle}
+.legend .k-exploit b{background:var(--gi-bd-loss)}
+.legend .k-working b{background:var(--gi-bd-gold)}
+.legend .k-balanced b{background:var(--gi-bd-draw)}
+.legend .k-low b{background:var(--gi-bd-control-active)}
+
+/* ── EMPTY / INSUFFICIENT ───────────────────────────────────────────────── */
+.empty{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);
+  margin:0;padding:var(--gi-4x);background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
+.empty h3{margin:0 0 3px;font:700 14px/1.25 var(--gi-sans)}
+.empty p{margin:0;color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)}
+.empty .btn{flex:0 0 auto}
+
+@media(max-width:1420px){
+  .dtoolbar .sample{display:none}
+  .dtoolbar .short{display:inline}
+  /* The measured minimum for each step: the widest header or value that column
+     actually holds, plus its own cell padding. Below this the column clips. */
+  #report{--s-n:60px;--s-forms:104px;--s-pct:78px;--s-avg:78px;--s-split:104px;
+    --s-dim:150px;--s-lean:158px;--s-verdict:112px;--s-tell:84px;--s-scheme:152px}
+  /* A band stacks only when its own widest table can no longer be honoured in
+     a band half -- see RATIONALE section 10 for the measured derivation. */
+  .b-2.is-wide,.b-64.is-wide{grid-template-columns:minmax(0,1fr)}
+  .b-2.is-wide>.mod+.mod,.b-64.is-wide>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
+  .b-2.is-wide,.b-64.is-wide{--s-n:88px;--s-pct:104px;--s-avg:96px;--s-split:132px;
+    --s-dim:180px;--s-lean:170px;--s-verdict:150px;--s-tell:150px;--s-scheme:200px}
+}
+@media(max-width:1360px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rhead{gap:var(--gi-4x)}
+  .rhead .tabs{min-width:0;overflow-x:auto;scrollbar-width:none}
+  .rhead .tabs button{padding:8px 9px;letter-spacing:.08em}
+  .ctxbar strong{white-space:normal;overflow:visible;text-overflow:clip}
+}
+@media(max-width:1000px){
+  #report{grid-template-columns:minmax(0,1fr)}
+  .dtoolbar,.snav,.racts{grid-column:1}
+  .snav{overflow-x:auto}
+  .snav button{flex:0 0 auto}
+  .b-2,.b-64{grid-template-columns:minmax(0,1fr)}
+  .b-2>.mod+.mod,.b-64>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
+}
+</style>
+</head>
+<body>
+
+<div class="comp-bar">
+  <b>Comp</b><span>Reports &gt; Self-Scout — 2026-09-05 — design only, not production</span>
+  <div class="grp" role="group" aria-label="Comp fixture state">
+    <button type="button" data-state="full" class="on">Populated</button>
+    <button type="button" data-state="def-insufficient">Defense insufficient</button>
+    <button type="button" data-state="off-insufficient">Offense insufficient</button>
+    <button type="button" data-state="sparse">Sparse, qualified</button>
+    <button type="button" data-state="no-offense">No offensive attribution</button>
+    <button type="button" data-state="def-no-attribution">Defense unattributed</button>
+    <button type="button" data-state="long-labels">Long labels</button>
+    <button type="button" data-state="balanced">Balanced</button>
+    <button type="button" data-state="pred-successful">Predictable, working</button>
+    <button type="button" data-state="pred-exploitable">Predictable, exploitable</button>
+  </div>
+</div>
+
+<nav class="chrome-nav" aria-label="Primary">
+  <div class="brand">GRIDIRON <i>IQ</i></div>
+  <a href="#" tabindex="0">Home</a><a href="#" tabindex="0">Break Down</a><a href="#" tabindex="0">Study</a>
+  <a href="#" class="on" tabindex="0">Reports</a><a href="#" tabindex="0">Plan</a>
+</nav>
+
+<div class="ctxbar">
+  <div><span>Program</span><strong>Ridgemont Ridgebacks</strong></div>
+  <div><span>Season</span><strong>2026 Varsity</strong></div>
+  <div><span>Game</span><strong>Week 4 vs Northgate</strong></div>
+  <div class="persp"><button type="button" class="on">Our Program</button><button type="button">Opponent Scout</button></div>
+</div>
+
+<div class="rhead">
+  <h1>Reports</h1>
+  <div class="tabs" role="tablist">
+    <button type="button">Overview</button><button type="button">Offense</button>
+    <button type="button">Defense</button><button type="button">Special Teams</button>
+    <button type="button">Players</button>
+    <button type="button" class="on" aria-selected="true">Self-Scout</button>
+    <button type="button">Season</button><button type="button">Matchup</button>
+  </div>
+  <span class="sub" id="headSub"></span>
+</div>
+
+<div class="board">
+  <div id="report">
+    <div class="dtoolbar">
+      <span class="lbl">Scope</span>
+      <span class="sample" id="sampleLine"></span>
+      <span class="sample short" id="sampleShort"></span>
+    </div>
+    <nav class="snav" id="snav" aria-label="Self-Scout sections"></nav>
+    <div class="racts"><button type="button" class="btn" id="exportBtn">Export report</button></div>
+    <div id="sections"></div>
+  </div>
+</div>
+
+<script src="fixtures.js"></script>
+<script>
+/* ═════════════════════════════════════════════════════════════════════════
+   Every figure rendered below comes from `fixtures.js`, which is the REAL
+   StatsEngine output (generateSelfScout / generateDefensiveSelfScout /
+   compute) on a synthetic play set -- see the file's own header. Nothing here
+   computes football; this script only composes. That is the same division the
+   production route keeps between StatsEngine and native-report-tabs.jsx.
+   ═════════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const F = window.SS_FIXTURES;
+const NO_DATA = 'No data';
+/* `_SELF_SCOUT_MIN_N` in stats-engine.js. Stated once here so the sample
+   language on this board can never drift from the gate the engine applies. */
+const MIN_N = 4;
+const DEF_MIN = 6;
+
+let state = 'full';
+let section = 'performance';
+const sortState = {};
+
+const SECTIONS = [
+  ['performance', 'Performance'],
+  ['tells', 'Offensive Tells'],
+  ['situational', 'Situational'],
+  ['structure', 'Structure'],
+  ['predictability', 'Predictability'],
+  ['defense', 'Defensive Self-Scout'],
+];
+
+const el = (tag, cls, text) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+};
+/* Model output arrives as HTML from the engine (recommendations and insights
+   are the only two strings production renders as markup). Rendered here the
+   same way, through a container that only ever receives engine text. */
+const html = (tag, cls, markup) => { const n = el(tag, cls); n.innerHTML = markup; return n; };
+const predClass = p => p >= 70 ? 'p70' : p >= 30 ? 'p30' : 'p0';
+const VERDICT = { dominant: ['▲', 'Dominant'], effective: ['▬', 'Effective'], exploitable: ['▼', 'Exploitable'] };
+
+/* ── Table primitive ──────────────────────────────────────────────────────
+   Columns: [key, label, sizeClass, opts]. `opts.render` returns a node,
+   `opts.sort` returns the value the column actually MEASURES (a compound like
+   `Run 76%` sorts on its number, never on its rendered string). */
+function table(id, cols, rows, opts = {}) {
+  const wrap = el('div', opts.wrapClass || 'twrap');
+  const t = el('table', opts.tableClass || '');
+  const cg = el('colgroup');
+  cols.forEach(([key, , size]) => {
+    const col = el('col');
+    col.className = key === cols[0][0] ? 'label' : (size || 'n');
+    cg.append(col);
+  });
+  t.append(cg);
+
+  const thead = el('thead'), htr = el('tr');
+  cols.forEach(([key, text]) => {
+    const th = el('th', null, text);
+    th.tabIndex = 0;
+    th.setAttribute('role', 'button');
+    const s = sortState[id];
+    const active = s && s.key === key;
+    if (active) th.classList.add('is-sorted', 'is-' + s.dir);
+    th.title = active ? (s.dir === 'desc' ? text + ', high to low' : text + ', low to high') : 'Sort by ' + text;
+    const toggle = () => {
+      const cur = sortState[id];
+      if (!cur || cur.key !== key) sortState[id] = { key, dir: 'desc' };
+      else if (cur.dir === 'desc') sortState[id] = { key, dir: 'asc' };
+      else delete sortState[id];
+      draw();
+    };
+    th.addEventListener('click', toggle);
+    th.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+    htr.append(th);
+  });
+  thead.append(htr);
+  t.append(thead);
+
+  let ordered = rows;
+  const s = sortState[id];
+  if (s) {
+    const col = cols.find(c => c[0] === s.key);
+    const val = row => (col && col[3] && col[3].sort) ? col[3].sort(row) : row[s.key];
+    ordered = rows.slice().sort((a, b) => {
+      const av = val(a), bv = val(b);
+      /* An absence sorts LAST in both directions -- it is not the smallest
+         measured value, and floating it above a real figure would misread. */
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const cmp = (typeof av === 'number' && typeof bv === 'number')
+        ? av - bv : String(av).localeCompare(String(bv));
+      return s.dir === 'desc' ? -cmp : cmp;
+    });
+  }
+
+  const tbody = el('tbody');
+  ordered.forEach((row, i) => {
+    const tr = el('tr', row.__cls || '');
+    if (row.__film) {
+      tr.classList.add('cut');
+      tr.tabIndex = 0;
+      tr.setAttribute('role', 'button');
+      tr.title = 'Watch: ' + row.__film;
+    }
+    cols.forEach(([key, , , o]) => {
+      const td = el('td');
+      td.dataset.col = key;
+      if (key === cols[0][0]) { td.className = 'label'; td.title = String(row[key] ?? ''); }
+      const rendered = o && o.render ? o.render(row) : null;
+      if (rendered && rendered.nodeType) { td.append(rendered); if (o.cls) td.classList.add(o.cls); }
+      else {
+        const v = rendered != null ? rendered : row[key];
+        if (v == null || v === '') { td.textContent = NO_DATA; td.classList.add('blank'); }
+        else td.textContent = String(v);
+      }
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
+  t.append(tbody);
+  wrap.append(t);
+  return wrap;
+}
+
+/* The bar is bounded: an ordinary value fits, and an extreme imported name
+   ("Under Front 3-3-5 Dime 100%") truncates rather than overrunning into the
+   next measurement -- with the full value on the element's own title. */
+const bar = (lean, pct, zero) => {
+  const text = lean ? lean + ' ' + pct + '%' : pct + '%';
+  const b = el('span', 'bar ' + (lean === 'Run' ? 'run' : 'pass') + (zero ? ' zero' : ''));
+  b.style.setProperty('--p', pct + '%');
+  b.title = text;
+  b.append(el('i', null, text));
+  return b;
+};
+/* Same rule for a scheme name with its share. */
+const scheme = text => { const s = el('span', 'trunc', text); s.title = text; return s; };
+const verdict = v => {
+  const [glyph, label] = VERDICT[v] || ['', v];
+  return el('span', 'vd vd-' + v, glyph + ' ' + label);
+};
+
+function module(title, meta, body, cls) {
+  const mod = el('section', 'mod' + (cls ? ' ' + cls : ''));
+  const head = el('header');
+  head.append(el('strong', null, title));
+  if (meta) head.append(el('span', null, meta));
+  mod.append(head);
+  if (body) mod.append(body);
+  return mod;
+}
+function band(cls, ...mods) {
+  const d = el('div', 'band ' + cls);
+  mods.filter(Boolean).forEach(m => d.append(m));
+  return d;
+}
+function emptyBand(title, body) {
+  const e = el('div', 'empty');
+  const left = el('div');
+  left.append(el('h3', null, title), el('p', null, body));
+  const btn = el('button', 'btn', 'Open Break Down');
+  btn.type = 'button';
+  e.append(left, btn);
+  return e;
+}
+
+/* ── Shared table shapes ─────────────────────────────────────────────────
+   The split table is one shape used by four modules, exactly as production's
+   `SelfScoutSplitTable` is. */
+const splitCols = labelText => [
+  ['label', labelText, 'label'],
+  ['n', 'Plays', 'n'],
+  ['runPct', 'Run', 'split', { render: r => bar('Run', r.runPct, !r.runPct) }],
+  ['passPct', 'Pass', 'split', { render: r => bar('Pass', r.passPct, !r.passPct) }],
+  ['runAvg', 'R Avg', 'avg'],
+  ['passAvg', 'P Avg', 'avg'],
+  ['succRate', 'Succ%', 'pct', { render: r => r.succRate + '%' }],
+  ['leanPct', 'Read', 'lean', {
+    sort: r => r.tell ? r.leanPct : -1,
+    render: r => r.tell ? bar(r.lean, r.leanPct) : el('span', 'bar zero', 'Balanced'),
+  }],
+];
+const splitRows = (rows, pretty, film) => rows.map(r => ({
+  ...r, label: pretty ? pretty(r.key) : r.key,
+  __film: film ? film(pretty ? pretty(r.key) : r.key, r.n) : null,
+}));
+
+/* ═════════════════════════════════════════════════════════════════════════
+   SECTIONS
+   ═════════════════════════════════════════════════════════════════════════ */
+function sectionPerformance(m) {
+  const out = [];
+  const k = m.offKpis;
+  if (!m.report) {
+    out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
+    return out;
+  }
+  const tile = (label, value, sub, blank) => {
+    const d = el('div', 'kpi' + (blank ? ' is-blank' : ''));
+    d.append(el('span', null, label), el('strong', null, value));
+    if (sub) d.append(el('small', null, sub));
+    return d;
+  };
+  const kpis = el('div', 'kpis');
+  kpis.append(
+    tile('Success Rate', (k.successRate || '0.0') + '%'),
+    tile('Yards / Play', k.yardsPerPlay),
+    tile('Explosive Rate', (k.explosivePct || '0.0') + '%'),
+    tile('Negative Play Rate', (k.negativePct || '0.0') + '%'),
+    tile('Third Down', (k.thirdDownPct || '0.0') + '%'),
+    k.redZoneTdPct == null
+      ? tile('Red Zone TD', NO_DATA, 'no red zone snaps charted', true)
+      : tile('Red Zone TD', k.redZoneTdPct + '%', k.redZoneTotal + ' red zone snaps'),
+  );
+  out.push(kpis);
+
+  const ev = m.events;
+  const counts = el('div', 'counts');
+  [['Negative plays', ev.negativeDistinct], ['Turnovers', ev.turnovers], ['Sacks', ev.sacks],
+    ['Plays for loss', ev.lossTotal], ['Penalties', ev.penalties]].forEach(([l, v]) => {
+    const row = el('div', 'crow');
+    row.append(el('span', null, l), el('strong', null, String(v)));
+    counts.append(row);
+  });
+
+  const recs = el('div', 'recs');
+  m.report.recommendations.forEach(r => recs.append(html('div', 'rec', r)));
+
+  out.push(band('b-64 is-wide',
+    module('Recommendations', m.report.recommendations.length + ' findings', recs, 'is-off'),
+    module('Negative and explosive plays', m.totalPlays + ' classified plays', counts, 'is-off')));
+  return out;
+}
+
+function sectionTells(m) {
+  const out = [];
+  if (!m.report) {
+    out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
+    return out;
+  }
+  const tells = m.report.tells;
+  const body = tells.length ? table('tells', [
+    ['label', 'Situation', 'label'],
+    ['dim', 'Type', 'dim'],
+    ['leanPct', 'Tendency', 'lean', { render: r => bar(r.lean, r.leanPct) }],
+    ['leanAvg', 'Avg', 'avg'],
+    ['leanSuccRate', 'Succ%', 'pct', { render: r => r.leanSuccRate + '%' }],
+    ['verdict', 'Assessment', 'verdict', {
+      sort: r => ({ exploitable: 2, effective: 1, dominant: 0 })[r.verdict],
+      render: r => verdict(r.verdict),
+    }],
+    ['n', 'n', 'n'],
+  ], tells.map(t => ({ ...t, __cls: 'row-' + t.verdict, __film: t.cutType ? t.label + ' — ' + t.n + ' plays' : null })))
+    : el('p', 'none', 'No tells at ' + MIN_N + ' or more plays.');
+  out.push(band('b-1', module('Top tells', tells.length
+    ? tells.length + ' of a possible 12, ' + MIN_N + '+ plays and a 70% lean'
+    : MIN_N + '+ plays and a 70% lean required', body, 'is-off')));
+
+  const ins = m.report.insights;
+  if (ins.length) {
+    const list = el('div', 'ins');
+    ins.forEach(i => {
+      const row = el('div', 'insight');
+      row.append(el('span', 'tag', i.tag));
+      row.append(html('span', null, i.text));
+      list.append(row);
+    });
+    out.push(band('b-1', module('Film room insights', ins.length + ' findings', list, 'is-off')));
+  }
+  return out;
+}
+
+function sectionSituational(m) {
+  const out = [];
+  if (!m.report) {
+    out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
+    return out;
+  }
+  const dd = m.report.downDistRows, calls = m.callRows;
+  const pretty = key => m.ddPretty[key] || key;
+  const mods = [];
+  if (dd.length) {
+    mods.push(module('Situational performance', dd.length + ' situations',
+      table('dd', splitCols('Down & Dist'),
+        splitRows(dd, pretty, (l, n) => l + ' — ' + n + ' plays')), 'is-off'));
+  }
+  if (calls.length) {
+    mods.push(module('Call and concept performance', calls.length + ' calls and concepts',
+      table('calls', splitCols('Call / Concept'),
+        splitRows(calls, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off'));
+  }
+  if (!mods.length) {
+    out.push(emptyBand('No situational data', 'No offensive plays carry a down and distance or a play call.'));
+    return out;
+  }
+  mods.forEach(mod => out.push(band('b-1', mod)));
+  return out;
+}
+
+function sectionStructure(m) {
+  const out = [];
+  if (!m.report) {
+    out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
+    return out;
+  }
+  const r = m.report;
+  const forms = r.formationRows, pers = r.personnelRows;
+  if (forms.length || pers.length) {
+    /* Not paired: a split table asks for ~880px, which no band half offers at
+       any desktop width, so pairing them would starve the label column. */
+    if (forms.length) out.push(band('b-1', module('By formation', forms.length + ' formations',
+      table('forms', splitCols('Formation'),
+        splitRows(forms, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off')));
+    if (pers.length) out.push(band('b-1', module('By personnel', pers.length + ' groupings',
+      table('pers', splitCols('Personnel'),
+        splitRows(pers, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off')));
+  }
+  const div = (r.personnelDiversity || []).filter(x => x.topPct >= 75);
+  if (div.length) {
+    out.push(band('b-1', module('Personnel to formation', div.length + ' groupings at 75% or higher',
+      table('pf', [
+        ['personnel', 'Personnel', 'label'],
+        ['n', 'Plays', 'n'],
+        ['uniqueFormations', 'Formations', 'forms'],
+        ['topFormation', 'Top formation', 'scheme', { render: r2 => scheme(r2.topFormation) }],
+        ['topPct', 'Top %', 'pct', { render: r2 => r2.topPct + '%' }],
+        ['distribution', 'Distribution', 'scheme', { render: r2 => scheme(r2.distribution) }],
+        ['read', 'Read', 'lean'],
+      ], div.map(x => ({
+        ...x,
+        distribution: x.formations.map(f => f.formation + ' ' + f.pct + '%').join(', '),
+        read: x.topPct >= 90 ? 'Locked' : 'Leaning',
+        __film: x.personnel + ' personnel — ' + x.n + ' plays',
+      }))), 'is-off')));
+  }
+  if (!out.length) out.push(emptyBand('No structural data', 'No offensive plays carry a formation or a personnel grouping.'));
+  return out;
+}
+
+function sectionPredictability(m) {
+  const out = [];
+  if (!m.report) {
+    out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
+    return out;
+  }
+  const r = m.report;
+  const pc = predClass(r.predictability);
+  const body = el('div');
+  const p = el('div', 'pred');
+  const val = el('span', 'val is-' + pc);
+  val.append(document.createTextNode(String(r.predictability)), el('small', null, '/100'));
+  const meter = el('span', 'meter');
+  const fill = el('i', 'bg-' + pc);
+  fill.style.width = r.predictability + '%';
+  meter.append(fill);
+  p.append(val, meter, el('span', 'cls', r.predLabel));
+  body.append(p);
+  body.append(el('p', 'pred-note', 'Weighted by the largest run/pass share in each situation of 3 or more plays.'));
+  out.push(band('b-1', module('Predictability', r.predLabel, body, 'is-off')));
+
+  const view = r.matrixView;
+  if (view) {
+    const wrap = el('div', 'mwrap');
+    const t = el('table', 'map');
+    const thead = el('thead'), htr = el('tr');
+    htr.append(el('th', 'corner', 'Formation / Situation'));
+    view.cols.forEach(c => htr.append(el('th', null, c.label)));
+    thead.append(htr);
+    t.append(thead);
+    const tbody = el('tbody');
+    view.rows.forEach(row => {
+      const tr = el('tr');
+      const lab = el('td', 'rowlab');
+      lab.append(document.createTextNode(row.formation + ' '), el('i', null, 'n=' + row.n));
+      tr.append(lab);
+      row.cells.forEach(v => {
+        const td = el('td', 'cell');
+        if (v.empty) {
+          td.classList.add('nodata');
+          td.append(el('span', 'lean', NO_DATA));
+        } else {
+          td.classList.add('is-' + v.state, 'cut');
+          td.tabIndex = 0;
+          td.setAttribute('role', 'button');
+          td.title = 'Watch: ' + row.formation + ' on ' + v.situation.label + ' — ' + v.cell.n + ' plays';
+          td.append(el('span', 'lean', v.lean + ' ' + v.leanPct + '%'));
+          td.append(el('span', 'n', 'n=' + v.cell.n + (v.strong ? '' : ', low sample')));
+        }
+        tr.append(td);
+      });
+      tbody.append(tr);
+    });
+    t.append(tbody);
+    wrap.append(t);
+    const holder = el('div');
+    holder.append(wrap);
+    const legend = el('div', 'legend');
+    [['k-exploit', 'Predictable, below baseline'], ['k-working', 'Predictable, at or above baseline'],
+      ['k-balanced', 'Balanced'], ['k-low', 'Under ' + view.minCount + ' plays']].forEach(([cls, text]) => {
+      const s = el('span', cls);
+      s.append(el('b'), document.createTextNode(text));
+      legend.append(s);
+    });
+    holder.append(legend);
+    out.push(band('b-1', module('Predictability map',
+      view.baseline + '% success baseline, ' + view.predictabilityThreshold + '+ predictability qualifies',
+      holder, 'is-off')));
+  }
+  return out;
+}
+
+function sectionDefense(m) {
+  const out = [];
+  const d = m.defScout;
+  if (!d || d.insufficient) {
+    const dp = (d && d.defPlays) || 0, sp = (d && d.schemePlays) || 0;
+    const body = !dp ? 'No defensive plays are charted.'
+      : !sp ? dp + ' defensive plays are charted. None carries a Front, Coverage or Blitz.'
+        : sp + ' of ' + DEF_MIN + ' scheme-tagged defensive plays required.';
+    out.push(emptyBand('Defensive Self-Scout', body));
+    return out;
+  }
+  const k = m.defKpis;
+  const tile = (label, value, blank) => {
+    const t = el('div', 'kpi' + (blank ? ' is-blank' : ''));
+    t.append(el('span', null, label), el('strong', null, value));
+    return t;
+  };
+  const kpis = el('div', 'kpis');
+  kpis.append(
+    k.stop == null ? tile('Stop Rate', NO_DATA, true) : tile('Stop Rate', k.stop + '%'),
+    k.ypp == null ? tile('Yards Allowed / Play', NO_DATA, true) : tile('Yards Allowed / Play', k.ypp),
+    tile('Havoc Rate', (k.havocRate || '0.0') + '%'),
+    tile('Sacks', String(k.sacks)), tile('TFL', String(k.tfl)), tile('Takeaways', String(k.turnovers)));
+  out.push(kpis);
+
+  const pc = predClass(d.predictability);
+  const pbody = el('div');
+  const p = el('div', 'pred');
+  const val = el('span', 'val is-' + pc);
+  val.append(document.createTextNode(String(d.predictability)), el('small', null, '/100'));
+  const meter = el('span', 'meter');
+  const fill = el('i', 'bg-' + pc);
+  fill.style.width = d.predictability + '%';
+  meter.append(fill);
+  p.append(val, meter, el('span', 'cls', d.predLabel));
+  pbody.append(p);
+  pbody.append(el('p', 'pred-note', 'Weighted by the largest front, coverage or blitz share in each situation of 3 or more plays.'));
+
+  const recs = el('div', 'recs');
+  d.recommendations.forEach(item => recs.append(html('div', 'rec', defRec(item))));
+
+  out.push(band('b-64 is-wide',
+    module('Recommendations', d.recommendations.length + ' findings', recs, 'is-def'),
+    module('Predictability', d.predLabel, pbody, 'is-def')));
+
+  const tellBody = d.tells.length ? table('deftells', [
+    ['label', 'Situation', 'label'],
+    ['dim', 'Type', 'dim'],
+    ['tellType', 'Tell', 'tell'],
+    ['tellPct', 'Lean', 'lean', { render: r => {
+      const text = r.tellVal + ' ' + r.tellPct + '%';
+      const b = el('span', 'bar ' + (r.tellType === 'Blitz' ? 'pass' : 'run'));
+      b.style.setProperty('--p', r.tellPct + '%');
+      b.title = text;
+      b.append(el('i', null, text));
+      return b;
+    } }],
+    ['stopRate', 'Stop%', 'pct', { render: r => r.stopRate + '%' }],
+    ['havocRate', 'Havoc%', 'pct', { render: r => r.havocRate + '%' }],
+    ['verdict', 'Assessment', 'verdict', {
+      sort: r => ({ exploitable: 2, effective: 1, dominant: 0 })[r.verdict],
+      render: r => verdict(r.verdict),
+    }],
+    ['n', 'n', 'n'],
+  ], d.tells.map(t => ({ ...t, __cls: 'row-' + t.verdict,
+    /* Production activates this row only when the tell carries composite refs.
+       It never does on this route today -- see RATIONALE section 9 and open
+       decision 6 -- so the comp reproduces that honestly rather than drawing a
+       film affordance that does not exist. */
+    __film: t.refs ? t.label + ' — ' + t.n + ' plays' : null })))
+    : el('p', 'none', 'No defensive tells at ' + MIN_N + ' or more plays.');
+  out.push(band('b-1', module('Defensive tendency tells',
+    d.tells.length ? d.tells.length + ' of a possible 10, ' + MIN_N + '+ plays and a 70% lean'
+      : MIN_N + '+ plays and a 70% lean required', tellBody, 'is-def')));
+
+  if (d.ddRows.length) {
+    out.push(band('b-1', module('Scheme by situation', d.ddRows.length + ' situations',
+      table('defdd', [
+        ['label', 'Situation', 'label'],
+        ['n', 'Plays', 'n'],
+        ['topFrontName', 'Top front', 'scheme', {
+          sort: r => r.topFrontPct,
+          render: r => r.topFrontName ? scheme(r.topFrontName + ' ' + r.topFrontPct + '%') : null,
+        }],
+        ['topCovName', 'Top coverage', 'scheme', {
+          sort: r => r.topCovPct,
+          render: r => r.topCovName ? scheme(r.topCovName + ' ' + r.topCovPct + '%') : null,
+        }],
+        ['blitzPct', 'Blitz%', 'pct', { render: r => r.blitzPct + '%' }],
+        ['stopRate', 'Stop%', 'pct', { render: r => r.stopRate + '%' }],
+        ['havocRate', 'Havoc%', 'pct', { render: r => r.havocRate + '%' }],
+        ['avgYds', 'Avg Yds', 'avg'],
+      ], d.ddRows.map(r => ({ ...r, label: m.ddPretty[r.key] || r.key }))), 'is-def')));
+  }
+  return out;
+}
+
+/* The engine returns defensive recommendations as STRUCTURED data; production
+   formats each kind at its presentation boundary. Reproduced exactly. */
+function defRec(item) {
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  switch (item.kind) {
+    case 'exploitable-summary':
+      return '<strong>' + item.count + ' exploitable defensive tendenc' + (item.count > 1 ? 'ies' : 'y')
+        + '</strong> — a prepared OC will identify and attack these alignments.';
+    case 'exploitable-item':
+      return '<span class="rl">' + esc(item.label) + '</span>: ' + esc(item.tellType) + ' tell — '
+        + esc(item.tellVal) + ' ' + item.tellPct + '% of the time (n=' + item.n + '), but only '
+        + item.stopRate + '% stop rate. Mix in alternative looks.';
+    case 'exploitable-more': {
+      const shown = item.names.slice(0, 4).map(esc).join(', ');
+      const extra = item.names.length > 4 ? ', +' + (item.names.length - 4) + ' more' : '';
+      return '<strong>' + item.count + ' more alignments</strong> tip the same way (' + shown + extra
+        + '). One change of look covers all of them.';
+    }
+    case 'dominant':
+      return '<span class="rl is-strength">' + esc(item.label) + '</span>: ' + esc(item.tellVal) + ' '
+        + item.tellPct + '% is predictable but <strong>working</strong> — ' + item.stopRate + '% stop rate'
+        + (item.havocRate >= 15 ? ', ' + item.havocRate + '% havoc' : '') + '. The alignment is earning its keep.';
+    default:
+      return 'No defensive tells at the current sample size.';
+  }
+}
+
+const BUILD = {
+  performance: sectionPerformance,
+  tells: sectionTells,
+  situational: sectionSituational,
+  structure: sectionStructure,
+  predictability: sectionPredictability,
+  defense: sectionDefense,
+};
+/* A section's own count for the navigation. Literal: how many findings or rows
+   that section holds, so a coach can see where the report has something. */
+function sectionCount(id, m) {
+  const r = m.report;
+  switch (id) {
+    case 'performance': return r ? r.recommendations.length : 0;
+    case 'tells': return r ? r.tells.length + r.insights.length : 0;
+    case 'situational': return r ? r.downDistRows.length + m.callRows.length : 0;
+    case 'structure': return r ? r.formationRows.length + r.personnelRows.length : 0;
+    case 'predictability': return r ? (r.matrixView ? r.matrixView.rows.length : 0) : 0;
+    case 'defense': return (m.defScout && !m.defScout.insufficient)
+      ? m.defScout.tells.length + m.defScout.ddRows.length : 0;
+    default: return 0;
+  }
+}
+
+function draw() {
+  const m = F[state];
+  const off = m.counts.offense, def = m.counts.defense;
+
+  $('#headSub').textContent = '2026 Varsity — ' + m.counts.total + ' plays charted';
+  const classified = m.totalPlays == null ? 0 : m.totalPlays;
+  $('#sampleLine').innerHTML =
+    '<b>' + classified + '</b> classified offensive plays · <b>' + def + '</b> defensive plays';
+  $('#sampleShort').innerHTML = '<b>' + classified + '</b> offense · <b>' + def + '</b> defense';
+
+  const nav = $('#snav');
+  nav.replaceChildren();
+  SECTIONS.forEach(([id, title]) => {
+    const n = sectionCount(id, m);
+    const b = el('button', (id === section ? 'on' : '') + (n ? '' : ' is-none'));
+    b.type = 'button';
+    b.append(document.createTextNode(title + ' '), el('b', null, String(n)));
+    if (id === section) b.setAttribute('aria-current', 'true');
+    b.addEventListener('click', () => {
+      section = id;
+      /* A section change never carries a sort from a different table. */
+      Object.keys(sortState).forEach(k => delete sortState[k]);
+      draw();
+    });
+    nav.append(b);
+  });
+
+  const host = $('#sections');
+  host.replaceChildren();
+  BUILD[section](m).forEach(node => host.append(node));
+}
+
+$$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
+  $$('.comp-bar .grp button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  state = b.dataset.state;
+  Object.keys(sortState).forEach(k => delete sortState[k]);
+  draw();
+}));
+
+draw();
+</script>
+</body>
+</html>
