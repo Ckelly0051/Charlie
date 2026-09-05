@@ -1950,20 +1950,17 @@ const ssRankedRows = (rows, screen, cutType) => rows.map(row => {
 });
 
 function SsSummarySection({ summary, performance, screen }) {
-  const engine = screen.app.stats;
-  const efficiency = performance.efficiency || {};
-  const downs = performance.downs || {};
-  const redZone = performance.situational?.redZone || {};
+  const kpis = summary.kpis;
   const positive = summary.positive, negative = summary.negative;
   return <>
     <KpiBand items={[
-      { label: 'Success Rate', value: `${efficiency.successRate || '0.0'}%` },
-      { label: 'Yards / Play', value: engine.constructor.yardsPerPlay(performance) },
-      { label: 'Explosive Rate', value: `${efficiency.explosivePct || '0.0'}%` },
-      { label: 'Negative Play Rate', value: `${efficiency.negativePct || '0.0'}%` },
-      { label: 'Third Down', value: `${downs.thirdDownPct || '0.0'}%` },
-      redZone.total
-        ? { label: 'Red Zone TD', value: `${Math.round((redZone.tds || 0) / redZone.total * 100)}%` }
+      { label: 'Success Rate', value: `${kpis.successRate}%` },
+      { label: 'Yards / Play', value: kpis.yardsPerPlay },
+      { label: 'Explosive Rate', value: `${kpis.explosiveRate}%` },
+      { label: 'Negative Play Rate', value: `${kpis.negativePlayRate}%` },
+      { label: 'Third Down', value: `${kpis.thirdDownRate}%` },
+      kpis.redZoneTdRate != null
+        ? { label: 'Red Zone TD', value: `${kpis.redZoneTdRate}%` }
         : { label: 'Red Zone TD', value: SS_NO_DATA, cls: 'is-blank' },
     ]} />
     <SsBand cls="b-2">

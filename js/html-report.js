@@ -192,47 +192,93 @@ export function buildSpecialTeamsHtmlReport({ title, stats, summary, scopeLabel,
     body: `${ledger}${note}${specialTeams(stats, summary)}` });
 }
 
-export function buildSelfScoutHtmlReport({ title, report, defScout, performance, callRows, generatedAt = new Date() }) {
-  const efficiency = performance?.efficiency || {};
-  const splitColumns = [
-    { key: 'key', label: 'Situation' }, { key: 'n', label: 'Snaps' },
-    { key: 'run', label: 'Run / Pass', value: row => `${row.runPct}% / ${row.passPct}%` },
-    { key: 'runAvg', label: 'Run Avg' }, { key: 'passAvg', label: 'Pass Avg' },
+export function buildSelfScoutHtmlReport({ title, report, defScout, performance, callRows,
+  summary, defSummary, generatedAt = new Date() }) {
+  const outcomeColumns = [
+    { key: 'key', label: 'Group' }, { key: 'n', label: 'Plays' },
+    { key: 'avg', label: 'Yards / Play' },
     { key: 'success', label: 'Success', value: row => `${row.succRate}%` },
+    { key: 'explosives', label: 'Explosive' }, { key: 'tds', label: 'TD' },
+    { key: 'turnovers', label: 'Giveaways' },
+    { key: 'run', label: 'Run / Pass', value: row => `${row.runPct}% / ${row.passPct}%` },
   ];
+  const callColumns = outcomeColumns.slice(0, 4);
+  const countRows = items => items.map(([label, value]) => ({ label, value }));
+  const counts = (heading, items) => table(heading,
+    [{ key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' }], countRows(items));
   const tellRows = (report?.tells || []).map(item => ({
     situation: item.label, type: item.dim, tendency: `${item.lean} ${item.leanPct}%`,
-    average: item.leanAvg, success: `${item.leanSuccRate}%`, assessment: item.verdict, n: item.n,
+    average: item.leanAvg, success: `${item.leanSuccRate}%`, n: item.n,
   }));
-  const recommendations = (report?.recommendations || []).map(item => `<li>${String(item || '').replace(/<[^>]*>/g, '')}</li>`).join('');
   const defensiveRows = defScout?.insufficient ? [] : (defScout?.tells || []).map(item => ({
     situation: item.label, type: item.tellType, lean: `${item.tellVal} ${item.tellPct}%`,
-    stop: `${item.stopRate}%`, havoc: `${item.havocRate}%`, assessment: item.verdict,
+    stop: `${item.stopRate}%`, havoc: `${item.havocRate}%`,
   }));
-  const body = `${metrics([
-    { label: 'Classified plays', value: report?.totalPlays || 0, sub: 'offensive snaps' },
-    { label: 'Predictability', value: `${report?.predictability || 0}/100`, sub: report?.predLabel || 'No data' },
-    { label: 'Success rate', value: `${efficiency.successRate || '0.0'}%`, sub: 'offensive snaps' },
-    { label: 'Explosive rate', value: `${efficiency.explosivePct || '0.0'}%`, sub: `${efficiency.explosivePlays || 0} plays` },
+  const offense = report && summary ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Offensive Summary</h1></div>${metrics([
+    { label: 'Success Rate', value: `${summary.kpis.successRate}%` },
+    { label: 'Yards / Play', value: summary.kpis.yardsPerPlay },
+    { label: 'Explosive Rate', value: `${summary.kpis.explosiveRate}%` },
+    { label: 'Negative Play Rate', value: `${summary.kpis.negativePlayRate}%` },
+    { label: 'Third Down', value: `${summary.kpis.thirdDownRate}%` },
+    { label: 'Red Zone TD', value: summary.kpis.redZoneTdRate == null
+      ? 'No data' : `${summary.kpis.redZoneTdRate}%` },
   ])}
-    ${recommendations ? `<section class="report-section"><h2>Coaching Recommendations</h2><ul>${recommendations}</ul></section>` : ''}
-    ${table('Top Tells', [
+    <div class="two-up">${counts('Positive Plays', [
+      ['Successful plays', summary.positive.successful], ['Explosive plays', summary.positive.explosive],
+      ['Touchdowns', summary.positive.touchdowns], ['Third-down conversions', summary.positive.thirdDownConversions],
+      ['Red-zone touchdowns', summary.positive.redZoneTouchdowns],
+    ])}${counts('Negative Plays', [
+      ['Negative plays', summary.negative.negative], ['Turnovers', summary.negative.turnovers],
+      ['Sacks', summary.negative.sacks], ['Plays for loss', summary.negative.playsForLoss],
+      ['Penalties', summary.negative.penalties],
+    ])}</div>
+    <div class="two-up">${table('Top Calls', callColumns, summary.topCalls)}${table('Worst Calls', callColumns, summary.worstCalls)}</div>
+    <div class="two-up">${counts('Run Offense', [
+      ['Attempts', summary.run.attempts], ['Rushing yards', summary.run.yards],
+      ['Yards per carry', summary.run.avg], ['Success rate', `${summary.run.succRate}%`],
+      ['Explosive runs', summary.run.explosives],
+    ])}${counts('Pass Offense', [
+      ['Attempts', summary.pass.attempts], ['Passing yards', summary.pass.yards],
+      ['Yards per attempt', summary.pass.avg], ['Success rate', `${summary.pass.succRate}%`],
+      ['Explosive passes', summary.pass.explosives], ['Sacks', summary.pass.sacks],
+    ])}</div>
+    ${table('Calls and Concepts', outcomeColumns, callRows)}
+    ${table('Down and Distance', outcomeColumns, report.downDistRows)}
+    ${table('Formation', outcomeColumns, report.formationRows)}
+    ${table('Personnel', outcomeColumns, report.personnelRows)}</section>` : '';
+  const defense = defSummary?.totalPlays ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Defense</h1></div>${metrics([
+    { label: 'Stop Rate', value: defSummary.kpis.stopRate == null ? 'No data' : `${defSummary.kpis.stopRate}%` },
+    { label: 'Yards Allowed / Play', value: defSummary.kpis.yardsAllowedPerPlay ?? 'No data' },
+    { label: 'Havoc Rate', value: `${defSummary.kpis.havocRate || '0.0'}%` },
+    { label: 'Sacks', value: defSummary.kpis.sacks }, { label: 'TFL', value: defSummary.kpis.tfl },
+    { label: 'Takeaways', value: defSummary.kpis.takeaways },
+  ])}
+    <div class="two-up">${counts('Positive Plays', [
+      ['Stops', defSummary.positive.stops], ['Sacks', defSummary.positive.sacks],
+      ['Tackles for loss', defSummary.positive.tfl], ['Takeaways', defSummary.positive.takeaways],
+    ])}${counts('Negative Plays', [
+      ['Successful plays allowed', defSummary.negative.successfulAllowed],
+      ['Explosive plays allowed', defSummary.negative.explosiveAllowed],
+      ['Touchdowns allowed', defSummary.negative.touchdownsAllowed],
+    ])}</div>
+    ${table('Defensive Calls', [
+      { key: 'key', label: 'Call' }, { key: 'n', label: 'Plays' },
+      { key: 'stop', label: 'Stop', value: row => `${row.stopRate}%` },
+      { key: 'avgYds', label: 'Yards / Play' },
+    ], defSummary.calls)}</section>` : '';
+  const tendencies = report ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Tendencies</h1></div>${table('Offensive Tendencies', [
       { key: 'situation', label: 'Situation' }, { key: 'type', label: 'Type' },
       { key: 'tendency', label: 'Tendency' }, { key: 'average', label: 'Avg Yards' },
-      { key: 'success', label: 'Success' }, { key: 'assessment', label: 'Assessment' }, { key: 'n', label: 'N' },
+      { key: 'success', label: 'Success' }, { key: 'n', label: 'Plays' },
     ], tellRows)}
-    ${table('By Formation', splitColumns, report?.formationRows)}
-    ${table('By Down & Distance', splitColumns, report?.downDistRows)}
-    ${table('By Personnel', splitColumns, report?.personnelRows)}
-    ${table('Call and Concept Performance', splitColumns, callRows)}
-    ${table('Defensive Self-Scout', [
+    ${table('Defensive Tendencies', [
       { key: 'situation', label: 'Situation' }, { key: 'type', label: 'Type' },
       { key: 'lean', label: 'Lean' }, { key: 'stop', label: 'Stop Rate' },
-      { key: 'havoc', label: 'Havoc' }, { key: 'assessment', label: 'Assessment' },
-    ], defensiveRows)}`;
-  return documentShell({ title, subtitle: `${report?.totalPlays || 0} classified offensive plays`,
+      { key: 'havoc', label: 'Havoc' },
+    ], defensiveRows)}</section>` : '';
+  const body = `${offense}${defense}${tendencies}`;
+  return documentShell({ title, subtitle: `${report?.totalPlays || 0} classified offensive plays - ${defSummary?.totalPlays || 0} defensive plays`,
     meta: `Generated ${generatedAt.toLocaleString()}`, body });
 }
 
 export { esc as escapeReportHtml };
-

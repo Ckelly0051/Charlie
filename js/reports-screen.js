@@ -213,9 +213,12 @@ export class ReportsScreen {
   }
 
   exportSelfScout(report, defScout, performance, callRows) {
-    if (!report) return false;
+    const summary = report ? this.app.stats.selfScoutSummary(performance, callRows) : null;
+    const defSummary = this.app.stats.selfScoutDefenseSummary(performance);
+    if (!report && !defSummary.totalPlays) return false;
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Offense';
-    const html = buildSelfScoutHtmlReport({ title: `Self-Scout Report: ${team}`, report, defScout, performance, callRows });
+    const html = buildSelfScoutHtmlReport({ title: `Self-Scout Report: ${team}`, report,
+      defScout, performance, callRows, summary, defSummary });
     window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `self_scout_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }

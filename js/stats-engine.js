@@ -1838,6 +1838,7 @@ export class StatsEngine {
       turnovers: list.filter(isTurnover).length,
       lossTotal: losses.length,
       lossSacks: sacks.length,
+      playsForLoss: losses.length - sacks.length,
       lossRuns: runs.length,
       lossPasses: passes.length,
       lossOther: other.length,
@@ -3817,6 +3818,9 @@ export class StatsEngine {
     const scoring = performance?.scoring || {};
     const neg = performance?.negativePlays || {};
     const redZone = performance?.situational?.redZone || {};
+    const rushing = performance?.rushing || {};
+    const passing = performance?.passing || {};
+    const downs = performance?.downs || {};
     // Run and pass units are the SAME grouping every other Self-Scout table
     // uses, keyed on the canonical run/pass classification.
     const unit = this._selfScoutRows(this._selfScoutGroup(offPlays,
@@ -3827,6 +3831,15 @@ export class StatsEngine {
     const ranking = this.selfScoutCallRanking(callRows);
     return {
       minCall: StatsEngine._SELF_SCOUT_CALL_MIN,
+      kpis: {
+        successRate: eff.successRate || '0.0',
+        yardsPerPlay: StatsEngine.yardsPerPlay(performance),
+        explosiveRate: eff.explosivePct || '0.0',
+        negativePlayRate: eff.negativePct || '0.0',
+        thirdDownRate: downs.thirdDownPct || '0.0',
+        redZoneTdRate: redZone.total
+          ? Math.round((redZone.tds || 0) / redZone.total * 100) : null,
+      },
       positive: {
         successful: eff.successes || 0,
         explosive: eff.explosivePlays || 0,
@@ -3838,14 +3851,16 @@ export class StatsEngine {
       negative: {
         negative: neg.distinct || 0,
         turnovers: neg.turnovers || 0,
-        sacks: neg.lossSacks || 0,
-        playsForLoss: neg.lossTotal || 0,
+        sacks: passing.sacks || 0,
+        playsForLoss: neg.playsForLoss || 0,
         penalties: neg.penalties || 0,
       },
-      run: { attempts: run.n, yards: run.yards, avg: run.avg, succRate: run.succRate,
+      run: { attempts: rushing.attempts || 0, yards: rushing.yards || 0,
+        avg: Number(rushing.average || 0), succRate: run.succRate,
         explosives: run.explosives, refs: run.refs || [] },
-      pass: { attempts: pass.n, yards: pass.yards, avg: pass.avg, succRate: pass.succRate,
-        explosives: pass.explosives, sacks: neg.lossSacks || 0, refs: pass.refs || [] },
+      pass: { attempts: passing.attempts || 0, yards: passing.yards || 0,
+        avg: Number(passing.average || 0), succRate: pass.succRate,
+        explosives: pass.explosives, sacks: passing.sacks || 0, refs: pass.refs || [] },
       topCalls: ranking.top, worstCalls: ranking.worst,
     };
   }

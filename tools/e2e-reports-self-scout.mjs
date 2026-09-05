@@ -15,6 +15,7 @@
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
+import { mkdir } from 'node:fs/promises';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
@@ -164,6 +165,7 @@ const model = () => page.evaluate(() => {
     summary: report ? engine.selfScoutSummary(performance, callRows) : null,
     defSummary: engine.selfScoutDefenseSummary(performance),
     efficiency: performance.efficiency, downs: performance.downs, scoring: performance.scoring,
+    rushing: performance.rushing, passing: performance.passing,
     negative: performance.negativePlays, redZone: performance.situational.redZone,
     defensive: performance.defensive,
     offRefs: Object.fromEntries(callRows.map(r => [r.key, r.refs])),
@@ -332,12 +334,16 @@ ok(`${p.thirdDownConversions}/${m.downs.byDown['3'].total}` === m.downs.thirdDow
   'Third-down conversions matches the canonical conversion rate',
   `${p.thirdDownConversions} vs ${m.downs.thirdDownConv}`);
 ok(n.negative === m.negative.distinct && n.turnovers === m.negative.turnovers
-  && n.sacks === m.negative.lossSacks && n.playsForLoss === m.negative.lossTotal
+  && n.sacks === m.passing.sacks && n.playsForLoss === m.negative.playsForLoss
   && n.penalties === m.negative.penalties,
 'every negative-play count is `_negativePlayStats`\'s own');
-ok(m.summary.run.attempts + m.summary.pass.attempts === m.totalPlays,
-  'run plus pass attempts reconcile with the classified play total',
-  `${m.summary.run.attempts}+${m.summary.pass.attempts} vs ${m.totalPlays}`);
+ok(m.summary.run.attempts === m.rushing.attempts
+  && m.summary.run.yards === m.rushing.yards
+  && m.summary.pass.attempts === m.passing.attempts
+  && m.summary.pass.yards === m.passing.yards
+  && m.summary.pass.sacks === m.passing.sacks,
+  'run and pass totals use the canonical rushing and passing ledgers',
+  JSON.stringify({ summary: m.summary, rushing: m.rushing, passing: m.passing }));
 
 /* ══ 5. Offensive call ranking ════════════════════════════════════════════ */
 console.log('\n== 5. Offensive call ranking ==');
@@ -665,6 +671,25 @@ ok(clipped.length === 0, 'no clipped cell and no engaged scroller at 1440 or 128
 ok(stacked.length === 0, 'the two-column summary layouts hold through 1280', stacked.join(' / '));
 await page.setViewport({ width: 1440, height: 900 });
 await sleep(200);
+
+if (process.argv.includes('--capture')) {
+  const dir = 'artifacts/self-scout-production-reviewed';
+  await mkdir(dir, { recursive: true });
+  await load(FULL);
+  for (const [width, height, sections] of [
+    [1440, 900, SECTION_TITLES],
+    [1280, 720, ['Offensive Summary', 'Defense']],
+  ]) {
+    await page.setViewport({ width, height });
+    await sleep(250);
+    for (const title of sections) {
+      await setSection(title);
+      const slug = title.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+      await page.screenshot({ path: `${dir}/${width}-${slug}.png`, fullPage: false });
+    }
+  }
+  await page.setViewport({ width: 1440, height: 900 });
+}
 
 /* ══ 13. The Season report's own copy of the tab ══════════════════════════ */
 console.log('\n== 13. Season report Self-Scout ==');

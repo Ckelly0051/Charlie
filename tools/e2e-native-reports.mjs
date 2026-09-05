@@ -1180,9 +1180,10 @@ result = await page.evaluate(async () => {
     && /Defensive Performance/.test(defense.html) && !/Offensive Performance/.test(defense.html),
     'Defense Export Report downloads the displayed full-season defensive report, not the active-game omnibus report',
     JSON.stringify(result.map(item => item.name)));
-  ok(selfScout && /Self-Scout Report:/.test(selfScout.html) && /Predictability/.test(selfScout.html)
-    && /Top Tells|Coaching Recommendations/.test(selfScout.html) && !/Offensive Performance/.test(selfScout.html),
-    'Self-Scout Export Report downloads self-scout tendencies and recommendations, not the generic game report',
+  ok(selfScout && /Self-Scout Report:/.test(selfScout.html)
+    && /Positive Plays/.test(selfScout.html) && /Stop Rate/.test(selfScout.html)
+    && !/Coaching Recommendations|Film Room Insights|Offensive Performance/.test(selfScout.html),
+    'Self-Scout Export Report downloads the approved data report without generated coaching prose',
     JSON.stringify(result.map(item => item.name)));
 }
 
