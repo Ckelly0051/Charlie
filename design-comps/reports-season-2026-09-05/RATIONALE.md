@@ -61,3 +61,29 @@ belongs. The comparison is dry reporting: values, deltas, and literal status.
 4. Whether a Game Log row opens that game in Reports or immediately plays the
    game's full film cohort.
 
+## Revision 2
+
+- Aggregate Turnover Margin replaces Offensive Plays in the Overview KPI band.
+- The Game Log column is labelled `Success Rate`.
+- The 1440 layout adds 12px above the Season board; 1280 spacing is unchanged.
+- Early vs Recent and Wins vs Losses use the same six metrics in the same order:
+  Success Rate, Yards / Play, 3rd Down Rate, Points / Drive, Turnover Margin /
+  Game, and TD / Game.
+- Early vs Recent deltas retain their units. Percentage rates use percentage
+  points (`pp`); per-play and per-game measures name those units. Raw and rate
+  changes can no longer look directly comparable by accident.
+- Turnover Margin / Game is derived from the same game-level margin shown in
+  the Game Log. The fixture reconciles to `0.0` for both four-game windows,
+  `+0.8` across wins, and `-2.5` across losses.
+- The compact table label is `TO Margin / Game`; both comparison panels use it
+  and receive equal width because they are intended to be read together.
+- `Success Rate` is the label in both Game Log and Game-by-Game.
+
+## Revision 2 verification
+
+- Reviewed populated Overview and Trends at 1440x900 and 1280x720.
+- No page-level horizontal overflow, clipped comparison values, or missing font
+  faces at either viewport.
+- The two comparison panels remain side by side at both widths, with matching
+  metric rows aligned horizontally.
+- The 1440 board has additional top separation; the 1280 density is unchanged.
