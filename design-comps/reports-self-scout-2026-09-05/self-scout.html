@@ -128,8 +128,8 @@ button{font-family:inherit}
 .dtoolbar .lbl{color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);white-space:nowrap}
 .dtoolbar .sample{color:var(--gi-bd-copy);font:400 12px/1.3 var(--gi-sans)}
 .dtoolbar .sample b{color:var(--gi-bd-strong);font-weight:600}
-/* The control row carries the scope, six section tabs and Export on ONE row.
-   Below 1420 the six tabs need the width back, so the scope line drops to its
+/* The control row carries the scope, five section tabs and Export on one row.
+   Below 1420 the tabs need the width back, so the scope line drops to its
    counts -- the same two numbers, without the words. */
 .dtoolbar .short{display:none}
 .racts{grid-column:3;display:flex;align-items:center;padding:0;background:var(--gi-bd-panel)}
@@ -152,7 +152,7 @@ button{font-family:inherit}
    says why. Dimmed, never disabled. */
 .snav button.is-none{color:var(--gi-bd-muted)}
 
-/* Bands and modules: the six tables read as one report surface, meeting on
+/* Bands and modules read as one report surface, meeting on
    thin rules rather than four-pixel gutters. */
 /* lign-items:stretch: the band's own background is transparent and its rules
    are box-shadows, so a stretched short module paints only its own panel. A
@@ -439,16 +439,15 @@ const MIN_N = 4;
 const DEF_MIN = 6;
 
 let state = 'full';
-let section = 'performance';
+let section = 'summary';
 const sortState = {};
 
 const SECTIONS = [
-  ['performance', 'Performance'],
-  ['tells', 'Offensive Tells'],
-  ['situational', 'Situational'],
+  ['summary', 'Offensive Summary'],
+  ['offense', 'Calls & Situations'],
   ['structure', 'Structure'],
-  ['predictability', 'Predictability'],
-  ['defense', 'Defensive Self-Scout'],
+  ['defense', 'Defense'],
+  ['tendencies', 'Tendencies'],
 ];
 
 const el = (tag, cls, text) => {
@@ -457,10 +456,6 @@ const el = (tag, cls, text) => {
   if (text != null) node.textContent = text;
   return node;
 };
-/* Model output arrives as HTML from the engine (recommendations and insights
-   are the only two strings production renders as markup). Rendered here the
-   same way, through a container that only ever receives engine text. */
-const html = (tag, cls, markup) => { const n = el(tag, cls); n.innerHTML = markup; return n; };
 const predClass = p => p >= 70 ? 'p70' : p >= 30 ? 'p30' : 'p0';
 const VERDICT = { dominant: ['▲', 'Dominant'], effective: ['▬', 'Effective'], exploitable: ['▼', 'Exploitable'] };
 
@@ -573,7 +568,6 @@ function module(title, meta, body, cls) {
   const mod = el('section', 'mod' + (cls ? ' ' + cls : ''));
   const head = el('header');
   head.append(el('strong', null, title));
-  if (meta) head.append(el('span', null, meta));
   mod.append(head);
   if (body) mod.append(body);
   return mod;
@@ -593,41 +587,64 @@ function emptyBand(title, body) {
   return e;
 }
 
-/* ── Shared table shapes ─────────────────────────────────────────────────
-   The split table is one shape used by four modules, exactly as production's
-   `SelfScoutSplitTable` is. */
-const splitCols = labelText => [
+const outcomeCols = labelText => [
   ['label', labelText, 'label'],
   ['n', 'Plays', 'n'],
-  ['runPct', 'Run', 'split', { render: r => bar('Run', r.runPct, !r.runPct) }],
-  ['passPct', 'Pass', 'split', { render: r => bar('Pass', r.passPct, !r.passPct) }],
-  ['runAvg', 'R Avg', 'avg'],
-  ['passAvg', 'P Avg', 'avg'],
-  ['succRate', 'Succ%', 'pct', { render: r => r.succRate + '%' }],
-  ['leanPct', 'Read', 'lean', {
-    sort: r => r.tell ? r.leanPct : -1,
-    render: r => r.tell ? bar(r.lean, r.leanPct) : el('span', 'bar zero', 'Balanced'),
-  }],
+  ['avg', 'Yds / Play', 'avg'],
+  ['succRate', 'Success', 'pct', { render: r => r.succRate + '%' }],
+  ['explosives', 'Explosive', 'pct'],
+  ['tds', 'TD', 'n'],
+  ['turnovers', 'Giveaways', 'pct'],
+  ['mix', 'Run / Pass', 'scheme'],
 ];
-const splitRows = (rows, pretty, film) => rows.map(r => ({
-  ...r, label: pretty ? pretty(r.key) : r.key,
+const outcomeRows = (rows, pretty, film) => rows.map(r => ({
+  ...r,
+  label: pretty ? pretty(r.key) : r.key,
+  mix: r.runPct + ' / ' + r.passPct,
   __film: film ? film(pretty ? pretty(r.key) : r.key, r.n) : null,
 }));
+
+function callRankTable(id, rows) {
+  return table(id, [
+    ['label', 'Call / Concept', 'label'],
+    ['n', 'Plays', 'n'],
+    ['avg', 'Yds / Play', 'avg'],
+    ['succRate', 'Success', 'pct', { render: r => r.succRate + '%' }],
+  ], rows.map(r => ({ ...r, label: r.key, __film: r.key + ' — ' + r.n + ' plays' })));
+}
+
+function statRows(items) {
+  const body = el('div', 'counts');
+  items.forEach(([label, value]) => {
+    const row = el('div', 'crow');
+    row.append(el('span', null, label), el('strong', null, String(value)));
+    body.append(row);
+  });
+  return body;
+}
+
+function defenseCallTable(id, rows) {
+  return table(id, [
+    ['label', 'Call', 'label'],
+    ['n', 'Plays', 'n'],
+    ['stopRate', 'Stop', 'pct', { render: r => r.stopRate + '%' }],
+    ['avgYds', 'Yds / Play', 'avg'],
+  ], rows.map(r => ({ ...r, label: r.key })));
+}
 
 /* ═════════════════════════════════════════════════════════════════════════
    SECTIONS
    ═════════════════════════════════════════════════════════════════════════ */
-function sectionPerformance(m) {
+function sectionSummary(m) {
   const out = [];
   const k = m.offKpis;
   if (!m.report) {
     out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
     return out;
   }
-  const tile = (label, value, sub, blank) => {
+  const tile = (label, value, blank) => {
     const d = el('div', 'kpi' + (blank ? ' is-blank' : ''));
     d.append(el('span', null, label), el('strong', null, value));
-    if (sub) d.append(el('small', null, sub));
     return d;
   };
   const kpis = el('div', 'kpis');
@@ -638,68 +655,54 @@ function sectionPerformance(m) {
     tile('Negative Play Rate', (k.negativePct || '0.0') + '%'),
     tile('Third Down', (k.thirdDownPct || '0.0') + '%'),
     k.redZoneTdPct == null
-      ? tile('Red Zone TD', NO_DATA, 'no red zone snaps charted', true)
-      : tile('Red Zone TD', k.redZoneTdPct + '%', k.redZoneTotal + ' red zone snaps'),
+      ? tile('Red Zone TD', NO_DATA, true)
+      : tile('Red Zone TD', k.redZoneTdPct + '%'),
   );
   out.push(kpis);
 
   const ev = m.events;
-  const counts = el('div', 'counts');
-  [['Negative plays', ev.negativeDistinct], ['Turnovers', ev.turnovers], ['Sacks', ev.sacks],
-    ['Plays for loss', ev.lossTotal], ['Penalties', ev.penalties]].forEach(([l, v]) => {
-    const row = el('div', 'crow');
-    row.append(el('span', null, l), el('strong', null, String(v)));
-    counts.append(row);
-  });
+  const positive = m.offSummary || {};
+  const positiveRows = statRows([
+    ['Successful plays', positive.successful || 0],
+    ['Explosive plays', positive.explosive || 0],
+    ['Touchdowns', positive.touchdowns || 0],
+    ['Third-down conversions', positive.thirdDownConversions || 0],
+    ['Red-zone touchdowns', positive.rzTouchdowns || 0],
+  ]);
+  const negativeRows = statRows([
+    ['Negative plays', ev.negativeDistinct], ['Turnovers', ev.turnovers], ['Sacks', ev.sacks],
+    ['Plays for loss', ev.lossTotal], ['Penalties', ev.penalties],
+  ]);
 
-  const recs = el('div', 'recs');
-  m.report.recommendations.forEach(r => recs.append(html('div', 'rec', r)));
+  const qualified = m.callRows.filter(r => r.n >= 3);
+  const ranked = qualified.slice().sort((a, b) =>
+    b.succRate - a.succRate || b.avg - a.avg || b.n - a.n);
+  const best = ranked.slice(0, 3);
+  const review = ranked.slice().reverse().slice(0, 3);
 
-  out.push(band('b-64 is-wide',
-    module('Recommendations', m.report.recommendations.length + ' findings', recs, 'is-off'),
-    module('Negative and explosive plays', m.totalPlays + ' classified plays', counts, 'is-off')));
+  out.push(band('b-2',
+    module('Positive Plays', null, positiveRows, 'is-off'),
+    module('Negative Plays', null, negativeRows, 'is-off')));
+  out.push(band('b-2',
+    module('Top Calls', null, callRankTable('summary-best', best), 'is-off'),
+    module('Worst Calls', null, callRankTable('summary-review', review), 'is-off')));
+
+  const run = (m.offUnit || []).find(row => row.key === 'Run') || {};
+  const pass = (m.offUnit || []).find(row => row.key === 'Pass') || {};
+  out.push(band('b-2',
+    module('Run Offense', null, statRows([
+      ['Attempts', run.n || 0], ['Yards per carry', run.avg || 0],
+      ['Success rate', (run.succRate || 0) + '%'], ['Explosive runs', run.explosives || 0],
+    ]), 'is-off'),
+    module('Pass Offense', null, statRows([
+      ['Attempts', pass.n || 0], ['Yards per attempt', pass.avg || 0],
+      ['Success rate', (pass.succRate || 0) + '%'], ['Explosive passes', pass.explosives || 0],
+      ['Sacks', ev.sacks],
+    ]), 'is-off')));
   return out;
 }
 
-function sectionTells(m) {
-  const out = [];
-  if (!m.report) {
-    out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
-    return out;
-  }
-  const tells = m.report.tells;
-  const body = tells.length ? table('tells', [
-    ['label', 'Situation', 'label'],
-    ['dim', 'Type', 'dim'],
-    ['leanPct', 'Tendency', 'lean', { render: r => bar(r.lean, r.leanPct) }],
-    ['leanAvg', 'Avg', 'avg'],
-    ['leanSuccRate', 'Succ%', 'pct', { render: r => r.leanSuccRate + '%' }],
-    ['verdict', 'Assessment', 'verdict', {
-      sort: r => ({ exploitable: 2, effective: 1, dominant: 0 })[r.verdict],
-      render: r => verdict(r.verdict),
-    }],
-    ['n', 'n', 'n'],
-  ], tells.map(t => ({ ...t, __cls: 'row-' + t.verdict, __film: t.cutType ? t.label + ' — ' + t.n + ' plays' : null })))
-    : el('p', 'none', 'No tells at ' + MIN_N + ' or more plays.');
-  out.push(band('b-1', module('Top tells', tells.length
-    ? tells.length + ' of a possible 12, ' + MIN_N + '+ plays and a 70% lean'
-    : MIN_N + '+ plays and a 70% lean required', body, 'is-off')));
-
-  const ins = m.report.insights;
-  if (ins.length) {
-    const list = el('div', 'ins');
-    ins.forEach(i => {
-      const row = el('div', 'insight');
-      row.append(el('span', 'tag', i.tag));
-      row.append(html('span', null, i.text));
-      list.append(row);
-    });
-    out.push(band('b-1', module('Film room insights', ins.length + ' findings', list, 'is-off')));
-  }
-  return out;
-}
-
-function sectionSituational(m) {
+function sectionOffense(m) {
   const out = [];
   if (!m.report) {
     out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
@@ -709,14 +712,14 @@ function sectionSituational(m) {
   const pretty = key => m.ddPretty[key] || key;
   const mods = [];
   if (dd.length) {
-    mods.push(module('Situational performance', dd.length + ' situations',
-      table('dd', splitCols('Down & Dist'),
-        splitRows(dd, pretty, (l, n) => l + ' — ' + n + ' plays')), 'is-off'));
+    mods.push(module('By down and distance', dd.length + ' situations',
+      table('dd', outcomeCols('Down & Dist'),
+        outcomeRows(dd, pretty, (l, n) => l + ' — ' + n + ' plays')), 'is-off'));
   }
   if (calls.length) {
-    mods.push(module('Call and concept performance', calls.length + ' calls and concepts',
-      table('calls', splitCols('Call / Concept'),
-        splitRows(calls, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off'));
+    mods.unshift(module('By call and concept', calls.length + ' calls and concepts',
+      table('calls', outcomeCols('Call / Concept'),
+        outcomeRows(calls, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off'));
   }
   if (!mods.length) {
     out.push(emptyBand('No situational data', 'No offensive plays carry a down and distance or a play call.'));
@@ -738,11 +741,11 @@ function sectionStructure(m) {
     /* Not paired: a split table asks for ~880px, which no band half offers at
        any desktop width, so pairing them would starve the label column. */
     if (forms.length) out.push(band('b-1', module('By formation', forms.length + ' formations',
-      table('forms', splitCols('Formation'),
-        splitRows(forms, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off')));
+      table('forms', outcomeCols('Formation'),
+        outcomeRows(forms, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off')));
     if (pers.length) out.push(band('b-1', module('By personnel', pers.length + ' groupings',
-      table('pers', splitCols('Personnel'),
-        splitRows(pers, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off')));
+      table('pers', outcomeCols('Personnel'),
+        outcomeRows(pers, null, (l, n) => l + ' — ' + n + ' plays')), 'is-off')));
   }
   const div = (r.personnelDiversity || []).filter(x => x.topPct >= 75);
   if (div.length) {
@@ -766,7 +769,7 @@ function sectionStructure(m) {
   return out;
 }
 
-function sectionPredictability(m) {
+function sectionTendencies(m) {
   const out = [];
   if (!m.report) {
     out.push(emptyBand('No offensive attribution', 'No offensive plays are classified as run or pass.'));
@@ -784,8 +787,20 @@ function sectionPredictability(m) {
   meter.append(fill);
   p.append(val, meter, el('span', 'cls', r.predLabel));
   body.append(p);
-  body.append(el('p', 'pred-note', 'Weighted by the largest run/pass share in each situation of 3 or more plays.'));
   out.push(band('b-1', module('Predictability', r.predLabel, body, 'is-off')));
+
+  const tells = r.tells;
+  const tellBody = tells.length ? table('tells', [
+    ['label', 'Situation', 'label'],
+    ['dim', 'Type', 'dim'],
+    ['leanPct', 'Lean', 'lean', { render: row => bar(row.lean, row.leanPct) }],
+    ['leanAvg', 'Yds / Play', 'avg'],
+    ['leanSuccRate', 'Success', 'pct', { render: row => row.leanSuccRate + '%' }],
+    ['n', 'Plays', 'n'],
+  ], tells.map(t => ({ ...t, __film: t.cutType ? t.label + ' — ' + t.n + ' plays' : null })))
+    : el('p', 'none', 'No qualifying offensive tendencies.');
+  out.push(band('b-1', module('Offensive tendencies',
+    tells.length + ' rows · ' + MIN_N + '+ plays · 70% minimum', tellBody, 'is-off')));
 
   const view = r.matrixView;
   if (view) {
@@ -835,6 +850,25 @@ function sectionPredictability(m) {
       view.baseline + '% success baseline, ' + view.predictabilityThreshold + '+ predictability qualifies',
       holder, 'is-off')));
   }
+
+  const d = m.defScout;
+  if (d && !d.insufficient && d.tells.length) {
+    const defensive = table('deftells-audit', [
+      ['label', 'Situation', 'label'],
+      ['tellType', 'Call', 'tell'],
+      ['tellPct', 'Lean', 'lean', { render: row => {
+        const b = el('span', 'bar run');
+        b.style.setProperty('--p', row.tellPct + '%');
+        b.append(el('i', null, row.tellVal + ' ' + row.tellPct + '%'));
+        return b;
+      } }],
+      ['stopRate', 'Stop', 'pct', { render: row => row.stopRate + '%' }],
+      ['havocRate', 'Havoc', 'pct', { render: row => row.havocRate + '%' }],
+      ['n', 'Plays', 'n'],
+    ], d.tells);
+    out.push(band('b-1', module('Defensive tendencies',
+      d.tells.length + ' rows · ' + MIN_N + '+ plays · 70% minimum', defensive, 'is-def')));
+  }
   return out;
 }
 
@@ -863,125 +897,60 @@ function sectionDefense(m) {
     tile('Sacks', String(k.sacks)), tile('TFL', String(k.tfl)), tile('Takeaways', String(k.turnovers)));
   out.push(kpis);
 
-  const pc = predClass(d.predictability);
-  const pbody = el('div');
-  const p = el('div', 'pred');
-  const val = el('span', 'val is-' + pc);
-  val.append(document.createTextNode(String(d.predictability)), el('small', null, '/100'));
-  const meter = el('span', 'meter');
-  const fill = el('i', 'bg-' + pc);
-  fill.style.width = d.predictability + '%';
-  meter.append(fill);
-  p.append(val, meter, el('span', 'cls', d.predLabel));
-  pbody.append(p);
-  pbody.append(el('p', 'pred-note', 'Weighted by the largest front, coverage or blitz share in each situation of 3 or more plays.'));
+  const ds = m.defSummary || {};
+  out.push(band('b-2',
+    module('Positive Plays', null, statRows([
+      ['Stops', ds.stops || 0], ['Sacks', ds.sacks || 0], ['Tackles for loss', ds.tfl || 0],
+      ['Takeaways', ds.takeaways || 0],
+    ]), 'is-def'),
+    module('Negative Plays', null, statRows([
+      ['Successful plays allowed', ds.successfulAllowed || 0],
+      ['Explosive plays allowed', ds.explosiveAllowed || 0],
+      ['Touchdowns allowed', ds.touchdownsAllowed || 0],
+    ]), 'is-def')));
 
-  const recs = el('div', 'recs');
-  d.recommendations.forEach(item => recs.append(html('div', 'rec', defRec(item))));
+  const qualified = (m.defCallRows || []).filter(row => row.n >= 3);
+  const ranked = qualified.slice().sort((a, b) =>
+    b.stopRate - a.stopRate || a.avgYds - b.avgYds || b.n - a.n);
+  out.push(band('b-2',
+    module('Top Calls', null, defenseCallTable('def-top', ranked.slice(0, 3)), 'is-def'),
+    module('Worst Calls', null, defenseCallTable('def-worst', ranked.slice().reverse().slice(0, 3)), 'is-def')));
 
-  out.push(band('b-64 is-wide',
-    module('Recommendations', d.recommendations.length + ' findings', recs, 'is-def'),
-    module('Predictability', d.predLabel, pbody, 'is-def')));
-
-  const tellBody = d.tells.length ? table('deftells', [
-    ['label', 'Situation', 'label'],
-    ['dim', 'Type', 'dim'],
-    ['tellType', 'Tell', 'tell'],
-    ['tellPct', 'Lean', 'lean', { render: r => {
-      const text = r.tellVal + ' ' + r.tellPct + '%';
-      const b = el('span', 'bar ' + (r.tellType === 'Blitz' ? 'pass' : 'run'));
-      b.style.setProperty('--p', r.tellPct + '%');
-      b.title = text;
-      b.append(el('i', null, text));
-      return b;
-    } }],
-    ['stopRate', 'Stop%', 'pct', { render: r => r.stopRate + '%' }],
-    ['havocRate', 'Havoc%', 'pct', { render: r => r.havocRate + '%' }],
-    ['verdict', 'Assessment', 'verdict', {
-      sort: r => ({ exploitable: 2, effective: 1, dominant: 0 })[r.verdict],
-      render: r => verdict(r.verdict),
-    }],
-    ['n', 'n', 'n'],
-  ], d.tells.map(t => ({ ...t, __cls: 'row-' + t.verdict,
-    /* Production activates this row only when the tell carries composite refs.
-       It never does on this route today -- see RATIONALE section 9 and open
-       decision 6 -- so the comp reproduces that honestly rather than drawing a
-       film affordance that does not exist. */
-    __film: t.refs ? t.label + ' — ' + t.n + ' plays' : null })))
-    : el('p', 'none', 'No defensive tells at ' + MIN_N + ' or more plays.');
-  out.push(band('b-1', module('Defensive tendency tells',
-    d.tells.length ? d.tells.length + ' of a possible 10, ' + MIN_N + '+ plays and a 70% lean'
-      : MIN_N + '+ plays and a 70% lean required', tellBody, 'is-def')));
-
-  if (d.ddRows.length) {
-    out.push(band('b-1', module('Scheme by situation', d.ddRows.length + ' situations',
-      table('defdd', [
-        ['label', 'Situation', 'label'],
-        ['n', 'Plays', 'n'],
-        ['topFrontName', 'Top front', 'scheme', {
-          sort: r => r.topFrontPct,
-          render: r => r.topFrontName ? scheme(r.topFrontName + ' ' + r.topFrontPct + '%') : null,
-        }],
-        ['topCovName', 'Top coverage', 'scheme', {
-          sort: r => r.topCovPct,
-          render: r => r.topCovName ? scheme(r.topCovName + ' ' + r.topCovPct + '%') : null,
-        }],
-        ['blitzPct', 'Blitz%', 'pct', { render: r => r.blitzPct + '%' }],
-        ['stopRate', 'Stop%', 'pct', { render: r => r.stopRate + '%' }],
-        ['havocRate', 'Havoc%', 'pct', { render: r => r.havocRate + '%' }],
-        ['avgYds', 'Avg Yds', 'avg'],
-      ], d.ddRows.map(r => ({ ...r, label: m.ddPretty[r.key] || r.key }))), 'is-def')));
-  }
+  const run = (m.defUnit || []).find(row => row.key === 'Run') || {};
+  const pass = (m.defUnit || []).find(row => row.key === 'Pass') || {};
+  out.push(band('b-2',
+    module('Run Defense', null, statRows([
+      ['Attempts', run.n || 0], ['Yards allowed per play', run.avgYds || 0],
+      ['Stop rate', (run.stopRate || 0) + '%'], ['Explosive runs allowed', run.explosivesAllowed || 0],
+      ['Tackles for loss', run.impact || 0],
+    ]), 'is-def'),
+    module('Pass Defense', null, statRows([
+      ['Attempts', pass.n || 0], ['Yards allowed per play', pass.avgYds || 0],
+      ['Stop rate', (pass.stopRate || 0) + '%'], ['Explosive passes allowed', pass.explosivesAllowed || 0],
+      ['Sacks', pass.impact || 0],
+    ]), 'is-def')));
   return out;
 }
 
-/* The engine returns defensive recommendations as STRUCTURED data; production
-   formats each kind at its presentation boundary. Reproduced exactly. */
-function defRec(item) {
-  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  switch (item.kind) {
-    case 'exploitable-summary':
-      return '<strong>' + item.count + ' exploitable defensive tendenc' + (item.count > 1 ? 'ies' : 'y')
-        + '</strong> — a prepared OC will identify and attack these alignments.';
-    case 'exploitable-item':
-      return '<span class="rl">' + esc(item.label) + '</span>: ' + esc(item.tellType) + ' tell — '
-        + esc(item.tellVal) + ' ' + item.tellPct + '% of the time (n=' + item.n + '), but only '
-        + item.stopRate + '% stop rate. Mix in alternative looks.';
-    case 'exploitable-more': {
-      const shown = item.names.slice(0, 4).map(esc).join(', ');
-      const extra = item.names.length > 4 ? ', +' + (item.names.length - 4) + ' more' : '';
-      return '<strong>' + item.count + ' more alignments</strong> tip the same way (' + shown + extra
-        + '). One change of look covers all of them.';
-    }
-    case 'dominant':
-      return '<span class="rl is-strength">' + esc(item.label) + '</span>: ' + esc(item.tellVal) + ' '
-        + item.tellPct + '% is predictable but <strong>working</strong> — ' + item.stopRate + '% stop rate'
-        + (item.havocRate >= 15 ? ', ' + item.havocRate + '% havoc' : '') + '. The alignment is earning its keep.';
-    default:
-      return 'No defensive tells at the current sample size.';
-  }
-}
-
 const BUILD = {
-  performance: sectionPerformance,
-  tells: sectionTells,
-  situational: sectionSituational,
+  summary: sectionSummary,
+  offense: sectionOffense,
   structure: sectionStructure,
-  predictability: sectionPredictability,
   defense: sectionDefense,
+  tendencies: sectionTendencies,
 };
 /* A section's own count for the navigation. Literal: how many findings or rows
    that section holds, so a coach can see where the report has something. */
 function sectionCount(id, m) {
   const r = m.report;
   switch (id) {
-    case 'performance': return r ? r.recommendations.length : 0;
-    case 'tells': return r ? r.tells.length + r.insights.length : 0;
-    case 'situational': return r ? r.downDistRows.length + m.callRows.length : 0;
+    case 'summary': return r ? m.callRows.length : 0;
+    case 'offense': return r ? r.downDistRows.length + m.callRows.length : 0;
     case 'structure': return r ? r.formationRows.length + r.personnelRows.length : 0;
-    case 'predictability': return r ? (r.matrixView ? r.matrixView.rows.length : 0) : 0;
     case 'defense': return (m.defScout && !m.defScout.insufficient)
-      ? m.defScout.tells.length + m.defScout.ddRows.length : 0;
+      ? m.defScout.ddRows.length : 0;
+    case 'tendencies': return r ? r.tells.length + (r.matrixView ? r.matrixView.rows.length : 0)
+      + ((m.defScout && !m.defScout.insufficient) ? m.defScout.tells.length : 0) : 0;
     default: return 0;
   }
 }

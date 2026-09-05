@@ -496,3 +496,107 @@ Run: `node scratchpad/ss-audit.mjs` (read-only; drives the comp in Chromium).
   states: `def-insufficient`, `off-insufficient`, `sparse`, `no-offense`,
   `def-no-attribution`, `balanced`.
 - Plus `1440-populated-3-situational-sorted.png`, the sorted state.
+
+---
+
+## 17 · Revision 2 — outcome-first self-scout
+
+The first board made predictability the organizing idea of the entire report.
+That repeated the same run/pass tendency through recommendations, tells,
+situations, formations, personnel, the matrix, and defense. At the youth level,
+that emphasis is backwards: execution and results are the primary coaching
+read; tendency is a secondary audit.
+
+Revision 2 gives each section one job:
+
+1. **Summary** — six offense KPIs, the three strongest qualified call results,
+   negative-play counts, and the three qualified calls to review first.
+2. **Calls & Situations** — outcome tables by call/concept and down-and-distance.
+3. **Structure** — outcome tables by formation and personnel, followed by the
+   personnel-to-formation relationship.
+4. **Defense** — defensive KPIs and results by situation. It does not repeat
+   defensive predictability, recommendations, or tendency rows.
+5. **Tendencies** — the only section that shows offensive tells, the
+   predictability score and matrix, or defensive tells.
+
+The shared offensive result shape is now `Plays`, `Yds / Play`, `Success`,
+`Explosive`, `TD`, `Giveaways`, then `Run / Pass`. Run/pass share remains
+available, but it is the last supporting column rather than the visual subject
+of every table.
+
+Generated recommendation and Film Room insight prose is intentionally absent.
+Those strings restate the data, introduce speculative coaching language, and
+conflict with the Reports rule that copy must be literal and concise. Existing
+film actions remain on the underlying result and tendency rows.
+
+The prior 147 captures describe revision 1 and are retained as its audit trail.
+They are not approval evidence for revision 2. Revision 2 requires a fresh
+visual capture pass after the information architecture is approved.
+
+---
+
+## 18 · Revision 3 — approved comp contract
+
+Revision 3 applies the review batch without changing the `Calls & Situations`,
+`Structure`, or `Tendencies` information architecture.
+
+### Shared presentation rule
+
+- Module headers contain the title only. Counts, thresholds, sample language,
+  and explanatory subheads do not render beside or beneath a module title.
+- KPI tiles contain the label and value only. `No data` is sufficient; there is
+  no sentence explaining the absence.
+- The scope line and section-navigation counts remain because they identify the
+  active sample and available content rather than explaining a module.
+
+### Offensive Summary
+
+The section label is `Offensive Summary`. Beneath the six KPI tiles, the board
+is three two-column rows at 1280px and wider:
+
+1. `Positive Plays` | `Negative Plays`
+2. `Top Calls` | `Worst Calls`
+3. `Run Offense` | `Pass Offense`
+
+Positive plays show successful plays, explosives, touchdowns, third-down
+conversions, and red-zone touchdowns. Negative plays show negative plays,
+turnovers, sacks, plays for loss, and penalties.
+
+Offensive calls qualify at three plays. Ranking is success rate first, yards
+per play second, then sample size. Both tables show the call/concept, plays,
+yards per play, and success rate. Run and pass modules show attempts, yards per
+attempt, success rate, explosives, and the pass module also shows sacks.
+
+### Defense
+
+Beneath the six KPI tiles, Defense uses the same three-row composition:
+
+1. `Positive Plays` | `Negative Plays`
+2. `Top Calls` | `Worst Calls`
+3. `Run Defense` | `Pass Defense`
+
+A defensive call is the composite of the charted front, coverage, and pressure
+on the play. Blank pressure is omitted from the displayed identity; it is not
+silently relabeled `No blitz`. Calls qualify at three plays and rank by stop
+rate, then lower yards allowed per play, then sample size. The displayed table
+is call, plays, stop rate, and yards allowed per play.
+
+Defensive positive plays show stops, sacks, tackles for loss, and takeaways.
+Negative plays show successful plays allowed, explosives allowed, and
+touchdowns allowed. Run and pass defense show attempts, yards allowed per play,
+stop rate, explosives allowed, and the phase-specific impact result (TFL or
+sack).
+
+### Deferred
+
+No fixed situational dashboard is added. The current dynamic situation and
+tendency discovery views remain until the product decision between targeted
+situation checks and automatic discovery is revisited.
+
+### Revision 3 verification
+
+Fresh populated captures were inspected at 1440x900 and 1280x720 for all five
+sections. All ten fixture states and all five sections were exercised at 1280:
+zero page or console errors, zero page-level horizontal overflow, zero rendered
+module metadata, and no red-zone explanatory sentence. Review captures are in
+the gitignored `artifacts/self-scout-codex-review/` directory.
