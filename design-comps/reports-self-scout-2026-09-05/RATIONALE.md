@@ -608,3 +608,9 @@ Module titles increase from 12.5px to 14px and table-column headers use an
 explicit 12px semibold Plex Sans face. Body rows, KPI values, padding, and row
 height do not change. The correction improves hierarchy and scanability without
 reducing report density.
+
+### Revision 5 defensive yardage totals
+
+`Run Defense` adds `Rushing yards allowed` and `Pass Defense` adds `Passing
+yards allowed`, immediately after Attempts. The existing yards-per-play rows
+remain. Rate without volume is incomplete performance reporting.

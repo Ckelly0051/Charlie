@@ -3924,6 +3924,7 @@ export class StatsEngine {
       const phaseYards = rows.reduce((sum, play) => sum + (parseInt(play.tags.yardage) || 0), 0);
       return {
         attempts: rows.length,
+        yardsAllowed: phaseYards,
         yardsPerPlay: rows.length ? +(phaseYards / rows.length).toFixed(1) : 0,
         stopRate: rows.length
           ? Math.round(rows.filter(play => !this._isSuccessfulPlay(play)).length / rows.length * 100) : 0,

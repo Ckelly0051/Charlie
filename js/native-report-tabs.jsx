@@ -2090,12 +2090,14 @@ function SsDefenseSection({ defScout, defSummary, screen }) {
     </SsBand>
     <SsBand cls="b-2">
       <SsModule title="Run Defense" phase="def"><SsCounts items={[
-        ['Attempts', defSummary.run.attempts], ['Yards allowed per play', defSummary.run.yardsPerPlay],
+        ['Attempts', defSummary.run.attempts], ['Rushing yards allowed', defSummary.run.yardsAllowed],
+        ['Yards allowed per play', defSummary.run.yardsPerPlay],
         ['Stop rate', `${defSummary.run.stopRate}%`], ['Explosive runs allowed', defSummary.run.explosivesAllowed],
         ['Tackles for loss', defSummary.run.tfl],
       ]} /></SsModule>
       <SsModule title="Pass Defense" phase="def"><SsCounts items={[
-        ['Attempts', defSummary.pass.attempts], ['Yards allowed per play', defSummary.pass.yardsPerPlay],
+        ['Attempts', defSummary.pass.attempts], ['Passing yards allowed', defSummary.pass.yardsAllowed],
+        ['Yards allowed per play', defSummary.pass.yardsPerPlay],
         ['Stop rate', `${defSummary.pass.stopRate}%`], ['Explosive passes allowed', defSummary.pass.explosivesAllowed],
         ['Sacks', defSummary.pass.sacks],
       ]} /></SsModule>

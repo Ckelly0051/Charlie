@@ -261,6 +261,15 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
       ['Explosive plays allowed', defSummary.negative.explosiveAllowed],
       ['Touchdowns allowed', defSummary.negative.touchdownsAllowed],
     ])}</div>
+    <div class="two-up">${counts('Run Defense', [
+      ['Attempts', defSummary.run.attempts], ['Rushing yards allowed', defSummary.run.yardsAllowed],
+      ['Yards allowed per play', defSummary.run.yardsPerPlay], ['Stop rate', `${defSummary.run.stopRate}%`],
+      ['Explosive runs allowed', defSummary.run.explosivesAllowed], ['Tackles for loss', defSummary.run.tfl],
+    ])}${counts('Pass Defense', [
+      ['Attempts', defSummary.pass.attempts], ['Passing yards allowed', defSummary.pass.yardsAllowed],
+      ['Yards allowed per play', defSummary.pass.yardsPerPlay], ['Stop rate', `${defSummary.pass.stopRate}%`],
+      ['Explosive passes allowed', defSummary.pass.explosivesAllowed], ['Sacks', defSummary.pass.sacks],
+    ])}</div>
     ${table('Defensive Calls', [
       { key: 'key', label: 'Call' }, { key: 'n', label: 'Plays' },
       { key: 'stop', label: 'Stop', value: row => `${row.stopRate}%` },

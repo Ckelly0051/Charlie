@@ -173,6 +173,7 @@ const model = () => page.evaluate(() => {
       ref: engine.constructor._compositeRef(p), call: p.tags.playCall || p.tags.playConcept || null })),
     defPlayCalls: performance.defPlays.map(p => ({
       ref: engine.constructor._compositeRef(p), call: engine.constructor._defenseCallKey(p) })),
+    defYards: performance.defPlays.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0),
     totalPlays: report ? report.totalPlays : 0,
   };
 });
@@ -458,11 +459,11 @@ ok(JSON.stringify(defDom.rowsByModule['Negative Plays']) === JSON.stringify(
   ['Successful plays allowed', 'Explosive plays allowed', 'Touchdowns allowed']),
 'defensive Negative Plays lists the three approved rows');
 ok(JSON.stringify(defDom.rowsByModule['Run Defense']) === JSON.stringify(
-  ['Attempts', 'Yards allowed per play', 'Stop rate', 'Explosive runs allowed', 'Tackles for loss']),
-'Run Defense lists the five approved rows');
+  ['Attempts', 'Rushing yards allowed', 'Yards allowed per play', 'Stop rate', 'Explosive runs allowed', 'Tackles for loss']),
+'Run Defense lists the six approved rows');
 ok(JSON.stringify(defDom.rowsByModule['Pass Defense']) === JSON.stringify(
-  ['Attempts', 'Yards allowed per play', 'Stop rate', 'Explosive passes allowed', 'Sacks']),
-'Pass Defense lists the five approved rows');
+  ['Attempts', 'Passing yards allowed', 'Yards allowed per play', 'Stop rate', 'Explosive passes allowed', 'Sacks']),
+'Pass Defense lists the six approved rows');
 ok(d.kpis.sacks === m.defensive.sacks && d.kpis.tfl === m.defensive.tfl
   && d.kpis.takeaways === m.defensive.turnovers && d.kpis.havocRate === m.defensive.havocRate,
 'every defensive KPI is `_defensiveStats`\'s own value');
@@ -472,6 +473,9 @@ ok(d.positive.stops + d.negative.successfulAllowed === d.totalPlays,
 ok(d.run.attempts + d.pass.attempts === d.totalPlays,
   'run and pass defense reconcile with the defensive play total',
   `${d.run.attempts}+${d.pass.attempts} vs ${d.totalPlays}`);
+ok(d.run.yardsAllowed + d.pass.yardsAllowed === m.defYards,
+  'run and pass yards allowed reconcile with the defensive total',
+  `${d.run.yardsAllowed}+${d.pass.yardsAllowed} vs ${m.defYards}`);
 ok(d.run.tfl + d.pass.tfl === m.defensive.tfl,
   'the phase-specific tackles for loss sum to the canonical defensive TFL count',
   `${d.run.tfl}+${d.pass.tfl} vs ${m.defensive.tfl}`);
