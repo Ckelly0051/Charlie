@@ -15,9 +15,12 @@ the capture pass's copy audit.
 
 **All eight open product decisions were ruled on by Charlie on 2026-09-04** and
 are recorded in §7. Four are reflected in the comp; three are approved
-production changes that no production file carries yet; one is recorded with no
-work attached. **The composition itself has not been approved** — that is still
-the open gate.
+production changes; one is recorded with no work attached. Their build status is
+tracked in the §7 table, not here.
+
+**The open gate is the Charlie Gate** — populated real-data review of the built
+tab at the release widths, then PASS / REVISE / REJECT. The composition is
+approved; acceptance of the implementation is not.
 
 Comp: `design-comps/reports-special-teams-2026-09-04/special-teams.html`
 Captures: `design-comps/reports-special-teams-2026-09-04/captures/` (78 files)
@@ -415,19 +418,19 @@ the number can be audited without re-deriving it.
 
 The questions below were open when the comp was first posted. Every one now has
 a ruling, recorded verbatim in intent. Items marked **comp** are reflected in
-`special-teams.html` already; items marked **production** are approved work
-that the stop boundary still covers and that no production file carries yet.
+`special-teams.html` already. The **Status** column is the live build state, and
+it is the only place in this file that states one.
 
-| # | Decision | Where it lands |
+| # | Decision | Status |
 |---|---|---|
-| 1 | Export approved — reuse the existing Reports export mechanism, no ST-only exporter | comp + production |
-| 2 | Tries: 18 stays the denominator; display `18 classified · 3 unclassified · 21 charted`; unclassified are never misses and never enter a percentage | **comp — done** |
-| 3 | Fix `_individualStats` to use the canonical Field Goal cohort | **production — pending** |
-| 4 | Remove the fixed 20-yard touchback assumption; show not-derivable | comp done, **production pending** |
+| 1 | Export approved — reuse the existing Reports export mechanism, no ST-only exporter | **built** — `exportSpecialTeams` → `buildSpecialTeamsHtmlReport` → the shared `documentShell` and `window.ffaSaveBlob` |
+| 2 | Tries: 18 stays the denominator; display `18 classified · 3 unclassified · 21 charted`; unclassified are never misses and never enter a percentage | **denominator built; the display line was removed** by Charlie the same day ("wtf does classified mean?"). The 18-attempt denominator stands; the classification breakdown is gone from both comp and production |
+| 3 | Fix `_individualStats` to use the canonical Field Goal cohort | **built** — `StatsEngine.isFieldGoalAttempt` / `isFieldGoalMade`, mutation-verified |
+| 4 | Remove the fixed 20-yard touchback assumption; show not-derivable | **built** — legacy punt net returns null on a touchback rather than subtracting 20 |
 | 5 | Do not build ST measures from generic `yardage`/`result` yet; record for a later projection decision | **recorded, no work** |
-| 6 | Fake stays disclosed as unassigned; no seventh unit; correction path later | **comp — already correct** |
-| 7 | Context-bar wrapping approved, via the shared shell owner | comp done, **production pending** |
-| 8 | Special Teams uses the shared report header/scorebug when it rolls across Reports; no ST variant | **comp — already correct** |
+| 6 | Fake stays disclosed as unassigned; no seventh unit; correction path later | **built** — the unassigned-snap line renders only when such a snap exists |
+| 7 | Context-bar wrapping approved, via the shared shell owner | **not built** — shared shell owner; the shell's response to a taller bar still needs verifying |
+| 8 | Special Teams uses the shared report header/scorebug when it rolls across Reports; no ST variant | **recorded** — Special Teams stays out of `SCOREBUG_TABS` until that header rolls |
 
 ### What each ruling changed
 
@@ -446,7 +449,7 @@ named on the tile itself, and the section footnote states the three are
 **unclassified, not missed**. Nothing counts them as failures and nothing
 divides by 21.
 
-**3 · Field-goal cohort — production, pending.** `_individualStats` must use
+**3 · Field-goal cohort — built.** `_individualStats` now uses
 the same canonical Field Goal cohort as `_specialTeamsStats`. A player cannot
 hold an attempt the unit does not recognize. The real-data fixture still shows
 today's measured output (#99 credited 0/1 while the unit reports 0 attempts),
@@ -454,7 +457,7 @@ because that fixture is evidence of the engine's current behavior. **Once the
 fix lands, that cell reads `—` and the discrepancy disappears from the comp's
 own real-data state.** The fixture is deliberately not pre-corrected.
 
-**4 · Punt net — done in the comp, pending in production.** The fixed 20-yard
+**4 · Punt net — built.** The fixed 20-yard
 touchback subtraction is removed. Net on a legacy touchback with no configured
 ruleset is **not derivable**, and the comp says exactly that — a third absence
 state (`not derivable — no ruleset`), distinct from `not charted`, because here
@@ -473,7 +476,7 @@ play stays visible in the reconciliation line as unassigned until it can be
 associated with its underlying punt, field-goal, or try unit. The correction
 path is later work.
 
-**7 · Context bar — approved, production pending.** Long game names wrap at
+**7 · Context bar — approved, not built.** Long game names wrap at
 1280 instead of clipping. The comp does this, but it is **shared chrome and
 belongs to the shell owner**, so the production change lands there, not in this
 tab. It must be verified that the bar's height changes cleanly and never
@@ -604,10 +607,6 @@ Four, none of which the automated audit could see:
 
 ### Not checked
 
-- **No production code was run, changed, or reviewed against this comp.** It is
-  a comp; the tab is untouched.
-- **No harness, and no gate run** — the assignment excluded both. The capture
-  script lives in `scratchpad/`, is not part of the gate, and is not committed.
 - **Mobile and tablet** (768×1024, 390×844) were not designed or captured. The
   assignment scoped this to desktop.
 - **The Opponent Scout variant** (`OpponentSpecialTeamsTab`) is mapped in §4
@@ -616,4 +615,6 @@ Four, none of which the automated audit could see:
 - **Structured-charting states were not validated against real data**, because
   none exists: all 74 real ST snaps are legacy. The populated fixture is
   plausible and internally reconciled, but it is invented.
-- **No Charlie Gate.** This is a comp awaiting approval, not accepted state.
+- **No Charlie Gate.** The composition is approved and the tab is built and
+  gate-verified against `tools/e2e-reports-special-teams.mjs`, but no populated
+  real-data review has been signed off, so this is not accepted state.

@@ -321,6 +321,56 @@ const empty = await page.evaluate(() => {
 ok(empty.empty && !empty.board, 'a season with no special-teams snaps shows the empty state, not an all-zero board');
 ok(empty.title === 'No Special Teams snaps charted', 'the empty state states the absence literally', String(empty.title));
 
+/* ══ 11. The export carries what the board shows ══════════════════════════ */
+/* The board's KPI tiles carry NAMED values (`stats`), not a `value`/`sub`
+   pair. The printed report's generic metric band read `value`/`sub`, so every
+   tile whose figures live in `stats` exported as an empty headline. Assert the
+   exported HTML contains each tile's own label and number. */
+console.log('\n== 11. Export ==');
+await load([
+  { stType: 'Kickoff', kickOutcome: 'Touchback' },
+  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '18' },
+  { stType: 'Punt', kickOutcome: 'Fair Catch', kickDistance: '40' },
+  { stType: 'Punt Return', kickOutcome: 'Returned', returnYards: '9' },
+  { stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '32' },
+  { stType: 'XP', kickOutcome: 'Good', scoreFor: 'us' },
+]);
+const exported = await page.evaluate(async () => {
+  let blob = null;
+  const save = window.ffaSaveBlob;
+  window.ffaSaveBlob = b => { blob = b; };
+  const screen = window.app.reportsScreen, engine = window.app.stats;
+  const { scoped } = screen._specialTeamsCohort();
+  const stats = engine.compute(scoped);
+  const summary = engine._specialTeamsSummary(scoped, stats);
+  screen.exportSpecialTeams(stats, summary);
+  window.ffaSaveBlob = save;
+  const html = blob ? await blob.text() : '';
+  /* Read the tiles off the RENDERED board, so this compares the two surfaces
+     rather than comparing the exporter against its own view model. */
+  const tiles = [...document.querySelectorAll('.gi-st-board .gi-overview-kpi')].map(k => ({
+    label: k.querySelector('span')?.textContent.trim() || '',
+    stats: [...k.querySelectorAll('.gi-kpi-stat')].map(s => [
+      s.querySelector('.gi-kpi-stat-l')?.textContent.trim() || '',
+      s.querySelector('.gi-kpi-stat-n')?.textContent.trim() || '',
+    ]),
+  }));
+  return { html, tiles };
+});
+ok(/Special Teams Performance/.test(exported.html), 'the export contains the Special Teams chapter');
+const missing = [];
+for (const tile of exported.tiles) {
+  for (const [label, value] of tile.stats) {
+    if (!value) continue;
+    if (!exported.html.includes(value)) missing.push(`${tile.label} / ${label} = ${value}`);
+  }
+}
+ok(exported.tiles.some(t => t.stats.length), 'the board rendered named KPI values to compare against');
+ok(missing.length === 0, 'every named KPI value on the board also reaches the printed report',
+  missing.slice(0, 4).join('; '));
+ok(!/<strong><\/strong>/.test(exported.html),
+  'no exported tile prints an empty headline where its figures belong');
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); console.log(errors.slice(0, 5).join('\n')); }
 await browser.close();

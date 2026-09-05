@@ -382,6 +382,20 @@ no Special-Teams-only scorebug variant is invented. Export reuses the existing
 mechanism (`exportSpecialTeams` → `buildSpecialTeamsHtmlReport` → the shared
 `documentShell` and `window.ffaSaveBlob`), never a second export subsystem.
 
+**The printed report has its own KPI band renderer, and needs one.** The board's
+tiles carry NAMED values (`stats`), not the `value`/`sub` pair the generic
+`metrics()` band reads, so three tiles — Special Teams Snaps, Points and
+Touchdowns — exported as empty headlines. `stMetrics` gives each named value its
+own label/value row; flattening them into the band's 25px display `<strong>`
+wrapped one tile over three lines and printed a stat's label at headline size
+beside its own number. Covered by section 11 of `e2e-reports-special-teams`,
+which compares the rendered board's figures against the exported HTML and is
+mutation-verified against the generic band.
+
+**The outcome bars are absolute, not relative.** Scaling each bar to the
+largest bucket made a 29% outcome fill the whole track; the width is the
+bucket's own percentage of its unit.
+
 **Two approved production changes are still pending, carried by no file:**
 the context bar wrapping long game names at 1280 instead of clipping (shared
 shell owner — and the shell's response to a taller bar still needs verifying),
@@ -460,15 +474,32 @@ product is wrong.
    wrapping long game names at 1280 rather than clipping (shared shell owner;
    the shell's response to a taller bar still needs verifying), and Special
    Teams joining the shared report header when that rolls across Reports.
-5. **OPEN DEFECT — a legacy punt block is reported as a punt we allowed.**
-   Found by the coach at the board, 2026-09-05. **Assigned to Codex.**
+5. **RECORDED — full-season Special Teams sits under a game-specific frame.**
+   The generic Reports rail above the board is the *current game*'s: it names
+   the week and opponent and shows that game's final score, total plays and
+   success rate. The Special Teams board's own scope control defaults to
+   **Full season**, so the default state pairs season figures with a
+   single-game header. Nothing on the board is wrong — its own scope chip says
+   Full season — but the two rows disagree about what is on screen.
+   Not fixed here by design: the frame belongs to the shared report header
+   (ruling 8), which Special Teams joins when that header rolls across
+   Reports. Resolve it there, with Overview and Offense, rather than giving
+   Special Teams a one-off.
+
+6. **OPEN DEFECT — a legacy punt block is reported as a punt we allowed.**
+   Found by the coach at the board, 2026-09-04. **Assigned to Codex.**
 
    The Punt unit reports `Blocked 1` on `2025-st-joseph-mavericks-jv`. The
    coach charted the opposite: **we blocked their punt.** Holy Family, Q2,
-   play id 16 — 4th & 6, ball on the opponent's 8, `result: Loss`,
-   `yardage: -5`, `kickOutcome: Blocked`, and the only player charted is
-   `players.tackler: '82'`. Nobody punts from the opponent's 8; they were
-   backed up at their own 8 and #82 blocked it.
+   play id 16 — 4th & 6, `result: Loss`, `yardage: -5`,
+   `kickOutcome: Blocked`, and the only player charted is
+   `players.tackler: '82'`.
+
+   The evidence for whose punt it was is the coach's own account plus the
+   player role: a `tackler` and no `kicker`. The play's field position (the 8)
+   does **not** settle it — ST field position carries no proven owner
+   perspective in the stored model, so it cannot distinguish our own 8 from
+   theirs. Do not cite it as proof.
 
    Root cause: the legacy branch of `_specialTeamsStats` treats **every**
    `stType:'Punt'` as our own punt team — `const pp = by('Punt')`, then
@@ -492,13 +523,13 @@ product is wrong.
    a perspective signal in the legacy projection, an honest disclosure that
    legacy cannot attribute the kick, or re-charting those plays structured.
 
-6. **Reports > Defense Charlie Gate** — populated real-data review at the
+7. **Reports > Defense Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT, plus an installed smoke.
-7. **Offense still scrolls; Defense uses tabs.** The coach approved section
+8. **Offense still scrolls; Defense uses tabs.** The coach approved section
    tabs for Defense on 2026-09-04 with Offense converting in a later pass, so
    the two reports navigate differently until that lands. Recorded as a known
    temporary inconsistency, not an oversight.
-8. **Three Defense band gaps** — Run / pass faced 78px, Opponent play type
+9. **Three Defense band gaps** — Run / pass faced 78px, Opponent play type
    86px, Situational defense 72px. They come from genuinely different row
    counts in real data; closing them means stretching table rows or full-width
    tables, both of which were tried and rejected. Carried into the Charlie Gate.
@@ -528,8 +559,8 @@ Full tiers, commands, and what each tier can and cannot certify:
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
 and the shared scorebug rule, 46) and `tools/e2e-reports-special-teams.mjs`
-(the Special Teams composition, its absence contract and the two engine
-corrections, 40).
+(the Special Teams composition, its absence contract, the two engine
+corrections and the printed export, 45).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

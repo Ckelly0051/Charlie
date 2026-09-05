@@ -2351,6 +2351,17 @@
   background:var(--gi-bd-control-active);color:var(--gi-bd-strong);
   box-shadow:inset 0 -3px var(--gi-bd-cyan)
 }
+/* The shared `.btn` rule is scoped `:not(.ws-shell *)`, so inside the shell it
+   supplies nothing and the control fell back to a white browser default in
+   every capture. Same treatment Defense gives its own export button. */
+.gi-reports .gi-st-board .gi-st-export{
+  min-height:32px;padding:0 var(--gi-3x);border:1px solid var(--gi-bd-line);border-radius:0;
+  background:var(--gi-bd-control);color:var(--gi-bd-copy);font:var(--gi-text-label);cursor:pointer
+}
+.gi-reports .gi-st-board .gi-st-export:hover{
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);border-color:var(--gi-bd-bone)
+}
+.gi-reports .gi-st-board .gi-st-export:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:2px }
 .gi-reports .gi-st-export{ margin-left:auto }
 
 @media(max-width:1360px){

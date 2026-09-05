@@ -1257,15 +1257,17 @@ function UnitModule({ title, meta, rows, refs, label, screen, cls = '' }) {
 /** How a unit's snaps actually ended. Each bar opens exactly its own plays. */
 function OutcomeBars({ items, screen, unit }) {
   if (!items.length) return <p class="gi-st-empty">{view.ST_NO_DATA}</p>;
-  const max = Math.max(1, ...items.map(item => item.n));
   return <div class="gi-st-outcomes">{items.map(item => {
     const label = `${unit} — ${item.label}`;
     return <WatchableRefs key={item.key} tag="button" type="button" class="gi-st-outcome"
       refs={item.refs} label={label} screen={screen} title={`${label}, ${item.n}`}>
       <span class="gi-st-outcome-label">{item.label}</span>
       <span class="gi-st-outcome-bar">
+        {/* The bar's width is the SHARE it states, not its size against the
+            biggest bar. Scaling to the max made whatever led always fill the
+            track, so a 29% outcome read as the whole unit. */}
         {item.tone === 'blank' ? null : <i class={item.tone ? `is-${item.tone}` : ''}
-          style={`width:${Math.round(item.n / max * 100)}%`} />}
+          style={`width:${item.pct}%`} />}
       </span>
       <span class="gi-st-outcome-value">{item.n} ({item.pct}%)</span>
     </WatchableRefs>;

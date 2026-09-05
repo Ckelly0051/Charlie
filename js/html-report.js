@@ -48,12 +48,28 @@ const defenseTables = report => {
   return `<section class="chapter"><div class="chapter-title"><span>Defense</span><h1>Defensive Performance</h1></div>${summary}${table('Opponent Offense by Play Type', columns, report.playTypes)}${table('Situational Defense', columns.map(c => ({ ...c, label: c.key === 'name' ? 'Situation' : c.label })), report.situations)}</section>`;
 };
 
+/**
+ * Special Teams KPI tiles for the printed report. The screen's tiles carry
+ * NAMED values on a line (`stats`), not a `value`/`sub` pair, so the generic
+ * `metrics()` band renders them blank -- it reads fields these tiles no longer
+ * have. Each named value gets its own label/value row: joining them into the
+ * band's 25px display `<strong>` wrapped one tile over three lines and printed
+ * the stat's label at headline size beside its own number.
+ */
+const stMetrics = items => `<div class="metric-band">${items.map(item => {
+  const rows = item.stats
+    ? item.stats.flat().map(([label, value]) =>
+      `<p><span>${esc(label)}</span><strong>${esc(value)}</strong></p>`).join('')
+    : `<p><strong>${esc(item.value ?? '')}</strong></p>`;
+  return `<div class="metric"><span>${esc(item.label)}</span><div class="metric-stats">${rows}</div></div>`;
+}).join('')}</div>`;
+
 const specialTeams = (stats, summary) => {
   const phases = view.specialTeamsPhases(stats);
   const players = view.individualStats(stats, 'special', num => `#${num}`);
   if (!phases.length && !players.length) return '';
   return `<section class="chapter"><div class="chapter-title"><span>Special Teams</span><h1>Special Teams Performance</h1></div>
-    ${metrics(view.specialTeamsKpis(stats, summary))}
+    ${stMetrics(view.specialTeamsKpis(stats, summary))}
     <div class="phase-grid">${phases.map(phase => `<div class="phase"><h3>${esc(phase.title)}</h3>${phase.rows.map(row => `<p><span>${esc(row[0])}</span><strong>${esc(row[1])}</strong></p>`).join('')}</div>`).join('')}</div>
     ${players.map(playerTable).join('')}</section>`;
 };
@@ -95,7 +111,7 @@ const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, def
 
 const stylesheet = `
   :root{color-scheme:light;--ink:#172033;--muted:#667085;--line:#d8dee8;--soft:#f4f6f9;--blue:#1d66d1;--gold:#d99a00;--green:#16875b}
-  *{box-sizing:border-box}body{margin:0;background:#eef1f5;color:var(--ink);font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif}.page{max-width:1180px;margin:28px auto;background:#fff;padding:42px 48px;box-shadow:0 12px 40px #17203318}.masthead{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;border-bottom:4px solid var(--ink);padding-bottom:22px}.brand{color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.masthead h1,.chapter-title h1{margin:5px 0 0;font-size:30px;line-height:1.08}.meta{color:var(--muted);text-align:right}.metric-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));border:1px solid var(--line);margin:22px 0}.metric{min-height:96px;padding:15px 16px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}.metric span,.metric small{display:block;color:var(--muted)}.metric span{font-size:10px;text-transform:uppercase;font-weight:800}.metric strong{display:block;font-size:25px;line-height:1.1;margin:7px 0}.metric small{font-size:11px}.chapter{border-top:7px solid var(--soft);padding-top:28px;margin-top:34px}.chapter-title span{color:var(--blue);font-size:11px;text-transform:uppercase;font-weight:800}.chapter-title h1{font-size:24px}.report-section{margin:22px 0}.report-section h2{font-size:14px;text-transform:uppercase;border-bottom:2px solid var(--ink);padding:0 0 8px;margin:0}.two-up{display:grid;grid-template-columns:1fr 1fr;gap:24px}.table-wrap{overflow:hidden}table{border-collapse:collapse;width:100%;font-size:12px}th{color:var(--muted);font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.04em;background:var(--soft)}th,td{border-bottom:1px solid var(--line);padding:8px 10px}td:not(:first-child),th:not(:first-child){text-align:right}.phase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0}.phase{border:1px solid var(--line);padding:14px}.phase h3{margin:0 0 8px;font-size:13px}.phase p{display:flex;justify-content:space-between;margin:0;padding:5px 0;border-top:1px solid var(--soft);font-size:12px}.empty{color:var(--muted)}
+  *{box-sizing:border-box}body{margin:0;background:#eef1f5;color:var(--ink);font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif}.page{max-width:1180px;margin:28px auto;background:#fff;padding:42px 48px;box-shadow:0 12px 40px #17203318}.masthead{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;border-bottom:4px solid var(--ink);padding-bottom:22px}.brand{color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.masthead h1,.chapter-title h1{margin:5px 0 0;font-size:30px;line-height:1.08}.meta{color:var(--muted);text-align:right}.metric-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));border:1px solid var(--line);margin:22px 0}.metric{min-height:96px;padding:15px 16px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}.metric span,.metric small{display:block;color:var(--muted)}.metric span{font-size:10px;text-transform:uppercase;font-weight:800}.metric strong{display:block;font-size:25px;line-height:1.1;margin:7px 0}.metric small{font-size:11px}.metric-stats{margin-top:7px}.metric-stats p{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin:0;padding:3px 0;font-size:12px}.metric-stats p+p{border-top:1px solid var(--soft)}.metric-stats span{display:block;color:var(--muted);font-size:11px;text-transform:none;font-weight:600}.metric-stats strong{font-size:15px;margin:0}.chapter{border-top:7px solid var(--soft);padding-top:28px;margin-top:34px}.chapter-title span{color:var(--blue);font-size:11px;text-transform:uppercase;font-weight:800}.chapter-title h1{font-size:24px}.report-section{margin:22px 0}.report-section h2{font-size:14px;text-transform:uppercase;border-bottom:2px solid var(--ink);padding:0 0 8px;margin:0}.two-up{display:grid;grid-template-columns:1fr 1fr;gap:24px}.table-wrap{overflow:hidden}table{border-collapse:collapse;width:100%;font-size:12px}th{color:var(--muted);font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.04em;background:var(--soft)}th,td{border-bottom:1px solid var(--line);padding:8px 10px}td:not(:first-child),th:not(:first-child){text-align:right}.phase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0}.phase{border:1px solid var(--line);padding:14px}.phase h3{margin:0 0 8px;font-size:13px}.phase p{display:flex;justify-content:space-between;margin:0;padding:5px 0;border-top:1px solid var(--soft);font-size:12px}.empty{color:var(--muted)}
   @media(max-width:760px){.page{margin:0;padding:24px}.masthead{display:block}.meta{text-align:left;margin-top:12px}.two-up{grid-template-columns:1fr}.metric-band{grid-template-columns:repeat(2,1fr)}.metric{border-bottom:1px solid var(--line)}}
   @media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:20px}.chapter{break-before:auto}.report-section,.phase{break-inside:avoid}}
 `;
