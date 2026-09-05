@@ -16,6 +16,10 @@ real states rather than described.
 seven open decisions. Five findings and six rulings are applied; §13 records
 exactly what changed and what each ruling settled.
 
+**Revision 3, 2026-09-04.** One finding: the approved empty-state body was
+recorded in §3 and never applied to the markup. Applied, and the capture pass
+now asserts approved copy against the rendered board (§11).
+
 ---
 
 ## 0 · What the production tab is today
@@ -469,11 +473,20 @@ export that does not exist; a nav count of 15 contradicting a sample line of
 traverse. Revision 2: a sample line still reading 15 after a third specialist
 took the roster to 16.
 
-**Found by the capture pass''s own audit before any image was opened.**
+**Found by the capture pass's own audit before any image was opened.**
 Revision 1: clipped `Solo` / `Sack` / `Fum` / `Punt Avg` headers, a 9px sort
 caret below the type floor, a scroller engaging at 1280, and a missing space in
-the identity cell''s text. Revision 2: none — 0 failures on the first run after
-the changes, across 26 state x scope x section combinations at three widths.
+the identity cell's text. Revision 2: none — 0 failures across 26 state x
+scope x section combinations at three widths.
+
+**Revision 3 — one finding, and the check that now prevents its class.**
+Revision 2 recorded the approved empty-state body in the copy table at §3 and
+never changed the markup, so every no-attribution capture kept showing the
+sentence Charlie had rejected. A copy decision written into this file is not
+applied until the board says it, and 93 captures did not catch it because
+nothing compared them. The capture pass now asserts every approved string
+against the RENDERED markup; mutation-verified by putting the rejected sentence
+back, which reds naming both the rendered and the approved text.
 
 **Not inspected, and not claimed:**
 
@@ -486,7 +499,7 @@ the changes, across 26 state x scope x section combinations at three widths.
 - **No production code was run against this comp, no harness was written or
   run, and no gate was run** — all excluded by the assignment.
 - **Real coach data was not used**, so the comp is not evidence about how the
-  coach''s own roster renders. Long names were made long on purpose; his may be
+  coach's own roster renders. Long names were made long on purpose; his may be
   longer or shorter.
 - **The Full season scope is drawn, not proven.** Its fixture is a plausible
   nine-game aggregate, internally reconciled. Whether the multi-game model
@@ -500,9 +513,9 @@ the changes, across 26 state x scope x section combinations at three widths.
 | # | Decision | Ruling | Applied |
 |---|---|---|---|
 | 1 | Empty-role modules | **Approve** — the role set is fixed, so a literal empty module is clearer than silently removing the category | yes |
-| 2 | Section tabs | **Approve** — they reduce traversal and reuse the Defense / Special Teams interaction; Offense''s scroll is corrected later, not used to hold Players back | yes |
+| 2 | Section tabs | **Approve** — they reduce traversal and reuse the Defense / Special Teams interaction; Offense's scroll is corrected later, not used to hold Players back | yes |
 | 3 | Kicker with no field-goal attempt | **Revised** — `FG (M/A)` is `0/0` and `Punts` is `0` (counts), `Punt Avg` is `No data` (a quotient with no denominator) | yes |
-| 4 | Film cohort | **Row''s own role cohort.** Production must build valid game-scoped composite refs rather than fall back to `_watchPlayer` | yes, and recorded as an implementation dependency |
+| 4 | Film cohort | **Row's own role cohort.** Production must build valid game-scoped composite refs rather than fall back to `_watchPlayer` | yes, and recorded as an implementation dependency |
 | 5 | Scope control | **Approve** Current game / Full season, defaulting to Current game. Full season must use the multi-game model and composite refs — not a second scope implementation | yes |
 | 6 | Copy | **Partially approved** — see §3 for the exact wording of each | yes |
 | 7 | 1280 layout | **Revised** — mixed, per measured band width; do not shrink the identity column, do not stack narrow tables because Tackles is wide | yes |
@@ -517,15 +530,15 @@ approval of revision 2 itself, plus the three implementation dependencies in
 
 | # | Finding | Change |
 |---|---|---|
-| 1 | P1 — the comp dropped the **Season** tab from the shared Reports nav | Restored, in production''s own order: Overview, Offense, Defense, Special Teams, Players, Self-Scout, Season, Matchup. The comp may not remove an existing destination even when it does not redesign shared chrome. |
-| 2 | P2 — the sorting diagnosis would produce an incomplete repair | §8.2 rewritten: five columns, not four; and `numeric: true` fixes only `Punts` and `Punt Avg`, because `DataTable`''s `(Number(av) \|\| 0)` turns `NaN` into 0 and would sort `Pct`, `C/A` and `FG (M/A)` as all-zero. The three needing accessors are named, with what each should sort on. |
+| 1 | P1 — the comp dropped the **Season** tab from the shared Reports nav | Restored, in production's own order: Overview, Offense, Defense, Special Teams, Players, Self-Scout, Season, Matchup. The comp may not remove an existing destination even when it does not redesign shared chrome. |
+| 2 | P2 — the sorting diagnosis would produce an incomplete repair | §8.2 rewritten: five columns, not four; and `numeric: true` fixes only `Punts` and `Punt Avg`, because `DataTable`'s `(Number(av) \|\| 0)` turns `NaN` into 0 and would sort `Pct`, `C/A` and `FG (M/A)` as all-zero. The three needing accessors are named, with what each should sort on. |
 | 3 | P2 — the section descriptions narrated the interface | All four removed. The section rule carries its name and role count only. Recorded in the §3 copy table, where revision 1 had omitted them. |
-| 4 | P2 — the blanket 1280 stack wasted horizontal space | The rule is now per band and derived from each role''s measured table width. Return Game + Kicking / Punting stay paired at 1280; only bands carrying Rushing, Passing or Tackles stack. Asserted: 1 of 3 bands paired at 1280 in All roles. |
+| 4 | P2 — the blanket 1280 stack wasted horizontal space | The rule is now per band and derived from each role's measured table width. Return Game + Kicking / Punting stay paired at 1280; only bands carrying Rushing, Passing or Tackles stack. Asserted: 1 of 3 bands paired at 1280 in All roles. |
 | 5 | P3 — seven captures were taller than their stated viewport | Every capture is now exactly its release viewport; a taller board gets a `-full` companion. All 93 files verified by reading their PNG headers. |
 
 **Three implementation dependencies**, none of them presentation work:
 
-1. **Composite refs for the Players cohort** (ruling 4). The tab''s plays are
+1. **Composite refs for the Players cohort** (ruling 4). The tab's plays are
    never stamped with `__gid`, so every row falls back to the jersey cut-up.
    The fallback must be removed, not merely bypassed.
 2. **Full season through the multi-game model** (ruling 5). It must reuse the
