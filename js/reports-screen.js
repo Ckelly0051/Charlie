@@ -37,6 +37,10 @@ export class ReportsScreen {
     this.defenseScope = 'season';
     this.specialTeamsScope = 'season';
     this.playersScope = 'game';
+    // Players' role section is controller state for the same reason its scope
+    // is: a scope change re-renders the tab, and a selection held only in the
+    // view is lost when that remount happens.
+    this.playersSection = 'all';
     this.matchupOpponent = '';
   }
 

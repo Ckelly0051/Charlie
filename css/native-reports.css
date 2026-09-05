@@ -2396,7 +2396,12 @@
   --p-ca:78px;   /* C/A -- a full-season 174/261 */
   --p-g:74px;    /* Grade -- holds "+1.8" and the "No data" literal */
   --p-xl:88px;   /* FG (M/A), Punt Avg */
-  display:block;width:100%;margin:0;padding:var(--gi-4x);
+  /* No padding of its own. The route already insets this board by its own
+     content padding, and the comp measured its 16px against a frame that has
+     none -- paying both cost every band half 16px, which is what squeezed the
+     nine-column Tackles table's identity column below a real roster name at
+     1440. */
+  display:block;width:100%;margin:0;padding:0;
   border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
 }
 /* Scope, sample size and role navigation share ONE control row, so the board
@@ -2586,19 +2591,26 @@
 .gi-reports .gi-player-module table.gi-player-table th.is-sorted.is-desc::before{ content:'\2193' }
 .gi-reports .gi-player-module table.gi-player-table th.is-sorted.is-asc::before{ content:'\2191' }
 
-/* A clickable row must look clickable. The chevron reserves its width at rest,
-   so revealing it on hover moves no text. */
+/* A clickable row must look clickable. */
 .gi-reports .gi-player-module table.gi-player-table .cut-row{ cursor:pointer }
 .gi-reports .gi-player-module table.gi-player-table .cut-row:hover td{ background:var(--gi-bd-control) }
 .gi-reports .gi-player-module table.gi-player-table .cut-row:hover td.tl{ color:var(--gi-bd-strong) }
 .gi-reports .gi-player-module table.gi-player-table .cut-row:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+/* Absolutely positioned in the identity cell's own left inset, so the row
+   marker costs the identity column NO width -- the same reason the sort marker
+   below sits outside the flow. Reserved inline it took ~13px off every identity
+   cell in every table, which a long roster name cannot spare in the
+   nine-column Tackles table. It still moves no text, because it never
+   occupied any. */
+.gi-reports .gi-player-module table.gi-player-table td.tl{ position:relative }
 .gi-reports .gi-player-module table.gi-player-table .cut-row td.tl::before{
-  content:'\25B8';margin-right:6px;color:var(--gi-bd-cyan);opacity:0
+  content:'\25B8';position:absolute;left:4px;top:50%;transform:translateY(-50%);
+  color:var(--gi-bd-cyan);opacity:0;pointer-events:none
 }
 .gi-reports .gi-player-module table.gi-player-table .cut-row:hover td.tl::before,
 .gi-reports .gi-player-module table.gi-player-table .cut-row:focus-visible td.tl::before{ opacity:1 }
 
-@media(max-width:1356px){
+@media(max-width:1420px){
   .gi-reports .gi-player-band.b-2.is-wide{ grid-template-columns:minmax(0,1fr) }
   .gi-reports .gi-player-band.b-2.is-wide>.gi-player-module+.gi-player-module{
     box-shadow:none;border-top:1px solid var(--gi-bd-line)

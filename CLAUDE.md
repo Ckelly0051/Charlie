@@ -392,8 +392,8 @@ counts already on screen. Role counts are plain text, not boxed badges. Role
 headings are readable IBM Plex Sans at 12.5px with no tracking or forced
 uppercase; data rows are 38px at 13px; bands meet on thin rules so the six
 tables read as one report surface; and the report canvas is capped at 1648px
-and centred, because uncapped at 1920 a name sits most of a screen from its
-first measurement.
+and centred inside a board that carries no padding of its own, because
+uncapped at 1920 a name sits most of a screen from its first measurement.
 
 **The tables own their column geometry.** Each role emits a `colgroup` and
 renders `table-layout:fixed`, so the same measurement is the same width in
@@ -418,13 +418,38 @@ Three things this cost, each of which renders plausibly while being wrong:
   own content box across width × scope × section.
 
 **A band stacks only when its own widest table needs more than a band half.**
-A half is `(VW − 32 board padding − 1 gap) / 2 − 24 module padding`: 679px at
-1440, 599px at 1280. The tables need 620 / 632 / 498 / 638 / 482 / 448, so every
-band pairs at 1440 and only the bands carrying Rushing, Passing or Tackles stack
-at 1280 — Return Game and Kicking / Punting stay paired. A stacked band roughly
-doubles its measurement columns, because left at the paired widths the identity
-column absorbs ~830px of the extra room and a row reads as a name at the far
-left with its first number at the far right.
+The board carries no padding of its own — the route already insets it, and
+paying both cost each half 16px, which is what squeezed the nine-column
+Tackles identity column below a real roster name at 1440. Measured halves are
+663px at 1440 and 583px at 1280; the tables need 620 / 632 / 498 / 638 / 482 /
+448. Pairing Tackles also has to leave its identity column room for a name, so
+the breakpoint is where that stops being true: **1420px**, measured, not the
+width at which the table alone fits. Every band pairs at 1440 and only the
+bands carrying Rushing, Passing or Tackles stack at 1280 — Return Game and
+Kicking / Punting stay paired. A stacked band roughly doubles its measurement
+columns, because left at the paired widths the identity column absorbs ~830px
+of the extra room and a row reads as a name at the far left with its first
+number at the far right.
+
+**The row marker costs the identity column no width.** Reserved inline it took
+~13px off every identity cell in every table, which the Tackles table cannot
+spare; absolutely positioned in the cell's own left inset it still moves no
+text, because it never occupied any. `Terrance Whitfield-Boateng` fits at 1440
+with 10px to spare in Tackles, the tightest column on the board. The identity
+cell keeps `text-overflow:ellipsis` as a last-resort safeguard for an imported
+name longer than any panel can ever give it.
+
+**The selected role section is controller state, not view state.** A scope
+change re-renders the tab, so a selection held only in `PlayersTab` was
+discarded and the board snapped back to All roles under the coach's hands.
+`ReportsScreen.playersSection` survives that remount the way `playersScope`
+already does; switching section still re-renders in place, so it does not
+disturb sort. A scope change DOES reset the sort, deliberately — the cohort
+under it changed.
+
+**The role count keeps its denominator whenever a role is unattributed.**
+`5 roles` reads as the whole set; `5/6 roles` says one is missing. A full six
+drops the denominator, because there is nothing absent for it to name.
 
 **Two absence surfaces, one literal.** Roles with no attribution consolidate
 into a single `No data` row naming them, so the fixed role set stays visible
@@ -665,7 +690,7 @@ and the shared scorebug rule, 46), `tools/e2e-reports-special-teams.mjs`
 corrections and the printed export, 46) and `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
 absence contract, the role-specific composite film cohorts and the Grade
-repair, 158).
+repair, 169).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

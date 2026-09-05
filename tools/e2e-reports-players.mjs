@@ -52,6 +52,9 @@ const GAME_A = [
   { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'No Gain', yardage: '1', players: { tackler: '44 + 51' }, grades: { tackler: 1 } },
   { unit: 'defense', playType: 'Dropback', runPass: 'Pass', result: 'Sack', yardage: '-9', players: { tackler: '51' } },
   { unit: 'defense', playType: 'Quick Pass', runPass: 'Pass', result: 'Interception', yardage: '0', players: { tackler: '44', takeaway: '27' } },
+  /* The longest representative roster name in the NINE-column Tackles table --
+     the tightest identity column on the board, and the one that truncated. */
+  { unit: 'defense', playType: 'Run Outside', runPass: 'Run', result: 'No Gain', yardage: '2', players: { tackler: '22' } },
   { unit: 'special', stType: 'Kick Return', kickOutcome: 'Returned', returnYards: '24', players: { returner: '7' } },
   { unit: 'special', stType: 'Punt Return', kickOutcome: 'Returned', returnYards: '0', players: { returner: '16' } },
   { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '28', players: { kicker: '3' } },
@@ -615,6 +618,117 @@ const opened = await page.evaluate(() => ({
 }));
 ok(opened.scope === 'game' && opened.active === 'Current game',
   'the tab opens on Current game', JSON.stringify(opened));
+
+/* ══ 12. The three repairs on top of 7066844 ═════════════════════════════ */
+console.log('\n== 12. Long names, section persistence, and the sparse denominator ==');
+await load([GAME_A, GAME_B]);
+await page.setViewport({ width: 1440, height: 900 });
+await frame();
+await setScope('season');
+await setSection('All roles');
+
+/* 12a. A representative long roster name renders in FULL at 1440, including in
+   the nine-column Tackles table -- the tightest identity column on the board.
+   Measured against the cell's own content box, not against the ellipsis: an
+   ellipsised cell reports its truncated width, so `scrollWidth` alone would
+   pass on the very defect this asserts. */
+const LONG_NAME = '#22 Terrance Whitfield-Boateng';
+const longName = await page.evaluate(name => [...document.querySelectorAll('.gi-player-module')]
+  .map(m => {
+    const cell = [...m.querySelectorAll('td.tl')].find(c => c.textContent.trim() === name);
+    if (!cell) return null;
+    const rg = document.createRange(); rg.selectNodeContents(cell);
+    const cs = getComputedStyle(cell);
+    return {
+      role: m.querySelector('header strong').textContent.trim(),
+      need: Math.ceil(rg.getBoundingClientRect().width),
+      avail: Math.round(cell.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)),
+      ellipsised: cell.scrollWidth > cell.clientWidth + 0.5,
+    };
+  }).filter(Boolean), LONG_NAME);
+ok(longName.length >= 2,
+  `the long representative name appears in more than one role table`,
+  JSON.stringify(longName.map(r => r.role)));
+ok(longName.every(r => r.need <= r.avail && !r.ellipsised),
+  `"${LONG_NAME}" renders in full at 1440 in every role table that holds it`,
+  JSON.stringify(longName));
+const tackles = longName.find(r => r.role === 'Tackles');
+ok(tackles && tackles.avail - tackles.need >= 0,
+  'the nine-column Tackles identity column holds the name with room to spare',
+  JSON.stringify(tackles));
+
+/* The row marker must cost the identity column no width, or it takes that room
+   straight back off the name. */
+const marker = await page.evaluate(() => {
+  const td = document.querySelector('.gi-player-table .cut-row td.tl');
+  return getComputedStyle(td, '::before').position;
+});
+ok(marker === 'absolute',
+  'the row marker is outside the flow, so it costs the identity column no width', marker);
+
+/* 12b. The selected role section survives a scope change. It was local view
+   state, and a scope change re-renders the tab, so the board snapped back to
+   All roles under the coach's hands. */
+for (const [title, other] of [['Offense', 'season'], ['Defense', 'game'], ['Special Teams', 'season']]) {
+  await setSection(title);
+  const before = await page.evaluate(() =>
+    document.querySelector('.gi-players-nav button.active')?.textContent.trim());
+  await setScope(other);
+  const after = await page.evaluate(() => ({
+    active: document.querySelector('.gi-players-nav button.active')?.textContent.trim(),
+    controller: window.app.reportsScreen.playersSection,
+  }));
+  ok(after.active?.startsWith(title),
+    `${title} stays selected across a scope change`,
+    `${before} -> ${after.active} (controller ${after.controller})`);
+}
+
+/* Scope still resets the table sort, because the cohort changed under it. */
+await setSection('All roles');
+await setScope('game');
+await page.evaluate(() => {
+  const m = document.querySelector('.gi-player-band .gi-player-module');
+  [...m.querySelectorAll('thead th')].find(t => t.textContent.trim() === 'Long')?.click();
+});
+await frame();
+const sortedBefore = await page.evaluate(() =>
+  document.querySelector('.gi-player-band .gi-player-module th.is-sorted')?.textContent.trim());
+await setScope('season');
+const sortedAfter = await page.evaluate(() =>
+  document.querySelector('.gi-player-band .gi-player-module th.is-sorted')?.textContent.trim());
+ok(sortedBefore === 'Long' && sortedAfter === 'Yds',
+  'a scope change resets the table sort to the engine order, it is not carried across cohorts',
+  `${sortedBefore} -> ${sortedAfter}`);
+
+/* 12c. The role count keeps its denominator whenever a role is unattributed. */
+await setScope('season');
+await setSection('All roles');
+const fullSample = await page.evaluate(() =>
+  document.querySelector('.gi-players-sample')?.textContent.trim());
+ok(fullSample === '12 players · 6 roles · 210 charted plays',
+  'a fully populated board reads the plain role count, with nothing absent to name',
+  fullSample);
+
+await load([[
+  { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '11', players: { ballCarrier: '22' } },
+  { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'No Gain', yardage: '1', players: { tackler: '51' } },
+]]);
+const sparseSample = await page.evaluate(() =>
+  document.querySelector('.gi-players-sample')?.textContent.trim());
+ok(sparseSample === '2 players · 2/6 roles · 2 charted plays',
+  'a sparse board keeps the denominator, so 2 roles cannot read as the whole set',
+  sparseSample);
+
+await load([[
+  { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '11', players: { ballCarrier: '22' } },
+  { unit: 'offense', playType: 'Quick Pass', runPass: 'Pass', result: 'Gain', yardage: '9', players: { passer: '12', receiver: '84' } },
+  { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'No Gain', yardage: '1', players: { tackler: '51' } },
+  { unit: 'special', stType: 'Kick Return', kickOutcome: 'Returned', returnYards: '20', players: { returner: '7' } },
+]]);
+const fiveSample = await page.evaluate(() =>
+  document.querySelector('.gi-players-sample')?.textContent.trim());
+ok(fiveSample === '5 players · 5/6 roles · 4 charted plays',
+  'five populated roles read 5/6, exactly the approved sparse format', fiveSample);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); console.log(errors.slice(0, 5).join('\n')); }

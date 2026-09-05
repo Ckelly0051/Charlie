@@ -612,7 +612,14 @@ function PlayerRoleModule({ role, table, screen }) {
 }
 
 export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedScope = false }) {
-  const [section, setSection] = useState('all');
+  /* Section lives on the controller, the way `playersScope` does. A scope change
+     calls `_renderActiveTab()`, which unmounts and remounts this component, so a
+     purely local selection was discarded and the board snapped back to All
+     roles. Local state still drives the render, so switching SECTION re-renders
+     in place and does not disturb sort state; the controller property is what
+     survives the remount. */
+  const [section, setSectionState] = useState(screen.playersSection || 'all');
+  const setSection = id => { screen.playersSection = id; setSectionState(id); };
   const engine = screen.app.stats;
   const playerLabel = num => labels?.[String(num)] ? `#${num} ${labels[String(num)]}` : engine._playerLabel(num);
   const tables = view.individualStats(stats, 'all', playerLabel);
@@ -647,7 +654,13 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
           <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
             onClick={() => { screen.playersScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
         </div>
-        <span class="gi-players-sample"><b>{playerCount}</b> players · <b>{tables.length}</b> roles · <b>{playCount}</b> charted plays</span>
+        {/* The role count keeps its denominator whenever a role is unattributed:
+            `5 roles` reads as the whole set, `5/6 roles` says one is missing.
+            A full six drops the denominator, because there is nothing absent
+            for it to name. */}
+        <span class="gi-players-sample"><b>{playerCount}</b> players · <b>{
+          tables.length === PLAYER_ROLES.length ? String(tables.length) : `${tables.length}/${PLAYER_ROLES.length}`
+        }</b> roles · <b>{playCount}</b> charted plays</span>
       </div>}
       <nav class="gi-players-nav" aria-label="Player roles">
         {PLAYER_SECTIONS.map(([id, title]) => {
