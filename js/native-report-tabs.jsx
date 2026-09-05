@@ -537,16 +537,84 @@ export function OffenseTab({ stats, screen }) {
     {advanced && <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} /></div>}
   </div>;
 }
-export function PlayersTab({ stats, screen, labels = null }) {
+const PLAYER_ROLES = [
+  { key: 'rushing', title: 'Rushing', phase: 'off', section: 'off', meta: 'ball carrier on a run' },
+  { key: 'passing', title: 'Passing', phase: 'off', section: 'off', meta: 'passer on a pass' },
+  { key: 'receiving', title: 'Receiving', phase: 'off', section: 'off', meta: 'receiver on a completion' },
+  { key: 'tackles', title: 'Tackles', phase: 'def', section: 'def', meta: 'tackler or takeaway on a defensive snap' },
+  { key: 'returns', title: 'Return Game', phase: 'st', section: 'st', meta: 'returner on a kick or punt return' },
+  { key: 'kicking', title: 'Kicking / Punting', phase: 'st', section: 'st', meta: 'kicker or punter on a field goal or punt' },
+];
+const PLAYER_LAYOUT = {
+  all: [['rushing', 'passing'], ['receiving', 'tackles'], ['returns', 'kicking']],
+  off: [['rushing', 'passing'], ['receiving']],
+  def: [['tackles']],
+  st: [['returns', 'kicking']],
+};
+const PLAYER_SECTIONS = [
+  ['all', 'All roles'], ['off', 'Offense'], ['def', 'Defense'], ['st', 'Special Teams'],
+];
+const PLAYER_WIDE = new Set(['rushing', 'passing', 'tackles']);
+
+function PlayerRoleModule({ role, table, screen }) {
+  const rows = table?.rows || [];
+  const columns = (table?.columns || []).map(([key, label, numeric, sortKey]) => ({
+    key, label, numeric, tl: key === 'player',
+    sortValue: sortKey ? row => row[sortKey] : undefined,
+    cellClass: key === 'grade' ? row => row.gradeClass : undefined,
+  }));
+  return <Module title={role.title}
+    meta={rows.length ? `${rows.length} player${rows.length === 1 ? '' : 's'} — ${role.meta}` : 'No data'}
+    cls={`gi-player-module is-${role.phase}${rows.length ? '' : ' is-none'}`}>
+    {rows.length ? <DataTable className="stats-table gi-player-table" columns={columns}
+      rows={rows.map(row => ({ ...row, player: row.label, id: `${role.key}-${row.num}`,
+        onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label} — ${role.title}`) : undefined,
+        label: `${row.label} — ${role.title}` }))} />
+      : <p class="gi-player-none">No player attribution</p>}
+  </Module>;
+}
+
+export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedScope = false }) {
+  const [section, setSection] = useState('all');
   const engine = screen.app.stats;
   const playerLabel = num => labels?.[String(num)] ? `#${num} ${labels[String(num)]}` : engine._playerLabel(num);
   const tables = view.individualStats(stats, 'all', playerLabel);
-  if (!tables.length) return <EmptyState title="No player attribution yet" body="Add ball carrier, passer, receiver, tackler, returner, or kicker to chart individual performance." />;
-  return <div class="gi-overview-board">
-    {tables.map(table => <Module key={table.key} title={table.title}>
-      <DataTable columns={table.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
-        rows={table.rows.map(row => ({ ...row, id: row.num, player: row.label, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label}'s plays`) : () => engine._watchPlayer(row.num), label: `${row.label}'s plays` }))} />
-    </Module>)}
+  if (!tables.length) return <EmptyState title="No player attribution" body="No players are attributed to charted plays."
+    action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
+
+  const tableByKey = Object.fromEntries(tables.map(table => [table.key, table]));
+  const rolePlayers = keys => new Set(keys.flatMap(key => (tableByKey[key]?.rows || []).map(row => String(row.num))));
+  const sectionKeys = id => PLAYER_ROLES.filter(role => id === 'all' || role.section === id).map(role => role.key);
+  const attributedRoles = sectionKeys(section).filter(key => tableByKey[key]?.rows.length).length;
+  const totalRoles = sectionKeys(section).length;
+  const playerCount = rolePlayers(sectionKeys('all')).size;
+  const playCount = scoped?.length ?? stats?.allPlays?.length ?? 0;
+
+  return <div class="gi-overview-board gi-players-board">
+    {!fixedScope && <div class="gi-players-toolbar">
+      <span class="gi-players-toolbar-label">Scope</span>
+      <div class="gi-players-scope" role="group" aria-label="Players report scope">
+        <button type="button" class={screen.playersScope === 'game' ? 'active' : ''} aria-pressed={screen.playersScope === 'game'}
+          onClick={() => { screen.playersScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+        <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
+          onClick={() => { screen.playersScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+      </div>
+      <span class="gi-players-sample"><b>{playerCount}</b> players attributed across <b>{tables.length}</b> roles — <b>{playCount}</b> plays charted</span>
+    </div>}
+    <nav class="gi-players-nav" aria-label="Player roles">
+      {PLAYER_SECTIONS.map(([id, title]) => {
+        const count = rolePlayers(sectionKeys(id)).size;
+        return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
+          aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
+      })}
+    </nav>
+    <div class="gi-players-rule"><h2>{PLAYER_SECTIONS.find(([id]) => id === section)?.[1]}</h2><em>{attributedRoles} of {totalRoles} roles attributed</em></div>
+    <div class="gi-players-sections">
+      {PLAYER_LAYOUT[section].map((band, index) => <div key={`${section}-${index}`}
+        class={`gi-player-band${band.length === 1 ? ' is-single' : ''}${band.some(key => PLAYER_WIDE.has(key)) ? ' is-wide' : ''}`}>
+        {band.map(key => <PlayerRoleModule key={key} role={PLAYER_ROLES.find(role => role.key === key)} table={tableByKey[key]} screen={screen} />)}
+      </div>)}
+    </div>
   </div>;
 }
 
@@ -1596,7 +1664,7 @@ function SeasonPlayers({ model, screen }) {
     {wl && <Module title="Wins vs Losses" meta={`${wl.winCount} win${wl.winCount===1?'':'s'}, ${wl.lossCount} loss${wl.lossCount===1?'':'es'}`}>
       <DataTable className="stats-table stats-table-full gi-wl-table" columns={[{key:'metric',label:'Metric'},{key:'wins',label:'Wins'},{key:'losses',label:'Losses'}]} rows={wlRows} />
     </Module>}
-    <PlayersTab stats={model.stats} screen={screen} labels={model.rosterLabels} />
+    <PlayersTab stats={model.stats} scoped={model.allPlays} screen={screen} labels={model.rosterLabels} fixedScope />
     <Module title="Per-Game Box Score">
       <DataTable columns={[{key:'name',label:'Game'},{key:'plays',label:'Plays',numeric:true},{key:'yards',label:'Yds',numeric:true},{key:'rush',label:'Rush A/Y'},{key:'pass',label:'Pass C/A/Y'},{key:'touchdowns',label:'TD',numeric:true},{key:'turnoverMargin',label:'TO±',numeric:true,render:r=>margin(r.turnoverMargin)},{key:'pointsPerDrive',label:'PPD',numeric:true},{key:'successRate',label:'Succ%',numeric:true,render:r=>`${r.successRate}%`},{key:'thirdDown',label:'3rd%',numeric:true,render:r=>`${r.thirdDown}%`}]} rows={model.perGame} />
     </Module>

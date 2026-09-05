@@ -72,7 +72,7 @@ export function RowList({ rows }) {
   </div>)}</div>;
 }
 
-/** A sortable data table. `columns`: [{key,label,align,numeric}]. `rows`:
+/** A sortable data table. `columns`: [{key,label,align,numeric,sortValue,cellClass}]. `rows`:
  *  array of plain objects; each may carry `onActivate`/`label`/`id`. Sort
  *  state is local UI state — never touches football data or row identity. */
 export function DataTable({ columns, rows, className = 'stats-table stats-table-full', emptyText = 'No data yet.' }) {
@@ -82,7 +82,13 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
     const col = columns.find(c => c.key === sort.key);
     const copy = rows.slice();
     copy.sort((a, b) => {
-      const av = a[sort.key], bv = b[sort.key];
+      const av = col?.sortValue ? col.sortValue(a) : a[sort.key];
+      const bv = col?.sortValue ? col.sortValue(b) : b[sort.key];
+      const aMissing = av === null || av === undefined || av === '';
+      const bMissing = bv === null || bv === undefined || bv === '';
+      // Missing measurements stay last in both directions. Treating them as
+      // zero would put an ungraded player ahead of a negative grade.
+      if (aMissing !== bMissing) return aMissing ? 1 : -1;
       let cmp;
       if (col?.numeric) cmp = (Number(av) || 0) - (Number(bv) || 0);
       else cmp = String(av ?? '').localeCompare(String(bv ?? ''));
@@ -106,7 +112,9 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(col.key); } }}
     >{col.label}</th>)}</tr></thead>
     <tbody>{sorted.map((row, i) => <Watchable key={row.id ?? i} tag="tr" class={row.class} onActivate={row.onActivate} label={row.label}>
-      {columns.map(col => <td key={col.key} data-col={col.key} class={col.tl ? 'tl' : undefined}>{col.render ? col.render(row) : row[col.key]}</td>)}
+      {columns.map(col => <td key={col.key} data-col={col.key}
+        class={[col.tl ? 'tl' : '', typeof col.cellClass === 'function' ? col.cellClass(row) : col.cellClass || ''].filter(Boolean).join(' ') || undefined}
+      >{col.render ? col.render(row) : row[col.key]}</td>)}
     </Watchable>)}</tbody>
   </table></div>;
 }

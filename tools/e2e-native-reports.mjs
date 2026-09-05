@@ -307,7 +307,7 @@ result = await page.evaluate(() => {
     // Teams" toolbar label -- the tab strip already names the report. Its
     // football-specific surface is the unit ledger, which always names every
     // unit of the model, so that is what proves the surface is really there.
-    special: ['Kickoff', 'Punt Return'], players: ['Individual'], selfscout: ['Self-Scout'],
+    special: ['Kickoff', 'Punt Return'], players: ['Rushing'], selfscout: ['Self-Scout'],
     season: ['Season'], matchup: ['Matchup'],
   };
   for (const tab of Object.keys(needles)) {
@@ -363,7 +363,7 @@ result = await page.evaluate(async () => {
   await clickTab('offense');
   clickModuleRow('Play calls');
   await clickTab('players');
-  clickModuleRow('Individual Rushing');
+  clickModuleRow('Rushing');
   const model = app.season.reportModel();
   const direct = {
     big: model.stats.bigPlays.map(row => row.ref).sort(),
@@ -1693,7 +1693,12 @@ result = await page.evaluate(async () => {
   const watched = calls.at(-1) || null;
 
   app.filmNavigation.watch = original;
-  return { rowFound: !!row22, boxScore, watched };
+  return {
+    rowFound: !!row22, boxScore, watched,
+    scope: app.reportsScreen.playersScope,
+    scoped: app.reportsScreen._playersScopedPlays?.map(play => `${play.__gid}::${play.id}`) || [],
+    paneText: (document.querySelector('[data-pane="players"]')?.textContent || '').replace(/\s+/g, ' ').trim(),
+  };
 });
 ok(result.rowFound, 'The real Reports Players tab renders a leaderboard row for the charted rusher', JSON.stringify(result));
 ok(result.boxScore?.att === '2' && result.boxScore?.yds === '8',

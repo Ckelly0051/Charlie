@@ -464,36 +464,35 @@ export function individualStats(stats, group, playerLabel) {
   const showDef = group === 'all' || group === 'defense';
   const showST = group === 'all' || group === 'special';
   const grade = r => {
-    if (!r.gradeCount) return { text: '—', cls: '' };
+    if (!r.gradeCount) return { grade: 'No data', gradeClass: '', gradeSort: null };
     const avg = r.gradeSum / r.gradeCount;
-    return { text: `${avg > 0 ? '+' : ''}${avg.toFixed(1)}`, cls: avg > 0 ? 'grade-pos' : avg < 0 ? 'grade-neg' : '' };
+    return { grade: `${avg > 0 ? '+' : ''}${avg.toFixed(1)}`, gradeClass: avg > 0 ? 'grade-pos' : avg < 0 ? 'grade-neg' : '', gradeSort: avg };
   };
   const player = num => ({ num, label: playerLabel(num) });
   // Special Teams Presentation Independence: `_individualStats` now carries a
   // deduped, sorted `refs` array on every row (the exact plays that produced
   // that row's own counts). Propagated here unconditionally -- PlayersTab
-  // (game-scoped, still uses `engine._watchPlayer`) simply ignores the field;
-  // SpecialTeamsTab (season-capable) needs it for an honest cross-game click.
+  // and PlayersTab both need it for an honest role-specific cross-game click.
   const refs = row => Array.isArray(row.refs) ? row.refs : [];
   const tables = [];
-  if (showOff && ind.rushers?.length) tables.push({ title: 'Individual Rushing', key: 'rushing',
-    columns: [['player', 'Player'], ['att', 'Att', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true], ['fum', 'Fum', true], ['grade', 'Grade']],
+  if (showOff && ind.rushers?.length) tables.push({ title: 'Rushing', key: 'rushing',
+    columns: [['player', 'Player'], ['att', 'Att', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true], ['fum', 'Fum', true], ['grade', 'Grade', true, 'gradeSort']],
     rows: ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r), refs: refs(r) })) });
-  if (showOff && ind.passers?.length) tables.push({ title: 'Individual Passing', key: 'passing',
-    columns: [['player', 'Player'], ['ca', 'C/A'], ['pct', 'Pct'], ['yds', 'Yds', true], ['tds', 'TD', true], ['ints', 'INT', true], ['sacks', 'Sck', true], ['grade', 'Grade']],
-    rows: ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p), refs: refs(p) })) });
-  if (showOff && ind.receivers?.length) tables.push({ title: 'Individual Receiving', key: 'receiving',
-    columns: [['player', 'Player'], ['rec', 'Rec', true], ['yds', 'Yds', true], ['long', 'Long', true], ['tds', 'TD', true], ['grade', 'Grade']],
+  if (showOff && ind.passers?.length) tables.push({ title: 'Passing', key: 'passing',
+    columns: [['player', 'Player'], ['ca', 'C/A', true, 'caSort'], ['pct', 'Pct', true, 'pctSort'], ['yds', 'Yds', true], ['tds', 'TD', true], ['ints', 'INT', true], ['sacks', 'Sck', true], ['grade', 'Grade', true, 'gradeSort']],
+    rows: ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, caSort: p.completions, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, pctSort: p.attempts ? p.completions / p.attempts : 0, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p), refs: refs(p) })) });
+  if (showOff && ind.receivers?.length) tables.push({ title: 'Receiving', key: 'receiving',
+    columns: [['player', 'Player'], ['rec', 'Rec', true], ['yds', 'Yds', true], ['long', 'Long', true], ['tds', 'TD', true], ['grade', 'Grade', true, 'gradeSort']],
     rows: ind.receivers.map(r => ({ ...player(r.num), rec: r.receptions, yds: r.yards, long: r.long, tds: r.tds, ...grade(r), refs: refs(r) })) });
-  if (showDef && ind.tacklers?.length) tables.push({ title: 'Individual Tackles', key: 'tackles',
-    columns: [['player', 'Player'], ['tkl', 'Tkl', true], ['solo', 'Solo', true], ['ast', 'Ast', true], ['sacks', 'Sack', true], ['tfl', 'TFL', true], ['ints', 'INT', true], ['fr', 'FR', true], ['grade', 'Grade']],
+  if (showDef && ind.tacklers?.length) tables.push({ title: 'Tackles', key: 'tackles',
+    columns: [['player', 'Player'], ['tkl', 'Tkl', true], ['solo', 'Solo', true], ['ast', 'Ast', true], ['sacks', 'Sack', true], ['tfl', 'TFL', true], ['ints', 'INT', true], ['fr', 'FR', true], ['grade', 'Grade', true, 'gradeSort']],
     rows: ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) })) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
     rows: ind.returners.map(r => ({ ...player(r.num), ret: r.returns, yds: r.yards, avg: r.returns ? (r.yards / r.returns).toFixed(1) : '0.0', long: r.long, tds: r.tds, refs: refs(r) })) });
   if (showST && ind.kickers?.length) tables.push({ title: 'Kicking / Punting', key: 'kicking',
-    columns: [['player', 'Player'], ['fg', 'FG (M/A)'], ['punts', 'Punts'], ['puntAvg', 'Punt Avg']],
-    rows: ind.kickers.map(k => ({ ...player(k.num), fg: k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—', punts: k.punts || '—', puntAvg: k.punts ? (k.puntYds / k.punts).toFixed(1) : '—', refs: refs(k) })) });
+    columns: [['player', 'Player'], ['fg', 'FG (M/A)', true, 'fgSort'], ['punts', 'Punts', true, 'puntsSort'], ['puntAvg', 'Punt Avg', true, 'puntAvgSort']],
+    rows: ind.kickers.map(k => ({ ...player(k.num), fg: `${k.fgMade || 0}/${k.fgAtt || 0}`, fgSort: k.fgMade || 0, punts: k.punts || 0, puntsSort: k.punts || 0, puntAvg: k.punts ? (k.puntYds / k.punts).toFixed(1) : 'No data', puntAvgSort: k.punts ? k.puntYds / k.punts : null, refs: refs(k) })) });
   return tables;
 }
 

@@ -36,6 +36,7 @@ export class ReportsScreen {
     this._opponentData = null;
     this.defenseScope = 'season';
     this.specialTeamsScope = 'season';
+    this.playersScope = 'game';
     this.matchupOpponent = '';
   }
 
@@ -519,7 +520,7 @@ export class ReportsScreen {
     // second argument passed to it everywhere was always inert. Skipping the
     // compute() call for the tabs that don't need it avoids paying for the
     // whole engine on every Defense/Self-Scout/Season/Matchup render.
-    const stats = ['overview', 'offense', 'players'].includes(tab) ? statsEngine.compute() : null;
+    const stats = ['overview', 'offense'].includes(tab) ? statsEngine.compute() : null;
 
     render(null, this.content);
     if (tab === 'overview') {
@@ -531,7 +532,10 @@ export class ReportsScreen {
       return;
     }
     if (tab === 'players') {
-      render(h(ReportPane, { tab: 'players' }, h(PlayersTab, { stats, screen: this })), this.content);
+      const { scoped } = this._playersCohort();
+      this._playersScopedPlays = scoped;
+      const playerStats = statsEngine.compute(scoped);
+      render(h(ReportPane, { tab: 'players' }, h(PlayersTab, { stats: playerStats, scoped, screen: this })), this.content);
       return;
     }
     if (tab === 'defense') {
@@ -657,6 +661,12 @@ export class ReportsScreen {
    *  game toggle so switching one tab's scope never moves the other's. */
   _specialTeamsCohort() {
     return this._selfPerspectiveCohort(this.specialTeamsScope);
+  }
+
+  /** Players uses the same self-perspective, composite-ref-safe cohort as
+   * Defense and Special Teams, with its own independent scope control. */
+  _playersCohort() {
+    return this._selfPerspectiveCohort(this.playersScope);
   }
 
 }

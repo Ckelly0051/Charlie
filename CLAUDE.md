@@ -396,6 +396,21 @@ mutation-verified against the generic band.
 largest bucket made a 29% outcome fill the whole track; the width is the
 bucket's own percentage of its unit.
 
+**Reports > Players is implemented from the approved 2026-09-04 comp.** It
+keeps six fixed role modules (Rushing, Passing, Receiving, Tackles, Return Game,
+Kicking / Punting), with All roles / Offense / Defense / Special Teams section
+navigation. The main tab defaults to Current game and can switch independently
+to Full season through `_playersCohort`; the Season report's embedded Players
+view remains fixed to its existing full-season model.
+
+An attributed row opens only that role's contributing composite refs. Empty
+roles remain visible as `No player attribution`; an entirely unattributed
+cohort uses the compact action state and the same literal copy. Grade is the
+signed one-decimal average or `No data`. C/A, Pct, FG M/A, Punts, Punt Avg and
+Grade sort on explicit numeric values, with missing values last in both
+directions. `e2e-native-reports` pins the role-specific film cohort, and
+`e2e-responsive-containment` pins route containment at release widths.
+
 **Two approved production changes are still pending, carried by no file:**
 the context bar wrapping long game names at 1280 instead of clipping (shared
 shell owner — and the shell's response to a taller bar still needs verifying),

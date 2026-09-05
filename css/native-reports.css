@@ -2364,6 +2364,86 @@
 .gi-reports .gi-st-board .gi-st-export:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:2px }
 .gi-reports .gi-st-export{ margin-left:auto }
 
+/* ── PLAYERS BOARD ───────────────────────────────────────────────────────
+   Six fixed football roles, grouped into even bands. Identity stays the
+   visual anchor while measurement columns remain compact and tabular. */
+.gi-reports .gi-players-board{ padding:0 }
+.gi-reports .gi-players-toolbar{
+  display:flex;align-items:center;gap:var(--gi-3x);flex-wrap:wrap;
+  margin:0 0 4px;padding:7px var(--gi-3x);background:var(--gi-bd-panel)
+}
+.gi-reports .gi-players-toolbar-label{
+  color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase
+}
+.gi-reports .gi-players-scope{ display:flex;gap:1px;background:var(--gi-bd-line) }
+.gi-reports .gi-players-scope button{
+  min-height:32px;padding:6px 14px;border:0;background:var(--gi-bd-control);
+  color:var(--gi-bd-copy);font:var(--gi-text-label);cursor:pointer;white-space:nowrap
+}
+.gi-reports .gi-players-scope button:hover{ background:var(--gi-bd-control-active);color:var(--gi-bd-strong) }
+.gi-reports .gi-players-scope button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-players-scope button.active{
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)
+}
+.gi-reports .gi-players-sample{ color:var(--gi-bd-copy);font:400 11px/1.3 var(--gi-sans) }
+.gi-reports .gi-players-sample b{ color:var(--gi-bd-strong);font-weight:600 }
+.gi-reports .gi-players-nav{ display:flex;gap:1px;margin:0 0 4px;background:var(--gi-bd-line) }
+.gi-reports .gi-players-nav button{
+  flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 11px/1 var(--gi-cond);
+  letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer;white-space:nowrap
+}
+.gi-reports .gi-players-nav button>b{
+  display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 3px;
+  background:var(--gi-bd-control-active);color:var(--gi-bd-muted);font:700 10px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-players-nav button:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
+.gi-reports .gi-players-nav button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-players-nav button.active{
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan),var(--gi-raise-tab)
+}
+.gi-reports .gi-players-nav button.active>b{ background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink) }
+.gi-reports .gi-players-nav button.is-none{ color:var(--gi-bd-muted) }
+.gi-reports .gi-players-rule{
+  display:flex;align-items:baseline;gap:var(--gi-3x);margin:0 0 4px;padding:9px var(--gi-3x) 7px;
+  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)
+}
+.gi-reports .gi-players-rule h2{
+  margin:0;color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase
+}
+.gi-reports .gi-players-rule em{ margin-left:auto;color:var(--gi-bd-muted);font:400 10.5px/1.2 var(--gi-sans);font-style:normal }
+.gi-reports .gi-player-band{ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0 0 4px;background:transparent }
+.gi-reports .gi-player-band.is-single{ grid-template-columns:minmax(0,1fr) }
+.gi-reports .gi-player-band>.gi-player-module+.gi-player-module{ box-shadow:-1px 0 var(--gi-bd-line) }
+.gi-reports .gi-player-module{ padding:var(--gi-2x) var(--gi-3x) 10px }
+.gi-reports .gi-player-module.is-off>header strong{ color:var(--gi-bd-gold) }
+.gi-reports .gi-player-module.is-def>header strong{ color:var(--gi-bd-cyan) }
+.gi-reports .gi-player-module.is-st>header strong{ color:var(--gi-bd-copy) }
+.gi-reports .gi-player-module.is-none>header strong{ color:var(--gi-bd-muted) }
+.gi-reports .gi-player-none{ margin:2px 0 4px;color:var(--gi-bd-muted);font:400 12px/1.5 var(--gi-sans) }
+.gi-reports .gi-player-module .gi-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
+.gi-reports .gi-player-table{ width:auto;max-width:100%;table-layout:auto }
+.gi-reports .gi-player-table th,.gi-reports .gi-player-table td{ height:var(--gi-row);padding:0 var(--gi-2x);white-space:nowrap }
+.gi-reports .gi-player-table th:first-child,.gi-reports .gi-player-table td:first-child{ min-width:208px }
+.gi-reports .gi-player-table td:first-child{ color:var(--gi-bd-strong);font-weight:600 }
+.gi-reports .gi-player-table td.grade-pos{ color:var(--gi-bd-win) }
+.gi-reports .gi-player-table td.grade-neg{ color:var(--gi-bd-loss) }
+.gi-reports .gi-player-table td[data-col="grade"]:not(.grade-pos):not(.grade-neg),
+.gi-reports .gi-player-table td[data-col="puntAvg"]{ min-width:72px }
+.gi-reports .gi-player-table .cut-row{ cursor:pointer }
+.gi-reports .gi-player-table .cut-row:hover td{ background:var(--gi-bd-control) }
+.gi-reports .gi-player-table .cut-row:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+
+@media(max-width:1330px){
+  .gi-reports .gi-player-band.is-wide{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-player-band.is-wide>.gi-player-module+.gi-player-module{ box-shadow:none;border-top:1px solid var(--gi-bd-line) }
+}
+@media(max-width:700px){
+  .gi-reports .gi-players-nav{ overflow-x:auto }
+  .gi-reports .gi-players-nav button{ flex:0 0 auto }
+  .gi-reports .gi-player-band{ grid-template-columns:minmax(0,1fr) }
+}
+
 @media(max-width:1360px){
   .gi-reports .gi-st-board .gi-overview-kpis{ grid-template-columns:repeat(3,minmax(0,1fr)) }
   /* The six units stay on ONE row at 1280 (coach, 2026-09-04) -- wrapping to
