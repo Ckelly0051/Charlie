@@ -41,6 +41,10 @@ export class ReportsScreen {
     // is: a scope change re-renders the tab, and a selection held only in the
     // view is lost when that remount happens.
     this.playersSection = 'all';
+    // Self-Scout's active section is controller state for the same reason
+    // Players' is: any ordinary Reports re-render unmounts and remounts the
+    // tab, and a selection held only in the view is lost when that happens.
+    this.selfScoutSection = 'summary';
     this.matchupOpponent = '';
   }
 
@@ -570,11 +574,18 @@ export class ReportsScreen {
       return;
     }
     else if (tab === 'selfscout') {
-      const report = statsEngine.generateSelfScout();
-      const defScout = report?.defScout || statsEngine.generateDefensiveSelfScout();
-      const performance = statsEngine.compute();
+      // The same self-perspective, composite-ref-safe cohort Defense, Special
+      // Teams and Players already use, at the current game -- which is the
+      // scope this report has always had. The cohort is what stamps `__gid`,
+      // so every Self-Scout row can carry real `gameId::playId` refs; sourced
+      // straight from the live tagger they had none at all.
+      const { scoped } = this._selfScoutCohort();
+      this._selfScoutScopedPlays = scoped;
+      const report = statsEngine.generateSelfScout(scoped);
+      const defScout = report?.defScout || statsEngine.generateDefensiveSelfScout(scoped);
+      const performance = statsEngine.compute(scoped);
       const callRows = statsEngine._selfScoutRows(statsEngine._selfScoutGroup(
-        statsEngine._offensePlays(), play => play.tags.playCall || play.tags.playConcept || null
+        performance.offPlays, play => play.tags.playCall || play.tags.playConcept || null
       ));
       render(h(ReportPane, { tab: 'selfscout' },
         h(SelfScoutTab, { report, defScout, performance, callRows, screen: this })), this.content);
@@ -671,6 +682,13 @@ export class ReportsScreen {
    * Defense and Special Teams, with its own independent scope control. */
   _playersCohort() {
     return this._selfPerspectiveCohort(this.playersScope);
+  }
+
+  /** Self-Scout has no scope control of its own -- it reports the current
+   *  game, the scope it has always had -- but it takes that cohort through
+   *  the shared self-perspective assembly so its rows carry composite refs. */
+  _selfScoutCohort() {
+    return this._selfPerspectiveCohort('game');
   }
 
 }

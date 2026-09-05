@@ -145,6 +145,32 @@ export class StatsEngine {
     return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
   }
 
+  /** Canonical explosive play: a run of 12+ yards or a pass of 16+ yards. Two
+   *  thresholds, because a 13-yard run and a 13-yard pass are not the same
+   *  play. Extracted so `_efficiencyStats`, `_selfScoutGroup`, the `explosive`
+   *  cut filter and the Self-Scout summary all read ONE definition. */
+  static isExplosive(p) {
+    const yards = parseInt(p && p.tags ? p.tags.yardage : null) || 0;
+    return StatsEngine.isRun(p) ? yards >= 12 : yards >= 16;
+  }
+
+  /** Canonical conversion: the play gained the line to gain, or scored. The
+   *  same test `_downStats` applies for third- and fourth-down conversion
+   *  rates, so a Self-Scout conversion count can never disagree with the
+   *  conversion percentage printed beside it. */
+  static isConversion(p) {
+    return gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown');
+  }
+
+  /** Canonical tackle for loss: a defensive stop behind the line on a run or
+   *  pass. Negative yardage from a Sack, Penalty, Kneel or Spike is NOT a
+   *  tackle for loss (see `_defensiveStats`, which owns the same rule). */
+  static isTackleForLoss(p) {
+    return (parseInt(p.tags.yardage) || 0) < 0
+      && !StatsEngine.hasResult(p, 'Sack') && !StatsEngine.hasResult(p, 'Penalty')
+      && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike');
+  }
+
   /**
    * Points a single play put on the board. Touchdown = 6, made Field Goal = 3,
    * made XP = 1, made 2-Point = 2. Conversion/kick success is the explicit
@@ -602,10 +628,7 @@ export class StatsEngine {
 
   _efficiencyStats(plays) {
     const successes = plays.filter(p => this._isSuccessfulPlay(p)).length;
-    const explosive = plays.filter(p => {
-      const y = parseInt(p.tags.yardage) || 0;
-      return StatsEngine.isRun(p) ? y >= 12 : y >= 16;
-    }).length;
+    const explosive = plays.filter(p => StatsEngine.isExplosive(p)).length;
     const negative = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0).length;
     return {
       successRate: plays.length ? ((successes / plays.length) * 100).toFixed(1) : '0.0',
@@ -720,9 +743,7 @@ export class StatsEngine {
     // TFL = a defensive stop behind the line on a run/pass. Negative yardage
     // from a Penalty, Kneel or Spike is NOT a tackle for loss and must not
     // inflate havoc rate (or the defense's TFL count).
-    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0
-      && !StatsEngine.hasResult(p, 'Sack') && !StatsEngine.hasResult(p, 'Penalty')
-      && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike'));
+    const tfl = plays.filter(p => StatsEngine.isTackleForLoss(p));
     const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception'));
     const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble'));
     const fumblesRecovered = fumbles.filter(p => StatsEngine.isFumbleRecovered(p));
@@ -1630,7 +1651,7 @@ export class StatsEngine {
       const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
       const passes = total - runs;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const conversions = downPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
+      const conversions = downPlays.filter(p => StatsEngine.isConversion(p)).length;
 
       downStats[down] = {
         total,
@@ -1645,9 +1666,9 @@ export class StatsEngine {
 
     const firstDowns = plays.filter(p => gainedFirstDown(p.tags)).length;
     const thirdDown = byDown['3'];
-    const thirdDownConv = thirdDown.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
+    const thirdDownConv = thirdDown.filter(p => StatsEngine.isConversion(p)).length;
     const fourthDown = byDown['4'];
-    const fourthDownConv = fourthDown.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
+    const fourthDownConv = fourthDown.filter(p => StatsEngine.isConversion(p)).length;
 
     const ddBuckets = this._downDistanceBuckets(plays);
 
@@ -2779,7 +2800,7 @@ export class StatsEngine {
           case 'backedUp':   return p => isOff(p) && absYL(p) !== null && absYL(p) <= 10;
           case 'thirdLong':  return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7;
           case 'thirdShort': return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 1 && (parseInt(p.tags.distance) || 0) <= 3;
-          case 'explosive':  return p => isOff(p) && (StatsEngine.isRun(p) ? (parseInt(p.tags.yardage) || 0) >= 12 : (parseInt(p.tags.yardage) || 0) >= 16);
+          case 'explosive':  return p => isOff(p) && StatsEngine.isExplosive(p);
           case 'negative':   return p => isOff(p) && (parseInt(p.tags.yardage) || 0) < 0;
           default: return null;
         }
@@ -3493,6 +3514,10 @@ export class StatsEngine {
 
   /** Minimum sample for a grouping to be considered a tell / counted. */
   static get _SELF_SCOUT_MIN_N() { return 4; }
+  /** Minimum scheme-tagged defensive snaps before the defensive self-scout
+   *  will identify a tendency. Named so the diagnostic empty state can state
+   *  the same number the gate applies. */
+  static get _DEF_SELF_SCOUT_MIN_N() { return 6; }
   static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#f59e0b' : '#22c55e'; }
   static _verdictIcon(v) { return v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;'; }
   static _verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
@@ -3543,15 +3568,20 @@ export class StatsEngine {
       if (!Array.isArray(keys)) keys = [keys];
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
-      const explosive = yds >= (isRun ? 12 : 16);
+      const explosive = StatsEngine.isExplosive(p);
       const td = StatsEngine.hasResult(p, 'Touchdown');
       const to = StatsEngine.isGiveaway(p);
+      // Additive film identity, pushed in the SAME pass that increments `n`,
+      // so a group's refs can never drift from its own count -- the rule the
+      // defensive `_defScoutGroup` already follows. No numeric field changes.
+      const ref = StatsEngine._compositeRef(p);
       keys.forEach(k => {
         if (k == null || k === '' || k === '?' || /(^|&)\?($|&)/.test(String(k))) return;
         if (!g[k]) g[k] = { key: k, n: 0, runs: 0, passes: 0, yards: 0,
           runYards: 0, passYards: 0, runSucc: 0, passSucc: 0,
-          explosives: 0, tds: 0, turnovers: 0 };
+          explosives: 0, tds: 0, turnovers: 0, refs: [] };
         g[k].n++;
+        if (ref) g[k].refs.push(ref);
         g[k].yards += yds;
         if (td) g[k].tds++;
         if (to) g[k].turnovers++;
@@ -3581,7 +3611,8 @@ export class StatsEngine {
         const runAvg = grp.runs ? +(grp.runYards / grp.runs).toFixed(1) : 0;
         const passAvg = grp.passes ? +(grp.passYards / grp.passes).toFixed(1) : 0;
         return {
-          ...grp, runPct, passPct: 100 - runPct, lean, leanPct,
+          ...grp, refs: [...new Set(grp.refs || [])].sort(),
+          runPct, passPct: 100 - runPct, lean, leanPct,
           avg: grp.n ? +(grp.yards / grp.n).toFixed(1) : 0,
           succRate, runAvg, passAvg,
           tell: grp.n >= StatsEngine._SELF_SCOUT_MIN_N && leanPct >= 70,
@@ -3753,6 +3784,165 @@ export class StatsEngine {
     return { baseline, minCount: MINC, predictabilityThreshold: PRED, cols: m.cols, rows };
   }
 
+  // ================================================================
+  // SELF-SCOUT SUMMARY MODELS — the Offensive Summary and Defense
+  // sections of Reports > Self-Scout. Every value here is either read
+  // straight off compute()'s existing owners (efficiency, scoring,
+  // downs, negative plays, situational, defensive) or derived from a
+  // canonical static predicate. No formula is reproduced, and no
+  // ranking or qualification decision is left to the view.
+  // ================================================================
+
+  /** Minimum sample for a CALL to be ranked. Distinct from
+   *  `_SELF_SCOUT_MIN_N`, which gates a tendency tell: a play call is a
+   *  concrete thing a coach ran, so three reps is enough to report the
+   *  result, while a tendency needs a larger sample to be a pattern. */
+  static get _SELF_SCOUT_CALL_MIN() { return 3; }
+
+  /** Rank qualified offensive calls: success rate, then yards per play, then
+   *  sample size. Worst Calls is that same ranking reversed, so the two
+   *  tables are one ordering read from both ends rather than two rules. */
+  selfScoutCallRanking(callRows, min = StatsEngine._SELF_SCOUT_CALL_MIN, limit = 3) {
+    const ranked = (callRows || []).filter(row => row.n >= min).slice()
+      .sort((a, b) => b.succRate - a.succRate || b.avg - a.avg || b.n - a.n);
+    return { qualified: ranked, top: ranked.slice(0, limit), worst: ranked.slice().reverse().slice(0, limit) };
+  }
+
+  /** The Offensive Summary section's model. `performance` is a compute()
+   *  result over the same cohort the report is scoped to, so every count
+   *  reconciles with the KPI band printed above it. */
+  selfScoutSummary(performance, callRows = []) {
+    const offPlays = performance?.offPlays || [];
+    const eff = performance?.efficiency || {};
+    const scoring = performance?.scoring || {};
+    const neg = performance?.negativePlays || {};
+    const redZone = performance?.situational?.redZone || {};
+    // Run and pass units are the SAME grouping every other Self-Scout table
+    // uses, keyed on the canonical run/pass classification.
+    const unit = this._selfScoutRows(this._selfScoutGroup(offPlays,
+      play => (StatsEngine.isRun(play) ? 'Run' : 'Pass')));
+    const blank = { n: 0, yards: 0, avg: 0, succRate: 0, explosives: 0, refs: [] };
+    const run = unit.find(row => row.key === 'Run') || blank;
+    const pass = unit.find(row => row.key === 'Pass') || blank;
+    const ranking = this.selfScoutCallRanking(callRows);
+    return {
+      minCall: StatsEngine._SELF_SCOUT_CALL_MIN,
+      positive: {
+        successful: eff.successes || 0,
+        explosive: eff.explosivePlays || 0,
+        touchdowns: scoring.touchdowns || 0,
+        thirdDownConversions: offPlays.filter(play => play.tags.down === '3'
+          && StatsEngine.isConversion(play)).length,
+        redZoneTouchdowns: redZone.tds || 0,
+      },
+      negative: {
+        negative: neg.distinct || 0,
+        turnovers: neg.turnovers || 0,
+        sacks: neg.lossSacks || 0,
+        playsForLoss: neg.lossTotal || 0,
+        penalties: neg.penalties || 0,
+      },
+      run: { attempts: run.n, yards: run.yards, avg: run.avg, succRate: run.succRate,
+        explosives: run.explosives, refs: run.refs || [] },
+      pass: { attempts: pass.n, yards: pass.yards, avg: pass.avg, succRate: pass.succRate,
+        explosives: pass.explosives, sacks: neg.lossSacks || 0, refs: pass.refs || [] },
+      topCalls: ranking.top, worstCalls: ranking.worst,
+    };
+  }
+
+  /** One defensive call is ONE composite identity: Front + Coverage +
+   *  Blitz/pressure, in that order, joining only the components the play
+   *  actually carries. A blank pressure is OMITTED, never relabelled
+   *  "No blitz" -- an untagged field is missing data, not a charted call. */
+  static _defenseCallKey(play) {
+    const front = StatsEngine.splitFronts(play.tags.defFront).filter(Boolean).join(' + ');
+    const coverage = StatsEngine.proj(play).coverage || '';
+    const pressure = StatsEngine.splitBlitzes(play.tags.blitz).filter(Boolean).join(' + ');
+    return [front, coverage, pressure].filter(Boolean).join(' · ') || null;
+  }
+
+  /** Result rows for each composite defensive call, with the exact composite
+   *  film cohort behind every row accumulated in the same pass as its count. */
+  _defenseCallRows(defPlays) {
+    const groups = {};
+    (defPlays || []).forEach(play => {
+      const key = StatsEngine._defenseCallKey(play);
+      if (!key) return;
+      if (!groups[key]) groups[key] = { key, n: 0, yards: 0, stops: 0, explosives: 0, tds: 0, refs: [] };
+      const row = groups[key];
+      const ref = StatsEngine._compositeRef(play);
+      row.n++;
+      row.yards += parseInt(play.tags.yardage) || 0;
+      if (!this._isSuccessfulPlay(play)) row.stops++;
+      if (StatsEngine.isExplosive(play)) row.explosives++;
+      if (StatsEngine.hasResult(play, 'Touchdown')) row.tds++;
+      if (ref) row.refs.push(ref);
+    });
+    return Object.values(groups).map(row => ({
+      ...row,
+      refs: [...new Set(row.refs)].sort(),
+      avgYds: row.n ? +(row.yards / row.n).toFixed(1) : 0,
+      stopRate: row.n ? Math.round(row.stops / row.n * 100) : 0,
+    })).sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
+  }
+
+  /** Rank qualified defensive calls: stop rate, then LOWER yards allowed per
+   *  play, then sample size. Worst Calls is that ranking reversed. */
+  selfScoutDefenseCallRanking(rows, min = StatsEngine._SELF_SCOUT_CALL_MIN, limit = 3) {
+    const ranked = (rows || []).filter(row => row.n >= min).slice()
+      .sort((a, b) => b.stopRate - a.stopRate || a.avgYds - b.avgYds || b.n - a.n);
+    return { qualified: ranked, top: ranked.slice(0, limit), worst: ranked.slice().reverse().slice(0, limit) };
+  }
+
+  /** The Defense section's model, over the SAME defensive cohort the KPI band
+   *  has always used (`compute()`'s `defPlays`), so no displayed defensive
+   *  figure changes meaning. An unmeasured rate stays null -- printing 0%
+   *  would read as a defense that stopped nothing. */
+  selfScoutDefenseSummary(performance) {
+    const defPlays = performance?.defPlays || [];
+    const defensive = performance?.defensive || {};
+    const total = defPlays.length;
+    const stops = defPlays.filter(play => !this._isSuccessfulPlay(play)).length;
+    const yards = defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage) || 0), 0);
+    const phase = isRunPhase => {
+      const rows = defPlays.filter(play => (isRunPhase ? StatsEngine.isRun(play) : StatsEngine.isPass(play)));
+      const phaseYards = rows.reduce((sum, play) => sum + (parseInt(play.tags.yardage) || 0), 0);
+      return {
+        attempts: rows.length,
+        yardsPerPlay: rows.length ? +(phaseYards / rows.length).toFixed(1) : 0,
+        stopRate: rows.length
+          ? Math.round(rows.filter(play => !this._isSuccessfulPlay(play)).length / rows.length * 100) : 0,
+        explosivesAllowed: rows.filter(play => StatsEngine.isExplosive(play)).length,
+        // The phase-specific impact result: a TFL is the run answer, a sack
+        // the pass answer. Counted over THIS phase, not the whole defense.
+        tfl: rows.filter(play => StatsEngine.isTackleForLoss(play)).length,
+        sacks: rows.filter(play => StatsEngine.hasResult(play, 'Sack')).length,
+        refs: StatsEngine._refsOf(rows),
+      };
+    };
+    const calls = this._defenseCallRows(defPlays);
+    const ranking = this.selfScoutDefenseCallRanking(calls);
+    return {
+      minCall: StatsEngine._SELF_SCOUT_CALL_MIN,
+      totalPlays: total,
+      kpis: {
+        stopRate: total ? Math.round(stops / total * 100) : null,
+        yardsAllowedPerPlay: total ? (yards / total).toFixed(1) : null,
+        havocRate: defensive.havocRate ?? null,
+        sacks: defensive.sacks || 0, tfl: defensive.tfl || 0, takeaways: defensive.turnovers || 0,
+      },
+      positive: { stops, sacks: defensive.sacks || 0, tfl: defensive.tfl || 0,
+        takeaways: defensive.turnovers || 0 },
+      negative: {
+        successfulAllowed: total - stops,
+        explosiveAllowed: defPlays.filter(play => StatsEngine.isExplosive(play)).length,
+        touchdownsAllowed: defPlays.filter(play => StatsEngine.hasResult(play, 'Touchdown')).length,
+      },
+      run: phase(true), pass: phase(false),
+      calls, topCalls: ranking.top, worstCalls: ranking.worst,
+    };
+  }
+
     // ================================================================
   // DEFENSIVE SELF-SCOUT — what tendencies is YOUR defense tipping?
   // Mirrors the offensive self-scout: front/coverage/blitz leans by
@@ -3864,8 +4054,9 @@ export class StatsEngine {
     // Below the sample gate: return a DIAGNOSTIC, not null — the section
     // must explain exactly what's missing instead of silently vanishing
     // (field-reported: "not a single defensive stat in self-scout").
-    if (plays.length < 6) {
-      return { insufficient: true, defPlays: defAll.length, schemePlays: plays.length };
+    if (plays.length < StatsEngine._DEF_SELF_SCOUT_MIN_N) {
+      return { insufficient: true, defPlays: defAll.length, schemePlays: plays.length,
+        required: StatsEngine._DEF_SELF_SCOUT_MIN_N };
     }
 
     const byDD = this._defScoutGroup(plays, p => this._ddKey(p.tags));

@@ -7,7 +7,7 @@
  * and turns it into markup. Film clicks call screen methods directly — no
  * post-render DOM query/rebind pass.
  */
-import { useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, Gauge, DefMark, EmptyState, ZoneNav, ZoneRule } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { Charts } from './charts.js';
@@ -1851,120 +1851,394 @@ export function MatchupTab({ model, screen }) {
     {missing.length > 0 && <Module title="Not charted yet"><ul class="gi-matchup-missing">{missing.map(item => <li key={item}>{item}</li>)}</ul></Module>}
   </div>;
 }
-function InlineReportText({ html }) {
-  const doc = new DOMParser().parseFromString('<body>' + (html || '') + '</body>', 'text/html');
-  const node = (item, key) => {
-    if (item.nodeType === 3) return item.nodeValue;
-    if (item.nodeType !== 1) return null;
-    const children = [...item.childNodes].map((child, i) => node(child, key + '-' + i));
-    if (item.tagName === 'STRONG' || item.tagName === 'B') return <strong key={key}>{children}</strong>;
-    if (item.tagName === 'SPAN') {
-      const allowed = ['ss-rec-label', 'ss-rec-strength'].filter(name => item.classList.contains(name));
-      return <span key={key} class={allowed.join(' ') || undefined}>{children}</span>;
-    }
-    return item.textContent;
-  };
-  return <>{[...doc.body.childNodes].map((item, i) => node(item, i))}</>;
+/* ─────────────────────────────────────────────────────────────────────────
+   Reports > Self-Scout — the approved 2026-09-05 desktop composition
+   (design-comps/reports-self-scout-2026-09-05, RATIONALE sections 17-18).
+
+   Five sections, one on screen at a time. Every value below arrives
+   pre-computed from StatsEngine — generateSelfScout, generateDefensiveSelfScout,
+   compute, selfScoutSummary, selfScoutDefenseSummary. Nothing here groups,
+   ranks, qualifies, averages or classifies anything.
+
+   Module headers carry the TITLE ONLY: no counts, thresholds, sample language
+   or explanatory subheads. The scope line and the section-navigation counts
+   remain, because they identify the active sample and where the report has
+   content rather than explaining a module.
+   ───────────────────────────────────────────────────────────────────────── */
+const SELF_SCOUT_SECTIONS = [
+  ['summary', 'Offensive Summary'],
+  ['offense', 'Calls & Situations'],
+  ['structure', 'Structure'],
+  ['defense', 'Defense'],
+  ['tendencies', 'Tendencies'],
+];
+const SS_NO_DATA = 'No data';
+const ssPredClass = value => (value >= 70 ? 'p70' : value >= 30 ? 'p30' : 'p0');
+
+/** The exact contributing film cohort: composite gameId::playId refs when the
+ *  row carries them, the established cut filter otherwise, and no click
+ *  affordance at all when neither resolves. Never a dead click. */
+function ssWatch(screen, row, cutType, label) {
+  if (row.refs?.length) return () => screen.watchRefs(row.refs, label);
+  if (cutType) return () => screen.watchCut(cutType, row.key, label);
+  return undefined;
 }
-function SelfScoutSplitTable({ rows, label, cutType, screen }) {
-  if (!rows?.length) return null;
+
+/** A label and its measured value on one report row. */
+function SsCounts({ items }) {
+  return <div class="gi-ss-counts">{items.map(([label, value]) => <div class="gi-ss-crow" key={label}>
+    <span>{label}</span><strong>{value}</strong>
+  </div>)}</div>;
+}
+function SsModule({ title, phase, children }) {
+  return <Module title={title} cls={`gi-ss-module is-${phase}`}>{children}</Module>;
+}
+function SsBand({ cls = 'b-1', children }) {
+  return <div class={`gi-ss-band ${cls}`}>{children}</div>;
+}
+/** Every Self-Scout table declares its own column geometry through the
+ *  colgroup, so one measurement is one width in every table on the board and
+ *  no sort or section change moves a column edge. */
+function SsTable({ columns, rows }) {
+  return <DataTable className="stats-table gi-ss-table" columns={columns} rows={rows} emptyText={SS_NO_DATA} />;
+}
+/** Run and pass share, and a scheme lean, drawn as a track behind the figure. */
+function SsBar({ tone, pct, text }) {
+  return <span class={`gi-ss-bar is-${tone}`} style={{ '--p': `${pct}%` }} title={text}><i>{text}</i></span>;
+}
+function SsEmpty({ title, body, screen }) {
+  return <EmptyState title={title} body={body}
+    action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
+}
+const ssTrunc = value => <span class="gi-ss-trunc" title={String(value ?? '')}>{value}</span>;
+const SS_NO_OFFENSE = ['No offensive attribution', 'No offensive plays are classified as run or pass.'];
+
+/* The shared offensive result shape: what the call/situation/formation/
+   personnel produced, with run-pass share as the last supporting column. */
+const ssOutcomeColumns = label => [
+  { key: 'display', label, tl: true, size: 'label', render: row => ssTrunc(row.display) },
+  { key: 'n', label: 'Plays', numeric: true, size: 'n' },
+  { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg' },
+  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => `${row.succRate}%` },
+  { key: 'explosives', label: 'Explosive', numeric: true, size: 'pct' },
+  { key: 'tds', label: 'TD', numeric: true, size: 'n' },
+  { key: 'turnovers', label: 'Giveaways', numeric: true, size: 'pct' },
+  { key: 'mix', label: 'Run / Pass', size: 'split', sortValue: row => row.runPct },
+];
+const ssOutcomeRows = (rows, screen, { cutType, display } = {}) => rows.map(row => {
+  const text = display ? display(row.key) : row.key;
+  const label = `${text} — ${row.n} plays`;
+  return { ...row, id: row.key, display: text, label, mix: `${row.runPct} / ${row.passPct}`,
+    onActivate: ssWatch(screen, row, cutType, label) };
+});
+
+const ssCallColumns = [
+  { key: 'display', label: 'Call / Concept', tl: true, size: 'label', render: row => ssTrunc(row.display) },
+  { key: 'n', label: 'Plays', numeric: true, size: 'n' },
+  { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg' },
+  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => `${row.succRate}%` },
+];
+const ssDefenseCallColumns = [
+  { key: 'display', label: 'Call', tl: true, size: 'label', render: row => ssTrunc(row.display) },
+  { key: 'n', label: 'Plays', numeric: true, size: 'n' },
+  { key: 'stopRate', label: 'Stop', numeric: true, size: 'pct', render: row => `${row.stopRate}%` },
+  { key: 'avgYds', label: 'Yds / Play', numeric: true, size: 'avg' },
+];
+const ssRankedRows = (rows, screen, cutType) => rows.map(row => {
+  const label = `${row.key} — ${row.n} plays`;
+  return { ...row, id: row.key, display: row.key, label, onActivate: ssWatch(screen, row, cutType, label) };
+});
+
+function SsSummarySection({ summary, performance, screen }) {
   const engine = screen.app.stats;
-  return <DataTable className="stats-table stats-table-full ss-split" columns={[
-    { key:'display', label }, { key:'n', label:'#', numeric:true },
-    { key:'runPct', label:'Run', numeric:true, render:r => <span class="ss-split-bar ss-bar-run" style={{'--p':r.runPct+'%'}}>{r.runPct}%</span> },
-    { key:'passPct', label:'Pass', numeric:true, render:r => <span class="ss-split-bar ss-bar-pass" style={{'--p':r.passPct+'%'}}>{r.passPct}%</span> },
-    { key:'runAvg', label:'R Avg', numeric:true }, { key:'passAvg', label:'P Avg', numeric:true },
-    { key:'succRate', label:'Succ%', numeric:true, render:r => r.succRate+'%' },
-    { key:'leanPct', label:'Read', numeric:true, render:r => r.tell ? <span class="ss-flag">{r.lean} {r.leanPct}%</span> : <span class="ss-ok">Balanced</span> },
-  ]} rows={rows.map(r => {
-    const display = label === 'Down & Dist' ? engine._ddPretty(r.key) : r.key;
-    const filmLabel = display + ' — ' + r.n + ' plays';
-    return {...r,id:r.key,display,label:filmLabel,onActivate:cutType ? () => screen.watchCut(cutType,r.key,filmLabel) : undefined};
-  })}/>;
-}
-function SelfScoutTells({ tells, screen }) {
-  if (!tells?.length) return <p class="viz-caption">No strong tells at the current sample size.</p>;
-  return <DataTable className="stats-table stats-table-full ss-tells" columns={[
-    {key:'label',label:'Situation'}, {key:'dim',label:'Type',render:r=><span class="ss-dim">{r.dim}</span>},
-    {key:'leanPct',label:'Tendency',numeric:true,render:r=><span class={'ss-bar ss-bar-'+(r.lean==='Run'?'run':'pass')} style={{'--p':r.leanPct+'%'}}>{r.lean} {r.leanPct}%</span>},
-    {key:'leanAvg',label:'Avg',numeric:true}, {key:'leanSuccRate',label:'Succ%',numeric:true,render:r=>r.leanSuccRate+'%'},
-    {key:'verdict',label:'Assessment',render:r=><span class={'ss-verdict ss-verdict-'+r.verdict}>{verdictIcon(r.verdict)} {verdictLabel(r.verdict)}</span>},
-    {key:'n',label:'n',numeric:true},
-  ]} rows={tells.map((t,i)=>({...t,id:t.dim+'-'+t.label+'-'+i,class:'ss-verdict-'+t.verdict,onActivate:t.cutType?()=>screen.watchCut(t.cutType,t.cutVal,t.label+' — '+t.n+' plays'):undefined}))}/>;
-}
-function SelfScoutPersonnel({ items, screen }) {
-  const rows=(items||[]).filter(x=>x.topPct>=75).map(x=>({...x,id:x.personnel,
-    distribution:x.formations.map(f=>f.formation+' '+f.pct+'%').join(', '),
-    read:x.topPct>=90?'Locked':'Leaning',label:x.personnel+' personnel — '+x.n+' plays',
-    onActivate:()=>screen.watchCut('personnel',x.personnel,x.personnel+' personnel — '+x.n+' plays')}));
-  if(!rows.length)return null;
-  return <Module title="Personnel to Formation" meta="what the huddle gives away" cls="ss-personnel-diversity"><DataTable columns={[
-    {key:'personnel',label:'Personnel'},{key:'n',label:'#',numeric:true},{key:'uniqueFormations',label:'Forms',numeric:true},
-    {key:'topFormation',label:'Top Formation'},{key:'topPct',label:'Top %',numeric:true,render:r=>r.topPct+'%'},
-    {key:'distribution',label:'Distribution'},{key:'read',label:'Read'}
-  ]} rows={rows}/></Module>;
-}
-function SelfScoutMatrix({ matrix, screen }) {
-  const view=screen.app.stats._selfScoutMatrixView(matrix);
-  if(!view)return null;
-  return <Module title="Predictability Map" meta={'formation by situation, '+view.baseline+'% success baseline'}>
-    <p class="viz-caption">Red is predictable and below your normal success; gold is predictable but working; low samples stay neutral. Select any populated cell to watch it.</p>
-    <div class="sm-wrap"><table class="stats-table stats-table-full sm-table"><thead><tr><th class="sm-corner">Formation / Situation</th>{view.cols.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead>
-    <tbody>{view.rows.map(row=><tr key={row.formation}><th class="sm-row-label">{row.formation} <span class="sm-rown">n={row.n}</span></th>{row.cells.map(v=>{
-      const c=v.situation; if(v.empty)return <td key={c.key} class="sm-cell sm-empty"><span class="sm-nodata">No data</span></td>;
-      const label=row.formation+' on '+c.label+' — '+v.cell.n+' plays';
-      return <Watchable key={c.key} tag="td" class={'sm-cell is-'+v.state} onActivate={()=>screen.watchCut('comboFS',row.formation+'__'+c.key,label)} label={label}>
-        <span class="sm-lean">{v.lean} {v.leanPct}%</span><span class="sm-n">n={v.cell.n}{v.strong?'':', low'}</span>
-      </Watchable>;})}</tr>)}</tbody></table></div>
-  </Module>;
-}
-function SelfScoutDefense({ defScout, performance, screen }) {
-  if(!defScout||defScout.insufficient){
-    const dp=defScout?.defPlays||0,sp=defScout?.schemePlays||0;
-    const body=!dp?'No defensive plays are tagged yet. Chart defensive snaps to see what your fronts, coverages, and pressures reveal.':!sp?dp+' defensive plays are charted, but none include Front, Coverage, or Blitz.':sp+' scheme-tagged defensive plays are available; six are needed to identify reliable tendencies.';
-    return <EmptyState title="Defensive Self-Scout" body={body}/>;
-  }
-  const d=performance.defensive||{},plays=performance.defPlays||[];
-  const stop=plays.length?Math.round(plays.filter(p=>!screen.app.stats._isSuccessfulPlay(p)).length/plays.length*100):0;
-  const ypp=plays.length?(plays.reduce((sum,p)=>sum+(parseInt(p.tags.yardage)||0),0)/plays.length).toFixed(1):'0.0';
-  return <div class="gi-selfscout-defense"><KpiBand items={[
-    {label:'Stop Rate',value:stop+'%'},{label:'Yards Allowed / Play',value:ypp},{label:'Havoc Rate',value:(d.havocRate||'0.0')+'%'},
-    {label:'Sacks',value:d.sacks||0},{label:'TFL',value:d.tfl||0},{label:'Takeaways',value:d.turnovers||0},
-  ]}/><DefensiveSelfScout defScout={defScout} screen={screen}/></div>;
-}
-export function SelfScoutTab({ report, defScout, performance, callRows, screen }) {
-  const engine=screen.app.stats;
-  if(!report)return <div class="gi-selfscout-board"><EmptyState title="No offensive self-scout yet" body="Tag Run/Pass or Play Type on offensive snaps to reveal your tendencies."/><SelfScoutDefense defScout={defScout} performance={performance} screen={screen}/></div>;
-  const e=performance.efficiency||{},d=performance.downs||{},rz=performance.situational?.redZone||{},neg=performance.negativePlays||{};
-  const color=engine.constructor._meterColor(report.predictability);
-  return <div class="gi-selfscout-board">
-    <div class="gi-selfscout-toolbar"><div><strong>Self-Scout</strong><span>{report.totalPlays} classified offensive plays</span></div>
-      <button class="btn btn-sm" onClick={()=>screen.exportSelfScout ? screen.exportSelfScout(report, defScout, performance, callRows) : screen.export('season-html')}>Export Report</button></div>
+  const efficiency = performance.efficiency || {};
+  const downs = performance.downs || {};
+  const redZone = performance.situational?.redZone || {};
+  const positive = summary.positive, negative = summary.negative;
+  return <>
     <KpiBand items={[
-      {label:'Success Rate',value:(e.successRate||'0.0')+'%'},{label:'Yards / Play',value:engine.constructor.yardsPerPlay(performance)},
-      {label:'Explosive Rate',value:(e.explosivePct||'0.0')+'%'},{label:'Negative Plays',value:(e.negativePct||'0.0')+'%'},
-      {label:'Third Down',value:(d.thirdDownPct||'0.0')+'%'},{label:'Red Zone TD',value:rz.total?Math.round((rz.tds||0)/rz.total*100)+'%':'N/A'},
-    ]}/>
-    <div class="gi-overview-band gi-selfscout-answer-band">
-      <Module title="Top Tells" meta="select a row to watch film"><SelfScoutTells tells={report.tells} screen={screen}/></Module>
-      <Module title="Recommendations" meta="what to keep and what to break"><div class="ss-recs">{report.recommendations.map((x,i)=><div class="ss-rec" key={i}><InlineReportText html={x}/></div>)}</div></Module>
+      { label: 'Success Rate', value: `${efficiency.successRate || '0.0'}%` },
+      { label: 'Yards / Play', value: engine.constructor.yardsPerPlay(performance) },
+      { label: 'Explosive Rate', value: `${efficiency.explosivePct || '0.0'}%` },
+      { label: 'Negative Play Rate', value: `${efficiency.negativePct || '0.0'}%` },
+      { label: 'Third Down', value: `${downs.thirdDownPct || '0.0'}%` },
+      redZone.total
+        ? { label: 'Red Zone TD', value: `${Math.round((redZone.tds || 0) / redZone.total * 100)}%` }
+        : { label: 'Red Zone TD', value: SS_NO_DATA, cls: 'is-blank' },
+    ]} />
+    <SsBand cls="b-2">
+      <SsModule title="Positive Plays" phase="off"><SsCounts items={[
+        ['Successful plays', positive.successful], ['Explosive plays', positive.explosive],
+        ['Touchdowns', positive.touchdowns], ['Third-down conversions', positive.thirdDownConversions],
+        ['Red-zone touchdowns', positive.redZoneTouchdowns],
+      ]} /></SsModule>
+      <SsModule title="Negative Plays" phase="off"><SsCounts items={[
+        ['Negative plays', negative.negative], ['Turnovers', negative.turnovers],
+        ['Sacks', negative.sacks], ['Plays for loss', negative.playsForLoss],
+        ['Penalties', negative.penalties],
+      ]} /></SsModule>
+    </SsBand>
+    <SsBand cls="b-2">
+      <SsModule title="Top Calls" phase="off">
+        <SsTable columns={ssCallColumns} rows={ssRankedRows(summary.topCalls, screen, 'playCallOrConcept')} />
+      </SsModule>
+      <SsModule title="Worst Calls" phase="off">
+        <SsTable columns={ssCallColumns} rows={ssRankedRows(summary.worstCalls, screen, 'playCallOrConcept')} />
+      </SsModule>
+    </SsBand>
+    <SsBand cls="b-2">
+      <SsModule title="Run Offense" phase="off"><SsCounts items={[
+        ['Attempts', summary.run.attempts], ['Rushing yards', summary.run.yards],
+        ['Yards per carry', summary.run.avg], ['Success rate', `${summary.run.succRate}%`],
+        ['Explosive runs', summary.run.explosives],
+      ]} /></SsModule>
+      <SsModule title="Pass Offense" phase="off"><SsCounts items={[
+        ['Attempts', summary.pass.attempts], ['Passing yards', summary.pass.yards],
+        ['Yards per attempt', summary.pass.avg], ['Success rate', `${summary.pass.succRate}%`],
+        ['Explosive passes', summary.pass.explosives], ['Sacks', summary.pass.sacks],
+      ]} /></SsModule>
+    </SsBand>
+  </>;
+}
+
+function SsCallsSection({ report, callRows, screen }) {
+  const engine = screen.app.stats;
+  const bands = [];
+  if (callRows.length) bands.push(<SsBand key="calls"><SsModule title="By call and concept" phase="off">
+    <SsTable columns={ssOutcomeColumns('Call / Concept')}
+      rows={ssOutcomeRows(callRows, screen, { cutType: 'playCallOrConcept' })} />
+  </SsModule></SsBand>);
+  if (report.downDistRows.length) bands.push(<SsBand key="dd"><SsModule title="By down and distance" phase="off">
+    <SsTable columns={ssOutcomeColumns('Down & Dist')}
+      rows={ssOutcomeRows(report.downDistRows, screen, { cutType: 'dd', display: key => engine._ddPretty(key) })} />
+  </SsModule></SsBand>);
+  if (!bands.length) return <SsEmpty title="No situational data"
+    body="No offensive plays carry a down and distance or a play call." screen={screen} />;
+  return <>{bands}</>;
+}
+
+function SsStructureSection({ report, screen }) {
+  const bands = [];
+  if (report.formationRows.length) bands.push(<SsBand key="forms"><SsModule title="By formation" phase="off">
+    <SsTable columns={ssOutcomeColumns('Formation')}
+      rows={ssOutcomeRows(report.formationRows, screen, { cutType: 'formation' })} />
+  </SsModule></SsBand>);
+  if (report.personnelRows.length) bands.push(<SsBand key="pers"><SsModule title="By personnel" phase="off">
+    <SsTable columns={ssOutcomeColumns('Personnel')}
+      rows={ssOutcomeRows(report.personnelRows, screen, { cutType: 'personnel' })} />
+  </SsModule></SsBand>);
+  const diversity = (report.personnelDiversity || []).filter(item => item.topPct >= 75);
+  if (diversity.length) bands.push(<SsBand key="pf"><SsModule title="Personnel to formation" phase="off">
+    <SsTable columns={[
+      { key: 'personnel', label: 'Personnel', tl: true, size: 'label', render: row => ssTrunc(row.personnel) },
+      { key: 'n', label: 'Plays', numeric: true, size: 'n' },
+      { key: 'uniqueFormations', label: 'Formations', numeric: true, size: 'forms' },
+      { key: 'topFormation', label: 'Top formation', size: 'scheme', render: row => ssTrunc(row.topFormation) },
+      { key: 'topPct', label: 'Top %', numeric: true, size: 'pct', render: row => `${row.topPct}%` },
+      { key: 'distribution', label: 'Distribution', size: 'scheme', render: row => ssTrunc(row.distribution) },
+      { key: 'read', label: 'Read', size: 'lean' },
+    ]} rows={diversity.map(item => {
+      const label = `${item.personnel} personnel — ${item.n} plays`;
+      return { ...item, id: item.personnel, label,
+        distribution: item.formations.map(f => `${f.formation} ${f.pct}%`).join(', '),
+        read: item.topPct >= 90 ? 'Locked' : 'Leaning',
+        onActivate: () => screen.watchCut('personnel', item.personnel, label) };
+    })} />
+  </SsModule></SsBand>);
+  if (!bands.length) return <SsEmpty title="No structural data"
+    body="No offensive plays carry a formation or a personnel grouping." screen={screen} />;
+  return <>{bands}</>;
+}
+
+function SsDefenseSection({ defScout, defSummary, screen }) {
+  if (!defScout || defScout.insufficient) {
+    const charted = defScout?.defPlays || 0;
+    const scheme = defScout?.schemePlays || 0;
+    const required = defScout?.required || 6;
+    const body = !charted ? 'No defensive plays are charted.'
+      : !scheme ? `${charted} defensive plays are charted. None carries a Front, Coverage or Blitz.`
+        : `${scheme} of ${required} scheme-tagged defensive plays required.`;
+    return <SsEmpty title="Defensive Self-Scout" body={body} screen={screen} />;
+  }
+  const kpis = defSummary.kpis;
+  return <>
+    <KpiBand items={[
+      kpis.stopRate == null ? { label: 'Stop Rate', value: SS_NO_DATA, cls: 'is-blank' }
+        : { label: 'Stop Rate', value: `${kpis.stopRate}%` },
+      kpis.yardsAllowedPerPlay == null ? { label: 'Yards Allowed / Play', value: SS_NO_DATA, cls: 'is-blank' }
+        : { label: 'Yards Allowed / Play', value: kpis.yardsAllowedPerPlay },
+      { label: 'Havoc Rate', value: `${kpis.havocRate || '0.0'}%` },
+      { label: 'Sacks', value: String(kpis.sacks) },
+      { label: 'TFL', value: String(kpis.tfl) },
+      { label: 'Takeaways', value: String(kpis.takeaways) },
+    ]} />
+    <SsBand cls="b-2">
+      <SsModule title="Positive Plays" phase="def"><SsCounts items={[
+        ['Stops', defSummary.positive.stops], ['Sacks', defSummary.positive.sacks],
+        ['Tackles for loss', defSummary.positive.tfl], ['Takeaways', defSummary.positive.takeaways],
+      ]} /></SsModule>
+      <SsModule title="Negative Plays" phase="def"><SsCounts items={[
+        ['Successful plays allowed', defSummary.negative.successfulAllowed],
+        ['Explosive plays allowed', defSummary.negative.explosiveAllowed],
+        ['Touchdowns allowed', defSummary.negative.touchdownsAllowed],
+      ]} /></SsModule>
+    </SsBand>
+    <SsBand cls="b-2">
+      <SsModule title="Top Calls" phase="def">
+        <SsTable columns={ssDefenseCallColumns} rows={ssRankedRows(defSummary.topCalls, screen, null)} />
+      </SsModule>
+      <SsModule title="Worst Calls" phase="def">
+        <SsTable columns={ssDefenseCallColumns} rows={ssRankedRows(defSummary.worstCalls, screen, null)} />
+      </SsModule>
+    </SsBand>
+    <SsBand cls="b-2">
+      <SsModule title="Run Defense" phase="def"><SsCounts items={[
+        ['Attempts', defSummary.run.attempts], ['Yards allowed per play', defSummary.run.yardsPerPlay],
+        ['Stop rate', `${defSummary.run.stopRate}%`], ['Explosive runs allowed', defSummary.run.explosivesAllowed],
+        ['Tackles for loss', defSummary.run.tfl],
+      ]} /></SsModule>
+      <SsModule title="Pass Defense" phase="def"><SsCounts items={[
+        ['Attempts', defSummary.pass.attempts], ['Yards allowed per play', defSummary.pass.yardsPerPlay],
+        ['Stop rate', `${defSummary.pass.stopRate}%`], ['Explosive passes allowed', defSummary.pass.explosivesAllowed],
+        ['Sacks', defSummary.pass.sacks],
+      ]} /></SsModule>
+    </SsBand>
+  </>;
+}
+
+function SsTendenciesSection({ report, defScout, screen }) {
+  const engine = screen.app.stats;
+  const tone = ssPredClass(report.predictability);
+  const bands = [<SsBand key="pred"><SsModule title="Predictability" phase="off">
+    <div class="gi-ss-pred">
+      <span class={`gi-ss-pred-val is-${tone}`}>{report.predictability}<small>/100</small></span>
+      <span class="gi-ss-pred-meter"><i class={`bg-${tone}`} style={{ width: `${report.predictability}%` }} /></span>
+      <span class="gi-ss-pred-cls">{report.predLabel}</span>
     </div>
-    {report.downDistRows.length>0&&<Module title="Situational Performance" meta="run/pass mix and production by down"><SelfScoutSplitTable rows={report.downDistRows} label="Down & Dist" cutType="dd" screen={screen}/></Module>}
-    {callRows.length>0&&<Module title="Call and Concept Performance" meta="charted calls and concepts"><SelfScoutSplitTable rows={callRows} label="Call / Concept" cutType="playCallOrConcept" screen={screen}/></Module>}
-    <Module title="Negative & Explosive Plays" meta="where possessions are won or lost"><div class="gi-selfscout-event-grid">{[
-      ['Explosive Rate',(e.explosivePct||'0.0')+'%'],['Negative Plays',neg.distinct||0],['Turnovers',neg.turnovers||0],
-      ['Sacks',neg.lossSacks||0],['Plays for Loss',neg.lossTotal||0],['Penalties',neg.penalties||0],
-    ].map(([l,v])=><div key={l}><span>{l}</span><strong>{v}</strong></div>)}</div></Module>
-    <div class="gi-selfscout-tier"><span>Tendencies and predictability</span></div>
-    <div class="gi-overview-band gi-selfscout-splits">
-      {report.formationRows.length>0&&<Module title="By Formation" meta={report.formationRows.length+' looks'}><SelfScoutSplitTable rows={report.formationRows} label="Formation" cutType="formation" screen={screen}/></Module>}
-      {report.personnelRows.length>0&&<Module title="By Personnel" meta={report.personnelRows.length+' groupings'}><SelfScoutSplitTable rows={report.personnelRows} label="Personnel" cutType="personnel" screen={screen}/></Module>}
+  </SsModule></SsBand>];
+
+  bands.push(<SsBand key="tells"><SsModule title="Offensive tendencies" phase="off">
+    <SsTable columns={[
+      { key: 'display', label: 'Situation', tl: true, size: 'label', render: row => ssTrunc(row.display) },
+      { key: 'dim', label: 'Type', size: 'dim', render: row => ssTrunc(row.dim) },
+      { key: 'leanPct', label: 'Lean', numeric: true, size: 'lean',
+        render: row => <SsBar tone={row.lean === 'Run' ? 'run' : 'pass'} pct={row.leanPct} text={`${row.lean} ${row.leanPct}%`} /> },
+      { key: 'leanAvg', label: 'Yds / Play', numeric: true, size: 'avg' },
+      { key: 'leanSuccRate', label: 'Success', numeric: true, size: 'pct', render: row => `${row.leanSuccRate}%` },
+      { key: 'n', label: 'Plays', numeric: true, size: 'n' },
+    ]} rows={report.tells.map((tell, index) => {
+      const label = `${tell.label} — ${tell.n} plays`;
+      return { ...tell, id: `${tell.dim}-${tell.label}-${index}`, display: tell.label, label,
+        onActivate: tell.cutType ? () => screen.watchCut(tell.cutType, tell.cutVal, label) : undefined };
+    })} />
+  </SsModule></SsBand>);
+
+  const view = engine._selfScoutMatrixView(report.matrix);
+  if (view) bands.push(<SsBand key="map"><SsModule title="Predictability map" phase="off">
+    <div class="gi-table-wrap"><table class="stats-table gi-ss-map">
+      <thead><tr><th class="tl">Formation / Situation</th>
+        {view.cols.map(col => <th key={col.key}>{col.label}</th>)}</tr></thead>
+      <tbody>{view.rows.map(row => <tr key={row.formation}>
+        <td class="tl">{row.formation} <i>n={row.n}</i></td>
+        {row.cells.map(cell => {
+          if (cell.empty) return <td key={cell.situation.key} class="gi-ss-cell is-nodata"><span class="lean">{SS_NO_DATA}</span></td>;
+          const label = `${row.formation} on ${cell.situation.label} — ${cell.cell.n} plays`;
+          return <Watchable key={cell.situation.key} tag="td" class={`gi-ss-cell is-${cell.state}`} label={label}
+            onActivate={() => screen.watchCut('comboFS', `${row.formation}__${cell.situation.key}`, label)}>
+            <span class="lean">{cell.lean} {cell.leanPct}%</span>
+            <span class="n">n={cell.cell.n}{cell.strong ? '' : ', low sample'}</span>
+          </Watchable>;
+        })}
+      </tr>)}</tbody>
+    </table></div>
+    <div class="gi-ss-legend">
+      <span class="k-exploit"><b />Predictable, below baseline</span>
+      <span class="k-working"><b />Predictable, at or above baseline</span>
+      <span class="k-balanced"><b />Balanced</span>
+      <span class="k-low"><b />Under {view.minCount} plays</span>
     </div>
-    <SelfScoutPersonnel items={report.personnelDiversity} screen={screen}/>
-    <Module title="Predictability" meta={report.predLabel+', '+report.totalPlays+' plays'}><div class="gi-selfscout-meter"><div><span style={{width:report.predictability+'%',background:color}}/></div><strong style={{color}}>{report.predictability}<small>/100</small></strong><p>0 is balanced; 100 is one-dimensional. Weighted by the largest run/pass share in each qualified situation.</p></div></Module>
-    <SelfScoutMatrix matrix={report.matrix} screen={screen}/>
-    {report.insights.length>0&&<Module title="Film Room Insights" meta={report.insights.length+' coaching reads'}><div class="ss-insights">{report.insights.map((x,i)=><div class={'ss-insight ss-insight-'+x.type} key={i}><span class={'ss-insight-tag ss-tag-'+x.type}>{x.tag}</span><span class="ss-insight-text"><InlineReportText html={x.text}/></span></div>)}</div></Module>}
-    <div class="gi-selfscout-tier"><span>Defensive self-scout</span></div><SelfScoutDefense defScout={defScout} performance={performance} screen={screen}/>
+  </SsModule></SsBand>);
+
+  if (defScout && !defScout.insufficient && defScout.tells.length) {
+    bands.push(<SsBand key="deftells"><SsModule title="Defensive tendencies" phase="def">
+      <SsTable columns={[
+        { key: 'display', label: 'Situation', tl: true, size: 'label', render: row => ssTrunc(row.display) },
+        { key: 'tellType', label: 'Call', size: 'tell' },
+        { key: 'tellPct', label: 'Lean', numeric: true, size: 'lean',
+          render: row => <SsBar tone="run" pct={row.tellPct} text={`${row.tellVal} ${row.tellPct}%`} /> },
+        { key: 'stopRate', label: 'Stop', numeric: true, size: 'pct', render: row => `${row.stopRate}%` },
+        { key: 'havocRate', label: 'Havoc', numeric: true, size: 'pct', render: row => `${row.havocRate}%` },
+        { key: 'n', label: 'Plays', numeric: true, size: 'n' },
+      ]} rows={defScout.tells.map((tell, index) => {
+        const label = `${tell.label} — ${tell.n} plays`;
+        return { ...tell, id: `${tell.dim}-${tell.tellType}-${tell.label}-${index}`, display: tell.label, label,
+          onActivate: tell.refs?.length ? () => screen.watchRefs(tell.refs, label)
+            : (tell.cutType ? () => screen.watchCut(tell.cutType, tell.cutVal, label) : undefined) };
+      })} />
+    </SsModule></SsBand>);
+  }
+  return <>{bands}</>;
+}
+
+/** How many rows or findings each section holds, so a coach can see where the
+ *  report has something before opening it. */
+function ssSectionCount(id, { report, callRows, defScout, defSummary }) {
+  switch (id) {
+    case 'summary': return report ? callRows.length : 0;
+    case 'offense': return report ? report.downDistRows.length + callRows.length : 0;
+    case 'structure': return report ? report.formationRows.length + report.personnelRows.length : 0;
+    case 'defense': return (defScout && !defScout.insufficient) ? defSummary.calls.length : 0;
+    case 'tendencies': return report
+      ? report.tells.length + ((defScout && !defScout.insufficient) ? defScout.tells.length : 0) : 0;
+    default: return 0;
+  }
+}
+
+export function SelfScoutTab({ report, defScout, performance, callRows, screen }) {
+  const engine = screen.app.stats;
+  /* Section lives on the controller, the way Players' does: an ordinary
+     Reports re-render unmounts and remounts this component, so a selection
+     held only here would be discarded and the board would snap back to
+     Offensive Summary. Local state still drives the render. */
+  const [section, setSectionState] = useState(screen.selfScoutSection || 'summary');
+  const setSection = id => { screen.selfScoutSection = id; setSectionState(id); };
+  const rows = callRows || [];
+  const summary = useMemo(() => (report ? engine.selfScoutSummary(performance, rows) : null),
+    [engine, report, performance, rows]);
+  const defSummary = useMemo(() => engine.selfScoutDefenseSummary(performance),
+    [engine, performance]);
+  const counts = { report, callRows: rows, defScout, defSummary };
+
+  let body;
+  if (section === 'defense') body = <SsDefenseSection defScout={defScout} defSummary={defSummary} screen={screen} />;
+  else if (!report) body = <SsEmpty title={SS_NO_OFFENSE[0]} body={SS_NO_OFFENSE[1]} screen={screen} />;
+  else if (section === 'offense') body = <SsCallsSection report={report} callRows={rows} screen={screen} />;
+  else if (section === 'structure') body = <SsStructureSection report={report} screen={screen} />;
+  else if (section === 'tendencies') body = <SsTendenciesSection report={report} defScout={defScout} screen={screen} />;
+  else body = <SsSummarySection summary={summary} performance={performance} screen={screen} />;
+
+  return <div class="gi-overview-board gi-selfscout-board">
+    <div class="gi-selfscout-report">
+      <div class="gi-selfscout-toolbar">
+        <span class="gi-selfscout-toolbar-label">Scope</span>
+        <span class="gi-selfscout-sample">
+          <b>{report ? report.totalPlays : 0}</b> classified offensive plays · <b>{defSummary.totalPlays}</b> defensive plays
+        </span>
+      </div>
+      <nav class="gi-selfscout-nav" aria-label="Self-Scout sections">
+        {SELF_SCOUT_SECTIONS.map(([id, title]) => {
+          const count = ssSectionCount(id, counts);
+          return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
+            aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
+        })}
+      </nav>
+      <div class="gi-selfscout-acts">
+        <button type="button" class="btn" onClick={() => (screen.exportSelfScout
+          ? screen.exportSelfScout(report, defScout, performance, rows)
+          : screen.export('season-html'))}>Export report</button>
+      </div>
+      <div class="gi-selfscout-sections">{body}</div>
+    </div>
   </div>;
 }
 export function ReportPane({ tab, children, opponent }) {

@@ -496,6 +496,76 @@ Verified on the coach's real 2025 JV season at all three release widths in both
 scopes: 13 players, six roles, 449 charted plays, no page overflow, no clipped
 cell, no scroller engaged, zero console errors.
 
+---
+
+**Reports > Self-Scout is implemented and gate-verified, but NOT coach
+accepted.** Built to the approved comp (`design-comps/reports-self-scout-2026-09-05`,
+whose RATIONALE is the decision record; sections 17-18 and the revision 4
+typography correction are the composition contract, at checkpoint `dd9812a`).
+No Charlie Gate and no installed smoke, so it is not accepted state.
+
+Self-Scout is **five sections presented as a TAB STRIP**, one on screen at a
+time: Offensive Summary, Calls & Situations, Structure, Defense, Tendencies.
+The production page it replaces measured 4,257px at 1440 — nearly five
+viewports of undifferentiated modules with the whole defensive report below the
+offensive one. Scope, the section navigation and Export share **one control
+row**; the report canvas is capped at 1648px and centred inside a board that
+carries no padding of its own, the same geometry the Players board uses.
+
+**Offensive Summary and Defense share one composition:** six KPI tiles, then
+three two-column rows — Positive Plays | Negative Plays, Top Calls | Worst
+Calls, Run | Pass. Those rows hold through 1280 and stack only below 1000. The
+six KPI tiles also stay on ONE row at 1280, the same ruling the Special Teams
+ledger carries: wrapping to 3×2 spends a whole extra row on six short cards.
+
+**Module headers carry the title only.** No counts, thresholds, sample
+language, captions or explanatory subheads render beside or beneath a module
+title, and an unavailable KPI reads `No data` with no sentence explaining the
+absence. Generated Recommendations and Film Room Insights are not rendered:
+they restated the data in speculative coaching prose. Tendencies is the only
+section carrying predictability, the tells, the predictability map or the
+defensive tells.
+
+**A defensive call is ONE composite identity: Front + Coverage +
+Blitz/pressure, in that order**, joining only the components the play actually
+carries. A blank pressure is omitted, never relabelled `No blitz` — an
+untagged field is missing data, not a charted call. Calls qualify at three
+plays and rank by stop rate, then LOWER yards allowed per play, then sample;
+Worst Calls is that same ranking read from the other end. Offensive calls
+qualify at three plays and rank by success rate, then yards per play, then
+sample. Both rankings live in `StatsEngine`, never in the view. **With fewer
+than six qualified calls the two tables overlap** — with one qualified call it
+is both the best and the worst. That is the approved comp's own behaviour and
+is carried into the Charlie Gate.
+
+**Three canonical predicates were extracted, not duplicated.**
+`StatsEngine.isExplosive` (a 12-yard run or a 16-yard pass), `isConversion`
+(gained the line to gain, or scored) and `isTackleForLoss` now have one owner
+each; `_efficiencyStats`, `_downStats`, `_defensiveStats`, `_selfScoutGroup`
+and the `explosive` cut filter all call them. No compute() output changed. The
+summary models (`selfScoutSummary`, `selfScoutDefenseSummary`) read
+compute()'s own efficiency, scoring, downs, negative-play, situational and
+defensive results rather than recomputing any of them, so every count on the
+board reconciles with the KPI band above it by construction.
+
+**Self-Scout now takes the shared self-perspective cohort.** It has no scope
+control — it reports the current game, the scope it has always had — but it
+sources that cohort through `_selfScoutCohort()` (`_selfPerspectiveCohort('game')`),
+the same assembly Defense, Special Teams and Players use. That is what stamps
+`__gid`: sourced straight from the live tagger, as it was, every Self-Scout row
+carried NO composite refs at all, which is the production dependency the comp
+record raised. Every ranked call now retains the exact `gameId::playId` cohort
+behind its own count, accumulated in the same pass that increments it.
+
+**The selected section is controller state.** `ReportsScreen.selfScoutSection`
+survives the remount an ordinary Reports re-render causes, the same correction
+`playersSection` needed.
+
+**Self-Scout is NOT in `SCOREBUG_TABS`** and still renders the generic rail,
+for the same reason Special Teams and Players do.
+
+---
+
 **Special Teams is NOT in `SCOREBUG_TABS`** and still renders the generic rail.
 Ruling 8: it takes the shared report header when that rolls across Reports, and
 no Special-Teams-only scorebug variant is invented. Export reuses the existing
@@ -586,14 +656,22 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Self-Scout and Matchup have not had a
-   design pass and still use the generic rail. Players has had its design pass
-   and is built, but stays OUT of `SCOREBUG_TABS` for the same reason Special
-   Teams does, so it also still renders the generic rail.
+4. **The remaining Reports tabs** — Matchup has not had a design pass and
+   still uses the generic rail. Players and Self-Scout have had their design
+   passes and are built, but stay OUT of `SCOREBUG_TABS` for the same reason
+   Special Teams does, so they also still render the generic rail.
    **Reports > Special Teams Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT.
    **Reports > Players Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT, plus an installed smoke.
+   **Reports > Self-Scout Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT, plus an installed smoke. Three
+   questions carried into it: Top and Worst Calls overlap when fewer than six
+   calls qualify (with one qualified call it is both); the predictability
+   map is auto-layout, so a sparse season with two situation columns stretches
+   each cell across the panel; and `Yds / Play` prints `6` rather than `6.0`
+   because `_selfScoutRows`' own `avg` is a number, which the legacy tables
+   and the HTML export have always shared.
    **Two approved Special Teams changes not yet built:** the context bar
    wrapping long game names at 1280 rather than clipping (shared shell owner;
    the shell's response to a taller bar still needs verifying), and Special
@@ -684,10 +762,13 @@ Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
 and the shared scorebug rule, 46), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
-corrections and the printed export, 46) and `tools/e2e-reports-players.mjs`
+corrections and the printed export, 46), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
 absence contract, the role-specific composite film cohorts and the Grade
-repair, 169).
+repair, 169) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
+composition, its title-only module headers, the composite defensive-call
+contract, both ranking rules, canonical metric reuse, exact film cohorts and
+1440/1280 containment, 89).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

@@ -307,7 +307,13 @@ result = await page.evaluate(() => {
     // Teams" toolbar label -- the tab strip already names the report. Its
     // football-specific surface is the unit ledger, which always names every
     // unit of the model, so that is what proves the surface is really there.
-    special: ['Kickoff', 'Punt Return'], players: ['Rushing'], selfscout: ['Self-Scout'],
+    // The approved 2026-09-05 Self-Scout composition dropped its redundant
+    // "Self-Scout" toolbar label for the same reason Special Teams dropped
+    // its own -- the tab strip already names the report. Its football-
+    // specific surface is the section navigation, which always names every
+    // section of the composition.
+    special: ['Kickoff', 'Punt Return'], players: ['Rushing'],
+    selfscout: ['Offensive Summary', 'Tendencies'],
     season: ['Season'], matchup: ['Matchup'],
   };
   for (const tab of Object.keys(needles)) {
@@ -1160,7 +1166,9 @@ result = await page.evaluate(async () => {
   app.reportsScreen.selectTab('defense');
   document.querySelector('.gi-def-toolbar .btn')?.click();
   app.reportsScreen.selectTab('selfscout');
-  document.querySelector('.gi-selfscout-toolbar .btn')?.click();
+  // Scope, section navigation and Export share one control row in the
+  // approved composition; the command lives in the row's action cell.
+  document.querySelector('.gi-selfscout-acts .btn')?.click();
   await Promise.all(pending);
   window.ffaSaveBlob = save;
   return captures;

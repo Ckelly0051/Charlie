@@ -1857,88 +1857,6 @@ select:focus:not(.ws-shell *) {
 .ss-tells tr.cut-row td:first-child::before { opacity: .55; }
 .ss-tells tr.cut-row:hover td:first-child::before { opacity: 1; }
 
-/* Predictability Map — Formation × Situation heat-map. Cells colored by lean
-   intensity (red = predictable tell, green = balanced); each is click-to-film. */
-.sm-wrap { overflow-x: auto; }
-.sm-table { border-collapse: separate; border-spacing: 3px; }
-.sm-table th { font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap; padding: 4px 6px; color: var(--text-dim); }
-.sm-table th.sm-corner { text-align: left; }
-.sm-row-label { font-weight: 600; white-space: nowrap; font-size: 12px; padding: 4px 8px; }
-.sm-row-label .sm-rown { color: var(--text-dim); font-weight: 400; font-size: 10px; margin-left: 2px; }
-.sm-cell {
-  text-align: center; padding: 4px 6px; border: 1px solid transparent;
-  border-radius: 5px; min-width: 58px; line-height: 1.15;
-}
-.sm-cell.sm-empty { color: var(--text-dim); opacity: .35; }
-.sm-cell .sm-lean { display: block; font-weight: 700; font-size: 12px; }
-.sm-cell .sm-n { display: block; font-size: 9px; color: var(--text-dim); }
-.sm-cell.cut-row { cursor: pointer; }
-.sm-cell.cut-row:hover { outline: 2px solid var(--accent); outline-offset: -1px; }
-.sm-cell.cut-row td:first-child::before { content: none; }   /* it's a cell, not a row — suppress the row ▶ */
-
-/* Split tables: enhanced with mini bars + effectiveness cols */
-.ss-split-bar {
-  display: inline-block;
-  min-width: 52px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #0b1020;
-  background: linear-gradient(90deg, var(--c, #ffd23f) var(--p, 50%), rgba(255, 255, 255, 0.08) var(--p, 50%));
-}
-
-/* Split tables: tell vs balanced flags */
-.ss-flag {
-  font-weight: 700;
-  color: #fbbf24;
-  font-size: 12px;
-}
-.ss-ok { color: #6b7a99; font-size: 12px; }
-
-/* Film Room Insights */
-.ss-insights {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ss-insight {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
-  border-left: 3px solid #3d4f7c;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #cdd6e6;
-}
-.ss-insight-tag {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  white-space: nowrap;
-  margin-top: 2px;
-}
-.ss-tag-counter { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.4); }
-.ss-tag-motion  { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-.ss-tag-direction { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
-.ss-tag-outlier { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
-.ss-tag-tempo   { background: rgba(236, 72, 153, 0.18); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
-.ss-tag-situation { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
-.ss-insight strong { color: #e6ebf5; }
-.ss-insight-counter { border-left-color: #7c3aed; }
-.ss-insight-motion  { border-left-color: #f59e0b; }
-.ss-insight-direction { border-left-color: #3b82f6; }
-.ss-insight-outlier { border-left-color: #22c55e; }
-.ss-insight-tempo   { border-left-color: #ec4899; }
-.ss-insight-situation { border-left-color: #ef4444; }
-
 /* Defensive Self-Scout section */
 .ss-def-section {
   border-top: 2px solid rgba(59, 130, 246, 0.25);
@@ -1958,9 +1876,6 @@ select:focus:not(.ws-shell *) {
   color: #8b97b0;
 }
 
-@media (max-width: 700px) {
-  .ss-insight { flex-direction: column; gap: 6px; }
-}
 
 /* ================================================================== */
 /* ===================  GRIDIRON PRO — v3  ========================== */
@@ -2120,8 +2035,8 @@ body {
 }
 
 /* --- Self-scout bars: gold run / blue pass --- */
-.ss-bar-run, .ss-split-bar.ss-bar-run { --c: var(--run-color) !important; }
-.ss-bar-pass, .ss-split-bar.ss-bar-pass { --c: var(--pass-color) !important; }
+.ss-bar-run { --c: var(--run-color) !important; }
+.ss-bar-pass { --c: var(--pass-color) !important; }
 
 /* --- Quarter mix bars --- */
 .viz-q-bar.run { background: var(--run-color) !important; }
