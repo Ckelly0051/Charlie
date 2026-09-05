@@ -600,3 +600,10 @@ sections. All ten fixture states and all five sections were exercised at 1280:
 zero page or console errors, zero page-level horizontal overflow, zero rendered
 module metadata, and no red-zone explanatory sentence. Review captures are in
 the gitignored `artifacts/self-scout-codex-review/` directory.
+
+### Revision 4 typography correction
+
+Module titles increase from 12.5px to 14px and table-column headers use an
+explicit 12px semibold Plex Sans face. Body rows, KPI values, padding, and row
+height do not change. The correction improves hierarchy and scanability without
+reducing report density.
