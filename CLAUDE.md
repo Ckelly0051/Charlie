@@ -376,6 +376,93 @@ masked the one play that genuinely belongs to no unit.
 survives is the one fact no ledger card can show: a snap belonging to no unit —
 the coach's single legacy `Fake` play — rendered only when it exists.
 
+**Reports > Players is implemented and gate-verified, but NOT coach accepted.**
+Built to the approved comp (`design-comps/reports-players-2026-09-04`, whose
+RATIONALE is the decision record and whose section 16 is the final
+composition). No Charlie Gate and no installed smoke, so it is not accepted
+state.
+
+Players is **six fixed football roles** — Rushing, Passing, Receiving, Tackles,
+Return Game, Kicking / Punting — paired two to a band. Scope (Current game /
+Full season, defaulting to Current game), the sample line and the role
+navigation (All roles / Offense / Defense / Special Teams) share **one control
+row**, so the board opens on report data rather than on two full-width bands of
+chrome. There is no section-title strip: it repeated the active role tab and
+counts already on screen. Role counts are plain text, not boxed badges. Role
+headings are readable IBM Plex Sans at 12.5px with no tracking or forced
+uppercase; data rows are 38px at 13px; bands meet on thin rules so the six
+tables read as one report surface; and the report canvas is capped at 1648px
+and centred, because uncapped at 1920 a name sits most of a screen from its
+first measurement.
+
+**The tables own their column geometry.** Each role emits a `colgroup` and
+renders `table-layout:fixed`, so the same measurement is the same width in
+every role table and no sort or scope change moves a column edge. Nine steps,
+each sized from the widest thing that column must hold — its own header or a
+full-season figure. A single width clipped `Solo`, `Sack`, `Fum` and
+`Punt Avg`; sizing against one game then let a season `1054` and `174/261`
+overrun. Identity keeps a 208px floor and absorbs whatever the panel has spare.
+
+Three things this cost, each of which renders plausibly while being wrong:
+
+- **A bare class loses the colgroup.** `.gi-reports .gi-overview-module table`
+  carries an element selector, so `.gi-player-table` alone is outranked and the
+  table silently content-sizes — every stated width becomes fiction. The rule
+  is qualified as `.gi-player-module table.gi-player-table`.
+- **The route-wide `th{position:sticky;top:42px}`** is measured against the
+  table wrap once the wrap is a scroll container, which pinned every header
+  42px down over its own first data row. The Players tables opt out, the same
+  correction the Special Teams board needed.
+- **`table-layout:fixed` overflows silently** rather than growing, so a clipped
+  cell is invisible to any content check. Every cell is measured against its
+  own content box across width × scope × section.
+
+**A band stacks only when its own widest table needs more than a band half.**
+A half is `(VW − 32 board padding − 1 gap) / 2 − 24 module padding`: 679px at
+1440, 599px at 1280. The tables need 620 / 632 / 498 / 638 / 482 / 448, so every
+band pairs at 1440 and only the bands carrying Rushing, Passing or Tackles stack
+at 1280 — Return Game and Kicking / Punting stay paired. A stacked band roughly
+doubles its measurement columns, because left at the paired widths the identity
+column absorbs ~830px of the extra room and a row reads as a name at the far
+left with its first number at the far right.
+
+**Two absence surfaces, one literal.** Roles with no attribution consolidate
+into a single `No data` row naming them, so the fixed role set stays visible
+without six mostly-empty panels; with no attribution anywhere the board is
+replaced by the ruled empty band — `No player attribution` / `No players are
+attributed to charted plays.` / `Open Break Down`. Neither ever shows a zero:
+unattributed is not zero production. A **measured** zero keeps full strength —
+a return fielded for no yards is `0`, and a takeaway credited with no tackle
+keeps its `0` tackles.
+
+**Every row opens its own role cohort.** `_playersCohort` reuses the same
+self-perspective assembly Defense and Special Teams use, so `refs` are real
+composite `gameId::playId` values in both scopes and a full-season row plays
+across games through the one film-navigation service. There is no jersey
+cut-up fallback: clicking a rushing row opens the carries that produced that
+rushing line, labelled with the role so a rushing cut-up is distinguishable
+from a receiving one. Full season is that same multi-game cohort, not a
+Players-local aggregation.
+
+**The Grade column renders.** `individualStats` returned `{text, cls}` and
+spread it into the row, so `DataTable` looked up a `grade` key that did not
+exist and every Grade cell was empty. It now returns `grade` / `gradeClass` /
+`gradeSort`, and five columns that sorted as zero (`Pct`, `C/A`, `FG (M/A)`,
+`Punts`, `Punt Avg`) carry real sort accessors — `Number('62.1%')`,
+`Number('18/29')` and `Number('2/4')` are all `NaN`, which `DataTable`'s
+`(Number(av) || 0)` turns into 0. An absent grade sorts last in both
+directions.
+
+**`DataTable` gained two optional inputs, both used only here:** a `size` on a
+column emits the colgroup, and `defaultSort` marks the column the view model
+already orders by so the sort affordance is visible at rest. Kicking / Punting
+opens unmarked because the engine orders it by made plus punts, which is not a
+single column.
+
+Verified on the coach's real 2025 JV season at all three release widths in both
+scopes: 13 players, six roles, 449 charted plays, no page overflow, no clipped
+cell, no scroller engaged, zero console errors.
+
 **Special Teams is NOT in `SCOREBUG_TABS`** and still renders the generic rail.
 Ruling 8: it takes the shared report header when that rolls across Reports, and
 no Special-Teams-only scorebug variant is invented. Export reuses the existing
@@ -395,21 +482,6 @@ mutation-verified against the generic band.
 **The outcome bars are absolute, not relative.** Scaling each bar to the
 largest bucket made a 29% outcome fill the whole track; the width is the
 bucket's own percentage of its unit.
-
-**Reports > Players is implemented from the approved 2026-09-04 comp.** It
-keeps six fixed role modules (Rushing, Passing, Receiving, Tackles, Return Game,
-Kicking / Punting), with All roles / Offense / Defense / Special Teams section
-navigation. The main tab defaults to Current game and can switch independently
-to Full season through `_playersCohort`; the Season report's embedded Players
-view remains fixed to its existing full-season model.
-
-An attributed row opens only that role's contributing composite refs. Empty
-roles remain visible as `No player attribution`; an entirely unattributed
-cohort uses the compact action state and the same literal copy. Grade is the
-signed one-decimal average or `No data`. C/A, Pct, FG M/A, Punts, Punt Avg and
-Grade sort on explicit numeric values, with missing values last in both
-directions. `e2e-native-reports` pins the role-specific film cohort, and
-`e2e-responsive-containment` pins route containment at release widths.
 
 **Two approved production changes are still pending, carried by no file:**
 the context bar wrapping long game names at 1280 instead of clipping (shared
@@ -481,10 +553,14 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Players, Self-Scout and Matchup have not
-   had a design pass and still use the generic rail.
+4. **The remaining Reports tabs** — Self-Scout and Matchup have not had a
+   design pass and still use the generic rail. Players has had its design pass
+   and is built, but stays OUT of `SCOREBUG_TABS` for the same reason Special
+   Teams does, so it also still renders the generic rail.
    **Reports > Special Teams Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT.
+   **Reports > Players Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT, plus an installed smoke.
    **Two approved Special Teams changes not yet built:** the context bar
    wrapping long game names at 1280 rather than clipping (shared shell owner;
    the shell's response to a taller bar still needs verifying), and Special
@@ -549,6 +625,17 @@ product is wrong.
    counts in real data; closing them means stretching table rows or full-width
    tables, both of which were tried and rejected. Carried into the Charlie Gate.
 
+10. **OPEN — `e2e-parity` is red at `393ca82`, before this Players build.**
+    Both goldens drift on `season: numbers,reports`. Verified by reverting
+    the Players implementation to committed HEAD and re-running: identical
+    failure, so it is not caused by the Players work. The likely cause is
+    `dfeb91c`, which changed `individualStats` output the goldens snapshot —
+    the table titles lost their `Individual ` prefix, and `FG (M/A)`, `Punts`
+    and `Punt Avg` moved from an em-dash to `0/0` / `0` / `No data`. That is a
+    reviewed, audited golden correction, called out in a diff — not a
+    regeneration to make a test pass — and it belongs to whoever owns
+    `dfeb91c`. Nothing may ship on a red parity.
+
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its
 own pane (measured: rail 682px = padding 40 + link 36 + gaps 66 + trees 194 +
@@ -573,9 +660,12 @@ Full tiers, commands, and what each tier can and cannot certify:
 
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
-and the shared scorebug rule, 46) and `tools/e2e-reports-special-teams.mjs`
+and the shared scorebug rule, 46), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
-corrections and the printed export, 46).
+corrections and the printed export, 46) and `tools/e2e-reports-players.mjs`
+(the Players composition, its role schemas, its measured column geometry, the
+absence contract, the role-specific composite film cohorts and the Grade
+repair, 158).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

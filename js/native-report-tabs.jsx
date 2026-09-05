@@ -537,40 +537,77 @@ export function OffenseTab({ stats, screen }) {
     {advanced && <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} /></div>}
   </div>;
 }
+/* The six roles the engine attributes, in the approved board order. `w` is the
+ * width the role's colgroup asks for (identity floor plus every measurement
+ * column), and it is what decides whether a band can stay paired -- see the
+ * `--p-*` steps and the stacking derivation in css/native-reports.css. */
 const PLAYER_ROLES = [
-  { key: 'rushing', title: 'Rushing', phase: 'off', section: 'off', meta: 'ball carrier on a run' },
-  { key: 'passing', title: 'Passing', phase: 'off', section: 'off', meta: 'passer on a pass' },
-  { key: 'receiving', title: 'Receiving', phase: 'off', section: 'off', meta: 'receiver on a completion' },
-  { key: 'tackles', title: 'Tackles', phase: 'def', section: 'def', meta: 'tackler or takeaway on a defensive snap' },
-  { key: 'returns', title: 'Return Game', phase: 'st', section: 'st', meta: 'returner on a kick or punt return' },
-  { key: 'kicking', title: 'Kicking / Punting', phase: 'st', section: 'st', meta: 'kicker or punter on a field goal or punt' },
+  { key: 'rushing', title: 'Rushing', phase: 'off', section: 'off', w: 620, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'passing', title: 'Passing', phase: 'off', section: 'off', w: 632, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'receiving', title: 'Receiving', phase: 'off', section: 'off', w: 498, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'tackles', title: 'Tackles', phase: 'def', section: 'def', w: 638, sort: { key: 'tkl', dir: 'desc' } },
+  { key: 'returns', title: 'Return Game', phase: 'st', section: 'st', w: 482, sort: { key: 'yds', dir: 'desc' } },
+  // Kicking / Punting opens unmarked: the engine orders it by made plus punts,
+  // which is not a single column, and claiming a sorted column it does not have
+  // would be a false statement about the data.
+  { key: 'kicking', title: 'Kicking / Punting', phase: 'st', section: 'st', w: 448 },
 ];
-const PLAYER_LAYOUT = {
-  all: [['rushing', 'passing'], ['receiving', 'tackles'], ['returns', 'kicking']],
-  off: [['rushing', 'passing'], ['receiving']],
-  def: [['tackles']],
-  st: [['returns', 'kicking']],
-};
 const PLAYER_SECTIONS = [
   ['all', 'All roles'], ['off', 'Offense'], ['def', 'Defense'], ['st', 'Special Teams'],
 ];
-const PLAYER_WIDE = new Set(['rushing', 'passing', 'tackles']);
+/* Column width step per measurement, keyed by the view model's own column key.
+ * Six steps, each sized from the widest thing that column must hold -- its own
+ * header or a full-season figure. A single width clipped Solo, Sack, Fum and
+ * Punt Avg; a four-step set sized against one game let a season `122/201`, a
+ * four-digit season yardage and `Punt Avg` overrun. Identity takes the slack. */
+const PLAYER_COL_SIZE = {
+  tds: 's', fr: 's',
+  att: 'c', rec: 'c', ret: 'c', tkl: 'c', ast: 'c', tfl: 'c', ints: 'c', sacks: 'c',
+  yds: 'm', avg: 'm',
+  solo: 'l2',
+  long: 'l', fum: 'l', punts: 'l',
+  pct: 'pct', ca: 'ca', grade: 'g',
+  fg: 'xl', puntAvg: 'xl',
+};
+/* One key, two columns: `sacks` is Passing's `Sck` (a count) and Tackles'
+   `Sack` (a wider header). A column is sized from what IT holds, so the wider
+   of the two is not imposed on the other. */
+const PLAYER_COL_SIZE_BY_ROLE = { tackles: { sacks: 'l2' } };
+/* A band half is (VW - 32 board padding - 1 gap) / 2 - 24 module padding:
+ * 599px at 1280. A band whose widest table needs more than that stacks there;
+ * the rest stay paired, so Return Game and Kicking / Punting are not stacked
+ * merely because Tackles is wide. */
+const PLAYER_HALF_1280 = 599;
 
 function PlayerRoleModule({ role, table, screen }) {
   const rows = table?.rows || [];
   const columns = (table?.columns || []).map(([key, label, numeric, sortKey]) => ({
     key, label, numeric, tl: key === 'player',
+    size: key === 'player' ? 'ident'
+      : (PLAYER_COL_SIZE_BY_ROLE[role.key]?.[key] || PLAYER_COL_SIZE[key] || 'm'),
+    // Jersey number and name are one string in the view model, so they are one
+    // cell here. The number is picked out so a coach who charts by number can
+    // find a row without reading the names.
+    render: key === 'player'
+      ? row => <><i>{`#${row.num}`}</i>{` ${String(row.player ?? '').replace(/^#\S+\s*/, '')}`}</>
+      : undefined,
     sortValue: sortKey ? row => row[sortKey] : undefined,
-    cellClass: key === 'grade' ? row => row.gradeClass : undefined,
+    // An uncharted measurement drops to copy weight so it cannot read as a
+    // figure; a measured zero keeps full strength.
+    cellClass: row => [key === 'grade' ? row.gradeClass : '',
+      row[key] === 'No data' ? 'blank' : ''].filter(Boolean).join(' ') || undefined,
   }));
   return <Module title={role.title}
-    meta={rows.length ? `${rows.length} player${rows.length === 1 ? '' : 's'} — ${role.meta}` : 'No data'}
-    cls={`gi-player-module is-${role.phase}${rows.length ? '' : ' is-none'}`}>
-    {rows.length ? <DataTable className="stats-table gi-player-table" columns={columns}
+    meta={`${rows.length} player${rows.length === 1 ? '' : 's'}`}
+    cls={`gi-player-module is-${role.phase}`}>
+    <DataTable className="stats-table gi-player-table" columns={columns} defaultSort={role.sort || null}
       rows={rows.map(row => ({ ...row, player: row.label, id: `${role.key}-${row.num}`,
+        // The row's OWN role cohort: clicking a rushing row opens the carries
+        // that produced that rushing line, never every snap the jersey appears
+        // in. `refs` are composite gameId::playId, so a full-season row plays
+        // across games through the one film-navigation service.
         onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label} — ${role.title}`) : undefined,
         label: `${row.label} — ${role.title}` }))} />
-      : <p class="gi-player-none">No player attribution</p>}
   </Module>;
 }
 
@@ -585,35 +622,49 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
   const tableByKey = Object.fromEntries(tables.map(table => [table.key, table]));
   const rolePlayers = keys => new Set(keys.flatMap(key => (tableByKey[key]?.rows || []).map(row => String(row.num))));
   const sectionKeys = id => PLAYER_ROLES.filter(role => id === 'all' || role.section === id).map(role => role.key);
-  const attributedRoles = sectionKeys(section).filter(key => tableByKey[key]?.rows.length).length;
-  const totalRoles = sectionKeys(section).length;
   const playerCount = rolePlayers(sectionKeys('all')).size;
   const playCount = scoped?.length ?? stats?.allPlays?.length ?? 0;
 
+  /* Populated roles pair two to a band in board order; the roles with no
+   * attribution consolidate into one literal `No data` row that names them, so
+   * the fixed role set stays visible without six mostly-empty panels or a
+   * synchronized grid gap. */
+  const shown = sectionKeys(section);
+  const populated = shown.filter(key => tableByKey[key]?.rows.length);
+  const absent = shown.filter(key => !tableByKey[key]?.rows.length);
+  const bands = [];
+  for (let i = 0; i < populated.length; i += 2) bands.push(populated.slice(i, i + 2));
+  const roleOf = key => PLAYER_ROLES.find(role => role.key === key);
+  const bandWide = band => band.length === 2 && band.some(key => roleOf(key).w > PLAYER_HALF_1280);
+
   return <div class="gi-overview-board gi-players-board">
-    {!fixedScope && <div class="gi-players-toolbar">
-      <span class="gi-players-toolbar-label">Scope</span>
-      <div class="gi-players-scope" role="group" aria-label="Players report scope">
-        <button type="button" class={screen.playersScope === 'game' ? 'active' : ''} aria-pressed={screen.playersScope === 'game'}
-          onClick={() => { screen.playersScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
-        <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
-          onClick={() => { screen.playersScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+    <div class="gi-players-report">
+      {!fixedScope && <div class="gi-players-toolbar">
+        <span class="gi-players-toolbar-label">Scope</span>
+        <div class="gi-players-scope" role="group" aria-label="Players report scope">
+          <button type="button" class={screen.playersScope === 'game' ? 'active' : ''} aria-pressed={screen.playersScope === 'game'}
+            onClick={() => { screen.playersScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+          <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
+            onClick={() => { screen.playersScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+        </div>
+        <span class="gi-players-sample"><b>{playerCount}</b> players · <b>{tables.length}</b> roles · <b>{playCount}</b> charted plays</span>
+      </div>}
+      <nav class="gi-players-nav" aria-label="Player roles">
+        {PLAYER_SECTIONS.map(([id, title]) => {
+          const count = rolePlayers(sectionKeys(id)).size;
+          return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
+            aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
+        })}
+      </nav>
+      <div class="gi-players-sections">
+        {bands.map((band, index) => <div key={`${section}-${index}`}
+          class={`gi-player-band b-${band.length}${bandWide(band) ? ' is-wide' : ''}`}>
+          {band.map(key => <PlayerRoleModule key={key} role={roleOf(key)} table={tableByKey[key]} screen={screen} />)}
+        </div>)}
+        {absent.length ? <div class="gi-player-empty-summary">
+          <span>No data</span><strong>{absent.map(key => roleOf(key).title).join(' · ')}</strong>
+        </div> : null}
       </div>
-      <span class="gi-players-sample"><b>{playerCount}</b> players attributed across <b>{tables.length}</b> roles — <b>{playCount}</b> plays charted</span>
-    </div>}
-    <nav class="gi-players-nav" aria-label="Player roles">
-      {PLAYER_SECTIONS.map(([id, title]) => {
-        const count = rolePlayers(sectionKeys(id)).size;
-        return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
-          aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
-      })}
-    </nav>
-    <div class="gi-players-rule"><h2>{PLAYER_SECTIONS.find(([id]) => id === section)?.[1]}</h2><em>{attributedRoles} of {totalRoles} roles attributed</em></div>
-    <div class="gi-players-sections">
-      {PLAYER_LAYOUT[section].map((band, index) => <div key={`${section}-${index}`}
-        class={`gi-player-band${band.length === 1 ? ' is-single' : ''}${band.some(key => PLAYER_WIDE.has(key)) ? ' is-wide' : ''}`}>
-        {band.map(key => <PlayerRoleModule key={key} role={PLAYER_ROLES.find(role => role.key === key)} table={tableByKey[key]} screen={screen} />)}
-      </div>)}
     </div>
   </div>;
 }

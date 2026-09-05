@@ -2365,15 +2365,58 @@
 .gi-reports .gi-st-export{ margin-left:auto }
 
 /* ── PLAYERS BOARD ───────────────────────────────────────────────────────
-   Six fixed football roles, grouped into even bands. Identity stays the
-   visual anchor while measurement columns remain compact and tabular. */
-.gi-reports .gi-players-board{ padding:0 }
+   Built to design-comps/reports-players-2026-09-04 (comp `players.html`,
+   decisions in its RATIONALE, final composition in RATIONALE section 16).
+
+   Six fixed football roles. Identity is the anchor of every table, so its
+   column carries a floor and absorbs the slack while every measurement column
+   keeps a fixed step -- the same measurement is the same width in every role
+   table, and no sort or scope change moves a column edge.
+
+   Column steps, each sized from the widest thing that column must hold, its
+   own header or a full-season figure. A single width for all of them clipped
+   Solo, Sack, Fum and Punt Avg; a four-step set measured against one game then
+   let a season `122/201`, a four-digit season yardage and `Punt Avg` overrun.
+
+   A role table therefore asks for a known width: Rushing 608, Passing 632,
+   Receiving 492, Tackles 638, Return Game 476, Kicking / Punting 442. A band
+   half is (VW - 32 board padding - 1 gap) / 2 - 24 module padding, so 679px at
+   1440 and 599px at 1280: every band pairs at 1440, and below
+   (638 + 24) * 2 + 33 = 1357 a band stacks only if its OWN widest table needs
+   more than the half. Stacking every band because Tackles is wide would leave
+   half the board empty for no reason. */
+.gi-reports .gi-players-board{
+  --p-ident:208px; /* floor; the column absorbs whatever a panel has spare */
+  --p-s:44px;    /* TD, FR */
+  --p-c:50px;    /* Att, Rec, Ret, Tkl, Ast, TFL, INT, Sck -- counts */
+  --p-m:58px;    /* Yds, Avg -- a four-digit season yardage */
+  --p-l2:56px;   /* Solo, Sack */
+  --p-l:64px;    /* Long, Fum, Punts */
+  --p-pct:70px;  /* Pct */
+  --p-ca:78px;   /* C/A -- a full-season 174/261 */
+  --p-g:74px;    /* Grade -- holds "+1.8" and the "No data" literal */
+  --p-xl:88px;   /* FG (M/A), Punt Avg */
+  display:block;width:100%;margin:0;padding:var(--gi-4x);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
+}
+/* Scope, sample size and role navigation share ONE control row, so the board
+   opens on report data rather than on two full-width bands of chrome. */
+/* The report canvas is capped and centred on a wide display: 1648px of
+   content inside the board's own 16px padding. Uncapped, a 1920 panel puts a
+   player identity at the far left of a 38px row and its first measurement
+   most of a screen away. The board itself stays full width, so the stage
+   colour reaches the pane edge rather than exposing the route's own surface
+   beside a floating panel. */
+.gi-reports .gi-players-report{
+  display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px;
+  width:min(100%,1648px);margin:0 auto
+}
 .gi-reports .gi-players-toolbar{
-  display:flex;align-items:center;gap:var(--gi-3x);flex-wrap:wrap;
-  margin:0 0 4px;padding:7px var(--gi-3x);background:var(--gi-bd-panel)
+  grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);flex-wrap:nowrap;white-space:nowrap;
+  margin:0;padding:7px var(--gi-3x);background:var(--gi-bd-panel)
 }
 .gi-reports .gi-players-toolbar-label{
-  color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase
+  color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
 }
 .gi-reports .gi-players-scope{ display:flex;gap:1px;background:var(--gi-bd-line) }
 .gi-reports .gi-players-scope button{
@@ -2385,63 +2428,201 @@
 .gi-reports .gi-players-scope button.active{
   background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)
 }
-.gi-reports .gi-players-sample{ color:var(--gi-bd-copy);font:400 11px/1.3 var(--gi-sans) }
+.gi-reports .gi-players-sample{ color:var(--gi-bd-copy);font:400 12px/1.3 var(--gi-sans);white-space:nowrap }
 .gi-reports .gi-players-sample b{ color:var(--gi-bd-strong);font-weight:600 }
-.gi-reports .gi-players-nav{ display:flex;gap:1px;margin:0 0 4px;background:var(--gi-bd-line) }
+
+/* Role navigation. Readable Sans, and the counts are plain text -- a boxed
+   badge reads as a status chip, and a role count is neither a status nor an
+   action. */
+.gi-reports .gi-players-nav{
+  grid-column:2;display:flex;align-items:stretch;gap:1px;margin:0;background:var(--gi-bd-line)
+}
 .gi-reports .gi-players-nav button{
   flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
-  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 11px/1 var(--gi-cond);
-  letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer;white-space:nowrap
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 12px/1 var(--gi-sans);
+  letter-spacing:0;text-transform:none;text-align:left;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-players-nav button>b{
-  display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 3px;
-  background:var(--gi-bd-control-active);color:var(--gi-bd-muted);font:700 10px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)
+  flex:0 0 auto;min-width:0;padding:0;border:0;background:transparent;
+  color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);
+  font-variant-numeric:var(--gi-num-feat)
 }
 .gi-reports .gi-players-nav button:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
+.gi-reports .gi-players-nav button:hover>b{ color:var(--gi-bd-copy) }
 .gi-reports .gi-players-nav button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
 .gi-reports .gi-players-nav button.active{
-  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan),var(--gi-raise-tab)
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)
 }
-.gi-reports .gi-players-nav button.active>b{ background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink) }
+.gi-reports .gi-players-nav button.active>b{ color:var(--gi-bd-cyan) }
+/* A section whose roles hold no attribution stays reachable -- it is the one
+   surface that says the role is unattributed. Dimmed, never disabled. */
 .gi-reports .gi-players-nav button.is-none{ color:var(--gi-bd-muted) }
-.gi-reports .gi-players-rule{
-  display:flex;align-items:baseline;gap:var(--gi-3x);margin:0 0 4px;padding:9px var(--gi-3x) 7px;
-  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)
-}
-.gi-reports .gi-players-rule h2{
-  margin:0;color:var(--gi-bd-cyan);font:700 11px/1 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase
-}
-.gi-reports .gi-players-rule em{ margin-left:auto;color:var(--gi-bd-muted);font:400 10.5px/1.2 var(--gi-sans);font-style:normal }
-.gi-reports .gi-player-band{ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0 0 4px;background:transparent }
-.gi-reports .gi-player-band.is-single{ grid-template-columns:minmax(0,1fr) }
+
+/* The six role tables read as ONE report surface: bands meet on a thin rule
+   rather than a four-pixel black gutter. */
+.gi-reports .gi-players-sections{ grid-column:1/-1;background:transparent }
+.gi-reports .gi-player-band{ display:grid;gap:1px;align-items:stretch;margin:0;background:transparent }
+.gi-reports .gi-player-band.b-1{ grid-template-columns:minmax(0,1fr) }
+.gi-reports .gi-player-band.b-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+/* Content-height modules would show the band's own background as a solid slab
+   under a short module, so the column rule is painted into the 1px gap with a
+   box-shadow instead. Same fix the Offense and Special Teams boards carry. */
 .gi-reports .gi-player-band>.gi-player-module+.gi-player-module{ box-shadow:-1px 0 var(--gi-bd-line) }
-.gi-reports .gi-player-module{ padding:var(--gi-2x) var(--gi-3x) 10px }
+.gi-reports .gi-player-band+.gi-player-band .gi-player-module{ border-top:1px solid var(--gi-bd-line) }
+
+.gi-reports .gi-player-module{
+  min-width:0;padding:10px var(--gi-3x) 12px;border:0;background:var(--gi-bd-panel);position:relative
+}
+.gi-reports .gi-player-module>header{
+  display:flex;align-items:baseline;gap:var(--gi-2x);min-height:0;
+  margin:0 0 7px;padding:0;border:0
+}
+/* Readable Sans at 12.5px. A role name is a heading a coach reads, not a
+   tracked micro-label. */
+.gi-reports .gi-player-module>header strong{
+  color:var(--gi-bd-cyan);font:700 12.5px/1.2 var(--gi-sans);letter-spacing:0;
+  text-transform:none;white-space:nowrap
+}
+.gi-reports .gi-player-module>header span{
+  margin:0;min-width:0;color:var(--gi-bd-copy);font:400 12px/1.2 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+/* Phase colour, the same one Overview and Offense already use for the same
+   idea: gold is our offense, cyan our defense, and special teams keeps the
+   neutral the Special Teams board gives its own modules. */
 .gi-reports .gi-player-module.is-off>header strong{ color:var(--gi-bd-gold) }
 .gi-reports .gi-player-module.is-def>header strong{ color:var(--gi-bd-cyan) }
 .gi-reports .gi-player-module.is-st>header strong{ color:var(--gi-bd-copy) }
-.gi-reports .gi-player-module.is-none>header strong{ color:var(--gi-bd-muted) }
-.gi-reports .gi-player-none{ margin:2px 0 4px;color:var(--gi-bd-muted);font:400 12px/1.5 var(--gi-sans) }
-.gi-reports .gi-player-module .gi-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
-.gi-reports .gi-player-table{ width:auto;max-width:100%;table-layout:auto }
-.gi-reports .gi-player-table th,.gi-reports .gi-player-table td{ height:var(--gi-row);padding:0 var(--gi-2x);white-space:nowrap }
-.gi-reports .gi-player-table th:first-child,.gi-reports .gi-player-table td:first-child{ min-width:208px }
-.gi-reports .gi-player-table td:first-child{ color:var(--gi-bd-strong);font-weight:600 }
-.gi-reports .gi-player-table td.grade-pos{ color:var(--gi-bd-win) }
-.gi-reports .gi-player-table td.grade-neg{ color:var(--gi-bd-loss) }
-.gi-reports .gi-player-table td[data-col="grade"]:not(.grade-pos):not(.grade-neg),
-.gi-reports .gi-player-table td[data-col="puntAvg"]{ min-width:72px }
-.gi-reports .gi-player-table .cut-row{ cursor:pointer }
-.gi-reports .gi-player-table .cut-row:hover td{ background:var(--gi-bd-control) }
-.gi-reports .gi-player-table .cut-row:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
 
-@media(max-width:1330px){
-  .gi-reports .gi-player-band.is-wide{ grid-template-columns:minmax(0,1fr) }
-  .gi-reports .gi-player-band.is-wide>.gi-player-module+.gi-player-module{ box-shadow:none;border-top:1px solid var(--gi-bd-line) }
+/* Roles with no attribution consolidate into one literal row that names them.
+   The fixed role set stays visible without six mostly-empty panels, and an
+   unattributed role never shows a zero -- unattributed is not zero production. */
+.gi-reports .gi-player-empty-summary{
+  display:flex;align-items:center;gap:var(--gi-3x);min-height:44px;
+  padding:0 var(--gi-3x);border-top:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)
 }
-@media(max-width:700px){
+.gi-reports .gi-player-empty-summary span{ color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans) }
+.gi-reports .gi-player-empty-summary strong{ color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans) }
+
+/* The full empty state replaces the board, so it has no board ancestor to be
+   scoped by -- it is scoped by its own pane instead. Its heading takes the
+   readable Sans treatment the rest of this report uses rather than the
+   route-wide condensed uppercase label. */
+.gi-reports .gi-report-pane[data-pane="players"] .gi-reports-empty h3{
+  font:700 14px/1.25 var(--gi-sans);letter-spacing:0;text-transform:none
+}
+
+/* Tables. `table-layout:fixed` so the colgroup is honoured exactly -- auto
+   layout treats a column width as a preference and discards every one of them
+   the moment the identity column asks for 100%, which silently content-sizes
+   the measurements and makes the stated widths fiction. */
+.gi-reports .gi-player-module .gi-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
+/* Qualified by the ELEMENT, not by class alone. The shared
+   `.gi-reports .gi-overview-module table` rule carries an element selector and
+   therefore outranks a bare `.gi-player-table`, which loses both the fixed
+   layout and the colgroup: the table then content-sizes and every stated
+   column width is fiction while still rendering plausibly. Mutation-verified. */
+.gi-reports .gi-player-module table.gi-player-table{ width:100%;table-layout:fixed;border-collapse:collapse;background:transparent }
+.gi-reports .gi-player-module table.gi-player-table col.ident{ width:100% }
+.gi-reports .gi-player-module table.gi-player-table col.s{ width:var(--p-s) }
+.gi-reports .gi-player-module table.gi-player-table col.c{ width:var(--p-c) }
+.gi-reports .gi-player-module table.gi-player-table col.m{ width:var(--p-m) }
+.gi-reports .gi-player-module table.gi-player-table col.l2{ width:var(--p-l2) }
+.gi-reports .gi-player-module table.gi-player-table col.l{ width:var(--p-l) }
+.gi-reports .gi-player-module table.gi-player-table col.pct{ width:var(--p-pct) }
+.gi-reports .gi-player-module table.gi-player-table col.ca{ width:var(--p-ca) }
+.gi-reports .gi-player-module table.gi-player-table col.g{ width:var(--p-g) }
+.gi-reports .gi-player-module table.gi-player-table col.xl{ width:var(--p-xl) }
+.gi-reports .gi-player-module table.gi-player-table th,.gi-reports .gi-player-module table.gi-player-table td{
+  height:38px;padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-bd-line);
+  font-size:13px;white-space:nowrap;text-align:right
+}
+/* The route-wide `th{position:sticky;top:42px}` is measured against the wrap
+   once the wrap becomes a scroll container, which pins the header 42px down
+   over the first data row -- the same correction the Special Teams board
+   needed. `relative` also anchors the sort marker below. */
+.gi-reports .gi-player-module table.gi-player-table th{
+  position:relative;top:auto;z-index:auto;
+  background:transparent;color:var(--gi-bd-copy);font:var(--gi-text-label);
+  text-transform:uppercase;letter-spacing:0;cursor:pointer;user-select:none
+}
+.gi-reports .gi-player-module table.gi-player-table td{ color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat) }
+.gi-reports .gi-player-module table.gi-player-table th:first-child,.gi-reports .gi-player-module table.gi-player-table td:first-child{
+  min-width:var(--p-ident);padding-left:var(--gi-4x);text-align:left
+}
+.gi-reports .gi-player-module table.gi-player-table th:last-child,.gi-reports .gi-player-module table.gi-player-table td:last-child{ padding-right:var(--gi-4x) }
+.gi-reports .gi-player-module table.gi-player-table tbody tr:last-child td{ border-bottom:0 }
+/* Identity is the anchor: it holds the floor, absorbs whatever the panel has
+   spare, and truncates rather than overrunning into the measurements if a name
+   is longer than the panel can ever give it. The full label is on the row. */
+.gi-reports .gi-player-module table.gi-player-table td.tl{
+  color:var(--gi-bd-strong);font-weight:600;font-variant-numeric:var(--gi-num-feat);
+  overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-player-module table.gi-player-table td.tl i{
+  font-style:normal;color:var(--gi-bd-cyan);font-weight:700;margin-right:5px
+}
+/* An absence carries the one approved literal and drops to copy weight, so it
+   can never be mistaken for a measured figure. A measured zero keeps full
+   strength -- it is an observation. */
+.gi-reports .gi-player-module table.gi-player-table td.blank{ color:var(--gi-bd-muted);font-size:12px;font-weight:400 }
+.gi-reports .gi-player-module table.gi-player-table td.grade-pos{ color:var(--gi-bd-win) }
+.gi-reports .gi-player-module table.gi-player-table td.grade-neg{ color:var(--gi-bd-loss) }
+
+/* Sortable headers: descending, ascending, then off. The direction marker is
+   absolutely positioned beneath the right end of the label, riding on the
+   sorted column's cyan underline -- an inline caret costs width on every
+   column of every table, and a measurement column's content box is only ~28px
+   wide, so a caret beside the label touched it. */
+.gi-reports .gi-player-module table.gi-player-table th:hover{ color:var(--gi-bd-strong) }
+.gi-reports .gi-player-module table.gi-player-table th:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-player-module table.gi-player-table th.is-sorted{ color:var(--gi-bd-strong);box-shadow:inset 0 -2px var(--gi-bd-cyan) }
+.gi-reports .gi-player-module table.gi-player-table th.is-sorted::before{
+  position:absolute;right:var(--gi-3x);bottom:1px;
+  color:var(--gi-bd-cyan);font-size:11px;line-height:1;pointer-events:none
+}
+.gi-reports .gi-player-module table.gi-player-table th:last-child.is-sorted::before{ right:var(--gi-4x) }
+.gi-reports .gi-player-module table.gi-player-table th.is-sorted.is-desc::before{ content:'\2193' }
+.gi-reports .gi-player-module table.gi-player-table th.is-sorted.is-asc::before{ content:'\2191' }
+
+/* A clickable row must look clickable. The chevron reserves its width at rest,
+   so revealing it on hover moves no text. */
+.gi-reports .gi-player-module table.gi-player-table .cut-row{ cursor:pointer }
+.gi-reports .gi-player-module table.gi-player-table .cut-row:hover td{ background:var(--gi-bd-control) }
+.gi-reports .gi-player-module table.gi-player-table .cut-row:hover td.tl{ color:var(--gi-bd-strong) }
+.gi-reports .gi-player-module table.gi-player-table .cut-row:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-player-module table.gi-player-table .cut-row td.tl::before{
+  content:'\25B8';margin-right:6px;color:var(--gi-bd-cyan);opacity:0
+}
+.gi-reports .gi-player-module table.gi-player-table .cut-row:hover td.tl::before,
+.gi-reports .gi-player-module table.gi-player-table .cut-row:focus-visible td.tl::before{ opacity:1 }
+
+@media(max-width:1356px){
+  .gi-reports .gi-player-band.b-2.is-wide{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-player-band.b-2.is-wide>.gi-player-module+.gi-player-module{
+    box-shadow:none;border-top:1px solid var(--gi-bd-line)
+  }
+  /* A stacked band's module is roughly twice as wide, so its measurement
+     columns are roughly twice as wide too. Left at the paired widths the
+     identity column absorbs all ~830px of the extra room, and a row reads as a
+     name at the far left with its first number at the far right of a 38px
+     line. */
+  .gi-reports .gi-player-band.b-2.is-wide{
+    --p-s:88px;--p-c:96px;--p-m:112px;--p-l2:112px;--p-l:112px;--p-pct:124px;
+    --p-ca:136px;--p-g:136px;--p-xl:150px
+  }
+}
+@media(max-width:900px){
+  .gi-reports .gi-players-report{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-players-toolbar,.gi-reports .gi-players-nav{ grid-column:1 }
+  .gi-reports .gi-players-toolbar{ flex-wrap:wrap;white-space:normal }
   .gi-reports .gi-players-nav{ overflow-x:auto }
   .gi-reports .gi-players-nav button{ flex:0 0 auto }
-  .gi-reports .gi-player-band{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-player-band.b-2{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-player-band.b-2>.gi-player-module+.gi-player-module{
+    box-shadow:none;border-top:1px solid var(--gi-bd-line)
+  }
 }
 
 @media(max-width:1360px){

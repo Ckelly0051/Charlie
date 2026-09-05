@@ -75,8 +75,12 @@ export function RowList({ rows }) {
 /** A sortable data table. `columns`: [{key,label,align,numeric,sortValue,cellClass}]. `rows`:
  *  array of plain objects; each may carry `onActivate`/`label`/`id`. Sort
  *  state is local UI state — never touches football data or row identity. */
-export function DataTable({ columns, rows, className = 'stats-table stats-table-full', emptyText = 'No data yet.' }) {
-  const [sort, setSort] = useState(null); // {key, dir}
+export function DataTable({ columns, rows, className = 'stats-table stats-table-full', emptyText = 'No data yet.', defaultSort = null }) {
+  // `defaultSort` marks the column the view model ALREADY orders by, so the
+  // sort affordance is visible at rest instead of only after a click. It is
+  // presentation state: it never reorders anything the model did not already
+  // order that way. Third click still clears back to the model's own order.
+  const [sort, setSort] = useState(defaultSort); // {key, dir}
   const sorted = useMemo(() => {
     if (!sort) return rows;
     const col = columns.find(c => c.key === sort.key);
@@ -104,7 +108,13 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
   // after the first because they are measurements; a text label right-aligned
   // beside a number throws a wide gap between a row's key and its data, which
   // is the eye-traverse problem the approved Offense comp removed.
+  // A `size` on any column means the caller owns its column geometry: the
+  // colgroup is emitted and the stylesheet gives each step its width. Without
+  // it a table is laid out from content, so the same measurement is a
+  // different width in every table and a scope change moves a column edge.
+  const sized = columns.some(col => col.size);
   return <div class="gi-table-wrap"><table class={className}>
+    {sized && <colgroup>{columns.map(col => <col key={col.key} class={col.size || undefined} />)}</colgroup>}
     <thead><tr>{columns.map(col => <th key={col.key}
       class={`${sort?.key === col.key ? `is-sorted is-${sort.dir}` : ''}${col.tl ? ' tl' : ''}`.trim()}
       onClick={() => toggle(col.key)}
