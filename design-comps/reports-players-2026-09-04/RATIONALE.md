@@ -6,11 +6,15 @@ Reports CSS are all untouched at `068093a`. This file is the decision record
 and the production-to-comp mapping; reviewing the comp means reading it.
 
 Comp: `design-comps/reports-players-2026-09-04/players.html`
-Captures: `design-comps/reports-players-2026-09-04/captures/` — 40 files
+Captures: `design-comps/reports-players-2026-09-04/captures/` — 93 files
 
-The comp is interactive. The four fixture states, the four role sections, and
-column sorting all work, so the composition can be judged in its real states
-rather than described.
+The comp is interactive. The four fixture states, both scopes, the four role
+sections, and column sorting all work, so the composition can be judged in its
+real states rather than described.
+
+**Revision 2, 2026-09-04.** Charlie reviewed revision 1 REVISE and ruled on all
+seven open decisions. Five findings and six rulings are applied; §13 records
+exactly what changed and what each ruling settled.
 
 ---
 
@@ -70,18 +74,18 @@ performer" claim.
 
 | Production capability | Source | Where it lands in the comp |
 |---|---|---|
-| Per-column sort, three positions (desc → asc → off) | `DataTable`, `native-report-kit.jsx:78-95` | Every header is a sortable control; `1440-populated-2-offense-sorted.png` |
+| Per-column sort, three positions (desc → asc → off) | `DataTable`, `native-report-kit.jsx:78-95` | Every header is a sortable control; `1440-populated-game-2-offense-sorted.png` |
 | Sort headers keyboard-operable (`role=button`, `tabIndex=0`, Enter/Space) | same | Same, with a `:focus-visible` ring |
 | Sort is local UI state only | same | Same — sorting changes no denominator, no row identity, no film cohort |
-| Row activation → film | `PlayersTab:548` | Every row is `role=button`, `tabIndex=0`, `title="Watch: #N Name's plays"` |
+| Row activation → film | `PlayersTab:548` | Every row is `role=button`, `tabIndex=0`, `title="Watch: #N Name — <Role>"` (ruling 4, §1c) |
 | Row hover / focus affordance | `.cut-row` CSS, `native-reports.css:81-82` | `tr.cut` hover + focus-visible, plus a ▸ marker that appears on the identity cell |
 | Player label with roster name | `engine._playerLabel` → `_fixedLabels` → `_seasonLabels` → `roster.getLabel` → `#N` | One identity cell, jersey picked out; `#34` shows the bare-number fallback |
 | Season roster-label override | `SeasonPlayers` passes `model.rosterLabels` | Same cell; the label is whatever the chain resolves |
 | A role with no players renders no module | `individualStats` pushes nothing | **Diverges — see §4.1.** The module renders and states the absence |
-| Empty state | `EmptyState`, `PlayersTab:544` | `1440-no-attribution.png`, with copy changes (§3) |
+| Empty state | `EmptyState`, `PlayersTab:544` | `1440-no-attribution-game.png`, with copy changes (§3) |
 | Generic Reports rail above the board | `SCOREBUG_TABS` excludes `players` | Not drawn; unchanged and not part of this proposal (§4.4) |
 | Shared Reports export | `reports-screen.js:158 export(kind)` | The one `Export report` control in the report head — the existing shared action. **No Players-specific export is invented.** |
-| Scope control | none exists | none drawn |
+| Scope control | none exists | **Added by ruling 5** — Current game / Full season, defaulting to Current game (§13.6) |
 | Filter / selected-player state | none exists | none drawn |
 
 ### 1c · Film cohorts and shared credit
@@ -107,10 +111,20 @@ Players tab the refs array is always empty** and the jersey cut-up is what runs;
 in **Season > Players** (`SeasonPlayers`) the refs path runs. Verified by probe,
 not inferred.
 
-The comp preserves what the Players tab actually does today: every row's title
-is `Watch: #N Name's plays`, the jersey cut-up. Whether it should instead play
-the row's own role cohort is **open decision 4** — it is a football question,
-not a layout one.
+**Ruled 2026-09-04: a row plays its OWN role cohort.** Clicking a rushing row
+opens the carries that produced that rushing line, not every snap the jersey
+appears in. That matches analytical provenance and matches Season > Players.
+The comp's rows read `Watch: #22 Terrance Whitfield-Boateng — Rushing`, so a
+coach can tell a rushing cut-up from a receiving one before it plays.
+
+**This is an implementation dependency, not a presentation change.** The refs
+path already exists and is already correct; what is missing is that the Players
+tab's cohort is never stamped with `__gid`, so `_compositeRef` returns null and
+every row falls back to `_watchPlayer`. Production must produce valid
+game-scoped composite references for the Players cohort rather than fall back.
+The fallback must not survive: with the ruling applied, a row that cannot build
+its refs would silently play a different, larger cohort than the one it
+displays.
 
 ---
 
@@ -154,6 +168,12 @@ already carry. **No new navigation system is introduced.**
 | Defense | Tackles | the one defensive role |
 | Special Teams | Return Game, Kicking / Punting | the two specialist roles |
 
+The section rule carries the section name and its attributed-role count, and
+nothing else. Revision 1 gave each section a sentence of explanation ("a role
+with no attribution says so rather than showing a zero"); that describes how
+the interface behaves rather than reporting football, which the copy standard
+excludes. The behavior is visible on the board.
+
 Justification for using section navigation at all: with a real roster the six
 tables run past 1,500px at 900px of viewport, and a coach reviewing his defense
 has to scroll past three offensive tables to reach the only one he wants. The
@@ -181,9 +201,12 @@ Every change below is a proposal for Charlie, not a decision.
 | Where | Current | Proposed | The exact clarity problem |
 |---|---|---|---|
 | Empty-state title | `No player attribution yet` | `No player attribution` | `yet` is a promise about the future; the copy standard bans conversational and promissory framing in an empty state. The state is a fact about now. |
-| Empty-state body | `Add ball carrier, passer, receiver, tackler, returner, or kicker to chart individual performance.` | `Charted plays carry no ball carrier, passer, receiver, tackler, returner, or kicker.` | Second-person instructional prose. The replacement states the same six roles as the current condition rather than as a task. |
+| Empty-state body | `Add ball carrier, passer, receiver, tackler, returner, or kicker to chart individual performance.` | `No players are attributed to charted plays.` | Second-person instructional prose. Charlie's wording, ruling 6. |
 | Grade cell, no grade charted | `—` | `No data` | One absence label across Reports, decided 2026-09-04 on Special Teams. An em dash is a second vocabulary for the same idea. |
-| Kicking cells, no attempts (`FG (M/A)`, `Punts`, `Punt Avg`) | `—` | `No data` | Same. See open decision 3 — whether these are an absence at all is a football question. |
+| `FG (M/A)`, no attempts | `—` | `0/0` | **Ruling 3.** It is a pair of counts. His snaps were charted and none was a field goal, so it is a measured zero, not an absence. |
+| `Punts`, none | `—` | `0` | **Ruling 3.** Same — a count. |
+| `Punt Avg`, no punts | `—` | `No data` | **Ruling 3.** A quotient with no denominator. Genuinely unavailable, unlike the two counts above. |
+| Section rule descriptions (new in revision 1) | — | **removed** | They explained interface behavior rather than reporting football. Ruling 6. |
 | Module titles | `Individual Rushing`, `Individual Passing`, `Individual Receiving`, `Individual Tackles` | `Rushing`, `Passing`, `Receiving`, `Tackles` | Every module on a tab called Players is individual, so the word distinguishes nothing — and two of the six tables (`Return Game`, `Kicking / Punting`) already omit it, so it is not even applied consistently. The board carries no team table it could be confused with. |
 
 **Considered and NOT proposed:**
@@ -237,7 +260,7 @@ denominators instead.
 | Sorting the roster alphabetically by default | Would replace the engine's own row order, which is a real editorial choice (`yards` desc, `tackles` desc). Sorting by name is available on the Player column; it is not the default. |
 | A player filter or search box | No such capability exists in production. Inventing it here would put an unbuildable control in an approved comp. |
 | A Players-specific export | Production has only the shared Reports export. Ruling 1 on Special Teams — reuse the existing mechanism, never a second subsystem — applies unchanged. |
-| A scope control (Full season / Current game) | Players computes unscoped today. Adding scope is an engine and controller change, not a composition; recorded as open decision 5. |
+| ~~A scope control~~ | **Now added by ruling 5** — Current game / Full season, defaulting to Current game. Kept in this table so the record shows it was a deliberate ruling, not a quiet addition. |
 | A grade distribution chart or trend | Grades are a per-role average of charted plays. A chart implies a denominator the model does not publish. |
 | Wide profile cards per player | Explicitly excluded; they cost the table width that identity needs. |
 
@@ -252,7 +275,9 @@ denominators instead.
 | `#16 Cody Fairbanks`, `Ret 2 / Yds 0 / Avg 0.0 / Long 0` | zeros at full strength | Two returns were fielded for no yards. | `*-populated-4-special-teams.png` |
 | `#34`, `Yds -3 / Avg -0.8` | rendered and coloured as a loss, never floored at zero | Same rule the Special Teams board uses for a returner at negative yards. | `*-populated-1-all-roles.png` |
 | No grade charted in that role | `No data`, copy weight | An ungraded rep is not a grade of zero. `gradeCount === 0` is a different fact from an average of 0.0. | `*-no-grades-*.png` |
-| A kicker with no field-goal attempt | `No data`, copy weight | Follows production's non-numeric treatment, converted to the approved literal. **Whether this is an absence at all is open decision 3.** | `#45 Harrison Blyth` |
+| `#45 Harrison Blyth`, `FG (M/A) 0/0` | `0/0`, full strength | A pair of counts. His snaps were charted and none was a field goal. | `*-populated-*-4-special-teams.png` |
+| `#19 Sam Oyelaran`, `Punts 0` | `0`, full strength | Same — a count. | same |
+| `#19 Sam Oyelaran`, `Punt Avg` | `No data`, copy weight | A quotient with no denominator. He never punted, so there is no average to state. | same |
 | A role with no attributed player | module renders, body reads `No player attribution`, **no number** | Unattributed is not zero production. | `*-sparse-*.png` |
 | No attributed player anywhere | the empty state, no tables | | `*-no-attribution.png` |
 
@@ -266,8 +291,11 @@ the team.
 
 ## 7 · Fixtures
 
-Synthetic and football-plausible. **No coach data is used or copied.** Every
-figure reconciles against its own denominator:
+Synthetic and football-plausible. **No coach data is used or copied.** Each of
+the four states exists in **both scopes**, so eight cohorts are drawn. Every
+figure reconciles against its own denominator.
+
+**Current game (Week 3 vs Northgate, 70 plays):**
 
 - Rushing `Avg` is `Yds / Att` to one decimal on all four rows.
 - Passing `Pct` is completions over attempts: `18/29 → 62.1%`, `1/3 → 33.3%`.
@@ -276,18 +304,31 @@ figure reconciles against its own denominator:
   Receiving TDs total 2, matching passing TDs.
 - Tackles: `Solo + Ast = Tkl` on every row, including `0 + 0 = 0`.
 - Return `Avg` is `Yds / Ret`: `118/5 = 23.6`, `21/3 = 7.0`, `0/2 = 0.0`.
-- Each table's default order is the engine's own sort for that role, checked
-  row by row.
-- Section counts are **distinct jerseys**: All roles 15, Offense 8, Defense 4,
-  Special Teams 5 — and the 15 is the union, not a sum of the three.
 
-States covered: populated multi-role roster · long names and two-digit jerseys
-(`Terrance Whitfield-Boateng`, `Christopher Vanderhoeven`, `Dominic
-Ferraro-Nwosu`, `Rafael Ostrowski-Vance`) · a jersey with no roster name
-(`#34`) · one player in three roles (`#22`) and two players in two (`#12`,
-`#7`) · shared-credit tackles (`Ast 5`, `Ast 6`) · a takeaway with no tackle
-(`#27`) · grades present · grades absent everywhere · sparse attribution ·
-measured zeros · missing measurements · no attribution at all · sort active.
+**Full season (9 games, 631 plays):**
+
+- Rushing `Avg`: `604/96 = 6.3`, `311/71 = 4.4`, `188/44 = 4.3`, `41/19 = 2.2`.
+- Passing `Pct`: `122/201 → 60.7%`, `9/17 → 52.9%`.
+- Receiving totals **131 receptions for 1,631 yards and 15 touchdowns**, which
+  is exactly `122 + 9` completions, `1,543 + 88` yards and `14 + 1` TDs.
+- Tackles: `51+37 = 88`, `33+43 = 76`, `39+15 = 54`, `8+4 = 12`.
+- Return `Avg`: `704/31 = 22.7`, `168/14 = 12.0`, `41/9 = 4.6`.
+
+In both scopes each table's default order is the engine's own sort for that
+role, checked row by row, and section counts are **distinct jerseys**: All
+roles 16, Offense 8, Defense 4, Special Teams 6 — the 16 is the union, not a
+sum of the three.
+
+States covered: populated multi-role roster in both scopes · long names and
+two-digit jerseys (`Terrance Whitfield-Boateng`, `Christopher Vanderhoeven`,
+`Dominic Ferraro-Nwosu`, `Rafael Ostrowski-Vance`) · a jersey with no roster
+name (`#34`) · one player in three roles (`#22`) and two in two (`#12`, `#7`) ·
+shared-credit tackles (`Ast 5`, `Ast 6`) · a takeaway with no tackle (`#27`) ·
+a punter who never kicked a field goal (`#45`, `FG 0/0`) · a placekicker who
+never punted (`#19`, `Punts 0`, `Punt Avg No data`) · grades present · grades
+absent everywhere · sparse attribution · measured zeros · missing measurements
+· no attribution at all · sort active on a column and on a Grade column
+carrying an absence.
 
 ---
 
@@ -309,13 +350,32 @@ Two further pieces are missing behind it: the `grade-pos` / `grade-neg` classes
 corrected cell would render uncoloured. The comp shows the intended behavior —
 a signed one-decimal average, coloured by sign, `No data` when ungraded.
 
-**8.2 · P2 — four columns sort lexically because they are not marked
-`numeric`.** `C/A`, `Pct`, `Punts`, `Punt Avg` and `FG (M/A)` are declared
-without the `numeric` flag, so `DataTable` compares them with
-`localeCompare`. `Punt Avg` sorts `34.5` below `9.5`; `Pct` will sort `100.0%`
-below `62.1%` the first time a passer completes every attempt. The comp sorts
-every column by what it measures (a compound value on its first number, a
-percentage on its number), which is what the columns look like they do.
+**8.2 · P2 — FIVE columns sort wrongly, and `numeric: true` repairs only two
+of them.** `C/A`, `Pct`, `Punts`, `Punt Avg` and `FG (M/A)` are declared
+without the `numeric` flag, so `DataTable` compares them with `localeCompare`:
+`Punt Avg` sorts `34.5` below `9.5`, and `Pct` will sort `100.0%` below `62.1%`
+the first time a passer completes every attempt.
+
+The obvious repair is incomplete. `DataTable`'s numeric branch is
+`(Number(av) || 0) - (Number(bv) || 0)` (`native-report-kit.jsx:87`), and
+`Number('62.1%')`, `Number('18/29')` and `Number('2/4')` are all `NaN`, which
+that expression turns into **0**. So flagging them numeric would make three of
+the five columns sort every row as zero — a different wrong answer, and a
+quieter one.
+
+| Column | Value shape | Repair |
+|---|---|---|
+| `Punts` | a plain integer | `numeric: true` is sufficient |
+| `Punt Avg` | a decimal string | `numeric: true` is sufficient |
+| `Pct` | `62.1%` | needs a real sort accessor |
+| `C/A` | `18/29` | needs a real sort accessor |
+| `FG (M/A)` | `2/4` | needs a real sort accessor |
+
+The three accessors also have to decide *what* they sort on: the comp sorts
+`C/A` and `FG (M/A)` on completions and makes respectively, and `Pct` on its
+number. Whether `FG (M/A)` should instead sort on attempts, or on percentage,
+is a football choice production has to make explicitly — it cannot fall out of
+a flag.
 
 **8.3 · Recorded, unrelated, not repaired.** The Return Game row reads a
 returner's yards from the generic `tags.yardage`, while the Special Teams unit
@@ -327,17 +387,36 @@ is visible on this tab.
 
 ## 9 · Responsive behavior
 
+The 1330px rule is applied **per band**, not to the board. A band half gives
+599px of usable width at 1280; a band stacks there only if one of its own
+tables is wider than that. Measured table widths:
+
+| Role table | Width | Fits a 599px half? |
+|---|---|---|
+| Tackles | 668px | no |
+| Rushing | 621px | no |
+| Passing | 616px | no |
+| Receiving | 505px | yes |
+| Return Game | 477px | yes |
+| Kicking / Punting | 432px | yes |
+
 | Width | Behavior |
 |---|---|
-| 1920 × 1080 | Bands pair. Identity column takes the slack above its 208px floor. |
-| 1440 × 900 | Bands pair. Tackles, the widest table, measures 668px inside a 680px half. |
-| 1280 × 720 | **Bands stack.** Measured, not chosen: a band half gives 599px of usable width and Tackles measures 668px. The only way to pair at 1280 is to take it out of the identity column, which is the one column that may not shrink. |
+| 1920 × 1080 | Every band pairs. The identity column takes the slack above its 208px floor. |
+| 1440 × 900 | Every band pairs. Tackles, the widest table, measures 668px inside a 680px half. |
+| 1280 × 720 | **Return Game + Kicking / Punting stay paired.** The three bands carrying Rushing, Passing or Tackles stack, because pairing them could only come out of the identity column, which may not shrink. Revision 1 stacked the whole board because Tackles is wide, which left half of it empty for no reason. |
 
-At all three widths, mechanically asserted over all 13 state × section
+The rule is derived in the comp from the measured width recorded on each role,
+so the behavior and the numbers in this table cannot drift apart. Asserted in
+the capture pass: at 1280 All roles renders exactly **1 of 3** bands paired,
+and the Special Teams section's band is that one.
+
+At all three widths, mechanically asserted over all 26 state × scope × section
 combinations: **no page-level horizontal scroll, no clipped text node, no text
-below 9.5px, and no table scroller engaged.** The `.twrap` bounded scroller
-exists so a narrower host cannot clip a column; it does not engage at any
-release width.
+below 9.5px, no table scroller engaged, and both panels of a paired band start
+their identity column at the same offset inside their own panel.** The `.twrap`
+bounded scroller exists so a narrower host cannot clip a column; it does not
+engage at any release width.
 
 Hover and focus change colour and background only — a focused row measured
 identically before and after (`{w:668,h:36}` → `{w:668,h:36}`).
@@ -346,81 +425,110 @@ identically before and after (`{w:668,h:36}` → `{w:668,h:36}`).
 
 ## 10 · Screenshot matrix
 
-40 captures. Each was taken with the intended section activated, the pointer
-parked off-canvas at (4000, 4000), and the viewport grown to the full board so
-nothing below the fold is lost.
+93 captures. Each was taken with the intended scope and section activated and
+the pointer parked off-canvas at (4000, 4000).
+
+**Every capture is EXACTLY its stated release viewport.** A board taller than
+the viewport also gets a `-full.png` companion at the same width. Revision 1
+grew the viewport instead of adding a second image, so seven captures were
+taller than the size their filename claimed — `1280×1471` presented as 1280×720
+evidence. The first-viewport image is now the primary one and is what the
+composition should be judged on; `-full` is supplementary.
 
 | | 1920 | 1440 | 1280 |
 |---|---|---|---|
-| Populated — All roles / Offense / Defense / Special Teams | 4 | 4 | 4 |
-| Populated — Offense, sorted by `Long` | — | 1 | — |
-| No grades — 4 sections | 4 | 4 | 4 |
-| Sparse — 4 sections | 4 | 4 | 4 |
-| No attribution | 1 | 1 | 1 |
+| Exact-viewport captures | 26 | 27 | 26 |
+| `-full` companions | 0 | 4 | 10 |
+
+Per width, both scopes: Populated × 4 sections, No grades × 4, Sparse × 4, No
+attribution × 1 = 26; 1440 adds the sorted Offense capture. Verified after the
+run by reading each PNG's IHDR: 93 files checked, 0 wrong dimensions.
 
 ---
 
+
 ## 11 · What was visually inspected, and what was not
 
-**Opened and inspected image by image:** `1440-populated-1-all-roles`,
+**Opened and inspected image by image, revision 2:**
+`1280-populated-game-1-all-roles-full`, `1440-populated-season-1-all-roles`,
+plus the revision-1 set (`1440-populated-1-all-roles`,
 `1280-populated-1-all-roles`, `1920-populated-1-all-roles`,
 `1440-sparse-1-all-roles`, `1440-no-grades-3-defense`,
 `1440-populated-4-special-teams`, `1440-populated-2-offense-sorted`,
-`1440-no-attribution`. Checked in each: identity column start and stability,
+`1440-no-attribution`). Checked in each: identity column start and stability,
 numeric right-alignment down the column, header-to-row alignment, absence
-versus zero treatment, grade colour, section nav state, table edges, vertical
-rhythm, and the content below the first fold.
+versus zero treatment, grade colour, section nav and scope state, table edges,
+vertical rhythm, and the content below the first fold.
 
-**Four defects were found by looking at the images and fixed before this
-report:** the empty state rendered on top of a fully populated board
+**Defects found by looking at the images and fixed before this report.**
+Revision 1: the empty state rendered on top of a fully populated board
 (`.empty{display:flex}` outranks the `[hidden]` attribute); a duplicate
 `Export report` control, which would also have implied a Players-specific
-export that does not exist; a `15`-player nav count contradicting a `13`-player
-sample line; and a stretched table at 1280 that reopened the label-to-number
-eye traverse. A further four — clipped `Solo`/`Sack`/`Fum`/`Punt Avg` headers,
-a 9px sort caret below the type floor, a scroller engaging at 1280, and a
-missing space in the identity cell's text — were caught by the capture pass's
-own audit before any image was opened.
+export that does not exist; a nav count of 15 contradicting a sample line of
+13; and a stretched table at 1280 that reopened the label-to-number eye
+traverse. Revision 2: a sample line still reading 15 after a third specialist
+took the roster to 16.
+
+**Found by the capture pass''s own audit before any image was opened.**
+Revision 1: clipped `Solo` / `Sack` / `Fum` / `Punt Avg` headers, a 9px sort
+caret below the type floor, a scroller engaging at 1280, and a missing space in
+the identity cell''s text. Revision 2: none — 0 failures on the first run after
+the changes, across 26 state x scope x section combinations at three widths.
 
 **Not inspected, and not claimed:**
 
-- The remaining 32 captures were produced by the same pass and passed the same
+- The remaining captures were produced by the same pass and passed the same
   mechanical audit, but were not opened one by one.
-- **Mobile and tablet** (768×1024, 390×844) were not designed or captured. The
+- **Mobile and tablet** (768x1024, 390x844) were not designed or captured. The
   assignment scoped this to desktop.
 - **The opponent-scout perspective.** `_renderOpponentTab` has no `players`
   branch, so no opponent Players view exists to design.
 - **No production code was run against this comp, no harness was written or
   run, and no gate was run** — all excluded by the assignment.
 - **Real coach data was not used**, so the comp is not evidence about how the
-  coach's own roster renders. Long names were made long on purpose; his may be
+  coach''s own roster renders. Long names were made long on purpose; his may be
   longer or shorter.
+- **The Full season scope is drawn, not proven.** Its fixture is a plausible
+  nine-game aggregate, internally reconciled. Whether the multi-game model
+  returns exactly this shape for Players is an implementation question (§13.6).
 - **No Charlie Gate.** This is a comp awaiting approval, not accepted state.
 
 ---
 
-## 12 · Open decisions for Charlie
+## 12 · Open decisions — all seven ruled 2026-09-04
 
-1. **Should a role with no attributed player render an empty module?** The comp
-   says yes, following the Special Teams unit-ledger ruling. Production omits
-   it. This is the one structural divergence.
-2. **Should Players use section tabs?** Defense and Special Teams do; Offense
-   still scrolls. Approving this deepens a known temporary inconsistency until
-   Offense converts.
-3. **Is a kicker with no field-goal attempt an absence or a measured zero?**
-   The comp prints `No data`, following production's non-numeric treatment. The
-   other reading is `0/0` — we charted his snaps and none was a field goal.
-   Football question, not a layout one.
-4. **Which film cohort should a row play?** Today the Players tab plays the
-   **jersey cut-up** (every snap that jersey appears in, in any role), because
-   `refs` is always empty there. Season > Players plays the **row's own
-   contributing plays**. Two boards, two answers, from one line of code. The
-   comp preserves current Players-tab behavior and does not choose.
-5. **Should Players gain a scope control?** It reports the loaded game only.
-   Adding Full season / Current game is an engine and controller change, not a
-   composition one, so it is not drawn.
-6. **The four module renames** (`Individual Rushing` → `Rushing`, and the three
-   like it), and the two `—` → `No data` conversions.
-7. **The 1280 stack.** Pairing at 1280 is possible only by shrinking the
-   identity column below 208px. The comp refuses; if a narrower identity column
-   is acceptable to him, the pairing can hold at 1280 too.
+| # | Decision | Ruling | Applied |
+|---|---|---|---|
+| 1 | Empty-role modules | **Approve** — the role set is fixed, so a literal empty module is clearer than silently removing the category | yes |
+| 2 | Section tabs | **Approve** — they reduce traversal and reuse the Defense / Special Teams interaction; Offense''s scroll is corrected later, not used to hold Players back | yes |
+| 3 | Kicker with no field-goal attempt | **Revised** — `FG (M/A)` is `0/0` and `Punts` is `0` (counts), `Punt Avg` is `No data` (a quotient with no denominator) | yes |
+| 4 | Film cohort | **Row''s own role cohort.** Production must build valid game-scoped composite refs rather than fall back to `_watchPlayer` | yes, and recorded as an implementation dependency |
+| 5 | Scope control | **Approve** Current game / Full season, defaulting to Current game. Full season must use the multi-game model and composite refs — not a second scope implementation | yes |
+| 6 | Copy | **Partially approved** — see §3 for the exact wording of each | yes |
+| 7 | 1280 layout | **Revised** — mixed, per measured band width; do not shrink the identity column, do not stack narrow tables because Tackles is wide | yes |
+
+Nothing is left open. What remains before this comp can be built is the
+approval of revision 2 itself, plus the three implementation dependencies in
+§13.
+
+---
+
+## 13 · Revision 2 — what changed
+
+| # | Finding | Change |
+|---|---|---|
+| 1 | P1 — the comp dropped the **Season** tab from the shared Reports nav | Restored, in production''s own order: Overview, Offense, Defense, Special Teams, Players, Self-Scout, Season, Matchup. The comp may not remove an existing destination even when it does not redesign shared chrome. |
+| 2 | P2 — the sorting diagnosis would produce an incomplete repair | §8.2 rewritten: five columns, not four; and `numeric: true` fixes only `Punts` and `Punt Avg`, because `DataTable`''s `(Number(av) \|\| 0)` turns `NaN` into 0 and would sort `Pct`, `C/A` and `FG (M/A)` as all-zero. The three needing accessors are named, with what each should sort on. |
+| 3 | P2 — the section descriptions narrated the interface | All four removed. The section rule carries its name and role count only. Recorded in the §3 copy table, where revision 1 had omitted them. |
+| 4 | P2 — the blanket 1280 stack wasted horizontal space | The rule is now per band and derived from each role''s measured table width. Return Game + Kicking / Punting stay paired at 1280; only bands carrying Rushing, Passing or Tackles stack. Asserted: 1 of 3 bands paired at 1280 in All roles. |
+| 5 | P3 — seven captures were taller than their stated viewport | Every capture is now exactly its release viewport; a taller board gets a `-full` companion. All 93 files verified by reading their PNG headers. |
+
+**Three implementation dependencies**, none of them presentation work:
+
+1. **Composite refs for the Players cohort** (ruling 4). The tab''s plays are
+   never stamped with `__gid`, so every row falls back to the jersey cut-up.
+   The fallback must be removed, not merely bypassed.
+2. **Full season through the multi-game model** (ruling 5). It must reuse the
+   existing season assembly and its composite refs, not a second scope
+   implementation local to Players.
+3. **The Grade column and its two missing CSS classes** (§8.1).

@@ -109,11 +109,13 @@ button{font-family:inherit}
    the two panels' identity columns at different distances from their own
    panel edge, and the left edge of the name is what a coach scans down.
 
-   Below 1330px the pairing stops and the board stacks. Measured, not chosen:
-   at 1280 a band half gives 599px of usable width, and Tackles (a 208px
-   identity floor plus nine measurement columns) measures 668px. Squeezing it
-   would have to come out of the identity column, which is the one column that
-   may not shrink.
+   Below 1330px the constraint is applied PER BAND, not to the board. A band
+   half gives 599px of usable width at 1280. Measured table widths: Rushing
+   621, Passing 616, Receiving 505, Tackles 668, Return Game 477, Kicking /
+   Punting 432. So only a band whose widest table exceeds 599 stacks -- Return
+   Game and Kicking / Punting stay paired at 1280, because nothing about them
+   needs the extra width. Stacking every band because Tackles is wide left
+   half the board empty for no reason.
    ─────────────────────────────────────────────────────────────────────── */
 .board{padding:var(--gi-4x);background:var(--gi-bd-stage)}
 .band{display:grid;gap:1px;margin:0 0 4px;align-items:stretch;background:transparent}
@@ -168,7 +170,15 @@ button{font-family:inherit}
    surface that says the role is unattributed. Dimmed, never disabled. */
 .snav button.is-none{color:var(--gi-bd-muted)}
 
-/* Toolbar */
+/* Scope + toolbar. The scope segment is the same control Special Teams and
+   Defense already carry, in the same place. */
+.scope{display:flex;gap:1px;background:var(--gi-bd-line)}
+.scope button{padding:6px 14px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-copy);
+  font:var(--gi-text-label);cursor:pointer;white-space:nowrap}
+.scope button:hover{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
+.scope button:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.scope button.on{background:var(--gi-bd-control-active);color:var(--gi-bd-strong);
+  box-shadow:inset 0 -3px var(--gi-bd-cyan)}
 .dtoolbar{display:flex;align-items:center;gap:var(--gi-3x);margin:0 0 4px;padding:7px var(--gi-3x);
   background:var(--gi-bd-panel);flex-wrap:wrap}
 .dtoolbar .lbl{color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;
@@ -258,10 +268,10 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
 .empty .btn{margin-left:auto}
 
 @media(max-width:1330px){
-  /* One column below the release widths so a paired band can never squeeze an
-     identity column. Not a release width; stated so the behavior is defined. */
-  .b-2{grid-template-columns:minmax(0,1fr)}
-  .band>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
+  /* Only a band carrying a table wider than the 599px half stacks. The rest
+     stay paired -- see the board note above for the measured widths. */
+  .b-2.is-wide{grid-template-columns:minmax(0,1fr)}
+  .b-2.is-wide>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
 }
 </style>
 </head>
@@ -296,7 +306,8 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
     <button type="button">Overview</button><button type="button">Offense</button>
     <button type="button">Defense</button><button type="button">Special Teams</button>
     <button type="button" class="on" aria-selected="true">Players</button>
-    <button type="button">Self-Scout</button><button type="button">Matchup</button>
+    <button type="button">Self-Scout</button><button type="button">Season</button>
+    <button type="button">Matchup</button>
   </div>
   <span class="sub" id="headSub">Week 3 vs Northgate — 70 plays charted</span>
   <div class="acts"><button type="button" class="btn">Export report</button></div>
@@ -315,7 +326,11 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
   <div id="report">
 
     <div class="dtoolbar">
-      <span class="lbl">Sample</span>
+      <span class="lbl">Scope</span>
+      <div class="scope" role="group" aria-label="Players report scope">
+        <button type="button" data-scope="game" class="on" aria-current="true">Current game</button>
+        <button type="button" data-scope="season">Full season</button>
+      </div>
       <span class="sample" id="sampleLine"></span>
     </div>
 
@@ -328,7 +343,6 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
 
     <div class="srule">
       <h2 id="secTitle">All roles</h2>
-      <p id="secNote"></p>
       <em id="secMeta"></em>
     </div>
 
@@ -357,7 +371,7 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
    and 2 receiving TD against 2 passing TD. */
 const FULL = {
   label: 'Week 3 vs Northgate — 70 plays charted',
-  sample: '<b>15</b> players attributed across <b>6</b> roles — <b>70</b> plays charted',
+  sample: '<b>16</b> players attributed across <b>6</b> roles — <b>70</b> plays charted',
   rushing: [
     { num:'22', name:'Terrance Whitfield-Boateng', att:14, yds:96, avg:'6.9', long:31, td:1, fum:0, grade:1.8 },
     { num:'5',  name:'Malik Cordero',              att:11, yds:47, avg:'4.3', long:12, td:0, fum:1, grade:0.4 },
@@ -389,20 +403,72 @@ const FULL = {
     /* Two returns fielded for no yards. A measured zero, at full strength. */
     { num:'16', name:'Cody Fairbanks',             ret:2, yds:0,   avg:'0.0',  long:0,  td:0 },
   ],
+  /* Three cells, three different facts (coach ruling, 2026-09-04):
+     FG (M/A) and Punts are COUNTS, so a specialist who attempted none of one
+     shows `0/0` or `0` at full strength -- we charted his snaps and none was
+     that kind. Punt Avg is a QUOTIENT, so with no punts it has no denominator
+     and is genuinely unavailable. #45 never kicked a field goal; #19 never
+     punted. */
   kicking: [
-    { num:'3',  name:'Nikolas Petrakis', fg:'2/4', punts:6, puntAvg:'34.5' },
-    /* A punter who attempted no field goals. Production prints an em dash;
-       this comp prints the one approved absence literal. Open decision 3. */
-    { num:'45', name:'Harrison Blyth',   fg:null,  punts:3, puntAvg:'29.7' },
+    { num:'3',  name:'Nikolas Petrakis', fgm:2, fga:4, punts:6, puntAvg:'34.5' },
+    { num:'45', name:'Harrison Blyth',   fgm:0, fga:0, punts:3, puntAvg:'29.7' },
+    { num:'19', name:'Sam Oyelaran',     fgm:1, fga:2, punts:0, puntAvg:null },
+  ],
+};
+
+/* The same roster over a whole season. Full season is the OTHER scope, not
+   another fixture state -- both scopes exist in every state. Reconciled the
+   same way: season receiving totals 131 receptions for 1,631 yards and 15
+   touchdowns, which is exactly the season passing line (122/201 + 9/17 for
+   1,543 + 88, 14 + 1 TD). */
+const FULL_SEASON = {
+  label: '2026 Varsity — 9 games, 631 plays charted',
+  sample: '<b>16</b> players attributed across <b>6</b> roles — <b>631</b> plays charted',
+  rushing: [
+    { num:'22', name:'Terrance Whitfield-Boateng', att:96, yds:604, avg:'6.3', long:47, td:8, fum:2, grade:1.5 },
+    { num:'5',  name:'Malik Cordero',              att:71, yds:311, avg:'4.4', long:28, td:3, fum:3, grade:0.6 },
+    { num:'12', name:'Jaylen Ruiz',                att:44, yds:188, avg:'4.3', long:22, td:2, fum:1, grade:0.2 },
+    { num:'34', name:null,                         att:19, yds:41,  avg:'2.2', long:9,  td:0, fum:0, grade:-0.4 },
+  ],
+  passing: [
+    { num:'12', name:'Jaylen Ruiz',      ca:'122/201', pct:'60.7%', yds:1543, td:14, int:7, sck:19, grade:1.1 },
+    { num:'7',  name:'Devonte Ashworth', ca:'9/17',    pct:'52.9%', yds:88,   td:1,  int:2, sck:1,  grade:-0.3 },
+  ],
+  receiving: [
+    { num:'84', name:'Christopher Vanderhoeven',  rec:48, yds:702, long:61, td:7, grade:1.9 },
+    { num:'11', name:'Amari Sisk',                rec:34, yds:401, long:44, td:4, grade:0.8 },
+    { num:'22', name:'Terrance Whitfield-Boateng',rec:27, yds:330, long:38, td:3, grade:0.7 },
+    { num:'88', name:'Rafael Ostrowski-Vance',    rec:22, yds:198, long:24, td:1, grade:0.1 },
+  ],
+  tackles: [
+    { num:'51', name:'Dominic Ferraro-Nwosu', tkl:88, solo:51, ast:37, sack:11, tfl:19, int:1, fr:3, grade:1.3 },
+    { num:'44', name:'Josiah Pemberton',      tkl:76, solo:33, ast:43, sack:2,  tfl:8,  int:0, fr:1, grade:0.8 },
+    { num:'23', name:'Elias Mbeki',           tkl:54, solo:39, ast:15, sack:6,  tfl:5,  int:4, fr:0, grade:0.5 },
+    { num:'27', name:'Trey Alderson',         tkl:12, solo:8,  ast:4,  sack:0,  tfl:1,  int:5, fr:2, grade:null },
+  ],
+  returns: [
+    { num:'7',  name:'Devonte Ashworth',           ret:31, yds:704, avg:'22.7', long:61, td:2 },
+    { num:'22', name:'Terrance Whitfield-Boateng', ret:14, yds:168, avg:'12.0', long:33, td:0 },
+    { num:'16', name:'Cody Fairbanks',             ret:9,  yds:41,  avg:'4.6',  long:12, td:0 },
+  ],
+  kicking: [
+    { num:'3',  name:'Nikolas Petrakis', fgm:11, fga:17, punts:34, puntAvg:'33.8' },
+    { num:'45', name:'Harrison Blyth',   fgm:0,  fga:0,  punts:12, puntAvg:'30.4' },
+    { num:'19', name:'Sam Oyelaran',     fgm:4,  fga:7,  punts:0,  puntAvg:null },
   ],
 };
 
 /* Same roster, no grade charted anywhere. Every Grade cell is an absence;
    no cell becomes a zero. */
-const NOGRADE = JSON.parse(JSON.stringify(FULL));
+const stripGrades = src => {
+  const copy = JSON.parse(JSON.stringify(src));
+  ['rushing','passing','receiving','tackles'].forEach(k => copy[k].forEach(r => { r.grade = null; }));
+  return copy;
+};
+const NOGRADE = stripGrades(FULL);
 NOGRADE.label = 'Week 4 vs Halloway — 64 plays charted';
-NOGRADE.sample = '<b>15</b> players attributed across <b>6</b> roles — <b>64</b> plays charted';
-['rushing','passing','receiving','tackles'].forEach(k => NOGRADE[k].forEach(r => { r.grade = null; }));
+NOGRADE.sample = '<b>16</b> players attributed across <b>6</b> roles — <b>64</b> plays charted';
+const NOGRADE_SEASON = stripGrades(FULL_SEASON);
 
 /* Sparse: two roles carry attribution, four carry none. The four still
    render, and say so. */
@@ -417,9 +483,29 @@ const SPARSE = {
   kicking: [],
 };
 
-const EMPTY = { label:'Week 2 vs Northgate — 41 plays charted', sample:'', rushing:[], passing:[], receiving:[], tackles:[], returns:[], kicking:[] };
+const SPARSE_SEASON = {
+  label: '2026 Varsity — 9 games, 631 plays charted',
+  sample: '<b>3</b> players attributed across <b>2</b> of <b>6</b> roles — <b>631</b> plays charted',
+  rushing: [
+    { num:'22', name:'Terrance Whitfield-Boateng', att:28, yds:97, avg:'3.5', long:14, td:1, fum:1, grade:null },
+    { num:'5',  name:'Malik Cordero',              att:9,  yds:24, avg:'2.7', long:8,  td:0, fum:0, grade:null },
+  ],
+  passing: [], receiving: [],
+  tackles: [{ num:'51', name:'Dominic Ferraro-Nwosu', tkl:19, solo:14, ast:5, sack:1, tfl:4, int:0, fr:0, grade:null }],
+  returns: [], kicking: [],
+};
 
-const STATES = { full: FULL, nograde: NOGRADE, sparse: SPARSE, empty: EMPTY };
+const EMPTY = { label:'Week 2 vs Northgate — 41 plays charted', sample:'', rushing:[], passing:[], receiving:[], tackles:[], returns:[], kicking:[] };
+const EMPTY_SEASON = { ...EMPTY, label:'2026 Varsity — 9 games, 631 plays charted' };
+
+/* Every state exists in BOTH scopes. Current game is the default, which is
+   what the tab reports today. */
+const STATES = {
+  full:    { game: FULL,    season: FULL_SEASON },
+  nograde: { game: NOGRADE, season: NOGRADE_SEASON },
+  sparse:  { game: SPARSE,  season: SPARSE_SEASON },
+  empty:   { game: EMPTY,   season: EMPTY_SEASON },
+};
 
 /* ═════════════════════════════════════════════════════════════════════════
    ROLE DEFINITIONS — the exact production vocabulary. Columns, order and
@@ -429,28 +515,28 @@ const STATES = { full: FULL, nograde: NOGRADE, sparse: SPARSE, empty: EMPTY };
    ═════════════════════════════════════════════════════════════════════════ */
 const NO_DATA = 'No data';
 const ROLES = [
-  { key:'rushing', title:'Rushing', phase:'off', section:'off',
+  { key:'rushing', title:'Rushing', phase:'off', section:'off', w:621,
     meta:'ball carrier on a run', sort:'yds desc',
     cols:[['ident','Player'],['att','Att','m'],['yds','Yds','m'],['avg','Avg','m'],
           ['long','Long','l'],['td','TD','s'],['fum','Fum','l'],['grade','Grade','xl']] },
-  { key:'passing', title:'Passing', phase:'off', section:'off',
+  { key:'passing', title:'Passing', phase:'off', section:'off', w:616,
     meta:'passer on a pass', sort:'yds desc',
     cols:[['ident','Player'],['ca','C/A','l'],['pct','Pct','l'],['yds','Yds','m'],
           ['td','TD','s'],['int','INT','m'],['sck','Sck','m'],['grade','Grade','xl']] },
-  { key:'receiving', title:'Receiving', phase:'off', section:'off',
+  { key:'receiving', title:'Receiving', phase:'off', section:'off', w:505,
     meta:'receiver on a completion', sort:'yds desc',
     cols:[['ident','Player'],['rec','Rec','m'],['yds','Yds','m'],['long','Long','l'],
           ['td','TD','s'],['grade','Grade','xl']] },
-  { key:'tackles', title:'Tackles', phase:'def', section:'def',
+  { key:'tackles', title:'Tackles', phase:'def', section:'def', w:668,
     meta:'tackler or takeaway on a defensive snap', sort:'tkl desc',
     cols:[['ident','Player'],['tkl','Tkl','m'],['solo','Solo','l'],['ast','Ast','m'],
           ['sack','Sack','l'],['tfl','TFL','m'],['int','INT','m'],['fr','FR','s'],
           ['grade','Grade','xl']] },
-  { key:'returns', title:'Return Game', phase:'st', section:'st',
+  { key:'returns', title:'Return Game', phase:'st', section:'st', w:477,
     meta:'returner on a kick or punt return', sort:'yds desc',
     cols:[['ident','Player'],['ret','Ret','m'],['yds','Yds','m'],['avg','Avg','m'],
           ['long','Long','l'],['td','TD','s']] },
-  { key:'kicking', title:'Kicking / Punting', phase:'st', section:'st',
+  { key:'kicking', title:'Kicking / Punting', phase:'st', section:'st', w:432,
     meta:'kicker or punter on a field goal or punt', sort:'made + punts desc',
     cols:[['ident','Player'],['fg','FG (M/A)','xl'],['punts','Punts','l'],
           ['puntAvg','Punt Avg','xl']] },
@@ -465,12 +551,11 @@ const LAYOUT = {
   st:  [['returns','kicking']],
 };
 const SEC_TITLE = { all:'All roles', off:'Offense', def:'Defense', st:'Special Teams' };
-const SEC_NOTE = {
-  all: 'Every charted role. A role with no attribution says so rather than showing a zero.',
-  off: 'Ball carrier, passer and receiver. Each keeps its own attempts and its own grade.',
-  def: 'Tacklers and takeaways. A shared tackle credits every jersey listed on the play.',
-  st:  'Returners and specialists. Return yards and kick distance are separate measurements.',
-};
+/* The section rule carries the section name and its attributed-role count and
+   nothing else. It once carried a sentence per section explaining how the
+   board behaves ("a role with no attribution says so rather than showing a
+   zero"); that is interface narration, not football, and the copy standard
+   excludes it. The behavior is visible on the board itself. */
 
 /* ═════════════════════════════════════════════════════════════════════════
    RENDER
@@ -479,6 +564,9 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
 let state = 'full';
+/* Current game is the default -- it is what the tab reports today, so the
+   scope control adds a capability without changing what a coach first sees. */
+let scope = 'game';
 let section = 'all';
 /* Sort is per ROLE table and is local presentation state -- it never changes
    a denominator, a row's identity, or a row's film cohort. Three positions,
@@ -499,9 +587,14 @@ function gradeCell(value) {
 function cell(role, row, key) {
   if (key === 'ident') return { text:label(row), cls:'ident', num:row.num, name:row.name };
   if (key === 'grade') return gradeCell(row.grade);
+  /* FG (M/A) is a pair of COUNTS. A specialist who attempted none reads `0/0`
+     at full strength -- his snaps were charted and none was a field goal.
+     That is a different fact from Punt Avg, below. */
+  if (key === 'fg') return { text:`${row.fgm}/${row.fga}`, cls:'' };
   const value = row[key];
-  /* An unavailable measurement -- a punter with no field-goal attempt --
-     takes the absence literal. A measured zero keeps its number. */
+  /* A quotient with no denominator -- Punt Avg for a kicker who never punted
+     -- is genuinely unavailable and takes the absence literal. A measured
+     zero keeps its number. */
   if (value == null) return { text:NO_DATA, cls:'blank' };
   if (typeof value === 'number' && value < 0) return { text:String(value), cls:'neg' };
   return { text:String(value), cls:'' };
@@ -514,6 +607,10 @@ function cell(role, row, key) {
 function sortValue(role, row, key) {
   if (key === 'ident') return row.name ? row.name.toLowerCase() : `#${row.num}`;
   if (key === 'grade') return row.grade;
+  /* FG (M/A) sorts on makes -- a real accessor, not a parse of the rendered
+     string. `Number('2/4')` is NaN, which is why production's numeric flag
+     alone cannot fix this column. */
+  if (key === 'fg') return row.fgm;
   const value = row[key];
   if (value == null) return null;
   if (typeof value === 'number') return value;
@@ -616,7 +713,11 @@ function moduleFor(role, data) {
     tr.className = 'cut';
     tr.tabIndex = 0;
     tr.setAttribute('role', 'button');
-    tr.title = `Watch: ${label(row)}'s plays`;
+    /* The row's OWN role cohort, named -- coach ruling, 2026-09-04. Clicking a
+       rushing row opens the carries that produced that rushing line, not every
+       snap the jersey appears in. The label says which, so a coach can tell a
+       rushing cut-up from a receiving one before it plays. */
+    tr.title = `Watch: ${label(row)} — ${role.title}`;
     role.cols.forEach(([key]) => {
       const td = document.createElement('td');
       const c = cell(role, row, key);
@@ -642,13 +743,23 @@ function moduleFor(role, data) {
   return mod;
 }
 
+/* A band stacks below 1330 only if one of its own tables is wider than the
+   599px half. Derived from the measured widths on ROLES, so the rule is
+   stated once and cannot drift from the numbers in the board note. */
+const HALF_1280 = 599;
+const bandIsWide = keys => keys.some(k => ROLES.find(r => r.key === k).w > HALF_1280);
+
 function draw() {
-  const data = STATES[state];
+  const data = STATES[state][scope];
   const attributed = ROLES.reduce((n, r) => n + ((data[r.key] || []).length ? 1 : 0), 0);
   const anyRows = ROLES.some(r => (data[r.key] || []).length);
 
   $('#headSub').textContent = data.label;
-  $('#ctxGame').textContent = data.label.split(' — ')[0];
+  /* The context bar keeps naming the LOADED GAME whatever the report's scope
+     is -- that is what the shared shell does today, and Special Teams has the
+     same pairing recorded as an open item. The comp reproduces it rather than
+     inventing a local fix for shared chrome. */
+  $('#ctxGame').textContent = STATES[state].game.label.split(' — ')[0];
   $('#emptyState').hidden = anyRows;
   $('#report').hidden = !anyRows;
   if (!anyRows) return;
@@ -672,7 +783,6 @@ function draw() {
   });
 
   $('#secTitle').textContent = SEC_TITLE[section];
-  $('#secNote').textContent = SEC_NOTE[section];
   const shown = LAYOUT[section].flat();
   const withRows = shown.filter(k => (data[k] || []).length).length;
   $('#secMeta').textContent = `${withRows} of ${shown.length} ${shown.length === 1 ? 'role' : 'roles'} attributed`;
@@ -681,11 +791,23 @@ function draw() {
   host.replaceChildren();
   LAYOUT[section].forEach(band => {
     const div = document.createElement('div');
-    div.className = `band b-${band.length}`;
+    div.className = `band b-${band.length}${band.length === 2 && bandIsWide(band) ? ' is-wide' : ''}`;
     band.forEach(key => div.append(moduleFor(ROLES.find(r => r.key === key), data)));
     host.append(div);
   });
 }
+
+$$('.scope button').forEach(b => b.addEventListener('click', () => {
+  $$('.scope button').forEach(x => { x.classList.remove('on'); x.removeAttribute('aria-current'); });
+  b.classList.add('on');
+  b.setAttribute('aria-current', 'true');
+  scope = b.dataset.scope;
+  /* Scope changes the cohort, so a sort held over from the other scope would
+     be applied to different rows without saying so. Cleared, same as the
+     fixture switch. */
+  Object.keys(sortState).forEach(k => delete sortState[k]);
+  draw();
+}));
 
 $$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
   $$('.comp-bar .grp button').forEach(x => x.classList.remove('on'));
