@@ -363,6 +363,14 @@ subtracts a flat 20 yards on a touchback — placement is ruleset-dependent, no
 season configures one, and the structured branch never did it. Both are
 mutation-verified in `e2e-reports-special-teams`.
 
+**Coverage touchdowns are parity-pinned.** Commit `1931fff` added
+`tdAllowed` and its exact film-reference cohort to both kickoff and punt
+coverage. The analytics golden audit found only those additive fields: 24
+primitive paths in the synthetic fixture and 56 in the local six-game fixture,
+all `0` values paired with empty reference arrays because neither fixture
+contains a coverage touchdown. No existing metric, drilldown, report value, or
+film cohort changed.
+
 **`tries.n` is a real count for legacy seasons.** Legacy charts tries as
 `stType` `XP`/`2-Pt` (SPECIAL-TEAMS-MODEL §4b.1), so the old structural `null`
 contradicted `conversions.xp.att` on the same cohort and swallowed
@@ -649,17 +657,6 @@ product is wrong.
    86px, Situational defense 72px. They come from genuinely different row
    counts in real data; closing them means stretching table rows or full-width
    tables, both of which were tried and rejected. Carried into the Charlie Gate.
-
-10. **OPEN — `e2e-parity` is red at `393ca82`, before this Players build.**
-    Both goldens drift on `season: numbers,reports`. Verified by reverting
-    the Players implementation to committed HEAD and re-running: identical
-    failure, so it is not caused by the Players work. The likely cause is
-    `dfeb91c`, which changed `individualStats` output the goldens snapshot —
-    the table titles lost their `Individual ` prefix, and `FG (M/A)`, `Punts`
-    and `Punt Avg` moved from an em-dash to `0/0` / `0` / `No data`. That is a
-    reviewed, audited golden correction, called out in a diff — not a
-    regeneration to make a test pass — and it belongs to whoever owns
-    `dfeb91c`. Nothing may ship on a red parity.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its

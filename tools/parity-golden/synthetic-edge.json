@@ -1249,6 +1249,7 @@
      "blocked": 0,
      "retAllowedAvg": null,
      "retAllowedYards": 0,
+     "tdAllowed": 0,
      "refs": {
       "all": [
        "g1::16"
@@ -1264,7 +1265,8 @@
       "hangAvg": [
        "g1::16"
       ],
-      "retAllowedAvg": []
+      "retAllowedAvg": [],
+      "tdAllowed": []
      },
      "outcomes": [
       {
@@ -1285,6 +1287,7 @@
      "fairCatchPct": 0,
      "retAllowedAvg": null,
      "retAllowedYards": 0,
+     "tdAllowed": 0,
      "onside": {
       "n": null,
       "recovered": null
@@ -1295,7 +1298,8 @@
       "onside": [],
       "onsideRecovered": [],
       "avg": [],
-      "retAllowedAvg": []
+      "retAllowedAvg": [],
+      "tdAllowed": []
      },
      "outcomes": []
     },
@@ -4225,6 +4229,7 @@
        "blocked": 0,
        "retAllowedAvg": null,
        "retAllowedYards": 0,
+       "tdAllowed": 0,
        "refs": {
         "all": [],
         "blocked": [],
@@ -4232,7 +4237,8 @@
         "grossAvg": [],
         "netAvg": [],
         "hangAvg": [],
-        "retAllowedAvg": []
+        "retAllowedAvg": [],
+        "tdAllowed": []
        },
        "outcomes": []
       },
@@ -4243,6 +4249,7 @@
        "fairCatchPct": 0,
        "retAllowedAvg": null,
        "retAllowedYards": 0,
+       "tdAllowed": 0,
        "onside": {
         "n": null,
         "recovered": null
@@ -4253,7 +4260,8 @@
         "onside": [],
         "onsideRecovered": [],
         "avg": [],
-        "retAllowedAvg": []
+        "retAllowedAvg": [],
+        "tdAllowed": []
        },
        "outcomes": []
       },
@@ -5956,6 +5964,7 @@
      "blocked": 0,
      "retAllowedAvg": null,
      "retAllowedYards": 0,
+     "tdAllowed": 0,
      "refs": {
       "all": [
        "g1::16"
@@ -5971,7 +5980,8 @@
       "hangAvg": [
        "g1::16"
       ],
-      "retAllowedAvg": []
+      "retAllowedAvg": [],
+      "tdAllowed": []
      },
      "outcomes": [
       {
@@ -5992,6 +6002,7 @@
      "fairCatchPct": 0,
      "retAllowedAvg": null,
      "retAllowedYards": 0,
+     "tdAllowed": 0,
      "onside": {
       "n": null,
       "recovered": null
@@ -6002,7 +6013,8 @@
       "onside": [],
       "onsideRecovered": [],
       "avg": [],
-      "retAllowedAvg": []
+      "retAllowedAvg": [],
+      "tdAllowed": []
      },
      "outcomes": []
     },
@@ -8181,6 +8193,7 @@
        "blocked": 0,
        "retAllowedAvg": null,
        "retAllowedYards": 0,
+       "tdAllowed": 0,
        "refs": {
         "all": [],
         "blocked": [],
@@ -8188,7 +8201,8 @@
         "grossAvg": [],
         "netAvg": [],
         "hangAvg": [],
-        "retAllowedAvg": []
+        "retAllowedAvg": [],
+        "tdAllowed": []
        },
        "outcomes": []
       },
@@ -8199,6 +8213,7 @@
        "fairCatchPct": 0,
        "retAllowedAvg": null,
        "retAllowedYards": 0,
+       "tdAllowed": 0,
        "onside": {
         "n": null,
         "recovered": null
@@ -8209,7 +8224,8 @@
         "onside": [],
         "onsideRecovered": [],
         "avg": [],
-        "retAllowedAvg": []
+        "retAllowedAvg": [],
+        "tdAllowed": []
        },
        "outcomes": []
       },
@@ -9402,6 +9418,7 @@
      "blocked": 0,
      "retAllowedAvg": null,
      "retAllowedYards": 0,
+     "tdAllowed": 0,
      "refs": {
       "all": [],
       "blocked": [],
@@ -9409,7 +9426,8 @@
       "grossAvg": [],
       "netAvg": [],
       "hangAvg": [],
-      "retAllowedAvg": []
+      "retAllowedAvg": [],
+      "tdAllowed": []
      },
      "outcomes": []
     },
@@ -9420,6 +9438,7 @@
      "fairCatchPct": 0,
      "retAllowedAvg": null,
      "retAllowedYards": 0,
+     "tdAllowed": 0,
      "onside": {
       "n": null,
       "recovered": null
@@ -9430,7 +9449,8 @@
       "onside": [],
       "onsideRecovered": [],
       "avg": [],
-      "retAllowedAvg": []
+      "retAllowedAvg": [],
+      "tdAllowed": []
      },
      "outcomes": []
     },
@@ -10811,6 +10831,7 @@
        "blocked": 0,
        "retAllowedAvg": null,
        "retAllowedYards": 0,
+       "tdAllowed": 0,
        "refs": {
         "all": [],
         "blocked": [],
@@ -10818,7 +10839,8 @@
         "grossAvg": [],
         "netAvg": [],
         "hangAvg": [],
-        "retAllowedAvg": []
+        "retAllowedAvg": [],
+        "tdAllowed": []
        },
        "outcomes": []
       },
@@ -10829,6 +10851,7 @@
        "fairCatchPct": 0,
        "retAllowedAvg": null,
        "retAllowedYards": 0,
+       "tdAllowed": 0,
        "onside": {
         "n": null,
         "recovered": null
@@ -10839,7 +10862,8 @@
         "onside": [],
         "onsideRecovered": [],
         "avg": [],
-        "retAllowedAvg": []
+        "retAllowedAvg": [],
+        "tdAllowed": []
        },
        "outcomes": []
       },
