@@ -560,7 +560,7 @@ Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
 and the shared scorebug rule, 46) and `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
-corrections and the printed export, 45).
+corrections and the printed export, 46).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

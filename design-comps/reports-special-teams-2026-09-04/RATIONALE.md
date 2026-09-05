@@ -23,7 +23,10 @@ tab at the release widths, then PASS / REVISE / REJECT. The composition is
 approved; acceptance of the implementation is not.
 
 Comp: `design-comps/reports-special-teams-2026-09-04/special-teams.html`
-Captures: `design-comps/reports-special-teams-2026-09-04/captures/` (78 files)
+Captures: `design-comps/reports-special-teams-2026-09-04/captures/` — 110 files:
+78 of the comp, and 32 in `captures/production/` of the built tab on the
+coach's real season (five sections × both scopes × 1920/1440/1280, plus the
+Season tab's Special Teams view and the printed export).
 
 The comp is interactive. The scope control, the unit navigation, and the
 populated / real-data / one-unit / empty / long-label states all work, so the

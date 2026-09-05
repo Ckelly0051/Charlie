@@ -324,8 +324,12 @@ ok(empty.title === 'No Special Teams snaps charted', 'the empty state states the
 /* ══ 11. The export carries what the board shows ══════════════════════════ */
 /* The board's KPI tiles carry NAMED values (`stats`), not a `value`/`sub`
    pair. The printed report's generic metric band read `value`/`sub`, so every
-   tile whose figures live in `stats` exported as an empty headline. Assert the
-   exported HTML contains each tile's own label and number. */
+   tile whose figures live in `stats` exported as an empty headline.
+
+   The exported band is PARSED, not searched. A substring check over the whole
+   document passes on `0`, `3` or `10` occurring in any unrelated table, so it
+   could not fail for the reason it claims: the pairs are matched tile by tile
+   and label by label. */
 console.log('\n== 11. Export ==');
 await load([
   { stType: 'Kickoff', kickOutcome: 'Touchback' },
@@ -355,19 +359,40 @@ const exported = await page.evaluate(async () => {
       s.querySelector('.gi-kpi-stat-n')?.textContent.trim() || '',
     ]),
   }));
-  return { html, tiles };
+  /* The exported band, parsed the same shape: tile label -> label/value pairs.
+     The Special Teams band is the one that follows the chapter heading. */
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const chapter = [...doc.querySelectorAll('.chapter')]
+    .find(c => /Special Teams Performance/.test(c.querySelector('h1')?.textContent || ''));
+  const printed = [...(chapter?.querySelectorAll('.metric-band > .metric') || [])].map(m => ({
+    label: m.querySelector(':scope > span')?.textContent.trim() || '',
+    stats: [...m.querySelectorAll('.metric-stats > p')].map(p => [
+      p.querySelector('span')?.textContent.trim() || '',
+      p.querySelector('strong')?.textContent.trim() || '',
+    ]),
+  }));
+  return { html, tiles, printed, chapter: !!chapter };
 });
-ok(/Special Teams Performance/.test(exported.html), 'the export contains the Special Teams chapter');
-const missing = [];
+ok(exported.chapter, 'the export contains the Special Teams chapter');
+ok(exported.tiles.some(t => t.stats.length), 'the board rendered named KPI values to compare against');
+ok(exported.printed.length === exported.tiles.length,
+  'the printed band carries one cell per board tile',
+  `printed ${exported.printed.length}, board ${exported.tiles.length}`);
+
+const mismatched = [];
 for (const tile of exported.tiles) {
+  const cell = exported.printed.find(p => p.label.toLowerCase() === tile.label.toLowerCase());
+  if (!cell) { mismatched.push(`${tile.label}: no cell in the printed band`); continue; }
   for (const [label, value] of tile.stats) {
     if (!value) continue;
-    if (!exported.html.includes(value)) missing.push(`${tile.label} / ${label} = ${value}`);
+    const row = cell.stats.find(s => s[0].toLowerCase() === label.toLowerCase());
+    if (!row) mismatched.push(`${tile.label} / ${label}: not printed`);
+    else if (row[1] !== value) mismatched.push(`${tile.label} / ${label}: printed ${row[1]}, board ${value}`);
   }
 }
-ok(exported.tiles.some(t => t.stats.length), 'the board rendered named KPI values to compare against');
-ok(missing.length === 0, 'every named KPI value on the board also reaches the printed report',
-  missing.slice(0, 4).join('; '));
+ok(mismatched.length === 0,
+  'every named KPI value prints under its own tile and its own label',
+  mismatched.slice(0, 4).join('; '));
 ok(!/<strong><\/strong>/.test(exported.html),
   'no exported tile prints an empty headline where its figures belong');
 
