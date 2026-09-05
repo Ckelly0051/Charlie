@@ -20,7 +20,7 @@ export function overviewKpis(stats) {
   const penalty = stats.penalties || {};
   const giveaways = stats.turnovers?.giveaways ?? stats.offenseTurnovers ?? 0;
   return [
-    { label: 'Total plays', value: stats.allPlays, sub: `${stats.allPlays} charted · 100%` },
+    { label: 'Total plays', value: stats.allPlays, sub: `${stats.allPlays} charted, 100%` },
     { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successfulPlays || 0} successful snaps`, cls: 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
     { label: 'Explosives', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
@@ -57,8 +57,8 @@ export function situationalTiles(stats) {
     cutLabel: item.total ? `${title} — ${item.total} plays` : null,
   });
   return [
-    tile('Red zone', s.redZone, 'situation', 'redZone', item => `${item.tds} TD · ${item.total} snaps`),
-    tile('Goal line', s.goalLine, 'situation', 'goalLine', item => `${item.tds} TD · ${item.total} snaps`),
+    tile('Red zone', s.redZone, 'situation', 'redZone', item => `${item.tds} TD, ${item.total} snaps`),
+    tile('Goal line', s.goalLine, 'situation', 'goalLine', item => `${item.tds} TD, ${item.total} snaps`),
     { title: 'Third down', value: third.total ? `${third.conversionPct}%` : '—', sub: third.total ? stats.downs.thirdDownConv : 'No data', cutType: 'down', cutVal: '3', plays: third.total, cutLabel: third.total ? `Third down — ${third.total} plays` : null },
     tile('3rd & long', s.thirdLong, 'situation', 'thirdLong', item => `${item.successes} of ${item.total}`),
     tile('3rd & short', s.thirdShort, 'situation', 'thirdShort', item => `${item.successes} of ${item.total}`),
@@ -222,7 +222,7 @@ export function offenseKpis(stats) {
     sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
   kpis.push({ label: 'Run / pass',
     value: `${Math.round(parseFloat(tend.runPct) || 0)} / ${Math.round(parseFloat(tend.passPct) || 0)}`,
-    sub: `${tend.runs || 0}R · ${tend.passes || 0}P` });
+    sub: `${tend.runs || 0}R, ${tend.passes || 0}P` });
   kpis.push({ label: 'Points / drive', value: drives.pointsPerDrive != null ? drives.pointsPerDrive : '—',
     sub: drives.total ? `${drives.scoringDrives || 0} of ${drives.total} scored` : 'no drives charted' });
   kpis.push({ label: '3rd down', value: third != null ? `${Math.round(third)}%` : '—',
@@ -249,13 +249,13 @@ export function offenseIdentity(stats, engine, calls = null) {
 
   const personnel = (personnelGroups(stats) || [])[0];
   items.push(personnel
-    ? { label: 'Base personnel', value: personnel.name, sub: `${personnel.count} snaps · ${share(personnel.count)}`,
+    ? { label: 'Base personnel', value: personnel.name, sub: `${personnel.count} snaps, ${share(personnel.count)}`,
         cutType: 'personnel', cutVal: personnel.name, cutLabel: `Personnel ${personnel.name} — ${personnel.count} plays` }
     : { label: 'Base personnel', value: '—', sub: 'none charted' });
 
   const formation = (stats.tendencies?.formationList || [])[0];
   items.push(formation
-    ? { label: 'Primary formation', value: formation.name, sub: `${formation.count} snaps · ${share(formation.count)}`,
+    ? { label: 'Primary formation', value: formation.name, sub: `${formation.count} snaps, ${share(formation.count)}`,
         cutType: 'formation', cutVal: formation.name, cutLabel: `${formation.name} — ${formation.count} plays` }
     : { label: 'Primary formation', value: '—', sub: 'none charted' });
 
@@ -269,7 +269,7 @@ export function offenseIdentity(stats, engine, calls = null) {
   });
   const topAlignment = Object.entries(alignments).sort((a, b) => b[1] - a[1])[0];
   items.push(topAlignment
-    ? { label: 'QB alignment', value: topAlignment[0], sub: `${topAlignment[1]} snaps · ${share(topAlignment[1])}`,
+    ? { label: 'QB alignment', value: topAlignment[0], sub: `${topAlignment[1]} snaps, ${share(topAlignment[1])}`,
         cutType: 'qbAlignment', cutVal: topAlignment[0], cutLabel: `${topAlignment[0]} — ${topAlignment[1]} plays` }
     : { label: 'QB alignment', value: '—', sub: 'none charted' });
 
@@ -281,18 +281,18 @@ export function offenseIdentity(stats, engine, calls = null) {
   const runs = tend.runs || 0, passes = tend.passes || 0;
   items.push(runs || passes
     ? { label: 'Run / pass', value: `${Math.round(parseFloat(tend.runPct) || 0)} / ${Math.round(parseFloat(tend.passPct) || 0)}`,
-        sub: `${runs} run · ${passes} pass` }
+        sub: `${runs} run, ${passes} pass` }
     : { label: 'Run / pass', value: '—', sub: 'none charted' });
 
   const playType = (tend.playTypeList || [])[0];
   items.push(playType
-    ? { label: 'Primary play type', value: playType.name, sub: `${playType.count} snaps · ${share(playType.count)}`,
+    ? { label: 'Primary play type', value: playType.name, sub: `${playType.count} snaps, ${share(playType.count)}`,
         cutType: 'playType', cutVal: playType.name, cutLabel: `${playType.name} — ${playType.count} plays` }
     : { label: 'Primary play type', value: '—', sub: 'none charted' });
 
   const topCall = calls?.eligible ? (calls.calls || [])[0] : null;
   items.push(topCall
-    ? { label: 'Top call', value: topCall.name, sub: `${topCall.n} snaps · ${Math.round(topCall.successRate)}% success`,
+    ? { label: 'Top call', value: topCall.name, sub: `${topCall.n} snaps, ${Math.round(topCall.successRate)}% success`,
         refs: topCall.refs || null, playIds: topCall.playIds || null, cutLabel: `Play Call: ${topCall.name}` }
     : { label: 'Top call', value: '—', sub: 'no exact calls charted' });
   return items;
@@ -511,7 +511,7 @@ export function defenseDisciplineRows(stats, statsEngine) {
     ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'],
     ['Explosives allowed', explosives, explosives ? '' : 'is-good'],
     ['Takeaways', stats.defensive.turnovers],
-    ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],
+    ['Penalties accepted', penalties.hasData ? `${penalties.accepted}, ${penalties.subjectYards} yds` : '0'],
     ['Penalties declined', penalties.hasData ? penalties.declined : '0'],
   ] };
 }
@@ -557,12 +557,6 @@ export function specialTeamsKpis(stats, summary) {
   const retAtt = (kickRet.attempts || 0) + (puntRet.attempts || 0);
   const retYards = (kickRet.attempts ? kickRet.yards : 0) + (puntRet.attempts ? puntRet.yards : 0);
   const retLong = Math.max(kickRet.attempts ? kickRet.long : 0, puntRet.attempts ? puntRet.long : 0);
-  // Coverage divides by the cohort the AVERAGE was actually computed from
-  // (`refs.retAllowedAvg`), not by every snap charted as returned. On the
-  // coach's real season three kickoffs are charted `Returned` with no return
-  // yardage entered, and dividing by those produced a confident `0.0 yds per
-  // return` out of an absence -- the exact inversion this report exists to
-  // prevent. Those snaps now leave the denominator and the tile reads No data.
   const covRefs = [...new Set([...(st.punts?.refs?.retAllowedAvg || []),
     ...(st.kickoffs?.refs?.retAllowedAvg || [])])].sort();
   const covYards = (st.punts?.retAllowedYards || 0) + (st.kickoffs?.retAllowedYards || 0);
@@ -571,29 +565,77 @@ export function specialTeamsKpis(stats, summary) {
   // `long` is the longest MADE kick, so attempts with no make leave it
   // genuinely unavailable. It must never render 0 -- that reads as a measured
   // zero-yard field goal, the exact inversion this report exists to prevent.
-  const fgSub = fg.att ? `${fg.pct}% · long ${fg.long ? `${fg.long} yds` : ST_NO_DATA}` : '';
+  // Coach (2026-09-04): every tile uses ONE format -- named values on a line,
+  // pipe-separated -- because a sub line is just as much a real data point as
+  // the headline and burying it under the number hides it. Nothing is a bare
+  // figure with an unlabelled annotation beneath it any more.
+  const margin = summary.points.us - summary.points.them;
   const tiles = [
-    { label: 'ST Snaps', value: snaps || null,
-      sub: snaps ? `of ${summary.cohort ?? snaps} charted` : '', refs: summary.snaps.refs },
-    // A scoreless special teams is an observation, not an absence: 0 keeps its
-    // place and simply carries no sub.
-    { label: 'Points', value: summary.points.us,
-      sub: summary.points.them ? `${summary.points.them} allowed` : (summary.points.us ? 'none allowed' : ''),
-      cls: summary.points.us > summary.points.them ? 'is-good' : '', refs: summary.points.refsUs },
-    { label: 'Field Goals', value: fg.att ? `${fg.made}/${fg.att}` : null, sub: fgSub, refs: fg.refs?.all },
-    { label: 'Conversions', value: convAtt ? `${convMade}/${convAtt}` : null,
-      sub: convAtt ? `${Math.round(convMade / convAtt * 100)}% of ${convAtt} classified` : '',
+    { label: 'Special Teams Snaps',
+      stats: snaps
+        ? [[['Snaps', snaps], ['Plays charted', summary.cohort ?? snaps]]]
+        : null,
+      refs: summary.snaps.refs },
+    // PF / PA / Margin on ONE line (coach, 2026-09-04) -- the abbreviations are
+    // the standard scoreboard ones, and fitting all three on a line removes a
+    // whole row of mostly dead space from the band.
+    { label: 'Points',
+      stats: [[
+        ['PF', summary.points.us],
+        ['PA', summary.points.them],
+        ['Margin', margin > 0 ? `+${margin}` : String(margin)],
+      ]],
+      cls: summary.points.us > summary.points.them ? 'is-good'
+        : summary.points.us < summary.points.them ? 'is-bad' : '',
+      refs: summary.points.refsUs },
+    // `long` is the longest MADE kick, so attempts with no make leave it
+    // genuinely unavailable -- it must never render 0, which would read as a
+    // measured zero-yard field goal.
+    { label: 'Field Goals',
+      // ONE row like every other tile. Two rows here made the whole KPI band
+      // two lines tall again, which is the row the band had just lost. `Rate`
+      // rather than `Make rate` is what buys the third stat its space.
+      stats: fg.att
+        ? [[['Made', `${fg.made}/${fg.att}`], ['Rate', `${fg.pct}%`],
+            ['Long', fg.long ? `${fg.long} yds` : ST_NO_DATA]]]
+        : null,
+      refs: fg.refs?.all },
+    { label: 'Conversions',
+      stats: convAtt
+        ? [[['Made', `${convMade}/${convAtt}`],
+            ['Conversion rate', `${Math.round(convMade / convAtt * 100)}%`]]]
+        : null,
       refs: [...new Set([...(xp.refs?.att || []), ...(two.refs?.att || [])])].sort() },
-    { label: 'Return Production', value: retAtt ? `${retYards} yds` : null,
-      sub: retAtt ? `${stPlural(retAtt, 'return')} · long ${retLong}` : '',
+    // Returns, then yards, then long -- the count before what it produced
+    // (coach, 2026-09-04). One line, same reason as Points.
+    { label: 'Return Production',
+      stats: retAtt
+        ? [[['Returns', retAtt], ['Yards', retYards], ['Long', `${retLong} yds`]]]
+        : null,
       refs: [...new Set([...(kickRet.refs?.attempts || []), ...(puntRet.refs?.attempts || [])])].sort() },
-    { label: 'Coverage Allowed', value: covN ? `${(covYards / covN).toFixed(1)}` : null,
-      sub: covN ? `yds per return · ${stPlural(covN, 'return')} allowed` : '',
-      refs: covRefs },
+    // "Coverage Allowed" was an invented name for punt and kickoff coverage
+    // averaged TOGETHER -- one yards-per-return over two different units'
+    // denominators, which is the blend this report is not allowed to make, and
+    // duplicating a number each unit already reports correctly on its own.
+    // Counts of the SAME event do combine, so the slot states the outcome a
+    // coordinator actually tracks: a return that went the distance, whichever
+    // coverage unit gave it up. Coach, 2026-09-04.
+    // Coach (2026-09-04): listing only touchdowns ALLOWED in a general Special
+    // Teams grouping is wrong -- both directions belong. For = our return
+    // units reaching the end zone; Allowed = a return that went the distance
+    // against our coverage. Counts of the same event, so they combine.
+    { label: 'Touchdowns',
+      stats: [[
+        ['For', (st.returns?.kick?.td ?? 0) + (st.returns?.punt?.td ?? 0)],
+        ['Allowed', (st.kickoffs?.tdAllowed ?? 0) + (st.punts?.tdAllowed ?? 0)],
+      ]],
+      refs: [...new Set([...(st.returns?.kick?.refs?.td || []), ...(st.returns?.punt?.refs?.td || []),
+        ...(st.kickoffs?.refs?.tdAllowed || []), ...(st.punts?.refs?.tdAllowed || [])])].sort() },
   ];
-  return tiles.map(tile => tile.value === null || tile.value === undefined
-    ? { ...tile, value: ST_NO_DATA, sub: '', blank: true }
-    : { ...tile, blank: false });
+  // A tile with no rows is absent, and says so once.
+  return tiles.map(tile => tile.stats
+    ? { ...tile, blank: false }
+    : { ...tile, value: ST_NO_DATA, sub: '', stats: null, blank: true });
 }
 
 /**
@@ -611,23 +653,37 @@ export function specialTeamsKpis(stats, summary) {
 export function specialTeamsUnits(stats) {
   const st = stats.specialTeams || {};
   const num = v => (Number.isFinite(v) ? v : null);
+  // Each unit counts its OWN event, so the card names it: 21 kickoffs, not 21
+  // snaps (coach, 2026-09-04). And a percentage is a rate, so it is labelled
+  // as one -- "0% touchback rate", never a bare "0% touchback".
   const defs = [
-    { key: 'kickoff', name: 'Kickoff', n: num(st.kickoffs?.n), refs: st.kickoffs?.refs?.all,
-      headline: () => (st.kickoffs?.avg != null ? `${st.kickoffs.avg} yd average` : `${st.kickoffs.tbPct}% touchback`) },
-    { key: 'kickReturn', name: 'Kick Return', n: num(st.returns?.kick?.n), refs: st.returns?.kick?.refs?.all,
-      headline: () => (st.returns.kick.avg != null ? `${st.returns.kick.avg} yd average` : `${stPlural(st.returns.kick.attempts, 'return')} charted`) },
-    { key: 'punt', name: 'Punt', n: num(st.punts?.n), refs: st.punts?.refs?.all,
+    { key: 'kickoff', name: 'Kickoff', noun: 'kickoff', n: num(st.kickoffs?.n), refs: st.kickoffs?.refs?.all,
+      headline: () => (st.kickoffs?.avg != null ? `${st.kickoffs.avg} yd average` : `${st.kickoffs.tbPct}% touchback rate`) },
+    // Coach (2026-09-04): the card's second value is a touchdown RATE, not a
+    // "N returns charted" status line -- a rate is a real number, that was
+    // just a restatement of the count beside it. Over return ATTEMPTS, which
+    // is the only denominator a return touchdown can come from; with no
+    // attempt charted there is no rate to state.
+    { key: 'kickReturn', name: 'Kick Return', noun: 'return', n: num(st.returns?.kick?.n), refs: st.returns?.kick?.refs?.all,
+      headline: () => (st.returns.kick.attempts
+        ? `${Math.round(st.returns.kick.td / st.returns.kick.attempts * 100)}% touchdown rate`
+        : ST_NO_DATA) },
+    { key: 'punt', name: 'Punt', noun: 'punt', n: num(st.punts?.n), refs: st.punts?.refs?.all,
       headline: () => (st.punts.netAvg != null ? `${st.punts.netAvg} yd net` : `${stPlural(st.punts.blocked, 'block')} allowed`) },
-    { key: 'puntReturn', name: 'Punt Return', n: num(st.returns?.punt?.n), refs: st.returns?.punt?.refs?.all,
-      headline: () => (st.returns.punt.avg != null ? `${st.returns.punt.avg} yd average` : `${stPlural(st.returns.punt.attempts, 'return')} charted`) },
-    { key: 'fieldGoal', name: 'Field Goal', n: num(st.fg?.att), refs: st.fg?.refs?.all,
-      headline: () => `${st.fg.made}/${st.fg.att} · ${st.fg.pct}%` },
-    { key: 'fieldGoalBlock', name: 'FG Block', n: num(st.blocks?.n), refs: st.blocks?.refs?.all,
+    { key: 'puntReturn', name: 'Punt Return', noun: 'return', n: num(st.returns?.punt?.n), refs: st.returns?.punt?.refs?.all,
+      // Same measure as Kick Return -- the two return units read alike.
+      headline: () => (st.returns.punt.attempts
+        ? `${Math.round(st.returns.punt.td / st.returns.punt.attempts * 100)}% touchdown rate`
+        : ST_NO_DATA) },
+    { key: 'fieldGoal', name: 'Field Goal', noun: 'attempt', n: num(st.fg?.att), refs: st.fg?.refs?.all,
+      headline: () => `${st.fg.made}/${st.fg.att} made, ${st.fg.pct}% rate` },
+    { key: 'fieldGoalBlock', name: 'FG Block', noun: 'snap', n: num(st.blocks?.n), refs: st.blocks?.refs?.all,
       headline: () => `${stPlural(st.blocks.blocked, 'kick')} blocked` },
   ];
   return defs.map(def => def.n
-    ? { key: def.key, name: def.name, n: def.n, headline: def.headline(), refs: def.refs || [], blank: false }
-    : { key: def.key, name: def.name, n: null, headline: '', refs: [], blank: true });
+    ? { key: def.key, name: def.name, n: def.n, noun: `${def.noun}${def.n === 1 ? '' : 's'}`,
+        headline: def.headline(), refs: def.refs || [], blank: false }
+    : { key: def.key, name: def.name, n: null, noun: '', headline: '', refs: [], blank: true });
 }
 
 /**
@@ -651,7 +707,8 @@ export function specialTeamsUnitRows(stats, key) {
       row('Kick distance, average', yds(k.avg)),
       row('Touchback rate', `${k.tbPct}%`),
       row('Fair catch rate', `${k.fairCatchPct}%`),
-      row('Return yards allowed', k.retAllowedAvg == null ? null : `${k.retAllowedAvg} avg · ${k.retAllowedYards} total`, { sub: true }),
+      row('Return yards allowed', k.retAllowedAvg == null ? null : `${k.retAllowedAvg} avg, ${k.retAllowedYards} total`, { sub: true }),
+      row('Touchdowns allowed', k.tdAllowed, { cls: k.tdAllowed ? 'is-bad' : '' }),
       // Legacy charts an onside kick as its own stType, so it is not derivable
       // from the kickoff cohort at all -- an honest absence, not a zero.
       row('Onside recovery', k.onside?.n == null ? null : `${k.onside.recovered}/${k.onside.n}`),
@@ -667,7 +724,8 @@ export function specialTeamsUnitRows(stats, key) {
       row('Hang time', p.hangAvg == null ? null : `${p.hangAvg}s`),
       row('Touchback rate', `${p.tbPct}%`),
       row('Fair catch rate', `${p.fairCatchPct}%`),
-      row('Return yards allowed', p.retAllowedAvg == null ? null : `${p.retAllowedAvg} avg · ${p.retAllowedYards} total`, { sub: true }),
+      row('Return yards allowed', p.retAllowedAvg == null ? null : `${p.retAllowedAvg} avg, ${p.retAllowedYards} total`, { sub: true }),
+      row('Touchdowns allowed', p.tdAllowed, { cls: p.tdAllowed ? 'is-bad' : '' }),
       row('Blocked', p.blocked, { cls: p.blocked ? 'is-bad' : '' }),
     ];
   }
@@ -682,7 +740,7 @@ export function specialTeamsUnitRows(stats, key) {
       row('Return yards', r.attempts ? `${r.yards} total` : null, { sub: true }),
       row('Average return', yds(r.avg)),
       row('Longest', r.attempts ? `${r.long} yds` : null),
-      row('Return touchdowns', r.td, { cls: r.td ? 'is-good' : '' }),
+      row('Touchdowns', r.td, { cls: r.td ? 'is-good' : '' }),
       row('Muffed', r.muffed, { cls: r.muffed ? 'is-bad' : '' }),
     ];
   }
@@ -692,7 +750,7 @@ export function specialTeamsUnitRows(stats, key) {
     return [
       row('Attempts', f.att),
       row('Made', f.made),
-      row('Percentage', `${f.pct}%`, { cls: f.pct >= 60 ? 'is-good' : '' }),
+      row('Make rate', `${f.pct}%`, { cls: f.pct >= 60 ? 'is-good' : '' }),
       row('Longest made', f.long ? `${f.long} yds` : null),
     ];
   }
@@ -720,8 +778,8 @@ export function specialTeamsUnitRows(stats, key) {
     // denominator, the unclassified are stated, and they are NEVER counted as
     // misses or folded into a conversion percentage.
     if (charted != null && charted > att) {
-      rows.push(row('Classification',
-        `${att} classified · ${charted - att} unclassified · ${charted} charted`, { sub: true }));
+      rows.push(row('Charted tries', `${charted}`, { sub: true }));
+      rows.push(row('No scoring team tagged', `${charted - att}`, { sub: true }));
     }
     return rows;
   }
@@ -772,9 +830,9 @@ export function specialTeamsPhases(stats) {
   if (st.kickoffs?.n) {
     const rows = [
       ['Kickoffs', st.kickoffs.n],
-      ['Avg distance', st.kickoffs.avg != null ? st.kickoffs.avg : '—'],
+      ['Avg distance', st.kickoffs.avg != null ? st.kickoffs.avg : ST_NO_DATA],
       ['Touchback %', `${st.kickoffs.tbPct}%`],
-      ['Return allowed', st.kickoffs.retAllowedAvg != null ? st.kickoffs.retAllowedAvg : '—'],
+      ['Return allowed', st.kickoffs.retAllowedAvg != null ? st.kickoffs.retAllowedAvg : ST_NO_DATA],
     ];
     if (st.kickoffs.onside?.n != null) rows.push(['Onside', `${st.kickoffs.onside.recovered}/${st.kickoffs.onside.n}`]);
     phases.push({ key: 'kickoffs', title: 'Kickoffs', refs: st.kickoffs.refs?.all || [], label: `Kickoffs — ${st.kickoffs.n} snaps`, rows });
@@ -782,22 +840,22 @@ export function specialTeamsPhases(stats) {
   if (st.returns?.kick?.n) phases.push({ key: 'kickReturns', title: 'Kick Returns', refs: st.returns.kick.refs?.all || [],
     label: `Kick Returns — ${st.returns.kick.n} snaps`, rows: [
       ['Returns', st.returns.kick.attempts],
-      ['Avg', st.returns.kick.avg != null ? st.returns.kick.avg : '—'],
+      ['Avg', st.returns.kick.avg != null ? st.returns.kick.avg : ST_NO_DATA],
       ['Long', st.returns.kick.long],
       ['TD', st.returns.kick.td, st.returns.kick.td ? 'is-good' : ''],
     ] });
   if (st.punts?.n) phases.push({ key: 'punts', title: 'Punts', refs: st.punts.refs?.all || [],
     label: `Punts — ${st.punts.n} snaps`, rows: [
       ['Punts', st.punts.n],
-      ['Gross / Net', `${st.punts.grossAvg ?? '—'} / ${st.punts.netAvg ?? '—'}`],
-      ['Hang time', st.punts.hangAvg != null ? `${st.punts.hangAvg}s` : '—'],
+      ['Gross / Net', `${st.punts.grossAvg ?? ST_NO_DATA} / ${st.punts.netAvg ?? ST_NO_DATA}`],
+      ['Hang time', st.punts.hangAvg != null ? `${st.punts.hangAvg}s` : ST_NO_DATA],
       ['Touchback %', `${st.punts.tbPct}%`],
-      ['Return allowed', st.punts.retAllowedAvg != null ? st.punts.retAllowedAvg : '—'],
+      ['Return allowed', st.punts.retAllowedAvg != null ? st.punts.retAllowedAvg : ST_NO_DATA],
     ] });
   if (st.returns?.punt?.n) phases.push({ key: 'puntReturns', title: 'Punt Returns', refs: st.returns.punt.refs?.all || [],
     label: `Punt Returns — ${st.returns.punt.n} snaps`, rows: [
       ['Returns', st.returns.punt.attempts],
-      ['Avg', st.returns.punt.avg != null ? st.returns.punt.avg : '—'],
+      ['Avg', st.returns.punt.avg != null ? st.returns.punt.avg : ST_NO_DATA],
       ['Long', st.returns.punt.long],
       ['TD', st.returns.punt.td, st.returns.punt.td ? 'is-good' : ''],
     ] });
@@ -811,8 +869,8 @@ export function specialTeamsPhases(stats) {
   if (convAtt) phases.push({ key: 'conversions', title: 'Conversions',
     refs: [...new Set([...(conv.xp?.refs?.att || []), ...(conv.two?.refs?.att || [])])].sort(),
     label: `Conversions — ${convAtt} attempts`, rows: [
-      ['PAT (XP)', conv.xp?.att ? `${conv.xp.made}/${conv.xp.att}` : '—'],
-      ['2-Point', conv.two?.att ? `${conv.two.made}/${conv.two.att}` : '—'],
+      ['PAT (XP)', conv.xp?.att ? `${conv.xp.made}/${conv.xp.att}` : ST_NO_DATA],
+      ['2-Point', conv.two?.att ? `${conv.two.made}/${conv.two.att}` : ST_NO_DATA],
     ] });
   return phases;
 }

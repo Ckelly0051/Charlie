@@ -242,11 +242,14 @@ result = await page.evaluate(async () => {
   ]);
   return { defenseOnly, offenseOnly, both };
 });
-ok(result.defenseOnly.toPresent && result.defenseOnly.toValue === '1 TA' && result.defenseOnly.toSub === 'no offensive snaps charted' && !result.defenseOnly.tone,
+ok(result.defenseOnly.toPresent && /Takeaways\s*1/.test(result.defenseOnly.toValue) && /Turnovers\s*No data/.test(result.defenseOnly.toValue) && /Turnover Margin\s*No data/.test(result.defenseOnly.toValue) && result.defenseOnly.toSub === 'no offensive snaps charted' && !result.defenseOnly.tone,
   'A defense-only game shows only takeaways, never a fabricated "0 GA" or a colored margin', JSON.stringify(result.defenseOnly));
-ok(result.offenseOnly.toPresent && result.offenseOnly.toValue === '1 GA' && result.offenseOnly.toSub === 'no defensive snaps charted' && !result.offenseOnly.tone,
+ok(result.offenseOnly.toPresent && /Turnovers\s*1/.test(result.offenseOnly.toValue) && /Takeaways\s*No data/.test(result.offenseOnly.toValue) && /Turnover Margin\s*No data/.test(result.offenseOnly.toValue) && result.offenseOnly.toSub === 'no defensive snaps charted' && !result.offenseOnly.tone,
   'An offense-only game shows only giveaways, never a fabricated "0 TA" or a colored margin', JSON.stringify(result.offenseOnly));
-ok(result.both.toPresent && result.both.toValue === '1 GA · 2 TA' && result.both.tone === 'pos' && result.both.toSub === '+1 margin',
+// The margin is a named row inside the tile now, not a sub beneath it, so the
+// sub is empty when both sides are known -- it exists only to disclose a side
+// that was never charted.
+ok(result.both.toPresent && /Turnovers\s*1/.test(result.both.toValue) && /Takeaways\s*2/.test(result.both.toValue) && /Turnover Margin\s*\+1/.test(result.both.toValue) && result.both.tone === 'pos' && !result.both.toSub,
   'Both units charted with a genuine takeaway margin colors green and states the real margin', JSON.stringify(result.both));
 ok(result.both.phaseValue === 'OFF2DEF2ST0',
   'Plays per Phase reads as unambiguous literal labels, never a digit run that could be misread as one number', JSON.stringify(result.both));
@@ -928,7 +931,13 @@ result = await page.evaluate(async () => {
     watchedKickoffs, watchedKickoffsKeyboard, watchedFgBucket, watchedKicker, watchedMissedFg,
     kickerRowXss: kickerRowText.includes('<img src=x') && !window.__stXssFired,
     gameOnlyFg: gameOnlyStats.specialTeams.fg.att, gameOnlyKickoffs: gameOnlyStats.specialTeams.kickoffs.n,
-    kpiSnaps: kpiCards.find(k => k.label === 'ST Snaps')?.value,
+    kpiSnaps: (() => {
+      const tile = [...(pane?.querySelectorAll('.gi-st-board .gi-overview-kpi') || [])]
+        .find(k => /special teams snaps/i.test(k.querySelector('span')?.textContent || ''));
+      const stat = [...(tile?.querySelectorAll('.gi-kpi-stat') || [])]
+        .find(s => /^snaps$/i.test(s.querySelector('.gi-kpi-stat-l')?.textContent?.trim() || ''));
+      return stat?.querySelector('.gi-kpi-stat-n')?.textContent?.trim();
+    })(),
     summarySnaps: summary.snaps.n,
     impactLabels: summary.impact.map(i => i.label),
   };
@@ -1175,7 +1184,7 @@ result = await page.evaluate(async () => {
   const ok=app.season.exportHtml();await pending;window.ffaSaveBlob=original;
   return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
 });
-ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html) && /2 games · \d+ charted plays/.test(result.html) && result.unchanged,
+ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html) && /2 games, \d+ charted plays/.test(result.html) && result.unchanged,
   'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data', JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged}));
 
 result = await page.evaluate(async () => {

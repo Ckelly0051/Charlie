@@ -182,10 +182,23 @@ button{font-family:inherit}
 .kpi small{display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.25 var(--gi-sans)}
 .kpi.is-cyan strong{color:var(--gi-bd-cyan)}
 .kpi .good{color:var(--gi-bd-win)} .kpi .bad{color:var(--gi-bd-loss)}
-/* "Not charted" is a different fact from a value, and it is never a big
-   number. It drops to copy weight so the eye does not read an em-dash as a
-   headline figure. */
+/* An absence is never a big number. It drops to copy weight so the eye does
+   not read it as a headline figure. */
 .kpi.is-blank strong{color:var(--gi-bd-muted);font:700 17px/1.5 var(--gi-cond)}
+
+/* Every tile carries NAMED values on a line rather than one figure with an
+   unlabelled sub beneath it (coach, 2026-09-04). The separator is a real
+   element so its spacing comes from `gap` on both sides and stays even
+   regardless of the proportional widths either side of it. */
+.kpi .kstats{display:grid;gap:2px;width:100%}
+.kpi .kstat-row{display:flex;align-items:baseline;gap:5px;min-width:0;flex-wrap:nowrap}
+.kpi .kstat{display:inline-flex;align-items:baseline;gap:4px;min-width:0;white-space:nowrap}
+.kpi .kstat-l{color:var(--gi-bd-copy);font:600 10px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none}
+.kpi .kstat-n{color:var(--gi-bd-strong);font:700 13.5px/1.25 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);letter-spacing:0}
+.kpi .kstat-sep{color:var(--gi-bd-muted);font:400 11px/1.25 var(--gi-sans)}
+.kpi.good .kstat-n{color:var(--gi-bd-win)}
+.kpi.bad .kstat-n{color:var(--gi-bd-loss)}
 
 /* ── UNIT LEDGER ───────────────────────────────────────────────────────────
    Six units, always all six, in the model's own order. This is the summary a
@@ -195,7 +208,7 @@ button{font-family:inherit}
    ─────────────────────────────────────────────────────────────────────── */
 .ledger{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin:0 0 4px;background:var(--gi-bd-line)}
 .uc{min-width:0;display:block;width:100%;text-align:left;border:0;cursor:pointer;
-  padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);color:inherit;font:inherit}
+  padding:6px var(--gi-3x) 7px;background:var(--gi-bd-panel);color:inherit;font:inherit}
 .uc:hover{background:var(--gi-bd-control)}
 .uc:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
 /* 9.5px is the floor the Offense board's type assertion holds; an earlier pass
@@ -206,14 +219,17 @@ button{font-family:inherit}
   text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uc .name{display:block;margin-top:3px;color:var(--gi-bd-strong);font:700 12px/1.15 var(--gi-cond);
   letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.uc .n{display:block;margin-top:6px;color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);
-  font-variant-numeric:var(--gi-num-feat)}
-.uc .n i{font-style:normal;color:var(--gi-bd-muted);font:400 11px/1 var(--gi-sans);letter-spacing:0}
-.uc .head{display:block;margin-top:4px;color:var(--gi-bd-copy);font:400 10.5px/1.3 var(--gi-sans)}
+.uc .line{display:flex;align-items:baseline;gap:5px;margin-top:4px;min-width:0;flex-wrap:nowrap}
+.uc .n{flex:0 0 auto;color:var(--gi-bd-strong);font:700 20px/1.15 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap}
+.uc .sep{flex:0 0 auto;color:var(--gi-bd-muted);font:400 11px/1.15 var(--gi-sans)}
+.uc .n i{font-style:normal;color:var(--gi-bd-muted);font:400 10px/1 var(--gi-sans);letter-spacing:0}
+.uc .head{min-width:0;color:var(--gi-bd-copy);font:400 10.5px/1.3 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .uc.is-none{cursor:default}
 .uc.is-none:hover{background:var(--gi-bd-panel)}
 .uc.is-none .name{color:var(--gi-bd-muted)}
-.uc.is-none .n{color:var(--gi-bd-muted);font:700 15px/1.6 var(--gi-cond)}
+.uc.is-none .n{color:var(--gi-bd-muted);font:700 15px/1.5 var(--gi-cond)}
 /* A legacy season cannot derive this unit at all -- structurally absent, not
    observed-as-zero. Distinct from "no snaps", which is an observation. */
 .uc.is-na .n{color:var(--gi-bd-muted);font:700 13px/1.75 var(--gi-cond)}
@@ -311,6 +327,7 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
 .empty .btn{flex:0 0 auto}
 
 @media(max-width:1360px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
   .rhead{gap:var(--gi-4x)}
   .rhead .tabs{min-width:0;overflow-x:auto;scrollbar-width:none}
   .rhead .tabs button{padding:8px 9px;letter-spacing:.08em}
@@ -320,8 +337,6 @@ tbody tr.cut:focus-visible td:first-child::before{opacity:1}
      costs one row of height. Recorded in RATIONALE as a SHARED-CHROME
      proposal -- it is not owned by this tab. */
   .ctxbar strong{white-space:normal;overflow:visible;text-overflow:clip}
-  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .ledger{grid-template-columns:repeat(3,minmax(0,1fr))}
   .b-42{grid-template-columns:minmax(0,1fr)}
   .b-42>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
 }
@@ -492,13 +507,13 @@ const SEASON = {
      structured season: scoringTeam() returns 'opponent' for the recovered
      block, and a Safety on a Special Teams snap credits them. */
   points: { us: 65, them: 8 },
-  kickoffs: { n: 34, avg: 52.1, tb: 38, fc: 6, retAllowedAvg: 18.4, retAllowedYards: 221, retAllowedN: 12,
+  kickoffs: { n: 34, avg: 52.1, tb: 38, fc: 6, retAllowedAvg: 18.4, retAllowedYards: 221, retAllowedN: 12, tdAllowed: 1,
     onside: { n: 2, recovered: 1 },
     outcomes: [['Touchback', 13, ''], ['Returned', 12, ''], ['Out of bounds', 4, 'bad'], ['Fair catch', 2, ''], ['Recovered', 2, 'warn'], ['Downed', 1, '']] },
   kr: { n: 19, attempts: 14, yards: 287, avg: 20.5, long: 68, td: 1, muffed: 1,
     outcomes: [['Returned', 14, ''], ['Touchback', 3, ''], ['Fair catch', 1, ''], ['Muffed', 1, 'bad']] },
   punts: { n: 27, gross: 36.8, net: 32.1, hang: 3.9, tb: 11, fc: 30, blocked: 1,
-    retAllowedAvg: 6.2, retAllowedYards: 68, retAllowedN: 11,
+    retAllowedAvg: 6.2, retAllowedYards: 68, retAllowedN: 11, tdAllowed: 0,
     outcomes: [['Fair catch', 8, ''], ['Returned', 11, ''], ['Downed', 3, ''], ['Touchback', 3, 'warn'], ['Out of bounds', 1, ''], ['Blocked', 1, 'bad']] },
   pr: { n: 16, attempts: 9, yards: 94, avg: 10.4, long: 41, td: 0, muffed: 2,
     outcomes: [['Returned', 9, ''], ['Fair catch', 4, ''], ['Muffed', 2, 'bad'], ['Let bounce', 1, '']] },
@@ -522,13 +537,13 @@ const GAME = {
      that proves the report never renders that as a zero-yard field goal.
      us = 0 FG + 5 kick XP = 5. */
   points: { us: 5, them: 0 },
-  kickoffs: { n: 6, avg: 53.4, tb: 50, fc: 0, retAllowedAvg: 14.0, retAllowedYards: 28, retAllowedN: 2,
+  kickoffs: { n: 6, avg: 53.4, tb: 50, fc: 0, retAllowedAvg: 14.0, retAllowedYards: 28, retAllowedN: 2, tdAllowed: 0,
     onside: { n: 0, recovered: 0 },
     outcomes: [['Touchback', 3, ''], ['Returned', 2, ''], ['Out of bounds', 1, 'bad']] },
   kr: { n: 3, attempts: 3, yards: 71, avg: 23.7, long: 38, td: 0, muffed: 0,
     outcomes: [['Returned', 3, '']] },
   punts: { n: 5, gross: 38.4, net: 35.2, hang: 4.1, tb: 0, fc: 40, blocked: 0,
-    retAllowedAvg: 4.0, retAllowedYards: 8, retAllowedN: 2,
+    retAllowedAvg: 4.0, retAllowedYards: 8, retAllowedN: 2, tdAllowed: 0,
     outcomes: [['Fair catch', 2, ''], ['Returned', 2, ''], ['Downed', 1, '']] },
   pr: { n: 2, attempts: 1, yards: 12, avg: 12.0, long: 12, td: 0, muffed: 0,
     outcomes: [['Returned', 1, ''], ['Fair catch', 1, '']] },
@@ -552,13 +567,13 @@ const REAL = {
   label: '2025 JV', game: 'Week 1 vs St. Peter Lutheran Patriots', legacy: true,
   snaps: 74, cohort: 449, games: 6,
   points: { us: 10, them: 3 },
-  kickoffs: { n: 21, avg: null, tb: 0, fc: 29, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
+  kickoffs: { n: 21, avg: null, tb: 0, fc: 29, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0, tdAllowed: 0,
     onside: { na: true },
     outcomes: [['Fair catch', 6, ''], ['Returned', 0, ''], ['No data', 15, 'blank']] },
   kr: { n: 12, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 1,
     outcomes: [['Muffed', 1, 'bad'], ['No data', 11, 'blank']] },
   punts: { n: 10, gross: null, net: null, hang: null, tb: 0, fc: 0, blocked: 1,
-    retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
+    retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0, tdAllowed: 0,
     outcomes: [['Blocked', 1, 'bad'], ['Downed', 1, ''], ['No data', 8, 'blank']] },
   pr: { n: 9, attempts: 1, yards: 5, avg: 5.0, long: 5, td: 0, muffed: 0,
     outcomes: [['Fair catch', 3, ''], ['No data', 6, 'blank']] },
@@ -580,14 +595,14 @@ const ONEUNIT = {
   snaps: 14, cohort: 132, games: 2,
   points: { us: 0, them: 0 },
   kickoffs: { n: 0, avg: null, tb: 0, fc: 0, retAllowedAvg: null, retAllowedYards: 0, retAllowedN: 0,
-    onside: { n: 0, recovered: 0 }, outcomes: [] },
+    onside: { n: 0, recovered: 0 }, tdAllowed: 0, outcomes: [] },
   kr: { n: 0, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 0, outcomes: [] },
   /* Outcomes are mutually exclusive and must sum to the snap count: 14 punts =
      5 fair catch + 6 returned + 2 touchback + 1 downed. An earlier pass summed
      to 16, which claimed two more dispositions than there were punts, and the
      returns-allowed denominator has to be the returned count. */
   punts: { n: 14, gross: 38.2, net: 33.6, hang: 4.1, tb: 14, fc: 36, blocked: 0,
-    retAllowedAvg: 6.8, retAllowedYards: 41, retAllowedN: 6,
+    retAllowedAvg: 6.8, retAllowedYards: 41, retAllowedN: 6, tdAllowed: 0,
     outcomes: [['Fair catch', 5, ''], ['Returned', 6, ''], ['Touchback', 2, 'warn'], ['Downed', 1, '']] },
   pr: { n: 0, attempts: 0, yards: 0, avg: null, long: 0, td: 0, muffed: 0, outcomes: [] },
   fg: { att: 0, made: 0, pct: 0, long: 0, byDist: [], outcomes: [] },
@@ -676,6 +691,7 @@ function koStats(d, compact) {
         ? `${k.retAllowedAvg} avg · ${k.retAllowedYards} total`
         : (k.retAllowedN ? null : (k.n ? NO_DATA : null)),
         { cls: 'sub' })
+    + srow('Touchdowns allowed', k.tdAllowed ?? 0, { cls: (k.tdAllowed ?? 0) ? 'bad' : '' })
     + (compact ? '' : srow('Onside recovery', onsideVal))
   );
 }
@@ -688,7 +704,7 @@ function krStats(d) {
     + srow('Return yards', r.attempts ? `${r.yards} total` : null, { cls: 'sub' })
     + srow('Average return', has(r.avg) ? `${r.avg} yds` : null)
     + srow('Longest', r.attempts ? `${r.long} yds` : null)
-    + srow('Return touchdowns', r.td, { cls: r.td ? 'good' : '' })
+    + srow('Touchdowns', r.td, { cls: r.td ? 'good' : '' })
     + srow('Muffed', r.muffed, { cls: r.muffed ? 'bad' : '' })
   );
 }
@@ -709,6 +725,7 @@ function ptStats(d, compact) {
     + srow('Fair catch rate', `${p.fc}%`)
     + (compact ? '' : srow('Return yards allowed', has(p.retAllowedAvg)
         ? `${p.retAllowedAvg} avg · ${p.retAllowedYards} total` : null, { cls: 'sub' }))
+    + srow('Touchdowns allowed', p.tdAllowed ?? 0, { cls: (p.tdAllowed ?? 0) ? 'bad' : '' })
     + srow('Blocked', p.blocked, { cls: p.blocked ? 'bad' : '' })
   );
 }
@@ -721,7 +738,7 @@ function prStats(d) {
     + srow('Return yards', r.attempts ? `${r.yards} total` : null, { cls: 'sub' })
     + srow('Average return', has(r.avg) ? `${r.avg} yds` : null)
     + srow('Longest', r.attempts ? `${r.long} yds` : null)
-    + srow('Return touchdowns', r.td, { cls: r.td ? 'good' : '' })
+    + srow('Touchdowns', r.td, { cls: r.td ? 'good' : '' })
     + srow('Muffed', r.muffed, { cls: r.muffed ? 'bad' : '' })
   );
 }
@@ -731,7 +748,7 @@ function fgStats(d) {
   return rows(
     srow('Attempts', f.att)
     + srow('Made', f.made)
-    + srow('Percentage', `${f.pct}%`, { cls: f.pct >= 60 ? 'good' : '' })
+    + srow('Make rate', `${f.pct}%`, { cls: f.pct >= 60 ? 'good' : '' })
     + srow('Longest made', f.long ? `${f.long} yds` : null)
   );
 }
@@ -752,29 +769,35 @@ function trStats(d) {
     srow('Extra point kicks', t.xp.att ? `${t.xp.made}/${t.xp.att}` : null)
     + srow('Two-point tries', t.two.att ? `${t.two.made}/${t.two.att}` : null)
     + srow('All tries', `${t.xp.made + t.two.made}/${att}`)
-    /* DECIDED 2026-09-04: the calculation denominator stays the 18 attempts
-       that carry a scoring side. The three unclassified plays are stated, and
-       are NEVER counted as misses and never enter a conversion percentage --
-       an unknown attribution is not a failed try. */
+    /* DECIDED 2026-09-04: the calculation denominator stays the attempts that
+       carry a scoring side, and the remainder is stated plainly -- never
+       counted as misses, never in a conversion percentage. "Classified" was
+       not football, so the rows say what the gap actually is. */
     + (t.charted && t.charted !== att
-        ? srow('Classification',
-            `${att} classified · ${t.charted - att} unclassified · ${t.charted} charted`,
-            { cls: 'sub' }) : '')
+        ? srow('Charted tries', `${t.charted}`, { cls: 'sub' })
+          + srow('No scoring team tagged', `${t.charted - att}`, { cls: 'sub' }) : '')
   );
 }
 
 /* ─── The unit ledger ───────────────────────────────────────────────────── */
+/* Each unit counts its OWN event -- 21 kickoffs, not 21 snaps -- and its
+   second value is a real measurement, never a status line restating the count
+   beside it. Percentages are labelled as rates. Coach, 2026-09-04. */
 const UNITS = [
-  ['Kicking', 'Kickoff', d => d.kickoffs.n, d => has(d.kickoffs.avg) ? `${d.kickoffs.avg} yd average` : `${d.kickoffs.tb}% touchback`],
-  ['Receiving', 'Kick Return', d => d.kr.n, d => has(d.kr.avg) ? `${d.kr.avg} yd average` : `${pl(d.kr.attempts, 'return')} charted`],
-  ['Kicking', 'Punt', d => d.punts.n, d => has(d.punts.net) ? `${d.punts.net} yd net` : `${pl(d.punts.blocked, 'block')} allowed`],
-  ['Receiving', 'Punt Return', d => d.pr.n, d => has(d.pr.avg) ? `${d.pr.avg} yd average` : `${pl(d.pr.attempts, 'return')} charted`],
-  ['Attempting', 'Field Goal', d => d.fg.att, d => `${d.fg.made}/${d.fg.att} · ${d.fg.pct}%`],
-  ['Defending', 'FG Block', d => (d.blocks.na ? null : d.blocks.n), d => `${pl(d.blocks.blocked, 'kick')} blocked`],
+  ['Kickoff', 'kickoff', d => d.kickoffs.n,
+    d => has(d.kickoffs.avg) ? `${d.kickoffs.avg} yd average` : `${d.kickoffs.tb}% touchback rate`],
+  ['Kick Return', 'return', d => d.kr.n,
+    d => (d.kr.attempts ? `${Math.round(d.kr.td / d.kr.attempts * 100)}% touchdown rate` : NO_DATA)],
+  ['Punt', 'punt', d => d.punts.n,
+    d => has(d.punts.net) ? `${d.punts.net} yd net` : `${pl(d.punts.blocked, 'block')} allowed`],
+  ['Punt Return', 'return', d => d.pr.n,
+    d => has(d.pr.avg) ? `${d.pr.avg} yd average` : NO_DATA],
+  ['Field Goal', 'attempt', d => d.fg.att, d => `${d.fg.made}/${d.fg.att} made, ${d.fg.pct}% rate`],
+  ['FG Block', 'snap', d => (d.blocks.na ? null : d.blocks.n), d => `${pl(d.blocks.blocked, 'kick')} blocked`],
 ];
 
 function ledger(d) {
-  return UNITS.map(([role, name, count, headline]) => {
+  return UNITS.map(([name, noun, count, headline]) => {
     const n = count(d);
     /* A unit with nothing in it -- whether it holds no snaps or the season's
        charting model cannot express it at all -- reads the same two words as
@@ -783,10 +806,16 @@ function ledger(d) {
       return `<div class="uc is-none">
         <span class="name">${esc(name)}</span><span class="n">${NO_DATA}</span></div>`;
     }
+    /* Count and headline are CO-PRIMARY on one line: the headline is as much a
+       real number as the count, and stacking it underneath spent a third line
+       to say so. */
     return `<button type="button" class="uc" title="Watch ${esc(name)} film">
       <span class="name">${esc(name)}</span>
-      <span class="n">${n} <i>snaps</i></span>
-      <span class="head">${esc(headline(d))}</span></button>`;
+      <span class="line">
+        <span class="n">${n} <i>${esc(noun)}${n === 1 ? '' : 's'}</i></span>
+        <span class="sep" aria-hidden="true">|</span>
+        <span class="head">${esc(headline(d))}</span>
+      </span></button>`;
   }).join('');
 }
 
@@ -802,41 +831,52 @@ function kpis(d) {
   const retLong = Math.max(d.kr.attempts ? d.kr.long : 0, d.pr.attempts ? d.pr.long : 0);
   const covN = (d.punts.retAllowedN || 0) + (d.kickoffs.retAllowedN || 0);
   const covYds = (d.punts.retAllowedYards || 0) + (d.kickoffs.retAllowedYards || 0);
+  const margin = d.points.us - d.points.them;
+  /* Every tile uses ONE format -- named values on a line, pipe-separated --
+     because a sub line is just as much a real data point as the headline and
+     burying it under the number hides it. Nothing is a bare figure with an
+     unlabelled annotation beneath it. Coach, 2026-09-04. */
   const items = [
-    ['ST Snaps', d.snaps, d.snaps ? `of ${d.cohort} charted · ${pl(d.games, 'game')}` : '', ''],
-    /* A scoreless special teams is a real observation, not an absence, so the
-       tile shows 0 and simply carries no sub -- never "No data" beneath a
-       number the report actually computed. */
-    ['Points', d.points.us, d.points.them ? `${d.points.them} allowed` : (d.points.us ? 'none allowed' : ''),
-      d.points.us > d.points.them ? 'good' : ''],
-    ['Field Goals', d.fg.att ? `${d.fg.made}/${d.fg.att}` : null,
-      /* `long` is the longest MADE kick, so attempts with no make leave it
-         genuinely unavailable. It must never render as 0 -- that reads as a
-         measured zero-yard field goal, which is the exact inversion this
-         report exists to prevent. */
-      d.fg.att ? `${d.fg.pct}% · long ${d.fg.long ? `${d.fg.long} yds` : NO_DATA}` : NO_DATA, ''],
-    /* The percentage divides by the CLASSIFIED attempts only. When some charted
-       tries carry no scoring side, the sub names that denominator rather than
-       leaving the reader to assume the rate covers every charted try. */
-    ['Conversions', convAtt ? `${convMade}/${convAtt}` : null,
-      convAtt
-        ? (t.charted && t.charted !== convAtt
-            ? `${Math.round(convMade / convAtt * 100)}% of ${convAtt} classified`
-            : `${Math.round(convMade / convAtt * 100)}% · XP and 2-point`)
-        : NO_DATA, ''],
-    ['Return Production', retAtt ? `${retYds} yds` : null,
-      retAtt ? `${pl(retAtt, 'return')} · long ${retLong}` : NO_DATA, ''],
-    ['Coverage Allowed', covN ? `${(covYds / covN).toFixed(1)}` : null,
-      covN ? `yds per return · ${pl(covN, 'return')} allowed` : NO_DATA, ''],
+    ['Special Teams Snaps', d.snaps ? [[['Snaps', d.snaps], ['Plays charted', d.cohort]]] : null, ''],
+    ['Points', [[
+      ['PF', d.points.us], ['PA', d.points.them],
+      ['Margin', margin > 0 ? `+${margin}` : String(margin)],
+    ]], d.points.us > d.points.them ? 'good' : d.points.us < d.points.them ? 'bad' : ''],
+    /* `long` is the longest MADE kick, so attempts with no make leave it
+       genuinely unavailable. It must never render as 0 -- that reads as a
+       measured zero-yard field goal, the exact inversion this report prevents. */
+    /* Three stats do not fit one tile here: "Made 8/12 | Make rate 67% | Long
+       44 yds" overflows at 1440, where Points fits three because PF/PA/Margin
+       are two-to-six character labels. Field Goals therefore runs two rows.
+       Flagged for the coach rather than silently shortened. */
+    ['Field Goals', d.fg.att
+      ? [[['Made', `${d.fg.made}/${d.fg.att}`], ['Make rate', `${d.fg.pct}%`]],
+         [['Long', d.fg.long ? `${d.fg.long} yds` : NO_DATA]]]
+      : null, ''],
+    ['Conversions', convAtt
+      ? [[['Made', `${convMade}/${convAtt}`],
+          ['Conversion rate', `${Math.round(convMade / convAtt * 100)}%`]]]
+      : null, ''],
+    ['Return Production', retAtt
+      ? [[['Returns', retAtt], ['Yards', retYds], ['Long', `${retLong} yds`]]]
+      : null, ''],
+    /* OPEN -- the coach has flagged that touchdowns allowed alone is wrong for
+       a general Special Teams grouping and has not yet said what replaces it. */
+    ['Touchdowns',
+      [[['For', (d.kr.td ?? 0) + (d.pr.td ?? 0)],
+        ['Allowed', (d.kickoffs.tdAllowed ?? 0) + (d.punts.tdAllowed ?? 0)]]], ''],
   ];
-  return items.map(([label, value, sub, tone]) => {
-    /* When the value is No data the sub is dropped, not set to No data too --
-       otherwise the tile prints the same two words twice. */
-    const blank = !has(value);
-    return `<div class="kpi${blank ? ' is-blank' : ''}">
-      <span>${esc(label)}</span>
-      <strong class="${tone}">${esc(blank ? NO_DATA : value)}</strong>
-      ${blank ? '' : `<small>${esc(sub)}</small>`}</div>`;
+  return items.map(([label, stats, tone]) => {
+    if (!stats) {
+      return `<div class="kpi is-blank"><span>${esc(label)}</span>
+        <strong>${NO_DATA}</strong></div>`;
+    }
+    const rows = stats.map(row => `<div class="kstat-row">${row.map(([l, v], i) =>
+      `${i ? '<span class="kstat-sep" aria-hidden="true">|</span>' : ''}`
+      + `<span class="kstat"><span class="kstat-l">${esc(l)}</span>`
+      + `<span class="kstat-n">${esc(String(v))}</span></span>`).join('')}</div>`).join('');
+    return `<div class="kpi ${tone}"><span>${esc(label)}</span>
+      <strong><span class="kstats">${rows}</span></strong></div>`;
   }).join('');
 }
 

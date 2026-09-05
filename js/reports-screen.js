@@ -242,10 +242,10 @@ export class ReportsScreen {
     // "500 / 13D / 3ST" at a glance, worse on mobile. Unambiguous literal
     // labels instead -- no digit run is ever adjacent to another digit.
     //
-    // Coach (2026-08-17): the "O 29 · D 20 · ST 18" middot spacing read
+    // Coach (2026-08-17): the "O 29, D 20, ST 18" middot spacing read
     // uneven. Root cause: `font-variant-numeric:tabular-nums` fixes DIGIT
     // width but not the surrounding letters/dot/spaces, so a literal
-    // "O 29 · D 20" string has no consistent rhythm -- each segment's own
+    // "O 29, D 20" string has no consistent rhythm -- each segment's own
     // proportional width differs from the tabular numbers inside it. Real
     // markup with flex `gap` and a CSS-drawn separator replaces the manual
     // spaces so the rhythm is even by construction, not by eyeballed spacing.
@@ -264,27 +264,54 @@ export class ReportsScreen {
     // that also carries defensive plays-per-phase. Tone (green/red) is only
     // ever the genuine net margin; a side with nothing charted is disclosed
     // rather than guessed as zero, and never colored either way.
+    // Coach (2026-09-04): `0 GA, 1 TA` was two invented abbreviations. GA is
+    // Goals Against in hockey and soccer; TA is not a football abbreviation at
+    // all. And "giveaway" was doing no work here: a giveaway IS a turnover,
+    // named from the side that lost it, so a "Turnovers" tile reporting
+    // giveaways said the same word twice.
+    //
+    // Three values, each spelled out, in the SAME three-mini-column layout
+    // Plays per Phase already uses -- a pattern this rail arrived at precisely
+    // because a one-line separated string first read unevenly and then clipped
+    // at a Charlie Gate. Label stacked over number cannot clip at any tile
+    // width. Turnovers is what we lost, Takeaways is what we got, Margin is
+    // the number a coach actually quotes.
     let turnoverTile = '';
     if (data.turnovers) {
       const { giveaways, takeaways } = data.turnovers;
-      if (giveaways != null && takeaways != null) {
-        const margin = takeaways - giveaways;
-        turnoverTile = tile('Turnovers', `${giveaways} GA · ${takeaways} TA`,
-          margin > 0 ? `+${margin} margin` : margin < 0 ? `${margin} margin` : 'even margin',
-          margin > 0 ? 'pos' : margin < 0 ? 'neg' : '');
-      } else if (giveaways != null) {
-        turnoverTile = tile('Turnovers', `${giveaways} GA`, 'no defensive snaps charted');
-      } else {
-        turnoverTile = tile('Turnovers', `${takeaways} TA`, 'no offensive snaps charted');
-      }
+      const stat = (label, value) =>
+        `<span class="gi-kpi-stat"><span class="gi-kpi-stat-l">${esc(label)}</span><span class="gi-kpi-stat-n">${esc(String(value))}</span></span>`;
+      const margin = (giveaways != null && takeaways != null) ? takeaways - giveaways : null;
+      // A side with nothing charted is disclosed, never guessed as zero, and
+      // the margin is only ever coloured when it is a genuine net.
+      const body = `<div class="gi-kpi-stats">`
+        + `<div class="gi-kpi-stat-row">`
+          + stat('Turnovers', giveaways == null ? 'No data' : giveaways)
+          + `<span class="gi-kpi-stat-sep" aria-hidden="true">|</span>`
+          + stat('Takeaways', takeaways == null ? 'No data' : takeaways)
+        + `</div>`
+        + `<div class="gi-kpi-stat-row">`
+          + stat('Turnover Margin', margin == null ? 'No data' : (margin > 0 ? `+${margin}` : String(margin)))
+        + `</div>`
+        + `</div>`;
+      const sub = giveaways == null ? 'no offensive snaps charted'
+        : takeaways == null ? 'no defensive snaps charted' : '';
+      // tileHtml, not tile: the value is real markup, and tile() escapes.
+      turnoverTile = tileHtml('Turnovers', body, sub,
+        margin == null ? '' : margin > 0 ? 'pos' : margin < 0 ? 'neg' : '');
     }
     rail.innerHTML = [
       tile('Final Score', score),
       tile('Total Plays', data.totalPlays),
-      tile('Plays Charted', data.playsCharted, `of ${data.totalPlays}`),
+      // Coach (2026-09-04): the charted count and its denominator are one
+      // fact, so they share one line -- a whole sub row spent on "of 70" was
+      // vertical space bought for nothing.
+      tile('Plays Charted', `${data.playsCharted}/${data.totalPlays}`),
       tileHtml('Plays per Phase', phase),
-      // Coach: "on-schedule" is commentary, not a definitional label.
-      tile('Success Rate', success, 'offense'),
+      // Coach: "on-schedule" is commentary, not a definitional label. And the
+      // unit belongs in the header rather than a sub beneath the number --
+      // "Offense Success Rate" is the stat's name, not an annotation on it.
+      tile('Offense Success Rate', success),
       turnoverTile,
     ].join('');
     rail.hidden = false;
@@ -337,7 +364,7 @@ export class ReportsScreen {
     bug.innerHTML = `<div class="gi-scorebug-team"><span title="${esc(team)}">${esc(team)}</span><strong>${esc(String(scoreUs))}</strong></div>
       <div class="gi-scorebug-team is-opponent"><span title="${esc(opponent)}">${esc(opponent)}</span><strong>${esc(String(scoreThem))}</strong></div>
       <div class="gi-scorebug-line">${quarters}</div>
-      <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds · ${offense}&nbsp;snaps</span></div>
+      <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds, ${offense}&nbsp;snaps</span></div>
       <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
     bug.hidden = false;
   }
@@ -373,7 +400,7 @@ export class ReportsScreen {
       if (!first) return { value: '—', sub: 'none charted' };
       const count = first.count ?? first.n ?? 0;
       const share = report.total ? Math.round(count / report.total * 100) : 0;
-      return { value: first.name, sub: `${count} ${unit} · ${share}%` };
+      return { value: first.name, sub: `${count} ${unit}, ${share}%` };
     };
     const front = top(def.fronts, 'snaps');
     const cover = top(def.coverages, 'snaps');
@@ -393,7 +420,7 @@ export class ReportsScreen {
         ${row(usName, team, 'us', scoreUs)}
         ${row(themName, opponent, 'them', scoreThem)}
       </div>
-      <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds · ${report.total}&nbsp;snaps</span></div>
+      <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds, ${report.total}&nbsp;snaps</span></div>
       <div class="gi-scorebug-ident">${ident}</div>`;
   }
 
@@ -416,7 +443,7 @@ export class ReportsScreen {
       if (list.length >= 2) {
         const current = this._opponentData?.opponent || '';
         select.innerHTML = list.map(item =>
-          `<option value="${Charts._esc(item.name)}"${item.name === current ? ' selected' : ''}>${Charts._esc(item.name)} · ${item.games} game${item.games === 1 ? '' : 's'}</option>`).join('');
+          `<option value="${Charts._esc(item.name)}"${item.name === current ? ' selected' : ''}>${Charts._esc(item.name)}, ${item.games} game${item.games === 1 ? '' : 's'}</option>`).join('');
       }
     }
     if (this.perspective === 'opponent') {
@@ -424,15 +451,15 @@ export class ReportsScreen {
       if (title) title.textContent = `${name} scout`;
       if (sub) {
         const games = this._opponentData?.games || 0;
-        sub.textContent = `${games} tagged game${games === 1 ? '' : 's'} · opponent offense, defense, and scout-film Special Teams`;
+        sub.textContent = `${games} tagged game${games === 1 ? '' : 's'}, opponent offense, defense, and scout-film Special Teams`;
       }
       return;
     }
     if (title) title.textContent = context?.game?.name || context?.season?.name || 'Reports';
     if (sub) {
       const plays = this.app.tagger?.plays?.length || 0;
-      const season = context?.season?.name ? `${context.season.name} · ` : '';
-      const filtered = this.app.filter?.active ? ' · filtered view' : '';
+      const season = context?.season?.name ? `${context.season.name}, ` : '';
+      const filtered = this.app.filter?.active ? ', filtered view' : '';
       sub.textContent = `${season}${plays} play${plays === 1 ? '' : 's'}${filtered}`;
     }
   }

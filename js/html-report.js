@@ -68,7 +68,7 @@ const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, def
   const totalYards = stats.rushing.yards + stats.passing.yards;
   const overview = metrics([
     ...view.overviewKpis(stats).slice(0, 5),
-    { label: 'Offensive yards', value: totalYards, sub: `${stats.rushing.yards} rush · ${stats.passing.yards} pass` },
+    { label: 'Offensive yards', value: totalYards, sub: `${stats.rushing.yards} rush, ${stats.passing.yards} pass` },
   ]);
   const dd = table('Down & Distance', [
     { key: 'situation', label: 'Situation' }, { key: 'snaps', label: 'Snaps' },
@@ -111,7 +111,7 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
   const { stats, summary, perGame, progression } = model;
   const seasonLead = `${metrics([
     { label: 'Record', value: summary.record, sub: `${summary.games} games` },
-    { label: 'Points', value: `${summary.pointsFor}–${summary.pointsAgainst}`, sub: 'for · against' },
+    { label: 'Points', value: `${summary.pointsFor}–${summary.pointsAgainst}`, sub: 'for, against' },
     { label: 'Plays charted', value: stats.allPlays, sub: 'season total' },
     { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: 'offensive snaps' },
   ])}${table('Game Log', [
@@ -120,7 +120,7 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
   ], perGame)}${table('Season Progression', [
     { key: 'label', label: 'Metric' }, { key: 'from', label: 'Early' }, { key: 'to', label: 'Recent' }, { key: 'verdict', label: 'Trend' },
   ], progression)}`;
-  return documentShell({ title, subtitle: `${summary.games} games · ${stats.allPlays} charted plays`, meta: `Generated ${generatedAt.toLocaleString()}`,
+  return documentShell({ title, subtitle: `${summary.games} games, ${stats.allPlays} charted plays`, meta: `Generated ${generatedAt.toLocaleString()}`,
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }
 

@@ -133,12 +133,27 @@ ok(distRow && distRow.value === 'No data' && distRow.blank,
   'an uncharted measurement reads No data, never 0', JSON.stringify(distRow));
 ok(!/not charted|not derivable|none attempted|none charted|in this scope/i.test(absence.text),
   'the board carries exactly one absence label, with none of the retired variants');
+// Every tile now carries NAMED values on a line, so a populated tile's figure
+// lives in a `.gi-kpi-stat-n` rather than being the tile's whole `strong`.
 const blankKpi = absence.kpi.find(k => k.value === 'No data');
-const valueKpi = absence.kpi.find(k => k.label === 'ST Snaps');
 ok(blankKpi && !blankKpi.hasSub, 'a No data KPI drops its sub rather than printing the same words twice');
-ok(blankKpi && valueKpi && blankKpi.size < valueKpi.size,
-  'No data is drawn smaller than a real value, so absence cannot read as a headline figure',
-  `${blankKpi?.size} vs ${valueKpi?.size}`);
+const kpiType = await page.evaluate(() => {
+  const pane = document.querySelector('[data-native-report-content]');
+  const blank = [...pane.querySelectorAll('.gi-st-board .gi-overview-kpi')]
+    .find(t => t.classList.contains('is-blank'));
+  const stat = pane.querySelector('.gi-st-board .gi-kpi-stat-n');
+  const cs = el => (el ? parseFloat(getComputedStyle(el).fontSize) : null);
+  const weight = el => (el ? getComputedStyle(el).fontWeight : null);
+  return { blankSize: cs(blank?.querySelector('strong')), statSize: cs(stat),
+    blankWeight: weight(blank?.querySelector('strong')), statWeight: weight(stat) };
+});
+ok(kpiType.blankSize != null && kpiType.statSize != null
+  && kpiType.blankSize <= kpiType.statSize,
+  'No data is never larger than a real value, so an absence cannot become the biggest figure in the band',
+  JSON.stringify(kpiType));
+ok(Number(kpiType.blankWeight) < Number(kpiType.statWeight),
+  'and it is lighter than a real value, so colour and weight carry the subordination',
+  JSON.stringify(kpiType));
 
 /* ══ 3. A unit with no snaps is not a unit with zero performance ══════════ */
 console.log('\n== 3. Empty units ==');
@@ -205,8 +220,11 @@ await load([
 const recon = await page.evaluate(() => {
   const pane = document.querySelector('[data-native-report-content]');
   const line = pane.querySelector('.gi-st-unassigned');
-  const snaps = [...pane.querySelectorAll('.gi-st-board .gi-overview-kpi')]
-    .find(k => /st snaps/i.test(k.querySelector('span').textContent))?.querySelector('strong').textContent.trim();
+  const tile = [...pane.querySelectorAll('.gi-st-board .gi-overview-kpi')]
+    .find(k => /special teams snaps/i.test(k.querySelector('span').textContent));
+  const snaps = [...(tile?.querySelectorAll('.gi-kpi-stat') || [])]
+    .find(s => /^snaps$/i.test(s.querySelector('.gi-kpi-stat-l')?.textContent?.trim() || ''))
+    ?.querySelector('.gi-kpi-stat-n').textContent.trim();
   return { line: line ? line.textContent.replace(/\s+/g, ' ').trim() : null, snaps };
 });
 ok(recon.snaps === '3', 'every special-teams snap is counted, including the one no unit claims', recon.snaps);
@@ -241,11 +259,11 @@ const dist = await page.evaluate(() => {
 });
 const fc = dist.find(d => d.label === 'Fair catch');
 const uncharted = dist.find(d => d.label === 'No data');
-ok(fc && fc.value === '2 · 50%', 'an outcome states its count and its share of the unit', JSON.stringify(fc));
-ok(uncharted && uncharted.value === '1 · 25%',
+ok(fc && fc.value === '2 (50%)', 'an outcome states its count and its share of the unit', JSON.stringify(fc));
+ok(uncharted && uncharted.value === '1 (25%)',
   'a snap whose outcome was never charted is its own row, never dropped or folded into another',
   JSON.stringify(uncharted));
-ok(dist.reduce((s, d) => s + Number(d.value.split(' · ')[0]), 0) === 4,
+ok(dist.reduce((s, d) => s + Number(d.value.split(' (')[0]), 0) === 4,
   'the outcomes are mutually exclusive and account for every snap of the unit');
 ok(dist.every(d => d.clickable), 'every outcome opens exactly its own film');
 

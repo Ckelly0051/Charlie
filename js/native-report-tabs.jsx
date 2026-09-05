@@ -110,7 +110,7 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
         </tbody></table>
       </Module>
       <div class="gi-overview-support-stack">
-        <Module title="Drives" meta={`${drives.total} drives · ${drives.scoring} scored`}>
+        <Module title="Drives" meta={`${drives.total} drives, ${drives.scoring} scored`}>
           <div class="gi-overview-drives">{drives.rows.map(drive => <Watchable key={`${drive.number}-${drive.refs[0]||''}`} class="gi-overview-drive" onActivate={() => {
             if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
             else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
@@ -191,10 +191,10 @@ function playCallParts({ stats, screen }) {
 function BigTwelve({ data, screen, cls = '', variant = 'legacy' }) {
   if (!data) return null;
   const title = variant === 'zone'
-    ? `Core tendencies · Big ${data.to90}`
+    ? `Core tendencies, Big ${data.to90}`
     : `The “Big ${data.to90}” — ${data.label}'s Core Tendencies`;
   const meta = variant === 'zone'
-    ? `${data.label} · sorted by frequency`
+    ? `${data.label}, sorted by frequency`
     : 'Snaps sorted by frequency; click any column or row to sort. Click any row to watch the film.';
   return <Module title={title} cls={cls} meta={meta}>
     <DataTable emptyText="Insufficient charted data" columns={[
@@ -224,7 +224,7 @@ function MatrixGrid({ matrix }) {
   if (!matrix.rowKeys.length || !matrix.colKeys.length) return <p style="opacity:.6">Not enough data for this combination.</p>;
   const maxCount = Math.max(1, ...Object.values(matrix.cells).map(c => c.count));
   return <>
-    <p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">{matrix.eligible} of {matrix.total} plays charted on both axes{matrix.omitted ? ` · ${matrix.omitted} omitted (blank on ${matrix.rowDim.label} or ${matrix.colDim.label})` : ''}</p>
+    <p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">{matrix.eligible} of {matrix.total} plays charted on both axes{matrix.omitted ? `, ${matrix.omitted} omitted (blank on ${matrix.rowDim.label} or ${matrix.colDim.label})` : ''}</p>
     <div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
       <thead><tr><th>{matrix.rowDim.label} \ {matrix.colDim.label}</th>{matrix.colKeys.map(c => <th key={c}>{c}</th>)}</tr></thead>
       <tbody>{matrix.rowKeys.map(r => <tr key={r}>
@@ -238,7 +238,7 @@ function MatrixGrid({ matrix }) {
           const runPct = Math.round((cell.runs / cell.count) * 100);
           const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
           return <td key={c} class="tm-cell" style={`background:rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)});border:${border}`} title={`${r} × ${c}: ${cell.count} plays, ${runPct}% run, ${succPct}% success, ${avg} avg`}>
-            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct}R/{100 - runPct}P</div><div class="tm-succ">{succPct}% · {avg}y</div>
+            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct}R/{100 - runPct}P</div><div class="tm-succ">{succPct}%, {avg}y</div>
           </td>;
         })}
       </tr>)}</tbody>
@@ -596,7 +596,7 @@ function DefAnswerCell({ answer, screen }) {
   if (!answer) return <span class="gi-def-no-sample">Not enough snaps</span>;
   const label = `${answer.name} answer`;
   return <WatchableRefs tag="button" type="button" class="gi-def-answer" refs={answer.refs} label={label} screen={screen}>
-    <strong>{answer.name}</strong> <span>{answer.stopRate}% stop · {answer.yardsPerPlay.toFixed(1)} y/p · {answer.n}</span>
+    <strong>{answer.name}</strong> <span>{answer.stopRate}% stop, {answer.yardsPerPlay.toFixed(1)} y/p, {answer.n}</span>
   </WatchableRefs>;
 }
 
@@ -834,7 +834,7 @@ function schemeParts(d, screen, engine) {
   // and stop rate have no canonical aggregate here, and summing the rows above
   // would double-count any play carrying two blitz tags, so they state that
   // rather than showing a wrong number.
-  const blitzes = d.blitzes.length ? <Module title="Pressure" meta={`${d.blitzRate}% blitz rate · ${d.blitzTotal} snaps`}>
+  const blitzes = d.blitzes.length ? <Module title="Pressure" meta={`${d.blitzRate}% blitz rate, ${d.blitzTotal} snaps`}>
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
       <thead><tr><th>Pressure</th><th>Snaps</th><th>Sacks</th><th>Havoc%</th><th>Avg yds</th><th>Stop%</th></tr></thead>
       <tbody>
@@ -870,7 +870,7 @@ function schemeParts(d, screen, engine) {
           <td>{countIn(passing, name)}</td><td>{shareIn(passing, name)}%</td>
         </tr>)}</tbody>
     </table></div>
-    <p class="gi-def-note">{early.total} early-down snaps · {passing.total} passing-down snaps.</p>
+    <p class="gi-def-note">{early.total} early-down snaps, {passing.total} passing-down snaps.</p>
   </Module> : null;
 
   return { disruption, fronts, coverages, blitzes, frontSituation };
@@ -998,7 +998,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         <div class="gi-def-kpi is-lead"><span>Stop rate</span><strong>{pct(report.summary.stopRate)}</strong><small>{report.total} snaps</small></div>
         <div class="gi-def-kpi"><span>Yards / play allowed</span><strong>{report.summary.yardsPerPlay.toFixed(1)}</strong></div>
         <div class="gi-def-kpi"><span>Havoc rate</span><strong>{pct(report.summary.havocRate)}</strong><small>{d.havocPlays ?? 0} snaps</small></div>
-        <div class="gi-def-kpi"><span>Takeaways</span><strong>{report.takeaways}</strong><small>{d.interceptions ?? 0} INT · {d.fumblesRecovered ?? 0} FR</small></div>
+        <div class="gi-def-kpi"><span>Takeaways</span><strong>{report.takeaways}</strong><small>{d.interceptions ?? 0} INT, {d.fumblesRecovered ?? 0} FR</small></div>
         <div class="gi-def-kpi"><span>Explosives allowed</span><strong>{report.summary.explosives}</strong><small>{report.summary.explosiveRate}%</small></div>
         <div class="gi-def-kpi"><span>3rd down stop</span><strong>{pct(report.thirdDownStopRate)}</strong></div>
         <div class="gi-def-kpi"><span>Red zone TD rate</span><strong>{pct(report.redZoneTdRate)}</strong></div>
@@ -1015,7 +1015,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
             {typeSummary.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-type-summary"
               refs={row.refs} label={`${row.name} — ${row.n} defensive snaps`} screen={screen}>
               <span>{row.name}</span><strong>{row.n} snaps</strong>
-              <small>{row.yardsPerPlay.toFixed(1)} yds/play · {row.stopRate}% stop · {row.explosiveRate}% explosive</small>
+              <small>{row.yardsPerPlay.toFixed(1)} yds/play, {row.stopRate}% stop, {row.explosiveRate}% explosive</small>
             </WatchableRefs>)}
           </div>
         </Module>
@@ -1032,7 +1032,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
               label: `${row.name} — ${row.n} defensive snaps` }))} />
         </div>
       </Module>
-      <Module title="Best call by play type" meta="front · coverage · pressure">
+      <Module title="Best call by play type" meta="front, coverage, pressure">
         {qualifiedAnswers.length > 0 ? <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
           <thead><tr><th>Play type</th><th>Best front</th><th>Best coverage</th><th>Blitz decision</th></tr></thead>
           <tbody>{qualifiedAnswers.map(row => <tr key={row.playType}>
@@ -1100,7 +1100,7 @@ export function OpponentOverviewTab({ data, screen }) {
   const join = data.defenseJoin;
   const off = data.offReport;
   const runPct = off?.stats?.tendencies?.runPct;
-  const identity = [join?.baseFront ? `${join.baseFront.name} front` : '', join?.baseCoverage?.name || '', runPct != null ? `${Math.round(parseFloat(runPct))}% run` : ''].filter(Boolean).join(' · ');
+  const identity = [join?.baseFront ? `${join.baseFront.name} front` : '', join?.baseCoverage?.name || '', runPct != null ? `${Math.round(parseFloat(runPct))}% run` : ''].filter(Boolean).join(', ');
   const cards = [
     { label: 'Games charted', value: data.games, sub: 'opponent sample' },
     { label: 'Offensive snaps', value: data.offCount, sub: 'their offense', cls: 'is-gold' },
@@ -1108,14 +1108,14 @@ export function OpponentOverviewTab({ data, screen }) {
     { label: 'Special Teams', value: data.stCount, sub: 'scout-film snaps' },
   ];
   const expect = (off?.formationDetail || []).slice(0, 3).map(row => ({ label: row.name, value: `${row.total} snaps`, sub: `${row.runPct}% run`, refs: row.refs }));
-  const attack = join?.best ? [{ label: join.best.name, value: `${join.best.succPct}% success`, sub: `${join.best.n} snaps · ${join.best.avg} avg`, refs: join.best.refs }] : [];
-  const avoid = join?.worst && join.worst !== join.best ? [{ label: join.worst.name, value: `${join.worst.succPct}% success`, sub: `${join.worst.n} snaps · ${join.worst.avg} avg`, refs: join.worst.refs }] : [];
+  const attack = join?.best ? [{ label: join.best.name, value: `${join.best.succPct}% success`, sub: `${join.best.n} snaps, ${join.best.avg} avg`, refs: join.best.refs }] : [];
+  const avoid = join?.worst && join.worst !== join.best ? [{ label: join.worst.name, value: `${join.worst.succPct}% success`, sub: `${join.worst.n} snaps, ${join.worst.avg} avg`, refs: join.worst.refs }] : [];
   const risk = join ? [
     { label: 'Blitz rate', value: `${join.pressure.ratePct}%`, sub: `${join.pressure.blitzed.n} pressure snaps`, refs: join.pressure.blitzed.refs },
     { label: 'Sacks allowed', value: join.pressure.blitzed.sacks + join.pressure.noBlitz.sacks, sub: 'across this cohort', refs: [...join.pressure.blitzed.refs, ...join.pressure.noBlitz.refs] },
   ] : [];
   return <div class="gi-overview-board">
-    <div class="gi-answer-head"><div><span class="gi-answer-eyebrow">Opponent identity</span><h3>{data.opponent}</h3>{identity && <p class="gi-answer-identity">{identity}</p>}<p class="gi-answer-sample">{data.games} games · {data.offCount + data.defCount + data.stCount} charted snaps</p></div>
+    <div class="gi-answer-head"><div><span class="gi-answer-eyebrow">Opponent identity</span><h3>{data.opponent}</h3>{identity && <p class="gi-answer-identity">{identity}</p>}<p class="gi-answer-sample">{data.games} games, {data.offCount + data.defCount + data.stCount} charted snaps</p></div>
       <OpponentWatch kind="all" count={data.offCount + data.defCount + data.stCount} label={`Watch all ${data.opponent} film`} screen={screen} /></div>
     <KpiBand items={cards} />
     <div class="gi-overview-band gi-overview-band-auto">
@@ -1178,7 +1178,7 @@ export function OpponentOffenseTab({ data, screen }) {
       <Module title="By down"><DataTable columns={columns} rows={scoutRows(report.byDown, screen, 'Down')} /></Module>
       <Module title="By distance to the sticks"><DataTable columns={columns} rows={scoutRows(report.byDistance, screen, 'Distance')} /></Module>
     </div>
-    <Module title="Every situation" meta={`${report.downTendency.length} combinations · all snaps accounted for`}>
+    <Module title="Every situation" meta={`${report.downTendency.length} combinations, all snaps accounted for`}>
       <DataTable columns={columns.slice(0, 4)} rows={scoutRows(report.downTendency, screen, 'Situation')} />
     </Module>
   </div>;
@@ -1261,13 +1261,13 @@ function OutcomeBars({ items, screen, unit }) {
   return <div class="gi-st-outcomes">{items.map(item => {
     const label = `${unit} — ${item.label}`;
     return <WatchableRefs key={item.key} tag="button" type="button" class="gi-st-outcome"
-      refs={item.refs} label={label} screen={screen} title={`${label} · ${item.n}`}>
+      refs={item.refs} label={label} screen={screen} title={`${label}, ${item.n}`}>
       <span class="gi-st-outcome-label">{item.label}</span>
       <span class="gi-st-outcome-bar">
         {item.tone === 'blank' ? null : <i class={item.tone ? `is-${item.tone}` : ''}
           style={`width:${Math.round(item.n / max * 100)}%`} />}
       </span>
-      <span class="gi-st-outcome-value">{item.n} · {item.pct}%</span>
+      <span class="gi-st-outcome-value">{item.n} ({item.pct}%)</span>
     </WatchableRefs>;
   })}</div>;
 }
@@ -1280,10 +1280,16 @@ function UnitLedger({ units, screen }) {
         <span class="gi-st-unit-n">{view.ST_NO_DATA}</span>
       </div>
     : <WatchableRefs key={unit.key} tag="button" type="button" class="gi-st-unit-card"
-        refs={unit.refs} label={`${unit.name} — ${unit.n} snaps`} screen={screen}>
+        refs={unit.refs} label={`${unit.name} — ${unit.n} ${unit.noun}`} screen={screen}>
         <span class="gi-st-unit-name">{unit.name}</span>
-        <span class="gi-st-unit-n">{unit.n} <i>snaps</i></span>
-        <span class="gi-st-unit-head">{unit.headline}</span>
+        {/* Count and headline are CO-PRIMARY on one line (coach, 2026-09-04) --
+            the headline is as much a real number as the count, and stacking it
+            underneath spent a third line to say so. */}
+        <span class="gi-st-unit-line">
+          <span class="gi-st-unit-n">{unit.n} <i>{unit.noun}</i></span>
+          <span class="gi-st-unit-sep" aria-hidden="true">|</span>
+          <span class="gi-st-unit-head">{unit.headline}</span>
+        </span>
       </WatchableRefs>)}
   </div>;
 }
@@ -1352,7 +1358,7 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
   // unavailable. It must never render 0 -- a zero-yard field goal is not a
   // thing, and reading an absence as one inverts the whole report.
   const fgMeta = st?.fg?.att
-    ? `${st.fg.made}/${st.fg.att} made · ${st.fg.pct}% · long ${st.fg.long ? `${st.fg.long} yds` : view.ST_NO_DATA}`
+    ? `${st.fg.made}/${st.fg.att} made, ${st.fg.pct}%, long ${st.fg.long ? `${st.fg.long} yds` : view.ST_NO_DATA}`
     : '';
   const BUCKETS = ['<30', '30-39', '40-49', '50+'];
   const byDist = new Map((st?.fg?.byDist || []).map(b => [b.label, b]));
@@ -1374,7 +1380,23 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
         onClick={() => fixedScope ? screen.export('season-html') : screen.exportSpecialTeams(stats, summary)}>Export Report</button>
     </div>
 
-    <KpiBand items={kpis.map(k => ({ ...k, cls: `${k.cls || ''}${k.blank ? ' is-blank' : ''}` }))} />
+    {/* A `stats` tile renders label/number rows instead of one big figure --
+        the same markup and classes the rail's Turnovers tile uses, so the two
+        read identically. KpiBand's value slot takes a VNode. */}
+    <KpiBand items={kpis.map(k => ({
+      ...k,
+      cls: `${k.cls || ''}${k.blank ? ' is-blank' : ''}`,
+      value: k.stats
+        ? <div class="gi-kpi-stats">{k.stats.map((row, ri) =>
+            <div class="gi-kpi-stat-row" key={ri}>{row.map(([label, value], si) => [
+              si > 0 ? <span class="gi-kpi-stat-sep" aria-hidden="true">|</span> : null,
+              <span class="gi-kpi-stat" key={label}>
+                <span class="gi-kpi-stat-l">{label}</span>
+                <span class="gi-kpi-stat-n">{value}</span>
+              </span>,
+            ])}</div>)}</div>
+        : k.value,
+    }))} />
     <UnitLedger units={units} screen={screen} />
 
     {/* Only the exception, never the arithmetic: the full snap reconciliation
@@ -1493,7 +1515,14 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
           {specialistTable
             ? <div class="gi-st-table-wrap"><DataTable
                 columns={specialistTable.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
+                /* `individualStats` is shared with the Players tab and renders
+                   an em dash for an absent cell. This board speaks ONE absence
+                   language, so the dash is mapped here at the sink rather than
+                   in the shared view model, which would change Players too. */
                 rows={specialistTable.rows.map(row => ({ ...row, id: row.num, player: row.label,
+                  fg: row.fg === '—' ? view.ST_NO_DATA : row.fg,
+                  punts: row.punts === '—' ? view.ST_NO_DATA : row.punts,
+                  puntAvg: row.puntAvg === '—' ? view.ST_NO_DATA : row.puntAvg,
                   onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label} kicking`) : undefined,
                   label: `${row.label} kicking` }))} /></div>
             : <p class="gi-st-empty">{view.ST_NO_DATA}</p>}
@@ -1517,7 +1546,7 @@ function SeasonTurnoverScoring({ data }) {
   return <Module title="Turnovers & Scoring" meta="possession margin and scoring rhythm">
     <div class="gi-ts-grid">
       <div class={`gi-ts-margin tone-${tone}`}><div class="gi-sc-label">Turnover Margin</div><div class="gi-ts-margin-val">{margin}</div>
-        <div class="gi-sc-sub">{data.takeaways} takeaways · {data.giveaways} giveaways{data.unresolved?` · ${data.unresolved} unresolved fumble${data.unresolved===1?'':'s'}`:''}</div>
+        <div class="gi-sc-sub">{data.takeaways} takeaways, {data.giveaways} giveaways{data.unresolved?`, ${data.unresolved} unresolved fumble${data.unresolved===1?'':'s'}`:''}</div>
       </div>
       <div class="gi-ts-quarters"><div class="gi-sc-label">Scoring by Quarter <span class="gi-q-key"><i class="us" />Us <i class="them" />Opp</span></div>
         {data.quarters.length?data.quarters.map(row=><div key={row.quarter} class="gi-q-row"><span class="gi-q-lbl">{row.quarter}</span><div class="gi-q-bars">
@@ -1529,7 +1558,7 @@ function SeasonTurnoverScoring({ data }) {
 }
 
 function SeasonIdentityColumn({ title, rows, empty }) {
-  return <div class="gi-id-col"><div class="gi-id-head">{title} <span>use · succ</span></div>
+  return <div class="gi-id-col"><div class="gi-id-head">{title} <span>use, succ</span></div>
     {rows.length?rows.map(row=><div key={row.name} class="gi-id-row"><span class="gi-id-name">{row.name}</span><div class="gi-id-bar"><div style={`width:${row.use}%`} /></div><span class="gi-id-use">{row.use}%</span><span class="gi-id-succ">{row.success}%</span></div>):<div class="gi-sc-sub">{empty}</div>}
   </div>;
 }
@@ -1562,7 +1591,7 @@ function SeasonPlayers({ model, screen }) {
     {id:'margin',metric:'Turnover Margin',wins:margin(wl.wins.margin),losses:margin(wl.losses.margin)},
   ] : [];
   return <div class="gi-overview-board">
-    {wl && <Module title="Wins vs Losses" meta={`${wl.winCount} win${wl.winCount===1?'':'s'} · ${wl.lossCount} loss${wl.lossCount===1?'':'es'}`}>
+    {wl && <Module title="Wins vs Losses" meta={`${wl.winCount} win${wl.winCount===1?'':'s'}, ${wl.lossCount} loss${wl.lossCount===1?'':'es'}`}>
       <DataTable className="stats-table stats-table-full gi-wl-table" columns={[{key:'metric',label:'Metric'},{key:'wins',label:'Wins'},{key:'losses',label:'Losses'}]} rows={wlRows} />
     </Module>}
     <PlayersTab stats={model.stats} screen={screen} labels={model.rosterLabels} />
@@ -1611,7 +1640,7 @@ export function SeasonTab({ model, screen }) {
   else if(active==='players')body=<SeasonPlayers model={model} screen={seasonScreen}/>;
   else if(active==='scout')body=<SelfScoutTab report={model.selfScout} defScout={model.defScout} performance={model.stats} callRows={model.callRows} screen={seasonScreen}/>;
   else body=<SeasonTrends model={model}/>;
-  return <div class="gi-season-native"><div class="gi-season-heading"><span>Season Report</span><strong>{s.record}</strong><small>{s.games} games · {model.allPlays.length} charted plays</small></div><div class="season-summary"><Hero kpis={hero}/></div><div class="gi-subnav" role="tablist">{tabs.map(([id,label])=><button key={id} type="button" class={`gi-subtab ${active===id?'active':''}`} data-subtab={id} role="tab" aria-selected={active===id} onClick={()=>setActive(id)}>{label}</button>)}</div><div class="gi-subpane active" data-subpane={active}>{body}</div></div>;
+  return <div class="gi-season-native"><div class="gi-season-heading"><span>Season Report</span><strong>{s.record}</strong><small>{s.games} games, {model.allPlays.length} charted plays</small></div><div class="season-summary"><Hero kpis={hero}/></div><div class="gi-subnav" role="tablist">{tabs.map(([id,label])=><button key={id} type="button" class={`gi-subtab ${active===id?'active':''}`} data-subtab={id} role="tab" aria-selected={active===id} onClick={()=>setActive(id)}>{label}</button>)}</div><div class="gi-subpane active" data-subpane={active}>{body}</div></div>;
 }
 /** Native Matchup resolves every displayed tendency against its own stamped
  * cross-game cohort. It never falls through to the active game's tagger. */
@@ -1680,8 +1709,8 @@ export function MatchupTab({ model, screen }) {
   if (!hasSecond) missing.push('Their offense: chart formation and play type on defensive snaps.');
   return <div class="gi-overview-board gi-matchup-board">
     <div class="gi-matchup-toolbar">
-      <div><span>Opponent matchup</span><strong>{opponent.name}</strong><small>{opponent.games} game{opponent.games === 1 ? '' : 's'} charted · {opponent.offPlays.length} offensive · {opponent.defPlays.length} defensive snaps</small></div>
-      {opponents.length > 1 && <label>Opponent<select value={opponent.name} onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>{opponents.map(item => <option key={item.name} value={item.name}>{item.name} · {item.offPlays.length} O / {item.defPlays.length} D</option>)}</select></label>}
+      <div><span>Opponent matchup</span><strong>{opponent.name}</strong><small>{opponent.games} game{opponent.games === 1 ? '' : 's'} charted, {opponent.offPlays.length} offensive, {opponent.defPlays.length} defensive snaps</small></div>
+      {opponents.length > 1 && <label>Opponent<select value={opponent.name} onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>{opponents.map(item => <option key={item.name} value={item.name}>{item.name}, {item.offPlays.length} O / {item.defPlays.length} D</option>)}</select></label>}
     </div>
     {hasFirst && <Module title={`Our offense vs ${opponent.name} defense`} meta="production against the structure they show"><div class="gi-matchup-pair"><MatchupOffense title="Our Offense" lane={lanes.ourOffense} screen={screen} /><MatchupDefense title={`${opponent.name} Defense`} lane={lanes.theirDefense} screen={screen} /></div></Module>}
     {hasSecond && <Module title={`Our defense vs ${opponent.name} offense`} meta="our answers against what they run"><div class="gi-matchup-pair"><MatchupDefense title="Our Defense" lane={lanes.ourDefense} screen={screen} /><MatchupOffense title={`${opponent.name} Offense`} lane={lanes.theirOffense} screen={screen} /></div></Module>}
@@ -1731,7 +1760,7 @@ function SelfScoutTells({ tells, screen }) {
 }
 function SelfScoutPersonnel({ items, screen }) {
   const rows=(items||[]).filter(x=>x.topPct>=75).map(x=>({...x,id:x.personnel,
-    distribution:x.formations.map(f=>f.formation+' '+f.pct+'%').join(' · '),
+    distribution:x.formations.map(f=>f.formation+' '+f.pct+'%').join(', '),
     read:x.topPct>=90?'Locked':'Leaning',label:x.personnel+' personnel — '+x.n+' plays',
     onActivate:()=>screen.watchCut('personnel',x.personnel,x.personnel+' personnel — '+x.n+' plays')}));
   if(!rows.length)return null;
@@ -1744,14 +1773,14 @@ function SelfScoutPersonnel({ items, screen }) {
 function SelfScoutMatrix({ matrix, screen }) {
   const view=screen.app.stats._selfScoutMatrixView(matrix);
   if(!view)return null;
-  return <Module title="Predictability Map" meta={'formation by situation · '+view.baseline+'% success baseline'}>
+  return <Module title="Predictability Map" meta={'formation by situation, '+view.baseline+'% success baseline'}>
     <p class="viz-caption">Red is predictable and below your normal success; gold is predictable but working; low samples stay neutral. Select any populated cell to watch it.</p>
     <div class="sm-wrap"><table class="stats-table stats-table-full sm-table"><thead><tr><th class="sm-corner">Formation / Situation</th>{view.cols.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead>
     <tbody>{view.rows.map(row=><tr key={row.formation}><th class="sm-row-label">{row.formation} <span class="sm-rown">n={row.n}</span></th>{row.cells.map(v=>{
       const c=v.situation; if(v.empty)return <td key={c.key} class="sm-cell sm-empty"><span class="sm-nodata">No data</span></td>;
       const label=row.formation+' on '+c.label+' — '+v.cell.n+' plays';
       return <Watchable key={c.key} tag="td" class={'sm-cell is-'+v.state} onActivate={()=>screen.watchCut('comboFS',row.formation+'__'+c.key,label)} label={label}>
-        <span class="sm-lean">{v.lean} {v.leanPct}%</span><span class="sm-n">n={v.cell.n}{v.strong?'':' · low'}</span>
+        <span class="sm-lean">{v.lean} {v.leanPct}%</span><span class="sm-n">n={v.cell.n}{v.strong?'':', low'}</span>
       </Watchable>;})}</tr>)}</tbody></table></div>
   </Module>;
 }
@@ -1798,7 +1827,7 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
       {report.personnelRows.length>0&&<Module title="By Personnel" meta={report.personnelRows.length+' groupings'}><SelfScoutSplitTable rows={report.personnelRows} label="Personnel" cutType="personnel" screen={screen}/></Module>}
     </div>
     <SelfScoutPersonnel items={report.personnelDiversity} screen={screen}/>
-    <Module title="Predictability" meta={report.predLabel+' · '+report.totalPlays+' plays'}><div class="gi-selfscout-meter"><div><span style={{width:report.predictability+'%',background:color}}/></div><strong style={{color}}>{report.predictability}<small>/100</small></strong><p>0 is balanced; 100 is one-dimensional. Weighted by the largest run/pass share in each qualified situation.</p></div></Module>
+    <Module title="Predictability" meta={report.predLabel+', '+report.totalPlays+' plays'}><div class="gi-selfscout-meter"><div><span style={{width:report.predictability+'%',background:color}}/></div><strong style={{color}}>{report.predictability}<small>/100</small></strong><p>0 is balanced; 100 is one-dimensional. Weighted by the largest run/pass share in each qualified situation.</p></div></Module>
     <SelfScoutMatrix matrix={report.matrix} screen={screen}/>
     {report.insights.length>0&&<Module title="Film Room Insights" meta={report.insights.length+' coaching reads'}><div class="ss-insights">{report.insights.map((x,i)=><div class={'ss-insight ss-insight-'+x.type} key={i}><span class={'ss-insight-tag ss-tag-'+x.type}>{x.tag}</span><span class="ss-insight-text"><InlineReportText html={x.text}/></span></div>)}</div></Module>}
     <div class="gi-selfscout-tier"><span>Defensive self-scout</span></div><SelfScoutDefense defScout={defScout} performance={performance} screen={screen}/>

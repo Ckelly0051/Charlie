@@ -1276,6 +1276,11 @@ export class StatsEngine {
       };
       const puntRows = rows('punt');
       const koRows = rows('kickoff');
+      // A coverage unit's worst outcome: the return went the distance. Mirrors
+      // the return units' own `td` (score touchdown credited to the SUBJECT);
+      // here the subject is kicking, so the touchdown belongs to the opponent.
+      const tdAllowedRows = arr => arr.filter(x => x.st.outcome.score === 'touchdown'
+        && SpecialTeamsModel.scoringTeam(x.st) === 'opponent');
       // The canonical cohort and made test -- shared with _individualStats so
       // the two can never disagree about what a field goal is.
       const fgRows = rows('fieldGoal').filter(x => StatsEngine.isFieldGoalAttempt(x.p, x.st));
@@ -1302,6 +1307,7 @@ export class StatsEngine {
         // total (summed across punts AND kickoffs), which an average alone
         // cannot provide without re-deriving avg*n and losing precision.
         retAllowedYards: puntReturnedRows.reduce((s, x) => s + (Number.isFinite(x.st.return.yards) ? x.st.return.yards : 0), 0),
+        tdAllowed: tdAllowedRows(puntRows).length,
         refs: {
           all: StatsEngine._refsOf(puntRows, getPlay),
           blocked: StatsEngine._refsOf(puntRows.filter(x => x.st.outcome.status === 'blocked'), getPlay),
@@ -1310,6 +1316,7 @@ export class StatsEngine {
           // when a row is missing that specific measurement.
           grossAvg: puntGross.refs, netAvg: puntNet.refs, hangAvg: puntHang.refs,
           retAllowedAvg: puntRetAllowed.refs,
+          tdAllowed: StatsEngine._refsOf(tdAllowedRows(puntRows), getPlay),
         },
         outcomes: distribution(puntRows, x => x.st.outcome.status, getPlay),
       };
@@ -1325,6 +1332,7 @@ export class StatsEngine {
         fairCatchPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'fairCatch').length / koRows.length * 100) : 0,
         retAllowedAvg: koRetAllowed.value,
         retAllowedYards: koReturnedRows.reduce((s, x) => s + (Number.isFinite(x.st.return.yards) ? x.st.return.yards : 0), 0),
+        tdAllowed: tdAllowedRows(koRows).length,
         // isOnside is a structured modifier (not a separate unit) -- 'recovered'
         // counts only a SUBJECT recovery (the point of an onside attempt).
         onside: { n: onsideRows.length, recovered: onsideRecoveredRows.length },
@@ -1338,6 +1346,7 @@ export class StatsEngine {
           // a "Recovered" row.
           onsideRecovered: StatsEngine._refsOf(onsideRecoveredRows, getPlay),
           avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs,
+          tdAllowed: StatsEngine._refsOf(tdAllowedRows(koRows), getPlay),
         },
         outcomes: distribution(koRows, x => x.st.outcome.status, getPlay),
       };
@@ -1418,6 +1427,10 @@ export class StatsEngine {
       return { value, refs: refsOf(eligible) };
     };
 
+    // Legacy has no structured scoring team, so the canonical scoringSide()
+    // decides -- a coverage touchdown is one credited to THEM on our kick.
+    const tdAllowedLegacy = arr => arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')
+      && StatsEngine.scoringSide(p) === 'them');
     const pp = by('Punt');
     const puntReturnedRows = pp.filter(p => p.tags.kickOutcome === 'Returned');
     const puntGross = avgStat(pp, p => num(p.tags.kickDistance));
@@ -1449,12 +1462,13 @@ export class StatsEngine {
       blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
       retAllowedAvg: puntRetAllowed.value,
       retAllowedYards: puntReturnedRows.reduce((s, p) => s + (num(p.tags.returnYards) || 0), 0),
+      tdAllowed: tdAllowedLegacy(pp).length,
       refs: {
         all: refsOf(pp),
         blocked: refsOf(pp.filter(p => p.tags.kickOutcome === 'Blocked')),
         returned: refsOf(puntReturnedRows),
         grossAvg: puntGross.refs, netAvg: puntNet.refs, hangAvg: puntHang.refs,
-        retAllowedAvg: puntRetAllowed.refs,
+        retAllowedAvg: puntRetAllowed.refs, tdAllowed: refsOf(tdAllowedLegacy(pp)),
       },
       outcomes: distribution(pp, legacyStatus),
     };
@@ -1469,6 +1483,7 @@ export class StatsEngine {
       fairCatchPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Fair Catch').length / ko.length * 100) : 0,
       retAllowedAvg: koRetAllowed.value,
       retAllowedYards: koReturnedRows.reduce((s, p) => s + (num(p.tags.returnYards) || 0), 0),
+      tdAllowed: tdAllowedLegacy(ko).length,
       // Legacy charted an onside kick as its OWN stType ('Onside'), never as a
       // Kickoff modifier -- a structurally different shape than the new model's
       // isOnside flag, so it is not derivable from `by('Kickoff')` here. Stays
@@ -1476,7 +1491,7 @@ export class StatsEngine {
       // reuse above for the contrast: those DO reuse real legacy vocabulary).
       onside: { n: null, recovered: null },
       refs: { all: refsOf(ko), returned: refsOf(koReturnedRows), onside: [], onsideRecovered: [],
-        avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs },
+        avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs, tdAllowed: refsOf(tdAllowedLegacy(ko)) },
       outcomes: distribution(ko, legacyStatus),
     };
     const fgp = plays.filter(p => StatsEngine.isFieldGoalAttempt(p, null));

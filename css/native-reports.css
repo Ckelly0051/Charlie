@@ -669,7 +669,10 @@
 .gi-reports-rail{margin:0 var(--gi-6x);border:1px solid var(--gi-6);
   border-top:0;border-bottom:0}
 .gi-reports-rail[hidden]{display:none}
-.gi-reports-rail .gi-kpi{min-height:76px;padding:var(--gi-3x) var(--gi-4x)}
+/* Coach (2026-09-04): the rail carried a full 12px under every value on top
+   of the slack from equal-height tiles -- 22px of dead space beneath a number
+   on four of six tiles. The top padding stays; the bottom closes to 8px. */
+.gi-reports-rail .gi-kpi{min-height:76px;padding:var(--gi-3x) var(--gi-4x) var(--gi-2x)}
 .gi-reports-rail .gi-kpi-value{font-size:28px}
 @media(max-width:900px){.gi-reports-rail{margin:0 var(--gi-4x)}}
 @media(max-width:700px){
@@ -918,6 +921,33 @@
 .gi-reports .gi-kpi-phase-l{font:700 9.5px/1 var(--gi-sans);letter-spacing:.04em;color:var(--gi-11);text-transform:uppercase}
 .gi-reports .gi-kpi-phase-n{margin-top:2px;font-family:var(--gi-cond);font-size:20px;line-height:1;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
 @media(max-width:700px){.gi-reports .gi-kpi-phase-n{font-size:17px}}
+
+/* Turnovers: three named values, each on its OWN ROW inside the tile (coach,
+   2026-09-04). Plays per Phase stacks label-over-number in three columns
+   because its labels are short; these labels are full words, so they read as
+   rows -- name left, number right -- and the type steps down to fit all three
+   in the tile's existing height rather than growing the rail. Numbers keep the
+   condensed face and tabular figures so the column of digits aligns. */
+/* Two rows have to sit in the same 96px tile every other rail tile uses, so
+   the type steps down and the leading tightens rather than the rail growing.
+   Measured: at 16px/1.3 the block left 3px of clearance above the tile's own
+   12px bottom padding, against ~20px on a single-value tile. */
+.gi-reports .gi-kpi-stats{display:grid;gap:2px;width:100%}
+.gi-reports .gi-kpi-stat-row{display:flex;align-items:baseline;gap:7px;min-width:0;flex-wrap:nowrap}
+.gi-reports .gi-kpi-stat{display:inline-flex;align-items:baseline;gap:5px;min-width:0;white-space:nowrap}
+.gi-reports .gi-kpi-stat-l{color:var(--gi-11);font:600 10.5px/1.2 var(--gi-sans)}
+.gi-reports .gi-kpi-stat-n{
+  color:var(--gi-12);font-family:var(--gi-cond);font-size:15px;line-height:1.2;
+  font-variant-numeric:var(--gi-num-feat)
+}
+/* The separator is a real element, not a character inside a label, so its
+   spacing is set by `gap` on both sides and stays even regardless of the
+   proportional widths either side of it. */
+.gi-reports .gi-kpi-stat-sep{color:var(--gi-9);font:400 12px/1.3 var(--gi-sans)}
+@media(max-width:700px){
+  .gi-reports .gi-kpi-stat-l{font-size:10px}
+  .gi-reports .gi-kpi-stat-n{font-size:14px}
+}
 
 /* Charlie Gate finding #7: "entire green table rows... look like status
    logs." Root cause -- .ss-verdict-dominant/-effective/-exploitable is ONE
@@ -2103,7 +2133,36 @@
 /* An absent value is never a big number: it drops to copy weight so a coach
    cannot read "No data" as a headline figure. */
 .gi-reports .gi-st-board .gi-overview-kpi.is-blank strong{
-  color:var(--gi-bd-muted);font:700 17px/1.5 var(--gi-cond)
+  /* Sized to the stat numbers beside it, not above them. When every tile
+     became labelled stats at 13.5px, a 17px "No data" turned the absence into
+     the largest thing in the band -- the exact inversion this rule prevents.
+     Colour, not size, is what marks it subordinate now. */
+  color:var(--gi-bd-muted);font:400 13.5px/1.25 var(--gi-sans)
+}
+
+/* The Points tile renders label/number rows instead of one figure, matching
+   the rail's Turnovers tile. The band's own `.gi-overview-kpi span` rule is
+   `display:block` + uppercase and catches every nested span, which stacked the
+   labels above the numbers and shouted them -- these restore the inline row.
+   Scoped to the board so the shared band is untouched. */
+.gi-reports .gi-st-board .gi-overview-kpi .gi-kpi-stats{display:grid;gap:2px;width:100%}
+.gi-reports .gi-st-board .gi-overview-kpi .gi-kpi-stat-row{
+  display:flex;align-items:baseline;gap:7px;min-width:0;flex-wrap:nowrap
+}
+.gi-reports .gi-st-board .gi-overview-kpi .gi-kpi-stat{
+  display:inline-flex;align-items:baseline;gap:5px;min-width:0;white-space:nowrap
+}
+.gi-reports .gi-st-board .gi-overview-kpi .gi-kpi-stat-l{
+  display:inline;color:var(--gi-bd-copy);font:600 10.5px/1.2 var(--gi-sans);
+  letter-spacing:0;text-transform:none
+}
+.gi-reports .gi-st-board .gi-overview-kpi .gi-kpi-stat-n{
+  display:inline;color:var(--gi-bd-strong);font:700 13.5px/1.25 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);letter-spacing:0;text-transform:none
+}
+.gi-reports .gi-st-board .gi-overview-kpi .gi-kpi-stat-sep{
+  display:inline;color:var(--gi-bd-muted);font:400 12px/1.2 var(--gi-sans);
+  letter-spacing:0;text-transform:none
 }
 
 /* Bands. align-items:stretch, deliberately, and NOT the treatment Offense and
@@ -2140,7 +2199,7 @@
   background:var(--gi-bd-line)
 }
 .gi-reports .gi-st-unit-card{
-  min-width:0;display:block;width:100%;padding:var(--gi-2x) var(--gi-3x) 10px;
+  min-width:0;display:block;width:100%;padding:6px var(--gi-3x) 7px;
   background:var(--gi-bd-panel);border:0;border-radius:0;color:inherit;font:inherit;
   text-align:left;cursor:pointer
 }
@@ -2153,13 +2212,23 @@
   text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-st-unit-card.is-none .gi-st-unit-name{ color:var(--gi-bd-muted) }
-.gi-reports .gi-st-unit-n{
-  display:block;margin-top:6px;color:var(--gi-bd-strong);font:700 26px/1.05 var(--gi-cond);
-  font-variant-numeric:var(--gi-num-feat)
+/* Count and headline share one baseline. The count keeps the condensed face
+   and stays the heavier of the two, but the headline sits BESIDE it rather
+   than under it, so a card is two lines instead of three. */
+.gi-reports .gi-st-unit-line{
+  display:flex;align-items:baseline;gap:6px;margin-top:4px;min-width:0;flex-wrap:nowrap
 }
-.gi-reports .gi-st-unit-n i{ font-style:normal;color:var(--gi-bd-muted);font:400 11px/1 var(--gi-sans);letter-spacing:0 }
-.gi-reports .gi-st-unit-card.is-none .gi-st-unit-n{ color:var(--gi-bd-muted);font:700 15px/1.6 var(--gi-cond) }
-.gi-reports .gi-st-unit-head{ display:block;margin-top:4px;color:var(--gi-bd-copy);font:400 10.5px/1.3 var(--gi-sans) }
+.gi-reports .gi-st-unit-n{
+  flex:0 0 auto;color:var(--gi-bd-strong);font:700 20px/1.15 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap
+}
+.gi-reports .gi-st-unit-n i{ font-style:normal;color:var(--gi-bd-muted);font:400 10px/1 var(--gi-sans);letter-spacing:0 }
+.gi-reports .gi-st-unit-sep{ flex:0 0 auto;color:var(--gi-bd-muted);font:400 11px/1.15 var(--gi-sans) }
+.gi-reports .gi-st-unit-card.is-none .gi-st-unit-n{ color:var(--gi-bd-muted);font:700 15px/1.5 var(--gi-cond) }
+.gi-reports .gi-st-unit-head{
+  min-width:0;color:var(--gi-bd-copy);font:400 10.5px/1.3 var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
 
 /* The one fact no ledger card can show: a snap belonging to no unit at all. */
 .gi-reports .gi-st-unassigned{
@@ -2258,11 +2327,37 @@
 .gi-reports .gi-st-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
 .gi-reports .gi-st-board .gi-st-table-wrap th{ top:0 }
 
+/* The toolbar and scope control, scoped to this board the way Defense scopes
+   its own. Without these the board inherits the pre-redesign `.gi-st-toolbar`
+   and `.gi-st-scope` rules, which carry NO padding (the Export button sat
+   flush against the panel edge, measured at 0px) and a gold active state that
+   is Offense's accent, not this board's. Same geometry and states as the
+   Defense toolbar so the two reports read as one product. */
+.gi-reports .gi-st-board .gi-st-toolbar{
+  display:flex;align-items:center;justify-content:flex-start;gap:var(--gi-3x);
+  margin:0 0 4px;padding:7px var(--gi-3x);background:var(--gi-bd-panel);border:0
+}
+.gi-reports .gi-st-board .gi-st-toolbar-label{
+  color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase
+}
+.gi-reports .gi-st-board .gi-st-scope{ display:flex;gap:1px;border:0;background:var(--gi-bd-line) }
+.gi-reports .gi-st-board .gi-st-scope button{
+  min-height:32px;padding:6px 14px;border:0;background:var(--gi-bd-control);
+  color:var(--gi-bd-copy);font:var(--gi-text-label);cursor:pointer
+}
+.gi-reports .gi-st-board .gi-st-scope button:hover{ background:var(--gi-bd-control-active);color:var(--gi-bd-strong) }
+.gi-reports .gi-st-board .gi-st-scope button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-st-board .gi-st-scope button.active{
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);
+  box-shadow:inset 0 -3px var(--gi-bd-cyan)
+}
 .gi-reports .gi-st-export{ margin-left:auto }
 
 @media(max-width:1360px){
   .gi-reports .gi-st-board .gi-overview-kpis{ grid-template-columns:repeat(3,minmax(0,1fr)) }
-  .gi-reports .gi-st-ledger{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+  /* The six units stay on ONE row at 1280 (coach, 2026-09-04) -- wrapping to
+     3x2 spent a whole extra row on six short cards. It only wraps below 900,
+     where six columns genuinely cannot hold a unit name. */
   .gi-reports .gi-st-band-42{ grid-template-columns:minmax(0,1fr) }
   .gi-reports .gi-st-band-42>.gi-overview-module+.gi-overview-module{
     box-shadow:none;border-top:1px solid var(--gi-bd-line)
@@ -2270,7 +2365,7 @@
 }
 @media(max-width:900px){
   .gi-reports .gi-st-board .gi-overview-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)) }
-  .gi-reports .gi-st-ledger{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .gi-reports .gi-st-ledger{ grid-template-columns:repeat(3,minmax(0,1fr)) }
   .gi-reports .gi-st-band-2,
   .gi-reports .gi-st-band-3{ grid-template-columns:minmax(0,1fr) }
   .gi-reports .gi-st-band-2>.gi-overview-module+.gi-overview-module,
