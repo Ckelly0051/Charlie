@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reports &gt; Players — design comp 2026-09-04</title>
+<link rel="stylesheet" href="../../design-system/plex.css">
 <style>
 /* ─────────────────────────────────────────────────────────────────────────
    Tokens copied verbatim from the accepted Overview / Offense / Defense /
@@ -33,14 +34,20 @@
      this board, so its floor is stated once and every table obeys it. 208px
      holds a 30-character "#22 Terrance Whitfield-Boateng" with slack, so no
      name is ever clipped and no column moves when a sort reorders rows.
-     A measurement column is sized from its OWN header, in three steps -- a
+     A measurement column is sized in four steps from the widest thing it must
+     hold -- its own header OR a full-season figure, whichever is wider. A
      single width for all of them clipped "Solo", "Sack" and "Punt Avg" at
-     1280 and forced the table into its scroller. */
+     1280 and forced the table into its scroller; the earlier four-step set
+     was measured against the current-game fixture only, so "Punt Avg", a
+     season "122/201" and a four-digit season yardage each overran their
+     column once the table stopped silently content-sizing them. */
   --p-ident:208px;
   --p-s:44px;  /* TD, FR */
-  --p-m:52px;  /* Att, Yds, Avg, Rec, Ret, Tkl, Ast, TFL, INT, Sck */
-  --p-l:64px;  /* Long, Solo, Sack, Fum, Pct, C/A, Punts */
-  --p-xl:80px; /* Grade, FG (M/A), Punt Avg */
+  --p-m:54px;  /* Att, Yds, Avg, Rec, Ret, Tkl, Ast, TFL, INT, Sck */
+  --p-l2:60px; /* Solo, Sack */
+  --p-l:72px;  /* Long, Fum, Pct, C/A, Punts */
+  --p-g:74px;  /* Grade -- holds "+1.8" and the "No data" literal */
+  --p-xl:86px; /* FG (M/A), Punt Avg */
 }
 *{box-sizing:border-box}
 /* `.empty` sets `display:flex`, which outranks the user-agent `[hidden]` rule
@@ -109,13 +116,8 @@ button{font-family:inherit}
    the two panels' identity columns at different distances from their own
    panel edge, and the left edge of the name is what a coach scans down.
 
-   Below 1330px the constraint is applied PER BAND, not to the board. A band
-   half gives 599px of usable width at 1280. Measured table widths: Rushing
-   621, Passing 616, Receiving 505, Tackles 668, Return Game 477, Kicking /
-   Punting 432. So only a band whose widest table exceeds 599 stacks -- Return
-   Game and Kicking / Punting stay paired at 1280, because nothing about them
-   needs the extra width. Stacking every band because Tackles is wide left
-   half the board empty for no reason.
+   The stacking constraint is applied PER BAND, not to the board -- see the
+   media block at the foot of this stylesheet for the measured derivation.
    ─────────────────────────────────────────────────────────────────────── */
 .board{padding:var(--gi-4x);background:var(--gi-bd-stage)}
 .band{display:grid;gap:1px;margin:0 0 4px;align-items:stretch;background:transparent}
@@ -141,7 +143,14 @@ button{font-family:inherit}
 /* A role with no attribution states that and states nothing else. It never
    shows a zero, because an unattributed role is not zero production. */
 .mod.is-none>header strong{color:var(--gi-bd-muted)}
-.mod .none{margin:2px 0 4px;color:var(--gi-bd-muted);font:400 12px/1.5 var(--gi-sans)}
+.mod .none{margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)}
+/* A band is lign-items:stretch, so an unattributed role beside a populated
+   one is as tall as the populated one. Two words at the top of a tall panel
+   read as content with a hole under them; centred, the panel reads as an
+   empty cell. Same fix the Special Teams board carries. */
+.mod.is-none{display:flex;flex-direction:column}
+.mod.is-none>header{flex:0 0 auto}
+.mod.is-none .none{flex:1 1 auto;display:flex;align-items:center}
 
 /* Section rule and role navigation — the same two components the Defense and
    Special Teams boards already use. */
@@ -200,19 +209,33 @@ button{font-family:inherit}
    stacked board, where a five-column Return Game table spread across 1224px.
    The table ends where its content ends; leftover panel is whitespace beside
    the table, never a gap inside a row. */
-table{width:auto;max-width:100%;border-collapse:collapse;background:transparent}
-col.ident{width:auto}
+/* 	able-layout:fixed. Auto layout treats a column width as a preference and
+   discards every one of them the moment another column asks for 100%, so the
+   measurement columns silently became content-sized and the stated widths
+   stopped meaning anything. Fixed layout honours the colgroup exactly, which
+   is what "stable columns" requires: the same measurement is the same width
+   in every role table, and no reorder or scope change moves an edge. */
+table{width:100%;table-layout:fixed;border-collapse:collapse;background:transparent}
+/* The identity column requests the whole table, so every fixed measurement
+   column takes exactly its own width and identity absorbs all the slack. The
+   table therefore ends where its PANEL ends -- same as every table on the
+   accepted Defense and Special Teams boards -- and a row's hover highlight
+   spans the panel instead of stopping in the middle of it. */
+col.ident{width:100%}
 col.s{width:var(--p-s)}
 col.m{width:var(--p-m)}
+col.l2{width:var(--p-l2)}
 col.l{width:var(--p-l)}
+col.g{width:var(--p-g)}
 col.xl{width:var(--p-xl)}
-th,td{height:var(--gi-row);padding:0 var(--gi-2x);border-bottom:1px solid var(--gi-bd-line);
+th,td{height:var(--gi-row);padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-bd-line);
   font-size:12px;white-space:nowrap;text-align:right}
 th{color:var(--gi-bd-copy);font:var(--gi-text-label);text-transform:uppercase;letter-spacing:0;
   cursor:pointer;user-select:none;position:relative}
 th:first-child,td:first-child{min-width:var(--p-ident)}
+th:last-child,td:last-child{padding-right:var(--gi-4x)}
 td{color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat)}
-th:first-child,td:first-child{padding-left:var(--gi-2x);text-align:left}
+th:first-child,td:first-child{padding-left:var(--gi-4x);text-align:left}
 tbody tr:last-child td{border-bottom:0}
 /* Identity cell: jersey number and name are one string in production
    (`#22 Terrance Whitfield-Boateng`), so they are one cell here too. The
@@ -231,18 +254,22 @@ td.neg{color:var(--gi-bd-loss)}
    already implements them: descending, ascending, then off (back to the
    engine's own order).
 
-   The direction marker is ABSOLUTELY POSITIONED in the header's own empty
-   left side. An inline caret cost 14px on every column of every table, which
-   is what pushed Tackles past half of 1280 and clipped "Solo" and "Sack"; a
-   marker that participates in layout also has to be reserved at rest, or
-   sorting shifts the header text. This one costs no width and moves nothing.
+   The direction marker is ABSOLUTELY POSITIONED beneath the right end of the
+   header label, riding on the sorted column's cyan underline. An inline caret
+   cost 14px on every column of every table, which is what pushed Tackles past
+   half of 1280 and clipped "Solo" and "Sack"; a marker that participates in
+   layout also has to be reserved at rest, or sorting shifts the header text.
+   This one costs no width and moves nothing. It sits below the label rather
+   than beside it because a measurement column's content box is only ~28px
+   wide -- a caret in the header's left gutter touched the label.
    The sorted column is also named in the header's `title`, so the direction
    is never carried by the glyph alone. */
 th:hover{color:var(--gi-bd-strong)}
 th:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
 th.is-sorted{color:var(--gi-bd-strong);box-shadow:inset 0 -2px var(--gi-bd-cyan)}
-th.is-sorted::before{position:absolute;left:5px;top:50%;transform:translateY(-50%);
-  color:var(--gi-bd-cyan);font-size:10px;line-height:1;pointer-events:none}
+th.is-sorted::before{position:absolute;right:var(--gi-3x);bottom:2px;
+  color:var(--gi-bd-cyan);font-size:8px;line-height:1;pointer-events:none}
+th:last-child.is-sorted::before{right:var(--gi-4x)}
 th.is-sorted.is-desc::before{content:'▼'}
 th.is-sorted.is-asc::before{content:'▲'}
 
@@ -251,9 +278,9 @@ tbody tr.cut{cursor:pointer}
 tbody tr.cut:hover td{background:var(--gi-bd-control)}
 tbody tr.cut:hover td.ident{color:var(--gi-bd-strong)}
 tbody tr.cut:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
-tbody tr.cut td.ident::after{content:'▸';margin-left:7px;color:var(--gi-bd-cyan);opacity:0}
-tbody tr.cut:hover td.ident::after,
-tbody tr.cut:focus-visible td.ident::after{opacity:1}
+tbody tr.cut td.ident::before{content:'▸';margin-right:6px;color:var(--gi-bd-cyan);opacity:0}
+tbody tr.cut:hover td.ident::before,
+tbody tr.cut:focus-visible td.ident::before{opacity:1}
 
 /* Bounded scroller, used only when a table genuinely cannot fit. At the three
    release widths it never engages -- the identity floor plus the fixed
@@ -262,16 +289,47 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
 .twrap{min-width:0;overflow-x:auto;scrollbar-width:thin}
 
 /* ── EMPTY STATE ───────────────────────────────────────────────────────── */
-.empty{display:flex;align-items:center;gap:var(--gi-6x);padding:var(--gi-6x);background:var(--gi-bd-panel)}
-.empty h3{margin:0 0 5px;font:700 15px/1.2 var(--gi-cond);letter-spacing:.04em;text-transform:uppercase}
-.empty p{margin:0;max-width:62ch;color:var(--gi-bd-copy);font:400 12.5px/1.5 var(--gi-sans)}
-.empty .btn{margin-left:auto}
+.empty{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);
+  margin:0 0 4px;padding:var(--gi-4x);background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)}
+.empty h3{margin:0 0 3px;font:700 13px/1.2 var(--gi-cond);letter-spacing:.06em;text-transform:uppercase}
+.empty p{margin:0;color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)}
+.empty .btn{flex:0 0 auto}
 
-@media(max-width:1330px){
-  /* Only a band carrying a table wider than the 599px half stacks. The rest
-     stay paired -- see the board note above for the measured widths. */
+/* Report head compression, copied from the accepted Special Teams comp. Eight
+   report tabs plus the head, the sub line and Export fit 1280 with no margin;
+   this is the family's answer and it restores the margin. */
+@media(max-width:1360px){
+  .rhead{gap:var(--gi-4x)}
+  .rhead .tabs{min-width:0;overflow-x:auto;scrollbar-width:none}
+  .rhead .tabs button{padding:8px 9px;letter-spacing:.08em}
+  /* The shared context bar's three tracks fall to ~340px here and a real
+     opponent name clips against an ellipsis. Wrapping costs one row of
+     height and loses nothing. Shared chrome, not owned by this tab -- carried
+     the same way the Special Teams comp carries it. */
+  .ctxbar strong{white-space:normal;overflow:visible;text-overflow:clip}
+}
+
+/* A band stacks only when its own widest table can no longer be honoured
+   inside a band half. A band half is (VW - 32 board padding - 1 gap) / 2 - 24
+   module padding: 679px at 1440, 599px at 1280. The tables need
+     632  Rushing, Passing
+     662  Tackles (Receiving, its band partner, needs 506)
+     506  Receiving   486  Return Game   452  Kicking / Punting
+   so every band is honoured paired at 1440 and above, and the breakpoint is
+   the width at which the widest of them stops fitting: 662 + 24 module
+   padding, doubled, plus the 33px the board itself takes = 1405. Return Game
+   and Kicking / Punting stay paired at 1280 -- stacking every band because
+   Tackles is wide would leave half the board empty for no reason. */
+@media(max-width:1404px){
   .b-2.is-wide{grid-template-columns:minmax(0,1fr)}
   .b-2.is-wide>.mod+.mod{box-shadow:none;border-top:1px solid var(--gi-bd-line)}
+  /* A stacked band's module is roughly twice as wide, so its measurement
+     columns are roughly twice as wide too. Left at the paired widths, the
+     identity column absorbs all ~830px of the extra room and a row reads as a
+     name at the far left with its first number at the far right. Widening the
+     measurements instead keeps the line readable end to end, and the table
+     still ends where its panel ends. */
+  .b-2.is-wide{--p-s:96px;--p-m:112px;--p-l2:120px;--p-l:132px;--p-g:136px;--p-xl:150px}
 }
 </style>
 </head>
@@ -371,7 +429,7 @@ tbody tr.cut:focus-visible td.ident::after{opacity:1}
    and 2 receiving TD against 2 passing TD. */
 const FULL = {
   label: 'Week 3 vs Northgate — 70 plays charted',
-  sample: '<b>16</b> players attributed across <b>6</b> roles — <b>70</b> plays charted',
+  sample: '<b>16</b> players · <b>6</b> roles · <b>70</b> charted plays',
   rushing: [
     { num:'22', name:'Terrance Whitfield-Boateng', att:14, yds:96, avg:'6.9', long:31, td:1, fum:0, grade:1.8 },
     { num:'5',  name:'Malik Cordero',              att:11, yds:47, avg:'4.3', long:12, td:0, fum:1, grade:0.4 },
@@ -423,7 +481,7 @@ const FULL = {
    1,543 + 88, 14 + 1 TD). */
 const FULL_SEASON = {
   label: '2026 Varsity — 9 games, 631 plays charted',
-  sample: '<b>16</b> players attributed across <b>6</b> roles — <b>631</b> plays charted',
+  sample: '<b>16</b> players · <b>6</b> roles · <b>631</b> charted plays',
   rushing: [
     { num:'22', name:'Terrance Whitfield-Boateng', att:96, yds:604, avg:'6.3', long:47, td:8, fum:2, grade:1.5 },
     { num:'5',  name:'Malik Cordero',              att:71, yds:311, avg:'4.4', long:28, td:3, fum:3, grade:0.6 },
@@ -467,14 +525,14 @@ const stripGrades = src => {
 };
 const NOGRADE = stripGrades(FULL);
 NOGRADE.label = 'Week 4 vs Halloway — 64 plays charted';
-NOGRADE.sample = '<b>16</b> players attributed across <b>6</b> roles — <b>64</b> plays charted';
+NOGRADE.sample = '<b>16</b> players · <b>6</b> roles · <b>64</b> charted plays';
 const NOGRADE_SEASON = stripGrades(FULL_SEASON);
 
 /* Sparse: two roles carry attribution, four carry none. The four still
    render, and say so. */
 const SPARSE = {
   label: 'Week 1 vs Alder Creek — 58 plays charted',
-  sample: '<b>2</b> players attributed across <b>2</b> of <b>6</b> roles — <b>58</b> plays charted',
+  sample: '<b>2</b> players · <b>2/6</b> roles · <b>58</b> charted plays',
   rushing: [{ num:'22', name:'Terrance Whitfield-Boateng', att:3, yds:11, avg:'3.7', long:6, td:0, fum:0, grade:null }],
   passing: [],
   receiving: [],
@@ -485,7 +543,7 @@ const SPARSE = {
 
 const SPARSE_SEASON = {
   label: '2026 Varsity — 9 games, 631 plays charted',
-  sample: '<b>3</b> players attributed across <b>2</b> of <b>6</b> roles — <b>631</b> plays charted',
+  sample: '<b>3</b> players · <b>2/6</b> roles · <b>631</b> charted plays',
   rushing: [
     { num:'22', name:'Terrance Whitfield-Boateng', att:28, yds:97, avg:'3.5', long:14, td:1, fum:1, grade:null },
     { num:'5',  name:'Malik Cordero',              att:9,  yds:24, avg:'2.7', long:8,  td:0, fum:0, grade:null },
@@ -515,29 +573,29 @@ const STATES = {
    ═════════════════════════════════════════════════════════════════════════ */
 const NO_DATA = 'No data';
 const ROLES = [
-  { key:'rushing', title:'Rushing', phase:'off', section:'off', w:621,
-    meta:'ball carrier on a run', sort:'yds desc',
+  { key:'rushing', title:'Rushing', phase:'off', section:'off', w:632,
+    sort:'yds desc',
     cols:[['ident','Player'],['att','Att','m'],['yds','Yds','m'],['avg','Avg','m'],
-          ['long','Long','l'],['td','TD','s'],['fum','Fum','l'],['grade','Grade','xl']] },
-  { key:'passing', title:'Passing', phase:'off', section:'off', w:616,
-    meta:'passer on a pass', sort:'yds desc',
+          ['long','Long','l'],['td','TD','s'],['fum','Fum','l'],['grade','Grade','g']] },
+  { key:'passing', title:'Passing', phase:'off', section:'off', w:632,
+    sort:'yds desc',
     cols:[['ident','Player'],['ca','C/A','l'],['pct','Pct','l'],['yds','Yds','m'],
-          ['td','TD','s'],['int','INT','m'],['sck','Sck','m'],['grade','Grade','xl']] },
-  { key:'receiving', title:'Receiving', phase:'off', section:'off', w:505,
-    meta:'receiver on a completion', sort:'yds desc',
+          ['td','TD','s'],['int','INT','m'],['sck','Sck','m'],['grade','Grade','g']] },
+  { key:'receiving', title:'Receiving', phase:'off', section:'off', w:506,
+    sort:'yds desc',
     cols:[['ident','Player'],['rec','Rec','m'],['yds','Yds','m'],['long','Long','l'],
-          ['td','TD','s'],['grade','Grade','xl']] },
-  { key:'tackles', title:'Tackles', phase:'def', section:'def', w:668,
-    meta:'tackler or takeaway on a defensive snap', sort:'tkl desc',
-    cols:[['ident','Player'],['tkl','Tkl','m'],['solo','Solo','l'],['ast','Ast','m'],
-          ['sack','Sack','l'],['tfl','TFL','m'],['int','INT','m'],['fr','FR','s'],
-          ['grade','Grade','xl']] },
-  { key:'returns', title:'Return Game', phase:'st', section:'st', w:477,
-    meta:'returner on a kick or punt return', sort:'yds desc',
+          ['td','TD','s'],['grade','Grade','g']] },
+  { key:'tackles', title:'Tackles', phase:'def', section:'def', w:662,
+    sort:'tkl desc',
+    cols:[['ident','Player'],['tkl','Tkl','m'],['solo','Solo','l2'],['ast','Ast','m'],
+          ['sack','Sack','l2'],['tfl','TFL','m'],['int','INT','m'],['fr','FR','s'],
+          ['grade','Grade','g']] },
+  { key:'returns', title:'Return Game', phase:'st', section:'st', w:486,
+    sort:'yds desc',
     cols:[['ident','Player'],['ret','Ret','m'],['yds','Yds','m'],['avg','Avg','m'],
           ['long','Long','l'],['td','TD','s']] },
-  { key:'kicking', title:'Kicking / Punting', phase:'st', section:'st', w:432,
-    meta:'kicker or punter on a field goal or punt', sort:'made + punts desc',
+  { key:'kicking', title:'Kicking / Punting', phase:'st', section:'st', w:452,
+    sort:'made + punts desc',
     cols:[['ident','Player'],['fg','FG (M/A)','xl'],['punts','Punts','l'],
           ['puntAvg','Punt Avg','xl']] },
 ];
@@ -572,6 +630,20 @@ let section = 'all';
    a denominator, a row's identity, or a row's film cohort. Three positions,
    matching production's DataTable: desc, asc, then off. */
 const sortState = {};
+/* Each role opens on the column the engine already orders by, so the sort
+   affordance is visible at rest rather than only after a click, and the
+   rendered order is the order production returns. Kicking / Punting is the
+   one role whose default order is not a single column ("made + punts"), so it
+   opens unmarked -- claiming a sorted column it does not have would be a
+   false statement about the data. */
+function resetSort() {
+  Object.keys(sortState).forEach(k => delete sortState[k]);
+  ROLES.forEach(role => {
+    const [key, dir] = String(role.sort).split(' ');
+    if (role.cols.some(c => c[0] === key)) sortState[role.key] = { key, dir };
+  });
+}
+resetSort();
 
 const label = row => row.name ? `#${row.num} ${row.name}` : `#${row.num}`;
 
@@ -651,15 +723,19 @@ function moduleFor(role, data) {
   const strong = document.createElement('strong');
   strong.textContent = role.title;
   const span = document.createElement('span');
-  span.textContent = none ? NO_DATA
-    : `${rows.length} ${rows.length === 1 ? 'player' : 'players'} — ${role.meta}`;
+  /* An empty role's body already carries the absence literal, so its header
+     meta is suppressed -- otherwise the header and the body print the same
+     words one above the other. Same rule the Special Teams board follows. */
+  span.textContent = none ? ''
+    : `${rows.length} ${rows.length === 1 ? 'player' : 'players'}`;
   head.append(strong, span);
   mod.append(head);
 
   if (none) {
     const p = document.createElement('p');
     p.className = 'none';
-    p.textContent = 'No player attribution';
+    /* The board's one absence literal, in every position. */
+    p.textContent = NO_DATA;
     mod.append(p);
     return mod;
   }
@@ -747,7 +823,8 @@ function moduleFor(role, data) {
    599px half. Derived from the measured widths on ROLES, so the rule is
    stated once and cannot drift from the numbers in the board note. */
 const HALF_1280 = 599;
-const bandIsWide = keys => keys.some(k => ROLES.find(r => r.key === k).w > HALF_1280);
+const bandNeed = keys => Math.max(...keys.map(k => ROLES.find(r => r.key === k).w));
+const bandClass = keys => (bandNeed(keys) > HALF_1280 ? ' is-wide' : '');
 
 function draw() {
   const data = STATES[state][scope];
@@ -791,7 +868,7 @@ function draw() {
   host.replaceChildren();
   LAYOUT[section].forEach(band => {
     const div = document.createElement('div');
-    div.className = `band b-${band.length}${band.length === 2 && bandIsWide(band) ? ' is-wide' : ''}`;
+    div.className = `band b-${band.length}${band.length === 2 ? bandClass(band) : ''}`;
     band.forEach(key => div.append(moduleFor(ROLES.find(r => r.key === key), data)));
     host.append(div);
   });
@@ -805,7 +882,7 @@ $$('.scope button').forEach(b => b.addEventListener('click', () => {
   /* Scope changes the cohort, so a sort held over from the other scope would
      be applied to different rows without saying so. Cleared, same as the
      fixture switch. */
-  Object.keys(sortState).forEach(k => delete sortState[k]);
+  resetSort();
   draw();
 }));
 
@@ -813,7 +890,7 @@ $$('.comp-bar .grp button').forEach(b => b.addEventListener('click', () => {
   $$('.comp-bar .grp button').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
   state = b.dataset.state;
-  Object.keys(sortState).forEach(k => delete sortState[k]);
+  resetSort();
   draw();
 }));
 $$('#snav button').forEach(b => b.addEventListener('click', () => { section = b.dataset.sec; draw(); }));

@@ -2,8 +2,10 @@
 
 **Status: NOT APPROVED. Design comp only.** No production file was changed. The
 Players tab, `individualStats`, `_individualStats`, the report kit and the
-Reports CSS are all untouched at `068093a`. This file is the decision record
-and the production-to-comp mapping; reviewing the comp means reading it.
+Reports CSS are all untouched. **Revision 3, 2026-09-05** — presentation
+alignment against the approved Offense / Defense / Special Teams comps; see
+§15. This file is the decision record and the production-to-comp mapping;
+reviewing the comp means reading it.
 
 Comp: `design-comps/reports-players-2026-09-04/players.html`
 Captures: `design-comps/reports-players-2026-09-04/captures/` — 93 files
@@ -144,19 +146,23 @@ composition exists to remove.
 
 ### The answer
 
-**Bands of two role tables, and tables sized to their own content.**
+**Bands of two role tables, and tables that fill their own panel.**
 
 - A band is an **even split**. An uneven one would put the two panels' identity
   columns at different distances from their own panel edge, and the left edge
   of the name is what a coach scans down.
-- A table is `width:auto`, not `width:100%`. It ends where its content ends;
-  leftover panel is whitespace beside the table, never a gap inside a row.
+- A table is `width:100%` with `table-layout:fixed` — the treatment every
+  accepted Defense and Special Teams table uses. It ends where its **panel**
+  ends, so a row's hover highlight spans the panel and two stacked bands share
+  one right edge. *(Revision 3 reversed revision 1's `width:auto` — see §15.)*
 - The identity column has a **208px floor** and absorbs any slack above it, so a
   wide band gives a long name more room rather than spreading the numbers.
-- Every measurement column has a **fixed width taken from its own header** in
-  four steps (44 / 52 / 64 / 80px). A single width for all of them clipped
-  `Solo`, `Sack`, `Fum` and `Punt Avg` — caught in the first capture pass, not
-  in review.
+- Every measurement column has a **fixed width taken from the widest thing it
+  must hold** — its own header or a full-season figure — in six steps
+  (44 / 54 / 60 / 72 / 74 / 86px). A single width for all of them clipped
+  `Solo`, `Sack`, `Fum` and `Punt Avg`; a four-step set sized against the
+  current-game fixture alone then let a season `122/201`, a four-digit season
+  yardage and `Punt Avg` overrun their columns.
 - Because the widths are fixed, **a sort reorders rows and moves no column
   edge.** Asserted in the capture pass, not eyeballed.
 
@@ -231,8 +237,9 @@ omits the module entirely, which is a silent absence: a coach cannot tell "we
 charted no returner" from "returns are not in this report". This is the exact
 problem the Special Teams six-card unit ledger was approved to fix on
 2026-09-04, and the role set is likewise fixed and enumerable. The module shows
-`No player attribution` in copy weight and **no number of any kind**. Visible in
-every `sparse` capture. *Diverges from production. Open decision 1.*
+`No data` in copy weight and **no number of any kind**, with the header meta
+(the player count) suppressed so the module does not print the absence twice.
+Visible in every `sparse` capture. *Diverges from production. Open decision 1.*
 
 **4.2 · Section navigation.** Offense scrolls one page; Defense and Special
 Teams use section tabs. Players joins the tabbed group. This deepens the known
@@ -282,7 +289,7 @@ denominators instead.
 | `#45 Harrison Blyth`, `FG (M/A) 0/0` | `0/0`, full strength | A pair of counts. His snaps were charted and none was a field goal. | `*-populated-*-4-special-teams.png` |
 | `#19 Sam Oyelaran`, `Punts 0` | `0`, full strength | Same — a count. | same |
 | `#19 Sam Oyelaran`, `Punt Avg` | `No data`, copy weight | A quotient with no denominator. He never punted, so there is no average to state. | same |
-| A role with no attributed player | module renders, body reads `No player attribution`, **no number** | Unattributed is not zero production. | `*-sparse-*.png` |
+| A role with no attributed player | module renders, body reads `No data`, **no number** | Unattributed is not zero production. | `*-sparse-*.png` |
 | No attributed player anywhere | the empty state, no tables | | `*-no-attribution.png` |
 
 An absence never sorts as if it were the smallest measured value: absences are
@@ -391,39 +398,60 @@ is visible on this tab.
 
 ## 9 · Responsive behavior
 
-The 1330px rule is applied **per band**, not to the board. A band half gives
-599px of usable width at 1280; a band stacks there only if one of its own
-tables is wider than that. Measured table widths:
+The stacking rule is applied **per band**, not to the board, and it is derived
+rather than picked. A band half is `(VW − 32 board padding − 1 gap) / 2 − 24
+module padding`: **679px at 1440**, **599px at 1280**. A band stacks only when
+its own widest table can no longer be honoured inside that half.
 
-| Role table | Width | Fits a 599px half? |
-|---|---|---|
-| Tackles | 668px | no |
-| Rushing | 621px | no |
-| Passing | 616px | no |
-| Receiving | 505px | yes |
-| Return Game | 477px | yes |
-| Kicking / Punting | 432px | yes |
+Since revision 3 the tables are `table-layout: fixed`, so a role's required
+width is the exact sum its colgroup asks for — not a measurement that can drift
+away from the declared number. The capture pass asserts the two agree.
+
+| Role table | Required | Fits 679 (1440)? | Fits 599 (1280)? |
+|---|---|---|---|
+| Tackles | 662px | yes | no |
+| Rushing | 632px | yes | no |
+| Passing | 632px | yes | no |
+| Receiving | 506px | yes | yes |
+| Return Game | 486px | yes | yes |
+| Kicking / Punting | 452px | yes | yes |
+
+The breakpoint is therefore the width at which the widest of them stops
+fitting: `(662 + 24) × 2 + 33 = 1405`, so the media query is `max-width:1404px`.
 
 | Width | Behavior |
 |---|---|
 | 1920 × 1080 | Every band pairs. The identity column takes the slack above its 208px floor. |
-| 1440 × 900 | Every band pairs. Tackles, the widest table, measures 668px inside a 680px half. |
-| 1280 × 720 | **Return Game + Kicking / Punting stay paired.** The three bands carrying Rushing, Passing or Tackles stack, because pairing them could only come out of the identity column, which may not shrink. Revision 1 stacked the whole board because Tackles is wide, which left half of it empty for no reason. |
+| 1440 × 900 | Every band pairs. Tackles, the widest table, needs 662px inside a 679px half. |
+| 1280 × 720 | **Return Game + Kicking / Punting stay paired.** The two bands carrying Rushing, Passing or Tackles stack, because pairing them could only come out of the identity column, which may not shrink. Revision 1 stacked the whole board because Tackles is wide, which left half of it empty for no reason. |
 
-The rule is derived in the comp from the measured width recorded on each role,
-so the behavior and the numbers in this table cannot drift apart. Asserted in
-the capture pass: at 1280 All roles renders exactly **1 of 3** bands paired,
-and the Special Teams section's band is that one.
+**A stacked band widens its measurement columns.** A stacked module is roughly
+twice as wide; left at the paired widths the identity column absorbs all ~830px
+of the extra room, and a row reads as a name at the far left with its first
+number at the far right of a 36px line. The stacked band therefore roughly
+doubles `--p-s / --p-m / --p-l2 / --p-l / --p-g / --p-xl`, so the line stays
+readable end to end and the table still ends where its panel ends.
+
+The rule is derived in the comp from the width recorded on each role, so the
+behavior and the numbers in this table cannot drift apart. Asserted in the
+capture pass: at 1280 All roles renders exactly **1 of 3** bands paired, and
+the Special Teams section's band is that one.
 
 At all three widths, mechanically asserted over all 26 state × scope × section
 combinations: **no page-level horizontal scroll, no clipped text node, no text
 below 9.5px, no table scroller engaged, and both panels of a paired band start
-their identity column at the same offset inside their own panel.** The `.twrap`
-bounded scroller exists so a narrower host cannot clip a column; it does not
-engage at any release width.
+their identity column at the same offset inside their own panel.** A separate
+pass measures every rendered `th` and `td` against its own content box across
+96 width × state × scope × section combinations — the check `table-layout:
+fixed` requires, because a fixed cell overflows silently rather than growing.
+The `.twrap` bounded scroller exists so a narrower host cannot clip a column;
+it does not engage at any release width.
 
 Hover and focus change colour and background only — a focused row measured
-identically before and after (`{w:668,h:36}` → `{w:668,h:36}`).
+identically before and after (`{w:1384,h:36}` → `{w:1384,h:36}`), and the
+hover chevron reserves its own width at rest, so the identity text does not
+move (measured: `[61,61,61,61]` before and after hover). Sorting moves no
+column edge (measured: identical `th` widths before and after a sort click).
 
 ---
 
@@ -545,3 +573,139 @@ approval of revision 2 itself, plus the three implementation dependencies in
    existing season assembly and its composite refs, not a second scope
    implementation local to Players.
 3. **The Grade column and its two missing CSS classes** (§8.1).
+
+---
+
+## 14 · Presentation alignment — 2026-09-05
+
+Players remains in the established Reports presentation system. It does not
+introduce a typography, navigation, spacing, or module redesign ahead of the
+planned cross-report polish pass.
+
+The visible role descriptions were removed because they explain standard
+football roles rather than report data. Role headers now contain only the role
+name and attributed-player count. The toolbar summary is reduced to literal
+counts: players, populated roles, and charted plays. No data, interaction, or
+layout behavior changed.
+
+---
+
+## 15 · Revision 3 — presentation alignment against the approved comps, 2026-09-05
+
+Players was compared side by side against `reports-offense-2026-09-03`,
+`reports-defense-2026-09-03` and `reports-special-teams-2026-09-04`, rendered
+at 1920 × 1080, 1440 × 900 and 1280 × 720.
+
+**Which comps define the family.** Offense uses the older `--bd-*` token set
+and its own type scale; Defense and Special Teams share the current `--gi-bd-*`
+set and are byte-identical to each other on shell chrome, report head and tabs,
+scope toolbar, section rule, section navigation, band, module and table. Where
+Offense and the other two disagree, **Defense and Special Teams are the
+baseline** — they are the two most recent, and Offense's reconciliation is the
+scheduled cross-report polish pass, not this assignment.
+
+### 15a · What was genuinely shared, and already matched
+
+Shell chrome, context bar, report head and tab strip with the cyan active
+underline, the `.btn`, the scope segment, `.dtoolbar`, `.srule` with its 3px
+cyan left rule, `.snav` with its count badge and `--gi-raise-tab` active
+treatment, `.band` / `.mod` geometry, and the box-shadow column rule painted
+into the 1px gap were already copied verbatim and needed no change. Accent
+usage — cyan for the active state and the section rule, gold for offense role
+headers, `--gi-bd-copy` for special teams, `--gi-bd-win` / `--gi-bd-loss` for
+signed values — was already the family's, with no invented colour.
+
+### 15b · Differences found, and what was changed
+
+| # | Difference from Defense / Special Teams | Change |
+|---|---|---|
+| 1 | **Tables did not fill their panel.** `width:auto` left 72px of dead panel beside Receiving at 1440 and ~600px beside Rushing at 1280, with the two columns of a band ending at different x. Hover highlights stopped mid-panel. | `table{width:100%;table-layout:fixed}` with `col.ident{width:100%}` — the accepted family treatment. |
+| 2 | **Cell padding was tighter than the family.** `0 8px` with an 8px first-column inset against the family's `0 12px` with a 16px first and last inset — the "compressed spreadsheet" read the brief names. | Adopted `0 var(--gi-3x)`, `padding-left:var(--gi-4x)` on the first cell, `padding-right:var(--gi-4x)` on the last. |
+| 3 | **The row-activation chevron trailed the name.** Defense and Special Teams both lead the first cell with it. | Moved to `td.ident::before` with the family's 6px margin. Verified it reserves its width at rest: identity text left is `[61,61,61,61]` before and after hover. |
+| 4 | **The empty state was a different component.** No cyan left rule, `24px` padding, a 15px title and a 62ch measure, against the family's ruled band with `16px` padding and a 13px title. | Rebuilt as the family component. **The approved sentence is unchanged**, verbatim, and asserted against the rendered markup. |
+| 5 | **An unattributed role module left a void.** Bands are `align-items:stretch`, so a role with no attribution sat as two words at the top of a panel as tall as its populated partner — the defect Special Teams already fixed. | Adopted `.mod.is-none{display:flex;flex-direction:column}` with the label centred in the leftover height. |
+| 6 | **An unattributed role stated its absence twice** — `No data` in the header meta and `No player attribution` in the body. Special Teams suppresses the meta and lets the body carry the single literal. | Header meta suppressed; body is the board's one absence literal, `No data`. |
+| 7 | **The sort affordance was invisible at rest.** Each role declares a default sort (`yds desc`, `tkl desc`) that nothing read, so no header was ever marked until a click. | The default sort is seeded per role. Kicking / Punting stays unmarked, because its default order is `made + punts` and is not a single column — claiming a sorted column it does not have would be a false statement about the data. |
+| 8 | **The direction caret collided with its label.** Absolutely positioned in the header's left gutter, it rendered as `▼YDS` — a measurement column's content box is only ~28px wide. | Moved beneath the right end of the label, riding on the sorted column's cyan underline. Still costs no layout width and still moves nothing. |
+| 9 | **No report-head compression.** Special Teams compresses the tab strip and unwraps the context bar below 1360; Players has eight tabs and fit 1280 with no margin at all. | Adopted the Special Teams `@media(max-width:1360px)` block verbatim. |
+| 10 | **Defense and Special Teams did not load the bundled faces.** `document.fonts` reported **zero loaded faces** on both — they were being reviewed in the host's system sans while declaring IBM Plex. | Added `../../design-system/plex.css` to both. **No other change to either approved comp.** |
+
+### 15c · What the table change exposed
+
+`table-layout:fixed` honours the colgroup exactly. Auto layout had been
+discarding every declared measurement width the moment the identity column
+asked for 100%, and silently content-sizing instead — so the four-step widths
+were fiction and nothing could ever clip. With the widths actually honoured,
+three cells overran their column:
+
+| Cell | Needed | Had |
+|---|---|---|
+| `Punt Avg` header | 86px | 80px |
+| Season `C/A` `122/201` | 72px | 64px |
+| Season `Yds` `1543` | 54px | 52px |
+
+Re-sizing those pushed Tackles past the 1440 band half, so the four steps
+became **six** — `Solo` / `Sack` split off at 60px and `Grade` at 74px, both
+sized from what they actually hold rather than sharing a step with `Long` and
+`Punt Avg`. Required widths are now 632 / 632 / 506 / 662 / 486 / 452, every
+band pairs at 1440, and the stacking breakpoint is derived from those numbers
+(§9). A new capture-pass assertion compares each role's declared `w` against
+the width its colgroup asks for, so the two cannot drift; a second pass
+measures every rendered cell's text against its own content box across 96
+width × state × scope × section combinations, because a fixed cell overflows
+silently rather than growing.
+
+### 15d · What was deliberately NOT copied
+
+- **A KPI band.** Overview, Offense, Defense and Special Teams all open with
+  one. Players cannot: a headline tile about players is a ranking, a composite
+  or a top-performer claim, all three of which are out of scope by ruling. Role
+  counts alone would be a band of trivial numbers restating the toolbar. The
+  board opens on the toolbar and the role navigation instead.
+- **Special Teams' unit ledger.** It exists because the unit set is fixed and
+  small and every unit must be visible including the empty ones. Players' role
+  set is fixed too, but the role modules already render for every role,
+  attributed or not, which is the same guarantee without a second summary
+  surface.
+- **Offense's `th` treatment** (9.5px condensed uppercase, gold sorted state).
+  Defense and Special Teams use the 12px `--gi-text-label` body face, which is
+  the treatment `CLAUDE.md` records as the accepted correction — a column label
+  is operational copy, and 9.5px condensed in `--gi-bd-muted` measured 3.63:1.
+- **Offense's `th.is-sorted::after{content:" ▼"}`.** It participates in layout,
+  so the sorted column's label shifts on every sort.
+
+### 15e · Verified after the change
+
+- Fonts: `IBM Plex Sans 400`, `IBM Plex Sans 600`, `IBM Plex Sans Condensed 700`
+  load and are the computed family on body, headings, `th`, `td`, module
+  headers and section navigation — asserted, not read off the declaration.
+  Special Teams and Defense now report the same three.
+- No page-level horizontal scrollbar at any of the three widths, in any state.
+- No clipped header, name or value, and no cell text exceeding its content box,
+  across 96 combinations.
+- No text below 9.5px. No table scroller engaged at a release width.
+- Hover, `:focus-visible` and active states present on report tabs, scope
+  buttons, section navigation, sortable headers, rows and buttons; none of them
+  changes a layout dimension.
+- Sorting moves no column edge; the hover chevron moves no text.
+- Zero console or page errors.
+- 93 captures regenerated, every one verified against its stated viewport by
+  reading its PNG header.
+
+### 15f · Reserved for the cross-report polish pass
+
+1. **Offense is still on the older token set** and its own type scale. Nothing
+   in Players was bent toward it.
+2. **`--gi-cond` has only a 700 weight bundled**, so every `600 … var(--gi-cond)`
+   declaration in Players, Defense and Special Teams resolves to 700. Shared by
+   all three comps; not a Players decision to make alone.
+3. **The identity column is airy at 1920** in the three-column and five-column
+   roles — Kicking / Punting leaves ~650px between a name and its first figure.
+   Every accepted Defense and Special Teams table behaves the same way at that
+   width. A wide-viewport tier that widens measurements the way the stacked
+   band does would close it; not introduced here, because it is a cross-report
+   decision and the current read is airy rather than wrong.
+4. **Special Teams joining the shared report header** and the context bar
+   wrapping long game names remain shared-chrome items already recorded against
+   Special Teams; Players carries the same context-bar treatment and does not
+   propose its own.
