@@ -432,9 +432,22 @@ ok(JSON.stringify(result.watch?.refs) === JSON.stringify(['g-self::1']),
   'A native Matchup row opens the exact cross-game-safe film cohort it displays', JSON.stringify(result.watch));
 
 console.log('\n== 2aa. Matchup cohort boundaries remain honest ==');
+/* The season this section borrows, captured before it touches anything. The
+   guard below section 2b proves it came back byte-for-byte AND that nothing
+   the section queued landed afterwards -- a partial restore, or a debounced
+   commit left in flight, rewrites games[0].name through gameName() and shows
+   up hundreds of assertions later as a LATER section's export appearing to
+   mutate canonical data. */
+await page.evaluate(() => { window.__seasonBeforeMatchup = JSON.stringify(window.app.storage.seasonStore.data); });
 result = await page.evaluate(async () => {
   const app = window.app;
-  const saved = { games: app.storage.seasonStore.data.games, active: app.storage.seasonStore.data.activeGameId, watch: app.filmNavigation.watch };
+  /* The COMPLETE season payload, not just games + activeGameId. `_loadActiveGame()`
+     normalizes the node it reads back into the store -- filling gameInfo
+     defaults and renaming through gameName() -- so a partial restore leaves
+     canonical data changed and a later section reads that as its own export
+     mutating the season. */
+  const snapshot = JSON.stringify(app.storage.seasonStore.data);
+  const saved = { watch: app.filmNavigation.watch };
   const calls = [];
   const play = (id, unit, tags = {}) => ({ id, timestamp:{start:id*3,end:id*3+2}, tags:{unit,custom:[],players:{},grades:{},...tags}, notes:'', analysis:null });
   const def = (id, type) => play(id, 'defense', { defFront:'4-2-5', coverage:'Cover 3', runPass:type.includes('Run')?'Run':'Pass', playType:type, result:'Gain', yardage:'4' });
@@ -462,20 +475,53 @@ result = await page.evaluate(async () => {
     note:pane.querySelector('.gi-mu-note')?.textContent||'',
     joins:[...pane.querySelectorAll('table.gi-mu-decision tbody tr')].map(row=>row.children[1]?.textContent.trim()),
   };
-  app.filmNavigation.watch=saved.watch; app.storage.seasonStore.data.games=saved.games; app.storage.seasonStore.data.activeGameId=saved.active; await app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent=''; app.reportsScreen.matchupTab='our-offense';
-  /* Swapping the season out and back queues a debounced commit. Left in
-     flight it lands inside a LATER section's before/after comparison and
-     rewrites games[0].name through gameName(), which reads as that section's
-     export mutating canonical data. Cancel it here, where this block's own
-     fixture is being put away. */
+  app.filmNavigation.watch=saved.watch;
+  const restored=JSON.parse(snapshot);
+  app.storage.seasonStore.data.games=restored.games;
+  app.storage.seasonStore.data.activeGameId=restored.activeGameId;
+  await app.storage._loadActiveGame();
+  app.reportsScreen.matchupOpponent=''; app.reportsScreen.matchupTab='our-offense';
+  /* The load above normalized what it just read, so the pristine snapshot goes
+     back LAST. Then cancel the debounced commit the season swap queued: left in
+     flight it lands inside a later section's before/after comparison. */
+  const pristine=JSON.parse(snapshot);
+  for(const key of Object.keys(app.storage.seasonStore.data)) if(!(key in pristine)) delete app.storage.seasonStore.data[key];
+  Object.assign(app.storage.seasonStore.data,pristine);
   app.storage._cancelPendingSaves();
-  return {refs,types,empty};
+  return {refs,types,empty,restored:JSON.stringify(app.storage.seasonStore.data)===snapshot};
 });
 ok(JSON.stringify(result.refs)===JSON.stringify(['match-self::1']),'Matchup row film uses the same eligible cohort as its count',JSON.stringify(result.refs));
+/* A block that swaps the season out has to put it back byte-for-byte, or the
+   next section measures its own subject against a season this one changed. */
+ok(result.restored,'the Matchup cohort block restores the season it borrowed exactly');
 /* The composition no longer truncates a play-type table, so the subject is
    the RANKING itself: most charted first, then the displayed name ascending. */
 ok(result.types[0]==='Deep Pass'&&JSON.stringify(result.types.slice(1))===JSON.stringify(['Medium Pass','Run Inside','Run Outside','Screen','Short Pass']),'Matchup ranks defensive concepts by frequency with a deterministic tie-break',JSON.stringify(result.types));
 ok(result.empty.directions.length===1&&result.empty.directions[0]==='Our Offense vs Their Defense'&&result.empty.note.includes('Opponent offense not charted')&&result.empty.joins.every(text=>text==='No data'),'Incomplete tags cannot fabricate a matchup lane',JSON.stringify(result.empty));
+/* Settle past the autosave debounce first (`_autoSave` arms a 1000ms timer):
+   the point of the guard is that nothing this section left in flight can
+   still land on a later one, so it has to outlast the timer it is checking
+   for. At 400ms the guard passed while the commit was still armed, and the
+   damage surfaced 800 assertions later instead. */
+await sleep(1400);
+const seasonGuard = await page.evaluate(() => {
+  const now = JSON.stringify(window.app.storage.seasonStore.data);
+  if (now === window.__seasonBeforeMatchup) return { same: true, diff: '' };
+  const a = JSON.parse(window.__seasonBeforeMatchup), b = JSON.parse(now), diff = [];
+  const walk = (x, y, path) => {
+    if (JSON.stringify(x) === JSON.stringify(y)) return;
+    if (typeof x !== 'object' || typeof y !== 'object' || !x || !y) {
+      diff.push(`${path}: ${JSON.stringify(x)} -> ${JSON.stringify(y)}`); return;
+    }
+    for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) walk(x[key], y[key], `${path}.${key}`);
+  };
+  walk(a, b, '');
+  return { same: false, diff: diff.slice(0, 6).join(' | ') };
+});
+ok(seasonGuard.same,
+  'the Matchup cohort section leaves the season exactly as it found it, with nothing queued behind it',
+  seasonGuard.diff);
+
 console.log('\n== 2b. Defense is season-wide, performance-first, and film-exact ==');
 // Loaded as the REAL active season (not a standalone plays array handed
 // straight to defensivePerformance()) so the DOM assertions below exercise
@@ -1208,7 +1254,15 @@ result = await page.evaluate(async () => {
 }
 
 result = await page.evaluate(async () => {
-  const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),original=window.ffaSaveBlob;
+  const app=window.app;
+  /* Disarm any autosave an EARLIER section left armed before taking the
+     baseline. The subject here is whether the EXPORT writes canonical data;
+     a debounced commit queued elsewhere landing inside this window says
+     nothing about the export and reads as a false positive. Anything the
+     export itself arms is still armed after this point, so the assertion
+     keeps its teeth. */
+  app.storage._cancelPendingSaves();
+  const before=JSON.stringify(app.storage.seasonStore.data),original=window.ffaSaveBlob;
   let capture=null,pending=null;window.ffaSaveBlob=(blob,name)=>{pending=blob.text().then(html=>{capture={html,name};});};
   const ok=app.season.exportHtml();await pending;window.ffaSaveBlob=original;
   return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before,
@@ -1224,7 +1278,11 @@ ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(resul
   JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged,selfGames:result.selfGames,allGames:result.allGames}));
 
 result = await page.evaluate(async () => {
-  const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),save=window.ffaSaveBlob;
+  const app=window.app;
+  /* Same reason as the season export above: disarm an autosave an earlier
+     section left armed, so this measures the exports and not the debounce. */
+  app.storage._cancelPendingSaves();
+  const before=JSON.stringify(app.storage.seasonStore.data),save=window.ffaSaveBlob;
   const retired=['_renderTeamStats','_renderEfficiency','_renderDownAnalysis','_renderSituational','_renderDrives','_renderTendencies','_renderPersonnel','_renderBigPlays','_renderPenalties','_renderIndividualStats'];
   const retiredAbsent=retired.every(key=>typeof app.stats[key]!=='function');
   const captures=[];const pending=[];window.ffaSaveBlob=(blob,name)=>{pending.push(blob.text().then(html=>captures.push({html,name})));};
