@@ -443,7 +443,7 @@ result = await page.evaluate(async () => {
     { id:'match-self', gameInfo:{opponent:'Wildcats',perspective:'self'}, plays:[play(1,'offense',{formation:'Trips',runPass:'Run',playType:'Run Outside',result:'Gain',yardage:'8'}),play(2,'offense',{formation:'Trips'}),def(3,'Run Inside')] },
     { id:'match-scout', gameInfo:{opponent:'Wildcats',perspective:'scout'}, plays:[play(1,'offense',{formation:'Bunch',runPass:'Pass',playType:'Short Pass',result:'Gain',yardage:'6'}),def(10,'Run Inside'),def(11,'Run Outside'),def(12,'Screen'),def(13,'Short Pass'),def(14,'Medium Pass'),def(15,'Deep Pass'),def(16,'Deep Pass'),def(17,'Deep Pass'),def(18,'Deep Pass'),def(19,'Deep Pass')] },
   ];
-  app.storage.seasonStore.data.activeGameId='match-self'; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.matchupTab='our-offense'; app.reportsScreen.selectTab('matchup');
+  app.storage.seasonStore.data.activeGameId='match-self'; await app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.matchupTab='our-offense'; app.reportsScreen.selectTab('matchup');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   let pane=document.querySelector('[data-pane="matchup"]');
   pane.querySelector('.gi-mu-compare:not(.is-opp) .gi-mu-film button')?.click();
@@ -454,7 +454,7 @@ result = await page.evaluate(async () => {
     {id:'empty-self',gameInfo:{opponent:'Wildcats',perspective:'self'},plays:[play(1,'offense',{formation:'Trips'})]},
     {id:'empty-scout',gameInfo:{opponent:'Wildcats',perspective:'scout'},plays:[def(1,'Run Inside')]},
   ];
-  app.storage.seasonStore.data.activeGameId='empty-self'; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.selectTab('matchup');
+  app.storage.seasonStore.data.activeGameId='empty-self'; await app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.selectTab('matchup');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   pane=document.querySelector('[data-pane="matchup"]');
   const empty={
@@ -462,7 +462,13 @@ result = await page.evaluate(async () => {
     note:pane.querySelector('.gi-mu-note')?.textContent||'',
     joins:[...pane.querySelectorAll('table.gi-mu-decision tbody tr')].map(row=>row.children[1]?.textContent.trim()),
   };
-  app.filmNavigation.watch=saved.watch; app.storage.seasonStore.data.games=saved.games; app.storage.seasonStore.data.activeGameId=saved.active; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent=''; app.reportsScreen.matchupTab='our-offense';
+  app.filmNavigation.watch=saved.watch; app.storage.seasonStore.data.games=saved.games; app.storage.seasonStore.data.activeGameId=saved.active; await app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent=''; app.reportsScreen.matchupTab='our-offense';
+  /* Swapping the season out and back queues a debounced commit. Left in
+     flight it lands inside a LATER section's before/after comparison and
+     rewrites games[0].name through gameName(), which reads as that section's
+     export mutating canonical data. Cancel it here, where this block's own
+     fixture is being put away. */
+  app.storage._cancelPendingSaves();
   return {refs,types,empty};
 });
 ok(JSON.stringify(result.refs)===JSON.stringify(['match-self::1']),'Matchup row film uses the same eligible cohort as its count',JSON.stringify(result.refs));

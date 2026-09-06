@@ -140,8 +140,11 @@ const SEASON_DEFENSE = [
 const game = (id, opponent, perspective, plays, week) => ({
   id, name: `${perspective === 'scout' ? 'Scout' : `Week ${week}`} vs ${opponent}`,
   nextId: plays.length + 1,
-  plays: plays.map((row, i) => ({ id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 },
-    notes: '', annotations: [], tags: { custom: [], players: {}, grades: {}, quarter: 'Q1', ...row } })),
+  /* `__penalties` on a fixture row becomes the play's own `penalties` list --
+     a penalty lives on the PLAY, not in its tags. */
+  plays: plays.map(({ __penalties, ...row }, i) => ({ id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 },
+    notes: '', annotations: [], penalties: __penalties || [],
+    tags: { custom: [], players: {}, grades: {}, quarter: 'Q1', ...row } })),
   gameInfo: { opponent, date: `2026-09-0${week || 1}`, week: String(week || 1), projectName: opponent,
     perspective, scoreUs: 21, scoreThem: 14 },
   annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
@@ -156,6 +159,52 @@ const FULL = () => [
 const PARTIAL = () => [
   game('g1', 'Northgate', 'self', [...SEASON_OFFENSE, ...SEASON_DEFENSE], 1),
   game('scout-hc', 'Holy Cross', 'scout', [...SCOUT_DEFENSE], 3),
+];
+/* ── The join's edges, isolated so every figure below is hand-checkable ────
+   A nullified penalty snap, a call charted only as a CONCEPT, the same
+   multi-select front charted in two selection orders, and four cohorts whose
+   contributing game counts genuinely differ. Nothing here shares a fixture
+   with the populated board, so each expected number stands alone. */
+const EDGE = () => [
+  game('e-both', 'Northgate', 'self', [
+    /* Our answer to their `4-2-5 + Nickel`, charted in the OTHER order. */
+    ...rep(3, () => off({ formation: 'Trips', personnel: '11', playCall: 'Inside Zone', playConcept: 'Zone',
+      runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10',
+      defFront: 'Nickel + 4-2-5', coverage: 'Cover 3' })),
+    ...rep(2, () => off({ formation: 'Trips', personnel: '11', playCall: 'Verts', runPass: 'Pass',
+      playType: 'Deep Pass', result: 'Gain', yardage: '9', down: '3', distance: '9',
+      defFront: 'Bear', coverage: 'Cover 6' })),
+    /* Our answer to a concept-only opponent call: these carry BOTH a play call
+       and that concept, so a matcher that re-derives `playCall || playConcept`
+       misses them entirely. */
+    ...rep(3, () => def({ defFront: '4-4', coverage: 'Cover 3', personnel: '11', formation: 'Trips',
+      playCall: 'Inside Zone', playConcept: 'Zone', runPass: 'Run', playType: 'Run Inside',
+      result: 'No Gain', yardage: '2', down: '1', distance: '10' })),
+  ], 1),
+  /* Charted on OFFENSE only: it contributes to the offensive sample and must
+     not appear in the defensive one. */
+  game('e-off', 'Northgate', 'self', rep(3, () => off({ formation: 'Ace', personnel: '12', playCall: 'Power',
+    runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5', down: '1', distance: '10',
+    defFront: 'Odd', coverage: 'Cover 1' })), 2),
+  /* Their DEFENSE only. The same front is charted in both selection orders,
+     and one Deep Pass snap is nullified by an accepted penalty. */
+  game('e-scout-def', 'Riverside', 'scout', [
+    ...rep(2, () => def({ defFront: '4-2-5 + Nickel', coverage: 'Cover 3', runPass: 'Run',
+      playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' })),
+    ...rep(2, () => def({ defFront: 'Nickel + 4-2-5', coverage: 'Cover 3', runPass: 'Run',
+      playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' })),
+    def({ defFront: 'Bear', coverage: 'Cover 6', runPass: 'Pass', playType: 'Deep Pass',
+      result: 'Gain', yardage: '2', down: '3', distance: '9' }),
+    def({ defFront: 'Bear', coverage: 'Cover 6', runPass: 'Pass', playType: 'Deep Pass',
+      result: 'Gain', yardage: '99', down: '3', distance: '9',
+      __penalties: [{ team: 'defense', foul: 'Pass Interference', disposition: 'accepted',
+        yards: 15, playCounts: false }] }),
+  ], 3),
+  /* Their OFFENSE only, and their call is charted as a CONCEPT with no play
+     call at all. */
+  game('e-scout-off', 'Riverside', 'scout', rep(3, () => off({ personnel: '11', formation: 'Trips',
+    playConcept: 'Zone', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5',
+    down: '1', distance: '10' })), 4),
 ];
 /* Empty: our own film only, with no defensive structure and no opponent film,
    so no opponent unit exists at all. */
@@ -638,7 +687,80 @@ if (process.argv.includes('--capture')) {
   console.log(`\ncaptures written to ${dir}`);
 }
 
-console.log('\n== 18. Opening Matchup writes nothing ==');
+/* ══ 18. The join's edges ═════════════════════════════════════════════════ */
+console.log('\n== 18. The join\'s edges ==');
+await load(EDGE(), 'Riverside');
+const edge = await model();
+
+/* A nullified penalty snap is not a defensive rep. Their 3rd & 7+ cohort is
+   two Deep Pass snaps charted Bear | Cover 6, one gaining 2 and one gaining
+   99 on a penalty that wiped the play out. Measured raw that reads 2 snaps at
+   50.5 yards allowed, with both plays in the film cohort. */
+const edgeDeep = edge.offense.playTypes.opponent.find(row => row.label === 'Deep Pass');
+ok(edgeDeep.n === 1 && edgeDeep.yardsPerPlay === 2 && edgeDeep.refs.length === 1
+  && edgeDeep.refs[0] === 'e-scout-def::5',
+  'a nullified penalty snap is excluded from the defensive measurement and its film cohort',
+  JSON.stringify(edgeDeep));
+const edgeLong = edge.offense.situations.find(row => row.key === 'third-long');
+ok(edgeLong.opponent.n === 1 && edgeLong.opponent.eligible === 1
+  && !edgeLong.opponent.refs.includes('e-scout-def::6'),
+  'a nullified penalty snap sets no call frequency, no Rate and no opponent film reference',
+  JSON.stringify(edgeLong.opponent));
+ok(edge.opponent.defense === 5,
+  'the opponent defensive sample counts only the snaps the report can measure', String(edge.opponent.defense));
+
+/* The same front charted in two selection orders is ONE call, and it answers
+   our own snaps charted in the other order. */
+const edgeFirst = edge.offense.situations.find(row => row.key === 'first');
+ok(edgeFirst.opponent.label === '4-2-5 + Nickel | Cover 3 | No Blitz' && edgeFirst.opponent.n === 4,
+  'a multi-select front charted in two selection orders groups as one call',
+  JSON.stringify(edgeFirst.opponent));
+ok(edgeFirst.season && edgeFirst.season.label === 'Trips | Inside Zone' && edgeFirst.season.n === 3,
+  'a season snap charted in the other selection order still answers that call',
+  JSON.stringify(edgeFirst.season));
+
+/* Their call is charted as a CONCEPT with no play call. Ours carries both a
+   play call and that concept, so the join must compare the concept field the
+   display came from. */
+const edgeDef = edge.defense.situations.find(row => row.key === 'first');
+ok(edgeDef.opponent.label === '11 | Trips | Zone',
+  'a concept-only opponent call displays the concept it was charted as', JSON.stringify(edgeDef.opponent));
+ok(edgeDef.season && edgeDef.season.label === '4-4 | Cover 3 | No Blitz' && edgeDef.season.n === 3
+  && edgeDef.season.stopRate === 100,
+  'a concept-charted call is answered by season snaps carrying that concept',
+  JSON.stringify(edgeDef.season));
+const callFields = await page.evaluate(() => {
+  const Engine = window.app.stats.constructor;
+  const conceptOnly = { tags: { playConcept: 'Zone' } };
+  const both = { tags: { playCall: 'Inside Zone', playConcept: 'Zone' } };
+  const look = Engine._matchupOffenseLook(conceptOnly);
+  return { field: look.callField, call: look.call,
+    matches: Engine._matchupMatchesOffenseLook(both, look),
+    callLook: Engine._matchupOffenseLook(both).callField };
+});
+ok(callFields.field === 'playConcept' && callFields.call === 'Zone' && callFields.matches
+  && callFields.callLook === 'playCall',
+  'the displayed call remembers which field produced it and matches that same field',
+  JSON.stringify(callFields));
+
+/* Four cohorts, four independent game counts. */
+const counts = await page.evaluate(() => [...document.querySelectorAll('.gi-mu-unit small')]
+  .map(node => node.textContent.trim()));
+ok(edge.season.offenseGames === 2 && edge.season.defenseGames === 1
+  && edge.opponent.defenseGames === 1 && edge.opponent.offenseGames === 1 && edge.opponent.games === 2,
+  'each of the four cohorts carries its own contributing game count',
+  JSON.stringify({ season: edge.season, opponent: edge.opponent }));
+ok(JSON.stringify(counts) === JSON.stringify(['2 games | 8 plays', '1 game | 5 snaps']),
+  'the offense-facing unit headers state their own cohort\'s games, not a combined count',
+  JSON.stringify(counts));
+await setDirection('Our Defense vs Their Offense');
+const defCounts = await page.evaluate(() => [...document.querySelectorAll('.gi-mu-unit small')]
+  .map(node => node.textContent.trim()));
+ok(JSON.stringify(defCounts) === JSON.stringify(['1 game | 3 snaps', '1 game | 3 plays']),
+  'an offense-only game never inflates the defensive sample beside it', JSON.stringify(defCounts));
+await load(FULL(), 'St. Mary Falcons');
+
+console.log('\n== 19. Opening Matchup writes nothing ==');
 const untouched = await page.evaluate(async () => {
   const app = window.app;
   const before = JSON.stringify(app.storage.seasonStore.data);
@@ -656,7 +778,7 @@ const untouched = await page.evaluate(async () => {
 });
 ok(untouched, 'opening Matchup and switching opponent or direction writes nothing to canonical season data');
 
-console.log('\n== 19. Page health ==');
+console.log('\n== 20. Page health ==');
 ok(errors.length === 0, 'zero page or console errors across every state', errors.slice(0, 3).join(' | '));
 
 await browser.close();

@@ -954,17 +954,21 @@ export function matchupPersonnelRows(rows) {
  *  denominator and are never summed into one figure. */
 export function matchupSample(model) {
   const opponent = model.opponent, season = model.season;
+  /* Each of the four unit headers states the games that contributed to THAT
+     cohort. A game charted on offense only must not inflate the defensive
+     sample beside it, so no header may borrow another's count. The summary
+     line above them is the opponent's film as a whole, which is the one place
+     a combined game count is the honest number. */
   return {
     opponent: `${muGames(opponent.games)} | ${opponent.defense} defense | ${opponent.offense} offense`,
-    season: `${muGames(season.games)} | ${season.offense} offense | ${season.defense} defense`,
     units: {
       offense: {
-        season: `${muGames(season.games)} | ${season.offense} plays`,
-        opponent: `${muGames(opponent.games)} | ${opponent.defense} snaps`,
+        season: `${muGames(season.offenseGames)} | ${season.offense} plays`,
+        opponent: `${muGames(opponent.defenseGames)} | ${opponent.defense} snaps`,
       },
       defense: {
-        season: `${muGames(season.games)} | ${season.defense} snaps`,
-        opponent: `${muGames(opponent.games)} | ${opponent.offense} plays`,
+        season: `${muGames(season.defenseGames)} | ${season.defense} snaps`,
+        opponent: `${muGames(opponent.offenseGames)} | ${opponent.offense} plays`,
       },
     },
   };

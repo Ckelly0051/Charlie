@@ -706,6 +706,37 @@ nonblank displayed component exactly, through the same canonical projection
 that produced it. With no exact match the row reads `No matching snaps` at
 copy weight and prints no measurement — never a fabricated zero.
 
+**A displayed call remembers which FIELD produced it.** `_matchupCall` returns
+the call and its `callField` — `playCall`, or `playConcept` as the fallback
+every other call consumer here uses — and the matcher compares that same
+field. Re-deriving `playCall || playConcept` on the season side silently
+missed every snap that carried both: an opponent row showing a charted concept
+`Zone` never matched our own `Inside Zone` snaps that were also tagged `Zone`,
+and reported `No matching snaps` against a cohort that existed.
+
+**A multi-select identity is order-independent.** A `" + "`-joined tag stores
+SELECTION order, which carries no football meaning, so `_matchupSet`
+deduplicates and joins components in canonical order for both the key and the
+label. Without it `4-2-5 + Nickel` and `Nickel + 4-2-5` split one opponent
+call into two — halving each one's frequency and Rate — and a season snap
+charted in the other order produced a false `No matching snaps`.
+
+**A nullified penalty snap is not a defensive rep.** `defensiveCohortMetrics`
+applies `_tryPenaltyResolved` itself, so the contract belongs to the owner
+rather than to each caller, and `matchupReport` applies it to both defensive
+cohorts before anything RANKS them — a snap wiped out by an accepted penalty
+must set no call frequency, no Rate and no film reference either, not merely
+stay out of the average. A 2-yard snap beside a nullified 99-yard snap
+reported 2 snaps at 50.5 yards allowed with both plays in the cut-up.
+Offensive cohorts go through `compute()`, which is the canonical Offense
+report's own cohort rule.
+
+**Four cohorts, four independent game counts.** Each unit header states the
+games that contributed to THAT cohort — a game charted on offense only must
+never inflate the defensive sample stated beside it, and the same holds for
+the opponent's two units. Only the summary line above them carries a combined
+count, because the opponent's film as a whole is the one thing it describes.
+
 **Polarity is per COHORT, not per lane.** A lane holds both cohorts: our
 offensive production reports Yards / Play and Success Rate, their defense
 Yards / Play Allowed and Stop Rate, and the two are never interchanged.
@@ -983,8 +1014,9 @@ both directions, the five situations, opponent-call ranking and its
 tie-break, the Rate denominator, the exact season-side joins and
 `No matching snaps`, the no-blitz versus uncharted-defense distinction,
 per-cohort metric polarity, the supporting sections, the partial and empty
-states, the separate `Opponent` / `Season` film cohorts and 1440/1280
-containment, 59).
+states, the separate `Opponent` / `Season` film cohorts, the nullified-penalty
+exclusion, order-independent multi-select identities, field-faithful call
+matching, per-cohort game counts and 1440/1280 containment, 71).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

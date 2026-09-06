@@ -627,9 +627,9 @@ export class StatsEngine {
    *  front or a coverage, where the absence is a decision the coach recorded.
    *  A snap with no defensive structure at all produces no call. */
   static _matchupDefenseLook(play) {
-    const front = StatsEngine.splitFronts(play.tags.defFront).filter(Boolean).join(' + ');
+    const front = StatsEngine._matchupSet(StatsEngine.splitFronts(play.tags.defFront));
     const coverage = StatsEngine.proj(play).coverage || '';
-    const pressure = StatsEngine.splitBlitzes(play.tags.blitz).filter(Boolean).join(' + ')
+    const pressure = StatsEngine._matchupSet(StatsEngine.splitBlitzes(play.tags.blitz))
       || (StatsEngine.isNoBlitz(play) ? StatsEngine.MATCHUP_NO_BLITZ : '');
     const parts = [front, coverage, pressure].filter(Boolean);
     return parts.length ? { label: parts.join(' | '), front, coverage, pressure } : null;
@@ -641,19 +641,49 @@ export class StatsEngine {
    *  never relabelled as a named play call. */
   static _matchupOffenseLook(play) {
     const personnel = String(play.tags.personnel || '').trim();
-    const formation = StatsEngine.splitFormations(StatsEngine.proj(play).formation).filter(Boolean).join(' + ');
-    const call = String(play.tags.playCall || play.tags.playConcept || '').trim();
+    const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+    const { call, callField } = StatsEngine._matchupCall(play);
     const parts = [personnel, formation, call].filter(Boolean);
-    return parts.length ? { label: parts.join(' | '), personnel, formation, call } : null;
+    return parts.length ? { label: parts.join(' | '), personnel, formation, call, callField } : null;
   }
 
   /** Our own offensive answer: Formation | Call — the two components the comp
    *  displays for `Our Top Call vs Same Look` on the offense-facing tab. */
   static _matchupAnswerLook(play) {
-    const formation = StatsEngine.splitFormations(StatsEngine.proj(play).formation).filter(Boolean).join(' + ');
-    const call = String(play.tags.playCall || play.tags.playConcept || '').trim();
+    const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+    const { call, callField } = StatsEngine._matchupCall(play);
     const parts = [formation, call].filter(Boolean);
-    return parts.length ? { label: parts.join(' | '), formation, call } : null;
+    return parts.length ? { label: parts.join(' | '), formation, call, callField } : null;
+  }
+
+  /** A multi-value tag as ONE order-independent identity. The stored string is
+   *  a `" + "`-joined SELECTION order that carries no football meaning, so two
+   *  charts of the same set must not split one call into two — or, worse, fail
+   *  to match each other and report a false `No matching snaps`. Components
+   *  are deduplicated and joined in canonical order, and that canonical order
+   *  is what the board displays. */
+  static _matchupSet(parts) {
+    return [...new Set((parts || []).filter(Boolean))].sort().join(' + ');
+  }
+
+  /** The coach's own call for this play, and WHICH field carried it. Matching
+   *  has to compare the same field the display came from: an opponent row
+   *  showing a charted CONCEPT must be answered by season snaps carrying that
+   *  concept, not silently missed because those snaps also carry a more
+   *  specific play call. `playCall` first, `playConcept` as the fallback —
+   *  the same precedence every other call consumer in this file uses. */
+  static _matchupCall(play) {
+    const call = String(play?.tags?.playCall || '').trim();
+    if (call) return { call, callField: 'playCall' };
+    const concept = String(play?.tags?.playConcept || '').trim();
+    return concept ? { call: concept, callField: 'playConcept' } : { call: '', callField: '' };
+  }
+
+  /** Distinct games contributing to one cohort. Each of the four cohorts on
+   *  the board is counted on its own terms: a game charted on offense only
+   *  must never inflate the defensive sample beside it. */
+  static _matchupGameCount(plays) {
+    return new Set((plays || []).map(play => play.__gid).filter(gid => gid != null).map(String)).size;
   }
 
   /** Group a cohort by call identity, keeping every contributing play so the
@@ -683,18 +713,20 @@ export class StatsEngine {
    *  `No Blitz` matches only a snap the no-blitz convention itself admits,
    *  never an untagged one. A filter is never widened to fill a row. */
   static _matchupMatchesDefenseLook(play, look) {
-    if (look.front && StatsEngine.splitFronts(play.tags.defFront).filter(Boolean).join(' + ') !== look.front) return false;
+    if (look.front && StatsEngine._matchupSet(StatsEngine.splitFronts(play.tags.defFront)) !== look.front) return false;
     if (look.coverage && (StatsEngine.proj(play).coverage || '') !== look.coverage) return false;
     if (look.pressure === StatsEngine.MATCHUP_NO_BLITZ) return StatsEngine.isNoBlitz(play);
-    if (look.pressure && StatsEngine.splitBlitzes(play.tags.blitz).filter(Boolean).join(' + ') !== look.pressure) return false;
+    if (look.pressure && StatsEngine._matchupSet(StatsEngine.splitBlitzes(play.tags.blitz)) !== look.pressure) return false;
     return true;
   }
 
-  /** The same exact-match rule for a displayed offensive look. */
+  /** The same exact-match rule for a displayed offensive look. The call is
+   *  compared against the FIELD that produced the displayed value, never
+   *  against a re-derived `playCall || playConcept`. */
   static _matchupMatchesOffenseLook(play, look) {
     if (look.personnel && String(play.tags.personnel || '').trim() !== look.personnel) return false;
-    if (look.formation && StatsEngine.splitFormations(StatsEngine.proj(play).formation).filter(Boolean).join(' + ') !== look.formation) return false;
-    if (look.call && String(play.tags.playCall || play.tags.playConcept || '').trim() !== look.call) return false;
+    if (look.formation && StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation)) !== look.formation) return false;
+    if (look.call && String(play.tags[look.callField] || '').trim() !== look.call) return false;
     return true;
   }
 
@@ -786,7 +818,7 @@ export class StatsEngine {
     return StatsEngine._matchupRank(coverages).map(group => {
       const faced = (seasonPlays || []).filter(play => (StatsEngine.proj(play).coverage || '') === group.label);
       const calls = StatsEngine._matchupGroup(faced, play => {
-        const call = String(play.tags.playCall || play.tags.playConcept || '').trim();
+        const { call } = StatsEngine._matchupCall(play);
         return call ? { label: call } : null;
       });
       const top = StatsEngine._matchupRank(calls)[0] || null;
@@ -804,7 +836,7 @@ export class StatsEngine {
   _matchupPersonnelRows(seasonPlays, oppPlays) {
     const same = play => {
       const personnel = String(play.tags.personnel || '').trim();
-      const formation = StatsEngine.splitFormations(StatsEngine.proj(play).formation).filter(Boolean).join(' + ');
+      const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation));
       return (personnel && formation) ? { label: `${personnel} | ${formation}`, personnel, formation } : null;
     };
     return StatsEngine._matchupRank(StatsEngine._matchupGroup(oppPlays, same)).map(group => {
@@ -866,16 +898,31 @@ export class StatsEngine {
     const want = oppName || this._activeOpponent();
     const opponent = data.opponents.find(item => item.name === want) || data.opponents[0] || null;
     if (!opponent) return { opponents: [], opponent: null, season: null, offense: null, defense: null };
-    const seasonGames = new Set([...data.yourOff, ...data.yourDef]
-      .map(play => play.__gid).filter(gid => gid != null).map(String)).size;
+    /* A nullified or unresolved penalty snap is not a defensive rep. The
+       canonical Defense report drops it before it measures anything, and
+       Matchup has to drop it before it RANKS anything too -- otherwise the
+       snap still sets a call's frequency, its Rate, and its film cohort even
+       where it no longer moves the average. Offensive cohorts go through
+       compute(), which is the canonical Offense report's own cohort rule. */
+    const ourDefense = (data.yourDef || []).filter(StatsEngine._tryPenaltyResolved);
+    const theirDefense = (opponent.defPlays || []).filter(StatsEngine._tryPenaltyResolved);
+    /* Four cohorts, four independent game counts. A game charted on offense
+       only must never inflate the defensive sample stated beside it. */
+    const count = StatsEngine._matchupGameCount;
     return {
-      opponents: data.opponents.map(item => ({ name: item.name, games: item.games,
+      opponents: data.opponents.map(item => ({ name: item.name,
         offense: item.offPlays.length, defense: item.defPlays.length })),
-      opponent: { name: opponent.name, games: opponent.games,
-        offense: opponent.offPlays.length, defense: opponent.defPlays.length },
-      season: { games: seasonGames, offense: data.yourOff.length, defense: data.yourDef.length },
-      offense: opponent.defPlays.length ? this._matchupOffenseLane(data.yourOff, opponent.defPlays) : null,
-      defense: opponent.offPlays.length ? this._matchupDefenseLane(data.yourDef, opponent.offPlays) : null,
+      opponent: {
+        name: opponent.name, games: opponent.games,
+        offense: opponent.offPlays.length, offenseGames: count(opponent.offPlays),
+        defense: theirDefense.length, defenseGames: count(theirDefense),
+      },
+      season: {
+        offense: data.yourOff.length, offenseGames: count(data.yourOff),
+        defense: ourDefense.length, defenseGames: count(ourDefense),
+      },
+      offense: theirDefense.length ? this._matchupOffenseLane(data.yourOff, theirDefense) : null,
+      defense: opponent.offPlays.length ? this._matchupDefenseLane(ourDefense, opponent.offPlays) : null,
     };
   }
 
@@ -1205,7 +1252,13 @@ export class StatsEngine {
    * play with no resolvable film ref dropped from `refs` rather than failing
    * the whole report (`allowUnlinkedPlays`).
    */
-  defensiveCohortMetrics(cohort) {
+  defensiveCohortMetrics(rawCohort) {
+    /* The penalty filter is part of the contract, not of the caller.
+       `defensivePerformance` applies `_tryPenaltyResolved` to its own source
+       before it ever gets here, so this is a no-op for that report; it is what
+       stops a second consumer measuring a nullified or unresolved snap as a
+       real defensive rep. */
+    const cohort = (rawCohort || []).filter(StatsEngine._tryPenaltyResolved);
     const metrics = this.metricsEngine();
     const legacyOptions = { missingAsZero: true, allowUnlinkedPlays: true };
     const stopRate = metrics.metric(cohort, 'stopRate', {}, legacyOptions);
@@ -1240,10 +1293,11 @@ export class StatsEngine {
     // dropped from `refs` rather than failing the whole report
     // (`allowUnlinkedPlays`) -- both opt-ins, never the new module's honest
     // default; see analytics-metrics.js's docblock for why.
-    const summarize = (name, cohort) => ({
-      name, ...this.defensiveCohortMetrics(cohort),
-      sharePct: source.length ? +(cohort.length / source.length * 100).toFixed(1) : 0,
-    });
+    const summarize = (name, cohort) => {
+      const measured = this.defensiveCohortMetrics(cohort);
+      return { name, ...measured,
+        sharePct: source.length ? +(measured.n / source.length * 100).toFixed(1) : 0 };
+    };
 
     const run = source.filter(StatsEngine.isRun);
     const pass = source.filter(StatsEngine.isPass);
