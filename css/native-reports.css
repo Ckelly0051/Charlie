@@ -135,21 +135,8 @@
   .gi-reports .gi-glance{border-left:0;border-top:1px solid var(--gi-6);padding:var(--gi-4x) 0 0}
   .gi-reports .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
-/* .season-summary used to carry its own rounded/accent-border card look from
-   an earlier design pass. The season KPI hero markup is `class="gi-hero
-   season-summary"` — it now reuses the `.gi-hero`/`.gi-kpi` primitive (see
-   SeasonManager._renderHeader), and this rule's `display:flex;flex-wrap:wrap`
-   was fighting `.gi-hero`'s own `display:grid;grid-template-columns:repeat
-   (auto-fit,minmax(...))`, winning on source order. Grid's `auto-fit` collapses
-   empty tracks and grows real ones to fill the row — flex-wrap with no
-   flex-grow on `.gi-kpi` does not, which is exactly why 8 season tiles left a
-   158px blank rectangle at the end of the row while the persistent game-scope
-   rail (same primitive, no season-summary override) never had this problem.
-   Removed rather than patched, so both KPI rail contexts share one behavior. */
-.gi-reports .gi-subnav{display:flex;overflow-x:auto;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
 .gi-reports .gi-subtab{min-height:var(--gi-control);padding:0 var(--gi-4x);border:0;border-bottom:2px solid transparent;background:transparent;color:var(--gi-11);font:600 12px/1 var(--gi-sans)}
 .gi-reports .gi-subtab.active{color:var(--gi-12);border-bottom-color:var(--gi-los)}
-.gi-reports .gi-subpane{display:none}.gi-reports .gi-subpane.active{display:block}
 .gi-reports-watch-row{display:flex;flex-wrap:wrap;gap:var(--gi-2x)}
 .gi-reports-watch,.gi-reports-unit-head .gi-reports-watch{
   min-height:var(--gi-control);display:inline-flex;align-items:center;gap:var(--gi-3x);
@@ -745,9 +732,6 @@
 .gi-reports-tabs{background:var(--gi-1);box-shadow:inset 0 -1px 0 var(--gi-7)}
 .gi-reports-tab{min-height:46px;color:var(--gi-11);font-size:13px;font-weight:700}
 .gi-reports-tab.active{background:var(--gi-4);color:var(--gi-12);border-bottom:3px solid var(--gi-los)}
-.gi-reports .gi-subnav{background:var(--gi-1);border-bottom:1px solid var(--gi-7)}
-.gi-reports .gi-subnav button{min-height:42px;color:var(--gi-11);font-size:12.5px;font-weight:700}
-.gi-reports .gi-subnav button.active{background:var(--gi-4);color:var(--gi-12);border-bottom:3px solid var(--gi-los)}
 .gi-reports .tm-cell .tm-count{font-size:15px;font-weight:750;color:var(--gi-12)}
 .gi-reports .tm-cell .tm-split,.gi-reports .tm-cell .tm-succ{font-size:12px}
 .gi-reports .gi-matchup-head{border-radius:0;color:var(--gi-on-solid);font-size:14px;letter-spacing:0}
@@ -1669,38 +1653,261 @@
 @media(max-width:1050px){.gi-reports .gi-matchup-pair{grid-template-columns:minmax(0,1fr)}.gi-reports .gi-matchup-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.gi-reports .gi-matchup-toolbar{align-items:stretch;flex-direction:column}.gi-reports .gi-matchup-toolbar label{min-width:0}.gi-reports .gi-matchup-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* Native Season: compact trend small multiples, labels stay inside each module. */
-.gi-season-native>.season-summary>.gi-hero{width:100%}
-.gi-season-native .gi-season-trend{min-width:0;padding:10px;border-left:2px solid var(--gi-7);background:var(--gi-2)}
-.gi-season-native .gi-season-trend h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;color:var(--text-dim)}
-.gi-season-native .gi-season-trend>div{display:flex;align-items:flex-end;gap:6px;height:110px}
-.gi-season-native .gi-season-trend>div>span{display:grid;grid-template-rows:1fr auto;align-items:end;min-width:0;flex:1;height:100%}
-.gi-season-native .gi-season-trend i{display:block;height:var(--h);min-height:4px;background:var(--accent);border-top:2px solid var(--gi-los)}
-.gi-season-native .gi-season-trend small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:var(--text-dim);padding-top:4px}
-@media(max-width:800px){.gi-season-native .gi-trend-grid{grid-template-columns:1fr}.gi-season-native .gi-subnav{overflow-x:auto}}
-/* Native Season report identity and season-source labels. */
-.gi-season-native .gi-season-heading{display:flex;align-items:baseline;gap:12px;padding:2px 0 10px;border-bottom:2px solid var(--gi-7);color:var(--text-dim);text-transform:uppercase;font:700 11px/1 var(--gi-sans);letter-spacing:0}
-.gi-season-native .gi-season-heading strong{color:var(--text);font:700 16px/1 var(--gi-cond);text-transform:none}
-.gi-season-native .gi-season-heading small{margin-left:auto;color:var(--text-dim);font:500 11px/1 var(--gi-sans);text-transform:none}
-.gi-season-native .gi-season-stack{display:grid;gap:12px}
-.gi-season-native .gi-overview-drive{grid-template-columns:minmax(120px,180px) 1fr 52px}
-.gi-season-native .gi-overview-drive>span{display:flex;align-items:baseline;gap:7px;min-width:0}
-.gi-season-native .gi-overview-drive>span>em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);font:500 10px/1 var(--gi-sans);font-style:normal}
-.gi-season-native .trend-legend{display:flex;justify-content:space-between;gap:16px;margin:0 0 8px;color:var(--text-dim);font:600 10px/1 var(--gi-sans)}
-@media(max-width:700px){.gi-season-native .gi-season-heading small{display:none}.gi-season-native .gi-overview-drive{grid-template-columns:minmax(92px,140px) 1fr 44px}}
-/* Season responsive composition: deliberate rows, never an orphan tile or wrapped tab bar. */
-.gi-season-native .gi-sc-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
-.gi-season-native .gi-subtab{flex:0 0 auto;white-space:nowrap}
+/* ══════════════════════════════════════════════════════════════════════════
+   REPORTS · SEASON — the approved 2026-09-05 composition
+   (design-comps/reports-season-2026-09-05). Season owns its identity bar, its
+   six aggregate KPIs, the Game Log, Situational Offense, Scoring &
+   Possessions and the Trends comparisons; every other section reuses its own
+   approved board unchanged, so nothing below styles a child report.
+   ══════════════════════════════════════════════════════════════════════════ */
+.gi-reports .gi-season-board{
+  /* Measured from the widest thing each column actually holds -- its own
+     header or a real charted value -- so a header is never clipped and the
+     same measurement is the same width in every Season table. */
+  --se-wk:96px;     /* Week -- holds Scrimmage, not just a number */
+  --se-dt:88px;     /* Date -- "Aug 21" */
+  --se-res:84px;    /* Result -- header-driven */
+  --se-sc:88px;     /* Score -- "28-14" */
+  --se-num:76px;    /* Plays, Rush, Pass, Total */
+  --se-rate:128px;  /* Success Rate -- the widest header on the board */
+  --se-third:108px; /* 3rd Down */
+  --se-yards:124px; /* Total Yards */
+  --se-td:60px;     /* TD */
+  --se-to:80px;     /* TO +/- */
+  --se-win:88px;    /* First N, Last N, Wins, Losses */
+  --se-delta:124px; /* Delta -- "-0.4 yds/play" */
+  --se-status:88px; /* Status */
+  --se-label:200px; /* floor for a game, opponent or metric label */
+  display:block;width:100%;margin:0;padding:0;
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
+}
+/* The report canvas is capped and centred, the same geometry every approved
+   Reports board carries. */
+.gi-reports .gi-season-report{
+  display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:1px;
+  width:min(100%,1648px);margin:0 auto;background:var(--gi-bd-line);border:1px solid var(--gi-bd-line)
+}
+/* The revised comp adds separation above the Season board at 1400 and wider;
+   1280 density is unchanged. The gap is INSIDE the board, not a margin on it:
+   the route pane behind carries its own light surface, and a margin exposed a
+   12px band of it across the full width. */
+@media(min-width:1400px){ .gi-reports .gi-season-board{ padding-top:12px } }
+
+.gi-reports .gi-season-identity{
+  grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);
+  padding:0 var(--gi-3x);background:var(--gi-bd-panel);white-space:nowrap
+}
+.gi-reports .gi-season-identity span{ color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans) }
+.gi-reports .gi-season-identity strong{ color:var(--gi-bd-strong);font:600 12px/1 var(--gi-sans) }
+
+.gi-reports .gi-season-nav{
+  grid-column:2;display:flex;align-items:stretch;gap:0;margin:0;background:var(--gi-bd-stage)
+}
+.gi-reports .gi-season-nav .gi-subtab{
+  flex:1 1 0;min-height:38px;padding:0 var(--gi-3x);border:0;background:var(--gi-bd-stage);
+  color:var(--gi-bd-copy);font:600 12px/1 var(--gi-sans);letter-spacing:0;text-transform:none;
+  cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-season-nav .gi-subtab:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
+.gi-reports .gi-season-nav .gi-subtab:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-season-nav .gi-subtab.active{
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)
+}
+.gi-reports .gi-season-acts{ grid-column:3;display:flex;align-items:stretch;background:var(--gi-bd-panel) }
+.gi-reports .gi-season-acts .btn{
+  display:inline-flex;align-items:center;min-width:104px;min-height:38px;padding:0 var(--gi-3x);
+  border:0;background:transparent;color:var(--gi-bd-copy);font:var(--gi-text-label);cursor:pointer;white-space:nowrap
+}
+.gi-reports .gi-season-acts .btn:hover{ background:var(--gi-bd-control-active);color:var(--gi-bd-strong) }
+.gi-reports .gi-season-acts .btn:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-season-acts .btn:active{ background:var(--gi-bd-line);color:var(--gi-bd-strong) }
+
+.gi-reports .gi-season-sections{ grid-column:1/-1;background:transparent }
+
+/* Season's own six aggregate KPIs. The record tile carries the board's gold,
+   the way the comp marks the one figure a coach looks for first. */
+.gi-reports .gi-season-board .gi-overview-kpis{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;
+  margin:0;border:0;background:var(--gi-bd-line)
+}
+.gi-reports .gi-season-board .gi-overview-kpi{
+  min-width:0;padding:10px var(--gi-3x) 12px;border:0;border-left:3px solid var(--gi-bd-bone);
+  background:var(--gi-bd-panel)
+}
+.gi-reports .gi-season-board .gi-overview-kpi>span{
+  display:block;color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-season-board .gi-overview-kpi>strong{
+  display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 29px/1 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap
+}
+.gi-reports .gi-season-board .gi-overview-kpi.is-record{ border-left-color:var(--gi-bd-gold) }
+.gi-reports .gi-season-board .gi-overview-kpi.is-record>strong{ color:var(--gi-bd-gold) }
+.gi-reports .gi-season-board .gi-overview-kpi.is-pos>strong{ color:var(--gi-bd-win) }
+.gi-reports .gi-season-board .gi-overview-kpi.is-neg>strong{ color:var(--gi-bd-loss) }
+/* An absence is never a headline figure. */
+.gi-reports .gi-season-board .gi-overview-kpi.is-blank>strong{ color:var(--gi-bd-muted);font:700 17px/1.7 var(--gi-cond) }
+
+/* One ruled reporting surface: bands and modules meet on thin rules, never on
+   a four-pixel gutter between floating cards. */
+.gi-reports .gi-season-band{ display:grid;gap:1px;align-items:stretch;margin:0;background:transparent }
+.gi-reports .gi-season-band.b-1{ grid-template-columns:minmax(0,1fr) }
+/* The two comparison panels are read together, so they take equal width and
+   their metric rows line up across the gap. A band half is ~583px at 1280, so
+   the shared label column gives room back there: at the full-width step the
+   five-column Early vs Recent table asks for 608px and engages a scroller. */
+.gi-reports .gi-season-band.b-2{ grid-template-columns:repeat(2,minmax(0,1fr));--se-label:150px;--se-win:104px }
+.gi-reports .gi-season-band.b-64{ grid-template-columns:1.15fr .85fr }
+.gi-reports .gi-season-band>.gi-season-module+.gi-season-module{ box-shadow:-1px 0 var(--gi-bd-line) }
+.gi-reports .gi-season-band .gi-season-module{ border-top:1px solid var(--gi-bd-line) }
+
+.gi-reports .gi-season-module{
+  min-width:0;padding:10px var(--gi-3x) 12px;border:0;background:var(--gi-bd-panel);position:relative
+}
+.gi-reports .gi-season-module>header{
+  display:flex;align-items:baseline;gap:var(--gi-2x);min-height:0;margin:0 0 8px;padding:0;border:0
+}
+.gi-reports .gi-season-module>header strong{
+  color:var(--gi-bd-cyan);font:700 14px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
+}
+.gi-reports .gi-season-none{
+  margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)
+}
+
+/* Situational Offense: label and value, nothing else. */
+.gi-reports .gi-season-metrics{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-season-metric{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-3x);
+  min-height:52px;padding:0 var(--gi-3x);background:var(--gi-bd-control)
+}
+.gi-reports .gi-season-metric>span{
+  min-width:0;color:var(--gi-bd-copy);font:400 13px/52px var(--gi-sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.gi-reports .gi-season-metric>strong{
+  flex:0 0 auto;color:var(--gi-bd-strong);font:700 19px/52px var(--gi-cond);font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-season-metric>strong.is-blank{ color:var(--gi-bd-muted);font:400 13px/52px var(--gi-sans) }
+
+/* Tables. Qualified by the ELEMENT: the shared `.gi-reports .gi-overview-module
+   table` rule carries an element selector and would otherwise outrank a bare
+   class, silently discarding the fixed layout and the colgroup while still
+   rendering plausibly. */
+.gi-reports .gi-season-module .gi-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
+.gi-reports .gi-season-module table.gi-season-table,
+.gi-reports .gi-season-module table.gi-season-quarters{
+  width:100%;table-layout:fixed;border-collapse:collapse;background:transparent
+}
+.gi-reports .gi-season-module table.gi-season-table col.label{ width:var(--se-label) }
+.gi-reports .gi-season-module table.gi-season-table col.wk{ width:var(--se-wk) }
+.gi-reports .gi-season-module table.gi-season-table col.dt{ width:var(--se-dt) }
+.gi-reports .gi-season-module table.gi-season-table col.res{ width:var(--se-res) }
+.gi-reports .gi-season-module table.gi-season-table col.sc{ width:var(--se-sc) }
+.gi-reports .gi-season-module table.gi-season-table col.num{ width:var(--se-num) }
+.gi-reports .gi-season-module table.gi-season-table col.rate{ width:var(--se-rate) }
+.gi-reports .gi-season-module table.gi-season-table col.third{ width:var(--se-third) }
+.gi-reports .gi-season-module table.gi-season-table col.yards{ width:var(--se-yards) }
+.gi-reports .gi-season-module table.gi-season-table col.td{ width:var(--se-td) }
+.gi-reports .gi-season-module table.gi-season-table col.to{ width:var(--se-to) }
+.gi-reports .gi-season-module table.gi-season-table col.win{ width:var(--se-win) }
+.gi-reports .gi-season-module table.gi-season-table col.delta{ width:var(--se-delta) }
+.gi-reports .gi-season-module table.gi-season-table col.status{ width:var(--se-status) }
+.gi-reports .gi-season-module table.gi-season-table th,
+.gi-reports .gi-season-module table.gi-season-table td,
+.gi-reports .gi-season-module table.gi-season-quarters th,
+.gi-reports .gi-season-module table.gi-season-quarters td{
+  height:38px;padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-bd-line);
+  font-size:13px;white-space:nowrap;text-align:right
+}
+/* The route-wide `th{position:sticky;top:42px}` is measured against the wrap
+   once the wrap becomes a scroll container, which pins the header 42px down
+   over its own first data row -- the correction every approved board needs. */
+.gi-reports .gi-season-module table.gi-season-table th,
+.gi-reports .gi-season-module table.gi-season-quarters th{
+  position:relative;top:auto;z-index:auto;background:transparent;
+  color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);
+  text-transform:uppercase;letter-spacing:0;user-select:none
+}
+.gi-reports .gi-season-module table.gi-season-table th{ cursor:pointer }
+.gi-reports .gi-season-module table.gi-season-quarters th{ cursor:default }
+.gi-reports .gi-season-module table.gi-season-table td,
+.gi-reports .gi-season-module table.gi-season-quarters td{
+  color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-season-module table.gi-season-table th:first-child,
+.gi-reports .gi-season-module table.gi-season-table td:first-child,
+.gi-reports .gi-season-module table.gi-season-quarters th.tl,
+.gi-reports .gi-season-module table.gi-season-quarters td.tl{
+  padding-left:var(--gi-4x)
+}
+.gi-reports .gi-season-module table.gi-season-table th:last-child,
+.gi-reports .gi-season-module table.gi-season-table td:last-child,
+.gi-reports .gi-season-module table.gi-season-quarters th:last-child,
+.gi-reports .gi-season-module table.gi-season-quarters td:last-child{ padding-right:var(--gi-4x) }
+.gi-reports .gi-season-module table.gi-season-table tbody tr:last-child td{ border-bottom:0 }
+/* An uncharted game's measurements are absent, not zero, so they carry the
+   one approved literal at copy weight. */
+.gi-reports .gi-season-module table.gi-season-table td.blank{ color:var(--gi-bd-muted);font-size:12px;font-weight:400 }
+.gi-reports .gi-season-module table.gi-season-table td.tl.blank{ color:var(--gi-bd-muted);font-weight:400 }
+/* The label column is the anchor: it holds a floor, absorbs the slack, and
+   truncates rather than overrunning into the measurements. */
+.gi-reports .gi-season-module table.gi-season-table th.tl,
+.gi-reports .gi-season-module table.gi-season-table td.tl{
+  min-width:var(--se-label);text-align:left;color:var(--gi-bd-strong);font-weight:600;
+  overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-season-module table.gi-season-table th.tl{ color:var(--gi-bd-copy);font-weight:600 }
+.gi-reports .gi-season-module table.gi-season-quarters td.tl{ color:var(--gi-bd-strong);font-weight:600;text-align:left }
+.gi-reports .gi-season-module table.gi-season-quarters th.tl{ text-align:left }
+.gi-reports .gi-season-module table.gi-season-quarters tfoot td{
+  color:var(--gi-bd-strong);font-weight:600;border-top:2px solid var(--gi-bd-line);border-bottom:0
+}
+.gi-reports .gi-season-module table.gi-season-table th:hover{ color:var(--gi-bd-strong) }
+.gi-reports .gi-season-module table.gi-season-table th:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-season-module table.gi-season-table th.is-sorted{ color:var(--gi-bd-strong);box-shadow:inset 0 -2px var(--gi-bd-cyan) }
+.gi-reports .gi-season-module table.gi-season-table th.is-sorted::before{
+  position:absolute;right:var(--gi-3x);bottom:1px;color:var(--gi-bd-cyan);font-size:11px;line-height:1;pointer-events:none
+}
+.gi-reports .gi-season-module table.gi-season-table th:last-child.is-sorted::before{ right:var(--gi-4x) }
+.gi-reports .gi-season-module table.gi-season-table th.is-sorted.is-desc::before{ content:'\2193' }
+.gi-reports .gi-season-module table.gi-season-table th.is-sorted.is-asc::before{ content:'\2191' }
+
+/* Result, margin and delta tone. Win/loss and gain/loss keep the tones the
+   accepted boards already use for the same two ideas. */
+.gi-reports .gi-season-res{ font-weight:700 }
+.gi-reports .gi-season-res.is-w{ color:var(--gi-bd-win) }
+.gi-reports .gi-season-res.is-l{ color:var(--gi-bd-loss) }
+.gi-reports .gi-season-res.is-t{ color:var(--gi-bd-copy) }
+.gi-reports .gi-season-module td .is-pos{ color:var(--gi-bd-win);font-weight:600 }
+.gi-reports .gi-season-module td .is-neg{ color:var(--gi-bd-loss);font-weight:600 }
+.gi-reports .gi-season-delta{ font-weight:700 }
+.gi-reports .gi-season-delta.is-up{ color:var(--gi-bd-win) }
+.gi-reports .gi-season-delta.is-down{ color:var(--gi-bd-loss) }
+.gi-reports .gi-season-delta.is-flat{ color:var(--gi-bd-copy) }
+
+@media(max-width:1120px){
+  .gi-reports .gi-season-board .gi-overview-kpis{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+  .gi-reports .gi-season-band.b-2,
+  .gi-reports .gi-season-band.b-64{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-season-band.b-2>.gi-season-module+.gi-season-module,
+  .gi-reports .gi-season-band.b-64>.gi-season-module+.gi-season-module{
+    box-shadow:none;border-top:1px solid var(--gi-bd-line)
+  }
+}
+@media(max-width:1000px){
+  .gi-reports .gi-season-report{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-season-identity,.gi-reports .gi-season-nav,.gi-reports .gi-season-acts{ grid-column:1 }
+  .gi-reports .gi-season-nav{ overflow-x:auto }
+  .gi-reports .gi-season-nav .gi-subtab{ flex:0 0 auto }
+  .gi-reports .gi-season-metrics{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+}
 @media(max-width:1320px){
   .gi-reports .gi-reports-reporthead{flex-wrap:wrap;gap:8px}
   .gi-reports .gi-reports-reporthead .gi-reports-tabs{order:4;flex-basis:100%}
 }
-@media(max-width:900px){.gi-season-native .gi-sc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:520px){
-  .gi-season-native .gi-sc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .gi-season-native .gi-overview-module>header{align-items:flex-start;flex-direction:column;gap:3px}
-}
-.gi-season-native .gi-subnav{flex-wrap:nowrap;margin:0}
 
 /* ══════════════════════════════════════════════════════════════════════════
    REPORTS · OFFENSE — approved six-zone composition

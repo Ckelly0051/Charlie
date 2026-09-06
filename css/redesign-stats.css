@@ -164,11 +164,6 @@
 }
 
 /* ---- Season tab: game-by-game trend line charts ---- */
-.gi-reports .gi-trend-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-}
 .gi-reports .gi-trend {
   background: var(--gi-card-2);
   border: 1px solid var(--gi-line);
@@ -200,31 +195,6 @@
 .gi-reports .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
 .gi-reports .gi-trend-legend span:last-child { text-align: right; }
 
-/* ---- Season tab header: map the legacy .season-summary onto the .gi-hero
-   KPI-card look so it matches the Game/Offense heroes. Scoped to :is(.stats-overlay,.gi-reports)
-   only — the legacy Season modal (.season-overlay) and the standalone export
-   keep their own .season-summary styling untouched. ---- */
-.gi-reports .season-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-  gap: 10px;
-  background: none;
-  padding: 0;
-  margin-bottom: 16px;
-  justify-content: stretch;
-}
-
-/* ---- Season tab sub-navigation (Overview / Breakdown / Players / Self-Scout).
-   The structural show/hide is UNSCOPED so it also drives the legacy Season
-   modal (.season-overlay), which renders the same statsHtml(); the nav colors
-   use var fallbacks so they read in either overlay. ---- */
-.gi-subnav {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin: 2px 0 16px;
-  border-bottom: 1px solid var(--gi-line, #2a3340);
-}
 .gi-subtab {
   background: none;
   border: none;
@@ -244,82 +214,6 @@
   color: var(--gi-accent, #3b82f6);
   border-bottom-color: var(--gi-accent, #3b82f6);
 }
-.gi-subpane { display: none; }
-.gi-subpane.active { display: block; }
-
-/* ==================================================================== */
-/* SEASON ANALYTICS (v1.10.2) — scorecard, turnovers/scoring, identity,  */
-/* win-loss. All scoped under :is(.stats-overlay,.gi-reports), on the harmonized palette.  */
-/* ==================================================================== */
-
-/* --- Situational scorecard: a grid of stat tiles --- */
-.gi-reports .gi-sc-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px;
-}
-.gi-reports .gi-sc-tile {
-  background: var(--gi-card-2); border: 1px solid var(--gi-line);
-  border-radius: 10px; padding: 11px 13px; text-align: left;
-}
-.gi-reports .gi-sc-label {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gi-faint);
-}
-.gi-reports .gi-sc-val {
-  font-family: var(--gi-display); font-weight: 700; font-size: 30px; line-height: 1.05;
-  margin-top: 6px; color: var(--gi-text); font-variant-numeric: tabular-nums;
-}
-.gi-reports .gi-sc-sub { font-size: 11px; color: var(--gi-dim); margin-top: 3px; }
-.gi-reports .gi-sc-tile.tone-good .gi-sc-val { color: var(--gi-green); }
-.gi-reports .gi-sc-tile.tone-warn .gi-sc-val { color: var(--gi-amber); }
-.gi-reports .gi-sc-tile.tone-bad  .gi-sc-val { color: var(--gi-red); }
-
-/* --- Turnovers & scoring --- */
-.gi-reports .gi-ts-grid { display: grid; grid-template-columns: minmax(140px, 0.7fr) 2fr; gap: 12px; }
-.gi-reports .gi-ts-margin {
-  background: var(--gi-card-2); border: 1px solid var(--gi-line); border-radius: 10px;
-  padding: 12px 14px; display: flex; flex-direction: column; justify-content: center;
-}
-.gi-reports .gi-ts-margin-val {
-  font-family: var(--gi-display); font-weight: 700; font-size: 40px; line-height: 1; margin: 4px 0 3px;
-  color: var(--gi-text); font-variant-numeric: tabular-nums;
-}
-.gi-reports .gi-ts-margin.tone-good .gi-ts-margin-val { color: var(--gi-green); }
-.gi-reports .gi-ts-margin.tone-bad  .gi-ts-margin-val { color: var(--gi-red); }
-.gi-reports .gi-ts-quarters {
-  background: var(--gi-card-2); border: 1px solid var(--gi-line); border-radius: 10px; padding: 12px 14px;
-}
-.gi-reports .gi-q-key { float: right; font-size: 10px; color: var(--gi-dim); font-weight: 500; text-transform: none; letter-spacing: 0; }
-.gi-reports .gi-q-key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 3px 0 8px; vertical-align: -1px; }
-.gi-reports .gi-q-key i.us { background: var(--gi-green); }
-.gi-reports .gi-q-key i.them { background: var(--gi-red); }
-.gi-reports .gi-q-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.gi-reports .gi-q-lbl { width: 26px; font-size: 11px; font-weight: 700; color: var(--gi-dim); font-family: var(--gi-display); }
-.gi-reports .gi-q-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-.gi-reports .gi-q-bar {
-  height: 15px; border-radius: 3px; min-width: 14px; display: flex; align-items: center; justify-content: flex-end;
-  padding-right: 5px; font-size: 10px; font-weight: 700; color: #06120b; font-variant-numeric: tabular-nums;
-}
-.gi-reports .gi-q-bar.us { background: var(--gi-green); }
-.gi-reports .gi-q-bar.them { background: var(--gi-red); color: #1a0606; }
-
-/* --- Offensive identity: two usage columns --- */
-.gi-reports .gi-id-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.gi-reports .gi-id-head {
-  font-size: 11px; font-weight: 700; color: var(--gi-text); letter-spacing: 0.04em; text-transform: uppercase;
-  padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--gi-line-soft);
-  display: flex; justify-content: space-between;
-}
-.gi-reports .gi-id-head span { color: var(--gi-faint); font-weight: 500; font-size: 9.5px; letter-spacing: 0.05em; }
-.gi-reports .gi-id-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.gi-reports .gi-id-name { width: 92px; font-size: 12px; color: var(--gi-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gi-reports .gi-id-bar { flex: 1; height: 7px; background: var(--gi-line-soft); border-radius: 4px; overflow: hidden; }
-.gi-reports .gi-id-bar > div { height: 100%; background: var(--accent); border-radius: 4px; }
-.gi-reports .gi-id-use { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--gi-text); font-variant-numeric: tabular-nums; }
-.gi-reports .gi-id-succ { width: 38px; text-align: right; font-size: 12px; color: var(--gi-dim); font-variant-numeric: tabular-nums; }
-
-/* --- Wins vs Losses table + per-game INT± cells --- */
-.gi-reports .gi-wl-table td:nth-child(2),.gi-reports .gi-wl-table th:nth-child(2) { text-align: right; }
-.gi-reports .gi-wl-table td:nth-child(3),.gi-reports .gi-wl-table th:nth-child(3) { text-align: right; }
-
 /* --- Exact play-call analysis: dense tables, no decorative empty panels ---
    `.gi-call-grid` is retired: the Offense composition places Play calls and
    Concepts as peer modules in a band, so the band owns those two columns and
@@ -333,5 +227,4 @@
 
 @media (max-width: 640px) {
   .gi-reports .gi-call-context-grid { grid-template-columns: 1fr; }
-  .gi-reports .gi-ts-grid,.gi-reports .gi-id-grid { grid-template-columns: 1fr; }
 }

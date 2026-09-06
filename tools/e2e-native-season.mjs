@@ -63,14 +63,14 @@ ok(state.route === 'reports' && state.classicHidden && !state.legacy,
   'More opens the native Reports route without revealing or recreating the legacy modal', JSON.stringify(state));
 
 await page.click('[data-report-tab="season"]');
-await page.waitForFunction(() => document.querySelector('[data-native-main-report][data-pane="season"] .season-summary'));
+await page.waitForFunction(() => document.querySelector('[data-native-main-report][data-pane="season"] .gi-season-board'));
 state = await page.evaluate(() => ({
-  // Reports redesign (item A): the season KPI rail is now the same .gi-hero/
-  // .gi-kpi primitive the game-scope persistent rail uses (see
-  // ReportsScreen._syncKpiRail), not the retired .ss-stat/.ss-num markup.
-  summary: [...document.querySelectorAll('[data-pane="season"] .season-summary .gi-kpi')].map(card => ({
-    value: card.querySelector('.gi-kpi-value')?.textContent.trim(),
-    label: card.querySelector('.gi-kpi-label')?.textContent.trim(),
+  // The approved 2026-09-05 Season composition puts the season's own six
+  // aggregate KPIs in the shared Reports KPI band, above the Game Log, in
+  // place of the previous .gi-hero rail.
+  summary: [...document.querySelectorAll('[data-pane="season"] .gi-season-board .gi-overview-kpi')].map(card => ({
+    value: card.querySelector('strong')?.textContent.trim(),
+    label: card.querySelector('span')?.textContent.trim(),
   })),
   subTabs: [...document.querySelectorAll('[data-pane="season"] .gi-subtab')].map(button => button.textContent.trim()),
   model: (() => { const model = window.app.season.reportModel(); return { yards: model.stats.rushing.yards + model.stats.passing.yards, refs: model.allPlays.map(play => window.app.stats.constructor._compositeRef(play)).filter(Boolean).sort() }; })(),

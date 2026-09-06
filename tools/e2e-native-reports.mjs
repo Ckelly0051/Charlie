@@ -359,13 +359,12 @@ result = await page.evaluate(async () => {
   const findModule = title => [...pane.querySelectorAll('.gi-overview-module')].find(node => node.querySelector(':scope > header > strong')?.textContent.trim() === title);
   const clicks = [];
   const clickModuleRow = title => { const module=findModule(title), row=module?.querySelector('tbody tr[role="button"]'); clicks.push({title,found:!!module,row:!!row,available:[...pane.querySelectorAll('.gi-overview-module > header > strong')].map(node=>node.textContent.trim())}); row?.click(); };
+  // The approved 2026-09-05 Season composition replaced the generic Overview
+  // board with the Game Log, so the surface that names each source game is
+  // now the log's own Opponent column rather than Big plays and Drives.
   const sourceGames = {
-    big: [...(findModule('Big plays')?.querySelectorAll('tbody tr td:first-child') || [])].map(cell => cell.textContent.trim()),
-    drives: [...pane.querySelectorAll('.gi-overview-drives em')].map(node => node.textContent.trim()),
+    log: [...pane.querySelectorAll('.gi-season-table tbody tr td:nth-child(3)')].map(cell => cell.textContent.trim()),
   };
-  clickModuleRow('Big plays');
-  const drive = pane.querySelector('.gi-overview-drives [role="button"]');
-  drive?.click();
   await clickTab('offense');
   clickModuleRow('Play calls');
   await clickTab('players');
@@ -386,16 +385,14 @@ result = await page.evaluate(async () => {
   return { watches, direct, sourceGames, clicks };
 });
 const exactSeasonRefs = ['season-a::1', 'season-b::1'];
-ok(result.sourceGames.big.length === 2 && new Set(result.sourceGames.big).size === 2 && result.sourceGames.big.every(Boolean)
-    && result.sourceGames.drives.length === 2 && new Set(result.sourceGames.drives).size === 2 && result.sourceGames.drives.every(Boolean),
-  'Season Big Plays and Drives visibly name their two distinct source games', JSON.stringify(result.sourceGames));ok(Object.values(result.direct).every(refs => JSON.stringify(refs) === JSON.stringify(exactSeasonRefs)),
+ok(result.sourceGames.log.length === 2 && new Set(result.sourceGames.log).size === 2 && result.sourceGames.log.every(Boolean),
+  'The Season Game Log visibly names its two distinct source games', JSON.stringify(result.sourceGames));
+ok(Object.values(result.direct).every(refs => JSON.stringify(refs) === JSON.stringify(exactSeasonRefs)),
   'Season big plays, drives, calls, and players stamp the exact two-game cohort despite duplicate bare ids', JSON.stringify(result.direct));
-ok(result.watches.length === 4
-    && result.watches[0].length === 1 && exactSeasonRefs.includes(result.watches[0][0])
-    && result.watches[1].length === 1 && exactSeasonRefs.includes(result.watches[1][0])
-    && JSON.stringify(result.watches[2]) === JSON.stringify(exactSeasonRefs)
-    && JSON.stringify(result.watches[3]) === JSON.stringify(exactSeasonRefs),
-  'Native Season rows open their exact film: one source play/drive, both games for the aggregated call/player', JSON.stringify({watches:result.watches,clicks:result.clicks}));
+ok(result.watches.length === 2
+    && JSON.stringify(result.watches[0]) === JSON.stringify(exactSeasonRefs)
+    && JSON.stringify(result.watches[1]) === JSON.stringify(exactSeasonRefs),
+  'A Season child-board row opens both games for the aggregated call and player', JSON.stringify({watches:result.watches,clicks:result.clicks}));
 console.log('\n== 2a. Matchup is native, two-sided, and film-exact ==');
 result = await page.evaluate(async () => {
   const app = window.app;
@@ -1191,10 +1188,17 @@ result = await page.evaluate(async () => {
   const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),original=window.ffaSaveBlob;
   let capture=null,pending=null;window.ffaSaveBlob=(blob,name)=>{pending=blob.text().then(html=>{capture={html,name};});};
   const ok=app.season.exportHtml();await pending;window.ffaSaveBlob=original;
-  return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
+  return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before,
+    // The export must report the SAME Our Program cohort the screen does: the
+    // season on screen at this point carries one self game and one opponent
+    // scout, and a scout game is not one of our games.
+    selfGames:app.season._selfGames().length,allGames:app.season._effectiveGames().length};
 });
-ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html) && /2 games, \d+ charted plays/.test(result.html) && result.unchanged,
-  'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data', JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged}));
+ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html)
+    && result.selfGames === 1 && result.allGames === 2
+    && new RegExp(`${result.selfGames} games, \\d+ charted plays`).test(result.html) && result.unchanged,
+  'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data',
+  JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged,selfGames:result.selfGames,allGames:result.allGames}));
 
 result = await page.evaluate(async () => {
   const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),save=window.ffaSaveBlob;

@@ -329,14 +329,14 @@ console.log('\n== 15. Season > Offense embeds the same board without duplicate i
 await load({ plays: FULL, tab: 'season' });
 // Season carries its own sub-tabs and opens on Overview; the embedded
 // OffenseTab only exists once its Offense sub-tab is selected.
-await page.evaluate(() => [...document.querySelectorAll('.gi-subnav .gi-subtab')]
+await page.evaluate(() => [...document.querySelectorAll('.gi-season-nav .gi-subtab')]
   .find(b => b.textContent.trim() === 'Offense')?.click());
 await sleep(700);
 const season = await page.evaluate(() => ({
   activeTab: window.app.reportsScreen.activeTab,
-  stack: document.querySelectorAll('.gi-season-stack').length,
+  stack: document.querySelectorAll('.gi-season-sections').length,
   boards: document.querySelectorAll('.gi-offense-board').length,
-  inStack: document.querySelectorAll('.gi-season-stack .gi-offense-board').length,
+  inStack: document.querySelectorAll('.gi-season-sections .gi-offense-board').length,
   z1: document.querySelectorAll('#gi-off-z1').length,
   navs: document.querySelectorAll('.gi-zone-nav').length,
 }));
@@ -344,19 +344,19 @@ ok(season.activeTab === 'season' && season.stack === 1,
   'the route is still on the Season tab -- a document-wide "Offense" lookup leaves it for the main tab of that name',
   JSON.stringify(season));
 ok(season.boards === 1 && season.inStack === 1,
-  'the Season tab renders exactly one offense board, inside the Season stack', JSON.stringify(season));
+  'the Season tab renders exactly one offense board, inside the Season section host', JSON.stringify(season));
 ok(season.z1 <= 1 && season.navs <= 1, 'no zone id or zone nav is duplicated across the mounted tabs', JSON.stringify(season));
 
 // SeasonOffense passes OffenseTab a plain shim object, not ReportsScreen, so
 // every method the tab calls has to exist on it. A season with no offensive
 // snaps renders the tab's empty state there, whose command is one such call.
 await load({ plays: [{ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }], tab: 'season' });
-await page.evaluate(() => [...document.querySelectorAll('.gi-subnav .gi-subtab')]
+await page.evaluate(() => [...document.querySelectorAll('.gi-season-nav .gi-subtab')]
   .find(b => b.textContent.trim() === 'Offense')?.click());
 await sleep(700);
 const seasonCta = await page.evaluate(async () => {
   if (window.app.reportsScreen.activeTab !== 'season') return { onSeason: false };
-  const cta = document.querySelector('.gi-season-stack .gi-reports-empty-cta');
+  const cta = document.querySelector('.gi-season-sections .gi-reports-empty-cta');
   if (!cta) return { onSeason: true, cta: false, threw: null, route: null };
   let threw = null;
   try { cta.click(); } catch (e) { threw = e.message; }

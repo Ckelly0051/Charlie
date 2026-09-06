@@ -566,6 +566,75 @@ for the same reason Special Teams and Players do.
 
 ---
 
+**Reports > Season is implemented and gate-verified, but NOT coach accepted.**
+Built to the approved comp (`design-comps/reports-season-2026-09-05`, whose
+RATIONALE is the decision record, including its Revision 2), at comps `4762557`
+and `2f92ab9`. No Charlie Gate and no installed smoke, so it is not accepted
+state.
+
+**Season is a CONTAINER, not a second set of reports.** It owns season identity
+and its seven-section navigation, the six aggregate KPIs, the chronological
+Game Log, Situational Offense, Scoring & Possessions, Early vs Recent, Wins vs
+Losses, Game-by-Game and the existing season export. Offense, Defense, Special
+Teams, Players and Self-Scout render their OWN approved production boards at
+full-season scope — no fork, no Season-specific variant. The Season-only
+`Offensive Identity` band, the `Wins vs Losses` table and the `Per-Game Box
+Score` that had been bolted onto Players are gone from those tabs; the two
+comparisons now live in Trends, where they belong, and Players is the approved
+Players board alone. Overview no longer renders the generic `OverviewTab`
+beneath its own modules.
+
+**Opponent-scout games are excluded from Our Program season totals.** They were
+not. `SeasonManager._effectiveGames()` returned every game, so a charted scout
+game put the opponent's offense into our yardage, success rate, turnover margin
+and record — and into the exported report. `_selfGames()` is the new Our
+Program cohort and `reportModel()`/`_allPlays()`/`exportHtml()` take it;
+`_effectiveGames()` stays unfiltered because `StatsEngine._allSeasonGames`
+reads it to build the Opponent Scout report, whose whole subject is that film.
+
+**Early vs Recent and Wins vs Losses are ONE metric list.**
+`SeasonManager.COMPARE_METRICS` holds the six — Success Rate, Yards / Play,
+3rd Down Rate, Points / Drive, TO Margin / Game, TD / Game — in the one order
+both panels use, and one cohort summariser (`_cohortSummary`) measures both, so
+the same label can never be measured two ways. Higher is better for all six, so
+a positive delta is always `Up`. Every delta names its own unit: percentage
+points (` pp`) for a rate, ` yds/play`, ` pts/drive`, `/game`. Printed
+unitless, a rate change and a raw change read as directly comparable numbers,
+which they are not. The Steady band is per metric: Success Rate 2pp, Yards /
+Play 0.3 and 3rd Down Rate 3pp are the thresholds the previous progression card
+already applied; Points / Drive and TO Margin / Game are new here and take 0.3,
+the band every other per-play and per-game measure on the list uses.
+
+**`TO Margin / Game` is per game.** It is the cohort's aggregate margin divided
+by that cohort's own game count, not the raw aggregate under a per-game label —
+and it reconciles with the `TO ±` column the Game Log shows, which itself sums
+to the aggregate Turnover Margin KPI. Points / Drive is computed with the game
+boundaries intact: the cohort's plays are the same objects `_allPlays()` already
+stamped with `__seasonGameIdx`, so drive reconstruction never merges possessions
+across a game boundary. Asserted, not assumed: season drives equal the sum of
+each game's own drives.
+
+**The window is dynamic.** N = min(4, floor(charted games / 2)), taken as the
+first N and the last N so the two windows never overlap; eight or more charted
+games always compares First 4 with Last 4, and the KPI labels say which. Fewer
+than two charted games keeps the concise Trends empty state.
+
+**The Game Log is the season's own chronology.** Oldest first through
+`SeasonStore.gamesChrono()`, so a preseason scrimmage dated before Week 1 sorts
+first on its date and never on its week text — the Week column prints
+`Scrimmage` verbatim. Week, date, opponent, result and score come from
+`gameInfo` directly; nothing scrapes them back out of a display name, and a
+game label falls back to the store's own `gameName()` helper. Rush, Pass and
+Total are yardage, not attempt strings, and the visible rows reconcile with the
+season total. A scheduled game with nothing charted keeps its row and reports
+`No data` at copy weight in every measured cell — an uncharted game is an
+absence, not a zero.
+
+**Season is NOT in `SCOREBUG_TABS`**, and `_syncKpiRail` already hid the
+game-scope rail on this tab: the board's own KPI band is its scope owner.
+
+---
+
 **Special Teams is NOT in `SCOREBUG_TABS`** and still renders the generic rail.
 Ruling 8: it takes the shared report header when that rolls across Reports, and
 no Special-Teams-only scorebug variant is invented. Export reuses the existing
@@ -656,14 +725,11 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Season now has a dedicated candidate comp
-   at `design-comps/reports-season-2026-09-05`, but it has not passed the
-   Charlie Gate and no production implementation follows from it yet. Matchup
-   still awaits its comp. Both use their existing report chrome until those
-   decisions are made. Players and
-   Self-Scout have had their design passes and are built, but stay OUT of
-   `SCOREBUG_TABS` for the same reason Special Teams does, so they also still
-   render the generic rail.
+4. **The remaining Reports tabs** — Matchup is the last one without a comp and
+   keeps its existing report chrome. Players, Self-Scout and Season have had
+   their design passes and are built, but stay OUT of `SCOREBUG_TABS` for the
+   same reason Special Teams does, so they also still render the generic rail
+   (Season deliberately renders no rail at all).
    **Reports > Special Teams Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT.
    **Reports > Players Charlie Gate** — populated real-data review at the
@@ -676,6 +742,17 @@ product is wrong.
    each cell across the panel; and `Yds / Play` prints `6` rather than `6.0`
    because `_selfScoutRows`' own `avg` is a number, which the legacy tables
    and the HTML export have always shared.
+   **Reports > Season Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT, plus an installed smoke. The
+   comp's four open decisions stand and are carried into it (`Yards / Game`
+   versus `Total Yards`, whether Situational Offense belongs on Overview or in
+   Trends, the compact quarter table versus the bar treatment, and what a Game
+   Log row should open). The Game Log row action is deliberately unbuilt until
+   that last one is answered. Two things to look at while reviewing: Wins vs
+   Losses is a three-column table, so its pair of values sits well right of the
+   metric label at 1440 and wider — the comp's own geometry; and `Games` counts
+   every scheduled Our Program game while `Yards / Game` divides by the charted
+   ones, which differ only when a game is scheduled but not yet charted.
    **Two approved Special Teams changes not yet built:** the context bar
    wrapping long game names at 1280 rather than clipping (shared shell owner;
    the shell's response to a taller bar still needs verifying), and Special
@@ -772,7 +849,11 @@ absence contract, the role-specific composite film cohorts and the Grade
 repair, 169) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
 composition, its title-only module headers, the composite defensive-call
 contract, both ranking rules, canonical metric reuse, exact film cohorts and
-1440/1280 containment, 89).
+1440/1280 containment, 90) and `tools/e2e-reports-season.mjs` (the Season
+composition, the opponent-scout exclusion, chronological ordering, Game Log
+reconciliation, the shared comparison metrics with their units and thresholds,
+the dynamic First N / Last N windows, per-game turnover margin, drive-boundary
+safety, and the child boards reused unchanged at season scope, 78).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

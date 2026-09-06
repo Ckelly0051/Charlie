@@ -74,7 +74,7 @@ let result = await page.evaluate(() => {
     perGame: model.perGame.map(row => row.name),
     refs: model.allPlays.map(play => app.stats.constructor._compositeRef(play)).filter(Boolean).sort(),
     text: pane?.textContent || '',
-    native: !!pane?.querySelector('.gi-season-native'),
+    native: !!pane?.querySelector('.gi-season-board'),
     tabs: [...(pane?.querySelectorAll('[data-subtab]') || [])].map(node => node.dataset.subtab),
     legacyAbsent: typeof app.season.statsHtml === 'undefined'
       && typeof app.stats._renderSeason === 'undefined'
@@ -90,8 +90,12 @@ ok(result.plays === 6 && result.perGame.join('|') === 'vs Wildcats|Week 2 vs Kni
   'Season aggregates every game in chronological order', JSON.stringify(result));
 ok(result.refs.join('|') === 'g-one::1|g-one::2|g-one::3|g-two::1|g-two::2|g-two::3',
   'Season film identity is composite and cannot collide across games', JSON.stringify(result.refs));
-ok(result.text.includes('Season Report') && result.text.includes('vs Wildcats')
-  && result.text.includes('Week 2 vs Knights'),
+// The approved 2026-09-05 Overview is the Game Log, Situational Offense and
+// Scoring & Possessions. The log names each game by its own charted opponent
+// rather than by a composed display name, so that is what proves the content.
+ok(result.text.includes('Season Report') && result.text.includes('Game Log')
+  && result.text.includes('Wildcats') && result.text.includes('Knights')
+  && result.text.includes('Situational Offense') && result.text.includes('Scoring & Possessions'),
   'Native Season overview renders the canonical season content', result.text.slice(0, 300));
 ok(result.tabs.join(',') === 'overview,offense,defense,special,players,scout,trends',
   'Season exposes all seven native report views', JSON.stringify(result.tabs));
