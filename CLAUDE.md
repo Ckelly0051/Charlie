@@ -561,8 +561,10 @@ behind its own count, accumulated in the same pass that increments it.
 survives the remount an ordinary Reports re-render causes, the same correction
 `playersSection` needed.
 
-**Self-Scout is NOT in `SCOREBUG_TABS`** and still renders the generic rail,
-for the same reason Special Teams and Players do.
+**Self-Scout is current-game scope.** It therefore keeps the shared current-game
+header and KPI rail. The chrome follows the report's real scope; it is not a
+reward for completing a design pass and must never imply a game scope for
+season or matchup data.
 
 ---
 
@@ -764,11 +766,10 @@ survives the remount an ordinary Reports re-render causes, the same correction
 cannot answer is not offered at all — the partial state names the missing
 opponent unit literally rather than rendering a selectable dead tab.
 
-**Matchup keeps the current shared Reports header** (RATIONALE decision 7) and
-stays OUT of `SCOREBUG_TABS`, so the generic rail above the board is still the
-CURRENT GAME's while the board reports the selected opponent — the same
-recorded frame mismatch open item 5 carries for Special Teams, resolved with
-the shared header, not with a Matchup-only exception.
+**Matchup has matchup-scope shared chrome.** It suppresses the current-game
+scorebug and KPI rail, names the selected opponent in the Reports header, and
+states `Season film and opponent film`. The board and its frame therefore
+describe the same two cohorts.
 
 **One deliberate difference from the comp: no green/red performance tone.**
 The comp's fixture hand-colours some Yds / Play and Success values good or
@@ -780,9 +781,10 @@ implemented. Carried into the Charlie Gate.
 
 ---
 
-**Special Teams is NOT in `SCOREBUG_TABS`** and still renders the generic rail.
-Ruling 8: it takes the shared report header when that rolls across Reports, and
-no Special-Teams-only scorebug variant is invented. Export reuses the existing
+**Special Teams chrome follows its scope.** At Current game it uses the shared
+current-game header and KPI rail. At Full season it suppresses all game-only
+chrome and names `<season> Special Teams` / `Full season`. No
+Special-Teams-only scorebug variant exists. Export reuses the existing
 mechanism (`exportSpecialTeams` → `buildSpecialTeamsHtmlReport` → the shared
 `documentShell` and `window.ffaSaveBlob`), never a second export subsystem.
 
@@ -800,21 +802,21 @@ mutation-verified against the generic band.
 largest bucket made a 29% outcome fill the whole track; the width is the
 bucket's own percentage of its unit.
 
-**Two approved production changes are still pending, carried by no file:**
-the context bar wrapping long game names at 1280 instead of clipping (shared
-shell owner — and the shell's response to a taller bar still needs verifying),
-and nothing else. Generic `yardage`/`result` on ST plays stay unread by design:
+**One approved production change is still pending, carried by no file:** the
+context bar wrapping long game names at 1280 instead of clipping (shared shell
+owner — and the shell's response to a taller bar still needs verifying).
+Generic `yardage`/`result` on ST plays stay unread by design:
 dedicated ST fields remain authoritative, and that data is recorded as an input
 to a later projection decision.
 
-**The shared scorebug is owned by one set.** `SCOREBUG_TABS` in
-`js/reports-screen.js` is the single owner of the scorebug/rail rule: a tab in
-it shows the scorebug and hides the generic `gi-reports-rail`; a tab outside it
-does the reverse. The two can therefore never appear together. It holds
-`overview`, `offense` and `defense`, and grows one tab at a time as each
-self-report tab gets its design pass. Special Teams has had its design pass but
-stays OUT by ruling 8 — it joins when the approved shared header rolls across
-Reports. Players, Self-Scout and Matchup still render the rail unchanged.
+**Shared Reports chrome follows the report's actual scope.**
+`ReportsScreen._usesCurrentGameContext()` is the single scope decision. The
+scorebug can render only for a tab in `SCOREBUG_TABS` that is also using the
+current game; the generic KPI rail can render only for another current-game
+report. Full-season Defense, Special Teams and Players, the Season board, and
+Matchup suppress both game-only elements. Their shared header names their real
+scope. Current-game scope buttons resynchronize the header before rendering,
+so changing scope cannot leave stale game or season framing behind.
 
 Score spacing is structural, not tuned: `.gi-scorebug-team` is `display:contents`
 so each team's name and score land in the scorebug's own fixed tracks. Score
@@ -870,10 +872,9 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — every tab now has a comp and is built.
-   Players, Self-Scout, Season and Matchup stay OUT of `SCOREBUG_TABS` for the
-   same reason Special Teams does, so they also still render the generic rail
-   (Season deliberately renders no rail at all).
+4. **The remaining Reports Charlie Gates** — every tab now has a comp and is
+   built. Shared chrome follows the selected report scope: current-game boards
+   may show current-game chrome; full-season boards, Season and Matchup do not.
    **Reports > Special Teams Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT.
    **Reports > Players Charlie Gate** — populated real-data review at the
@@ -902,27 +903,19 @@ product is wrong.
    things to look at: the board carries no green/red performance tone, because
    production has no canonical good/bad threshold for Yds / Play or Success
    and inventing one is the inferred advantage this board refuses to compute;
-   the generic rail above it is still the current game's while the board
-   reports the selected opponent (item 5's frame mismatch, to be resolved with
-   the shared header); and when the opponent's film is a game we PLAYED rather
-   than a scout game, the `Opponent` and `Season` cut-ups legitimately share a
-   rep, because `_matchupData` reads one charted snap as both our offensive
-   rep and their defensive one.
-   **Two approved Special Teams changes not yet built:** the context bar
+   and when the opponent's film is a game we PLAYED rather than a scout game,
+   the `Opponent` and `Season` cut-ups legitimately share a rep, because
+   `_matchupData` reads one charted snap as both our offensive rep and their
+   defensive one.
+   **One approved Special Teams change not yet built:** the context bar
    wrapping long game names at 1280 rather than clipping (shared shell owner;
-   the shell's response to a taller bar still needs verifying), and Special
-   Teams joining the shared report header when that rolls across Reports.
-5. **RECORDED — full-season Special Teams sits under a game-specific frame.**
-   The generic Reports rail above the board is the *current game*'s: it names
-   the week and opponent and shows that game's final score, total plays and
-   success rate. The Special Teams board's own scope control defaults to
-   **Full season**, so the default state pairs season figures with a
-   single-game header. Nothing on the board is wrong — its own scope chip says
-   Full season — but the two rows disagree about what is on screen.
-   Not fixed here by design: the frame belongs to the shared report header
-   (ruling 8), which Special Teams joins when that header rolls across
-   Reports. Resolve it there, with Overview and Offense, rather than giving
-   Special Teams a one-off.
+   the shell's response to a taller bar still needs verifying).
+5. **CLOSED 2026-09-06 — Reports scope/frame mismatch.** Full-season Special
+   Teams, Defense and Players now suppress the current-game scorebug and KPI
+   rail and identify the season scope in the shared header. Matchup names the
+   selected opponent and its two film cohorts. Current-game scope restores the
+   game frame. The behavior is centralized in `_usesCurrentGameContext()` and
+   pinned in the Reports, Special Teams and Matchup harnesses.
 
 6. **CLOSED 2026-09-06 — legacy punt-block ownership.**
    Found by the coach at the board, 2026-09-04; repaired after the whole-Reports

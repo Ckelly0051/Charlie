@@ -39,11 +39,12 @@ Open a real season with charted film and work the route end to end.
   continuous page while Defense, Special Teams, Players, Self-Scout, Season and
   Matchup use section or direction tabs. That inconsistency is known and
   deliberate until Offense converts — judge whether it is tolerable in use.
-- **The frame above the board.** Overview, Offense and Defense show the
-  scorebug; every other tab still shows the generic current-game rail. On
-  Special Teams at Full season, and on Matchup with an opponent selected, that
-  rail describes the current game while the board describes something wider.
-  Both are recorded, both are waiting on the shared report header.
+- **The frame above the board in this superseded binary.** It can show
+  current-game chrome over full-season Special Teams or Matchup data. That is a
+  known defect in `1.12.0-73`, not the current source contract. The repaired
+  source shows game chrome only for current-game reports; full-season Defense,
+  Special Teams and Players identify the season, and Matchup identifies the
+  selected opponent plus its season/opponent film cohorts.
 - **Click through to film from each board.** A row, tile or film control should
   open exactly the plays behind the number it sits on, across games where the
   scope is a season.
@@ -60,7 +61,8 @@ Open a real season with charted film and work the route end to end.
 - **Defense** — three band gaps (Run / pass faced 78px, Opponent play type 86px,
   Situational defense 72px) from genuinely different row counts. Stretching rows
   and full-width tables were both tried and rejected.
-- **Special Teams** — full-season board under a game-specific frame, above.
+- **Special Teams** — this superseded binary can place the full-season board
+  under a game-specific frame; repaired source does not.
 - **Players** — no open questions; review the six roles at both scopes.
 - **Self-Scout** — Top and Worst Calls overlap when fewer than six calls qualify
   (with one qualified call it is both); the predictability map is auto-layout,

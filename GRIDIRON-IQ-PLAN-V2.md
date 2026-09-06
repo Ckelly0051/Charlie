@@ -646,6 +646,21 @@ Retain every meaningful production field while reducing everyday clutter.
 > migrated desktop composition was visually inspected.
 >
 
+> **DESKTOP REPORTS COMPOSITION CHECKPOINT (2026-09-06):** All eight Our
+> Program tabs are built: Overview, Offense, Defense, Special Teams, Players,
+> Self-Scout, Season and Matchup. Their populated desktop comps and focused
+> harnesses are complete, but none is coach-accepted until the whole route is
+> reviewed in an installed build. Source repairs through `7b278be` leave parity
+> 2/2, native Reports 108/108, Special Teams 50/50, Matchup 72/72 and the
+> production build green. Shared chrome now follows actual scope: game-only
+> score/KPI framing cannot appear over a full-season or matchup board. The
+> packaged `1.12.0-73` candidate predates that repair and is superseded; the
+> next action is a new numbered installer and one whole-Reports Charlie Gate.
+> Season's `Games` count includes scheduled Our Program games while its
+> `Yards / Game` denominator includes only offense-charted games; that
+> eligibility distinction is intentional, not a defect.
+>
+
 > **STUDY PRESENTATION INDEPENDENCE (completed 2026-08-26):**
 > The live Study route is now one Preact-owned analytical workspace. Query
 > controls, saved views, player questions, filters, comparisons, pivots,
