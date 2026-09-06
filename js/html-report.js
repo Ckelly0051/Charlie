@@ -123,19 +123,49 @@ export function buildGameHtmlReport({ title, stats, engine, generatedAt = new Da
     body: sharedBody({ stats, engine }) });
 }
 
+/**
+ * The Season export need not look like the Season board, but it must report
+ * the SAME scope and the same structure: the same six aggregate KPIs, the same
+ * Game Log over the same rows -- including a scheduled game with nothing
+ * charted, which the old `perGame` source dropped, so the report could print
+ * "3 games" above two rows -- and both Trends comparisons, with the deltas
+ * still carrying their units. `No data` is the one absence literal, here as on
+ * the board.
+ */
 export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new Date() }) {
-  const { stats, summary, perGame, progression } = model;
+  const { stats, summary, gameLog, progression, winLoss, trends } = model;
+  const absent = value => (value === null || value === undefined || value === '' ? 'No data' : value);
+  const signed = value => (value === null || value === undefined ? 'No data' : value > 0 ? `+${value}` : String(value));
+  const window = trends?.windowSize || 0;
   const seasonLead = `${metrics([
-    { label: 'Record', value: summary.record, sub: `${summary.games} games` },
-    { label: 'Points', value: `${summary.pointsFor}–${summary.pointsAgainst}`, sub: 'for, against' },
-    { label: 'Plays charted', value: stats.allPlays, sub: 'season total' },
-    { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: 'offensive snaps' },
+    { label: 'Games', value: summary.games, sub: `${summary.charted} charted` },
+    { label: 'Record', value: summary.played ? summary.record : 'No data', sub: 'won, lost' },
+    { label: 'Points For / Against', value: summary.played ? `${summary.pointsFor}-${summary.pointsAgainst}` : 'No data', sub: 'for, against' },
+    { label: 'Turnover Margin', value: signed(summary.turnoverMargin), sub: 'season total' },
+    { label: 'Yards / Game', value: summary.yardsPerGame == null ? 'No data' : summary.yardsPerGame.toFixed(1), sub: `${summary.offensiveGames} games charted on offense` },
+    { label: 'Success Rate', value: `${Number(summary.successRate).toFixed(1)}%`, sub: 'offensive snaps' },
   ])}${table('Game Log', [
-    { key: 'name', label: 'Game' }, { key: 'plays', label: 'Plays' }, { key: 'yards', label: 'Off. Yards' },
-    { key: 'successRate', label: 'Success', value: row => `${row.successRate}%` }, { key: 'turnoverMargin', label: 'TO Margin' },
-  ], perGame)}${table('Season Progression', [
-    { key: 'label', label: 'Metric' }, { key: 'from', label: 'Early' }, { key: 'to', label: 'Recent' }, { key: 'verdict', label: 'Trend' },
-  ], progression)}`;
+    { key: 'week', label: 'Week', value: row => absent(row.week) },
+    { key: 'dateLabel', label: 'Date', value: row => absent(row.dateLabel) },
+    { key: 'opponent', label: 'Opponent', value: row => absent(row.opponent) },
+    { key: 'result', label: 'Result', value: row => absent(row.result) },
+    { key: 'score', label: 'Score', value: row => absent(row.score) },
+    { key: 'plays', label: 'Plays', value: row => absent(row.plays) },
+    { key: 'rushYards', label: 'Rush', value: row => absent(row.rushYards) },
+    { key: 'passYards', label: 'Pass', value: row => absent(row.passYards) },
+    { key: 'totalYards', label: 'Total', value: row => absent(row.totalYards) },
+    { key: 'successRate', label: 'Success Rate', value: row => (row.successRate == null ? 'No data' : `${row.successRate}%`) },
+    { key: 'turnoverMargin', label: 'TO +/-', value: row => signed(row.turnoverMargin) },
+  ], gameLog)}${table('Early vs Recent', [
+    { key: 'label', label: 'Metric' },
+    { key: 'from', label: window ? `First ${window}` : 'Early' },
+    { key: 'to', label: window ? `Last ${window}` : 'Recent' },
+    { key: 'deltaText', label: 'Delta' }, { key: 'status', label: 'Status' },
+  ], progression)}${table('Wins vs Losses', [
+    { key: 'metric', label: 'Metric' },
+    { key: 'wins', label: `Wins (${winLoss?.winCount ?? 0})` },
+    { key: 'losses', label: `Losses (${winLoss?.lossCount ?? 0})` },
+  ], winLoss?.rows)}`;
   return documentShell({ title, subtitle: `${summary.games} games, ${stats.allPlays} charted plays`, meta: `Generated ${generatedAt.toLocaleString()}`,
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }

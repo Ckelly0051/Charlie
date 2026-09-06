@@ -1779,8 +1779,13 @@ function SeasonTrends({ model }) {
     <KpiBand items={[
       { label: 'Games', value: String(model.summary.games) },
       { label: `Last ${n} Record`, value: trends.recentRecord },
-      { label: `Last ${n} Points / Game`, value: trends.recentPointsPerGame.toFixed(1) },
-      { label: `Last ${n} Yards / Game`, value: trends.recentYardsPerGame.toFixed(1) },
+      // An unscored or offence-less game is excluded from its own average
+      // rather than averaged in as a zero; with none left there is nothing to
+      // report, and the tile says so.
+      { label: `Last ${n} Points / Game`, cls: trends.recentPointsPerGame == null ? 'is-blank' : '',
+        value: trends.recentPointsPerGame == null ? SEASON_NO_DATA : trends.recentPointsPerGame.toFixed(1) },
+      { label: `Last ${n} Yards / Game`, cls: trends.recentYardsPerGame == null ? 'is-blank' : '',
+        value: trends.recentYardsPerGame == null ? SEASON_NO_DATA : trends.recentYardsPerGame.toFixed(1) },
       { label: `Last ${n} Success Rate`, value: `${trends.recentSuccessRate.toFixed(1)}%` },
       { label: `Last ${n} TO Margin`, value: seasonSigned(trends.recentTurnoverMargin),
         cls: seasonTone(trends.recentTurnoverMargin) },
@@ -1814,12 +1819,17 @@ function SeasonTrends({ model }) {
           { key: 'result', label: 'Result', size: 'res',
             render: row => (row.result ? <b class={`gi-season-res is-${row.result.toLowerCase()}`}>{row.result}</b> : SEASON_NO_DATA) },
           { key: 'score', label: 'Score', size: 'sc', render: row => seasonText(row.score), cellClass: seasonBlank('score') },
-          { key: 'totalYards', label: 'Total Yards', numeric: true, size: 'yards' },
-          { key: 'successRate', label: 'Success Rate', numeric: true, size: 'rate', render: row => `${row.successRate}%` },
-          { key: 'thirdDown', label: '3rd Down', numeric: true, size: 'third', render: row => `${row.thirdDown}%` },
-          { key: 'touchdowns', label: 'TD', numeric: true, size: 'td' },
-          { key: 'turnoverMargin', label: 'TO ±', numeric: true, size: 'to',
-            render: row => <b class={seasonTone(row.turnoverMargin)}>{seasonSigned(row.turnoverMargin)}</b> },
+          { key: 'totalYards', label: 'Total Yards', numeric: true, size: 'yards',
+            render: row => seasonText(row.totalYards), cellClass: seasonBlank('totalYards') },
+          { key: 'successRate', label: 'Success Rate', numeric: true, size: 'rate', cellClass: seasonBlank('successRate'),
+            render: row => (seasonMissing(row.successRate) ? SEASON_NO_DATA : `${row.successRate}%`) },
+          { key: 'thirdDown', label: '3rd Down', numeric: true, size: 'third', cellClass: seasonBlank('thirdDown'),
+            render: row => (seasonMissing(row.thirdDown) ? SEASON_NO_DATA : `${row.thirdDown}%`) },
+          { key: 'touchdowns', label: 'TD', numeric: true, size: 'td',
+            render: row => seasonText(row.touchdowns), cellClass: seasonBlank('touchdowns') },
+          { key: 'turnoverMargin', label: 'TO ±', numeric: true, size: 'to', cellClass: seasonBlank('turnoverMargin'),
+            render: row => (seasonMissing(row.turnoverMargin) ? SEASON_NO_DATA
+              : <b class={seasonTone(row.turnoverMargin)}>{seasonSigned(row.turnoverMargin)}</b>) },
         ]} rows={model.perGame.map(row => ({ ...row, id: row.id }))} />
       </SeasonModule>
     </SeasonBand>

@@ -619,6 +619,31 @@ first N and the last N so the two windows never overlap; eight or more charted
 games always compares First 4 with Last 4, and the KPI labels say which. Fewer
 than two charted games keeps the concise Trends empty state.
 
+**Eligibility is per MEASURE, not per game.** A game charted on defence only
+has plays, so it belongs in the Game Log, the record and the win/loss cohorts —
+but it measured no offense, and reporting `0` snaps or `0` rushing yards for it
+states something nobody charted. Every offensive measure on such a row is
+absent; so is its turnover margin, because a giveaway is only observable on a
+charted offensive snap and a takeaway on a charted defensive one. The
+denominators follow: `Yards / Game` divides by the games charted on offense,
+`Last N Points / Game` by the SCORED games in the window (an unscored game is
+not a shutout), `Last N Yards / Game` by the window's offensive games, and the
+two comparison panels' `TD / Game` and `TO Margin / Game` by the games in that
+cohort which could measure them.
+
+**Opponent-scout rosters never rename our players.** `_mergeRoster()` read
+`_effectiveGames()`, so a scout game's roster — both teams field a 22 — could
+relabel our own player across the Season Players board and the export. It takes
+`_selfGames()` now. The same repair surfaced a second hole: `storage._serialize()`
+carries no roster, so the ACTIVE game's own roster was missing from every season
+consumer; `_effectiveGames()` now carries it onto the live projection.
+
+**The export reports the same scope and structure as the board.** It need not
+look like it, but it prints the same six aggregate KPIs, the same Game Log over
+`gameLog` — the previous `perGame` source dropped scheduled rows, so the report
+could say "3 games" above two rows — the same `Success Rate` column label, both
+Trends comparisons, and deltas that still carry their units.
+
 **The Game Log is the season's own chronology.** Oldest first through
 `SeasonStore.gamesChrono()`, so a preseason scrimmage dated before Week 1 sorts
 first on its date and never on its week text — the Week column prints

@@ -43,6 +43,10 @@ export class SeasonManager {
       live.filmMode = active.filmMode;
       live.filmDir = active.filmDir;
     }
+    // `_serialize()` carries no roster, so without this the ACTIVE game's own
+    // roster was missing from every season consumer -- `_mergeRoster` included,
+    // which is how a jersey could end up labelled from some other game.
+    if (!live.roster && active.roster) live.roster = active.roster;
     return games.map(game => String(game.id) === String(active.id) ? live : game);
   }
 
@@ -80,11 +84,14 @@ export class SeasonManager {
       }));
   }
 
-  /** Merge jersey#→name across every game's roster (+ live roster). */
+  /** Merge jersey#→name across every OUR PROGRAM game's roster (+ the live
+   *  roster). Opponent-scout rosters are excluded: both teams field a 22, so a
+   *  scout roster read here relabelled our own player on the Season Players
+   *  board and in the export. A scout game's roster names their players. */
   _mergeRoster() {
     const map = {};
     const live = (window.app && window.app.roster) ? window.app.roster.players : [];
-    [...this._effectiveGames().flatMap(g => g.roster || []), ...live].forEach(p => {
+    [...this._selfGames().flatMap(g => g.roster || []), ...live].forEach(p => {
       if (p && p.num != null && p.name) map[String(p.num)] = p.name;
     });
     return map;
@@ -117,20 +124,41 @@ export class SeasonManager {
     /* Per-game rows carry their own canonical metadata -- week, date,
        opponent and the scored result -- so no consumer has to scrape them
        back out of a display name. */
+    /* Eligibility is per MEASURE, not per game. A game charted on defense only
+       has plays, so it belongs in the log and in the record -- but it measured
+       no offense, and reporting 0 rushing yards (or dividing Yards / Game by
+       it) would state something nobody charted. An offensive measure is null
+       unless that game has offensive snaps; a turnover margin is null unless
+       BOTH sides are charted, because a giveaway can only be observed on a
+       charted offensive snap and a takeaway on a charted defensive one. */
     const perGame = played.map((game, index) => {
       const gameStats = this.statsEngine.compute(game.plays || []);
       const margin = this._toMargin(gameStats);
       const scored = SeasonManager._scoredResult(game);
-      const rushYards = gameStats.rushing.yards, passYards = gameStats.passing.yards;
-      return { id:String(game.id), name:gameLabels[String(game.id)] || `Game ${index + 1}`, plays:gameStats.totalPlays,
-        yards:rushYards + passYards, rush:`${gameStats.rushing.attempts}/${rushYards}`,
-        pass:`${gameStats.passing.completions}/${gameStats.passing.attempts}/${passYards}`,
-        touchdowns:gameStats.scoring.touchdowns, turnoverMargin:margin.margin, pointsPerDrive:gameStats.drives.pointsPerDrive,
-        successRate:Number(gameStats.efficiency.successRate), thirdDown:Number(gameStats.downs.thirdDownPct), stats:gameStats,
+      const hasOffense = gameStats.offPlays.length > 0;
+      const hasDefense = gameStats.defPlays.length > 0;
+      const hasMargin = hasOffense && hasDefense;
+      const rushYards = hasOffense ? gameStats.rushing.yards : null;
+      const passYards = hasOffense ? gameStats.passing.yards : null;
+      const totalYards = hasOffense ? gameStats.rushing.yards + gameStats.passing.yards : null;
+      return { id:String(game.id), name:gameLabels[String(game.id)] || `Game ${index + 1}`,
+        // `Plays` stands beside Rush, Pass and Total in the Game Log, so it is
+        // the OFFENSIVE snap count and is absent on the same terms they are --
+        // never a 0 on a game that was charted on defence.
+        plays:hasOffense ? gameStats.totalPlays : null,
+        chartedPlays:(game.plays || []).length,
+        hasOffense, hasDefense, hasMargin,
+        yards:totalYards ?? 0, rush:`${gameStats.rushing.attempts}/${gameStats.rushing.yards}`,
+        pass:`${gameStats.passing.completions}/${gameStats.passing.attempts}/${gameStats.passing.yards}`,
+        touchdowns:hasOffense ? gameStats.scoring.touchdowns : null,
+        turnoverMargin:hasMargin ? margin.margin : null,
+        pointsPerDrive:hasOffense ? gameStats.drives.pointsPerDrive : null,
+        successRate:hasOffense ? Number(gameStats.efficiency.successRate) : null,
+        thirdDown:hasOffense ? Number(gameStats.downs.thirdDownPct) : null, stats:gameStats,
         week:SeasonManager._weekLabel(game), date:game.gameInfo?.date || '',
         dateLabel:SeasonManager._dateLabel(game.gameInfo?.date),
         opponent:game.gameInfo?.opponent || game.gameInfo?.projectName || '',
-        rushYards, passYards, totalYards:rushYards + passYards,
+        rushYards, passYards, totalYards,
         result:scored.result, score:scored.score, pointsFor:scored.us, pointsAgainst:scored.them };
     });
     const byId = Object.fromEntries(perGame.map(row => [row.id, row]));
@@ -216,15 +244,22 @@ export class SeasonManager {
     const record = rows => { const w=rows.filter(r=>r.result==='W').length, l=rows.filter(r=>r.result==='L').length,
       t=rows.filter(r=>r.result==='T').length; return t?`${w}-${l}-${t}`:`${w}-${l}`; };
     const sum = (rows, get) => rows.reduce((total,row)=>total+(get(row)||0),0);
+    /* Every per-game average divides by the games that could MEASURE it, never
+       by the whole window. Yards / Game counts only games charted on offense;
+       Points / Game counts only games carrying a final score -- an unscored
+       game is not a shutout. */
+    const offensiveGames = perGame.filter(row => row.hasOffense).length;
+    const scoredLate = late.filter(row => row.pointsFor != null);
+    const lateOffense = late.filter(row => row.hasOffense).length;
     return { games, allPlays, stats, rosterLabels:this._mergeRoster(), gameLabels, perGame, progression, gameLog,
-      summary:{ games:games.length, charted:perGame.length,
+      summary:{ games:games.length, charted:perGame.length, offensiveGames,
         record:ties?`${wins}-${losses}-${ties}`:`${wins}-${losses}`, played:wins+losses+ties, pointsFor, pointsAgainst,
-        yards:seasonYards, yardsPerGame:perGame.length?seasonYards/perGame.length:null,
+        yards:seasonYards, yardsPerGame:offensiveGames?seasonYards/offensiveGames:null,
         successRate:Number(stats.efficiency.successRate), turnoverMargin:seasonMargin.margin },
-      trends:{ windowSize,
+      trends:{ windowSize, scoredGames:scoredLate.length, offensiveGamesInWindow:lateOffense,
         recentRecord:windowSize?record(late):null,
-        recentPointsPerGame:windowSize?sum(late,row=>row.pointsFor)/windowSize:null,
-        recentYardsPerGame:windowSize?lateSummary.yards/windowSize:null,
+        recentPointsPerGame:scoredLate.length?sum(scoredLate,row=>row.pointsFor)/scoredLate.length:null,
+        recentYardsPerGame:lateOffense?lateSummary.yards/lateOffense:null,
         recentSuccessRate:windowSize?lateSummary.successRate:null,
         recentTurnoverMargin:windowSize?lateSummary.margin:null },
       winLossCounts:{ wins:winRows.length, losses:lossRows.length },
@@ -303,15 +338,21 @@ export class SeasonManager {
     const merged = this.statsEngine.compute(plays);
     const margin = this._toMargin(merged);
     const count = rows.length;
+    // Each per-game average divides by the games that could measure it: a
+    // game charted on defense only scored no offensive touchdowns to average,
+    // and its turnover margin was never observable on both sides.
+    const offensiveGames = rows.filter(row => row.hasOffense).length;
+    const marginGames = rows.filter(row => row.hasMargin).length;
     const yards = merged.rushing.yards + merged.passing.yards;
     return {
-      games: count, plays: merged.totalPlays, yards, margin: margin.margin,
+      games: count, offensiveGames, marginGames,
+      plays: merged.totalPlays, yards, margin: margin.margin,
       successRate: Number(merged.efficiency.successRate) || 0,
       yardsPerPlay: merged.totalPlays ? yards / merged.totalPlays : 0,
       thirdDown: Number(merged.downs.thirdDownPct) || 0,
       pointsPerDrive: Number(merged.drives.pointsPerDrive) || 0,
-      marginPerGame: count ? margin.margin / count : 0,
-      tdPerGame: count ? merged.scoring.touchdowns / count : 0,
+      marginPerGame: marginGames ? margin.margin / marginGames : 0,
+      tdPerGame: offensiveGames ? merged.scoring.touchdowns / offensiveGames : 0,
     };
   }
 

@@ -94,6 +94,26 @@ const SPARSE = [
 /* One charted game only: below the two-game window, so Trends must show its
    concise empty state rather than a comparison of a window against itself. */
 const SINGLE = [SPARSE[0]];
+/* Partial charting. `p3` is charted on DEFENSE ONLY -- it has plays, so it is
+   a charted game, but it measured no offense; `p4` is charted on both sides
+   and carries no final score. Both fall inside the Last 2 window, so every
+   per-game average has to name the games that could measure it. */
+const defenceOnly = () => gamePlays({ runs: 0, runYds: 0, passes: 0, passYds: 0, comp: 0, tds: 0, ints: 0,
+  sacks: 2, thirdConv: 0, thirdAtt: 0, takeaways: 3 }).filter(play => play.unit === 'defense');
+const PARTIAL = [
+  { id: 'p1', info: { week: '1', date: '2026-08-21', opponent: 'Holy Family', projectName: 'Holy Family', perspective: 'self', scoreUs: 28, scoreThem: 7 },
+    plays: gamePlays({ runs: 12, runYds: 96, passes: 8, passYds: 64, comp: 6, tds: 3, ints: 0, sacks: 1, thirdConv: 3, thirdAtt: 5, takeaways: 2 }) },
+  { id: 'p2', info: { week: '2', date: '2026-08-28', opponent: 'Lakeview', projectName: 'Lakeview', perspective: 'self', scoreUs: 7, scoreThem: 24 },
+    plays: gamePlays({ runs: 10, runYds: 30, passes: 12, passYds: 48, comp: 6, tds: 1, ints: 2, sacks: 0, thirdConv: 1, thirdAtt: 6, takeaways: 0 }) },
+  { id: 'p3', info: { week: '3', date: '2026-09-04', opponent: 'Mercy', projectName: 'Mercy', perspective: 'self', scoreUs: 20, scoreThem: 13 },
+    plays: defenceOnly() },
+  { id: 'p4', info: { week: '4', date: '2026-09-11', opponent: 'Northgate', projectName: 'Northgate', perspective: 'self' },
+    plays: gamePlays({ runs: 11, runYds: 88, passes: 9, passYds: 63, comp: 7, tds: 2, ints: 1, sacks: 1, thirdConv: 2, thirdAtt: 5, takeaways: 1 }) },
+];
+/* Our jersey 22 and the opponent's jersey 22. The scout roster must never
+   relabel our own player. */
+const ROSTER_SELF = [{ num: '22', name: 'Terrance Whitfield' }, { num: '12', name: 'Jaylen Ruiz' }];
+const ROSTER_SCOUT = [{ num: '22', name: 'OPPONENT BACK' }, { num: '12', name: 'OPPONENT QB' }];
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
@@ -108,16 +128,17 @@ await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Mavericks JV', team: 'Mavericks', year: '2026', level: 'JV' });
 });
 
-const load = async list => {
-  await page.evaluate(async rows => {
+const load = async (list, rosters = null) => {
+  await page.evaluate(async (rows, byId) => {
     const store = window.app.storage.seasonStore;
     store.data.games = rows.map(game => ({ id: game.id, name: '', nextId: game.plays.length + 1,
+      roster: (byId && byId[game.id]) || [],
       plays: game.plays.map((row, i) => ({ id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 },
         notes: '', annotations: [], tags: { custom: [], players: {}, grades: {}, ...row } })),
       gameInfo: game.info, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }));
     store.data.activeGameId = rows[rows.length - 1].id;
     await window.app.storage._loadActiveGame({ renderGames: false });
-  }, list);
+  }, list, rosters);
   await sleep(550);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));
   await sleep(250);
@@ -134,7 +155,8 @@ const model = () => page.evaluate(() => {
   return { summary: m.summary, trends: m.trends, progression: m.progression, winLoss: m.winLoss,
     winLossCounts: m.winLossCounts, situationalTiles: m.situationalTiles, turnoverScoring: m.turnoverScoring,
     gameLog: m.gameLog, perGame: m.perGame.map(row => ({ id: row.id, name: row.name, result: row.result,
-      totalYards: row.totalYards, turnoverMargin: row.turnoverMargin, touchdowns: row.touchdowns })),
+      totalYards: row.totalYards, turnoverMargin: row.turnoverMargin, touchdowns: row.touchdowns,
+      chartedPlays: row.chartedPlays, hasOffense: row.hasOffense, hasMargin: row.hasMargin })),
     gameIds: m.games.map(game => String(game.id)),
     refs: [...new Set(m.allPlays.map(p => window.app.stats.constructor._compositeRef(p)).filter(Boolean))].sort() };
 });
@@ -441,6 +463,63 @@ const wlAbsence = await page.evaluate(() => {
 ok(wlAbsence.rows === 6 && !wlAbsence.none,
   'one win and one loss is enough to compare', JSON.stringify(wlAbsence));
 
+/* ══ 9b. Partial charting is never a measured zero ════════════════════════ */
+console.log('\n== 9b. Partial charting ==');
+await load(PARTIAL);
+const partial = await model();
+const partialLog = await rowsOf('.gi-season-table tbody tr');
+const defOnly = partialLog[2];
+ok(defOnly[2] === 'Mercy' && defOnly[3] === 'W' && defOnly[4] === '20-13',
+  'a defence-only game keeps its Game Log row, its result and its score', JSON.stringify(defOnly));
+ok(defOnly[5] === 'No data' && defOnly[6] === 'No data' && defOnly[7] === 'No data'
+  && defOnly[8] === 'No data' && defOnly[9] === 'No data',
+'a game charted on defence only reports NO offensive snap count, yardage or success rate, not zero',
+JSON.stringify(defOnly));
+ok(partial.perGame.find(row => row.id === 'p3').chartedPlays > 0,
+  'the model still knows that game was charted', JSON.stringify(partial.perGame.find(row => row.id === 'p3')?.chartedPlays));
+ok(defOnly[10] === 'No data',
+  'its turnover margin is absent too -- a giveaway can only be observed on a charted offensive snap',
+  JSON.stringify(defOnly));
+ok(partial.summary.offensiveGames === 3 && partial.summary.charted === 4,
+  'three of the four charted games measured offense', JSON.stringify(partial.summary.offensiveGames));
+ok(Number(partial.summary.yardsPerGame.toFixed(1))
+  === Number((partial.summary.yards / partial.summary.offensiveGames).toFixed(1)),
+'Yards / Game divides by the games charted on offense, not by every charted game',
+`${partial.summary.yardsPerGame} vs ${partial.summary.yards}/${partial.summary.offensiveGames}`);
+await setSection('Trends');
+const partialTrends = await page.evaluate(() => ({
+  kpis: [...document.querySelectorAll('.gi-season-board .gi-overview-kpi')]
+    .map(k => [k.querySelector('span').textContent.trim(), k.querySelector('strong').textContent.trim()]),
+  gbg: [...document.querySelectorAll('.gi-season-table')].at(-1)
+    ?.querySelectorAll('tbody tr')[2]?.textContent.trim(),
+}));
+const pointsTile = partialTrends.kpis.find(k => /Points \/ Game/.test(k[0]));
+ok(partial.trends.windowSize === 2 && partial.trends.scoredGames === 1,
+  'the Last 2 window holds one scored game', JSON.stringify(partial.trends.scoredGames));
+ok(Number(pointsTile[1]) === 20,
+  'Recent Points / Game divides by the SCORED games in the window, not by the window',
+  `${pointsTile[1]} (a window average would be 10.0)`);
+const p4Yards = partial.perGame.find(row => row.id === 'p4').totalYards;
+ok(partial.trends.offensiveGamesInWindow === 1 && partial.trends.recentYardsPerGame === p4Yards,
+  'Recent Yards / Game divides by the games in the window that measured offense',
+  `${partial.trends.recentYardsPerGame} vs p4's own ${p4Yards}; a window average would be ${p4Yards / 2}`);
+ok(/No data/.test(partialTrends.gbg || ''),
+  'Game-by-Game reports the same absences rather than zeros', partialTrends.gbg);
+
+/* ══ 9c. Opponent-scout rosters never rename our players ══════════════════ */
+console.log('\n== 9c. Roster identity ==');
+await load(FULL, { g1: ROSTER_SELF, 'scout-1': ROSTER_SCOUT });
+const roster = await page.evaluate(() => window.app.season.reportModel().rosterLabels);
+ok(roster['22'] === 'Terrance Whitfield' && roster['12'] === 'Jaylen Ruiz',
+  'a shared jersey number keeps OUR player\'s name', JSON.stringify(roster));
+ok(!Object.values(roster).some(name => /OPPONENT/.test(name)),
+  'no opponent-scout roster name reaches the season roster', JSON.stringify(roster));
+await setSection('Players');
+const playerNames = await page.evaluate(() =>
+  [...document.querySelectorAll('.gi-players-board table tbody td.tl')].map(td => td.textContent.trim()));
+ok(playerNames.length > 0 && !playerNames.some(name => /OPPONENT/.test(name)),
+  'the Season Players board labels our jerseys with our roster', JSON.stringify(playerNames.slice(0, 4)));
+
 /* ══ 10. Read-only navigation and export ══════════════════════════════════ */
 console.log('\n== 10. Read-only navigation and export ==');
 await load(FULL);
@@ -468,6 +547,41 @@ ok(!readOnly.html.includes('Riverside Prep'), 'no opponent-scout game reaches th
 const exportedStatus = ['Up', 'Down', 'Steady'].filter(word => readOnly.html.includes(`<td>${word}</td>`));
 ok(exportedStatus.length > 0,
   'the export prints the same literal status vocabulary the board shows', JSON.stringify(exportedStatus));
+/* The export need not LOOK like the board, but its scope and its reported
+   structure must agree with it. */
+const exported = readOnly.html;
+const EXPORT_KPIS = ['Games', 'Record', 'Points For / Against', 'Turnover Margin', 'Yards / Game', 'Success Rate'];
+ok(EXPORT_KPIS.every(label => exported.includes(`<span>${label}</span>`)),
+  'the export carries the same six aggregate KPIs the board shows',
+  JSON.stringify(EXPORT_KPIS.filter(label => !exported.includes(`<span>${label}</span>`))));
+
+const EXPORT_LOG = ['Week', 'Date', 'Opponent', 'Result', 'Score', 'Plays', 'Rush', 'Pass', 'Total', 'Success Rate'];
+ok(EXPORT_LOG.every(label => exported.includes(`<th>${label}</th>`)),
+  'the exported Game Log carries the same columns, including the Success Rate label',
+  JSON.stringify(EXPORT_LOG.filter(label => !exported.includes(`<th>${label}</th>`))));
+
+ok(/<th>Wins \(\d+\)<\/th>/.test(exported) && /<th>Losses \(\d+\)<\/th>/.test(exported)
+  && /<td>TO Margin \/ Game<\/td>/.test(exported),
+'the export carries Wins vs Losses with the same six shared measures');
+ok(/<td>[+-]?\d+(\.\d+)? pp<\/td>/.test(exported) && /<td>[+-]?\d+(\.\d+)?\/game<\/td>/.test(exported),
+  'the exported deltas still carry their units');
+/* The row count under the heading must match the scope the heading claims. */
+await load(SPARSE);
+const sparseExport = await page.evaluate(async () => {
+  const save = window.ffaSaveBlob;
+  let captured = null, pending = null;
+  window.ffaSaveBlob = (blob, name) => { pending = blob.text().then(html => { captured = { html, name }; }); };
+  window.app.season.exportHtml();
+  await pending;
+  window.ffaSaveBlob = save;
+  const model = window.app.season.reportModel();
+  const rows = (captured.html.match(/<tbody>([\s\S]*?)<\/tbody>/) || [])[1] || '';
+  return { games: model.summary.games, logRows: (rows.match(/<tr>/g) || []).length,
+    subtitle: (captured.html.match(/(\d+) games, \d+ charted plays/) || [])[1] };
+});
+ok(Number(sparseExport.subtitle) === sparseExport.games && sparseExport.logRows === sparseExport.games,
+  'the exported Game Log has one row per game the export says the season has -- a scheduled game is not dropped',
+  JSON.stringify(sparseExport));
 
 /* ══ 11. Presentation, density and containment ════════════════════════════ */
 console.log('\n== 11. Presentation, density and containment ==');
