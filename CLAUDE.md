@@ -662,6 +662,93 @@ game-scope rail on this tab: the board's own KPI band is its scope owner.
 
 ---
 
+**Reports > Matchup is implemented and gate-verified, but NOT coach accepted.**
+Built to the approved comp (`design-comps/reports-matchup-2026-09-06`, whose
+RATIONALE is the decision record). No Charlie Gate and no installed smoke, so
+it is not accepted state.
+
+**Matchup is a situational JOIN, not two unit profiles side by side.** The
+previous board placed our profile beside theirs and left the coach to do the
+matchup analysis. Each of the two directions — `Our Offense vs Their Defense`
+and `Our Defense vs Their Offense`, one on screen at a time — now leads with
+`Situational Calls`: what the opponent most often calls in each of five fixed
+situations, and what our own season produced against that exact charted look.
+Beneath it sit paired `Production by Play Type` tables, and then the
+direction's own support section — `Coverage Answers` on the offense-facing
+tab, `Personnel and Formation` on the defense-facing one. The broad KPI strip
+is gone; every performance value now sits beside the cohort and situation that
+produced it.
+
+**Five fixed situations, all from existing predicates:** 1st Down, 2nd & 7+,
+3rd & 1-3, 3rd & 7+, Red Zone. `defensivePerformance`'s own situation specs
+supply four of them and `_defensiveStats`' passing-down rule the fifth, so no
+competing distance or yard-line formula exists. Rows overlap by design — a
+red-zone third down belongs to both cohorts.
+
+**`Rate` is a share of ELIGIBLE opponent snaps, never a success rate.**
+Eligible means the snaps in that situation that carry a resolvable call
+identity. A snap with nothing charted can never reach the numerator, so
+counting it in the denominator would deflate every rate against a cohort no
+call could appear in. Ranking is frequency descending, then the DISPLAYED call
+name ascending — deterministic, and `Top` means most frequently charted
+everywhere on this board, never highest-performing.
+
+**`No Blitz` is a charted call; an untagged field is not.**
+`StatsEngine.isNoBlitz` — extracted from `_defensiveStats`' own `noBlitzTotal`
+cohort so the report's blitz denominator and Matchup's displayed call are one
+rule — admits a snap only when the blitz field is empty AND a front or a
+coverage was charted. A snap with no defensive structure produces no call at
+all. A displayed `No Blitz` matches only season snaps the same rule admits, so
+a blitzed rep against the same front and coverage never satisfies it.
+
+**A filter is never widened to fill a row.** The season side matches every
+nonblank displayed component exactly, through the same canonical projection
+that produced it. With no exact match the row reads `No matching snaps` at
+copy weight and prints no measurement — never a fabricated zero.
+
+**Polarity is per COHORT, not per lane.** A lane holds both cohorts: our
+offensive production reports Yards / Play and Success Rate, their defense
+Yards / Play Allowed and Stop Rate, and the two are never interchanged.
+`defensiveCohortMetrics` was extracted from `defensivePerformance`'s own
+`summarize` so a defensive cohort is measured by one owner on both surfaces;
+offensive cohorts go through `compute()` unchanged.
+
+**Film is TWO explicit controls, `Opponent` and `Season`.** Never one
+ambiguous whole-row action, never an unlabelled icon, and never the two
+cohorts combined into one cut-up. Each opens exactly the deduplicated, sorted
+composite `gameId::playId` set behind its own side of the row, and a side with
+no references renders no enabled control at all. The two sets are separate
+cohorts; they are disjoint whenever the opponent's film is a scout game, and
+they legitimately share a rep when the opponent film is a game we PLAYED —
+`_matchupData`'s established shortcut reads one charted snap as both our
+offensive rep and their defensive one.
+
+**No matchup score, prediction, recommendation, inferred advantage or
+confidence claim is calculated.** Nor is there gap-level analysis: stored
+`playDir` is Left, Middle or Right and cannot honestly support A/B/C/D.
+
+**The active direction is controller state.** `ReportsScreen.matchupTab`
+survives the remount an ordinary Reports re-render causes, the same correction
+`playersSection` and `selfScoutSection` needed. A direction the opponent film
+cannot answer is not offered at all — the partial state names the missing
+opponent unit literally rather than rendering a selectable dead tab.
+
+**Matchup keeps the current shared Reports header** (RATIONALE decision 7) and
+stays OUT of `SCOREBUG_TABS`, so the generic rail above the board is still the
+CURRENT GAME's while the board reports the selected opponent — the same
+recorded frame mismatch open item 5 carries for Special Teams, resolved with
+the shared header, not with a Matchup-only exception.
+
+**One deliberate difference from the comp: no green/red performance tone.**
+The comp's fixture hand-colours some Yds / Play and Success values good or
+bad. Production has no canonical good/bad threshold for either measure, and
+inventing one would be exactly the inferred advantage this board refuses to
+calculate. The cohort colours the comp does specify — gold for opponent film,
+cyan for season film, repeated in the key above the situational table — are
+implemented. Carried into the Charlie Gate.
+
+---
+
 **Special Teams is NOT in `SCOREBUG_TABS`** and still renders the generic rail.
 Ruling 8: it takes the shared report header when that rolls across Reports, and
 no Special-Teams-only scorebug variant is invented. Export reuses the existing
@@ -752,9 +839,8 @@ product is wrong.
    Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
    the data holds fewer distinct backfield values than personnel values. That
    may be the honest floor rather than something to fill.
-4. **The remaining Reports tabs** — Matchup is the last one without a comp and
-   keeps its existing report chrome. Players, Self-Scout and Season have had
-   their design passes and are built, but stay OUT of `SCOREBUG_TABS` for the
+4. **The remaining Reports tabs** — every tab now has a comp and is built.
+   Players, Self-Scout, Season and Matchup stay OUT of `SCOREBUG_TABS` for the
    same reason Special Teams does, so they also still render the generic rail
    (Season deliberately renders no rail at all).
    **Reports > Special Teams Charlie Gate** — populated real-data review at the
@@ -780,6 +866,17 @@ product is wrong.
    metric label at 1440 and wider — the comp's own geometry; and `Games` counts
    every scheduled Our Program game while `Yards / Game` divides by the charted
    ones, which differ only when a game is scheduled but not yet charted.
+   **Reports > Matchup Charlie Gate** — populated real-data review at the
+   release widths, then PASS / REVISE / REJECT, plus an installed smoke. Three
+   things to look at: the board carries no green/red performance tone, because
+   production has no canonical good/bad threshold for Yds / Play or Success
+   and inventing one is the inferred advantage this board refuses to compute;
+   the generic rail above it is still the current game's while the board
+   reports the selected opponent (item 5's frame mismatch, to be resolved with
+   the shared header); and when the opponent's film is a game we PLAYED rather
+   than a scout game, the `Opponent` and `Season` cut-ups legitimately share a
+   rep, because `_matchupData` reads one charted snap as both our offensive
+   rep and their defensive one.
    **Two approved Special Teams changes not yet built:** the context bar
    wrapping long game names at 1280 rather than clipping (shared shell owner;
    the shell's response to a taller bar still needs verifying), and Special
@@ -880,7 +977,14 @@ contract, both ranking rules, canonical metric reuse, exact film cohorts and
 composition, the opponent-scout exclusion, chronological ordering, Game Log
 reconciliation, the shared comparison metrics with their units and thresholds,
 the dynamic First N / Last N windows, per-game turnover margin, drive-boundary
-safety, and the child boards reused unchanged at season scope, 78).
+safety, and the child boards reused unchanged at season scope, 98) and
+`tools/e2e-reports-matchup.mjs` (the Matchup composition, opponent selection,
+both directions, the five situations, opponent-call ranking and its
+tie-break, the Rate denominator, the exact season-side joins and
+`No matching snaps`, the no-blitz versus uncharted-defense distinction,
+per-cohort metric polarity, the supporting sections, the partial and empty
+states, the separate `Opponent` / `Season` film cohorts and 1440/1280
+containment, 59).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

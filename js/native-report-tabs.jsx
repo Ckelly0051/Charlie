@@ -1888,79 +1888,239 @@ export function SeasonTab({ model, screen }) {
     </div>
   </div>;
 }
-/** Native Matchup resolves every displayed tendency against its own stamped
- * cross-game cohort. It never falls through to the active game's tagger. */
-function matchupRefs(plays, engine, cutType, cutVal) {
-  const predicate = engine._buildCutFilter(cutType, cutVal);
-  return [...new Set((plays || []).filter(predicate).map(engine.constructor._compositeRef).filter(Boolean))].sort();
+/* ═══ Reports > Matchup — the approved 2026-09-06 desktop composition ══════
+   Comp and decision record: design-comps/reports-matchup-2026-09-06
+   (`matchup.html`, `RATIONALE.md`).
+
+   Two matchup directions, one on screen at a time, each led by the
+   situational join. Every value below arrives already measured by
+   `StatsEngine.matchupReport()` and already formatted by `reports-view.js`:
+   nothing here groups, ranks, joins, averages, qualifies or classifies
+   anything.
+
+   Film is TWO explicit controls, `Opponent` and `Season`, never one
+   ambiguous combined action and never an unlabelled icon. A side with no
+   references renders no enabled control at all.
+   ───────────────────────────────────────────────────────────────────────── */
+const MATCHUP_TABS = [
+  ['our-offense', 'Our Offense vs Their Defense'],
+  ['our-defense', 'Our Defense vs Their Offense'],
+];
+
+/** The row's two film cohorts, each opening only the exact composite refs
+ *  that produced its own side of the row. */
+function MuFilm({ opponent, season, label, screen }) {
+  return <span class="gi-mu-film">
+    {opponent?.length ? <button type="button" class="gi-mu-opp"
+      onClick={() => screen.watchRefs(opponent, `${label} — opponent film`)}>Opponent</button> : null}
+    {season?.length ? <button type="button"
+      onClick={() => screen.watchRefs(season, `${label} — season film`)}>Season</button> : null}
+  </span>;
 }
 
-function MatchupOffense({ title, lane, screen }) {
-  const stats = lane.stats;
-  const engine = screen.app.stats;
-  if (!stats.offPlays.length) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No offensive snaps charted.</p></div>;
-  const tendencies = view.tendencyBreakdown(stats);
-  const rows = (source, kind) => source.slice(0, 4).map(row => {
-    const refs = matchupRefs(stats.offPlays, engine, row.cutType, row.cutVal);
-    return { ...row, kind, id: `${kind}-${row.name}`, onActivate: refs.length ? () => screen.watchRefs(refs, `${title}: ${row.name}`) : undefined, label: `${title}: ${row.name}` };
-  });
-  const profiles = [...rows(tendencies.formations, 'Formation'), ...rows(tendencies.playTypes, 'Play type')];
-  return <div class="gi-matchup-side is-offense">
-    <h4>{title}</h4>
-    <div class="gi-matchup-kpis">{view.offenseHero(stats, engine).slice(0, 5).map(item => <div key={item.label} class={item.tone || ''}><span>{item.label}</span><strong>{item.value}</strong><small>{item.sub || ''}</small></div>)}</div>
-    <DataTable columns={[
-      { key:'kind', label:'Profile' }, { key:'name', label:'Name' }, { key:'count', label:'Plays', numeric:true },
-      { key:'runPass', label:'Run/Pass', render:row => { const total=row.runs+row.passes; const runPct=total?Math.round(row.runs/total*100):0; return `${row.runs}R (${runPct}%) / ${row.passes}P (${100-runPct}%)`; } },
-      { key:'ypp', label:'Yds/play', numeric:true }, { key:'success', label:'Success' },
-    ]} rows={profiles} />
+/** Every Matchup table owns its column geometry through a colgroup and
+ *  renders `table-layout:fixed`, so one measurement is one width in every
+ *  table on the board. Rows carry no activation of their own — film is the
+ *  row's own explicit controls, so there is no ambiguous whole-row action. */
+function MuTable({ cls = '', cols, columns, rows, empty }) {
+  if (!rows.length) return <p class="gi-table-empty">{empty}</p>;
+  return <div class="gi-table-wrap"><table class={`stats-table gi-mu-table ${cls}`.trim()}>
+    <colgroup>{cols.map((name, i) => <col key={`${name}-${i}`} class={name} />)}</colgroup>
+    <thead><tr>{columns.map(col => <th key={col.key} class={col.tl ? 'tl' : undefined}>{col.label}</th>)}</tr></thead>
+    <tbody>{rows.map(row => <tr key={row.id}>
+      {columns.map(col => <td key={col.key} data-col={col.key}
+        class={[col.tl ? 'tl' : '', typeof col.cellClass === 'function' ? col.cellClass(row) : col.cellClass || ''].filter(Boolean).join(' ') || undefined}
+      >{col.render ? col.render(row) : row[col.key]}</td>)}
+    </tr>)}</tbody>
+  </table></div>;
+}
+
+/** A bounded truncation: a composite call label longer than any panel can
+ *  give it ellipsises inside its own cell rather than overrunning into the
+ *  measurements, and keeps the full value on its own title. */
+const muTrunc = value => <span class="gi-mu-trunc" title={String(value ?? '')}>{value}</span>;
+
+function MuSection({ title, keyed = false, children }) {
+  return <section class="gi-mu-section">
+    <div class="gi-mu-title"><h2>{title}</h2>
+      {keyed ? <div class="gi-mu-key">
+        <span><b class="is-opp"></b>Opponent film</span><span><b class="is-season"></b>Season film</span>
+      </div> : null}
+    </div>
+    {children}
+  </section>;
+}
+
+/** The two independent samples behind the lane, each counted on its own
+ *  terms. They share no denominator and are never merged. */
+function MuUnits({ season, opponent }) {
+  return <div class="gi-mu-units">
+    <div class="gi-mu-unit"><div><span>Season film</span><strong>{season.name}</strong></div><small>{season.sample}</small></div>
+    <div class="gi-mu-unit is-opp"><div><span>Opponent film</span><strong>{opponent.name}</strong></div><small>{opponent.sample}</small></div>
   </div>;
 }
 
-function MatchupDefense({ title, lane, screen }) {
-  const report = lane.report;
-  if (!lane.plays.length || !report.total) return <div class="gi-matchup-side is-empty"><h4>{title}</h4><p>No defensive snaps charted.</p></div>;
-  const summary = report.summary;
-  const def = lane.stats.defensive || {};
-  const playRows = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes')
-    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 4).map(row => ({
-    kind:'Play type', name:row.name, count:row.n, ypp:row.yardsPerPlay.toFixed(1), result:`${row.stopRate}% stop`, refs:row.refs,
-  }));
-  const schemeRows = [
-    ...(def.fronts || []).slice(0, 3).map(row => ({ kind:'Front', name:row.name, count:row.count, ypp:row.count ? (row.yards / row.count).toFixed(1) : '0.0', result:`${row.count ? Math.round(row.successes / row.count * 100) : 0}% stop`, refs:row.refs })),
-    ...(def.coverages || []).slice(0, 3).map(row => ({ kind:'Coverage', name:row.name, count:row.count, ypp:row.count ? (row.yards / row.count).toFixed(1) : '0.0', result:`${row.count ? Math.round(row.successes / row.count * 100) : 0}% stop`, refs:row.refs })),
+/** Situational Calls: their most frequent call in each fixed situation, and
+ *  our own result against that exact displayed look. `kind` is the lane's
+ *  polarity — an offense lane reports Success, a defense lane Stop Rate. */
+function MuSituations({ lane, kind, screen }) {
+  const rows = view.matchupSituationRows(lane, kind);
+  const columns = [
+    { key: 'situation', label: 'Situation', tl: true, cellClass: 'gi-mu-sit' },
+    { key: 'look', label: 'Their Primary Call', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.look) },
+    { key: 'rate', label: 'Rate' },
+    { key: 'sample', label: kind === 'offense' ? 'Snaps' : 'Plays' },
+    { key: 'answer', label: 'Our Top Call vs Same Look', tl: true,
+      cellClass: row => (row.blank ? 'gi-mu-absent' : 'gi-mu-answer'), render: row => muTrunc(row.answer) },
+    { key: 'count', label: kind === 'offense' ? 'Plays' : 'Snaps' },
+    { key: 'avg', label: 'Yds / Play' },
+    { key: 'result', label: kind === 'offense' ? 'Success' : 'Stop Rate' },
+    { key: 'film', label: 'Film', cellClass: 'gi-mu-filmcell',
+      render: row => <MuFilm opponent={row.oppRefs} season={row.seasonRefs} screen={screen}
+        label={`${row.situation}: ${row.look}`} /> },
   ];
-  const rows = [...playRows, ...schemeRows].map(row => ({ ...row, id:`${row.kind}-${row.name}`, onActivate:row.refs?.length ? () => screen.watchRefs(row.refs, `${title}: ${row.name}`) : undefined, label:`${title}: ${row.name}` }));
-  return <div class="gi-matchup-side is-defense">
-    <h4>{title}</h4>
-    <div class="gi-matchup-kpis">
-      <div><span>Snaps</span><strong>{report.total}</strong></div>
-      <div><span>Yds/play allowed</span><strong>{summary.yardsPerPlay.toFixed(1)}</strong></div>
-      <div><span>Stop rate</span><strong>{summary.stopRate}%</strong></div>
-      <div><span>Explosive allowed</span><strong>{summary.explosiveRate}%</strong></div>
-      <div><span>Havoc</span><strong>{summary.havocRate}%</strong></div>
-    </div>
-    <DataTable columns={[
-      {key:'kind',label:'Profile'},{key:'name',label:'Name'},{key:'count',label:'Snaps',numeric:true},
-      {key:'ypp',label:'Yds/play',numeric:true},{key:'result',label:'Result'},
-    ]} rows={rows} />
+  return <MuTable cls="gi-mu-decision" cols={['sit', 'look', 'freq', 'n', 'answer', 'n', 'metric', 'metric', 'film']}
+    columns={columns} rows={rows} empty={view.MATCHUP_NO_DATA} />;
+}
+
+/** One half of the paired play-type context. Each cohort keeps its own
+ *  denominator: the two tables are never divided by a shared total. */
+function MuPlayTypes({ title, rows, kind, side, screen }) {
+  const display = view.matchupPlayTypeRows(rows, kind);
+  const columns = [
+    { key: 'name', label: 'Play Type', tl: true, render: row => muTrunc(row.name),
+      cellClass: side === 'opponent' ? 'gi-mu-look' : 'gi-mu-answer' },
+    { key: 'count', label: kind === 'offense' ? 'Plays' : 'Snaps' },
+    { key: 'avg', label: kind === 'offense' ? 'Yds / Play' : 'Yds / Play Allowed' },
+    { key: 'result', label: kind === 'offense' ? 'Success' : 'Stop Rate' },
+    { key: 'film', label: 'Film', cellClass: 'gi-mu-filmcell',
+      render: row => <MuFilm screen={screen} label={`${title}: ${row.name}`}
+        opponent={side === 'opponent' ? row.refs : null} season={side === 'opponent' ? null : row.refs} /> },
+  ];
+  return <div class={`gi-mu-compare${side === 'opponent' ? ' is-opp' : ''}`}>
+    <h3>{title}</h3>
+    <MuTable cls="gi-mu-pair" cols={['label', 'num', 'num', 'num', 'film']}
+      columns={columns} rows={display} empty={view.MATCHUP_NO_DATA} />
   </div>;
 }
+
+function MuOffenseLane({ lane, names, screen }) {
+  return <div class="gi-mu-pane">
+    <MuUnits season={names.season} opponent={names.opponent} />
+    <MuSection title="Situational Calls" keyed><MuSituations lane={lane} kind="offense" screen={screen} /></MuSection>
+    <MuSection title="Production by Play Type">
+      <div class="gi-mu-compare-grid">
+        <MuPlayTypes title="Our Offense" rows={lane.playTypes.season} kind="offense" side="season" screen={screen} />
+        <MuPlayTypes title={names.opponent.name} rows={lane.playTypes.opponent} kind="defense" side="opponent" screen={screen} />
+      </div>
+    </MuSection>
+    <MuSection title="Coverage Answers">
+      <MuTable cls="gi-mu-support" cols={['label', 'answer', 'num', 'num', 'num', 'num', 'film']}
+        columns={[
+          { key: 'coverage', label: 'Coverage', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.coverage) },
+          { key: 'answer', label: 'Our Top Call', tl: true, render: row => muTrunc(row.answer),
+            cellClass: row => (row.blank ? 'gi-mu-absent' : 'gi-mu-answer') },
+          { key: 'count', label: 'Plays' },
+          { key: 'avg', label: 'Yds / Play' },
+          { key: 'success', label: 'Success' },
+          { key: 'explosive', label: 'Explosive' },
+          { key: 'film', label: 'Film', cellClass: 'gi-mu-filmcell',
+            render: row => <MuFilm season={row.refs} screen={screen} label={`${row.coverage}: ${row.answer}`} /> },
+        ]}
+        rows={view.matchupCoverageRows(lane.coverages)} empty={view.MATCHUP_NO_DATA} />
+    </MuSection>
+  </div>;
+}
+
+function MuDefenseLane({ lane, names, screen }) {
+  return <div class="gi-mu-pane">
+    <MuUnits season={names.season} opponent={names.opponent} />
+    <MuSection title="Situational Calls" keyed><MuSituations lane={lane} kind="defense" screen={screen} /></MuSection>
+    <MuSection title="Production by Play Type">
+      <div class="gi-mu-compare-grid">
+        <MuPlayTypes title={names.opponent.name} rows={lane.playTypes.opponent} kind="offense" side="opponent" screen={screen} />
+        <MuPlayTypes title="Our Defense" rows={lane.playTypes.season} kind="defense" side="season" screen={screen} />
+      </div>
+    </MuSection>
+    <MuSection title="Personnel and Formation">
+      <MuTable cls="gi-mu-support" cols={['pers', 'answer', 'num', 'num', 'num', 'num', 'film']}
+        columns={[
+          { key: 'personnel', label: 'Personnel', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.personnel) },
+          { key: 'formation', label: 'Formation', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.formation) },
+          { key: 'count', label: 'Their Plays' },
+          { key: 'runRate', label: 'Run Rate' },
+          { key: 'avg', label: 'Yds / Play' },
+          { key: 'stop', label: 'Our Stop Rate', cellClass: row => (row.blank ? 'gi-mu-absent' : '') },
+          { key: 'film', label: 'Film', cellClass: 'gi-mu-filmcell',
+            render: row => <MuFilm opponent={row.oppRefs} season={row.seasonRefs} screen={screen}
+              label={`${row.personnel} | ${row.formation}`} /> },
+        ]}
+        rows={view.matchupPersonnelRows(lane.personnel)} empty={view.MATCHUP_NO_DATA} />
+    </MuSection>
+  </div>;
+}
+
+/** An absence stated literally: which opponent unit is missing, and which
+ *  matchup that removes. No fabricated selection, sample, row or zero. */
+function MuNote({ title, body }) {
+  return <div class="gi-mu-note"><strong>{title}</strong><span>{body}</span></div>;
+}
+
 export function MatchupTab({ model, screen }) {
-  if (!model.opponent) return <EmptyState title="No opponent matchup yet" body="Chart the front and coverage you face, or add an Opponent Scout game, to compare both sides of the ball." />;
-  const { opponent, opponents, lanes } = model;
-  const hasFirst = lanes.ourOffense.stats.offPlays.length > 0 && lanes.theirDefense.report.total > 0;
-  const hasSecond = lanes.ourDefense.report.total > 0 && lanes.theirOffense.stats.offPlays.length > 0;
-  const missing = [];
-  if (!hasFirst) missing.push('Their defense: chart the front and coverage you face on offensive snaps.');
-  if (!hasSecond) missing.push('Their offense: chart formation and play type on defensive snaps.');
+  /* The selected direction is controller state, the way Players' and
+     Self-Scout's sections are: an ordinary Reports re-render unmounts and
+     remounts this component, so a selection held only here would be lost
+     and the board would snap back under the coach's hands. */
+  const [tab, setTabState] = useState(screen.matchupTab || MATCHUP_TABS[0][0]);
+  const setTab = id => { screen.matchupTab = id; setTabState(id); };
+  if (!model?.opponent || (!model.offense && !model.defense)) {
+    return <div class="gi-overview-board gi-matchup-board"><div class="gi-mu-report">
+      <MuNote title="No opponent matchup data" body="No opponent offense or defense charted." />
+    </div></div>;
+  }
+  const { opponent, opponents } = model;
+  const sample = view.matchupSample(model);
+  /* Only a direction the opponent film can actually answer is selectable: a
+     dead tab rendered as though data existed is the one thing the partial
+     state must not do. */
+  const available = MATCHUP_TABS.filter(([id]) => (id === 'our-offense' ? model.offense : model.defense));
+  const active = available.some(([id]) => id === tab) ? tab : available[0][0];
+  const names = {
+    'our-offense': {
+      season: { name: 'Our Offense', sample: sample.units.offense.season },
+      opponent: { name: `${opponent.name} Defense`, sample: sample.units.offense.opponent },
+    },
+    'our-defense': {
+      season: { name: 'Our Defense', sample: sample.units.defense.season },
+      opponent: { name: `${opponent.name} Offense`, sample: sample.units.defense.opponent },
+    },
+  };
   return <div class="gi-overview-board gi-matchup-board">
-    <div class="gi-matchup-toolbar">
-      <div><span>Opponent matchup</span><strong>{opponent.name}</strong><small>{opponent.games} game{opponent.games === 1 ? '' : 's'} charted, {opponent.offPlays.length} offensive, {opponent.defPlays.length} defensive snaps</small></div>
-      {opponents.length > 1 && <label>Opponent<select value={opponent.name} onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>{opponents.map(item => <option key={item.name} value={item.name}>{item.name}, {item.offPlays.length} O / {item.defPlays.length} D</option>)}</select></label>}
+    <div class="gi-mu-report">
+      <div class="gi-mu-bar">
+        <div class="gi-mu-pick">
+          <label for="gi-mu-opponent">Opponent</label>
+          <select id="gi-mu-opponent" value={opponent.name}
+            onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>
+            {opponents.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
+          </select>
+        </div>
+        <nav class="gi-mu-tabs" aria-label="Matchup direction">
+          {available.map(([id, label]) => <button key={id} type="button" class={active === id ? 'active' : undefined}
+            aria-current={active === id ? 'true' : undefined} onClick={() => setTab(id)}>{label}</button>)}
+        </nav>
+        <div class="gi-mu-sample">
+          <div><span>Opponent sample</span><strong>{sample.opponent}</strong></div>
+        </div>
+      </div>
+      {active === 'our-offense'
+        ? <MuOffenseLane lane={model.offense} names={names['our-offense']} screen={screen} />
+        : <MuDefenseLane lane={model.defense} names={names['our-defense']} screen={screen} />}
+      {!model.defense ? <MuNote title="Opponent offense not charted"
+        body="Our Defense vs Their Offense is unavailable." /> : null}
+      {!model.offense ? <MuNote title="Opponent defense not charted"
+        body="Our Offense vs Their Defense is unavailable." /> : null}
     </div>
-    {hasFirst && <Module title={`Our offense vs ${opponent.name} defense`} meta="production against the structure they show"><div class="gi-matchup-pair"><MatchupOffense title="Our Offense" lane={lanes.ourOffense} screen={screen} /><MatchupDefense title={`${opponent.name} Defense`} lane={lanes.theirDefense} screen={screen} /></div></Module>}
-    {hasSecond && <Module title={`Our defense vs ${opponent.name} offense`} meta="our answers against what they run"><div class="gi-matchup-pair"><MatchupDefense title="Our Defense" lane={lanes.ourDefense} screen={screen} /><MatchupOffense title={`${opponent.name} Offense`} lane={lanes.theirOffense} screen={screen} /></div></Module>}
-    {missing.length > 0 && <Module title="Not charted yet"><ul class="gi-matchup-missing">{missing.map(item => <li key={item}>{item}</li>)}</ul></Module>}
   </div>;
 }
 /* ─────────────────────────────────────────────────────────────────────────

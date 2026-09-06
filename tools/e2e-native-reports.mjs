@@ -394,31 +394,42 @@ ok(result.watches.length === 2
     && JSON.stringify(result.watches[1]) === JSON.stringify(exactSeasonRefs),
   'A Season child-board row opens both games for the aggregated call and player', JSON.stringify({watches:result.watches,clicks:result.clicks}));
 console.log('\n== 2a. Matchup is native, two-sided, and film-exact ==');
+/* Selectors updated for the approved 2026-09-06 Matchup composition
+   (design-comps/reports-matchup-2026-09-06). Each assertion keeps its original
+   subject: the tab renders through its native component, it presents both
+   sides of the ball as two deliberate directions, and a row opens exactly the
+   cross-game-safe cohort it displays. What changed is where that row lives --
+   film is now the row's own explicit `Opponent` / `Season` control rather than
+   a whole-row click. */
 result = await page.evaluate(async () => {
   const app = window.app;
   const originalWatch = app.filmNavigation.watch;
   const watches = [];
   app.filmNavigation.watch = (refs, options) => watches.push({ refs, label: options?.label || '' });
+  app.reportsScreen.matchupTab = 'our-offense';
   app.reportsScreen.selectTab('matchup');
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('[data-pane="matchup"]');
-  const row = pane?.querySelector('.gi-matchup-side.is-offense tbody tr[role="button"]');
-  row?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  pane?.querySelector('.gi-mu-compare:not(.is-opp) .gi-mu-film button')
+    ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   app.filmNavigation.watch = originalWatch;
   return {
     legacyAbsent: typeof app.stats._renderMatchupInto !== 'function',
     native: !!pane?.querySelector('.gi-matchup-board'),
-    pairs: pane?.querySelectorAll('.gi-matchup-pair').length || 0,
-    labels: [...(pane?.querySelectorAll('.gi-matchup-side>h4') || [])].map(node => node.textContent.trim()),
+    directions: [...(pane?.querySelectorAll('.gi-mu-tabs button') || [])].map(node => node.textContent.trim()),
+    labels: [...(pane?.querySelectorAll('.gi-mu-unit strong') || [])].map(node => node.textContent.trim()),
     watch: watches.at(-1) || null,
   };
 });
 ok(result.native && result.legacyAbsent,
   'Matchup renders through its native component without calling the retired live DOM renderer', JSON.stringify(result));
-ok(result.pairs === 2 && result.labels.some(label => label === 'Our Offense') && result.labels.some(label => label === 'Our Defense'),
+ok(result.directions.length === 2
+  && result.directions[0] === 'Our Offense vs Their Defense'
+  && result.directions[1] === 'Our Defense vs Their Offense'
+  && result.labels.some(label => label === 'Our Offense'),
   'Matchup presents both sides of the ball as two deliberate comparison lanes', JSON.stringify(result));
 ok(JSON.stringify(result.watch?.refs) === JSON.stringify(['g-self::1']),
-  'A native Matchup tendency row opens the exact cross-game-safe film cohort it displays', JSON.stringify(result.watch));
+  'A native Matchup row opens the exact cross-game-safe film cohort it displays', JSON.stringify(result.watch));
 
 console.log('\n== 2aa. Matchup cohort boundaries remain honest ==');
 result = await page.evaluate(async () => {
@@ -432,12 +443,12 @@ result = await page.evaluate(async () => {
     { id:'match-self', gameInfo:{opponent:'Wildcats',perspective:'self'}, plays:[play(1,'offense',{formation:'Trips',runPass:'Run',playType:'Run Outside',result:'Gain',yardage:'8'}),play(2,'offense',{formation:'Trips'}),def(3,'Run Inside')] },
     { id:'match-scout', gameInfo:{opponent:'Wildcats',perspective:'scout'}, plays:[play(1,'offense',{formation:'Bunch',runPass:'Pass',playType:'Short Pass',result:'Gain',yardage:'6'}),def(10,'Run Inside'),def(11,'Run Outside'),def(12,'Screen'),def(13,'Short Pass'),def(14,'Medium Pass'),def(15,'Deep Pass'),def(16,'Deep Pass'),def(17,'Deep Pass'),def(18,'Deep Pass'),def(19,'Deep Pass')] },
   ];
-  app.storage.seasonStore.data.activeGameId='match-self'; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.selectTab('matchup');
+  app.storage.seasonStore.data.activeGameId='match-self'; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.matchupTab='our-offense'; app.reportsScreen.selectTab('matchup');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   let pane=document.querySelector('[data-pane="matchup"]');
-  [...pane.querySelectorAll('.gi-matchup-side.is-offense tbody tr')].find(row=>row.children[0]?.textContent.trim()==='Formation'&&row.children[1]?.textContent.trim()==='Trips')?.click();
-  const opponentDefense=[...pane.querySelectorAll('.gi-matchup-side.is-defense')].find(side=>side.querySelector('h4')?.textContent.includes('Wildcats'));
-  const types=[...(opponentDefense?.querySelectorAll('tbody tr')||[])].filter(row=>row.children[0]?.textContent.trim()==='Play type').map(row=>row.children[1]?.textContent.trim());
+  pane.querySelector('.gi-mu-compare:not(.is-opp) .gi-mu-film button')?.click();
+  const opponentDefense=[...pane.querySelectorAll('.gi-mu-compare.is-opp')].pop();
+  const types=[...(opponentDefense?.querySelectorAll('tbody tr')||[])].map(row=>row.children[0]?.textContent.trim());
   const refs=calls.at(-1)||[];
   app.storage.seasonStore.data.games=[
     {id:'empty-self',gameInfo:{opponent:'Wildcats',perspective:'self'},plays:[play(1,'offense',{formation:'Trips'})]},
@@ -446,13 +457,19 @@ result = await page.evaluate(async () => {
   app.storage.seasonStore.data.activeGameId='empty-self'; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.selectTab('matchup');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   pane=document.querySelector('[data-pane="matchup"]');
-  const empty={pairs:pane.querySelectorAll('.gi-matchup-pair').length,missing:pane.querySelector('.gi-matchup-missing')?.textContent||''};
-  app.filmNavigation.watch=saved.watch; app.storage.seasonStore.data.games=saved.games; app.storage.seasonStore.data.activeGameId=saved.active; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='';
+  const empty={
+    directions:[...pane.querySelectorAll('.gi-mu-tabs button')].map(n=>n.textContent.trim()),
+    note:pane.querySelector('.gi-mu-note')?.textContent||'',
+    joins:[...pane.querySelectorAll('table.gi-mu-decision tbody tr')].map(row=>row.children[1]?.textContent.trim()),
+  };
+  app.filmNavigation.watch=saved.watch; app.storage.seasonStore.data.games=saved.games; app.storage.seasonStore.data.activeGameId=saved.active; app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent=''; app.reportsScreen.matchupTab='our-offense';
   return {refs,types,empty};
 });
 ok(JSON.stringify(result.refs)===JSON.stringify(['match-self::1']),'Matchup row film uses the same eligible cohort as its count',JSON.stringify(result.refs));
-ok(result.types[0]==='Deep Pass'&&result.types.length===4,'Matchup ranks defensive concepts before limiting rows',JSON.stringify(result.types));
-ok(result.empty.pairs===0&&result.empty.missing.includes('Their defense'),'Incomplete tags cannot fabricate a matchup lane',JSON.stringify(result.empty));
+/* The composition no longer truncates a play-type table, so the subject is
+   the RANKING itself: most charted first, then the displayed name ascending. */
+ok(result.types[0]==='Deep Pass'&&JSON.stringify(result.types.slice(1))===JSON.stringify(['Medium Pass','Run Inside','Run Outside','Screen','Short Pass']),'Matchup ranks defensive concepts by frequency with a deterministic tie-break',JSON.stringify(result.types));
+ok(result.empty.directions.length===1&&result.empty.directions[0]==='Our Offense vs Their Defense'&&result.empty.note.includes('Opponent offense not charted')&&result.empty.joins.every(text=>text==='No data'),'Incomplete tags cannot fabricate a matchup lane',JSON.stringify(result.empty));
 console.log('\n== 2b. Defense is season-wide, performance-first, and film-exact ==');
 // Loaded as the REAL active season (not a standalone plays array handed
 // straight to defensivePerformance()) so the DOM assertions below exercise

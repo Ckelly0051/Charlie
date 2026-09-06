@@ -873,3 +873,99 @@ export function specialTeamsPhases(stats) {
     ] });
   return phases;
 }
+
+/* ══ Reports > Matchup — the approved 2026-09-06 composition ═══════════════
+   design-comps/reports-matchup-2026-09-06 (`matchup.html`, `RATIONALE.md`).
+
+   Every number reaching these functions was already measured by
+   `StatsEngine.matchupReport()`. Nothing here computes a cohort, a
+   denominator, a ranking or a classification — these functions choose a
+   label, format a value, and name the two film cohorts a row carries.
+
+   Polarity travels in `kind`: an OFFENSE lane reports Success Rate over our
+   own production, a DEFENSE lane Stop Rate over what we allowed. The two
+   labels are never interchanged.
+   ─────────────────────────────────────────────────────────────────────── */
+export const MATCHUP_NO_MATCH = 'No matching snaps';
+export const MATCHUP_NO_DATA = 'No data';
+
+const muRate = value => `${Math.round(value)}%`;
+const muAvg = value => value.toFixed(1);
+const muGames = count => `${count} game${count === 1 ? '' : 's'}`;
+
+/** Situational Calls: one row per fixed situation. An absent season join
+ *  reads `No matching snaps` at copy weight and prints no measurement at
+ *  all — never a fabricated zero. */
+export function matchupSituationRows(lane, kind) {
+  return (lane?.situations || []).map(row => ({
+    id: row.key,
+    situation: row.label,
+    look: row.opponent ? row.opponent.label : MATCHUP_NO_DATA,
+    rate: row.opponent ? muRate(row.opponent.rate) : MATCHUP_NO_DATA,
+    sample: row.opponent ? row.opponent.n : MATCHUP_NO_DATA,
+    answer: row.season ? row.season.label : MATCHUP_NO_MATCH,
+    count: row.season ? row.season.n : '',
+    avg: row.season ? muAvg(row.season.yardsPerPlay) : '',
+    result: row.season ? muRate(kind === 'offense' ? row.season.successRate : row.season.stopRate) : '',
+    oppRefs: row.opponent?.refs || [],
+    seasonRefs: row.season?.refs || [],
+    blank: !row.season,
+  }));
+}
+
+/** Production by Play Type — one cohort's own rows, its own denominator. */
+export function matchupPlayTypeRows(rows, kind) {
+  return (rows || []).map(row => ({
+    id: row.label, name: row.label, count: row.n, avg: muAvg(row.yardsPerPlay),
+    result: muRate(kind === 'offense' ? row.successRate : row.stopRate), refs: row.refs,
+  }));
+}
+
+/** Coverage Answers — driven by the coverages the opponent defense charted,
+ *  answered by our own season call inside that exact coverage. */
+export function matchupCoverageRows(rows) {
+  return (rows || []).map(row => ({
+    id: row.coverage, coverage: row.coverage,
+    answer: row.season ? row.season.label : MATCHUP_NO_MATCH,
+    count: row.season ? row.season.n : '',
+    avg: row.season ? muAvg(row.season.yardsPerPlay) : '',
+    success: row.season ? muRate(row.season.successRate) : '',
+    explosive: row.season ? muRate(row.season.explosiveRate) : '',
+    refs: row.season?.refs || [],
+    blank: !row.season,
+  }));
+}
+
+/** Personnel and Formation — their production from their own film, our stop
+ *  rate against the exact same combination, and two separate ref sets. */
+export function matchupPersonnelRows(rows) {
+  return (rows || []).map(row => ({
+    id: `${row.personnel} | ${row.formation}`,
+    personnel: row.personnel, formation: row.formation,
+    count: row.opponent.n, runRate: muRate(row.opponent.runRate), avg: muAvg(row.opponent.yardsPerPlay),
+    stop: row.season ? muRate(row.season.stopRate) : MATCHUP_NO_MATCH,
+    oppRefs: row.opponent.refs, seasonRefs: row.season?.refs || [],
+    blank: !row.season,
+  }));
+}
+
+/** The two samples, counted independently. The opponent's charted film and
+ *  our own season are different cohorts of different sizes; they share no
+ *  denominator and are never summed into one figure. */
+export function matchupSample(model) {
+  const opponent = model.opponent, season = model.season;
+  return {
+    opponent: `${muGames(opponent.games)} | ${opponent.defense} defense | ${opponent.offense} offense`,
+    season: `${muGames(season.games)} | ${season.offense} offense | ${season.defense} defense`,
+    units: {
+      offense: {
+        season: `${muGames(season.games)} | ${season.offense} plays`,
+        opponent: `${muGames(opponent.games)} | ${opponent.defense} snaps`,
+      },
+      defense: {
+        season: `${muGames(season.games)} | ${season.defense} snaps`,
+        opponent: `${muGames(opponent.games)} | ${opponent.offense} plays`,
+      },
+    },
+  };
+}

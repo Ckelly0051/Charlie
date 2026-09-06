@@ -46,6 +46,12 @@ export class ReportsScreen {
     // tab, and a selection held only in the view is lost when that happens.
     this.selfScoutSection = 'summary';
     this.matchupOpponent = '';
+    // Matchup's active direction is controller state for the same reason
+    // `playersSection` and `selfScoutSection` are: changing the opponent
+    // re-renders the tab, and a direction held only in the view would be
+    // discarded and the board would snap back to Our Offense vs Their
+    // Defense under the coach's hands.
+    this.matchupTab = 'our-offense';
   }
 
   mount(host) {

@@ -734,10 +734,6 @@
 .gi-reports-tab.active{background:var(--gi-4);color:var(--gi-12);border-bottom:3px solid var(--gi-los)}
 .gi-reports .tm-cell .tm-count{font-size:15px;font-weight:750;color:var(--gi-12)}
 .gi-reports .tm-cell .tm-split,.gi-reports .tm-cell .tm-succ{font-size:12px}
-.gi-reports .gi-matchup-head{border-radius:0;color:var(--gi-on-solid);font-size:14px;letter-spacing:0}
-.gi-reports .gi-mh-off{background:var(--gi-cat-3);color:var(--gi-1)}
-.gi-reports .gi-mh-def{background:var(--gi-cat-4);color:var(--gi-1)}
-.gi-reports .gi-matchup-sample{display:flex;align-items:center;min-height:34px;margin:0 0 var(--gi-3x);padding:0 var(--gi-3x);border-left:3px solid var(--gi-los);background:var(--gi-2);color:var(--gi-11);font-size:12.5px}
 .gi-reports .gi-answer-row span,.gi-reports .gi-answer-row strong{font:650 14px/1.3 var(--gi-sans)}
 .gi-reports .ss-performance-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--gi-6);padding:1px}
 .gi-reports .ss-performance-grid>div{display:grid;place-content:center;min-height:86px;padding:var(--gi-3x);background:var(--gi-2);text-align:center}
@@ -834,8 +830,6 @@
 }
 .gi-reports [data-native-main-report][data-pane="offense"]{border-left:3px solid var(--gi-bd-gold)}
 .gi-reports [data-native-main-report][data-pane="defense"]{border-left:3px solid var(--gi-bd-cyan)}
-.gi-reports .gi-mh-off{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
-.gi-reports .gi-mh-def{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-reports .gi-def-kpis,.gi-reports .gi-def-type-totals{background:var(--gi-bd-cyan)}
 
 /* Run/pass identity, scoped to Reports only (the app-wide --gi-run/--gi-pass
@@ -1628,30 +1622,235 @@
   .gi-reports .gi-selfscout-board .gi-overview-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)) }
 }
 
-/* Native Matchup: one compact comparison board, not two full reports forced
-   side-by-side. Each side keeps natural-height KPI and tendency content while
-   the shared module rule creates the strong horizontal separation used across
-   the approved Reports composition. */
-.gi-reports .gi-matchup-board{gap:1px}
-.gi-reports .gi-matchup-toolbar{display:flex;align-items:end;justify-content:space-between;gap:var(--gi-5x);padding:var(--gi-4x) var(--gi-5x);border:1px solid var(--gi-6);background:var(--gi-3)}
-.gi-reports .gi-matchup-toolbar>div{display:grid;gap:4px}
-.gi-reports .gi-matchup-toolbar>div>span,.gi-reports .gi-matchup-toolbar label{font:var(--gi-text-label);color:var(--gi-11);text-transform:uppercase}
-.gi-reports .gi-matchup-toolbar>div>strong{font:700 24px/1 var(--gi-cond);color:var(--gi-12)}
-.gi-reports .gi-matchup-toolbar>div>small{font:var(--gi-text-caption);color:var(--gi-11)}
-.gi-reports .gi-matchup-toolbar label{display:grid;gap:6px;min-width:260px}
-.gi-reports .gi-matchup-toolbar select{min-height:36px;padding:0 var(--gi-3x);border:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12);font:700 12px/1 var(--gi-sans)}
-.gi-reports .gi-matchup-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--gi-6)}
-.gi-reports .gi-matchup-side{min-width:0;padding:var(--gi-4x);background:var(--gi-2)}
-.gi-reports .gi-matchup-side>h4{margin:0 0 var(--gi-3x);padding-bottom:var(--gi-2x);border-bottom:3px solid var(--gi-run);font:700 14px/1 var(--gi-sans);color:var(--gi-12);text-transform:uppercase}
-.gi-reports .gi-matchup-side.is-defense>h4{border-color:var(--gi-pass)}
-.gi-reports .gi-matchup-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;margin-bottom:var(--gi-3x);background:var(--gi-6)}
-.gi-reports .gi-matchup-kpis>div{display:grid;align-content:start;gap:4px;min-height:74px;padding:var(--gi-2x);background:var(--gi-3)}
-.gi-reports .gi-matchup-kpis span{font:700 9px/1.15 var(--gi-sans);color:var(--gi-11);text-transform:uppercase}
-.gi-reports .gi-matchup-kpis strong{font:700 20px/1 var(--gi-cond);color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
-.gi-reports .gi-matchup-kpis small{font-size:10px;color:var(--gi-10)}
-.gi-reports .gi-matchup-missing{display:grid;gap:var(--gi-2x);margin:0;padding:var(--gi-3x) var(--gi-5x);color:var(--gi-11)}
-@media(max-width:1050px){.gi-reports .gi-matchup-pair{grid-template-columns:minmax(0,1fr)}.gi-reports .gi-matchup-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:700px){.gi-reports .gi-matchup-toolbar{align-items:stretch;flex-direction:column}.gi-reports .gi-matchup-toolbar label{min-width:0}.gi-reports .gi-matchup-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* ══════════════════════════════════════════════════════════════════════════
+   REPORTS · MATCHUP — the approved 2026-09-06 composition
+   (design-comps/reports-matchup-2026-09-06/matchup.html + RATIONALE.md).
+
+   Two matchup directions, one on screen at a time, each led by the
+   full-width situational join and followed by paired play-type context.
+   Same board geometry the accepted Players and Self-Scout boards carry: no
+   padding of its own (the route already insets it), a report canvas capped
+   at 1648px and centred, and 40px data rows.
+
+   The comp's blue/gold cohort distinction maps onto the board's own
+   broadcast tokens: cyan is the season cohort, gold the opponent's. Neither
+   is decorative -- every value on the board belongs to exactly one of the
+   two, and the key above the situational table says which.
+   ══════════════════════════════════════════════════════════════════════════ */
+.gi-reports .gi-matchup-board{
+  /* Column steps, each sized from the widest thing that column must hold --
+     its own header, or a real composite call label. */
+  --mu-sit:112px;      /* Situation -- "3rd & 1-3" */
+  --mu-look:238px;     /* Their Primary Call -- Front | Coverage | Blitz */
+  --mu-freq:70px;      /* Rate */
+  --mu-n:58px;         /* Snaps / Plays */
+  --mu-answer:205px;   /* Our Top Call vs Same Look */
+  --mu-metric:78px;    /* Plays, Yds / Play, Success / Stop Rate */
+  --mu-film:152px;     /* two explicit film controls */
+  --mu-film1:96px;     /* one explicit film control */
+  --mu-label:112px;    /* Coverage */
+  --mu-form:150px;     /* Formation */
+  --mu-num:88px;       /* support-table measurements */
+  --mu-pair-num:84px;  /* paired play-type measurements */
+  display:block;width:100%;margin:0;padding:0;
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
+}
+.gi-reports .gi-mu-report{
+  width:min(100%,1648px);margin:0 auto;
+  border:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)
+}
+
+/* ── The control row: opponent, direction, sample ───────────────────────── */
+.gi-reports .gi-mu-bar{
+  display:grid;grid-template-columns:minmax(255px,1fr) auto minmax(260px,1fr);
+  align-items:stretch;gap:1px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-mu-pick,
+.gi-reports .gi-mu-sample{
+  display:flex;align-items:center;gap:var(--gi-3x);min-width:0;
+  padding:0 var(--gi-3x);background:var(--gi-bd-panel)
+}
+.gi-reports .gi-mu-pick label{ color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);white-space:nowrap }
+.gi-reports .gi-mu-pick select{
+  min-width:220px;min-height:34px;padding:0 var(--gi-3x) 0 var(--gi-2x);
+  border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
+  color:var(--gi-bd-strong);font:600 12px/1 var(--gi-sans)
+}
+.gi-reports .gi-mu-pick select:hover{ border-color:var(--gi-bd-cyan) }
+.gi-reports .gi-mu-pick select:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-mu-sample{ justify-content:flex-end }
+.gi-reports .gi-mu-sample>div{ min-width:0;text-align:right }
+.gi-reports .gi-mu-sample span{
+  display:block;color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);text-transform:uppercase
+}
+.gi-reports .gi-mu-sample strong{
+  display:block;margin-top:3px;color:var(--gi-bd-strong);font:600 12px/1.2 var(--gi-sans);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-mu-tabs{ display:flex;align-items:stretch;gap:1px;background:var(--gi-bd-line) }
+.gi-reports .gi-mu-tabs button{
+  min-width:246px;min-height:42px;padding:0 var(--gi-4x);border:0;
+  background:var(--gi-bd-stage);color:var(--gi-bd-copy);
+  font:600 12px/1 var(--gi-sans);cursor:pointer
+}
+.gi-reports .gi-mu-tabs button:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
+.gi-reports .gi-mu-tabs button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-mu-tabs button.active{
+  background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)
+}
+
+/* ── The two samples, side by side and never merged ─────────────────────── */
+.gi-reports .gi-mu-units{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-mu-unit{
+  display:flex;align-items:center;gap:var(--gi-3x);min-width:0;
+  padding:10px var(--gi-3x);background:var(--gi-bd-control);border-top:3px solid var(--gi-bd-cyan)
+}
+.gi-reports .gi-mu-unit.is-opp{ border-top-color:var(--gi-bd-gold) }
+.gi-reports .gi-mu-unit>div{ min-width:0 }
+.gi-reports .gi-mu-unit span{
+  display:block;color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);text-transform:uppercase
+}
+.gi-reports .gi-mu-unit strong{
+  display:block;margin-top:2px;color:var(--gi-bd-strong);font:600 15px/1.2 var(--gi-sans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-mu-unit small{
+  margin-left:auto;color:var(--gi-bd-copy);font:400 11px/1.2 var(--gi-sans);
+  font-variant-numeric:var(--gi-num-feat);white-space:nowrap
+}
+
+/* ── Section headers carry the TITLE only ───────────────────────────────── */
+.gi-reports .gi-mu-section{ border-top:1px solid var(--gi-bd-line) }
+.gi-reports .gi-mu-title{
+  display:flex;align-items:center;min-height:38px;padding:0 var(--gi-3x);
+  background:var(--gi-bd-stage);border-left:3px solid var(--gi-bd-cyan)
+}
+.gi-reports .gi-mu-title h2{ margin:0;color:var(--gi-bd-strong);font:700 14px/1 var(--gi-sans) }
+.gi-reports .gi-mu-key{
+  display:flex;align-items:center;gap:var(--gi-4x);margin-left:auto;
+  color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);text-transform:uppercase
+}
+.gi-reports .gi-mu-key b{ display:inline-block;width:9px;height:9px;margin-right:5px }
+.gi-reports .gi-mu-key b.is-opp{ background:var(--gi-bd-gold) }
+.gi-reports .gi-mu-key b.is-season{ background:var(--gi-bd-cyan) }
+
+/* ── Tables ─────────────────────────────────────────────────────────────────
+   Qualified by the ELEMENT, not by class alone: the shared
+   `.gi-reports .gi-overview-module table` rule carries an element selector
+   and would otherwise outrank a bare `.gi-mu-table`, silently losing the
+   fixed layout and the colgroup while still rendering plausibly. */
+.gi-reports .gi-mu-section .gi-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
+.gi-reports .gi-mu-section table.gi-mu-table{
+  width:100%;table-layout:fixed;border-collapse:collapse;background:transparent
+}
+.gi-reports .gi-mu-section table.gi-mu-table th,
+.gi-reports .gi-mu-section table.gi-mu-table td{
+  height:40px;padding:0 var(--gi-2x);border-bottom:1px solid var(--gi-bd-line);
+  font-size:12px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:var(--gi-num-feat)
+}
+/* The route-wide `th{position:sticky;top:42px}` is measured against the wrap
+   once the wrap becomes a scroll container, which pins the header 42px down
+   over its own first data row -- the correction every approved board needs. */
+.gi-reports .gi-mu-section table.gi-mu-table th{
+  position:relative;top:auto;z-index:auto;height:36px;background:var(--gi-bd-stage);
+  color:var(--gi-bd-copy);font:600 11px/1.15 var(--gi-sans);
+  text-transform:uppercase;letter-spacing:0;white-space:normal
+}
+.gi-reports .gi-mu-section table.gi-mu-table td{ color:var(--gi-bd-copy);font-size:13px }
+.gi-reports .gi-mu-section table.gi-mu-table th.tl,
+.gi-reports .gi-mu-section table.gi-mu-table td.tl{ text-align:left }
+.gi-reports .gi-mu-section table.gi-mu-table th:first-child,
+.gi-reports .gi-mu-section table.gi-mu-table td:first-child{ padding-left:var(--gi-3x) }
+.gi-reports .gi-mu-section table.gi-mu-table th:last-child,
+.gi-reports .gi-mu-section table.gi-mu-table td:last-child{ padding-right:var(--gi-3x) }
+.gi-reports .gi-mu-section table.gi-mu-table tbody tr:last-child td{ border-bottom:0 }
+.gi-reports .gi-mu-section table.gi-mu-table tbody tr:hover td{ background:var(--gi-bd-control) }
+
+/* The cohort a value belongs to, stated in colour and repeated in the key. */
+.gi-reports .gi-mu-section table.gi-mu-table td.gi-mu-sit{ color:var(--gi-bd-strong);font-weight:600 }
+.gi-reports .gi-mu-section table.gi-mu-table td.gi-mu-look{ color:var(--gi-bd-gold);font-weight:600 }
+.gi-reports .gi-mu-section table.gi-mu-table td.gi-mu-answer{ color:var(--gi-bd-cyan);font-weight:600 }
+/* An absence drops to copy weight so it cannot read as a headline value. */
+.gi-reports .gi-mu-section table.gi-mu-table td.gi-mu-absent{ color:var(--gi-bd-muted);font-weight:400 }
+.gi-reports .gi-mu-section table.gi-mu-table td.gi-mu-filmcell{ overflow:visible }
+/* A bounded truncation: a composite call label longer than any panel can give
+   it ellipsises inside its own cell and keeps the full value on its title. */
+.gi-reports .gi-mu-section table.gi-mu-table .gi-mu-trunc{
+  display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+
+.gi-reports .gi-mu-section table.gi-mu-table col.sit{ width:var(--mu-sit) }
+.gi-reports .gi-mu-section table.gi-mu-table col.look{ width:var(--mu-look) }
+.gi-reports .gi-mu-section table.gi-mu-table col.freq{ width:var(--mu-freq) }
+.gi-reports .gi-mu-section table.gi-mu-table col.n{ width:var(--mu-n) }
+.gi-reports .gi-mu-section table.gi-mu-table col.answer{ width:var(--mu-answer) }
+.gi-reports .gi-mu-section table.gi-mu-table col.metric{ width:var(--mu-metric) }
+.gi-reports .gi-mu-section table.gi-mu-table col.label{ width:var(--mu-label) }
+.gi-reports .gi-mu-section table.gi-mu-table col.pers{ width:var(--mu-label) }
+.gi-reports .gi-mu-section table.gi-mu-table col.form{ width:var(--mu-form) }
+.gi-reports .gi-mu-section table.gi-mu-table col.num{ width:var(--mu-num) }
+.gi-reports .gi-mu-section table.gi-mu-table.gi-mu-pair col.num{ width:var(--mu-pair-num) }
+.gi-reports .gi-mu-section table.gi-mu-table col.film{ width:var(--mu-film) }
+.gi-reports .gi-mu-section table.gi-mu-table.gi-mu-pair col.film{ width:var(--mu-film1) }
+
+/* ── Explicit film controls ─────────────────────────────────────────────────
+   Two labelled buttons, never one ambiguous row action and never an
+   unlabelled icon. A side with no references renders no button at all. */
+.gi-reports .gi-mu-film{ display:inline-flex;gap:3px;justify-content:flex-end }
+.gi-reports .gi-mu-film button{
+  min-width:64px;height:28px;padding:0 var(--gi-2x);
+  border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
+  color:var(--gi-bd-copy);font:700 10px/1 var(--gi-sans);text-transform:none;cursor:pointer
+}
+.gi-reports .gi-mu-film button:hover{
+  border-color:var(--gi-bd-cyan);background:var(--gi-bd-control-active);color:var(--gi-bd-strong)
+}
+.gi-reports .gi-mu-film button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
+.gi-reports .gi-mu-film button:active{ background:var(--gi-bd-line);color:var(--gi-bd-strong) }
+.gi-reports .gi-mu-film button.gi-mu-opp{ color:var(--gi-bd-gold) }
+.gi-reports .gi-mu-film button.gi-mu-opp:hover{ border-color:var(--gi-bd-gold);color:var(--gi-bd-strong) }
+.gi-reports .gi-mu-film button.gi-mu-opp:focus-visible{ outline-color:var(--gi-bd-gold) }
+
+/* ── Paired play-type context: two cohorts, two denominators ────────────── */
+.gi-reports .gi-mu-compare-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-mu-compare{ min-width:0;background:var(--gi-bd-panel) }
+.gi-reports .gi-mu-compare h3{
+  margin:0;padding:10px var(--gi-3x) 8px;color:var(--gi-bd-cyan);
+  font:700 13px/1.2 var(--gi-sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.gi-reports .gi-mu-compare.is-opp h3{ color:var(--gi-bd-gold) }
+
+/* ── An absence stated literally ────────────────────────────────────────── */
+.gi-reports .gi-mu-note{
+  padding:var(--gi-6x) var(--gi-4x);border-top:1px solid var(--gi-bd-line);
+  background:var(--gi-bd-panel);text-align:center
+}
+.gi-reports .gi-mu-note strong{ display:block;color:var(--gi-bd-strong);font:600 16px/1.2 var(--gi-sans) }
+.gi-reports .gi-mu-note span{ display:block;margin-top:4px;color:var(--gi-bd-muted);font:400 12px/1.3 var(--gi-sans) }
+.gi-reports .gi-mu-section .gi-table-empty{
+  margin:0;padding:var(--gi-4x) var(--gi-3x);color:var(--gi-bd-muted);font:400 13px/1.3 var(--gi-sans)
+}
+
+/* Both matchup rows hold through 1280. Below 1000 -- narrower than any
+   release width this board is reviewed at -- the paired tables stack rather
+   than squeezing a call label out of legibility. */
+@media(max-width:1300px){
+  .gi-reports .gi-matchup-board{ --mu-look:195px;--mu-answer:175px;--mu-pair-num:70px;--mu-num:80px }
+  .gi-reports .gi-mu-tabs button{ min-width:210px;padding:0 var(--gi-3x) }
+}
+@media(max-width:1000px){
+  .gi-reports .gi-mu-bar{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-mu-sample{ justify-content:flex-start }
+  .gi-reports .gi-mu-sample>div{ text-align:left }
+  .gi-reports .gi-mu-tabs button{ min-width:0;flex:1 1 0 }
+  .gi-reports .gi-mu-units,
+  .gi-reports .gi-mu-compare-grid{ grid-template-columns:minmax(0,1fr) }
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    REPORTS · SEASON — the approved 2026-09-05 composition
