@@ -190,18 +190,22 @@ export class SeasonManager {
        order, read from the same cohort summariser, so the two panels can be
        read across as one grid. */
     const progression = windowSize < 1 ? [] : compare.map(spec => {
-      const from = earlySummary[spec.key], to = lateSummary[spec.key], delta = to - from;
-      const status = Math.abs(delta) < spec.epsilon ? 'Steady' : delta > 0 ? 'Up' : 'Down';
+      const from = earlySummary[spec.key], to = lateSummary[spec.key];
+      const measured = Number.isFinite(from) && Number.isFinite(to);
+      const delta = measured ? to - from : null;
+      const status = !measured ? 'No data' : Math.abs(delta) < spec.epsilon ? 'Steady' : delta > 0 ? 'Up' : 'Down';
       return { label:spec.label, from:spec.format(from), to:spec.format(to), delta,
-        deltaText:SeasonManager._deltaText(delta, spec), status,
-        direction:status === 'Steady' ? 'flat' : status === 'Up' ? 'up' : 'down',
+        deltaText:measured ? SeasonManager._deltaText(delta, spec) : 'No data', status,
+        direction:!measured || status === 'Steady' ? 'flat' : status === 'Up' ? 'up' : 'down',
         // Retained so the standalone HTML export prints the same literal word
         // the board shows rather than a second vocabulary.
         verdict:status };
     });
     const winSummary = cohort(winRows), lossSummary = cohort(lossRows);
-    const aggregate = summary => ({ ypp:summary.yardsPerPlay.toFixed(1), success:`${summary.successRate.toFixed(1)}%`,
-      third:`${Math.round(summary.thirdDown)}%`, ppd:summary.pointsPerDrive.toFixed(1), margin:summary.margin });
+    const aggregate = summary => ({ ypp:SeasonManager.COMPARE_METRICS[1].format(summary.yardsPerPlay),
+      success:SeasonManager.COMPARE_METRICS[0].format(summary.successRate),
+      third:SeasonManager.COMPARE_METRICS[2].format(summary.thirdDown),
+      ppd:SeasonManager.COMPARE_METRICS[3].format(summary.pointsPerDrive), margin:summary.margin });
     const pct=(n,total)=>total?Math.round(n/total*100):0;
     const tone=(value,good,ok)=>value>=good?'good':value>=ok?'warn':'bad';
     const situational=(()=>{const d=stats.downs||{},sit=stats.situational||{},eff=stats.efficiency||{},dr=stats.drives||{};
@@ -232,15 +236,16 @@ export class SeasonManager {
         {label:'Explosive Rate',value:stats.totalPlays?`${Math.round(Number(eff.explosivePct)||0)}%`:null},
       ];
     })();
-    const turnoverScoring=(()=>{const margin=this._toMargin(stats),byQuarter=stats.scoreboard?.byQuarter||{};
+    const turnoverScoring=(()=>{const margin=this._marginForRows(perGame),byQuarter=stats.scoreboard?.byQuarter||{};
       const quarters=['Q1','Q2','Q3','Q4','OT'].filter(q=>byQuarter[q]&&((byQuarter[q].us||0)||(byQuarter[q].them||0))).map(q=>({quarter:q,us:byQuarter[q].us||0,them:byQuarter[q].them||0}));
-      return {margin:margin.margin,takeaways:margin.takeaways,giveaways:margin.giveaways,unresolved:margin.unresolved,quarters};
+      return {margin:margin?.margin??null,takeaways:margin?.takeaways??null,giveaways:margin?.giveaways??null,
+        unresolved:margin?.unresolved??null,quarters};
     })();
     const identityGroup=(items,total)=>items.filter(item=>item.name!=='Unknown').slice(0,4).map(item=>({name:item.name,count:item.count,use:Math.round(item.count/(total||1)*100),success:item.successPct}));
     const personnel=stats.personnel||[],formations=stats.tendencies?.formationList||[];
     const offensiveIdentity={personnel:identityGroup(personnel,personnel.reduce((sum,item)=>sum+item.count,0)),formations:identityGroup(formations,formations.reduce((sum,item)=>sum+item.count,0))};
     const seasonYards = stats.rushing.yards + stats.passing.yards;
-    const seasonMargin = this._toMargin(stats);
+    const seasonMargin = this._marginForRows(perGame);
     const record = rows => { const w=rows.filter(r=>r.result==='W').length, l=rows.filter(r=>r.result==='L').length,
       t=rows.filter(r=>r.result==='T').length; return t?`${w}-${l}-${t}`:`${w}-${l}`; };
     const sum = (rows, get) => rows.reduce((total,row)=>total+(get(row)||0),0);
@@ -255,7 +260,7 @@ export class SeasonManager {
       summary:{ games:games.length, charted:perGame.length, offensiveGames,
         record:ties?`${wins}-${losses}-${ties}`:`${wins}-${losses}`, played:wins+losses+ties, pointsFor, pointsAgainst,
         yards:seasonYards, yardsPerGame:offensiveGames?seasonYards/offensiveGames:null,
-        successRate:Number(stats.efficiency.successRate), turnoverMargin:seasonMargin.margin },
+        successRate:Number(stats.efficiency.successRate), turnoverMargin:seasonMargin?.margin??null },
       trends:{ windowSize, scoredGames:scoredLate.length, offensiveGamesInWindow:lateOffense,
         recentRecord:windowSize?record(late):null,
         recentPointsPerGame:scoredLate.length?sum(scoredLate,row=>row.pointsFor)/scoredLate.length:null,
@@ -286,13 +291,14 @@ export class SeasonManager {
    *  this list uses: a fifth of a point per drive, or a fifth of a turnover a
    *  game, is noise at a high-school sample size. */
   static get COMPARE_METRICS() {
+    const missing = value => value == null || !Number.isFinite(value);
     return [
-      { key:'successRate', label:'Success Rate', unit:' pp', epsilon:2, digits:1, format:v => `${v.toFixed(1)}%` },
-      { key:'yardsPerPlay', label:'Yards / Play', unit:' yds/play', epsilon:0.3, digits:1, format:v => v.toFixed(1) },
-      { key:'thirdDown', label:'3rd Down Rate', unit:' pp', epsilon:3, digits:0, format:v => `${Math.round(v)}%` },
-      { key:'pointsPerDrive', label:'Points / Drive', unit:' pts/drive', epsilon:0.3, digits:1, format:v => v.toFixed(1) },
-      { key:'marginPerGame', label:'TO Margin / Game', unit:'/game', epsilon:0.3, digits:1, format:v => v.toFixed(1) },
-      { key:'tdPerGame', label:'TD / Game', unit:'/game', epsilon:0.3, digits:1, format:v => v.toFixed(1) },
+      { key:'successRate', label:'Success Rate', unit:' pp', epsilon:2, digits:1, format:v => missing(v)?'No data':`${v.toFixed(1)}%` },
+      { key:'yardsPerPlay', label:'Yards / Play', unit:' yds/play', epsilon:0.3, digits:1, format:v => missing(v)?'No data':v.toFixed(1) },
+      { key:'thirdDown', label:'3rd Down Rate', unit:' pp', epsilon:3, digits:0, format:v => missing(v)?'No data':`${Math.round(v)}%` },
+      { key:'pointsPerDrive', label:'Points / Drive', unit:' pts/drive', epsilon:0.3, digits:1, format:v => missing(v)?'No data':v.toFixed(1) },
+      { key:'marginPerGame', label:'TO Margin / Game', unit:'/game', epsilon:0.3, digits:1, format:v => missing(v)?'No data':v.toFixed(1) },
+      { key:'tdPerGame', label:'TD / Game', unit:'/game', epsilon:0.3, digits:1, format:v => missing(v)?'No data':v.toFixed(1) },
     ];
   }
 
@@ -336,7 +342,7 @@ export class SeasonManager {
   _cohortSummary(rows, games) {
     const plays = rows.flatMap(row => games.find(game => String(game.id) === row.id)?.plays || []);
     const merged = this.statsEngine.compute(plays);
-    const margin = this._toMargin(merged);
+    const margin = this._marginForRows(rows);
     const count = rows.length;
     // Each per-game average divides by the games that could measure it: a
     // game charted on defense only scored no offensive touchdowns to average,
@@ -346,14 +352,27 @@ export class SeasonManager {
     const yards = merged.rushing.yards + merged.passing.yards;
     return {
       games: count, offensiveGames, marginGames,
-      plays: merged.totalPlays, yards, margin: margin.margin,
-      successRate: Number(merged.efficiency.successRate) || 0,
-      yardsPerPlay: merged.totalPlays ? yards / merged.totalPlays : 0,
-      thirdDown: Number(merged.downs.thirdDownPct) || 0,
-      pointsPerDrive: Number(merged.drives.pointsPerDrive) || 0,
-      marginPerGame: marginGames ? margin.margin / marginGames : 0,
-      tdPerGame: offensiveGames ? merged.scoring.touchdowns / offensiveGames : 0,
+      plays: merged.totalPlays, yards, margin: margin?.margin??null,
+      successRate: offensiveGames ? Number(merged.efficiency.successRate) || 0 : null,
+      yardsPerPlay: offensiveGames && merged.totalPlays ? yards / merged.totalPlays : null,
+      thirdDown: offensiveGames ? Number(merged.downs.thirdDownPct) || 0 : null,
+      pointsPerDrive: offensiveGames ? Number(merged.drives.pointsPerDrive) || 0 : null,
+      marginPerGame: marginGames ? margin.margin / marginGames : null,
+      tdPerGame: offensiveGames ? merged.scoring.touchdowns / offensiveGames : null,
     };
+  }
+
+  /** Aggregate only games where both turnover sides were observable. */
+  _marginForRows(rows) {
+    const eligible = rows.filter(row => row.hasMargin && row.stats);
+    if (!eligible.length) return null;
+    return eligible.reduce((total, row) => {
+      const margin = this._toMargin(row.stats);
+      for (const key of ['margin','takeaways','giveaways','offensiveFumbles','defensiveFumbles',
+        'fumblesLost','fumblesRecovered','unresolved']) total[key] += margin[key] || 0;
+      return total;
+    }, { margin:0, takeaways:0, giveaways:0, offensiveFumbles:0, defensiveFumbles:0,
+      fumblesLost:0, fumblesRecovered:0, unresolved:0 });
   }
 
   /** Confirmed turnover margin. Interceptions always count; a fumble counts

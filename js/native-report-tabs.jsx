@@ -1731,7 +1731,8 @@ function SeasonOverview({ model }) {
         cls: summary.played ? 'is-record' : 'is-record is-blank' },
       { label: 'Points For / Against', value: summary.played ? `${summary.pointsFor}-${summary.pointsAgainst}` : SEASON_NO_DATA,
         cls: summary.played ? '' : 'is-blank' },
-      { label: 'Turnover Margin', value: seasonSigned(summary.turnoverMargin), cls: seasonTone(summary.turnoverMargin) },
+      { label: 'Turnover Margin', value: summary.turnoverMargin == null ? SEASON_NO_DATA : seasonSigned(summary.turnoverMargin),
+        cls: summary.turnoverMargin == null ? 'is-blank' : seasonTone(summary.turnoverMargin) },
       { label: 'Yards / Game', value: summary.yardsPerGame == null ? SEASON_NO_DATA : summary.yardsPerGame.toFixed(1),
         cls: summary.yardsPerGame == null ? 'is-blank' : '' },
       { label: 'Success Rate', value: `${summary.successRate.toFixed(1)}%` },
@@ -1759,8 +1760,10 @@ function SeasonOverview({ model }) {
             : <tr><td class="tl">{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td></tr>}
           </tbody>
           <tfoot><tr>
-            <td class="tl">Turnovers</td><td>{scoring.takeaways} takeaways</td><td>{scoring.giveaways} giveaways</td>
-            <td class={seasonTone(scoring.margin)}>{seasonSigned(scoring.margin)}</td>
+            <td class="tl">Turnovers</td>
+            {scoring.margin == null ? <><td>{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td></>
+              : <><td>{scoring.takeaways} takeaways</td><td>{scoring.giveaways} giveaways</td>
+                <td class={seasonTone(scoring.margin)}>{seasonSigned(scoring.margin)}</td></>}
           </tr></tfoot>
         </table></div>
       </SeasonModule>
@@ -1787,8 +1790,8 @@ function SeasonTrends({ model }) {
       { label: `Last ${n} Yards / Game`, cls: trends.recentYardsPerGame == null ? 'is-blank' : '',
         value: trends.recentYardsPerGame == null ? SEASON_NO_DATA : trends.recentYardsPerGame.toFixed(1) },
       { label: `Last ${n} Success Rate`, value: `${trends.recentSuccessRate.toFixed(1)}%` },
-      { label: `Last ${n} TO Margin`, value: seasonSigned(trends.recentTurnoverMargin),
-        cls: seasonTone(trends.recentTurnoverMargin) },
+      { label: `Last ${n} TO Margin`, value: trends.recentTurnoverMargin == null ? SEASON_NO_DATA : seasonSigned(trends.recentTurnoverMargin),
+        cls: trends.recentTurnoverMargin == null ? 'is-blank' : seasonTone(trends.recentTurnoverMargin) },
     ]} />
     <SeasonBand cls="b-2">
       <SeasonModule title="Early vs Recent">

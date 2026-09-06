@@ -629,7 +629,9 @@ denominators follow: `Yards / Game` divides by the games charted on offense,
 `Last N Points / Game` by the SCORED games in the window (an unscored game is
 not a shutout), `Last N Yards / Game` by the window's offensive games, and the
 two comparison panels' `TD / Game` and `TO Margin / Game` by the games in that
-cohort which could measure them.
+cohort which could measure them. The turnover numerator follows the same rule:
+season and cohort margins sum only games where both sides were observable;
+with no eligible game, the measure is `No data`, never zero.
 
 **Opponent-scout rosters never rename our players.** `_mergeRoster()` read
 `_effectiveGames()`, so a scout game's roster — both teams field a 22 — could

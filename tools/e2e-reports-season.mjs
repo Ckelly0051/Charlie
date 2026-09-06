@@ -480,6 +480,11 @@ ok(partial.perGame.find(row => row.id === 'p3').chartedPlays > 0,
 ok(defOnly[10] === 'No data',
   'its turnover margin is absent too -- a giveaway can only be observed on a charted offensive snap',
   JSON.stringify(defOnly));
+const eligibleMargins = partial.perGame.filter(row => row.hasMargin);
+const expectedMargin = eligibleMargins.reduce((total, row) => total + row.turnoverMargin, 0);
+ok(partial.summary.turnoverMargin === expectedMargin,
+  'the aggregate Turnover Margin excludes every partially charted game',
+  `${partial.summary.turnoverMargin} vs ${expectedMargin}`);
 ok(partial.summary.offensiveGames === 3 && partial.summary.charted === 4,
   'three of the four charted games measured offense', JSON.stringify(partial.summary.offensiveGames));
 ok(Number(partial.summary.yardsPerGame.toFixed(1))
@@ -503,6 +508,10 @@ const p4Yards = partial.perGame.find(row => row.id === 'p4').totalYards;
 ok(partial.trends.offensiveGamesInWindow === 1 && partial.trends.recentYardsPerGame === p4Yards,
   'Recent Yards / Game divides by the games in the window that measured offense',
   `${partial.trends.recentYardsPerGame} vs p4's own ${p4Yards}; a window average would be ${p4Yards / 2}`);
+const p4Margin = partial.perGame.find(row => row.id === 'p4').turnoverMargin;
+ok(partial.trends.recentTurnoverMargin === p4Margin,
+  'Recent TO Margin excludes a defence-only game instead of treating its unknown giveaways as zero',
+  `${partial.trends.recentTurnoverMargin} vs p4's own ${p4Margin}`);
 ok(/No data/.test(partialTrends.gbg || ''),
   'Game-by-Game reports the same absences rather than zeros', partialTrends.gbg);
 
