@@ -1,5 +1,9 @@
 # GridIron IQ 1.12.0-73 Beta Smoke — the whole Reports set
 
+> **SUPERSEDED — DO NOT SMOKE THIS INSTALLER.** The packaged binary predates
+> the 2026-09-06 legacy punt-ownership and report-scope chrome repairs. Build a
+> new numbered candidate from the repaired source.
+
 ## Candidate
 
 - Installer: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-73_x64-setup.exe`
@@ -78,14 +82,12 @@ Open a real season with charted film and work the route end to end.
 
 ## Known state going in
 
-- `e2e-parity` is red on this working tree and is NOT from the Reports work: it
-  fails identically with the pre-Matchup `stats-engine.js` substituted in. The
-  tree carries uncommitted changes from another agent across 22 `js/` files,
-  which is the likely source. No golden was regenerated. Worth knowing before
-  reading any analytics number as certified.
-- Open defect, assigned to Codex: a legacy punt block is reported as a punt we
-  allowed on `2025-st-joseph-mavericks-jv` (CLAUDE.md open item 6). Expect the
-  Punt unit to read `Blocked 1` against us on that season.
+This candidate is superseded. The earlier parity diagnosis was incorrect: the
+22 JavaScript paths carried no content differences and could not explain the
+failure. The golden predated approved Self-Scout fields and exact film refs;
+those additions were audited and the baseline refreshed. The punt attribution
+and shared report-scope chrome were repaired in source after this installer was
+built. Neither repair is present in `1.12.0-73`.
 
 ## Findings
 

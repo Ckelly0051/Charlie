@@ -213,6 +213,7 @@ result = await page.evaluate(async () => {
     // carry the shared scorebug instead. Special Teams still owns the rail, so
     // it is the tab that exercises this block's real subject -- the Turnovers
     // tile and the Plays per Phase label. The rail itself is unchanged.
+    app.reportsScreen.specialTeamsScope = 'game';
     app.reportsScreen.selectTab('special');
     await new Promise(r => setTimeout(r, 200));
     return readRail();

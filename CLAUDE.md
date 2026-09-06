@@ -924,8 +924,9 @@ product is wrong.
    Reports. Resolve it there, with Overview and Offense, rather than giving
    Special Teams a one-off.
 
-6. **OPEN DEFECT — a legacy punt block is reported as a punt we allowed.**
-   Found by the coach at the board, 2026-09-04. **Assigned to Codex.**
+6. **CLOSED 2026-09-06 — legacy punt-block ownership.**
+   Found by the coach at the board, 2026-09-04; repaired after the whole-Reports
+   smoke candidate exposed that the known defect was still in its installer.
 
    The Punt unit reports `Blocked 1` on `2025-st-joseph-mavericks-jv`. The
    coach charted the opposite: **we blocked their punt.** Holy Family, Q2,
@@ -956,10 +957,14 @@ product is wrong.
    includes an opponent's punt, and the play also feeds the `Punts blocked`
    impact row and the Touchdowns/coverage refs.
 
-   Do not infer perspective from a player role without a decision — the role
-   fields were never specified for that purpose. The candidate resolutions are
-   a perspective signal in the legacy projection, an honest disclosure that
-   legacy cannot attribute the kick, or re-charting those plays structured.
+   Coach decision, 2026-09-06: for a legacy `stType:'Punt'` with outcome
+   `Blocked`, a charted defensive role and no kicker/punter is our punt-return/
+   block unit. It is removed from our punt-team denominator, rates, outcomes,
+   impact row and film; it is counted as a punt-return/block snap with exact
+   film and the positive `Punts blocked` impact label. A blocked punt carrying
+   a kicker/punter remains `Punts blocked against us`. Ambiguous legacy punts
+   keep their historical classification; field position is never used to infer
+   ownership. `e2e-reports-special-teams` pins all three directions.
 
 7. **Reports > Defense Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT, plus an installed smoke.
@@ -994,11 +999,11 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
-Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 108),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
 and the shared scorebug rule, 46), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
-corrections and the printed export, 46), `tools/e2e-reports-players.mjs`
+corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
 absence contract, the role-specific composite film cohorts and the Grade
 repair, 169) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
@@ -1016,7 +1021,7 @@ tie-break, the Rate denominator, the exact season-side joins and
 per-cohort metric polarity, the supporting sections, the partial and empty
 states, the separate `Opponent` / `Season` film cohorts, the nullified-penalty
 exclusion, order-independent multi-select identities, field-faithful call
-matching, per-cohort game counts and 1440/1280 containment, 71).
+matching, per-cohort game counts, scope chrome and 1440/1280 containment, 72).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

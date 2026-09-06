@@ -267,6 +267,35 @@ ok(dist.reduce((s, d) => s + Number(d.value.split(' (')[0]), 0) === 4,
   'the outcomes are mutually exclusive and account for every snap of the unit');
 ok(dist.every(d => d.clickable), 'every outcome opens exactly its own film');
 
+/* A legacy Punt can describe either side's kick. The coach's old charting has
+   one ownership signal we can use without field-position inference: a blocked
+   punt with a defensive player role and no kicker/punter is our block unit,
+   not our punt team allowing a block. */
+await load([
+  { stType: 'Punt', kickDistance: '40', kickOutcome: 'Downed', players: { kicker: '9' } },
+  { stType: 'Punt', kickDistance: '43', kickOutcome: 'Fair Catch', players: { punter: '9' } },
+  { stType: 'Punt', kickOutcome: 'Blocked', result: 'Loss', yardage: '-5', players: { tackler: '82' } },
+  { stType: 'Punt', kickOutcome: 'Blocked', players: { punter: '9' } },
+  { stType: 'Punt', kickOutcome: 'Blocked' },
+]);
+const puntOwnership = await page.evaluate(() => {
+  const app = window.app;
+  const stats = app.stats.compute(app.reportsScreen._specialTeamsCohort().scoped);
+  const summary = app.stats._specialTeamsSummary(app.reportsScreen._specialTeamsCohort().scoped, stats);
+  return { punts: stats.specialTeams.punts, returns: stats.specialTeams.returns.punt,
+    impact: summary.impact.map(row => ({ label: row.label, n: row.n, refs: row.refs })) };
+});
+ok(puntOwnership.punts.n === 4 && puntOwnership.punts.blocked === 2,
+  'their blocked punt is excluded while our and ambiguous legacy blocks keep their historical punt-team classification',
+  JSON.stringify(puntOwnership.punts));
+ok(puntOwnership.returns.n === 1 && puntOwnership.returns.blocked === 1
+  && JSON.stringify(puntOwnership.returns.refs.blocked) === JSON.stringify(['g-st::3']),
+  'their blocked punt belongs to our punt-return/block cohort with exact film',
+  JSON.stringify(puntOwnership.returns));
+ok(puntOwnership.impact.some(row => row.label === 'Punts blocked' && row.n === 1)
+  && puntOwnership.impact.some(row => row.label === 'Punts blocked against us' && row.n === 2),
+  'the impact ledger reports the block with the correct direction', JSON.stringify(puntOwnership.impact));
+
 /* ══ 8. Scope, and the shared scorebug rule ═══════════════════════════════ */
 console.log('\n== 8. Scope and chrome ==');
 const scope = await page.evaluate(() => {
@@ -279,8 +308,24 @@ const chrome = await page.evaluate(() => ({
   rail: !document.querySelector('[data-reports-rail]')?.hidden,
   bug: !document.querySelector('[data-reports-scorebug]')?.hidden,
 }));
-ok(chrome.rail && !chrome.bug,
-  'Special Teams still renders the generic rail and NOT the scorebug -- it joins the shared header when that rolls across Reports, not before');
+const scopeChrome = await page.evaluate(() => ({
+  ...({ rail: !document.querySelector('[data-reports-rail]')?.hidden,
+    bug: !document.querySelector('[data-reports-scorebug]')?.hidden }),
+  title: document.querySelector('[data-reports-title]')?.textContent.trim(),
+  context: document.querySelector('[data-reports-context]')?.textContent.trim(),
+}));
+ok(!scopeChrome.rail && !scopeChrome.bug && /Special Teams$/.test(scopeChrome.title)
+  && scopeChrome.context === 'Full season',
+  'full-season Special Teams never renders current-game chrome', JSON.stringify(scopeChrome));
+await page.evaluate(() => document.querySelector('[data-st-scope="game"]')?.click());
+await sleep(250);
+const gameChrome = await page.evaluate(() => ({
+  rail: !document.querySelector('[data-reports-rail]')?.hidden,
+  title: document.querySelector('[data-reports-title]')?.textContent.trim(),
+  context: document.querySelector('[data-reports-context]')?.textContent.trim(),
+}));
+ok(gameChrome.rail && !/Special Teams$/.test(gameChrome.title) && gameChrome.context !== 'Full season',
+  'current-game Special Teams restores current-game chrome', JSON.stringify(gameChrome));
 
 /* ══ 9. Nothing regressed visually ════════════════════════════════════════ */
 console.log('\n== 9. Layout contracts ==');

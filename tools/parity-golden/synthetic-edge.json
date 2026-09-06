@@ -188,6 +188,7 @@
     "turnovers": 1,
     "lossTotal": 0,
     "lossSacks": 0,
+    "playsForLoss": 0,
     "lossRuns": 0,
     "lossPasses": 0,
     "lossOther": 0,
@@ -1348,11 +1349,13 @@
       "attempts": 0,
       "td": 0,
       "muffed": 0,
+      "blocked": 0,
       "refs": {
        "all": [],
        "attempts": [],
        "td": [],
-       "muffed": []
+       "muffed": [],
+       "blocked": []
       },
       "outcomes": []
      },
@@ -1364,11 +1367,13 @@
       "attempts": 0,
       "td": 0,
       "muffed": 0,
+      "blocked": 0,
       "refs": {
        "all": [],
        "attempts": [],
        "td": [],
-       "muffed": []
+       "muffed": [],
+       "blocked": []
       },
       "outcomes": []
      }
@@ -2428,6 +2433,15 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 1,
+      "refs": [
+       "g1::1",
+       "g1::2",
+       "g1::3",
+       "g1::4",
+       "g1::5",
+       "g1::6",
+       "g1::8"
+      ],
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -2451,6 +2465,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::9"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2474,6 +2491,9 @@
       "explosives": 1,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::5"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2499,6 +2519,16 @@
       "explosives": 1,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::1",
+       "g1::2",
+       "g1::3",
+       "g1::4",
+       "g1::5",
+       "g1::6",
+       "g1::9",
+       "g2::5"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2522,6 +2552,13 @@
       "explosives": 1,
       "tds": 1,
       "turnovers": 0,
+      "refs": [
+       "g1::7",
+       "g2::1",
+       "g2::2",
+       "g2::3",
+       "g2::4"
+      ],
       "runPct": 80,
       "passPct": 20,
       "lean": "Run",
@@ -2545,6 +2582,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 1,
+      "refs": [
+       "g1::8"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2568,6 +2608,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::10"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2591,6 +2634,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::6"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2616,6 +2662,15 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 1,
+      "refs": [
+       "g1::1",
+       "g1::2",
+       "g1::3",
+       "g1::4",
+       "g1::5",
+       "g1::6",
+       "g1::8"
+      ],
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -2639,6 +2694,13 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::9",
+       "g2::1",
+       "g2::2",
+       "g2::3",
+       "g2::4"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2662,6 +2724,9 @@
       "explosives": 1,
       "tds": 1,
       "turnovers": 0,
+      "refs": [
+       "g1::7"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2685,6 +2750,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::10"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2708,6 +2776,9 @@
       "explosives": 1,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::5"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2731,6 +2802,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::6"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -3180,6 +3254,7 @@
       "turnovers": 1,
       "lossTotal": 0,
       "lossSacks": 0,
+      "playsForLoss": 0,
       "lossRuns": 0,
       "lossPasses": 0,
       "lossOther": 0,
@@ -4287,11 +4362,13 @@
         "attempts": 0,
         "td": 0,
         "muffed": 0,
+        "blocked": 0,
         "refs": {
          "all": [],
          "attempts": [],
          "td": [],
-         "muffed": []
+         "muffed": [],
+         "blocked": []
         },
         "outcomes": []
        },
@@ -4303,11 +4380,13 @@
         "attempts": 0,
         "td": 0,
         "muffed": 0,
+        "blocked": 0,
         "refs": {
          "all": [],
          "attempts": [],
          "td": [],
-         "muffed": []
+         "muffed": [],
+         "blocked": []
         },
         "outcomes": []
        }
@@ -5080,6 +5159,7 @@
     "turnovers": 1,
     "lossTotal": 0,
     "lossSacks": 0,
+    "playsForLoss": 0,
     "lossRuns": 0,
     "lossPasses": 0,
     "lossOther": 0,
@@ -6063,11 +6143,13 @@
       "attempts": 0,
       "td": 0,
       "muffed": 0,
+      "blocked": 0,
       "refs": {
        "all": [],
        "attempts": [],
        "td": [],
-       "muffed": []
+       "muffed": [],
+       "blocked": []
       },
       "outcomes": []
      },
@@ -6079,11 +6161,13 @@
       "attempts": 0,
       "td": 0,
       "muffed": 0,
+      "blocked": 0,
       "refs": {
        "all": [],
        "attempts": [],
        "td": [],
-       "muffed": []
+       "muffed": [],
+       "blocked": []
       },
       "outcomes": []
      }
@@ -6881,6 +6965,15 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 1,
+      "refs": [
+       "g1::1",
+       "g1::2",
+       "g1::3",
+       "g1::4",
+       "g1::5",
+       "g1::6",
+       "g1::8"
+      ],
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -6904,6 +6997,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::9"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -6929,6 +7025,15 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::1",
+       "g1::2",
+       "g1::3",
+       "g1::4",
+       "g1::5",
+       "g1::6",
+       "g1::9"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -6952,6 +7057,9 @@
       "explosives": 1,
       "tds": 1,
       "turnovers": 0,
+      "refs": [
+       "g1::7"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -6975,6 +7083,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 1,
+      "refs": [
+       "g1::8"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -6998,6 +7109,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::10"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7023,6 +7137,15 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 1,
+      "refs": [
+       "g1::1",
+       "g1::2",
+       "g1::3",
+       "g1::4",
+       "g1::5",
+       "g1::6",
+       "g1::8"
+      ],
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -7046,6 +7169,9 @@
       "explosives": 1,
       "tds": 1,
       "turnovers": 0,
+      "refs": [
+       "g1::7"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7069,6 +7195,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::10"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7092,6 +7221,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g1::9"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -7145,13 +7277,15 @@
     "defScout": {
      "insufficient": true,
      "defPlays": 5,
-     "schemePlays": 5
+     "schemePlays": 5,
+     "required": 6
     }
    },
    "defScout": {
     "insufficient": true,
     "defPlays": 5,
-    "schemePlays": 5
+    "schemePlays": 5,
+    "required": 6
    },
    "scout": {
     "totalPlays": 16,
@@ -7321,6 +7455,7 @@
       "turnovers": 1,
       "lossTotal": 0,
       "lossSacks": 0,
+      "playsForLoss": 0,
       "lossRuns": 0,
       "lossPasses": 0,
       "lossOther": 0,
@@ -8251,11 +8386,13 @@
         "attempts": 0,
         "td": 0,
         "muffed": 0,
+        "blocked": 0,
         "refs": {
          "all": [],
          "attempts": [],
          "td": [],
-         "muffed": []
+         "muffed": [],
+         "blocked": []
         },
         "outcomes": []
        },
@@ -8267,11 +8404,13 @@
         "attempts": 0,
         "td": 0,
         "muffed": 0,
+        "blocked": 0,
         "refs": {
          "all": [],
          "attempts": [],
          "td": [],
-         "muffed": []
+         "muffed": [],
+         "blocked": []
         },
         "outcomes": []
        }
@@ -8898,6 +9037,7 @@
     "turnovers": 0,
     "lossTotal": 0,
     "lossSacks": 0,
+    "playsForLoss": 0,
     "lossRuns": 0,
     "lossPasses": 0,
     "lossOther": 0,
@@ -9476,11 +9616,13 @@
       "attempts": 0,
       "td": 0,
       "muffed": 0,
+      "blocked": 0,
       "refs": {
        "all": [],
        "attempts": [],
        "td": [],
-       "muffed": []
+       "muffed": [],
+       "blocked": []
       },
       "outcomes": []
      },
@@ -9492,11 +9634,13 @@
       "attempts": 0,
       "td": 0,
       "muffed": 0,
+      "blocked": 0,
       "refs": {
        "all": [],
        "attempts": [],
        "td": [],
-       "muffed": []
+       "muffed": [],
+       "blocked": []
       },
       "outcomes": []
      }
@@ -9990,6 +10134,9 @@
       "explosives": 1,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::5"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10015,6 +10162,12 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::1",
+       "g2::2",
+       "g2::3",
+       "g2::4"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10038,6 +10191,9 @@
       "explosives": 1,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::5"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10061,6 +10217,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::6"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -10086,6 +10245,12 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::1",
+       "g2::2",
+       "g2::3",
+       "g2::4"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10109,6 +10274,9 @@
       "explosives": 1,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::5"
+      ],
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10132,6 +10300,9 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
+      "refs": [
+       "g2::6"
+      ],
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -10154,13 +10325,15 @@
     "defScout": {
      "insufficient": true,
      "defPlays": 3,
-     "schemePlays": 3
+     "schemePlays": 3,
+     "required": 6
     }
    },
    "defScout": {
     "insufficient": true,
     "defPlays": 3,
-    "schemePlays": 3
+    "schemePlays": 3,
+    "required": 6
    },
    "scout": {
     "totalPlays": 9,
@@ -10311,6 +10484,7 @@
       "turnovers": 0,
       "lossTotal": 0,
       "lossSacks": 0,
+      "playsForLoss": 0,
       "lossRuns": 0,
       "lossPasses": 0,
       "lossOther": 0,
@@ -10889,11 +11063,13 @@
         "attempts": 0,
         "td": 0,
         "muffed": 0,
+        "blocked": 0,
         "refs": {
          "all": [],
          "attempts": [],
          "td": [],
-         "muffed": []
+         "muffed": [],
+         "blocked": []
         },
         "outcomes": []
        },
@@ -10905,11 +11081,13 @@
         "attempts": 0,
         "td": 0,
         "muffed": 0,
+        "blocked": 0,
         "refs": {
          "all": [],
          "attempts": [],
          "td": [],
-         "muffed": []
+         "muffed": [],
+         "blocked": []
         },
         "outcomes": []
        }

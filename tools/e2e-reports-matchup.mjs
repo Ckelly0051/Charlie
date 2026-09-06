@@ -270,6 +270,10 @@ const comp = await page.evaluate(() => {
     fixed: row ? getComputedStyle(row.closest('table')).tableLayout : '',
     colgroup: document.querySelectorAll('table.gi-mu-decision col').length,
     sticky: head ? getComputedStyle(head).position : '',
+    sharedRail: !document.querySelector('[data-reports-rail]')?.hidden,
+    sharedBug: !document.querySelector('[data-reports-scorebug]')?.hidden,
+    sharedTitle: document.querySelector('[data-reports-title]')?.textContent.trim(),
+    sharedContext: document.querySelector('[data-reports-context]')?.textContent.trim(),
   };
 });
 ok(comp.board && comp.report, 'the Matchup board renders its own report canvas', JSON.stringify(comp));
@@ -285,6 +289,9 @@ ok(JSON.stringify(comp.sections) === JSON.stringify([...SECTIONS, 'Coverage Answ
 ok(comp.units.length === 2 && comp.units[0] === 'Our Offense' && comp.units[1] === 'St. Mary Falcons Defense',
   'the lane names its two independent cohorts', JSON.stringify(comp.units));
 ok(comp.kpiStrip === 0, 'no broad KPI strip is rendered', String(comp.kpiStrip));
+ok(!comp.sharedRail && !comp.sharedBug && comp.sharedTitle === 'Matchup: St. Mary Falcons'
+  && comp.sharedContext === 'Season film and opponent film',
+  'Matchup never sits beneath current-game shared chrome', JSON.stringify(comp));
 ok(comp.rowHeight === 40 && comp.bodyFont >= 12 && comp.headFont >= 11,
   'body rows are 40px and no type falls below the readable floor', JSON.stringify(comp));
 ok(comp.fixed === 'fixed' && comp.colgroup === 9,

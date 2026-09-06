@@ -1756,6 +1756,7 @@ export class StatsEngine {
         const attempts = arr.filter(x => x.st.return.attempted === true && Number.isFinite(x.st.return.yards));
         const tdRows = arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject');
         const muffedRows = arr.filter(x => x.st.outcome.status === 'muffed');
+        const blockedRows = arr.filter(x => x.st.outcome.status === 'blocked');
         return {
           n: arr.length,
           // `attempts` is already the exact eligible (finite-yardage) set, so
@@ -1774,9 +1775,11 @@ export class StatsEngine {
           attempts: attempts.length,
           td: tdRows.length,
           muffed: muffedRows.length,
+          blocked: blockedRows.length,
           refs: {
             all: StatsEngine._refsOf(arr, getPlay), attempts: StatsEngine._refsOf(attempts, getPlay),
             td: StatsEngine._refsOf(tdRows, getPlay), muffed: StatsEngine._refsOf(muffedRows, getPlay),
+            blocked: StatsEngine._refsOf(blockedRows, getPlay),
           },
           outcomes: distribution(arr, x => x.st.outcome.status, getPlay),
         };
@@ -1819,7 +1822,20 @@ export class StatsEngine {
     // decides -- a coverage touchdown is one credited to THEM on our kick.
     const tdAllowedLegacy = arr => arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')
       && StatsEngine.scoringSide(p) === 'them');
-    const pp = by('Punt');
+    /* Legacy `stType` does not carry perspective. A blocked Punt with a
+       charted defensive player role and no kicking role is the one reliable
+       legacy shape for OUR punt-block unit: the coach charted the defender,
+       not a punter. Keep every ambiguous legacy punt in its historical cohort;
+       only this positive ownership signal moves a play across the phase. */
+    const isOpponentPuntBlocked = p => {
+      if (p?.tags?.stType !== 'Punt' || p.tags.kickOutcome !== 'Blocked') return false;
+      const players = p.tags.players || {};
+      const kickingRole = String(players.kicker || players.punter || '').trim();
+      const defensiveRole = String(players.tackler || players.takeaway || players.blocker || players.recoverer || '').trim();
+      return !kickingRole && !!defensiveRole;
+    };
+    const opponentPuntBlocks = plays.filter(isOpponentPuntBlocked);
+    const pp = by('Punt').filter(p => !isOpponentPuntBlocked(p));
     const puntReturnedRows = pp.filter(p => p.tags.kickOutcome === 'Returned');
     const puntGross = avgStat(pp, p => num(p.tags.kickDistance));
     // Touchback placement is ruleset-dependent (SPECIAL-TEAMS-MODEL §5), and no
@@ -1896,11 +1912,12 @@ export class StatsEngine {
       outcomes: distribution(fgp, legacyStatus),
     };
     const ret = (type) => {
-      const arr = by(type);
+      const arr = type === 'Punt Return' ? [...by(type), ...opponentPuntBlocks] : by(type);
       const attemptRows = arr.filter(p => num(p.tags.returnYards) != null);
       const yds = attemptRows.map(p => num(p.tags.returnYards));
       const tdRows = arr.filter(p => StatsEngine.hasResult(p, 'Touchdown'));
       const muffedRows = arr.filter(p => p.tags.kickOutcome === 'Muffed');
+      const blockedRows = arr.filter(isOpponentPuntBlocked);
       return {
         n: arr.length,
         avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null,
@@ -1909,8 +1926,11 @@ export class StatsEngine {
         attempts: yds.length,
         td: tdRows.length,
         muffed: muffedRows.length,
-        refs: { all: refsOf(arr), attempts: refsOf(attemptRows), td: refsOf(tdRows), muffed: refsOf(muffedRows) },
-        outcomes: distribution(arr, legacyStatus),
+        blocked: blockedRows.length,
+        refs: { all: refsOf(arr), attempts: refsOf(attemptRows), td: refsOf(tdRows),
+          muffed: refsOf(muffedRows), blocked: refsOf(blockedRows) },
+        outcomes: distribution(arr, legacyStatus).map(row =>
+          row.key === 'blocked' && blockedRows.length ? { ...row, tone: '' } : row),
       };
     };
     const returns = { kick: ret('Kick Return'), punt: ret('Punt Return') };
@@ -1979,7 +1999,9 @@ export class StatsEngine {
     const st = stats.specialTeams || {};
     const conv = stats.conversions || {};
     const impact = [];
-    if (st.punts?.blocked) impact.push({ label: 'Punts blocked', n: st.punts.blocked, refs: st.punts.refs?.blocked || [] });
+    if (st.punts?.blocked) impact.push({ label: 'Punts blocked against us', n: st.punts.blocked, refs: st.punts.refs?.blocked || [] });
+    if (st.returns?.punt?.blocked) impact.push({ label: 'Punts blocked', n: st.returns.punt.blocked,
+      refs: st.returns.punt.refs?.blocked || [] });
     if (st.blocks?.blocked) impact.push({ label: 'Field goals blocked', n: st.blocks.blocked, refs: st.blocks.refs?.blocked || [] });
     const fgMissed = (st.fg?.att || 0) - (st.fg?.made || 0);
     if (fgMissed > 0) impact.push({ label: 'Field goals missed', n: fgMissed, refs: st.fg.refs?.missed || [] });

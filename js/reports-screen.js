@@ -13,8 +13,8 @@ const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'playe
  * two can never appear together.
  *
  * It grows one tab at a time as each self-report tab receives its design pass.
- * Overview (2026-08), Offense (2026-09-03) and Defense (2026-09-04) are done;
- * Special Teams, Players, Self-Scout and Matchup still render the rail.
+ * Overview and Offense always use it. Defense uses it only at Current game;
+ * season-scoped tabs and Matchup suppress all game-only shared chrome.
  *
  * Defense renders a LINESCORE variant of the bug (`is-linescore`) instead of
  * the name/score pair — approved for Defense only, so Overview and Offense keep
@@ -144,7 +144,7 @@ export class ReportsScreen {
     // (or the MutationObserver-driven _syncPresentation) ran again — the rail
     // markup no longer carries that attribute, so _syncKpiRail() is its only
     // owner.
-    this._syncKpiRail();
+    this._syncHeader();
     this._setChrome(true);
     this._renderActiveTab();
     this.host.scrollTop = 0;
@@ -244,11 +244,11 @@ export class ReportsScreen {
     // The shared scorebug is the game-context header for the redesigned
     // self-report tabs, so those tabs must not ALSO carry the generic KPI rail
     // -- two stacked KPI strips is the duplication the Offense design review
-    // removed. Overview and Offense are redesigned; Defense, Special Teams,
-    // Players, Self-Scout and Matchup keep the rail until they get their own
-    // design pass. Season carries its own season-scope rail.
+    // removed. The rail appears only for reports that are actually scoped to
+    // the current game. Season-scoped boards and Matchup state their own scope
+    // and never borrow game-only numbers from this shared strip.
     if (this._mode !== 'main' || this.perspective !== 'self'
-      || this.activeTab === 'season' || SCOREBUG_TABS.has(this.activeTab)) { rail.hidden = true; return; }
+      || !this._usesCurrentGameContext() || SCOREBUG_TABS.has(this.activeTab)) { rail.hidden = true; return; }
     if (!data || !data.totalPlays) { rail.hidden = true; return; }
     const esc = Charts._esc;
     const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
@@ -342,7 +342,7 @@ export class ReportsScreen {
     // Season tab is season-scope. Empty data leaves the container hidden rather
     // than rendering a blank scorebug shell.
     const visible = this._mode === 'main' && this.perspective === 'self'
-      && SCOREBUG_TABS.has(this.activeTab) && data?.totalPlays;
+      && SCOREBUG_TABS.has(this.activeTab) && this._usesCurrentGameContext() && data?.totalPlays;
     // The linescore class is cleared here as well as on the pair path: hiding
     // the bug returns before the pair branch, so leaving Defense for a
     // rail-bearing tab would otherwise leave `is-linescore` set on a hidden
@@ -473,13 +473,35 @@ export class ReportsScreen {
       }
       return;
     }
-    if (title) title.textContent = context?.game?.name || context?.season?.name || 'Reports';
+    const seasonName = context?.season?.name || 'Season';
+    const seasonScope = this.activeTab === 'season'
+      || (this.activeTab === 'defense' && this.defenseScope === 'season')
+      || (this.activeTab === 'special' && this.specialTeamsScope === 'season')
+      || (this.activeTab === 'players' && this.playersScope === 'season');
+    const matchupScope = this.activeTab === 'matchup';
+    if (title) {
+      if (matchupScope) title.textContent = `Matchup: ${this.matchupOpponent || 'Opponent'}`;
+      else if (seasonScope) title.textContent = `${seasonName} ${this.activeTab === 'special' ? 'Special Teams' : this.activeTab === 'players' ? 'Players' : this.activeTab === 'defense' ? 'Defense' : 'Report'}`;
+      else title.textContent = context?.game?.name || seasonName || 'Reports';
+    }
     if (sub) {
+      if (matchupScope) { sub.textContent = 'Season film and opponent film'; return; }
+      if (seasonScope) { sub.textContent = 'Full season'; return; }
       const plays = this.app.tagger?.plays?.length || 0;
       const season = context?.season?.name ? `${context.season.name}, ` : '';
       const filtered = this.app.filter?.active ? ', filtered view' : '';
       sub.textContent = `${season}${plays} play${plays === 1 ? '' : 's'}${filtered}`;
     }
+  }
+
+  /** Whether the active self-report is actually scoped to the current game.
+   * Shared game score/KPI chrome may render only when this is true. */
+  _usesCurrentGameContext() {
+    if (this.activeTab === 'season' || this.activeTab === 'matchup') return false;
+    if (this.activeTab === 'defense') return this.defenseScope === 'game';
+    if (this.activeTab === 'special') return this.specialTeamsScope === 'game';
+    if (this.activeTab === 'players') return this.playersScope === 'game';
+    return true;
   }
 
   _syncTabState() {
@@ -579,6 +601,7 @@ export class ReportsScreen {
     else if (tab === 'matchup') {
       const model = statsEngine.matchupReport(this.matchupOpponent);
       if (model.opponent) this.matchupOpponent = model.opponent.name;
+      this._syncHeader();
       render(h(ReportPane, { tab: 'matchup' }, h(MatchupTab, { model, screen: this })), this.content);
       return;
     }

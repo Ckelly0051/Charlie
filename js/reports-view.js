@@ -740,6 +740,7 @@ export function specialTeamsUnitRows(stats, key) {
       row('Average return', yds(r.avg)),
       row('Longest', r.attempts ? `${r.long} yds` : null),
       row('Touchdowns', r.td, { cls: r.td ? 'is-good' : '' }),
+      ...(key === 'puntReturn' ? [row('Punts blocked', r.blocked || 0, { cls: r.blocked ? 'is-good' : '' })] : []),
       row('Muffed', r.muffed, { cls: r.muffed ? 'is-bad' : '' }),
     ];
   }

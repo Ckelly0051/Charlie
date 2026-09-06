@@ -650,9 +650,9 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         <span class="gi-players-toolbar-label">Scope</span>
         <div class="gi-players-scope" role="group" aria-label="Players report scope">
           <button type="button" class={screen.playersScope === 'game' ? 'active' : ''} aria-pressed={screen.playersScope === 'game'}
-            onClick={() => { screen.playersScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+            onClick={() => { screen.playersScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
           <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
-            onClick={() => { screen.playersScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+            onClick={() => { screen.playersScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
         </div>
         {/* The role count keeps its denominator whenever a role is unattributed:
             `5 roles` reads as the whole set, `5/6 roles` says one is missing.
@@ -1114,9 +1114,9 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         <span class="gi-def-toolbar-label">Scope</span>
         <div class="gi-def-scope" role="group" aria-label="Defense report scope">
           <button type="button" data-defense-scope="season" class={screen.defenseScope === 'season' ? 'active' : ''}
-            onClick={() => { screen.defenseScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+            onClick={() => { screen.defenseScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
           <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''}
-            onClick={() => { screen.defenseScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+            onClick={() => { screen.defenseScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
         </div>
       </>}
       <button class="btn btn-sm gi-def-export" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(report, scoped)}>Export Report</button>
@@ -1503,9 +1503,9 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
         <span class="gi-st-toolbar-label">Scope</span>
         <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
           <button type="button" data-st-scope="season" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
-            onClick={() => { screen.specialTeamsScope = 'season'; screen._renderActiveTab(); }}>Full season</button>
+            onClick={() => { screen.specialTeamsScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
           <button type="button" data-st-scope="game" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
-            onClick={() => { screen.specialTeamsScope = 'game'; screen._renderActiveTab(); }}>Current game</button>
+            onClick={() => { screen.specialTeamsScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
         </div>
       </>}
       {fixedScope && <strong class="gi-st-toolbar-label">{title}</strong>}
