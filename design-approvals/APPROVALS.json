@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "Initial registry: Home and Our Program Reports",
+  "allowedStatuses": [
+    "DRAFT",
+    "COMP_APPROVED",
+    "IMPLEMENTED_UNVERIFIED",
+    "PRODUCTION_ACCEPTED",
+    "REJECTED",
+    "RELEASED"
+  ],
+  "manifests": [
+    "design-approvals/home/manifest.json",
+    "design-approvals/reports/overview/manifest.json",
+    "design-approvals/reports/offense/manifest.json",
+    "design-approvals/reports/defense/manifest.json",
+    "design-approvals/reports/special-teams/manifest.json",
+    "design-approvals/reports/players/manifest.json",
+    "design-approvals/reports/self-scout/manifest.json",
+    "design-approvals/reports/season/manifest.json",
+    "design-approvals/reports/matchup/manifest.json"
+  ],
+  "releases": [
+    {
+      "version": "1.12.0-70",
+      "status": "PRODUCTION_ACCEPTED",
+      "evidence": "SMOKE-1.12.0-70.md",
+      "note": "Last accepted installed smoke candidate."
+    },
+    {
+      "version": "1.12.0-74",
+      "status": "REJECTED",
+      "evidence": "SMOKE-1.12.0-74.md",
+      "note": "Rejected during installed visual smoke on 2026-09-06."
+    }
+  ]
+}

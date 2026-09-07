@@ -1,0 +1,15 @@
+{
+  "surfaceId": "home",
+  "title": "Home",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-08-31",
+  "approvalNote": "Coach approved the Home comp; the 1.12.0-74 installed rendering was reported visually off and is not accepted.",
+  "canonicalArtifact": {
+    "path": "design-comps/home-workspace-2026-08-31",
+    "kind": "directory",
+    "sha256": "d4cb1d3b8da6c69e459d986f3e15ac8d44dcc2025708d75897e75a0173aebe79",
+    "fileCount": 38
+  },
+  "decisionRecord": "design-comps/home-workspace-2026-08-31/RATIONALE.md"
+}

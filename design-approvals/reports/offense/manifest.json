@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.offense",
+  "title": "Reports Offense",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-03",
+  "approvalNote": "Use the reviewed revision and its complete capture set; production acceptance was invalidated by the 1.12.0-74 smoke.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-offense-2026-09-03",
+    "kind": "directory",
+    "sha256": "79c52f4344600ca958b3c01cf135381a477a63b97a0785e303f8e5efa091e5b2",
+    "fileCount": 10
+  },
+  "decisionRecord": "design-comps/reports-offense-2026-09-03/RATIONALE.md"
+}

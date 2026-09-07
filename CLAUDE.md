@@ -188,6 +188,27 @@ approximate layout does not satisfy one. Pretty and functional are one standard.
 real app with representative real data at the agreed viewport and get
 PASS / REVISE / REJECT. A green automated gate never substitutes for it.
 
+**Design approval authority.** `design-approvals/APPROVALS.json` is the only
+current index of approved design evidence. Follow its per-surface manifests to
+the canonical comp, rationale and captures; never infer authority from a
+filename, a nearby artifact, a commit message, or an older narrative section
+of this file. `COMP_APPROVED`, `IMPLEMENTED_UNVERIFIED`,
+`PRODUCTION_ACCEPTED`, `REJECTED` and `RELEASED` are different states. Never
+write or accept the unqualified word "approved" for a presentation milestone.
+Standalone HTML can reach `COMP_APPROVED`; only a populated real-app screen can
+reach `PRODUCTION_ACCEPTED`. Run `node tools/audit-design-approvals.mjs` after
+changing the registry or any canonical artifact. Canonical evidence must be
+tracked, unique, present, and hash-identical to the approval record.
+
+**Current visual release truth (2026-09-06).** `1.12.0-70` is the last accepted
+installed smoke candidate. `1.12.0-74` is `REJECTED`: its Reports production
+does not faithfully preserve the individually approved report compositions,
+and its installed Home presentation was reported visually off. Any older
+section below describing a Reports implementation as complete, approved, or
+gate-verified is implementation history, not current production acceptance.
+The approved design evidence remains protected; production must be repaired to
+match it rather than asking the coach to repeat the design process.
+
 **Copy.** Literal, concise, operational. State the object, current state, or
 available action. No conversational reassurance, rationale, promises,
 second-person narration, or implementation/data-safety language in routine

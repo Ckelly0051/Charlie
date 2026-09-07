@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.self-scout",
+  "title": "Reports Self-Scout",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-05",
+  "approvalNote": "The outcome-first comp, fixtures, rationale, and capture set remain canonical.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-self-scout-2026-09-05",
+    "kind": "directory",
+    "sha256": "bc1513806e5f3e67943f0978050c4fa1466df0781028a0dfdc3b4332385df122",
+    "fileCount": 150
+  },
+  "decisionRecord": "design-comps/reports-self-scout-2026-09-05/RATIONALE.md"
+}

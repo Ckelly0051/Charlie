@@ -23,6 +23,18 @@ from the filesystem rather than from memory:
 Get-ChildItem tools\e2e-*.mjs | Select-Object -ExpandProperty Name
 ```
 
+Design evidence has a separate mandatory integrity audit:
+
+```bash
+node tools/audit-design-approvals.mjs
+```
+
+It verifies that every canonical artifact registered under
+`design-approvals/` exists, is tracked, is unique to one surface, and remains
+hash-identical to the approved evidence. It does not prove production visual
+parity or coach acceptance; those require populated real-app captures and the
+Charlie Gate.
+
 ---
 
 ## Choosing a tier
@@ -67,7 +79,7 @@ The smallest existing harness for the route or domain you touched.
 | Persistence / catalog | `e2e-sql-catalog`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions`, `e2e-revision-fence`, `e2e-snapshot-envelope` |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
 | Import / export | `e2e-csv-roundtrip`, `e2e-csv-projection`, `e2e-legacy-film-fields` |
-| Cross-cutting guards | `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
+| Cross-cutting guards | `audit-design-approvals`, `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
 
 ## Tier 2 — Affected route
 

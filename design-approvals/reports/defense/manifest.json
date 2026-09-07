@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.defense",
+  "title": "Reports Defense",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-04",
+  "approvalNote": "The approved standalone Defense comp remains canonical; the installed production presentation is rejected.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-defense-2026-09-03",
+    "kind": "directory",
+    "sha256": "9228997f7a965d2ea5b39445e92191b1c96f68146291ebd77882d43ab41fdc97",
+    "fileCount": 30
+  },
+  "decisionRecord": "design-comps/reports-defense-2026-09-03/RATIONALE.md"
+}

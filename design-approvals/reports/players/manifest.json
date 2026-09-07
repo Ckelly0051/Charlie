@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.players",
+  "title": "Reports Players",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-04",
+  "approvalNote": "The final reviewed Players comp and 93 captures remain canonical.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-players-2026-09-04",
+    "kind": "directory",
+    "sha256": "d85c4e7329989570f9679856944b48f86c8a924d6d06fdf7d6ad51621f8f22eb",
+    "fileCount": 95
+  },
+  "decisionRecord": "design-comps/reports-players-2026-09-04/RATIONALE.md"
+}

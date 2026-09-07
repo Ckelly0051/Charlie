@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.matchup",
+  "title": "Reports Matchup",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-06",
+  "approvalNote": "The approved Matchup comp and its eight captures remain canonical.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-matchup-2026-09-06",
+    "kind": "directory",
+    "sha256": "ab9daa4dadb33a90f03da3af22b250aca1caa1e642ddbcf347b500d6017d5df8",
+    "fileCount": 11
+  },
+  "decisionRecord": "design-comps/reports-matchup-2026-09-06/RATIONALE.md"
+}

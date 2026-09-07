@@ -1,0 +1,132 @@
+{
+  "checks": 87,
+  "errors": [],
+  "viewports": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "state": "season",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2025 · JV"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "state": "library",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Season library"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "state": "first",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Your football workspace"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "state": "scout",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Notre Dame Prep"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "state": "progress",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2026 · JV"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "season",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2025 · JV"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "library",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Season library"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "first",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Your football workspace"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "scout",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Notre Dame Prep"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "state": "season",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2025 · JV"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "state": "progress",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2026 · JV"
+    },
+    {
+      "width": 768,
+      "height": 900,
+      "state": "season",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2025 · JV"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "state": "season",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "2025 · JV"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "state": "first",
+      "overflow": false,
+      "missingImages": [],
+      "font": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "heading": "Your football workspace"
+    }
+  ]
+}

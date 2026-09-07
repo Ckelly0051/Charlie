@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.season",
+  "title": "Reports Season",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-05",
+  "approvalNote": "Season Overview and Trends plus the explicit reuse contract are canonical. Nested production states are not accepted merely because their child comp is approved.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-season-2026-09-05",
+    "kind": "directory",
+    "sha256": "3664747c1d33aa6d6a8e9fe1689534b5ab82b62b436b8340e43f0e8b6f03aa50",
+    "fileCount": 2
+  },
+  "decisionRecord": "design-comps/reports-season-2026-09-05/RATIONALE.md"
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GridIron IQ | Home design preview</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/plex.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="../../design-system/material.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="?state=season" class="brand" aria-label="GridIron IQ Home">GRIDIRON <span>IQ</span></a>
+    <nav aria-label="Main navigation" id="main-nav"></nav>
+    <div class="top-tools"><span class="local-status">On this computer</span><button class="icon-btn" data-action="settings" aria-label="Settings" title="Settings">&#9881;</button><button class="icon-btn" data-action="help" aria-label="Help and recovery" title="Help and recovery">?</button></div>
+  </header>
+  <div class="workspace-bar">
+    <div class="workspace-switch" role="group" aria-label="Workspace"><button data-mode="program">Our Program</button><button data-mode="scout">Opponent Scout</button></div>
+    <div class="program-control"><label for="program">Program</label><select id="program"><option value="mavericks">St. Joseph Mavericks</option><option value="new">Add program...</option></select></div>
+  </div>
+  <div class="home-shell">
+    <aside class="season-rail" aria-label="Seasons and season tools" id="season-rail"></aside>
+    <main id="main"></main>
+  </div>
+  <footer class="preview-bar" aria-label="Design review controls, not part of the app"><span><strong>COMP ONLY</strong> <span class="preview-note">Sample data &middot; not app controls</span></span><label>Preview scenario <select id="preview-state"><option value="season">Season loaded</option><option value="library">Season library</option><option value="scout">Opponent Scout</option><option value="progress">Season in progress</option><option value="first">First launch</option></select></label></footer>
+  <dialog id="dialog" aria-labelledby="dialog-title"><header class="dialog-header"><h2 id="dialog-title"></h2><button class="icon-btn" data-action="close" aria-label="Close dialog" title="Close">&times;</button></header><div id="dialog-body"></div></dialog>
+  <div id="announcement" role="status" aria-live="polite"></div>
+  <script type="module" src="home.js"></script>
+</body>
+</html>

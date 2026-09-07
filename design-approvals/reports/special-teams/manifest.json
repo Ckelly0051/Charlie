@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.special-teams",
+  "title": "Reports Special Teams",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-09-04",
+  "approvalNote": "The reviewed comp and populated, sparse, empty, and responsive captures remain canonical.",
+  "canonicalArtifact": {
+    "path": "design-comps/reports-special-teams-2026-09-04",
+    "kind": "directory",
+    "sha256": "259a19203f93aafe0efec972fc78802d6131590e61b8a80cef683b08d908a8ab",
+    "fileCount": 112
+  },
+  "decisionRecord": "design-comps/reports-special-teams-2026-09-04/RATIONALE.md"
+}

@@ -18,15 +18,19 @@ artifact signing step because this machine has the public key but no private
 key. `TAURI.md` documents unsigned local smoke candidates; no signed updater
 artifact was produced.
 
-## Status
+## Status — REJECTED
 
-This candidate is **not accepted release state** until the installed WebView2
-smoke is complete. The prior `1.12.0-73` package remains superseded.
+The coach rejected this candidate during the installed WebView2 visual smoke
+on 2026-09-06. Reports production does not faithfully preserve the individually
+approved compositions: production-only composition and nesting appeared,
+shared presentation drift remained, and Season child reports produced compound
+screens that were never accepted as production. The installed Home screen was
+also reported visually off.
 
-During initial Reports inspection, the coach rejected Defense's internal
-Self-Scout section as an obsolete predictability-only duplicate of part of the
-rebuilt top-level Self-Scout report. Record additional observations before
-batching any visual repair.
+`1.12.0-70` remains the last accepted installed smoke candidate. Do not ship,
+tag, publish, or use `1.12.0-74` as a visual baseline. Passing behavior gates
+remain valid evidence about the tested contracts, but they do not reverse this
+visual rejection.
 
 ## Installed Smoke
 
@@ -41,15 +45,15 @@ batching any visual repair.
 
 | Area | Result | Notes |
 |---|---|---|
-| Home | | |
+| Home | REJECT | Installed presentation reported visually off; compare against the registered 2026-08-31 canonical comp. |
 | Break Down | | |
 | Study | | |
-| Reports: Overview | | |
-| Reports: Offense | | |
-| Reports: Defense | REVISE | Internal Self-Scout section rejected as duplicate predictability wall. |
-| Reports: Special Teams | | |
-| Reports: Players | | |
-| Reports: Self-Scout | | |
-| Reports: Season | | |
-| Reports: Matchup | | |
+| Reports: Overview | REJECT | Production does not match the registered Charlie Gate reference. |
+| Reports: Offense | REJECT | Production composition rejected during installed review. |
+| Reports: Defense | REJECT | Production composition rejected; internal Self-Scout is an obsolete duplicate. |
+| Reports: Special Teams | REJECT | Production composition rejected during installed review. |
+| Reports: Players | REJECT | Production composition rejected during installed review. |
+| Reports: Self-Scout | REJECT | Production composition rejected during installed review. |
+| Reports: Season | REJECT | Child reports are compounded inside Season and do not preserve accepted production composition. |
+| Reports: Matchup | REJECT | Production composition rejected during installed review. |
 | Plan | | |

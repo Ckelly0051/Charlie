@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "artifacts": [
+    {
+      "path": "design-archive/reports/overview/early-fpo/fpo-reports-overview.html",
+      "status": "SUPERSEDED",
+      "replacedBy": "design-approvals/reports/overview/manifest.json",
+      "reason": "Early FPO artifact; not the coach-approved Overview."
+    },
+    {
+      "path": "design-archive/reports/overview/early-fpo/artifact-fpo-reports-overview.html",
+      "status": "SUPERSEDED",
+      "replacedBy": "design-approvals/reports/overview/manifest.json",
+      "reason": "Early generated FPO artifact; not the coach-approved Overview."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "surfaceId": "reports.overview",
+  "title": "Reports Overview",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "REJECTED",
+  "approvedOn": "2026-08-20",
+  "approvalNote": "The Charlie Gate density4 production captures are canonical. The earlier FPO HTML is superseded.",
+  "canonicalArtifact": {
+    "path": "design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4",
+    "kind": "directory",
+    "sha256": "90c49e660f0dbae96eb14cd6392562e5716cce3795649c02fc4a61ab7f2d7542",
+    "fileCount": 33
+  },
+  "decisionRecord": "docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md",
+  "approvalEvidence": "design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4/1440x900-overview.png"
+}

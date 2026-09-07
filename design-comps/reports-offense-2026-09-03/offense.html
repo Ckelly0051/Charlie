@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports · Offense — design comp</title>
+<!-- The real bundled faces and the real token file, so this comp is measured
+     against the production design system rather than an approximation. -->
+<link rel="stylesheet" href="../../design-system/plex.css">
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   COMP STYLES — a faithful re-derivation of the WINNING Reports presentation
+   (css/native-reports.css, the final block from line ~1174 that overrides the
+   earlier band system). Values are copied, not re-invented:
+     board   stage background, no border, no margin
+     band    display:grid; gap:1px; margin-bottom:4px; background = rule
+     module  padding 8px 12px 10px; panel background; 3px left accent bar
+     header  700 9.5px condensed, .16em tracking, uppercase
+     table   400 12.5px sans; th 9.5px condensed tracked; td tabular, right
+   Nothing here ships. This file is a comp.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root{
+  --bd-stage:#06080b; --bd-panel:#0e1319; --bd-panel-2:#151c24; --bd-panel-3:#1b242e;
+  --bd-rule:#222d38; --bd-bone:#4a5765; --bd-ink:#f2f5f8; --bd-ink-2:#a6a6a6;
+  --bd-ink-3:#66727e; --bd-gold:#d9a21a; --bd-cyan:#12a9cb; --bd-good:#3fa96b;
+  --bd-crit:#d2564f; --bd-gold-surface:#5e4712;
+  --cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--bd-stage);color:var(--bd-ink);font:400 13px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--bd-gold);outline-offset:-2px}
+
+/* ── SHELL CHROME (context only — not part of the Offense proposal) ────── */
+.shell-nav{display:flex;align-items:center;gap:2px;height:52px;padding:0 14px;background:#0b0f14;border-bottom:1px solid var(--bd-rule)}
+.shell-brand{margin-right:18px;font:700 17px/1 var(--cond);letter-spacing:.02em}
+.shell-brand i{color:var(--bd-cyan);font-style:normal}
+.shell-nav button{padding:0 16px;height:52px;color:var(--bd-ink-3);font:600 12.5px/1 var(--sans)}
+.shell-nav button.is-active{color:var(--bd-ink);background:#111820;box-shadow:inset 0 -3px var(--bd-cyan)}
+.shell-nav .spacer{flex:1}
+.ctx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;background:var(--bd-rule);gap:1px;border-bottom:1px solid var(--bd-rule)}
+.ctx>div{padding:9px 16px;background:#0b0f14;min-width:0}
+.ctx span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}
+.ctx strong{display:block;margin-top:4px;font:600 13px/1.2 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx .persp{display:flex;align-items:center;gap:14px;padding:9px 18px}
+.ctx .persp button{font:600 12.5px/1 var(--sans);color:var(--bd-ink-3);padding:6px 0}
+.ctx .persp button.is-active{color:var(--bd-ink);box-shadow:inset 0 -2px var(--bd-gold);padding-bottom:6px}
+
+/* Scorebug rail — route chrome, carries GAME context across every tab. */
+.rail{display:grid;grid-template-columns:auto auto 1fr auto;gap:1px;background:var(--bd-rule);border-bottom:1px solid var(--bd-rule)}
+.rail>div{background:#0b0f14;padding:8px 16px;display:flex;align-items:center;gap:18px}
+.rail .team{display:block}
+.rail .team span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.rail .team strong{display:block;margin-top:2px;font:700 26px/1 var(--cond)}
+.rail .qtrs{display:flex;gap:12px}
+.rail .qtrs div{text-align:center}
+.rail .qtrs span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.12em}
+.rail .qtrs strong{display:block;margin-top:3px;font:600 13px/1 var(--sans)}
+.rail .live{color:var(--bd-gold);font:700 26px/1 var(--cond)}
+.rail .live-note{color:var(--bd-ink-2);font:400 11.5px/1.35 var(--sans)}
+.rail .gm{text-align:right}
+.rail .gm span{display:block;color:var(--bd-ink);font:700 10.5px/1 var(--cond);letter-spacing:.14em;text-transform:uppercase}
+.rail .gm small{display:block;margin-top:3px;color:var(--bd-ink-3);font:400 10.5px/1.2 var(--sans)}
+
+/* ── REPORT HEAD: title, perspective, tabs, actions ───────────────────── */
+.rhead{display:flex;align-items:flex-end;gap:16px;padding:8px 16px 0;background:#0b0f14;border-bottom:1px solid var(--bd-rule)}
+.rhead .title{min-width:0;padding-bottom:8px}
+.rhead h1{margin:0;font:700 18px/1.15 var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.rhead .title p{margin:1px 0 3px;color:var(--bd-ink-3);font-size:11.5px;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.seg{display:flex;gap:1px;margin-bottom:8px}
+.seg button{min-height:30px;padding:7px 13px;background:var(--bd-panel-2);color:var(--bd-ink-3);font:600 11.5px/1 var(--sans)}
+.seg button.is-active{background:var(--bd-panel-3);color:var(--bd-ink)}
+.tabs{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:thin}
+.tabs button{flex:0 0 auto;padding:9px 10px;color:var(--bd-ink-3);font:600 11px/1 var(--cond);letter-spacing:.08em;text-transform:uppercase}
+.tabs button:hover{color:var(--bd-ink-2)}
+.tabs button.is-active{color:var(--bd-ink);background:var(--bd-panel-2);box-shadow:inset 0 -3px var(--bd-gold)}
+.acts{display:flex;gap:6px;margin-bottom:8px}
+.acts button{min-height:30px;padding:7px 11px;background:var(--bd-panel-2);color:var(--bd-ink-2);font:600 11.5px/1 var(--sans)}
+.acts button:hover{background:var(--bd-panel-3);color:var(--bd-ink)}
+
+/* ── ZONE STRIP (PROPOSED — see RATIONALE §Decisions) ─────────────────── */
+/* Secondary navigation. Follows the tab treatment: a real hit area, a raised
+   selected surface, a gold underline, and a visible hover — not a rule. */
+.zonestrip{display:flex;align-items:stretch;gap:1px;padding:0 12px;background:var(--bd-rule);border-bottom:1px solid var(--bd-rule)}
+.zonestrip button{
+  flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;
+  background:#0b0f14;color:var(--bd-ink-3);font:600 11px/1 var(--cond);letter-spacing:.08em;
+  text-transform:uppercase;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .12s ease,color .12s ease
+}
+.zonestrip button b{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:17px;height:17px;background:var(--bd-panel-3);color:var(--bd-ink-3);
+  font:700 10px/1 var(--cond);font-variant-numeric:tabular-nums
+}
+.zonestrip button:hover{background:var(--bd-panel-2);color:var(--bd-ink)}
+.zonestrip button:hover b{background:var(--bd-bone);color:#0b0f14}
+.zonestrip button:focus-visible{outline:2px solid var(--bd-gold);outline-offset:-2px}
+.zonestrip button.is-active{
+  color:var(--bd-ink);background:var(--bd-panel-3);
+  box-shadow:inset 0 -3px var(--bd-gold),var(--gi-raise-tab,0 -2px 8px rgba(0,0,0,.18))
+}
+.zonestrip button.is-active b{background:var(--bd-gold);color:#14100a}
+
+/* ── THE BOARD ────────────────────────────────────────────────────────── */
+.board{display:block;margin:0;padding:4px;background:var(--bd-stage)}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin:0 0 4px;background:var(--bd-rule)}
+.kpi{position:relative;min-width:0;padding:9px 12px 10px;background:var(--bd-panel)}
+.kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--bd-bone)}
+.kpi span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}
+.kpi strong{display:block;margin-top:4px;color:var(--bd-ink);font:700 28px/1 var(--cond);font-variant-numeric:tabular-nums}
+.kpi small{display:block;margin-top:3px;color:var(--bd-ink-3);font:400 10.5px/1.2 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi.is-gold::before{background:var(--bd-gold)} .kpi.is-gold strong{color:var(--bd-gold)}
+.kpi.is-good::before{background:var(--bd-good)} .kpi.is-good strong{color:var(--bd-good)}
+.kpi.is-crit::before{background:var(--bd-crit)} .kpi.is-crit strong{color:var(--bd-crit)}
+
+.zone{margin:0 0 4px}
+.zone-rule{display:flex;align-items:baseline;gap:10px;padding:9px 12px 7px;background:var(--bd-panel);border-left:3px solid var(--bd-gold);margin-bottom:4px}
+.zone-rule h2{margin:0;color:var(--bd-gold);font:700 11px/1 var(--cond);letter-spacing:.18em;text-transform:uppercase}
+.zone-rule p{margin:0;color:var(--bd-ink-3);font:400 10.5px/1.25 var(--sans)}
+.zone-rule em{margin-left:auto;font-style:normal;color:var(--bd-ink-3);font:400 10.5px/1.25 var(--sans);white-space:nowrap}
+
+.band{display:grid;gap:1px;margin:0 0 4px;background:var(--bd-rule)}
+.band:last-child{margin-bottom:0}
+.b-1{grid-template-columns:minmax(0,1fr)}
+.b-2{grid-template-columns:minmax(0,1.45fr) minmax(320px,.75fr)}
+.b-2e{grid-template-columns:repeat(2,minmax(0,1fr))}
+.b-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.b-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.b-wide{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
+
+.mod{position:relative;min-width:0;padding:8px 12px 10px;background:var(--bd-panel)}
+.mod::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--bd-bone)}
+.mod.is-offense::before{background:var(--bd-gold)}
+.mod.is-defense::before{background:var(--bd-cyan)}
+.mod>header{display:flex;align-items:baseline;gap:9px;margin:0 0 6px}
+.mod>header strong{color:var(--bd-ink-2);font:700 9.5px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}
+.mod.is-offense>header strong{color:var(--bd-gold)}
+.mod>header span{margin:0;color:var(--bd-ink-3);font:400 10.5px/1.25 var(--sans)}
+.mod>header .n{margin-left:auto;color:var(--bd-ink-3);font:400 10.5px/1.25 var(--sans);white-space:nowrap}
+.mod h4{margin:8px 0 4px;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.15em;text-transform:uppercase}
+
+table{width:100%;border-collapse:collapse;table-layout:auto;font:400 12.5px/1.4 var(--sans)}
+th{padding:0 0 5px;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.15em;text-transform:uppercase;text-align:right;border:0;white-space:nowrap}
+th:first-child{text-align:left}
+th[data-sortable]{cursor:pointer}
+th[data-sortable]:hover{color:var(--bd-ink-2)}
+th.is-sorted{color:var(--bd-gold)}
+th.is-sorted::after{content:" ▼";font-size:8px}
+td{padding:4px 0;border-top:1px solid rgba(242,245,248,.04);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td:first-child{text-align:left;color:var(--bd-ink-2);white-space:normal}
+tbody tr.cut{cursor:pointer}
+tbody tr.cut:hover{background:var(--bd-panel-2)}
+tbody tr.cut:focus-visible{outline:2px solid var(--bd-gold);outline-offset:-2px}
+tbody tr.is-sub td:first-child{padding-left:14px;color:var(--bd-ink-3)}
+.tl,td.tl,th.tl{text-align:left}
+.pos{color:var(--bd-good)} .neg{color:var(--bd-crit)} .gold{color:var(--bd-gold)}
+
+/* Identity strip — existing values, surfaced early. */
+.ident{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:-1px -12px -10px;background:var(--bd-rule);border-top:1px solid var(--bd-rule)}
+.ident>div{padding:7px 11px 8px;background:var(--bd-panel)}
+.ident span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.15em;text-transform:uppercase}
+.ident strong{display:block;margin-top:5px;color:var(--bd-ink);font:700 19px/1 var(--cond)}
+.ident small{display:block;margin-top:3px;color:var(--bd-ink-3);font:400 10.5px/1.3 var(--sans)}
+
+/* Mix bar — the Overview run/pass device, reused unchanged. */
+.mix{display:inline-flex;width:54px;height:6px;margin-right:8px;vertical-align:middle;background:var(--bd-panel-3)}
+.mix i{display:block;height:100%}
+.mix i:first-child{background:var(--bd-gold)} .mix i:last-child{background:var(--bd-cyan)}
+.split{display:flex;height:11px;gap:2px;margin:6px 0}
+.split i{display:block}
+.split i:nth-child(1){background:var(--bd-gold)} .split i:nth-child(2){background:var(--bd-cyan)}
+.legend{display:flex;gap:16px;margin:0 0 6px;color:var(--bd-ink-3);font:400 10.5px/1.2 var(--sans)}
+
+/* Tiles (play-action KPIs, EPA summary) */
+.tiles{display:grid;gap:1px;margin:-1px -12px -10px;background:var(--bd-rule);border-top:1px solid var(--bd-rule)}
+.tiles.t-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tiles.t-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tiles>div{min-width:0;padding:7px 9px 8px;background:var(--bd-panel);display:flex;flex-direction:column;justify-content:center}
+.tiles span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.15em;text-transform:uppercase}
+.tiles strong{display:block;margin-top:5px;color:var(--bd-ink);font:700 19px/1 var(--cond);font-variant-numeric:tabular-nums}
+.tiles small{display:block;margin-top:3px;color:var(--bd-ink-3);font:400 10.5px/1.3 var(--sans)}
+
+/* Matrix */
+.matrix{width:100%;border-collapse:separate;border-spacing:1px;background:var(--bd-rule)}
+.matrix th{padding:5px 7px;background:var(--bd-panel);text-align:center}
+.matrix th:first-child{text-align:left}
+.matrix td{padding:5px 7px;background:var(--bd-panel);text-align:center;border:0;color:var(--bd-ink-3)}
+.matrix td:first-child{text-align:left;color:var(--bd-ink-2)}
+.matrix td.c{color:var(--bd-ink)}
+.matrix td b{display:block;font:700 13px/1 var(--cond)}
+.matrix td em{display:block;margin-top:2px;font-style:normal;font-size:10px}
+
+/* Field heat map */
+.field{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--bd-rule);margin-top:2px}
+.field div{padding:9px 6px;background:var(--bd-panel);text-align:center}
+.field span{display:block;color:var(--bd-ink-3);font:700 9.5px/1 var(--cond);letter-spacing:.12em;text-transform:uppercase}
+.field strong{display:block;margin-top:4px;font:700 16px/1 var(--cond);font-variant-numeric:tabular-nums}
+.field small{display:block;margin-top:2px;color:var(--bd-ink-3);font:400 10.5px/1.2 var(--sans)}
+
+/* Bar chart rows */
+.bars{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.bars>div{display:grid;grid-template-columns:74px 1fr 44px;align-items:center;gap:8px;font:400 12.5px/1.3 var(--sans)}
+.bars .t{color:var(--bd-ink-2)}
+.bars .track{height:11px;background:var(--bd-panel-3)}
+.bars .track i{display:block;height:100%;background:var(--bd-gold)}
+.bars .track i.cy{background:var(--bd-cyan)}
+.bars .v{text-align:right;color:var(--bd-ink);font-variant-numeric:tabular-nums}
+
+/* Scatter / distribution */
+.plot{position:relative;height:132px;margin-top:6px;background:var(--bd-panel-2);overflow:hidden}
+.plot .ax{position:absolute;left:0;right:0;height:1px;background:var(--bd-rule)}
+.plot .pt{position:absolute;width:5px;height:5px;background:var(--bd-gold);transform:translate(-50%,50%)}
+.plot .pt.p{background:var(--bd-cyan)}
+.hist{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:6px}
+.hist i{flex:1;background:var(--bd-gold);min-height:2px}
+.hist i.lo{background:var(--bd-crit)}
+.histx{display:flex;justify-content:space-between;margin-top:4px;color:var(--bd-ink-3);font:400 10.5px/1 var(--sans)}
+
+/* Radar */
+.radar{display:flex;align-items:center;justify-content:center;padding:4px 0}
+.tp{display:grid;grid-template-columns:minmax(240px,.9fr) minmax(0,1.6fr);gap:18px;align-items:center}
+.sub2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@media(max-width:1180px){.sub2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1180px){.tp{grid-template-columns:minmax(0,1fr)}}
+
+/* Empty + sparse */
+.empty{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;padding:16px 18px;background:var(--bd-panel);border-left:3px solid var(--bd-gold)}
+.empty div{min-width:0;flex:1 1 320px}
+.empty h3{margin:0 0 4px;color:var(--bd-ink);font:700 11px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}
+.empty p{margin:0;color:var(--bd-ink-2);font:400 12.5px/1.4 var(--sans)}
+.empty button{flex:0 0 auto;min-height:32px;padding:8px 16px;background:var(--bd-gold);color:#14100a;font:700 11.5px/1 var(--sans)}
+.empty button:hover{background:#eab52c}
+.empty button:focus-visible{outline:2px solid var(--bd-ink);outline-offset:2px}
+.sparse{color:var(--bd-ink-3);font:400 12.5px/1.4 var(--sans);padding:6px 0}
+
+.note{padding:10px 12px;background:var(--bd-panel);border-left:3px solid var(--bd-cyan);color:var(--bd-ink-2);font:400 12.5px/1.45 var(--sans)}
+
+/* ── 1280 ADAPTATION: fewer columns, same composition. Never smaller type. */
+@media(max-width:1360px){
+  .b-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .zonestrip button{font-size:9.5px;padding:7px 8px}
+}
+@media(max-width:1180px){
+  .b-2,.b-wide{grid-template-columns:minmax(0,1fr)}
+  .ident{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* Wide tables scroll inside their own module, never the page. */
+.scrollx{overflow-x:auto;scrollbar-width:thin}
+.scrollx table{min-width:520px}
+</style>
+</head>
+<body>
+
+<!-- ═════ SHELL + ROUTE CHROME (context; unchanged by this proposal) ═════ -->
+<nav class="shell-nav">
+  <span class="shell-brand">GRIDIRON <i>IQ</i></span>
+  <button type="button">Home</button>
+  <button type="button">Break Down</button>
+  <button type="button">Study</button>
+  <button type="button" class="is-active">Reports</button>
+  <button type="button">Plan</button>
+  <span class="spacer"></span>
+</nav>
+
+<div class="ctx">
+  <div><span>Program</span><strong>St. Joseph Mavericks</strong></div>
+  <div><span>Season</span><strong>2026 Varsity</strong></div>
+  <div><span>Game</span><strong>Week 1 vs Central</strong></div>
+  <div class="persp">
+    <button type="button" class="is-active">Our Program</button>
+    <button type="button">Opponent Scout</button>
+  </div>
+</div>
+
+<div class="rail">
+  <div><span class="team"><span>St. Joseph Mavericks</span><strong>28</strong></span>
+       <span class="team"><span>Central</span><strong>21</strong></span></div>
+  <div class="qtrs">
+    <div><span>Q1</span><strong>7</strong></div><div><span>Q2</span><strong>14</strong></div>
+    <div><span>Q3</span><strong>0</strong></div><div><span>Q4</span><strong>7</strong></div>
+  </div>
+  <div><span class="live">5.6</span><span class="live-note"><b>Yards per play.</b> 358 yards on 64 offensive snaps.</span></div>
+  <div class="gm"><span>Week 1 vs Central</span><small>64 of 64 plays charted</small></div>
+</div>
+
+<div class="rhead">
+  <div class="title"><h1>Week 1 vs Central</h1><p>2026 Varsity · 64 plays · every number links to film</p></div>
+  <div class="seg" role="group" aria-label="Report perspective">
+    <button type="button" class="is-active">Our game</button>
+    <button type="button">Opponent scout</button>
+  </div>
+  <nav class="tabs" aria-label="Report sections" id="tabs">
+    <button type="button">Overview</button>
+    <button type="button" class="is-active" aria-current="page">Offense</button>
+    <button type="button">Defense</button>
+    <button type="button">Special Teams</button>
+    <button type="button">Players</button>
+    <button type="button">Self-Scout</button>
+    <button type="button">Season</button>
+    <button type="button">Matchup</button>
+  </nav>
+  <div class="acts">
+    <button type="button">Scout opponent</button>
+    <button type="button">Export</button>
+  </div>
+</div>
+
+<!-- PROPOSED: zone strip. Jumps within a long report; not an analytics control. -->
+<div class="zonestrip" id="zonestrip" role="group" aria-label="Offense report sections">
+  <button type="button" class="is-active" data-jump="z1"><b>1</b>Offensive identity</button>
+  <button type="button" data-jump="z2"><b>2</b>Calls and tendencies</button>
+  <button type="button" data-jump="z3"><b>3</b>Structure and deployment</button>
+  <button type="button" data-jump="z4"><b>4</b>Situational analysis</button>
+  <button type="button" data-jump="z5"><b>5</b>Field and production</button>
+  <button type="button" data-jump="z6"><b>6</b>Advanced metrics</button>
+</div>
+
+<main class="board" id="board">
+
+<!-- ══════════ ZONE 1 — OFFENSIVE IDENTITY & IMMEDIATE PERFORMANCE ══════ -->
+<section class="zone" id="z1">
+  <div class="zone-rule"><h2>Offensive identity</h2><p>Personnel, formation, alignment, and primary call</p></div>
+  <div class="kpis" data-scope-swap>
+    <div class="kpi is-gold"><span>Success rate</span><strong data-g="50.0%" data-s="46.8%">50.0%</strong><small data-g="32 of 64 snaps" data-s="291 of 622 snaps">32 of 64 snaps</small></div>
+    <div class="kpi is-good"><span>Explosive</span><strong data-g="10.9%" data-s="9.4%">10.9%</strong><small data-g="7 plays" data-s="58 plays">7 plays</small></div>
+    <div class="kpi is-crit"><span>Negative</span><strong data-g="7.8%" data-s="9.1%">7.8%</strong><small data-g="5 plays" data-s="57 plays">5 plays</small></div>
+    <div class="kpi"><span>Run / pass</span><strong data-g="53 / 47" data-s="55 / 45">53 / 47</strong><small data-g="34R · 30P" data-s="342R · 280P">34R · 30P</small></div>
+    <div class="kpi"><span>Points / drive</span><strong data-g="2.6" data-s="2.2">2.6</strong><small data-g="8 drives" data-s="71 drives">8 drives</small></div>
+    <div class="kpi"><span>3rd down</span><strong data-g="47.1%" data-s="41.0%">47.1%</strong><small data-g="8 of 17" data-s="66 of 161">8 of 17</small></div>
+  </div>
+
+  <div class="band b-wide">
+    <section class="mod is-offense">
+      <header><strong>Identity</strong><span class="n">64 snaps</span></header>
+      <div class="ident">
+        <div><span>Base personnel</span><strong>11</strong><small>27 snaps · 42%</small></div>
+        <div><span>Primary formation</span><strong>Trips</strong><small>22 snaps · 34%</small></div>
+        <div><span>QB alignment</span><strong>Shotgun</strong><small>39 snaps · 61%</small></div>
+        <div><span>Top call</span><strong>26 Blast</strong><small>11 snaps · 54.5% success</small></div>
+      </div>
+    </section>
+    <section class="mod">
+      <header><strong>Run / pass balance</strong><span>by down</span></header>
+      <div class="split"><i style="flex:53"></i><i style="flex:47"></i></div>
+      <div class="legend"><span>Run 34 · 178 yds</span><span>Pass 30 · 180 yds</span></div>
+      <table>
+        <thead><tr><th>Down</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>1st</td><td>28</td><td><span class="mix"><i style="flex:64"></i><i style="flex:36"></i></span>64 / 36</td><td>5.8</td></tr>
+          <tr class="cut" tabindex="0"><td>2nd</td><td>19</td><td><span class="mix"><i style="flex:53"></i><i style="flex:47"></i></span>53 / 47</td><td>5.5</td></tr>
+          <tr class="cut" tabindex="0"><td>3rd</td><td>15</td><td><span class="mix"><i style="flex:27"></i><i style="flex:73"></i></span>27 / 73</td><td>5.3</td></tr>
+          <tr class="cut" tabindex="0"><td>4th</td><td>2</td><td><span class="mix"><i style="flex:50"></i><i style="flex:50"></i></span>50 / 50</td><td>3.0</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════ ZONE 2 — CORE CALLS AND TENDENCIES ══════════════════════ -->
+<section class="zone" id="z2">
+  <div class="zone-rule"><h2>Calls and tendencies</h2><p>Frequency and production</p><em>Opens film</em></div>
+
+  <div class="band b-2">
+    <section class="mod is-offense">
+      <header><strong>Play calls</strong><span>64 snaps carry an exact call</span><span class="n">Opens film</span></header>
+      <div class="scrollx"><table>
+        <thead><tr><th data-sortable>Play call</th><th data-sortable class="tl">Concept</th><th data-sortable>Plays</th><th data-sortable class="is-sorted">Freq</th><th data-sortable>Success</th><th data-sortable>Yds/play</th><th data-sortable>Expl</th><th data-sortable>Neg</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>26 Blast</td><td class="tl">Inside Zone</td><td>11</td><td>17.2%</td><td class="pos">54.5%</td><td>5.1</td><td>9.1%</td><td>9.1%</td></tr>
+          <tr class="cut" tabindex="0"><td>Zone Right</td><td class="tl">Inside Zone</td><td>9</td><td>14.1%</td><td>44.4%</td><td>4.2</td><td>0%</td><td>11.1%</td></tr>
+          <tr class="cut" tabindex="0"><td>Mesh</td><td class="tl">Quick Game</td><td>8</td><td>12.5%</td><td class="pos">62.5%</td><td>7.4</td><td>12.5%</td><td>0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Bubble RPO</td><td class="tl">RPO</td><td>8</td><td>12.5%</td><td>50.0%</td><td>5.6</td><td>12.5%</td><td>0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Power G</td><td class="tl">Gap</td><td>8</td><td>12.5%</td><td>50.0%</td><td>4.9</td><td>0%</td><td>12.5%</td></tr>
+          <tr class="cut" tabindex="0"><td>PA Boot</td><td class="tl">Play Action</td><td>7</td><td>10.9%</td><td class="pos">71.4%</td><td class="gold">11.3</td><td>28.6%</td><td>0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Counter</td><td class="tl">Gap</td><td>7</td><td>10.9%</td><td>42.9%</td><td>3.8</td><td>0%</td><td>14.3%</td></tr>
+          <tr class="cut" tabindex="0"><td>Four Verts</td><td class="tl">Drop Back</td><td>6</td><td>9.4%</td><td class="neg">33.3%</td><td>8.2</td><td>33.3%</td><td>16.7%</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="mod">
+      <header><strong>Concepts</strong><span>call family roll-up</span></header>
+      <table>
+        <thead><tr><th>Concept / call</th><th>Plays</th><th>Success</th><th>Yds/play</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Inside Zone</td><td>20</td><td>50.0%</td><td>4.7</td></tr>
+          <tr class="cut is-sub" tabindex="0"><td>26 Blast</td><td>11</td><td>54.5%</td><td>5.1</td></tr>
+          <tr class="cut is-sub" tabindex="0"><td>Zone Right</td><td>9</td><td>44.4%</td><td>4.2</td></tr>
+          <tr class="cut" tabindex="0"><td>Gap</td><td>15</td><td>46.7%</td><td>4.4</td></tr>
+          <tr class="cut is-sub" tabindex="0"><td>Power G</td><td>8</td><td>50.0%</td><td>4.9</td></tr>
+          <tr class="cut is-sub" tabindex="0"><td>Counter</td><td>7</td><td>42.9%</td><td>3.8</td></tr>
+          <tr class="cut" tabindex="0"><td class="tl">Quick Game</td><td>8</td><td>62.5%</td><td>7.4</td></tr>
+          <tr class="cut" tabindex="0"><td class="tl">RPO</td><td>8</td><td>50.0%</td><td>5.6</td></tr>
+          <tr class="cut" tabindex="0"><td class="tl">Play Action</td><td>7</td><td>71.4%</td><td>11.3</td></tr>
+          <tr class="cut" tabindex="0"><td class="tl">Drop Back</td><td>6</td><td>33.3%</td><td>8.2</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="band b-3">
+    <section class="mod is-offense">
+      <header><strong>Formation</strong><span>frequency &amp; success</span></header>
+      <table>
+        <thead><tr><th>Formation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Trips</td><td>22</td><td><span class="mix"><i style="flex:55"></i><i style="flex:45"></i></span>55 / 45</td><td>5.8</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Ace</td><td>16</td><td><span class="mix"><i style="flex:75"></i><i style="flex:25"></i></span>75 / 25</td><td>4.9</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Spread</td><td>12</td><td><span class="mix"><i style="flex:17"></i><i style="flex:83"></i></span>17 / 83</td><td>7.1</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Heavy</td><td>8</td><td><span class="mix"><i style="flex:88"></i><i style="flex:12"></i></span>88 / 12</td><td>4.3</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Pistol</td><td>6</td><td><span class="mix"><i style="flex:67"></i><i style="flex:33"></i></span>67 / 33</td><td>4.0</td><td>33.3%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Play type</strong><span>frequency &amp; success</span></header>
+      <table>
+        <thead><tr><th>Play type</th><th>Snaps</th><th>Share</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Inside Run</td><td>19</td><td>29.7%</td><td>4.6</td><td>47.4%</td></tr>
+          <tr class="cut" tabindex="0"><td>Short Pass</td><td>16</td><td>25.0%</td><td>6.8</td><td class="pos">56.3%</td></tr>
+          <tr class="cut" tabindex="0"><td>Outside Run</td><td>11</td><td>17.2%</td><td>5.2</td><td>45.5%</td></tr>
+          <tr class="cut" tabindex="0"><td class="tl">RPO</td><td>8</td><td>12.5%</td><td>5.6</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Deep Pass</td><td>6</td><td>9.4%</td><td class="gold">8.2</td><td class="neg">33.3%</td></tr>
+          <tr class="cut" tabindex="0"><td>Screen</td><td>4</td><td>6.3%</td><td>6.5</td><td>50.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Play-action</strong><span>vs straight dropback</span></header>
+      <table>
+        <thead><tr><th>Formation</th><th>PA plays</th><th>Avg</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Ace</td><td>4</td><td>12.5</td><td>75.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Trips</td><td>2</td><td>9.0</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Heavy</td><td>1</td><td>8.0</td><td>100%</td></tr>
+        </tbody>
+      </table>
+      <div class="tiles t-4">
+        <div><span>PA rate</span><strong>23.3%</strong><small>7 of 30 dropbacks</small></div>
+        <div><span>PA comp</span><strong>71.4%</strong><small>5 of 7</small></div>
+        <div><span>PA YPA</span><strong>11.3</strong><small>79 yards</small></div>
+        <div><span>Straight YPA</span><strong>6.1</strong><small>23 dropbacks</small></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="band b-2">
+    <section class="mod is-offense">
+      <header><strong data-bigtitle>Core tendencies</strong><span class="n">52 of 64 snaps</span></header>
+      <table>
+        <thead><tr><th>Look · situation</th><th>Snaps</th><th>Share</th><th>Run / pass</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Trips · 1st &amp; 10</td><td>12</td><td>18.8%</td><td><span class="mix"><i style="flex:58"></i><i style="flex:42"></i></span>58 / 42</td><td>6.1</td><td class="pos">58.3%</td></tr>
+          <tr class="cut" tabindex="0"><td>Ace · 2nd &amp; Short</td><td>8</td><td>12.5%</td><td><span class="mix"><i style="flex:88"></i><i style="flex:12"></i></span>88 / 12</td><td>5.4</td><td class="pos">62.5%</td></tr>
+          <tr class="cut" tabindex="0"><td>Spread · 3rd &amp; Long</td><td>7</td><td>10.9%</td><td><span class="mix"><i style="flex:0"></i><i style="flex:100"></i></span>0 / 100</td><td>7.9</td><td class="neg">28.6%</td></tr>
+          <tr class="cut" tabindex="0"><td>Trips · 3rd &amp; Med</td><td>6</td><td>9.4%</td><td><span class="mix"><i style="flex:33"></i><i style="flex:67"></i></span>33 / 67</td><td>6.8</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Heavy · Goal line</td><td>5</td><td>7.8%</td><td><span class="mix"><i style="flex:100"></i><i style="flex:0"></i></span>100 / 0</td><td>2.8</td><td class="pos">60.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Ace · 1st &amp; 10</td><td>5</td><td>7.8%</td><td><span class="mix"><i style="flex:80"></i><i style="flex:20"></i></span>80 / 20</td><td>4.2</td><td>40.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Pistol · 2nd &amp; Med</td><td>4</td><td>6.3%</td><td><span class="mix"><i style="flex:75"></i><i style="flex:25"></i></span>75 / 25</td><td>4.5</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Spread · 2nd &amp; Long</td><td>5</td><td>7.8%</td><td><span class="mix"><i style="flex:20"></i><i style="flex:80"></i></span>20 / 80</td><td>5.0</td><td class="neg">25.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod">
+      <header><strong>Calls by situation</strong><span>top call per lens</span></header>
+      <h4>Down</h4>
+      <table><tbody>
+        <tr class="cut" tabindex="0"><td>1st &amp; 10</td><td class="tl">26 Blast</td><td>7/28</td><td>57.1%</td></tr>
+        <tr class="cut" tabindex="0"><td>2nd &amp; Med</td><td class="tl">Zone Right</td><td>5/19</td><td>60.0%</td></tr>
+        <tr class="cut" tabindex="0"><td>3rd &amp; Long</td><td class="tl">Four Verts</td><td>4/9</td><td>25.0%</td></tr>
+      </tbody></table>
+      <h4>Field zone</h4>
+      <table><tbody>
+        <tr class="cut" tabindex="0"><td>Backed up</td><td class="tl">26 Blast</td><td>3/7</td><td>66.7%</td></tr>
+        <tr class="cut" tabindex="0"><td>Midfield</td><td class="tl">Mesh</td><td>6/34</td><td>66.7%</td></tr>
+        <tr class="cut" tabindex="0"><td>Red zone</td><td class="tl">Power G</td><td>4/8</td><td>50.0%</td></tr>
+      </tbody></table>
+      <h4>Hash</h4>
+      <table><tbody>
+        <tr class="cut" tabindex="0"><td>Left hash</td><td class="tl">Bubble RPO</td><td>4/24</td><td>50.0%</td></tr>
+        <tr class="cut" tabindex="0"><td>Right hash</td><td class="tl">26 Blast</td><td>5/19</td><td>60.0%</td></tr>
+      </tbody></table>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════ ZONE 3 — STRUCTURE AND DEPLOYMENT ═══════════════════════ -->
+<section class="zone" id="z3">
+  <div class="zone-rule"><h2>Structure and deployment</h2><p>Personnel, alignment, motion, direction, and hash</p><em>Opens film</em></div>
+
+  <div class="band b-3">
+    <section class="mod is-offense">
+      <header><strong>Personnel</strong><span>grouping</span></header>
+      <table>
+        <thead><tr><th>Group</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>11</td><td>27</td><td><span class="mix"><i style="flex:48"></i><i style="flex:52"></i></span>48 / 52</td><td>6.1</td><td class="pos">51.9%</td></tr>
+          <tr class="cut" tabindex="0"><td>21</td><td>16</td><td><span class="mix"><i style="flex:75"></i><i style="flex:25"></i></span>75 / 25</td><td>4.8</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>12</td><td>10</td><td><span class="mix"><i style="flex:60"></i><i style="flex:40"></i></span>60 / 40</td><td>5.3</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>22</td><td>7</td><td><span class="mix"><i style="flex:86"></i><i style="flex:14"></i></span>86 / 14</td><td>4.1</td><td>42.9%</td></tr>
+          <tr class="cut" tabindex="0"><td>10</td><td>4</td><td><span class="mix"><i style="flex:0"></i><i style="flex:100"></i></span>0 / 100</td><td class="gold">8.0</td><td>50.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Backfield</strong><span>alignment</span></header>
+      <table>
+        <thead><tr><th>Backfield</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Empty</td><td>22</td><td><span class="mix"><i style="flex:18"></i><i style="flex:82"></i></span>18 / 82</td><td>6.6</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>I</td><td>16</td><td><span class="mix"><i style="flex:81"></i><i style="flex:19"></i></span>81 / 19</td><td>4.7</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Pistol</td><td>12</td><td><span class="mix"><i style="flex:67"></i><i style="flex:33"></i></span>67 / 33</td><td>5.1</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Power-I</td><td>8</td><td><span class="mix"><i style="flex:88"></i><i style="flex:12"></i></span>88 / 12</td><td>4.3</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Offset</td><td>6</td><td><span class="mix"><i style="flex:33"></i><i style="flex:67"></i></span>33 / 67</td><td>6.0</td><td>50.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Motion</strong><span>pre-snap movement</span></header>
+      <table>
+        <thead><tr><th>Motion</th><th>Snaps</th><th>Share</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>None</td><td>38</td><td>59.4%</td><td>5.2</td><td>47.4%</td></tr>
+          <tr class="cut" tabindex="0"><td>Jet</td><td>14</td><td>21.9%</td><td>6.4</td><td class="pos">57.1%</td></tr>
+          <tr class="cut" tabindex="0"><td>Orbit</td><td>7</td><td>10.9%</td><td>6.1</td><td class="pos">57.1%</td></tr>
+          <tr class="cut" tabindex="0"><td>Shift</td><td>5</td><td>7.8%</td><td>5.8</td><td>40.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="band b-3">
+    <section class="mod is-offense">
+      <header><strong>Play direction</strong><span>ball direction</span></header>
+      <table>
+        <thead><tr><th>Direction</th><th>Snaps</th><th>Share</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Right</td><td>26</td><td>40.6%</td><td>6.0</td><td class="pos">53.8%</td></tr>
+          <tr class="cut" tabindex="0"><td>Left</td><td>20</td><td>31.3%</td><td>5.1</td><td>45.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Middle</td><td>18</td><td>28.1%</td><td>5.5</td><td>50.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Strength</strong><span>declared side</span></header>
+      <table>
+        <thead><tr><th>Strength</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Right</td><td>31</td><td><span class="mix"><i style="flex:58"></i><i style="flex:42"></i></span>58 / 42</td><td>5.9</td><td class="pos">51.6%</td></tr>
+          <tr class="cut" tabindex="0"><td>Left</td><td>22</td><td><span class="mix"><i style="flex:50"></i><i style="flex:50"></i></span>50 / 50</td><td>5.2</td><td>45.5%</td></tr>
+          <tr class="cut" tabindex="0"><td>Balanced</td><td>11</td><td><span class="mix"><i style="flex:45"></i><i style="flex:55"></i></span>45 / 55</td><td>5.8</td><td class="pos">54.5%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Field hash</strong><span>starting position</span></header>
+      <table>
+        <thead><tr><th>Field hash</th><th>Snaps</th><th>Share</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Left</td><td>24</td><td>37.5%</td><td>5.4</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>Middle</td><td>21</td><td>32.8%</td><td>5.9</td><td class="pos">52.4%</td></tr>
+          <tr class="cut" tabindex="0"><td>Right</td><td>19</td><td>29.7%</td><td>5.5</td><td>47.4%</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════ ZONE 4 — SITUATIONAL DECISIONS ══════════════════════════ -->
+<section class="zone" id="z4">
+  <div class="zone-rule"><h2>Situational analysis</h2><p>Down, distance, quarter, and personnel</p><em>Opens film</em></div>
+
+  <div class="band b-2e">
+    <section class="mod is-offense">
+      <header><strong>Personnel × situation</strong><span>grouping by down &amp; distance</span></header>
+      <table>
+        <thead><tr><th>Personnel</th><th class="tl">Situation</th><th>Snaps</th><th>Run%</th><th>Yds/play</th><th>Succ</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>11</td><td class="tl">1st &amp; 10</td><td>12</td><td>50%</td><td>6.2</td><td class="pos">58.3%</td></tr>
+          <tr class="cut" tabindex="0"><td>21</td><td class="tl">2nd &amp; Short</td><td>7</td><td>86%</td><td>4.4</td><td class="pos">71.4%</td></tr>
+          <tr class="cut" tabindex="0"><td>11</td><td class="tl">3rd &amp; Med</td><td>6</td><td>17%</td><td>7.1</td><td>50.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>12</td><td class="tl">1st &amp; 10</td><td>5</td><td>60%</td><td>5.0</td><td>40.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>22</td><td class="tl">Goal line</td><td>4</td><td>100%</td><td>2.5</td><td class="pos">75.0%</td></tr>
+          <tr class="cut" tabindex="0"><td>10</td><td class="tl">3rd &amp; Long</td><td>4</td><td>0%</td><td>8.0</td><td class="neg">25.0%</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod is-offense">
+      <header><strong>Situational</strong><span>production by situation</span></header>
+      <table>
+        <thead><tr><th>Situation</th><th>Snaps</th><th>Yds</th><th>Avg</th><th>Succ</th><th>TD</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>1st &amp; 10</td><td>24</td><td>138</td><td>5.8</td><td class="pos">54.2%</td><td>2</td></tr>
+          <tr class="cut" tabindex="0"><td>2nd &amp; Med</td><td>12</td><td>66</td><td>5.5</td><td>50.0%</td><td>0</td></tr>
+          <tr class="cut" tabindex="0"><td>3rd &amp; Long</td><td>9</td><td>58</td><td>6.4</td><td class="neg">22.2%</td><td>1</td></tr>
+          <tr class="cut" tabindex="0"><td>3rd &amp; Short</td><td>6</td><td>26</td><td>4.3</td><td class="pos">83.3%</td><td>0</td></tr>
+          <tr class="cut" tabindex="0"><td>Red zone</td><td>8</td><td>31</td><td>3.9</td><td>50.0%</td><td>3</td></tr>
+          <tr class="cut" tabindex="0"><td>Goal line</td><td>5</td><td>12</td><td>2.4</td><td class="pos">60.0%</td><td>2</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="band b-2">
+    <section class="mod is-offense">
+      <header><strong>Tendency matrix</strong><span>formation × down</span><span class="n">56 of 64 charted on both axes</span></header>
+      <table class="matrix">
+        <thead><tr><th>Formation \ Down</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th></tr></thead>
+        <tbody>
+          <tr><td>Trips</td>
+            <td class="c" style="background:#16324a"><b>12</b><em>58R/42P · 6.1</em></td>
+            <td class="c" style="background:#122a3d"><b>6</b><em>50R/50P · 5.4</em></td>
+            <td class="c" style="background:#1d4767"><b>4</b><em>25R/75P · 6.8</em></td>
+            <td>—</td></tr>
+          <tr><td>Ace</td>
+            <td class="c" style="background:#12293c"><b>7</b><em>80R/20P · 4.2</em></td>
+            <td class="c" style="background:#1a3f5c"><b>8</b><em>88R/12P · 5.4</em></td>
+            <td>—</td><td class="c" style="background:#0f2231"><b>1</b><em>100R · 2.0</em></td></tr>
+          <tr><td>Spread</td>
+            <td class="c" style="background:#0f2231"><b>2</b><em>0R/100P · 6.5</em></td>
+            <td class="c" style="background:#12293c"><b>5</b><em>20R/80P · 5.0</em></td>
+            <td class="c" style="background:#1d4767"><b>5</b><em>0R/100P · 7.9</em></td>
+            <td>—</td></tr>
+          <tr><td>Heavy</td>
+            <td class="c" style="background:#0f2231"><b>2</b><em>100R · 3.5</em></td>
+            <td>—</td>
+            <td class="c" style="background:#0f2231"><b>1</b><em>100R · 1.0</em></td>
+            <td class="c" style="background:#12293c"><b>1</b><em>100R · 4.0</em></td></tr>
+          <tr><td>Pistol</td>
+            <td>—</td>
+            <td class="c" style="background:#12293c"><b>4</b><em>75R/25P · 4.5</em></td>
+            <td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="mod">
+      <header><strong>By quarter</strong><span>production over the game</span></header>
+      <table>
+        <thead><tr><th>Qtr</th><th>Snaps</th><th>Yds</th><th>Avg</th><th>TD</th></tr></thead>
+        <tbody>
+          <tr class="cut" tabindex="0"><td>Q1</td><td>17</td><td>96</td><td>5.6</td><td>1</td></tr>
+          <tr class="cut" tabindex="0"><td>Q2</td><td>19</td><td>118</td><td>6.2</td><td>2</td></tr>
+          <tr class="cut" tabindex="0"><td>Q3</td><td>14</td><td>71</td><td>5.1</td><td>1</td></tr>
+          <tr class="cut" tabindex="0"><td>Q4</td><td>14</td><td>73</td><td>5.2</td><td>1</td></tr>
+        </tbody>
+      </table>
+      <div class="bars">
+        <div><span class="t">Q1</span><span class="track"><i style="width:81%"></i></span><span class="v">96</span></div>
+        <div><span class="t">Q2</span><span class="track"><i style="width:100%"></i></span><span class="v">118</span></div>
+        <div><span class="t">Q3</span><span class="track"><i style="width:60%"></i></span><span class="v">71</span></div>
+        <div><span class="t">Q4</span><span class="track"><i style="width:62%"></i></span><span class="v">73</span></div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════ ZONE 5 — FIELD AND PRODUCTION VISUALS ═══════════════════ -->
+<section class="zone" id="z5">
+  <div class="zone-rule"><h2>Field and production</h2><p>Distribution and field position</p></div>
+
+  <div class="band b-1">
+    <section class="mod is-offense">
+      <header><strong>Field heat map</strong><span>success rate by field zone</span><span class="n">64 snaps</span></header>
+      <div class="field">
+        <div style="background:#13202b"><span>Own 1–20</span><strong>42.9%</strong><small>7 snaps · 4.1 y/p</small></div>
+        <div style="background:#1a3550"><span>Own 21–40</span><strong>52.6%</strong><small>19 snaps · 5.8 y/p</small></div>
+        <div style="background:#1f4364"><span>Midfield</span><strong>56.0%</strong><small>25 snaps · 6.4 y/p</small></div>
+        <div style="background:#16283a"><span>Opp 39–21</span><strong>46.2%</strong><small>13 snaps · 4.9 y/p</small></div>
+        <div style="background:#1a3550"><span>Red zone</span><strong>50.0%</strong><small>8 snaps · 3.9 y/p</small></div>
+      </div>
+      <div class="field" style="margin-top:4px">
+        <div style="background:#16283a"><span>Left hash · run</span><strong>48.0%</strong><small>13 snaps</small></div>
+        <div style="background:#1f4364"><span>Left hash · pass</span><strong>54.5%</strong><small>11 snaps</small></div>
+        <div style="background:#1a3550"><span>Middle · run</span><strong>52.0%</strong><small>11 snaps</small></div>
+        <div style="background:#1a3550"><span>Middle · pass</span><strong>52.0%</strong><small>10 snaps</small></div>
+        <div style="background:#13202b"><span>Right hash</span><strong>47.4%</strong><small>19 snaps</small></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="band b-2e">
+    <section class="mod">
+      <header><strong>Yards per play</strong><span>distribution</span></header>
+      <div class="hist">
+        <i class="lo" style="height:18%"></i><i class="lo" style="height:30%"></i><i style="height:62%"></i>
+        <i style="height:100%"></i><i style="height:78%"></i><i style="height:52%"></i>
+        <i style="height:36%"></i><i style="height:24%"></i><i style="height:16%"></i><i style="height:10%"></i>
+      </div>
+      <div class="histx"><span>−5</span><span>0</span><span>5</span><span>10</span><span>15</span><span>20+</span></div>
+    </section>
+    <section class="mod">
+      <header><strong>Yards vs distance to go</strong><span>conversion pressure</span></header>
+      <div class="plot">
+        <div class="ax" style="bottom:28px"></div>
+        <div class="pt" style="left:8%;bottom:44px"></div><div class="pt p" style="left:14%;bottom:66px"></div>
+        <div class="pt" style="left:20%;bottom:36px"></div><div class="pt p" style="left:27%;bottom:88px"></div>
+        <div class="pt" style="left:33%;bottom:52px"></div><div class="pt" style="left:39%;bottom:30px"></div>
+        <div class="pt p" style="left:46%;bottom:104px"></div><div class="pt" style="left:52%;bottom:60px"></div>
+        <div class="pt p" style="left:58%;bottom:72px"></div><div class="pt" style="left:64%;bottom:22px"></div>
+        <div class="pt p" style="left:71%;bottom:96px"></div><div class="pt" style="left:77%;bottom:48px"></div>
+        <div class="pt" style="left:84%;bottom:34px"></div><div class="pt p" style="left:91%;bottom:80px"></div>
+      </div>
+      <div class="histx"><span>1 yd to go</span><span>Gain</span><span>15+ to go</span></div>
+    </section>
+  </div>
+
+  <div class="band b-2e">
+    <section class="mod">
+      <header><strong>Success by field position</strong><span>zone strip</span></header>
+      <div class="bars">
+        <div><span class="t">Own 1–20</span><span class="track"><i style="width:43%"></i></span><span class="v">42.9%</span></div>
+        <div><span class="t">Own 21–40</span><span class="track"><i style="width:53%"></i></span><span class="v">52.6%</span></div>
+        <div><span class="t">Midfield</span><span class="track"><i style="width:56%"></i></span><span class="v">56.0%</span></div>
+        <div><span class="t">Opp 39–21</span><span class="track"><i style="width:46%"></i></span><span class="v">46.2%</span></div>
+        <div><span class="t">Red zone</span><span class="track"><i style="width:50%"></i></span><span class="v">50.0%</span></div>
+      </div>
+    </section>
+    <section class="mod">
+      <header><strong>Run / pass by down</strong><span>split &amp; success</span></header>
+      <div class="bars">
+        <div><span class="t">1st down</span><span class="track"><i style="width:64%"></i></span><span class="v">5.8</span></div>
+        <div><span class="t">2nd down</span><span class="track"><i style="width:53%"></i></span><span class="v">5.5</span></div>
+        <div><span class="t">3rd down</span><span class="track"><i class="cy" style="width:73%"></i></span><span class="v">5.3</span></div>
+        <div><span class="t">4th down</span><span class="track"><i style="width:50%"></i></span><span class="v">3.0</span></div>
+      </div>
+      <div class="legend"><span>Gold = run share</span><span>Cyan = pass share</span></div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════ ZONE 6 — ADVANCED EVALUATION ═══════════════════════════ -->
+<section class="zone" id="z6">
+  <div class="zone-rule"><h2>Advanced metrics</h2><p>Team profile and EPA</p></div>
+
+  <div class="band b-1">
+    <section class="mod is-offense">
+      <header><strong>Team profile</strong><span>this game vs season average</span><span class="n">6 metrics</span></header>
+      <div class="tp">
+        <div>
+          <div class="radar">
+            <svg viewBox="0 0 320 176" width="100%" height="168" role="img" aria-label="Team profile: this game against season average across six offensive metrics">
+              <polygon points="160,16 292,62 266,156 54,156 28,62" fill="none" stroke="#222d38"/>
+              <polygon points="160,52 246,82 229,143 91,143 74,82" fill="none" stroke="#222d38"/>
+              <g stroke="#222d38">
+                <line x1="160" y1="96" x2="160" y2="16"/><line x1="160" y1="96" x2="292" y2="62"/>
+                <line x1="160" y1="96" x2="266" y2="156"/><line x1="160" y1="96" x2="54" y2="156"/>
+                <line x1="160" y1="96" x2="28" y2="62"/>
+              </g>
+              <polygon points="160,44 254,76 236,148 84,142 66,76" fill="rgba(217,162,26,.20)" stroke="#d9a21a" stroke-width="1.5"/>
+              <polygon points="160,62 232,86 219,138 101,134 88,86" fill="none" stroke="#4a5765" stroke-width="1.5" stroke-dasharray="3 3"/>
+            </svg>
+          </div>
+          <div class="legend"><span style="color:#d9a21a">This game</span><span>Season average</span></div>
+        </div>
+        <div>
+          <table>
+            <thead><tr><th>Metric</th><th>This game</th><th>Season avg</th><th>Season best</th></tr></thead>
+            <tbody>
+              <tr><td>Yards / play</td><td class="gold">5.6</td><td>5.2</td><td>7.1</td></tr>
+              <tr><td>Success rate</td><td class="gold">50.0%</td><td>46.8%</td><td>58.0%</td></tr>
+              <tr><td>Explosive rate</td><td class="gold">10.9%</td><td>9.4%</td><td>15.2%</td></tr>
+              <tr><td>Negative rate</td><td class="gold">7.8%</td><td>9.1%</td><td>&le; 5.0%</td></tr>
+              <tr><td>3rd down</td><td class="gold">47.1%</td><td>41.0%</td><td>55.0% &#9733;</td></tr>
+              <tr><td>Points / drive</td><td class="gold">2.6</td><td>2.2</td><td>3.4</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="band b-1">
+    <section class="mod">
+      <header><strong>Expected points added</strong><span>EPA</span><span class="n">64 plays scored</span></header>
+      <div class="tiles t-3">
+        <div><span>Total EPA</span><strong class="pos">+6.8</strong><small>64 snaps</small></div>
+        <div><span>EPA / play</span><strong class="pos">+0.11</strong><small>season +0.04</small></div>
+        <div><span>Plays scored</span><strong>64</strong><small>of 64 charted</small></div>
+      </div>
+      <h4>Cumulative EPA</h4>
+      <svg viewBox="0 0 900 110" width="100%" height="96" preserveAspectRatio="none" role="img" aria-label="Cumulative expected points added across 64 plays, high 8.4, low minus 1.2">
+        <line x1="10" y1="78" x2="890" y2="78" stroke="#4a5765" stroke-dasharray="3,3"/>
+        <path d="M10,78 L52,70 L94,84 L136,66 L178,58 L220,72 L262,50 L304,44 L346,56 L388,38 L430,30 L472,42 L514,26 L556,34 L598,20 L640,28 L682,16 L724,24 L766,14 L808,20 L850,12 L890,18"
+              fill="none" stroke="#d9a21a" stroke-width="2"/>
+      </svg>
+      <div class="histx"><span>Play 1</span><span>High +8.4 / Low −1.2</span><span>Play 64</span></div>
+      <div class="sub2">
+        <div><h4>By play type</h4><table>
+          <thead><tr><th>Play type</th><th>#</th><th>EPA</th><th>EPA/play</th></tr></thead>
+          <tbody>
+            <tr class="cut" tabindex="0"><td>Short Pass</td><td>16</td><td class="pos">+3.4</td><td class="pos">+0.21</td></tr>
+            <tr class="cut" tabindex="0"><td>Inside Run</td><td>19</td><td class="pos">+1.2</td><td class="pos">+0.06</td></tr>
+            <tr class="cut" tabindex="0"><td>Deep Pass</td><td>6</td><td class="pos">+1.1</td><td class="pos">+0.18</td></tr>
+            <tr class="cut" tabindex="0"><td>Outside Run</td><td>11</td><td class="pos">+0.7</td><td class="pos">+0.06</td></tr>
+            <tr class="cut" tabindex="0"><td>RPO</td><td>8</td><td class="pos">+0.6</td><td class="pos">+0.08</td></tr>
+            <tr class="cut" tabindex="0"><td>Screen</td><td>4</td><td class="neg">−0.2</td><td class="neg">−0.05</td></tr>
+          </tbody></table></div>
+        <div><h4>By formation</h4><table>
+          <thead><tr><th>Formation</th><th>#</th><th>EPA</th><th>EPA/play</th></tr></thead>
+          <tbody>
+            <tr class="cut" tabindex="0"><td>Trips</td><td>22</td><td class="pos">+3.1</td><td class="pos">+0.14</td></tr>
+            <tr class="cut" tabindex="0"><td>Spread</td><td>12</td><td class="pos">+2.2</td><td class="pos">+0.18</td></tr>
+            <tr class="cut" tabindex="0"><td>Ace</td><td>16</td><td class="pos">+1.4</td><td class="pos">+0.09</td></tr>
+            <tr class="cut" tabindex="0"><td>Heavy</td><td>8</td><td class="pos">+0.3</td><td class="pos">+0.04</td></tr>
+            <tr class="cut" tabindex="0"><td>Pistol</td><td>6</td><td class="neg">−0.2</td><td class="neg">−0.03</td></tr>
+          </tbody></table></div>
+      </div>
+      <div class="sub2">
+        <div><h4>By personnel</h4><table>
+          <thead><tr><th>Personnel</th><th>#</th><th>EPA</th><th>EPA/play</th></tr></thead>
+          <tbody>
+            <tr class="cut" tabindex="0"><td>11</td><td>27</td><td class="pos">+4.2</td><td class="pos">+0.16</td></tr>
+            <tr class="cut" tabindex="0"><td>21</td><td>16</td><td class="pos">+1.1</td><td class="pos">+0.07</td></tr>
+            <tr class="cut" tabindex="0"><td>12</td><td>10</td><td class="pos">+0.9</td><td class="pos">+0.09</td></tr>
+            <tr class="cut" tabindex="0"><td>10</td><td>4</td><td class="pos">+0.8</td><td class="pos">+0.20</td></tr>
+            <tr class="cut" tabindex="0"><td>22</td><td>7</td><td class="neg">−0.2</td><td class="neg">−0.03</td></tr>
+          </tbody></table></div>
+        <div><h4>By down</h4><table>
+          <thead><tr><th>Down</th><th>#</th><th>EPA</th><th>EPA/play</th></tr></thead>
+          <tbody>
+            <tr class="cut" tabindex="0"><td>1st</td><td>28</td><td class="pos">+3.6</td><td class="pos">+0.13</td></tr>
+            <tr class="cut" tabindex="0"><td>2nd</td><td>19</td><td class="pos">+2.1</td><td class="pos">+0.11</td></tr>
+            <tr class="cut" tabindex="0"><td>3rd</td><td>15</td><td class="pos">+1.3</td><td class="pos">+0.09</td></tr>
+            <tr class="cut" tabindex="0"><td>4th</td><td>2</td><td class="neg">−0.2</td><td class="neg">−0.10</td></tr>
+          </tbody></table></div>
+      </div>
+      <div class="sub2">
+        <div><h4>Top 5 EPA plays</h4><table>
+          <thead><tr><th>#</th><th class="tl">Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+          <tbody>
+            <tr class="cut" tabindex="0"><td>#41</td><td class="tl">PA Boot · 2nd &amp; 6 · Opp 34</td><td>34</td><td class="pos">+4.1</td></tr>
+            <tr class="cut" tabindex="0"><td>#18</td><td class="tl">Mesh · 3rd &amp; 7 · Own 42</td><td>18</td><td class="pos">+2.2</td></tr>
+            <tr class="cut" tabindex="0"><td>#52</td><td class="tl">Four Verts · 3rd &amp; 9 · Own 38</td><td>26</td><td class="pos">+2.0</td></tr>
+            <tr class="cut" tabindex="0"><td>#7</td><td class="tl">26 Blast · 1st &amp; 10 · Own 25</td><td>15</td><td class="pos">+1.4</td></tr>
+            <tr class="cut" tabindex="0"><td>#33</td><td class="tl">Bubble RPO · 2nd &amp; 4 · Opp 46</td><td>12</td><td class="pos">+1.1</td></tr>
+          </tbody></table></div>
+        <div><h4>Worst 5 EPA plays</h4><table>
+          <thead><tr><th>#</th><th class="tl">Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+          <tbody>
+            <tr class="cut" tabindex="0"><td>#22</td><td class="tl">Counter · 2nd &amp; 8 · Own 31</td><td>−4</td><td class="neg">−1.6</td></tr>
+            <tr class="cut" tabindex="0"><td>#48</td><td class="tl">Power G · 3rd &amp; 2 · Opp 18</td><td>−3</td><td class="neg">−1.3</td></tr>
+            <tr class="cut" tabindex="0"><td>#11</td><td class="tl">Four Verts · 3rd &amp; 12 · Own 20</td><td>0</td><td class="neg">−1.1</td></tr>
+            <tr class="cut" tabindex="0"><td>#59</td><td class="tl">Zone Right · 2nd &amp; 9 · Own 44</td><td>−2</td><td class="neg">−0.9</td></tr>
+            <tr class="cut" tabindex="0"><td>#5</td><td class="tl">Counter · 1st &amp; 10 · Own 28</td><td>−1</td><td class="neg">−0.7</td></tr>
+          </tbody></table></div>
+      </div>
+    </section>
+  </div>
+</section>
+</main>
+
+<script>
+/* Comp interactions only — no analytics, no data mutation. */
+const $ = s => document.querySelector(s);
+const board = $('#board');
+
+// Tabs: selected-tab state is inspectable; only Offense is composed here.
+document.querySelectorAll('#tabs button').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('#tabs button').forEach(b => { b.classList.remove('is-active'); b.removeAttribute('aria-current'); });
+  btn.classList.add('is-active'); btn.setAttribute('aria-current', 'page');
+  const isOffense = btn.textContent.trim() === 'Offense';
+  board.style.display = isOffense ? 'block' : 'none';
+  let note = $('#tabnote');
+  if (!isOffense) {
+    if (!note) { note = document.createElement('div'); note.id = 'tabnote'; note.className = 'note'; note.style.margin = '4px'; board.after(note); }
+    note.textContent = btn.textContent.trim() + ' is outside the scope of this comp. Offense is the composed tab.';
+    note.hidden = false;
+  } else if (note) { note.hidden = true; }
+}));
+
+// Scope: current game vs full season, where the report supports it.
+document.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.seg button').forEach(b => b.classList.remove('is-active'));
+  btn.classList.add('is-active');
+}));
+
+// Zone jump strip.
+document.querySelectorAll('#zonestrip button').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('#zonestrip button').forEach(b => b.classList.remove('is-active'));
+  btn.classList.add('is-active');
+  document.getElementById(btn.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+
+// The "Big N" count is COMPUTED from the rows present, never hardcoded --
+// production derives it from the eligible tendency rows the same way.
+const bigTitle = document.querySelector('[data-bigtitle]');
+if (bigTitle) {
+  const n = bigTitle.closest('.mod').querySelectorAll('tbody tr').length;
+  bigTitle.textContent = `Core tendencies · Big ${n}`;
+}
+
+// Sortable header affordance (visual only).
+document.querySelectorAll('th[data-sortable]').forEach(th => th.addEventListener('click', () => {
+  const row = th.parentElement;
+  row.querySelectorAll('th').forEach(t => t.classList.remove('is-sorted'));
+  th.classList.add('is-sorted');
+}));
+
+/* State inspector — populated / sparse / empty, driven by ?state= so the
+   captures are deterministic. */
+const state = new URLSearchParams(location.search).get('state');
+if (state === 'empty') {
+  board.innerHTML = '<div class="empty">'
+    + '<div><h3>No offensive snaps charted</h3>'
+    + '<p>Chart offensive plays to populate this report.</p></div>'
+    + '<button type="button">Open Break Down</button></div>';
+  $('#zonestrip').hidden = true;
+}
+if (state === 'sparse') {
+  document.querySelectorAll('#z3 tbody, #z4 tbody, #z5 .bars, #z6 tbody').forEach(el => {
+    el.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'sparse';
+    p.textContent = 'Insufficient charted data';
+    el.closest('.mod')?.appendChild(p);
+  });
+  document.querySelectorAll('#z5 .field div strong').forEach(s => { s.textContent = '—'; });
+  document.querySelectorAll('#z5 .field div small').forEach(s => { s.textContent = '0 snaps'; });
+}
+</script>
+</body>
+</html>
