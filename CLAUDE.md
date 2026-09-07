@@ -7,15 +7,17 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-73` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-74` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** the existing `1.12.0-73` installer is superseded. It
-predates the Reports smoke repairs in `7b278be`; do not distribute or smoke it.
-The current source requires a new synchronized version and installer, followed
-by the whole-Reports installed Charlie Gate. `SMOKE-1.12.0-73.md` is retained
-only as the record of why that package was rejected.
+**Packaging status:** `1.12.0-74` is the current unsigned Windows smoke
+candidate, versioned in `c8cb4e3` after the release-gate repairs in `c869140`.
+The complete gate passed 105/105 with real data 10/10 and parity 2/2 before
+packaging. Tauri produced both NSIS and MSI packages; its final process status
+is nonzero only because updater-artifact signing has no private key on this
+machine, the documented local-candidate condition in `TAURI.md`. The installed
+whole-Reports Charlie Gate remains open. See `SMOKE-1.12.0-74.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
@@ -975,6 +977,13 @@ product is wrong.
    86px, Situational defense 72px. They come from genuinely different row
    counts in real data; closing them means stretching table rows or full-width
    tables, both of which were tried and rejected. Carried into the Charlie Gate.
+10. **Defense > Self-Scout is rejected duplicate presentation.** The Defense
+   report's fifth section is the older predictability-only wall, not the rebuilt
+   top-level Reports > Self-Scout board. Its prose-heavy predictability score and
+   tendency table duplicate a narrow slice of the canonical report and were
+   rejected by the coach during the `1.12.0-74` smoke. Remove that Defense
+   subsection or replace it only with distinct defense-specific value; do not
+   preserve the duplicate wall as another Self-Scout owner.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its
