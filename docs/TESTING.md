@@ -1,6 +1,6 @@
 # Testing
 
-There are **105 harnesses** in `tools/e2e-*.mjs`. Each is a standalone Node
+There are **106 harnesses** in `tools/e2e-*.mjs`. Each is a standalone Node
 script. Most drive the built app in headless Chromium via Puppeteer; a handful
 that test DOM-free logic import the owning module directly and need no browser
 at all (`e2e-core`, `e2e-catalog-backend`, `e2e-analytics-metrics`,
@@ -35,6 +35,30 @@ hash-identical to the approved evidence. It does not prove production visual
 parity or coach acceptance; those require populated real-app captures and the
 Charlie Gate.
 
+### Canonical Reports data
+
+All Reports production comparison, screenshot, and acceptance work uses a
+read-only copy of the data source registered in `design-approvals/APPROVALS.json`:
+
+`2025-st-joseph-mavericks-jv` (`2025 St. Joseph Mavericks - JV`)
+
+The registered per-surface artifact governs composition. The registered real
+season governs production data. Existing approved captures made with QA data
+remain valid composition evidence, but new production captures must use the
+real season. Do not write to its Documents-mirror `season.json`; deep-copy it
+into isolated test/app state.
+
+Synthetic fixtures are allowed for formula, sparse-state, empty-state, and
+adversarial regression coverage. Label them as synthetic. Their results cannot
+prove Reports visual parity or football correctness and cannot advance a
+surface to `IMPLEMENTED_UNVERIFIED`, `PRODUCTION_ACCEPTED`, or `RELEASED`.
+
+On the designated review machine, missing canonical Reports data is a failure,
+not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
+cannot certify Reports acceptance. Every Reports evidence handoff must include
+the loaded season id/name, actual game count, actual play count, selected
+game/scope, and confirmation that the source was copied read-only.
+
 ---
 
 ## Choosing a tier
@@ -68,7 +92,7 @@ The smallest existing harness for the route or domain you touched.
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-reports-offense`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |
@@ -91,7 +115,10 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-operation-diff`
 - **Responsive/visual:** `e2e-responsive-containment`, `e2e-breakdown-a11y`
 - **Populated screenshots** at 1440×900, 1280×800, 768×1024, 390×844 — captured
-  with real multi-season data and **inspected**, not merely produced
+  with real multi-season data and **inspected**, not merely produced. Reports
+  use the registered canonical season and the viewport set named by the
+  surface's approved captures (currently 1440×900, 1280×720, 768×1024,
+  390×844).
 
 Touching a shared owner means running Tier 2 for every route that consumes it,
 not just the one you were working in.

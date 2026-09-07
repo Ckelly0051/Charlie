@@ -200,6 +200,23 @@ reach `PRODUCTION_ACCEPTED`. Run `node tools/audit-design-approvals.mjs` after
 changing the registry or any canonical artifact. Canonical evidence must be
 tracked, unique, present, and hash-identical to the approval record.
 
+**Canonical Reports data authority.** Every Reports production comparison,
+visual capture, Charlie Gate, and release decision uses a read-only copy of the
+registered `2025-st-joseph-mavericks-jv` season (`2025 St. Joseph Mavericks -
+JV`) from the Documents mirror. The per-surface manifest remains composition
+authority; this real season is data authority. Existing approved comps captured
+with QA data remain valid for composition, but new production evidence must use
+the real season. Synthetic fixtures may test deterministic formulas, sparse and
+empty states, and adversarial edges, but they are supplemental only: they cannot
+establish Reports visual parity, football correctness,
+`IMPLEMENTED_UNVERIFIED`, `PRODUCTION_ACCEPTED`, or `RELEASED`. Never disguise a
+synthetic fixture with the canonical season's name. A Reports evidence handoff
+must state the season id/name, actual game and play counts, selected game/scope,
+and whether the source was copied read-only. Missing canonical data fails closed
+on the designated review machine. CI may explicitly skip it, but that run cannot
+certify Reports acceptance. Never write normalization or test changes back to
+the coach's source file.
+
 **Current visual release truth (2026-09-06).** `1.12.0-70` is the last accepted
 installed smoke candidate. `1.12.0-74` is `REJECTED`: its Reports production
 does not faithfully preserve the individually approved report compositions,

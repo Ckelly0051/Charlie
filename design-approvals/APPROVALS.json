@@ -9,6 +9,13 @@
     "REJECTED",
     "RELEASED"
   ],
+  "canonicalReportData": {
+    "seasonId": "2025-st-joseph-mavericks-jv",
+    "seasonName": "2025 St. Joseph Mavericks - JV",
+    "sourcePath": "C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json",
+    "access": "read-only-copy",
+    "appliesTo": "reports.*"
+  },
   "manifests": [
     "design-approvals/home/manifest.json",
     "design-approvals/reports/overview/manifest.json",
