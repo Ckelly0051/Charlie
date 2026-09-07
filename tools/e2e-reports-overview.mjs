@@ -50,7 +50,7 @@ const SECTIONS = [
   'Snaps by phase', 'Situational', 'Key metrics',
   'Rushing', 'Passing', 'Rushing allowed', 'Passing allowed',
   'Down & distance', 'Yards by type', 'Defense & discipline',
-  'Big plays', 'Offensive Drives', 'Defensive Drives',
+  'Top 10 Plays', 'Offensive Drives', 'Defensive Drives',
 ];
 const FIXED_METAS = {
   'Situational': 'each tile opens film',
@@ -74,7 +74,7 @@ const COLUMNS = {
   'Snaps by phase': ['Phase', 'Snaps', 'Share', 'Yds/play'],
   'Yards by type': ['Play type', 'Snaps', 'Yds/play', 'Success'],
   'Down & distance': ['Situation', 'Snaps', 'Run / pass', 'Yds/play', 'Success', 'Conv'],
-  'Big plays': ['Play', 'Situation', 'Call', 'Yds'],
+  'Top 10 Plays': ['Play', 'Situation', 'Call', 'Yds'],
 };
 const PHASE_ROWS = ['Offense', 'Defense', 'Special Teams'];
 const FORBIDDEN_SECTIONS = ['Offensive identity', 'Play calls', 'Formations',
@@ -83,10 +83,9 @@ const FORBIDDEN_SECTIONS = ['Offensive identity', 'Play calls', 'Formations',
   'Early vs Recent', 'Wins vs Losses', 'Opponent Offense', 'Scheme',
   'Production by Play Type', 'Progression', 'Coaching Recommendations'];
 /** Explanatory prose the approved Overview does not carry, scanned BOARD-WIDE.
- *  board EXCEPT Game plan. Game plan is the one surface the approved artifact
- *  lets speak — its meta is "what the tags say" and its canonical lines include
- *  "mix in a draw or screen". Banning advisory wording there would contradict
- *  the approval; banning it anywhere else is the rule. */
+ *  Game plan was the one surface the approved artifact let speak in advisory
+ *  prose; it is gone, replaced by Defensive Drives, which reports the
+ *  opponent's possessions rather than interpreting them. No exemption remains. */
 const FORBIDDEN_PROSE = [
   'what this means', 'how to read', 'this shows', 'these numbers',
   'consider', 'you should', 'we recommend', 'recommended',
@@ -219,10 +218,22 @@ const EXPECTED = {
    *  20-yard gain or a touchdown, in play order) and stays the threshold the
    *  Explosive Plays KPI counts. Ties break on play order, then ours first, and
    *  the offensive fixture is emitted before the defensive one. */
-  bigPlays: [...OFF.map((p, order) => ({ y: p[3], call: p[0], order, us: true })),
-    ...DEFENSE.map((d, order) => ({ y: d[2], call: d[0], order, us: false }))]
-    .sort((a, b) => b.y - a.y || a.order - b.order || (a.us ? -1 : 1))
-    .slice(0, 10).map(e => ({ yards: String(e.y), call: e.call })),
+  bigPlays: (() => {
+    /* The tie-break is derived from THIS FILE'S OWN emission order, not from
+       the engine's algorithm. The fixture below pushes offense first, then
+       defense, assigning `id` and `timestamp.start` from one running counter —
+       so one index across the concatenation IS charted order, and the harness
+       knows it because the harness wrote it.
+       An earlier version numbered each cohort from zero, exactly as the
+       implementation then did, so a cross-side tie compared two unrelated
+       positions and the assertion could not fail for the reason it claimed. */
+    let order = 0;
+    return [...OFF.map(p => ({ y: p[3], call: p[0], order: order++ })),
+      ...DEFENSE.map(d => ({ y: d[2], call: d[0], order: order++ }))]
+      .filter(e => Number.isFinite(e.y))
+      .sort((a, b) => b.y - a.y || a.order - b.order)
+      .slice(0, 10).map(e => ({ yards: String(e.y), call: e.call }));
+  })(),
   defense: {
     'Yards / play allowed': one(sum(DEFENSE, d => d[2]) / DEFENSE.length),
     Takeaways: String(DEFENSE.filter(d => d[3] === 'Interception').length),
@@ -232,6 +243,56 @@ const EXPECTED = {
 };
 EXPECTED.successRate = `${one(EXPECTED.successes / OFF.length * 100)}%`;
 EXPECTED.yardsPerPlay = one(EXPECTED.totalYards / OFF.length);
+
+/* ══ Drive outcomes never read across a game boundary ═════════════════════
+   A season roll-up concatenates several games. `_reconstructDrives` already
+   refuses to let one game vouch for another — "the next game's first drive
+   must not vouch for the previous game's last one" — and sorts by
+   `__seasonGameIdx` before doing anything. The outcome resolver has to hold the
+   same line, or the last possession of game 1 gets explained by game 2's
+   opening kickoff.
+
+   Driven directly against the engine: the logic is DOM-free, so this imports
+   the owning module rather than going through the page. The fixture is built to
+   fail loudly without the guard — game 1 ends on a plain 2nd-down snap that
+   nothing in its own game explains, and game 2 opens with a punt. */
+console.log('\n== 0. Drive outcomes are contained to their own game ==');
+{
+  const { StatsEngine } = await import('../js/stats-engine.js');
+  const engine = new StatsEngine({ getPlays: () => [] });
+  const play = (gameIdx, id, unit, tags) => {
+    const p = { id, timestamp: { start: id * 8, end: id * 8 + 5 },
+      tags: { custom: [], players: {}, unit, ...tags } };
+    Object.defineProperty(p, '__seasonGameIdx', { value: gameIdx, enumerable: false });
+    return p;
+  };
+  const g1 = [
+    play(0, 1, 'offense', { playType: 'Run Inside', down: '1', distance: '10', yardage: '4', result: 'Gain' }),
+    play(0, 2, 'offense', { playType: 'Run Inside', down: '2', distance: '6', yardage: '3', result: 'Gain' }),
+  ];
+  const g2 = [
+    play(1, 3, 'special', { stType: 'Punt', result: 'No Gain' }),
+    play(1, 4, 'offense', { playType: 'Run Inside', down: '1', distance: '10', yardage: '5', result: 'Gain' }),
+  ];
+  const all = [...g1, ...g2];
+  const seasonDrives = engine._driveStats([...g1, g2[1]], { all });
+  const lastOfGameOne = seasonDrives.list[0];
+  ok(lastOfGameOne && lastOfGameOne.outcome !== 'Punt',
+    'game 1\'s final possession is not resolved by game 2\'s opening play',
+    JSON.stringify(seasonDrives.list.map(d => d.outcome)));
+  /* And the guard must not be so blunt it stops resolving WITHIN a game. */
+  const withinGame = engine._driveStats([g1[0], g1[1]],
+    { all: [...g1, play(0, 3, 'special', { stType: 'Punt', result: 'No Gain' })] });
+  ok(withinGame.list[0]?.outcome === 'Punt',
+    'a punt in the SAME game still resolves the possession it ended',
+    JSON.stringify(withinGame.list.map(d => d.outcome)));
+  /* Order, not array position: a season list is not stored in play order. */
+  const shuffled = [g2[0], g1[1], g2[1], g1[0]];
+  const fromShuffled = engine._driveStats([g1[0], g1[1]], { all: shuffled });
+  ok(fromShuffled.list[0]?.outcome !== 'Punt',
+    'an unordered season list does not let a neighbouring array slot explain a drive',
+    JSON.stringify(fromShuffled.list.map(d => d.outcome)));
+}
 
 /* ══ Drive the real route ═════════════════════════════════════════════════ */
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
@@ -343,7 +404,7 @@ const board = () => page.evaluate(() => {
     phase: tableRows('Snaps by phase'),
     yardsByType: tableRows('Yards by type'),
     downDistance: tableRows('Down & distance'),
-    bigPlays: tableRows('Big plays'),
+    bigPlays: tableRows('Top 10 Plays'),
     driveChips: [...(byTitle('Offensive Drives')?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
     defDriveChips: [...(byTitle('Defensive Drives')?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
     planItems: [...(pane?.querySelectorAll('.gi-overview-plan p') || [])].map(n => n.textContent.trim()),
@@ -351,7 +412,7 @@ const board = () => page.evaluate(() => {
       text: n.textContent.trim(),
       interactive: !!(n.getAttribute('role') || n.getAttribute('tabindex') || n.className.includes('cut-row')),
     })),
-    columns: Object.fromEntries(Object.keys({ 'Snaps by phase': 0, 'Yards by type': 0, 'Down & distance': 0, 'Big plays': 0 })
+    columns: Object.fromEntries(Object.keys({ 'Snaps by phase': 0, 'Yards by type': 0, 'Down & distance': 0, 'Top 10 Plays': 0 })
       .map(k => [k, cols(k)])),
     text: (pane?.innerText || ''),
     textOutsidePlan: modules.filter(m => title(m) !== 'Game plan').map(m => m.innerText || '').join('\n')
@@ -416,9 +477,9 @@ ok(/^\d+ · \d+ yds$/.test(b.defenseRows['Penalties accepted']),
 ok(/^\d+ attempts$/.test(b.metas['Rushing']) && /^\d+ attempts$/.test(b.metas['Passing']),
   'Rushing and Passing state their sample as "N attempts"', JSON.stringify([b.metas['Rushing'], b.metas['Passing']]));
 ok(/^\d+ total$/.test(b.metas['Snaps by phase']) && /^\d+ total( · \d+ other)?$/.test(b.metas['Yards by type'])
-  && /^\d+ total$/.test(b.metas['Big plays']),
-  'Snaps by phase, Yards by type and Big plays state their sample as "N total"',
-  JSON.stringify([b.metas['Snaps by phase'], b.metas['Yards by type'], b.metas['Big plays']]));
+  && /^\d+ total$/.test(b.metas['Top 10 Plays']),
+  'Snaps by phase, Yards by type and Top 10 Plays state their sample as "N total"',
+  JSON.stringify([b.metas['Snaps by phase'], b.metas['Yards by type'], b.metas['Top 10 Plays']]));
 ok(/^\d+ defensive snaps$/.test(b.metas['Defense & discipline']),
   'Defense & discipline states its sample as "N defensive snaps"', JSON.stringify(b.metas['Defense & discipline']));
 
@@ -459,15 +520,23 @@ const yardsExpected = EXPECTED.playTypes.map(t => [t.name, String(t.snaps), t.yp
 ok(eq(b.yardsByType, yardsExpected),
   'Yards by type lists the fixed six play types with their own production', JSON.stringify(b.yardsByType));
 ok(eq(b.bigPlays.map(r => r[r.length - 1]), EXPECTED.bigPlays.map(p => p.yards)),
-  'Big plays ranks the ten longest gains on the field, ties broken by play order',
+  'Top 10 Plays ranks the ten longest gains on the field, ties broken by charted order',
   JSON.stringify(b.bigPlays.map(r => r[r.length - 1])));
 /* The ranking must be a RANKING, not a threshold that happens to return five.
    Descending yardage is the property a re-slice of `_bigPlays` would fail. */
 ok(b.bigPlays.map(r => Number(r[r.length - 1])).every((y, i, a) => i === 0 || a[i - 1] >= y),
-  'Big plays yardage descends, so the module is ranked rather than filtered',
+  'Top 10 Plays yardage descends, so the module is ranked rather than filtered',
   JSON.stringify(b.bigPlays.map(r => r[r.length - 1])));
 ok(eq(b.bigPlays.map(r => r[2]), EXPECTED.bigPlays.map(p => p.call)),
-  'each Big plays row names the call that produced it', JSON.stringify(b.bigPlays.map(r => r[2])));
+  'each Top 10 Plays row names the call that produced it', JSON.stringify(b.bigPlays.map(r => r[2])));
+/* A ranked row must state a measurement. `parseInt(blank) || 0` used to admit
+   an unmeasured snap as a 0-yard play, which then rendered with an empty Yds
+   cell — a row occupying a leaderboard slot while saying nothing. Checked on
+   the RENDERED cell rather than on the model, because the model returning the
+   original blank string is exactly how it reached the screen. */
+const rankedYds = b.bigPlays.filter(r => !r.join('').includes('No data')).map(r => r[r.length - 1]);
+ok(rankedYds.length > 0 && rankedYds.every(v => String(v).trim() !== '' && Number.isFinite(Number(v))),
+  'every ranked Top 10 Plays row states a measured yardage', JSON.stringify(rankedYds));
 
 /* ── The composition SCHEMA ─────────────────────────────────────────────────
    The approved comp is the schema: each module renders ITS row count, on every
@@ -483,14 +552,14 @@ const SCHEMA = {
   'Snaps by phase': 3, Situational: 6, 'Key metrics': 6,
   Rushing: 7, Passing: 8, 'Rushing allowed': 7, 'Passing allowed': 8,
   'Down & distance': 5, 'Yards by type': 6, 'Defense & discipline': 6,
-  'Big plays': 10, 'Offensive Drives': 8, 'Defensive Drives': 8,
+  'Top 10 Plays': 10, 'Offensive Drives': 8, 'Defensive Drives': 8,
 };
 const measured = {
   'Snaps by phase': b.phase.length, Situational: b.situational.length, 'Key metrics': b.keyMetrics.length,
   Rushing: Object.keys(b.rushing).length, Passing: Object.keys(b.passing).length,
   'Rushing allowed': Object.keys(b.rushingAllowed).length, 'Passing allowed': Object.keys(b.passingAllowed).length,
   'Yards by type': b.yardsByType.length,
-  'Down & distance': b.downDistance.length, 'Big plays': b.bigPlays.length,
+  'Down & distance': b.downDistance.length, 'Top 10 Plays': b.bigPlays.length,
   'Offensive Drives': b.driveChips.length, 'Defensive Drives': b.defDriveChips.length,
   'Defense & discipline': Object.keys(b.defenseRows).length,
 };
@@ -766,12 +835,21 @@ for (const [width, height] of VIEWPORTS) {
      row may differ, it must actually be TALLER (the direction of the change
      asked for), and any other unit going missing still reds. */
   const TILE_ROW_CAPTURE = 69;
+  const TILE_ROW_NOW = 77;           // the coach-directed height, pinned exactly
   const grewTileRow = u => Math.abs(u - TILE_ROW_CAPTURE) <= 2
-    && prod.bands.some(p => p > TILE_ROW_CAPTURE + 2 && p <= TILE_ROW_CAPTURE + 14);
+    && prod.bands.some(p => Math.abs(p - TILE_ROW_NOW) <= 3);
   const unexplained = missingUnits.filter(u => !grewTileRow(u));
   ok(units.length >= 1 && unexplained.length === 0,
     `${key}: every rhythm unit the approved capture repeats is painted to the same height, except the coach-resized tile row`,
     JSON.stringify({ units, missing: missingUnits, unexplained, production: prod.bands }));
+  /* The exemption above substitutes ONE pinned height for another. Stated as
+     "the tile row is merely taller", it would have absorbed any future drift in
+     that unit and stopped being a check at all — the reviewer's point. The
+     replacement height is asserted here in its own right, so the exemption can
+     only ever excuse 77px and reds the moment the tile row moves again. */
+  ok(prod.bands.some(p => Math.abs(p - TILE_ROW_NOW) <= 3),
+    `${key}: the tile row is painted at the coach-directed ${TILE_ROW_NOW}px`,
+    JSON.stringify(prod.bands));
 }
 /* The floor: across the four captures the pixel comparison has to have proven
    a real set of heights, or a viewport that happened to repeat nothing would

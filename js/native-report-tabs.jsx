@@ -57,7 +57,7 @@ function PairedBand({ slots, cls = 'stats-two-col' }) {
    ranking is what decides which entries occupy the fixed rows. */
 const OVERVIEW_ROWS = {
   'Down & distance': 5,
-  'Big plays': 10,     // both sides of the ball, ranked together
+  'Top 10 Plays': 10,  // both sides of the ball, ranked together
   'Drives': 8,         // per drives module: ours, and theirs
 };
 
@@ -75,7 +75,11 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
   const tiles = view.situationalTiles(stats).map(t => ({ ...t, onActivate: t.plays ? cut(t.cutType, t.cutVal, t.cutLabel) : undefined }));
   const yards = view.yardsByType(stats, engine);
   const dd = view.downDistanceRows(stats, engine, OVERVIEW_ROWS['Down & distance']);
-  const bigPlays = view.bigPlaysRows(stats, engine, gameLabels, OVERVIEW_ROWS['Big plays']);
+  const bigPlays = view.bigPlaysRows(stats, engine, gameLabels, OVERVIEW_ROWS['Top 10 Plays']);
+  /* The rows are padded to the fixed count; the meta must state how many plays
+     actually exist. igPlays.length is always the schema count, so it said
+     10 total for a game with five measured plays and five absence slots. */
+  const bigPlaysReal = bigPlays.filter(row => !row.absent).length;
   const drives = view.drivesRows(stats, gameLabels, OVERVIEW_ROWS['Drives']);
   const drivesAllowed = view.opponentDrivesRows(stats, engine, gameLabels, OVERVIEW_ROWS['Drives']);
   const oppRush = view.opponentRushingRows(stats, engine);
@@ -138,7 +142,7 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
       </Module>
     </div>
     <div class="gi-overview-band gi-overview-support">
-      <Module title="Big plays" meta={`${bigPlays.length} total`} cls="is-offense">
+      <Module title="Top 10 Plays" meta={`${bigPlaysReal} total`} cls="is-offense">
         <table><thead><tr>{gameLabels&&<th>Game</th>}<th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
           {bigPlays.map((play, i) => play.absent
             ? <tr key={`absent-${i}`} class="is-absent">{gameLabels&&<td />}<td /><td>{play.situation}</td><td colSpan="2" /></tr>

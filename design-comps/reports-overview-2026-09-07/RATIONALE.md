@@ -20,7 +20,8 @@ violations). Where production and the capture differ, this file names the
 divergence and who directed it. A divergence recorded only in a commit body is
 not recorded.
 
-Landed across `c5dd044`, `83a8251`, `eddd15b`.
+Landed across `c5dd044`, `83a8251`, `eddd15b`, `cdeea44`, and the Codex
+review repairs in §10.
 
 ---
 
@@ -55,7 +56,7 @@ fixed row:
 | Kind | Rule | Modules |
 |---|---|---|
 | **Enumerable dimension** — the full set is known before any film is charted | Render the complete set every time, zeros included | Snaps by phase (3 phases), Situational (6), Key metrics (6), Rushing (7), Passing (8), Defense & discipline (6), Yards by type (6 play types) |
-| **Event list** — no known-in-advance set exists | Render the top N by RANK; a slot the data cannot fill states the absence | Big plays (10), Offensive/Defensive Drives (8 each), Down & distance (5) |
+| **Event list** — no known-in-advance set exists | Render the top N by RANK; a slot the data cannot fill states the absence | Top 10 Plays (10), Offensive/Defensive Drives (8 each), Down & distance (5) |
 
 A zero in an enumerable module is a **real fact about the call sheet**:
 `Deep Pass — 0 snaps` says the coach never called it, which is information, not
@@ -131,7 +132,7 @@ required.
 Yards by type took the freed slot; Defense & discipline joined the Down &
 distance band.
 
-### 2c. Big plays is both sides of the ball
+### 2c. Top 10 Plays — both sides of the ball
 
 > "Stretch this to top 10 big plays, include the other team's big plays and
 > note them by color, green = us, red = the other team."
@@ -339,3 +340,81 @@ unchanged after the run. Synthetic fixtures are supplemental only.
    `js/workspace-shell.js` and governed by NEWER approvals than Overview's
    2026-08-20 — Home is 2026-08-31 — so changing them changes Home, Break Down,
    Study and Plan. Needs its own scoped decision.
+
+---
+
+## 10. Codex review, 2026-09-07 — nine findings, all closed
+
+Reviewed at `c312a1f..cdeea44`. Every finding was verified against source and
+the canonical season before being accepted; two were checked and found LATENT
+(real defects, not yet producing a wrong number on this season) and are recorded
+as such rather than overstated.
+
+**P1 — drive outcomes read across a game boundary.** `_driveEndFromNextPlay`
+indexed `all[idx + 1]` with no game guard, so in season scope the last
+possession of one game could be explained by the next game's opening kickoff.
+Worse than reported: `convSource` is not in play order either, so the neighbour
+could be an arbitrary array slot. `_followingPlays` now filters to the play's
+own `__seasonGameIdx` and sorts by game then timestamp — the same containment
+`_reconstructDrives` already applied, and whose own comment states the rule.
+Regression added and mutation-verified.
+
+**P1 — drive outcomes guessed two facts adjacency does not establish.**
+`Clock` was returned for ANY final charted possession, including truncated film,
+and `Score` for ANY following kickoff, though kickoffs open halves. Both
+contradicted this record's own rule that an unresolved outcome stays `Other`.
+Both branches are gone; the vocabulary lost `Clock` and `Score`.
+
+**P1 — defensive return touchdowns credited to the opponent's offense.**
+`opponentProduction` passed defensive snaps straight into the offense-oriented
+formulas, so a pick-six would have produced an opponent completion and passing
+touchdown. `scoringSide()` already answers this correctly and was simply never
+asked. Verified LATENT: the canonical season contains zero defensive
+`Interception + Touchdown` or `Fumble + Touchdown`, and all seven defensive
+touchdowns are the opponent scoring on us, which the old path handled correctly.
+Fixed anyway — the snap stays in the drive cohort, since it did end their
+possession, and is excluded only from their production.
+
+**P2 — the Fake branch could call a turnover a failed conversion.** It never
+read the Fake's own result, contradicting this record's own fumble rule.
+
+**P2 — Top 10 Plays admitted unmeasured plays.** `parseInt(blank) || 0` ranked
+a snap with no yardage as a 0-yard play, which rendered an empty Yds cell.
+**55 of the canonical season's 328 classified plays carry no yardage**, so the
+mechanism is real; verified LATENT only because every game has at least ten
+measured plays. Now filtered to measured yardage, with the check written against
+the RENDERED cell.
+
+**P2 — the module is renamed `Top 10 Plays`.** Coach-directed on review: it is a
+static ten, so it should say so. This is a **deliberate divergence from the
+capture, which titles it `BIG PLAYS`** — flagged before changing, and approved.
+
+**P2 — the displayed count was fabricated by padding.** The meta read
+`bigPlays.length` after padding, so five real plays plus five absence slots
+would have said `10 total`. It now counts unpadded rows.
+
+**P2 — equal-yardage ties compared unrelated cohort positions.** Each side was
+numbered from zero, so "ties break on play order" was false in the only case
+where a tie-break matters. One ordering key across both cohorts now, game then
+timestamp. **The sharper half of this finding was the harness:** its expectation
+replicated the same two-cohort scheme, so the assertion could not fail for the
+reason it claimed. The expectation is now derived from the fixture's own
+emission order, which the harness itself controls.
+
+**P2 — the visual parity check was an exemption, not a check.** Stated as "the
+tile row is merely taller", it would have absorbed any future drift in that
+unit. The coach-directed height is now pinned exactly, so the exemption can
+excuse only 77px and reds if the tile row moves again.
+
+**P2 — the approval registry pointed at the wrong decision record.** The
+manifest's `decisionRecord` now names this file; the archive is retained as
+`priorDecisionRecord` rather than dropped.
+
+### Accepted from the reviewer, against my own note
+
+**§6's `id78` example is withdrawn.** A fourth-down failure followed by a new
+first down supports a possession change and is not evidence of a reconstruction
+defect. `id22 → id24` — a fourth down followed by an OFFENSIVE first down, the
+same unit keeping the ball — still looks like a split, and that single case is
+what §6 now rests on. **Reconstruction is not to be "repaired" without
+film-backed evidence.**

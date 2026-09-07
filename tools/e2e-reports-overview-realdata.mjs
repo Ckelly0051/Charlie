@@ -233,7 +233,7 @@ console.log('\n== Composition on the canonical season ==');
 const SECTIONS = ['Snaps by phase', 'Situational', 'Key metrics', 'Rushing', 'Passing',
   'Rushing allowed', 'Passing allowed',
   'Down & distance', 'Yards by type', 'Defense & discipline',
-  'Big plays', 'Offensive Drives', 'Defensive Drives'];
+  'Top 10 Plays', 'Offensive Drives', 'Defensive Drives'];
 ok(JSON.stringify(b.sections) === JSON.stringify(SECTIONS),
   'the approved sections render in the approved order on real film', JSON.stringify(b.sections));
 ok(b.kpis.length === 7 && b.kpis[0].label === 'Total plays',

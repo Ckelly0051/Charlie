@@ -11,6 +11,7 @@
     "sha256": "90c49e660f0dbae96eb14cd6392562e5716cce3795649c02fc4a61ab7f2d7542",
     "fileCount": 33
   },
-  "decisionRecord": "docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md",
+  "decisionRecord": "design-comps/reports-overview-2026-09-07/RATIONALE.md",
+  "priorDecisionRecord": "docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md",
   "approvalEvidence": "design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4/1440x900-overview.png"
 }

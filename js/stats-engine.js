@@ -527,13 +527,41 @@ export class StatsEngine {
     return String(last.tags.down) === '4' ? 'Downs' : null;
   }
 
+  /** The plays that FOLLOW `last`, within its own game, in charted order.
+   *
+   *  Two containments, both of which `_reconstructDrives` already applies and
+   *  this method previously did not:
+   *
+   *  GAME BOUNDARY. A season roll-up concatenates several games, so a raw
+   *  `indexOf + 1` could read the next GAME's opening kickoff and call the
+   *  previous game's last possession a score. `_reconstructDrives`' own
+   *  three-and-out guard states the rule outright — "the next game's first
+   *  drive must not vouch for the previous game's last one" — and it is the
+   *  same rule here.
+   *
+   *  ORDER. A season list is not in play order either; `_reconstructDrives`
+   *  sorts by game then timestamp before it does anything. Reading a raw array
+   *  position would ask an arbitrary neighbour what happened next. */
+  static _followingPlays(last, all) {
+    const gameOf = p => p.__seasonGameIdx ?? 0;
+    const timeOf = p => ((p.timestamp && p.timestamp.start) ?? p.id ?? 0);
+    const game = gameOf(last);
+    const ordered = all
+      .filter(p => p && p.tags && gameOf(p) === game)
+      .sort((a, b) => timeOf(a) - timeOf(b));
+    const idx = ordered.indexOf(last);
+    return idx < 0 ? [] : ordered.slice(idx + 1);
+  }
+
   static _driveEndFromNextPlay(last, context) {
     const all = context?.all;
     if (!last || !Array.isArray(all)) return null;
-    const idx = all.indexOf(last);
-    if (idx < 0) return idx === -1 ? null : null;
-    const next = all[idx + 1];
-    if (!next) return 'Clock';                     // nothing follows it: time expired
+    const [next, after] = StatsEngine._followingPlays(last, all);
+    /* Nothing follows IN THIS GAME. That is not evidence the clock expired —
+       film is routinely truncated, and a partially charted game ends the same
+       way. The rule this board runs on is that an outcome the charting cannot
+       settle stays `Other`, and that applies to the last possession too. */
+    if (!next) return null;
     const tags = next.tags || {};
     if (tags.unit !== 'special') return StatsEngine._changeOfPossession(last, next);
     const structured = SpecialTeamsModel.normalize(next.specialTeams);
@@ -543,24 +571,26 @@ export class StatsEngine {
     if (/field ?goal|^FG$/i.test(kind)) {
       return results.includes('Good') || StatsEngine.isFieldGoalMade(next) ? 'FG' : 'Missed FG';
     }
-    // A try or a kickoff can only follow a possession that put points on the
-    // board; the scoring branches above have already claimed those drives, so
-    // reaching here means the score was charted on the kick and not the snap.
+    // A try can only follow a possession that put points on the board.
     if (/^XP$|extra ?point|2-?Pt|two ?point/i.test(kind)) return 'TD';
-    if (/kickoff|kick ?return/i.test(kind)) return 'Score';
+    /* A KICKOFF deliberately resolves nothing. It follows a score, but it also
+       opens a half — so the possession before the halftime whistle is followed
+       by a kickoff it had no part in. The scoring branches above already claim
+       the drives that genuinely scored; anything still here is a possession the
+       charting does not explain, and inventing `Score` for it would be exactly
+       the guess this method exists to avoid. */
     /* A fake is a fourth-down scrimmage play wearing a Special Teams label, so
        the kick patterns above never match it and the possession it ended went
        unnamed. What happened next is what settles it: the play AFTER the fake
-       shows who has the ball. */
+       shows who has the ball, and the FAKE's own result says how it ended —
+       a fake that fumbles away is a turnover, not a failed conversion. */
     if (/fake/i.test(kind)) {
-      const after = all[idx + 2];
-      if (!after) return 'Clock';
-      // The fake IS the fourth-down play, so the down to read is its own, not
-      // the snap before it. If the other side has the ball on the next play,
-      // the fake did not convert.
+      if (!after) return null;
       const ours = last.tags.unit || 'offense';
       const changedAfterFake = (after.tags.unit || 'offense') !== ours && after.tags.unit !== 'special';
-      return changedAfterFake ? 'Downs' : null;
+      if (!changedAfterFake) return null;
+      return StatsEngine.hasResult(next, 'Fumble') || StatsEngine.hasResult(next, 'Interception')
+        ? 'Turnover' : 'Downs';
     }
     return null;
   }
@@ -4037,9 +4067,20 @@ export class StatsEngine {
    *  are cohort-generic and are called here unchanged. Read as ALLOWED. */
   opponentProduction(defPlays, allPlays = null) {
     const plays = defPlays || [];
+    /* A defensive snap records the opponent's offense — EXCEPT when we scored
+       on it. A pick-six is charted on a defensive snap as `Interception +
+       Touchdown`, and handing that to the offense-oriented passing formula
+       credits the opponent with a completion and a passing touchdown for a play
+       they lost the ball on. `scoringSide` is the canonical owner of that
+       question and already answers it correctly; the production formulas simply
+       never asked. A fumble-return touchdown has the same shape on the rushing
+       side. The snap stays in the drive cohort — it still ended their
+       possession — and is excluded only from their PRODUCTION. */
+    const theirs = plays.filter(p => !(StatsEngine.hasResult(p, 'Touchdown')
+      && StatsEngine.scoringSide(p) === 'us'));
     return {
-      rushing: this._rushingStats(plays),
-      passing: this._passingStats(plays),
+      rushing: this._rushingStats(theirs),
+      passing: this._passingStats(theirs),
       // The full game in charted order, so a drive we forced to a punt reads
       // as a punt rather than as the last snap before it.
       drives: this._driveStats(plays, { all: allPlays || plays }),
@@ -4058,10 +4099,27 @@ export class StatsEngine {
    *  the opponent's offense. Ties break on play order, then ours first, so the
    *  list is deterministic when the same yardage appears on both sides. */
   static topPlaysBothSides(offPlays, defPlays, limit) {
-    const tag = (plays, side) => (plays || []).map((p, order) => ({ p, side, order }));
-    return [...tag(offPlays, 'us'), ...tag(defPlays, 'them')]
-      .map(e => ({ ...e, yds: parseInt(e.p.tags.yardage, 10) || 0 }))
-      .sort((a, b) => b.yds - a.yds || a.order - b.order || (a.side === 'us' ? -1 : 1))
+    /* MEASURED yardage only. `parseInt(blank) || 0` would admit an unmeasured
+       snap as a 0-yard play, which then renders with an empty Yds cell — a
+       ranked row that states nothing. 55 of the canonical season's 328
+       classified plays carry no yardage, so this is the difference between a
+       leaderboard and a list with holes in it. A play with no yardage is not a
+       small gain; it is an unanswered question, and it does not rank. */
+    const measured = (plays, side) => (plays || [])
+      .filter(p => String(p?.tags?.yardage ?? '').trim() !== '' && Number.isFinite(parseInt(p.tags.yardage, 10)))
+      .map(p => ({ p, side, yds: parseInt(p.tags.yardage, 10) }));
+    /* ONE order index across both cohorts. Numbering each side from zero made a
+       cross-side tie compare two unrelated cohort positions, so "ties break on
+       play order" was not true of the only case where a tie-break matters.
+       Charted order is game order: the same game/timestamp key
+       `_reconstructDrives` sorts by. */
+    const gameOf = p => p.__seasonGameIdx ?? 0;
+    const timeOf = p => ((p.timestamp && p.timestamp.start) ?? p.id ?? 0);
+    return [...measured(offPlays, 'us'), ...measured(defPlays, 'them')]
+      .sort((a, b) => b.yds - a.yds
+        || (gameOf(a.p) - gameOf(b.p))
+        || (timeOf(a.p) - timeOf(b.p))
+        || (a.side === 'us' ? -1 : 1))
       .slice(0, limit)
       .map(({ p, side }) => ({
         id: p.id, side,
