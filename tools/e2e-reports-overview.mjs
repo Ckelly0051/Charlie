@@ -210,11 +210,16 @@ const EXPECTED = {
         success: `${Math.round(rows.filter(success).length / rows.length * 100)}%`,
       }));
   })(),
-  /** `_bigPlays` is a 20-yard gain OR a touchdown, kept in play order — not a
-   *  longest-first ranking. Rushes are pushed before passes, so the expected
-   *  order follows that same sequence. */
-  bigPlays: OFF.filter(p => p[3] >= 20 || p[4] === 'Touchdown')
-    .slice(0, 8).map(p => ({ yards: String(p[3]), call: p[0] })),
+  /** The approved composition's Big plays module is a FIXED-length leaderboard:
+   *  the five longest offensive gains, ranked, ties broken by play order.
+   *  Deliberately NOT `_bigPlays` — that is the canonical explosive cohort (a
+   *  20-yard gain or a touchdown, in play order) and stays the threshold the
+   *  Explosives KPI counts. The comp's own fixture lists five 18-yard gains,
+   *  below the explosive threshold, which the threshold cohort cannot produce.
+   *  Rushes are pushed before passes, so equal yardage keeps that sequence. */
+  bigPlays: OFF.map((p, order) => ({ p, order }))
+    .sort((a, b) => b.p[3] - a.p[3] || a.order - b.order)
+    .slice(0, 5).map(({ p }) => ({ yards: String(p[3]), call: p[0] })),
   defense: {
     'Yards / play allowed': one(sum(DEFENSE, d => d[2]) / DEFENSE.length),
     Takeaways: String(DEFENSE.filter(d => d[3] === 'Interception').length),
@@ -336,6 +341,11 @@ const board = () => page.evaluate(() => {
     downDistance: tableRows('Down & distance'),
     bigPlays: tableRows('Big plays'),
     driveChips: [...(pane?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
+    planItems: [...(pane?.querySelectorAll('.gi-overview-plan p') || [])].map(n => n.textContent.trim()),
+    absentRows: [...(pane?.querySelectorAll('.is-absent') || [])].map(n => ({
+      text: n.textContent.trim(),
+      interactive: !!(n.getAttribute('role') || n.getAttribute('tabindex') || n.className.includes('cut-row')),
+    })),
     columns: Object.fromEntries(Object.keys({ 'Snaps by phase': 0, 'Yards by type': 0, 'Down & distance': 0, 'Big plays': 0 })
       .map(k => [k, cols(k)])),
     text: (pane?.innerText || ''),
@@ -444,10 +454,48 @@ const yardsExpected = EXPECTED.playTypes.map(t => [t.name, String(t.snaps), t.yp
 ok(eq(b.yardsByType, yardsExpected),
   'Yards by type lists the five most-charted types with their own production', JSON.stringify(b.yardsByType));
 ok(eq(b.bigPlays.map(r => r[r.length - 1]), EXPECTED.bigPlays.map(p => p.yards)),
-  'Big plays lists every 20-yard gain and every touchdown, in play order',
+  'Big plays ranks the five longest gains, ties broken by play order',
+  JSON.stringify(b.bigPlays.map(r => r[r.length - 1])));
+/* The ranking must be a RANKING, not a threshold that happens to return five.
+   Descending yardage is the property a re-slice of `_bigPlays` would fail. */
+ok(b.bigPlays.map(r => Number(r[r.length - 1])).every((y, i, a) => i === 0 || a[i - 1] >= y),
+  'Big plays yardage descends, so the module is ranked rather than filtered',
   JSON.stringify(b.bigPlays.map(r => r[r.length - 1])));
 ok(eq(b.bigPlays.map(r => r[2]), EXPECTED.bigPlays.map(p => p.call)),
   'each Big plays row names the call that produced it', JSON.stringify(b.bigPlays.map(r => r[2])));
+
+/* ── The composition SCHEMA ─────────────────────────────────────────────────
+   The approved comp is the schema: each module renders ITS row count, on every
+   game, so the board is one fixed height rather than a shape that moves with
+   the data. Counts read off the canonical capture's own `metrics.overview`
+   text in
+   design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4.
+
+   This is the assertion the whole change exists to hold, so it is stated as
+   the literal contract and never derived from what production rendered. A
+   module short of its count is the defect; a module over it is drift. */
+const SCHEMA = {
+  'Snaps by phase': 3, Situational: 6, 'Key metrics': 6,
+  Rushing: 7, Passing: 8, 'Yards by type': 5,
+  'Down & distance': 5, 'Game plan': 6, 'Big plays': 5,
+  Drives: 8, 'Defense & discipline': 6,
+};
+const measured = {
+  'Snaps by phase': b.phase.length, Situational: b.situational.length, 'Key metrics': b.keyMetrics.length,
+  Rushing: Object.keys(b.rushing).length, Passing: Object.keys(b.passing).length,
+  'Yards by type': b.yardsByType.length,
+  'Down & distance': b.downDistance.length, 'Game plan': b.planItems.length, 'Big plays': b.bigPlays.length,
+  Drives: b.driveChips.length, 'Defense & discipline': Object.keys(b.defenseRows).length,
+};
+for (const [module, count] of Object.entries(SCHEMA)) {
+  ok(measured[module] === count,
+    `${module} renders the comp's ${count} rows`, `rendered ${measured[module]}`);
+}
+/* An absence slot holds a row the data cannot fill. It must state the app's one
+   absence label and must NOT be interactive — there is no film behind a row
+   naming nothing — and it must never appear where the data DID fill the row. */
+ok(b.absentRows.every(r => r.text.includes('No data') && !r.interactive),
+  'every absence slot reads "No data" and offers no film action', JSON.stringify(b.absentRows));
 /* Down & distance is bucketed by StatsEngine's own distance bands, which this
    file deliberately does not re-implement — duplicating that formula would
    test a copy of it. Reconciliation is the honest check: the rows must account

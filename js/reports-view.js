@@ -95,9 +95,21 @@ export function passingRows(stats) {
   ] };
 }
 
-export function yardsByType(stats) {
+/** The approved Overview composition renders a FIXED row count per module, so
+ *  a ranked list that cannot supply its count keeps the slot and states the
+ *  absence rather than shortening the board. `No data` is the app's one
+ *  absence label, at copy weight, and an absence row is never interactive —
+ *  there is no film behind a row that names nothing. A MEASURED zero keeps its
+ *  number and its denominator, exactly as everywhere else; this fills only the
+ *  slots for entries that do not exist. */
+export function padRows(rows, limit, key) {
+  const out = [...rows];
+  while (out.length < limit) out.push({ absent: true, class: 'is-absent', [key]: 'No data' });
+  return out;
+}
+export function yardsByType(stats, limit = 5) {
   const total = stats.rushing.yards + stats.passing.yards;
-  const playTypes = (stats.tendencies.playTypeList || []).slice(0, 5);
+  const playTypes = (stats.tendencies.playTypeList || []).slice(0, limit);
   return {
     total,
     // The split bar's width can never be negative; the legend text shows the
@@ -105,42 +117,49 @@ export function yardsByType(stats) {
     // template drew between its `--n` CSS var and its displayed number.
     rushWidth: Math.max(0, stats.rushing.yards), passWidth: Math.max(0, stats.passing.yards),
     rush: stats.rushing.yards, pass: stats.passing.yards,
-    rows: playTypes.map(row => ({ name: row.name, snaps: row.count, ypp: row.avg, success: `${row.successPct}%`,
-      cutType: 'playType', cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays` })),
+    rows: padRows(playTypes.map(row => ({ name: row.name, snaps: row.count, ypp: row.avg, success: `${row.successPct}%`,
+      cutType: 'playType', cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays` })), limit, 'name'),
   };
 }
 
-export function downDistanceRows(stats) {
+/** `limit` renders the approved Overview composition's fixed row count; the
+ *  printed report passes none and keeps every charted situation. */
+export function downDistanceRows(stats, statsEngine = null, limit = 0) {
   const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
-  return (stats.downs.ddBuckets || []).map(row => ({
+  const buckets = limit
+    ? statsEngine.constructor.rankDownDistance(stats.downs.ddBuckets, limit)
+    : (stats.downs.ddBuckets || []);
+  const rows = buckets.map(row => ({
     situation: `${labels[row.down]} & ${row.bucket}`, snaps: row.count, runPct: row.runPct, passPct: row.passPct,
     ypp: row.avgYards, success: `${row.succPct}%`, conv: `${row.convPct}%`,
     cutType: 'dd', cutVal: `${row.down}|${row.bucket}`, cutLabel: `${labels[row.down]} & ${row.bucket} — ${row.count} plays`,
   }));
+  return limit ? padRows(rows, limit, 'situation') : rows;
 }
 
-export function gamePlan(stats) {
+export function gamePlan(stats, limit = 3) {
   const t = stats.takeaways || {};
   const plainText = value => String(value || '').replace(/<[^>]+>/g, '');
-  const list = items => (items || []).slice(0, 3).map(item => ({ text: plainText(item.text), cut: item.cut || null }));
+  const list = items => padRows((items || []).slice(0, limit).map(item => ({ text: plainText(item.text), cut: item.cut || null })), limit, 'text');
   return { working: list(t.working), fix: list(t.fix) };
 }
 
-export function bigPlaysRows(stats, statsEngine, gameLabels = null) {
+export function bigPlaysRows(stats, statsEngine, gameLabels = null, limit = 5) {
   const playsById = new Map((stats.offPlays || []).map(play => [statsEngine.constructor._compositeRef(play) || String(play.id), play]));
-  return (stats.bigPlays || []).slice(0, 8).map(play => {
+  const ranked = statsEngine.constructor.topPlaysByYards(stats.offPlays, limit).map(play => {
     const source = playsById.get(play.ref || String(play.id));
     const gameId = play.ref?.split('::')[0] || '';
     return { id: play.id, ref: play.ref || null, game: gameLabels?.[gameId] || '', situation: statsEngine.constructor.situationLabel(source) || '—', call: play.type || '—', yards: play.yards };
   });
+  return padRows(ranked, limit, 'situation');
 }
 
-export function drivesRows(stats, gameLabels = null) {
+export function drivesRows(stats, gameLabels = null, limit = 8) {
   const drives = stats.drives?.list || [];
   const max = Math.max(1, ...drives.map(d => Math.abs(d.yards)));
-  return { total: drives.length, scoring: stats.drives.scoringDrives, rows: drives.slice(0, 8).map(drive => ({
+  return { total: drives.length, scoring: stats.drives.scoringDrives, rows: padRows(drives.slice(0, limit).map(drive => ({
     number: drive.number, game: gameLabels?.[drive.refs?.[0]?.split('::')[0]] || '', widthPct: Math.max(6, Math.round(Math.abs(drive.yards) / max * 100)), outcome: drive.outcome, playIds: drive.playIds || [], refs: drive.refs || [],
-  })) };
+  })), limit, 'outcome') };
 }
 
 /** The shared "group plays by X, show count/run-pass/yards/success" shape —

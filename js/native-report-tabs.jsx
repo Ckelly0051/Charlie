@@ -45,6 +45,24 @@ function PairedBand({ slots, cls = 'stats-two-col' }) {
   return <div class={cls}>{present}</div>;
 }
 
+/* The approved Overview composition is the SCHEMA: each module renders the row
+   count the comp renders, on every game, so the board is one fixed height
+   instead of a shape that moves with the data. Read off the canonical capture
+   `design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4`.
+
+   A module whose rows enumerate a fixed football set already met this by
+   construction — Snaps by phase 3, Situational 6, Key metrics 6, Rushing 7,
+   Passing 8, Defense & discipline 6. The four below are RANKED lists, which
+   need the count stated because their source can supply more or fewer, and
+   ranking is what decides which entries occupy the fixed rows. */
+const OVERVIEW_ROWS = {
+  'Yards by type': 5,
+  'Down & distance': 5,
+  'Game plan': 3,      // per column: what's working, what to fix
+  'Big plays': 5,
+  'Drives': 8,
+};
+
 export function OverviewTab({ stats, screen, gameLabels = null }) {
   /* Literal absence, not instruction. The previous body ("Tag Play Type,
      Result, and Yardage to build the report...") told the coach how to use the
@@ -57,11 +75,11 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
   const cut = (type, val, label) => () => screen.watchCut(type, val, label);
   const phase = view.snapsByPhase(stats);
   const tiles = view.situationalTiles(stats).map(t => ({ ...t, onActivate: t.plays ? cut(t.cutType, t.cutVal, t.cutLabel) : undefined }));
-  const yards = view.yardsByType(stats);
-  const dd = view.downDistanceRows(stats);
-  const plan = view.gamePlan(stats);
-  const bigPlays = view.bigPlaysRows(stats, engine, gameLabels);
-  const drives = view.drivesRows(stats, gameLabels);
+  const yards = view.yardsByType(stats, OVERVIEW_ROWS['Yards by type']);
+  const dd = view.downDistanceRows(stats, engine, OVERVIEW_ROWS['Down & distance']);
+  const plan = view.gamePlan(stats, OVERVIEW_ROWS['Game plan']);
+  const bigPlays = view.bigPlaysRows(stats, engine, gameLabels, OVERVIEW_ROWS['Big plays']);
+  const drives = view.drivesRows(stats, gameLabels, OVERVIEW_ROWS['Drives']);
 
   return <div class="gi-overview-board">
     <KpiBand items={view.overviewKpis(stats)} />
@@ -91,7 +109,9 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
     <div class="gi-overview-band gi-overview-band-2 gi-overview-decisions">
       <Module title="Down &amp; distance" meta="run/pass mix and production">
         <table><thead><tr><th>Situation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Success</th><th>Conv</th></tr></thead><tbody>
-          {dd.map(row => <Watchable key={row.situation} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
+          {dd.map((row, i) => row.absent
+            ? <tr key={`absent-${i}`} class="is-absent"><td>{row.situation}</td><td colSpan="5" /></tr>
+            : <Watchable key={row.situation} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
             <td>{row.situation}</td><td>{row.snaps}</td>
             <td><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</td>
             <td>{row.ypp}</td><td>{row.success}</td><td>{row.conv}</td>
@@ -99,18 +119,20 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
         </tbody></table>
       </Module>
       <Module title="Game plan" meta="what the tags say" cls="is-plan">
-        <div class="gi-overview-plan is-good">{plan.working.map((item, i) => <p key={i} class={item.cut ? 'cut-row' : ''}
+        <div class="gi-overview-plan is-good">{plan.working.map((item, i) => <p key={i} class={item.absent ? 'is-absent' : item.cut ? 'cut-row' : ''}
           onClick={item.cut ? cut(item.cut[0], item.cut[1], 'Game plan') : undefined}
           tabIndex={item.cut ? 0 : undefined} role={item.cut ? 'button' : undefined}>{item.text}</p>)}</div>
-        <div class="gi-overview-plan is-fix">{plan.fix.map((item, i) => <p key={i} class={item.cut ? 'cut-row' : ''}
+        <div class="gi-overview-plan is-fix">{plan.fix.map((item, i) => <p key={i} class={item.absent ? 'is-absent' : item.cut ? 'cut-row' : ''}
           onClick={item.cut ? cut(item.cut[0], item.cut[1], 'Game plan') : undefined}
           tabIndex={item.cut ? 0 : undefined} role={item.cut ? 'button' : undefined}>{item.text}</p>)}</div>
       </Module>
     </div>
     <div class="gi-overview-band gi-overview-support">
-      <Module title="Big plays" meta={`${stats.bigPlays.length} total`} cls="is-offense">
+      <Module title="Big plays" meta={`${bigPlays.length} total`} cls="is-offense">
         <table><thead><tr>{gameLabels&&<th>Game</th>}<th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
-          {bigPlays.map(play => <Watchable key={play.ref || play.id} tag="tr" onActivate={() => play.ref ? screen.watchRefs([play.ref], `Play ${play.id}`) : screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
+          {bigPlays.map((play, i) => play.absent
+            ? <tr key={`absent-${i}`} class="is-absent">{gameLabels&&<td />}<td /><td>{play.situation}</td><td colSpan="2" /></tr>
+            : <Watchable key={play.ref || play.id} tag="tr" onActivate={() => play.ref ? screen.watchRefs([play.ref], `Play ${play.id}`) : screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
             {gameLabels&&<td>{play.game}</td>}<td>{play.id}</td><td>{play.situation}</td><td>{play.call}</td><td>{play.yards}</td>
           </Watchable>)}
         </tbody></table>
@@ -118,7 +140,9 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
       <div class="gi-overview-support-stack">
         {/* Middot, per the approved Overview ("12 drives · 5 scored"). */}
         <Module title="Drives" meta={`${drives.total} drives · ${drives.scoring} scored`}>
-          <div class="gi-overview-drives">{drives.rows.map(drive => <Watchable key={`${drive.number}-${drive.refs[0]||''}`} class="gi-overview-drive" onActivate={() => {
+          <div class="gi-overview-drives">{drives.rows.map((drive, i) => drive.absent
+            ? <div key={`absent-${i}`} class="gi-overview-drive is-absent"><span /><i /><small>{drive.outcome}</small></div>
+            : <Watchable key={`${drive.number}-${drive.refs[0]||''}`} class="gi-overview-drive" onActivate={() => {
             if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
             else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
           }} label={`Drive ${drive.number}`}>

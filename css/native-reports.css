@@ -1096,6 +1096,15 @@
 .gi-reports .gi-overview-drive>i{height:8px;background:var(--gi-4);overflow:hidden}
 .gi-reports .gi-overview-drive>i>b{display:block;width:var(--w);height:100%;background:var(--gi-bd-gold)}
 .gi-reports .gi-overview-drive>small{text-align:right;color:var(--gi-10)}
+/* An absence slot in a fixed-length Overview module. It holds the row so the
+   board keeps one height on every game, and drops to copy weight so it can
+   never read as a measured value. It carries no hover or focus state because
+   it is not interactive — there is no film behind a row that names nothing.
+   Scoped to [data-pane="overview"]: every report board carries
+   `.gi-overview-board`, so a bare class here would reach the other tabs. */
+.gi-reports [data-pane="overview"] .is-absent{color:var(--gi-bd-muted);font-weight:400}
+.gi-reports [data-pane="overview"] tr.is-absent:hover{background:transparent}
+.gi-reports [data-pane="overview"] .gi-overview-drive.is-absent>i{background:transparent}
 .gi-reports .gi-overview-production{border-left:3px solid var(--gi-bd-gold)}
 .gi-reports .gi-overview-support{border-left:3px solid var(--gi-bd-cyan)}
 @media(max-width:1100px){

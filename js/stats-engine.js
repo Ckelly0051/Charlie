@@ -3918,6 +3918,44 @@ export class StatsEngine {
    *  pattern; 3 of 4 on "3rd & 7" is noise). */
   static _distBucket(dist) { return dist <= 3 ? 'Short' : dist <= 6 ? 'Medium' : 'Long'; }
 
+  /** The distance bands in football order, so a down/distance ranking can
+   *  break a tie on the situation itself rather than on object order. */
+  static DIST_BUCKETS = ['Short', 'Medium', 'Long'];
+
+  /** The N down-and-distance situations a game leaned on hardest: most snaps
+   *  first, then earliest down, then shortest distance. The approved Overview
+   *  composition renders a FIXED number of these rows, so the ranking is the
+   *  contract that decides which situations occupy them — never a slice of
+   *  whatever order the buckets happened to accumulate in. */
+  static rankDownDistance(buckets, limit) {
+    return [...(buckets || [])]
+      .sort((a, b) => b.count - a.count
+        || Number(a.down) - Number(b.down)
+        || StatsEngine.DIST_BUCKETS.indexOf(a.bucket) - StatsEngine.DIST_BUCKETS.indexOf(b.bucket))
+      .slice(0, limit);
+  }
+
+  /** The N longest offensive gains, ranked. This is NOT `_bigPlays`, which is
+   *  the canonical explosive cohort — a 20-yard gain or a touchdown, in play
+   *  order — and stays the threshold the Explosives KPI counts. The approved
+   *  Overview composition's Big plays module is a FIXED-length leaderboard, so
+   *  it ranks: its own comp fixture lists five 18-yard gains, below the
+   *  explosive threshold, which the threshold cohort could never produce. */
+  static topPlaysByYards(plays, limit) {
+    return [...(plays || [])]
+      .map((p, order) => ({ p, order, yds: parseInt(p.tags.yardage, 10) || 0 }))
+      .sort((a, b) => b.yds - a.yds || a.order - b.order)
+      .slice(0, limit)
+      .map(({ p }) => ({
+        id: p.id,
+        type: p.tags.playType,
+        result: p.tags.result,
+        yards: p.tags.yardage,
+        clipName: p.clipName || `Play ${p.id}`,
+        ref: StatsEngine._compositeRef(p),
+      }));
+  }
+
   /** Down + distance-bucket key like "3|Long"; null when down/distance are
    *  missing so the bucket can be skipped rather than charted as "?". */
   _ddKey(tags) {
