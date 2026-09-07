@@ -20,7 +20,9 @@ export function overviewKpis(stats) {
   const penalty = stats.penalties || {};
   const giveaways = stats.turnovers?.giveaways ?? stats.offenseTurnovers ?? 0;
   return [
-    { label: 'Total plays', value: stats.allPlays, sub: `${stats.allPlays} charted, 100%` },
+    // The approved Overview separates a count from its qualifier with a middot,
+    // not a comma (design-approvals/reports/overview: "63 charted · 100%").
+    { label: 'Total plays', value: stats.allPlays, sub: `${stats.allPlays} charted · 100%` },
     { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successfulPlays || 0} successful snaps`, cls: 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
     { label: 'Explosives', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
@@ -510,7 +512,8 @@ export function defenseDisciplineRows(stats, statsEngine) {
     ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'],
     ['Explosives allowed', explosives, explosives ? '' : 'is-good'],
     ['Takeaways', stats.defensive.turnovers],
-    ['Penalties accepted', penalties.hasData ? `${penalties.accepted}, ${penalties.subjectYards} yds` : '0'],
+    // Middot, per the approved Overview ("1 · 10 yds").
+    ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],
     ['Penalties declined', penalties.hasData ? penalties.declined : '0'],
   ] };
 }

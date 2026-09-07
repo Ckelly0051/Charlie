@@ -110,7 +110,8 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
         </tbody></table>
       </Module>
       <div class="gi-overview-support-stack">
-        <Module title="Drives" meta={`${drives.total} drives, ${drives.scoring} scored`}>
+        {/* Middot, per the approved Overview ("12 drives · 5 scored"). */}
+        <Module title="Drives" meta={`${drives.total} drives · ${drives.scoring} scored`}>
           <div class="gi-overview-drives">{drives.rows.map(drive => <Watchable key={`${drive.number}-${drive.refs[0]||''}`} class="gi-overview-drive" onActivate={() => {
             if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
             else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
