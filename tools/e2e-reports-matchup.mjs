@@ -768,26 +768,32 @@ ok(JSON.stringify(defCounts) === JSON.stringify(['1 game | 3 snaps', '1 game | 3
 await load(FULL(), 'St. Mary Falcons');
 
 console.log('\n== 19. Opening Matchup writes nothing ==');
-const untouched = await page.evaluate(async () => {
+const beforeMatchupOpen = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
+await page.evaluate(() => {
   const app = window.app;
-  const before = JSON.stringify(app.storage.seasonStore.data);
   app.reportsScreen.matchupOpponent = 'Northgate';
   app.reportsScreen.selectTab('matchup');
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+});
+await sleep(50);
+await page.evaluate(() => {
+  const app = window.app;
   app.reportsScreen.matchupTab = 'our-defense';
   app.reportsScreen._renderActiveTab();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const after = JSON.stringify(app.storage.seasonStore.data);
+});
+await sleep(50);
+const afterMatchupOpen = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
+await page.evaluate(() => {
+  const app = window.app;
   app.reportsScreen.matchupOpponent = 'St. Mary Falcons';
   app.reportsScreen.matchupTab = 'our-offense';
   app.reportsScreen._renderActiveTab();
-  return before === after;
 });
+const untouched = beforeMatchupOpen === afterMatchupOpen;
 ok(untouched, 'opening Matchup and switching opponent or direction writes nothing to canonical season data');
 
 console.log('\n== 20. Page health ==');
 ok(errors.length === 0, 'zero page or console errors across every state', errors.slice(0, 3).join(' | '));
 
 await browser.close();
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

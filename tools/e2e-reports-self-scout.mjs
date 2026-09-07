@@ -716,6 +716,6 @@ ok(season.metas === 0, 'the Season copy carries no module metadata either', Stri
 console.log(`\nPage/console errors: ${errors.length}`);
 if (errors.length) console.log(errors.slice(0, 6).join('\n'));
 ok(errors.length === 0, 'no page or console errors across every section and state');
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 process.exit(fail ? 1 : 0);

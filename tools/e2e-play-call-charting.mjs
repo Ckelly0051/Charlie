@@ -75,11 +75,13 @@ ok(state.values.formation === 'Power-I' && state.values.backfield === 'I' && sta
 ok(Object.keys(state.defaults).length === 6 && state.appliedText.includes('Formation: Power-I') && state.history === 1,
   'Applied defaults are disclosed and selection is one undoable action', JSON.stringify(state));
 
-state = await page.evaluate(async () => {
+await page.evaluate(() => {
   app.nativeTagging.setField('playDir', 'Middle');
   app.history.reset();
   app.nativeTagging.selectPlayCall('24 Iso');
-  await new Promise(resolve => setTimeout(resolve, 0));
+});
+await new Promise(resolve => setTimeout(resolve, 50));
+state = await page.evaluate(() => {
   const after = structuredClone(app.tagger.getCurrentPlay().tags);
   const entries = app.history.stack.length;
   app.history.undo();

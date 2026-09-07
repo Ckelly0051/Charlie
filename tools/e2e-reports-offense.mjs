@@ -224,11 +224,10 @@ for (const tab of ['overview', 'offense', 'defense', 'special', 'players']) {
 }
 ok(chrome.overview.bug && !chrome.overview.rail, 'Overview shows the scorebug and hides the rail', JSON.stringify(chrome.overview));
 ok(chrome.offense.bug && !chrome.offense.rail, 'Offense shows the scorebug and hides the rail', JSON.stringify(chrome.offense));
-ok(chrome.defense.bug && !chrome.defense.rail,
-  'Defense shows the scorebug and hides the rail -- it joined SCOREBUG_TABS with its own design pass (2026-09-04)',
-  JSON.stringify(chrome.defense));
-ok(chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome.players.bug,
-  'Special Teams and Players still render the rail, unchanged by the Defense pass', JSON.stringify([chrome.special, chrome.players]));
+ok(!chrome.defense.bug && !chrome.defense.rail,
+  'full-season Defense suppresses both current-game chrome elements', JSON.stringify(chrome.defense));
+ok(!chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome.players.bug,
+  'full-season Special Teams suppresses game chrome while game-scoped Players keeps the KPI rail', JSON.stringify([chrome.special, chrome.players]));
 ok(Object.values(chrome).every(c => !(c.bug && c.rail)),
   'no tab ever shows the scorebug and the generic rail at the same time', JSON.stringify(chrome));
 

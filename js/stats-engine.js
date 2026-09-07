@@ -726,7 +726,7 @@ export class StatsEngine {
   static _matchupMatchesOffenseLook(play, look) {
     if (look.personnel && String(play.tags.personnel || '').trim() !== look.personnel) return false;
     if (look.formation && StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation)) !== look.formation) return false;
-    if (look.call && String(play.tags[look.callField] || '').trim() !== look.call) return false;
+    if (look.call && String(StatsEngine.projField(play, look.callField) || '').trim() !== look.call) return false;
     return true;
   }
 

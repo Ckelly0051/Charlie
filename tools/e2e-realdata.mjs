@@ -76,8 +76,8 @@ const VIEWS = [
   ['reports route', async () => { await window.app.workspaceShell.show('reports'); const host=document.getElementById('wsReports'); const content=host?.querySelector('[data-native-report-content]'); if (host?.hidden || !content || !content.textContent.trim()) throw new Error('NATIVE REPORTS BLANK'); }],
   ['tab:offense', () => document.querySelector('#statsDashboard .stats-tab[data-tab="offense"]')?.click()],
   ['tab:defense', () => { const app=window.app,{scoped,labels}=app.reportsScreen._defenseCohort(),expected=app.stats.defensivePerformance(scoped,labels).total; app.reportsScreen.selectTab('defense'); const pane=document.querySelector('[data-native-report-content]'),text=pane?.textContent||'',valid=expected ? pane?.querySelector('.gi-defense-report')&&text.includes('Defensive snaps')&&text.includes(String(expected)) : pane?.querySelector('.gi-reports-empty')&&/No defensive snaps charted/.test(text); if(!valid) throw new Error('DEFENSE REPORT WRONG OR BLANK'); }],
-  ['tab:selfscout', () => { window.app.reportsScreen.selectTab('selfscout'); const pane=document.querySelector('[data-native-report-content]'); if(!pane?.querySelector('.gi-selfscout-board') || !/Self-Scout/.test(pane.textContent)) throw new Error('SELF-SCOUT REPORT WRONG OR BLANK'); }],
-  ['tab:season', () => { window.app.reportsScreen.selectTab('season'); const pane=document.querySelector('[data-native-report-content]'); if(!pane?.querySelector('.gi-season-native') || !/Season Report/.test(pane.textContent)) throw new Error('SEASON REPORT WRONG OR BLANK'); }],
+  ['tab:selfscout', () => { window.app.reportsScreen.selectTab('selfscout'); const pane=document.querySelector('[data-native-report-content]'); if(!pane?.querySelector('.gi-selfscout-board') || !/Offensive Summary/.test(pane.textContent)) throw new Error('SELF-SCOUT REPORT WRONG OR BLANK'); }],
+  ['tab:season', () => { window.app.reportsScreen.selectTab('season'); const pane=document.querySelector('[data-native-report-content]'); if(!pane?.querySelector('.gi-season-board') || !/Season Report/.test(pane.textContent)) throw new Error('SEASON REPORT WRONG OR BLANK'); }],
   ['tab:matchup', () => document.querySelector('#statsDashboard .stats-tab[data-tab="matchup"]')?.click()],
   ['selfScoutReport', () => { window.app.reportsScreen.show(); window.app.reportsScreen.selectTab('selfscout'); }],
   ['defensiveReport', () => { window.app.reportsScreen.show(); window.app.reportsScreen.selectTab('defense'); }],
@@ -109,10 +109,10 @@ for (const file of files) {
     await page.evaluate(seedFn, season, OUR);
     // Load the target game WITHOUT commitActive (a fresh page has an empty tagger,
     // and switchToGame would commit that empty state over the active game first).
-    await page.evaluate((gid, opp) => {
+    await page.evaluate(async (gid, opp) => {
       const sm = window.app.storage;
       sm.seasonStore.data.activeGameId = gid;
-      sm._loadActiveGame();
+      await sm._loadActiveGame();
       window.__opp = opp;
     }, g.id, g.opp);
 

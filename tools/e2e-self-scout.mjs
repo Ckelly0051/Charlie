@@ -77,17 +77,23 @@ ok(r.insufficient === false, 'no-playType defensive plays are NOT dropped (gatin
 ok(r.totalPlays === 6, 'all 6 scheme plays counted', JSON.stringify(r));
 
 console.log('\n== 2. Self-Scout TAB renders the defensive section ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Defense')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  const titles = [...(pane?.querySelectorAll('.gi-ss-module > header strong') || [])]
+    .map(node => node.textContent.trim());
   return {
-    hasDefSection: !!pane?.querySelector('.ss-def-section'),
-    hasDefScoutHeading: /Defensive Self-Scout/.test(pane?.innerHTML || '')
+    active: pane?.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
+    titles,
   };
 });
-ok(r.hasDefSection, 'Self-Scout pane contains .ss-def-section', JSON.stringify(r));
-ok(r.hasDefScoutHeading, 'Self-Scout pane shows the "Defensive Self-Scout" heading', JSON.stringify(r));
+ok(r.active === 'Defense', 'Self-Scout exposes and selects its Defense section', JSON.stringify(r));
+ok(['Positive Plays', 'Negative Plays', 'Top Calls', 'Worst Calls', 'Run Defense', 'Pass Defense']
+  .every(title => r.titles.includes(title)), 'Self-Scout Defense renders the approved modules', JSON.stringify(r));
 
 console.log('\n== 3. Mixed offense+defense: both tabs show the defensive scheme section ==');
 r = await page.evaluate(async () => {
@@ -109,7 +115,11 @@ r = await page.evaluate(async () => {
   window.app.tagger.plays = plays;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  const selfScoutHasDef = !!document.querySelector('#statsDashboard [data-pane="selfscout"] .ss-def-section');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Defense')?.click();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const selfScoutHasDef = [...document.querySelectorAll('#statsDashboard [data-pane="selfscout"] .gi-ss-module > header strong')]
+    .some(node => node.textContent.trim() === 'Run Defense');
   window.app.reportsScreen.selectTab('defense');
   // Defense shows one SECTION at a time (2026-09-04). The scheme tells live in
   // section 5, so its tab is activated before the pane is read.
@@ -130,7 +140,7 @@ ok(r.defenseHasScheme, 'Defense tab shows the scheme-tells section', JSON.string
 ok(r.defenseHasHavoc, 'Defense tab still shows the base defensive analytics', JSON.stringify(r));
 
 console.log('\n== 4. generateDefensiveSelfScout computed ONCE per render (dedup) ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const eng = window.app.stats;
   const orig = eng.generateDefensiveSelfScout.bind(eng);
   let count = 0;
@@ -158,7 +168,7 @@ ok(r.legacyAbsent && r.nativeBoard, 'Self-Scout renders through its real native 
 ok(r.legacyBindings === 0, 'Self-Scout carries no retired selector-rebinding attributes', JSON.stringify(r));
 
 console.log('\n== 4c. Adversarial repair cases: cohort, concept film, escaping, visual semantics ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const mk = window.__mk;
   const stats = window.app.stats;
   stats.filter.active = false;
@@ -178,8 +188,11 @@ r = await page.evaluate(() => {
     playType:'Run Inside', formation:'Ace & Empty', result:'Gain', yardage:'8' }));
   const escapedReport = stats.generateSelfScout();
   window.app.reportsScreen.selectTab('selfscout');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
-  const tellText = pane.querySelector('.ss-tells tbody tr td')?.textContent || '';
+  const tellText = pane.querySelector('.gi-ss-table tbody tr td')?.textContent || '';
   return {
     runPassTotal: runPassReport?.totalPlays || 0,
     runPassComputed,
@@ -187,8 +200,8 @@ r = await page.evaluate(() => {
     conceptMatches,
     rawTellLabel: escapedReport.tells.find(t => t.cutType === 'formation')?.label || '',
     tellText,
-    recommendationLabels: pane.querySelectorAll('.ss-rec-label').length,
-    verdictRows: pane.querySelectorAll('.ss-tells tr.ss-verdict-dominant,.ss-tells tr.ss-verdict-effective,.ss-tells tr.ss-verdict-exploitable').length,
+    cutRows: pane.querySelectorAll('.gi-ss-table tbody tr.cut-row').length,
+    active: pane.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
   };
 });
 ok(r.runPassTotal === 1 && r.runPassComputed === 1,
@@ -197,11 +210,11 @@ ok(r.conceptKeys.includes('Counter') && r.conceptMatches === 1,
   'a concept-only performance row resolves its exact film cohort', JSON.stringify(r));
 ok(r.rawTellLabel === 'From Ace & Empty' && r.tellText === 'From Ace & Empty',
   'native tell labels stay raw in data and render one escaped time', JSON.stringify(r));
-ok(r.recommendationLabels > 0 && r.verdictRows > 0,
-  'recommendation emphasis and verdict row-edge classes survive native rendering', JSON.stringify(r));
+ok(r.active === 'Tendencies' && r.cutRows > 0,
+  'the approved Tendencies table keeps actionable rows linked to film', JSON.stringify(r));
 
 console.log('\n== 5. Actionable tells: distance buckets, clickable-to-film, defensive counter ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const mk = window.__mk;
   // 10 offensive plays: Trips on 3rd down, varied exact distances 8-12
   // (all "Long"), every one a pass — a strong, exploitable, single tell that
@@ -227,14 +240,17 @@ r = await page.evaluate(() => {
   }).length;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
     comboVal: combo?.cutVal || null,
     comboMatched: matched,
     deadLinks,
-    cutRows: pane.querySelectorAll('.ss-tells tr.cut-row').length,
+    cutRows: pane.querySelectorAll('.gi-ss-table tbody tr.cut-row').length,
     bucketLabel: /3rd &amp; Long/.test(pane.innerHTML),
-    threat: /DC keys (run|pass)/.test(pane.innerHTML),
+    active: pane.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
   };
 });
 ok(r.comboVal === 'Trips__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
@@ -242,10 +258,10 @@ ok(r.comboMatched === 10, 'exact distances 8-12 all bucket into "3rd & Long" (n=
 ok(r.deadLinks === 0, 'every clickable tell resolves to at least one play', JSON.stringify(r));
 ok(r.cutRows >= 1, 'tells render as clickable cut-rows', JSON.stringify(r));
 ok(r.bucketLabel, 'bucket label "3rd & Long" shown in the pane', JSON.stringify(r));
-ok(r.threat, 'recommendations name what the defense does (the "so what")', JSON.stringify(r));
+ok(r.active === 'Tendencies', 'the data-only Tendencies section is active without retired recommendation prose', JSON.stringify(r));
 
 console.log('\n== 6. Predictability Map: Formation × Situation heat-map, click-to-film ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const mk = window.__mk;
   const plays = [];
   // I-Form 1st = run-heavy; Trips 3rd & Long = pass-heavy; Singleback 2nd & Med = balanced.
@@ -263,12 +279,15 @@ r = await page.evaluate(() => {
   const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Trips__3|Long')).length;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
     rows: m.rows, cols: m.cols.map(c => c.key),
     iformFirst, shotgun3L,
-    hasMap: /Predictability Map/.test(pane.innerHTML),
-    clickableCells: pane.querySelectorAll('.sm-table .sm-cell.cut-row').length,
+    hasMap: /Predictability map/i.test(pane.innerHTML),
+    clickableCells: pane.querySelectorAll('.gi-ss-map .gi-ss-cell.cut-row').length,
   };
 });
 ok(r.hasMap, 'Predictability Map section renders', JSON.stringify(r));
@@ -279,7 +298,7 @@ ok(r.shotgun3L === 8, 'Trips × 3rd & Long cell cut resolves to its 8 plays', JS
 ok(r.clickableCells >= 3, 'populated cells are clickable to film', JSON.stringify(r));
 
 console.log('\n== 7. Personnel → Formation Diversity: locked/leaning tells, click-to-film ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const mk = window.__mk;
   const plays = [];
   // 11 personnel → always Trips (locked, 100%)
@@ -305,8 +324,12 @@ r = await page.evaluate(() => {
   // Render and check DOM
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Structure')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
-  const section = pane?.querySelector('.ss-personnel-diversity');
+  const section = [...(pane?.querySelectorAll('.gi-ss-module') || [])]
+    .find(module => module.querySelector('header strong')?.textContent.trim() === 'Personnel to formation');
   const cutRows = section ? section.querySelectorAll('tr.cut-row') : [];
   const originalWatch = window.app.stats._watchPlays;
   let watched = 0;
@@ -337,43 +360,46 @@ ok(r.hasLockedFlag && r.hasLeaningFlag, 'Locked and Leaning flags both shown', J
 ok(r.hasPersonnelTell, 'Personnel Tell appears in Film Room Insights', JSON.stringify(r));
 
 console.log('\n== S6-4c AX-2: the Predictability Map says what it means ==');
-r = await page.evaluate(() => {
+r = await page.evaluate(async () => {
   const engine = window.app.stats;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
+  [...document.querySelectorAll('.gi-selfscout-nav button')]
+    .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
-  const table = pane?.querySelector('.sm-table');
-  const cells = [...(table?.querySelectorAll('.sm-cell') || [])];
-  const populated = cells.filter(cell => !cell.classList.contains('sm-empty'));
+  const table = pane?.querySelector('.gi-ss-map');
+  const cells = [...(table?.querySelectorAll('.gi-ss-cell') || [])];
+  const populated = cells.filter(cell => !cell.classList.contains('is-nodata'));
   const matrix = engine.generateSelfScout().matrix;
   const view = engine._selfScoutMatrixView(matrix);
-  let n = 0, successes = 0;
-  Object.values(matrix.cells).forEach(cell => { if (cell?.n) { n += cell.n; successes += cell.succ || 0; } });
-  const expected = n ? Math.round(successes / n * 100) : 0;
-  const baselineMatch = (pane?.textContent || '').match(/(\d+)% success baseline/);
-  const caption = pane?.textContent || '';
+  const expected = engine.generateSelfScout().predictability;
+  const shown = Number.parseInt(pane?.querySelector('.gi-ss-pred-val')?.textContent || '', 10);
+  const legend = pane?.querySelector('.gi-ss-legend')?.textContent || '';
   return {
-    empty: cells.filter(cell => cell.classList.contains('sm-empty')).length,
-    noDataWords: table?.querySelectorAll('.sm-nodata').length || 0,
+    empty: cells.filter(cell => cell.classList.contains('is-nodata')).length,
+    noDataWords: [...cells].filter(cell => cell.classList.contains('is-nodata') && cell.textContent.trim() === 'No data').length,
     populated: populated.length,
-    everyCellHasN: populated.every(cell => /^n=\d+/.test(cell.querySelector('.sm-n')?.textContent || '')),
-    baseline: baselineMatch ? Number(baselineMatch[1]) : null,
+    everyCellHasN: populated.every(cell => /^n=\d+/.test(cell.querySelector('.n')?.textContent || '')),
+    shown,
     expected,
-    rowHeaders: table?.querySelectorAll('.sm-row-label').length || 0,
+    rowHeaders: table?.querySelectorAll('tbody tr > td:first-child').length || 0,
     rows: view?.rows.length || 0,
-    cuts: table?.querySelectorAll('.sm-cell[role="button"]').length || 0,
-    corner: table?.querySelector('.sm-corner')?.textContent || '',
-    captionRules: /predictable and below/i.test(caption) && /predictable but working/i.test(caption) && /low samples stay neutral/i.test(caption),
+    cuts: table?.querySelectorAll('.gi-ss-cell[role="button"]').length || 0,
+    corner: table?.querySelector('thead th')?.textContent || '',
+    legendRules: /Predictable, below baseline/i.test(legend)
+      && /Predictable, at or above baseline/i.test(legend)
+      && /Balanced/i.test(legend) && /Under \d+ plays/i.test(legend),
   };
 });
 ok(r.empty > 0 && r.noDataWords === r.empty,
   'An empty cell says "No data" in words rather than rendering a value', JSON.stringify({ empty: r.empty, noData: r.noDataWords }));
 ok(r.populated > 0 && r.everyCellHasN,
   'Every populated cell carries its sample size attached to the lean', JSON.stringify({ populated: r.populated }));
-ok(r.baseline !== null && r.baseline === r.expected && r.baseline > 0,
-  'The native module states the real baseline the cells are judged against', JSON.stringify({ shown: r.baseline, expected: r.expected }));
-ok(r.captionRules && /Formation/.test(r.corner),
-  'The native caption explains risk, strength, and low-sample states', JSON.stringify({ corner: r.corner }));
+ok(Number.isFinite(r.shown) && r.shown === r.expected,
+  'The native module shows the engine-owned predictability score', JSON.stringify({ shown: r.shown, expected: r.expected }));
+ok(r.legendRules && /Formation/.test(r.corner),
+  'The native legend distinguishes risk, strength, balance, and low-sample states', JSON.stringify({ corner: r.corner }));
 ok(r.rowHeaders === r.rows && r.cuts === r.populated,
   'Every formation is a row header and every populated cell keeps its exact film action', JSON.stringify({ rowHeaders: r.rowHeaders, rows: r.rows, cuts: r.cuts, populated: r.populated }));
 
