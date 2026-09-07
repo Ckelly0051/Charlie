@@ -6,14 +6,15 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-> **Release checkpoint:** Home is accepted through `f615fcd` and packaged as
-> the Windows x64 `1.12.0-70` Beta smoke candidate. The behavior-neutral Step 2
-> documentation consolidation and repository hygiene pass, the global-bridge
-> retirement, and the CSS-ownership cleanup have all landed as separately
-> reviewed commits. `e2e-design-system` is now 17/0 — its two standing failures
-> are repaired, and `css/styles.css` and `css/redesign-stats.css` no longer
-> carry rules without a production presentation owner. Historical
-> incomplete-state notes below are not open Home work.
+> **Release checkpoint:** all eight Our Program Reports tabs are implemented in
+> production and gate-verified, but remain pending the whole-Reports installed
+> Charlie Gate. The packaged `1.12.0-73` candidate is superseded because it
+> predates the smoke repairs in `7b278be`; the current source requires a new
+> synchronized version and installer. Home remains accepted through `f615fcd`
+> and its `1.12.0-70` smoke. The Step 2 documentation/repository-hygiene pass,
+> global-bridge retirement, and CSS-ownership cleanup remain complete and
+> reviewed; `e2e-design-system` is 17/0. Historical incomplete-state notes below
+> are not open Home work.
 
 ## Current Home - APPROVED AND RELEASE-READY (2026-09-02)
 
@@ -48,6 +49,13 @@ The reviewed `design-comps/breakdown-workspace-2026-08/breakdown.html` has now b
 Build and focused behavioral checks passed; populated production screenshots and open/empty states are recorded in `artifacts/breakdown-comp-live/`. Charlie approved the installed **1.12.0-68 Beta** presentation on 2026-08-31, including the wide-screen vertical play rail. Slightly tighter vertical tagging padding is a deferred next-pass nit, not a blocker or authorization to reopen this layout now. This is presentation acceptance, not a claim that every installed workflow has been tested or that the whole app's design is finished. See the current `CLAUDE.md` handoff for test changes, discovered defects, and exact scope.
 
 **Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
+
+**Deferred small-text readability polish (coach screenshots, 2026-09-03):** Text exemplified by the "Wildcat" control and "Run Outside" label is too small and thin, appears to bleed, and is difficult to read. In a future coordinated typography pass, identify the actual font family, weight, size, contrast, and rendering used by these elements and their shared consumers. Use a more readable size and weight; evaluate the font family rather than assuming contrast alone fixes the problem. Verify in the installed Windows app at normal display scale with representative short and long labels. Preserve density through layout, not tiny type. References: `codex-clipboard-7ffbc340-fced-40a8-bf40-d9c1a184ca0d.png` and `codex-clipboard-9d902dd9-be99-4e2d-8aa9-be6afb8b689f.png`. Explicit instruction: record only; no UI repair now.
+
+**Deferred universal-navigation depth and Home pointer polish (coach screenshot, 2026-09-03):**
+- Make the universal Home / Break Down / Study / Reports / Plan buttons wider and visibly raised. Use deliberate edge highlights, shadowing, and raised/pressed surfaces so these primary navigation controls have substantial visual presence and are immediately recognizable as clickable. A flat background highlight or underline alone is insufficient. Preserve clear default, hover, keyboard-focus, selected, and pressed states without layout shift or clipping. The coach explicitly authorizes departing from the existing design-system treatment to achieve this; current tokens must not constrain the result to the rejected flat appearance. Reference: `codex-clipboard-db6e764c-af1a-4dc9-acf7-3301d7e1a6fd.png`.
+- Audit all enabled clickable text on Home, including links and text-based actions inside cards and rows. Each must display the hand/link-select pointer (`cursor: pointer`) throughout its clickable hit area, not just on selected child elements. Preserve visible hover and keyboard-focus feedback. Do not apply the pointer to noninteractive text or disabled controls.
+- Batch with the deferred typography polish above. Record only; no UI repair now.
 
 ## Prior Breakdown Checkpoint — ACCEPTED (2026-08-28)
 
@@ -691,6 +699,42 @@ parity-locked analytics foundation.
 - Every number, row, bar, and comparison launches exactly its contributing
   film set using composite game/play identity.
 - Concise interpretation may supplement visuals, never replace them.
+
+#### Competitive reporting follow-ons
+
+These are explicit roadmap items, not requirements for completing the current
+desktop Reports composition pass. They should reuse the canonical analytics
+registry, stored charting data, and film-navigation service rather than create
+parallel formulas or report-only data models.
+
+1. **Interactive drive chart.** Show every possession in game order with start
+   and end field position, play count, outcome, points, and yards separated into
+   rushing, passing, and accepted-penalty contributions. Selecting a drive must
+   open exactly that drive's film cohort. Missing or incomplete drive and
+   penalty charting must be disclosed rather than inferred.
+2. **Run hit/gap chart.** Add a field-oriented visualization of where runs hit,
+   organized by offensive strength where available. It must support frequency
+   and performance views, state its eligible sample, preserve multi-value tag
+   attribution rules, and open the exact contributing run clips. This
+   complements, rather than replaces, the existing direction tables.
+3. **Saved composable reports.** Let a coach combine registered and custom
+   dimensions with approved measures, filters, scope, and perspective; save the
+   definition; and rerun it as new games are charted. Study remains the query
+   engine and Reports may surface saved outputs. Do not duplicate formulas,
+   accept arbitrary executable expressions, or sever results from film.
+4. **Conventional two-team box score.** Provide a familiar our-team/opponent
+   game summary including score by quarter, first downs, rushing/passing/total
+   yards, completion/attempts, turnovers, interceptions, fumbles lost, and
+   penalties/yards when those fields are reliably charted. Every displayed
+   total must identify its data availability and reconcile with the detailed
+   report; unsupported categories remain absent or explicitly unavailable.
+5. **Automated data production.** Pursue import automation and AI-assisted
+   charting as a separate, high-scope capability spanning V2-E and V2-F. The
+   objective is substantial reduction in coach charting time, not generated
+   prose. Proposed tags must carry confidence/provenance, remain reviewable in
+   film context, and never silently overwrite coach-entered data. Evaluate this
+   work by verified tag accuracy, correction burden, and minutes saved per game
+   before treating it as a commercial differentiator.
 
 ### V2-G: Plan As A Coaching Workflow
 

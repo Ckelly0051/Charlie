@@ -214,5 +214,5 @@ goldens, and film-reference equality pins the cut-up each row opens.
   network call until the coach opts in via Settings → Analysis.
 - `design-system/` — tokens, bundled Plex faces, and route comps.
 - `src-tauri/` — the Rust desktop shell. See `TAURI.md`.
-- `tools/` — 98 `e2e-*.mjs` harnesses plus the gate runner. See
+- `tools/` — 105 `e2e-*.mjs` harnesses plus the gate runner. See
   `docs/TESTING.md`.

@@ -11,6 +11,12 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
+**Packaging status:** the existing `1.12.0-73` installer is superseded. It
+predates the Reports smoke repairs in `7b278be`; do not distribute or smoke it.
+The current source requires a new synchronized version and installer, followed
+by the whole-Reports installed Charlie Gate. `SMOKE-1.12.0-73.md` is retained
+only as the record of why that package was rejected.
+
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
 in **`docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md`**. Read the archive
