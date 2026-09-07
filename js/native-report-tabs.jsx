@@ -46,7 +46,13 @@ function PairedBand({ slots, cls = 'stats-two-col' }) {
 }
 
 export function OverviewTab({ stats, screen, gameLabels = null }) {
-  if (!stats.allPlays) return <EmptyState title="No charted data yet" body="Tag Play Type, Result, and Yardage to build the report. Add Down & Distance and Formation for situational tendencies." />;
+  /* Literal absence, not instruction. The previous body ("Tag Play Type,
+     Result, and Yardage to build the report...") told the coach how to use the
+     charting deck from inside a report; the approved Overview carries no such
+     prose, and the copy standard states the object and the available action.
+     Same shape the Players and Self-Scout boards already use. */
+  if (!stats.allPlays) return <EmptyState title="No charted plays" body="No plays are charted for this game."
+    action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
   const engine = screen.app.stats;
   const cut = (type, val, label) => () => screen.watchCut(type, val, label);
   const phase = view.snapsByPhase(stats);
