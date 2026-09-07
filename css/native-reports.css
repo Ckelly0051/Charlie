@@ -1105,6 +1105,115 @@
 .gi-reports [data-pane="overview"] .is-absent{color:var(--gi-bd-muted);font-weight:400}
 .gi-reports [data-pane="overview"] tr.is-absent:hover{background:transparent}
 .gi-reports [data-pane="overview"] .gi-overview-drive.is-absent>i{background:transparent}
+
+/* Big plays runs both directions, so each row states which side made it. The
+   marker is the module's own left inset, which no text occupies, so the colour
+   costs the row no width and the yardage column stays aligned. Colour is not
+   the only signal: ours sit under the offense rule, theirs under the defense
+   rule, and the row's own yardage is always readable without it. */
+.gi-reports [data-pane="overview"] tr.is-us>td:first-child,
+.gi-reports [data-pane="overview"] tr.is-them>td:first-child{position:relative;padding-left:12px}
+.gi-reports [data-pane="overview"] tr.is-us>td:first-child::before,
+.gi-reports [data-pane="overview"] tr.is-them>td:first-child::before{
+  content:"";position:absolute;inset:5px auto 5px 2px;width:4px;border-radius:1px}
+.gi-reports [data-pane="overview"] tr.is-us>td:first-child::before{background:var(--gi-bd-win)}
+.gi-reports [data-pane="overview"] tr.is-them>td:first-child::before{background:var(--gi-turnover)}
+/* The yardage carries the same colour as the row's marker. A 4px rule at the
+   module edge reads as chrome at a glance; the number is the thing a coach is
+   actually scanning, so it is where the side has to be unmistakable. */
+.gi-reports [data-pane="overview"] tr.is-us>td:last-child{color:var(--gi-bd-win)}
+.gi-reports [data-pane="overview"] tr.is-them>td:last-child{color:var(--gi-turnover)}
+
+/* The split bar and its legend sit directly on the table. The old 6px below
+   each plus the table's own leading stacked into a band of empty panel above
+   the first play type. */
+.gi-reports [data-pane="overview"] .gi-yards-split{margin:6px 0 4px}
+.gi-reports [data-pane="overview"] .gi-yards-legend{margin:0 0 2px}
+.gi-reports [data-pane="overview"] .gi-yards-legend + .stats-table-wrap table{margin-top:0}
+
+/* Every module in a band fills the band, so a short one paints its own panel
+   rather than leaving the band's rule colour showing as a slab. The rows keep
+   their own rhythm; only the panel grows. Same treatment the Special Teams
+   board carries, and it applies here for the same reason: these bands paint a
+   background, so `align-items:start` would show that background as a hole. */
+.gi-reports [data-pane="overview"] .gi-overview-band>.gi-overview-module,
+.gi-reports [data-pane="overview"] .gi-overview-support-stack>.gi-overview-module{
+  display:flex;flex-direction:column}
+.gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-rows,
+.gi-reports [data-pane="overview"] .gi-overview-module>table,
+.gi-reports [data-pane="overview"] .gi-overview-module>.stats-table-wrap,
+.gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-drives,
+.gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-tiles,
+.gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-lenses{flex:1}
+/* The PANEL fills the band; the ROWS keep their own rhythm. Stretching table
+   rows to fill was tried on the Defense board and rejected — it distorts the
+   row pitch to fill space, so one module's rows read at a different density
+   from its neighbour's in the same band. Filling the panel instead means a
+   short module paints its own surface rather than letting the band's rule
+   colour show through as a slab, which is what read as dead space. */
+/* The route-wide `th{position:sticky;top:42px}` is measured against whichever
+   ancestor scrolls, which pins every column label 42px down over its OWN first
+   data row — the same correction the Players and Special Teams boards needed.
+   These modules never scroll their own tables, so they opt out entirely. */
+.gi-reports [data-pane="overview"] .gi-overview-module th{position:static;top:auto}
+
+/* Horizontal breathing room. 12px put every first column hard against the
+   module's own accent rule and every right-aligned number hard against the
+   panel edge, on every module in every band. */
+.gi-reports [data-pane="overview"] .gi-overview-module{padding-inline:18px}
+.gi-reports [data-pane="overview"] .gi-overview-kpi{padding-inline:18px}
+
+/* Vertical rhythm in the tables. The header sat 5px off its first row while
+   the rows themselves carried the module's whole spare height between them;
+   giving the header real separation and the rows a real pitch spends that
+   height on legibility instead of leaving it at the bottom. */
+.gi-reports [data-pane="overview"] .gi-overview-module th{padding-bottom:11px}
+.gi-reports [data-pane="overview"] .gi-overview-module tbody tr>td{padding-block:9px}
+.gi-reports [data-pane="overview"] .gi-overview-module tbody tr:first-child>td{padding-top:12px}
+
+/* A play type with no snaps opens no film, so it carries no `cut-row` and lost
+   that class's left inset — `Deep Pass` sat a few pixels left of every type
+   above it. The inset belongs to the column, not to being clickable. */
+.gi-reports [data-pane="overview"] .gi-overview-module tbody td:first-child{padding-left:12px}
+
+/* The opponent's drives are our defensive performance, so their bars carry the
+   defensive colour. The track stays neutral: only the filled portion changes,
+   the same way the offensive module reads. */
+.gi-reports [data-pane="overview"] .gi-overview-drives.is-defense .gi-overview-drive>i>b{
+  background:var(--bd-cyan)}
+
+/* Situational and Key metrics are TILES, not rows: the comp centres each one
+   in its own cell and gives the value real weight, so the six read as a grid
+   of answers rather than a left-aligned list. The tiles also inherit the
+   module's new 18px inset through their negative margin, so it is restated
+   here rather than left to drift. */
+.gi-reports [data-pane="overview"] .gi-overview-tiles,
+.gi-reports [data-pane="overview"] .gi-overview-lenses{margin-inline:-18px}
+.gi-reports [data-pane="overview"] .gi-overview-tiles>div,
+.gi-reports [data-pane="overview"] .gi-overview-lenses>div{
+  align-items:center;text-align:center;padding:11px 10px 12px}
+.gi-reports [data-pane="overview"] .gi-overview-tiles strong{font-size:23px;font-weight:800}
+.gi-reports [data-pane="overview"] .gi-overview-lenses strong{font-size:25px;font-weight:800}
+.gi-reports [data-pane="overview"] .gi-overview-tiles small,
+.gi-reports [data-pane="overview"] .gi-overview-lenses small{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* An earlier `.gi-overview-support{align-items:start}` still applied, so Big
+   plays sat 14px short of the drives stack beside it and painted the band's
+   rule colour in the difference. Stated explicitly here rather than left to
+   cascade order between two rules that both target this band. */
+.gi-reports [data-pane="overview"] .gi-overview-band{align-items:stretch}
+
+/* A LABEL/VALUE list distributes its spare height across its own rows. This is
+   not the table-row stretching the Defense board rejected: those rows sit in a
+   multi-column table where an uneven pitch reads against its neighbours'
+   columns, while these are a plain list of measurements with nothing to align
+   to across the band. Six rows filling the panel is the module; six rows at
+   the top of an empty panel is the hole. */
+.gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-rows{
+  display:flex;flex-direction:column}
+.gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-rows>div{
+  flex:1;align-items:center;padding-inline:0}
 .gi-reports .gi-overview-production{border-left:3px solid var(--gi-bd-gold)}
 .gi-reports .gi-overview-support{border-left:3px solid var(--gi-bd-cyan)}
 @media(max-width:1100px){
@@ -1183,9 +1292,13 @@
 .gi-reports .gi-overview-band{display:grid;gap:1px;margin:0 0 4px;background:var(--bd-rule);border:0}
 .gi-reports .gi-overview-band:last-child{margin-bottom:0}
 .gi-reports .gi-overview-phase{grid-template-columns:340px 1fr 1fr}
-.gi-reports .gi-overview-production{grid-template-columns:1fr 1fr 1.15fr;align-items:start}
-.gi-reports .gi-overview-decisions{grid-template-columns:1.1fr 1fr}
-.gi-reports .gi-overview-support{grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);align-items:start}
+/* Four equal columns: ours and theirs, rushing and passing. Equal tracks are
+   the point — the two Rushing modules must be the same width for the row-for-
+   row comparison to read, and the same for the two Passing modules. */
+.gi-reports .gi-overview-production{grid-template-columns:repeat(4,minmax(0,1fr))}
+.gi-reports .gi-overview-decisions{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,.85fr)}
+.gi-reports .gi-overview-support{grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr)}
+.gi-reports .gi-overview-support-stack{grid-template-rows:1fr 1fr}
 .gi-reports .gi-overview-support-stack{display:grid;gap:1px;min-width:0;background:var(--bd-rule)}
 .gi-reports .gi-overview-support-stack>.gi-overview-module{border:0}
 .gi-reports .gi-overview-module{min-width:0;padding:8px 12px 10px;background:var(--bd-panel);border:0;position:relative}

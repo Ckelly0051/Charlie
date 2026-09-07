@@ -160,7 +160,7 @@ const EXPECTED = {
   },
   defenseRows: {
     'Yards / play allowed': def.length ? one(defYards / def.length) : '—',
-    'Explosives allowed': String(def.filter(isExplosive).length),
+    'Explosive Plays allowed': String(def.filter(isExplosive).length),
   },
 };
 
@@ -229,7 +229,9 @@ const b = await read();
 /* ── The approved composition, on real film ──────────────────────────────── */
 console.log('\n== Composition on the canonical season ==');
 const SECTIONS = ['Snaps by phase', 'Situational', 'Key metrics', 'Rushing', 'Passing',
-  'Yards by type', 'Down & distance', 'Game plan', 'Big plays', 'Drives', 'Defense & discipline'];
+  'Rushing allowed', 'Passing allowed',
+  'Down & distance', 'Yards by type', 'Defense & discipline',
+  'Big plays', 'Offensive Drives', 'Defensive Drives'];
 ok(JSON.stringify(b.sections) === JSON.stringify(SECTIONS),
   'the approved sections render in the approved order on real film', JSON.stringify(b.sections));
 ok(b.kpis.length === 7 && b.kpis[0].label === 'Total plays',
@@ -273,8 +275,8 @@ ok(b.metas['Rushing'] === `${EXPECTED.rushing.Attempts} attempts`
 console.log('\n== Copy on real film ==');
 ok(/^\d+ charted · \d+%$/.test(b.kpis[0].sub),
   'the Total plays sub keeps the approved middot form', JSON.stringify(b.kpis[0].sub));
-ok(/^\d+ drives · \d+ scored$/.test(b.metas['Drives']),
-  'the Drives meta keeps the approved middot form', JSON.stringify(b.metas['Drives']));
+ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
+  'the Drives meta keeps the approved middot form', JSON.stringify(b.metas['Offensive Drives']));
 const planText = b.text.split('Game plan')[1] || '';
 const prose = ['what this means', 'how to read', 'tag play type', 'to build the report']
   .filter(p => b.text.toLowerCase().replace(planText.toLowerCase(), '').includes(p));

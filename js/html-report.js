@@ -41,7 +41,7 @@ const defenseTables = report => {
     { label: 'Defensive snaps', value: report.total, sub: 'charted' },
     { label: 'Yards / play allowed', value: Number(report.summary.yardsPerPlay).toFixed(1), sub: 'all defensive snaps' },
     { label: 'Stop rate', value: `${report.summary.stopRate}%`, sub: `${report.summary.stops} stops` },
-    { label: 'Explosives allowed', value: report.summary.explosives, sub: `${report.summary.explosiveRate}%` },
+    { label: 'Explosive Plays allowed', value: report.summary.explosives, sub: `${report.summary.explosiveRate}%` },
     { label: 'Takeaways', value: report.takeaways, sub: 'defensive turnovers' },
     { label: 'Third-down stop', value: report.thirdDownStopRate == null ? '—' : `${report.thirdDownStopRate}%`, sub: 'charted third downs' },
   ]);

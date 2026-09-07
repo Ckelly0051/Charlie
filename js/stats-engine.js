@@ -377,7 +377,13 @@ export class StatsEngine {
       tendencies: this._tendencyStats(offPlays),
       bigPlays: this._bigPlays(offPlays),
       individuals: this._individualStats(individualSource),
-      drives: this._driveStats(offPlays),
+      drives: this._driveStats(offPlays, { all: plays }),
+      // Non-enumerable ON PURPOSE (defined after the literal, below): the
+      // ordered game list lets a caller measure the OPPONENT's drives with the
+      // same adjacency rule, but it is an input echoed back, not a result.
+      // Enumerable, it would enter every serialization of compute()'s output —
+      // the parity goldens, the analytics audit, the exports — as thousands of
+      // object paths that assert nothing.
       situational: this._situationalStats(offPlays),
       efficiency: this._efficiencyStats(offPlays),
       personnel: this._personnelStats(offPlays),
@@ -396,6 +402,7 @@ export class StatsEngine {
     const penalties = PenaltyModel.summarize(convSource);
     if (penalties.hasData) stats.penalties = penalties;
     stats.takeaways = this._generateTakeaways(stats);
+    Object.defineProperty(stats, 'orderedPlays', { value: plays, enumerable: false });
 
     return stats;
   }
@@ -475,7 +482,56 @@ export class StatsEngine {
     return hasYardage && hasDown && hasDistance;
   }
 
-  _driveStats(plays) {
+  /** How a drive ENDED, read off the play the game charted next.
+   *
+   *  A drive is reconstructed from one unit's snaps, so its last play is the
+   *  last SCRIMMAGE snap — never the punt or the field goal that ended the
+   *  possession, because those are charted as Special Teams. That is why a
+   *  punted drive used to end on "3rd & 8, No Gain" and report `Other`: the
+   *  evidence was in the game, one play later, and this function never looked.
+   *
+   *  Adjacency is the only signal used. Every branch reads the next play's own
+   *  charted kind, and nothing infers possession from `stType` perspective,
+   *  which `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md` §3 names as its central flaw
+   *  and which produced the legacy punt-block defect. A punt on either side of
+   *  the ball still ends this possession in a punt, so the label holds without
+   *  deciding whose punt team was on the field.
+   *
+   *  Anything the next play cannot settle stays `Other`, deliberately. */
+  static _driveEndFromNextPlay(last, context) {
+    const all = context?.all;
+    if (!last || !Array.isArray(all)) return null;
+    const idx = all.indexOf(last);
+    if (idx < 0) return idx === -1 ? null : null;
+    const next = all[idx + 1];
+    if (!next) return 'Clock';                     // nothing follows it: time expired
+    const tags = next.tags || {};
+    if (tags.unit !== 'special') {
+      // The other unit took the field with no kick between them, so possession
+      // changed on the snap itself. On fourth down that is a failed conversion;
+      // on any earlier down the charting does not say what happened.
+      const changed = (tags.unit || 'offense') !== (last.tags.unit || 'offense');
+      return changed && String(last.tags.down) === '4' ? 'Downs' : null;
+    }
+    const structured = SpecialTeamsModel.normalize(next.specialTeams);
+    const kind = structured?.unit || String(tags.stType || '');
+    const results = StatsEngine.splitResults(tags.result);
+    if (/punt/i.test(kind)) return 'Punt';
+    if (/field ?goal|^FG$/i.test(kind)) {
+      return results.includes('Good') || StatsEngine.isFieldGoalMade(next) ? 'FG' : 'Missed FG';
+    }
+    // A try or a kickoff can only follow a possession that put points on the
+    // board; the scoring branches above have already claimed those drives, so
+    // reaching here means the score was charted on the kick and not the snap.
+    if (/^XP$|extra ?point|2-?Pt|two ?point/i.test(kind)) return 'TD';
+    if (/kickoff|kick ?return/i.test(kind)) return 'Score';
+    return null;
+  }
+
+  /** `context.all` is the game's plays in charted order. It is OPTIONAL: with
+   *  no context every drive resolves exactly as it did before, so no existing
+   *  caller changes behavior by not passing it. */
+  _driveStats(plays, context = null) {
     const list = this._reconstructDrives(plays).map((dp, idx) => {
       const yards = dp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       const last = dp[dp.length - 1];
@@ -488,6 +544,7 @@ export class StatsEngine {
       else if (res.includes('Punt')) outcome = 'Punt';
       else if (StatsEngine.isGiveaway(last)) outcome = 'Turnover';
       else if (res.includes('Kneel')) outcome = 'Kneel';
+      else outcome = StatsEngine._driveEndFromNextPlay(last, context) || 'Other';
       const startYL = this._absYardLine(first.tags);
       const points = outcome === 'TD' ? 6 : outcome === 'FG' ? 3 : outcome === 'Safety' ? 2 : 0;
       let driveType = 'Other';
@@ -3933,6 +3990,50 @@ export class StatsEngine {
         || Number(a.down) - Number(b.down)
         || StatsEngine.DIST_BUCKETS.indexOf(a.bucket) - StatsEngine.DIST_BUCKETS.indexOf(b.bucket))
       .slice(0, limit);
+  }
+
+  /** What the OPPONENT produced on our defensive snaps — the same rushing,
+   *  passing and drive formulas, over the defensive cohort. A defensive play
+   *  records what their offense did, and every alignment field is already
+   *  stored from the offense's perspective, so no second formula exists and
+   *  none is introduced: `_rushingStats`, `_passingStats` and `_driveStats`
+   *  are cohort-generic and are called here unchanged. Read as ALLOWED. */
+  opponentProduction(defPlays, allPlays = null) {
+    const plays = defPlays || [];
+    return {
+      rushing: this._rushingStats(plays),
+      passing: this._passingStats(plays),
+      // The full game in charted order, so a drive we forced to a punt reads
+      // as a punt rather than as the last snap before it.
+      drives: this._driveStats(plays, { all: allPlays || plays }),
+    };
+  }
+
+  /** The canonical Overview play-type set. The comp's Yards by type module is a
+   *  FIXED list, so the types are enumerated rather than taken from whatever a
+   *  game happened to chart — a type with no snaps reads 0, which is a real
+   *  fact about the call sheet, not an absence. Order is run, pass by depth,
+   *  then RPO, which is how a coach reads a call sheet. */
+  static OVERVIEW_PLAY_TYPES = ['Run Inside', 'Run Outside', 'Short Pass', 'Medium Pass', 'Deep Pass', 'RPO'];
+
+  /** The N longest gains across BOTH cohorts, ranked, each tagged with the side
+   *  that produced it. Our offensive snaps are ours; our defensive snaps are
+   *  the opponent's offense. Ties break on play order, then ours first, so the
+   *  list is deterministic when the same yardage appears on both sides. */
+  static topPlaysBothSides(offPlays, defPlays, limit) {
+    const tag = (plays, side) => (plays || []).map((p, order) => ({ p, side, order }));
+    return [...tag(offPlays, 'us'), ...tag(defPlays, 'them')]
+      .map(e => ({ ...e, yds: parseInt(e.p.tags.yardage, 10) || 0 }))
+      .sort((a, b) => b.yds - a.yds || a.order - b.order || (a.side === 'us' ? -1 : 1))
+      .slice(0, limit)
+      .map(({ p, side }) => ({
+        id: p.id, side,
+        type: p.tags.playType,
+        result: p.tags.result,
+        yards: p.tags.yardage,
+        clipName: p.clipName || `Play ${p.id}`,
+        ref: StatsEngine._compositeRef(p),
+      }));
   }
 
   /** The N longest offensive gains, ranked. This is NOT `_bigPlays`, which is

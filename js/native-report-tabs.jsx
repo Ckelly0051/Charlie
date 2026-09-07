@@ -56,11 +56,9 @@ function PairedBand({ slots, cls = 'stats-two-col' }) {
    need the count stated because their source can supply more or fewer, and
    ranking is what decides which entries occupy the fixed rows. */
 const OVERVIEW_ROWS = {
-  'Yards by type': 5,
   'Down & distance': 5,
-  'Game plan': 3,      // per column: what's working, what to fix
-  'Big plays': 5,
-  'Drives': 8,
+  'Big plays': 10,     // both sides of the ball, ranked together
+  'Drives': 8,         // per drives module: ours, and theirs
 };
 
 export function OverviewTab({ stats, screen, gameLabels = null }) {
@@ -75,11 +73,21 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
   const cut = (type, val, label) => () => screen.watchCut(type, val, label);
   const phase = view.snapsByPhase(stats);
   const tiles = view.situationalTiles(stats).map(t => ({ ...t, onActivate: t.plays ? cut(t.cutType, t.cutVal, t.cutLabel) : undefined }));
-  const yards = view.yardsByType(stats, OVERVIEW_ROWS['Yards by type']);
+  const yards = view.yardsByType(stats, engine);
   const dd = view.downDistanceRows(stats, engine, OVERVIEW_ROWS['Down & distance']);
-  const plan = view.gamePlan(stats, OVERVIEW_ROWS['Game plan']);
   const bigPlays = view.bigPlaysRows(stats, engine, gameLabels, OVERVIEW_ROWS['Big plays']);
   const drives = view.drivesRows(stats, gameLabels, OVERVIEW_ROWS['Drives']);
+  const drivesAllowed = view.opponentDrivesRows(stats, engine, gameLabels, OVERVIEW_ROWS['Drives']);
+  const oppRush = view.opponentRushingRows(stats, engine);
+  const oppPass = view.opponentPassingRows(stats, engine);
+  const driveList = rows => rows.map((drive, i) => drive.absent
+    ? <div key={`absent-${i}`} class="gi-overview-drive is-absent"><span /><i /><small>{drive.outcome}</small></div>
+    : <Watchable key={`${drive.number}-${drive.refs[0] || ''}`} class="gi-overview-drive" onActivate={() => {
+      if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
+      else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
+    }} label={`Drive ${drive.number}`}>
+      <span>D{drive.number}{drive.game && <em>{drive.game}</em>}</span><i><b style={`--w:${drive.widthPct}%`} /></i><small>{drive.outcome}</small>
+    </Watchable>);
 
   return <div class="gi-overview-board">
     <KpiBand items={view.overviewKpis(stats)} />
@@ -95,18 +103,17 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
         <div class="gi-overview-lenses">{view.keyMetrics(stats).map(([label, value, sub]) => <div key={label}><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>)}</div>
       </Module>
     </div>
-    <div class="gi-overview-band gi-overview-band-3 gi-overview-production">
+    {/* Four modules, one comparison: our production beside what we allowed.
+        A defensive snap records the opponent's offense, so the same rushing
+        and passing formulas measure both sides and the rows line up label for
+        label. Offense first on each row, defense beneath it. */}
+    <div class="gi-overview-band gi-overview-band-4 gi-overview-production">
       <Module title="Rushing" meta={view.rushingRows(stats).meta} cls="is-offense"><RowList rows={view.rushingRows(stats).rows} /></Module>
       <Module title="Passing" meta={view.passingRows(stats).meta} cls="is-offense"><RowList rows={view.passingRows(stats).rows} /></Module>
-      <Module title="Yards by type" meta={`${yards.total} total`} cls="is-offense">
-        <div class="gi-yards-split"><i style={`--n:${yards.rushWidth}`} /><i style={`--n:${yards.passWidth}`} /></div>
-        <div class="gi-yards-legend"><span>Rush {yards.rush}</span><span>Pass {yards.pass}</span></div>
-        <DataTable columns={[
-          { key: 'name', label: 'Play type' }, { key: 'snaps', label: 'Snaps', numeric: true }, { key: 'ypp', label: 'Yds/play', numeric: true }, { key: 'success', label: 'Success' },
-        ]} rows={yards.rows.map(row => ({ ...row, onActivate: cut(row.cutType, row.cutVal, row.cutLabel), label: row.cutLabel }))} />
-      </Module>
+      <Module title="Rushing allowed" meta={oppRush.meta} cls="is-defense"><RowList rows={oppRush.rows} /></Module>
+      <Module title="Passing allowed" meta={oppPass.meta} cls="is-defense"><RowList rows={oppPass.rows} /></Module>
     </div>
-    <div class="gi-overview-band gi-overview-band-2 gi-overview-decisions">
+    <div class="gi-overview-band gi-overview-band-3 gi-overview-decisions">
       <Module title="Down &amp; distance" meta="run/pass mix and production">
         <table><thead><tr><th>Situation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Success</th><th>Conv</th></tr></thead><tbody>
           {dd.map((row, i) => row.absent
@@ -118,13 +125,16 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
           </Watchable>)}
         </tbody></table>
       </Module>
-      <Module title="Game plan" meta="what the tags say" cls="is-plan">
-        <div class="gi-overview-plan is-good">{plan.working.map((item, i) => <p key={i} class={item.absent ? 'is-absent' : item.cut ? 'cut-row' : ''}
-          onClick={item.cut ? cut(item.cut[0], item.cut[1], 'Game plan') : undefined}
-          tabIndex={item.cut ? 0 : undefined} role={item.cut ? 'button' : undefined}>{item.text}</p>)}</div>
-        <div class="gi-overview-plan is-fix">{plan.fix.map((item, i) => <p key={i} class={item.absent ? 'is-absent' : item.cut ? 'cut-row' : ''}
-          onClick={item.cut ? cut(item.cut[0], item.cut[1], 'Game plan') : undefined}
-          tabIndex={item.cut ? 0 : undefined} role={item.cut ? 'button' : undefined}>{item.text}</p>)}</div>
+      <Module title="Yards by type" meta={`${yards.total} total${yards.other ? ` · ${yards.other} other` : ''}`} cls="is-offense">
+        <div class="gi-yards-split"><i style={`--n:${yards.rushWidth}`} /><i style={`--n:${yards.passWidth}`} /></div>
+        <div class="gi-yards-legend"><span>Rush {yards.rush}</span><span>Pass {yards.pass}</span></div>
+        <DataTable columns={[
+          { key: 'name', label: 'Play type' }, { key: 'snaps', label: 'Snaps', numeric: true }, { key: 'ypp', label: 'Yds/play', numeric: true }, { key: 'success', label: 'Success' },
+        ]} rows={yards.rows.map(row => ({ ...row,
+          onActivate: row.plays ? cut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
+      </Module>
+      <Module title="Defense &amp; discipline" meta={view.defenseDisciplineRows(stats, engine).meta} cls="is-defense">
+        <RowList rows={view.defenseDisciplineRows(stats, engine).rows} />
       </Module>
     </div>
     <div class="gi-overview-band gi-overview-support">
@@ -132,25 +142,20 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
         <table><thead><tr>{gameLabels&&<th>Game</th>}<th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
           {bigPlays.map((play, i) => play.absent
             ? <tr key={`absent-${i}`} class="is-absent">{gameLabels&&<td />}<td /><td>{play.situation}</td><td colSpan="2" /></tr>
-            : <Watchable key={play.ref || play.id} tag="tr" onActivate={() => play.ref ? screen.watchRefs([play.ref], `Play ${play.id}`) : screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
+            : <Watchable key={play.ref || play.id} tag="tr" class={play.side === 'them' ? 'is-them' : 'is-us'} onActivate={() => play.ref ? screen.watchRefs([play.ref], `Play ${play.id}`) : screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
             {gameLabels&&<td>{play.game}</td>}<td>{play.id}</td><td>{play.situation}</td><td>{play.call}</td><td>{play.yards}</td>
           </Watchable>)}
         </tbody></table>
       </Module>
       <div class="gi-overview-support-stack">
-        {/* Middot, per the approved Overview ("12 drives · 5 scored"). */}
-        <Module title="Drives" meta={`${drives.total} drives · ${drives.scoring} scored`}>
-          <div class="gi-overview-drives">{drives.rows.map((drive, i) => drive.absent
-            ? <div key={`absent-${i}`} class="gi-overview-drive is-absent"><span /><i /><small>{drive.outcome}</small></div>
-            : <Watchable key={`${drive.number}-${drive.refs[0]||''}`} class="gi-overview-drive" onActivate={() => {
-            if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
-            else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
-          }} label={`Drive ${drive.number}`}>
-            <span>D{drive.number}{drive.game&&<em>{drive.game}</em>}</span><i><b style={`--w:${drive.widthPct}%`} /></i><small>{drive.outcome}</small>
-          </Watchable>)}</div>
+        {/* Middot, per the approved Overview ("12 drives · 5 scored"). Ours on
+            top, theirs beneath: the opponent's drives ARE our defensive
+            performance, reconstructed from the same snaps by the same rule. */}
+        <Module title="Offensive Drives" meta={`${drives.total} drives · ${drives.scoring} scored`} cls="is-offense">
+          <div class="gi-overview-drives">{driveList(drives.rows)}</div>
         </Module>
-        <Module title="Defense &amp; discipline" meta={view.defenseDisciplineRows(stats, engine).meta} cls="is-defense">
-          <RowList rows={view.defenseDisciplineRows(stats, engine).rows} />
+        <Module title="Defensive Drives" meta={`${drivesAllowed.total} drives · ${drivesAllowed.scoring} scored`} cls="is-defense">
+          <div class="gi-overview-drives is-defense">{driveList(drivesAllowed.rows)}</div>
         </Module>
       </div>
     </div>
@@ -1162,7 +1167,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         <div class="gi-def-kpi"><span>Yards / play allowed</span><strong>{report.summary.yardsPerPlay.toFixed(1)}</strong></div>
         <div class="gi-def-kpi"><span>Havoc rate</span><strong>{pct(report.summary.havocRate)}</strong><small>{d.havocPlays ?? 0} snaps</small></div>
         <div class="gi-def-kpi"><span>Takeaways</span><strong>{report.takeaways}</strong><small>{d.interceptions ?? 0} INT, {d.fumblesRecovered ?? 0} FR</small></div>
-        <div class="gi-def-kpi"><span>Explosives allowed</span><strong>{report.summary.explosives}</strong><small>{report.summary.explosiveRate}%</small></div>
+        <div class="gi-def-kpi"><span>Explosive Plays allowed</span><strong>{report.summary.explosives}</strong><small>{report.summary.explosiveRate}%</small></div>
         <div class="gi-def-kpi"><span>3rd down stop</span><strong>{pct(report.thirdDownStopRate)}</strong></div>
         <div class="gi-def-kpi"><span>Red zone TD rate</span><strong>{pct(report.redZoneTdRate)}</strong></div>
         <div class="gi-def-kpi"><span>Defensive snaps</span><strong>{report.total}</strong></div>

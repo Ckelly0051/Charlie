@@ -25,7 +25,7 @@ export function overviewKpis(stats) {
     { label: 'Total plays', value: stats.allPlays, sub: `${stats.allPlays} charted · 100%` },
     { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successfulPlays || 0} successful snaps`, cls: 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
-    { label: 'Explosives', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
+    { label: 'Explosive Plays', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
     { label: 'Turnovers', value: giveaways, sub: 'giveaways' },
     { label: 'Plays for loss', value: stats.efficiency.negativePlays, sub: `${stats.efficiency.negativePct}% of snaps` },
     { label: 'Penalties', value: penalty.hasData ? penalty.accepted : 0, sub: penalty.hasData ? `${penalty.subjectYards} yards accepted` : 'none charted' },
@@ -73,7 +73,7 @@ export function keyMetrics(stats) {
   const redZone = stats.situational.redZone;
   return [
     ['Efficiency', `${stats.efficiency.successRate}%`, 'Success rate'],
-    ['Explosive', stats.efficiency.explosivePlays, `${stats.efficiency.explosivePct}% of snaps`],
+    ['Explosive Plays', stats.efficiency.explosivePlays, `${stats.efficiency.explosivePct}% of snaps`],
     ['Situational', redZone.total ? `${redZone.successPct}%` : '—', redZone.total ? 'Red-zone success' : 'No red-zone snaps'],
     ['Tendencies', topFormation ? `${Math.round(topFormation.runs / topFormation.count * 100)}%` : '—', topFormation ? `${topFormation.name} run rate` : 'No formation sample'],
     ['Negative', stats.efficiency.negativePlays, `${stats.efficiency.negativePct}% of snaps`],
@@ -107,18 +107,55 @@ export function padRows(rows, limit, key) {
   while (out.length < limit) out.push({ absent: true, class: 'is-absent', [key]: 'No data' });
   return out;
 }
-export function yardsByType(stats, limit = 5) {
+/** Rushing and Passing for the OPPONENT's offense, measured on our defensive
+ *  snaps. Same rows, same order, same labels as our own two modules, so the
+ *  four read as one comparison — with `allowed` in the meta so a number can
+ *  never be mistaken for our own production. */
+export function opponentRushingRows(stats, statsEngine) {
+  const r = statsEngine.opponentProduction(stats.defPlays, stats.orderedPlays).rushing;
+  return { meta: `${r.attempts} attempts allowed`, rows: [
+    ['Attempts', r.attempts], ['Yards', r.yards], ['Average', r.average], ['Touchdowns', r.touchdowns],
+    ['Longest', r.longest], ['First downs', r.firstDowns], ['Fumbles', r.fumbles, 'is-good'],
+  ] };
+}
+
+export function opponentPassingRows(stats, statsEngine) {
+  const p = statsEngine.opponentProduction(stats.defPlays, stats.orderedPlays).passing;
+  return { meta: `${p.attempts} attempts allowed`, rows: [
+    ['Completions / attempts', `${p.completions} / ${p.attempts}`], ['Completion rate', `${p.completionPct}%`],
+    ['Yards', p.yards], ['Yards / attempt', p.average], ['Touchdowns', p.touchdowns],
+    ['Interceptions', p.interceptions, 'is-good'], ['Longest', p.longest], ['Sacks', p.sacks, 'is-good'],
+  ] };
+}
+
+/** The FIXED play-type list — exactly the six `StatsEngine` enumerates, every
+ *  game. A type the game never called reads `0`, which is a real fact about the
+ *  call sheet and not an absence, so it keeps its number rather than dropping
+ *  to `No data`. The module is therefore the same six rows on every game.
+ *
+ *  `other` counts snaps charted as a type outside the six, so the module can
+ *  state that they exist without a variable row growing the board. Offense
+ *  remains the report for the full type vocabulary. */
+export function yardsByType(stats, statsEngine) {
   const total = stats.rushing.yards + stats.passing.yards;
-  const playTypes = (stats.tendencies.playTypeList || []).slice(0, limit);
+  const charted = new Map((stats.tendencies.playTypeList || []).map(row => [row.name, row]));
+  const canonical = statsEngine.constructor.OVERVIEW_PLAY_TYPES;
+  const other = [...charted.entries()]
+    .filter(([name]) => !canonical.includes(name))
+    .reduce((sum, [, row]) => sum + row.count, 0);
+  const playTypes = canonical.map(name => charted.get(name)
+    || { name, count: 0, avg: '0.0', successPct: 0 });
   return {
+    other,
     total,
     // The split bar's width can never be negative; the legend text shows the
     // real (possibly negative) yardage — same distinction the original
     // template drew between its `--n` CSS var and its displayed number.
     rushWidth: Math.max(0, stats.rushing.yards), passWidth: Math.max(0, stats.passing.yards),
     rush: stats.rushing.yards, pass: stats.passing.yards,
-    rows: padRows(playTypes.map(row => ({ name: row.name, snaps: row.count, ypp: row.avg, success: `${row.successPct}%`,
-      cutType: 'playType', cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays` })), limit, 'name'),
+    rows: playTypes.map(row => ({ name: row.name, snaps: row.count, ypp: row.avg, success: `${row.successPct}%`,
+      plays: row.count,
+      cutType: 'playType', cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays` })),
   };
 }
 
@@ -144,14 +181,28 @@ export function gamePlan(stats, limit = 3) {
   return { working: list(t.working), fix: list(t.fix) };
 }
 
-export function bigPlaysRows(stats, statsEngine, gameLabels = null, limit = 5) {
-  const playsById = new Map((stats.offPlays || []).map(play => [statsEngine.constructor._compositeRef(play) || String(play.id), play]));
-  const ranked = statsEngine.constructor.topPlaysByYards(stats.offPlays, limit).map(play => {
-    const source = playsById.get(play.ref || String(play.id));
+/** The longest gains on the FIELD, both directions. Our offensive snaps are
+ *  ours; our defensive snaps are the opponent's offense, so a long run we gave
+ *  up belongs on this list beside a long run we broke. `side` carries which,
+ *  and drives the row's colour — the two are never merged into one number. */
+export function bigPlaysRows(stats, statsEngine, gameLabels = null, limit = 10) {
+  const byRef = new Map([...(stats.offPlays || []), ...(stats.defPlays || [])]
+    .map(play => [statsEngine.constructor._compositeRef(play) || String(play.id), play]));
+  const ranked = statsEngine.constructor.topPlaysBothSides(stats.offPlays, stats.defPlays, limit).map(play => {
+    const source = byRef.get(play.ref || String(play.id));
     const gameId = play.ref?.split('::')[0] || '';
-    return { id: play.id, ref: play.ref || null, game: gameLabels?.[gameId] || '', situation: statsEngine.constructor.situationLabel(source) || '—', call: play.type || '—', yards: play.yards };
+    return { id: play.id, ref: play.ref || null, side: play.side, game: gameLabels?.[gameId] || '',
+      situation: statsEngine.constructor.situationLabel(source) || '—', call: play.type || '—', yards: play.yards };
   });
   return padRows(ranked, limit, 'situation');
+}
+
+/** The opponent's own drives, reconstructed from our defensive snaps by the
+ *  same `_driveStats` the offensive module uses. Read as drives ALLOWED: a
+ *  scoring drive here is one we surrendered. */
+export function opponentDrivesRows(stats, statsEngine, gameLabels = null, limit = 8) {
+  const allowed = statsEngine.opponentProduction(stats.defPlays, stats.orderedPlays).drives;
+  return drivesRows({ drives: allowed }, gameLabels, limit);
 }
 
 export function drivesRows(stats, gameLabels = null, limit = 8) {
@@ -529,7 +580,7 @@ export function defenseDisciplineRows(stats, statsEngine) {
   return { meta: `${def} defensive snaps`, rows: [
     ['Yards / play allowed', def ? (yards / def).toFixed(1) : '—'],
     ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'],
-    ['Explosives allowed', explosives, explosives ? '' : 'is-good'],
+    ['Explosive Plays allowed', explosives, explosives ? '' : 'is-good'],
     ['Takeaways', stats.defensive.turnovers],
     // Middot, per the approved Overview ("1 · 10 yds").
     ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],

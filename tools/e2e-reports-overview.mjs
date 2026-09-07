@@ -48,27 +48,27 @@ const CANON_DIR = 'design-comps/visual-reset-2026-08/part2-verification/charlie-
 
 const SECTIONS = [
   'Snaps by phase', 'Situational', 'Key metrics',
-  'Rushing', 'Passing', 'Yards by type',
-  'Down & distance', 'Game plan',
-  'Big plays', 'Drives', 'Defense & discipline',
+  'Rushing', 'Passing', 'Rushing allowed', 'Passing allowed',
+  'Down & distance', 'Yards by type', 'Defense & discipline',
+  'Big plays', 'Offensive Drives', 'Defensive Drives',
 ];
 const FIXED_METAS = {
   'Situational': 'each tile opens film',
   'Key metrics': 'five coaching lenses',
   'Down & distance': 'run/pass mix and production',
-  'Game plan': 'what the tags say',
+
 };
-const KPIS = ['Total plays', 'Success rate', 'Yards / play', 'Explosives',
+const KPIS = ['Total plays', 'Success rate', 'Yards / play', 'Explosive Plays',
   'Turnovers', 'Plays for loss', 'Penalties'];
 const SITUATIONAL_TILES = ['Red zone', 'Goal line', 'Third down',
   '3rd & long', '3rd & short', 'Backed up'];
-const KEY_METRICS = ['Efficiency', 'Explosive', 'Situational',
+const KEY_METRICS = ['Efficiency', 'Explosive Plays', 'Situational',
   'Tendencies', 'Negative', 'Points / drive'];
 const RUSHING_ROWS = ['Attempts', 'Yards', 'Average', 'Touchdowns', 'Longest',
   'First downs', 'Fumbles'];
 const PASSING_ROWS = ['Completions / attempts', 'Completion rate', 'Yards',
   'Yards / attempt', 'Touchdowns', 'Interceptions', 'Longest', 'Sacks taken'];
-const DEFENSE_ROWS = ['Yards / play allowed', 'Stop rate', 'Explosives allowed',
+const DEFENSE_ROWS = ['Yards / play allowed', 'Stop rate', 'Explosive Plays allowed',
   'Takeaways', 'Penalties accepted', 'Penalties declined'];
 const COLUMNS = {
   'Snaps by phase': ['Phase', 'Snaps', 'Share', 'Yds/play'],
@@ -82,7 +82,7 @@ const FORBIDDEN_SECTIONS = ['Offensive identity', 'Play calls', 'Formations',
   'Predictability', 'Recommendations', 'Film Room Insights', 'Game Log',
   'Early vs Recent', 'Wins vs Losses', 'Opponent Offense', 'Scheme',
   'Production by Play Type', 'Progression', 'Coaching Recommendations'];
-/** Explanatory prose the approved Overview does not carry, scanned over the
+/** Explanatory prose the approved Overview does not carry, scanned BOARD-WIDE.
  *  board EXCEPT Game plan. Game plan is the one surface the approved artifact
  *  lets speak — its meta is "what the tags say" and its canonical lines include
  *  "mix in a draw or screen". Banning advisory wording there would contradict
@@ -194,36 +194,39 @@ const EXPECTED = {
   explosives: RUSHES.filter(r => r[3] >= 12).length + PASSES.filter(p => p[3] >= 16).length,
   negative: OFF.filter(p => p[3] < 0).length,
   successes: OFF.filter(success).length,
-  /** The five most-charted play types, count descending. */
+  /** The FIXED six play types, in the engine's own order, every game. A type
+   *  the fixture never calls reads 0 rather than dropping out — that is what
+   *  makes the row count independent of what was charted, and it is the whole
+   *  point of the module. `Play Action` is charted here and is NOT one of the
+   *  six, so it must not appear: it is counted in the header's "other" instead. */
   playTypes: (() => {
     const by = new Map();
     for (const p of OFF) {
       if (!by.has(p[0])) by.set(p[0], []);
       by.get(p[0]).push(p);
     }
-    return [...by.entries()]
-      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
-      .slice(0, 5)
+    return ['Run Inside', 'Run Outside', 'Short Pass', 'Medium Pass', 'Deep Pass', 'RPO']
+      .map(name => [name, by.get(name) || []])
       .map(([name, rows]) => ({
         name, snaps: rows.length,
-        ypp: one(sum(rows, r => r[3]) / rows.length),
-        success: `${Math.round(rows.filter(success).length / rows.length * 100)}%`,
+        ypp: rows.length ? one(sum(rows, r => r[3]) / rows.length) : '0.0',
+        success: rows.length ? `${Math.round(rows.filter(success).length / rows.length * 100)}%` : '0%',
       }));
   })(),
-  /** The approved composition's Big plays module is a FIXED-length leaderboard:
-   *  the five longest offensive gains, ranked, ties broken by play order.
+  /** Big plays is a FIXED-length leaderboard over BOTH sides of the ball: the
+   *  ten longest gains on the field, ours and the opponent's, ranked together.
    *  Deliberately NOT `_bigPlays` — that is the canonical explosive cohort (a
    *  20-yard gain or a touchdown, in play order) and stays the threshold the
-   *  Explosives KPI counts. The comp's own fixture lists five 18-yard gains,
-   *  below the explosive threshold, which the threshold cohort cannot produce.
-   *  Rushes are pushed before passes, so equal yardage keeps that sequence. */
-  bigPlays: OFF.map((p, order) => ({ p, order }))
-    .sort((a, b) => b.p[3] - a.p[3] || a.order - b.order)
-    .slice(0, 5).map(({ p }) => ({ yards: String(p[3]), call: p[0] })),
+   *  Explosive Plays KPI counts. Ties break on play order, then ours first, and
+   *  the offensive fixture is emitted before the defensive one. */
+  bigPlays: [...OFF.map((p, order) => ({ y: p[3], call: p[0], order, us: true })),
+    ...DEFENSE.map((d, order) => ({ y: d[2], call: d[0], order, us: false }))]
+    .sort((a, b) => b.y - a.y || a.order - b.order || (a.us ? -1 : 1))
+    .slice(0, 10).map(e => ({ yards: String(e.y), call: e.call })),
   defense: {
     'Yards / play allowed': one(sum(DEFENSE, d => d[2]) / DEFENSE.length),
     Takeaways: String(DEFENSE.filter(d => d[3] === 'Interception').length),
-    'Explosives allowed': String(DEFENSE.filter(d => (d[1] === 'Run' ? d[2] >= 12 : d[2] >= 16)).length),
+    'Explosive Plays allowed': String(DEFENSE.filter(d => (d[1] === 'Run' ? d[2] >= 12 : d[2] >= 16)).length),
     'Penalties declined': '0',
   },
 };
@@ -335,12 +338,14 @@ const board = () => page.evaluate(() => {
     situational: tiles('.gi-overview-tiles > *'),
     keyMetrics: tiles('.gi-overview-lenses > div'),
     rushing: rowPairs('Rushing'), passing: rowPairs('Passing'),
+    rushingAllowed: rowPairs('Rushing allowed'), passingAllowed: rowPairs('Passing allowed'),
     defenseRows: rowPairs('Defense & discipline'),
     phase: tableRows('Snaps by phase'),
     yardsByType: tableRows('Yards by type'),
     downDistance: tableRows('Down & distance'),
     bigPlays: tableRows('Big plays'),
-    driveChips: [...(pane?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
+    driveChips: [...(byTitle('Offensive Drives')?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
+    defDriveChips: [...(byTitle('Defensive Drives')?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
     planItems: [...(pane?.querySelectorAll('.gi-overview-plan p') || [])].map(n => n.textContent.trim()),
     absentRows: [...(pane?.querySelectorAll('.is-absent') || [])].map(n => ({
       text: n.textContent.trim(),
@@ -404,13 +409,13 @@ for (const [name, meta] of Object.entries(FIXED_METAS)) {
 }
 ok(/^\d+ charted · \d+%$/.test(b.kpis[0].sub),
   'the Total plays sub uses the approved "charted · 100%" form', JSON.stringify(b.kpis[0].sub));
-ok(/^\d+ drives · \d+ scored$/.test(b.metas['Drives']),
-  'the Drives meta uses the approved "N drives · M scored" form', JSON.stringify(b.metas['Drives']));
+ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']) && /^\d+ drives · \d+ scored$/.test(b.metas['Defensive Drives']),
+  'the Drives meta uses the approved "N drives · M scored" form', JSON.stringify(b.metas['Offensive Drives']));
 ok(/^\d+ · \d+ yds$/.test(b.defenseRows['Penalties accepted']),
   'Penalties accepted uses the approved "N · Y yds" form', JSON.stringify(b.defenseRows['Penalties accepted']));
 ok(/^\d+ attempts$/.test(b.metas['Rushing']) && /^\d+ attempts$/.test(b.metas['Passing']),
   'Rushing and Passing state their sample as "N attempts"', JSON.stringify([b.metas['Rushing'], b.metas['Passing']]));
-ok(/^\d+ total$/.test(b.metas['Snaps by phase']) && /^\d+ total$/.test(b.metas['Yards by type'])
+ok(/^\d+ total$/.test(b.metas['Snaps by phase']) && /^\d+ total( · \d+ other)?$/.test(b.metas['Yards by type'])
   && /^\d+ total$/.test(b.metas['Big plays']),
   'Snaps by phase, Yards by type and Big plays state their sample as "N total"',
   JSON.stringify([b.metas['Snaps by phase'], b.metas['Yards by type'], b.metas['Big plays']]));
@@ -421,10 +426,10 @@ ok(/^\d+ defensive snaps$/.test(b.metas['Defense & discipline']),
 console.log('\n== 5. No unapproved explanatory prose ==');
 const wordy = Object.values(b.metas).filter(Boolean).filter(m => m.split(/\s+/).length > 5 || /[.!?]$/.test(m));
 ok(wordy.length === 0, 'no module header carries an explanatory sentence', JSON.stringify(wordy));
-const prose = FORBIDDEN_PROSE.filter(p => b.textOutsidePlan.toLowerCase().includes(p));
+const prose = FORBIDDEN_PROSE.filter(p => b.text.toLowerCase().includes(p));
 ok(prose.length === 0, 'no instructional or interpretive prose renders outside Game plan', JSON.stringify(prose));
-ok(b.sections.includes('Game plan'),
-  'Game plan is present, so the prose exemption above is scoped to a real module');
+ok(!b.sections.includes('Game plan'),
+  'Game plan no longer renders, so the prose scan above needs no exemption');
 
 /* ══ 6. Output parity — every value, against arithmetic done here ════════ */
 console.log('\n== 6. Output parity against independent arithmetic ==');
@@ -452,9 +457,9 @@ ok(eq(b.phase, phaseExpected), 'Snaps by phase reports each phase\'s own snaps, 
   JSON.stringify(b.phase));
 const yardsExpected = EXPECTED.playTypes.map(t => [t.name, String(t.snaps), t.ypp, t.success]);
 ok(eq(b.yardsByType, yardsExpected),
-  'Yards by type lists the five most-charted types with their own production', JSON.stringify(b.yardsByType));
+  'Yards by type lists the fixed six play types with their own production', JSON.stringify(b.yardsByType));
 ok(eq(b.bigPlays.map(r => r[r.length - 1]), EXPECTED.bigPlays.map(p => p.yards)),
-  'Big plays ranks the five longest gains, ties broken by play order',
+  'Big plays ranks the ten longest gains on the field, ties broken by play order',
   JSON.stringify(b.bigPlays.map(r => r[r.length - 1])));
 /* The ranking must be a RANKING, not a threshold that happens to return five.
    Descending yardage is the property a re-slice of `_bigPlays` would fail. */
@@ -476,16 +481,18 @@ ok(eq(b.bigPlays.map(r => r[2]), EXPECTED.bigPlays.map(p => p.call)),
    module short of its count is the defect; a module over it is drift. */
 const SCHEMA = {
   'Snaps by phase': 3, Situational: 6, 'Key metrics': 6,
-  Rushing: 7, Passing: 8, 'Yards by type': 5,
-  'Down & distance': 5, 'Game plan': 6, 'Big plays': 5,
-  Drives: 8, 'Defense & discipline': 6,
+  Rushing: 7, Passing: 8, 'Rushing allowed': 7, 'Passing allowed': 8,
+  'Down & distance': 5, 'Yards by type': 6, 'Defense & discipline': 6,
+  'Big plays': 10, 'Offensive Drives': 8, 'Defensive Drives': 8,
 };
 const measured = {
   'Snaps by phase': b.phase.length, Situational: b.situational.length, 'Key metrics': b.keyMetrics.length,
   Rushing: Object.keys(b.rushing).length, Passing: Object.keys(b.passing).length,
+  'Rushing allowed': Object.keys(b.rushingAllowed).length, 'Passing allowed': Object.keys(b.passingAllowed).length,
   'Yards by type': b.yardsByType.length,
-  'Down & distance': b.downDistance.length, 'Game plan': b.planItems.length, 'Big plays': b.bigPlays.length,
-  Drives: b.driveChips.length, 'Defense & discipline': Object.keys(b.defenseRows).length,
+  'Down & distance': b.downDistance.length, 'Big plays': b.bigPlays.length,
+  'Offensive Drives': b.driveChips.length, 'Defensive Drives': b.defDriveChips.length,
+  'Defense & discipline': Object.keys(b.defenseRows).length,
 };
 for (const [module, count] of Object.entries(SCHEMA)) {
   ok(measured[module] === count,
@@ -508,10 +515,10 @@ const ddSplits = b.downDistance.map(r => r[2].match(/(\d+)\s*\/\s*(\d+)/)).filte
 ok(ddSplits.length === b.downDistance.length && ddSplits.every(v => v === 100),
   'every Down & distance run/pass split is a whole', JSON.stringify(ddSplits));
 /* Drives likewise: the meta must reconcile with what the module renders. */
-const driveMeta = b.metas['Drives'].match(/^(\d+) drives · (\d+) scored$/);
+const driveMeta = b.metas['Offensive Drives'].match(/^(\d+) drives · (\d+) scored$/);
 ok(!!driveMeta && b.driveChips.length === Math.min(Number(driveMeta[1]), 8),
   'the Drives module renders the drives its meta counts, capped at eight',
-  JSON.stringify({ meta: b.metas['Drives'], chips: b.driveChips.length }));
+  JSON.stringify({ meta: b.metas['Offensive Drives'], chips: b.driveChips.length }));
 ok(b.driveChips.every(c => /^D\d+\|/.test(c)),
   'every drive chip is numbered and carries its outcome', JSON.stringify(b.driveChips.slice(0, 3)));
 const sitThird = b.situational.find(t => t.label === 'Third down');
@@ -519,9 +526,9 @@ const thirdAttempts = OFF.filter(p => p[1] === '3').length;
 const thirdConv = OFF.filter(p => p[1] === '3' && (p[3] >= Number(p[2]) || p[4] === 'Touchdown')).length;
 ok(sitThird.sub === `${thirdConv}/${thirdAttempts}`,
   'the Third down tile reports conversions over attempts', `${sitThird.sub} vs ${thirdConv}/${thirdAttempts}`);
-const lensExplosive = b.keyMetrics.find(t => t.label === 'Explosive');
+const lensExplosive = b.keyMetrics.find(t => t.label === 'Explosive Plays');
 ok(lensExplosive.value === String(EXPECTED.explosives),
-  'the Explosive lens and the Explosives KPI report one number', JSON.stringify([lensExplosive.value, b.kpis[3].value]));
+  'the Explosive Plays lens and the Explosive Plays KPI report one number', JSON.stringify([lensExplosive.value, b.kpis[3].value]));
 const lensNegative = b.keyMetrics.find(t => t.label === 'Negative');
 ok(lensNegative.value === String(EXPECTED.negative),
   'the Negative lens and the Plays for loss KPI report one number', JSON.stringify([lensNegative.value, b.kpis[5].value]));
@@ -750,9 +757,21 @@ for (const [width, height] of VIEWPORTS) {
   /* A viewport contributes whatever units its capture actually repeats — the
      1280 capture is only 720px tall, so its board shows one. The floor that
      stops this passing vacuously is asserted once, across all four, below. */
-  ok(units.length >= 1 && missingUnits.length === 0,
-    `${key}: every rhythm unit the approved capture repeats is painted to the same height`,
-    JSON.stringify({ units, missing: missingUnits, production: prod.bands }));
+  /* RECORDED DIVERGENCE, coach-directed 2026-09-07. The capture's tile row is
+     69px. The coach directed the Situational and Key metrics tiles be centred
+     and carry more weight, which grows that row to ~76-79px; every other unit
+     the capture repeats is unchanged and still asserted exactly.
+
+     This is a NAMED single exemption, not a widened tolerance: only the tile
+     row may differ, it must actually be TALLER (the direction of the change
+     asked for), and any other unit going missing still reds. */
+  const TILE_ROW_CAPTURE = 69;
+  const grewTileRow = u => Math.abs(u - TILE_ROW_CAPTURE) <= 2
+    && prod.bands.some(p => p > TILE_ROW_CAPTURE + 2 && p <= TILE_ROW_CAPTURE + 14);
+  const unexplained = missingUnits.filter(u => !grewTileRow(u));
+  ok(units.length >= 1 && unexplained.length === 0,
+    `${key}: every rhythm unit the approved capture repeats is painted to the same height, except the coach-resized tile row`,
+    JSON.stringify({ units, missing: missingUnits, unexplained, production: prod.bands }));
 }
 /* The floor: across the four captures the pixel comparison has to have proven
    a real set of heights, or a viewport that happened to repeat nothing would
@@ -798,8 +817,19 @@ const density = await page.evaluate(() => {
   };
 });
 const within = (v, lo, hi) => v !== null && v >= lo && v <= hi;
-ok(within(density.rowPitch, 24, 27),
-  'the module row pitch is the approved capture\'s 25.7px', JSON.stringify(density.rowPitch));
+/* RECORDED DIVERGENCE from the canonical capture, coach-directed 2026-09-07.
+   The capture's pitch is 25.7px. The coach reviewed the rebuilt board and
+   directed wider vertical spacing — "widen the vertical spacing between each
+   data point, especially between the header and the first line below it" — to
+   close the space a module's own panel was leaving beneath its last row. That
+   necessarily moves the pitch off the capture's, so this threshold states the
+   NEW instruction, not a number chosen to make the old one pass.
+
+   The band is still a band: the range is tight and the assertion still reds if
+   the pitch drifts again. Carried into the Charlie Gate, where the coach sees
+   the density he asked for beside the capture he approved. */
+ok(within(density.rowPitch, 28, 31),
+  'the module row pitch is the coach-directed 29px, not the capture\'s 25.7px', JSON.stringify(density.rowPitch));
 ok(within(density.kpiBand, 74, 82),
   'the KPI band is the approved capture\'s height', JSON.stringify(density.kpiBand));
 /* The 26px the band scan reports for a module header is the header PLUS the
