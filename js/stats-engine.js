@@ -377,7 +377,7 @@ export class StatsEngine {
       tendencies: this._tendencyStats(offPlays),
       bigPlays: this._bigPlays(offPlays),
       individuals: this._individualStats(individualSource),
-      drives: this._driveStats(offPlays, { all: plays }),
+      drives: this._driveStats(offPlays, { all: convSource }),
       // Non-enumerable ON PURPOSE (defined after the literal, below): the
       // ordered game list lets a caller measure the OPPONENT's drives with the
       // same adjacency rule, but it is an input echoed back, not a result.
@@ -402,7 +402,13 @@ export class StatsEngine {
     const penalties = PenaltyModel.summarize(convSource);
     if (penalties.hasData) stats.penalties = penalties;
     stats.takeaways = this._generateTakeaways(stats);
-    Object.defineProperty(stats, 'orderedPlays', { value: plays, enumerable: false });
+    /* `convSource`, NOT `plays`. `plays` keeps only snaps carrying a playType
+       or runPass, which is exactly what a punt does not carry — so the drive
+       model would look one play past its last snap and find the next
+       SCRIMMAGE play, never the kick that actually ended the possession.
+       `convSource` is the broader list this method already builds for ST and
+       conversion plays, for precisely this reason. */
+    Object.defineProperty(stats, 'orderedPlays', { value: convSource, enumerable: false });
 
     return stats;
   }
@@ -498,6 +504,29 @@ export class StatsEngine {
    *  deciding whose punt team was on the field.
    *
    *  Anything the next play cannot settle stays `Other`, deliberately. */
+  /** The other unit took the field with no kick between them, so possession
+   *  changed on the snap itself. Two charted facts settle how.
+   *
+   *  A FUMBLE on that snap plus the ball in the other team's hands is a
+   *  turnover. This does NOT guess who recovered, and it does not touch
+   *  `isFumbleLost`/`isFumbleRecovered`, which stay strict because they answer
+   *  a different question and are read by the turnover counts. It reads the
+   *  next play: whoever is on the field now has the ball. That distinction
+   *  matters here, because `tags.fumbleRecovery` is blank on all eleven fumbles
+   *  the coach charted this season — the control exists in the charting deck
+   *  and defaults to `unknown`, so the engine has always, correctly, refused to
+   *  call those fumbles turnovers. Possession changing is separate evidence.
+   *
+   *  Otherwise, fourth down that changes hands is a failed conversion. On any
+   *  earlier down the charting does not say what happened, and it stays
+   *  unlabelled rather than guessed. */
+  static _changeOfPossession(last, next) {
+    const changed = (next.tags.unit || 'offense') !== (last.tags.unit || 'offense');
+    if (!changed) return null;
+    if (StatsEngine.hasResult(last, 'Fumble') || StatsEngine.hasResult(last, 'Interception')) return 'Turnover';
+    return String(last.tags.down) === '4' ? 'Downs' : null;
+  }
+
   static _driveEndFromNextPlay(last, context) {
     const all = context?.all;
     if (!last || !Array.isArray(all)) return null;
@@ -506,13 +535,7 @@ export class StatsEngine {
     const next = all[idx + 1];
     if (!next) return 'Clock';                     // nothing follows it: time expired
     const tags = next.tags || {};
-    if (tags.unit !== 'special') {
-      // The other unit took the field with no kick between them, so possession
-      // changed on the snap itself. On fourth down that is a failed conversion;
-      // on any earlier down the charting does not say what happened.
-      const changed = (tags.unit || 'offense') !== (last.tags.unit || 'offense');
-      return changed && String(last.tags.down) === '4' ? 'Downs' : null;
-    }
+    if (tags.unit !== 'special') return StatsEngine._changeOfPossession(last, next);
     const structured = SpecialTeamsModel.normalize(next.specialTeams);
     const kind = structured?.unit || String(tags.stType || '');
     const results = StatsEngine.splitResults(tags.result);
@@ -525,6 +548,20 @@ export class StatsEngine {
     // reaching here means the score was charted on the kick and not the snap.
     if (/^XP$|extra ?point|2-?Pt|two ?point/i.test(kind)) return 'TD';
     if (/kickoff|kick ?return/i.test(kind)) return 'Score';
+    /* A fake is a fourth-down scrimmage play wearing a Special Teams label, so
+       the kick patterns above never match it and the possession it ended went
+       unnamed. What happened next is what settles it: the play AFTER the fake
+       shows who has the ball. */
+    if (/fake/i.test(kind)) {
+      const after = all[idx + 2];
+      if (!after) return 'Clock';
+      // The fake IS the fourth-down play, so the down to read is its own, not
+      // the snap before it. If the other side has the ball on the next play,
+      // the fake did not convert.
+      const ours = last.tags.unit || 'offense';
+      const changedAfterFake = (after.tags.unit || 'offense') !== ours && after.tags.unit !== 'special';
+      return changedAfterFake ? 'Downs' : null;
+    }
     return null;
   }
 

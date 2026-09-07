@@ -213,6 +213,8 @@ const read = () => page.evaluate(() => {
     sub: n.querySelector('small')?.textContent.trim() }));
   return {
     sections: modules.map(title),
+    driveOutcomes: [...(modules.find(m => title(m) === 'Offensive Drives')?.querySelectorAll('.gi-overview-drive small') || [])].map(n => n.textContent.trim()),
+    defDriveOutcomes: [...(modules.find(m => title(m) === 'Defensive Drives')?.querySelectorAll('.gi-overview-drive small') || [])].map(n => n.textContent.trim()),
     kpis: tiles('.gi-overview-kpi'),
     rushing: pairs('Rushing'), passing: pairs('Passing'),
     defenseRows: pairs('Defense & discipline'),
@@ -277,6 +279,38 @@ ok(/^\d+ charted · \d+%$/.test(b.kpis[0].sub),
   'the Total plays sub keeps the approved middot form', JSON.stringify(b.kpis[0].sub));
 ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
   'the Drives meta keeps the approved middot form', JSON.stringify(b.metas['Offensive Drives']));
+
+/* ── Drive outcomes are NAMED on the coach's own film ──────────────────────
+   A drive is reconstructed from one unit's snaps, so its last play is the last
+   SCRIMMAGE snap — never the punt or the field goal that ended the possession,
+   which are charted as Special Teams. Reading only that snap reported "Other"
+   for a punted drive, which is the defect this pins.
+
+   Stated against the real season because the classes that matter only exist
+   there: a fake wearing an ST label, a fumble whose recovery was never charted,
+   and possessions that change hands with nothing charted between them. */
+const OUTCOME_VOCAB = ['TD', 'FG', 'Missed FG', 'Safety', 'Punt', 'Turnover',
+  'Downs', 'Kneel', 'Clock', 'Score', 'Other'];
+const outcomes = [...b.driveOutcomes, ...b.defDriveOutcomes].filter(o => o && o !== 'No data');
+ok(outcomes.length > 0 && outcomes.every(o => OUTCOME_VOCAB.includes(o)),
+  'every drive outcome comes from the closed vocabulary', JSON.stringify([...new Set(outcomes)]));
+/* The whole point: a real punted drive must NOT read "Other". This season
+   charts punts on both sides, so both modules must show at least one. */
+ok(b.defDriveOutcomes.includes('Punt') || b.driveOutcomes.includes('Punt'),
+  'a punted drive reads Punt, not Other, on the coach\'s own film',
+  JSON.stringify({ offense: b.driveOutcomes, defense: b.defDriveOutcomes }));
+/* KNOWN GAP, not asserted as a ratio here on purpose.
+   `Other` still appears, and on this season the dominant cause is NOT an
+   unnamed outcome — it is `_reconstructDrives` cutting one possession into
+   several "drives". Week 2 offense: id22 (4th down) is followed by id24, an
+   OFFENSIVE 1st down, so one series becomes two drives; the same shape repeats
+   at id77->id78 and id79->id80. A fragment has no ending, so no label is
+   correct for it, and a pass/fail ratio over outcomes would be measuring drive
+   RECONSTRUCTION while claiming to measure outcome NAMING.
+
+   Fixing reconstruction reaches Points / Drive, three-and-outs, the Season
+   board's drive totals and the parity goldens, so it is raised as a finding
+   rather than folded into this change. Carried into the Charlie Gate. */
 const planText = b.text.split('Game plan')[1] || '';
 const prose = ['what this means', 'how to read', 'tag play type', 'to build the report']
   .filter(p => b.text.toLowerCase().replace(planText.toLowerCase(), '').includes(p));
