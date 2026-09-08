@@ -222,19 +222,22 @@ function playCallParts({ stats, screen }) {
     analysis.situations.filter(row => row.lens === lens)
       .sort((a, b) => b.contextN - a.contextN || a.value.localeCompare(b.value)),
     cap)]));
-  const lenses = OFFENSE_LENSES.map(([lens]) => lens);
-  const situations = <Module title="Calls by situation" meta="top call per lens">
-    <div class="gi-call-context-grid">{lenses.map(lens => {
+  const renderLenses = lenses => <div class="gi-call-context-grid">{lenses.map(lens => {
       const rows = lensRows.get(lens);
       return <div class="gi-call-context" key={lens}><h4>{lens}</h4><DataTable emptyText="Insufficient charted data" columns={[
         { key: 'value', label: 'Situation' }, { key: 'call', label: 'Top Call', tl: true }, { key: 'use', label: 'Use' }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
       ]} rows={rows.map((row, i) => (row.absent ? { absent: true, id: `${lens}-absent-${i}` }
         : { id: `${lens}-${row.value}`, value: row.value, call: row.call, use: `${row.n}/${row.contextN}`, success: pct(row.successRate), ypp: row.yardsPerPlay.toFixed(1),
           onActivate: watch(row, `${lens}: ${row.value} — ${row.call}`), label: `${lens}: ${row.value} — ${row.call}` }))} /></div>;
-    })}</div>
+    })}</div>;
+  const situations = <Module title="Calls by situation">
+    {renderLenses(['Down & Distance', 'Field Position'])}
+  </Module>;
+  const direction = <Module title="Direction vs Strength" cls="is-offense">
+    {renderLenses(['Direction vs Strength'])}
   </Module>;
 
-  return { calls, concepts, situations };
+  return { calls, concepts, situations, direction };
 }
 
 
@@ -557,7 +560,8 @@ const OFFENSE_ROWS = {
   'Play type': 5,
   'Play-action': 3,
   'Core tendencies': 5,
-  'Calls by situation': 5,
+  'Calls by situation': 8,
+  'Direction vs Strength': 4,
   Personnel: 5,
   Backfield: 5,
   Motion: 4,
@@ -580,7 +584,7 @@ const OFFENSE_ROWS = {
  *  Rather than invent a lens the engine does not produce, the third slot takes
  *  `Direction vs Strength`, the nearest situational dimension it does. Raised
  *  in the implementation RATIONALE for the coach. */
-const OFFENSE_LENSES = [['Down & Distance', 2], ['Field Position', 2], ['Direction vs Strength', 1]];
+const OFFENSE_LENSES = [['Down & Distance', 4], ['Field Position', 4], ['Direction vs Strength', 4]];
 const OFFENSE_EPA_ROWS = {
   'By play type': 6, 'By formation': 5, 'By personnel': 5, 'By down': 4,
   'Top 5': 5, 'Worst 5': 5,
@@ -591,7 +595,7 @@ const OFFENSE_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
   'Formation', 'Play type', 'Play-action',
-  'Core tendencies', 'Calls by situation', 'Drive outcomes',
+  'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
@@ -718,8 +722,11 @@ export function OffenseTab({ stats, screen }) {
         stack; capping Big N at the approved 8 rows and letting the lens grid
         keep its own columns inside the narrow track restores the comp's band
         without reproducing the gap. Measured per band below, on real film. */}
-    <div class="gi-overview-band gi-off-b2">
-      <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
+    <div class="gi-overview-band gi-off-b2 gi-off-call-band">
+      <div class="gi-off-call-stack">
+        <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
+        {calls.direction}
+      </div>
       {calls.situations}
     </div>
     <div class="gi-overview-band gi-off-full">

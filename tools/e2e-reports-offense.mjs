@@ -94,7 +94,7 @@ const SCHEMA_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
   'Formation', 'Play type', 'Play-action',
-  'Core tendencies', 'Calls by situation', 'Drive outcomes',
+  'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
@@ -106,7 +106,8 @@ const SCHEMA_MODULES = [
 ];
 const SCHEMA_ROWS = {
   'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 3,
-  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5, 'Calls by situation': 5,
+  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5,
+  'Direction vs Strength': 4, 'Calls by situation': 8,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
   'Tendency matrix': 5, 'By quarter': 4, 'Team profile': 6,
@@ -360,7 +361,7 @@ ok(sticky.length > 0 && sticky.every(s => s.overlap <= 1),
   'no table header overlaps its first data row',
   JSON.stringify(sticky.filter(s => s.overlap > 1)));
 
-console.log('\n== 14. Column labels use the design-system label token and clear 4.5:1 ==');
+console.log('\n== 14. Column labels remain readable and explanatory subheads are absent ==');
 const type = await page.evaluate(() => {
   const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
   const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
@@ -371,13 +372,18 @@ const type = await page.evaluate(() => {
     const cs = getComputedStyle(el), f = L(rgb(cs.color)), g = L(bgOf(el));
     return { size: parseFloat(cs.fontSize), family: cs.fontFamily.split(',')[0].replace(/"/g, ''),
       ratio: +(((Math.max(f, g) + 0.05) / (Math.min(f, g) + 0.05)).toFixed(2)) }; };
-  return { th: probe('.gi-offense-board .gi-overview-module th'), meta: probe('.gi-offense-board .gi-overview-module header span') };
+  const visibleExplainers = [...document.querySelectorAll('.gi-offense-board .gi-overview-module>header span, .gi-offense-board .gi-zone-rule p')]
+    .filter(el => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0)
+    .map(el => el.textContent.trim());
+  return { th: probe('.gi-offense-board .gi-overview-module th'), visibleExplainers };
 });
 ok(type.th && type.th.size >= 12 && !/Condensed/i.test(type.th.family),
   'column labels are operational copy in the body face at the label token size, not a condensed display face',
   JSON.stringify(type.th));
 ok(type.th && type.th.ratio >= 4.5, 'column labels meet the 4.5:1 small-text minimum', JSON.stringify(type.th));
-ok(type.meta && type.meta.ratio >= 4.5, 'module captions meet the 4.5:1 small-text minimum', JSON.stringify(type.meta));
+ok(type.visibleExplainers.length === 0,
+  'Offense module and zone headers render no explanatory secondary prose',
+  JSON.stringify(type.visibleExplainers));
 
 console.log('\n== 15. Season > Offense embeds the same board without duplicate ids ==');
 await load({ plays: FULL, tab: 'season' });

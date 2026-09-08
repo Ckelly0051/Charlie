@@ -2387,6 +2387,23 @@
 /* Play-action's four KPI tiles sit under its table, in the tile vocabulary. */
 .gi-reports .gi-off-pa-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
 
+/* Zone 2's two columns are internally balanced: Core tendencies and Direction
+   vs Strength on the left, the two situational call tables on the right. */
+.gi-reports .gi-off-call-stack{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:1px;align-self:start;
+  min-width:0;background:var(--gi-bd-line)
+}
+.gi-reports .gi-off-call-band>.gi-overview-module{height:100%}
+.gi-reports .gi-off-call-band .gi-call-context-grid{
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:repeat(2,minmax(0,1fr));flex:1 1 auto
+}
+.gi-reports .gi-off-call-stack .gi-call-context-grid{grid-template-rows:minmax(0,1fr)}
+
+/* Offense headers name the measure; the gray explanatory glosses repeated what
+   the table or chart already says. Actual values and column labels remain. */
+.gi-reports .gi-offense-board .gi-overview-module>header span,
+.gi-reports .gi-offense-board .gi-zone-rule p{display:none}
+
 /* Recovered tendency-table height becomes one compact possession ledger. */
 .gi-reports .gi-drive-outcomes{
   display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;

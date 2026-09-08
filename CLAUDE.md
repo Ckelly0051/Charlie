@@ -355,7 +355,9 @@ on Week 1 and `Calls by situation` 40 on an over-cap cohort. `OFFENSE_ROWS`,
 one named owner for every count. `Core tendencies · Big N` prints N from the
 rows it RENDERS, not from `to90`. The coach-approved density revision caps the
 three Zone 2 table bands at five meaningful rows and spends the recovered height
-on a fixed seven-cell **Drive outcomes** strip. Zone 2 and Zone 4 were re-paired to the comp's
+on a fixed seven-cell **Drive outcomes** strip. **Direction vs Strength** is a
+four-row module directly below Core tendencies; **Down & Distance** and **Field
+Position** each hold four rows in Calls by situation. Zone 2 and Zone 4 were re-paired to the comp's
 bands, and `gi-off-b2` (8fr/4fr) / `gi-off-b2e` (6fr/6fr) put them on the
 documented 12-column rhythm.
 
@@ -365,13 +367,15 @@ and the same 1440 board measured 5102..5478px across six games. `fitRows`
 returns EXACTLY the allocation — truncating a long cohort and PADDING a short
 one with held rows that carry the dash in every column; `mapFit` formats real
 rows before padding so a held slot never reaches a `.toFixed`. **The board is
-now one fixed 4326px height at both desktop release widths, identical on all
-six canonical games, with 27 of 27 modules one height.** The first fixed-height
+now one fixed 4329px height at both desktop release widths, identical on all
+six canonical games, with 28 of 28 modules one height.** The first fixed-height
 repair standardized an oversized 5617px board; the density repair restored the
 comp's compact Field heat map, removed only surplus row box height while
 retaining 12px table labels, and capped the EPA trend chart. The advanced visual
 row is now split evenly between **Cumulative EPA** and a zero-centered **EPA
 contribution by play type** chart; the detailed tables remain below it.
+Offense module-header and zone-header explanatory glosses are suppressed; the
+headers, measurements, column labels, and data-bearing KPI sublines remain.
 
 A held row and `Insufficient charted data` are different statements and cannot
 both hold: the comp's own sparse capture is 415px shorter than its populated

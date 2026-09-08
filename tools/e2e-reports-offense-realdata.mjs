@@ -75,7 +75,7 @@ const SCHEMA_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
   'Formation', 'Play type', 'Play-action',
-  'Core tendencies', 'Calls by situation', 'Drive outcomes',
+  'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
@@ -87,7 +87,8 @@ const SCHEMA_MODULES = [
 ];
 const SCHEMA_ROWS = {
   'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 3,
-  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5, 'Calls by situation': 5,
+  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5,
+  'Direction vs Strength': 4, 'Calls by situation': 8,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
   'Tendency matrix': 5, 'By quarter': 4, 'Team profile': 6,
