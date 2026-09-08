@@ -342,6 +342,21 @@ ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
   ok(tipped?.tooltip === longest.name,
     'the report title carries its full value as a tooltip when truncated',
     JSON.stringify({ tooltip: tipped?.tooltip, expected: longest.name }));
+  const opponentTip = await page.evaluate(() => {
+    window.app.reportsScreen.scoutOpponent();
+    const h1 = document.querySelector('.gi-reports-title-block h1');
+    return {
+      perspective: window.app.reportsScreen.perspective,
+      text: h1?.textContent.trim() || '',
+      tooltip: h1?.getAttribute('title') || '',
+    };
+  });
+  ok(opponentTip.perspective === 'opponent'
+      && opponentTip.text.endsWith(' scout')
+      && opponentTip.tooltip === opponentTip.text,
+    'switching to Opponent Scout replaces the game tooltip with the opponent title',
+    JSON.stringify(opponentTip));
+  await page.evaluate(() => window.app.reportsScreen.show());
   await page.setViewport({ width: 1440, height: 900 });
   await select(activeId);
   await sleep(300);

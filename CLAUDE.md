@@ -217,6 +217,18 @@ on the designated review machine. CI may explicitly skip it, but that run cannot
 certify Reports acceptance. Never write normalization or test changes back to
 the coach's source file.
 
+**Reports dashboards are static compositions.** For every Reports surface, the
+registered approved comp is the schema: it fixes the modules, their order, each
+module's row or tile count, and the board geometry at each supported layout.
+Real data fills those slots but never adds rows, removes modules, or resizes the
+board. A short cohort renders the surface's approved absence treatment (`-`,
+`No data`, or blank only where that comp explicitly chooses it); a long cohort
+is deterministically ranked and capped. When a variable list is valuable, name
+the cap honestly, such as `Top 10 Plays`. Keep these constants in one named
+surface owner and pin every module count in both synthetic sparse/overflow tests
+and canonical-season captures. Do not solve a data mismatch by stretching rows,
+shrinking type, or inventing explanatory prose.
+
 **Current visual release truth (2026-09-06).** `1.12.0-70` is the last accepted
 installed smoke candidate. `1.12.0-74` is `REJECTED`: its Reports production
 does not faithfully preserve the individually approved report compositions,
@@ -1046,6 +1058,11 @@ Full tiers, commands, and what each tier can and cannot certify:
   **installed WebView2 smoke**.
 
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 108),
+`tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
+ranking/caps, sparse and overflow states, drive boundaries, film actions and
+responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
+canonical six-game season binding, longest-title navigation at both desktop
+release widths, perspective-safe title tooltips and read-only captures, 35),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
 and the shared scorebug rule, 46), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine

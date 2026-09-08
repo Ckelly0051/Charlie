@@ -48,6 +48,15 @@ remain valid composition evidence, but new production captures must use the
 real season. Do not write to its Documents-mirror `season.json`; deep-copy it
 into isolated test/app state.
 
+Reports boards are fixed schemas, not data-sized dashboards. For each surface,
+tests must pin the approved module order and the row/tile count of every module
+in populated, sparse, empty, and over-cap states. Sparse data uses the approved
+absence treatment without collapsing the board; excess data is ranked and
+capped deterministically without growing it. Responsive tests may change the
+layout at registered breakpoints, but a data variation may not change the
+composition or its dimensions. Canonical-season captures prove the production
+binding; synthetic fixtures supplement them with sparse and overflow cases.
+
 Synthetic fixtures are allowed for formula, sparse-state, empty-state, and
 adversarial regression coverage. Label them as synthetic. Their results cannot
 prove Reports visual parity or football correctness and cannot advance a
@@ -92,7 +101,7 @@ The smallest existing harness for the route or domain you touched.
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |

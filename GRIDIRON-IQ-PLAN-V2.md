@@ -667,6 +667,11 @@ Retain every meaningful production field while reducing everyday clutter.
 > Season's `Games` count includes scheduled Our Program games while its
 > `Yards / Game` denominator includes only offense-charted games; that
 > eligibility distinction is intentional, not a defect.
+> Reports dashboards are static compositions: each approved comp fixes its
+> module order, row/tile counts, and board geometry. Real data fills that schema;
+> it does not resize it. Missing entries use the approved absence treatment and
+> excess entries are ranked and capped under an honestly named limit such as
+> `Top 10 Plays`. This rule governs the remaining surface-by-surface rebuilds.
 > Installed-smoke correction: Defense's internal Self-Scout section is not the
 > rebuilt top-level Self-Scout report. It is an older, predictability-only
 > duplicate with explanatory prose, and the coach rejected it during the

@@ -466,7 +466,10 @@ export class ReportsScreen {
     }
     if (this.perspective === 'opponent') {
       const name = this._opponentData?.opponent || this.app.stats._activeOpponent?.() || 'Opponent';
-      if (title) title.textContent = `${name} scout`;
+      if (title) {
+        title.textContent = `${name} scout`;
+        title.title = title.textContent;
+      }
       if (sub) {
         const games = this._opponentData?.games || 0;
         sub.textContent = `${games} tagged game${games === 1 ? '' : 's'}, opponent offense, defense, and scout-film Special Teams`;

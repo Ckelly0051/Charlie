@@ -317,7 +317,7 @@ Real-season evidence per the canonical-data rule: `2025-st-joseph-mavericks-jv`
 ("2025 St. Joseph Mavericks - JV"), 6 games, read-only copy, SHA-256 asserted
 unchanged after the run. Synthetic fixtures are supplemental only.
 
-`e2e-reports-overview` 97, `e2e-reports-overview-realdata` 31,
+`e2e-reports-overview` 106, `e2e-reports-overview-realdata` 35,
 `e2e-native-reports` 108, `e2e-parity` 2/2, `e2e-realdata` 10/10,
 `e2e-reports-season` 98, `e2e-reports-offense` 46, `e2e-reports-self-scout` 90,
 `e2e-reports-matchup` 72, `e2e-reports-players` 169,
@@ -446,3 +446,26 @@ defect. `id22 → id24` — a fourth down followed by an OFFENSIVE first down, t
 same unit keeping the ball — still looks like a split, and that single case is
 what §6 now rests on. **Reconstruction is not to be "repaired" without
 film-backed evidence.**
+
+---
+
+## 11. Shared-header repair review, 2026-09-08
+
+The Reports title now yields horizontal space to the fixed-width report tab
+strip, truncates when necessary, and preserves its complete value in a native
+tooltip. The first tooltip repair covered Our Game only; Opponent Scout returned
+from `_syncHeader()` before synchronizing the attribute and could retain a stale
+game-name tooltip. Closed in the commit following `95aae04`, with a real-route
+regression that switches perspective and asserts the rendered heading and
+tooltip agree.
+
+The visibility regression selects the canonical season's longest game name and
+runs at both desktop release widths, 1440 and 1280. Shorter game names cannot
+create a tighter title constraint. The board remains **NOT APPROVED**: these are
+implementation repairs, not a Charlie Gate or installed smoke.
+
+The static-schema rule remains unchanged. A report board's module count, row
+count, and geometry come from its approved composition, not from the amount of
+data in the selected game. Missing ranked entries hold their approved slots
+with the board's absence treatment; excess candidates are deterministically
+ranked and capped. Data variability changes values, never board geometry.
