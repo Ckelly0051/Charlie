@@ -672,6 +672,24 @@ Retain every meaningful production field while reducing everyday clutter.
 > it does not resize it. Missing entries use the approved absence treatment and
 > excess entries are ranked and capped under an honestly named limit such as
 > `Top 10 Plays`. This rule governs the remaining surface-by-surface rebuilds.
+>
+> **OFFENSE REBUILT TO THE STATIC RULE (2026-09-08).** Overview and Offense are
+> the two surfaces converted so far. Offense's defect was that its modules were
+> CONDITIONAL — `Play calls`, `Concepts`, `Calls by situation`, `Core
+> tendencies`, `Tendency matrix`, `Team profile`, `Expected points added`, both
+> Zone 5 shape bands and `Visualizations` could each vanish, so a sparse game
+> rendered a different board from a charted one. Every module now holds its slot
+> with `Insufficient charted data`, and every ranked list holds its approved
+> allocation; nothing was capped before. Counts live in one named owner
+> (`OFFENSE_ROWS` / `OFFENSE_EPA_ROWS` / `OFFENSE_MODULES`), and both harnesses
+> pin them — `e2e-reports-offense` 58 on synthetic sparse/empty/over-cap data,
+> `e2e-reports-offense-realdata` 13 on the canonical six-game season at 1440 and
+> 1280. Decision record:
+> `design-comps/reports-offense-production-2026-09-08/RATIONALE.md`.
+> One question it could not answer for itself: the comp's Zone 5 has no
+> `Visualizations` module, but deleting it drops the yardage spray and
+> per-quarter hover context that `e2e-native-reports` pins, so it is retained
+> as a recorded divergence — 27 modules against the comp's 26 — for the coach.
 > Installed-smoke correction: Defense's internal Self-Scout section is not the
 > rebuilt top-level Self-Scout report. It is an older, predictability-only
 > duplicate with explanatory prose, and the coach rejected it during the

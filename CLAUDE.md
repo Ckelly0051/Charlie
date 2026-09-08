@@ -335,10 +335,37 @@ property backed by a real `style.setProperty` setter.
 
 ---
 
-**Reports > Offense is implemented and independently reviewed, but NOT coach
-accepted.** Built to the approved comp (`design-comps/reports-offense-2026-09-03`)
-across `dc93429`; Codex reviewed the range and found no remaining concrete
-regression. It has not had a Charlie Gate, so it is not accepted state.
+**Reports > Offense is implemented as a static composition and gate-verified,
+but NOT coach accepted.** Built to the approved comp
+(`design-comps/reports-offense-2026-09-03`) across `dc93429`, then rebuilt to
+the static-dashboard rule on 2026-09-08. The implementation decision record is
+`design-comps/reports-offense-production-2026-09-08/RATIONALE.md`; the comp's
+own RATIONALE sits inside the hash-verified canonical artifact and is unedited.
+No Charlie Gate, so it is not accepted state.
+
+**Its modules were CONDITIONAL, which is the defect that rebuild closed.** A
+sparse game rendered a different board from a charted one: `Play calls`,
+`Concepts`, `Calls by situation`, `Core tendencies`, `Tendency matrix`,
+`Team profile`, `Expected points added`, both Zone 5 shape bands and
+`Visualizations` could each vanish. Every module now holds its slot and states
+`Insufficient charted data`, and every ranked list holds its approved
+allocation — nothing was capped before, so `Core tendencies` rendered 11 rows
+on Week 1 and `Calls by situation` 40 on an over-cap cohort. `OFFENSE_ROWS`,
+`OFFENSE_EPA_ROWS` and `OFFENSE_MODULES` in `js/native-report-tabs.jsx` are the
+one named owner for every count. `Core tendencies · Big N` prints N from the
+rows it RENDERS, not from `to90`. Zone 2 and Zone 4 were re-paired to the comp's
+bands, and `gi-off-b2` (8fr/4fr) / `gi-off-b2e` (6fr/6fr) put them on the
+documented 12-column rhythm.
+
+**UNRESOLVED: the `Visualizations` module.** The comp's Zone 5 carries five
+modules and no `Visualizations`; comp RATIONALE §2 row 24 maps it into the
+shape panels. That absorption is not achievable by moving markup — the panels
+read `_dataShape`, a different source — and deleting the module drops the
+yardage spray axis and per-quarter hover context that `e2e-native-reports`
+pins (106/2 without it, 108/0 with it), against the comp's own §6 "No analytics
+were removed". Its `By Quarter` block does restate Zone 4's By quarter. It is
+RETAINED with the divergence recorded in all three schema owners, so production
+renders 27 modules against the comp's 26. The coach decides at the Gate.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
 Structure and deployment, Situational analysis, Field and production, Advanced
@@ -926,10 +953,17 @@ product is wrong.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
 3. **Reports > Offense Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT. Open question carried into it:
-   Backfield renders 189px beside Personnel's 261px in the Zone 3 band, because
-   the data holds fewer distinct backfield values than personnel values. That
-   may be the honest floor rather than something to fill.
+   release widths, then PASS / REVISE / REJECT. Four questions carried into it,
+   all in `design-comps/reports-offense-production-2026-09-08/RATIONALE.md`:
+   the `Visualizations` module (§3) is the one decision the build could not
+   make for itself; Zone 2's approved `b-2` pairing leaves the right column
+   showing an absence line beside an eight-row table on the games this season
+   charts no play call for, which is why a previous pass had split that band;
+   the persistent KPI rail still duplicates Success rate with the Offense band
+   (comp RATIONALE §8, unchanged because it affects every game-scope tab); and
+   Backfield renders shorter than Personnel in the Zone 3 band because the data
+   holds fewer distinct backfield values, which may be the honest floor rather
+   than something to fill.
 4. **The remaining Reports Charlie Gates** — every tab now has a comp and is
    built. Shared chrome follows the selected report scope: current-game boards
    may show current-game chrome; full-season boards, Season and Matchup do not.
@@ -1063,8 +1097,14 @@ ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
 canonical six-game season binding, longest-title navigation at both desktop
 release widths, perspective-safe title tooltips and read-only captures, 35),
-`tools/e2e-reports-offense.mjs` (the Offense composition, its football contracts
-and the shared scorebug rule, 46), `tools/e2e-reports-special-teams.mjs`
+`tools/e2e-reports-offense.mjs` (the Offense composition, its football
+contracts, the shared scorebug rule, and the static schema — module inventory
+and order, every module's row allocation, and identical schema under populated,
+sparse, empty and over-cap data with deterministic ranking and truncation, 58),
+`tools/e2e-reports-offense-realdata.mjs` (the canonical six-game season,
+read-only and hash-checked, every game at 1440 and 1280: approved module
+inventory and order, no module over its allocation, the absence treatment, no
+page overflow and no clipped cell, 13), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
 corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the

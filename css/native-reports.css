@@ -2379,7 +2379,7 @@
    would spread four values across the full width and reproduce the long
    eye-traverse this composition exists to remove. */
 @media(max-width:1180px){
-  .gi-reports .gi-off-identity,.gi-reports .gi-off-even{grid-template-columns:minmax(0,1fr)}
+  .gi-reports .gi-off-identity,.gi-reports .gi-off-even,.gi-reports .gi-off-b2,.gi-reports .gi-off-b2e{grid-template-columns:minmax(0,1fr)}
 }
 
 /* Zone 1 identity strip — the tile vocabulary already used by Situational.
@@ -2473,6 +2473,13 @@
 .gi-reports .gi-off-identity{ grid-template-columns:minmax(0,8fr) minmax(0,4fr) }
 .gi-reports .gi-offense-board .gi-overview-band-3{ grid-template-columns:repeat(3,minmax(0,4fr)) }
 .gi-reports .gi-off-even{ grid-template-columns:repeat(2,minmax(0,6fr)) }
+/* The approved comp's two band shapes, named as it names them: `b-2` is the
+   wide/narrow pair (8/12) and `b-2e` the even pair (6/12). Both divide on a
+   gridline the six-column KPI band also uses, so every rule on the board lines
+   up. Zone 2's call pair, Zone 2's Big N pair, Zone 4's two comparisons and
+   Zone 5's two shape pairs are the bands that use them. */
+.gi-reports .gi-off-b2{ grid-template-columns:minmax(0,8fr) minmax(0,4fr) }
+.gi-reports .gi-off-b2e{ grid-template-columns:repeat(2,minmax(0,6fr)) }
 
 /* No fill rule here, deliberately. A module in a band is as tall as its
    tallest neighbour, and short content leaves space at the bottom. Making the

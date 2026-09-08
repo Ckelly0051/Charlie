@@ -35,14 +35,18 @@ function HashTendency({data}){if(!data.hasData)return <p class="hm-caption">No h
   <p class="hm-caption">Cell intensity = share of plays from that hash.</p></>;}
 export function NativeHeatMaps({plays,screen}){const data=offenseHeatMapData(plays),[active,setActive]=useState(data.initial);
   const panel=active==='field'?<FieldMap data={data.field} screen={screen}/>:active==='dd'?<DownDistance data={data.downDistance}/>:active==='fxp'?<FormationPlay data={data.formationPlay}/>:<HashTendency data={data.hash}/>;
-  return <Module title="Heat Maps"><div class="heatmap-tabs" role="tablist" aria-label="Heat map view">{[['field','Field Position'],['dd','Down & Distance'],['fxp','Formation x Play'],['hash','Hash Tendency']].map(([key,label])=>
+  return <Module title="Field heat map" meta="success rate by field zone"><div class="heatmap-tabs" role="tablist" aria-label="Heat map view">{[['field','Field Position'],['dd','Down & Distance'],['fxp','Formation x Play'],['hash','Hash Tendency']].map(([key,label])=>
     <button type="button" role="tab" aria-selected={active===key} class={`hm-tab${active===key?' active':''}`} onClick={()=>setActive(key)} key={key}>{label}</button>)}</div><div class="heatmap-panels"><div class="hm-panel active">{panel}</div></div></Module>;}
 function Spray({data}){const W=600,H=240,L=36,B=26,T=10,R=10,xOf=x=>L+x/100*(W-L-R),yOf=y=>T+(1-(y-data.yMin)/(data.yMax-data.yMin))*(H-T-B),zero=yOf(0);
   return <div class="viz-block"><h4>Field Position vs. Yardage Gained <span class="viz-legend"><i class="dot run"/>Run <i class="dot pass"/>Pass</span></h4><svg class="viz-svg" viewBox={`0 0 ${W} ${H}`}>
   {[0,20,40,60,80,100].map(x=><g key={x}><line x1={xOf(x)} y1={T} x2={xOf(x)} y2={H-B} stroke="#243049"/><text x={xOf(x)} y={H-B+14} fill="#8b949e" font-size="10" text-anchor="middle">{x===0||x===100?'G':x<=50?x:100-x}</text></g>)}
   <line x1={L} y1={zero} x2={W-R} y2={zero} stroke="#4a5a7d" stroke-width="1.5" stroke-dasharray="4 3"/><text x={L-4} y={zero+3} fill="#8b949e" font-size="10" text-anchor="end">0</text><text x={L-4} y={yOf(data.yMax)+3} fill="#8b949e" font-size="10" text-anchor="end">{data.yMax}</text>
   {data.points.map((p,i)=><circle key={i} cx={xOf(p.x)} cy={yOf(p.y)} r="4" fill={p.run?'#f97316':'#38bdf8'} fill-opacity=".8"/>)}</svg><p class="viz-caption">Field position vs. yardage gained.</p></div>;}
-export function NativeOffenseVisualizations({plays}){const data=offenseVisualizationData(plays);if(!data||(!data.zones&&!data.spray&&!data.quarters))return null;return <Module title="Visualizations"><div class="viz-section">
+/* Holds its slot on the Offense board like every other module: returning null
+   removed it from a sparse game, so the board's module count moved with the
+   data. Its place in the approved composition is a recorded divergence — see
+   the Zone 5 note in `OffenseTab`. */
+export function NativeOffenseVisualizations({plays}){const data=offenseVisualizationData(plays);if(!data||(!data.zones&&!data.spray&&!data.quarters))return <Module title="Visualizations"><p class="gi-table-empty">Insufficient charted data</p></Module>;return <Module title="Visualizations"><div class="viz-section">
   {data.zones?<div class="viz-block"><h4>Success by Field Zone <span class="viz-sub">attacking</span></h4><div class="viz-field-strip">{data.zones.map(zone=><div class="viz-zone" key={zone.label}
   style={{background:zone.pct==null?'#1c2128':`hsl(${Math.round(zone.pct/100*120)} 65% 42%)`}} title={`${zone.label}: ${zone.pct==null?'n/a':zone.pct+'% success'} (${zone.count} plays)`}><span class="viz-zone-label">{zone.label}</span><span class="viz-zone-val">{zone.pct==null?'-':zone.pct+'%'}</span><span class="viz-zone-n">{zone.count} plays</span></div>)}</div></div>:null}
   {data.spray?<Spray data={data.spray}/>:null}{data.quarters?<div class="viz-block"><h4>By Quarter <span class="viz-legend"><i class="dot run"/>Run <i class="dot pass"/>Pass / avg yds</span></h4><div class="viz-q-chart">

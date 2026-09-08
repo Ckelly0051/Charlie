@@ -176,7 +176,11 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
 function playCallParts({ stats, screen }) {
   const engine = screen.app.stats;
   const analysis = engine._playCallAnalysis(stats.offPlays);
-  if (!analysis.eligible) return null;
+  /* NEVER null. These are three modules of the approved composition; returning
+     null removed them from the board entirely, so a game with no resolvable
+     call identity rendered a different board from one that had them. Each now
+     holds its slot and states the absence, which is what the comp's own sparse
+     capture does. */
   const gameId = screen.app.storage?.seasonStore?.activeGame?.()?.id || '';
   const pct = v => `${Number(v || 0).toFixed(1).replace(/\.0$/, '')}%`;
   const refsFor = row => row.refs?.length ? row.refs : row.playIds.map(id => `${gameId}::${id}`);
@@ -188,26 +192,42 @@ function playCallParts({ stats, screen }) {
       { key: 'name', label: 'Play Call' }, { key: 'concept', label: 'Concept', tl: true }, { key: 'n', label: 'Plays', numeric: true },
       { key: 'share', label: 'Frequency', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true },
       { key: 'ypp', label: 'Yds/Play', numeric: true }, { key: 'explosive', label: 'Explosive', numeric: true }, { key: 'negative', label: 'Negative', numeric: true },
-    ]} rows={analysis.calls.map(row => ({
+    ]} rows={capRows(analysis.calls, OFFENSE_ROWS['Play calls']).map(row => ({
       id: row.name, name: row.name, concept: row.concept || '—', n: row.n, share: pct(row.sharePct), success: pct(row.successRate),
       ypp: row.yardsPerPlay.toFixed(1), explosive: pct(row.explosiveRate), negative: pct(row.negativeRate),
       onActivate: watch(row, `Play Call: ${row.name}`), label: `Play Call: ${row.name}`,
     }))} />
   </Module>;
 
-  const concepts = <Module title="Concepts" meta="by concept">
+  const concepts = <Module title="Concepts" meta="call family roll-up">
     {analysis.concepts.length ? <DataTable emptyText="Insufficient charted data" columns={[
       { key: 'name', label: 'Concept / Call' }, { key: 'n', label: 'Plays', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
-    ]} rows={analysis.concepts.flatMap(concept => [
+    ]} rows={capRows(analysis.concepts.flatMap(concept => [
       { id: `c-${concept.name}`, name: concept.name, n: concept.n, success: pct(concept.successRate), ypp: concept.yardsPerPlay.toFixed(1), onActivate: watch(concept, `Concept: ${concept.name}`), label: `Concept: ${concept.name}` },
       ...concept.calls.map(call => ({ id: `${concept.name}-${call.name}`, class: 'is-sub', name: call.name, n: call.n, success: pct(call.successRate), ypp: call.yardsPerPlay.toFixed(1), onActivate: watch(call, `Play Call: ${call.name}`), label: `Play Call: ${call.name}` })),
-    ])} /> : <p class="gi-table-empty">Insufficient charted data</p>}
+    ]), OFFENSE_ROWS.Concepts)} /> : <p class="gi-table-empty">Insufficient charted data</p>}
   </Module>;
 
-  const lenses = [...new Set(analysis.situations.map(row => row.lens))];
-  const situations = <Module title="Calls by situation" meta="top call">
+  /* The approved module holds eight rows across its lenses. Lenses are taken in
+     order and filled until the allocation is spent, so a season with many
+     situations cannot grow the module — and the ranking inside a lens is its
+     own (most-faced situation first), not a re-sort invented here. */
+  const allLenses = [...new Set(analysis.situations.map(row => row.lens))];
+  let situationBudget = OFFENSE_ROWS['Calls by situation'];
+  const lensRows = new Map();
+  for (const lens of allLenses) {
+    if (situationBudget <= 0) break;
+    const rows = analysis.situations.filter(row => row.lens === lens)
+      .sort((a, b) => b.contextN - a.contextN || a.value.localeCompare(b.value))
+      .slice(0, situationBudget);
+    if (!rows.length) continue;
+    lensRows.set(lens, rows);
+    situationBudget -= rows.length;
+  }
+  const lenses = [...lensRows.keys()];
+  const situations = <Module title="Calls by situation" meta="top call per lens">
     {lenses.length ? <div class="gi-call-context-grid">{lenses.map(lens => {
-      const rows = analysis.situations.filter(row => row.lens === lens).sort((a, b) => b.contextN - a.contextN || a.value.localeCompare(b.value));
+      const rows = lensRows.get(lens);
       return <div class="gi-call-context" key={lens}><h4>{lens}</h4><DataTable emptyText="Insufficient charted data" columns={[
         { key: 'value', label: 'Situation' }, { key: 'call', label: 'Top Call', tl: true }, { key: 'use', label: 'Use' }, { key: 'success', label: 'Success Rate', numeric: true }, { key: 'ypp', label: 'Yds/Play', numeric: true },
       ]} rows={rows.map(row => ({ id: `${lens}-${row.value}`, value: row.value, call: row.call, use: `${row.n}/${row.contextN}`, success: pct(row.successRate), ypp: row.yardsPerPlay.toFixed(1),
@@ -229,9 +249,19 @@ function playCallParts({ stats, screen }) {
  * that tab has not had its design pass and must not change here.
  */
 function BigTwelve({ data, screen, cls = '', variant = 'legacy' }) {
-  if (!data) return null;
+  /* The zone variant holds its slot: this is an approved module, and returning
+     null removed it from the board on a game with no eligible tendency. The
+     legacy variant (Opponent Offense) keeps its previous behaviour. */
+  if (!data) return variant === 'zone'
+    ? <Module title="Core tendencies" cls={cls}><p class="gi-table-empty">Insufficient charted data</p></Module>
+    : null;
+  /* N is the count of rows the module actually RENDERS, per RATIONALE \u00a78
+     ("N computed from the rendered rows") and the honest-limit rule. `to90` \u2014
+     the calls covering 90% of snaps \u2014 can exceed the approved slot count, and
+     printing it above eight rows claimed a breadth the table was not showing. */
+  const zoneRows = capRows(data.rows || [], OFFENSE_ROWS['Core tendencies']);
   const title = variant === 'zone'
-    ? `Core tendencies, Big ${data.to90}`
+    ? `Core tendencies \u00b7 Big ${zoneRows.length}`
     : `The “Big ${data.to90}” — ${data.label}'s Core Tendencies`;
   const meta = variant === 'zone'
     ? `${data.label}, sorted by frequency`
@@ -240,23 +270,35 @@ function BigTwelve({ data, screen, cls = '', variant = 'legacy' }) {
     <DataTable emptyText="Insufficient charted data" columns={[
       { key: 'form', label: 'Formation' }, { key: 'qb', label: 'QB align' }, { key: 'bf', label: 'Backfield' }, { key: 'str', label: 'Strength' }, { key: 'mot', label: 'Motion' }, { key: 'pt', label: 'Play' },
       { key: 'n', label: 'N', numeric: true }, { key: 'succ', label: 'Success', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true },
-    ]} rows={data.rows.map(row => ({ ...row, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, row.cutLabel) : row.cutType ? () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
+    /* The zone variant holds the approved slot count; `variant='legacy'` is
+       Opponent Offense, which has not had its design pass and keeps every row.
+       `to90` in the title stays computed from the full eligible set, so the
+       stated "Big N" describes the tendency, not the truncated view. */
+    ]} rows={(variant === 'zone' ? zoneRows : data.rows)
+      .map(row => ({ ...row, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, row.cutLabel) : row.cutType ? () => screen.watchCut(row.cutType, row.cutVal, row.cutLabel) : undefined, label: row.cutLabel }))} />
   </Module>;
 }
 
-function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultCol = 'down', title = 'Tendency Matrix' }) {
+function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultCol = 'down', title = 'Tendency matrix' }) {
   const [rowId, setRowId] = useState(defaultRow);
   const [colId, setColId] = useState(defaultCol);
-  if (!plays?.length || plays.length < 3) return null;
   const dims = engine.constructor._matrixDimensions();
-  const matrix = view.matrixData(engine, plays, rowId, colId);
+  /* Holds its slot, and holds the approved row allocation. The matrix used to
+     return null under three plays -- removing an approved module -- and to
+     render a row per distinct value, which on a season of formations grew the
+     module without limit. Rows come back already ordered by the view model; the
+     cap only keeps the approved number of them. */
+  const thin = !plays?.length || plays.length < 3;
+  const raw = thin ? null : view.matrixData(engine, plays, rowId, colId);
+  const matrix = raw ? { ...raw, rowKeys: capRows(raw.rowKeys, OFFENSE_ROWS['Tendency matrix']) } : null;
   return <Module title={title}>
     <div class="tm-controls">
       <label>Rows: <select value={rowId} onChange={e => setRowId(e.currentTarget.value)}>{dims.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
       <span style="opacity:.5;margin:0 4px">×</span>
       <label>Cols: <select value={colId} onChange={e => setColId(e.currentTarget.value)}>{dims.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
     </div>
-    {rowId === colId ? <p style="opacity:.6">Pick two different dimensions.</p> : <MatrixGrid matrix={matrix} />}
+    {thin ? <p class="gi-table-empty">Insufficient charted data</p>
+      : rowId === colId ? <p class="gi-table-empty">Pick two different dimensions.</p> : <MatrixGrid matrix={matrix} />}
   </Module>;
 }
 
@@ -286,9 +328,14 @@ function MatrixGrid({ matrix }) {
   </>;
 }
 
+/* Holds its slot, like every other module on this board. Returning null on an
+   ungraded game removed an approved module outright. The title is the approved
+   label change (RATIONALE §5): spelled out once, the abbreviation in the meta. */
 function AdvancedEpa({ data }) {
-  if (!data) return null;
-  return <Module title="Expected Points (EPA)">
+  if (!data) return <Module title="Expected points added" meta="EPA">
+    <p class="gi-table-empty">Insufficient charted data</p>
+  </Module>;
+  return <Module title="Expected points added" meta="EPA">
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-card-title">Total EPA</div><div class={`stat-card-value ${data.totalClass}`}>{data.totalText}</div></div>
       <div class="stat-card"><div class="stat-card-title">EPA / Play</div><div class={`stat-card-value ${data.perPlayClass}`}>{data.perPlayText}</div></div>
@@ -303,19 +350,19 @@ function AdvancedEpa({ data }) {
       <text x={data.W - data.P} y="14" fill="#aaa" font-size="11" text-anchor="end">High {data.hi.toFixed(1)} / Low {data.lo.toFixed(1)}</text>
     </svg></div>
     <div class="stats-two-col">
-      <EpaGroupTable title="Play Type" rows={data.byType} />
-      <EpaGroupTable title="Formation" rows={data.byFormation} />
+      <EpaGroupTable title="By play type" rows={capRows(data.byType, OFFENSE_EPA_ROWS['By play type'])} />
+      <EpaGroupTable title="By formation" rows={capRows(data.byFormation, OFFENSE_EPA_ROWS['By formation'])} />
     </div>
     <div class="stats-two-col">
-      <EpaGroupTable title="Personnel" rows={data.byPersonnel} />
+      <EpaGroupTable title="By personnel" rows={capRows(data.byPersonnel, OFFENSE_EPA_ROWS['By personnel'])} />
       <div><h4 class="gi-epa-subhead">By down</h4><table class="stats-table stats-table-full epa-table">
         <thead><tr><th>Down</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
-        <tbody>{data.byDown.length ? data.byDown.map(d => <tr key={d.down}><td>{d.down}</td><td>{d.count}</td><td class={d.totalClass}>{d.total}</td><td class={d.perPlayClass}>{d.perPlay}</td></tr>) : <tr><td colspan="4" class="gi-table-empty-cell">No data</td></tr>}</tbody>
+        <tbody>{data.byDown.length ? capRows(data.byDown, OFFENSE_EPA_ROWS['By down']).map(d => <tr key={d.down}><td>{d.down}</td><td>{d.count}</td><td class={d.totalClass}>{d.total}</td><td class={d.perPlayClass}>{d.perPlay}</td></tr>) : <tr><td colspan="4" class="gi-table-empty-cell">No data</td></tr>}</tbody>
       </table></div>
     </div>
     <div class="stats-two-col">
-      <EpaPlayTable title="Top 5 EPA plays" tone="is-win" rows={data.top} />
-      <EpaPlayTable title="Worst 5 EPA plays" tone="is-loss" rows={data.worst} />
+      <EpaPlayTable title="Top 5 EPA plays" tone="is-win" rows={capRows(data.top, OFFENSE_EPA_ROWS['Top 5'])} />
+      <EpaPlayTable title="Worst 5 EPA plays" tone="is-loss" rows={capRows(data.worst, OFFENSE_EPA_ROWS['Worst 5'])} />
     </div>
   </Module>;
 }
@@ -356,29 +403,42 @@ function ShapePanels({ shape }) {
   </>;
 }
 
+/* Four modules of the approved composition, ALWAYS all four. Each previously
+   collapsed to null when its own chart had nothing to draw, and the band then
+   rendered one module or vanished outright — so the board's shape moved with
+   the data, which is the thing the static rule forbids. A chart with no data
+   now holds its slot and states the absence, the same treatment every table on
+   this board uses. Metas are the comp's, not the earlier paraphrases. */
 function shapeParts(shape) {
-  if (!shape) return {};
+  const panel = (title, meta, body) => <Module title={title} meta={meta}>
+    {body ? <ChartBody {...body} /> : <p class="gi-table-empty">Insufficient charted data</p>}
+  </Module>;
   return {
-    histogram: shape.histogram ? <Module title="Yards per play" meta="distribution"><ChartBody {...shape.histogram} /></Module> : null,
-    scatter: shape.scatter ? <Module title="Yards vs distance to go" meta="by distance to go"><ChartBody {...shape.scatter} /></Module> : null,
-    zones: shape.zones ? <Module title="Success by field position" meta="by field zone"><ChartBody {...shape.zones} /></Module> : null,
-    downs: shape.downs ? <Module title="Run / pass by down" meta="by down"><ChartBody {...shape.downs} /></Module> : null,
+    histogram: panel('Yards per play', 'distribution', shape?.histogram),
+    scatter: panel('Yards vs distance to go', 'conversion pressure', shape?.scatter),
+    zones: panel('Success by field position', 'zone strip', shape?.zones),
+    downs: panel('Run / pass by down', 'split & success', shape?.downs),
   };
 }
 
+/* Holds its slot. Returning null removed an approved module from the board
+   whenever the radar had no axes or failed to draw, so the board's module count
+   moved with the data. */
 function TeamProfile({ profile, cls = '' }) {
-  if (!profile?.axes?.length) return null;
-  const chart = Charts.radar(profile.axes, { label: 'Team profile: this game vs season average', compareName: 'season average' });
-  if (!chart) return null;
+  const axes = capRows(profile?.axes || [], OFFENSE_ROWS['Team profile']);
+  const chart = axes.length ? Charts.radar(axes, { label: 'Team profile: this game vs season average', compareName: 'season average' }) : null;
+  if (!chart) return <Module title="Team profile" meta="this game vs season average" cls={`gi-team-profile ${cls}`}>
+    <p class="gi-table-empty">Insufficient charted data</p>
+  </Module>;
   const best = axis => typeof axis.best === 'number'
     ? (Number.isInteger(axis.best) ? axis.best : axis.best.toFixed(1))
     : axis.best;
-  return <Module title="Team profile" meta="vs season average" cls={`gi-team-profile ${cls}`}>
+  return <Module title="Team profile" meta="this game vs season average" cls={`gi-team-profile ${cls}`}>
     <div class="gi-tp-layout">
       <ChartBody html={chart} />
       <div class="gi-tp-table-wrap"><table class="stats-table gi-tp-table">
         <thead><tr><th>Metric</th><th>This game</th><th>Season avg</th><th>Season best</th></tr></thead>
-        <tbody>{profile.axes.map(axis => <tr key={axis.label}>
+        <tbody>{axes.map(axis => <tr key={axis.label}>
           <td>{axis.label}</td><td class="gi-tp-now">{axis.valueLabel}</td><td>{axis.compareLabel}</td>
           <td>{axis.lower ? '≤ ' : ''}{best(axis)}{axis.isBest && <span class="gi-tp-best-mark" title="Season best"> ★</span>}</td>
         </tr>)}</tbody>
@@ -424,6 +484,69 @@ const OFFENSE_ZONES = [
   { id: 'gi-off-z5', label: 'Field and production' },
   { id: 'gi-off-z6', label: 'Advanced metrics' },
 ];
+
+/* The approved Offense composition is the SCHEMA — the single owner for every
+   fixed count on this board. Read off the registered canonical artifact,
+   `design-comps/reports-offense-2026-09-03/offense.html`: 6 zones, 13 bands,
+   26 modules, 3877px at 1440, and the same 26 modules in the comp's own sparse
+   state with `Insufficient charted data` in the empty ones.
+
+   Numbers live HERE, not scattered through JSX, view helpers and tests. A
+   module's row count is what it renders on every game in every season: a short
+   cohort holds the slot with the approved absence treatment, a long one is
+   deterministically ranked and capped. Data never adds a row, removes a module
+   or resizes the board.
+
+   `EPA_ROWS` covers the six sub-tables inside the single Expected points added
+   module, which the comp renders as one `mod`. */
+const OFFENSE_ROWS = {
+  'Run / pass balance': 4,     // one row per down, an enumerable set
+  'Play calls': 8,
+  Concepts: 10,
+  Formation: 5,
+  'Play type': 6,
+  'Play-action': 3,
+  'Core tendencies': 8,
+  'Calls by situation': 8,
+  Personnel: 5,
+  Backfield: 5,
+  Motion: 4,
+  'Play direction': 3,
+  Strength: 3,
+  'Field hash': 3,
+  'Personnel × situation': 6,
+  Situational: 6,
+  'Tendency matrix': 5,
+  'By quarter': 4,             // one row per quarter, an enumerable set
+  'Team profile': 6,
+};
+const OFFENSE_EPA_ROWS = {
+  'By play type': 6, 'By formation': 5, 'By personnel': 5, 'By down': 4,
+  'Top 5': 5, 'Worst 5': 5,
+};
+/** Every module the approved comp renders, in its approved order. The board
+ *  shows exactly these, always, whatever the data holds. */
+const OFFENSE_MODULES = [
+  'Identity', 'Run / pass balance',
+  'Play calls', 'Concepts',
+  'Formation', 'Play type', 'Play-action',
+  'Core tendencies', 'Calls by situation',
+  'Personnel', 'Backfield', 'Motion',
+  'Play direction', 'Strength', 'Field hash',
+  'Personnel × situation', 'Situational',
+  'Tendency matrix', 'By quarter',
+  'Field heat map',
+  'Yards per play', 'Yards vs distance to go',
+  'Success by field position', 'Run / pass by down', 'Visualizations',
+  'Team profile', 'Expected points added',
+  /* RECORDED DIVERGENCE from the comp's 26, pending the coach's decision. See
+     the Zone 5 note in OffenseTab: removing it drops the yardage spray and the
+     per-quarter hover context that e2e-native-reports pins. */
+];
+/** Deterministic cap. The list arrives already ordered by its own view helper
+ *  (frequency or production, per module); this only holds the approved slot
+ *  count so a long cohort cannot grow the board. */
+const capRows = (rows, limit) => (Array.isArray(rows) ? rows.slice(0, limit) : rows);
 
 /**
  * The approved six-zone Offense composition
@@ -478,16 +601,17 @@ export function OffenseTab({ stats, screen }) {
 
     {/* ── ZONE 2 — calls and tendencies ─────────────────────────────── */}
     <ZoneRule id="gi-off-z2" title="Calls and tendencies" label="Frequency and production" note="Opens film" />
-    {calls && <div class="gi-overview-band gi-off-full">{calls.calls}</div>}
-    {calls && <div class="gi-overview-band gi-off-full">{calls.concepts}</div>}
+    {/* The comp pairs these two in one band (`b-2`); production gave each a
+        full-width band of its own, which is a different composition. */}
+    <div class="gi-overview-band gi-off-b2">{calls.calls}{calls.concepts}</div>
     <div class="gi-overview-band gi-overview-band-3">
       <SparseModule title="Formation" meta="frequency &amp; success" cls="is-offense" rows={tend.formations}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(tend.formations, screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(tend.formations, OFFENSE_ROWS.Formation), screen)} />
       </SparseModule>
       <SparseModule title="Play type" meta="frequency &amp; success" cls="is-offense" rows={tend.playTypes}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(tend.playTypes, screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(tend.playTypes, OFFENSE_ROWS['Play type']), screen)} />
       </SparseModule>
-      <Module title="Play-action" meta="vs dropback" cls="is-offense">
+      <Module title="Play-action" meta="vs straight dropback" cls="is-offense">
         {pa ? <>
           {pa.formations.length > 0
             ? <DataTable emptyText="Insufficient charted data" columns={[{ key: 'name', label: 'Formation' }, { key: 'count', label: 'PA Plays', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]} rows={pa.formations.map((f, i) => ({ id: i, ...f }))} />
@@ -501,80 +625,98 @@ export function OffenseTab({ stats, screen }) {
         </> : <p class="gi-table-empty">Insufficient charted data</p>}
       </Module>
     </div>
-    {/* Each takes a full band: paired, "Calls by situation" stacks three lens
-        tables in the narrow track and runs ~1330px tall, leaving ~960px dead
-        beside it. Full width lets its lens grid run as three columns. */}
-    <div class="gi-overview-band gi-off-full">
+    {/* The comp pairs these in one `b-2` band. A previous pass split them into
+        two full-width bands because, paired, "Calls by situation" stacked its
+        three lens tables in the narrow track and ran ~1330px, leaving ~960px
+        dead beside Big N. That measurement was taken with the lens grid free to
+        stack; capping Big N at the approved 8 rows and letting the lens grid
+        keep its own columns inside the narrow track restores the comp's band
+        without reproducing the gap. Measured per band below, on real film. */}
+    <div class="gi-overview-band gi-off-b2">
       <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
-    </div>
-    <div class="gi-overview-band gi-off-full">
-      {calls ? calls.situations : <Module title="Calls by situation" meta="top call"><p class="gi-table-empty">Insufficient charted data</p></Module>}
+      {calls.situations}
     </div>
 
     {/* ── ZONE 3 — structure and deployment ─────────────────────────── */}
     <ZoneRule id="gi-off-z3" title="Structure and deployment" label="Personnel, alignment, motion, direction, and hash" note="Opens film" />
     <div class="gi-overview-band gi-overview-band-3">
       <SparseModule title="Personnel" meta="grouping" cls="is-offense" rows={personnel}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(personnel, screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(personnel, OFFENSE_ROWS.Personnel), screen)} />
       </SparseModule>
       <SparseModule title="Backfield" meta="alignment" cls="is-offense" rows={bf.backfield}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(bf.backfield, screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(bf.backfield, OFFENSE_ROWS.Backfield), screen)} />
       </SparseModule>
-      <SparseModule title="Motion" meta="pre-snap" cls="is-offense" rows={dm?.motion}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(dm?.motion || [], screen)} />
+      <SparseModule title="Motion" meta="pre-snap movement" cls="is-offense" rows={dm?.motion}>
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(dm?.motion || [], OFFENSE_ROWS.Motion), screen)} />
       </SparseModule>
     </div>
     <div class="gi-overview-band gi-overview-band-3">
       <SparseModule title="Play direction" meta="ball direction" cls="is-offense" rows={dm?.direction}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(dm?.direction || [], screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(dm?.direction || [], OFFENSE_ROWS['Play direction']), screen)} />
       </SparseModule>
       <SparseModule title="Strength" meta="declared side" cls="is-offense" rows={bf.strength}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(bf.strength, screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(bf.strength, OFFENSE_ROWS.Strength), screen)} />
       </SparseModule>
       <SparseModule title="Field hash" meta="starting position" cls="is-offense" rows={hash}>
-        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(hash, screen)} />
+        <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(capRows(hash, OFFENSE_ROWS['Field hash']), screen)} />
       </SparseModule>
     </div>
 
     {/* ── ZONE 4 — situational analysis ─────────────────────────────── */}
     <ZoneRule id="gi-off-z4" title="Situational analysis" label="Down, distance, quarter, and personnel" note="Opens film" />
-    {/* The two tall tables take a band each and the two short ones pair with
-        each other. Stretched against a tall neighbour instead, Situational
-        and By quarter carried 324px and 342px of empty panel. */}
-    <div class="gi-overview-band gi-off-full">
-      <SparseModule title="Personnel × situation" meta="by down &amp; distance" cls="is-offense" rows={personnelSit}>
+    {/* The comp's two bands: Personnel × situation beside Situational, then the
+        Tendency matrix beside By quarter. Production had split these into two
+        full-width bands and a pair in the wrong order, so Zone 4 read as four
+        sections rather than the approved two comparisons. */}
+    <div class="gi-overview-band gi-off-b2e">
+      <SparseModule title="Personnel × situation" meta="grouping by down &amp; distance" cls="is-offense" rows={personnelSit}>
         <DataTable emptyText="Insufficient charted data"
           columns={[{ key: 'personnel', label: 'Personnel' }, { key: 'situation', label: 'Situation', tl: true }, { key: 'count', label: 'Plays', numeric: true }, { key: 'runPct', label: 'Run%', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Success%' }]}
-          rows={personnelSit.map((row, i) => ({ id: i, ...row }))} />
+          rows={capRows(personnelSit, OFFENSE_ROWS['Personnel × situation']).map((row, i) => ({ id: i, ...row }))} />
       </SparseModule>
-    </div>
-    <div class="gi-overview-band gi-off-full">
-      <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
-    </div>
-    <div class="gi-overview-band gi-off-even">
-      <SparseModule title="Situational" meta="by situation" cls="is-offense" rows={sit.rows}>
+      <SparseModule title="Situational" meta="production by situation" cls="is-offense" rows={sit.rows}>
         <DataTable emptyText="Insufficient charted data"
           columns={[{ key: 'name', label: 'Situation' }, { key: 'total', label: '#', numeric: true }, { key: 'yards', label: 'Yds', numeric: true }, { key: 'avg', label: 'Avg', numeric: true }, { key: 'success', label: 'Succ%' }, { key: 'tds', label: 'TD', numeric: true }]}
-          rows={sit.rows.map(row => ({ ...row, id: row.key, onActivate: cut('situation', row.key, `${row.name} — ${row.total} plays`), label: `${row.name} — ${row.total} plays` }))} />
+          rows={capRows(sit.rows, OFFENSE_ROWS.Situational).map(row => ({ ...row, id: row.key, onActivate: cut('situation', row.key, `${row.name} — ${row.total} plays`), label: `${row.name} — ${row.total} plays` }))} />
       </SparseModule>
-      <SparseModule title="By quarter" meta="plays, yards, TD" rows={sit.byQuarter}>
+    </div>
+    <div class="gi-overview-band gi-off-b2">
+      <TendencyMatrixPanel engine={engine} plays={stats.offPlays} />
+      <SparseModule title="By quarter" meta="production over the game" rows={sit.byQuarter}>
         <table><thead><tr><th>Qtr</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
-          <tbody>{sit.byQuarter.map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody>
+          <tbody>{capRows(sit.byQuarter, OFFENSE_ROWS['By quarter']).map(q => <tr key={q.q}><td>{q.q}</td><td>{q.plays}</td><td>{q.yards}</td><td>{q.tds}</td></tr>)}</tbody>
         </table>
       </SparseModule>
     </div>
 
     {/* ── ZONE 5 — field and production ─────────────────────────────── */}
     <ZoneRule id="gi-off-z5" title="Field and production" label="Distribution and field position" />
+    {/* Three bands, always. The two paired bands were conditional and used
+        `.filter(Boolean)`, so a band could render one module, or none, and the
+        board's shape moved with the data.
+
+        UNRESOLVED COMP AMBIGUITY — `Visualizations` is retained deliberately.
+        The comp's Zone 5 carries five modules and no `Visualizations`, and
+        RATIONALE §2 row 24 maps `NativeOffenseVisualizations` to "the bar/plot
+        bodies in bands 2-3" — i.e. absorbed into the shape panels. But those
+        panels are built from `_dataShape`, a different source, so absorbing
+        never happened: deleting the module DROPS the yardage spray's axis
+        context and the per-quarter hover context, both of which
+        `e2e-native-reports` pins, and contradicts RATIONALE §6 "No analytics
+        were removed." Its `By Quarter` block does restate Zone 4's By quarter
+        module, so the duplication the composition rule forbids is real too.
+        Removing capability on one line's reading is not a call to make here;
+        it is raised for the coach with the module intact. */}
     <div class="gi-overview-band gi-off-full"><NativeHeatMaps plays={stats.offPlays} screen={screen} /></div>
-    {(parts.histogram || parts.scatter) && <div class="gi-overview-band gi-off-even">{[parts.histogram, parts.scatter].filter(Boolean)}</div>}
-    {(parts.zones || parts.downs) && <div class="gi-overview-band gi-off-even">{[parts.zones, parts.downs].filter(Boolean)}</div>}
+    <div class="gi-overview-band gi-off-b2e">{parts.histogram}{parts.scatter}</div>
+    <div class="gi-overview-band gi-off-b2e">{parts.zones}{parts.downs}</div>
     <div class="gi-overview-band gi-off-full"><NativeOffenseVisualizations plays={stats.offPlays} /></div>
 
     {/* ── ZONE 6 — advanced metrics ─────────────────────────────────── */}
     <ZoneRule id="gi-off-z6" title="Advanced metrics" label="Team profile and EPA" />
-    {shape?.teamProfile && <div class="gi-overview-band gi-off-full"><TeamProfile profile={shape.teamProfile} cls="is-offense" /></div>}
-    {advanced && <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} /></div>}
+    {/* Both bands always render; the modules themselves state any absence. */}
+    <div class="gi-overview-band gi-off-full"><TeamProfile profile={shape?.teamProfile} cls="is-offense" /></div>
+    <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} /></div>
   </div>;
 }
 /* The six roles the engine attributes, in the approved board order. `w` is the

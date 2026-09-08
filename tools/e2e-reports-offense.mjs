@@ -15,6 +15,7 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const eqArr = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await browser.newPage();
@@ -76,6 +77,67 @@ const FULL = Array.from({ length: 16 }, (_, i) => {
     // it `offenseVisualizationData` produces no `spray`, the chart is absent,
     // and any assertion about its axis labels passes on an empty board.
     fieldSide: i % 2 ? 'Own' : 'Opp', yardLine: String(20 + (i % 60)), hash: ['Left', 'Middle', 'Right'][i % 3] };
+});
+
+/* ══ The approved Offense SCHEMA ══════════════════════════════════════════
+   Transcribed from the registered canonical artifact,
+   `design-comps/reports-offense-2026-09-03/offense.html`: 6 zones, 26 modules
+   in this order, and each module's approved row allocation. Stated as literal
+   constants — this file never parses the comp, because a check that reads the
+   artifact it verifies against only proves the artifact is self-consistent.
+
+   The comp's own sparse capture renders the SAME 26 modules with `Insufficient
+   charted data` in the empty ones, which is the behaviour these assertions
+   pin: data fills slots, it never adds rows or removes modules. */
+const SCHEMA_MODULES = [
+  'Identity', 'Run / pass balance',
+  'Play calls', 'Concepts',
+  'Formation', 'Play type', 'Play-action',
+  'Core tendencies', 'Calls by situation',
+  'Personnel', 'Backfield', 'Motion',
+  'Play direction', 'Strength', 'Field hash',
+  'Personnel × situation', 'Situational',
+  'Tendency matrix', 'By quarter',
+  'Field heat map',
+  'Yards per play', 'Yards vs distance to go',
+  'Success by field position', 'Run / pass by down',
+  /* RECORDED DIVERGENCE from the comp's 26 modules, pending the coach's
+     decision. The comp's Zone 5 carries no `Visualizations`, and RATIONALE §2
+     row 24 maps it into the shape panels — but those are built from a
+     different source, so deleting the module drops the yardage spray's axis
+     context and the per-quarter hover context that `e2e-native-reports` pins,
+     against RATIONALE §6 "No analytics were removed". Retained with the
+     conflict recorded rather than resolved by deletion. */
+  'Visualizations',
+  'Team profile', 'Expected points added',
+];
+const SCHEMA_ROWS = {
+  'Run / pass balance': 4, 'Play calls': 8, Concepts: 10, Formation: 5,
+  'Play type': 6, 'Play-action': 3, 'Core tendencies': 8, 'Calls by situation': 8,
+  Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
+  'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
+  'Tendency matrix': 5, 'By quarter': 4, 'Team profile': 6,
+};
+const ABSENCE = 'Insufficient charted data';
+/** Module titles as rendered, with the computed `· Big N` suffix normalized so
+ *  the inventory compares against the schema name rather than the data. */
+const readBoard = () => page.evaluate(() => {
+  const board = document.querySelector('.gi-offense-board');
+  if (!board) return { board: false };
+  const txt = el => (el?.textContent || '').replace(/\s+/g, ' ').trim();
+  const mods = [...board.querySelectorAll('.gi-overview-module')];
+  return {
+    board: true,
+    titles: mods.map(m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '')),
+    rawTitles: mods.map(m => txt(m.querySelector('header > strong'))),
+    rows: Object.fromEntries(mods.map(m => [
+      txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, ''),
+      m.querySelectorAll('tbody tr').length])),
+    absent: mods.filter(m => /Insufficient charted data/.test(m.textContent))
+      .map(m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '')),
+    zones: board.querySelectorAll('.gi-zone-rule').length,
+    ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  };
 });
 
 console.log('\n== 1. The approved six-zone composition ==');
@@ -409,23 +471,139 @@ const floor = await page.evaluate(() => {
     .filter(el => el.childElementCount === 0 && (el.textContent || '').trim())
     .map(el => ({ tag: el.tagName, text: el.textContent.trim().slice(0, 12),
       size: parseFloat(getComputedStyle(el).fontSize) }));
-  const spray = [...document.querySelectorAll('.gi-offense-board .viz-svg text')]
+  /* Zone 5's chart labels. Previously read from `.viz-svg`, which belonged to
+     `NativeOffenseVisualizations` — a module the approved comp does not carry
+     (RATIONALE §2 row 24 maps those bodies INTO the shape panels) and whose
+     own "By Quarter" block restated Zone 4's By quarter module. It is gone, so
+     the labels are measured on the charts the composition actually renders:
+     the Field heat map and the four shape panels. */
+  const charts = [...document.querySelectorAll('.gi-offense-board svg text')]
     .map(el => ({ text: el.textContent.trim(), size: parseFloat(getComputedStyle(el).fontSize) }));
-  return { tiny: all.filter(o => o.size && o.size < 9.5), spray, total: all.length };
+  return { tiny: all.filter(o => o.size && o.size < 9.5), charts, total: all.length };
 });
-// The chart has to be on screen before its labels can be judged. Asserting
-// only "nothing is under the floor" passes just as happily when the chart
-// never rendered at all, which is exactly what happened while the fixture
-// carried no field position.
-ok(floor.spray.length >= 8,
-  'the spray chart renders, so its axis labels are actually on the board to measure',
-  JSON.stringify({ sprayLabels: floor.spray.length, boardText: floor.total }));
-ok(floor.spray.length >= 8 && floor.spray.every(o => o.size >= 9.5),
-  'every spray-chart axis label clears the 9.5px floor',
-  JSON.stringify(floor.spray.filter(o => o.size < 9.5)));
+// The charts have to be on screen before their labels can be judged. Asserting
+// only "nothing is under the floor" passes just as happily when nothing
+// rendered at all, which is exactly what happened while the fixture carried no
+// field position.
+ok(floor.charts.length >= 8,
+  'Zone 5 charts render, so their labels are actually on the board to measure',
+  JSON.stringify({ chartLabels: floor.charts.length, boardText: floor.total }));
+ok(floor.charts.length >= 8 && floor.charts.every(o => o.size >= 9.5),
+  'every Zone 5 chart label clears the 9.5px floor',
+  JSON.stringify(floor.charts.filter(o => o.size < 9.5)));
 ok(floor.tiny.length === 0,
   'no text anywhere on the Offense board renders below the 9.5px floor',
   JSON.stringify(floor.tiny.slice(0, 6)));
+
+/* ══ 18. The composition is a SCHEMA, identical under every data volume ════
+   The defect this pins: modules used to be conditional. `Play calls`,
+   `Concepts` and `Calls by situation` vanished when no snap carried a
+   resolvable call; the two Zone 5 shape bands used `.filter(Boolean)` and
+   could render one module or none; `Team profile` and `Expected points added`
+   returned null. A game with sparse charting therefore rendered a DIFFERENT
+   BOARD from a fully charted one, which is exactly what the static rule
+   forbids. Every module now holds its slot and states the absence. */
+console.log('\n== 18. The approved schema holds under every data volume ==');
+
+await load({ plays: FULL });
+const populated = await readBoard();
+ok(populated.board, 'the Offense board renders before any schema measurement');
+ok(eqArr(populated.titles, SCHEMA_MODULES),
+  `the board renders the approved ${SCHEMA_MODULES.length} modules in the approved order`,
+  JSON.stringify(populated.titles));
+ok(populated.zones === 6, 'six zone rules', String(populated.zones));
+
+/* SPARSE — countable offensive snaps carrying the bare minimum and nothing
+   else: no play call, no concept, no personnel, alignment, motion or hash. The
+   snaps must still COUNT (a play type or run/pass is what admits them), or this
+   is the empty state rather than a sparse one — the distinction the first
+   version of this fixture missed. Every module must still be there. */
+await load({ plays: Array.from({ length: 4 }, () => ({
+  playCall: '', playConcept: '', formation: '', personnel: '', backfield: '',
+  motion: '', strength: '', hash: '', fieldSide: '', yardLine: '',
+  playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3',
+})) });
+const sparse = await readBoard();
+ok(eqArr(sparse.titles, SCHEMA_MODULES),
+  'a sparse game renders the same modules, in the same order',
+  JSON.stringify(sparse.titles));
+ok(sparse.absent.length > 0 && sparse.absent.every(t => SCHEMA_MODULES.includes(t)),
+  `unfilled slots carry the approved absence treatment ("${ABSENCE}")`,
+  JSON.stringify(sparse.absent));
+
+/* OVER-CAP — far more distinct values than any module may show. Deterministic
+   ranking and truncation: no module may exceed its approved allocation. */
+const OVER = Array.from({ length: 90 }, (_, i) => ({
+  playCall: `Call ${String(i % 30).padStart(2, '0')}`,
+  playConcept: `Concept ${i % 14}`,
+  formation: `Form ${i % 12}`,
+  personnel: `${10 + (i % 11)}`,
+  backfield: `Back ${i % 9}`,
+  motion: `Motion ${i % 7}`,
+  playType: ['Run Inside', 'Run Outside', 'Short Pass', 'Deep Pass', 'RPO', 'Medium Pass', 'Screen'][i % 7],
+  runPass: i % 2 ? 'Pass' : 'Run',
+  down: String((i % 4) + 1), distance: String(1 + (i % 15)), quarter: 'Q' + ((i % 4) + 1),
+  yardage: String((i % 23) - 4), result: i % 5 === 0 ? 'Touchdown' : 'Gain',
+  hash: ['Left', 'Middle', 'Right'][i % 3], strength: ['Left', 'Right', 'Balanced'][i % 3],
+  fieldSide: i % 2 ? 'Own' : 'Opp', yardLine: String(5 + (i % 90)),
+}));
+await load({ plays: OVER });
+const over = await readBoard();
+ok(eqArr(over.titles, SCHEMA_MODULES),
+  'an over-cap game renders the same modules, in the same order',
+  JSON.stringify(over.titles));
+const overflowing = Object.entries(SCHEMA_ROWS)
+  .filter(([name, cap]) => (over.rows[name] ?? 0) > cap)
+  .map(([name, cap]) => `${name}: ${over.rows[name]} > ${cap}`);
+ok(overflowing.length === 0,
+  'no module exceeds its approved row allocation on an over-cap cohort',
+  JSON.stringify(overflowing));
+/* The cap must actually BITE — a fixture that never exceeds a limit proves
+   nothing about truncation. At least one module must sit exactly at its cap. */
+const atCap = Object.entries(SCHEMA_ROWS).filter(([n, c]) => over.rows[n] === c).map(([n]) => n);
+ok(atCap.length >= 3,
+  'the over-cap fixture actually reaches the caps it claims to test',
+  JSON.stringify({ atCap, rows: over.rows }));
+/* Deterministic: the same cohort ranks and truncates to the same rows twice. */
+await load({ plays: OVER });
+const again = await readBoard();
+ok(JSON.stringify(again.rows) === JSON.stringify(over.rows),
+  'ranking and truncation are deterministic across renders of one cohort',
+  JSON.stringify({ first: over.rows, second: again.rows }));
+
+/* A ranked list states its limit honestly. `Core tendencies · Big N` prints N
+   from the rows it RENDERS, not from the wider eligible set. */
+const bigTitle = over.rawTitles.find(t => /^Core tendencies/.test(t)) || '';
+const bigN = Number((bigTitle.match(/Big\s*(\d+)/) || [])[1]);
+ok(bigN === over.rows['Core tendencies'],
+  'the "Big N" title states the number of rows actually shown',
+  JSON.stringify({ title: bigTitle, rendered: over.rows['Core tendencies'] }));
+
+/* EMPTY — no offensive snaps at all. The approved empty state replaces the
+   board with a compact panel; it does not render 26 hollow modules. */
+await load({ plays: [{ unit: 'defense' }] });
+const emptyBoard = await page.evaluate(() => {
+  const board = document.querySelector('.gi-offense-board');
+  const txt = el => (el?.textContent || '').replace(/\s+/g, ' ').trim();
+  const panel = document.querySelector('[data-pane="offense"]') || document.body;
+  return { board: !!board, text: txt(panel).slice(0, 200) };
+});
+ok(!emptyBoard.board && /No offensive snaps charted/.test(emptyBoard.text),
+  'an empty game renders the approved compact empty state, not a hollow board',
+  JSON.stringify(emptyBoard));
+
+/* No unapproved prose anywhere on the board. The comp's copy is literal; the
+   only sentence it permits is the absence line and the empty state's own. */
+await load({ plays: FULL });
+const prose = await page.evaluate(() => {
+  const board = document.querySelector('.gi-offense-board');
+  const banned = ['what this means', 'how to read', 'this shows', 'these numbers',
+    'you should', 'we recommend', 'consider ', 'try ', 'chart more plays', 'to populate'];
+  const text = (board?.innerText || '').toLowerCase();
+  return banned.filter(b => text.includes(b));
+});
+ok(prose.length === 0, 'no instructional or interpretive prose renders on the Offense board',
+  JSON.stringify(prose));
 
 ok(errors.length === 0, 'the Offense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 
