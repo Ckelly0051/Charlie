@@ -85,7 +85,7 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
   const oppRush = view.opponentRushingRows(stats, engine);
   const oppPass = view.opponentPassingRows(stats, engine);
   const driveList = rows => rows.map((drive, i) => drive.absent
-    ? <div key={`absent-${i}`} class="gi-overview-drive is-absent"><span /><i /><small>{drive.outcome}</small></div>
+    ? <div key={`absent-${i}`} class="gi-overview-drive is-absent"><span>{view.ABSENT_SLOT}</span><i /><small>{view.ABSENT_SLOT}</small></div>
     : <Watchable key={`${drive.number}-${drive.refs[0] || ''}`} class="gi-overview-drive" onActivate={() => {
       if (drive.refs.length) screen.watchRefs(drive.refs, `Drive ${drive.number}`);
       else { const ids = new Set(drive.playIds.map(String)); screen.watchPredicate(p => ids.has(String(p.id)), `Drive ${drive.number}`); }
@@ -121,7 +121,7 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
       <Module title="Down &amp; distance" meta="run/pass mix and production">
         <table><thead><tr><th>Situation</th><th>Snaps</th><th>Run / pass</th><th>Yds/play</th><th>Success</th><th>Conv</th></tr></thead><tbody>
           {dd.map((row, i) => row.absent
-            ? <tr key={`absent-${i}`} class="is-absent"><td>{row.situation}</td><td colSpan="5" /></tr>
+            ? <tr key={`absent-${i}`} class="is-absent">{Array.from({ length: 6 }, (_, c) => <td key={c}>{view.ABSENT_SLOT}</td>)}</tr>
             : <Watchable key={row.situation} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
             <td>{row.situation}</td><td>{row.snaps}</td>
             <td><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</td>
@@ -145,7 +145,7 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
       <Module title="Top 10 Plays" meta={`${bigPlaysReal} total`} cls="is-offense">
         <table><thead><tr>{gameLabels&&<th>Game</th>}<th>Play</th><th>Situation</th><th>Call</th><th>Yds</th></tr></thead><tbody>
           {bigPlays.map((play, i) => play.absent
-            ? <tr key={`absent-${i}`} class="is-absent">{gameLabels&&<td />}<td /><td>{play.situation}</td><td colSpan="2" /></tr>
+            ? <tr key={`absent-${i}`} class="is-absent">{Array.from({ length: gameLabels ? 5 : 4 }, (_, c) => <td key={c}>{view.ABSENT_SLOT}</td>)}</tr>
             : <Watchable key={play.ref || play.id} tag="tr" class={play.side === 'them' ? 'is-them' : 'is-us'} onActivate={() => play.ref ? screen.watchRefs([play.ref], `Play ${play.id}`) : screen.watchPredicate(p => String(p.id) === String(play.id), `Play ${play.id}`)} label={`Play ${play.id}`}>
             {gameLabels&&<td>{play.game}</td>}<td>{play.id}</td><td>{play.situation}</td><td>{play.call}</td><td>{play.yards}</td>
           </Watchable>)}

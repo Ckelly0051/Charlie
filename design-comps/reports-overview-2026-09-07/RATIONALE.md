@@ -335,7 +335,23 @@ unchanged after the run. Synthetic fixtures are supplemental only.
 3. Down & distance at 5 rather than the enumerable 12 (§1c).
 4. `_reconstructDrives` splitting possessions (§6) — the largest open item.
 5. Fumbles absent from turnover counts until `fumbleRecovery` is charted (§5).
-6. **The shell context bar and scorebug were reported as not matching the comp
+6. **The Reports tab strip clips `MATCHUP` to `MA` at 1440 on Week 1.**
+   Measured: the nav needs 638px and gets 590, because the season's longest
+   game name — `Week 1 vs St. Peter Lutheran Patriots` — pushes its left edge
+   to 602 while the command buttons pin its right at 1192. No other game and no
+   other width hits it. The strip's own `overflow-x:auto` makes the tab
+   scrollable but invisible, which is worse than either: a coach cannot
+   navigate to a tab he cannot see.
+
+   **Deliberately NOT fixed.** Two attempts were made and both reverted — the
+   title never overflows itself, so ellipsis cannot fire, and `flex:0 0 auto` +
+   `on the nav did not win the row either. The real fix is in the header row's
+   flex layout, and the coach has stated that an approved and PREFERRED later
+   comp revision removes the left navigation entirely, which changes this row's
+   geometry. Codex is being consulted. Fixing the symptom first would be
+   speculative work against a layout that is about to change.
+
+7. **The shell context bar and scorebug were reported as not matching the comp
    and are deliberately untouched.** They are shared chrome owned by
    `js/workspace-shell.js` and governed by NEWER approvals than Overview's
    2026-08-20 — Home is 2026-08-31 — so changing them changes Home, Break Down,

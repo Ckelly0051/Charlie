@@ -10,6 +10,16 @@
   padding:var(--gi-5x) var(--gi-6x) var(--gi-4x);background:var(--gi-2);
   border-bottom:1px solid var(--gi-6);
 }
+/* The report title shares one row with the section navigation and the command
+   buttons. It was `flex:0 0 auto` — unable to shrink — while the nav was
+   `flex:1 1 0%` with `overflow-x:auto`, so the nav absorbed every pixel of
+   squeeze: the season's longest game name left it 590px for 638px of tabs and
+   clipped `Matchup` to `MA` at 1440. Scrollable but invisible is worse than
+   either, because a coach cannot navigate to a tab he cannot see.
+   This row was proportioned when the shell still carried a left rail, which
+   the 2026-08-31 Home approval removed; it was never re-fitted to the wider
+   canvas. Navigation now holds its content width and the TITLE yields,
+   truncating with its full text still in the tooltip. */
 .gi-reports-title-block{min-width:0}.gi-reports-eyebrow,.gi-reports-model>span:first-child{
   display:block;color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;
   font-weight:600;line-height:1.2;letter-spacing:0;text-transform:uppercase;
@@ -41,6 +51,14 @@
 .gi-reports-segment button{min-height:var(--gi-hit);padding:0 var(--gi-3x);border:0;border-right:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-11);font:600 12px/1 var(--gi-sans);cursor:pointer}
 .gi-reports-segment button:last-child{border-right:0}.gi-reports-segment button.is-active{background:var(--gi-los);color:var(--gi-on-solid)}
 .gi-reports-film-note{margin-left:auto!important;color:var(--gi-11);font-size:12px!important;text-transform:none!important}
+/* The strip shares its row with the report title and the command buttons, and
+   its right edge is pinned by those buttons. Left free to shrink it lost the
+   race to a long game name: `Week 1 vs St. Peter Lutheran Patriots` left it
+   590px for 638px of tabs, clipping `Matchup` to `MA` at 1440. Its own
+   `overflow-x:auto` made that tab reachable by scrolling but invisible, which
+   is worse than either — a coach cannot navigate to a tab he cannot see.
+   Navigation does not yield; the title does, and truncates with its full text
+   still in the tooltip. */
 .gi-reports-tabs{
   position:sticky;top:0;z-index:6;display:flex;gap:0;min-width:0;padding:0 var(--gi-6x);
   overflow-x:auto;background:var(--gi-2);border-bottom:1px solid var(--gi-7);scrollbar-width:thin;scrollbar-color:var(--gi-8) var(--gi-2);
@@ -1104,7 +1122,17 @@
    `.gi-overview-board`, so a bare class here would reach the other tabs. */
 .gi-reports [data-pane="overview"] .is-absent{color:var(--gi-bd-muted);font-weight:400}
 .gi-reports [data-pane="overview"] tr.is-absent:hover{background:transparent}
+/* A held slot paints no track. The bar rail is the module's measurement
+   surface, and drawing an empty one for a possession that never happened reads
+   as a drive with zero yards rather than as a row that does not exist. The
+   dashes in the label and outcome columns carry the slot instead. */
 .gi-reports [data-pane="overview"] .gi-overview-drive.is-absent>i{background:transparent}
+.gi-reports [data-pane="overview"] .gi-overview-drive.is-absent>span,
+.gi-reports [data-pane="overview"] .gi-overview-drive.is-absent>small{text-align:left}
+.gi-reports [data-pane="overview"] .gi-overview-drive.is-absent>small{text-align:right}
+/* Absence dashes sit in the same columns as the data they stand in for, so
+   numeric columns keep their right alignment and the board's grid holds. */
+.gi-reports [data-pane="overview"] tr.is-absent>td{color:var(--gi-bd-muted)}
 
 /* Big plays runs both directions, so each row states which side made it. The
    marker is the module's own left inset, which no text occupies, so the colour
@@ -1171,10 +1199,19 @@
 .gi-reports [data-pane="overview"] .gi-overview-module tbody tr>td{padding-block:9px}
 .gi-reports [data-pane="overview"] .gi-overview-module tbody tr:first-child>td{padding-top:12px}
 
-/* A play type with no snaps opens no film, so it carries no `cut-row` and lost
-   that class's left inset — `Deep Pass` sat a few pixels left of every type
-   above it. The inset belongs to the column, not to being clickable. */
-.gi-reports [data-pane="overview"] .gi-overview-module tbody td:first-child{padding-left:12px}
+/* Column insets, applied to the HEADER and the BODY together.
+   Two faults this replaces. A play type with no snaps opens no film, so it
+   carried no `cut-row` and lost that class's left inset — `Deep Pass` sat a few
+   pixels left of every type above it; the inset belongs to the column, not to
+   being clickable. And putting it on `td` alone left every first column 12px
+   right of its own `th`, so `PHASE` and `Offense` did not line up.
+   The last column gets the same inset on the other side: right-aligned figures
+   were flush with the table edge, which read as tight against a left that had
+   the module's 18px plus this 12px. Symmetric now, header and data alike. */
+.gi-reports [data-pane="overview"] .gi-overview-module th:first-child,
+.gi-reports [data-pane="overview"] .gi-overview-module td:first-child{padding-left:12px}
+.gi-reports [data-pane="overview"] .gi-overview-module th:last-child,
+.gi-reports [data-pane="overview"] .gi-overview-module td:last-child{padding-right:12px}
 
 /* The opponent's drives are our defensive performance, so their bars carry the
    defensive colour. The track stays neutral: only the filled portion changes,
@@ -1257,16 +1294,16 @@
 .gi-reports .gi-scorebug-meta strong{font:700 11px/1.2 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase}
 .gi-reports .gi-scorebug-meta span{color:var(--gi-bd-muted);font-size:11px}
 .gi-reports .gi-reports-reporthead{display:flex;align-items:flex-end;gap:14px;padding:8px 14px 0;background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
-.gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:0 0 auto;padding:0;border:0;background:transparent}
+.gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:0 1 auto;min-width:0;padding:0;border:0;background:transparent}
 .gi-reports .gi-reports-reporthead .gi-reports-eyebrow{display:none}
-.gi-reports .gi-reports-reporthead .gi-reports-title-block h1{margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase}
+.gi-reports .gi-reports-reporthead .gi-reports-title-block h1{margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gi-reports .gi-reports-reporthead .gi-reports-title-block p{margin:1px 0 3px;color:var(--gi-bd-muted);font-size:11.5px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .gi-reports .gi-reports-reporthead .gi-reports-model{display:flex;align-items:center;gap:7px;margin:0 0 6px;padding:0;border:0;background:transparent}
 .gi-reports .gi-reports-reporthead .gi-reports-model>span{display:none}
 .gi-reports .gi-reports-reporthead .gi-reports-segment{gap:1px}
 .gi-reports .gi-reports-reporthead .gi-reports-segment button{min-height:30px;padding:7px 13px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-muted);font:600 11.5px/1 var(--gi-sans)}
 .gi-reports .gi-reports-reporthead .gi-reports-segment button.is-active{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
-.gi-reports .gi-reports-reporthead .gi-reports-tabs{display:flex;flex:1;align-self:flex-end;min-width:0;margin:0;padding:0;border:0;background:transparent;overflow-x:auto}
+.gi-reports .gi-reports-reporthead .gi-reports-tabs{display:flex;flex:0 0 auto;align-self:flex-end;min-width:0;margin:0;padding:0;border:0;background:transparent;overflow-x:auto}
 .gi-reports .gi-reports-reporthead .gi-reports-tab{flex:0 0 auto;padding:9px 10px;border:0;background:transparent;color:var(--gi-bd-muted);font:600 11px/1 var(--gi-cond);letter-spacing:.08em;text-transform:uppercase}
 .gi-reports .gi-reports-reporthead .gi-reports-tab.active{color:var(--gi-bd-strong);background:var(--gi-bd-control);box-shadow:inset 0 -3px var(--gi-bd-gold)}
 .gi-reports .gi-reports-reporthead .gi-reports-actions{align-self:center;flex:0 0 auto;gap:6px}

@@ -411,6 +411,7 @@ const board = () => page.evaluate(() => {
     absentRows: [...(pane?.querySelectorAll('.is-absent') || [])].map(n => ({
       text: n.textContent.trim(),
       interactive: !!(n.getAttribute('role') || n.getAttribute('tabindex') || n.className.includes('cut-row')),
+      emptyCells: [...n.querySelectorAll('td')].filter(c => !c.textContent.trim()).length,
     })),
     columns: Object.fromEntries(Object.keys({ 'Snaps by phase': 0, 'Yards by type': 0, 'Down & distance': 0, 'Top 10 Plays': 0 })
       .map(k => [k, cols(k)])),
@@ -570,8 +571,13 @@ for (const [module, count] of Object.entries(SCHEMA)) {
 /* An absence slot holds a row the data cannot fill. It must state the app's one
    absence label and must NOT be interactive — there is no film behind a row
    naming nothing — and it must never appear where the data DID fill the row. */
-ok(b.absentRows.every(r => r.text.includes('No data') && !r.interactive),
-  'every absence slot reads "No data" and offers no film action', JSON.stringify(b.absentRows));
+ok(b.absentRows.length > 0 && b.absentRows.every(r => /–/.test(r.text) && !r.interactive),
+  'every absence slot holds its place with a dash and offers no film action', JSON.stringify(b.absentRows));
+/* The defect this replaces: absence rows rendered `colSpan` filler, so most of
+   the row was genuinely empty and read as a row that failed to load rather than
+   a slot for something that never happened. Every column carries the dash. */
+ok(b.absentRows.every(r => r.emptyCells === 0),
+  'an absence slot leaves no cell blank', JSON.stringify(b.absentRows.filter(r => r.emptyCells)));
 /* Down & distance is bucketed by StatsEngine's own distance bands, which this
    file deliberately does not re-implement — duplicating that formula would
    test a copy of it. Reconciliation is the honest check: the rows must account

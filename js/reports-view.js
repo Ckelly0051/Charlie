@@ -104,9 +104,18 @@ export function passingRows(stats) {
  *  slots for entries that do not exist. */
 export function padRows(rows, limit, key) {
   const out = [...rows];
-  while (out.length < limit) out.push({ absent: true, class: 'is-absent', [key]: 'No data' });
+  while (out.length < limit) out.push({ absent: true, class: 'is-absent', [key]: ABSENT_SLOT });
   return out;
 }
+
+/** A slot for a row that DOES NOT EXIST — a ninth drive in a game that had
+ *  five. Distinct from `No data`, which is this app's one label for a value
+ *  that could not be MEASURED. The difference is real and worth keeping: a
+ *  defense that faced five possessions did not fail to measure the sixth, and
+ *  printing `No data` there says the charting fell short when it did not.
+ *  It renders in every column of the row, so the slot reads as a held place
+ *  rather than as a row that failed to load. */
+export const ABSENT_SLOT = '–';
 /** Rushing and Passing for the OPPONENT's offense, measured on our defensive
  *  snaps. Same rows, same order, same labels as our own two modules, so the
  *  four read as one comparison — with `allowed` in the meta so a number can
@@ -177,7 +186,7 @@ export function downDistanceRows(stats, statsEngine = null, limit = 0) {
 export function gamePlan(stats, limit = 3) {
   const t = stats.takeaways || {};
   const plainText = value => String(value || '').replace(/<[^>]+>/g, '');
-  const list = items => padRows((items || []).slice(0, limit).map(item => ({ text: plainText(item.text), cut: item.cut || null })), limit, 'text');
+  const list = items => (items || []).slice(0, limit).map(item => ({ text: plainText(item.text), cut: item.cut || null }));
   return { working: list(t.working), fix: list(t.fix) };
 }
 

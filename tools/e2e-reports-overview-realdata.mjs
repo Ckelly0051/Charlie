@@ -280,6 +280,54 @@ ok(/^\d+ charted · \d+%$/.test(b.kpis[0].sub),
 ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
   'the Drives meta keeps the approved middot form', JSON.stringify(b.metas['Offensive Drives']));
 
+/* ── Every report tab stays reachable AND visible ──────────────────────────
+   The title, the section navigation and the command buttons share one row. The
+   title was `flex:0 0 auto` and the nav `flex:1 1 0%` with `overflow-x:auto`,
+   so the nav absorbed every pixel of squeeze: the canonical season's longest
+   game name — `Week 1 vs St. Peter Lutheran Patriots` — left it 590px for
+   638px of tabs and clipped `Matchup` to `MA` at 1440. Scrollable but
+   invisible is worse than either; a coach cannot navigate to a tab he cannot
+   see, and no automated check noticed because nothing overflowed the PAGE.
+
+   Stated against the real season because the trigger is a real game name. This
+   row was proportioned when the shell still carried a left rail, which the
+   2026-08-31 Home approval removed. */
+{
+  /* The trigger is the LONGEST game name, so this must drive that game — the
+     season's active game is not it, and asserting on the wrong game is how a
+     check passes while the defect stands. The game is selected here and the
+     original restored afterwards so nothing below sees a different board. */
+  const longest = games.reduce((a, g) => (g.name || '').length > (a.name || '').length ? g : a, games[0]);
+  const strip = await page.evaluate(async gid => {
+    window.app.storage.seasonStore.data.activeGameId = gid;
+    await window.app.storage._loadActiveGame();
+    window.app.workspaceShell.show('reports');
+    window.app.reportsScreen.selectTab('overview');
+    await new Promise(r => setTimeout(r, 600));
+    const tabs = [...document.querySelectorAll('.gi-reports-tab')];
+    if (!tabs.length) return null;
+    const box = tabs[0].parentElement.getBoundingClientRect();
+    return {
+      game: document.querySelector('.gi-reports-title-block h1')?.textContent.trim(),
+      cut: tabs.filter(t => {
+        const r = t.getBoundingClientRect();
+        return r.right > box.right + 0.5 || r.left < box.left - 0.5;
+      }).map(t => t.textContent.trim()),
+      count: tabs.length,
+    };
+  }, longest.id);
+  ok(!!strip && strip.count > 1 && strip.cut.length === 0,
+    `every Reports tab is fully visible on the longest real game name (${longest.name})`,
+    JSON.stringify(strip));
+  await page.evaluate(async gid => {
+    window.app.storage.seasonStore.data.activeGameId = gid;
+    await window.app.storage._loadActiveGame();
+    window.app.workspaceShell.show('reports');
+    window.app.reportsScreen.selectTab('overview');
+    await new Promise(r => setTimeout(r, 600));
+  }, activeId);
+}
+
 /* ── Drive outcomes are NAMED on the coach's own film ──────────────────────
    A drive is reconstructed from one unit's snaps, so its last play is the last
    SCRIMMAGE snap — never the punt or the field goal that ended the possession,
@@ -291,7 +339,7 @@ ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
    and possessions that change hands with nothing charted between them. */
 const OUTCOME_VOCAB = ['TD', 'FG', 'Missed FG', 'Safety', 'Punt', 'Turnover',
   'Downs', 'Kneel', 'Clock', 'Score', 'Other'];
-const outcomes = [...b.driveOutcomes, ...b.defDriveOutcomes].filter(o => o && o !== 'No data');
+const outcomes = [...b.driveOutcomes, ...b.defDriveOutcomes].filter(o => o && o !== '\u2013');
 ok(outcomes.length > 0 && outcomes.every(o => OUTCOME_VOCAB.includes(o)),
   'every drive outcome comes from the closed vocabulary', JSON.stringify([...new Set(outcomes)]));
 /* The whole point: a real punted drive must NOT read "Other". This season
