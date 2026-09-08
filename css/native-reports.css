@@ -2481,12 +2481,37 @@
 .gi-reports .gi-off-b2{ grid-template-columns:minmax(0,8fr) minmax(0,4fr) }
 .gi-reports .gi-off-b2e{ grid-template-columns:repeat(2,minmax(0,6fr)) }
 
-/* No fill rule here, deliberately. A module in a band is as tall as its
-   tallest neighbour, and short content leaves space at the bottom. Making the
-   module a flex column to absorb that space changes the containing block of
-   its sticky table header, which then renders 34px low and covers its own
-   first row. Height is therefore balanced by pairing modules of similar
-   shape in a band, not by stretching content inside one. */
+/* Modules FILL their band. The previous rule left them at content height and
+   balanced by pairing similar shapes, which is only half of a static board:
+   the module surfaces still ended early and the board background showed
+   through beneath them.
+
+   The reason that rule existed was real — making the module a flex column
+   changes the containing block of its sticky table header, which then renders
+   34px low over its own first row. That is the same trap the Overview,
+   Players and Special Teams boards each had to correct, and the correction is
+   the same: these tables never scroll on their own, so they opt out of the
+   route-wide sticky header entirely. With that done the panel can fill safely.
+
+   The ROWS are not stretched — row pitch stays constant and short cohorts hold
+   their slots with dash rows (`fitRows`), so a module's height comes from its
+   approved allocation rather than from how much film was charted. */
+.gi-reports .gi-offense-board .gi-overview-module th{position:static;top:auto}
+.gi-reports .gi-offense-board .gi-overview-band>.gi-overview-module{
+  display:flex;flex-direction:column}
+/* The Tendency matrix reserves its approved footprint. It was the last module
+   whose height moved with the film — 343..410px across the six games — and its
+   stretched band partner `By quarter` followed it, which is why the board still
+   measured 5548..5615 after every table had been fitted. Its rows are capped at
+   the approved five, but it is a TWO-dimensional grid whose column dimension
+   the coach selects at runtime, so the column set cannot be enumerated the way
+   a table's rows can. The panel therefore reserves the footprint its widest
+   approved shape needs, and the grid sits inside it. */
+.gi-reports .gi-offense-board .gi-overview-module.gi-off-matrix{min-height:412px}
+.gi-reports .gi-offense-board .gi-overview-module>.gi-table-wrap,
+.gi-reports .gi-offense-board .gi-overview-module>table,
+.gi-reports .gi-offense-board .gi-overview-module>.gi-overview-rows,
+.gi-reports .gi-offense-board .gi-overview-module>.gi-call-context-grid{flex:1 0 auto}
 
 /* Edge cells clear the module wall. The route's shared cell padding
    (0 var(--gi-3x)) is sized for the gap BETWEEN columns; at the first and
@@ -2548,7 +2573,10 @@
    rather than stretching content to fill: no row is resized, nothing detaches
    from its header, and no internal scroller is introduced. */
 .gi-reports .gi-offense-board .gi-overview-band{
-  align-items:start;
+  /* Was lign-items:start, which is what let a short module's panel end
+     early and expose the board background beneath it. Stretching is safe now
+     that the sticky-header trap above is corrected and rows hold their slots. */
+  align-items:stretch;
   /* The band paints separators by showing its own --bd-rule background
      through 1px gaps, which only works while every module is the same
      height. Sized to content, the area under a short module exposed that

@@ -357,15 +357,32 @@ rows it RENDERS, not from `to90`. Zone 2 and Zone 4 were re-paired to the comp's
 bands, and `gi-off-b2` (8fr/4fr) / `gi-off-b2e` (6fr/6fr) put them on the
 documented 12-column rhythm.
 
-**UNRESOLVED: the `Visualizations` module.** The comp's Zone 5 carries five
-modules and no `Visualizations`; comp RATIONALE §2 row 24 maps it into the
-shape panels. That absorption is not achievable by moving markup — the panels
-read `_dataShape`, a different source — and deleting the module drops the
-yardage spray axis and per-quarter hover context that `e2e-native-reports`
-pins (106/2 without it, 108/0 with it), against the comp's own §6 "No analytics
-were removed". Its `By Quarter` block does restate Zone 4's By quarter. It is
-RETAINED with the divergence recorded in all three schema owners, so production
-renders 27 modules against the comp's 26. The coach decides at the Gate.
+**Presence alone is not a static board.** The first pass capped but never
+padded, so module presence was fixed while every module stayed content-sized
+and the same 1440 board measured 5102..5478px across six games. `fitRows`
+returns EXACTLY the allocation — truncating a long cohort and PADDING a short
+one with held rows that carry the dash in every column; `mapFit` formats real
+rows before padding so a held slot never reaches a `.toFixed`. **The board is
+now ONE height per viewport: 5617px at 1440, 5574px at 1280, identical on all
+six canonical games, with 26 of 26 modules one height.**
+
+A held row and `Insufficient charted data` are different statements and cannot
+both hold: the comp's own sparse capture is 415px shorter than its populated
+one. Stable geometry wins, so tabular modules hold their rows and the
+module-level line survives only where there is no row structure — `SparseModule`
+is no longer used by this tab. The `Tendency matrix` reserves a 412px panel
+instead, because its column dimension is chosen at runtime and cannot be
+enumerated. The Offense bands are `align-items:stretch`, which required the
+same sticky-`th` opt-out Overview, Players and Special Teams each needed.
+
+**The `Visualizations` module is gone.** The comp's Zone 5 carries five modules
+and no `Visualizations`, and it restated two approved modules in a second
+format — its `Success by Field Zone` strip against `Success by field position`,
+its `By Quarter` bars against Zone 4's `By quarter` — while its spray is the
+field-position view `Field heat map` already owns. Two `e2e-native-reports`
+assertions pinned its `.viz-*` selectors and are RETIRED, not weakened: an
+assertion whose subject the design deliberately removed cannot be repointed
+without changing what it claims. Production renders the comp's 26 modules.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
 Structure and deployment, Situational analysis, Field and production, Advanced
@@ -1091,7 +1108,7 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
-Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 108),
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
@@ -1099,12 +1116,12 @@ canonical six-game season binding, longest-title navigation at both desktop
 release widths, perspective-safe title tooltips and read-only captures, 35),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football
 contracts, the shared scorebug rule, and the static schema — module inventory
-and order, every module's row allocation, and identical schema under populated,
-sparse, empty and over-cap data with deterministic ranking and truncation, 58),
+and order, EXACT row allocations, and identical schema under populated, sparse,
+empty and over-cap data with deterministic ranking, truncation and padding, 58),
 `tools/e2e-reports-offense-realdata.mjs` (the canonical six-game season,
 read-only and hash-checked, every game at 1440 and 1280: approved module
-inventory and order, no module over its allocation, the absence treatment, no
-page overflow and no clipped cell, 13), `tools/e2e-reports-special-teams.mjs`
+inventory and order, EXACT row allocations, held slots, ONE board height per
+viewport across all six games, no page overflow and no clipped cell, 15), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
 corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the

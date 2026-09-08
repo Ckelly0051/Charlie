@@ -1701,10 +1701,18 @@ ok(result.fourthAndLong.includes('2') && result.fourthAndLong.includes('50%S'),
   'Made and missed kicks use the canonical success owner in the Down & Distance grid', JSON.stringify(result));
 ok(result.interception === '#a855f7' && result.fumble === '#a855f7',
   'Interceptions and fumbles use the turnover color regardless of recorded yardage', JSON.stringify(result));
-ok(result.sprayAxis.includes('0') && result.sprayAxis.includes('20'),
-  'Yardage spray retains both zero and maximum Y-axis context', JSON.stringify(result.sprayAxis));
-ok(result.zoneTitles.length === 5 && result.zoneTitles.every(Boolean) && result.quarterTitles.length === 4 && result.quarterTitles.every(Boolean),
-  'Field-zone and quarter marks retain their exact hover context', JSON.stringify(result));
+/* RETIRED, not weakened. These two pinned `.viz-svg` and `.viz-q-bar` — the
+   `Visualizations` module, which the approved Offense composition
+   (`design-comps/reports-offense-2026-09-03`) does not carry and which
+   production stopped rendering on 2026-09-08. It restated two approved modules
+   in a second format: its `Success by Field Zone` strip against Zone 5's
+   `Success by field position`, and its `By Quarter` bars against Zone 4's
+   `By quarter`; its spray is the field-position view the `Field heat map`
+   already owns. An assertion whose subject the design deliberately removed
+   cannot be repointed without changing what it claims, so it is withdrawn here
+   and the surviving owners are asserted in `e2e-reports-offense` and
+   `e2e-reports-offense-realdata` instead. Recorded in
+   `design-comps/reports-offense-production-2026-09-08/RATIONALE.md` §3. */
 
 console.log('\n== F13c. The Formation x Play heat map reads the PROJECTED formation, not the raw legacy string ==');
 result = await page.evaluate(async () => {

@@ -82,11 +82,6 @@ const SCHEMA_MODULES = [
   'Field heat map',
   'Yards per play', 'Yards vs distance to go',
   'Success by field position', 'Run / pass by down',
-  /* RECORDED DIVERGENCE from the comp's 26, pending the coach's decision —
-     see the Zone 5 note in `OffenseTab` and the matching note in
-     `e2e-reports-offense`. Deleting it drops the yardage spray's axis context
-     and the per-quarter hover context that `e2e-native-reports` pins. */
-  'Visualizations',
   'Team profile', 'Expected points added',
 ];
 const SCHEMA_ROWS = {
@@ -147,7 +142,8 @@ for (const g of games) {
         route: document.querySelector('.gi-reports-tab.active')?.getAttribute('data-report-tab'),
         titles: mods.map(name),
         rows: Object.fromEntries(mods.map(m => [name(m), m.querySelectorAll('tbody tr').length])),
-        absent: mods.filter(m => /Insufficient charted data/.test(m.textContent)).map(name),
+        heldRows: mods.reduce((t, m) => t + m.querySelectorAll('tr.is-absent').length, 0),
+        absent: mods.filter(m => m.querySelector('tr.is-absent')).map(name),
         zones: board.querySelectorAll('.gi-zone-rule').length,
         height: Math.round(board.getBoundingClientRect().height),
         ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -188,11 +184,25 @@ ok(wrongInventory.length === 0,
   JSON.stringify(wrongInventory.map(o => ({ game: o.game, w: o.w, titles: o.titles }))));
 ok(observed.every(o => o.zones === 6), 'six zone rules on every game',
   JSON.stringify(observed.filter(o => o.zones !== 6).map(o => ({ game: o.game, zones: o.zones }))));
-const overCap = observed.flatMap(o => Object.entries(SCHEMA_ROWS)
-  .filter(([n, cap]) => (o.rows[n] ?? 0) > cap)
-  .map(([n, cap]) => `${o.game} @${o.w} ${n}: ${o.rows[n]} > ${cap}`));
-ok(overCap.length === 0, 'no module exceeds its approved row allocation on any real game',
-  JSON.stringify(overCap.slice(0, 8)));
+/* EXACT, not `<= cap`. The first version of this assertion certified a ceiling
+   and called it a schema: it passed while every module was still content-sized,
+   recorded six different board heights, and never failed on them. A declared
+   allocation is the number of rows the module renders, on every game. */
+const wrongRows = observed.flatMap(o => Object.entries(SCHEMA_ROWS)
+  .filter(([n, exact]) => (o.rows[n] ?? -1) !== exact)
+  .map(([n, exact]) => `${o.game} @${o.w} ${n}: ${o.rows[n]} != ${exact}`));
+ok(wrongRows.length === 0, 'every module renders EXACTLY its approved row allocation on every real game',
+  JSON.stringify(wrongRows.slice(0, 8)));
+
+/* ONE BOARD HEIGHT PER VIEWPORT. This is the whole claim — "the board has
+   stable geometry for every game at a given viewport" — and nothing asserted
+   it before. Six games producing 5102..5478px passed the old suite. */
+for (const [w] of VIEWPORTS) {
+  const heights = [...new Set(observed.filter(o => o.w === w).map(o => o.height))];
+  ok(heights.length === 1,
+    `the board is ONE height at ${w} across all ${games.length} games`,
+    JSON.stringify(observed.filter(o => o.w === w).map(o => ({ game: o.game, h: o.height }))));
+}
 ok(observed.every(o => o.ovX === 0), 'no page-level horizontal overflow on any game at either width',
   JSON.stringify(observed.filter(o => o.ovX !== 0).map(o => ({ game: o.game, w: o.w, ovX: o.ovX }))));
 ok(observed.every(o => o.clipped.length === 0), 'no clipped table cell on any game at either width',

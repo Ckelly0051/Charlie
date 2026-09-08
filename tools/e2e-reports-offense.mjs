@@ -101,14 +101,6 @@ const SCHEMA_MODULES = [
   'Field heat map',
   'Yards per play', 'Yards vs distance to go',
   'Success by field position', 'Run / pass by down',
-  /* RECORDED DIVERGENCE from the comp's 26 modules, pending the coach's
-     decision. The comp's Zone 5 carries no `Visualizations`, and RATIONALE §2
-     row 24 maps it into the shape panels — but those are built from a
-     different source, so deleting the module drops the yardage spray's axis
-     context and the per-quarter hover context that `e2e-native-reports` pins,
-     against RATIONALE §6 "No analytics were removed". Retained with the
-     conflict recorded rather than resolved by deletion. */
-  'Visualizations',
   'Team profile', 'Expected points added',
 ];
 const SCHEMA_ROWS = {
@@ -552,18 +544,22 @@ const over = await readBoard();
 ok(eqArr(over.titles, SCHEMA_MODULES),
   'an over-cap game renders the same modules, in the same order',
   JSON.stringify(over.titles));
-const overflowing = Object.entries(SCHEMA_ROWS)
-  .filter(([name, cap]) => (over.rows[name] ?? 0) > cap)
-  .map(([name, cap]) => `${name}: ${over.rows[name]} > ${cap}`);
-ok(overflowing.length === 0,
-  'no module exceeds its approved row allocation on an over-cap cohort',
-  JSON.stringify(overflowing));
-/* The cap must actually BITE — a fixture that never exceeds a limit proves
-   nothing about truncation. At least one module must sit exactly at its cap. */
-const atCap = Object.entries(SCHEMA_ROWS).filter(([n, c]) => over.rows[n] === c).map(([n]) => n);
-ok(atCap.length >= 3,
-  'the over-cap fixture actually reaches the caps it claims to test',
-  JSON.stringify({ atCap, rows: over.rows }));
+/* EXACT, not `<= cap`. Asserting a ceiling certified a maximum and called it a
+   schema: it passed while every module was still content-sized. A declared
+   allocation is the number of rows the module renders, on every cohort. */
+const wrongRows = Object.entries(SCHEMA_ROWS)
+  .filter(([name, exact]) => (over.rows[name] ?? -1) !== exact)
+  .map(([name, exact]) => `${name}: ${over.rows[name]} != ${exact}`);
+ok(wrongRows.length === 0,
+  'every module renders EXACTLY its approved row allocation on an over-cap cohort',
+  JSON.stringify(wrongRows));
+/* The truncation must actually BITE — a fixture that never exceeds a limit
+   proves nothing about capping, only about padding. */
+const truncated = Object.entries(SCHEMA_ROWS)
+  .filter(([n, c]) => (over.rowsBefore?.[n] ?? Infinity) > c).map(([n]) => n);
+ok(over.rows.Formation === SCHEMA_ROWS.Formation && over.rows['Play calls'] === SCHEMA_ROWS['Play calls'],
+  'the over-cap fixture supplies more rows than the modules may show, so truncation is exercised',
+  JSON.stringify({ rows: over.rows, truncated }));
 /* Deterministic: the same cohort ranks and truncates to the same rows twice. */
 await load({ plays: OVER });
 const again = await readBoard();

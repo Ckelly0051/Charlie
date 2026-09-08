@@ -88,6 +88,8 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
     copy.sort((a, b) => {
       const av = col?.sortValue ? col.sortValue(a) : a[sort.key];
       const bv = col?.sortValue ? col.sortValue(b) : b[sort.key];
+      // A held slot never sorts above real data, in either direction.
+      if (!!a.absent !== !!b.absent) return a.absent ? 1 : -1;
       const aMissing = av === null || av === undefined || av === '';
       const bMissing = bv === null || bv === undefined || bv === '';
       // Missing measurements stay last in both directions. Treating them as
@@ -121,11 +123,21 @@ export function DataTable({ columns, rows, className = 'stats-table stats-table-
       role="button" tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(col.key); } }}
     >{col.label}</th>)}</tr></thead>
-    <tbody>{sorted.map((row, i) => <Watchable key={row.id ?? i} tag="tr" class={row.class} onActivate={row.onActivate} label={row.label}>
-      {columns.map(col => <td key={col.key} data-col={col.key}
-        class={[col.tl ? 'tl' : '', typeof col.cellClass === 'function' ? col.cellClass(row) : col.cellClass || ''].filter(Boolean).join(' ') || undefined}
-      >{col.render ? col.render(row) : row[col.key]}</td>)}
-    </Watchable>)}</tbody>
+    {/* A row marked `absent` is a HELD SLOT — a place the schema reserves that
+        this cohort cannot fill. It carries the dash in every column, is never
+        interactive (there is no film behind a row naming nothing), and never
+        sorts above real data. Rendering it here rather than at each call site
+        means one treatment for every table on every board. */}
+    <tbody>{sorted.map((row, i) => (row.absent
+      ? <tr key={`absent-${i}`} class="is-absent">
+        {columns.map(col => <td key={col.key} data-col={col.key}
+          class={col.tl ? 'tl' : undefined}>–</td>)}
+      </tr>
+      : <Watchable key={row.id ?? i} tag="tr" class={row.class} onActivate={row.onActivate} label={row.label}>
+        {columns.map(col => <td key={col.key} data-col={col.key}
+          class={[col.tl ? 'tl' : '', typeof col.cellClass === 'function' ? col.cellClass(row) : col.cellClass || ''].filter(Boolean).join(' ') || undefined}
+        >{col.render ? col.render(row) : row[col.key]}</td>)}
+      </Watchable>))}</tbody>
   </table></div>;
 }
 
