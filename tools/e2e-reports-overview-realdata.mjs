@@ -298,34 +298,53 @@ ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
      check passes while the defect stands. The game is selected here and the
      original restored afterwards so nothing below sees a different board. */
   const longest = games.reduce((a, g) => (g.name || '').length > (a.name || '').length ? g : a, games[0]);
-  const strip = await page.evaluate(async gid => {
-    window.app.storage.seasonStore.data.activeGameId = gid;
+  const select = gid => page.evaluate(async id => {
+    window.app.storage.seasonStore.data.activeGameId = id;
     await window.app.storage._loadActiveGame();
     window.app.workspaceShell.show('reports');
     window.app.reportsScreen.selectTab('overview');
     await new Promise(r => setTimeout(r, 600));
+  }, gid);
+  const readStrip = () => page.evaluate(() => {
     const tabs = [...document.querySelectorAll('.gi-reports-tab')];
     if (!tabs.length) return null;
     const box = tabs[0].parentElement.getBoundingClientRect();
+    const h1 = document.querySelector('.gi-reports-title-block h1');
     return {
-      game: document.querySelector('.gi-reports-title-block h1')?.textContent.trim(),
+      game: h1?.textContent.trim(),
+      tooltip: h1?.getAttribute('title') || '',
       cut: tabs.filter(t => {
         const r = t.getBoundingClientRect();
         return r.right > box.right + 0.5 || r.left < box.left - 0.5;
       }).map(t => t.textContent.trim()),
       count: tabs.length,
     };
-  }, longest.id);
-  ok(!!strip && strip.count > 1 && strip.cut.length === 0,
-    `every Reports tab is fully visible on the longest real game name (${longest.name})`,
-    JSON.stringify(strip));
-  await page.evaluate(async gid => {
-    window.app.storage.seasonStore.data.activeGameId = gid;
-    await window.app.storage._loadActiveGame();
-    window.app.workspaceShell.show('reports');
-    window.app.reportsScreen.selectTab('overview');
-    await new Promise(r => setTimeout(r, 600));
-  }, activeId);
+  });
+  await select(longest.id);
+  /* BOTH desktop release widths, on the game that actually triggers it. The
+     first version of this check ran once, at 1440, on the season's ACTIVE game
+     — Week 2, which never clipped — so it passed under mutation while the
+     defect stood. A check that cannot fail for the reason it claims is not
+     coverage. */
+  for (const [w, h] of [[1440, 900], [1280, 800]]) {
+    await page.setViewport({ width: w, height: h });
+    await sleep(400);
+    const strip = await readStrip();
+    ok(!!strip && strip.count > 1 && strip.cut.length === 0,
+      `${w}: every Reports tab is fully visible on the longest real game name (${longest.name})`,
+      JSON.stringify(strip));
+  }
+  /* The title truncates to protect the navigation, so the full name has to
+     survive in the tooltip. Asserted on the rendered attribute — this was
+     claimed by a stylesheet comment and a commit message while no `title`
+     attribute existed anywhere in the route. */
+  const tipped = await readStrip();
+  ok(tipped?.tooltip === longest.name,
+    'the report title carries its full value as a tooltip when truncated',
+    JSON.stringify({ tooltip: tipped?.tooltip, expected: longest.name }));
+  await page.setViewport({ width: 1440, height: 900 });
+  await select(activeId);
+  await sleep(300);
 }
 
 /* ── Drive outcomes are NAMED on the coach's own film ──────────────────────

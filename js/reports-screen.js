@@ -483,6 +483,12 @@ export class ReportsScreen {
       if (matchupScope) title.textContent = `Matchup: ${this.matchupOpponent || 'Opponent'}`;
       else if (seasonScope) title.textContent = `${seasonName} ${this.activeTab === 'special' ? 'Special Teams' : this.activeTab === 'players' ? 'Players' : this.activeTab === 'defense' ? 'Defense' : 'Report'}`;
       else title.textContent = context?.game?.name || seasonName || 'Reports';
+      /* The title yields the header row to the section navigation and truncates
+         when a long game name would otherwise push a tab off the end, so the
+         full value has to survive somewhere. Set on the same write as the text
+         — a tooltip that is only promised by a stylesheet comment is not a
+         tooltip, which is exactly what this was. */
+      title.title = title.textContent;
     }
     if (sub) {
       if (matchupScope) { sub.textContent = 'Season film and opponent film'; return; }

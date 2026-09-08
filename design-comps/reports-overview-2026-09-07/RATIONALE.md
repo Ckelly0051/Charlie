@@ -335,21 +335,33 @@ unchanged after the run. Synthetic fixtures are supplemental only.
 3. Down & distance at 5 rather than the enumerable 12 (§1c).
 4. `_reconstructDrives` splitting possessions (§6) — the largest open item.
 5. Fumbles absent from turnover counts until `fumbleRecovery` is charted (§5).
-6. **The Reports tab strip clips `MATCHUP` to `MA` at 1440 on Week 1.**
-   Measured: the nav needs 638px and gets 590, because the season's longest
-   game name — `Week 1 vs St. Peter Lutheran Patriots` — pushes its left edge
-   to 602 while the command buttons pin its right at 1192. No other game and no
-   other width hits it. The strip's own `overflow-x:auto` makes the tab
-   scrollable but invisible, which is worse than either: a coach cannot
-   navigate to a tab he cannot see.
+6. **CLOSED — the Reports tab strip clipped `MATCHUP` to `MA` at 1440.**
+   Fixed in `4996efd`; kept here because the cause explains the comp/production
+   divergence a reader will otherwise trip over.
 
-   **Deliberately NOT fixed.** Two attempts were made and both reverted — the
-   title never overflows itself, so ellipsis cannot fire, and `flex:0 0 auto` +
-   `on the nav did not win the row either. The real fix is in the header row's
-   flex layout, and the coach has stated that an approved and PREFERRED later
-   comp revision removes the left navigation entirely, which changes this row's
-   geometry. Codex is being consulted. Fixing the symptom first would be
-   speculative work against a layout that is about to change.
+   The nav needed 638px and got 590: the season's longest game name,
+   `Week 1 vs St. Peter Lutheran Patriots`, pushed its left edge to 602 while
+   the command buttons pinned its right at 1192. No other game and no other
+   width hit it. The strip's `overflow-x:auto` left the tab scrollable but
+   invisible — worse than either, because a coach cannot navigate to a tab he
+   cannot see, and nothing overflowed the PAGE so no containment check noticed.
+
+   **Root cause was not the tab strip.** The title, the navigation and the
+   command buttons share one row. The title was `flex:0 0 auto`, unable to
+   shrink, and the nav `flex:1 1 0%`, so the nav absorbed every pixel of
+   squeeze. Navigation now holds its content width and the title yields.
+
+   **THE ROW WAS PROPORTIONED FOR A SHELL THAT HAD A LEFT RAIL.** The
+   2026-08-31 Home approval removed it and this row was never re-fitted to the
+   wider canvas. That is also why the canonical Overview capture — 2026-08-20,
+   the OLDEST of the nine surfaces — still shows a left sidebar that production
+   correctly does not have. **The comp is canon for the BOARD's composition,
+   not for the app shell, which a newer surface governs.** "Make the comp the
+   schema" never meant restoring that rail.
+
+   Fixed at the OWNING rules inside the `.gi-reports-reporthead` block. Three
+   earlier attempts were made in the general block, all lost the cascade to
+   those rules, and all were reverted.
 
 7. **The shell context bar and scorebug were reported as not matching the comp
    and are deliberately untouched.** They are shared chrome owned by
