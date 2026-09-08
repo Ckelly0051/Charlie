@@ -471,16 +471,18 @@ const floor = await page.evaluate(() => {
      the Field heat map and the four shape panels. */
   const charts = [...document.querySelectorAll('.gi-offense-board svg text')]
     .map(el => ({ text: el.textContent.trim(), size: parseFloat(getComputedStyle(el).fontSize) }));
-  return { tiny: all.filter(o => o.size && o.size < 9.5), charts, total: all.length };
+  const fieldCells = [...document.querySelectorAll('.gi-off-field-cell')]
+    .map(el => ({ text: el.textContent.trim(), size: parseFloat(getComputedStyle(el).fontSize) }));
+  return { tiny: all.filter(o => o.size && o.size < 9.5), charts, fieldCells, total: all.length };
 });
 // The charts have to be on screen before their labels can be judged. Asserting
 // only "nothing is under the floor" passes just as happily when nothing
 // rendered at all, which is exactly what happened while the fixture carried no
 // field position.
-ok(floor.charts.length >= 8,
-  'Zone 5 charts render, so their labels are actually on the board to measure',
-  JSON.stringify({ chartLabels: floor.charts.length, boardText: floor.total }));
-ok(floor.charts.length >= 8 && floor.charts.every(o => o.size >= 9.5),
+ok(floor.charts.length >= 4 && floor.fieldCells.length === 10,
+  'Zone 5 renders the four approved shape charts and the compact ten-cell field summary',
+  JSON.stringify({ chartLabels: floor.charts.length, fieldCells: floor.fieldCells.length, boardText: floor.total }));
+ok(floor.charts.length >= 4 && floor.charts.every(o => o.size >= 9.5),
   'every Zone 5 chart label clears the 9.5px floor',
   JSON.stringify(floor.charts.filter(o => o.size < 9.5)));
 ok(floor.tiny.length === 0,

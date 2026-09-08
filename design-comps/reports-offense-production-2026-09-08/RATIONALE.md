@@ -111,7 +111,7 @@ Strength`. **For the coach at the Gate.**
 **The `Tendency matrix` reserves a panel footprint rather than enumerating
 columns.** Its rows hold the approved five like every other table, but its
 COLUMN dimension is chosen by the coach at runtime and cannot be enumerated, so
-the panel reserves 412px. It was the last module whose height moved with the
+the panel reserves a fixed footprint (378px after the density pass). It was the last module whose height moved with the
 film, and its stretched band partner `By quarter` followed it.
 
 **The CSS left panels short on purpose, and that was wrong.** The band was
@@ -179,21 +179,17 @@ comp RATIONALE §2 row 24 intended by mapping it into the shape panels.
 
 ---
 
-## 4. Other carried questions
+## 4. Other carried facts
 
-1. **Zone 2's `b-2` pairing leaves dead space when `Calls by situation` is
-   sparse.** A previous pass split that band into two full-width bands for
-   exactly this reason, measured at ~960px. Capping Core tendencies at 8 rows
-   reduces it, but on the canonical season — which charts no play call on most
-   games — the right column is often the absence line beside an eight-row
-   table. The comp specifies the pairing; the coach sees the result.
+1. **The canonical season has no play-call data.** All six games contain zero
+   `playCall` and zero `playConcept` values. Play calls, Concepts and Calls by
+   situation therefore hold their approved slots with dashes. This is source
+   absence, not a runtime data-flow failure, and production does not fabricate
+   calls from formations or play types.
 2. **The production KPI rail** (comp RATIONALE §8, still open). The comp models
    the scorebug plus the Offense KPI band; production also renders a persistent
    rail that duplicates **Success rate**. Unchanged here — it affects every
    game-scope tab, not just Offense.
-3. **Backfield renders shorter than Personnel** in the Zone 3 band, because the
-   data holds fewer distinct backfield values. Carried from CLAUDE.md's open
-   items; may be the honest floor.
 
 ---
 
@@ -203,15 +199,18 @@ Canonical real season, read-only: `2025-st-joseph-mavericks-jv`
 ("2025 St. Joseph Mavericks - JV"), **6 games, 449 charted plays**, SHA-256
 asserted unchanged after the run. All six games inspected at **1440 and 1280**.
 
-**ONE BOARD HEIGHT PER VIEWPORT — 5617px at 1440 and 5574px at 1280, identical
-on all six games**, and 26 of 26 modules are one height. Revision 1 measured
-5102..5478px at 1440 and asserted nothing about it.
+**ONE BOARD HEIGHT — 4449px at both 1440 and 1280, identical on all six games**,
+and 26 of 26 modules are one height. Revision 1 measured 5102..5478px at 1440;
+revision 2 standardized an oversized 5617px board. Revision 3 restores the
+comp's compact field summary, 30px Offense row pitch with unchanged 12px type,
+a 378px matrix footprint, and a 140px EPA curve.
 
 Zero page-level horizontal overflow, zero clipped cells, zero page or console
 errors, on every game at both widths.
 
-`e2e-reports-offense` **58**, `e2e-reports-offense-realdata` **15** (new),
-`e2e-native-reports` **106** (two `.viz-*` assertions retired, §3),
+`e2e-reports-offense` **58**, `e2e-reports-offense-realdata` **17**,
+`e2e-native-reports` **100** (the rejected explorer assertions retired and its
+compact ten-cell exact-film contract added),
 `e2e-reports-overview` **106**,
 `e2e-reports-overview-realdata` **35**, `e2e-parity` **2/2**,
 `e2e-realdata` **10/10**, `e2e-reports-season` **98**,
@@ -239,7 +238,24 @@ optional tag.
 
 ## 6. Carried into the Charlie Gate
 
-1. The `Visualizations` module (§3) — the one decision this build could not make.
-2. Zone 2's paired band and its dead space on sparse call charting (§4.1).
-3. The persistent KPI rail's duplicated Success rate (§4.2).
-4. Backfield's shorter column beside Personnel (§4.3).
+1. The canonical season's absent play-call fields (§4.1). The fixed schema
+   shows the absence honestly; filling it requires charting source data.
+2. The persistent KPI rail's duplicated Success rate (§4.2).
+
+## 7. Revision 3 — chart fidelity and density
+
+The first fixed-height repair made every game equally tall without checking
+whether the height still resembled the approved board. It did not: 5617px at
+1440 versus the comp's 3877px. Revision 3 removes 1168px without reducing the
+12px table-label floor.
+
+- `Field heat map` is again the approved two fixed five-cell strips. The
+  exploratory four-tab football-field SVG was a different module and is
+  retired from Reports.
+- Zone 5 chart captions that restated their axes are removed. Headers and axes
+  carry the literal labels.
+- Team Profile now computes the approved six metrics in the approved order;
+  it no longer substitutes Ball security and pads a missing sixth row.
+- The real-data gate now pins those six labels, the fixed board height, and a
+  maximum module footprint so a giant chart cannot pass merely because every
+  game is giant in the same way.

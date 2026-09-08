@@ -303,12 +303,6 @@
 .gi-reports .ss-matrix th,.gi-reports .ss-matrix td{vertical-align:top}
 .gi-reports .ss-matrix .ss-matrix-sum{display:block;padding:2px 0;line-height:1.35}
 
-/* G9 — rotated heat-map column labels were cut off at the top. Give the header
-   row the height the rotation actually needs instead of the height the
-   unrotated text would need. */
-.gi-reports .heat-map th,.gi-reports .heat-table th{height:auto;padding-top:var(--gi-4x);overflow:visible}
-.gi-reports .heat-map thead,.gi-reports .heat-table thead{overflow:visible}
-
 /* G11 — a two-part section needs a break between its parts. STRENGTH sat
    directly against the last BACKFIELD row and read as crowding into it. */
 .gi-reports .stats-section h4,.gi-reports .stats-section h5{margin-top:var(--gi-5x)}
@@ -469,19 +463,8 @@
   display:block;line-height:1.35;white-space:nowrap;
 }
 
-/* H8 - a chart is a shape, not a workspace. The F12 visuals were capped at G10
-   and these older ones were not, which is why one screen carries both.
-   Selectors below are MEASURED from the rendered app, not guessed. My first
-   attempt used `.epa-chart` / `.heat-map`, neither of which exists — the real
-   owners are `.viz-block` (481px) and `.hm-field-wrap` (448px). Guessing a
-   class is how the last two fixes silently did nothing. */
+/* H8 - a chart is a shape, not a workspace. */
 .gi-reports .viz-block>svg{max-height:230px;height:auto;width:100%}
-/* Reports redesign (item H): the field heat map earns a genuinely larger
-   treatment than the other shape charts on this route — it is the one visual
-   whose whole job is showing precise field position, so it gets more of the
-   viewport than a bar chart needs. Superseded by the redesign block at the
-   end of this file, which raises the cap further; kept here as the floor. */
-.gi-reports .hm-field-wrap>svg{max-height:250px;height:auto;width:100%}
 .gi-reports .stats-section svg{max-width:100%}
 /* H10 - the radar rendered full-viewport. My own regression, and the same
    source-order failure I had just claimed to fix structurally: the generic
@@ -721,16 +704,6 @@
   .gi-tl-drive{grid-template-columns:36px minmax(40px,1fr) auto 60px;}
   .gi-tl-meta{display:none}
 }
-
-/* H — the field-position heat map earns real size and a real hit target.
-   Raises the H8-era cap (250px) now that the SVG's own viewBox is larger, and
-   makes every dot's enlarged invisible hit-circle behave like the button it
-   is — focus-visible outline, pointer cursor, keyboard reachable. */
-.gi-reports .hm-field-wrap>svg{max-height:420px}
-.gi-reports .hm-dot{cursor:pointer}
-.gi-reports .hm-dot:focus-visible{outline:2px solid var(--gi-los);outline-offset:2px}
-.gi-reports .hm-dot:hover circle:nth-child(2){opacity:1}
-@media(pointer:coarse){.gi-reports .hm-field-wrap>svg{max-height:520px}}
 
 /* Coach: a tile's definition (i) mark rendered on its own row, below the
    label, because `.gi-glance-tile` is a bare `display:grid` with no explicit
@@ -2507,11 +2480,51 @@
    the coach selects at runtime, so the column set cannot be enumerated the way
    a table's rows can. The panel therefore reserves the footprint its widest
    approved shape needs, and the grid sits inside it. */
-.gi-reports .gi-offense-board .gi-overview-module.gi-off-matrix{min-height:412px}
+.gi-reports .gi-offense-board .gi-overview-module.gi-off-matrix{height:378px;max-height:378px}
 .gi-reports .gi-offense-board .gi-overview-module>.gi-table-wrap,
 .gi-reports .gi-offense-board .gi-overview-module>table,
 .gi-reports .gi-offense-board .gi-overview-module>.gi-overview-rows,
 .gi-reports .gi-offense-board .gi-overview-module>.gi-call-context-grid{flex:1 0 auto}
+
+/* The approved Offense board uses a compact report pitch. Typography remains
+   at the readable 12px label floor; only the surplus vertical box is removed. */
+.gi-reports .gi-offense-board .gi-overview-module th,
+.gi-reports .gi-offense-board .gi-overview-module td{height:30px}
+
+/* Canonical Field heat map: two fixed five-cell strips, not the exploratory
+   tabbed field diagram. Both rows always occupy the same footprint. */
+.gi-reports .gi-off-field-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;
+  margin:2px -12px 0;background:var(--gi-bd-line)
+}
+.gi-reports .gi-off-field-grid+.gi-off-field-grid{margin-top:4px}
+.gi-reports .gi-off-field-cell{
+  appearance:none;min-width:0;padding:9px 6px;border:0;border-radius:0;
+  background:var(--gi-bd-panel);color:var(--gi-bd-strong);text-align:center;
+  font-family:var(--gi-sans)
+}
+.gi-reports button.gi-off-field-cell{cursor:pointer}
+.gi-reports button.gi-off-field-cell:hover{background:var(--gi-bd-control)}
+.gi-reports button.gi-off-field-cell:focus-visible{outline:2px solid var(--gi-bd-gold);outline-offset:-2px}
+.gi-reports .gi-off-field-cell span{
+  display:block;color:var(--gi-bd-copy);font:700 10px/1 var(--gi-cond);
+  letter-spacing:.12em;text-transform:uppercase
+}
+.gi-reports .gi-off-field-cell strong{
+  display:block;margin-top:5px;font:700 18px/1 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-off-field-cell small{
+  display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 11px/1.2 var(--gi-sans)
+}
+.gi-reports .gi-off-field-cell.is-absent{color:var(--gi-bd-muted)}
+
+/* The EPA curve is a trend line, not a second viewport. Its source SVG has a
+   600x160 viewBox; cap the rendered height to the approved report footprint. */
+.gi-reports .gi-offense-board .epa-curve{height:140px;width:100%}
+.gi-reports .gi-offense-board .epa-curve-wrap{border-radius:0}
+.gi-reports .gi-offense-board .epa-table th,
+.gi-reports .gi-offense-board .epa-table td{height:27px}
 
 /* Edge cells clear the module wall. The route's shared cell padding
    (0 var(--gi-3x)) is sized for the gap BETWEEN columns; at the first and

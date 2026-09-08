@@ -120,15 +120,9 @@ const results = await page.evaluate(() => {
   t('projField(formation) is BLANK for an alignment-only play', SE.projField(ALIGN_ONLY, 'formation') === '', JSON.stringify(SE.projField(ALIGN_ONLY, 'formation')));
   t('projField passes NON-projected keys through raw', SE.projField(OFF, 'playType') === 'Short Pass', SE.projField(OFF, 'playType'));
 
-  // --- heat maps (Formation × Play Type) ---
-  // HeatMaps (the classic renderer) is retired; offenseHeatMapData/report-
-  // visual-data.js is the accepted replacement data seam (Final Reports
-  // Retirement), consumed only by NativeHeatMaps -- no global exposes it and
-  // none should be added just to reach it from here. Its formation-projection
-  // behavior is proven through the real native Offense report instead: see
-  // "F13c" in tools/e2e-native-reports.mjs, which drives the actual Formation
-  // x Play heat-map tab against a legacy-shaped fixture and reads the
-  // rendered rows.
+  // The exploratory Formation × Play heat-map tab is retired from the fixed
+  // Reports composition. Projection remains pinned at its canonical owners
+  // above and in every downstream tendency/EPA assertion below.
 
   // --- play-filter (drawer "Filter Plays" → cut-up exporter) EQUALITY ---
   // This filter selects the film the coach exports, so its set must EQUAL the

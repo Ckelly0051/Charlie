@@ -312,7 +312,6 @@ function MatrixGrid({ matrix }) {
   if (!matrix.rowKeys.length || !matrix.colKeys.length) return <p style="opacity:.6">Not enough data for this combination.</p>;
   const maxCount = Math.max(1, ...Object.values(matrix.cells).map(c => c.count));
   return <>
-    <p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">{matrix.eligible} of {matrix.total} plays charted on both axes{matrix.omitted ? `, ${matrix.omitted} omitted (blank on ${matrix.rowDim.label} or ${matrix.colDim.label})` : ''}</p>
     <div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
       <thead><tr><th>{matrix.rowDim.label} \ {matrix.colDim.label}</th>{matrix.colKeys.map(c => <th key={c}>{c}</th>)}</tr></thead>
       <tbody>{matrix.rowKeys.map((r, ri) => <tr key={r || `slot-${ri}`} class={r ? undefined : 'is-absent'}>
@@ -424,7 +423,7 @@ function ShapePanels({ shape }) {
    this board uses. Metas are the comp's, not the earlier paraphrases. */
 function shapeParts(shape) {
   const panel = (title, meta, body) => <Module title={title} meta={meta}>
-    {body ? <ChartBody {...body} /> : <p class="gi-table-empty">Insufficient charted data</p>}
+    {body ? <ChartBody html={body.html} /> : <p class="gi-table-empty">Insufficient charted data</p>}
   </Module>;
   return {
     histogram: panel('Yards per play', 'distribution', shape?.histogram),
@@ -582,9 +581,6 @@ const OFFENSE_MODULES = [
   'Yards per play', 'Yards vs distance to go',
   'Success by field position', 'Run / pass by down',
   'Team profile', 'Expected points added',
-  /* RECORDED DIVERGENCE from the comp's 26, pending the coach's decision. See
-     the Zone 5 note in OffenseTab: removing it drops the yardage spray and the
-     per-quarter hover context that e2e-native-reports pins. */
 ];
 /** EXACTLY the approved slot count — truncate a long cohort, PAD a short one.
  *

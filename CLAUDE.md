@@ -363,14 +363,17 @@ and the same 1440 board measured 5102..5478px across six games. `fitRows`
 returns EXACTLY the allocation — truncating a long cohort and PADDING a short
 one with held rows that carry the dash in every column; `mapFit` formats real
 rows before padding so a held slot never reaches a `.toFixed`. **The board is
-now ONE height per viewport: 5617px at 1440, 5574px at 1280, identical on all
-six canonical games, with 26 of 26 modules one height.**
+now one fixed 4449px height at both desktop release widths, identical on all
+six canonical games, with 26 of 26 modules one height.** The first fixed-height
+repair standardized an oversized 5617px board; the density repair restored the
+comp's compact Field heat map, removed only surplus row box height while
+retaining 12px table labels, and capped the EPA trend chart.
 
 A held row and `Insufficient charted data` are different statements and cannot
 both hold: the comp's own sparse capture is 415px shorter than its populated
 one. Stable geometry wins, so tabular modules hold their rows and the
 module-level line survives only where there is no row structure — `SparseModule`
-is no longer used by this tab. The `Tendency matrix` reserves a 412px panel
+is no longer used by this tab. The `Tendency matrix` reserves a 378px panel
 instead, because its column dimension is chosen at runtime and cannot be
 enumerated. The Offense bands are `align-items:stretch`, which required the
 same sticky-`th` opt-out Overview, Players and Special Teams each needed.
@@ -383,6 +386,13 @@ field-position view `Field heat map` already owns. Two `e2e-native-reports`
 assertions pinned its `.viz-*` selectors and are RETIRED, not weakened: an
 assertion whose subject the design deliberately removed cannot be repointed
 without changing what it claims. Production renders the comp's 26 modules.
+
+**Zone 5 uses the approved compact Field heat map:** two fixed five-cell strips,
+not the retired tabbed field explorer. Team Profile uses the comp's exact six
+metrics in order: Yards / play, Success rate, Explosive rate, Negative rate,
+3rd down, and Points / drive. The canonical 2025 JV season has no `playCall`
+or `playConcept` values in any of its six games, so Play calls, Concepts and
+Calls by situation honestly hold their static slots with dashes.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
 Structure and deployment, Situational analysis, Field and production, Advanced
@@ -970,17 +980,12 @@ product is wrong.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
 3. **Reports > Offense Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT. Four questions carried into it,
-   all in `design-comps/reports-offense-production-2026-09-08/RATIONALE.md`:
-   the `Visualizations` module (§3) is the one decision the build could not
-   make for itself; Zone 2's approved `b-2` pairing leaves the right column
-   showing an absence line beside an eight-row table on the games this season
-   charts no play call for, which is why a previous pass had split that band;
-   the persistent KPI rail still duplicates Success rate with the Offense band
-   (comp RATIONALE §8, unchanged because it affects every game-scope tab); and
-   Backfield renders shorter than Personnel in the Zone 3 band because the data
-   holds fewer distinct backfield values, which may be the honest floor rather
-   than something to fill.
+   release widths, then PASS / REVISE / REJECT. Two facts carry into it, both
+   recorded in `design-comps/reports-offense-production-2026-09-08/RATIONALE.md`:
+   the canonical season has no charted play-call fields, so the three call
+   modules are honest held slots; and the persistent KPI rail still duplicates
+   Success rate with the Offense band (comp RATIONALE §8, unchanged because it
+   affects every game-scope tab).
 4. **The remaining Reports Charlie Gates** — every tab now has a comp and is
    built. Shared chrome follows the selected report scope: current-game boards
    may show current-game chrome; full-season boards, Season and Matchup do not.
@@ -1108,7 +1113,7 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
-Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 106),
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 100),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
@@ -1120,8 +1125,9 @@ and order, EXACT row allocations, and identical schema under populated, sparse,
 empty and over-cap data with deterministic ranking, truncation and padding, 58),
 `tools/e2e-reports-offense-realdata.mjs` (the canonical six-game season,
 read-only and hash-checked, every game at 1440 and 1280: approved module
-inventory and order, EXACT row allocations, held slots, ONE board height per
-viewport across all six games, no page overflow and no clipped cell, 15), `tools/e2e-reports-special-teams.mjs`
+inventory and order, exact row allocations, held slots, one board height,
+approved Team Profile metrics, a module-height ceiling, no page overflow and
+no clipped cell, 17), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
 corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the

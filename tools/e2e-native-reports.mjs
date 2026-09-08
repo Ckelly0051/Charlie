@@ -1589,7 +1589,7 @@ ok(rhetorical.length === 0,
   'Report headings and captions name the data literally — no questions, no prose openers',
   JSON.stringify(rhetorical));
 
-console.log('\n== F13. Heat-map field-position dots resolve the exact play, by mouse and by keyboard ==');
+console.log('\n== F13. Compact field summary resolves exact film in season and game scope ==');
 result = await page.evaluate(async () => {
   const app = window.app;
   await app.storage.createSeason({ name: '2026 Heat Map QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
@@ -1622,140 +1622,44 @@ result = await page.evaluate(async () => {
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   document.querySelector('.gi-subtab[data-subtab="offense"]')?.click();
   await new Promise(r => setTimeout(r, 200));
-  const dots = [...document.querySelectorAll('.hm-dot[data-heat-ref]')];
-  const dotA = dots.find(d => d.dataset.heatRef === 'gA::5');
-  const dotB = dots.find(d => d.dataset.heatRef === 'gB::5');
-  dotA?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const cells = [...document.querySelectorAll('.gi-off-field-cell')];
+  const dotA = cells.find(d => /Own 21–40/.test(d.textContent || ''));
+  const dotB = cells.find(d => /Opp 39–21/.test(d.textContent || ''));
+  dotA?.click();
   const seasonMouseA = calls.at(-1) || null;
-  dotB?.focus();
-  dotB?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  dotB?.click();
   const seasonKeyB = calls.at(-1) || null;
 
   // -- Game scope: only gA is loaded, so its dot carries the BARE id (no ::).
   app.reportsScreen.selectTab('offense');
   await new Promise(r => setTimeout(r, 200));
-  const gameDot = document.querySelector('.hm-dot[data-heat-ref="5"]');
-  gameDot?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const gameDot = [...document.querySelectorAll('.gi-off-field-cell')]
+    .find(d => /Own 21–40/.test(d.textContent || ''));
+  gameDot?.click();
   const gameMouseA = calls.at(-1) || null;
 
   app.filmNavigation.watch = original;
   return {
-    dotCount: dots.length, dotAFound: !!dotA, dotBFound: !!dotB, gameDotFound: !!gameDot,
+    dotCount: cells.length, dotAFound: !!dotA, dotBFound: !!dotB, gameDotFound: !!gameDot,
     seasonMouseA, seasonKeyB, gameMouseA,
   };
 });
-ok(result.dotCount === 2 && result.dotAFound && result.dotBFound,
-  "Season-scope field map plots both games' plays despite the duplicate bare id", JSON.stringify(result));
+ok(result.dotCount === 10 && result.dotAFound && result.dotBFound,
+  "Season-scope field summary keeps its ten approved cells and separates both games by field zone", JSON.stringify(result));
 ok(JSON.stringify(result.seasonMouseA?.refs) === JSON.stringify(['gA::5']),
-  'Mouse click on a season-scope dot resolves the exact composite ref for its own game, not the other game sharing bare id 5',
+  'A season-scope field cell resolves the exact composite ref for its own game, not the other game sharing bare id 5',
   JSON.stringify(result.seasonMouseA));
 ok(JSON.stringify(result.seasonKeyB?.refs) === JSON.stringify(['gB::5']),
-  'Keyboard activation (Enter) on a season-scope dot resolves the exact composite ref for its own game',
+  'The opposite season-scope field cell resolves the other exact composite ref',
   JSON.stringify(result.seasonKeyB));
 ok(result.gameDotFound && JSON.stringify(result.gameMouseA?.refs) === JSON.stringify(['gA::5']),
-  'Game-scope dot (bare id, no game separator) resolves through the active game only, to the same exact play the season view names gA::5',
+  'A game-scope field cell resolves through the active game only, to the same exact play the season view names gA::5',
   JSON.stringify(result.gameMouseA));
 
-console.log('\n== F13b. Native Offense visuals share canonical football meaning and retain chart context ==');
-result = await page.evaluate(async () => {
-  const app = window.app;
-  await app.storage.createSeason({ name: '2026 Visual Meaning QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
-  const play = (id, tags = {}) => ({
-    id, timestamp: { start: id * 10, end: id * 10 + 5 },
-    tags: { unit: 'offense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
-  });
-  app.storage.seasonStore.data.games = [{
-    id: 'g-visual', name: 'Visual Meaning', nextId: 5,
-    gameInfo: { opponent: 'Wildcats', perspective: 'self' },
-    plays: [
-      play(1, { runPass: 'Pass', playType: 'Short Pass', down: '4', distance: '10', result: 'Good', yardage: '0', yardLine: '20', fieldSide: 'own', quarter: 'Q1' }),
-      play(2, { runPass: 'Pass', playType: 'Short Pass', down: '4', distance: '10', result: 'No Good', yardage: '20', yardLine: '30', fieldSide: 'own', quarter: 'Q1' }),
-      play(3, { runPass: 'Pass', playType: 'Short Pass', down: '1', distance: '10', result: 'Interception', yardage: '0', yardLine: '40', fieldSide: 'own', quarter: 'Q2' }),
-      play(4, { runPass: 'Run', playType: 'Run Outside', down: '2', distance: '5', result: 'Fumble', yardage: '7', yardLine: '50', fieldSide: 'own', quarter: 'Q2' }),
-    ],
-  }];
-  app.storage.seasonStore.data.activeGameId = 'g-visual';
-  app.storage._loadActiveGame();
-  await app.workspaceShell.show('reports');
-  app.reportsScreen.selectTab('offense');
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  const dotFill = id => document.querySelector(`.hm-dot[data-heat-ref="${id}"] circle:last-of-type`)?.getAttribute('fill') || null;
-  const interception = dotFill('3');
-  const fumble = dotFill('4');
-  const ddTab = [...document.querySelectorAll('.hm-tab')].find(button => /Down & Distance/i.test(button.textContent || ''));
-  ddTab?.click();
-  await new Promise(r => requestAnimationFrame(r));
-  const fourth = [...document.querySelectorAll('.dd-grid tbody tr')].find(row => /4th/i.test(row.querySelector('th')?.textContent || ''));
-  const fourthAndLong = fourth?.querySelectorAll('td')?.[2]?.textContent?.replace(/\s+/g, ' ').trim() || '';
-  const sprayAxis = [...document.querySelectorAll('.viz-svg text[x="32"]')].map(node => node.textContent.trim());
-  const zones = [...document.querySelectorAll('.viz-zone')];
-  const quarterBars = [...document.querySelectorAll('.viz-q-bar')];
-  return {
-    interception, fumble, fourthAndLong, sprayAxis,
-    zoneTitles: zones.map(node => node.getAttribute('title')),
-    quarterTitles: quarterBars.map(node => node.getAttribute('title')),
-  };
-});
-ok(result.fourthAndLong.includes('2') && result.fourthAndLong.includes('50%S'),
-  'Made and missed kicks use the canonical success owner in the Down & Distance grid', JSON.stringify(result));
-ok(result.interception === '#a855f7' && result.fumble === '#a855f7',
-  'Interceptions and fumbles use the turnover color regardless of recorded yardage', JSON.stringify(result));
-/* RETIRED, not weakened. These two pinned `.viz-svg` and `.viz-q-bar` — the
-   `Visualizations` module, which the approved Offense composition
-   (`design-comps/reports-offense-2026-09-03`) does not carry and which
-   production stopped rendering on 2026-09-08. It restated two approved modules
-   in a second format: its `Success by Field Zone` strip against Zone 5's
-   `Success by field position`, and its `By Quarter` bars against Zone 4's
-   `By quarter`; its spray is the field-position view the `Field heat map`
-   already owns. An assertion whose subject the design deliberately removed
-   cannot be repointed without changing what it claims, so it is withdrawn here
-   and the surviving owners are asserted in `e2e-reports-offense` and
-   `e2e-reports-offense-realdata` instead. Recorded in
-   `design-comps/reports-offense-production-2026-09-08/RATIONALE.md` §3. */
-
-console.log('\n== F13c. The Formation x Play heat map reads the PROJECTED formation, not the raw legacy string ==');
-result = await page.evaluate(async () => {
-  const app = window.app;
-  await app.storage.createSeason({ name: '2026 Heat Map Projection QA', team: 'Mavericks', year: '2026', level: 'Varsity' });
-  const play = (id, tags = {}) => ({
-    id, timestamp: { start: id * 10, end: id * 10 + 5 },
-    tags: { unit: 'offense', custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
-  });
-  app.storage.seasonStore.data.games = [{
-    id: 'g-hm-proj', name: 'Heat Map Projection', nextId: 3,
-    gameInfo: { opponent: 'Wildcats', perspective: 'self' },
-    plays: [
-      // Legacy-shaped: the stored Formation string embeds a QB-alignment
-      // token ("Shotgun") ahead of the real structure ("Trips"). Projection
-      // must strip the alignment and key this row on the structure alone.
-      play(1, { formation: 'Shotgun + Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5' }),
-      // Alignment-only: the entire stored value IS the alignment token, so
-      // the projected structural formation is blank. This play must be
-      // OMITTED from the matrix, never bucketed under its raw alignment or
-      // an invented "Unknown" row.
-      play(2, { formation: 'Under Center', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3' }),
-    ],
-  }];
-  app.storage.seasonStore.data.activeGameId = 'g-hm-proj';
-  app.storage._loadActiveGame();
-  await app.workspaceShell.show('reports');
-  app.reportsScreen.selectTab('offense');
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  const fxpTab = [...document.querySelectorAll('.hm-tab')].find(button => /Formation x Play/i.test(button.textContent || ''));
-  fxpTab?.click();
-  await new Promise(r => requestAnimationFrame(r));
-  const formationRows = [...document.querySelectorAll('.fxp-grid tbody tr th')].map(node => (node.textContent || '').trim());
-  return { fxpTabFound: !!fxpTab, formationRows };
-});
-ok(result.fxpTabFound, 'The Formation x Play heat-map tab is reachable from the real Offense report', JSON.stringify(result));
-ok(result.formationRows.includes('Trips'),
-  'The rendered heat map keys the legacy-shaped play on its PROJECTED structure (Trips), not the raw compound string', JSON.stringify(result));
-ok(!result.formationRows.includes('Shotgun'),
-  'The rendered heat map has NO row for the raw QB-alignment token Shotgun', JSON.stringify(result));
-ok(!result.formationRows.includes('Under Center') && !result.formationRows.includes('Unknown'),
-  'An alignment-only play is omitted from the heat map rather than shown under its raw alignment or an invented Unknown row', JSON.stringify(result));
+/* RETIRED with the rejected tabbed explorer. Its Down & Distance and
+   Formation x Play panes were never part of the approved fixed Offense comp;
+   the underlying projection and success semantics remain pinned at their
+   analytics owners. Reports now tests the compact field cells and exact refs. */
 
 console.log('\n== F13d. The Reports Players tab renders a real box-score leaderboard, and each row resolves exactly that player\'s own film ==');
 result = await page.evaluate(async () => {

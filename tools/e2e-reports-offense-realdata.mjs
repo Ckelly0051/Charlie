@@ -142,8 +142,11 @@ for (const g of games) {
         route: document.querySelector('.gi-reports-tab.active')?.getAttribute('data-report-tab'),
         titles: mods.map(name),
         rows: Object.fromEntries(mods.map(m => [name(m), m.querySelectorAll('tbody tr').length])),
+        moduleHeights: Object.fromEntries(mods.map(m => [name(m), Math.round(m.getBoundingClientRect().height)])),
         heldRows: mods.reduce((t, m) => t + m.querySelectorAll('tr.is-absent').length, 0),
         absent: mods.filter(m => m.querySelector('tr.is-absent')).map(name),
+        teamProfileLabels: [...(mods.find(m => name(m) === 'Team profile')?.querySelectorAll('tbody tr td:first-child') || [])]
+          .map(cell => txt(cell)),
         zones: board.querySelectorAll('.gi-zone-rule').length,
         height: Math.round(board.getBoundingClientRect().height),
         ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -203,6 +206,15 @@ for (const [w] of VIEWPORTS) {
     `the board is ONE height at ${w} across all ${games.length} games`,
     JSON.stringify(observed.filter(o => o.w === w).map(o => ({ game: o.game, h: o.height }))));
 }
+const tallest1440 = observed.find(o => o.w === 1440)?.moduleHeights || {};
+ok(Math.max(...Object.values(tallest1440)) <= 950,
+  'no individual module becomes a chart-sized void at 1440',
+  JSON.stringify(Object.entries(tallest1440).filter(([, h]) => h > 950)));
+const PROFILE_LABELS = ['Yards / play', 'Success rate', 'Explosive rate', 'Negative rate', '3rd down', 'Points / drive'];
+ok(observed.every(o => JSON.stringify(o.teamProfileLabels) === JSON.stringify(PROFILE_LABELS)),
+  'Team profile renders the approved six metrics in the approved order on every real game',
+  JSON.stringify(observed.filter(o => JSON.stringify(o.teamProfileLabels) !== JSON.stringify(PROFILE_LABELS))
+    .map(o => ({ game: o.game, labels: o.teamProfileLabels }))));
 ok(observed.every(o => o.ovX === 0), 'no page-level horizontal overflow on any game at either width',
   JSON.stringify(observed.filter(o => o.ovX !== 0).map(o => ({ game: o.game, w: o.w, ovX: o.ovX }))));
 ok(observed.every(o => o.clipped.length === 0), 'no clipped table cell on any game at either width',
@@ -237,5 +249,10 @@ console.log(`  read-only   : ${hashAfter === hashBefore ? 'CONFIRMED, sha256 unc
 console.log(`  captures    : ${OUT} (${games.length * VIEWPORTS.length} images, ${VIEWPORTS.map(v => v[0]).join(' and ')})`);
 observed.filter(o => o.w === 1440).forEach(o =>
   console.log(`  board       : ${o.game.padEnd(38)} ${o.height}px, ${o.titles.length} modules, ${o.absent.length} absent`));
+const moduleRanges = Object.keys(observed.find(o => o.w === 1440)?.moduleHeights || {}).map(name => {
+  const values = observed.filter(o => o.w === 1440).map(o => o.moduleHeights[name]);
+  return { name, min: Math.min(...values), max: Math.max(...values) };
+}).filter(row => row.min !== row.max);
+if (moduleRanges.length) console.log(`  variable    : ${JSON.stringify(moduleRanges)}`);
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (fail) process.exit(1);

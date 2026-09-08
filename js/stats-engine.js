@@ -3708,21 +3708,23 @@ export class StatsEngine {
     const measure = (stats) => {
       const e = stats?.efficiency || {};
       const d = stats?.downs || {};
-      const np = stats?.negativePlays || {};
+      const drives = stats?.drives || {};
       return {
         success: parseFloat(e.successRate) || 0,
         explosive: parseFloat(e.explosivePct) || 0,
+        negative: parseFloat(e.negativePct) || 0,
         thirdDown: parseFloat(d.thirdDownPct) || 0,
         ypp: parseFloat(StatsEngine.yardsPerPlay(stats)) || 0,
-        ballSecurity: np.totalPlays ? (np.distinct / np.totalPlays) * 100 : 0,
+        pointsPerDrive: parseFloat(drives.pointsPerDrive) || 0,
       };
     };
     const SPOKES = [
-      { key: 'success', label: 'Efficiency', lower: false, fmt: v => `${Math.round(v)}%` },
-      { key: 'explosive', label: 'Explosiveness', lower: false, fmt: v => `${Math.round(v)}%` },
-      { key: 'thirdDown', label: 'Third down', lower: false, fmt: v => `${Math.round(v)}%` },
       { key: 'ypp', label: 'Yards / play', lower: false, fmt: v => v.toFixed(1) },
-      { key: 'ballSecurity', label: 'Ball security', lower: true, fmt: v => `${Math.round(v)}%` },
+      { key: 'success', label: 'Success rate', lower: false, fmt: v => `${v.toFixed(1)}%` },
+      { key: 'explosive', label: 'Explosive rate', lower: false, fmt: v => `${v.toFixed(1)}%` },
+      { key: 'negative', label: 'Negative rate', lower: true, fmt: v => `${v.toFixed(1)}%` },
+      { key: 'thirdDown', label: '3rd down', lower: false, fmt: v => `${v.toFixed(1)}%` },
+      { key: 'pointsPerDrive', label: 'Points / drive', lower: false, fmt: v => v.toFixed(1) },
     ];
     const now = measure(gameStats);
     const history = (seasonGames || []).map(measure);

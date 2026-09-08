@@ -616,101 +616,6 @@ body {
 
 
 
-/* ===== Heat Maps ===== */
-.heatmap-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
-  border-bottom: 2px solid #2d3454;
-}
-.hm-tab {
-  background: transparent;
-  border: none;
-  color: #888;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: color 0.15s, border-color 0.15s;
-}
-.hm-tab:hover { color: #ccc; }
-.hm-tab.active {
-  color: #06b6d4;
-  border-bottom-color: #06b6d4;
-}
-.hm-panel { display: none; }
-.hm-panel.active { display: block; }
-.hm-field-wrap { background: #0a0a14; padding: 12px; border-radius: 6px; }
-.heatmap-field {
-  width: 100%;
-  height: auto;
-  display: block;
-  background: #0a0a14;
-}
-.hm-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #ccc;
-  justify-content: center;
-}
-.hm-legend i {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 4px;
-  vertical-align: middle;
-  border: 1px solid #000;
-}
-.hm-caption {
-  font-size: 11px;
-  color: #888;
-  text-align: center;
-  margin: 8px 0 0;
-  font-style: italic;
-}
-.dd-grid, .fxp-grid, .hash-grid {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 8px 0;
-  font-size: 12px;
-}
-.dd-grid th, .dd-grid td, .fxp-grid th, .fxp-grid td, .hash-grid th, .hash-grid td {
-  border: 1px solid #2d3454;
-  padding: 8px;
-  text-align: center;
-  color: #e0e0e0;
-}
-.dd-grid th, .fxp-grid th, .hash-grid th {
-  background: #2c323c;
-  color: #fff;
-  font-weight: 600;
-}
-.dd-grid td { min-width: 80px; height: 56px; vertical-align: middle; }
-.dd-count { font-size: 18px; font-weight: bold; }
-.dd-meta { font-size: 10px; color: #ccc; margin-top: 2px; }
-.fxp-grid td { min-width: 36px; height: 32px; }
-.fxp-grid th.rotated {
-  height: 110px;
-  vertical-align: bottom;
-  padding: 4px;
-  white-space: nowrap;
-}
-.fxp-grid th.rotated div {
-  transform: rotate(-55deg);
-  transform-origin: left bottom;
-  display: inline-block;
-  width: 20px;
-  font-size: 11px;
-}
-.hash-grid td { min-width: 60px; }
-.hm-scroll { overflow-x: auto; }
-
 /* ===== EPA / Advanced Metrics ===== */
 .epa-curve-wrap {
   margin: 12px 0 8px;
@@ -1544,26 +1449,13 @@ body { background: var(--canvas); }
 /* Stats-dashboard visualizations (field zones, spray, quarter bars) */
 .viz-block { margin: 14px 0 18px; }
 .viz-block h4 { margin: 0 0 8px; font-size: 13px; color: var(--text, #e6ebf5); display: flex; align-items: center; gap: 8px; }
-.viz-sub, .viz-caption { color: #8b97b0; font-weight: 400; font-size: 11px; }
+.viz-caption { color: #8b97b0; font-weight: 400; font-size: 11px; }
 .viz-caption { margin: 6px 0 0; }
 .viz-legend { font-size: 11px; font-weight: 400; color: #8b97b0; display: inline-flex; align-items: center; gap: 5px; }
-.viz-legend .dot, .viz-q-chart .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.viz-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .dot.run { background: #ffd23f; }
 .dot.pass { background: #6cc4ff; }
-.viz-field-strip { display: flex; gap: 3px; }
-.viz-zone { flex: 1; min-height: 64px; border-radius: 6px; padding: 7px 6px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
-.viz-zone-label { font-size: 10px; opacity: 0.92; }
-.viz-zone-val { font-size: 20px; font-weight: 800; line-height: 1; }
-.viz-zone-n { font-size: 10px; opacity: 0.85; }
 .viz-svg { width: 100%; height: auto; background: #0e1626; border: 1px solid #233049; border-radius: 8px; }
-.viz-q-chart { display: flex; flex-direction: column; gap: 6px; }
-.viz-q-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text, #e6ebf5); }
-.viz-q-name { width: 26px; font-weight: 700; }
-.viz-q-bars { flex: 1; display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: #1b2436; }
-.viz-q-bar.run { background: #ffd23f; }
-.viz-q-bar.pass { background: #6cc4ff; }
-.viz-q-avg { width: 54px; text-align: right; color: #b9c4da; font-variant-numeric: tabular-nums; }
-.viz-q-n { width: 28px; text-align: right; color: #7d8aa5; }
 
 /* Play diagram (X's & O's) */
 .pd-editor { max-width: 700px; width: 96%; text-align: left; }
@@ -1957,7 +1849,7 @@ body {
 /* --- Takeaways: gold-themed --- */
 
 /* --- Charts: track backgrounds --- */
-.chart-hbar-track, .chart-eff-track, .chart-minibar, .viz-q-bars {
+.chart-hbar-track, .chart-eff-track, .chart-minibar {
   background: var(--bg-tertiary) !important;
 }
 
@@ -2003,10 +1895,6 @@ body {
 /* --- Self-scout bars: gold run / blue pass --- */
 .ss-bar-run { --c: var(--run-color) !important; }
 .ss-bar-pass { --c: var(--pass-color) !important; }
-
-/* --- Quarter mix bars --- */
-.viz-q-bar.run { background: var(--run-color) !important; }
-.viz-q-bar.pass { background: var(--pass-color) !important; }
 
 /* --- Mobile stats refinement --- */
 @media (max-width: 800px) {
