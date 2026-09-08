@@ -81,19 +81,20 @@ const FULL = Array.from({ length: 16 }, (_, i) => {
 
 /* ══ The approved Offense SCHEMA ══════════════════════════════════════════
    Transcribed from the registered canonical artifact,
-   `design-comps/reports-offense-2026-09-03/offense.html`: 6 zones, 26 modules
+   `design-comps/reports-offense-2026-09-03/offense.html`, plus the coach-approved
+   2026-09-08 density revision: 6 zones, 27 modules
    in this order, and each module's approved row allocation. Stated as literal
    constants — this file never parses the comp, because a check that reads the
    artifact it verifies against only proves the artifact is self-consistent.
 
-   The comp's own sparse capture renders the SAME 26 modules with `Insufficient
+   A sparse cohort renders the SAME 27 modules with `Insufficient
    charted data` in the empty ones, which is the behaviour these assertions
    pin: data fills slots, it never adds rows or removes modules. */
 const SCHEMA_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
   'Formation', 'Play type', 'Play-action',
-  'Core tendencies', 'Calls by situation',
+  'Core tendencies', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
@@ -104,8 +105,8 @@ const SCHEMA_MODULES = [
   'Team profile', 'Expected points added',
 ];
 const SCHEMA_ROWS = {
-  'Run / pass balance': 4, 'Play calls': 8, Concepts: 10, Formation: 5,
-  'Play type': 6, 'Play-action': 3, 'Core tendencies': 8, 'Calls by situation': 8,
+  'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 3,
+  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5, 'Calls by situation': 5,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
   'Tendency matrix': 5, 'By quarter': 4, 'Team profile': 6,
@@ -578,7 +579,7 @@ ok(bigN === over.rows['Core tendencies'],
   JSON.stringify({ title: bigTitle, rendered: over.rows['Core tendencies'] }));
 
 /* EMPTY — no offensive snaps at all. The approved empty state replaces the
-   board with a compact panel; it does not render 26 hollow modules. */
+   board with a compact panel; it does not render 27 hollow modules. */
 await load({ plays: [{ unit: 'defense' }] });
 const emptyBoard = await page.evaluate(() => {
   const board = document.querySelector('.gi-offense-board');

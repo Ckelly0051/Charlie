@@ -353,7 +353,9 @@ allocation — nothing was capped before, so `Core tendencies` rendered 11 rows
 on Week 1 and `Calls by situation` 40 on an over-cap cohort. `OFFENSE_ROWS`,
 `OFFENSE_EPA_ROWS` and `OFFENSE_MODULES` in `js/native-report-tabs.jsx` are the
 one named owner for every count. `Core tendencies · Big N` prints N from the
-rows it RENDERS, not from `to90`. Zone 2 and Zone 4 were re-paired to the comp's
+rows it RENDERS, not from `to90`. The coach-approved density revision caps the
+three Zone 2 table bands at five meaningful rows and spends the recovered height
+on a fixed seven-cell **Drive outcomes** strip. Zone 2 and Zone 4 were re-paired to the comp's
 bands, and `gi-off-b2` (8fr/4fr) / `gi-off-b2e` (6fr/6fr) put them on the
 documented 12-column rhythm.
 
@@ -363,11 +365,13 @@ and the same 1440 board measured 5102..5478px across six games. `fitRows`
 returns EXACTLY the allocation — truncating a long cohort and PADDING a short
 one with held rows that carry the dash in every column; `mapFit` formats real
 rows before padding so a held slot never reaches a `.toFixed`. **The board is
-now one fixed 4449px height at both desktop release widths, identical on all
-six canonical games, with 26 of 26 modules one height.** The first fixed-height
+now one fixed 4326px height at both desktop release widths, identical on all
+six canonical games, with 27 of 27 modules one height.** The first fixed-height
 repair standardized an oversized 5617px board; the density repair restored the
 comp's compact Field heat map, removed only surplus row box height while
-retaining 12px table labels, and capped the EPA trend chart.
+retaining 12px table labels, and capped the EPA trend chart. The advanced visual
+row is now split evenly between **Cumulative EPA** and a zero-centered **EPA
+contribution by play type** chart; the detailed tables remain below it.
 
 A held row and `Insufficient charted data` are different statements and cannot
 both hold: the comp's own sparse capture is 415px shorter than its populated
@@ -385,7 +389,8 @@ its `By Quarter` bars against Zone 4's `By quarter` — while its spray is the
 field-position view `Field heat map` already owns. Two `e2e-native-reports`
 assertions pinned its `.viz-*` selectors and are RETIRED, not weakened: an
 assertion whose subject the design deliberately removed cannot be repointed
-without changing what it claims. Production renders the comp's 26 modules.
+without changing what it claims. Production renders the comp's modules plus the
+coach-approved Drive outcomes strip: 27 modules total.
 
 **Zone 5 uses the approved compact Field heat map:** two fixed five-cell strips,
 not the retired tabbed field explorer. Team Profile uses the comp's exact six

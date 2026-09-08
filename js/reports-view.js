@@ -503,6 +503,34 @@ export function playAction(stats) {
   };
 }
 
+/** Compact possession summary for the Offense board. Drive reconstruction and
+ * outcome ownership remain in StatsEngine; this only groups the published
+ * drive rows into the fixed labels the board renders. */
+export function driveOutcomeStrip(stats) {
+  const drives = stats.drives || {};
+  const list = drives.list || [];
+  const count = outcome => list.filter(drive => drive.outcome === outcome).length;
+  const item = (label, value, detail, matching = list) => ({
+    label, value, detail,
+    refs: matching.flatMap(drive => drive.refs || []),
+  });
+  const pct = value => list.length ? `${Math.round((value / list.length) * 100)}% of drives` : 'No drives charted';
+  const td = count('TD');
+  const fg = count('FG');
+  const punts = count('Punt');
+  const turnovers = count('Turnover');
+  const downs = count('Downs');
+  return [
+    item('Drives', list.length || '–', list.length ? `${drives.avgPlaysPerDrive} plays / drive` : 'No drives charted'),
+    item('Touchdowns', list.length ? td : '–', pct(td), list.filter(d => d.outcome === 'TD')),
+    item('Field goals', list.length ? fg : '–', pct(fg), list.filter(d => d.outcome === 'FG')),
+    item('Punts', list.length ? punts : '–', pct(punts), list.filter(d => d.outcome === 'Punt')),
+    item('Turnovers', list.length ? turnovers : '–', pct(turnovers), list.filter(d => d.outcome === 'Turnover')),
+    item('Downs', list.length ? downs : '–', pct(downs), list.filter(d => d.outcome === 'Downs')),
+    item('Points / drive', list.length ? drives.pointsPerDrive : '–', list.length ? `${drives.totalPoints} points` : 'No drives charted'),
+  ];
+}
+
 /** Same EPA fields `_renderAdvanced` already computes on `stats.advanced` —
  *  read directly, nothing recomputed. The cumulative-EPA curve's SVG path is
  *  coordinate geometry, not a football formula; it is ported here unchanged
@@ -524,7 +552,11 @@ export function advancedData(stats, engine) {
     const label = `${t.down || '?'}&${t.distance || '?'} ${engine.constructor.proj(x.play).formation || ''} ${t.playType || ''}`.trim();
     return { id: x.play.id, label, yards: t.yardage || 0, epa: x.epa, epaText: fmt(x.epa), epaClass: epaClass(x.epa) };
   };
-  const groupRows = rows => (rows || []).slice(0, 8).map(r => ({ name: r.name, count: r.count, total: fmt(r.total), totalClass: epaClass(r.total), perPlay: fmt(r.perPlay), perPlayClass: epaClass(r.perPlay) }));
+  const groupRows = rows => (rows || []).slice(0, 8).map(r => ({
+    name: r.name, count: r.count,
+    total: fmt(r.total), totalValue: r.total, totalClass: epaClass(r.total),
+    perPlay: fmt(r.perPlay), perPlayValue: r.perPlay, perPlayClass: epaClass(r.perPlay),
+  }));
   return {
     total: a.total, totalText: fmt(a.total), totalClass: epaClass(a.total),
     perPlay: a.perPlay, perPlayText: fmt(a.perPlay), perPlayClass: epaClass(a.perPlay),

@@ -336,7 +336,23 @@ function MatrixGrid({ matrix }) {
 /* Holds its slot, like every other module on this board. Returning null on an
    ungraded game removed an approved module outright. The title is the approved
    label change (RATIONALE §5): spelled out once, the abbreviation in the meta. */
-function AdvancedEpa({ data }) {
+function EpaContribution({ rows, screen }) {
+  const fitted = fitRows(rows, OFFENSE_EPA_ROWS['By play type']);
+  const max = Math.max(1, ...fitted.filter(row => !row.absent).map(row => Math.abs(row.totalValue)));
+  return <div class="gi-epa-contribution" aria-label="EPA contribution by play type">
+    <h4 class="gi-epa-chart-title">EPA contribution by play type</h4>
+    <div class="gi-epa-zero" />
+    {fitted.map((row, i) => row.absent
+      ? <div key={`epa-bar-${i}`} class="gi-epa-bar is-absent"><span>–</span><i /><strong>–</strong></div>
+      : <Watchable key={row.name} class="gi-epa-bar" onActivate={() => screen.watchCut('playType', row.name, `${row.name} — ${row.count} plays`)} label={`${row.name} — ${row.count} plays`}>
+          <span>{row.name}</span>
+          <i class={row.totalValue >= 0 ? 'is-positive' : 'is-negative'} style={`--epa:${Math.abs(row.totalValue) / max * 50}%`} />
+          <strong class={row.totalClass}>{row.total}</strong>
+        </Watchable>)}
+  </div>;
+}
+
+function AdvancedEpa({ data, screen }) {
   if (!data) return <Module title="Expected points added" meta="EPA">
     <p class="gi-table-empty">Insufficient charted data</p>
   </Module>;
@@ -346,14 +362,17 @@ function AdvancedEpa({ data }) {
       <div class="stat-card"><div class="stat-card-title">EPA / Play</div><div class={`stat-card-value ${data.perPlayClass}`}>{data.perPlayText}</div></div>
       <div class="stat-card"><div class="stat-card-title">Plays Scored</div><div class="stat-card-value">{data.count}</div></div>
     </div>
-    <div class="epa-curve-wrap"><svg viewBox={`0 0 ${data.W} ${data.H}`} class="epa-curve" preserveAspectRatio="xMidYMid meet">
-      <line x1={data.P} y1={data.zeroY} x2={data.W - data.P} y2={data.zeroY} stroke="#555" stroke-dasharray="3,3" />
-      <path d={data.path} fill="none" stroke="var(--accent)" stroke-width="2" />
-      <text x={data.P} y="14" fill="#aaa" font-size="11">Cumulative EPA</text>
-      <text x={data.P} y={data.H - 8} fill="#aaa" font-size="10">Play 1</text>
-      <text x={data.W - data.P} y={data.H - 8} fill="#aaa" font-size="10" text-anchor="end">Play {data.n}</text>
-      <text x={data.W - data.P} y="14" fill="#aaa" font-size="11" text-anchor="end">High {data.hi.toFixed(1)} / Low {data.lo.toFixed(1)}</text>
-    </svg></div>
+    <div class="gi-epa-visuals">
+      <div class="epa-curve-wrap"><svg viewBox={`0 0 ${data.W} ${data.H}`} class="epa-curve" preserveAspectRatio="xMidYMid meet">
+        <line x1={data.P} y1={data.zeroY} x2={data.W - data.P} y2={data.zeroY} stroke="#555" stroke-dasharray="3,3" />
+        <path d={data.path} fill="none" stroke="var(--accent)" stroke-width="2" />
+        <text x={data.P} y="14" fill="#aaa" font-size="11">Cumulative EPA</text>
+        <text x={data.P} y={data.H - 8} fill="#aaa" font-size="10">Play 1</text>
+        <text x={data.W - data.P} y={data.H - 8} fill="#aaa" font-size="10" text-anchor="end">Play {data.n}</text>
+        <text x={data.W - data.P} y="14" fill="#aaa" font-size="11" text-anchor="end">High {data.hi.toFixed(1)} / Low {data.lo.toFixed(1)}</text>
+      </svg></div>
+      <EpaContribution rows={data.byType} screen={screen} />
+    </div>
     <div class="stats-two-col">
       <EpaGroupTable title="By play type" rows={fitRows(data.byType, OFFENSE_EPA_ROWS['By play type'])} />
       <EpaGroupTable title="By formation" rows={fitRows(data.byFormation, OFFENSE_EPA_ROWS['By formation'])} />
@@ -532,13 +551,13 @@ const OFFENSE_ZONES = [
    module, which the comp renders as one `mod`. */
 const OFFENSE_ROWS = {
   'Run / pass balance': 4,     // one row per down, an enumerable set
-  'Play calls': 8,
-  Concepts: 10,
-  Formation: 5,
-  'Play type': 6,
+  'Play calls': 5,
+  Concepts: 5,
+  Formation: 3,
+  'Play type': 5,
   'Play-action': 3,
-  'Core tendencies': 8,
-  'Calls by situation': 8,
+  'Core tendencies': 5,
+  'Calls by situation': 5,
   Personnel: 5,
   Backfield: 5,
   Motion: 4,
@@ -561,7 +580,7 @@ const OFFENSE_ROWS = {
  *  Rather than invent a lens the engine does not produce, the third slot takes
  *  `Direction vs Strength`, the nearest situational dimension it does. Raised
  *  in the implementation RATIONALE for the coach. */
-const OFFENSE_LENSES = [['Down & Distance', 3], ['Field Position', 3], ['Direction vs Strength', 2]];
+const OFFENSE_LENSES = [['Down & Distance', 2], ['Field Position', 2], ['Direction vs Strength', 1]];
 const OFFENSE_EPA_ROWS = {
   'By play type': 6, 'By formation': 5, 'By personnel': 5, 'By down': 4,
   'Top 5': 5, 'Worst 5': 5,
@@ -572,7 +591,7 @@ const OFFENSE_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
   'Formation', 'Play type', 'Play-action',
-  'Core tendencies', 'Calls by situation',
+  'Core tendencies', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
@@ -703,6 +722,15 @@ export function OffenseTab({ stats, screen }) {
       <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
       {calls.situations}
     </div>
+    <div class="gi-overview-band gi-off-full">
+      <Module title="Drive outcomes" meta="possessions" cls="is-offense">
+        <div class="gi-drive-outcomes">
+          {view.driveOutcomeStrip(stats).map(item => <WatchableRefs key={item.label} refs={item.refs} label={item.label} screen={screen} class="gi-drive-outcome">
+            <span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small>
+          </WatchableRefs>)}
+        </div>
+      </Module>
+    </div>
 
     {/* ── ZONE 3 — structure and deployment ─────────────────────────── */}
     <ZoneRule id="gi-off-z3" title="Structure and deployment" label="Personnel, alignment, motion, direction, and hash" note="Opens film" />
@@ -780,7 +808,7 @@ export function OffenseTab({ stats, screen }) {
     <ZoneRule id="gi-off-z6" title="Advanced metrics" label="Team profile and EPA" />
     {/* Both bands always render; the modules themselves state any absence. */}
     <div class="gi-overview-band gi-off-full"><TeamProfile profile={shape?.teamProfile} cls="is-offense" /></div>
-    <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} /></div>
+    <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} screen={screen} /></div>
   </div>;
 }
 /* The six roles the engine attributes, in the approved board order. `w` is the

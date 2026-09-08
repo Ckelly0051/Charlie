@@ -2387,6 +2387,28 @@
 /* Play-action's four KPI tiles sit under its table, in the tile vocabulary. */
 .gi-reports .gi-off-pa-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
 
+/* Recovered tendency-table height becomes one compact possession ledger. */
+.gi-reports .gi-drive-outcomes{
+  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;
+  margin:1px -12px -10px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-drive-outcome{
+  min-width:0;padding:9px 11px 10px;background:var(--gi-bd-panel)
+}
+.gi-reports .gi-drive-outcome span{
+  display:block;color:var(--gi-bd-copy);font:700 10px/1 var(--gi-cond);
+  letter-spacing:.12em;text-transform:uppercase
+}
+.gi-reports .gi-drive-outcome strong{
+  display:block;margin-top:6px;color:var(--gi-bd-strong);font:700 21px/1 var(--gi-cond);
+  font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-drive-outcome small{
+  display:block;margin-top:4px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)
+}
+.gi-reports .gi-drive-outcome.cut-row:hover{background:var(--gi-bd-control)}
+.gi-reports .gi-drive-outcome.cut-row:focus-visible{outline:2px solid var(--gi-bd-gold);outline-offset:-2px}
+
 /* A LABEL column keeps its text beside the row key; only measurements are
    right-aligned. Without this a situation or concept name is thrown to the far
    edge of a wide module, away from the row it belongs to. */
@@ -2523,8 +2545,43 @@
    600x160 viewBox; cap the rendered height to the approved report footprint. */
 .gi-reports .gi-offense-board .epa-curve{height:140px;width:100%}
 .gi-reports .gi-offense-board .epa-curve-wrap{border-radius:0}
+.gi-reports .gi-offense-board .gi-epa-visuals{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;
+  margin-top:var(--gi-3x);background:var(--gi-bd-line)
+}
+.gi-reports .gi-offense-board .gi-epa-visuals>*{background:var(--gi-bd-stage)}
+.gi-reports .gi-offense-board .gi-epa-contribution{
+  position:relative;display:grid;grid-template-rows:22px repeat(6,1fr);
+  min-height:140px;padding:5px 12px 7px
+}
+.gi-reports .gi-offense-board .gi-epa-chart-title{
+  margin:0;color:var(--gi-bd-copy);font:700 10px/1 var(--gi-cond);
+  letter-spacing:.1em;text-transform:uppercase
+}
+.gi-reports .gi-offense-board .gi-epa-zero{
+  position:absolute;top:29px;bottom:9px;left:50%;width:1px;background:var(--gi-bd-line)
+}
+.gi-reports .gi-offense-board .gi-epa-bar{
+  position:relative;display:grid;grid-template-columns:minmax(78px,1fr) minmax(140px,3fr) 52px;
+  align-items:center;gap:8px;min-height:17px;color:var(--gi-bd-copy);font:600 10.5px/1 var(--gi-sans)
+}
+.gi-reports .gi-offense-board .gi-epa-bar>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-reports .gi-offense-board .gi-epa-bar>i{position:relative;height:8px;background:var(--gi-bd-panel)}
+.gi-reports .gi-offense-board .gi-epa-bar>i::after{
+  content:'';position:absolute;top:0;height:100%;width:var(--epa);background:var(--gi-bd-gold)
+}
+.gi-reports .gi-offense-board .gi-epa-bar>i.is-positive::after{left:50%;background:var(--gi-bd-win)}
+.gi-reports .gi-offense-board .gi-epa-bar>i.is-negative::after{right:50%;background:var(--gi-bd-loss)}
+.gi-reports .gi-offense-board .gi-epa-bar>strong{text-align:right;font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .gi-offense-board .gi-epa-bar.cut-row:hover{background:var(--gi-bd-control)}
+.gi-reports .gi-offense-board .gi-epa-bar.cut-row:focus-visible{outline:2px solid var(--gi-bd-gold);outline-offset:-2px}
 .gi-reports .gi-offense-board .epa-table th,
 .gi-reports .gi-offense-board .epa-table td{height:27px}
+
+@media(max-width:900px){
+  .gi-reports .gi-drive-outcomes{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .gi-reports .gi-offense-board .gi-epa-visuals{grid-template-columns:minmax(0,1fr)}
+}
 
 /* Edge cells clear the module wall. The route's shared cell padding
    (0 var(--gi-3x)) is sized for the gap BETWEEN columns; at the first and
