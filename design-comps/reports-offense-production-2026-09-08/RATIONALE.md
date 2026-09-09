@@ -34,9 +34,9 @@ board with a compact 900px panel. That is the static rule, proven by the comp
 itself: data fills slots, it never adds rows or removes modules.
 
 The 2026-09-08 coach density revision preserves those six zones but deliberately
-changes Zone 2 to **four bands and 11 modules**: its ranked tables cap at five
+changes Zone 2 to **four bands and 12 modules**: its ranked tables cap at five
 rows and the new Drive outcomes strip spends the recovered height on possession
-results. Production is therefore **6 zones, 14 bands, 28 modules**.
+results. Production is therefore **6 zones, 14 bands, 29 modules**.
 
 `OFFENSE_ROWS` and `OFFENSE_MODULES` in `js/native-report-tabs.jsx` are the one
 named owner for every fixed count. `OFFENSE_EPA_ROWS` covers the six sub-tables
@@ -46,7 +46,7 @@ inside the single Expected points added module.
 |---|---|---|
 | 1 Offensive identity | b-wide | Identity, Run / pass balance (4) |
 | 2 Calls and tendencies | b-2 | Play calls (5), Concepts (5) |
-| | b-3 | Formation (3), Play type (5), Play-action (3) |
+| | b-3 | Formation (5), Play type (5), Play-action (3), plus Formation × Play Type (3 x 5) below the first two |
 | | b-2 | Core tendencies (5) + Direction vs Strength (4), Calls by situation: Down & Distance (4) + Field Position (4) |
 | | b-1 | Drive outcomes (7 fixed measures) |
 | 3 Structure and deployment | b-3 | Personnel (5), Backfield (5), Motion (4) |
@@ -172,8 +172,8 @@ format** —
 — which is precisely the duplication the composition rule forbids, while
 materially lengthening the board.
 
-**Production renders the comp's modules plus the coach-approved Drive outcomes
-and Direction vs Strength modules: 28 modules total.**
+**Production renders the comp's modules plus the coach-approved Drive outcomes,
+Direction vs Strength and Formation × Play Type modules: 29 modules total.**
 
 Two `e2e-native-reports` assertions pinned `.viz-svg` and `.viz-q-bar`, the
 removed module's own selectors. They are **RETIRED, not weakened**: an
@@ -206,8 +206,8 @@ Canonical real season, read-only: `2025-st-joseph-mavericks-jv`
 ("2025 St. Joseph Mavericks - JV"), **6 games, 449 charted plays**, SHA-256
 asserted unchanged after the run. All six games inspected at **1440 and 1280**.
 
-**ONE BOARD HEIGHT — 4329px at both 1440 and 1280, identical on all six games**,
-and 28 of 28 modules are one height. Revision 1 measured 5102..5478px at 1440;
+**ONE BOARD HEIGHT — 4413px at both 1440 and 1280, identical on all six games**,
+and 29 of 29 modules are one height. Revision 1 measured 5102..5478px at 1440;
 revision 2 standardized an oversized 5617px board. Revision 3 restores the
 comp's compact field summary, 30px Offense row pitch with unchanged 12px type,
 a 378px matrix footprint, and a 140px EPA curve. Revision 4 caps the three
@@ -225,12 +225,18 @@ linescore. Each complete team occupies one row with its full name, Q1-Q4 and
 total. Full names wrap and are never abbreviated or truncated; quarter and total
 columns remain aligned between teams.
 
+Revision 7 fills the unused space beneath Formation and Play Type with a fixed
+Formation × Play Type matrix. Formation now holds five explicit rows, the matrix
+holds three formation rows by five play-type columns, and Play-action spans the
+full right side. Each matrix cell shows play count and success rate, with fill
+intensity representing volume. Missing axes hold dashes instead of resizing.
+
 Zero page-level horizontal overflow, zero clipped cells, zero bottom-edge bleed,
 and zero page or console errors on every game at both widths. The final Expected
 points added module, including its content and bottom border, remains inside the
 fixed board in all 12 real-data observations.
 
-`e2e-reports-offense` **58**, `e2e-reports-offense-realdata` **20**,
+`e2e-reports-offense` **59**, `e2e-reports-offense-realdata` **21**,
 `e2e-native-reports` **100** (the rejected explorer assertions retired and its
 compact ten-cell exact-film contract added),
 `e2e-reports-overview` **106**,

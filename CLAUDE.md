@@ -361,14 +361,21 @@ Position** each hold four rows in Calls by situation. Zone 2 and Zone 4 were re-
 bands, and `gi-off-b2` (8fr/4fr) / `gi-off-b2e` (6fr/6fr) put them on the
 documented 12-column rhythm.
 
+Zone 2's Formation and Play Type tables now use their fixed band completely:
+Formation holds five rows, and a fixed **Formation × Play Type** matrix occupies
+the lower two-column span with the top three formations by the top five play
+types. Cells show play count and success rate; volume controls fill intensity.
+Play-action spans the same two rows in the right column. Sparse axes hold dashes;
+data never changes the 3 x 5 footprint.
+
 **Presence alone is not a static board.** The first pass capped but never
 padded, so module presence was fixed while every module stayed content-sized
 and the same 1440 board measured 5102..5478px across six games. `fitRows`
 returns EXACTLY the allocation — truncating a long cohort and PADDING a short
 one with held rows that carry the dash in every column; `mapFit` formats real
 rows before padding so a held slot never reaches a `.toFixed`. **The board is
-now one fixed 4329px height at both desktop release widths, identical on all
-six canonical games, with 28 of 28 modules one height.** The first fixed-height
+now one fixed 4413px height at both desktop release widths, identical on all
+six canonical games, with 29 of 29 modules one height.** The first fixed-height
 repair standardized an oversized 5617px board; the density repair restored the
 comp's compact Field heat map, removed only surplus row box height while
 retaining 12px table labels, and capped the EPA trend chart. The advanced visual

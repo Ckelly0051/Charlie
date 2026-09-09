@@ -68,13 +68,13 @@ ok(games.length > 0 && totalPlays > 0,
 
 /* ══ The approved Offense schema, transcribed from the canonical artifact ══
    `design-comps/reports-offense-2026-09-03/offense.html`, plus the coach-approved
-   2026-09-08 density revision — 6 zones, 27 modules
+   2026-09-08 density revision — 6 zones, 29 modules
    in this order, each with its approved row allocation. Stated as literal
    constants; this file never parses the comp. */
 const SCHEMA_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
-  'Formation', 'Play type', 'Play-action',
+  'Formation', 'Play type', 'Play-action', 'Formation × Play Type',
   'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
@@ -86,8 +86,8 @@ const SCHEMA_MODULES = [
   'Team profile', 'Expected points added',
 ];
 const SCHEMA_ROWS = {
-  'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 3,
-  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5,
+  'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 5,
+  'Play type': 5, 'Play-action': 3, 'Formation × Play Type': 3, 'Core tendencies': 5,
   'Direction vs Strength': 4, 'Calls by situation': 8,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
@@ -159,6 +159,11 @@ for (const g of games) {
           label: txt(bar.querySelector('span')), value: txt(bar.querySelector('strong')),
         })),
         zones: board.querySelectorAll('.gi-zone-rule').length,
+        formType: {
+          rows: board.querySelectorAll('.gi-form-type-grid tbody tr').length,
+          cols: board.querySelectorAll('.gi-form-type-grid thead th').length - 1,
+          populated: board.querySelectorAll('.gi-form-type-cell:not(.is-absent)').length,
+        },
         height: Math.round(board.getBoundingClientRect().height),
         bottomEdge: {
           title: name(last),
@@ -235,6 +240,10 @@ ok(observed.every(o => JSON.stringify(o.teamProfileLabels) === JSON.stringify(PR
 ok(observed.every(o => o.driveOutcomes.length === 7 && o.driveOutcomes[0]?.label === 'Drives'),
   'Drive outcomes holds the same seven possession measures on every game',
   JSON.stringify(observed.filter(o => o.driveOutcomes.length !== 7).map(o => ({ game: o.game, cells: o.driveOutcomes }))));
+ok(observed.every(o => o.formType.rows === 3 && o.formType.cols === 5 && o.formType.populated > 0),
+  'Formation × Play Type holds a populated 3 x 5 footprint on every real game',
+  JSON.stringify(observed.filter(o => !(o.formType.rows === 3 && o.formType.cols === 5 && o.formType.populated > 0))
+    .map(o => ({ game: o.game, w: o.w, matrix: o.formType }))));
 ok(observed.every(o => o.epaBars.length === 6),
   'EPA contribution holds six ranked play-type slots beside the cumulative curve',
   JSON.stringify(observed.filter(o => o.epaBars.length !== 6).map(o => ({ game: o.game, bars: o.epaBars }))));

@@ -355,6 +355,41 @@ function EpaContribution({ rows, screen }) {
   </div>;
 }
 
+/** Fixed answer beneath the two tendency tables: which play types are actually
+ * paired with the offense's primary formations. The top three formations and
+ * top five play types are a stable 3 x 5 board; unavailable slots hold with a
+ * dash rather than changing the module's dimensions. */
+function FormationPlayTypeMatrix({ engine, plays }) {
+  const raw = view.matrixData(engine, plays, 'formation', 'playType');
+  const rowKeys = raw.rowKeys.slice(0, OFFENSE_ROWS['Formation × Play Type']);
+  const colKeys = raw.colKeys.slice(0, OFFENSE_MATRIX_COLS);
+  while (rowKeys.length < OFFENSE_ROWS['Formation × Play Type']) rowKeys.push('');
+  while (colKeys.length < OFFENSE_MATRIX_COLS) colKeys.push('');
+  const shown = rowKeys.filter(Boolean).flatMap(r => colKeys.filter(Boolean)
+    .map(c => raw.cells[`${r}\0${c}`]).filter(Boolean));
+  const maxCount = Math.max(1, ...shown.map(cell => cell.count));
+
+  return <Module title="Formation × Play Type" cls="is-offense gi-off-form-type">
+    <div class="gi-form-type-grid"><table>
+      <thead><tr><th>Formation</th>{colKeys.map((col, i) => <th key={`${col}-${i}`}>{col || '—'}</th>)}</tr></thead>
+      <tbody>{rowKeys.map((row, ri) => <tr key={row || `formation-slot-${ri}`} class={row ? undefined : 'is-absent'}>
+        <td>{row || '—'}</td>
+        {colKeys.map((col, ci) => {
+          const cell = row && col ? raw.cells[`${row}\0${col}`] : null;
+          if (!cell?.count) return <td key={`${col}-${ci}`} class="gi-form-type-cell is-absent">—</td>;
+          const success = Math.round((cell.successes / cell.count) * 100);
+          const ypp = (cell.yards / cell.count).toFixed(1);
+          const heat = Math.round(12 + (cell.count / maxCount) * 48);
+          return <td key={`${col}-${ci}`} class={`gi-form-type-cell ${success >= 50 ? 'is-good' : success <= 30 ? 'is-bad' : ''}`}
+            style={`--heat:${heat}%`} title={`${row} × ${col}: ${cell.count} plays, ${success}% success, ${ypp} yards/play`}>
+            <strong>{cell.count}</strong><span>/ {success}%</span>
+          </td>;
+        })}
+      </tr>)}</tbody>
+    </table></div>
+  </Module>;
+}
+
 function AdvancedEpa({ data, screen }) {
   if (!data) return <Module title="Expected points added" meta="EPA">
     <p class="gi-table-empty">Insufficient charted data</p>
@@ -540,9 +575,9 @@ const OFFENSE_ZONES = [
 
 /* The approved Offense composition is the SCHEMA — the single owner for every
    fixed count on this board. Read off the registered canonical artifact,
-   `design-comps/reports-offense-2026-09-03/offense.html`: 6 zones, 13 bands,
-   26 modules, 3877px at 1440, and the same 26 modules in the comp's own sparse
-   state with `Insufficient charted data` in the empty ones.
+   `design-comps/reports-offense-2026-09-03/offense.html`, plus the recorded
+   coach-directed density revisions: 6 zones, 14 bands and 29 modules. The
+   same modules and slots render in sparse and populated states.
 
    Numbers live HERE, not scattered through JSX, view helpers and tests. A
    module's row count is what it renders on every game in every season: a short
@@ -556,8 +591,9 @@ const OFFENSE_ROWS = {
   'Run / pass balance': 4,     // one row per down, an enumerable set
   'Play calls': 5,
   Concepts: 5,
-  Formation: 3,
+  Formation: 5,
   'Play type': 5,
+  'Formation × Play Type': 3,
   'Play-action': 3,
   'Core tendencies': 5,
   'Calls by situation': 8,
@@ -585,6 +621,7 @@ const OFFENSE_ROWS = {
  *  `Direction vs Strength`, the nearest situational dimension it does. Raised
  *  in the implementation RATIONALE for the coach. */
 const OFFENSE_LENSES = [['Down & Distance', 4], ['Field Position', 4], ['Direction vs Strength', 4]];
+const OFFENSE_MATRIX_COLS = 5;
 const OFFENSE_EPA_ROWS = {
   'By play type': 6, 'By formation': 5, 'By personnel': 5, 'By down': 4,
   'Top 5': 5, 'Worst 5': 5,
@@ -594,7 +631,7 @@ const OFFENSE_EPA_ROWS = {
 const OFFENSE_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
-  'Formation', 'Play type', 'Play-action',
+  'Formation', 'Play type', 'Play-action', 'Formation × Play Type',
   'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
@@ -692,14 +729,14 @@ export function OffenseTab({ stats, screen }) {
     {/* The comp pairs these two in one band (`b-2`); production gave each a
         full-width band of its own, which is a different composition. */}
     <div class="gi-overview-band gi-off-b2">{calls.calls}{calls.concepts}</div>
-    <div class="gi-overview-band gi-overview-band-3">
-      <Module title="Formation" meta="frequency &amp; success" cls="is-offense" rows={tend.formations}>
+    <div class="gi-overview-band gi-overview-band-3 gi-off-tendency-band">
+      <Module title="Formation" meta="frequency &amp; success" cls="is-offense gi-off-formation" rows={tend.formations}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(tend.formations, OFFENSE_ROWS.Formation), screen)} />
       </Module>
-      <Module title="Play type" meta="frequency &amp; success" cls="is-offense" rows={tend.playTypes}>
+      <Module title="Play type" meta="frequency &amp; success" cls="is-offense gi-off-play-type" rows={tend.playTypes}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(tend.playTypes, OFFENSE_ROWS['Play type']), screen)} />
       </Module>
-      <Module title="Play-action" meta="vs straight dropback" cls="is-offense">
+      <Module title="Play-action" meta="vs straight dropback" cls="is-offense gi-off-play-action">
         {/* The table and its four tiles render unconditionally: the `pa ? … :`
             branch and the `formations.length > 0` branch each swapped a
             three-row table for a one-line statement, which is a different
@@ -714,6 +751,7 @@ export function OffenseTab({ stats, screen }) {
           </div>
         </>
       </Module>
+      <FormationPlayTypeMatrix engine={engine} plays={stats.offPlays} />
     </div>
     {/* The comp pairs these in one `b-2` band. A previous pass split them into
         two full-width bands because, paired, "Calls by situation" stacked its

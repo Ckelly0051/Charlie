@@ -87,13 +87,13 @@ const FULL = Array.from({ length: 16 }, (_, i) => {
    constants — this file never parses the comp, because a check that reads the
    artifact it verifies against only proves the artifact is self-consistent.
 
-   A sparse cohort renders the SAME 27 modules with `Insufficient
+   A sparse cohort renders the SAME 29 modules with `Insufficient
    charted data` in the empty ones, which is the behaviour these assertions
    pin: data fills slots, it never adds rows or removes modules. */
 const SCHEMA_MODULES = [
   'Identity', 'Run / pass balance',
   'Play calls', 'Concepts',
-  'Formation', 'Play type', 'Play-action',
+  'Formation', 'Play type', 'Play-action', 'Formation × Play Type',
   'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
@@ -105,8 +105,8 @@ const SCHEMA_MODULES = [
   'Team profile', 'Expected points added',
 ];
 const SCHEMA_ROWS = {
-  'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 3,
-  'Play type': 5, 'Play-action': 3, 'Core tendencies': 5,
+  'Run / pass balance': 4, 'Play calls': 5, Concepts: 5, Formation: 5,
+  'Play type': 5, 'Play-action': 3, 'Formation × Play Type': 3, 'Core tendencies': 5,
   'Direction vs Strength': 4, 'Calls by situation': 8,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
@@ -130,6 +130,11 @@ const readBoard = () => page.evaluate(() => {
     absent: mods.filter(m => /Insufficient charted data/.test(m.textContent))
       .map(m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '')),
     zones: board.querySelectorAll('.gi-zone-rule').length,
+    formType: {
+      rows: board.querySelectorAll('.gi-form-type-grid tbody tr').length,
+      cols: board.querySelectorAll('.gi-form-type-grid thead th').length - 1,
+      populated: board.querySelectorAll('.gi-form-type-cell:not(.is-absent)').length,
+    },
     ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   };
 });
@@ -514,6 +519,9 @@ ok(eqArr(populated.titles, SCHEMA_MODULES),
   `the board renders the approved ${SCHEMA_MODULES.length} modules in the approved order`,
   JSON.stringify(populated.titles));
 ok(populated.zones === 6, 'six zone rules', String(populated.zones));
+ok(populated.formType.rows === 3 && populated.formType.cols === 5 && populated.formType.populated > 0,
+  'Formation × Play Type fills its fixed 3 x 5 footprint with computed intersections',
+  JSON.stringify(populated.formType));
 
 /* SPARSE — countable offensive snaps carrying the bare minimum and nothing
    else: no play call, no concept, no personnel, alignment, motion or hash. The
