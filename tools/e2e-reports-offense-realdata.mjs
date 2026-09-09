@@ -132,6 +132,9 @@ for (const g of games) {
       const txt = el => (el?.textContent || '').replace(/\s+/g, ' ').trim();
       const name = m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '');
       const mods = [...board.querySelectorAll('.gi-overview-module')];
+      const last = mods.at(-1);
+      const boardRect = board.getBoundingClientRect();
+      const lastRect = last?.getBoundingClientRect();
       const clipped = [];
       mods.forEach(m => m.querySelectorAll('td,th').forEach(c => {
         if (c.scrollWidth - c.clientWidth > 1) clipped.push(`${name(m)}:${txt(c).slice(0, 12)}`);
@@ -157,6 +160,12 @@ for (const g of games) {
         })),
         zones: board.querySelectorAll('.gi-zone-rule').length,
         height: Math.round(board.getBoundingClientRect().height),
+        bottomEdge: {
+          title: name(last),
+          inside: !!lastRect && lastRect.bottom <= boardRect.bottom + 1,
+          contentFits: !!last && last.scrollHeight <= last.clientHeight + 1,
+          gap: lastRect ? Math.round(boardRect.bottom - lastRect.bottom) : null,
+        },
         ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         clipped: clipped.slice(0, 6),
       };
@@ -233,6 +242,12 @@ ok(observed.every(o => o.ovX === 0), 'no page-level horizontal overflow on any g
   JSON.stringify(observed.filter(o => o.ovX !== 0).map(o => ({ game: o.game, w: o.w, ovX: o.ovX }))));
 ok(observed.every(o => o.clipped.length === 0), 'no clipped table cell on any game at either width',
   JSON.stringify(observed.flatMap(o => o.clipped).slice(0, 8)));
+ok(observed.every(o => o.bottomEdge?.title === 'Expected points added'
+    && o.bottomEdge.inside && o.bottomEdge.contentFits && o.bottomEdge.gap >= 0),
+  'the final module and its content remain inside the board bottom on every game at either width',
+  JSON.stringify(observed.filter(o => !(o.bottomEdge?.title === 'Expected points added'
+    && o.bottomEdge.inside && o.bottomEdge.contentFits && o.bottomEdge.gap >= 0))
+    .map(o => ({ game: o.game, w: o.w, bottom: o.bottomEdge }))));
 /* Absence is the approved treatment, and it must actually OCCUR on this film —
    the coach's season does not chart a play call on every game, so a run that
    reported zero absences would mean the modules had vanished again. */

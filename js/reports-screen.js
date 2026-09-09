@@ -358,54 +358,50 @@ export class ReportsScreen {
     const team = context.team?.name || game.teamName || 'Our Team';
     const opponent = game.opponent || 'Opponent';
 
-    const quarters = ['Q1', 'Q2', 'Q3', 'Q4'].map(q => `<div class="gi-scorebug-quarter"><span>${q}</span><b>${tagged.byQuarter?.[q]?.us || 0}</b><i>${tagged.byQuarter?.[q]?.them || 0}</i></div>`).join('');
     const offense = computed.offPlays?.length || 0;
     const yards = (computed.rushing?.yards || 0) + (computed.passing?.yards || 0);
     const ypp = offense ? (yards / offense).toFixed(1) : '—';
 
-    // Defense reads its own linescore (approved 2026-09-04, Defense only —
-    // Overview and Offense keep the name/score pair until their own pass).
-    // Nicknames come from the 2026-08-31 naming contract, which stores school
-    // and nickname separately; the full identity stays in the title.
+    bug.classList.add('is-linescore');
     if (this.activeTab === 'defense') {
-      bug.classList.add('is-linescore');
       bug.innerHTML = this._defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game });
       bug.hidden = false;
       return;
     }
-    bug.classList.remove('is-linescore');
-    // SCORE GRID: `.gi-scorebug-team` is `display:contents`, so each team's
-    // NAME and SCORE land in their own fixed track on the scorebug grid rather
-    // than sharing one content-measured cell. That is what keeps a score's
-    // position independent of how long the team name is. The `title` carries
-    // the full name because a long one truncates inside its own bounded track.
-    bug.innerHTML = `<div class="gi-scorebug-team"><span title="${esc(team)}">${esc(team)}</span><strong>${esc(String(scoreUs))}</strong></div>
-      <div class="gi-scorebug-team is-opponent"><span title="${esc(opponent)}">${esc(opponent)}</span><strong>${esc(String(scoreThem))}</strong></div>
-      <div class="gi-scorebug-line">${quarters}</div>
+    bug.innerHTML = `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
       <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds, ${offense}&nbsp;snaps</span></div>
       <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
     bug.hidden = false;
   }
 
-  /**
-   * The Defense linescore: one row per team — nickname, four quarters, total.
-   * Every value is read from the same owners the rest of the tab uses; nothing
-   * is computed here. The story metric is yards per play ALLOWED over the
-   * defensive cohort currently in scope, and the identity strip states the base
-   * front, base coverage and blitz rate straight off `_defensiveStats`, which
-   * is the same top-of-breakdown row the Scheme section shows.
-   */
-  _defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game }) {
-    const nick = (nickname, full) => String(nickname || '').trim() || full;
-    const usName = nick(context.team?.nickname, team);
-    const themName = nick(game.opponentNickname, opponent);
+  /** Shared scoreboard: one complete team per row, aligned through one grid.
+   * Full names may wrap; they are never shortened or ellipsized. */
+  _scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged }) {
     const q = (side, key) => tagged.byQuarter?.[key]?.[side] || 0;
-    const row = (name, title, side, total) => `<div class="gi-scorebug-row">
-        <div class="gi-scorebug-name" title="${esc(title)}">${esc(name)}</div>
+    const row = (name, side, total) => `<div class="gi-scorebug-row">
+        <div class="gi-scorebug-name">${esc(name)}</div>
         ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q">${q(side, k)}</div>`).join('')}
         <div class="gi-scorebug-total">${esc(String(total))}</div>
       </div>`;
+    return `<div class="gi-scorebug-score">
+        <div class="gi-scorebug-row is-head">
+          <div class="gi-scorebug-name"></div>
+          ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q is-head">${k}</div>`).join('')}
+          <div class="gi-scorebug-total is-head">T</div>
+        </div>
+        ${row(team, 'us', scoreUs)}
+        ${row(opponent, 'them', scoreThem)}
+      </div>`;
+  }
 
+  /**
+   * Defense adds its performance story and identity strip to the shared
+   * full-name linescore. Every value is read from the same owners the rest of
+   * the tab uses; nothing is computed here. The story metric is yards per play
+   * allowed over the defensive cohort currently in scope, and the identity
+   * strip states the base front, base coverage and blitz rate.
+   */
+  _defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game }) {
     const { scoped } = this._defenseCohort();
     const report = this.app.stats.defensivePerformance(scoped);
     const def = this.app.stats.compute(scoped).defensive || {};
@@ -429,15 +425,7 @@ export class ReportsScreen {
       ['Blitz rate', blitzRate, blitzSub]]
       .map(([label, value, sub]) => `<div><span>${label}</span><strong>${esc(String(value))}</strong><small>${esc(sub)}</small></div>`).join('');
 
-    return `<div class="gi-scorebug-score">
-        <div class="gi-scorebug-row is-head">
-          <div class="gi-scorebug-name"></div>
-          ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q is-head">${k}</div>`).join('')}
-          <div class="gi-scorebug-total is-head">T</div>
-        </div>
-        ${row(usName, team, 'us', scoreUs)}
-        ${row(themName, opponent, 'them', scoreThem)}
-      </div>
+    return `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
       <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds, ${report.total}&nbsp;snaps</span></div>
       <div class="gi-scorebug-ident">${ident}</div>`;
   }

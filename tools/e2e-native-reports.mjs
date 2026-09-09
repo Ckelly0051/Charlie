@@ -173,7 +173,7 @@ await capture('desktop-overview');
 console.log('\n== 1b. Approved scorebug uses official score and escapes imported values ==');
 result = await page.evaluate(() => {
   const app=window.app; app.reportsScreen.selectTab('overview');
-  const read=()=>{ const bug=document.querySelector('[data-reports-scorebug]'); return { hidden:bug?.hidden, scores:[...(bug?.querySelectorAll('.gi-scorebug-team strong')||[])].map(n=>n.textContent.trim()), text:bug?.textContent||'', images:bug?.querySelectorAll('img').length||0 }; };
+  const read=()=>{ const bug=document.querySelector('[data-reports-scorebug]'); return { hidden:bug?.hidden, scores:[...(bug?.querySelectorAll('.gi-scorebug-row:not(.is-head) .gi-scorebug-total')||[])].map(n=>n.textContent.trim()), text:bug?.textContent||'', images:bug?.querySelectorAll('img').length||0 }; };
   const official=read(); window.__xssFired=false; app.storage.gameInfo.scoreUs='<img src=x onerror=window.__xssFired=true>'; app.reportsScreen._syncHeader(); const hostile=read(); app.storage.gameInfo.scoreUs=21; app.reportsScreen._syncHeader(); return {official,hostile,fired:window.__xssFired};
 });
 ok(result.official.hidden===false && result.official.scores.join('|')==='21|14','The scorebug leads with the official Game Settings score when tagged scoring is incomplete',JSON.stringify(result.official));

@@ -287,7 +287,7 @@ ok(!chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome
 ok(Object.values(chrome).every(c => !(c.bug && c.rail)),
   'no tab ever shows the scorebug and the generic rail at the same time', JSON.stringify(chrome));
 
-console.log('\n== 10. Score position is independent of team-name length ==');
+console.log('\n== 10. Each full team name, quarters, and total share one aligned row ==');
 const geometry = [];
 for (const c of [
   { teamName: 'Ace', opponent: 'Bay', scoreUs: 7, scoreThem: 3 },
@@ -299,22 +299,23 @@ for (const c of [
     const bug = document.querySelector('[data-reports-scorebug]');
     const x = el => Math.round(el.getBoundingClientRect().left);
     return {
-      scores: [...bug.querySelectorAll('.gi-scorebug-team > strong')].map(x),
-      line: x(bug.querySelector('.gi-scorebug-line')),
-      names: [...bug.querySelectorAll('.gi-scorebug-team > span')].map(s => ({
-        clipped: s.scrollWidth > s.clientWidth + 1, titled: !!s.title })),
+      totals: [...bug.querySelectorAll('.gi-scorebug-row:not(.is-head) .gi-scorebug-total')].map(x),
+      quarterCols: [...bug.querySelectorAll('.gi-scorebug-row:not(.is-head)')].map(row =>
+        [...row.querySelectorAll('.gi-scorebug-q')].map(x)),
+      names: [...bug.querySelectorAll('.gi-scorebug-row:not(.is-head) .gi-scorebug-name')].map(s => ({
+        text: s.textContent.trim(), clipped: s.scrollWidth > s.clientWidth + 1,
+        visible: s.getBoundingClientRect().height > 0 })),
     };
   }));
 }
 const [a, b, c3] = geometry;
-ok(JSON.stringify(a.scores) === JSON.stringify(b.scores) && JSON.stringify(b.scores) === JSON.stringify(c3.scores),
-  'both score cells hold identical x positions across short, long, and 1/2/3-digit combinations',
-  JSON.stringify(geometry.map(g => g.scores)));
-ok(a.line === b.line && b.line === c3.line,
-  'the quarter line does not move when a team name or a score grows',
-  JSON.stringify(geometry.map(g => g.line)));
-ok(c3.names.every(n => !n.clipped || n.titled),
-  'a name too long for its own track truncates with its full value in a tooltip',
+ok(geometry.every(g => g.totals.length === 2 && g.totals[0] === g.totals[1]),
+  'both team totals occupy one shared total column', JSON.stringify(geometry.map(g => g.totals)));
+ok(geometry.every(g => g.quarterCols.length === 2 && JSON.stringify(g.quarterCols[0]) === JSON.stringify(g.quarterCols[1])),
+  'both teams occupy the same four quarter columns', JSON.stringify(geometry.map(g => g.quarterCols)));
+ok(c3.names.every(n => n.visible && !n.clipped)
+    && c3.names.map(n => n.text).join('|') === 'Immaculate Heart of Mary Catholic Academy|Our Lady of Perpetual Help Prep',
+  'long team names render in full without truncation',
   JSON.stringify(c3.names));
 
 console.log('\n== 11. The empty state is a state, not a framed vacancy ==');

@@ -220,10 +220,17 @@ four-row module and gives Down & Distance and Field Position four static rows
 each. It also removes explanatory secondary copy from every Offense module and
 zone header while retaining actual measurements and table labels.
 
-Zero page-level horizontal overflow, zero clipped cells, zero page or console
-errors, on every game at both widths.
+Revision 6 replaces the detached team/score pairs with the shared Reports
+linescore. Each complete team occupies one row with its full name, Q1-Q4 and
+total. Full names wrap and are never abbreviated or truncated; quarter and total
+columns remain aligned between teams.
 
-`e2e-reports-offense` **58**, `e2e-reports-offense-realdata` **19**,
+Zero page-level horizontal overflow, zero clipped cells, zero bottom-edge bleed,
+and zero page or console errors on every game at both widths. The final Expected
+points added module, including its content and bottom border, remains inside the
+fixed board in all 12 real-data observations.
+
+`e2e-reports-offense` **58**, `e2e-reports-offense-realdata` **20**,
 `e2e-native-reports` **100** (the rejected explorer assertions retired and its
 compact ten-cell exact-film contract added),
 `e2e-reports-overview` **106**,

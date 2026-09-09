@@ -939,19 +939,12 @@ Matchup suppress both game-only elements. Their shared header names their real
 scope. Current-game scope buttons resynchronize the header before rendering,
 so changing scope cannot leave stale game or season framing behind.
 
-Score spacing is structural, not tuned: `.gi-scorebug-team` is `display:contents`
-so each team's name and score land in the scorebug's own fixed tracks. Score
-cells never move for a name length or a 1-, 2- or 3-digit value; names truncate
-inside their own bounded track with the full value in a tooltip.
-
-**Defense renders a LINESCORE variant** of the bug (`is-linescore`) instead of
-that pair — approved for Defense only on 2026-09-04, so Overview and Offense
-keep the pair until their own passes. One row per team: nickname, four quarters,
-total. The quarter and total columns are fixed and equal, and the three rows
-share one grid through `display:contents`, so the name column is sized once from
-the longest nickname and both totals hold one track. It shows **nicknames**,
-from the 2026-08-31 naming contract — that retired the name-width problem
-rather than managing it, since a nickname is short by nature.
+**Overview, Offense and Defense share one LINESCORE scorebug.** One complete
+team occupies each row: full team name, Q1-Q4 and total. Quarter and total
+columns are fixed and shared by both rows, so every score has an unambiguous
+team. Full names are never abbreviated, ellipsized or replaced by nicknames;
+the flexible name track wraps when necessary. A name or a 1-, 2- or 3-digit
+score cannot move the shared quarter and total columns.
 
 **The linescore's two numbers have different sources, by design.** The total
 prefers the official Game Settings score and falls back to charted scoring; the
