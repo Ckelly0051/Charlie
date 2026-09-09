@@ -421,11 +421,10 @@ a box-shadow into the existing 1px gap: sized to content, the band's own
 `--bd-rule` background would otherwise show under a short module as a solid
 slab, and collapsing the gap moves every rule ~1.4px out of alignment.
 
-**Reports > Defense is implemented and gate-verified, but NOT coach accepted.**
-Built from the approved comp (`design-comps/reports-defense-2026-09-03`) and
-rebuilt to the static-dashboard rule on 2026-09-09. The production decision
-record is `design-comps/reports-defense-production-2026-09-09/RATIONALE.md`.
-It has not had a Charlie Gate or installed smoke, so it is not accepted state.
+**Reports > Defense is rebuilt from the coach-approved 2026-09-09 comp and is
+gate-verified, but NOT production accepted.** The canonical artifact and
+decision record are `design-comps/reports-defense-2026-09-09/`. It has not had
+a Charlie Gate or installed smoke, so production remains rejected.
 
 Defense is **four sections presented as a TAB STRIP**, one on screen at a time:
 Defensive performance, Opponent Offense, Scheme and Situational results. The
@@ -433,26 +432,24 @@ old fifth Defense > Self-Scout section and its presentation code are deleted;
 it was the rejected predictability-only duplicate of the canonical top-level
 Reports > Self-Scout board.
 
-`DEFENSE_ROWS` is the single owner for every fixed allocation: Sample by game
-6, By down 4, both opponent-play-type modules 7, all four Scheme modules 5,
-and both Situational modules 8. Short cohorts hold dash rows; long cohorts are
-deterministically capped. Every section is one height across all six canonical
-games at 1440 and 1280. The three former paired-band gaps are closed through
-composition, not stretched rows: a real four-row By down module completes the
-opening band, and aligned fixed rows complete Opponent Offense and Situational
-results. Module and section explainer prose is absent.
+`DEFENSE_DASH_ROWS` owns the fixed ranked allocations. The approved inventory
+is: Game-by-game 6; play type 7; formations 6; personnel/backfield 5; Top and
+Worst Calls 4 slots each; pressure situations 6; all 12 down/distance buckets;
+and five slots each for field zone, hash and motion. Fixed football sets keep
+their labels and show dashes when empty. Ranked sets are deterministically
+capped. Data cannot add a module, remove a module or resize a section.
 
-**`All blitzes` counts DISTINCT blitz-tagged plays** — the canonical
-`blitzTotal`, with the canonical `blitzHavocRate` over that same cohort. Sacks,
-average yards and stop rate state that they are not aggregated, because summing
-the per-blitz rows double-counts any snap carrying two blitz tags. Proved with
-a fixture where every ninth snap is tagged `Edge + Mike`: the row reads 111
-where the sum of rows is 131.
+`StatsEngine.defenseDashboard()` is the only football-value owner. Defensive
+calls are Front + Coverage + Pressure. Call-performance rankings require a
+run/pass-classified snap; situational call frequency includes every charted
+call in that situation. Third- and fourth-down "allowed" rates use opponent
+conversion polarity. Stop Rate is not shown. Module and section explainer
+prose is absent, and every populated row carries its exact composite film refs.
 
 Canonical evidence is `tools/e2e-reports-defense-realdata.mjs`: all six real
-games at both release widths, exact module/row inventories, fixed per-section
-height, no clipping, overflow, explainer prose or source mutation. It is 20/0;
-the shared native Reports harness is 100/0.
+games at 1440 and 1280, exact module/row inventories, fixed per-section height,
+canonical KPI/call/situation values, no clipping, overflow, explainer prose or
+source mutation. It is 24/0; the shared native Reports harness is 99/0.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp

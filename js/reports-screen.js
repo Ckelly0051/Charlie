@@ -578,7 +578,8 @@ export class ReportsScreen {
       const { scoped, labels } = this._defenseCohort();
       this._defenseScopedPlays = scoped;
       const report = statsEngine.defensivePerformance(scoped, labels);
-      render(h(ReportPane, { tab: 'defense' }, h(DefenseTab, { report, scoped, screen: this })), this.content);
+      const dashboard = statsEngine.defenseDashboard(scoped, labels);
+      render(h(ReportPane, { tab: 'defense' }, h(DefenseTab, { report, dashboard, scoped, screen: this })), this.content);
       return;
     }
     if (tab === 'special') {

@@ -594,39 +594,18 @@ result = await page.evaluate(async () => {
   const seasonActive = pane?.querySelector('[data-defense-scope="season"].active') != null;
   const runInside = model.playTypes.find(row => row.name === 'Run Inside');
   const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
-  const typeTable = pane?.querySelector('.gi-def-type');
+  const moduleByTitle = title => [...(pane?.querySelectorAll('.gi-overview-module') || [])]
+    .find(module => module.querySelector('header strong')?.textContent.trim() === title);
+  const typeTable = moduleByTitle('Production by play type')?.querySelector('table');
   const typeRowsBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
-  const yppBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[2]?.textContent));
-  // DataTable (native-report-kit.jsx) makes every header clickable/sortable
-  // by design -- role="button" is the live marker, not a static per-column
-  // "this one is sortable" class the legacy `_makeSortable()` DOM convention
-  // used. Sort reads directly off the row object's field, so verify the
-  // effect (real cell text, descending -- DataTable's first-click direction)
-  // rather than a `data-sort` attribute DataTable never writes. This fixture
-  // deliberately has three type rows with a non-monotonic yards/play order
-  // (2.0, 20.0, 0.0) so a broken/no-op sort is caught, not masked by an
-  // accidentally-already-sorted or single-row table.
-  const sortableHeaders = typeTable?.querySelectorAll('thead th[role="button"]').length || 0;
-  typeTable?.querySelector('thead th:nth-child(3)')?.click();
-  // DataTable's sort is real Preact hook state (useState -> setSort), which
-  // Preact flushes on a deferred microtask/rAF, not synchronously inside the
-  // click handler -- unlike ReportsScreen's own imperative full-route
-  // `render()` calls (e.g. the defenseScope toggle below), which repaint
-  // before the click handler returns. Reading the table immediately after
-  // .click() here would silently observe the PRE-sort DOM.
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const typeRowsAfterYppSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
-  const yppAfterSort = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[2]?.textContent));
-  // The All Runs / All Passes film cards are sample context and live in
-  // section 1 now, not beside the play-type table.
+  const yppBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[3]?.textContent));
   showSection('Defensive performance');
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const aggregateCards = [...(pane?.querySelectorAll('.gi-def-type-summary') || [])].map(card => card.textContent.trim());
   showSection('Opponent Offense');
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   // Re-query: switching sections unmounts and remounts the table, so the
   // reference captured earlier points at a detached node.
-  const liveTypeTable = pane?.querySelector('.gi-def-type');
+  const liveTypeTable = moduleByTitle('Production by play type')?.querySelector('table');
   const answerHead = liveTypeTable?.querySelector('thead');
   const answerFirst = liveTypeTable?.querySelector('tbody tr');
   const answerHeaderPosition = answerHead?.querySelector('th') ? getComputedStyle(answerHead.querySelector('th')).position : '';
@@ -638,24 +617,11 @@ result = await page.evaluate(async () => {
   // Real onClick wiring (Watchable/WatchableRefs), not the legacy delegated
   // `[data-defense-refs]` attribute -- click the real "Run Inside" type row
   // (both its snaps live in game 'a').
-  const runInsideRow = [...(typeTable?.querySelectorAll('tbody tr') || [])]
+  const runInsideRow = [...(liveTypeTable?.querySelectorAll('tbody tr') || [])]
     .find(row => row.cells[0]?.textContent.trim() === 'Run Inside');
   runInsideRow?.click();
   const watchedRunInside = watched;
   watched = null;
-  // The season-wide film bug this section exists to prove closed: Scheme
-  // Detail's front table (SchemeDetail, a real Preact component reading
-  // compute(scoped).defensive's own additive `refs`) must resolve a
-  // cross-game front row to every game it spans, not just the active one.
-  // "4-2-5" spans BOTH games -- select the real onClick row via its
-  // Watchable-assigned title (no data-cut-type attribute exists anymore;
-  // that was the retired LegacyWidget/wireGenericCutRows convention).
-  showSection('Scheme');
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const schemeRow = [...(pane?.querySelectorAll('.gi-defense-report table tbody tr') || [])]
-    .find(row => row.getAttribute('title')?.startsWith('Watch: 4-2-5 front'));
-  schemeRow?.click();
-  const watchedScheme = watched;
   app.filmNavigation.watch = originalWatch;
   pane?.querySelector('[data-defense-scope="game"]')?.click();
   const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].active') != null;
@@ -669,9 +635,8 @@ result = await page.evaluate(async () => {
     third: model.thirdDownStopRate, redZone: model.redZoneTdRate, takeaways: model.takeaways,
     runInside: runInside && { n: runInside.n, refs: runInside.refs },
     duplicateRefs, games: model.byGame.map(row => row.name),
-    seasonActive, gameActive, before, after, typeRowsBefore, typeRowsAfterYppSort, yppBefore,
-    watchedRunInside, watchedScheme, schemeRowFound: !!schemeRow,
-    sortableHeaders, aggregateCards, yppAfterSort, answerHeaderPosition, answerRowsClearHeader,
+    seasonActive, gameActive, before, after, typeRowsBefore, yppBefore,
+    watchedRunInside, answerHeaderPosition, answerRowsClearHeader,
     // Defense presents its sections as a tab strip; the labels that used to
     // be <h3> headings are the tab labels.
     headings: [...(pane?.querySelectorAll('.gi-def-secnav-item') || [])]
@@ -690,10 +655,6 @@ ok(result.runInside?.n === 2 && JSON.stringify(result.runInside.refs) === JSON.s
   'Opponent play-type rows retain composite game/play identity even when bare ids collide', JSON.stringify(result));
 ok(Array.isArray(result.watchedRunInside) && JSON.stringify(result.watchedRunInside) === JSON.stringify(['a::1', 'a::2']),
   'A season Defense row launches exactly the film refs it displays', JSON.stringify(result.watchedRunInside));
-ok(result.schemeRowFound && Array.isArray(result.watchedScheme)
-  && JSON.stringify([...result.watchedScheme].sort()) === JSON.stringify(['a::1', 'a::2', 'b::2']),
-  'Season-wide Scheme Detail plays the exact cross-game cohort it counts, not just the active game',
-  JSON.stringify({ schemeRowFound: result.schemeRowFound, watchedScheme: result.watchedScheme }));
 ok(result.games.join(',') === 'Week 1,Week 2'
   && result.seasonActive && result.gameActive && result.scoutExcluded,
   'Defense defaults to full season, excludes opponent-scout games, and can switch to current game', JSON.stringify(result));
@@ -708,23 +669,11 @@ ok(result.headings.length === 4
   && !result.headings.includes('Self-scout'),
   'The Defense page leads with performance and covers play type, scheme and situation without the rejected duplicate Self-Scout',
   JSON.stringify(result.headings));
-ok(result.sortableHeaders === 7
-  && result.typeRowsBefore.length === 7
-  // The fixture's three type rows have a genuinely non-monotonic initial
-  // yards/play order (2.0, 20.0, 0.0 -- count-desc/name-tiebreak, not sorted
-  // by yards/play at all), so this is a positive proof the initial order is
-  // NOT already descending -- a broken/no-op sort (the exact `key: 'ypp'` vs
-  // `yardsPerPlay` field-mismatch bug this pins) would leave it unchanged
-  // and this check would catch it.
-  && !result.yppBefore.every((value, index, values) => index === 0 || values[index - 1] >= value)
-  && result.typeRowsAfterYppSort.length === result.typeRowsBefore.length
-  // DataTable's first click on a column sorts descending (its established,
-  // shared convention -- already live on Offense/Players' tables).
-  && result.yppAfterSort.filter(Number.isFinite).every((value, index, values) => index === 0 || values[index - 1] >= value)
-  && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes')
-  && result.aggregateCards.length > 0
-  && result.aggregateCards.every(text => text.includes('All Runs') || text.includes('All Passes')),
-  'Opponent offense is a sortable play-type table with Run/Pass totals separated from detail rows', JSON.stringify(result));
+ok(result.typeRowsBefore.length === 7
+  && result.typeRowsBefore[0] === 'Run Outside'
+  && result.typeRowsBefore.includes('Run Inside')
+  && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes'),
+  'Opponent offense holds the approved seven play-type rows in football order', JSON.stringify(result));
 ok(result.answerHeaderPosition === 'static' && result.answerRowsClearHeader,
   'Defense table headers stay in normal flow and never cover the first answer row', JSON.stringify(result));
 

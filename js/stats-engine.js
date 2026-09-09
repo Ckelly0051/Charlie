@@ -1497,6 +1497,142 @@ export class StatsEngine {
     };
   }
 
+  /**
+   * Fixed-schema Reports > Defense model. Defensive snaps describe the
+   * opponent offense, so every production figure below is yards/results the
+   * opponent produced against us. Presentation receives finished rows and
+   * exact film refs; it does not derive football values.
+   */
+  defenseDashboard(plays, gameLabels = {}) {
+    const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
+    const yard = p => parseInt(p?.tags?.yardage, 10) || 0;
+    const refsOf = cohort => [...new Set((cohort || []).map(StatsEngine._compositeRef).filter(Boolean))].sort();
+    const summarize = (name, cohort) => {
+      const rows = cohort || [];
+      if (!rows.length) return { name, n: null, held: true, runs: 0, passes: 0,
+        yards: null, runYards: null, passYards: null, ypp: null,
+        explosives: null, touchdowns: null, turnovers: null, refs: [], plays: [] };
+      const runs = rows.filter(StatsEngine.isRun);
+      const passes = rows.filter(StatsEngine.isPass);
+      const yards = rows.reduce((sum, p) => sum + yard(p), 0);
+      const turnovers = this._defensiveStats(rows).turnovers;
+      return {
+        name, n: rows.length, runs: runs.length, passes: passes.length, yards,
+        runYards: runs.reduce((sum, p) => sum + yard(p), 0),
+        passYards: passes.reduce((sum, p) => sum + yard(p), 0),
+        ypp: rows.length ? +(yards / rows.length).toFixed(1) : null,
+        explosives: rows.filter(StatsEngine.isExplosive).length,
+        touchdowns: rows.filter(p => StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) !== 'us').length,
+        turnovers, refs: refsOf(rows), plays: rows,
+      };
+    };
+    const grouped = (cohort, keyFn) => {
+      const map = new Map();
+      (cohort || []).forEach(play => {
+        let keys = keyFn(play);
+        if (!Array.isArray(keys)) keys = [keys];
+        keys.filter(Boolean).forEach(key => {
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(play);
+        });
+      });
+      return [...map.entries()].map(([name, rows]) => summarize(name, rows));
+    };
+    const ranked = rows => rows.sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+    const byGame = ranked(grouped(source, p => String(p.__gid ?? 'current')))
+      .map(row => ({ ...row, gameId: row.name, name: gameLabels[row.name] || row.name }))
+      .sort((a, b) => {
+        const ai = a.plays[0]?.__seasonGameIdx ?? 0;
+        const bi = b.plays[0]?.__seasonGameIdx ?? 0;
+        return ai - bi || a.name.localeCompare(b.name, undefined, { numeric: true });
+      });
+    const recentIds = new Set(byGame.slice(-3).map(row => row.gameId));
+    const recent = summarize('Last 3', source.filter(p => recentIds.has(String(p.__gid ?? 'current'))));
+    const summary = summarize('Season', source);
+    const rateAllowed = (cohort, down) => {
+      const rows = cohort.filter(p => p.tags.down === down);
+      const allowed = rows.filter(p => this._isSuccessfulPlay(p)).length;
+      return { made: allowed, attempts: rows.length, rate: rows.length ? +(allowed / rows.length * 100).toFixed(1) : null };
+    };
+    const downRows = ['1', '2', '3', '4'].map(down => summarize(
+      `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'} Down`,
+      source.filter(p => p.tags.down === down)));
+    const quarterRows = ['Q1', 'Q2', 'Q3', 'Q4'].map(q => {
+      const row = summarize(q, source.filter(p => p.tags.quarter === q));
+      return { ...row, vsAverage: row.ypp == null || summary.ypp == null ? null : +(row.ypp - summary.ypp).toFixed(1) };
+    });
+    const detailOrder = ['Run Outside', 'Run Inside', 'RPO', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Screen'];
+    const playTypes = detailOrder.map(name => summarize(name,
+      source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))));
+    const formations = ranked(grouped(source, p => StatsEngine.splitFormations(StatsEngine.proj(p).formation)));
+    const personnel = ranked(grouped(source, p => String(p.tags.personnel || '').trim()));
+    const backfields = ranked(grouped(source, p => StatsEngine.proj(p).backfield || ''));
+    const directions = ['Left', 'Middle', 'Right'].map(name => summarize(name,
+      source.filter(p => p.tags.playDir === name)));
+
+    // A call result needs a classified offensive snap. Front/coverage tags on
+    // an administrative or otherwise unclassified row do not describe what
+    // the call defended and cannot enter a performance ranking.
+    const classified = source.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
+    const callRows = this._defenseCallRows(classified).map(row => ({
+      name: row.key.replaceAll(' · ', ' | '), n: row.n, yards: row.yards,
+      ypp: row.avgYds, explosives: row.explosives, touchdowns: row.tds,
+      refs: row.refs, vsAverage: summary.ypp == null ? null : +(row.avgYds - summary.ypp).toFixed(1),
+    }));
+    const qualifiedCalls = callRows.filter(row => row.n >= 4);
+    const topCalls = qualifiedCalls.slice().sort((a, b) => a.ypp - b.ypp || b.n - a.n || a.name.localeCompare(b.name));
+    const worstCalls = qualifiedCalls.slice().sort((a, b) => b.ypp - a.ypp || a.n - b.n || a.name.localeCompare(b.name));
+    const pressure = (name, cohort) => summarize(name, cohort);
+    const blitz = pressure('Blitz', source.filter(p => String(p.tags.blitz || '').trim()));
+    const noBlitz = pressure('No Blitz', source.filter(StatsEngine.isNoBlitz));
+    const pressureKeys = ['1|Long', '2|Long', '3|Long', '2|Medium', '4|Long', '4|Short'];
+    const pressureSituations = pressureKeys.map(key => {
+      const rows = source.filter(p => this._ddKey(p.tags) === key);
+      const blitzRows = rows.filter(p => String(p.tags.blitz || '').trim());
+      const baseRows = rows.filter(StatsEngine.isNoBlitz);
+      return { key, name: this._ddPretty(key).replace('Short', '1-3').replace('Medium', '4-6').replace('Long', '7+'),
+        n: rows.length, blitzPct: rows.length ? Math.round(blitzRows.length / rows.length * 100) : null,
+        blitzYpp: summarize('', blitzRows).ypp, baseYpp: summarize('', baseRows).ypp, refs: refsOf(rows) };
+    });
+
+    const distanceOrder = ['Short', 'Medium', 'Long'];
+    const ddRows = ['1', '2', '3', '4'].flatMap(down => distanceOrder.map(bucket => {
+      const key = `${down}|${bucket}`;
+      const rows = source.filter(p => this._ddKey(p.tags) === key);
+      const row = summarize(this._ddPretty(key).replace('Short', '1-3').replace('Medium', '4-6').replace('Long', '7+'), rows);
+      // Frequency answers "what did we call here?" and therefore includes a
+      // charted call even when play type is absent. Performance rankings above
+      // require classification; situational call share does not.
+      const calls = this._defenseCallRows(rows).sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
+      const top = calls[0] || null;
+      const blitzN = rows.filter(p => String(p.tags.blitz || '').trim()).length;
+      return { ...row, topCall: top ? top.key.replaceAll(' · ', ' | ') : null,
+        callPct: top && rows.length ? Math.round(top.n / rows.length * 100) : null,
+        blitzPct: rows.length ? Math.round(blitzN / rows.length * 100) : null };
+    }));
+    const zoneSpecs = [
+      ['Backed Up', 1, 20], ['Open Field', 21, 50], ['High Red', 51, 79],
+      ['Red Zone', 80, 94], ['Goal Line', 95, 100],
+    ];
+    const zones = zoneSpecs.map(([name, min, max]) => summarize(name, source.filter(p => {
+      const spot = this._absYardLine(p.tags);
+      return spot != null && spot >= min && spot <= max;
+    })));
+    const hashes = ['Left', 'Middle', 'Right'].map(name => summarize(name, source.filter(p => p.tags.hash === name)));
+    const motionNames = ranked(grouped(source, p => p.tags.motion || 'No Motion')).map(row => row.name === 'No Motion' ? row : row);
+
+    return {
+      total: source.length, summary, recent,
+      thirdDownAllowed: rateAllowed(source, '3'), fourthDownAllowed: rateAllowed(source, '4'),
+      recentThirdDownAllowed: rateAllowed(recent.plays, '3'), recentFourthDownAllowed: rateAllowed(recent.plays, '4'),
+      byGame, downs: downRows, quarters: quarterRows, playTypes,
+      formations, personnel, backfields, directions,
+      topCalls: topCalls.slice(0, 3), worstCalls: worstCalls.slice(0, 3),
+      pressure: { blitz, noBlitz }, pressureSituations,
+      downDistance: ddRows, zones, hashes, motions: motionNames,
+    };
+  }
+
   _countThreeAndOuts(plays) {
     // A three-and-out = the defense forced the offense to give the ball back in
     // three plays without a first down. We must NOT rely on the driveNumber

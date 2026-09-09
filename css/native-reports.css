@@ -3004,6 +3004,95 @@
 .gi-reports .gi-defense-board .gi-def-answers td:first-child small{display:block;margin:0;white-space:nowrap}
 .gi-reports .gi-defense-board .gi-def-opponent-band{height:430px}
 
+/* 2026-09-09 approved Defense dashboard. The comp is the schema: these bands
+   and row pitches stay fixed while sparse cohorts occupy their slots with
+   dashes. All rules are scoped to the replacement board. */
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-band-3{
+  grid-template-columns:repeat(3,minmax(0,1fr))
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module{
+  min-width:0;background:var(--gi-bd-panel)
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module>header{
+  min-height:34px;padding:0 var(--gi-3x);display:flex;align-items:center
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module th,
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module td{
+  height:29px;padding-top:4px;padding-bottom:4px;white-space:nowrap
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi{
+  min-height:82px;padding:12px 10px 9px
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi strong{font-size:27px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi small{white-space:nowrap;font-size:9.5px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-performance-split{height:179px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top{height:270px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-bottom{height:238px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls{height:225px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls td{height:40px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls td:first-child{
+  white-space:normal;line-height:1.15
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-rank{
+  display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+  margin-right:7px;background:var(--gi-bd-control-active);color:var(--gi-bd-copy)
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .is-top .gi-def-rank{background:#123624;color:#46d68c}
+.gi-reports .gi-defense-board.is-dashboard-v2 .is-worst .gi-def-rank{background:#401d21;color:#ff7a80}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-pressure-band{
+  grid-template-columns:minmax(0,2fr) minmax(0,1fr);height:283px
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card{
+  display:block;min-width:0;padding:12px;border:1px solid var(--gi-bd-line);
+  background:var(--gi-bd-stage);color:inherit;text-align:left
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card h3{
+  margin:0 0 10px;color:var(--gi-bd-copy);font:700 12px/1 var(--gi-cond);text-transform:uppercase
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card>strong{
+  display:block;color:var(--gi-bd-strong);font:700 30px/1.15 var(--gi-cond)
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card>small{
+  display:block;margin-top:4px;color:var(--gi-bd-muted)
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dl{
+  display:grid;grid-template-columns:1fr auto;gap:7px;margin:13px 0 0;padding-top:9px;
+  border-top:1px solid var(--gi-bd-line)
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dt{color:var(--gi-bd-copy)}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dd{margin:0;font-weight:700}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction{padding:8px 12px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row{
+  display:grid;grid-template-columns:58px minmax(0,1fr) 44px 48px;gap:7px;align-items:center;
+  width:100%;height:43px;padding:0;border:0;border-bottom:1px solid var(--gi-bd-line);
+  background:transparent;color:inherit;text-align:left
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row:last-of-type{border-bottom:0}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar{display:flex;height:11px;background:var(--gi-bd-stage)}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar i,
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar em{display:block;width:var(--w);height:100%}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar i{background:#e4b316}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar em{background:var(--gi-bd-cyan)}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row b,
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row small{text-align:right}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key{
+  display:flex;gap:16px;padding-top:12px;color:var(--gi-bd-muted);font-size:10px
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key span:first-child{color:#e4b316}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key span:nth-child(2){color:var(--gi-bd-cyan)}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key b{margin-left:auto;color:var(--gi-bd-muted);font-weight:400}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-context-band{height:225px}
+@media(max-width:1300px){
+  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi{padding-left:8px;padding-right:8px}
+  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi strong{font-size:24px}
+  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi small{font-size:9px}
+  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module th,
+  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module td{padding-left:8px;padding-right:8px}
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    REPORTS > SPECIAL TEAMS
    Approved comp: design-comps/reports-special-teams-2026-09-04/ (RATIONALE.md

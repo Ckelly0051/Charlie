@@ -1,6 +1,9 @@
-# Reports > Defense production rebuild - 2026-09-09
+# Reports > Defense production rebuild - 2026-09-09 (superseded)
 
-**Status: IMPLEMENTED FOR COACH REVIEW. Not accepted and not released.**
+**Status: SUPERSEDED.** This earlier implementation record describes the
+rejected pre-approval board. The current approved composition, production
+mapping and evidence are recorded in
+`design-comps/reports-defense-2026-09-09/RATIONALE.md`.
 
 The approved Defense comp remains the information-architecture source. This
 production pass applies the later static-dashboard and copy decisions that now

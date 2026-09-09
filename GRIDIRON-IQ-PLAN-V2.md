@@ -698,18 +698,16 @@ Retain every meaningful production field while reducing everyday clutter.
 > canonical self-scout presentation.
 >
 
-> **DEFENSE REBUILT TO THE STATIC RULE (2026-09-09).** Defense now has four
-> useful section tabs and eleven fixed modules. `DEFENSE_ROWS` owns every
-> allocation; every section is one height across all six canonical games at
-> 1440 and 1280, with dash slots for missing rows and deterministic caps for
-> excess data. A four-row By down module fills the former Run / pass gap, and
-> aligned allocations close the Opponent Offense and Situational gaps without
-> stretching rows. The rejected predictability-only Defense > Self-Scout
-> duplicate and its presentation code are deleted. Module and section-header
-> explainers are absent. Canonical evidence:
-> `tools/e2e-reports-defense-realdata.mjs` 20/0; shared native Reports 100/0.
-> Decision record:
-> `design-comps/reports-defense-production-2026-09-09/RATIONALE.md`.
+> **DEFENSE REBUILT TO THE APPROVED STATIC SCHEMA (2026-09-09).** The current
+> comp and decision record are `design-comps/reports-defense-2026-09-09/`.
+> Four fixed screens now show performance, opponent offense, complete calls and
+> pressure, and all 12 down/distance situations. Stop Rate and the former Front,
+> Coverage, Best Call by Play Type and duplicate Self-Scout modules are absent.
+> `StatsEngine.defenseDashboard()` owns every value; `DEFENSE_DASH_ROWS` owns
+> every ranked allocation. Sparse data holds dashes and excess ranked data is
+> deterministically capped, so data cannot resize the board. Canonical evidence:
+> `tools/e2e-reports-defense-realdata.mjs` 24/0; shared native Reports 99/0.
+> Coach-approved composition; production acceptance and installed smoke remain.
 >
 
 > **STUDY PRESENTATION INDEPENDENCE (completed 2026-08-26):**

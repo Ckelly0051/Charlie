@@ -3,13 +3,13 @@
   "title": "Reports Defense",
   "designStatus": "COMP_APPROVED",
   "productionStatus": "REJECTED",
-  "approvedOn": "2026-09-04",
-  "approvalNote": "The approved standalone Defense comp remains canonical; the installed production presentation is rejected.",
+  "approvedOn": "2026-09-09",
+  "approvalNote": "Charlie approved the fixed four-screen Defense composition; the implementation is awaiting production review.",
   "canonicalArtifact": {
-    "path": "design-comps/reports-defense-2026-09-03",
+    "path": "design-comps/reports-defense-2026-09-09",
     "kind": "directory",
-    "sha256": "9228997f7a965d2ea5b39445e92191b1c96f68146291ebd77882d43ab41fdc97",
-    "fileCount": 30
+    "sha256": "5cffb1bd3cc0a639dea6549b508780c27c2a0d1fe01efe2ab3fd36e82ad8f64d",
+    "fileCount": 11
   },
-  "decisionRecord": "design-comps/reports-defense-2026-09-03/RATIONALE.md"
+  "decisionRecord": "design-comps/reports-defense-2026-09-09/RATIONALE.md"
 }

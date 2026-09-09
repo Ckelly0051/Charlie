@@ -9,15 +9,17 @@ const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_I
 const OUT = 'artifacts/defense-production-realdata';
 const VIEWPORTS = [[1440, 900], [1280, 800]];
 const SECTIONS = [
-  { label: 'Defensive performance', modules: ['Sample by game', 'Run / pass faced', 'By down', 'Disruption'] },
-  { label: 'Opponent Offense', modules: ['Opponent play type', 'Best call by play type'] },
-  { label: 'Scheme', modules: ['Front', 'Coverage', 'Pressure', 'Front by situation'] },
-  { label: 'Situational results', modules: ['Situational defense', 'Scheme by situation'] },
+  { label: 'Defensive performance', modules: ['Game-by-game', 'By down', 'By quarter'] },
+  { label: 'Opponent Offense', modules: ['Production by play type', 'Formation faced', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
+  { label: 'Scheme', modules: ['Top Calls', 'Worst Calls', 'Blitz vs No Blitz', 'Pressure by situation'] },
+  { label: 'Situational results', modules: ['Down & distance', 'Field zone', 'By hash', 'Motion'] },
 ];
 const ROWS = {
-  'Sample by game': 6, 'By down': 4, 'Opponent play type': 7,
-  'Best call by play type': 7, Front: 5, Coverage: 5, Pressure: 5,
-  'Front by situation': 5, 'Situational defense': 8, 'Scheme by situation': 8,
+  'Game-by-game': 6, 'By down': 4, 'By quarter': 4,
+  'Production by play type': 7, 'Formation faced': 6,
+  'Personnel faced': 5, 'Backfield faced': 5,
+  'Top Calls': 4, 'Worst Calls': 4, 'Pressure by situation': 6,
+  'Down & distance': 12, 'Field zone': 5, 'By hash': 5, Motion: 5,
 };
 
 let pass = 0, fail = 0;
@@ -150,6 +152,38 @@ await page.evaluate(async gameId => {
   app.reportsScreen.selectTab('defense');
 }, season.activeGameId || games[0].id);
 await sleep(500);
+const canonical = await page.evaluate(() => {
+  const app = window.app;
+  const { scoped, labels } = app.reportsScreen._defenseCohort();
+  const model = app.stats.defenseDashboard(scoped, labels);
+  return {
+    total: model.total, yards: model.summary.yards, rush: model.summary.runYards,
+    pass: model.summary.passYards, ypp: model.summary.ypp, turnovers: model.summary.turnovers,
+    explosives: model.summary.explosives,
+    third: model.thirdDownAllowed, fourth: model.fourthDownAllowed,
+    dd: model.downDistance.map(row => row.name),
+    emptyDd: model.downDistance.filter(row => !row.n).map(row => row.name),
+    calls: model.topCalls.map(row => `${row.name}:${row.n}`),
+    firstLongCallPct: model.downDistance.find(row => row.name === '1st & 7+')?.callPct,
+  };
+});
+ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
+  && canonical.ypp === 2.9 && canonical.turnovers === 2 && canonical.explosives === 7,
+  'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));
+ok(canonical.third.made === 8 && canonical.third.attempts === 43 && canonical.third.rate === 18.6
+  && canonical.fourth.made === 9 && canonical.fourth.attempts === 17 && canonical.fourth.rate === 52.9,
+  'third- and fourth-down allowed use offensive conversion polarity', JSON.stringify(canonical));
+ok(JSON.stringify(canonical.dd) === JSON.stringify([
+  '1st & 1-3', '1st & 4-6', '1st & 7+', '2nd & 1-3', '2nd & 4-6', '2nd & 7+',
+  '3rd & 1-3', '3rd & 4-6', '3rd & 7+', '4th & 1-3', '4th & 4-6', '4th & 7+',
+]) && canonical.emptyDd.includes('1st & 4-6'),
+  'all 12 down-and-distance rows remain in football order, including the empty cohort', JSON.stringify(canonical.dd));
+ok(JSON.stringify(canonical.calls) === JSON.stringify([
+  'Maverick + Jumbo Shift | Cover 3 | A-Gap:4',
+  'Maverick | Cover 3:109',
+  'Maverick + Jumbo Shift | Cover 3:28',
+]) && canonical.firstLongCallPct === 72,
+  'call performance uses classified snaps while situational call share uses every charted call', JSON.stringify(canonical.calls));
 for (let index = 0; index < SECTIONS.length; index++) {
   await page.evaluate(label => {
     [...document.querySelectorAll('.gi-def-secnav-item')]

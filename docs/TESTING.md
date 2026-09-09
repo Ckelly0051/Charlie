@@ -102,6 +102,13 @@ The smallest existing harness for the route or domain you touched.
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+
+`e2e-reports-defense-realdata` is the Defense composition authority. It loads
+only `2025-st-joseph-mavericks-jv`, checks all six games at 1440 and 1280,
+pins the approved module and row inventory plus canonical KPI/call/situation
+values, captures all four full-season screens, and verifies the source season
+remains byte-identical. Current focused result: 24/0; shared native Reports:
+99/0.
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |
