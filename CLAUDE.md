@@ -422,23 +422,25 @@ a box-shadow into the existing 1px gap: sized to content, the band's own
 slab, and collapsing the gap moves every rule ~1.4px out of alignment.
 
 **Reports > Defense is implemented and gate-verified, but NOT coach accepted.**
-Built to the approved comp (`design-comps/reports-defense-2026-09-03`, whose
-RATIONALE is the decision record) across `8a3525a`..`b035bac`. It has not had a
-Charlie Gate or an installed smoke, so it is not accepted state.
+Built from the approved comp (`design-comps/reports-defense-2026-09-03`) and
+rebuilt to the static-dashboard rule on 2026-09-09. The production decision
+record is `design-comps/reports-defense-production-2026-09-09/RATIONALE.md`.
+It has not had a Charlie Gate or installed smoke, so it is not accepted state.
 
-Defense is **five sections presented as a TAB STRIP**, one on screen at a time:
-Defensive performance, Opponent Offense, Scheme, Situational results,
-Self-scout. Approved 2026-09-04 for Defense only — Offense still scrolls one
-continuous page, and the two navigate differently until Offense converts. Its
-KPI band is eight tiles across in one row; two rows of four stretched each tile
-to ~350px of mostly empty panel.
+Defense is **four sections presented as a TAB STRIP**, one on screen at a time:
+Defensive performance, Opponent Offense, Scheme and Situational results. The
+old fifth Defense > Self-Scout section and its presentation code are deleted;
+it was the rejected predictability-only duplicate of the canonical top-level
+Reports > Self-Scout board.
 
-Every `DefenseTab`, `SchemeDetail` and `DefensiveSelfScout` capability is
-preserved. `SchemeDetail` and `DefensiveSelfScout` are split by `schemeParts`
-and `selfScoutParts` so their bodies can sit in different sections without
-recomputing anything: the havoc gauge's stat cards became Disruption in section
-1, and Scheme by Situation moved beside Situational defense. The havoc **arc**
-is gone; its number, its sample and its film action are not.
+`DEFENSE_ROWS` is the single owner for every fixed allocation: Sample by game
+6, By down 4, both opponent-play-type modules 7, all four Scheme modules 5,
+and both Situational modules 8. Short cohorts hold dash rows; long cohorts are
+deterministically capped. Every section is one height across all six canonical
+games at 1440 and 1280. The three former paired-band gaps are closed through
+composition, not stretched rows: a real four-row By down module completes the
+opening band, and aligned fixed rows complete Opponent Offense and Situational
+results. Module and section explainer prose is absent.
 
 **`All blitzes` counts DISTINCT blitz-tagged plays** — the canonical
 `blitzTotal`, with the canonical `blitzHavocRate` over that same cohort. Sacks,
@@ -447,12 +449,10 @@ the per-blitz rows double-counts any snap carrying two blitz tags. Proved with
 a fixture where every ninth snap is tagged `Edge + Mike`: the row reads 111
 where the sum of rows is 131.
 
-**Three band gaps are known and accepted for now:** Run / pass faced 78px,
-Opponent play type 86px, Situational defense 72px. They come from genuinely
-different row counts in real data. Stretching table rows and full-width tables
-were both tried and rejected — the first distorts the row rhythm to fill space,
-the second reintroduces the long horizontal eye travel the pairing exists to
-avoid. Carried into the Charlie Gate.
+Canonical evidence is `tools/e2e-reports-defense-realdata.mjs`: all six real
+games at both release widths, exact module/row inventories, fixed per-section
+height, no clipping, overflow, explainer prose or source mutation. It is 20/0;
+the shared native Reports harness is 100/0.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp
@@ -1088,17 +1088,11 @@ product is wrong.
    tabs for Defense on 2026-09-04 with Offense converting in a later pass, so
    the two reports navigate differently until that lands. Recorded as a known
    temporary inconsistency, not an oversight.
-9. **Three Defense band gaps** — Run / pass faced 78px, Opponent play type
-   86px, Situational defense 72px. They come from genuinely different row
-   counts in real data; closing them means stretching table rows or full-width
-   tables, both of which were tried and rejected. Carried into the Charlie Gate.
-10. **Defense > Self-Scout is rejected duplicate presentation.** The Defense
-   report's fifth section is the older predictability-only wall, not the rebuilt
-   top-level Reports > Self-Scout board. Its prose-heavy predictability score and
-   tendency table duplicate a narrow slice of the canonical report and were
-   rejected by the coach during the `1.12.0-74` smoke. Remove that Defense
-   subsection or replace it only with distinct defense-specific value; do not
-   preserve the duplicate wall as another Self-Scout owner.
+9. **CLOSED 2026-09-09 — Defense band gaps.** By down completes the opening
+   band; fixed aligned rows complete Opponent Offense and Situational results.
+10. **CLOSED 2026-09-09 — duplicate Defense > Self-Scout.** The fifth section
+   and its dead presentation owner are deleted. Top-level Reports > Self-Scout
+   remains the only self-scout presentation.
 
 **Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its

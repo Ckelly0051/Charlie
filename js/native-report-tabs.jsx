@@ -1032,19 +1032,24 @@ const defSitColumns = [
   { key: 'explosiveRate', label: 'Explosive', numeric: true, render: row => `${row.explosiveRate}%` },
   { key: 'havocRate', label: 'Havoc', numeric: true, render: row => `${row.havocRate}%` },
 ];
+const defDownColumns = [
+  { key: 'name', label: 'Down' }, { key: 'n', label: 'Snaps', numeric: true },
+  { key: 'yardsPerPlay', label: 'Yds/Play', numeric: true, render: row => row.yardsPerPlay.toFixed(1) },
+  { key: 'stopRate', label: 'Stop Rate', numeric: true, render: row => `${row.stopRate}%` },
+];
 // A row with no resolved film ref keeps its data but loses the click
 // affordance -- the same "never a dead click" rule every migrated table
 // follows. Defense refs are pre-resolved composite arrays on the row itself
 // (built by StatsEngine.defensivePerformance), so activation is a direct
 // watchRefs call, not a cut-type/val lookup.
 function defRows(rows, label, screen) {
-  return rows.map(row => ({ ...row, id: row.name,
+  return rows.map((row, i) => row.absent ? { ...row, id: `${label}-empty-${i}` } : ({ ...row, id: row.name,
     onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} ${label}`) : undefined,
     label: `${row.name} ${label}` }));
 }
 
 function DefAnswerCell({ answer, screen }) {
-  if (!answer) return <span class="gi-def-no-sample">Not enough snaps</span>;
+  if (!answer) return <span class="gi-def-no-sample">—</span>;
   const label = `${answer.name} answer`;
   return <WatchableRefs tag="button" type="button" class="gi-def-answer" refs={answer.refs} label={label} screen={screen}>
     <strong>{answer.name}</strong> <span>{answer.stopRate}% stop, {answer.yardsPerPlay.toFixed(1)} y/p, {answer.n}</span>
@@ -1143,85 +1148,6 @@ function SchemeDetail({ defensive, screen }) {
   </div>;
 }
 
-function verdictIcon(v) { return v === 'dominant' ? '▲' : v === 'effective' ? '▬' : '▼'; }
-function verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
-
-/** One structured recommendation (see `StatsEngine.generateDefensiveSelfScout`'s
- *  own comment) rendered as real JSX -- the SAME selection this section has
- *  always shown, formatted directly as JSX at its presentation boundary.
- *  `item.label`/`tellVal` arrive raw (not pre-escaped),
- *  matching every other JSX text child in this file. */
-function DefRecommendation({ item }) {
-  switch (item.kind) {
-    case 'exploitable-summary':
-      return <div class="ss-rec"><strong>{item.count} exploitable defensive tendenc{item.count > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.</div>;
-    case 'exploitable-item':
-      return <div class="ss-rec"><span class="ss-rec-label">{item.label}</span>: {item.tellType} tell — {item.tellVal} {item.tellPct}% of the time (n={item.n}), but only {item.stopRate}% stop rate. Mix in alternative looks.</div>;
-    case 'exploitable-more': {
-      const shown = item.names.slice(0, 4).join(', ');
-      const extra = item.names.length > 4 ? `, +${item.names.length - 4} more` : '';
-      return <div class="ss-rec"><strong>{item.count} more alignments</strong> tip the same way ({shown}{extra}). One change of look covers all of them.</div>;
-    }
-    case 'dominant':
-      return <div class="ss-rec"><span class="ss-rec-label ss-rec-strength">{item.label}</span>: {item.tellVal} {item.tellPct}% is predictable but <strong>working</strong> — {item.stopRate}% stop rate{item.havocRate >= 15 ? `, ${item.havocRate}% havoc` : ''}. The alignment is earning its keep.</div>;
-    case 'balanced':
-    default:
-      return <div class="ss-rec">No strong defensive tells at the current sample size — your scheme mix looks balanced across situations.</div>;
-  }
-}
-
-/** Defensive Self-Scout -- a real Preact re-derivation of
- *  `StatsEngine._renderDefScoutSection(ds, hideKpis=true)`'s markup (the
- *  exact call DefenseTab always made: the KPI strip is suppressed here
- *  because Defensive Performance, two sections above, already shows the
- *  same numbers). Renders nothing at all when the sample is insufficient,
- *  matching `_defScoutBlock(defScout, showEmpty=false, ...)`'s exact
- *  contract -- the Defense tab's own top-level empty state already covers
- *  that case. */
-function DefensiveSelfScout({ defScout, screen }) {
-  if (!defScout || defScout.insufficient) return null;
-  const engine = screen.app.stats;
-  const mc = engine.constructor._meterColor(defScout.predictability);
-  return <div class="stats-section ss-def-section">
-    <div class="ss-def-header">
-      <h3>Defensive Self-Scout</h3>
-      <div class="ss-def-summary">{defScout.totalPlays} defensive plays</div>
-    </div>
-    <div class="ss-def-predictability">Predictability: <span style={{ color: mc, fontWeight: 700 }}>{defScout.predictability}/100 ({defScout.predLabel})</span></div>
-    {defScout.recommendations.length > 0 && <div class="ss-recs" style="margin-bottom:12px">
-      {defScout.recommendations.map((item, i) => <DefRecommendation key={i} item={item} />)}
-    </div>}
-    <h4 style="margin:12px 0 6px;font-size:13px;color:var(--text-dim)">Defensive Tendency Tells</h4>
-    {defScout.tells.length > 0 ? <table class="stats-table stats-table-full ss-tells">
-      <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
-      <tbody>{defScout.tells.map((t, i) => <SchemeRow key={i}
-        onActivate={t.refs?.length ? () => screen.watchRefs(t.refs, `${t.label} — ${t.n} plays`) : undefined}
-        label={`${t.label} — ${t.n} plays`}>
-        <td>{t.label}</td>
-        <td><span class="ss-dim">{t.dim}</span></td>
-        <td>{t.tellType}</td>
-        <td><span class={`ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}`} style={{ '--p': `${t.tellPct}%` }}>{t.tellVal} {t.tellPct}%</span></td>
-        <td>{t.stopRate}%</td>
-        <td>{t.havocRate}%</td>
-        <td><span class={`ss-verdict ss-verdict-${t.verdict}`}>{verdictIcon(t.verdict)} {verdictLabel(t.verdict)}</span></td>
-        <td>{t.n}</td>
-      </SchemeRow>)}</tbody>
-    </table> : <p style="color:var(--text-dim)">No defensive scheme tells at the current sample size.</p>}
-    {defScout.ddRows.length > 0 && <>
-      <h4 style="margin:16px 0 6px;font-size:13px;color:var(--text-dim)">Scheme by Situation</h4>
-      <table class="stats-table stats-table-full ss-split">
-        <thead><tr><th>Situation</th><th>#</th><th>Top Front</th><th>Top Coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg Yds</th></tr></thead>
-        <tbody>{defScout.ddRows.map(r => <tr key={r.key}>
-          <td>{engine._ddPretty(r.key)}</td><td>{r.n}</td>
-          <td>{r.topFrontName ? `${r.topFrontName} ${r.topFrontPct}%` : '—'}</td>
-          <td>{r.topCovName ? `${r.topCovName} ${r.topCovPct}%` : '—'}</td>
-          <td>{r.blitzPct}%</td><td>{r.stopRate}%</td><td>{r.havocRate}%</td><td>{r.avgYds}</td>
-        </tr>)}</tbody>
-      </table>
-    </>}
-  </div>;
-}
-
 /**
  * `SchemeDetail` rendered fronts, coverages, blitzes, the situational front
  * tables and the disruption cards as one block. The approved composition puts
@@ -1230,9 +1156,23 @@ function DefensiveSelfScout({ defScout, screen }) {
  * the `_defensiveStats` object exactly as `SchemeDetail` read it, including
  * each row's own pre-resolved composite refs.
  */
+const DEFENSE_ROWS = {
+  'Sample by game': 6,
+  'By down': 4,
+  'Opponent play type': 7,
+  'Best call by play type': 7,
+  Front: 5,
+  Coverage: 5,
+  Pressure: 5,
+  'Front by situation': 5,
+  'Situational defense': 8,
+  'Scheme by situation': 8,
+};
+
+const DefHeldCells = ({ count }) => <>{Array.from({ length: count }, (_, i) => <td key={i}>—</td>)}</>;
+
 function schemeParts(d, screen, engine) {
-  const none = { disruption: null, fronts: null, coverages: null, blitzes: null, frontSituation: null };
-  if (!d || !d.hasData) return none;
+  d = d || {};
   const avg = (yards, count) => (count ? yards / count : 0).toFixed(1);
   const share = (n, count) => count ? (n / count * 100).toFixed(0) : '0';
   const watch = (refs, label) => refs?.length ? () => screen.watchRefs(refs, label) : undefined;
@@ -1249,149 +1189,116 @@ function schemeParts(d, screen, engine) {
     ['Havoc snaps', d.havocPlays, `${d.havocRate}% rate`],
   ];
   const disruption = <div class="gi-def-band gi-def-band-1">
-    <Module title="Disruption" meta="havoc, pressure and takeaways">
+    <Module title="Disruption">
       <div class="gi-def-tiles">{tiles.map(([label, value, sub]) =>
         <div key={label} class="gi-def-tile"><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>)}</div>
     </Module>
   </div>;
 
-  const fronts = d.fronts.length ? <Module title="Front" meta="alignment">
+  const fronts = <Module title="Front">
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
       <thead><tr><th>Front</th><th>Snaps</th><th>Run/pass</th><th>Yds</th><th>Avg</th>
         <th>Stop%<DefMark text={engine.constructor.DEFINITIONS.stopPct} /></th>
         <th>Havoc%<DefMark text={engine.constructor.DEFINITIONS.havoc} /></th></tr></thead>
-      <tbody>{d.fronts.map(f => <SchemeRow key={f.name} onActivate={watch(f.refs, `${f.name} front — ${f.count} plays`)}
-        label={`${f.name} front — ${f.count} plays`}>
-        <td>{f.name}</td><td>{f.count}</td><td>{f.runs}/{f.passes}</td><td>{f.yards}</td>
-        <td>{avg(f.yards, f.count)}</td><td>{share(f.successes, f.count)}%</td><td>{share(f.havoc, f.count)}%</td>
-      </SchemeRow>)}</tbody>
+      <tbody>{fitRows(d.fronts, DEFENSE_ROWS.Front).map((f, i) => f.absent
+        ? <tr key={`front-empty-${i}`} class="is-absent"><DefHeldCells count={7} /></tr>
+        : <SchemeRow key={f.name} onActivate={watch(f.refs, `${f.name} front — ${f.count} plays`)}
+          label={`${f.name} front — ${f.count} plays`}>
+          <td>{f.name}</td><td>{f.count}</td><td>{f.runs}/{f.passes}</td><td>{f.yards}</td>
+          <td>{avg(f.yards, f.count)}</td><td>{share(f.successes, f.count)}%</td><td>{share(f.havoc, f.count)}%</td>
+        </SchemeRow>)}</tbody>
     </table></div>
-  </Module> : null;
+  </Module>;
 
   // All nine production columns, total Yds included (Codex correction 1).
-  const coverages = d.coverages.length ? <Module title="Coverage" meta="shell">
+  const coverages = <Module title="Coverage">
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
       <thead><tr><th>Coverage</th><th>Snaps</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead>
-      <tbody>{d.coverages.map(c => <SchemeRow key={c.name} onActivate={watch(c.refs, `${c.name} — ${c.count} plays`)}
-        label={`${c.name} — ${c.count} plays`}>
-        <td>{c.name}</td><td>{c.count}</td><td>{c.comps}</td><td>{c.incs}</td><td>{c.ints}</td><td>{c.sacks}</td>
-        <td>{c.yards}</td><td>{avg(c.yards, c.count)}</td><td>{share(c.successes, c.count)}%</td>
-      </SchemeRow>)}</tbody>
+      <tbody>{fitRows(d.coverages, DEFENSE_ROWS.Coverage).map((c, i) => c.absent
+        ? <tr key={`coverage-empty-${i}`} class="is-absent"><DefHeldCells count={9} /></tr>
+        : <SchemeRow key={c.name} onActivate={watch(c.refs, `${c.name} — ${c.count} plays`)}
+          label={`${c.name} — ${c.count} plays`}>
+          <td>{c.name}</td><td>{c.count}</td><td>{c.comps}</td><td>{c.incs}</td><td>{c.ints}</td><td>{c.sacks}</td>
+          <td>{c.yards}</td><td>{avg(c.yards, c.count)}</td><td>{share(c.successes, c.count)}%</td>
+        </SchemeRow>)}</tbody>
     </table></div>
-  </Module> : null;
+  </Module>;
 
   // The aggregate counts DISTINCT blitz-tagged plays (`blitzTotal`) and uses
   // the canonical `blitzHavocRate` over that same cohort. Sacks, average yards
   // and stop rate have no canonical aggregate here, and summing the rows above
   // would double-count any play carrying two blitz tags, so they state that
   // rather than showing a wrong number.
-  const blitzes = d.blitzes.length ? <Module title="Pressure" meta={`${d.blitzRate}% blitz rate, ${d.blitzTotal} snaps`}>
+  const pressureRows = fitRows(d.blitzes, DEFENSE_ROWS.Pressure - 1);
+  const blitzes = <Module title="Pressure">
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
       <thead><tr><th>Pressure</th><th>Snaps</th><th>Sacks</th><th>Havoc%</th><th>Avg yds</th><th>Stop%</th></tr></thead>
       <tbody>
-        {d.blitzes.map(b => <SchemeRow key={b.name} onActivate={watch(b.refs, `${b.name} blitz — ${b.count} plays`)}
-          label={`${b.name} blitz — ${b.count} plays`}>
-          <td>{b.name}</td><td>{b.count}</td><td>{b.sacks}</td><td>{share(b.havoc, b.count)}%</td>
-          <td>{avg(b.yards, b.count)}</td><td>{share(b.successes, b.count)}%</td>
-        </SchemeRow>)}
-        <tr class="gi-def-total-row">
+        {pressureRows.map((b, i) => b.absent
+          ? <tr key={`pressure-empty-${i}`} class="is-absent"><DefHeldCells count={6} /></tr>
+          : <SchemeRow key={b.name} onActivate={watch(b.refs, `${b.name} blitz — ${b.count} plays`)}
+            label={`${b.name} blitz — ${b.count} plays`}>
+            <td>{b.name}</td><td>{b.count}</td><td>{b.sacks}</td><td>{share(b.havoc, b.count)}%</td>
+            <td>{avg(b.yards, b.count)}</td><td>{share(b.successes, b.count)}%</td>
+          </SchemeRow>)}
+        {d.blitzTotal ? <tr class="gi-def-total-row">
           <td>All blitzes</td><td>{d.blitzTotal}</td><td>—</td><td>{d.blitzHavocRate}%</td><td>—</td><td>—</td>
-        </tr>
+        </tr> : <tr class="is-absent"><DefHeldCells count={6} /></tr>}
       </tbody>
     </table></div>
-    <p class="gi-def-note">All blitzes counts distinct blitz-tagged snaps. Sacks, average yards and stop rate are not aggregated across blitz types, because a snap can carry more than one blitz tag.</p>
-  </Module> : null;
+  </Module>;
 
   // One table with an early-downs and a passing-downs column pair, per the
   // approved comp: the comparison a coach is making is "what do we line up in
   // on early downs versus passing downs", which two stacked tables make the
   // reader do in their head.
   const early = d.earlyDownFronts, passing = d.passingDownFronts;
-  const frontNames = [...new Set([...early.fronts, ...passing.fronts].map(([name]) => name))];
-  const countIn = (sit, name) => (sit.fronts.find(([n]) => n === name) || [, 0])[1];
-  const shareIn = (sit, name) => sit.total ? (countIn(sit, name) / sit.total * 100).toFixed(0) : '0';
-  const frontSituation = frontNames.length ? <Module title="Front by situation" meta="early vs passing downs">
+  const frontNames = [...new Set([...(early?.fronts || []), ...(passing?.fronts || [])].map(([name]) => name))];
+  const countIn = (sit, name) => ((sit?.fronts || []).find(([n]) => n === name) || [, 0])[1];
+  const shareIn = (sit, name) => sit?.total ? (countIn(sit, name) / sit.total * 100).toFixed(0) : '0';
+  const frontSituation = <Module title="Front by situation">
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
       <thead><tr><th>Front</th><th>Early downs</th><th>%</th><th>Passing downs</th><th>%</th></tr></thead>
-      <tbody>{frontNames
+      <tbody>{fitRows(frontNames
         .sort((a, b) => (countIn(early, b) + countIn(passing, b)) - (countIn(early, a) + countIn(passing, a)))
-        .map(name => <tr key={name}>
-          <td>{name}</td>
-          <td>{countIn(early, name)}</td><td>{shareIn(early, name)}%</td>
-          <td>{countIn(passing, name)}</td><td>{shareIn(passing, name)}%</td>
-        </tr>)}</tbody>
+        .map(name => ({ name })), DEFENSE_ROWS['Front by situation']).map((row, i) => row.absent
+          ? <tr key={`front-sit-empty-${i}`} class="is-absent"><DefHeldCells count={5} /></tr>
+          : <tr key={row.name}>
+            <td>{row.name}</td>
+            <td>{countIn(early, row.name)}</td><td>{shareIn(early, row.name)}%</td>
+            <td>{countIn(passing, row.name)}</td><td>{shareIn(passing, row.name)}%</td>
+          </tr>)}</tbody>
     </table></div>
-    <p class="gi-def-note">{early.total} early-down snaps, {passing.total} passing-down snaps.</p>
-  </Module> : null;
+  </Module>;
 
   return { disruption, fronts, coverages, blitzes, frontSituation };
 }
 
-/**
- * `DefensiveSelfScout`'s three bodies, split so Scheme by Situation can sit
- * beside Situational defense in section 4 while predictability and the tells
- * table stay in section 5. Same values, same film actions, same
- * insufficient-sample contract: nothing renders when the scout is thin.
- */
-function selfScoutParts(defScout, screen, engine) {
-  const none = { predictability: null, tells: null, schemeBySituation: null };
-  if (!defScout || defScout.insufficient) return none;
-  const mc = engine.constructor._meterColor(defScout.predictability);
-
-  const predictability = <Module title="Predictability" meta={`${defScout.totalPlays} defensive snaps`}>
-    <div class="gi-def-pred">
-      <span class="gi-def-pred-val" style={{ color: mc }}>{defScout.predictability}/100</span>
-      <span class="gi-def-pred-meter"><i style={{ width: `${defScout.predictability}%`, background: mc }} /></span>
-      <span class="gi-def-pred-label">{defScout.predLabel}</span>
-    </div>
-    {defScout.recommendations.length > 0 && <div class="gi-def-recs">
-      {defScout.recommendations.map((item, i) => <DefRecommendation key={i} item={item} />)}
-    </div>}
-  </Module>;
-
-  const tells = <Module title="Tendency tells" meta="opens film">
-    {defScout.tells.length ? <div class="gi-def-table-wrap"><table class="stats-table stats-table-full ss-tells">
-      <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
-      <tbody>{defScout.tells.map((t, i) => <SchemeRow key={i}
-        onActivate={t.refs?.length ? () => screen.watchRefs(t.refs, `${t.label} — ${t.n} plays`) : undefined}
-        label={`${t.label} — ${t.n} plays`}>
-        <td>{t.label}</td>
-        <td><span class="ss-dim">{t.dim}</span></td>
-        <td>{t.tellType}</td>
-        <td><span class={`ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}`} style={{ '--p': `${t.tellPct}%` }}>{t.tellVal} {t.tellPct}%</span></td>
-        <td>{t.stopRate}%</td>
-        <td>{t.havocRate}%</td>
-        <td><span class={`ss-verdict ss-verdict-${t.verdict}`}>{verdictIcon(t.verdict)} {verdictLabel(t.verdict)}</span></td>
-        <td>{t.n}</td>
-      </SchemeRow>)}</tbody>
-    </table></div> : <p class="gi-table-empty">No defensive scheme tells at the current sample size.</p>}
-  </Module>;
-
-  // Avg yds retained (Codex correction 1).
-  const schemeBySituation = defScout.ddRows.length ? <Module title="Scheme by situation" meta="top call per bucket">
+function defenseSchemeBySituation(defScout, engine) {
+  const rows = defScout && !defScout.insufficient ? defScout.ddRows : [];
+  return <Module title="Scheme by situation">
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full ss-split">
       <thead><tr><th>Situation</th><th>Snaps</th><th>Top front</th><th>Top coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg yds</th></tr></thead>
-      <tbody>{defScout.ddRows.map(r => <tr key={r.key}>
-        <td>{engine._ddPretty(r.key)}</td><td>{r.n}</td>
-        <td>{r.topFrontName ? `${r.topFrontName} ${r.topFrontPct}%` : '—'}</td>
-        <td>{r.topCovName ? `${r.topCovName} ${r.topCovPct}%` : '—'}</td>
-        <td>{r.blitzPct}%</td><td>{r.stopRate}%</td><td>{r.havocRate}%</td><td>{r.avgYds}</td>
-      </tr>)}</tbody>
+      <tbody>{fitRows(rows, DEFENSE_ROWS['Scheme by situation']).map((r, i) => r.absent
+        ? <tr key={`scheme-sit-empty-${i}`} class="is-absent"><DefHeldCells count={8} /></tr>
+        : <tr key={r.key}>
+          <td>{engine._ddPretty(r.key)}</td><td>{r.n}</td>
+          <td>{r.topFrontName ? `${r.topFrontName} ${r.topFrontPct}%` : '—'}</td>
+          <td>{r.topCovName ? `${r.topCovName} ${r.topCovPct}%` : '—'}</td>
+          <td>{r.blitzPct}%</td><td>{r.stopRate}%</td><td>{r.havocRate}%</td><td>{r.avgYds}</td>
+        </tr>)}</tbody>
     </table></div>
-  </Module> : null;
-
-  return { predictability, tells, schemeBySituation };
+  </Module>;
 }
 
-/** The five Defense sections. Tabs, not scroll anchors: as anchors the five
+/** The four Defense sections. Tabs, not scroll anchors: as anchors the four
  *  read as one undifferentiated 4,500px page (comp decision 8, approved
  *  2026-09-04 for Defense; Offense converts in a later pass). */
 const DEFENSE_SECTIONS = [
-  { id: 'd1', label: 'Defensive performance', note: 'Snaps, efficiency, disruption, and the games in the sample' },
-  { id: 'd2', label: 'Opponent Offense', note: 'Opponent play type, frequency, and production' },
-  { id: 'd3', label: 'Scheme', note: 'Fronts, coverage, and pressure' },
-  { id: 'd4', label: 'Situational results', note: 'Down, distance, and scheme by situation' },
-  { id: 'd5', label: 'Self-scout', note: 'Predictability and tendency tells' },
+  { id: 'd1', label: 'Defensive performance' },
+  { id: 'd2', label: 'Opponent Offense' },
+  { id: 'd3', label: 'Scheme' },
+  { id: 'd4', label: 'Situational results' },
 ];
 
 function SectionTabs({ sections, active, onSelect }) {
@@ -1409,8 +1316,9 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
     title="No defensive snaps charted"
     body="Chart defensive plays to populate this report."
     action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
-  const pct = value => value == null ? 'N/A' : `${value}%`;
-  const typeSummary = report.playTypes.filter(row => row.name === 'All Runs' || row.name === 'All Passes');
+  const pct = value => value == null ? '—' : `${value}%`;
+  const typeSummary = ['All Runs', 'All Passes'].map(name =>
+    report.playTypes.find(row => row.name === name) || { name, absent: true });
   const typeDetail = report.playTypes.filter(row => row.name !== 'All Runs' && row.name !== 'All Passes')
     .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
   // Charlie Gate finding #5: a Best Calls table dominated by "Not enough
@@ -1418,13 +1326,12 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
   // decision. Qualified rows (at least one real front/coverage/pressure
   // answer) lead the table; opponent play types with no qualified answer at
   // all collapse behind one disclosure line instead of one dead row each.
-  const qualifiedAnswers = report.answers.filter(row => row.front || row.coverage || row.pressure);
-  const emptyAnswers = report.answers.filter(row => !row.front && !row.coverage && !row.pressure);
+  const answerByType = new Map(report.answers.map(row => [row.playType, row]));
   const scopedStats = engine.compute(scoped);
   const defScout = engine.generateDefensiveSelfScout(scoped);
   const d = scopedStats.defensive || {};
   const scheme = schemeParts(d, screen, engine);
-  const scout = selfScoutParts(defScout, screen, engine);
+  const schemeBySituation = defenseSchemeBySituation(defScout, engine);
   const meta = DEFENSE_SECTIONS.find(s => s.id === section) || DEFENSE_SECTIONS[0];
 
   return <div class="gi-defense-report gi-overview-board gi-defense-board">
@@ -1442,7 +1349,7 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
     </div>
 
     <SectionTabs sections={DEFENSE_SECTIONS} active={section} onSelect={setSection} />
-    <div class="gi-def-secrule"><h2>{meta.label}</h2><p>{meta.note}</p></div>
+    <div class="gi-def-secrule"><h2>{meta.label}</h2></div>
 
     {section === 'd1' && <>
       <div class="gi-def-kpis">
@@ -1456,44 +1363,58 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
         <div class="gi-def-kpi"><span>Defensive snaps</span><strong>{report.total}</strong></div>
       </div>
       <div class="gi-def-band gi-def-band-2">
-        <Module title="Sample by game" meta="opens film">
+        <Module title="Sample by game">
           <div class="gi-def-table-wrap">
-            <DataTable columns={defGameColumns} rows={defRows(report.byGame, 'defense', screen)} />
+            <DataTable columns={defGameColumns} rows={defRows(fitRows(report.byGame, DEFENSE_ROWS['Sample by game']), 'defense', screen)} />
           </div>
         </Module>
-        <Module title="Run / pass faced" meta="opens film">
-          <div class="gi-def-type-totals">
-            {typeSummary.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-type-summary"
-              refs={row.refs} label={`${row.name} — ${row.n} defensive snaps`} screen={screen}>
-              <span>{row.name}</span><strong>{row.n} snaps</strong>
-              <small>{row.yardsPerPlay.toFixed(1)} yds/play, {row.stopRate}% stop, {row.explosiveRate}% explosive</small>
-            </WatchableRefs>)}
-          </div>
-        </Module>
+        <div class="gi-def-stack">
+          <Module title="Run / pass faced">
+            <div class="gi-def-type-totals">
+              {typeSummary.map(row => row.absent
+                ? <div key={row.name} class="gi-def-type-summary is-absent"><span>{row.name}</span><strong>—</strong><small>—</small></div>
+                : <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-type-summary"
+                  refs={row.refs} label={`${row.name} — ${row.n} defensive snaps`} screen={screen}>
+                  <span>{row.name}</span><strong>{row.n} snaps</strong>
+                  <small>{row.yardsPerPlay.toFixed(1)} yds/play · {row.stopRate}% stop · {row.explosiveRate}% explosive</small>
+                </WatchableRefs>)}
+            </div>
+          </Module>
+          <Module title="By down">
+            <DataTable columns={defDownColumns} rows={mapFit(
+              report.situations.filter(row => /^(1st|2nd|3rd|4th) Down$/i.test(row.name)),
+              DEFENSE_ROWS['By down'], row => ({ ...row, id: row.name,
+                onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} defense`) : undefined,
+                label: `${row.name} defense` }))} />
+          </Module>
+        </div>
       </div>
       {scheme.disruption}
     </>}
 
-    {section === 'd2' && <div class="gi-def-band gi-def-band-2">
-      <Module title="Opponent play type" meta={`${report.total} snaps`}>
+    {section === 'd2' && <div class="gi-def-band gi-def-band-2 gi-def-opponent-band">
+      <Module title="Opponent play type">
         <div class="gi-def-table-wrap">
           <DataTable className="stats-table stats-table-full gi-def-type" columns={defTypeColumns}
-            rows={typeDetail.map(row => ({ ...row, id: row.name,
+            rows={mapFit(typeDetail, DEFENSE_ROWS['Opponent play type'], row => ({ ...row, id: row.name,
               onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.name} — ${row.n} defensive snaps`) : undefined,
               label: `${row.name} — ${row.n} defensive snaps` }))} />
         </div>
       </Module>
-      <Module title="Best call by play type" meta="front, coverage, pressure">
-        {qualifiedAnswers.length > 0 ? <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
+      <Module title="Best call by play type">
+        <div class="gi-def-table-wrap"><table class="stats-table stats-table-full gi-def-answers">
           <thead><tr><th>Play type</th><th>Best front</th><th>Best coverage</th><th>Blitz decision</th></tr></thead>
-          <tbody>{qualifiedAnswers.map(row => <tr key={row.playType}>
-            <td><strong>{row.playType}</strong> <small>{row.n} snaps</small></td>
-            <td><DefAnswerCell answer={row.front} screen={screen} /></td>
-            <td><DefAnswerCell answer={row.coverage} screen={screen} /></td>
-            <td><DefAnswerCell answer={row.pressure} screen={screen} /></td>
-          </tr>)}</tbody>
-        </table></div> : <p class="gi-table-empty">Insufficient charted data</p>}
-        {emptyAnswers.length > 0 && <p class="gi-def-note">{emptyAnswers.length} more opponent play type{emptyAnswers.length === 1 ? '' : 's'} ({emptyAnswers.map(row => row.playType).join(', ')}) {emptyAnswers.length === 1 ? 'has' : 'have'} not reached the sample a best-answer call requires.</p>}
+          <tbody>{fitRows(typeDetail, DEFENSE_ROWS['Best call by play type']).map((type, i) => {
+            if (type.absent) return <tr key={`answer-empty-${i}`} class="is-absent"><DefHeldCells count={4} /></tr>;
+            const row = answerByType.get(type.name) || { playType: type.name, n: type.n };
+            return <tr key={row.playType}>
+              <td><strong>{row.playType}</strong> <small>{row.n} snaps</small></td>
+              <td><DefAnswerCell answer={row.front} screen={screen} /></td>
+              <td><DefAnswerCell answer={row.coverage} screen={screen} /></td>
+              <td><DefAnswerCell answer={row.pressure} screen={screen} /></td>
+            </tr>;
+          })}</tbody>
+        </table></div>
       </Module>
     </div>}
 
@@ -1511,19 +1432,11 @@ export function DefenseTab({ report, scoped, screen, fixedScope = false }) {
     {section === 'd4' && <div class="gi-def-band gi-def-band-2">
       <Module title="Situational defense" meta="by situation">
         <div class="gi-def-table-wrap">
-          <DataTable columns={defSitColumns} rows={defRows(report.situations, 'defense', screen)} />
+          <DataTable columns={defSitColumns} rows={defRows(fitRows(report.situations, DEFENSE_ROWS['Situational defense']), 'defense', screen)} />
         </div>
       </Module>
-      {scout.schemeBySituation}
+      {schemeBySituation}
     </div>}
-
-    {/* Stacked, not paired: the tells table runs ten rows against a meter and
-        a short list, so side by side left ~150px under Predictability. Each
-        reads at its own natural length this way. */}
-    {section === 'd5' && <>
-      <div class="gi-def-band gi-def-band-1">{scout.predictability}</div>
-      <div class="gi-def-band gi-def-band-1">{scout.tells}</div>
-    </>}
   </div>;
 }
 

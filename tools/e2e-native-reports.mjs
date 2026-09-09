@@ -697,20 +697,19 @@ ok(result.schemeRowFound && Array.isArray(result.watchedScheme)
 ok(result.games.join(',') === 'Week 1,Week 2'
   && result.seasonActive && result.gameActive && result.scoutExcluded,
   'Defense defaults to full season, excludes opponent-scout games, and can switch to current game', JSON.stringify(result));
-// Defense presents five sections as a tab strip (2026-09-04). The subject is
-// unchanged -- the report still leads with performance and covers play type,
-// scheme, situation and self-scout -- but the labels are the tab labels now,
-// and Game Trend is inside Defensive performance as "Sample by game".
-ok(result.headings.length === 5
+// Defense presents four useful sections. The old fifth section was a
+// predictability-only duplicate of the canonical Self-Scout report and is
+// deliberately absent.
+ok(result.headings.length === 4
   && result.headings.includes('Defensive performance')
   && result.headings.includes('Opponent Offense')
   && result.headings.includes('Scheme')
   && result.headings.includes('Situational results')
-  && result.headings.includes('Self-scout'),
-  'The Defense page leads with performance, and covers play type, scheme, situation and self-scout',
+  && !result.headings.includes('Self-scout'),
+  'The Defense page leads with performance and covers play type, scheme and situation without the rejected duplicate Self-Scout',
   JSON.stringify(result.headings));
 ok(result.sortableHeaders === 7
-  && result.typeRowsBefore.length === 3
+  && result.typeRowsBefore.length === 7
   // The fixture's three type rows have a genuinely non-monotonic initial
   // yards/play order (2.0, 20.0, 0.0 -- count-desc/name-tiebreak, not sorted
   // by yards/play at all), so this is a positive proof the initial order is
@@ -721,7 +720,7 @@ ok(result.sortableHeaders === 7
   && result.typeRowsAfterYppSort.length === result.typeRowsBefore.length
   // DataTable's first click on a column sorts descending (its established,
   // shared convention -- already live on Offense/Players' tables).
-  && result.yppAfterSort.every((value, index, values) => index === 0 || values[index - 1] >= value)
+  && result.yppAfterSort.filter(Number.isFinite).every((value, index, values) => index === 0 || values[index - 1] >= value)
   && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes')
   && result.aggregateCards.length > 0
   && result.aggregateCards.every(text => text.includes('All Runs') || text.includes('All Passes')),
@@ -729,7 +728,7 @@ ok(result.sortableHeaders === 7
 ok(result.answerHeaderPosition === 'static' && result.answerRowsClearHeader,
   'Defense table headers stay in normal flow and never cover the first answer row', JSON.stringify(result));
 
-console.log('\n== 2c. Scheme Detail and Defensive Self-Scout are real components, not LegacyWidget ==');
+console.log('\n== 2c. Defense does not revive the rejected duplicate Self-Scout ==');
 // Both sections used to be a `LegacyWidget` embed of a StatsEngine HTML
 // string, wired by the (now-deleted) `wireGenericCutRows` post-render DOM
 // pass. This proves the replacement: no LegacyWidget/dangerouslySetInnerHTML
@@ -825,16 +824,13 @@ result = await page.evaluate(async () => {
   };
 });
 ok(result.noLegacyMarkers && result.hasSection,
-  'Defensive Self-Scout renders with no LegacyWidget/data-cut-type residue anywhere in the Defense pane', JSON.stringify(result));
-ok(result.summaryText === '6 defensive snaps' && result.tellRowCount === result.tellCount && result.tellCount > 0,
-  'Every computed tell has exactly one rendered row, over the real six-play scheme-tagged cohort', JSON.stringify(result));
-ok(result.recDivCount === result.recCount && result.recTextHasAmp && !result.recTextDoubleEscaped,
-  'Recommendation text renders the literal front name once, never double-escaped', JSON.stringify(result));
-ok(result.frontTellFound && result.frontTellRowFound
-  && Array.isArray(result.frontTellRefs) && result.frontTellRefs.length === 5
-  && JSON.stringify(result.watchedFrontTell) === JSON.stringify(result.frontTellRefs)
-  && result.frontTellRefs.some(ref => ref.startsWith('a::')) && result.frontTellRefs.some(ref => ref.startsWith('b::')),
-  'A cross-game Defensive Self-Scout tell opens its exact five-play composite cohort across both games',
+  'Defense remains fully native after removing its duplicate Self-Scout section', JSON.stringify(result));
+ok(result.summaryText === '' && result.tellRowCount === 0,
+  'Defense renders no predictability summary or tendency-tell table', JSON.stringify(result));
+ok(result.recDivCount === 0 && !result.recTextHasAmp && !result.recTextDoubleEscaped,
+  'Defense renders no generated recommendation prose', JSON.stringify(result));
+ok(result.frontTellFound && !result.frontTellRowFound && result.watchedFrontTell == null,
+  'Defensive tendency data remains available to the canonical Self-Scout report but is not duplicated in Defense',
   JSON.stringify(result));
 
 console.log('\n== 2d. Special Teams is season-wide, dense, film-exact, and not LegacyWidget ==');

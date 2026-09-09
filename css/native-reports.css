@@ -2777,21 +2777,6 @@
   display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)
 }
 
-/* Predictability */
-.gi-reports .gi-def-pred{ display:flex;align-items:center;gap:var(--gi-3x);padding:var(--gi-2x) 0 var(--gi-3x) }
-.gi-reports .gi-def-pred-val{
-  flex:0 0 auto;font:700 26px/1.15 var(--gi-cond);font-variant-numeric:var(--gi-num-feat);white-space:nowrap
-}
-.gi-reports .gi-def-pred-meter{ flex:1 1 auto;height:6px;background:var(--gi-bd-control-active) }
-.gi-reports .gi-def-pred-meter i{ display:block;height:100% }
-.gi-reports .gi-def-pred-label{ flex:0 0 auto;color:var(--gi-bd-copy);font:var(--gi-text-label);font-weight:400;white-space:nowrap }
-.gi-reports .gi-def-recs{ display:grid;gap:1px;background:var(--gi-bd-line) }
-.gi-reports .gi-def-recs .ss-rec{
-  padding:var(--gi-2x) var(--gi-3x);background:var(--gi-bd-panel);
-  color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)
-}
-.gi-reports .gi-def-recs .ss-rec-label{ color:var(--gi-bd-cyan);font-weight:600 }
-
 /* ── SHARED REPORTS LINESCORE SCOREBUG ─────────────────────────────────────
    Overview, Offense and Defense use one complete team per row: full name,
    four quarters and total. Quarter and total columns are fixed and shared.
@@ -2969,25 +2954,6 @@
    bar so the list read as a stack of alerts. Same information, board
    treatment: the lean is a proportion bar in the board's own control surface,
    the assessment is toned text, and a recommendation is a panel row. */
-.gi-reports .gi-defense-board .ss-bar{
-  display:inline-block;min-width:104px;padding:2px 7px;
-  background:linear-gradient(90deg,var(--bd-panel-3) var(--p,0%),transparent var(--p,0%));
-  color:var(--bd-ink);font:600 11px/1.45 var(--gi-sans);text-align:left;border-radius:0
-}
-.gi-reports .gi-defense-board .ss-bar-run,
-.gi-reports .gi-defense-board .ss-bar-pass{ background-image:linear-gradient(90deg,var(--bd-panel-3) var(--p,0%),transparent var(--p,0%)) }
-.gi-reports .gi-defense-board .ss-verdict{
-  padding:0;background:transparent;border:0;border-radius:0;
-  font:600 11px/1.45 var(--gi-sans)
-}
-.gi-reports .gi-defense-board .ss-verdict-dominant{ color:var(--gi-bd-win) }
-.gi-reports .gi-defense-board .ss-verdict-effective{ color:var(--bd-ink-2) }
-.gi-reports .gi-defense-board .ss-verdict-exploitable{ color:var(--gi-bd-loss) }
-.gi-reports .gi-defense-board .gi-def-recs .ss-rec{
-  border:0;border-left:0;border-radius:0;margin:0
-}
-.gi-reports .gi-defense-board .ss-dim{ color:var(--bd-ink-3);font:400 10.5px/1.35 var(--gi-sans) }
-
 /* A module is as tall as its band. Non-table content distributes into that
    height rather than leaving the panel short: the run/pass film buttons, the
    disruption tiles and the recommendation rows stretch. Tables are left alone
@@ -2995,8 +2961,7 @@
 .gi-reports .gi-defense-board .gi-overview-module{ display:flex;flex-direction:column }
 .gi-reports .gi-defense-board .gi-overview-module>header{ flex:0 0 auto }
 .gi-reports .gi-defense-board .gi-def-type-totals,
-.gi-reports .gi-defense-board .gi-def-tiles,
-.gi-reports .gi-defense-board .gi-def-recs{ flex:1 0 auto }
+.gi-reports .gi-defense-board .gi-def-tiles{ flex:1 0 auto }
 .gi-reports .gi-defense-board .gi-def-type-totals{ grid-auto-rows:minmax(0,1fr) }
 /* One-line answer cells: the value and its evidence read as one statement. */
 .gi-reports .gi-defense-board .gi-def-answer strong{ display:inline;font:600 12px/1.4 var(--gi-sans) }
@@ -3008,6 +2973,36 @@
 /* Film buttons are targets as well as readouts; two of them fill the band
    beside a three-row table rather than ending 80px short. */
 .gi-reports .gi-defense-board .gi-def-type-summary{ min-height:74px }
+
+/* Static Defense board: the section and module inventory is fixed, and each
+   table holds its declared rows with dash slots. Data can replace a slot but
+   cannot resize the board. The opening right column uses real down data below
+   the run/pass split instead of preserving the old empty panel. */
+.gi-reports .gi-defense-board .gi-def-secrule p,
+.gi-reports .gi-defense-board .gi-overview-module>header span{display:none}
+.gi-reports .gi-defense-board .gi-def-band{align-items:stretch}
+.gi-reports .gi-defense-board .gi-overview-module{height:100%}
+.gi-reports .gi-defense-board .gi-overview-module th,
+.gi-reports .gi-defense-board .gi-overview-module td{height:34px}
+.gi-reports .gi-defense-board tr.is-absent td{color:var(--gi-bd-muted)}
+.gi-reports .gi-defense-board .gi-def-stack{
+  display:grid;grid-template-rows:auto 1fr;gap:4px;min-width:0
+}
+.gi-reports .gi-defense-board .gi-def-stack>.gi-overview-module:last-child{
+  display:flex;flex-direction:column
+}
+.gi-reports .gi-defense-board .gi-def-stack>.gi-overview-module:last-child>.gi-table-wrap{
+  flex:1 0 auto
+}
+.gi-reports .gi-defense-board .gi-def-type-summary{min-height:62px}
+.gi-reports .gi-defense-board .gi-def-type-summary.is-absent{cursor:default}
+.gi-reports .gi-defense-board .gi-def-answers th,
+.gi-reports .gi-defense-board .gi-def-answers td{height:48px}
+.gi-reports .gi-defense-board .gi-def-answers .gi-def-answer strong,
+.gi-reports .gi-defense-board .gi-def-answers .gi-def-answer span,
+.gi-reports .gi-defense-board .gi-def-answers td:first-child strong,
+.gi-reports .gi-defense-board .gi-def-answers td:first-child small{display:block;margin:0;white-space:nowrap}
+.gi-reports .gi-defense-board .gi-def-opponent-band{height:430px}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    REPORTS > SPECIAL TEAMS
