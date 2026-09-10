@@ -215,7 +215,12 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'passYards', label: 'Pass Yards', value: row => row.passes ? row.passYards : '-' },
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
     { key: 'explosives', label: 'Explosive' }, { key: 'turnovers', label: 'Turnovers' }, { key: 'touchdowns', label: 'TD' },
-  ], fixed(dashboard.byGame, 6)) + `<div class="two-up">${table('By down', [
+  ], fixed(dashboard.byGame, seasonScope ? 6 : 1)) + (!seasonScope ? table('Opponent drive outcomes', [
+    { key: 'name', label: 'Outcome' }, { key: 'n', label: 'Drives' },
+    { key: 'pct', label: 'Share', value: row => row.pct == null ? '-' : `${row.pct}%` },
+    { key: 'avgPlays', label: 'Avg Plays', value: row => decimal(row.avgPlays) },
+    { key: 'avgYards', label: 'Avg Yards', value: row => decimal(row.avgYards) },
+  ], fixed(dashboard.driveOutcomes, 7)) : '') + `<div class="two-up">${table('By down', [
     { key: 'name', label: 'Down' }, { key: 'yards', label: 'Total Yards' },
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) }, { key: 'explosives', label: 'Explosive' },
   ], dashboard.downs)}${table('By quarter', [
@@ -224,13 +229,15 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'vsAverage', label: seasonScope ? 'Vs Season Avg' : 'Vs Game Avg', value: row => signed(row.vsAverage) },
     { key: 'touchdowns', label: 'TD' },
   ], dashboard.quarters)}</div>`;
-  const opponent = `<div class="two-up">${table('Production by play type', [...resultColumns,
-    { key: 'touchdowns', label: 'TD', value: row => shown(row.touchdowns) }], fixed(dashboard.playTypes, 7))}${table('Calls by formation', [
+  const formationColumns = [
     { key: 'name', label: 'Offensive Look', value: row => shown(row.name) },
     { key: 'n', label: 'Snaps', value: row => shown(row.n) },
-    { key: 'topPlay', label: 'Top Play', value: row => row.topPlay && row.topPct != null ? `${row.topPlay} ${row.topPct}%` : '-' },
-    { key: 'nextPlay', label: 'Next Play', value: row => row.nextPlay && row.nextPct != null ? `${row.nextPlay} ${row.nextPct}%` : '-' },
-  ], fixed(dashboard.formationCalls, 6))}</div><div class="two-up">${table('Personnel faced', tendencyColumns,
+    ...dashboard.formationPlayTypes.map((name, index) => ({ key: `playType${index}`, label: name,
+      value: row => { const item = row.playTypes?.[index]; return item?.n ? `${item.n} / ${item.pct}%` : '-'; } })),
+  ];
+  const opponent = `<div class="two-up">${table('Production by play type', [...resultColumns,
+    { key: 'touchdowns', label: 'TD', value: row => shown(row.touchdowns) }], fixed(dashboard.playTypes, 7))}${table('Top 6 formations', formationColumns,
+    fixed(dashboard.formationCalls, 6))}</div><div class="two-up">${table('Personnel faced', tendencyColumns,
     fixed(dashboard.personnel, 5))}${table('Backfield faced', tendencyColumns, fixed(dashboard.backfields, 5))}</div>${table('Attack direction', tendencyColumns,
     dashboard.directions)}`;
   const calls = columns => [

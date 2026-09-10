@@ -1504,7 +1504,8 @@ export class StatsEngine {
    * exact film refs; it does not derive football values.
    */
   defenseDashboard(plays, gameLabels = {}) {
-    const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
+    const all = plays || [];
+    const source = all.filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
     const yard = p => parseInt(p?.tags?.yardage, 10) || 0;
     const compareText = (a, b) => a < b ? -1 : a > b ? 1 : 0;
     const refsOf = cohort => [...new Set((cohort || []).map(StatsEngine._compositeRef).filter(Boolean))].sort();
@@ -1583,7 +1584,7 @@ export class StatsEngine {
       const base = underCenterBackfield
         ? [underCenterBackfield]
         : [qb, backfield].filter(Boolean);
-      return [...base, ...formations].join(' + ');
+      return [...new Set([...base, ...formations])].join(' + ');
     };
     const exactPlayCall = play => {
       const raw = String(play?.tags?.playType || '').trim();
@@ -1593,20 +1594,42 @@ export class StatsEngine {
     const formationCalls = ranked(grouped(source.filter(p => exactPlayCall(p)), offensiveLook))
       .map(row => {
         const calls = ranked(grouped(row.plays, exactPlayCall));
-        const top = calls[0] || null;
-        const next = calls[1] || null;
         return {
           ...row,
-          topPlay: top?.name || null,
-          topPct: top && row.n ? Math.round(top.n / row.n * 100) : null,
-          nextPlay: next?.name || null,
-          nextPct: next && row.n ? Math.round(next.n / row.n * 100) : null,
+          playTypes: detailOrder.map(name => {
+            const cohort = row.plays.filter(play => StatsEngine.splitPlayTypes(play.tags.playType).includes(name));
+            return { name, n: cohort.length, pct: row.n ? Math.round(cohort.length / row.n * 100) : null,
+              refs: refsOf(cohort) };
+          }),
         };
       });
     const personnel = ranked(grouped(source, p => String(p.tags.personnel || '').trim()));
     const backfields = ranked(grouped(source, p => StatsEngine.proj(p).backfield || ''));
-    const directions = ['Left', 'Middle', 'Right'].map(name => summarize(name,
-      source.filter(p => p.tags.playDir === name)));
+    const directions = ['Left', 'Middle', 'Right'].map(name => ({ ...summarize(name,
+      source.filter(p => p.tags.playDir === name)), isRelative: false }));
+    const relativeDirection = play => {
+      const direction = String(play.tags.playDir || '').trim();
+      const strength = String(StatsEngine.proj(play).strength || '').trim();
+      if (!['Left', 'Right'].includes(direction) || !['Left', 'Right'].includes(strength)) return '';
+      return direction === strength ? 'Toward Strength' : 'Away from Strength';
+    };
+    directions.push(...['Toward Strength', 'Away from Strength'].map(name => ({ ...summarize(name,
+      source.filter(play => relativeDirection(play) === name)), isRelative: true })));
+
+    const driveStats = this._driveStats(source, { all });
+    const driveGroups = [
+      ['Touchdown', ['TD']], ['Field Goal', ['FG']], ['Missed FG', ['Missed FG']],
+      ['Punt', ['Punt']], ['Turnover', ['Turnover']], ['Downs', ['Downs']],
+      ['Other / unresolved', ['Other', 'Safety', 'Kneel']],
+    ];
+    const driveOutcomes = driveGroups.map(([name, outcomes]) => {
+      const rows = driveStats.list.filter(drive => outcomes.includes(drive.outcome));
+      const refs = [...new Set(rows.flatMap(drive => drive.refs || []))].sort();
+      return { name, n: rows.length, pct: driveStats.total ? Math.round(rows.length / driveStats.total * 100) : null,
+        avgPlays: rows.length ? +(rows.reduce((sum, drive) => sum + drive.plays, 0) / rows.length).toFixed(1) : null,
+        avgYards: rows.length ? +(rows.reduce((sum, drive) => sum + drive.yards, 0) / rows.length).toFixed(1) : null,
+        refs };
+    });
 
     // A call result needs a classified offensive snap. Front/coverage tags on
     // an administrative or otherwise unclassified row do not describe what
@@ -1671,7 +1694,8 @@ export class StatsEngine {
       thirdDownAllowed: rateAllowed(source, '3'), fourthDownAllowed: rateAllowed(source, '4'),
       recentThirdDownAllowed: rateAllowed(recent.plays, '3'), recentFourthDownAllowed: rateAllowed(recent.plays, '4'),
       byGame, downs: downRows, quarters: quarterRows, playTypes,
-      formationCalls, personnel, backfields, directions,
+      formationCalls, formationPlayTypes: detailOrder, personnel, backfields, directions,
+      driveOutcomes,
       topCalls: topCalls.slice(0, 4), worstCalls: worstCalls.slice(0, 4),
       pressure: { blitz, noBlitz }, pressureSituations,
       downDistance: ddRows, zones, hashes, motions: motionNames,

@@ -435,7 +435,8 @@ it was the rejected predictability-only duplicate of the canonical top-level
 Reports > Self-Scout board.
 
 `DEFENSE_DASH_ROWS` owns the fixed ranked allocations. The approved inventory
-is: Game-by-game 6; play type 7; Calls by formation 6; personnel/backfield 5;
+is: Game-by-game 6 in Full Season and 1 in Current Game; Opponent drive outcomes
+7 in Current Game; play type 7; Top 6 formations 6; personnel/backfield 5;
 Top and Worst Calls 4 slots each; pressure situations 6; all 12 down/distance buckets;
 and five slots each for field zone, hash and motion. Fixed football sets keep
 their labels and show dashes when empty. Ranked sets are deterministically
@@ -453,11 +454,22 @@ explainer prose is absent, but the three data-bearing yards/play baselines are
 retained. Every populated row carries its exact composite film refs.
 
 Opponent Offense must answer what the opponent ran from each look, not merely
-how often a formation appeared. `Calls by formation` combines the projected QB
+how often a formation appeared. `Top 6 formations` combines the projected QB
 alignment, backfield and receiver structure into one football-readable look,
-then shows the top two exact play calls and their shares. The six-row module is
-static: missing rows hold dashes and additional looks are deterministically
-capped. Do not split a combined look into separate formation rows.
+then shows count and share for all seven canonical play types. The six-row
+module is static: missing rows hold dashes and additional looks are
+deterministically capped. Do not split a combined look into separate formation
+rows. Deduplicate repeated labels when a generic and specific tag resolve to the
+same display value.
+
+Current Game collapses Game-by-game to its one honest game row and uses the
+reclaimed fixed space for seven aggregate Opponent drive outcome rows:
+Touchdown, Field Goal, Missed FG, Punt, Turnover, Downs, and Other / unresolved.
+Attack direction always shows Left, Middle, Right, Toward Strength, and Away
+from Strength. Strength-relative rows require both a Left/Right direction and a
+Left/Right declared strength; balanced or missing strength is not guessed.
+Relative rows are a second lens and never inflate the absolute run/pass legend.
+Reports module and chart titles use the approved sans face, not Condensed.
 
 The shared Reports title must always display its complete team, season/game and
 report identity. A tooltip is supplemental and never substitutes for visible
@@ -483,7 +495,9 @@ Canonical evidence is `tools/e2e-reports-defense-realdata.mjs`: all six real
 games at 1440x900 and 1280x900, exact module/row inventories, fixed per-section
 height, separate content and band containment, honest scope labels, canonical
 KPI/call/situation values, matching export structure, no clipping, overflow,
-explainer prose or source mutation. Current focused counts are recorded in
+explainer prose or source mutation. It also pins current-game drive outcomes,
+the complete formation matrix, strength-relative direction, and title font.
+Current focused counts are recorded in
 `docs/TESTING.md`.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach

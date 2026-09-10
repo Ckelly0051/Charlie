@@ -1032,6 +1032,7 @@ function SectionTabs({ sections, active, onSelect }) {
 
 const DEFENSE_DASH_ROWS = {
   'Game-by-game': 6,
+  'Opponent drive outcomes': 7,
   'Production by play type': 7,
   'Calls by formation': 6,
   'Personnel faced': 5,
@@ -1096,10 +1097,12 @@ function DefenseKpis({ dashboard, seasonScope }) {
 }
 
 function DefenseDirection({ rows, screen }) {
-  const runSnaps = rows.reduce((sum, row) => sum + row.runs, 0);
-  const passSnaps = rows.reduce((sum, row) => sum + row.passes, 0);
+  const absoluteRows = rows.filter(row => !row.isRelative);
+  const runSnaps = absoluteRows.reduce((sum, row) => sum + row.runs, 0);
+  const passSnaps = absoluteRows.reduce((sum, row) => sum + row.passes, 0);
   return <Module title="Attack direction"><div class="gi-def-direction">
-    {rows.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-direction-row"
+    {rows.map(row => <WatchableRefs key={row.name} tag="button" type="button"
+      class={`gi-def-direction-row${row.isRelative ? ' is-relative' : ''}`}
       refs={row.refs} label={`${row.name} attack direction`} screen={screen}>
       <strong>{row.name}</strong><div class="gi-def-direction-bar">
         <i style={`--w:${row.n ? row.runs / row.n * 100 : 0}%`} /><em style={`--w:${row.n ? row.passes / row.n * 100 : 0}%`} />
@@ -1159,9 +1162,13 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
 
     {section === 'd1' && <>
       <DefenseKpis dashboard={dashboard} seasonScope={seasonScope} />
-      <DefenseModuleTable title="Game-by-game" headers={['Game', 'Total yds', 'Rush yds', 'Pass yds', 'Yds/play', 'Explosive', 'Turnovers', 'TD']}
-        rows={dashboard.byGame} count={DEFENSE_DASH_ROWS['Game-by-game']} screen={screen}
+      <DefenseModuleTable title="Game-by-game" cls={!seasonScope ? 'gi-def-current-game' : ''} headers={['Game', 'Total yds', 'Rush yds', 'Pass yds', 'Yds/play', 'Explosive', 'Turnovers', 'TD']}
+        rows={dashboard.byGame} count={seasonScope ? DEFENSE_DASH_ROWS['Game-by-game'] : 1} screen={screen}
         cells={row => [row.name, row.yards, row.runs ? row.runYards : null, row.passes ? row.passYards : null, row.ypp?.toFixed(1), row.explosives, row.turnovers, row.touchdowns]} />
+      {!seasonScope && <DefenseModuleTable title="Opponent drive outcomes" cls="gi-def-drive-outcomes"
+        headers={['Outcome', 'Drives', 'Share', 'Avg plays', 'Avg yards']} rows={dashboard.driveOutcomes}
+        count={DEFENSE_DASH_ROWS['Opponent drive outcomes']} screen={screen}
+        cells={row => [row.name, row.n, row.pct == null ? null : `${row.pct}%`, row.avgPlays?.toFixed(1), row.avgYards?.toFixed(1)]} />}
       <div class="gi-def-band gi-def-band-2 gi-def-performance-split">
         <DefenseModuleTable title="By down" headers={['Down', 'Total yards', 'Yards/play', 'Explosives']} rows={dashboard.downs} count={4} screen={screen}
           cells={row => [row.name, row.yards, row.ypp?.toFixed(1), row.explosives]} />
@@ -1173,10 +1180,10 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
     {section === 'd2' && <>
       <div class="gi-def-band gi-def-band-2 gi-def-tendency-top">
         <DefenseModuleTable title="Production by play type" meta={baselineLabel} cls="has-baseline" headers={['Play type', 'Snaps', 'Total yds', 'Yds/play', 'Vs avg', 'Expl', 'TD']} rows={dashboard.playTypes} count={DEFENSE_DASH_ROWS['Production by play type']} screen={screen} cells={resultCells} />
-        <DefenseModuleTable title="Calls by formation" cls="gi-def-formation-calls" headers={['Offensive look', 'Snaps', 'Top play', 'Next play']} rows={dashboard.formationCalls} count={DEFENSE_DASH_ROWS['Calls by formation']} screen={screen}
-          cells={row => [row.name, row.n,
-            row.topPlay && row.topPct != null ? `${row.topPlay} ${row.topPct}%` : null,
-            row.nextPlay && row.nextPct != null ? `${row.nextPlay} ${row.nextPct}%` : null]} />
+        <DefenseModuleTable title="Top 6 formations" cls="gi-def-formation-calls"
+          headers={['Offensive look', 'Snaps', ...dashboard.formationPlayTypes]}
+          rows={dashboard.formationCalls} count={DEFENSE_DASH_ROWS['Calls by formation']} screen={screen}
+          cells={row => [row.name, row.n, ...row.playTypes.map(playType => playType.n ? `${playType.n} / ${playType.pct}%` : null)]} />
       </div>
       <div class="gi-def-band gi-def-band-3 gi-def-tendency-bottom">
         <DefenseModuleTable title="Personnel faced" headers={['Personnel', 'Snaps', 'Run/pass', 'Yds/play', 'Expl']} rows={dashboard.personnel} count={DEFENSE_DASH_ROWS['Personnel faced']} screen={screen} cells={smallCells} />

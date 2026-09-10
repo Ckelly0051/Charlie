@@ -6,17 +6,17 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
-const OUT = 'artifacts/defense-production-realdata';
+const OUT = `artifacts/defense-production-realdata/run-${process.pid}`;
 const VIEWPORTS = [[1440, 900], [1280, 900]];
 const SECTIONS = [
-  { label: 'Defensive performance', modules: ['Game-by-game', 'By down', 'By quarter'] },
-  { label: 'Opponent Offense', modules: ['Production by play type', 'Calls by formation', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
+  { label: 'Defensive performance', modules: ['Game-by-game', 'Opponent drive outcomes', 'By down', 'By quarter'] },
+  { label: 'Opponent Offense', modules: ['Production by play type', 'Top 6 formations', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
   { label: 'Scheme', modules: ['Top Calls', 'Worst Calls', 'Blitz vs No Blitz', 'Pressure by situation'] },
   { label: 'Situational results', modules: ['Down & distance', 'Field zone', 'By hash', 'Motion'] },
 ];
 const ROWS = {
-  'Game-by-game': 6, 'By down': 4, 'By quarter': 4,
-  'Production by play type': 7, 'Calls by formation': 6,
+  'Game-by-game': 1, 'Opponent drive outcomes': 7, 'By down': 4, 'By quarter': 4,
+  'Production by play type': 7, 'Top 6 formations': 6, 'Attack direction': 5,
   'Personnel faced': 5, 'Backfield faced': 5,
   'Top Calls': 4, 'Worst Calls': 4, 'Pressure by situation': 6,
   'Down & distance': 12, 'Field zone': 5, 'By hash': 5, Motion: 5,
@@ -80,6 +80,8 @@ for (const game of games) {
         const modules = [...(board?.querySelectorAll('.gi-overview-module') || [])];
         const rowCount = module => title(module) === 'Field zone'
           ? module.querySelectorAll('.gi-def-zonerow').length
+          : title(module) === 'Attack direction'
+            ? module.querySelectorAll('.gi-def-direction-row').length
           : module.querySelectorAll('tbody tr').length;
         const clipped = [];
         modules.forEach(module => module.querySelectorAll('th,td,strong,small').forEach(cell => {
@@ -126,6 +128,7 @@ for (const game of games) {
             return !!node && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1
               || getComputedStyle(node).textOverflow === 'ellipsis');
           })(),
+          titleFonts: modules.map(module => getComputedStyle(module.querySelector('header strong')).fontFamily),
         };
       });
       observations.push({ game: game.name, width, section: section.label, ...result });
@@ -178,7 +181,21 @@ ok(observations.every(item => item.rowEscape.length === 0), 'the final allocated
   JSON.stringify(observations.filter(item => item.rowEscape.length).slice(0, 4)));
 ok(observations.every(item => item.bandOverflow.length === 0), 'every module remains inside its allocated band',
   JSON.stringify(observations.filter(item => item.bandOverflow.length).slice(0, 4)));
+ok(observations.every(item => item.titleFonts.every(font => /IBM Plex Sans/i.test(font) && !/Condensed/i.test(font))),
+  'every Defense module title uses the approved sans face',
+  JSON.stringify(observations.filter(item => item.titleFonts.some(font => /Condensed/i.test(font))).slice(0, 4)));
 ok(errors.length === 0, 'the real Defense route raises no page or console errors', errors.slice(0, 3).join(' | '));
+
+for (let index = 0; index < 2; index++) {
+  await page.setViewport({ width: 1440, height: 900 });
+  await page.evaluate(label => {
+    [...document.querySelectorAll('.gi-def-secnav-item')]
+      .find(button => button.textContent.includes(label))?.click();
+    document.querySelector('.gi-reports-scroll')?.scrollTo(0, 0);
+  }, SECTIONS[index].label);
+  await sleep(100);
+  await page.screenshot({ path: `${OUT}/1440-current-section-${index + 1}.png` });
+}
 
 /* Review captures use the richer full-season cohort and the canonical active game. */
 await page.setViewport({ width: 1440, height: 900 });
@@ -207,9 +224,13 @@ const canonical = await page.evaluate(() => {
     firstLongCallPct: model.downDistance.find(row => row.name === '1st & 7+')?.callPct,
     zones: model.zones.map(row => `${row.name}:${row.n}`),
     formationCalls: model.formationCalls.map(row => ({
-      name: row.name, n: row.n, topPlay: row.topPlay, topPct: row.topPct,
-      nextPlay: row.nextPlay, nextPct: row.nextPct, ypp: row.ypp,
+      name: row.name, n: row.n,
+      playTypes: row.playTypes.map(item => ({ name: item.name, n: item.n, pct: item.pct })),
     })),
+    formationPlayTypes: model.formationPlayTypes,
+    directions: model.directions.map(row => ({ name: row.name, n: row.n, runs: row.runs,
+      passes: row.passes, isRelative: row.isRelative })),
+    driveOutcomes: model.driveOutcomes.map(row => ({ name: row.name, n: row.n, pct: row.pct })),
   };
 });
 ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
@@ -236,10 +257,26 @@ ok(JSON.stringify(canonical.zones.map(value => value.split(':')[0])) === JSON.st
   'Backed Up', 'Open Field', 'Opp 40–20', 'Red Zone', 'Goal Line',
 ]), 'field zones use five display slots backed by canonical field-position buckets', JSON.stringify(canonical.zones));
 ok(canonical.formationCalls.length >= 6
-  && canonical.formationCalls.every(row => row.name && row.topPlay && row.topPct > 0 && row.topPct <= 100)
-  && canonical.formationCalls.some(row => row.name === 'I-Form + Twins' && row.topPlay === 'Run Inside'),
-  'Calls by formation preserves combined offensive looks and names the top play tendency',
+  && canonical.formationCalls.every(row => row.name && row.playTypes.length === 7
+    && row.playTypes.every(item => item.pct === Math.round(item.n / row.n * 100)))
+  && canonical.formationCalls.some(row => row.name === 'I-Form + Twins'
+    && row.playTypes.some(item => item.name === 'Run Inside' && item.n > 0)),
+  'Top 6 formations preserves combined offensive looks and shows every canonical play-type share',
   JSON.stringify(canonical.formationCalls));
+ok(JSON.stringify(canonical.formationPlayTypes) === JSON.stringify([
+  'Run Outside', 'Run Inside', 'RPO', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Screen',
+]), 'the formation matrix keeps one fixed seven-play-type schema', JSON.stringify(canonical.formationPlayTypes));
+ok(canonical.directions.length === 5
+  && canonical.directions.filter(row => !row.isRelative).length === 3
+  && canonical.directions.filter(row => row.isRelative).length === 2
+  && canonical.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.runs, 0) === 112
+  && canonical.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.passes, 0) === 36
+  && canonical.directions.some(row => row.name === 'Toward Strength' && row.isRelative)
+  && canonical.directions.some(row => row.name === 'Away from Strength' && row.isRelative),
+  'Attack direction adds strength-relative rows without double-counting its absolute legend',
+  JSON.stringify(canonical.directions));
+ok(canonical.driveOutcomes.length === 7,
+  'Opponent drive outcomes keeps seven fixed aggregate outcome rows', JSON.stringify(canonical.driveOutcomes));
 
 const invariants = await page.evaluate(() => {
   const Stats = window.app.stats.constructor;
@@ -262,23 +299,37 @@ const invariants = await page.evaluate(() => {
       playType: index < 7 ? 'Run Inside' : 'Run Outside' },
   }));
   const look = window.app.stats.defenseDashboard(lookRows).formationCalls[0];
+  const directionRows = [
+    { ...base, id: 'toward', tags: { ...base.tags, playDir: 'Left', strength: 'Left' } },
+    { ...base, id: 'away', tags: { ...base.tags, playDir: 'Right', strength: 'Left' } },
+    { ...base, id: 'balanced', tags: { ...base.tags, playDir: 'Left', strength: 'Balanced' } },
+  ];
+  const directions = window.app.stats.defenseDashboard(directionRows).directions;
   return {
     sameCall: Stats._defenseCallKey(base) === Stats._defenseCallKey(reversed),
     conversionMade: conversion.fourthDownAllowed.made,
     callPct: rates.callPct,
     blitzPct: rates.blitzPct,
-    look: { name: look?.name, n: look?.n, topPlay: look?.topPlay,
-      topPct: look?.topPct, nextPlay: look?.nextPlay, nextPct: look?.nextPct },
+    look: { name: look?.name, n: look?.n,
+      playTypes: look?.playTypes.map(item => ({ name: item.name, n: item.n, pct: item.pct })) },
+    directions: directions.map(row => ({ name: row.name, n: row.n, isRelative: row.isRelative })),
   };
 });
 ok(invariants.sameCall, 'defensive call identity is independent of multi-select order');
 ok(invariants.conversionMade === 1, 'down conversions use line-to-gain ownership even when Result says No Good');
 ok(invariants.callPct === 67 && invariants.blitzPct === 33,
   'Call% and Blitz% exclude snaps with no charted defensive structure', JSON.stringify(invariants));
-ok(JSON.stringify(invariants.look) === JSON.stringify({
-  name: 'I-Form + Twins', n: 10, topPlay: 'Run Inside', topPct: 70,
-  nextPlay: 'Run Outside', nextPct: 30,
-}), 'combined offensive looks expose ranked play calls and charted call shares', JSON.stringify(invariants.look));
+ok(invariants.look.name === 'I-Form + Twins' && invariants.look.n === 10
+  && invariants.look.playTypes.find(item => item.name === 'Run Inside')?.n === 7
+  && invariants.look.playTypes.find(item => item.name === 'Run Inside')?.pct === 70
+  && invariants.look.playTypes.find(item => item.name === 'Run Outside')?.n === 3
+  && invariants.look.playTypes.find(item => item.name === 'Run Outside')?.pct === 30,
+  'combined offensive looks expose every play-call count and charted share', JSON.stringify(invariants.look));
+ok(invariants.directions.find(row => row.name === 'Toward Strength')?.n === 1
+  && invariants.directions.find(row => row.name === 'Away from Strength')?.n === 1
+  && invariants.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.n, 0) === 3,
+  'strength-relative attack direction excludes balanced strength and does not alter absolute direction totals',
+  JSON.stringify(invariants.directions));
 
 const exportText = await page.evaluate(async () => {
   let saved = null;
@@ -291,8 +342,8 @@ const exportText = await page.evaluate(async () => {
 });
 ok(['Defensive Performance', 'Opponent Offense', 'Scheme', 'Situational Results']
   .every(label => exportText.includes(label)) && !exportText.includes('Defensive Tendency Tells')
-  && !exportText.includes('Stop Rate') && exportText.includes('Calls by formation')
-  && exportText.includes('Top Play') && exportText.includes('Next Play'),
+  && !exportText.includes('Stop Rate') && exportText.includes('Top 6 formations')
+  && exportText.includes('Run Outside') && exportText.includes('Run Inside'),
   'Defense export uses the same four-section dashboard model as the screen');
 const fullSeasonFits = [];
 for (let index = 0; index < SECTIONS.length; index++) {

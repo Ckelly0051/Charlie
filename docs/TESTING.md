@@ -106,15 +106,20 @@ The smallest existing harness for the route or domain you touched.
 `e2e-reports-defense-realdata` is the Defense composition authority. It loads
 only `2025-st-joseph-mavericks-jv`, checks all six games at 1440 and 1280,
 pins the approved module and row inventory plus canonical KPI/call/situation
-values, verifies Calls by formation preserves combined offensive looks and
-ranks the top two play calls with charted-call percentages, verifies
+values, verifies Top 6 formations preserves combined offensive looks and shows
+all seven canonical play-call counts and shares, verifies the one-row Current
+Game summary plus seven fixed drive-outcome rows, strength-relative attack
+direction without absolute-total inflation, and the approved module-title font,
+verifies
 current-game scope labels, canonical field zones and order-independent calls,
 checks module-content and module-to-band containment
 as separate assertions, captures all four full-season screens at both widths,
 checks the four-section Defense export, and verifies the source season remains
 byte-identical. It also rejects any clipped shared Reports title at either
 release width. Use a 900px viewport height at both release widths; a full-page
-screenshot is not a substitute for viewport fit. Current focused result: 37/0.
+screenshot is not a substitute for viewport fit. Captures use a per-process
+directory so a locked prior image cannot invalidate the run. Current focused
+result: 42/0.
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |

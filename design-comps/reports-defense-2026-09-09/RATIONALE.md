@@ -26,16 +26,18 @@ The approved comp is the production schema. Module placement, row counts, and bo
 - Season totals are paired with Last 3 comparisons where the comparison is meaningful.
 - Opponent Offense combines tendency and defensive result: play type, calls by
   offensive formation/look, personnel, backfield, and attack direction.
-- `Calls by formation` replaces the descriptive `Formation faced` table. Each
+- `Top 6 formations` replaces the descriptive `Formation faced` table. Each
   of its six fixed rows preserves the complete projected offensive look across
-  QB alignment, backfield and receiver structure, then shows the two most
-  frequent exact play calls and their shares. For example, an under-center I
-  backfield plus Twins displays as `I-Form + Twins`, with `Run Inside 70%`
-  rather than dissolving the snap into unrelated formation totals.
-- Calls by formation ranks looks by charted play-call snaps, then uses a
-  deterministic name tie-break. Play-call share divides by the charted calls
-  in that exact look. Sparse cohorts hold dashes; only the six most frequent
-  looks render when more qualify. The table and HTML export use the same rows.
+  QB alignment, backfield and receiver structure, then shows count and share
+  for every canonical play type: Run Outside, Run Inside, RPO, Short Pass,
+  Medium Pass, Deep Pass, and Screen. For example, an under-center I backfield
+  plus Twins displays as `I-Form + Twins` rather than dissolving the snap into
+  unrelated formation totals. Repeated display labels are deduplicated.
+- Top 6 formations ranks looks by charted play-call snaps, then uses a
+  deterministic name tie-break. Each share divides by charted calls in that
+  exact look. Sparse cohorts hold dashes; only the six most frequent looks
+  render when more qualify. The honest title states that cap. The table and
+  HTML export use the same rows.
 - A defensive call is the complete charted combination of front, coverage, and pressure.
 - Top Calls and Worst Calls use the same qualified cohort and fixed four-row modules.
 - A defensive call qualifies for Top/Worst Calls at four classified snaps. Four
@@ -48,6 +50,17 @@ The approved comp is the production schema. Module placement, row counts, and bo
 - Module and section explainer prose is omitted. Data-bearing baselines remain where they are required to interpret a comparison.
 - Current Game scope uses current-game labels and comparisons only. It never
   calls one game `Last 3` or labels that game's own average as a season average.
+- Current Game uses one Game-by-game row. The reclaimed fixed allocation shows
+  seven aggregate Opponent drive outcomes: Touchdown, Field Goal, Missed FG,
+  Punt, Turnover, Downs, and Other / unresolved, with count, share, average
+  plays, and average yards. Full Season retains six Game-by-game rows.
+- Attack direction adds Toward Strength and Away from Strength below the
+  absolute Left/Middle/Right rows. A relative result requires both a Left/Right
+  direction and Left/Right declared strength. Balanced or missing strength is
+  excluded, never guessed. Relative rows do not change the absolute run/pass
+  legend totals. Motion-relative direction remains future work.
+- Module and chart titles use the approved product sans face. Condensed remains
+  reserved for page identity and display numbers.
 - Field zone keeps five static visual rows. Its boundaries come from the
   canonical `_fieldZone()` bucketer: `Backed up`; combined `Own 11–39` and
   `Midfield` displayed as `Open Field`; `Opp 40–20`; `Red zone`; and `Goal line`.
@@ -88,9 +101,11 @@ The Defense export now consumes `defenseDashboard()` and carries the same four
 sections and scope as the board. The superseded defensive-performance and
 predictability export is retired.
 
-The coach-directed 2026-09-10 usefulness amendment changes one module without
-changing board geometry: `Formation faced` becomes `Calls by formation`. The
-six-row allocation, containing band and four-screen schema remain fixed.
+The coach-directed 2026-09-10 usefulness amendments preserve the four-screen
+geometry while making the fixed schema scope-aware. `Formation faced` becomes
+the complete `Top 6 formations` play-type matrix; Current Game replaces five
+empty game slots with seven aggregate drive outcomes; Attack direction gains
+two strength-relative rows; and module titles use the approved sans face.
 
 ## Review Evidence
 

@@ -712,9 +712,14 @@ Retain every meaningful production field while reducing everyday clutter.
 > call slots, canonicalizes call identity and field-zone boundaries, makes game
 > scope labels honest, and aligns the HTML export to the same four-section model.
 > The 2026-09-10 coach-directed usefulness amendment replaces `Formation faced`
-> with six fixed `Calls by formation` rows. Each row preserves the complete
-> projected offensive look and shows its two most frequent exact play calls and
-> percentages; the live board and Defense export share the same model.
+> with six fixed `Top 6 formations` rows. Each row preserves the complete
+> projected offensive look and shows count/share for all seven canonical play
+> types; the live board and Defense export share the same model. Current Game
+> collapses Game-by-game to one row and fills the recovered allocation with
+> seven aggregate opponent drive outcomes. Attack direction adds Toward
+> Strength and Away from Strength as a second, non-duplicative lens; uncharted
+> or balanced strength is not inferred. Reports module titles use the approved
+> sans face globally. These remain fixed schemas at every data volume.
 > Coach-approved composition; production acceptance and installed smoke remain.
 >
 
