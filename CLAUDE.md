@@ -7,18 +7,17 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-76` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-77` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-76` is the current unsigned Windows smoke
-candidate, versioned in `523d2cd` after the Defense reporting batch in
-`e0ce2f7`. The complete gate passed 109/109 with Defense real data 42/0,
-canonical real data 10/10 and parity 2/2 before packaging. Tauri produced both
-NSIS and MSI packages successfully with updater signing intentionally disabled
-by `--no-sign`, the documented local-candidate condition in `TAURI.md`.
-Installed smoke is still required; this candidate is not accepted or
-published. See `SMOKE-1.12.0-76.md`.
+**Packaging status:** `1.12.0-77` is the current unsigned, explicitly ungated
+local handoff, versioned in `15cd78d` after the two-file Reports repair in
+`0ecec0f`. Per coach instruction, no harness or release gate was run. Tauri
+produced both NSIS and MSI packages with updater signing disabled by
+`--no-sign`. Breakdown is not acceptance-ready: Delete play has a confirmed
+source defect still awaiting the coach's repair batch. See
+`SMOKE-1.12.0-77.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
@@ -231,7 +230,7 @@ and canonical-season captures. Do not solve a data mismatch by stretching rows,
 shrinking type, or inventing explanatory prose.
 
 **Current visual release truth (2026-09-10).** `1.12.0-70` is the last accepted
-installed smoke candidate. `1.12.0-76` is awaiting installed smoke and is not
+installed smoke candidate. `1.12.0-77` is an ungated local handoff and is not
 accepted release state. `1.12.0-74` remains `REJECTED`: its Reports production
 does not faithfully preserve the individually approved report compositions,
 and its installed Home presentation was reported visually off. Any older
