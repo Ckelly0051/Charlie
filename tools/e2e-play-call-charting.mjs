@@ -209,7 +209,12 @@ const conceptModule = callGrid.find(node => titleOf(node) === 'Concepts');
   const contexts = [...root.querySelectorAll('.gi-call-context')];
   const downTable = contexts.find(node => node.querySelector('h4')?.textContent.trim() === 'Down & Distance');
   const situationRow = [...(downTable?.querySelectorAll('tbody tr') || [])]
-    .find(row => row.cells[0]?.textContent.trim() === '1st & Long');
+    // `_ddPretty` is the one owner of this wording and now prints the yardage
+    // rather than the engine's internal bucket name. The row is the same row
+    // and its cut key is unchanged — a cut carries the raw `1|Long`, never the
+    // display label — so this assertion still proves the exact composite-ref
+    // cohort resolves; only the text used to FIND the row moved.
+    .find(row => row.cells[0]?.textContent.trim() === '1st & 7+');
   // Rows are wrapped by the Watchable component, which carries onActivate/
   // label as closures rather than a data-* refs attribute; spying on the
   // shared service is the real (and only) way to observe the exact refs a

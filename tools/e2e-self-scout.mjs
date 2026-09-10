@@ -249,15 +249,20 @@ r = await page.evaluate(async () => {
     comboMatched: matched,
     deadLinks,
     cutRows: pane.querySelectorAll('.gi-ss-table tbody tr.cut-row').length,
-    bucketLabel: /3rd &amp; Long/.test(pane.innerHTML),
+    // `_ddPretty` owns this wording and prints the yardage, not the engine's
+    // internal bucket name. The KEY is unchanged (`3|Long`, asserted above),
+    // which is what the film cut resolves on.
+    bucketLabel: /3rd &amp; 7\+/.test(pane.innerHTML),
+    legacyBucketLabel: /3rd &amp; (Long|Short|Medium)\b/.test(pane.innerHTML),
     active: pane.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
   };
 });
 ok(r.comboVal === 'Trips__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
-ok(r.comboMatched === 10, 'exact distances 8-12 all bucket into "3rd & Long" (n=10)', JSON.stringify(r));
+ok(r.comboMatched === 10, 'exact distances 8-12 all bucket into "3rd & 7+" (n=10)', JSON.stringify(r));
 ok(r.deadLinks === 0, 'every clickable tell resolves to at least one play', JSON.stringify(r));
 ok(r.cutRows >= 1, 'tells render as clickable cut-rows', JSON.stringify(r));
-ok(r.bucketLabel, 'bucket label "3rd & Long" shown in the pane', JSON.stringify(r));
+ok(r.bucketLabel, 'bucket label "3rd & 7+" shown in the pane', JSON.stringify(r));
+ok(!r.legacyBucketLabel, 'no pane text prints the engine\'s internal bucket name', JSON.stringify(r));
 ok(r.active === 'Tendencies', 'the data-only Tendencies section is active without retired recommendation prose', JSON.stringify(r));
 
 console.log('\n== 6. Predictability Map: Formation × Situation heat-map, click-to-film ==');
