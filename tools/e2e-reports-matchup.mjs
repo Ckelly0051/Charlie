@@ -757,13 +757,18 @@ ok(edge.season.offenseGames === 2 && edge.season.defenseGames === 1
   && edge.opponent.defenseGames === 1 && edge.opponent.offenseGames === 1 && edge.opponent.games === 2,
   'each of the four cohorts carries its own contributing game count',
   JSON.stringify({ season: edge.season, opponent: edge.opponent }));
-ok(JSON.stringify(counts) === JSON.stringify(['2 games | 8 plays', '1 game | 5 snaps']),
-  'the offense-facing unit headers state their own cohort\'s games, not a combined count',
+/* Every count names its cohort. Matchup keeps every CHARTED snap, because a
+   formation and personnel exist on snaps with no play type and excluding them
+   would discard real looks; that is a different cohort from the CLASSIFIED one
+   every production measure uses. Printed as bare numbers the two read as a
+   contradiction — 201 against 173 on the canonical season. */
+ok(JSON.stringify(counts) === JSON.stringify(['2 games | 8 charted snaps', '1 game | 5 charted snaps']),
+  'the offense-facing unit headers state their own cohort\'s games and name the charted cohort',
   JSON.stringify(counts));
 await setDirection('Our Defense vs Their Offense');
 const defCounts = await page.evaluate(() => [...document.querySelectorAll('.gi-mu-unit small')]
   .map(node => node.textContent.trim()));
-ok(JSON.stringify(defCounts) === JSON.stringify(['1 game | 3 snaps', '1 game | 3 plays']),
+ok(JSON.stringify(defCounts) === JSON.stringify(['1 game | 3 charted snaps', '1 game | 3 charted snaps']),
   'an offense-only game never inflates the defensive sample beside it', JSON.stringify(defCounts));
 await load(FULL(), 'St. Mary Falcons');
 
@@ -791,7 +796,29 @@ await page.evaluate(() => {
 const untouched = beforeMatchupOpen === afterMatchupOpen;
 ok(untouched, 'opening Matchup and switching opponent or direction writes nothing to canonical season data');
 
-console.log('\n== 20. Page health ==');
+/* ══ 20. A look is not a play call ════════════════════════════════════════
+   `Their Primary Call` sat over a COMPOSITE identity — Personnel | Formation |
+   Call on the defence-facing lane, Front | Coverage | Pressure on the
+   offence-facing one — with blank components dropped. The canonical season
+   charts no playCall and no playConcept anywhere, so on 32 of its 174
+   defensive snaps the label collapsed to personnel alone and the column read
+   `Their Primary Call: 22`. Personnel is not a play call. */
+console.log('\n== 20. A look is never labelled a play call ==');
+await load(FULL(), 'St. Mary Falcons');
+for (const direction of ['Our Offense vs Their Defense', 'Our Defense vs Their Offense']) {
+  await setDirection(direction);
+  const heads = await page.evaluate(() => {
+    const table = [...document.querySelectorAll('.gi-mu-decision')][0];
+    return table ? [...table.querySelectorAll('th')].map(th => th.textContent.trim()) : [];
+  });
+  ok(heads.includes('Their Top Look') && heads.includes('Our Best Answer'),
+    `${direction}: the situational columns name a look and an answer`, JSON.stringify(heads));
+  ok(!heads.some(h => /call/i.test(h)),
+    `${direction}: no composite-identity column is labelled a play call`,
+    JSON.stringify(heads.filter(h => /call/i.test(h))));
+}
+
+console.log('\n== 21. Page health ==');
 ok(errors.length === 0, 'zero page or console errors across every state', errors.slice(0, 3).join(' | '));
 
 await browser.close();

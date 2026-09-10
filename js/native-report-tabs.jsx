@@ -1987,10 +1987,17 @@ function MuSituations({ lane, kind, screen }) {
   const rows = view.matchupSituationRows(lane, kind);
   const columns = [
     { key: 'situation', label: 'Situation', tl: true, cellClass: 'gi-mu-sit' },
-    { key: 'look', label: 'Their Primary Call', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.look) },
+    /* A LOOK, not a call. The value is a composite identity — Personnel |
+       Formation | Call on the defence-facing lane, Front | Coverage | Pressure
+       on the offence-facing one — with blank components dropped. The canonical
+       season charts no playCall and no playConcept anywhere, so on 32 of its
+       defensive snaps the label collapses to personnel alone and read as
+       `Their Primary Call: 22`. Personnel is not a play call. Both lanes carry
+       the composite, so both headers name it. */
+    { key: 'look', label: 'Their Top Look', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.look) },
     { key: 'rate', label: 'Rate' },
     { key: 'sample', label: kind === 'offense' ? 'Snaps' : 'Plays' },
-    { key: 'answer', label: 'Our Top Call vs Same Look', tl: true,
+    { key: 'answer', label: 'Our Best Answer', tl: true,
       cellClass: row => (row.blank ? 'gi-mu-absent' : 'gi-mu-answer'), render: row => muTrunc(row.answer) },
     { key: 'count', label: kind === 'offense' ? 'Plays' : 'Snaps' },
     { key: 'avg', label: 'Yds / Play' },
@@ -2535,7 +2542,10 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
       <div class="gi-selfscout-toolbar">
         <span class="gi-selfscout-toolbar-label">Scope</span>
         <span class="gi-selfscout-sample">
-          <b>{report ? report.totalPlays : 0}</b> classified offensive plays · <b>{defSummary.totalPlays}</b> defensive plays
+          {/* Both halves name the cohort. The defensive half said "defensive
+              plays" while measuring the same classified subset, so it read as
+              a different cohort from the offensive half beside it. */}
+          <b>{report ? report.totalPlays : 0}</b> classified offensive plays · <b>{defSummary.totalPlays}</b> classified defensive plays
         </span>
       </div>
       <nav class="gi-selfscout-nav" aria-label="Self-Scout sections">

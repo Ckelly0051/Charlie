@@ -127,14 +127,43 @@ resize a dashboard.
    (`rows.length`), which is what the approved `2.9` is measured over. Moving
    that denominator to the classified count makes it `3.2`. That changes an
    approved value and was not decided here.
-6. **Matchup season cohorts disagree with other Reports surfaces.** Matchup uses
-   201 offensive plays and 174 defensive snaps; Season/Self-Scout surfaces show
-   173 classified offensive plays and 154 defensive plays. Enumerate the exact
-   cohorts and establish honest coach-facing denominators without forcing unlike
-   metrics onto one cohort.
-7. **Matchup presents personnel as a play call.** In Our Defense vs Their
-   Offense, `Their Primary Call` displays `22`. Trace the selected opponent field
-   and check both matchup directions for the same semantic error.
+6. **Matchup season cohorts disagree with other Reports surfaces. REPAIRED
+   (labeling).** All four numbers reconcile exactly against the canonical
+   season, and **neither cohort is wrong**:
+
+   | Reported | Predicate | Count |
+   |---|---|---|
+   | **201** | `(tags.unit \|\| 'offense') === 'offense'` — 183 tagged + 18 untagged | 201 |
+   | **173** | the same, then `playType \|\| runPass` | 173 |
+   | **174** | `tags.unit === 'defense'` | 174 |
+   | **154** | the same, then `playType \|\| runPass` | 154 |
+
+   Matchup measures what a unit LINED UP in: a formation and personnel exist on
+   snaps with no play type, so excluding them would discard real opponent
+   looks. Every production measure uses the classified subset, because a
+   yards-per-play over an unclassified snap states nothing. The defect was that
+   no surface said which one it was showing, so `201` beside `173` read as a
+   contradiction.
+
+   Every Matchup unit header now says `charted snaps`; Self-Scout's sample line
+   says `classified` on both halves — it previously qualified only the
+   offensive one. The four counts are pinned in
+   `e2e-reports-defense-realdata` so a future change cannot quietly merge them.
+7. **Matchup presents personnel as a play call. REPAIRED.** The field
+   selection was never wrong. `_matchupOffenseLook` builds a COMPOSITE
+   identity — `[personnel, formation, call].filter(Boolean).join(' | ')` — and
+   `playCall` and `playConcept` are empty on all 449 plays of the canonical
+   season, so on 32 of its 174 defensive snaps the label collapses to
+   personnel alone. The column header named one component of a three-component
+   composite.
+
+   Observed labels on the season's defensive snaps: `22` (32), `Flexbone`
+   (23), `11 | Flexbone` (14), `12` (13), `10 | Spread` (9).
+
+   **Both directions carried the same error** — the offence-facing lane put
+   `Front | Coverage | Pressure` under the same header. The columns are now
+   `Their Top Look` and `Our Best Answer`, and the accessible film labels
+   follow. No cohort, ranking or value changed.
 8. **Special Teams values conflict across surfaces. REPAIRED.** Not unit scope
    and not attribution: **two surfaces read two different fields for the same
    plays.** The team report reads the dedicated ST fields; `_individualStats`

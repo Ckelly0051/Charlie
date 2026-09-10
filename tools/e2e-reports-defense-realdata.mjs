@@ -242,6 +242,30 @@ const canonical = await page.evaluate(() => {
    the total, because five unclassified `Penalty + Loss` snaps carried -15
    between them. The season reconciled only by coincidence
    (-5 + 0 + 10 + 5 + 5 - 15 = 0), which is why nothing caught it. */
+/* THE FOUR CANONICAL COHORTS, pinned so a future change cannot quietly merge
+   them. Matchup measures what a unit LINED UP in and keeps every charted snap;
+   every production measure uses the classified subset (`playType || runPass`).
+   Neither is wrong and they must not be forced together — but each surface has
+   to name which one it is showing. */
+const cohorts = await page.evaluate(() => {
+  const games = window.app.storage.seasonStore.data.games || [];
+  const all = games.flatMap(g => g.plays || []);
+  const classified = p => !!(p.tags.playType || p.tags.runPass);
+  const off = p => (p.tags.unit || 'offense') === 'offense';
+  const def = p => p.tags.unit === 'defense';
+  return {
+    charted: all.length,
+    offenseCharted: all.filter(off).length,
+    offenseClassified: all.filter(p => off(p) && classified(p)).length,
+    defenseCharted: all.filter(def).length,
+    defenseClassified: all.filter(p => def(p) && classified(p)).length,
+  };
+});
+ok(cohorts.charted === 449 && cohorts.offenseCharted === 201 && cohorts.offenseClassified === 173
+  && cohorts.defenseCharted === 174 && cohorts.defenseClassified === 154,
+  'the canonical season reconciles to its four cohorts: 201/173 offensive, 174/154 defensive',
+  JSON.stringify(cohorts));
+
 const unreconciled = canonical.byGame.filter(row => row.yards !== (row.rush || 0) + (row.pass || 0));
 ok(unreconciled.length === 0,
   'every Game-by-game row reconciles: Total yds equals Rush yds plus Pass yds',

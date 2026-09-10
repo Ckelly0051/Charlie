@@ -1122,14 +1122,21 @@ export function matchupSample(model) {
      a combined game count is the honest number. */
   return {
     opponent: `${muGames(opponent.games)} | ${opponent.defense} defense | ${opponent.offense} offense`,
+    /* Every count names its cohort. Matchup measures what a unit LINED UP in,
+       so it keeps every charted snap — formation and personnel exist on snaps
+       with no play type, and excluding them would discard real looks. That is
+       a different cohort from the classified one every production measure uses
+       (201 vs 173 offensive, 174 vs 154 defensive on the canonical season),
+       and printed as a bare number the two read as a contradiction. Neither is
+       wrong; only the silence was. */
     units: {
       offense: {
-        season: `${muGames(season.offenseGames)} | ${season.offense} plays`,
-        opponent: `${muGames(opponent.defenseGames)} | ${opponent.defense} snaps`,
+        season: `${muGames(season.offenseGames)} | ${season.offense} charted snaps`,
+        opponent: `${muGames(opponent.defenseGames)} | ${opponent.defense} charted snaps`,
       },
       defense: {
-        season: `${muGames(season.defenseGames)} | ${season.defense} snaps`,
-        opponent: `${muGames(opponent.offenseGames)} | ${opponent.offense} plays`,
+        season: `${muGames(season.defenseGames)} | ${season.defense} charted snaps`,
+        opponent: `${muGames(opponent.offenseGames)} | ${opponent.offense} charted snaps`,
       },
     },
   };

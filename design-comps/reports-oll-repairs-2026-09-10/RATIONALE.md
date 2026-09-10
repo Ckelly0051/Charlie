@@ -135,3 +135,17 @@ full: four added and two removed lines across two scopes. The synthetic
 fixture's punt carries a charted `kickDistance` of 42 that the old code ignored
 entirely, so `puntYds` moves 0 -> 42 and gains `puntsMeasured: 1`. Nothing else
 in `numbers` moved.
+
+## Matchup terminology and cohort qualification
+
+`Their Primary Call` -> `Their Top Look`; `Our Top Call vs Same Look` ->
+`Our Best Answer`. The value under those headers is a composite identity with
+blank components dropped, and the canonical season charts no play call at all,
+so on 32 defensive snaps it collapsed to personnel and read as `22`. Both
+matchup directions carried the same error. No cohort, ranking, film reference
+or value changed - headers only.
+
+Matchup unit headers now say `charted snaps`. Self-Scout's sample line says
+`classified` on both halves; it previously qualified only the offensive one.
+201 / 173 / 174 / 154 are pinned in `e2e-reports-defense-realdata` so a future
+change cannot quietly merge the two cohorts.

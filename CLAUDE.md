@@ -1043,6 +1043,23 @@ survives the remount an ordinary Reports re-render causes, the same correction
 cannot answer is not offered at all — the partial state names the missing
 opponent unit literally rather than rendering a selectable dead tab.
 
+**A look is never labelled a play call, and every count names its cohort.**
+`Their Primary Call` sat over a COMPOSITE identity - `Personnel | Formation |
+Call` on the defence-facing lane, `Front | Coverage | Pressure` on the
+offence-facing one - with blank components dropped. The canonical season charts
+no `playCall` and no `playConcept` on any of its 449 plays, so on 32 of its
+defensive snaps the label collapsed to personnel alone and the column read
+`Their Primary Call: 22`. Both lanes carried the error. The columns are
+`Their Top Look` and `Our Best Answer`.
+
+Matchup keeps every CHARTED snap because a formation and personnel exist on
+snaps with no play type and excluding them would discard real looks; every
+production measure uses the CLASSIFIED subset. On the canonical season that is
+201 against 173 offensive and 174 against 154 defensive. Neither cohort is
+wrong and they are never forced together - but each surface states which it is
+showing: Matchup unit headers say `charted snaps`, and Self-Scout's sample line
+says `classified` on both halves. The four counts are pinned in
+`e2e-reports-defense-realdata`.
 **Matchup has matchup-scope shared chrome.** It suppresses the current-game
 scorebug and KPI rail, names the selected opponent in the Reports header, and
 states `Season film and opponent film`. The board and its frame therefore
