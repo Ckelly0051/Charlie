@@ -544,6 +544,21 @@ the complete formation matrix, strength-relative direction, and title font.
 Current focused counts are recorded in
 `docs/TESTING.md`.
 
+**Defensive Total Yds is the sum of the two columns beside it.**
+`defenseDashboard`'s `summarize` summed `yards` over EVERY defensive snap while
+`runYards` and `passYards` summed the classified run and pass subsets, so the
+three columns were never one cohort and the residual was invisible: OLL printed
+132 above 72 + 55, Week 3 printed 130 above 120, and Week 6 printed 28 above 43
+- components EXCEEDING the total, because five unclassified `Penalty + Loss`
+snaps carried -15 yards between them. The season reconciled only by
+coincidence (-5 + 0 + 10 + 5 + 5 - 15 = 0), which is why a green suite never
+caught it. Penalty-only yardage is not offensive yards allowed; all three
+columns come from the same classified run/pass cohort, taken as a union so a
+snap tagged both could never count twice. `ypp` still divides by every
+defensive snap, which is what the approved 2.9 KPI is measured over - moving
+that denominator to the classified count would make it 3.2 and is carried to
+the Gate as a coach decision.
+
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp
 (`design-comps/reports-special-teams-2026-09-04`, whose RATIONALE is the

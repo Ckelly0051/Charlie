@@ -98,11 +98,35 @@ resize a dashboard.
    unchanged. The `e2e-parity` golden correction is **60 deletions and zero
    additions**, every deleted block a `Cover 3 -> Cover 3` tell or its
    recommendation echo; no metric, ref cohort or other value moved.
-5. **Defensive yardage does not reconcile by game.** OLL shows 132 total yards,
-   72 rush yards and 55 pass yards. The five-yard difference is unexplained in
-   the UI, and other game rows differ as well even though the season aggregate
-   happens to reconcile. Account for sacks, RPOs, penalties, unknown play types
-   and exclusions before deciding whether calculation or labeling is wrong.
+5. **Defensive yardage does not reconcile by game. REPAIRED.** The reported
+   OLL gap was the small case. `summarize`'s `yards` summed EVERY defensive
+   snap while `runYards` and `passYards` summed the classified run and pass
+   subsets, so the three columns were never one cohort:
+
+   | Game | Total (was) | Rush | Pass | R+P | Delta | Total (now) |
+   |---|---|---|---|---|---|---|
+   | Wk 1 St. Peter | -5 | 0 | 0 | 0 | **-5** | 0 |
+   | Wk 2 ND Prep | 126 | 85 | 41 | 126 | 0 | 126 |
+   | Wk 3 OL Refuge | 130 | 58 | 62 | 120 | **+10** | 120 |
+   | Wk 4 OL Sorrows | 86 | 28 | 53 | 81 | **+5** | 81 |
+   | **Wk 5 OLL** | **132** | **72** | **55** | **127** | **+5** | **127** |
+   | Wk 6 Holy Family | 28 | 28 | 15 | 43 | **-15** | 43 |
+   | Season | 497 | 271 | 226 | 497 | 0 | 497 |
+
+   Week 6's components EXCEEDED its total, because five unclassified
+   `Penalty + Loss` snaps (ids 29, 62, 64, 70, 71) carried -15 yards between
+   them. The season reconciled only by coincidence — `-5 + 0 + 10 + 5 + 5 - 15
+   = 0` — which is exactly why a green suite never caught it.
+
+   Sacks are not involved: OLL's one sack (-5) is `isPass` and already sat in
+   Pass yards. All three columns now come from the same classified run/pass
+   cohort, taken as a union so a snap tagged both could never count twice. The
+   approved season KPI values are unchanged.
+
+   **OPEN FOR THE COACH.** `ypp` still divides by every defensive snap
+   (`rows.length`), which is what the approved `2.9` is measured over. Moving
+   that denominator to the classified count makes it `3.2`. That changes an
+   approved value and was not decided here.
 6. **Matchup season cohorts disagree with other Reports surfaces.** Matchup uses
    201 offensive plays and 174 defensive snaps; Season/Self-Scout surfaces show
    173 classified offensive plays and 154 defensive plays. Enumerate the exact

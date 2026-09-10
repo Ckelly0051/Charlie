@@ -1543,7 +1543,28 @@ export class StatsEngine {
         explosives: null, touchdowns: null, turnovers: null, refs: [], plays: [] };
       const runs = rows.filter(StatsEngine.isRun);
       const passes = rows.filter(StatsEngine.isPass);
-      const yards = rows.reduce((sum, p) => sum + yard(p), 0);
+      /* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT.
+       *
+       * `yards` summed EVERY defensive snap while `runYards` and `passYards`
+       * summed the classified run and pass subsets, so the three columns were
+       * never one cohort and the residual was invisible: OLL showed 132 above
+       * 72 + 55, Week 3 showed 130 above 120, and Week 6 showed 28 above 43 —
+       * components EXCEEDING the total, because five unclassified
+       * `Penalty + Loss` snaps carried -15 yards between them. The season
+       * reconciled only by coincidence: -5 + 0 + 10 + 5 + 5 - 15 = 0.
+       *
+       * Penalty-only yardage is not offensive yards allowed, so all three
+       * columns come from the same classified run/pass cohort. Runs and passes
+       * are disjoint on this data, but the union is taken rather than added so
+       * a snap tagged both could never be counted twice.
+       *
+       * `ypp` keeps `rows.length` — every defensive snap the unit was on the
+       * field for — which is what the approved 2.9 KPI is measured over.
+       * Moving that denominator to the classified count would make it 3.2 and
+       * change an approved value; that is a coach decision, recorded in
+       * design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md. */
+      const scrimmage = [...new Set([...runs, ...passes])];
+      const yards = scrimmage.reduce((sum, p) => sum + yard(p), 0);
       const turnovers = rows.reduce((sum, p) => sum
         + (StatsEngine.hasResult(p, 'Interception') ? 1 : 0)
         + (StatsEngine.isFumbleRecovered(p) ? 1 : 0), 0);

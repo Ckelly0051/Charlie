@@ -231,8 +231,28 @@ const canonical = await page.evaluate(() => {
     directions: model.directions.map(row => ({ name: row.name, n: row.n, runs: row.runs,
       passes: row.passes, isRelative: row.isRelative })),
     driveOutcomes: model.driveOutcomes.map(row => ({ name: row.name, n: row.n, pct: row.pct })),
+    byGame: model.byGame.map(row => ({ name: row.name, yards: row.yards,
+      rush: row.runYards, pass: row.passYards })),
   };
 });
+/* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT, on every row.
+   `yards` used to sum EVERY defensive snap while rush and pass summed the
+   classified subsets, so the three columns were never one cohort: OLL printed
+   132 above 72 + 55, and Week 6 printed 28 above 43 — components EXCEEDING
+   the total, because five unclassified `Penalty + Loss` snaps carried -15
+   between them. The season reconciled only by coincidence
+   (-5 + 0 + 10 + 5 + 5 - 15 = 0), which is why nothing caught it. */
+const unreconciled = canonical.byGame.filter(row => row.yards !== (row.rush || 0) + (row.pass || 0));
+ok(unreconciled.length === 0,
+  'every Game-by-game row reconciles: Total yds equals Rush yds plus Pass yds',
+  JSON.stringify(unreconciled));
+const oll = canonical.byGame.find(row => /OL Lakes/.test(row.name));
+ok(oll && oll.yards === 127 && oll.rush === 72 && oll.pass === 55,
+  'the canonical Week 5 defensive line is 127 = 72 + 55, penalty-only yardage excluded',
+  JSON.stringify(oll));
+ok(canonical.byGame.reduce((sum, row) => sum + row.yards, 0) === canonical.yards,
+  'the six game rows sum to the season total rather than agreeing by coincidence',
+  JSON.stringify({ rows: canonical.byGame.map(r => r.yards), season: canonical.yards }));
 ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
   && canonical.ypp === 2.9 && canonical.turnovers === 2 && canonical.explosives === 7,
   'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));

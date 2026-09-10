@@ -93,3 +93,18 @@ diff was audited row by row before regenerating: every pre-existing row
 survives with identical values, every added row carries `held: true`, `numbers`
 and all drilldowns are byte-identical, and the remainder of `reports` differs
 only by the bucket relabel. Per scope the row count goes 5/4/3 -> 12.
+
+## Defensive yardage cohort
+
+`Total Yds = Rush Yds + Pass Yds` on every Defense row. All three come from the
+same classified run/pass cohort, taken as a union so a snap tagged both could
+never count twice. Penalty-only yardage is not offensive yards allowed.
+
+OLL is now 127 = 72 + 55, the coach's stated expected result. The approved
+season KPI values are unchanged (497 / 271 / 226 / 2.9), because the season
+delta was already zero - by coincidence, not by construction.
+
+**Open for the coach:** `ypp` still divides by every defensive snap
+(`rows.length`), which is what the approved `2.9` is measured over. Moving that
+denominator to the classified count makes it `3.2`. That changes an approved
+value and was deliberately NOT decided here.
