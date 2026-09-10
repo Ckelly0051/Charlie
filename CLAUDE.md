@@ -7,17 +7,18 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-74` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-75` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-74` is the current unsigned Windows smoke
-candidate, versioned in `c8cb4e3` after the release-gate repairs in `c869140`.
-The complete gate passed 105/105 with real data 10/10 and parity 2/2 before
-packaging. Tauri produced both NSIS and MSI packages; its final process status
-is nonzero only because updater-artifact signing has no private key on this
-machine, the documented local-candidate condition in `TAURI.md`. The installed
-whole-Reports Charlie Gate remains open. See `SMOKE-1.12.0-74.md`.
+**Packaging status:** `1.12.0-75` is the current unsigned Windows smoke
+candidate, versioned in `0a50e7c` after the Reports title and release-gate
+repairs in `c9b91cb` and `6eec197`. The complete gate passed 109/109 with real
+data 10/10 and parity 2/2 before packaging. Tauri produced both NSIS and MSI
+packages successfully with updater signing intentionally disabled by
+`--no-sign`, the documented local-candidate condition in `TAURI.md`. Installed
+smoke is still required; this candidate is not accepted or published. See
+`SMOKE-1.12.0-75.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
@@ -229,8 +230,9 @@ surface owner and pin every module count in both synthetic sparse/overflow tests
 and canonical-season captures. Do not solve a data mismatch by stretching rows,
 shrinking type, or inventing explanatory prose.
 
-**Current visual release truth (2026-09-06).** `1.12.0-70` is the last accepted
-installed smoke candidate. `1.12.0-74` is `REJECTED`: its Reports production
+**Current visual release truth (2026-09-10).** `1.12.0-70` is the last accepted
+installed smoke candidate. `1.12.0-75` is awaiting installed smoke and is not
+accepted release state. `1.12.0-74` remains `REJECTED`: its Reports production
 does not faithfully preserve the individually approved report compositions,
 and its installed Home presentation was reported visually off. Any older
 section below describing a Reports implementation as complete, approved, or

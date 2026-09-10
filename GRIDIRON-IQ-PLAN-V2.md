@@ -7,10 +7,10 @@
 > customer data.
 
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production and gate-verified. The unsigned Windows `1.12.0-74` candidate was
-> packaged from version commit `c8cb4e3` after the release-gate repairs in
-> `c869140`; its complete gate passed 105/105 with real data 10/10 and parity
-> 2/2. It is pending the whole-Reports installed Charlie Gate and is not accepted
+> production and gate-verified. The unsigned Windows `1.12.0-75` candidate was
+> packaged from version commit `0a50e7c` after the Reports title and release-gate
+> repairs in `c9b91cb` and `6eec197`; its complete gate passed 109/109 with real
+> data 10/10 and parity 2/2. It is pending installed smoke and is not accepted
 > release state. Home remains accepted through `f615fcd`
 > and its `1.12.0-70` smoke. The Step 2 documentation/repository-hygiene pass,
 > global-bridge retirement, and CSS-ownership cleanup remain complete and
@@ -659,11 +659,11 @@ Retain every meaningful production field while reducing everyday clutter.
 > Program tabs are built: Overview, Offense, Defense, Special Teams, Players,
 > Self-Scout, Season and Matchup. Their populated desktop comps and focused
 > harnesses are complete, but none is coach-accepted until the whole route is
-> reviewed in an installed build. Release repairs through `c869140` leave the
-> complete gate 105/105, real data 10/10 and parity 2/2. Shared chrome now
+> reviewed in an installed build. Release repairs through `6eec197` leave the
+> complete gate 109/109, real data 10/10 and parity 2/2. Shared chrome now
 > follows actual scope: game-only score/KPI framing cannot appear over a
-> full-season or matchup board. The unsigned `1.12.0-74` candidate was packaged
-> from `c8cb4e3` and is now in the whole-Reports Charlie Gate.
+> full-season or matchup board. The unsigned `1.12.0-75` candidate was packaged
+> from `0a50e7c` and is awaiting installed smoke.
 > Season's `Games` count includes scheduled Our Program games while its
 > `Yards / Game` denominator includes only offense-charted games; that
 > eligibility distinction is intentional, not a defect.
