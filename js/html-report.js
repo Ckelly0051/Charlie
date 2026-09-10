@@ -303,7 +303,8 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
     { key: 'avg', label: 'Yards / Play' },
     { key: 'success', label: 'Success', value: row => `${row.succRate}%` },
     { key: 'explosives', label: 'Explosive' }, { key: 'tds', label: 'TD' },
-    { key: 'turnovers', label: 'Giveaways' },
+    // A giveaway IS a turnover; Reports and their exports say Turnovers.
+    { key: 'turnovers', label: 'Turnovers' },
     { key: 'run', label: 'Run / Pass', value: row => `${row.runPct}% / ${row.passPct}%` },
   ];
   const callColumns = outcomeColumns.slice(0, 4);

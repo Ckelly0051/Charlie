@@ -275,9 +275,12 @@ ok(JSON.stringify(quarters.head) === JSON.stringify(['Quarter', 'For', 'Against'
   'the quarter table carries For, Against and Margin', JSON.stringify(quarters.head));
 ok(quarters.body.every(row => num(row[3]) === num(row[1]) - num(row[2])),
   'each quarter margin is its own For minus Against', JSON.stringify(quarters.body));
-ok(/takeaways/.test(quarters.foot[1]) && /giveaways/.test(quarters.foot[2])
+/* The row is labelled Turnovers, so its two cells name the DIRECTION rather
+   than repeating the legacy word "giveaways" beside it. */
+ok(/gained/.test(quarters.foot[1]) && /lost/.test(quarters.foot[2])
+  && !/giveaway/i.test(quarters.foot.join(' '))
   && num(quarters.foot[3]) === m.summary.turnoverMargin,
-'the turnovers row states takeaways, giveaways and the same aggregate margin', JSON.stringify(quarters.foot));
+'the turnovers row states what was gained and lost, and the same aggregate margin', JSON.stringify(quarters.foot));
 const overviewText = await page.evaluate(() => document.querySelector('.gi-season-sections').textContent);
 ok(!/Situational Scorecard|Turnovers & Scoring|Game at a Glance/.test(overviewText),
   'the generic Overview board is not rendered beneath the Season modules');

@@ -699,6 +699,45 @@ ok(stacked.length === 0, 'the two-column summary layouts hold through 1280', sta
 await page.setViewport({ width: 1440, height: 900 });
 await sleep(200);
 
+/* ══ Twelve fixed down-and-distance rows, explicit yardage labels ═════════
+   `downDistRows` returned only the buckets the cohort happened to observe,
+   volume-sorted and sliced to fifteen, so the situations an offense never
+   faced simply vanished and the board was not comparable between games. And
+   `_ddPretty` printed the ENGINE's internal bucket names — "1st & Long" —
+   everywhere except Reports > Defense, which patched the string at three call
+   sites. `_ddPretty` is now the one owner of the approved wording. */
+console.log('\n== Down and distance: twelve fixed rows, explicit yardage ==');
+await load(FULL);
+await setSection('Calls & Situations');
+const dd = await page.evaluate(() => {
+  const mod = [...document.querySelectorAll('.gi-ss-module')]
+    .find(m => m.querySelector('header strong')?.textContent.trim() === 'By down and distance');
+  if (!mod) return null;
+  return [...mod.querySelectorAll('tbody tr')].map(tr =>
+    [...tr.children].map(td => td.textContent.trim()));
+});
+const DD_EXPECTED = ['1st & 1-3', '1st & 4-6', '1st & 7+', '2nd & 1-3', '2nd & 4-6', '2nd & 7+',
+  '3rd & 1-3', '3rd & 4-6', '3rd & 7+', '4th & 1-3', '4th & 4-6', '4th & 7+'];
+ok(dd !== null, 'the By down and distance module renders');
+ok(JSON.stringify((dd || []).map(r => r[0])) === JSON.stringify(DD_EXPECTED),
+  'all twelve down-and-distance combinations render in football order with explicit yardage',
+  JSON.stringify((dd || []).map(r => r[0])));
+ok(!(dd || []).some(r => /\b(Short|Medium|Long)\b/.test(r[0])),
+  'no row prints the engine\'s internal bucket name instead of its yardage',
+  JSON.stringify((dd || []).map(r => r[0]).filter(x => /\b(Short|Medium|Long)\b/.test(x))));
+/* An unobserved bucket is HELD, never a fabricated zero. */
+const heldRows = (dd || []).filter(r => r.slice(1).every(c => c === '-'));
+const zeroRows = (dd || []).filter(r => r[1] === '0');
+ok(zeroRows.length === 0,
+  'an unfaced situation holds its row with the approved absence treatment, never a 0 sample',
+  JSON.stringify(zeroRows.slice(0, 3)));
+ok(heldRows.length + (dd || []).filter(r => r[1] !== '-').length === 12,
+  'every one of the twelve rows is either populated or held', JSON.stringify({ held: heldRows.length, total: dd?.length }));
+/* The legacy word is gone from the board. */
+const boardText = await page.evaluate(() => document.querySelector('.gi-selfscout-board')?.textContent || '');
+ok(!/giveaway/i.test(boardText), 'the board says Turnovers, never Giveaways',
+  (boardText.match(/.{0,30}[Gg]iveaway.{0,20}/) || [''])[0]);
+
 /* ══ Defensive tendencies never report a dimension as predictive of itself ══
    `_defTellsFrom` is dimension-agnostic and emitted a Front tell and a
    Coverage tell for EVERY grouping. Grouped by front, every play in the

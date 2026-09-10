@@ -35,7 +35,9 @@ export function overviewKpis(stats) {
     { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successes || 0} successful snaps`, cls: 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
     { label: 'Explosive Plays', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
-    { label: 'Turnovers', value: giveaways, sub: 'giveaways' },
+    // The tile already says Turnovers; the sub said the same thing in the
+    // legacy word. It names the side instead, which is the fact it can add.
+    { label: 'Turnovers', value: giveaways, sub: 'lost by our offense' },
     { label: 'Plays for loss', value: stats.efficiency.negativePlays, sub: `${stats.efficiency.negativePct}% of snaps` },
     { label: 'Penalties', value: penalty.hasData ? penalty.accepted : 0, sub: penalty.hasData ? `${penalty.subjectYards} yards accepted` : 'none charted' },
   ];

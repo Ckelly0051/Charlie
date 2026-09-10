@@ -245,6 +245,24 @@ output; the charted count and the phase counts ride beside it as
 **non-enumerable** `stats.chartedPlays` and `stats.phaseCounts`, the same
 pattern `orderedPlays` already uses.
 
+**`_ddPretty` owns down-and-distance wording, and Reports say `Turnovers`.**
+`Short` / `Medium` / `Long` are `_distBucket`'s internal bucket names; a coach
+reads the yardage, so `StatsEngine.DIST_LABELS` maps them to `1-3` / `4-6` /
+`7+` inside `_ddPretty`. Reports > Defense already showed those labels but
+patched the string at three call sites, which is exactly why every other
+surface printed `1st & Long`. Those `.replace` chains are deleted. A film cut
+carries the raw `1|Long` key, never the display label, so resolution is
+unaffected. `Giveaways` is gone from every Reports surface and export; the
+engine's `isGiveaway` / `turnovers.giveaways` field names are correct domain
+vocabulary and stay.
+
+**Twelve fixed down-and-distance rows.** Self-Scout's `downDistRows` returned
+only the buckets a cohort observed, volume-sorted and sliced to fifteen, so
+Week 5 rendered eight rows in frequency order and the situations the offense
+never faced vanished. `_selfScoutDownDistanceRows` renders all twelve in
+football order. An unfaced bucket is HELD — `held: true`, `-` in every measured
+cell, and no film affordance — never a fabricated `0`.
+
 **A phase is counted from the snap, never by subtraction.** Overview derived
 Snaps by phase's Special Teams row as `allPlays - offense - defense` over the
 classified cohort, so a game with 13 special-teams snaps reported 1 — the lone

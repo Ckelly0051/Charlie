@@ -1679,7 +1679,7 @@ export class StatsEngine {
       const blitzRows = rows.filter(p => String(p.tags.blitz || '').trim());
       const baseRows = rows.filter(StatsEngine.isNoBlitz);
       const pressureRows = [...blitzRows, ...baseRows];
-      return { key, name: this._ddPretty(key).replace('Short', '1-3').replace('Medium', '4-6').replace('Long', '7+'),
+      return { key, name: this._ddPretty(key),
         n: rows.length, blitzPct: pressureRows.length ? Math.round(blitzRows.length / pressureRows.length * 100) : null,
         blitzYpp: summarize('', blitzRows).ypp, baseYpp: summarize('', baseRows).ypp, refs: refsOf(rows) };
     });
@@ -1688,7 +1688,7 @@ export class StatsEngine {
     const ddRows = ['1', '2', '3', '4'].flatMap(down => distanceOrder.map(bucket => {
       const key = `${down}|${bucket}`;
       const rows = source.filter(p => this._ddKey(p.tags) === key);
-      const row = summarize(this._ddPretty(key).replace('Short', '1-3').replace('Medium', '4-6').replace('Long', '7+'), rows);
+      const row = summarize(this._ddPretty(key), rows);
       // Frequency answers "what did we call here?" and therefore includes a
       // charted call even when play type is absent. Performance rankings above
       // require classification; situational call share does not.
@@ -4395,15 +4395,22 @@ export class StatsEngine {
     return `${d}|${StatsEngine._distBucket(dist)}`;
   }
 
+  /** The approved wording for each distance bucket. `Short`/`Medium`/`Long`
+   *  are the ENGINE's internal bucket names (`_distBucket`); a coach reads the
+   *  yardage. The Reports > Defense board already showed these, but by
+   *  patching the string at three call sites — so every other surface printed
+   *  "1st & Long" while Defense printed "1st & 7+". This is the one owner. */
+  static DIST_LABELS = { Short: '1-3', Medium: '4-6', Long: '7+' };
+
   /** Pretty-print a down&distance key. Handles the bucket form ("3|Long" →
-   *  "3rd & Long"), the legacy exact form ("3&7" → "3rd & 7"), and a bare
+   *  "3rd & 7+"), the legacy exact form ("3&7" → "3rd & 7"), and a bare
    *  down ("3" → "3rd"). */
   _ddPretty(key) {
     const s = String(key);
     const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
     if (s.includes('|')) {
       const [d, bucket] = s.split('|');
-      return `${ord[d] || d} & ${bucket}`;
+      return `${ord[d] || d} & ${StatsEngine.DIST_LABELS[bucket] || bucket}`;
     }
     const [d, dist] = s.split('&');
     const o = ord[d] || `${d}`;
@@ -4477,6 +4484,29 @@ export class StatsEngine {
         };
       })
       .sort((a, b) => b.n - a.n);
+  }
+
+  /**
+   * The TWELVE down-and-distance situations, always all twelve, in football
+   * order: first through fourth down crossed with 1-3, 4-6 and 7+ yards.
+   *
+   * `_selfScoutRows(byDownDist)` returned only the buckets the cohort happened
+   * to observe, sorted by volume and sliced to fifteen — so Week 5 rendered
+   * eight rows in frequency order and the four situations the offense never
+   * faced simply vanished. A fixed football set renders every category,
+   * including the empty ones, which is what makes the board comparable between
+   * games. An unobserved bucket is HELD, not zero: `held` is set so the view
+   * can render the approved absence treatment rather than a fabricated 0.0.
+   */
+  _selfScoutDownDistanceRows(byDownDist) {
+    const rows = this._selfScoutRows(byDownDist);
+    const found = new Map(rows.map(row => [row.key, row]));
+    return ['1', '2', '3', '4'].flatMap(down => StatsEngine.DIST_BUCKETS.map(bucket => {
+      const key = `${down}|${bucket}`;
+      return found.get(key) || { key, n: 0, held: true, runs: 0, passes: 0, yards: 0,
+        runPct: 0, passPct: 0, lean: '', leanPct: 0, avg: 0, succRate: 0,
+        runAvg: 0, passAvg: 0, explosives: 0, tds: 0, turnovers: 0, tell: false, refs: [] };
+    }));
   }
 
   /** What a defense does about a one-sided offensive tendency (the "so what")
@@ -5353,7 +5383,7 @@ export class StatsEngine {
       tells,
       matrix: this._selfScoutMatrix(plays),
       formationRows: this._selfScoutRows(byFormation),
-      downDistRows: this._selfScoutRows(byDownDist).sort((a, b) => b.n - a.n).slice(0, 15),
+      downDistRows: this._selfScoutDownDistanceRows(byDownDist),
       personnelRows: this._selfScoutRows(byPersonnel),
       personnelDiversity,
       recommendations,

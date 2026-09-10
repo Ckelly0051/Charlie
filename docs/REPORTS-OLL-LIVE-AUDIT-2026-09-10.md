@@ -52,11 +52,36 @@ resize a dashboard.
    negative plays, top and worst calls and the run/pass split. It counts
    `report.totalPlays`, the classified sample the summary is computed over —
    the same number the sample line beside it already stated.
-3. **Approved terminology and situation labels have drifted.** Self-Scout still
-   uses `Giveaways` instead of `Turnovers` and generic labels such as `1st &
-   Long`. Reports must use explicit yardage labels and represent all twelve
-   down-and-distance combinations: first through fourth down crossed with
-   Short, Medium and Long.
+3. **Approved terminology and situation labels have drifted. REPAIRED.**
+
+   `Giveaways` is gone from every Reports surface and export:
+   `ssOutcomeColumns` (Self-Scout, shared by four tables),
+   `buildSelfScoutHtmlReport`'s outcome columns, Overview's Turnovers KPI sub
+   (which said the same word twice) and the Season quarter table's turnover
+   row (now `N gained` / `N lost`). The engine's own `isGiveaway` /
+   `turnovers.giveaways` field names are unchanged, which is correct domain
+   vocabulary and explicitly permitted.
+
+   `StatsEngine._ddPretty` now owns the approved wording through
+   `StatsEngine.DIST_LABELS` — `Short → 1-3`, `Medium → 4-6`, `Long → 7+`.
+   Reports > Defense already showed those labels, but by patching the string at
+   **three call sites**, which is why every other surface printed `1st & Long`
+   while Defense printed `1st & 7+`. Those `.replace` chains are deleted. Film
+   cut resolution is unaffected: cuts carry the raw `1|Long` key, never the
+   display label, and every Study harness stayed green.
+
+   `generateSelfScout().downDistRows` returned only the buckets a cohort
+   happened to observe, volume-sorted and sliced to fifteen — Week 5 rendered
+   eight rows in frequency order and the four situations the offense never
+   faced vanished. `_selfScoutDownDistanceRows` renders the fixed twelve in
+   football order. An unfaced bucket is HELD (`held: true`) and every measured
+   cell shows `-`, never a fabricated `0`, `0.0` or `0%`, and a held row offers
+   no film affordance.
+
+   The `e2e-parity` golden correction was audited row by row: every
+   pre-existing `downDistRows` row survives with **identical values**, every
+   added row is `held`, `numbers` and all drilldowns are byte-identical, and
+   the rest of `reports` differs only by the bucket relabel.
 4. **Self-Scout defensive tendencies admit invalid situations. REPAIRED.** Not
    a tag-category collision: `_defTellsFrom` is dimension-agnostic and emitted
    a Front tell AND a Coverage tell for every grouping it was handed.

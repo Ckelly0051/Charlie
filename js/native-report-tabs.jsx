@@ -1781,7 +1781,7 @@ function SeasonOverview({ model }) {
           <tfoot><tr>
             <td class="tl">Turnovers</td>
             {scoring.margin == null ? <><td>{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td><td>{SEASON_NO_DATA}</td></>
-              : <><td>{scoring.takeaways} takeaways</td><td>{scoring.giveaways} giveaways</td>
+              : <><td>{scoring.takeaways} gained</td><td>{scoring.giveaways} lost</td>
                 <td class={seasonTone(scoring.margin)}>{seasonSigned(scoring.margin)}</td></>}
           </tr></tfoot>
         </table></div>
@@ -2207,21 +2207,30 @@ const SS_NO_OFFENSE = ['No offensive attribution', 'No offensive plays are class
 
 /* The shared offensive result shape: what the call/situation/formation/
    personnel produced, with run-pass share as the last supporting column. */
+/* A HELD row is a fixed football category the cohort never faced. It keeps its
+   label and renders the approved absence treatment in every measured cell —
+   never a fabricated 0, 0.0 or 0%. */
+const SS_HELD = '-';
+const ssCell = (row, render) => (row.held ? SS_HELD : render(row));
 const ssOutcomeColumns = label => [
   { key: 'display', label, tl: true, size: 'label', render: row => ssTrunc(row.display) },
-  { key: 'n', label: 'Plays', numeric: true, size: 'n' },
-  { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg' },
-  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => `${row.succRate}%` },
-  { key: 'explosives', label: 'Explosive', numeric: true, size: 'pct' },
-  { key: 'tds', label: 'TD', numeric: true, size: 'n' },
-  { key: 'turnovers', label: 'Giveaways', numeric: true, size: 'pct' },
-  { key: 'mix', label: 'Run / Pass', size: 'split', sortValue: row => row.runPct },
+  { key: 'n', label: 'Plays', numeric: true, size: 'n', render: row => ssCell(row, r => r.n) },
+  { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg', render: row => ssCell(row, r => r.avg) },
+  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => ssCell(row, r => `${r.succRate}%`) },
+  { key: 'explosives', label: 'Explosive', numeric: true, size: 'pct', render: row => ssCell(row, r => r.explosives) },
+  { key: 'tds', label: 'TD', numeric: true, size: 'n', render: row => ssCell(row, r => r.tds) },
+  // "Giveaways" was the last legacy label on this board; a giveaway IS a
+  // turnover, and Reports say Turnovers.
+  { key: 'turnovers', label: 'Turnovers', numeric: true, size: 'pct', render: row => ssCell(row, r => r.turnovers) },
+  { key: 'mix', label: 'Run / Pass', size: 'split', sortValue: row => row.runPct,
+    render: row => ssCell(row, r => r.mix) },
 ];
 const ssOutcomeRows = (rows, screen, { cutType, display } = {}) => rows.map(row => {
   const text = display ? display(row.key) : row.key;
   const label = `${text} — ${row.n} plays`;
   return { ...row, id: row.key, display: text, label, mix: `${row.runPct} / ${row.passPct}`,
-    onActivate: ssWatch(screen, row, cutType, label) };
+    // A held row has no cohort behind it, so it gets no film affordance.
+    onActivate: row.held ? undefined : ssWatch(screen, row, cutType, label) };
 });
 
 const ssCallColumns = [
