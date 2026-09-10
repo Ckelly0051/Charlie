@@ -1242,7 +1242,9 @@ result = await page.evaluate(async () => {
 });
 ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html)
     && result.selfGames === 1 && result.allGames === 2
-    && new RegExp(`${result.selfGames} games, \\d+ charted plays`).test(result.html) && result.unchanged,
+    // The subtitle names the CLASSIFIED cohort against the CHARTED one; it used
+    // to print the classified count under the word "charted".
+    && new RegExp(`${result.selfGames} games, \\d+ of \\d+ plays classified`).test(result.html) && result.unchanged,
   'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data',
   JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged,selfGames:result.selfGames,allGames:result.allGames}));
 

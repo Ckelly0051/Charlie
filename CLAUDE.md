@@ -232,6 +232,27 @@ surface owner and pin every module count in both synthetic sparse/overflow tests
 and canonical-season captures. Do not solve a data mismatch by stretching rows,
 shrinking type, or inventing explanatory prose.
 
+**Reports name the cohort they measure.** Two cohorts run through every Reports
+surface and they are not interchangeable. The **charted** cohort is every snap
+the coach charted. The **classified** cohort is the subset carrying a
+`playType` or `runPass`, which is what `StatsEngine.compute()` narrows to and
+what every production measure is computed over. On the canonical Week 5 game
+those are 83 and 64. A count must state which one it is: Overview's Total plays
+is the charted count with the classified count as its qualifier, and the HTML
+exports say `N of M plays classified`. `stats.allPlays` keeps its existing
+meaning — the classified count — because `e2e-parity` serializes compute()'s
+output; the charted count and the phase counts ride beside it as
+**non-enumerable** `stats.chartedPlays` and `stats.phaseCounts`, the same
+pattern `orderedPlays` already uses.
+
+**A phase is counted from the snap, never by subtraction.** Overview derived
+Snaps by phase's Special Teams row as `allPlays - offense - defense` over the
+classified cohort, so a game with 13 special-teams snaps reported 1 — the lone
+XP that happens to carry a play type — and Week 2 reported 0 against 8. The
+three rows are counted from `tags.unit` over the complete charted cohort and
+sum to it. Yards per play stays on the classified production cohort, because a
+yards-per-play over an unclassified snap states nothing.
+
 **Current visual release truth (2026-09-10).** `1.12.0-70` is the last accepted
 installed smoke candidate. `1.12.0-77` is an ungated local handoff and is not
 accepted release state. `1.12.0-74` remains `REJECTED`: its Reports production

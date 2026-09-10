@@ -410,6 +410,33 @@ export class StatsEngine {
        conversion plays, for precisely this reason. */
     Object.defineProperty(stats, 'orderedPlays', { value: convSource, enumerable: false });
 
+    /* THE CHARTED COHORT, kept beside the CLASSIFIED one.
+     *
+     * `stats.allPlays` is the classified cohort — snaps carrying a playType or
+     * runPass — and every analytics measure above is computed over it. It is
+     * NOT the number of plays the coach charted, and Overview presented it as
+     * "N charted · 100%", which on the canonical Week 5 game claimed 64 of 64
+     * when 83 were charted and only 77% were classifiable.
+     *
+     * The phase counts have the same problem in a worse form: Overview derived
+     * Special Teams by SUBTRACTION (allPlays - offense - defense), so a game
+     * with 13 special-teams snaps reported 1 — the single XP that happens to
+     * carry a play type. A phase is a property of the snap, so it is counted
+     * from the snap, over the complete charted source.
+     *
+     * Non-enumerable ON PURPOSE, exactly like `orderedPlays`: `e2e-parity`
+     * JSON-serializes compute()'s output, so an enumerable addition here would
+     * drift every golden. The classified cohort keeps its meaning and its
+     * name; the charted cohort gets its own. */
+    const phaseOf = play => {
+      const unit = play?.tags?.unit || 'offense';
+      return unit === 'defense' || unit === 'special' ? unit : 'offense';
+    };
+    const phaseCounts = { offense: 0, defense: 0, special: 0 };
+    convSource.forEach(play => { phaseCounts[phaseOf(play)] += 1; });
+    Object.defineProperty(stats, 'chartedPlays', { value: convSource.length, enumerable: false });
+    Object.defineProperty(stats, 'phaseCounts', { value: phaseCounts, enumerable: false });
+
     return stats;
   }
 

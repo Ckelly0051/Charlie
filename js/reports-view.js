@@ -19,11 +19,20 @@ export function overviewKpis(stats) {
   const yardsPerPlay = stats.offPlays.length ? (totalYards / stats.offPlays.length).toFixed(1) : '—';
   const penalty = stats.penalties || {};
   const giveaways = stats.turnovers?.giveaways ?? stats.offenseTurnovers ?? 0;
+  // The CHARTED cohort is the headline; the CLASSIFIED cohort is its qualifier.
+  // `stats.allPlays` is the classified count every measure below is computed
+  // over — it is not the number of plays charted, and printing it as
+  // "N charted · 100%" claimed 64 of 64 on a game with 83 charted snaps.
+  const charted = stats.chartedPlays ?? stats.allPlays;
+  const classifiedPct = charted ? Math.round(stats.allPlays / charted * 100) : 0;
   return [
     // The approved Overview separates a count from its qualifier with a middot,
     // not a comma (design-approvals/reports/overview: "63 charted · 100%").
-    { label: 'Total plays', value: stats.allPlays, sub: `${stats.allPlays} charted · 100%` },
-    { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successfulPlays || 0} successful snaps`, cls: 'is-good' },
+    { label: 'Total plays', value: charted, sub: `${stats.allPlays} of ${charted} classified · ${classifiedPct}%` },
+    // `successes` is the field `_efficiencyStats` actually returns. The old
+    // `successfulPlays` never existed, so this sub printed a constant 0 beneath
+    // a nonzero success rate on every game and every season.
+    { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successes || 0} successful snaps`, cls: 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
     { label: 'Explosive Plays', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
     { label: 'Turnovers', value: giveaways, sub: 'giveaways' },
@@ -33,17 +42,27 @@ export function overviewKpis(stats) {
 }
 
 export function snapsByPhase(stats) {
-  const off = stats.offPlays.length, def = stats.defPlays.length;
-  const special = Math.max(0, stats.allPlays - off - def);
+  /* A phase is a property of the snap, so it is COUNTED from the snap over the
+   * complete charted cohort. Special Teams used to be derived by subtraction
+   * (allPlays - offense - defense) from the CLASSIFIED cohort, which reported 1
+   * for a game holding 13 special-teams snaps: only the lone XP carrying a play
+   * type survived that cohort. Yards per play stays on the classified
+   * production cohort, because a yards-per-play over an unclassified snap
+   * states nothing. */
+  const counts = stats.phaseCounts;
+  const off = counts ? counts.offense : stats.offPlays.length;
+  const def = counts ? counts.defense : stats.defPlays.length;
+  const special = counts ? counts.special : Math.max(0, stats.allPlays - stats.offPlays.length - stats.defPlays.length);
   const total = Math.max(1, off + def + special);
   const offYards = stats.rushing.yards + stats.passing.yards;
   const defYards = stats.defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage, 10) || 0), 0);
+  const offClassified = stats.offPlays.length, defClassified = stats.defPlays.length;
   const row = (label, count, ypp, cls) => ({ label, count, share: Math.round(count / total * 100), ypp: count ? ypp : '—', cls });
   return {
     total: off + def + special, off, def, special,
     rows: [
-      row('Offense', off, off ? (offYards / off).toFixed(1) : '—', 'is-offense'),
-      row('Defense', def, def ? `${(defYards / def).toFixed(1)} allowed` : '—', 'is-defense'),
+      row('Offense', off, offClassified ? (offYards / offClassified).toFixed(1) : '—', 'is-offense'),
+      row('Defense', def, defClassified ? `${(defYards / defClassified).toFixed(1)} allowed` : '—', 'is-defense'),
       row('Special Teams', special, '—', 'is-special'),
     ],
   };

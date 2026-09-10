@@ -118,8 +118,12 @@ const stylesheet = `
 
 const documentShell = ({ title, subtitle, meta, body }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${stylesheet}</style></head><body><main class="page"><header class="masthead"><div><div class="brand">Gridiron IQ Report</div><h1>${esc(title)}</h1>${subtitle ? `<p>${esc(subtitle)}</p>` : ''}</div><div class="meta">${esc(meta)}</div></header>${body}</main></body></html>`;
 
+/* `stats.allPlays` is the CLASSIFIED cohort, not the charted one. Printed as
+ * "N charted plays" the export made the same false claim Overview did. */
+const chartedLine = stats => `${stats.allPlays} of ${stats.chartedPlays ?? stats.allPlays} plays classified`;
+
 export function buildGameHtmlReport({ title, stats, engine, generatedAt = new Date() }) {
-  return documentShell({ title, subtitle: `${stats.allPlays} charted plays`, meta: `Generated ${generatedAt.toLocaleString()}`,
+  return documentShell({ title, subtitle: chartedLine(stats), meta: `Generated ${generatedAt.toLocaleString()}`,
     body: sharedBody({ stats, engine }) });
 }
 
@@ -166,7 +170,7 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
     { key: 'wins', label: `Wins (${winLoss?.winCount ?? 0})` },
     { key: 'losses', label: `Losses (${winLoss?.lossCount ?? 0})` },
   ], winLoss?.rows)}`;
-  return documentShell({ title, subtitle: `${summary.games} games, ${stats.allPlays} charted plays`, meta: `Generated ${generatedAt.toLocaleString()}`,
+  return documentShell({ title, subtitle: `${summary.games} games, ${chartedLine(stats)}`, meta: `Generated ${generatedAt.toLocaleString()}`,
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }
 

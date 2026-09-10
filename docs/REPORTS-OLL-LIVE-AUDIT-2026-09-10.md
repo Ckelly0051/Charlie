@@ -18,11 +18,31 @@ resize a dashboard.
 
 ## Investigation Ledger
 
-1. **Overview play cohorts do not reconcile.** The page reports `83/83` charted
-   and the shared phase rail reports `30 offense / 40 defense / 13 special
-   teams`, while Overview reports `64 Total Plays` and `26 / 37 / 1` by phase.
-   Identify every eligibility rule and determine which values are wrong versus
-   mislabeled.
+1. **Overview play cohorts do not reconcile. REPAIRED.** The page reported
+   `83/83` charted and the shared phase rail `30 offense / 40 defense / 13
+   special teams`, while Overview reported `64 Total Plays` and `26 / 37 / 1`
+   by phase. Every number was arithmetically correct and three labels were
+   false. `stats.allPlays` is the CLASSIFIED cohort (`playType || runPass`) and
+   was printed as `64 charted · 100%`; Snaps by phase derived Special Teams by
+   subtracting offense and defense from that same classified cohort, which is
+   why 13 special-teams snaps read as 1.
+
+   Overview now reports `Total plays 83` with the sub `64 of 83 classified ·
+   77%`, and Snaps by phase counts each phase from the charted cohort:
+   `Offense 30 (36%) / Defense 40 (48%) / Special Teams 13 (16%)`, `83 total`.
+   The charted count and phase counts ride on `stats` as non-enumerable
+   `chartedPlays` / `phaseCounts` so `e2e-parity` goldens do not drift; parity
+   stayed 2/2. The HTML exports carry the same correction.
+
+   Found while verifying it: the Success rate sub read
+   `stats.efficiency.successfulPlays`, a field `_efficiencyStats` never
+   returns, so it printed a constant `0 successful snaps` beneath a nonzero
+   rate on every game and every season. It reads `efficiency.successes` and
+   OLL now shows `7 successful snaps` beneath `26.9%`.
+
+   Four OLL plays (ids 63, 67, 76, 90 — two sacks, a pass, a run) carry no
+   `unit` tag. They render correctly through the documented offense default and
+   are **not** repaired here; they are raised for the coach, not inferred.
 2. **Self-Scout Offensive Summary reports a zero tab count while populated.**
    This occurs in both Current Game and Full Season. Trace the tab count
    separately from the content calculation.

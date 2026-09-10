@@ -586,7 +586,11 @@ const sparseExport = await page.evaluate(async () => {
   const model = window.app.season.reportModel();
   const rows = (captured.html.match(/<tbody>([\s\S]*?)<\/tbody>/) || [])[1] || '';
   return { games: model.summary.games, logRows: (rows.match(/<tr>/g) || []).length,
-    subtitle: (captured.html.match(/(\d+) games, \d+ charted plays/) || [])[1] };
+    // The export names the CLASSIFIED cohort against the CHARTED one; it used
+    // to print the classified count under the word "charted".
+    // The export names the CLASSIFIED cohort against the CHARTED one; it used
+    // to print the classified count under the word "charted".
+    subtitle: (captured.html.match(/(\d+) games, \d+ of \d+ plays classified/) || [])[1] };
 });
 ok(Number(sparseExport.subtitle) === sparseExport.games && sparseExport.logRows === sparseExport.games,
   'the exported Game Log has one row per game the export says the season has -- a scheduled game is not dropped',

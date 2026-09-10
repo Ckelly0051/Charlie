@@ -133,8 +133,26 @@ const passYards = pas.reduce((t, p) => (hasResult(p, 'Incomplete') || hasResult(
 const totalYards = rushYards + passYards;
 const defYards = def.reduce((t, p) => t + yds(p), 0);
 
+/* The CHARTED cohort and its phases, counted from every snap the coach charted
+ * — not from the classified subset. Overview used to print the classified count
+ * as "N charted · 100%" and derive Special Teams by subtraction, so Week 5
+ * claimed 64 of 64 charted and 1 special-teams snap against 83 and 13. */
+const phaseUnit = p => {
+  const unit = tags(p).unit || 'offense';
+  return unit === 'defense' || unit === 'special' ? unit : 'offense';
+};
+const phaseOff = activePlays.filter(p => phaseUnit(p) === 'offense');
+const phaseDef = activePlays.filter(p => phaseUnit(p) === 'defense');
+const phaseSt = activePlays.filter(p => phaseUnit(p) === 'special');
+
 const EXPECTED = {
   allPlays: classified.length,
+  charted: activePlays.length,
+  classifiedPct: activePlays.length ? Math.round(classified.length / activePlays.length * 100) : 0,
+  phaseOffense: phaseOff.length,
+  phaseDefense: phaseDef.length,
+  phaseSpecial: phaseSt.length,
+  successes: off.filter(isSuccess).length,
   offense: off.length,
   defense: def.length,
   totalYards,
@@ -244,8 +262,15 @@ ok(b.kpis.length === 7 && b.kpis[0].label === 'Total plays',
 
 /* ── Output reconciliation against the season's own plays ────────────────── */
 console.log('\n== Output reconciled against the canonical season ==');
-ok(b.kpis[0].value === String(EXPECTED.allPlays),
-  'Total plays equals the charted snaps in the game', `${b.kpis[0].value} vs ${EXPECTED.allPlays}`);
+ok(b.kpis[0].value === String(EXPECTED.charted),
+  'Total plays is the CHARTED snap count, not the classified subset',
+  `${b.kpis[0].value} vs ${EXPECTED.charted} charted (${EXPECTED.allPlays} classified)`);
+ok(b.kpis[0].sub === `${EXPECTED.allPlays} of ${EXPECTED.charted} classified · ${EXPECTED.classifiedPct}%`,
+  'the Total plays sub names both cohorts and never claims 100% of a partial one',
+  `${b.kpis[0].sub} vs "${EXPECTED.allPlays} of ${EXPECTED.charted} classified · ${EXPECTED.classifiedPct}%"`);
+ok(b.kpis[1].sub === `${EXPECTED.successes} successful snaps`,
+  'the Success rate sub counts the real successful snaps (efficiency.successes, not the nonexistent successfulPlays)',
+  `${b.kpis[1].sub} vs ${EXPECTED.successes}`);
 ok(b.kpis[1].value === `${EXPECTED.successRate}%`,
   'Success rate matches the success rule applied to every real snap',
   `${b.kpis[1].value} vs ${EXPECTED.successRate}%`);
@@ -268,9 +293,22 @@ for (const [label, value] of Object.entries(EXPECTED.defenseRows)) {
   ok(b.defenseRows[label] === value, `Defense & discipline: ${label} reconciles`,
     `${b.defenseRows[label]} vs ${value}`);
 }
-ok(b.phase[0]?.[1] === String(EXPECTED.offense) && b.phase[1]?.[1] === String(EXPECTED.defense),
-  'Snaps by phase reports the real offensive and defensive snap counts',
+ok(b.phase[0]?.[1] === String(EXPECTED.phaseOffense)
+  && b.phase[1]?.[1] === String(EXPECTED.phaseDefense),
+  'Snaps by phase reports the real offensive and defensive PHASE counts',
   JSON.stringify(b.phase.map(r => r.slice(0, 2))));
+/* Counted from the snap, never derived by subtraction: the residual form
+ * reported 1 for a game holding 13 special-teams snaps, because only the lone
+ * XP carrying a play type survived the classified cohort. */
+ok(b.phase[2]?.[1] === String(EXPECTED.phaseSpecial),
+  'Special Teams is COUNTED from the charted snaps, not left as a residual',
+  `${b.phase[2]?.[1]} vs ${EXPECTED.phaseSpecial}`);
+ok(b.metas['Snaps by phase'] === `${EXPECTED.charted} total`,
+  'the Snaps by phase total is the charted cohort and its three rows sum to it',
+  `${b.metas['Snaps by phase']} vs ${EXPECTED.charted} total`);
+ok(EXPECTED.phaseOffense + EXPECTED.phaseDefense + EXPECTED.phaseSpecial === EXPECTED.charted,
+  'the three phase counts account for every charted snap',
+  `${EXPECTED.phaseOffense}+${EXPECTED.phaseDefense}+${EXPECTED.phaseSpecial} vs ${EXPECTED.charted}`);
 ok(b.metas['Rushing'] === `${EXPECTED.rushing.Attempts} attempts`
   && b.metas['Passing'] === `${EXPECTED.passing['Completions / attempts'].split(' / ')[1]} attempts`,
   'the Rushing and Passing samples state the real attempt counts',
@@ -278,7 +316,7 @@ ok(b.metas['Rushing'] === `${EXPECTED.rushing.Attempts} attempts`
 
 /* ── Copy holds on real film ─────────────────────────────────────────────── */
 console.log('\n== Copy on real film ==');
-ok(/^\d+ charted · \d+%$/.test(b.kpis[0].sub),
+ok(/^\d+ of \d+ classified · \d+%$/.test(b.kpis[0].sub),
   'the Total plays sub keeps the approved middot form', JSON.stringify(b.kpis[0].sub));
 ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
   'the Drives meta keeps the approved middot form', JSON.stringify(b.metas['Offensive Drives']));

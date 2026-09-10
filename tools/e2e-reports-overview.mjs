@@ -97,9 +97,15 @@ const VIEWPORTS = [[1440, 900], [1280, 720], [768, 1024], [390, 844]];
 /* ══ The fixture, stated as literal plays ═════════════════════════════════
    Written out so this file can compute the expected report with plain
    arithmetic. The phase split reproduces the canonical capture's — 50
-   offensive, 13 defensive, 3 special-teams — and Snaps by phase reads 0
-   Special Teams because an ST snap carries no play type and never enters
-   `allPlays`. */
+   offensive, 13 defensive, 3 special-teams, 66 charted in all.
+
+   Snaps by phase used to read 0 Special Teams here, and this comment used to
+   explain that as correct: an ST snap carries no play type, so it never enters
+   `allPlays`, and the row was derived by SUBTRACTING offense and defense from
+   that classified cohort. It is a phase count, so it is now counted from the
+   snap over the complete charted cohort, and the three rows sum to 66. The
+   classified cohort (63) keeps its own name and its own place, as the
+   qualifier on Total plays. */
 const RUSHES = [ // [playType, down, distance, yardage, result]
   ['Run Inside', '1', '10', 6, 'Gain'], ['Run Inside', '1', '10', 4, 'Gain'],
   ['Run Inside', '2', '6', 9, 'Gain'], ['Run Inside', '1', '10', 3, 'Gain'],
@@ -155,10 +161,15 @@ const success = ([, down, dist, yds, result]) => {
 const OFF = [...RUSHES, ...PASSES];
 const rushYards = sum(RUSHES, r => r[3]);
 const passYards = sum(PASSES, p => p[3]);
+const SPECIAL_PLAYS = 3; // the fixture's stCount — see the builder below
 const EXPECTED = {
   offensePlays: OFF.length,
   defensePlays: DEFENSE.length,
+  specialPlays: SPECIAL_PLAYS,
+  // The CLASSIFIED cohort: every measure on the board is computed over it.
   allPlays: OFF.length + DEFENSE.length,
+  // The CHARTED cohort: what Total plays reports, and what the phase rows sum to.
+  chartedPlays: OFF.length + DEFENSE.length + SPECIAL_PLAYS,
   totalYards: rushYards + passYards,
   rushing: {
     Attempts: String(RUSHES.length),
@@ -469,8 +480,8 @@ console.log('\n== 4. Module header copy ==');
 for (const [name, meta] of Object.entries(FIXED_METAS)) {
   ok(b.metas[name] === meta, `${name} carries its approved meta`, JSON.stringify(b.metas[name]));
 }
-ok(/^\d+ charted · \d+%$/.test(b.kpis[0].sub),
-  'the Total plays sub uses the approved "charted · 100%" form', JSON.stringify(b.kpis[0].sub));
+ok(/^\d+ of \d+ classified · \d+%$/.test(b.kpis[0].sub),
+  'the Total plays sub names both cohorts in the approved middot form', JSON.stringify(b.kpis[0].sub));
 ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']) && /^\d+ drives · \d+ scored$/.test(b.metas['Defensive Drives']),
   'the Drives meta uses the approved "N drives · M scored" form', JSON.stringify(b.metas['Offensive Drives']));
 ok(/^\d+ · \d+ yds$/.test(b.defenseRows['Penalties accepted']),
@@ -495,8 +506,12 @@ ok(!b.sections.includes('Game plan'),
 
 /* ══ 6. Output parity — every value, against arithmetic done here ════════ */
 console.log('\n== 6. Output parity against independent arithmetic ==');
-ok(b.kpis[0].value === String(EXPECTED.allPlays),
-  'Total plays equals offensive plus defensive snaps', `${b.kpis[0].value} vs ${EXPECTED.allPlays}`);
+ok(b.kpis[0].value === String(EXPECTED.chartedPlays),
+  'Total plays is the CHARTED cohort — offense, defense AND special teams',
+  `${b.kpis[0].value} vs ${EXPECTED.chartedPlays}`);
+ok(b.kpis[0].sub === `${EXPECTED.allPlays} of ${EXPECTED.chartedPlays} classified · ${Math.round(EXPECTED.allPlays / EXPECTED.chartedPlays * 100)}%`,
+  'the Total plays sub states the classified cohort against the charted one',
+  JSON.stringify(b.kpis[0].sub));
 ok(b.kpis[1].value === EXPECTED.successRate,
   'Success rate matches the success definition applied play by play', `${b.kpis[1].value} vs ${EXPECTED.successRate}`);
 ok(b.kpis[2].value === EXPECTED.yardsPerPlay && b.kpis[2].sub === `${EXPECTED.totalYards} total yards`,
@@ -510,13 +525,20 @@ ok(eq(b.passing, EXPECTED.passing), 'every Passing value matches', JSON.stringif
 for (const [label, value] of Object.entries(EXPECTED.defense)) {
   ok(b.defenseRows[label] === value, `Defense & discipline: ${label} matches`, `${b.defenseRows[label]} vs ${value}`);
 }
+/* Shares are of the CHARTED cohort, and Special Teams carries its own real
+   count. Left as `allPlays - offense - defense` it read 0 here and, on the
+   canonical Week 2 game, reported 0 against 8 charted special-teams snaps. */
+const share = n => `${Math.round(n / EXPECTED.chartedPlays * 100)}%`;
 const phaseExpected = [
-  ['Offense', String(EXPECTED.offensePlays), '79%', EXPECTED.yardsPerPlay],
-  ['Defense', String(EXPECTED.defensePlays), '21%', `${one(sum(DEFENSE, d => d[2]) / DEFENSE.length)} allowed`],
-  ['Special Teams', '0', '0%', '—'],
+  ['Offense', String(EXPECTED.offensePlays), share(EXPECTED.offensePlays), EXPECTED.yardsPerPlay],
+  ['Defense', String(EXPECTED.defensePlays), share(EXPECTED.defensePlays), `${one(sum(DEFENSE, d => d[2]) / DEFENSE.length)} allowed`],
+  ['Special Teams', String(EXPECTED.specialPlays), share(EXPECTED.specialPlays), '—'],
 ];
 ok(eq(b.phase, phaseExpected), 'Snaps by phase reports each phase\'s own snaps, share and yards',
   JSON.stringify(b.phase));
+ok(b.metas['Snaps by phase'] === `${EXPECTED.chartedPlays} total`,
+  'the Snaps by phase meta is the charted cohort its rows sum to',
+  `${b.metas['Snaps by phase']} vs ${EXPECTED.chartedPlays} total`);
 const yardsExpected = EXPECTED.playTypes.map(t => [t.name, String(t.snaps), t.ypp, t.success]);
 ok(eq(b.yardsByType, yardsExpected),
   'Yards by type lists the fixed six play types with their own production', JSON.stringify(b.yardsByType));
