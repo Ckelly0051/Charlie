@@ -221,10 +221,12 @@ flattered the defense. 497/174 = 2.9; 497/154 = 3.2. The 2.9 was a value
 printed in a comp fixture, not an approved formula, so preserving it preserved
 the defect.
 
-`Snaps` deliberately still reports the CHARTED snap count. A column labelled
-Snaps that prints a classified subset is a new mislabelling, and the approved
-Opponent Offense contract counts every charted call in its situation. Total Yds
-and Yds / play are the classified production cohort. Raised for the Gate.
+Codex's follow-up review rejected the remaining mixed row. Production `Snaps`,
+Total Yds and Yds / play now use the same CLASSIFIED cohort so the displayed
+arithmetic reconciles. The complete sample remains available through an
+explicitly named `charted` field for call-frequency calculations and sample
+disclosure; the Opponent Offense frequency contract still counts every charted
+call in its situation.
 
 ### 3. An export prints its board's schema
 

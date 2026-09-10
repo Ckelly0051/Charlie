@@ -1539,7 +1539,7 @@ export class StatsEngine {
     const refsOf = cohort => [...new Set((cohort || []).map(StatsEngine._compositeRef).filter(Boolean))].sort();
     const summarize = (name, cohort) => {
       const rows = cohort || [];
-      if (!rows.length) return { name, n: null, held: true, runs: 0, passes: 0,
+      if (!rows.length) return { name, n: null, charted: null, held: true, runs: 0, passes: 0,
         yards: null, runYards: null, passYards: null, ypp: null,
         explosives: null, touchdowns: null, turnovers: null, refs: [], plays: [] };
       const runs = rows.filter(StatsEngine.isRun);
@@ -1559,7 +1559,13 @@ export class StatsEngine {
        * are disjoint on this data, but the union is taken rather than added so
        * a snap tagged both could never be counted twice.
        *
-       * `ypp` DIVIDES BY THAT SAME COHORT. Left on `rows.length` it charged
+       * `n` AND `ypp` USE THAT SAME COHORT. A production row cannot print the
+       * charted count beside classified yards and a classified rate: the three
+       * adjacent values would not reconcile. Keep the complete sample as the
+       * explicitly named `charted` field for call-frequency calculations and
+       * sample disclosure.
+       *
+       * Left on `rows.length`, `ypp` charged
        * the reduced yardage against every defensive snap, so each excluded
        * penalty row read as a zero-yard play and flattered the defense. The
        * approved 2.9 was a value printed in a comp fixture, not an approved
@@ -1571,7 +1577,7 @@ export class StatsEngine {
         + (StatsEngine.hasResult(p, 'Interception') ? 1 : 0)
         + (StatsEngine.isFumbleRecovered(p) ? 1 : 0), 0);
       return {
-        name, n: rows.length, classified: scrimmage.length,
+        name, n: scrimmage.length, charted: rows.length, classified: scrimmage.length,
         runs: runs.length, passes: passes.length, yards,
         runYards: runs.reduce((sum, p) => sum + yard(p), 0),
         passYards: passes.reduce((sum, p) => sum + yard(p), 0),

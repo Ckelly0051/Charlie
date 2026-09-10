@@ -567,9 +567,10 @@ cohort.** Left on every defensive snap it charged the reduced yardage against
 the excluded penalty rows as though each were a zero-yard play, flattering the
 defense: 497/174 = 2.9 against the honest 497/154 = 3.2. The approved 2.9 was a
 value printed in a comp fixture, not an approved formula, and a rate whose two
-halves describe different cohorts is not a measurement. `Snaps` remains the
-CHARTED snap count, because a column labelled Snaps reports snaps and
-situational call frequency counts every charted call in the situation.
+halves describe different cohorts is not a measurement. Production `Snaps`
+uses that same CLASSIFIED cohort so the adjacent count, yards and rate reconcile.
+The complete sample remains available only through an explicitly named
+`charted` field for call-frequency calculations and sample disclosure.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp

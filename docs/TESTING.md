@@ -110,9 +110,10 @@ qualifier, that Snaps by phase counts each phase from the charted cohort and its
 three rows sum to it, and that the Success rate sub counts real successful
 snaps. `e2e-reports-defense-realdata` additionally pins the season's four
 cohorts (201/173 offensive, 174/154 defensive) and that every Game-by-game row
-satisfies `Total yds = Rush yds + Pass yds`, and that `Yards allowed / play`
-divides that classified yardage by the classified cohort rather than by every
-charted defensive snap. `e2e-reports-self-scout` pins all
+satisfies `Total yds = Rush yds + Pass yds`, that production `Snaps` is the
+classified denominator, and that every production row satisfies
+`Yards / play = Total yards / Snaps`. The explicitly named charted count remains
+available for frequency and sample contracts. `e2e-reports-self-scout` pins all
 twelve down-and-distance rows in football order with explicit yardage, held
 rows carrying the absence treatment rather than a zero, `Turnovers` never
 `Giveaways`, a populated section never badging zero, and that no defensive tell

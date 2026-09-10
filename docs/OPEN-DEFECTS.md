@@ -39,11 +39,10 @@
      essentially uncharted across the season. Both are charting-workflow gaps
      raised for the coach; nothing was inferred or written back.
 
-   **One deliberate difference from the review note.** The defensive tables
-   keep `Snaps` as the CHARTED snap count. A column labelled Snaps must report
-   snaps, and the situational call-frequency contract counts every charted call
-   in the situation. Total Yds and Yds / play are the classified production
-   cohort. Raised for the Gate rather than settled here.
+   **Codex review follow-up, repaired 2026-09-10:** Defensive production
+   `Snaps`, Total Yds and Yds / play now use one CLASSIFIED cohort and reconcile
+   arithmetically. The complete sample remains available as explicitly named
+   `charted` data for call-frequency calculations and sample disclosure.
 2. **Renamed HTML report does not open correctly after save.** Reproduced by the
    coach for both Defense Report and Game Report. Keeping the default filename
    works; changing it during the native save flow does not. Treat this as a

@@ -26,7 +26,9 @@ standing, all repaired and mutation-verified:**
    and flattered the defense. 497/174 = 2.9 against the honest 497/154 = 3.2.
    The approved 2.9 was a value printed in a comp fixture, not an approved
    formula; carrying it as an open question preserved a broken rate. Repaired.
-   `Snaps` deliberately remains the charted count — see `docs/OPEN-DEFECTS.md`.
+   A Codex follow-up also closed the remaining mixed row: production `Snaps`
+   now prints the classified denominator, while explicitly named `charted`
+   data remains available for frequency and sample reporting.
 3. **The Self-Scout HTML export violated the repaired fixed schema.** Held
    down-and-distance rows exported the raw bucket key `1|Short` with fabricated
    `0`, `0%` and `0% / 0%` values, and the defensive KPI band still led with

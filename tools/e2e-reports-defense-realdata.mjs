@@ -213,7 +213,8 @@ const canonical = await page.evaluate(() => {
   const { scoped, labels } = app.reportsScreen._defenseCohort();
   const model = app.stats.defenseDashboard(scoped, labels);
   return {
-    total: model.total, yards: model.summary.yards, rush: model.summary.runYards,
+    total: model.total, summarySnaps: model.summary.n, summaryCharted: model.summary.charted,
+    yards: model.summary.yards, rush: model.summary.runYards,
     pass: model.summary.passYards, ypp: model.summary.ypp, turnovers: model.summary.turnovers,
     explosives: model.summary.explosives,
     third: model.thirdDownAllowed, fourth: model.fourthDownAllowed,
@@ -231,8 +232,13 @@ const canonical = await page.evaluate(() => {
     directions: model.directions.map(row => ({ name: row.name, n: row.n, runs: row.runs,
       passes: row.passes, isRelative: row.isRelative })),
     driveOutcomes: model.driveOutcomes.map(row => ({ name: row.name, n: row.n, pct: row.pct })),
-    byGame: model.byGame.map(row => ({ name: row.name, yards: row.yards,
-      rush: row.runYards, pass: row.passYards })),
+    byGame: model.byGame.map(row => ({ name: row.name, n: row.n, charted: row.charted,
+      yards: row.yards, rush: row.runYards, pass: row.passYards, ypp: row.ypp })),
+    productionRows: [model.summary, ...model.byGame, ...model.downs, ...model.quarters,
+      ...model.playTypes, ...model.personnel, ...model.backfields, ...model.directions,
+      model.pressure.blitz, model.pressure.noBlitz, ...model.zones, ...model.hashes,
+      ...model.motions].map(row => ({ name: row.name, n: row.n, charted: row.charted,
+        yards: row.yards, ypp: row.ypp })),
   };
 });
 /* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT, on every row.
@@ -290,6 +296,15 @@ ok(canonical.ypp === +(canonical.yards / cohorts.defenseClassified).toFixed(1),
 ok(canonical.ypp !== +(canonical.yards / canonical.total).toFixed(1),
   'the two denominators really do differ here, so that assertion can fail',
   JSON.stringify({ classified: cohorts.defenseClassified, charted: canonical.total }));
+ok(canonical.summarySnaps === cohorts.defenseClassified
+  && canonical.summaryCharted === cohorts.defenseCharted,
+  'production Snaps is classified while the explicitly named charted sample remains available',
+  JSON.stringify({ displayed: canonical.summarySnaps, charted: canonical.summaryCharted, cohorts }));
+const mixedProductionRows = canonical.productionRows.filter(row => row.n
+  && row.ypp !== +(row.yards / row.n).toFixed(1));
+ok(mixedProductionRows.length === 0,
+  'every defensive production row reconciles displayed Snaps, Total yards, and Yards/play',
+  JSON.stringify(mixedProductionRows));
 ok(canonical.third.made === 8 && canonical.third.attempts === 43 && canonical.third.rate === 18.6
   && canonical.fourth.made === 9 && canonical.fourth.attempts === 17 && canonical.fourth.rate === 52.9,
   'third- and fourth-down allowed use offensive conversion polarity', JSON.stringify(canonical));
