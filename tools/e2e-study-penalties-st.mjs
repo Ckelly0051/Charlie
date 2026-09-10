@@ -20,6 +20,7 @@ import puppeteer from 'puppeteer';
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
@@ -309,11 +310,10 @@ ok(direct.timingInDimensionsList === false && direct.timingInGroups === false &&
   'penaltyTiming does not appear in StudyScreen.DIMENSIONS, DIMENSION_GROUPS, or the rendered dimension <select> -- fabricated pre-snap/live-ball timing is fully retracted, not merely hidden', JSON.stringify({ list: direct.timingInDimensionsList, groups: direct.timingInGroups, select: direct.timingInSelect }));
 
 // ---- proof #7: metric refs exactly equal Watch-film refs (through the UI) --
-let watch = await page.evaluate(async () => {
+await page.evaluate(() => {
   const app = window.app;
-  const original = app.filmNavigation.watch;
-  const calls = [];
-  app.filmNavigation.watch = (refs, options) => { calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
+  window.__studyWatchCapture = { original: app.filmNavigation.watch, calls: [] };
+  app.filmNavigation.watch = (refs, options) => { window.__studyWatchCapture.calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
   document.querySelector('#wsStudyScope').value = 'game';
   document.querySelector('#wsStudyScope').dispatchEvent(new Event('change', { bubbles: true }));
   // The default primary metric is a RICH coaching concept requiring an
@@ -325,20 +325,24 @@ let watch = await page.evaluate(async () => {
   document.querySelector('#wsStudyDimension').dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('#wsStudyUnit').value = '';
   document.querySelector('#wsStudyUnit').dispatchEvent(new Event('change', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+});
+await sleep(50);
+let watch = await page.evaluate(() => {
+  const app = window.app;
   const rowIndex = [...document.querySelectorAll('.ws-study-row > strong')].findIndex(el => el.textContent === 'opponent');
   document.querySelector(`[data-study-row="${rowIndex}"]`)?.click();
-  app.filmNavigation.watch = original;
-  return calls;
+  const capture = window.__studyWatchCapture;
+  app.filmNavigation.watch = capture.original;
+  delete window.__studyWatchCapture;
+  return capture.calls;
 });
 ok(watch.length === 1 && watch[0].refs.sort().join(',') === 'g-pen-st-1::2,g-pen-st-1::4',
   'Clicking Watch on a penaltyTeam=opponent row plays exactly the two plays carrying an opponent-charged penalty (including the offsetting-pair play), no more', JSON.stringify(watch));
 
-watch = await page.evaluate(async () => {
+await page.evaluate(() => {
   const app = window.app;
-  const original = app.filmNavigation.watch;
-  const calls = [];
-  app.filmNavigation.watch = (refs, options) => { calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
+  window.__studyWatchCapture = { original: app.filmNavigation.watch, calls: [] };
+  app.filmNavigation.watch = (refs, options) => { window.__studyWatchCapture.calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
   // Proof #1's decisive case: measure = a Special Teams RATE (its own
   // eligible cohort is the FG-attempt subset, not every Special Teams play)
   // grouped by an UNRELATED dimension ('unit') so the 'special' group's raw
@@ -347,34 +351,43 @@ watch = await page.evaluate(async () => {
   document.querySelector('#wsStudyMeasure').dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('#wsStudyDimension').value = 'unit';
   document.querySelector('#wsStudyDimension').dispatchEvent(new Event('change', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+});
+await sleep(50);
+watch = await page.evaluate(() => {
+  const app = window.app;
   const rowIndex = [...document.querySelectorAll('.ws-study-row > strong')].findIndex(el => el.textContent === 'special');
   document.querySelector(`[data-study-row="${rowIndex}"]`)?.click();
-  app.filmNavigation.watch = original;
-  return calls;
+  const capture = window.__studyWatchCapture;
+  app.filmNavigation.watch = capture.original;
+  delete window.__studyWatchCapture;
+  return capture.calls;
 });
 ok(watch.length === 1 && watch[0].refs.sort().join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
   'Codex review finding #1: Watch on the "special" unit row plays exactly the 2 FG-attempt plays that produced Field Goal Rate, not all 14 Special Teams plays in that unit group', JSON.stringify(watch));
 
 // ---- Codex re-review finding #1: the SAME check, but in COMPARE mode -------
-watch = await page.evaluate(async () => {
+await page.evaluate(() => {
   const app = window.app;
-  const original = app.filmNavigation.watch;
-  const calls = [];
-  app.filmNavigation.watch = (refs, options) => { calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
+  window.__studyWatchCapture = { original: app.filmNavigation.watch, calls: [] };
+  app.filmNavigation.watch = (refs, options) => { window.__studyWatchCapture.calls.push({ refs: [...refs], label: options?.label }); return Promise.resolve({ completed: true }); };
   document.querySelector('#wsStudyMeasure').value = 'stFieldGoalAtt';
   document.querySelector('#wsStudyMeasure').dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('#wsStudyDimension').value = 'unit';
   document.querySelector('#wsStudyDimension').dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('#wsStudyCompare').value = 'season';
   document.querySelector('#wsStudyCompare').dispatchEvent(new Event('change', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+});
+await sleep(50);
+watch = await page.evaluate(() => {
+  const app = window.app;
   const rowIndex = [...document.querySelectorAll('.ws-study-row-compare > strong')].findIndex(el => el.textContent === 'special');
   document.querySelector(`[data-study-row="${rowIndex}"]`)?.click();
   document.querySelector('#wsStudyCompare').value = '';
   document.querySelector('#wsStudyCompare').dispatchEvent(new Event('change', { bubbles: true }));
-  app.filmNavigation.watch = original;
-  return calls;
+  const capture = window.__studyWatchCapture;
+  app.filmNavigation.watch = capture.original;
+  delete window.__studyWatchCapture;
+  return capture.calls;
 });
 ok(watch.length === 1 && watch[0].refs.sort().join(',') === 'g-pen-st-1::14,g-pen-st-1::15',
   'Codex re-review finding #1: in COMPARE mode (game vs season), Watch on the "special" row still plays exactly the 2 FG-attempt plays -- compare() no longer drops measureRefs and falls back to the 15-play raw group sample', JSON.stringify(watch));

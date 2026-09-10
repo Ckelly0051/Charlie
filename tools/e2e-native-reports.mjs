@@ -334,12 +334,14 @@ ok(result.unchanged, 'Report navigation is read-only against canonical season da
 
 
 console.log('\n== 2s. Season rows retain exact cross-game film identity ==');
-result = await page.evaluate(async () => {
+await page.evaluate(() => {
   const app = window.app;
-  const originalGames = app.storage.seasonStore.data.games;
-  const originalActiveGameId = app.storage.seasonStore.data.activeGameId;
-  const originalWatch = app.filmNavigation.watch;
-  const watches = [];
+  window.__seasonIdentityFixture = {
+    originalGames: app.storage.seasonStore.data.games,
+    originalActiveGameId: app.storage.seasonStore.data.activeGameId,
+    originalWatch: app.filmNavigation.watch,
+    watches: [],
+  };
   const play = (yards, start) => ({ id: 1, timestamp: { start, end: start + 4 }, tags: {
     unit: 'offense', down: '1', distance: '10', quarter: 'Q1', playType: 'Run Inside', runPass: 'Run',
     result: 'Gain', yardage: yards, driveNumber: '1', playCall: 'Power', formation: 'Ace', personnel: '11',
@@ -350,26 +352,41 @@ result = await page.evaluate(async () => {
     { id: 'season-b', name: 'Season B', gameInfo: { opponent: 'B', scoreUs: '14', scoreThem: '10' }, roster: [{ num: '22', name: 'Runner B' }], plays: [play(30, 20)] },
   ];
   app.storage.seasonStore.data.activeGameId = 'season-a';
-  app.filmNavigation.watch = refs => watches.push([...refs].sort());
-  await app.storage._loadActiveGame();
+  app.filmNavigation.watch = refs => window.__seasonIdentityFixture.watches.push([...refs].sort());
+});
+await page.evaluate(() => window.app.storage._loadActiveGame());
+await page.evaluate(() => {
+  const app = window.app;
   app.reportsScreen.show();
   app.reportsScreen.selectTab('season');
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+});
+await sleep(50);
+const sourceGames = await page.evaluate(() => {
   const pane = document.querySelector('[data-pane="season"]');
-  const clickTab = async key => { pane.querySelector(`.gi-subtab[data-subtab="${key}"]`)?.click(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); };
-  const findModule = title => [...pane.querySelectorAll('.gi-overview-module')].find(node => node.querySelector(':scope > header > strong')?.textContent.trim() === title);
-  const clicks = [];
-  const clickModuleRow = title => { const module=findModule(title), row=module?.querySelector('tbody tr[role="button"]'); clicks.push({title,found:!!module,row:!!row,available:[...pane.querySelectorAll('.gi-overview-module > header > strong')].map(node=>node.textContent.trim())}); row?.click(); };
   // The approved 2026-09-05 Season composition replaced the generic Overview
   // board with the Game Log, so the surface that names each source game is
   // now the log's own Opponent column rather than Big plays and Drives.
-  const sourceGames = {
+  return {
     log: [...pane.querySelectorAll('.gi-season-table tbody tr td:nth-child(3)')].map(cell => cell.textContent.trim()),
   };
-  await clickTab('offense');
-  clickModuleRow('Play calls');
-  await clickTab('players');
-  clickModuleRow('Rushing');
+});
+const clickSeasonModule = async (tab, title) => {
+  await page.evaluate(key => document.querySelector(`[data-pane="season"] .gi-subtab[data-subtab="${key}"]`)?.click(), tab);
+  await sleep(50);
+  return page.evaluate(moduleTitle => {
+    const pane = document.querySelector('[data-pane="season"]');
+    const module = [...pane.querySelectorAll('.gi-overview-module')]
+      .find(node => node.querySelector(':scope > header > strong')?.textContent.trim() === moduleTitle);
+    const row = module?.querySelector('tbody tr[role="button"]');
+    const detail = { title: moduleTitle, found: !!module, row: !!row,
+      available: [...pane.querySelectorAll('.gi-overview-module > header > strong')].map(node => node.textContent.trim()) };
+    row?.click();
+    return detail;
+  }, title);
+};
+const clicks = [await clickSeasonModule('offense', 'Play calls'), await clickSeasonModule('players', 'Rushing')];
+result = await page.evaluate(() => {
+  const app = window.app;
   const model = app.season.reportModel();
   const direct = {
     big: model.stats.bigPlays.map(row => row.ref).sort(),
@@ -377,14 +394,20 @@ result = await page.evaluate(async () => {
     calls: app.stats._playCallAnalysis(model.stats.offPlays).calls.flatMap(row => row.refs || []).sort(),
     players: model.stats.individuals.rushers.flatMap(row => row.refs || []).sort(),
   };
-  app.filmNavigation.watch = originalWatch;
-  app.storage.seasonStore.data.games = originalGames;
-  app.storage.seasonStore.data.activeGameId = originalActiveGameId;
-  await app.storage._loadActiveGame();
+  const fixture = window.__seasonIdentityFixture;
+  app.filmNavigation.watch = fixture.originalWatch;
+  app.storage.seasonStore.data.games = fixture.originalGames;
+  app.storage.seasonStore.data.activeGameId = fixture.originalActiveGameId;
+  return { watches: fixture.watches, direct };
+});
+await page.evaluate(() => window.app.storage._loadActiveGame());
+await page.evaluate(() => {
+  const app = window.app;
   app.reportsScreen.show();
   app.reportsScreen.selectTab('season');
-  return { watches, direct, sourceGames, clicks };
+  delete window.__seasonIdentityFixture;
 });
+result = { ...result, sourceGames, clicks };
 const exactSeasonRefs = ['season-a::1', 'season-b::1'];
 ok(result.sourceGames.log.length === 2 && new Set(result.sourceGames.log).size === 2 && result.sourceGames.log.every(Boolean),
   'The Season Game Log visibly names its two distinct source games', JSON.stringify(result.sourceGames));

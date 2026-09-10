@@ -121,23 +121,23 @@ r = await page.evaluate(async () => {
   const selfScoutHasDef = [...document.querySelectorAll('#statsDashboard [data-pane="selfscout"] .gi-ss-module > header strong')]
     .some(node => node.textContent.trim() === 'Run Defense');
   window.app.reportsScreen.selectTab('defense');
-  // Defense shows one SECTION at a time (2026-09-04). The scheme tells live in
-  // section 5, so its tab is activated before the pane is read.
-  [...document.querySelectorAll('.gi-def-secnav-item')]
-    .find(b => b.textContent.includes('Self-scout'))?.click();
+  const sectionTabs = [...document.querySelectorAll('#statsDashboard [data-pane="defense"] .gi-def-secnav-item')];
+  sectionTabs.find(b => b.textContent.includes('Scheme'))?.click();
   // A tab click is Preact state and flushes on a deferred frame; reading in
   // the same tick reads the previous section.
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const def = document.querySelector('#statsDashboard [data-pane="defense"]');
   return {
     selfScoutHasDef,
-    defenseHasScheme: !!def?.querySelector('.ss-tells'),
-    defenseHasHavoc: /Havoc/.test(def?.innerHTML || '')
+    defenseSections: sectionTabs.map(button => button.textContent.replace(/^\d+/, '').trim()),
+    defenseHasScheme: /Top Calls/.test(def?.textContent || '') && /Worst Calls/.test(def?.textContent || '')
+      && /Blitz vs No Blitz/.test(def?.textContent || '')
   };
 });
 ok(r.selfScoutHasDef, 'Self-Scout tab shows defensive section with offense present', JSON.stringify(r));
-ok(r.defenseHasScheme, 'Defense tab shows the scheme-tells section', JSON.stringify(r));
-ok(r.defenseHasHavoc, 'Defense tab still shows the base defensive analytics', JSON.stringify(r));
+ok(JSON.stringify(r.defenseSections) === JSON.stringify(['Defensive performance', 'Opponent Offense', 'Scheme', 'Situational results']),
+  'Defense keeps the approved four-section dashboard without a duplicate Self-Scout section', JSON.stringify(r));
+ok(r.defenseHasScheme, 'Defense Scheme shows the approved calls and pressure modules', JSON.stringify(r));
 
 console.log('\n== 4. generateDefensiveSelfScout computed ONCE per render (dedup) ==');
 r = await page.evaluate(async () => {

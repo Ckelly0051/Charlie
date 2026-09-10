@@ -684,6 +684,9 @@ const analyse = (dataUri, rect) => page.evaluate(async (uri, r) => {
   const total = w * h;
   const palette = [...counts.entries()].sort((a, b) => b[1] - a[1])
     .slice(0, 8).map(([k, n]) => ({ c: k, pct: +(n / total * 100).toFixed(2) }));
+  const goldPixels = [...counts.entries()]
+    .filter(([k]) => /^2\d\d,1[5-7]\d,\d+$/.test(k))
+    .reduce((sum, [, n]) => sum + n, 0);
   const panel = palette[0].c;
   /* Share of panel pixels per scanline; the band gaps are the troughs. */
   const rows = [];
@@ -738,7 +741,7 @@ const analyse = (dataUri, rect) => page.evaluate(async (uri, r) => {
      row are not the same), and a change to any one of them must show. */
   const ranked = [...tally.entries()].filter(([, n]) => n >= 2)
     .sort((a, b) => a[0] - b[0]).map(([g]) => g);
-  return { w, h, palette, panel, bands, pitches: ranked, ruleCount: ruleYs.length };
+  return { w, h, palette, panel, goldPct: +(goldPixels / total * 100).toFixed(3), bands, pitches: ranked, ruleCount: ruleYs.length };
 }, dataUri, rect);
 
 const uriFor = buf => `data:image/png;base64,${buf.toString('base64')}`;
@@ -801,10 +804,9 @@ for (const [width, height] of VIEWPORTS) {
   ok(missing.length === 0, `${key}: the board paints the approved surface colours`,
     JSON.stringify({ canonical: canonTop, production: prodAll.slice(0, 5) }));
   /* Gold accent: present in both, at a comparable share. */
-  const gold = list => list.find(p => /^2\d\d,1[5-7]\d,\d+$/.test(p.c));
-  ok(!!gold(canon.palette) === !!gold(prod.palette),
+  ok(canon.goldPct > 0 && prod.goldPct > 0,
     `${key}: the gold accent is present exactly where the approved board has it`,
-    JSON.stringify({ canonical: gold(canon.palette), production: gold(prod.palette) }));
+    JSON.stringify({ canonicalPct: canon.goldPct, productionPct: prod.goldPct }));
   /* Band rhythm: the gaps between successive band edges, compared as a
      sequence. Absolute positions differ (different shell height, different
      data length); the rhythm does not. */
@@ -972,5 +974,5 @@ console.log('\n== 11. Page health ==');
 ok(errors.length === 0, 'zero page or console errors across every state', errors.slice(0, 3).join(' | '));
 
 await browser.close();
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

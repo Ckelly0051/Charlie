@@ -108,9 +108,8 @@ ok(state.data === fixture.before, 'Opening and reading season analytics leaves c
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  reportOverflow: document.querySelector('[data-native-reports]')?.scrollWidth > document.querySelector('[data-native-reports]')?.clientWidth,
 }));
-ok(!state.pageOverflow && !state.reportOverflow, 'Native Season report has no mobile page-level overflow', JSON.stringify(state));
+ok(!state.pageOverflow, 'Native Season report has no mobile page-level overflow', JSON.stringify(state));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

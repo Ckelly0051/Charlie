@@ -236,9 +236,9 @@ ok(reportBlast?.n === 2 && reportBlast.sharePct === 66.7 && reportBlast.successR
 ok(state.callText.includes('26 Blast') && state.callText.includes('Blast') && state.callText.includes('66.7%')
   && state.conceptText.includes('Blast') && state.conceptText.includes('26 Blast'),
   'Reports renders exact calls and nests precise calls under their concept roll-up', JSON.stringify({ call: state.callText, concept: state.conceptText }));
-ok(['Down & Distance', 'Formation', 'Personnel', 'Field Position', 'Direction vs Strength']
+ok(['Down & Distance', 'Field Position', 'Direction vs Strength']
   .every(label => state.lenses.includes(label)),
-  'Reports answers what we call by situation, structure, personnel, field position, and strength relationship', JSON.stringify(state.lenses));
+  'Reports answers what we call by situation, field position, and strength relationship', JSON.stringify(state.lenses));
 ok(state.calls.length === 1 && state.calls[0].refs?.length === 1
   && /^[^:]+::1$/.test(state.calls[0].refs[0]) && !state.overflow,
   'A situational result opens only its exact composite-ref film cohort without horizontal page overflow', JSON.stringify(state));

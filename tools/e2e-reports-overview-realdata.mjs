@@ -31,7 +31,10 @@ import { createHash } from 'node:crypto';
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SEASON_NAME = '2025 St. Joseph Mavericks - JV';
 const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
-const OUT = 'artifacts/overview-production-realdata';
+// Each run owns its evidence directory. A screenshot already open in the app
+// can be locked by Windows, so overwriting a shared filename makes a healthy
+// report fail for an unrelated viewer state.
+const OUT = `artifacts/overview-production-realdata/run-${process.pid}`;
 const VIEWPORTS = [[1440, 900], [1280, 720], [768, 1024], [390, 844]];
 
 let pass = 0, fail = 0;
@@ -466,5 +469,5 @@ console.log(`  game        : ${activeGame?.name} — ${activePlays.length} plays
 console.log(`                ${EXPECTED.offense} offensive, ${EXPECTED.defense} defensive`);
 console.log(`  viewports   : ${VIEWPORTS.map(v => v.join('x')).join(', ')}`);
 console.log(`  captures    : ${OUT}`);
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);
