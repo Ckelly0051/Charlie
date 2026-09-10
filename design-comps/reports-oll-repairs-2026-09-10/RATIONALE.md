@@ -149,3 +149,23 @@ Matchup unit headers now say `charted snaps`. Self-Scout's sample line says
 `classified` on both halves; it previously qualified only the offensive one.
 201 / 173 / 174 / 154 are pinned in `e2e-reports-defense-realdata` so a future
 change cannot quietly merge the two cohorts.
+
+## Season > Offense tendency containment
+
+`Tendency matrix` -> `Top 5 Tendencies`. It renders the five most frequent row
+values and deterministically drops the rest, so the title names the cap the way
+`Top 10 Plays` does.
+
+At full-season scope its rows reached 70px: five of them plus a 30px header
+need 380px inside a 316px wrap in a 378px fixed panel, so `.tm-wrap`'s
+`overflow:auto` engaged and the last row escaped the module by 60px at BOTH
+release widths. Game scope was clean, which is exactly why the game-scoped
+Offense harness never saw it.
+
+The panel does not grow. The row pitch is fixed at 54px - type sizes unchanged,
+only the leading and surplus box height tightened, per the standing rule that
+density comes from geometry and never from shrinking type. Measured after:
+`scrollHeight === clientHeight`, escape 0, panel 378px, at 1440 and 1280.
+
+`e2e-reports-offense-realdata` now exercises Season scope, which is the gap
+that let this ship.

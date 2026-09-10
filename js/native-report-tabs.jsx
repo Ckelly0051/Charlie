@@ -281,7 +281,16 @@ function BigTwelve({ data, screen, cls = '', variant = 'legacy' }) {
   </Module>;
 }
 
-function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultCol = 'down', title = 'Tendency matrix' }) {
+/* `Top 5 Tendencies`, not `Tendency matrix`. The module renders the five most
+   frequent row values and deterministically drops the rest, so the title names
+   the cap the way `Top 10 Plays` does. At full-season scope its rows grew to
+   70px — five of them plus a 30px header need 380px inside a 316px wrap in a
+   378px fixed panel — so `.tm-wrap`'s `overflow:auto` engaged and the last row
+   escaped the module by 60px. The panel does not grow: the row pitch is fixed
+   instead, so five rows always fit and the capacity named in the title is a
+   constant rather than a property of the data. */
+const MATRIX_TITLE = 'Top 5 Tendencies';
+function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultCol = 'down', title = MATRIX_TITLE }) {
   const [rowId, setRowId] = useState(defaultRow);
   const [colId, setColId] = useState(defaultCol);
   const dims = engine.constructor._matrixDimensions();
@@ -296,7 +305,7 @@ function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultC
      pad a short one with empty keys that render as a held row. The COLUMN
      dimension is chosen by the coach at runtime, so it cannot be enumerated
      the same way — that is what the panel's reserved footprint covers. */
-  const slots = OFFENSE_ROWS['Tendency matrix'];
+  const slots = OFFENSE_ROWS['Top 5 Tendencies'];
   const rowKeys = raw ? raw.rowKeys.slice(0, slots) : [];
   while (raw && rowKeys.length < slots) rowKeys.push('');
   const matrix = raw ? { ...raw, rowKeys } : null;
@@ -606,7 +615,7 @@ const OFFENSE_ROWS = {
   'Field hash': 3,
   'Personnel × situation': 6,
   Situational: 6,
-  'Tendency matrix': 5,
+  'Top 5 Tendencies': 5,
   'By quarter': 4,             // one row per quarter, an enumerable set
   'Team profile': 6,
 };
@@ -636,7 +645,7 @@ const OFFENSE_MODULES = [
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
-  'Tendency matrix', 'By quarter',
+  'Top 5 Tendencies', 'By quarter',
   'Field heat map',
   'Yards per play', 'Yards vs distance to go',
   'Success by field position', 'Run / pass by down',

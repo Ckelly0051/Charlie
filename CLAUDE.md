@@ -434,9 +434,17 @@ A held row and `Insufficient charted data` are different statements and cannot
 both hold: the comp's own sparse capture is 415px shorter than its populated
 one. Stable geometry wins, so tabular modules hold their rows and the
 module-level line survives only where there is no row structure — `SparseModule`
-is no longer used by this tab. The `Tendency matrix` reserves a 378px panel
-instead, because its column dimension is chosen at runtime and cannot be
-enumerated. The Offense bands are `align-items:stretch`, which required the
+is no longer used by this tab. **`Top 5 Tendencies`** — retitled from
+`Tendency matrix`, because it renders the five most frequent row values and
+deterministically drops the rest, so the cap is named the way `Top 10 Plays`
+is — reserves a 378px panel instead, because its column dimension is chosen at
+runtime and cannot be enumerated. Its ROW pitch is fixed at 54px so the five
+approved rows always fit that panel: left to size themselves the rows reached
+70px at full-season scope, five of them plus a 30px header needed 380px inside
+a 316px wrap, `.tm-wrap`'s `overflow:auto` engaged, and the last row escaped
+the module by 60px. Game scope was clean, which is exactly why a game-scoped
+harness never saw it; `e2e-reports-offense-realdata` now exercises Season scope
+at both release widths. The Offense bands are `align-items:stretch`, which required the
 same sticky-`th` opt-out Overview, Players and Special Teams each needed.
 
 **The `Visualizations` module is gone.** The comp's Zone 5 carries five modules

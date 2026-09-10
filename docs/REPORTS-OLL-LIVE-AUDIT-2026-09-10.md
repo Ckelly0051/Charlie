@@ -214,12 +214,30 @@ resize a dashboard.
    **Neither composition was resized** — six tiles and six rows, reordered.
    Deleting either slot outright would change an approved row count, which is
    a composition decision and was not made here.
-10. **Layout integrity requires explicit closure, not assumption.** Recheck all
-    29 OLL views for page and module overflow, internal scrollbars, overlap,
-    fixed-height clipping, truncated names, missing tabs, bottom bleed and data
-    beyond static row capacity. The initial capture found no page-level
-    horizontal overflow or clipping. Close this item as verified if no defect
-    reproduces; do not invent one to satisfy the count.
+10. **Layout integrity. VERIFIED CLEAN except one defect, now REPAIRED.**
+    Every Reports view was measured live at **1440x900 and 1280x800** for page
+    overflow, real internal scrollers (`overflow: auto|scroll` with actual
+    overflow), band escapes, module-content escapes and cell clipping.
+
+    Clean everywhere except one: **Season > Offense, `Tendency matrix`**. Its
+    `.tm-wrap` engaged as an internal scroller (`scrollHeight 387` vs
+    `clientHeight 316`) and the last row escaped the module by **60px** at both
+    widths. Game-scope Offense was clean, which is exactly why a game-scoped
+    harness never saw it: the rows reach 70px only on the season cohort.
+
+    The panel does not grow. The row pitch is fixed at 54px — type unchanged,
+    only the leading and surplus box height tightened — so the five approved
+    rows always fit the reserved 378px panel. The module is retitled
+    **`Top 5 Tendencies`**, because it renders the five most frequent row
+    values and deterministically drops the rest; the cap is now named the way
+    `Top 10 Plays` is. Measured after: `scrollHeight === clientHeight`, escape
+    `0`, panel `378px`, at both widths.
+
+    **The previously reported Reports-header vertical scrollbar does NOT
+    reproduce** at either width: `scrollHeight === clientHeight` (52/52 at
+    1440, 100/100 at 1280) and `overflow-y: visible`. No truncated names, no
+    missing tabs, no clipped cells, no page-level horizontal overflow, zero
+    page or console errors.
 
 ## Required Investigation Output
 

@@ -98,7 +98,7 @@ const SCHEMA_MODULES = [
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
-  'Tendency matrix', 'By quarter',
+  'Top 5 Tendencies', 'By quarter',
   'Field heat map',
   'Yards per play', 'Yards vs distance to go',
   'Success by field position', 'Run / pass by down',
@@ -110,7 +110,7 @@ const SCHEMA_ROWS = {
   'Direction vs Strength': 4, 'Calls by situation': 8,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
-  'Tendency matrix': 5, 'By quarter': 4, 'Team profile': 6,
+  'Top 5 Tendencies': 5, 'By quarter': 4, 'Team profile': 6,
 };
 const ABSENCE = 'Insufficient charted data';
 /** Module titles as rendered, with the computed `· Big N` suffix normalized so

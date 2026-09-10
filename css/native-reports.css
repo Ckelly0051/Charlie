@@ -459,6 +459,24 @@
   background:var(--gi-2);box-shadow:inset 0 -1px 0 var(--gi-6);
 }
 .gi-reports .tm-table td.tm-cell{vertical-align:top;padding:var(--gi-2x) var(--gi-1x)}
+/* A FIXED ROW PITCH, so the five approved rows always fit the reserved panel.
+   Left to size themselves the rows reached 70px at full-season scope — five of
+   them plus the 30px header need 380px inside a 316px wrap in a 378px panel —
+   and `.tm-wrap`'s overflow:auto engaged while the last row escaped the module
+   by 60px. Type is unchanged; only surplus row box height is removed, and the
+   row label may not wrap the row taller. */
+.gi-reports .gi-offense-board .gi-off-matrix .tm-table tbody tr{height:54px}
+.gi-reports .gi-offense-board .gi-off-matrix .tm-table tbody td{
+  height:54px;padding-top:var(--gi-1x);padding-bottom:var(--gi-1x);overflow:hidden
+}
+.gi-reports .gi-offense-board .gi-off-matrix .tm-table tbody td:first-child{
+  max-width:0;overflow:hidden;text-overflow:ellipsis
+}
+/* The three stacked values keep their type sizes; only their leading tightens,
+   which is what lets 15px + 12px + 12px sit inside the fixed pitch. */
+.gi-reports .gi-offense-board .gi-off-matrix .tm-cell .tm-count,
+.gi-reports .gi-offense-board .gi-off-matrix .tm-cell .tm-split,
+.gi-reports .gi-offense-board .gi-off-matrix .tm-cell .tm-succ{line-height:1.15}
 .gi-reports .tm-cell .tm-count,.gi-reports .tm-cell .tm-split,.gi-reports .tm-cell .tm-succ{
   display:block;line-height:1.35;white-space:nowrap;
 }

@@ -79,7 +79,7 @@ const SCHEMA_MODULES = [
   'Personnel', 'Backfield', 'Motion',
   'Play direction', 'Strength', 'Field hash',
   'Personnel × situation', 'Situational',
-  'Tendency matrix', 'By quarter',
+  'Top 5 Tendencies', 'By quarter',
   'Field heat map',
   'Yards per play', 'Yards vs distance to go',
   'Success by field position', 'Run / pass by down',
@@ -91,7 +91,7 @@ const SCHEMA_ROWS = {
   'Direction vs Strength': 4, 'Calls by situation': 8,
   Personnel: 5, Backfield: 5, Motion: 4, 'Play direction': 3, Strength: 3,
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
-  'Tendency matrix': 5, 'By quarter': 4, 'Team profile': 6,
+  'Top 5 Tendencies': 5, 'By quarter': 4, 'Team profile': 6,
 };
 
 mkdirSync(OUT, { recursive: true });
@@ -273,6 +273,64 @@ ok(errors.length === 0, 'the Offense route raises no page or console errors on r
 const hashAfter = createHash('sha256').update(readFileSync(SOURCE)).digest('hex');
 ok(hashAfter === hashBefore, 'the canonical season file is byte-identical after the run',
   `${hashBefore.slice(0, 12)} vs ${hashAfter.slice(0, 12)}`);
+
+/* ══ SEASON SCOPE — the scope this file did not exercise ══════════════════
+   Reports > Season embeds this same Offense board at full-season scope, and
+   `Top 5 Tendencies` only misbehaved there: its rows grew to 70px on the
+   season cohort, so five of them plus a 30px header needed 380px inside a
+   316px wrap in a 378px fixed panel. `.tm-wrap`'s overflow:auto engaged and
+   the last row escaped the module by 60px. Game scope was clean, which is
+   exactly why a game-scoped harness never saw it. */
+console.log('\n── Season scope containment ──────────────────────────────────');
+for (const [width, height] of VIEWPORTS) {
+  await page.setViewport({ width, height });
+  await new Promise(r => setTimeout(r, 250));
+  await page.evaluate(() => { window.app.reportsScreen.selectTab('season'); });
+  await new Promise(r => setTimeout(r, 500));
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('.gi-report-pane nav button, .gi-report-pane [role="tab"]')]
+      .find(node => /^Offense$/.test(node.textContent.trim()));
+    if (btn) btn.click();
+  });
+  await new Promise(r => setTimeout(r, 600));
+  const measured = await page.evaluate(() => {
+    const pane = document.querySelector('.gi-report-pane');
+    const modules = [...(pane?.querySelectorAll('.gi-overview-module') || [])];
+    const named = name => modules.find(m => m.querySelector('header strong')?.textContent.trim() === name);
+    const matrix = named('Top 5 Tendencies');
+    const wrap = matrix?.querySelector('.tm-wrap');
+    const lastRow = matrix?.querySelector('.tm-table tbody tr:last-child');
+    return {
+      present: !!matrix,
+      title: matrix?.querySelector('header strong')?.textContent.trim(),
+      rows: matrix?.querySelectorAll('.tm-table tbody tr').length ?? 0,
+      panelHeight: matrix ? Math.round(matrix.getBoundingClientRect().height) : 0,
+      wrapOverflow: wrap ? wrap.scrollHeight - wrap.clientHeight : 0,
+      escape: (matrix && lastRow)
+        ? Math.round(lastRow.getBoundingClientRect().bottom - matrix.getBoundingClientRect().bottom) : 0,
+      engagedScrollers: [...(pane?.querySelectorAll('*') || [])].filter(node => {
+        const cs = getComputedStyle(node);
+        return ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1)
+          || ((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && node.scrollWidth > node.clientWidth + 1);
+      }).map(node => String(node.className).slice(0, 40)),
+      pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
+  });
+  ok(measured.present && measured.title === 'Top 5 Tendencies' && measured.rows === 5,
+    `${width}: Season > Offense renders Top 5 Tendencies with its five allocated rows`,
+    JSON.stringify(measured));
+  ok(measured.wrapOverflow === 0,
+    `${width}: the tendency panel engages no internal vertical scrollbar at season scope`,
+    JSON.stringify({ overflow: measured.wrapOverflow }));
+  ok(measured.escape <= 0,
+    `${width}: no tendency row escapes its fixed panel at season scope`,
+    JSON.stringify({ escape: measured.escape }));
+  ok(measured.panelHeight === 378,
+    `${width}: the reserved panel height is unchanged`, String(measured.panelHeight));
+  ok(measured.engagedScrollers.length === 0 && measured.pageOverflowX === 0,
+    `${width}: Season > Offense engages no scroller and no page overflow`,
+    JSON.stringify(measured.engagedScrollers));
+}
 
 await browser.close();
 
