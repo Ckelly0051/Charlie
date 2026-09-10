@@ -120,6 +120,12 @@ for (const game of games) {
           quarterHeaders: [...(board?.querySelectorAll('.gi-overview-module') || [])]
             .filter(module => title(module) === 'By quarter')
             .flatMap(module => [...module.querySelectorAll('th')].map(text)),
+          reportTitle: text(document.querySelector('[data-reports-title]')),
+          reportTitleClipped: (() => {
+            const node = document.querySelector('[data-reports-title]');
+            return !!node && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1
+              || getComputedStyle(node).textOverflow === 'ellipsis');
+          })(),
         };
       });
       observations.push({ game: game.name, width, section: section.label, ...result });
@@ -161,6 +167,9 @@ ok(observations.every(item => item.kpiSubs.every(value => !value.includes('Last 
   'Current game scope never labels one game as Last 3 or season average');
 ok(observations.some(item => item.held > 0), 'sparse real games hold unfilled slots with dashes');
 ok(observations.every(item => item.overflowX === 0), 'no page-level horizontal overflow at either release width');
+ok(observations.every(item => !item.reportTitleClipped),
+  'the complete Reports title remains visible at both release widths',
+  JSON.stringify(observations.filter(item => item.reportTitleClipped).slice(0, 4)));
 ok(observations.every(item => item.clipped.length === 0), 'no Defense label or value is clipped',
   JSON.stringify(observations.filter(item => item.clipped.length).slice(0, 4)));
 ok(observations.every(item => item.contentOverflow.length === 0), 'every module remains inside its fixed panel',

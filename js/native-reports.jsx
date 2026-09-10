@@ -22,7 +22,7 @@ function ExportMenu({ screen }) {
     screen.export(kind);
   };
   return <details class="gi-reports-export">
-    <summary class="gi-reports-command" id="btnExportStats" data-rp-action="export"><Icon name="download" />Export</summary>
+    <summary class="gi-reports-command" id="btnExportStats" data-rp-action="export" aria-label="Export reports" title="Export reports"><Icon name="download" />Export</summary>
     <div class="gi-reports-menu" role="menu" aria-label="Report exports">
       <button type="button" role="menuitem" onClick={event => run(event, 'pdf')}>Game report (PDF)</button>
       <button type="button" role="menuitem" onClick={event => run(event, 'html')}>Current game (HTML)</button>
@@ -72,7 +72,7 @@ function NativeReportsRoute({ screen }) {
       </nav>
 
       <div class="gi-reports-actions">
-        <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
+        <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" aria-label="Scout opponent" title="Scout opponent" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
         <ExportMenu screen={screen} />
       </div>
     </div>

@@ -457,6 +457,14 @@ then shows the top two exact play calls and their shares. The six-row module is
 static: missing rows hold dashes and additional looks are deterministically
 capped. Do not split a combined look into separate formation rows.
 
+The shared Reports title must always display its complete team, season/game and
+report identity. A tooltip is supplemental and never substitutes for visible
+text. At 1600px and below, collapse the familiar Scout and Export commands to
+labelled icons before taking space from the title. At 1320px and below, move
+the report tabs to their own row; allow the title to wrap if necessary. Do not
+restore ellipsis or trade the title against the final report tabs or the fixed
+dashboard height.
+
 Defense field zones reuse `_fieldZone()`. The five-slot board combines Own
 11–39 and Midfield into Open Field, then shows Opp 40–20, Red Zone and Goal
 Line separately. Call% divides by charted calls; Blitz% divides by charted

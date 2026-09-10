@@ -112,8 +112,9 @@ current-game scope labels, canonical field zones and order-independent calls,
 checks module-content and module-to-band containment
 as separate assertions, captures all four full-season screens at both widths,
 checks the four-section Defense export, and verifies the source season remains
-byte-identical. Use a 900px viewport height at both release widths; a full-page
-screenshot is not a substitute for viewport fit. Current focused result: 36/0.
+byte-identical. It also rejects any clipped shared Reports title at either
+release width. Use a 900px viewport height at both release widths; a full-page
+screenshot is not a substitute for viewport fit. Current focused result: 37/0.
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |

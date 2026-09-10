@@ -310,9 +310,12 @@ ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
     if (!tabs.length) return null;
     const box = tabs[0].parentElement.getBoundingClientRect();
     const h1 = document.querySelector('.gi-reports-title-block h1');
+    const titleStyle = h1 ? getComputedStyle(h1) : null;
     return {
       game: h1?.textContent.trim(),
       tooltip: h1?.getAttribute('title') || '',
+      titleClipped: !!h1 && (h1.scrollWidth > h1.clientWidth + 1 || h1.scrollHeight > h1.clientHeight + 1),
+      titleOverflow: titleStyle?.textOverflow || '',
       cut: tabs.filter(t => {
         const r = t.getBoundingClientRect();
         return r.right > box.right + 0.5 || r.left < box.left - 0.5;
@@ -330,17 +333,16 @@ ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
     await page.setViewport({ width: w, height: h });
     await sleep(400);
     const strip = await readStrip();
-    ok(!!strip && strip.count > 1 && strip.cut.length === 0,
-      `${w}: every Reports tab is fully visible on the longest real game name (${longest.name})`,
+    ok(!!strip && strip.count > 1 && strip.cut.length === 0 && !strip.titleClipped
+        && strip.titleOverflow !== 'ellipsis',
+      `${w}: the complete Reports title and every tab are visible on the longest real game name (${longest.name})`,
       JSON.stringify(strip));
   }
-  /* The title truncates to protect the navigation, so the full name has to
-     survive in the tooltip. Asserted on the rendered attribute — this was
-     claimed by a stylesheet comment and a commit message while no `title`
-     attribute existed anywhere in the route. */
+  /* The tooltip remains useful, but it is not permission to hide the visible
+     identity. The width assertions above own the no-truncation contract. */
   const tipped = await readStrip();
   ok(tipped?.tooltip === longest.name,
-    'the report title carries its full value as a tooltip when truncated',
+    'the complete visible report title also carries its full value as a tooltip',
     JSON.stringify({ tooltip: tipped?.tooltip, expected: longest.name }));
   const opponentTip = await page.evaluate(() => {
     window.app.reportsScreen.scoutOpponent();

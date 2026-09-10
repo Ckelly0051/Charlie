@@ -18,8 +18,8 @@
    either, because a coach cannot navigate to a tab he cannot see.
    This row was proportioned when the shell still carried a left rail, which
    the 2026-08-31 Home approval removed; it was never re-fitted to the wider
-   canvas. Navigation now holds its content width and the TITLE yields,
-   truncating with its full text still in the tooltip. */
+   canvas. Navigation holds its content width. At release widths it moves to a
+   second row before either the final tab or the report identity can clip. */
 .gi-reports-title-block{min-width:0}.gi-reports-eyebrow,.gi-reports-model>span:first-child{
   display:block;color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;
   font-weight:600;line-height:1.2;letter-spacing:0;text-transform:uppercase;
@@ -57,8 +57,8 @@
    590px for 638px of tabs, clipping `Matchup` to `MA` at 1440. Its own
    `overflow-x:auto` made that tab reachable by scrolling but invisible, which
    is worse than either — a coach cannot navigate to a tab he cannot see.
-   Navigation does not yield; the title does, and truncates with its full text
-   still in the tooltip. */
+   Navigation does not yield, and the visible title is never replaced by a
+   truncated label plus tooltip. */
 .gi-reports-tabs{
   position:sticky;top:0;z-index:6;display:flex;gap:0;min-width:0;padding:0 var(--gi-6x);
   overflow-x:auto;background:var(--gi-2);border-bottom:1px solid var(--gi-7);scrollbar-width:thin;scrollbar-color:var(--gi-8) var(--gi-2);
@@ -1254,9 +1254,9 @@
 .gi-reports .gi-scorebug-meta strong{font:700 11px/1.2 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase}
 .gi-reports .gi-scorebug-meta span{color:var(--gi-bd-muted);font-size:11px}
 .gi-reports .gi-reports-reporthead{display:flex;align-items:flex-end;gap:14px;padding:8px 14px 0;background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
-.gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:0 1 auto;min-width:0;padding:0;border:0;background:transparent}
+.gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:1 1 360px;min-width:0;padding:0;border:0;background:transparent}
 .gi-reports .gi-reports-reporthead .gi-reports-eyebrow{display:none}
-.gi-reports .gi-reports-reporthead .gi-reports-title-block h1{margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-reports .gi-reports-reporthead .gi-reports-title-block h1{margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase;white-space:normal;overflow:visible;text-overflow:clip}
 .gi-reports .gi-reports-reporthead .gi-reports-title-block p{margin:1px 0 3px;color:var(--gi-bd-muted);font-size:11.5px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .gi-reports .gi-reports-reporthead .gi-reports-model{display:flex;align-items:center;gap:7px;margin:0 0 6px;padding:0;border:0;background:transparent}
 .gi-reports .gi-reports-reporthead .gi-reports-model>span{display:none}
@@ -2218,6 +2218,13 @@
   .gi-reports .gi-season-nav{ overflow-x:auto }
   .gi-reports .gi-season-nav .gi-subtab{ flex:0 0 auto }
   .gi-reports .gi-season-metrics{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+}
+/* Preserve the complete report identity without making the fixed report board
+   taller at 1440. Familiar report actions collapse to labelled icons first. */
+@media(max-width:1600px){
+  .gi-reports .gi-reports-reporthead .gi-reports-actions .gi-reports-command{
+    width:32px;padding:0;gap:0;font-size:0
+  }
 }
 @media(max-width:1320px){
   .gi-reports .gi-reports-reporthead{flex-wrap:wrap;gap:8px}

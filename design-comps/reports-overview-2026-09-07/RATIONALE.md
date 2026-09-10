@@ -349,7 +349,13 @@ unchanged after the run. Synthetic fixtures are supplemental only.
    **Root cause was not the tab strip.** The title, the navigation and the
    command buttons share one row. The title was `flex:0 0 auto`, unable to
    shrink, and the nav `flex:1 1 0%`, so the nav absorbed every pixel of
-   squeeze. Navigation now holds its content width and the title yields.
+   squeeze. The first repair let the title yield and preserved its full value
+   only in a tooltip. The coach rejected that visible truncation on 2026-09-10.
+   Navigation still holds its content width. At 1600px and below, the familiar
+   Scout and Export commands collapse to labelled icons; at 1320px and below,
+   navigation moves to its own row. The title remains fully visible and may
+   wrap only as a final narrow-width fallback; a tooltip is supplemental, not
+   a substitute. This preserves the fixed dashboard height at 1440.
 
    **THE ROW WAS PROPORTIONED FOR A SHELL THAT HAD A LEFT RAIL.** The
    2026-08-31 Home approval removed it and this row was never re-fitted to the
