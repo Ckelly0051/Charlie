@@ -225,8 +225,12 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'touchdowns', label: 'TD' },
   ], dashboard.quarters)}</div>`;
   const opponent = `<div class="two-up">${table('Production by play type', [...resultColumns,
-    { key: 'touchdowns', label: 'TD', value: row => shown(row.touchdowns) }], fixed(dashboard.playTypes, 7))}${table('Formation faced', tendencyColumns,
-    fixed(dashboard.formations, 6))}</div><div class="two-up">${table('Personnel faced', tendencyColumns,
+    { key: 'touchdowns', label: 'TD', value: row => shown(row.touchdowns) }], fixed(dashboard.playTypes, 7))}${table('Calls by formation', [
+    { key: 'name', label: 'Offensive Look', value: row => shown(row.name) },
+    { key: 'n', label: 'Snaps', value: row => shown(row.n) },
+    { key: 'topPlay', label: 'Top Play', value: row => row.topPlay && row.topPct != null ? `${row.topPlay} ${row.topPct}%` : '-' },
+    { key: 'nextPlay', label: 'Next Play', value: row => row.nextPlay && row.nextPct != null ? `${row.nextPlay} ${row.nextPct}%` : '-' },
+  ], fixed(dashboard.formationCalls, 6))}</div><div class="two-up">${table('Personnel faced', tendencyColumns,
     fixed(dashboard.personnel, 5))}${table('Backfield faced', tendencyColumns, fixed(dashboard.backfields, 5))}</div>${table('Attack direction', tendencyColumns,
     dashboard.directions)}`;
   const calls = columns => [

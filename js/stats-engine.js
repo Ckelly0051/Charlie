@@ -1567,7 +1567,42 @@ export class StatsEngine {
     const detailOrder = ['Run Outside', 'Run Inside', 'RPO', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Screen'];
     const playTypes = detailOrder.map(name => summarize(name,
       source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))));
-    const formations = ranked(grouped(source, p => StatsEngine.splitFormations(StatsEngine.proj(p).formation)));
+    // A coach reads the offensive look as one structure, even though the tag
+    // model stores QB alignment, backfield and receiver formation separately.
+    // Preserve that combination so I-Form + Twins does not dissolve into an
+    // unhelpful standalone Twins row.
+    const offensiveLook = play => {
+      const projected = StatsEngine.proj(play);
+      const qb = String(projected.qbAlignment || '').trim();
+      const backfield = String(projected.backfield || '').trim();
+      const formations = [...new Set(StatsEngine.splitFormations(projected.formation))]
+        .sort(compareText);
+      const underCenterBackfield = qb === 'Under Center' ? {
+        I: 'I-Form', Power: 'Power-I', Single: 'Singleback', Split: 'Split Back',
+      }[backfield] : null;
+      const base = underCenterBackfield
+        ? [underCenterBackfield]
+        : [qb, backfield].filter(Boolean);
+      return [...base, ...formations].join(' + ');
+    };
+    const exactPlayCall = play => {
+      const raw = String(play?.tags?.playType || '').trim();
+      if (!raw) return '';
+      return [...new Set(StatsEngine.splitPlayTypes(raw))].sort(compareText).join(' + ');
+    };
+    const formationCalls = ranked(grouped(source.filter(p => exactPlayCall(p)), offensiveLook))
+      .map(row => {
+        const calls = ranked(grouped(row.plays, exactPlayCall));
+        const top = calls[0] || null;
+        const next = calls[1] || null;
+        return {
+          ...row,
+          topPlay: top?.name || null,
+          topPct: top && row.n ? Math.round(top.n / row.n * 100) : null,
+          nextPlay: next?.name || null,
+          nextPct: next && row.n ? Math.round(next.n / row.n * 100) : null,
+        };
+      });
     const personnel = ranked(grouped(source, p => String(p.tags.personnel || '').trim()));
     const backfields = ranked(grouped(source, p => StatsEngine.proj(p).backfield || ''));
     const directions = ['Left', 'Middle', 'Right'].map(name => summarize(name,
@@ -1636,7 +1671,7 @@ export class StatsEngine {
       thirdDownAllowed: rateAllowed(source, '3'), fourthDownAllowed: rateAllowed(source, '4'),
       recentThirdDownAllowed: rateAllowed(recent.plays, '3'), recentFourthDownAllowed: rateAllowed(recent.plays, '4'),
       byGame, downs: downRows, quarters: quarterRows, playTypes,
-      formations, personnel, backfields, directions,
+      formationCalls, personnel, backfields, directions,
       topCalls: topCalls.slice(0, 4), worstCalls: worstCalls.slice(0, 4),
       pressure: { blitz, noBlitz }, pressureSituations,
       downDistance: ddRows, zones, hashes, motions: motionNames,

@@ -3032,6 +3032,14 @@
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-performance-split th{height:26px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-performance-split td{height:27px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top{height:270px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls table{table-layout:fixed;font-size:10.5px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(1){width:40%}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(2){width:10%}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(3),
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(4){width:25%}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td:first-child{
+  white-space:normal;line-height:1.05
+}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-bottom{height:238px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls{height:225px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls td{height:38px}

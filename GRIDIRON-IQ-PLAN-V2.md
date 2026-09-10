@@ -711,6 +711,10 @@ Retain every meaningful production field while reducing everyday clutter.
 > containment independently at 1440x900 and 1280x900, fills all four qualified
 > call slots, canonicalizes call identity and field-zone boundaries, makes game
 > scope labels honest, and aligns the HTML export to the same four-section model.
+> The 2026-09-10 coach-directed usefulness amendment replaces `Formation faced`
+> with six fixed `Calls by formation` rows. Each row preserves the complete
+> projected offensive look and shows its two most frequent exact play calls and
+> percentages; the live board and Defense export share the same model.
 > Coach-approved composition; production acceptance and installed smoke remain.
 >
 

@@ -433,8 +433,8 @@ it was the rejected predictability-only duplicate of the canonical top-level
 Reports > Self-Scout board.
 
 `DEFENSE_DASH_ROWS` owns the fixed ranked allocations. The approved inventory
-is: Game-by-game 6; play type 7; formations 6; personnel/backfield 5; Top and
-Worst Calls 4 slots each; pressure situations 6; all 12 down/distance buckets;
+is: Game-by-game 6; play type 7; Calls by formation 6; personnel/backfield 5;
+Top and Worst Calls 4 slots each; pressure situations 6; all 12 down/distance buckets;
 and five slots each for field zone, hash and motion. Fixed football sets keep
 their labels and show dashes when empty. Ranked sets are deterministically
 capped. Data cannot add a module, remove a module or resize a section.
@@ -449,6 +449,13 @@ Self-Scout's three-snap tendency gate. Third- and fourth-down "allowed" rates
 use `StatsEngine.isConversion`. Stop Rate is not shown. Module and section
 explainer prose is absent, but the three data-bearing yards/play baselines are
 retained. Every populated row carries its exact composite film refs.
+
+Opponent Offense must answer what the opponent ran from each look, not merely
+how often a formation appeared. `Calls by formation` combines the projected QB
+alignment, backfield and receiver structure into one football-readable look,
+then shows the top two exact play calls and their shares. The six-row module is
+static: missing rows hold dashes and additional looks are deterministically
+capped. Do not split a combined look into separate formation rows.
 
 Defense field zones reuse `_fieldZone()`. The five-slot board combines Own
 11–39 and Midfield into Open Field, then shows Opp 40–20, Red Zone and Goal

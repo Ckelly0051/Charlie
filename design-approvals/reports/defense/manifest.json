@@ -4,11 +4,11 @@
   "designStatus": "COMP_APPROVED",
   "productionStatus": "REJECTED",
   "approvedOn": "2026-09-09",
-  "approvalNote": "Charlie approved the fixed four-screen Defense composition; the implementation is awaiting production review.",
+  "approvalNote": "Charlie approved the fixed four-screen Defense composition and directed the Calls by formation usefulness amendment; the implementation is awaiting production review.",
   "canonicalArtifact": {
     "path": "design-comps/reports-defense-2026-09-09",
     "kind": "directory",
-    "sha256": "47d38e77c1bd847632c6b3890b89cadd58fa6bd098913cdf9322c137bbb1870c",
+    "sha256": "931ca2b56d1a26f56b092ed07dd8dd524c8af75241bfbd6c40a2dd324730fde9",
     "fileCount": 11
   },
   "decisionRecord": "design-comps/reports-defense-2026-09-09/RATIONALE.md"

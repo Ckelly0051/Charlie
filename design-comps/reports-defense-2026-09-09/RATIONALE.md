@@ -24,7 +24,18 @@ The approved comp is the production schema. Module placement, row counts, and bo
 - Stop Rate is not used as a down-to-down comparison. The prior metric was the inverse of offensive play success, so its down-specific thresholds made the comparison misleading at a glance.
 - Down and quarter tables use Total Yards and Yards/Play as the primary production measures.
 - Season totals are paired with Last 3 comparisons where the comparison is meaningful.
-- Opponent Offense combines tendency and defensive result: play type, formation, personnel, backfield, and attack direction.
+- Opponent Offense combines tendency and defensive result: play type, calls by
+  offensive formation/look, personnel, backfield, and attack direction.
+- `Calls by formation` replaces the descriptive `Formation faced` table. Each
+  of its six fixed rows preserves the complete projected offensive look across
+  QB alignment, backfield and receiver structure, then shows the two most
+  frequent exact play calls and their shares. For example, an under-center I
+  backfield plus Twins displays as `I-Form + Twins`, with `Run Inside 70%`
+  rather than dissolving the snap into unrelated formation totals.
+- Calls by formation ranks looks by charted play-call snaps, then uses a
+  deterministic name tie-break. Play-call share divides by the charted calls
+  in that exact look. Sparse cohorts hold dashes; only the six most frequent
+  looks render when more qualify. The table and HTML export use the same rows.
 - A defensive call is the complete charted combination of front, coverage, and pressure.
 - Top Calls and Worst Calls use the same qualified cohort and fixed four-row modules.
 - A defensive call qualifies for Top/Worst Calls at four classified snaps. Four
@@ -76,6 +87,10 @@ an omitted style.
 The Defense export now consumes `defenseDashboard()` and carries the same four
 sections and scope as the board. The superseded defensive-performance and
 predictability export is retired.
+
+The coach-directed 2026-09-10 usefulness amendment changes one module without
+changing board geometry: `Formation faced` becomes `Calls by formation`. The
+six-row allocation, containing band and four-screen schema remain fixed.
 
 ## Review Evidence
 

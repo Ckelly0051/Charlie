@@ -1033,7 +1033,7 @@ function SectionTabs({ sections, active, onSelect }) {
 const DEFENSE_DASH_ROWS = {
   'Game-by-game': 6,
   'Production by play type': 7,
-  'Formation faced': 6,
+  'Calls by formation': 6,
   'Personnel faced': 5,
   'Backfield faced': 5,
   'Top Calls': 4,
@@ -1173,7 +1173,10 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
     {section === 'd2' && <>
       <div class="gi-def-band gi-def-band-2 gi-def-tendency-top">
         <DefenseModuleTable title="Production by play type" meta={baselineLabel} cls="has-baseline" headers={['Play type', 'Snaps', 'Total yds', 'Yds/play', 'Vs avg', 'Expl', 'TD']} rows={dashboard.playTypes} count={DEFENSE_DASH_ROWS['Production by play type']} screen={screen} cells={resultCells} />
-        <DefenseModuleTable title="Formation faced" headers={['Formation', 'Snaps', 'Run/pass', 'Total yds', 'Yds/play', 'Vs avg']} rows={dashboard.formations} count={DEFENSE_DASH_ROWS['Formation faced']} screen={screen} cells={tendencyCells} />
+        <DefenseModuleTable title="Calls by formation" cls="gi-def-formation-calls" headers={['Offensive look', 'Snaps', 'Top play', 'Next play']} rows={dashboard.formationCalls} count={DEFENSE_DASH_ROWS['Calls by formation']} screen={screen}
+          cells={row => [row.name, row.n,
+            row.topPlay && row.topPct != null ? `${row.topPlay} ${row.topPct}%` : null,
+            row.nextPlay && row.nextPct != null ? `${row.nextPlay} ${row.nextPct}%` : null]} />
       </div>
       <div class="gi-def-band gi-def-band-3 gi-def-tendency-bottom">
         <DefenseModuleTable title="Personnel faced" headers={['Personnel', 'Snaps', 'Run/pass', 'Yds/play', 'Expl']} rows={dashboard.personnel} count={DEFENSE_DASH_ROWS['Personnel faced']} screen={screen} cells={smallCells} />

@@ -10,13 +10,13 @@ const OUT = 'artifacts/defense-production-realdata';
 const VIEWPORTS = [[1440, 900], [1280, 900]];
 const SECTIONS = [
   { label: 'Defensive performance', modules: ['Game-by-game', 'By down', 'By quarter'] },
-  { label: 'Opponent Offense', modules: ['Production by play type', 'Formation faced', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
+  { label: 'Opponent Offense', modules: ['Production by play type', 'Calls by formation', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
   { label: 'Scheme', modules: ['Top Calls', 'Worst Calls', 'Blitz vs No Blitz', 'Pressure by situation'] },
   { label: 'Situational results', modules: ['Down & distance', 'Field zone', 'By hash', 'Motion'] },
 ];
 const ROWS = {
   'Game-by-game': 6, 'By down': 4, 'By quarter': 4,
-  'Production by play type': 7, 'Formation faced': 6,
+  'Production by play type': 7, 'Calls by formation': 6,
   'Personnel faced': 5, 'Backfield faced': 5,
   'Top Calls': 4, 'Worst Calls': 4, 'Pressure by situation': 6,
   'Down & distance': 12, 'Field zone': 5, 'By hash': 5, Motion: 5,
@@ -197,6 +197,10 @@ const canonical = await page.evaluate(() => {
     worstCalls: model.worstCalls.map(row => `${row.name}:${row.n}`),
     firstLongCallPct: model.downDistance.find(row => row.name === '1st & 7+')?.callPct,
     zones: model.zones.map(row => `${row.name}:${row.n}`),
+    formationCalls: model.formationCalls.map(row => ({
+      name: row.name, n: row.n, topPlay: row.topPlay, topPct: row.topPct,
+      nextPlay: row.nextPlay, nextPct: row.nextPct, ypp: row.ypp,
+    })),
   };
 });
 ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
@@ -222,6 +226,11 @@ ok(canonical.firstLongCallPct > 0 && canonical.firstLongCallPct <= 100,
 ok(JSON.stringify(canonical.zones.map(value => value.split(':')[0])) === JSON.stringify([
   'Backed Up', 'Open Field', 'Opp 40–20', 'Red Zone', 'Goal Line',
 ]), 'field zones use five display slots backed by canonical field-position buckets', JSON.stringify(canonical.zones));
+ok(canonical.formationCalls.length >= 6
+  && canonical.formationCalls.every(row => row.name && row.topPlay && row.topPct > 0 && row.topPct <= 100)
+  && canonical.formationCalls.some(row => row.name === 'I-Form + Twins' && row.topPlay === 'Run Inside'),
+  'Calls by formation preserves combined offensive looks and names the top play tendency',
+  JSON.stringify(canonical.formationCalls));
 
 const invariants = await page.evaluate(() => {
   const Stats = window.app.stats.constructor;
@@ -236,17 +245,31 @@ const invariants = await page.evaluate(() => {
     { ...base, id: 'r4', tags: { ...base.tags, down: '1', distance: '10', defFront: '', coverage: '', blitz: '' } },
   ];
   const rates = window.app.stats.defenseDashboard(rateRows).downDistance.find(row => row.name === '1st & 7+');
+  const lookRows = Array.from({ length: 10 }, (_, index) => ({
+    ...base, id: `look-${index}`,
+    tags: { ...base.tags,
+      qbAlignment: 'Under Center', backfield: 'I',
+      formation: 'Twins',
+      playType: index < 7 ? 'Run Inside' : 'Run Outside' },
+  }));
+  const look = window.app.stats.defenseDashboard(lookRows).formationCalls[0];
   return {
     sameCall: Stats._defenseCallKey(base) === Stats._defenseCallKey(reversed),
     conversionMade: conversion.fourthDownAllowed.made,
     callPct: rates.callPct,
     blitzPct: rates.blitzPct,
+    look: { name: look?.name, n: look?.n, topPlay: look?.topPlay,
+      topPct: look?.topPct, nextPlay: look?.nextPlay, nextPct: look?.nextPct },
   };
 });
 ok(invariants.sameCall, 'defensive call identity is independent of multi-select order');
 ok(invariants.conversionMade === 1, 'down conversions use line-to-gain ownership even when Result says No Good');
 ok(invariants.callPct === 67 && invariants.blitzPct === 33,
   'Call% and Blitz% exclude snaps with no charted defensive structure', JSON.stringify(invariants));
+ok(JSON.stringify(invariants.look) === JSON.stringify({
+  name: 'I-Form + Twins', n: 10, topPlay: 'Run Inside', topPct: 70,
+  nextPlay: 'Run Outside', nextPct: 30,
+}), 'combined offensive looks expose ranked play calls and charted call shares', JSON.stringify(invariants.look));
 
 const exportText = await page.evaluate(async () => {
   let saved = null;
@@ -259,7 +282,9 @@ const exportText = await page.evaluate(async () => {
 });
 ok(['Defensive Performance', 'Opponent Offense', 'Scheme', 'Situational Results']
   .every(label => exportText.includes(label)) && !exportText.includes('Defensive Tendency Tells')
-  && !exportText.includes('Stop Rate'), 'Defense export uses the same four-section dashboard model as the screen');
+  && !exportText.includes('Stop Rate') && exportText.includes('Calls by formation')
+  && exportText.includes('Top Play') && exportText.includes('Next Play'),
+  'Defense export uses the same four-section dashboard model as the screen');
 const fullSeasonFits = [];
 for (let index = 0; index < SECTIONS.length; index++) {
   await page.evaluate(label => {
