@@ -190,3 +190,52 @@ label producers survived the `_ddPretty` change.
 The parity golden correction for this pass is six label-only lines, three
 `2nd & Long -> 2nd & 4+` and three `3rd & Long -> 3rd & 7+`, with no numeric
 drift.
+
+## Codex review round 1 - 2026-09-10
+
+Three defects the first pass left standing. All three were repaired at their
+owner, mutation-verified against the assertion that names them, and none
+changed an approved composition's module, row or tile count.
+
+### 1. Return production is one cohort, count included
+
+Repairing the FIELD was not repairing the COHORT. `_individualStats` reads the
+dedicated `returnYards` now, but `reports-view` still printed `r.returns` - the
+return EVENTS - in `Ret`, beside yards and an average taken over `r.measured`.
+The canonical season charts eleven return events and one measured return, so
+the board read `11 | 5 | 5.0`: a count from one cohort with a total and an
+average from another, above a team report stating one return for five yards.
+`Ret` is `r.measured`. An unmeasured return is still a special-teams snap and
+keeps its place in the unit's snap count; it is not production.
+
+The first handback claimed the two surfaces "agree exactly". They agreed on
+yardage. The cross-surface assertion compared yardage only, so the suite was
+green over a live contradiction - the assertion was not as strong as its name.
+
+### 2. The defensive Yds / play denominator was wrong, not undecided
+
+Carrying this as an open question was the error. A rate whose numerator
+excludes the unclassified penalty rows and whose denominator counts them is not
+a measurement of anything: each excluded row entered as a zero-yard play and
+flattered the defense. 497/174 = 2.9; 497/154 = 3.2. The 2.9 was a value
+printed in a comp fixture, not an approved formula, so preserving it preserved
+the defect.
+
+`Snaps` deliberately still reports the CHARTED snap count. A column labelled
+Snaps that prints a classified subset is a new mislabelling, and the approved
+Opponent Offense contract counts every charted call in its situation. Total Yds
+and Yds / play are the classified production cohort. Raised for the Gate.
+
+### 3. An export prints its board's schema
+
+The Self-Scout HTML export is a second renderer over the same models and had no
+direct coverage, so it drifted silently: the twelve fixed down-and-distance
+rows went through a plain column list, and every HELD row printed a fabricated
+`0`, `0%` and `0% / 0%` under the engine's raw bucket key `1|Short` - an
+unfaced situation reported as a measured failure, in a vocabulary no coach
+uses. Its defensive KPI band also still led with Stop Rate.
+
+`_ddPretty` gained a static form, `StatsEngine.ddPretty`, because the export
+has no engine instance and one down-and-distance vocabulary must have one
+owner. `e2e-reports-self-scout` section 14 now asserts against the produced
+HTML string rather than the DOM.

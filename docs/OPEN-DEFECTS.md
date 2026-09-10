@@ -9,18 +9,27 @@
 
 ## Reports
 
-1. **OLL live-data audit - REPAIRED, awaiting Codex review and a Charlie
-   Gate.** All ten items plus one found in passing are closed in code at
-   `d3c71e6..` (seven commits). Detail, reconciliation and mutation evidence
-   are in `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; the production decision
-   record is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`. No
-   surface advanced past `REJECTED`, and no installed WebView2 smoke has been
-   run against these repairs, so none of it is accepted state.
+1. **OLL live-data audit - REPAIRED, awaiting Codex re-review and a Charlie
+   Gate.** All ten items plus one found in passing are closed in code across
+   the commits beginning `d3c71e6`, with three further repairs from Codex's
+   2026-09-10 review. Detail, reconciliation and mutation evidence are in
+   `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; the production decision record
+   is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`. No surface
+   advanced past `REJECTED`, and no installed WebView2 smoke has been run
+   against these repairs, so none of it is accepted state.
 
-   **Three questions carried to the coach, deliberately not decided:**
-   - Defensive `Yds / play` still divides by every defensive snap, which is
-     what the approved `2.9` KPI is measured over. Moving that denominator to
-     the classified count makes it `3.2` and changes an approved value.
+   **Codex review round 1, repaired 2026-09-10:**
+   - Player return production now uses the team report's measured-return
+     cohort for the COUNT as well as the yardage. `Ret` printed every return
+     event beside measured yards and a measured average.
+   - Defensive `Yds / play` divides by the classified run/pass cohort its own
+     numerator comes from. The approved `2.9` was a value in a comp fixture,
+     not an approved formula; the honest figure is `3.2`.
+   - The Self-Scout HTML export prints the board's schema: `_ddPretty` labels,
+     a dash in every measured cell of a held row, and a defensive KPI band
+     that leads with Yards Allowed / Play and ends with Stop Rate.
+
+   **Two questions still carried to the coach, deliberately not decided:**
    - Deleting Stop Rate outright from the Self-Scout KPI band or Overview's
      Defense & discipline module would change an approved row count. It was
      moved out of the headline position instead; both compositions keep six
@@ -29,6 +38,12 @@
      `unit` tag, and punt distance, hang time and return yardage are
      essentially uncharted across the season. Both are charting-workflow gaps
      raised for the coach; nothing was inferred or written back.
+
+   **One deliberate difference from the review note.** The defensive tables
+   keep `Snaps` as the CHARTED snap count. A column labelled Snaps must report
+   snaps, and the situational call-frequency contract counts every charted call
+   in the situation. Total Yds and Yds / play are the classified production
+   cohort. Raised for the Gate rather than settled here.
 2. **Renamed HTML report does not open correctly after save.** Reproduced by the
    coach for both Defense Report and Game Report. Keeping the default filename
    works; changing it during the native save flow does not. Treat this as a

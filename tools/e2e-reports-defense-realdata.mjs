@@ -278,8 +278,18 @@ ok(canonical.byGame.reduce((sum, row) => sum + row.yards, 0) === canonical.yards
   'the six game rows sum to the season total rather than agreeing by coincidence',
   JSON.stringify({ rows: canonical.byGame.map(r => r.yards), season: canonical.yards }));
 ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
-  && canonical.ypp === 2.9 && canonical.turnovers === 2 && canonical.explosives === 7,
+  && canonical.ypp === 3.2 && canonical.turnovers === 2 && canonical.explosives === 7,
   'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));
+/* A RATE'S TWO HALVES ARE ONE COHORT. Total yards excludes the unclassified
+   penalty snaps, so dividing it by every defensive snap counted each of those
+   as a zero-yard play and flattered the defense: 497/174 = 2.9 against the
+   honest 497/154 = 3.2. */
+ok(canonical.ypp === +(canonical.yards / cohorts.defenseClassified).toFixed(1),
+  'Yards allowed / play divides the classified yardage by the classified cohort',
+  JSON.stringify({ ypp: canonical.ypp, yards: canonical.yards, classified: cohorts.defenseClassified, charted: canonical.total }));
+ok(canonical.ypp !== +(canonical.yards / canonical.total).toFixed(1),
+  'the two denominators really do differ here, so that assertion can fail',
+  JSON.stringify({ classified: cohorts.defenseClassified, charted: canonical.total }));
 ok(canonical.third.made === 8 && canonical.third.attempts === 43 && canonical.third.rate === 18.6
   && canonical.fourth.made === 9 && canonical.fourth.attempts === 17 && canonical.fourth.rate === 52.9,
   'third- and fourth-down allowed use offensive conversion polarity', JSON.stringify(canonical));

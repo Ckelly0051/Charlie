@@ -808,6 +808,52 @@ ok(season.board && season.sections.length === 5 && season.kpis === 6,
   'the Season report renders the same five-section board', JSON.stringify(season));
 ok(season.metas === 0, 'the Season copy carries no module metadata either', String(season.metas));
 
+/* ══ 14. The HTML export prints the board's own schema ════════════════════ */
+/* The export is a second renderer over the same models, so it can drift from
+   the board silently: it printed the raw bucket key `1|Short` and a fabricated
+   `0` / `0%` / `0% / 0%` for every HELD down-and-distance row, and it led its
+   defensive KPI band with Stop Rate. These assertions read the produced HTML
+   string, not the DOM. */
+console.log('\n== 14. Self-Scout HTML export ==');
+await load(FULL);
+const exported = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  const engine = window.app.stats;
+  const { scoped } = screen._selfScoutCohort();
+  const performance = engine.compute(scoped);
+  const report = engine.generateSelfScout(scoped);
+  const callRows = engine._selfScoutRows(engine._selfScoutGroup(performance.offPlays,
+    p => p.tags.playCall || p.tags.playConcept || null));
+  const saved = [];
+  const original = window.ffaSaveBlob;
+  window.ffaSaveBlob = blob => saved.push(blob);
+  screen.exportSelfScout(report, engine.generateDefensiveSelfScout?.(scoped) || null, performance, callRows);
+  window.ffaSaveBlob = original;
+  const html = saved.length ? await saved[0].text() : '';
+  const held = (report?.downDistRows || []).filter(row => row.held).length;
+  return { html, held, rows: (report?.downDistRows || []).length };
+});
+ok(exported.rows === 12 && exported.held > 0,
+  'the fixture really does hold unfaced down-and-distance buckets, so these assertions can fail',
+  JSON.stringify({ rows: exported.rows, held: exported.held }));
+const ddSection = exported.html.split('Down and Distance')[1]?.split('</section>')[0] || '';
+ok(ddSection.length > 0, 'the export contains a Down and Distance section');
+ok(!/\d\|(Short|Medium|Long)/.test(ddSection),
+  'the export prints no raw engine bucket key');
+ok(ddSection.includes('1st &amp; 1-3') || ddSection.includes('1st & 1-3'),
+  'the export prints _ddPretty labels');
+const heldCells = (ddSection.match(/<td>-<\/td>/g) || []).length;
+ok(heldCells >= exported.held * 7,
+  'every measured cell of every held export row is a dash, not a fabricated zero',
+  `${heldCells} dashes for ${exported.held} held rows`);
+ok(!ddSection.includes('<td>0% / 0%</td>'),
+  'no held export row prints a fabricated 0% / 0% run-pass split');
+const defBand = exported.html.split('<h1>Defense</h1>')[1]?.split('</div></div>')[0] || '';
+const kpiOrder = [...defBand.matchAll(/<span>([^<]+)<\/span>/g)].map(m => m[1]);
+ok(kpiOrder[0] === 'Yards Allowed / Play' && kpiOrder[kpiOrder.length - 1] === 'Stop Rate',
+  'the exported defensive KPI band leads with Yards Allowed / Play and ends with Stop Rate',
+  JSON.stringify(kpiOrder));
+
 console.log(`\nPage/console errors: ${errors.length}`);
 if (errors.length) console.log(errors.slice(0, 6).join('\n'));
 ok(errors.length === 0, 'no page or console errors across every section and state');

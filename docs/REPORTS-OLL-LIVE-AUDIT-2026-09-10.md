@@ -2,19 +2,44 @@
 
 ## Status
 
-**REPAIRED IN CODE 2026-09-10, awaiting Codex review and a Charlie Gate.** All
-ten items are closed below, plus one found while verifying item 1 (the Success
-rate sub read a field `_efficiencyStats` never returns and printed a constant
-`0 successful snaps` on every game and every season). Seven commits, each with
-failing-first and mutation evidence recorded in its message. The production
+**REPAIRED IN CODE 2026-09-10, awaiting Codex re-review and a Charlie Gate.**
+All ten items are closed below, plus one found while verifying item 1 (the
+Success rate sub read a field `_efficiencyStats` never returns and printed a
+constant `0 successful snaps` on every game and every season). Each commit
+carries failing-first and mutation evidence in its message. The production
 decision record is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`.
 
+**Codex review round 1, 2026-09-10 — three defects the first pass left
+standing, all repaired and mutation-verified:**
+
+1. **Special Teams was still two cohorts on the Players board.** The first pass
+   fixed the FIELD (dedicated `returnYards`, not generic `tags.yardage`) but
+   left `Ret` counting every return EVENT, so Players printed 11 returns beside
+   5 measured yards and a 5.0 measured average, against a team report stating
+   one return. `Ret` is now `measured`. The claim in the first handback that
+   the two surfaces "agree exactly" was wrong: they agreed on yardage only, and
+   the cross-surface assertion checked only yardage, which is why the suite was
+   green. `e2e-reports-players` now pins the count and the rendered column.
+2. **The defensive `Yds / play` denominator was wrong, not merely undecided.**
+   Excluding unclassified penalty rows from the numerator while dividing by
+   every charted defensive row charged each excluded row as a zero-yard play
+   and flattered the defense. 497/174 = 2.9 against the honest 497/154 = 3.2.
+   The approved 2.9 was a value printed in a comp fixture, not an approved
+   formula; carrying it as an open question preserved a broken rate. Repaired.
+   `Snaps` deliberately remains the charted count — see `docs/OPEN-DEFECTS.md`.
+3. **The Self-Scout HTML export violated the repaired fixed schema.** Held
+   down-and-distance rows exported the raw bucket key `1|Short` with fabricated
+   `0`, `0%` and `0% / 0%` values, and the defensive KPI band still led with
+   Stop Rate. The export now carries the held-row dash, calls
+   `StatsEngine.ddPretty`, and prints the board's KPI order.
+   `e2e-reports-self-scout` section 14 asserts against the produced HTML
+   string — the export is a second renderer and had no direct coverage at all.
+
 **No surface advanced past `REJECTED` and no installed WebView2 smoke was run
-against these repairs.** Nothing here is accepted state. Three questions are
-carried to the coach in `docs/OPEN-DEFECTS.md` rather than decided here: the
-defensive `Yds / play` denominator, whether Stop Rate should be deleted from
-two approved compositions rather than repositioned, and two charting-workflow
-gaps in the coach's own data.
+against these repairs.** Nothing here is accepted state. Two questions are
+carried to the coach in `docs/OPEN-DEFECTS.md` rather than decided here:
+whether Stop Rate should be deleted from two approved compositions rather than
+repositioned, and two charting-workflow gaps in the coach's own data.
 
 The original findings, verbatim, follow with their disposition.
 

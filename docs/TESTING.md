@@ -110,13 +110,19 @@ qualifier, that Snaps by phase counts each phase from the charted cohort and its
 three rows sum to it, and that the Success rate sub counts real successful
 snaps. `e2e-reports-defense-realdata` additionally pins the season's four
 cohorts (201/173 offensive, 174/154 defensive) and that every Game-by-game row
-satisfies `Total yds = Rush yds + Pass yds`. `e2e-reports-self-scout` pins all
+satisfies `Total yds = Rush yds + Pass yds`, and that `Yards allowed / play`
+divides that classified yardage by the classified cohort rather than by every
+charted defensive snap. `e2e-reports-self-scout` pins all
 twelve down-and-distance rows in football order with explicit yardage, held
 rows carrying the absence treatment rather than a zero, `Turnovers` never
 `Giveaways`, a populated section never badging zero, and that no defensive tell
-reports its own grouping dimension. `e2e-reports-players` pins that punt
+reports its own grouping dimension — and section 14 asserts against the
+produced Self-Scout **HTML export string**, because the export is a second
+renderer over the same models and drifted from the board silently.
+`e2e-reports-players` pins that punt
 distance and return yardage come from the dedicated ST fields and that Players
-and the team Special Teams report agree. `e2e-reports-matchup` pins that no
+and the team Special Teams report agree on the measured return COUNT as well as
+its yardage. `e2e-reports-matchup` pins that no
 composite-identity column is labelled a play call. `e2e-reports-offense-realdata`
 now exercises **Season scope** at both release widths, which is the gap that let
 a season-only containment defect ship.

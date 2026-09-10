@@ -629,13 +629,15 @@ export function individualStats(stats, group, playerLabel) {
     rows: ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) })) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
-    /* Yards and the average are measured over the returns that actually carry
-       a charted `returnYards`, the same dedicated field the team Return
-       Production reads. A return with no charted yardage still counts as a
-       return; it contributes no yards and no average. Dividing by every
-       return instead is how Players reported 43 yards from generic
-       `tags.yardage` beside a team report showing the one measured return. */
-    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.returns,
+    /* ONE RETURN COHORT ACROSS BOTH SURFACES. Return production is measured
+       over the returns carrying a charted `returnYards`, the same dedicated
+       field the team Return Production reads — and `Ret` is that same measured
+       count, not the return EVENTS. Counting every event here reported 11
+       returns beside 5 yards and a 5.0 average, three numbers from two
+       different cohorts, above a team report stating 1 return for 5 yards.
+       An unmeasured return is still a special-teams snap and stays in the
+       unit's snap count; it is not production. Coach ruling 2026-09-10. */
+    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.measured,
       yds: r.measured ? r.yards : PLAYER_NO_DATA,
       avg: r.measured ? (r.yards / r.measured).toFixed(1) : PLAYER_NO_DATA,
       long: r.measured ? r.long : PLAYER_NO_DATA, tds: r.tds, refs: refs(r) })) });

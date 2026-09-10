@@ -562,10 +562,14 @@ snaps carried -15 yards between them. The season reconciled only by
 coincidence (-5 + 0 + 10 + 5 + 5 - 15 = 0), which is why a green suite never
 caught it. Penalty-only yardage is not offensive yards allowed; all three
 columns come from the same classified run/pass cohort, taken as a union so a
-snap tagged both could never count twice. `ypp` still divides by every
-defensive snap, which is what the approved 2.9 KPI is measured over - moving
-that denominator to the classified count would make it 3.2 and is carried to
-the Gate as a coach decision.
+snap tagged both could never count twice. **`ypp` divides by that same
+cohort.** Left on every defensive snap it charged the reduced yardage against
+the excluded penalty rows as though each were a zero-yard play, flattering the
+defense: 497/174 = 2.9 against the honest 497/154 = 3.2. The approved 2.9 was a
+value printed in a comp fixture, not an approved formula, and a rate whose two
+halves describe different cohorts is not a measurement. `Snaps` remains the
+CHARTED snap count, because a column labelled Snaps reports snaps and
+situational call frequency counts every charted call in the situation.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp
@@ -634,10 +638,23 @@ reported different numbers for the same plays. The canonical season charts no
 averages of 2.8 and 0.0 from blank generic yardage beside a team report
 correctly reporting none; and it totalled 11 returns for 43 yards while the
 team's Return Production, gated on `returnYards`, reported the single return
-that carries it. Both read `kickDistance` and `returnYards` now. A return or
-punt with no charted measurement still COUNTS - it contributes no yards and no
-average, and `measured` / `puntsMeasured` are the denominators. A measured zero
+that carries it. Both read `kickDistance` and `returnYards` now. **The measured cohort is one
+cohort, count included.** Players kept counting every return EVENT beside
+measured yards and a measured average, so the board read 11 returns for 5 yards
+at 5.0 above a team report stating one return - three numbers from two cohorts.
+`Ret` is `measured`, the same count the team report shows; an unmeasured return
+is still a special-teams snap and stays in the unit's snap count, but it is not
+production. `measured` / `puntsMeasured` are the denominators. A measured zero
 is unchanged and still renders at full strength.
+
+**A Reports export prints its board's own schema.** The Self-Scout export ran
+the twelve fixed down-and-distance rows through a plain column list, so a HELD
+row printed a fabricated `0`, `0%` and `0% / 0%` under the engine's raw bucket
+key `1|Short` - an unfaced situation reported as a measured failure in a
+vocabulary no coach uses - and its defensive KPI band led with Stop Rate. The
+export carries the held-row dash, calls `StatsEngine.ddPretty` (the static form
+of `_ddPretty`, the one owner of this wording), and prints the board's KPI
+order. `e2e-reports-self-scout` asserts against the produced HTML string.
 **Reports > Players is implemented and gate-verified, but NOT coach accepted.**
 Built to the approved comp (`design-comps/reports-players-2026-09-04`, whose
 RATIONALE is the decision record and whose section 16 is the final
@@ -1163,14 +1180,15 @@ product is wrong.
 same commit that opens, reclassifies, repairs, or closes an issue; this section
 may summarize active work but must not become a competing ledger.
 
-**Reports OLL live-data audit (OPEN 2026-09-10).** Ten investigation items from
-the complete 29-view capture are recorded in
-`docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`. They include cross-surface cohort
-contradictions, Self-Scout count/label/dimension defects, unreconciled defensive
-yardage, Matchup semantics, Special Teams conflicts, Stop Rate composition
-drift, and a layout-integrity verification. They are not repaired or approved.
-Investigate against the canonical read-only OLL game, propose root-cause fixes,
-and stop for coach approval before editing code, tests, goldens or coach data.
+**Reports OLL live-data audit (REPAIRED 2026-09-10, awaiting Codex re-review
+and a Charlie Gate).** The ten investigation items from the complete 29-view
+capture, plus one found in passing, are closed in code; three further repairs
+came out of Codex's 2026-09-10 review. The ledger, reconciliation and mutation
+evidence are in `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, the production
+decision record is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`,
+and `docs/OPEN-DEFECTS.md` carries the open questions. No surface advanced past
+`REJECTED` and no installed smoke has been run against the repairs, so none of
+it is accepted state.
 
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
@@ -1303,7 +1321,7 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
-Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 100),
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
@@ -1322,10 +1340,10 @@ no clipped cell, 17), `tools/e2e-reports-special-teams.mjs`
 corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
 absence contract, the role-specific composite film cohorts and the Grade
-repair, 169) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
+repair, 177) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
 composition, its title-only module headers, the composite defensive-call
-contract, both ranking rules, canonical metric reuse, exact film cohorts and
-1440/1280 containment, 90) and `tools/e2e-reports-season.mjs` (the Season
+contract, both ranking rules, canonical metric reuse, exact film cohorts, the
+HTML export's own schema and 1440/1280 containment, 110) and `tools/e2e-reports-season.mjs` (the Season
 composition, the opponent-scout exclusion, chronological ordering, Game Log
 reconciliation, the shared comparison metrics with their units and thresholds,
 the dynamic First N / Last N windows, per-game turnover margin, drive-boundary

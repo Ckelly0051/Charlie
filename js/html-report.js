@@ -1,4 +1,5 @@
 import * as view from './reports-view.js';
+import { StatsEngine } from './stats-engine.js';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -298,15 +299,28 @@ export function buildSpecialTeamsHtmlReport({ title, stats, summary, scopeLabel,
 
 export function buildSelfScoutHtmlReport({ title, report, defScout, performance, callRows,
   summary, defSummary, generatedAt = new Date() }) {
-  const outcomeColumns = [
-    { key: 'key', label: 'Group' }, { key: 'n', label: 'Plays' },
-    { key: 'avg', label: 'Yards / Play' },
-    { key: 'success', label: 'Success', value: row => `${row.succRate}%` },
-    { key: 'explosives', label: 'Explosive' }, { key: 'tds', label: 'TD' },
+  /* THE EXPORT PRINTS THE BOARD'S OWN SCHEMA. Self-Scout's twelve fixed
+   * down-and-distance rows carry a HELD row for every bucket the cohort never
+   * faced — `held: true` and a dash in every measured cell — and their `key`
+   * is the engine's raw bucket (`1|Short`), which `_ddPretty` owns the wording
+   * of. Exported through the plain column list, the report printed `1|Short`
+   * beside a fabricated `0`, `0%` and `0% / 0%`: an unfaced situation reported
+   * as a measured failure, in a vocabulary no coach uses. */
+  const SS_HELD = '-';
+  const ssValue = (row, render) => (row.held ? SS_HELD : render(row));
+  const ssColumns = (label = row => row.key) => [
+    { key: 'key', label: 'Group', value: label },
+    { key: 'n', label: 'Plays', value: row => ssValue(row, r => r.n) },
+    { key: 'avg', label: 'Yards / Play', value: row => ssValue(row, r => r.avg) },
+    { key: 'success', label: 'Success', value: row => ssValue(row, r => `${r.succRate}%`) },
+    { key: 'explosives', label: 'Explosive', value: row => ssValue(row, r => r.explosives) },
+    { key: 'tds', label: 'TD', value: row => ssValue(row, r => r.tds) },
     // A giveaway IS a turnover; Reports and their exports say Turnovers.
-    { key: 'turnovers', label: 'Turnovers' },
-    { key: 'run', label: 'Run / Pass', value: row => `${row.runPct}% / ${row.passPct}%` },
+    { key: 'turnovers', label: 'Turnovers', value: row => ssValue(row, r => r.turnovers) },
+    { key: 'run', label: 'Run / Pass', value: row => ssValue(row, r => `${r.runPct}% / ${r.passPct}%`) },
   ];
+  const outcomeColumns = ssColumns();
+  const ddColumns = ssColumns(row => StatsEngine.ddPretty(row.key));
   const callColumns = outcomeColumns.slice(0, 4);
   const countRows = items => items.map(([label, value]) => ({ label, value }));
   const counts = (heading, items) => table(heading,
@@ -348,15 +362,19 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
       ['Explosive passes', summary.pass.explosives], ['Sacks', summary.pass.sacks],
     ])}</div>
     ${table('Calls and Concepts', outcomeColumns, callRows)}
-    ${table('Down and Distance', outcomeColumns, report.downDistRows)}
+    ${table('Down and Distance', ddColumns, report.downDistRows)}
     ${table('Formation', outcomeColumns, report.formationRows)}
     ${table('Personnel', outcomeColumns, report.personnelRows)}</section>` : '';
   const defense = defSummary?.totalPlays ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Defense</h1></div>${metrics([
-    { label: 'Stop Rate', value: defSummary.kpis.stopRate == null ? 'No data' : `${defSummary.kpis.stopRate}%` },
+    /* Stop Rate holds no headline or primary-comparison position, on the board
+     * or in its export: it is the inverse of offensive play success and its
+     * down-specific thresholds mislead at a glance. Yards Allowed / Play
+     * leads and Stop Rate sits last, the same order the board uses. */
     { label: 'Yards Allowed / Play', value: defSummary.kpis.yardsAllowedPerPlay ?? 'No data' },
     { label: 'Havoc Rate', value: `${defSummary.kpis.havocRate || '0.0'}%` },
     { label: 'Sacks', value: defSummary.kpis.sacks }, { label: 'TFL', value: defSummary.kpis.tfl },
     { label: 'Takeaways', value: defSummary.kpis.takeaways },
+    { label: 'Stop Rate', value: defSummary.kpis.stopRate == null ? 'No data' : `${defSummary.kpis.stopRate}%` },
   ])}
     <div class="two-up">${counts('Positive Plays', [
       ['Stops', defSummary.positive.stops], ['Sacks', defSummary.positive.sacks],

@@ -1559,21 +1559,23 @@ export class StatsEngine {
        * are disjoint on this data, but the union is taken rather than added so
        * a snap tagged both could never be counted twice.
        *
-       * `ypp` keeps `rows.length` — every defensive snap the unit was on the
-       * field for — which is what the approved 2.9 KPI is measured over.
-       * Moving that denominator to the classified count would make it 3.2 and
-       * change an approved value; that is a coach decision, recorded in
-       * design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md. */
+       * `ypp` DIVIDES BY THAT SAME COHORT. Left on `rows.length` it charged
+       * the reduced yardage against every defensive snap, so each excluded
+       * penalty row read as a zero-yard play and flattered the defense. The
+       * approved 2.9 was a value printed in a comp fixture, not an approved
+       * formula: a rate whose numerator and denominator describe different
+       * cohorts is not a measurement. Coach ruling 2026-09-10. */
       const scrimmage = [...new Set([...runs, ...passes])];
       const yards = scrimmage.reduce((sum, p) => sum + yard(p), 0);
       const turnovers = rows.reduce((sum, p) => sum
         + (StatsEngine.hasResult(p, 'Interception') ? 1 : 0)
         + (StatsEngine.isFumbleRecovered(p) ? 1 : 0), 0);
       return {
-        name, n: rows.length, runs: runs.length, passes: passes.length, yards,
+        name, n: rows.length, classified: scrimmage.length,
+        runs: runs.length, passes: passes.length, yards,
         runYards: runs.reduce((sum, p) => sum + yard(p), 0),
         passYards: passes.reduce((sum, p) => sum + yard(p), 0),
-        ypp: rows.length ? +(yards / rows.length).toFixed(1) : null,
+        ypp: scrimmage.length ? +(yards / scrimmage.length).toFixed(1) : null,
         explosives: rows.filter(StatsEngine.isExplosive).length,
         touchdowns: rows.filter(p => StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) !== 'us').length,
         turnovers, refs: refsOf(rows), plays: rows,
@@ -4461,7 +4463,12 @@ export class StatsEngine {
   /** Pretty-print a down&distance key. Handles the bucket form ("3|Long" →
    *  "3rd & 7+"), the legacy exact form ("3&7" → "3rd & 7"), and a bare
    *  down ("3" → "3rd"). */
-  _ddPretty(key) {
+  _ddPretty(key) { return StatsEngine.ddPretty(key); }
+
+  /** The static form the HTML exports call. Reports and their exports must
+   *  print one down-and-distance vocabulary, and the export has no engine
+   *  instance to reach the method through. */
+  static ddPretty(key) {
     const s = String(key);
     const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
     if (s.includes('|')) {

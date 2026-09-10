@@ -17,12 +17,13 @@
 >
 > **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
 > `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
-> repaired in code across seven commits from `d3c71e6`. Three product decisions
+> repaired in code across the commits beginning `d3c71e6`, with three further
+> repairs from Codex's review of that work. Three product decisions
 > reached in that work and binding going forward: Reports name the cohort they
 > measure (charted versus classified) and never present one as the other; a
 > phase is counted from the snap and never derived by subtraction; and the
 > dedicated Special Teams fields are authoritative on every surface, player
-> rollups included. Three questions are carried to the coach unanswered and are
+> rollups included. Two questions are carried to the coach unanswered and are
 > listed in `docs/OPEN-DEFECTS.md`. No surface advanced past `REJECTED` and no
 > installed smoke was run against these repairs. The Step 2
 > documentation/repository-hygiene pass,
@@ -737,16 +738,17 @@ Retain every meaningful production field while reducing everyday clutter.
 > Coach-approved composition; production acceptance and installed smoke remain.
 >
 
-> **OLL LIVE-DATA REPORTS AUDIT (OPEN 2026-09-10).** A read-only capture of all
-> 29 Reports views against the canonical Week 5 vs OL Lakes Lakers game exposed
-> ten investigation items spanning Overview cohort reconciliation, Self-Scout
-> counts/terminology/dimensions, defensive yardage, Matchup cohorts and semantic
-> fields, Special Teams cross-surface values, Stop Rate composition drift, and
-> full layout-integrity verification. The durable ledger and required diagnostic
-> output are in `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`. No repair is
-> authorized until root causes and proposed fixes are reviewed. The approved
-> comps remain the static schemas; no proposed fix may make a dashboard resize
-> with its data.
+> **OLL LIVE-DATA REPORTS AUDIT (REPAIRED 2026-09-10).** A read-only capture of
+> all 29 Reports views against the canonical Week 5 vs OL Lakes Lakers game
+> exposed ten investigation items spanning Overview cohort reconciliation,
+> Self-Scout counts/terminology/dimensions, defensive yardage, Matchup cohorts
+> and semantic fields, Special Teams cross-surface values, Stop Rate
+> composition drift, and full layout-integrity verification. All ten are closed
+> in code, as are one item found in passing and three from Codex's review of
+> the repairs. The durable ledger is
+> `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; open questions are in
+> `docs/OPEN-DEFECTS.md`. Every approved comp remained the static schema and no
+> dashboard resizes with its data. Codex re-review and a Charlie Gate remain.
 >
 
 > **STUDY PRESENTATION INDEPENDENCE (completed 2026-08-26):**

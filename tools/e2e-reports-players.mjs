@@ -772,9 +772,26 @@ const crossSurface = await page.evaluate(() => {
   const st = app.stats._specialTeamsStats(scoped);
   const playerReturnYards = (ind.returners || []).reduce((s, r) => s + (r.measured ? r.yards : 0), 0);
   const teamReturnYards = (st.returns?.punt?.yards || 0) + (st.returns?.kick?.yards || 0);
-  return { playerReturnYards, teamReturnYards,
+  const playerReturns = (ind.returners || []).reduce((s, r) => s + (r.measured || 0), 0);
+  const playerReturnEvents = (ind.returners || []).reduce((s, r) => s + (r.returns || 0), 0);
+  const teamReturns = (st.returns?.punt?.attempts || 0) + (st.returns?.kick?.attempts || 0);
+  return { playerReturnYards, teamReturnYards, playerReturns, playerReturnEvents, teamReturns,
     playerPuntsMeasured: (ind.kickers || []).reduce((s, k) => s + (k.puntsMeasured || 0), 0) };
 });
+/* THE COUNT IS PART OF THE COHORT. Players agreed with the team report on
+ * yardage while still printing every return EVENT in the Ret column, so the
+ * board read 11 returns for 5 yards at a 5.0 average — a count from one cohort
+ * beside a total and an average from another. */
+ok(crossSurface.playerReturns === crossSurface.teamReturns,
+  'Players and the team Special Teams report agree on the MEASURED return count',
+  JSON.stringify(crossSurface));
+ok(crossSurface.playerReturnEvents > crossSurface.playerReturns,
+  'the canonical season really does chart unmeasured return events, so this cohort test can fail',
+  JSON.stringify(crossSurface));
+const retColumn = (stRows['Return Game'] || []).map(row => Number(row[1]) || 0);
+ok(retColumn.reduce((s, n) => s + n, 0) === crossSurface.teamReturns,
+  'the rendered Ret column prints the measured return count, not the event count',
+  JSON.stringify(retColumn));
 ok(crossSurface.playerReturnYards === crossSurface.teamReturnYards,
   'Players and the team Special Teams report agree on return yardage, because they read one field',
   JSON.stringify(crossSurface));
