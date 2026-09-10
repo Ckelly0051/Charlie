@@ -723,6 +723,18 @@ Retain every meaningful production field while reducing everyday clutter.
 > Coach-approved composition; production acceptance and installed smoke remain.
 >
 
+> **OLL LIVE-DATA REPORTS AUDIT (OPEN 2026-09-10).** A read-only capture of all
+> 29 Reports views against the canonical Week 5 vs OL Lakes Lakers game exposed
+> ten investigation items spanning Overview cohort reconciliation, Self-Scout
+> counts/terminology/dimensions, defensive yardage, Matchup cohorts and semantic
+> fields, Special Teams cross-surface values, Stop Rate composition drift, and
+> full layout-integrity verification. The durable ledger and required diagnostic
+> output are in `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`. No repair is
+> authorized until root causes and proposed fixes are reviewed. The approved
+> comps remain the static schemas; no proposed fix may make a dashboard resize
+> with its data.
+>
+
 > **STUDY PRESENTATION INDEPENDENCE (completed 2026-08-26):**
 > The live Study route is now one Preact-owned analytical workspace. Query
 > controls, saved views, player questions, filters, comparisons, pivots,

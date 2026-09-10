@@ -1030,6 +1030,15 @@ product is wrong.
 
 ## Open and deferred
 
+**Reports OLL live-data audit (OPEN 2026-09-10).** Ten investigation items from
+the complete 29-view capture are recorded in
+`docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`. They include cross-surface cohort
+contradictions, Self-Scout count/label/dimension defects, unreconciled defensive
+yardage, Matchup semantics, Special Teams conflicts, Stop Rate composition
+drift, and a layout-integrity verification. They are not repaired or approved.
+Investigate against the canonical read-only OLL game, propose root-cause fixes,
+and stop for coach approval before editing code, tests, goldens or coach data.
+
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
