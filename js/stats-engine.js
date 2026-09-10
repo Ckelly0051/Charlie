@@ -3240,15 +3240,32 @@ export class StatsEngine {
       const structuredReturn = structured && ['kickoffReturn','puntReturn'].includes(structured.unit);
       if (players.returner && (structuredReturn || (!structured && st.includes('Return')))) {
         const id = players.returner;
-        const returnYards = structuredReturn && Number.isFinite(structured.return.yards) ? structured.return.yards : yds;
+        /* DEDICATED ST FIELDS ARE AUTHORITATIVE. The legacy branch fell back
+         * to `yds` — the generic `tags.yardage` — which is the field the team
+         * Special Teams report deliberately does not read on an ST play. That
+         * is how Players totalled 11 returns for 43 yards from generic
+         * yardage while the team's Return Production, gated on the dedicated
+         * `returnYards`, reported the one return that actually carries it.
+         * Both surfaces now read the same field; an uncharted return has no
+         * yardage, which is an absence, not a zero. */
+        const raw = String(p.tags.returnYards ?? '').trim();
+        const legacy = raw === '' ? null : (Number.isFinite(Number(raw)) ? Number(raw) : null);
+        const returnYards = structuredReturn && Number.isFinite(structured.return.yards)
+          ? structured.return.yards : legacy;
         const returnTd = structuredReturn
           ? structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject'
           : isTD;
-        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0, refs: [] };
+        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, measured: 0, tds: 0, long: 0, refs: [] };
         returners[id].returns++;
-        returners[id].yards += returnYards;
+        // A return with no charted yardage still HAPPENED, so it counts as a
+        // return; it just contributes no yards and no average. `measured` is
+        // the denominator an honest average needs.
+        if (returnYards != null) {
+          returners[id].measured++;
+          returners[id].yards += returnYards;
+          if (returnYards > returners[id].long) returners[id].long = returnYards;
+        }
         if (returnTd) returners[id].tds++;
-        if (returnYards > returners[id].long) returners[id].long = returnYards;
         if (ref) returners[id].refs.push(ref);
       }
       // Field-goal credit routes through the canonical cohort so a kicker can
@@ -3260,25 +3277,37 @@ export class StatsEngine {
       const specialist = structured ? (players.punter || players.kicker) : players.kicker;
       if (specialist && structured && !structured.isFake && (isFg || structured.unit === 'punt')) {
         const id = specialist;
-        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, refs: [] };
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, puntsMeasured: 0, refs: [] };
         if (isFg) {
           kickers[id].fgAtt++;
           if (StatsEngine.isFieldGoalMade(p, structured)) kickers[id].fgMade++;
         } else {
           kickers[id].punts++;
-          kickers[id].puntYds += structured.kick.distance || 0;
+          if (Number.isFinite(structured.kick.distance)) {
+            kickers[id].puntsMeasured++;
+            kickers[id].puntYds += structured.kick.distance;
+          }
         }
         if (ref) kickers[id].refs.push(ref);
       } else if (players.kicker && !structured && st) {
         const id = players.kicker;
         if (isFg || st === 'Punt') {
-          if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, refs: [] };
+          if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, puntsMeasured: 0, refs: [] };
           if (isFg) {
             kickers[id].fgAtt++;
             if (StatsEngine.isFieldGoalMade(p, null)) kickers[id].fgMade++;
           } else {
+            /* PUNT DISTANCE IS `kickDistance`, NEVER the generic `tags.yardage`.
+             * The legacy branch added `yds`, so a season charting no punt
+             * distance at all produced averages of 2.8 and 0.0 on the Players
+             * board — 11 yards over 4 punts and 0 over 1 — beside a team
+             * report correctly reporting no punt-distance data. The dedicated
+             * field is authoritative on both surfaces; where it is absent the
+             * punt average is No data. */
+            const rawDist = String(p.tags.kickDistance ?? '').trim();
+            const dist = rawDist === '' ? null : (Number.isFinite(Number(rawDist)) ? Number(rawDist) : null);
             kickers[id].punts++;
-            kickers[id].puntYds += yds;
+            if (dist != null) { kickers[id].puntsMeasured++; kickers[id].puntYds += dist; }
           }
           if (ref) kickers[id].refs.push(ref);
         }

@@ -592,6 +592,11 @@ export function advancedData(stats, engine) {
  *  — a pure sibling for the Players tab, StatsEngine's HTML-returning method
  *  is untouched (Season, Special Teams, exports, and the opponent tab all
  *  still call it directly). `group` matches its exact scoping contract. */
+/** The one absence label the Players board already uses for an unmeasured
+ *  value (`Grade`). Special Teams distance and return yardage now share it,
+ *  because on this data they are genuinely uncharted rather than zero. */
+const PLAYER_NO_DATA = 'No data';
+
 export function individualStats(stats, group, playerLabel) {
   const ind = stats.individuals || {};
   const showOff = group === 'all' || group === 'offense';
@@ -623,10 +628,26 @@ export function individualStats(stats, group, playerLabel) {
     rows: ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) })) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
-    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.returns, yds: r.yards, avg: r.returns ? (r.yards / r.returns).toFixed(1) : '0.0', long: r.long, tds: r.tds, refs: refs(r) })) });
+    /* Yards and the average are measured over the returns that actually carry
+       a charted `returnYards`, the same dedicated field the team Return
+       Production reads. A return with no charted yardage still counts as a
+       return; it contributes no yards and no average. Dividing by every
+       return instead is how Players reported 43 yards from generic
+       `tags.yardage` beside a team report showing the one measured return. */
+    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.returns,
+      yds: r.measured ? r.yards : PLAYER_NO_DATA,
+      avg: r.measured ? (r.yards / r.measured).toFixed(1) : PLAYER_NO_DATA,
+      long: r.measured ? r.long : PLAYER_NO_DATA, tds: r.tds, refs: refs(r) })) });
   if (showST && ind.kickers?.length) tables.push({ title: 'Kicking / Punting', key: 'kicking',
     columns: [['player', 'Player'], ['fg', 'FG (M/A)', true, 'fgSort'], ['punts', 'Punts', true, 'puntsSort'], ['puntAvg', 'Punt Avg', true, 'puntAvgSort']],
-    rows: ind.kickers.map(k => ({ ...player(k.num), fg: `${k.fgMade || 0}/${k.fgAtt || 0}`, fgSort: k.fgMade || 0, punts: k.punts || 0, puntsSort: k.punts || 0, puntAvg: k.punts ? (k.puntYds / k.punts).toFixed(1) : 'No data', puntAvgSort: k.punts ? k.puntYds / k.punts : null, refs: refs(k) })) });
+    /* Punt average is measured over the punts carrying a charted
+       `kickDistance`. Dividing by every punt turned a season charting no punt
+       distance at all into averages of 2.8 and 0.0 — from the generic
+       `tags.yardage` — beside a team report correctly reporting none. */
+    rows: ind.kickers.map(k => ({ ...player(k.num), fg: `${k.fgMade || 0}/${k.fgAtt || 0}`, fgSort: k.fgMade || 0,
+      punts: k.punts || 0, puntsSort: k.punts || 0,
+      puntAvg: k.puntsMeasured ? (k.puntYds / k.puntsMeasured).toFixed(1) : PLAYER_NO_DATA,
+      puntAvgSort: k.puntsMeasured ? k.puntYds / k.puntsMeasured : null, refs: refs(k) })) });
   return tables;
 }
 

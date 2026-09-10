@@ -431,7 +431,8 @@
       "fgAtt": 1,
       "fgMade": 1,
       "punts": 1,
-      "puntYds": 0,
+      "puntYds": 42,
+      "puntsMeasured": 1,
       "refs": [
        "g1::16",
        "g1::17"
@@ -5463,7 +5464,8 @@
       "fgAtt": 1,
       "fgMade": 1,
       "punts": 1,
-      "puntYds": 0,
+      "puntYds": 42,
+      "puntsMeasured": 1,
       "refs": [
        "g1::16",
        "g1::17"

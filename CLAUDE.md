@@ -617,6 +617,19 @@ masked the one play that genuinely belongs to no unit.
 survives is the one fact no ledger card can show: a snap belonging to no unit —
 the coach's single legacy `Fake` play — rendered only when it exists.
 
+**The dedicated Special Teams fields are authoritative on EVERY surface,
+including the player rollups.** `_individualStats` read the generic
+`tags.yardage` for punt distance and return yardage, which is the field the
+team report deliberately does not read on an ST play - so the two surfaces
+reported different numbers for the same plays. The canonical season charts no
+`kickDistance` and no structured ST event at all, so Players derived punt
+averages of 2.8 and 0.0 from blank generic yardage beside a team report
+correctly reporting none; and it totalled 11 returns for 43 yards while the
+team's Return Production, gated on `returnYards`, reported the single return
+that carries it. Both read `kickDistance` and `returnYards` now. A return or
+punt with no charted measurement still COUNTS - it contributes no yards and no
+average, and `measured` / `puntsMeasured` are the denominators. A measured zero
+is unchanged and still renders at full strength.
 **Reports > Players is implemented and gate-verified, but NOT coach accepted.**
 Built to the approved comp (`design-comps/reports-players-2026-09-04`, whose
 RATIONALE is the decision record and whose section 16 is the final

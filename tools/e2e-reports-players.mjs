@@ -730,6 +730,57 @@ const fiveSample = await page.evaluate(() =>
 ok(fiveSample === '5 players · 5/6 roles · 4 charted plays',
   'five populated roles read 5/6, exactly the approved sparse format', fiveSample);
 
+/* ══ Special Teams field authority ════════════════════════════════════════
+   The dedicated ST fields are authoritative, and the Players rollup used to
+   read the generic `tags.yardage` instead: punt distance came from `yardage`
+   (never charted on this season, so a blank read as 0 and produced averages
+   of 2.8 and 0.0) and return yardage came from `yardage` rather than
+   `returnYards`. The team report reads the dedicated fields, so the two
+   surfaces disagreed about the same plays. Both read the same field now, and
+   an uncharted measurement is an absence, not a zero. */
+console.log('\n== Special Teams: dedicated fields are authoritative ==');
+await load([[
+  // A punt and two returns charted the way this coach's season charts them:
+  // a specialist and an outcome, and NO dedicated distance or return yardage.
+  { unit: 'special', stType: 'Punt', result: 'No Gain', yardage: '11', players: { kicker: '27' } },
+  { unit: 'special', stType: 'Punt Return', result: 'Gain', yardage: '18', players: { returner: '42' } },
+  // One return that DOES carry the dedicated field.
+  { unit: 'special', stType: 'Punt Return', result: 'Gain', yardage: '99', returnYards: '5', players: { returner: '42' } },
+]]);
+const stRows = await page.evaluate(() => {
+  const table = [...document.querySelectorAll('.gi-player-module')].map(m => ({
+    title: m.querySelector('header strong')?.textContent.trim(),
+    rows: [...m.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(td => td.textContent.trim())),
+  }));
+  return Object.fromEntries(table.map(t => [t.title, t.rows]));
+});
+const kicking = (stRows['Kicking / Punting'] || [])[0] || [];
+ok(kicking.includes('No data'),
+  'punt average is No data when kickDistance is not charted, never derived from generic yardage',
+  JSON.stringify(kicking));
+ok(!kicking.includes('11.0') && !kicking.includes('2.8'),
+  'no punt average is fabricated from tags.yardage', JSON.stringify(kicking));
+const returns = (stRows['Return Game'] || [])[0] || [];
+ok(returns.includes('5') && !returns.includes('23') && !returns.includes('117'),
+  'return yards come from returnYards only — the unmeasured return adds none',
+  JSON.stringify(returns));
+/* The two surfaces must agree about the same plays. */
+const crossSurface = await page.evaluate(() => {
+  const app = window.app;
+  const { scoped } = app.reportsScreen._playersCohort();
+  const ind = app.stats.compute(scoped).individuals;
+  const st = app.stats._specialTeamsStats(scoped);
+  const playerReturnYards = (ind.returners || []).reduce((s, r) => s + (r.measured ? r.yards : 0), 0);
+  const teamReturnYards = (st.returns?.punt?.yards || 0) + (st.returns?.kick?.yards || 0);
+  return { playerReturnYards, teamReturnYards,
+    playerPuntsMeasured: (ind.kickers || []).reduce((s, k) => s + (k.puntsMeasured || 0), 0) };
+});
+ok(crossSurface.playerReturnYards === crossSurface.teamReturnYards,
+  'Players and the team Special Teams report agree on return yardage, because they read one field',
+  JSON.stringify(crossSurface));
+ok(crossSurface.playerPuntsMeasured === 0,
+  'a punt with no charted kickDistance contributes no measured distance', JSON.stringify(crossSurface));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); console.log(errors.slice(0, 5).join('\n')); }
 await browser.close();

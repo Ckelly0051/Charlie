@@ -135,12 +135,39 @@ resize a dashboard.
 7. **Matchup presents personnel as a play call.** In Our Defense vs Their
    Offense, `Their Primary Call` displays `22`. Trace the selected opponent field
    and check both matchup directions for the same semantic error.
-8. **Special Teams values conflict across surfaces.** The team report has no
-   punt-distance data while Players displays punt averages of `2.8` and `0.0`.
-   Season Special Teams reports one return for five yards while the player table
-   totals eleven returns for 43 yards. Determine whether the problem is unit
-   scope, incomplete player attribution, calculation, or generic labeling;
-   never infer missing coach tags.
+8. **Special Teams values conflict across surfaces. REPAIRED.** Not unit scope
+   and not attribution: **two surfaces read two different fields for the same
+   plays.** The team report reads the dedicated ST fields; `_individualStats`
+   read the generic `tags.yardage`, which CLAUDE.md already states is
+   deliberately unread on an ST play.
+
+   *Punt distance.* No play in the season carries `kickDistance`, and no play
+   carries a structured `specialTeams` event (0 of 74). The team report is
+   right to report none. `kickers[id].puntYds += yds` summed generic yardage
+   instead: kicker 82's four punts carried `11, "", "", ""` → 11 / 4 =
+   **2.8**; kicker 27's one punt carried `""` → **0.0**. Both now read
+   `kickDistance` and both report `No data`, matching the team report.
+
+   *Returns.* The team's Return Production gates on `returnYards`, and exactly
+   **one** play in the season carries it (Week 6 id 24, 5 yards) — hence "1
+   return for 5 yards". The player rollup fell back to generic `yardage` and
+   totalled **11 returns for 43 yards**. It reads `returnYards` now. Verified
+   on the canonical season: 11 returns, **1 measured for 5 yards**, agreeing
+   with the team report exactly.
+
+   A return or punt with no charted measurement still COUNTS as a return or a
+   punt — it simply contributes no yards and no average. `measured` /
+   `puntsMeasured` are the honest denominators; the display is `No data`, not
+   a zero. A measured zero is untouched and still renders at full strength.
+
+   **No coach tag was inferred.** Punt distance, hang time and return yardage
+   are essentially uncharted on this season. That is a charting-workflow gap
+   for the coach, not a data repair.
+
+   The `e2e-parity` `numbers` correction is four added and two removed lines in
+   two scopes: the synthetic fixture's punt carries a charted `kickDistance`
+   of 42 that the old code ignored entirely, so `puntYds` moves `0 → 42` and
+   gains `puntsMeasured: 1`. Nothing else in `numbers` moved.
 9. **Stop Rate remains prominent outside the approved Defense composition.
    REPAIRED.** Complete inventory of Reports presentations:
 

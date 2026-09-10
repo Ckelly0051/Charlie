@@ -108,3 +108,30 @@ delta was already zero - by coincidence, not by construction.
 (`rows.length`), which is what the approved `2.9` is measured over. Moving that
 denominator to the classified count makes it `3.2`. That changes an approved
 value and was deliberately NOT decided here.
+
+## Special Teams field authority
+
+The dedicated ST fields are authoritative on every surface. `_individualStats`
+read the generic `tags.yardage` for punt distance and return yardage - the very
+field the team report deliberately does not read on an ST play - so the two
+surfaces reported different numbers for the same plays.
+
+Canonical season, verified: 0 of 74 ST plays carry a structured `specialTeams`
+event and none carries `kickDistance`. Players now reports `No data` for punt
+average, matching the team report, instead of 2.8 and 0.0 derived from blank
+generic yardage. Returns: 11 returns with exactly 1 measured for 5 yards, which
+is what the team's Return Production reports.
+
+A return or punt with no charted measurement still COUNTS as one; it
+contributes no yards and no average. A measured zero is untouched.
+
+No coach tag was inferred. Punt distance, hang time and return yardage are
+essentially uncharted on this season - a charting-workflow gap for the coach.
+
+### Third parity golden correction
+
+`numbers` drifted, which is the analytics core, so the diff was inspected in
+full: four added and two removed lines across two scopes. The synthetic
+fixture's punt carries a charted `kickDistance` of 42 that the old code ignored
+entirely, so `puntYds` moves 0 -> 42 and gains `puntsMeasured: 1`. Nothing else
+in `numbers` moved.
