@@ -637,14 +637,18 @@ export function defenseDisciplineRows(stats, statsEngine) {
     return statsEngine.constructor.isRun(play) ? y >= 12 : y >= 16;
   }).length;
   const penalties = stats.penalties || {};
+  /* Yards / play allowed leads. Stop rate sat directly beneath it, which made
+     it read as the second primary defensive comparison — the position the
+     coach rejected. It keeps its row as supporting context at the foot of the
+     module; the approved six-row module is unchanged in count. */
   return { meta: `${def} defensive snaps`, rows: [
     ['Yards / play allowed', def ? (yards / def).toFixed(1) : '—'],
-    ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'],
     ['Explosive Plays allowed', explosives, explosives ? '' : 'is-good'],
     ['Takeaways', stats.defensive.turnovers],
     // Middot, per the approved Overview ("1 · 10 yds").
     ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],
     ['Penalties declined', penalties.hasData ? penalties.declined : '0'],
+    ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'],
   ] };
 }
 

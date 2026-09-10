@@ -2899,28 +2899,6 @@
        ],
        "verdict": "dominant",
        "score": 100
-      },
-      {
-       "dim": "vs Coverage",
-       "label": "Cover 3",
-       "n": 5,
-       "tellType": "Coverage",
-       "tellVal": "Cover 3",
-       "tellPct": 100,
-       "stopRate": 100,
-       "havocRate": 20,
-       "avgYds": 0.4,
-       "cutType": "coverage",
-       "cutVal": "Cover 3",
-       "refs": [
-        "g1::11",
-        "g1::12",
-        "g1::13",
-        "g1::14",
-        "g1::15"
-       ],
-       "verdict": "dominant",
-       "score": 100
       }
      ],
      "ddRows": [
@@ -2957,14 +2935,6 @@
        "tellPct": 100,
        "stopRate": 100,
        "havocRate": 20
-      },
-      {
-       "kind": "dominant",
-       "label": "Cover 3",
-       "tellVal": "Cover 3",
-       "tellPct": 100,
-       "stopRate": 100,
-       "havocRate": 20
       }
      ]
     }
@@ -2986,28 +2956,6 @@
       "avgYds": 0.4,
       "cutType": "ddDef",
       "cutVal": "1|Long",
-      "refs": [
-       "g1::11",
-       "g1::12",
-       "g1::13",
-       "g1::14",
-       "g1::15"
-      ],
-      "verdict": "dominant",
-      "score": 100
-     },
-     {
-      "dim": "vs Coverage",
-      "label": "Cover 3",
-      "n": 5,
-      "tellType": "Coverage",
-      "tellVal": "Cover 3",
-      "tellPct": 100,
-      "stopRate": 100,
-      "havocRate": 20,
-      "avgYds": 0.4,
-      "cutType": "coverage",
-      "cutVal": "Cover 3",
       "refs": [
        "g1::11",
        "g1::12",
@@ -3049,14 +2997,6 @@
      {
       "kind": "dominant",
       "label": "1st & Long",
-      "tellVal": "Cover 3",
-      "tellPct": 100,
-      "stopRate": 100,
-      "havocRate": 20
-     },
-     {
-      "kind": "dominant",
-      "label": "Cover 3",
       "tellVal": "Cover 3",
       "tellPct": 100,
       "stopRate": 100,

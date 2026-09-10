@@ -4865,8 +4865,21 @@ export class StatsEngine {
    *  its canonical film filter, while refs carries the exact pre-resolved
    *  composite cohort behind the displayed count. Labels remain raw data;
    *  native Reports and HTML export escape them at their own boundaries. */
-  _defTellsFrom(groups, dim, fmt, cutFn) {
+  /**
+   * `skip` names the tell types this DIMENSION cannot honestly emit, because
+   * the grouping key IS that dimension. Grouped by front, every play in the
+   * `Maverick` group carries the front `Maverick`, so `topFrontPct` is 100 by
+   * construction and the tell reads `Maverick -> Maverick 100%`. Coverage has
+   * the same shape. Worse, a guaranteed 100% scores `(100 - 50) * n`, higher
+   * than any real tendency, so the tautologies crowded out genuine tells in
+   * the ranked slice and the recommendations built from it.
+   *
+   * Cross-dimensional tells remain valid and are the reason these groupings
+   * exist: "when we line up in Maverick, do we blitz?" is a real tendency.
+   */
+  _defTellsFrom(groups, dim, fmt, cutFn, skip = null) {
     const min = StatsEngine._SELF_SCOUT_MIN_N;
+    const skipped = skip instanceof Set ? skip : new Set(skip ? [skip] : []);
     const out = [];
     Object.values(groups).filter(grp => grp.n >= min).forEach(grp => {
       const label = fmt(grp.key);
@@ -4885,7 +4898,7 @@ export class StatsEngine {
       const topCov = Object.entries(grp.covMap).sort((a, b) => b[1] - a[1])[0];
       const topCovPct = topCov ? Math.round(topCov[1] / grp.n * 100) : 0;
       // A tell exists when any one scheme element is dominant (>=70%)
-      if (topFrontPct >= 70 && topFront) {
+      if (topFrontPct >= 70 && topFront && !skipped.has('Front')) {
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Front',
           tellVal: topFront[0], tellPct: topFrontPct,
@@ -4893,7 +4906,7 @@ export class StatsEngine {
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topFrontPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
-      if (topCovPct >= 70 && topCov) {
+      if (topCovPct >= 70 && topCov && !skipped.has('Coverage')) {
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Coverage',
           tellVal: topCov[0], tellPct: topCovPct,
@@ -4942,8 +4955,11 @@ export class StatsEngine {
 
     let tells = [
       ...this._defTellsFrom(byDD, 'Down & Dist', k => this._ddPretty(k), k => ({ type: 'ddDef', val: k })),
-      ...this._defTellsFrom(byFront, 'vs Front', k => k, k => ({ type: 'defFront', val: k })),
-      ...this._defTellsFrom(byCov, 'vs Coverage', k => k, k => ({ type: 'coverage', val: k })),
+      // A front grouping may not report its own front, and a coverage grouping
+      // may not report its own coverage. Both are true by construction, not
+      // observed tendencies. Blitz lean from either remains a real tell.
+      ...this._defTellsFrom(byFront, 'vs Front', k => k, k => ({ type: 'defFront', val: k }), 'Front'),
+      ...this._defTellsFrom(byCov, 'vs Coverage', k => k, k => ({ type: 'coverage', val: k }), 'Coverage'),
     ];
     // "No blitz" is only a tell when the coach tags blitzes at all —
     // otherwise it's an artifact of untagged data, not a tendency.

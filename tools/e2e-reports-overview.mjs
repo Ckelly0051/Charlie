@@ -68,8 +68,11 @@ const RUSHING_ROWS = ['Attempts', 'Yards', 'Average', 'Touchdowns', 'Longest',
   'First downs', 'Fumbles'];
 const PASSING_ROWS = ['Completions / attempts', 'Completion rate', 'Yards',
   'Yards / attempt', 'Touchdowns', 'Interceptions', 'Longest', 'Sacks taken'];
-const DEFENSE_ROWS = ['Yards / play allowed', 'Stop rate', 'Explosive Plays allowed',
-  'Takeaways', 'Penalties accepted', 'Penalties declined'];
+/* Stop rate sat directly under Yards / play allowed, reading as the second
+   primary defensive comparison — the position the coach rejected. It keeps its
+   row as supporting context at the foot; the six-row module is unchanged. */
+const DEFENSE_ROWS = ['Yards / play allowed', 'Explosive Plays allowed',
+  'Takeaways', 'Penalties accepted', 'Penalties declined', 'Stop rate'];
 const COLUMNS = {
   'Snaps by phase': ['Phase', 'Snaps', 'Share', 'Yds/play'],
   'Yards by type': ['Play type', 'Snaps', 'Yds/play', 'Success'],

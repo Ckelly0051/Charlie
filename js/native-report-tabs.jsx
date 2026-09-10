@@ -2351,15 +2351,22 @@ function SsDefenseSection({ defScout, defSummary, screen }) {
   }
   const kpis = defSummary.kpis;
   return <>
+    {/* Yards Allowed / Play LEADS. Stop Rate held the headline slot after the
+        coach rejected it as the primary defensive comparison — it is the
+        inverse of offensive play success, so its down-specific thresholds make
+        the comparison misleading at a glance (reports-defense-2026-09-09
+        RATIONALE). It keeps its place as supporting context in the last tile
+        and as the ranking key in the defensive call tables below; the approved
+        six-tile band is unchanged in count and order otherwise. */}
     <KpiBand items={[
-      kpis.stopRate == null ? { label: 'Stop Rate', value: SS_NO_DATA, cls: 'is-blank' }
-        : { label: 'Stop Rate', value: `${kpis.stopRate}%` },
       kpis.yardsAllowedPerPlay == null ? { label: 'Yards Allowed / Play', value: SS_NO_DATA, cls: 'is-blank' }
         : { label: 'Yards Allowed / Play', value: kpis.yardsAllowedPerPlay },
       { label: 'Havoc Rate', value: `${kpis.havocRate || '0.0'}%` },
       { label: 'Sacks', value: String(kpis.sacks) },
       { label: 'TFL', value: String(kpis.tfl) },
       { label: 'Takeaways', value: String(kpis.takeaways) },
+      kpis.stopRate == null ? { label: 'Stop Rate', value: SS_NO_DATA, cls: 'is-blank' }
+        : { label: 'Stop Rate', value: `${kpis.stopRate}%` },
     ]} />
     <SsBand cls="b-2">
       <SsModule title="Positive Plays" phase="def"><SsCounts items={[
@@ -2475,7 +2482,13 @@ function SsTendenciesSection({ report, defScout, screen }) {
  *  report has something before opening it. */
 function ssSectionCount(id, { report, callRows, defScout, defSummary }) {
   switch (id) {
-    case 'summary': return report ? callRows.length : 0;
+    /* The sample the summary is COMPUTED over, not the ranked play-call list.
+       `callRows` comes from `playCall || playConcept`, and the canonical season
+       charts neither in any of its six games — so this badge read 0 in both
+       scopes above a section rendering populated KPIs, positive and negative
+       plays, top and worst calls and the run/pass split, and the zero also
+       dimmed the tab through `is-none`. */
+    case 'summary': return report ? report.totalPlays : 0;
     case 'offense': return report ? report.downDistRows.length + callRows.length : 0;
     case 'structure': return report ? report.formationRows.length + report.personnelRows.length : 0;
     case 'defense': return (defScout && !defScout.insufficient) ? defSummary.calls.length : 0;

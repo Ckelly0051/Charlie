@@ -761,6 +761,37 @@ behind its own count, accumulated in the same pass that increments it.
 survives the remount an ordinary Reports re-render causes, the same correction
 `playersSection` needed.
 
+**A section badge counts what its section renders.** Offensive Summary's badge
+counted `callRows` — the ranked play-call list built from `playCall ||
+playConcept`. The canonical season charts neither in any of its six games, so
+the badge read `0` in both scopes above a section rendering populated KPIs,
+positive and negative plays, top and worst calls and the run/pass split, and
+the zero dimmed the tab through `is-none`. It counts `report.totalPlays`, the
+classified sample the summary is computed over and the same number the sample
+line states.
+
+**No tendency reports its own dimension back as a tell.** `_defTellsFrom` is
+dimension-agnostic and emitted a Front tell and a Coverage tell for every
+grouping it was given, so grouping by front made `topFrontPct` 100 by
+construction and Tendencies read `Maverick → Maverick 100%` and `Cover 3 →
+Cover 3 100%`. A guaranteed 100% also scores `(100 − 50) × n`, higher than any
+real tendency, so the tautologies crowded genuine tells out of the ten-slot
+ranked slice and the recommendations built from it. The front and coverage
+groupings now pass `skip`, so each may report only tells from a DIFFERENT
+dimension — blitz lean from a front is the cross-dimensional tendency those
+groupings exist for and is unchanged. The `e2e-parity` golden correction is 60
+deletions and zero additions, every one a `Cover 3 → Cover 3` row.
+
+**Stop Rate holds no headline or primary-comparison position.** The coach
+rejected it as the primary defensive comparison: it is the inverse of offensive
+play success, so its down-specific thresholds make the comparison misleading at
+a glance. `Yards Allowed / Play` leads the Self-Scout defensive KPI band and
+`Yards / play allowed` leads Overview's Defense & discipline module; Stop Rate
+keeps a supporting position at the foot of each. **Neither composition was
+resized** — six tiles and six rows, reordered. It remains the ranking key in
+the defensive call tables, the approved Matchup defensive-lane metric, and a
+Study metric; none of those changed.
+
 **Self-Scout is current-game scope.** It therefore keeps the shared current-game
 header and KPI rail. The chrome follows the report's real scope; it is not a
 reward for completing a design pass and must never imply a game scope for

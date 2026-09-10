@@ -198,6 +198,10 @@ const comp = await page.evaluate(() => {
     centred: Math.abs(box(report).left - (window.innerWidth - box(report).width - box(report).left)) < 40,
     navCounts: [...nav.querySelectorAll('button > b')].map(b => b.textContent.trim()),
     active: nav.querySelector('button.active')?.firstChild.textContent.trim(),
+    sample: [...(document.querySelector('.gi-selfscout-sample')?.querySelectorAll('b') || [])]
+      .map(b => b.textContent.trim()),
+    summaryModules: document.querySelectorAll('.gi-ss-module').length,
+    summaryDimmed: nav.querySelector('button')?.classList.contains('is-none'),
   };
 });
 ok(comp.board, 'the Self-Scout board renders');
@@ -209,6 +213,19 @@ ok(comp.exportLabel === 'Export report', 'the export command reads "Export repor
 ok(comp.capped, 'the report canvas is capped at 1648px');
 ok(comp.active === 'Offensive Summary', 'the board opens on Offensive Summary', comp.active);
 ok(comp.navCounts.every(v => /^\d+$/.test(v)), 'every section names its own row count', comp.navCounts.join(','));
+/* The Offensive Summary badge counted `callRows` — the ranked play-call list
+   built from `playCall || playConcept`. The canonical season charts neither in
+   any of its six games, so it read 0 in BOTH scopes above a section rendering
+   populated KPIs, and the zero dimmed the tab through `is-none`. It counts the
+   classified sample the summary is actually computed over. */
+ok(comp.summaryModules > 0 && Number(comp.navCounts[0]) > 0,
+  'a populated Offensive Summary never badges zero',
+  JSON.stringify({ count: comp.navCounts[0], modules: comp.summaryModules }));
+ok(comp.navCounts[0] === comp.sample[0],
+  'the Offensive Summary badge is the classified sample the section is computed over',
+  JSON.stringify({ badge: comp.navCounts[0], sample: comp.sample[0] }));
+ok(comp.summaryDimmed === false,
+  'a populated Offensive Summary tab is not dimmed as empty', String(comp.summaryDimmed));
 
 /* ══ 2. Module headers carry the title only ═══════════════════════════════ */
 console.log('\n== 2. Module headers carry the title only ==');
@@ -444,9 +461,15 @@ const defDom = await page.evaluate(() => {
       [...mod.querySelectorAll('.gi-ss-crow')].map(r => r.querySelector('span').textContent.trim())])),
   };
 });
+/* Yards Allowed / Play LEADS and Stop Rate is last. Stop Rate held the
+   headline slot after the coach rejected it as the primary defensive
+   comparison; the six-tile band and every other tile are unchanged. */
 ok(JSON.stringify(defDom.kpis) === JSON.stringify(
-  ['Stop Rate', 'Yards Allowed / Play', 'Havoc Rate', 'Sacks', 'TFL', 'Takeaways']),
-'six defensive KPI tiles in the approved order', JSON.stringify(defDom.kpis));
+  ['Yards Allowed / Play', 'Havoc Rate', 'Sacks', 'TFL', 'Takeaways', 'Stop Rate']),
+'six defensive KPI tiles in the approved order, led by Yards Allowed / Play', JSON.stringify(defDom.kpis));
+ok(defDom.kpis[0] === 'Yards Allowed / Play' && !defDom.kpis.slice(0, 3).includes('Stop Rate'),
+  'Stop Rate holds no headline or primary-comparison position on the Self-Scout defensive board',
+  JSON.stringify(defDom.kpis));
 ok(JSON.stringify(defDom.modules) === JSON.stringify([
   ['Positive Plays', 'Negative Plays'], ['Top Calls', 'Worst Calls'], ['Run Defense', 'Pass Defense']]),
 'Defense uses the same three-row composition', JSON.stringify(defDom.modules));
@@ -675,6 +698,39 @@ ok(clipped.length === 0, 'no clipped cell and no engaged scroller at 1440 or 128
 ok(stacked.length === 0, 'the two-column summary layouts hold through 1280', stacked.join(' / '));
 await page.setViewport({ width: 1440, height: 900 });
 await sleep(200);
+
+/* ══ Defensive tendencies never report a dimension as predictive of itself ══
+   `_defTellsFrom` is dimension-agnostic and emitted a Front tell and a
+   Coverage tell for EVERY grouping. Grouped by front, every play in the
+   `Maverick` group carries the front `Maverick`, so the tell read
+   `Maverick -> Maverick 100%`. A guaranteed 100% also scores higher than any
+   real tendency, so the tautologies crowded genuine tells out of the ranked
+   slice and the recommendations built from it. */
+console.log('\n== Defensive tendencies carry no tautology ==');
+await load(FULL);
+await setSection('Tendencies');
+const defTells = await page.evaluate(() => {
+  const mod = [...document.querySelectorAll('.gi-ss-module')]
+    .find(m => m.querySelector('header strong')?.textContent.trim() === 'Defensive tendencies');
+  if (!mod) return null;
+  return [...mod.querySelectorAll('tbody tr')].map(tr => {
+    const cells = [...tr.children].map(td => td.textContent.trim());
+    // Situation | Call | "<tellVal> <pct>%" | Stop | Havoc | Plays
+    const lean = cells[2] || '';
+    return { situation: cells[0], call: cells[1], tellVal: lean.replace(/\s+\d+%$/, '').trim() };
+  });
+});
+const tautologies = (defTells || []).filter(r => r.situation && r.tellVal && r.situation === r.tellVal);
+ok(defTells !== null && defTells.length > 0,
+  'the Defensive tendencies module renders tells on this fixture', JSON.stringify(defTells?.length));
+ok(tautologies.length === 0,
+  'no defensive tell reports its own grouping dimension back as the tendency',
+  JSON.stringify(tautologies.slice(0, 4)));
+/* The cross-dimensional tell is the REASON those groupings exist and must
+   survive the fix: "when we line up in this front, do we blitz?" is real. */
+ok((defTells || []).every(r => ['Front', 'Coverage', 'Blitz'].includes(r.call)),
+  'every surviving tell still names a real call dimension',
+  JSON.stringify([...new Set((defTells || []).map(r => r.call))]));
 
 if (process.argv.includes('--capture')) {
   const dir = 'artifacts/self-scout-production-reviewed';

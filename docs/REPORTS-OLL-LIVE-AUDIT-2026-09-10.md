@@ -43,18 +43,36 @@ resize a dashboard.
    Four OLL plays (ids 63, 67, 76, 90 — two sacks, a pass, a run) carry no
    `unit` tag. They render correctly through the documented offense default and
    are **not** repaired here; they are raised for the coach, not inferred.
-2. **Self-Scout Offensive Summary reports a zero tab count while populated.**
-   This occurs in both Current Game and Full Season. Trace the tab count
-   separately from the content calculation.
+2. **Self-Scout Offensive Summary reports a zero tab count while populated.
+   REPAIRED.** `ssSectionCount`'s `summary` case returned `callRows.length` —
+   the ranked play-call list built from `playCall || playConcept`, neither of
+   which the canonical season charts in any of its six games. The badge was
+   therefore structurally `0` in both scopes, and the zero also dimmed the tab
+   through `is-none`, above a section rendering populated KPIs, positive and
+   negative plays, top and worst calls and the run/pass split. It counts
+   `report.totalPlays`, the classified sample the summary is computed over —
+   the same number the sample line beside it already stated.
 3. **Approved terminology and situation labels have drifted.** Self-Scout still
    uses `Giveaways` instead of `Turnovers` and generic labels such as `1st &
    Long`. Reports must use explicit yardage labels and represent all twelve
    down-and-distance combinations: first through fourth down crossed with
    Short, Medium and Long.
-4. **Self-Scout defensive tendencies admit invalid situations.** Front and
-   coverage calls such as `Maverick` and `Cover 3` appear in the situation
-   column, producing self-referential rows such as `Maverick -> Maverick 100%`.
-   Determine the intended situation dimensions and the category collision.
+4. **Self-Scout defensive tendencies admit invalid situations. REPAIRED.** Not
+   a tag-category collision: `_defTellsFrom` is dimension-agnostic and emitted
+   a Front tell AND a Coverage tell for every grouping it was handed.
+   `generateDefensiveSelfScout` hands it three groupings — down & distance,
+   front, coverage — so within the `Maverick` front group every play carries
+   the front `Maverick` and `topFrontPct` is 100 by construction. A guaranteed
+   100% also scores `(100 - 50) * n`, higher than any observed tendency, so the
+   tautologies crowded real tells out of the ten-slot ranked list and the
+   recommendations built from it.
+
+   The front and coverage groupings now pass a `skip` set, so each may report
+   only tells from a different dimension. Blitz lean from a front or coverage
+   is the cross-dimensional tendency those groupings exist for and is
+   unchanged. The `e2e-parity` golden correction is **60 deletions and zero
+   additions**, every deleted block a `Cover 3 -> Cover 3` tell or its
+   recommendation echo; no metric, ref cohort or other value moved.
 5. **Defensive yardage does not reconcile by game.** OLL shows 132 total yards,
    72 rush yards and 55 pass yards. The five-yard difference is unexplained in
    the UI, and other game rows differ as well even though the season aggregate
@@ -74,11 +92,23 @@ resize a dashboard.
    totals eleven returns for 43 yards. Determine whether the problem is unit
    scope, incomplete player attribution, calculation, or generic labeling;
    never infer missing coach tags.
-9. **Stop Rate remains prominent outside the approved Defense composition.** It
-   remains on Overview and Self-Scout after the coach rejected it as a primary
-   defensive comparison. Inventory all remaining uses and distinguish valid
-   supporting use from composition drift; this is not authorization to remove
-   the underlying metric globally.
+9. **Stop Rate remains prominent outside the approved Defense composition.
+   REPAIRED.** Complete inventory of Reports presentations:
+
+   | Location | Position | Disposition |
+   |---|---|---|
+   | `native-report-tabs.jsx` Self-Scout Defense KPI band | was tile 1 | **Moved to tile 6.** `Yards Allowed / Play` leads |
+   | `reports-view.js` `defenseDisciplineRows` | was row 2 | **Moved to row 6.** `Yards / play allowed` leads |
+   | Self-Scout run/pass split rows | supporting | unchanged |
+   | Self-Scout defensive call tables (`Stop` column) | the ranking key | unchanged |
+   | Matchup defensive lanes | approved lane polarity | unchanged |
+   | `html-report.js` export mirrors | follow their board | unchanged |
+   | Study / `analytics-metrics` `stopRate` | underlying metric | unchanged |
+   | Reports > Defense dashboard | already absent per the approved comp | unchanged |
+
+   **Neither composition was resized** — six tiles and six rows, reordered.
+   Deleting either slot outright would change an approved row count, which is
+   a composition decision and was not made here.
 10. **Layout integrity requires explicit closure, not assumption.** Recheck all
     29 OLL views for page and module overflow, internal scrollbars, overlap,
     fixed-height clipping, truncated names, missing tabs, bottom bleed and data
