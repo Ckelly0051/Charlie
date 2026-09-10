@@ -1098,17 +1098,25 @@ function DefenseKpis({ dashboard, seasonScope }) {
 
 function DefenseDirection({ rows, screen }) {
   const absoluteRows = rows.filter(row => !row.isRelative);
+  const relativeRows = rows.filter(row => row.isRelative);
+  const absoluteSnaps = absoluteRows.reduce((sum, row) => sum + row.n, 0);
+  const relativeSnaps = relativeRows.reduce((sum, row) => sum + row.n, 0);
   const runSnaps = absoluteRows.reduce((sum, row) => sum + row.runs, 0);
   const passSnaps = absoluteRows.reduce((sum, row) => sum + row.passes, 0);
   return <Module title="Attack direction"><div class="gi-def-direction">
-    {rows.map(row => <WatchableRefs key={row.name} tag="button" type="button"
-      class={`gi-def-direction-row${row.isRelative ? ' is-relative' : ''}`}
-      refs={row.refs} label={`${row.name} attack direction`} screen={screen}>
-      <strong>{row.name}</strong><div class="gi-def-direction-bar">
-        <i style={`--w:${row.n ? row.runs / row.n * 100 : 0}%`} /><em style={`--w:${row.n ? row.passes / row.n * 100 : 0}%`} />
-      </div><b>{row.yards}</b><small>{defDash(row.ypp?.toFixed(1))} y/p</small>
-    </WatchableRefs>)}
-    <div class="gi-def-direction-key"><span>Run {runSnaps} snaps</span><span>Pass {passSnaps} snaps</span><b>Total yards | Yds/play</b></div>
+    {rows.map(row => {
+      const denominator = row.isRelative ? relativeSnaps : absoluteSnaps;
+      const share = denominator ? Math.round(row.n / denominator * 100) : null;
+      return <WatchableRefs key={row.name} tag="button" type="button"
+        class={`gi-def-direction-row${row.isRelative ? ' is-relative' : ''}`}
+        refs={row.refs} label={`${row.name} attack direction`} screen={screen}>
+        <strong>{row.name}</strong><div class="gi-def-direction-bar">
+          <i style={`--w:${row.n ? row.runs / row.n * 100 : 0}%`} /><em style={`--w:${row.n ? row.passes / row.n * 100 : 0}%`} />
+        </div><b>{row.n} snaps</b><small>{defDash(share == null ? null : `${share}%`)}</small>
+        <span class="gi-def-direction-ypp">{defDash(row.ypp?.toFixed(1))} y/p</span>
+      </WatchableRefs>;
+    })}
+    <div class="gi-def-direction-key"><span>Run {runSnaps} snaps</span><span>Pass {passSnaps} snaps</span><b>Snaps | % snaps | Yds/play</b></div>
   </div></Module>;
 }
 

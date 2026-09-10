@@ -1263,7 +1263,7 @@
 .gi-reports .gi-reports-reporthead .gi-reports-segment{gap:1px}
 .gi-reports .gi-reports-reporthead .gi-reports-segment button{min-height:30px;padding:7px 13px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-muted);font:600 11.5px/1 var(--gi-sans)}
 .gi-reports .gi-reports-reporthead .gi-reports-segment button.is-active{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
-.gi-reports .gi-reports-reporthead .gi-reports-tabs{display:flex;flex:0 0 auto;align-self:flex-end;min-width:0;margin:0;padding:0;border:0;background:transparent;overflow-x:auto}
+.gi-reports .gi-reports-reporthead .gi-reports-tabs{display:flex;flex:0 0 auto;align-self:flex-end;min-width:0;margin:0;padding:0;border:0;background:transparent;overflow-x:auto;overflow-y:hidden}
 .gi-reports .gi-reports-reporthead .gi-reports-tab{flex:0 0 auto;padding:9px 10px;border:0;background:transparent;color:var(--gi-bd-muted);font:600 11px/1 var(--gi-cond);letter-spacing:.08em;text-transform:uppercase}
 .gi-reports .gi-reports-reporthead .gi-reports-tab.active{color:var(--gi-bd-strong);background:var(--gi-bd-control);box-shadow:inset 0 -3px var(--gi-bd-gold)}
 .gi-reports .gi-reports-reporthead .gi-reports-actions{align-self:center;flex:0 0 auto;gap:6px}
@@ -3088,7 +3088,7 @@
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dd{margin:0;font-weight:700}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction{padding:8px 12px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row{
-  display:grid;grid-template-columns:112px minmax(0,1fr) 44px 48px;gap:7px;align-items:center;
+  display:grid;grid-template-columns:112px minmax(0,1fr) 58px 34px 48px;gap:7px;align-items:center;
   width:100%;height:32px;padding:0;border:0;border-bottom:1px solid var(--gi-bd-line);
   background:transparent;color:inherit;text-align:left
 }
@@ -3101,7 +3101,8 @@
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar i{background:var(--gi-run)}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar em{background:var(--gi-pass)}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row b,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row small{text-align:right}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row small,
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-ypp{text-align:right;white-space:nowrap}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key{
   display:flex;gap:16px;padding-top:12px;color:var(--gi-bd-muted);font-size:10px
 }
