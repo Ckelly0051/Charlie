@@ -442,14 +442,32 @@ capped. Data cannot add a module, remove a module or resize a section.
 `StatsEngine.defenseDashboard()` is the only football-value owner. Defensive
 calls are Front + Coverage + Pressure. Call-performance rankings require a
 run/pass-classified snap; situational call frequency includes every charted
-call in that situation. Third- and fourth-down "allowed" rates use opponent
-conversion polarity. Stop Rate is not shown. Module and section explainer
-prose is absent, and every populated row carries its exact composite film refs.
+call in that situation. Composite fronts and pressures are deduplicated and
+order-independent; the team base front displays before its shift package.
+Calls qualify for this performance board at four snaps, distinct from
+Self-Scout's three-snap tendency gate. Third- and fourth-down "allowed" rates
+use `StatsEngine.isConversion`. Stop Rate is not shown. Module and section
+explainer prose is absent, but the three data-bearing yards/play baselines are
+retained. Every populated row carries its exact composite film refs.
+
+Defense field zones reuse `_fieldZone()`. The five-slot board combines Own
+11–39 and Midfield into Open Field, then shows Opp 40–20, Red Zone and Goal
+Line separately. Call% divides by charted calls; Blitz% divides by charted
+Blitz plus charted No Blitz snaps. Untagged defensive structure never dilutes
+either rate. Current Game scope contains no `Last 3` or `Vs season avg` label.
+The Defense HTML export consumes this same dashboard and four-section model.
+
+The approved examples' red/green performance tone is a recorded divergence:
+no governing football thresholds were approved, so production leaves values
+neutral rather than inventing a good/bad classification. Measured zeroes remain
+zero even where the capture showed a dash.
 
 Canonical evidence is `tools/e2e-reports-defense-realdata.mjs`: all six real
-games at 1440 and 1280, exact module/row inventories, fixed per-section height,
-canonical KPI/call/situation values, no clipping, overflow, explainer prose or
-source mutation. It is 24/0; the shared native Reports harness is 99/0.
+games at 1440x900 and 1280x900, exact module/row inventories, fixed per-section
+height, separate content and band containment, honest scope labels, canonical
+KPI/call/situation values, matching export structure, no clipping, overflow,
+explainer prose or source mutation. Current focused counts are recorded in
+`docs/TESTING.md`.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp

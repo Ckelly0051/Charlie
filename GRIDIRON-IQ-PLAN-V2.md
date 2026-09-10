@@ -706,7 +706,11 @@ Retain every meaningful production field while reducing everyday clutter.
 > `StatsEngine.defenseDashboard()` owns every value; `DEFENSE_DASH_ROWS` owns
 > every ranked allocation. Sparse data holds dashes and excess ranked data is
 > deterministically capped, so data cannot resize the board. Canonical evidence:
-> `tools/e2e-reports-defense-realdata.mjs` 24/0; shared native Reports 99/0.
+> `tools/e2e-reports-defense-realdata.mjs`. The post-build review repair restores
+> compact border-box geometry and required baselines, verifies content and band
+> containment independently at 1440x900 and 1280x900, fills all four qualified
+> call slots, canonicalizes call identity and field-zone boundaries, makes game
+> scope labels honest, and aligns the HTML export to the same four-section model.
 > Coach-approved composition; production acceptance and installed smoke remain.
 >
 

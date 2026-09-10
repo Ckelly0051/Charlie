@@ -1622,14 +1622,6 @@ select:focus:not(.ws-shell *) {
 /* --- Game Flow --------------------------------------------------- */
 .chart-gameflow { max-height: 200px; }
 
-/* --- Defensive Top Row ------------------------------------------- */
-.def-top-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
-.def-top-row .stats-grid { flex: 1; min-width: 280px; }
-
-/* --- Stats Grid Flex (auto-flow cards) --------------------------- */
-.stats-grid-flex { display: flex; flex-wrap: wrap; gap: 8px; }
-.stats-grid-flex .stat-card { flex: 1 1 120px; min-width: 100px; }
-
 /* --- Run/Pass Dots (shared) -------------------------------------- */
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
 .dot.run { background: #ffd23f; }

@@ -1059,8 +1059,8 @@ function DefenseRows({ rows, count, columnCount, cells, screen, label }) {
       </SchemeRow>)}</tbody>;
 }
 
-function DefenseModuleTable({ title, headers, rows, count, cells, screen, cls = '' }) {
-  return <Module title={title} cls={cls}>
+function DefenseModuleTable({ title, meta, headers, rows, count, cells, screen, cls = '' }) {
+  return <Module title={title} meta={meta} cls={cls}>
     <div class="gi-def-table-wrap"><table class="stats-table stats-table-full">
       <thead><tr>{headers.map(header => <th key={header}>{header}</th>)}</tr></thead>
       <DefenseRows rows={rows} count={count} columnCount={headers.length} cells={cells} screen={screen} label={title} />
@@ -1068,20 +1068,27 @@ function DefenseModuleTable({ title, headers, rows, count, cells, screen, cls = 
   </Module>;
 }
 
-function DefenseKpis({ dashboard }) {
+function DefenseKpis({ dashboard, seasonScope }) {
   const games = Math.max(1, dashboard.byGame.length);
   const recentGames = Math.max(1, Math.min(3, dashboard.byGame.length));
   const perGame = value => (value / games).toFixed(1);
   const recentPerGame = value => (value / recentGames).toFixed(1);
+  const seasonSub = (all, recent, suffix = '/game') => seasonScope
+    ? `${all}${suffix} | Last 3: ${recent}`
+    : 'Current game';
   const kpis = [
-    ['Total yards allowed', dashboard.summary.yards, `${perGame(dashboard.summary.yards)}/game | Last 3: ${recentPerGame(dashboard.recent.yards)}`],
-    ['Rush yards allowed', dashboard.summary.runYards, `${perGame(dashboard.summary.runYards)}/game | Last 3: ${recentPerGame(dashboard.recent.runYards)}`],
-    ['Pass yards allowed', dashboard.summary.passYards, `${perGame(dashboard.summary.passYards)}/game | Last 3: ${recentPerGame(dashboard.recent.passYards)}`],
-    ['Yards / play', defDash(dashboard.summary.ypp?.toFixed(1)), `Season | Last 3: ${defDash(dashboard.recent.ypp?.toFixed(1))}`],
-    ['Turnovers', dashboard.summary.turnovers, `${perGame(dashboard.summary.turnovers)}/game | Last 3: ${recentPerGame(dashboard.recent.turnovers)}`],
-    ['Explosives allowed', dashboard.summary.explosives, `${perGame(dashboard.summary.explosives)}/game | Last 3: ${recentPerGame(dashboard.recent.explosives)}`],
-    ['3rd down allowed', dashboard.thirdDownAllowed.rate == null ? '-' : `${dashboard.thirdDownAllowed.rate}%`, `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts} | Last 3: ${defDash(dashboard.recentThirdDownAllowed.rate == null ? null : `${dashboard.recentThirdDownAllowed.rate}%`)}`],
-    ['4th down allowed', dashboard.fourthDownAllowed.rate == null ? '-' : `${dashboard.fourthDownAllowed.rate}%`, `${dashboard.fourthDownAllowed.made} of ${dashboard.fourthDownAllowed.attempts} | Last 3: ${defDash(dashboard.recentFourthDownAllowed.rate == null ? null : `${dashboard.recentFourthDownAllowed.rate}%`)}`],
+    ['Total yards allowed', dashboard.summary.yards, seasonSub(perGame(dashboard.summary.yards), recentPerGame(dashboard.recent.yards))],
+    ['Rush yards allowed', dashboard.summary.runYards, seasonSub(perGame(dashboard.summary.runYards), recentPerGame(dashboard.recent.runYards))],
+    ['Pass yards allowed', dashboard.summary.passYards, seasonSub(perGame(dashboard.summary.passYards), recentPerGame(dashboard.recent.passYards))],
+    ['Yards / play', defDash(dashboard.summary.ypp?.toFixed(1)), seasonSub('Season', defDash(dashboard.recent.ypp?.toFixed(1)), '')],
+    ['Turnovers', dashboard.summary.turnovers, seasonSub(perGame(dashboard.summary.turnovers), recentPerGame(dashboard.recent.turnovers))],
+    ['Explosives allowed', dashboard.summary.explosives, seasonSub(perGame(dashboard.summary.explosives), recentPerGame(dashboard.recent.explosives))],
+    ['3rd down allowed', dashboard.thirdDownAllowed.rate == null ? '-' : `${dashboard.thirdDownAllowed.rate}%`, seasonScope
+      ? `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts} | Last 3: ${defDash(dashboard.recentThirdDownAllowed.rate == null ? null : `${dashboard.recentThirdDownAllowed.rate}%`)}`
+      : `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts} in current game`],
+    ['4th down allowed', dashboard.fourthDownAllowed.rate == null ? '-' : `${dashboard.fourthDownAllowed.rate}%`, seasonScope
+      ? `${dashboard.fourthDownAllowed.made} of ${dashboard.fourthDownAllowed.attempts} | Last 3: ${defDash(dashboard.recentFourthDownAllowed.rate == null ? null : `${dashboard.recentFourthDownAllowed.rate}%`)}`
+      : `${dashboard.fourthDownAllowed.made} of ${dashboard.fourthDownAllowed.attempts} in current game`],
   ];
   return <div class="gi-def-kpis">{kpis.map(([label, value, sub]) => <div key={label} class="gi-def-kpi">
     <span>{label}</span><strong>{value}</strong><small>{sub}</small>
@@ -1089,6 +1096,8 @@ function DefenseKpis({ dashboard }) {
 }
 
 function DefenseDirection({ rows, screen }) {
+  const runSnaps = rows.reduce((sum, row) => sum + row.runs, 0);
+  const passSnaps = rows.reduce((sum, row) => sum + row.passes, 0);
   return <Module title="Attack direction"><div class="gi-def-direction">
     {rows.map(row => <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-direction-row"
       refs={row.refs} label={`${row.name} attack direction`} screen={screen}>
@@ -1096,7 +1105,20 @@ function DefenseDirection({ rows, screen }) {
         <i style={`--w:${row.n ? row.runs / row.n * 100 : 0}%`} /><em style={`--w:${row.n ? row.passes / row.n * 100 : 0}%`} />
       </div><b>{row.yards}</b><small>{defDash(row.ypp?.toFixed(1))} y/p</small>
     </WatchableRefs>)}
-    <div class="gi-def-direction-key"><span>Run</span><span>Pass</span><b>Total yards | Yds/play</b></div>
+    <div class="gi-def-direction-key"><span>Run {runSnaps} snaps</span><span>Pass {passSnaps} snaps</span><b>Total yards | Yds/play</b></div>
+  </div></Module>;
+}
+
+function DefenseZones({ rows, screen }) {
+  const maxYards = Math.max(1, ...rows.map(row => Math.max(0, row.yards || 0)));
+  return <Module title="Field zone"><div class="gi-def-zonebars">
+    {fitRows(rows, DEFENSE_DASH_ROWS['Field zone']).map((row, index) => row.absent
+      ? <div key={`empty-${index}`} class="gi-def-zonerow is-absent"><span>-</span><div class="gi-def-zonebar" /><b>-</b><small>-</small></div>
+      : <WatchableRefs key={row.name} tag="button" type="button" class="gi-def-zonerow"
+          refs={row.refs} label={`${row.name} field zone`} screen={screen}>
+          <span>{row.name}</span><div class="gi-def-zonebar"><i style={`--w:${Math.max(0, row.yards || 0) / maxYards * 100}%`} /></div>
+          <b>{defDash(row.yards)}</b><small>{row.ypp == null ? '-' : `${row.ypp.toFixed(1)} y/p`}</small>
+        </WatchableRefs>)}
   </div></Module>;
 }
 
@@ -1117,6 +1139,8 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
     action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
   const meta = DEFENSE_SECTIONS.find(item => item.id === section) || DEFENSE_SECTIONS[0];
   const baseline = dashboard.summary.ypp;
+  const seasonScope = fixedScope || screen.defenseScope === 'season';
+  const baselineLabel = `${seasonScope ? 'season' : 'game'} baseline: ${defDash(baseline?.toFixed(1))} yds/play`;
   const resultCells = row => [row.name, row.n, row.yards, row.ypp?.toFixed(1), defSigned(row.ypp == null || baseline == null ? null : row.ypp - baseline), row.explosives, row.touchdowns];
   const tendencyCells = row => [row.name, row.n, defRunPass(row), row.yards, row.ypp?.toFixed(1), defSigned(row.ypp == null || baseline == null ? null : row.ypp - baseline)];
   const smallCells = row => [row.name, row.n, defRunPass(row), row.ypp?.toFixed(1), row.explosives];
@@ -1128,27 +1152,27 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
         <button type="button" data-defense-scope="season" class={screen.defenseScope === 'season' ? 'active' : ''} onClick={() => { screen.defenseScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
         <button type="button" data-defense-scope="game" class={screen.defenseScope === 'game' ? 'active' : ''} onClick={() => { screen.defenseScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
       </div></>}
-      <button class="btn btn-sm gi-def-export" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(report, scoped)}>Export Report</button>
+      <button class="btn btn-sm gi-def-export" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(dashboard, scoped)}>Export Report</button>
     </div>
     <SectionTabs sections={DEFENSE_SECTIONS} active={section} onSelect={setSection} />
     <div class="gi-def-secrule"><h2>{meta.label}</h2></div>
 
     {section === 'd1' && <>
-      <DefenseKpis dashboard={dashboard} />
+      <DefenseKpis dashboard={dashboard} seasonScope={seasonScope} />
       <DefenseModuleTable title="Game-by-game" headers={['Game', 'Total yds', 'Rush yds', 'Pass yds', 'Yds/play', 'Explosive', 'Turnovers', 'TD']}
         rows={dashboard.byGame} count={DEFENSE_DASH_ROWS['Game-by-game']} screen={screen}
         cells={row => [row.name, row.yards, row.runs ? row.runYards : null, row.passes ? row.passYards : null, row.ypp?.toFixed(1), row.explosives, row.turnovers, row.touchdowns]} />
       <div class="gi-def-band gi-def-band-2 gi-def-performance-split">
         <DefenseModuleTable title="By down" headers={['Down', 'Total yards', 'Yards/play', 'Explosives']} rows={dashboard.downs} count={4} screen={screen}
           cells={row => [row.name, row.yards, row.ypp?.toFixed(1), row.explosives]} />
-        <DefenseModuleTable title="By quarter" headers={['Quarter', 'Total yards', 'Yards/play', 'Vs season avg', 'TD']} rows={dashboard.quarters} count={4} screen={screen}
+        <DefenseModuleTable title="By quarter" meta={baselineLabel} cls="has-baseline" headers={['Quarter', 'Total yards', 'Yards/play', seasonScope ? 'Vs season avg' : 'Vs game avg', 'TD']} rows={dashboard.quarters} count={4} screen={screen}
           cells={row => [row.name, row.yards, row.ypp?.toFixed(1), defSigned(row.vsAverage), row.touchdowns]} />
       </div>
     </>}
 
     {section === 'd2' && <>
       <div class="gi-def-band gi-def-band-2 gi-def-tendency-top">
-        <DefenseModuleTable title="Production by play type" headers={['Play type', 'Snaps', 'Total yds', 'Yds/play', 'Vs avg', 'Expl', 'TD']} rows={dashboard.playTypes} count={DEFENSE_DASH_ROWS['Production by play type']} screen={screen} cells={resultCells} />
+        <DefenseModuleTable title="Production by play type" meta={baselineLabel} cls="has-baseline" headers={['Play type', 'Snaps', 'Total yds', 'Yds/play', 'Vs avg', 'Expl', 'TD']} rows={dashboard.playTypes} count={DEFENSE_DASH_ROWS['Production by play type']} screen={screen} cells={resultCells} />
         <DefenseModuleTable title="Formation faced" headers={['Formation', 'Snaps', 'Run/pass', 'Total yds', 'Yds/play', 'Vs avg']} rows={dashboard.formations} count={DEFENSE_DASH_ROWS['Formation faced']} screen={screen} cells={tendencyCells} />
       </div>
       <div class="gi-def-band gi-def-band-3 gi-def-tendency-bottom">
@@ -1173,12 +1197,11 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
     </>}
 
     {section === 'd4' && <>
-      <DefenseModuleTable title="Down & distance" headers={['Situation', 'Snaps', 'Run/pass', 'Total yds', 'Yds/play', 'Top call', 'Call%', 'Blitz%']} rows={dashboard.downDistance} count={DEFENSE_DASH_ROWS['Down & distance']} screen={screen}
+      <DefenseModuleTable title="Down & distance" cls="gi-def-situations" headers={['Situation', 'Snaps', 'Run/pass', 'Total yds', 'Yds/play', 'Top call', 'Call%', 'Blitz%']} rows={dashboard.downDistance} count={DEFENSE_DASH_ROWS['Down & distance']} screen={screen}
         cells={row => [row.name, row.n, defRunPass(row), row.yards, row.ypp?.toFixed(1), row.topCall, row.callPct == null ? null : `${row.callPct}%`, row.blitzPct == null ? null : `${row.blitzPct}%`]} />
       <div class="gi-def-band gi-def-band-3 gi-def-context-band">
-        <DefenseModuleTable title="Field zone" headers={['Zone', 'Snaps', 'Total yds', 'Yds/play']} rows={dashboard.zones} count={DEFENSE_DASH_ROWS['Field zone']} screen={screen}
-          cells={row => [row.name, row.n, row.yards, row.ypp?.toFixed(1)]} />
-        <DefenseModuleTable title="By hash" headers={['Hash', 'Snaps', 'Total yds', 'Yds/play', 'Vs avg']} rows={dashboard.hashes} count={DEFENSE_DASH_ROWS['By hash']} screen={screen}
+        <DefenseZones rows={dashboard.zones} screen={screen} />
+        <DefenseModuleTable title="By hash" meta={baselineLabel} cls="has-baseline" headers={['Hash', 'Snaps', 'Total yds', 'Yds/play', 'Vs avg']} rows={dashboard.hashes} count={DEFENSE_DASH_ROWS['By hash']} screen={screen}
           cells={row => [row.name, row.n, row.yards, row.ypp?.toFixed(1), defSigned(row.ypp == null || baseline == null ? null : row.ypp - baseline)]} />
         <DefenseModuleTable title="Motion" headers={['Motion', 'Snaps', 'Run/pass', 'Yds/play', 'Expl']} rows={dashboard.motions} count={DEFENSE_DASH_ROWS.Motion} screen={screen} cells={smallCells} />
       </div>

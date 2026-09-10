@@ -8,7 +8,7 @@
   "canonicalArtifact": {
     "path": "design-comps/reports-defense-2026-09-09",
     "kind": "directory",
-    "sha256": "5cffb1bd3cc0a639dea6549b508780c27c2a0d1fe01efe2ab3fd36e82ad8f64d",
+    "sha256": "47d38e77c1bd847632c6b3890b89cadd58fa6bd098913cdf9322c137bbb1870c",
     "fileCount": 11
   },
   "decisionRecord": "design-comps/reports-defense-2026-09-09/RATIONALE.md"

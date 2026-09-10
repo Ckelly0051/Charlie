@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
 const OUT = 'artifacts/defense-production-realdata';
-const VIEWPORTS = [[1440, 900], [1280, 800]];
+const VIEWPORTS = [[1440, 900], [1280, 900]];
 const SECTIONS = [
   { label: 'Defensive performance', modules: ['Game-by-game', 'By down', 'By quarter'] },
   { label: 'Opponent Offense', modules: ['Production by play type', 'Formation faced', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
@@ -78,6 +78,9 @@ for (const game of games) {
         const text = node => (node?.textContent || '').replace(/\s+/g, ' ').trim();
         const title = module => text(module.querySelector('header strong'));
         const modules = [...(board?.querySelectorAll('.gi-overview-module') || [])];
+        const rowCount = module => title(module) === 'Field zone'
+          ? module.querySelectorAll('.gi-def-zonerow').length
+          : module.querySelectorAll('tbody tr').length;
         const clipped = [];
         modules.forEach(module => module.querySelectorAll('th,td,strong,small').forEach(cell => {
           if (!cell.closest('.gi-def-pop') && !cell.querySelector('.gi-def-pop')
@@ -90,17 +93,33 @@ for (const game of games) {
           route: document.querySelector('.gi-reports-tab.active')?.dataset.reportTab,
           active: text(board?.querySelector('.gi-def-secnav-item.is-active')).replace(/^\d/, '').trim(),
           titles: modules.map(title),
-          rows: Object.fromEntries(modules.map(module => [title(module), module.querySelectorAll('tbody tr').length])),
+          rows: Object.fromEntries(modules.map(module => [title(module), rowCount(module)])),
           held: modules.reduce((count, module) => count + module.querySelectorAll('tr.is-absent').length, 0),
           height: Math.round(board?.getBoundingClientRect().height || 0),
           boardWidth: Math.round(board?.getBoundingClientRect().width || 0),
           meta: [...(board?.querySelectorAll('.gi-overview-module>header span') || [])]
-            .filter(node => getComputedStyle(node).display !== 'none' && text(node)).length,
+            .filter(node => getComputedStyle(node).display !== 'none' && text(node)).map(text),
           sectionProse: board?.querySelectorAll('.gi-def-secrule p').length || 0,
           tabs: [...(board?.querySelectorAll('.gi-def-secnav-item') || [])].map(node => text(node).replace(/^\d/, '').trim()),
           overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           clipped,
-          contentOverflow: modules.filter(module => module.scrollHeight > module.clientHeight + 1).map(title),
+          contentOverflow: modules.filter(module => module.scrollHeight > module.clientHeight + 1)
+            .map(module => `${title(module)}:${module.scrollHeight - module.clientHeight}px`),
+          rowEscape: modules.flatMap(module => {
+            const last = module.querySelector('tbody tr:last-child, .gi-def-zonerow:last-child');
+            return last && last.getBoundingClientRect().bottom > module.getBoundingClientRect().bottom + 1
+              ? [`${title(module)}:${Math.ceil(last.getBoundingClientRect().bottom - module.getBoundingClientRect().bottom)}px`]
+              : [];
+          }),
+          bandOverflow: [...(board?.querySelectorAll('.gi-def-band') || [])].flatMap(band => {
+            const bottom = band.getBoundingClientRect().bottom;
+            return [...band.children].filter(child => child.getBoundingClientRect().bottom > bottom + 1)
+              .map(child => `${child.className}:${Math.round(child.getBoundingClientRect().bottom - bottom)}px`);
+          }),
+          kpiSubs: [...(board?.querySelectorAll('.gi-def-kpi small') || [])].map(text),
+          quarterHeaders: [...(board?.querySelectorAll('.gi-overview-module') || [])]
+            .filter(module => title(module) === 'By quarter')
+            .flatMap(module => [...module.querySelectorAll('th')].map(text)),
         };
       });
       observations.push({ game: game.name, width, section: section.label, ...result });
@@ -131,14 +150,25 @@ for (const [width] of VIEWPORTS) for (const section of SECTIONS) {
   ok(heights.length === 1, `${section.label} is one height across all six games at ${width}`,
     JSON.stringify(rows.map(item => ({ game: item.game, height: item.height }))));
 }
-ok(observations.every(item => item.meta === 0 && item.sectionProse === 0),
-  'Defense renders no module or section explainer prose');
+const expectedMeta = { 'Defensive performance': 1, 'Opponent Offense': 1, Scheme: 0, 'Situational results': 1 };
+ok(observations.every(item => item.meta.length === expectedMeta[item.section]
+    && item.meta.every(value => /game baseline: .* yds\/play/.test(value))
+    && item.sectionProse === 0),
+  'Defense omits explainer prose while retaining required data baselines',
+  JSON.stringify(observations.filter(item => item.meta.length !== expectedMeta[item.section]).slice(0, 4)));
+ok(observations.every(item => item.kpiSubs.every(value => !value.includes('Last 3'))
+    && item.quarterHeaders.every(value => value.toLowerCase() !== 'vs season avg')),
+  'Current game scope never labels one game as Last 3 or season average');
 ok(observations.some(item => item.held > 0), 'sparse real games hold unfilled slots with dashes');
 ok(observations.every(item => item.overflowX === 0), 'no page-level horizontal overflow at either release width');
 ok(observations.every(item => item.clipped.length === 0), 'no Defense label or value is clipped',
   JSON.stringify(observations.filter(item => item.clipped.length).slice(0, 4)));
 ok(observations.every(item => item.contentOverflow.length === 0), 'every module remains inside its fixed panel',
   JSON.stringify(observations.filter(item => item.contentOverflow.length).slice(0, 4)));
+ok(observations.every(item => item.rowEscape.length === 0), 'the final allocated row remains visible inside every module',
+  JSON.stringify(observations.filter(item => item.rowEscape.length).slice(0, 4)));
+ok(observations.every(item => item.bandOverflow.length === 0), 'every module remains inside its allocated band',
+  JSON.stringify(observations.filter(item => item.bandOverflow.length).slice(0, 4)));
 ok(errors.length === 0, 'the real Defense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 
 /* Review captures use the richer full-season cohort and the canonical active game. */
@@ -164,7 +194,9 @@ const canonical = await page.evaluate(() => {
     dd: model.downDistance.map(row => row.name),
     emptyDd: model.downDistance.filter(row => !row.n).map(row => row.name),
     calls: model.topCalls.map(row => `${row.name}:${row.n}`),
+    worstCalls: model.worstCalls.map(row => `${row.name}:${row.n}`),
     firstLongCallPct: model.downDistance.find(row => row.name === '1st & 7+')?.callPct,
+    zones: model.zones.map(row => `${row.name}:${row.n}`),
   };
 });
 ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
@@ -182,8 +214,53 @@ ok(JSON.stringify(canonical.calls) === JSON.stringify([
   'Maverick + Jumbo Shift | Cover 3 | A-Gap:4',
   'Maverick | Cover 3:109',
   'Maverick + Jumbo Shift | Cover 3:28',
-]) && canonical.firstLongCallPct === 72,
+  'Maverick | Cover 3 | A-Gap:7',
+]) && canonical.worstCalls.length === 4,
+  'Top and Worst Calls fill all four allocated slots when four calls qualify', JSON.stringify(canonical));
+ok(canonical.firstLongCallPct > 0 && canonical.firstLongCallPct <= 100,
   'call performance uses classified snaps while situational call share uses every charted call', JSON.stringify(canonical.calls));
+ok(JSON.stringify(canonical.zones.map(value => value.split(':')[0])) === JSON.stringify([
+  'Backed Up', 'Open Field', 'Opp 40–20', 'Red Zone', 'Goal Line',
+]), 'field zones use five display slots backed by canonical field-position buckets', JSON.stringify(canonical.zones));
+
+const invariants = await page.evaluate(() => {
+  const Stats = window.app.stats.constructor;
+  const base = { id: 'x', __gid: 'g', tags: { unit: 'defense', down: '4', distance: '5', yardage: '5',
+    playType: 'Run Inside', result: 'No Good', defFront: 'Maverick + Jumbo Shift', coverage: 'Cover 3', blitz: 'A-Gap' } };
+  const reversed = { ...base, id: 'y', tags: { ...base.tags, defFront: 'Jumbo Shift + Maverick' } };
+  const conversion = window.app.stats.defenseDashboard([base]);
+  const rateRows = [
+    { ...base, id: 'r1', tags: { ...base.tags, down: '1', distance: '10', blitz: '' } },
+    { ...base, id: 'r2', tags: { ...base.tags, down: '1', distance: '10', blitz: '' } },
+    { ...base, id: 'r3', tags: { ...base.tags, down: '1', distance: '10', defFront: 'Eagle', blitz: 'A-Gap' } },
+    { ...base, id: 'r4', tags: { ...base.tags, down: '1', distance: '10', defFront: '', coverage: '', blitz: '' } },
+  ];
+  const rates = window.app.stats.defenseDashboard(rateRows).downDistance.find(row => row.name === '1st & 7+');
+  return {
+    sameCall: Stats._defenseCallKey(base) === Stats._defenseCallKey(reversed),
+    conversionMade: conversion.fourthDownAllowed.made,
+    callPct: rates.callPct,
+    blitzPct: rates.blitzPct,
+  };
+});
+ok(invariants.sameCall, 'defensive call identity is independent of multi-select order');
+ok(invariants.conversionMade === 1, 'down conversions use line-to-gain ownership even when Result says No Good');
+ok(invariants.callPct === 67 && invariants.blitzPct === 33,
+  'Call% and Blitz% exclude snaps with no charted defensive structure', JSON.stringify(invariants));
+
+const exportText = await page.evaluate(async () => {
+  let saved = null;
+  const prior = window.ffaSaveBlob;
+  window.ffaSaveBlob = blob => { saved = blob; };
+  document.querySelector('.gi-def-export')?.click();
+  const html = saved ? await saved.text() : '';
+  window.ffaSaveBlob = prior;
+  return html;
+});
+ok(['Defensive Performance', 'Opponent Offense', 'Scheme', 'Situational Results']
+  .every(label => exportText.includes(label)) && !exportText.includes('Defensive Tendency Tells')
+  && !exportText.includes('Stop Rate'), 'Defense export uses the same four-section dashboard model as the screen');
+const fullSeasonFits = [];
 for (let index = 0; index < SECTIONS.length; index++) {
   await page.evaluate(label => {
     [...document.querySelectorAll('.gi-def-secnav-item')]
@@ -192,6 +269,9 @@ for (let index = 0; index < SECTIONS.length; index++) {
     document.querySelectorAll('.gi-toast-stack .gi-native-toast').forEach(node => node.remove());
   }, SECTIONS[index].label);
   await sleep(150);
+  fullSeasonFits.push(await page.evaluate(() => ({ width: window.innerWidth,
+    section: document.querySelector('.gi-def-secnav-item.is-active')?.textContent.trim(),
+    escape: Math.max(0, Math.ceil((document.querySelector('.gi-defense-board')?.getBoundingClientRect().bottom || 0) - window.innerHeight)) })));
   await page.screenshot({ path: `${OUT}/1440-section-${index + 1}.png` });
   const fullHeight = await page.evaluate(() => {
     const board = document.querySelector('.gi-defense-board');
@@ -202,6 +282,22 @@ for (let index = 0; index < SECTIONS.length; index++) {
   await page.screenshot({ path: `${OUT}/1440-section-${index + 1}-full.png` });
   await page.setViewport({ width: 1440, height: 900 });
 }
+
+await page.setViewport({ width: 1280, height: 900 });
+for (let index = 0; index < SECTIONS.length; index++) {
+  await page.evaluate(label => {
+    [...document.querySelectorAll('.gi-def-secnav-item')]
+      .find(button => button.textContent.includes(label))?.click();
+    document.querySelector('.gi-reports-scroll')?.scrollTo(0, 0);
+  }, SECTIONS[index].label);
+  await sleep(100);
+  fullSeasonFits.push(await page.evaluate(() => ({ width: window.innerWidth,
+    section: document.querySelector('.gi-def-secnav-item.is-active')?.textContent.trim(),
+    escape: Math.max(0, Math.ceil((document.querySelector('.gi-defense-board')?.getBoundingClientRect().bottom || 0) - window.innerHeight)) })));
+  await page.screenshot({ path: `${OUT}/1280-section-${index + 1}.png` });
+}
+ok(fullSeasonFits.every(item => item.escape === 0), 'the complete full-season Defense board fits the release viewport',
+  JSON.stringify(fullSeasonFits.filter(item => item.escape)));
 
 const after = createHash('sha256').update(readFileSync(SOURCE)).digest('hex');
 ok(after === before, 'the canonical season file remains byte-identical');

@@ -170,28 +170,87 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }
 
-export function buildDefenseHtmlReport({ title, report, stats, defScout, scopeLabel, generatedAt = new Date() }) {
-  const defensive = stats?.defensive || {};
-  const schemeColumns = [
-    { key: 'name', label: 'Scheme' }, { key: 'count', label: 'Snaps' },
-    { key: 'average', label: 'Yards / Play', value: row => row.count ? (row.yards / row.count).toFixed(1) : '0.0' },
-    { key: 'stop', label: 'Stop Rate', value: row => `${row.count ? Math.round(row.successes / row.count * 100) : 0}%` },
-    { key: 'havoc', label: 'Havoc', value: row => `${row.count ? Math.round(row.havoc / row.count * 100) : 0}%` },
+export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generatedAt = new Date() }) {
+  if (!dashboard?.total) return '';
+  const shown = value => value === null || value === undefined || value === '' ? '-' : value;
+  const fixed = (rows, count) => [...(rows || []).slice(0, count),
+    ...Array.from({ length: Math.max(0, count - (rows || []).length) }, () => ({}))];
+  const decimal = value => value == null ? '-' : Number(value).toFixed(1);
+  const signed = value => value == null ? '-' : `${value > 0 ? '+' : ''}${Number(value).toFixed(1)}`;
+  const mix = row => row.n ? `${row.runs} / ${row.passes}` : '-';
+  const games = Math.max(1, dashboard.byGame.length);
+  const recentGames = Math.max(1, Math.min(3, dashboard.byGame.length));
+  const seasonScope = scopeLabel === 'Full season';
+  const trend = (total, recent) => seasonScope
+    ? `${(total / games).toFixed(1)}/game | Last 3: ${(recent / recentGames).toFixed(1)}`
+    : 'Current game';
+  const chapter = (number, name, content) => `<section class="chapter"><div class="chapter-title"><span>Defense ${number}</span><h1>${esc(name)}</h1></div>${content}</section>`;
+  const resultColumns = [
+    { key: 'name', label: 'Name', value: row => shown(row.name) },
+    { key: 'n', label: 'Snaps', value: row => shown(row.n) },
+    { key: 'yards', label: 'Total Yards', value: row => shown(row.yards) },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
+    { key: 'vsAverage', label: 'Vs Avg', value: row => signed(row.vsAverage) },
+    { key: 'explosives', label: 'Explosive', value: row => shown(row.explosives) },
   ];
-  const scoutRows = defScout?.insufficient ? [] : (defScout?.tells || []).map(item => ({
-    situation: item.label, type: item.tellType, lean: `${item.tellVal} ${item.tellPct}%`,
-    stop: `${item.stopRate}%`, havoc: `${item.havocRate}%`, assessment: item.verdict,
-  }));
-  const body = `${defenseTables(report)}
-    ${table('Defensive Fronts', schemeColumns, defensive.fronts)}
-    ${table('Coverages', schemeColumns, defensive.coverages)}
-    ${table('Pressures', schemeColumns, defensive.blitzes)}
-    ${table('Defensive Tendency Tells', [
-      { key: 'situation', label: 'Situation' }, { key: 'type', label: 'Type' },
-      { key: 'lean', label: 'Lean' }, { key: 'stop', label: 'Stop Rate' },
-      { key: 'havoc', label: 'Havoc' }, { key: 'assessment', label: 'Assessment' },
-    ], scoutRows)}`;
-  return documentShell({ title, subtitle: `${scopeLabel} - ${report.total} defensive snaps`,
+  const tendencyColumns = [
+    { key: 'name', label: 'Name', value: row => shown(row.name) },
+    { key: 'n', label: 'Snaps', value: row => shown(row.n) },
+    { key: 'mix', label: 'Run / Pass', value: mix },
+    { key: 'yards', label: 'Total Yards', value: row => shown(row.yards) },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
+  ];
+  const performance = metrics([
+    { label: 'Total yards allowed', value: dashboard.summary.yards, sub: trend(dashboard.summary.yards, dashboard.recent.yards) },
+    { label: 'Rush yards allowed', value: dashboard.summary.runYards, sub: trend(dashboard.summary.runYards, dashboard.recent.runYards) },
+    { label: 'Pass yards allowed', value: dashboard.summary.passYards, sub: trend(dashboard.summary.passYards, dashboard.recent.passYards) },
+    { label: 'Yards / play', value: decimal(dashboard.summary.ypp), sub: seasonScope ? `Last 3: ${decimal(dashboard.recent.ypp)}` : 'Current game' },
+    { label: 'Turnovers', value: dashboard.summary.turnovers, sub: trend(dashboard.summary.turnovers, dashboard.recent.turnovers) },
+    { label: 'Explosives allowed', value: dashboard.summary.explosives, sub: trend(dashboard.summary.explosives, dashboard.recent.explosives) },
+    { label: '3rd down allowed', value: dashboard.thirdDownAllowed.rate == null ? '-' : `${dashboard.thirdDownAllowed.rate}%`, sub: `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts}` },
+    { label: '4th down allowed', value: dashboard.fourthDownAllowed.rate == null ? '-' : `${dashboard.fourthDownAllowed.rate}%`, sub: `${dashboard.fourthDownAllowed.made} of ${dashboard.fourthDownAllowed.attempts}` },
+  ]) + table('Game-by-game', [
+    { key: 'name', label: 'Game' }, { key: 'yards', label: 'Total Yards' },
+    { key: 'runYards', label: 'Rush Yards', value: row => row.runs ? row.runYards : '-' },
+    { key: 'passYards', label: 'Pass Yards', value: row => row.passes ? row.passYards : '-' },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
+    { key: 'explosives', label: 'Explosive' }, { key: 'turnovers', label: 'Turnovers' }, { key: 'touchdowns', label: 'TD' },
+  ], fixed(dashboard.byGame, 6)) + `<div class="two-up">${table('By down', [
+    { key: 'name', label: 'Down' }, { key: 'yards', label: 'Total Yards' },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) }, { key: 'explosives', label: 'Explosive' },
+  ], dashboard.downs)}${table('By quarter', [
+    { key: 'name', label: 'Quarter' }, { key: 'yards', label: 'Total Yards' },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
+    { key: 'vsAverage', label: seasonScope ? 'Vs Season Avg' : 'Vs Game Avg', value: row => signed(row.vsAverage) },
+    { key: 'touchdowns', label: 'TD' },
+  ], dashboard.quarters)}</div>`;
+  const opponent = `<div class="two-up">${table('Production by play type', [...resultColumns,
+    { key: 'touchdowns', label: 'TD', value: row => shown(row.touchdowns) }], fixed(dashboard.playTypes, 7))}${table('Formation faced', tendencyColumns,
+    fixed(dashboard.formations, 6))}</div><div class="two-up">${table('Personnel faced', tendencyColumns,
+    fixed(dashboard.personnel, 5))}${table('Backfield faced', tendencyColumns, fixed(dashboard.backfields, 5))}</div>${table('Attack direction', tendencyColumns,
+    dashboard.directions)}`;
+  const calls = columns => [
+    { key: 'name', label: 'Call', value: row => shown(row.name) }, ...columns.slice(1),
+  ];
+  const scheme = `<div class="two-up">${table('Top Calls', calls(resultColumns), fixed(dashboard.topCalls, 4))}${table('Worst Calls', calls(resultColumns), fixed(dashboard.worstCalls, 4))}</div>`
+    + table('Blitz vs No Blitz', resultColumns, [dashboard.pressure.blitz, dashboard.pressure.noBlitz])
+    + table('Pressure by situation', [
+      { key: 'name', label: 'Situation' }, { key: 'n', label: 'Snaps' },
+      { key: 'blitzPct', label: 'Blitz %', value: row => row.blitzPct == null ? '-' : `${row.blitzPct}%` },
+      { key: 'blitzYpp', label: 'Blitz Y/P', value: row => decimal(row.blitzYpp) },
+      { key: 'baseYpp', label: 'Base Y/P', value: row => decimal(row.baseYpp) },
+    ], fixed(dashboard.pressureSituations, 6));
+  const situations = table('Down & distance', [
+    { key: 'name', label: 'Situation' }, { key: 'n', label: 'Snaps' },
+    { key: 'mix', label: 'Run / Pass', value: mix }, { key: 'yards', label: 'Total Yards' },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
+    { key: 'topCall', label: 'Top Call', value: row => shown(row.topCall) },
+    { key: 'callPct', label: 'Call %', value: row => row.callPct == null ? '-' : `${row.callPct}%` },
+    { key: 'blitzPct', label: 'Blitz %', value: row => row.blitzPct == null ? '-' : `${row.blitzPct}%` },
+  ], dashboard.downDistance) + `<div class="two-up">${table('Field zone', tendencyColumns.slice(0, 2).concat(tendencyColumns.slice(3)), fixed(dashboard.zones, 5))}${table('By hash', resultColumns.slice(0, 5), fixed(dashboard.hashes, 5))}</div>`
+    + table('Motion', tendencyColumns, fixed(dashboard.motions, 5));
+  const body = `${chapter(1, 'Defensive Performance', performance)}${chapter(2, 'Opponent Offense', opponent)}${chapter(3, 'Scheme', scheme)}${chapter(4, 'Situational Results', situations)}`;
+  return documentShell({ title, subtitle: `${scopeLabel} - ${dashboard.total} defensive snaps`,
     meta: `Generated ${generatedAt.toLocaleString()}`, body });
 }
 

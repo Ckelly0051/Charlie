@@ -1506,6 +1506,7 @@ export class StatsEngine {
   defenseDashboard(plays, gameLabels = {}) {
     const source = (plays || []).filter(p => p?.tags?.unit === 'defense' && StatsEngine._tryPenaltyResolved(p));
     const yard = p => parseInt(p?.tags?.yardage, 10) || 0;
+    const compareText = (a, b) => a < b ? -1 : a > b ? 1 : 0;
     const refsOf = cohort => [...new Set((cohort || []).map(StatsEngine._compositeRef).filter(Boolean))].sort();
     const summarize = (name, cohort) => {
       const rows = cohort || [];
@@ -1515,7 +1516,9 @@ export class StatsEngine {
       const runs = rows.filter(StatsEngine.isRun);
       const passes = rows.filter(StatsEngine.isPass);
       const yards = rows.reduce((sum, p) => sum + yard(p), 0);
-      const turnovers = this._defensiveStats(rows).turnovers;
+      const turnovers = rows.reduce((sum, p) => sum
+        + (StatsEngine.hasResult(p, 'Interception') ? 1 : 0)
+        + (StatsEngine.isFumbleRecovered(p) ? 1 : 0), 0);
       return {
         name, n: rows.length, runs: runs.length, passes: passes.length, yards,
         runYards: runs.reduce((sum, p) => sum + yard(p), 0),
@@ -1538,7 +1541,7 @@ export class StatsEngine {
       });
       return [...map.entries()].map(([name, rows]) => summarize(name, rows));
     };
-    const ranked = rows => rows.sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+    const ranked = rows => rows.sort((a, b) => b.n - a.n || compareText(a.name, b.name));
     const byGame = ranked(grouped(source, p => String(p.__gid ?? 'current')))
       .map(row => ({ ...row, gameId: row.name, name: gameLabels[row.name] || row.name }))
       .sort((a, b) => {
@@ -1551,7 +1554,7 @@ export class StatsEngine {
     const summary = summarize('Season', source);
     const rateAllowed = (cohort, down) => {
       const rows = cohort.filter(p => p.tags.down === down);
-      const allowed = rows.filter(p => this._isSuccessfulPlay(p)).length;
+      const allowed = rows.filter(StatsEngine.isConversion).length;
       return { made: allowed, attempts: rows.length, rate: rows.length ? +(allowed / rows.length * 100).toFixed(1) : null };
     };
     const downRows = ['1', '2', '3', '4'].map(down => summarize(
@@ -1580,8 +1583,8 @@ export class StatsEngine {
       refs: row.refs, vsAverage: summary.ypp == null ? null : +(row.avgYds - summary.ypp).toFixed(1),
     }));
     const qualifiedCalls = callRows.filter(row => row.n >= 4);
-    const topCalls = qualifiedCalls.slice().sort((a, b) => a.ypp - b.ypp || b.n - a.n || a.name.localeCompare(b.name));
-    const worstCalls = qualifiedCalls.slice().sort((a, b) => b.ypp - a.ypp || a.n - b.n || a.name.localeCompare(b.name));
+    const topCalls = qualifiedCalls.slice().sort((a, b) => a.ypp - b.ypp || b.n - a.n || compareText(a.name, b.name));
+    const worstCalls = qualifiedCalls.slice().sort((a, b) => b.ypp - a.ypp || a.n - b.n || compareText(a.name, b.name));
     const pressure = (name, cohort) => summarize(name, cohort);
     const blitz = pressure('Blitz', source.filter(p => String(p.tags.blitz || '').trim()));
     const noBlitz = pressure('No Blitz', source.filter(StatsEngine.isNoBlitz));
@@ -1590,8 +1593,9 @@ export class StatsEngine {
       const rows = source.filter(p => this._ddKey(p.tags) === key);
       const blitzRows = rows.filter(p => String(p.tags.blitz || '').trim());
       const baseRows = rows.filter(StatsEngine.isNoBlitz);
+      const pressureRows = [...blitzRows, ...baseRows];
       return { key, name: this._ddPretty(key).replace('Short', '1-3').replace('Medium', '4-6').replace('Long', '7+'),
-        n: rows.length, blitzPct: rows.length ? Math.round(blitzRows.length / rows.length * 100) : null,
+        n: rows.length, blitzPct: pressureRows.length ? Math.round(blitzRows.length / pressureRows.length * 100) : null,
         blitzYpp: summarize('', blitzRows).ypp, baseYpp: summarize('', baseRows).ypp, refs: refsOf(rows) };
     });
 
@@ -1603,23 +1607,29 @@ export class StatsEngine {
       // Frequency answers "what did we call here?" and therefore includes a
       // charted call even when play type is absent. Performance rankings above
       // require classification; situational call share does not.
-      const calls = this._defenseCallRows(rows).sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
+      const calls = this._defenseCallRows(rows).sort((a, b) => b.n - a.n || compareText(a.key, b.key));
       const top = calls[0] || null;
+      const chartedCallN = calls.reduce((sum, call) => sum + call.n, 0);
       const blitzN = rows.filter(p => String(p.tags.blitz || '').trim()).length;
+      const noBlitzN = rows.filter(StatsEngine.isNoBlitz).length;
       return { ...row, topCall: top ? top.key.replaceAll(' · ', ' | ') : null,
-        callPct: top && rows.length ? Math.round(top.n / rows.length * 100) : null,
-        blitzPct: rows.length ? Math.round(blitzN / rows.length * 100) : null };
+        callPct: top && chartedCallN ? Math.round(top.n / chartedCallN * 100) : null,
+        blitzPct: blitzN + noBlitzN ? Math.round(blitzN / (blitzN + noBlitzN) * 100) : null };
     }));
+    // The board has five fixed slots. Preserve them by combining the two
+    // neutral-territory canonical buckets; every boundary still comes from
+    // `_fieldZone`, the app's single field-position owner.
     const zoneSpecs = [
-      ['Backed Up', 1, 20], ['Open Field', 21, 50], ['High Red', 51, 79],
-      ['Red Zone', 80, 94], ['Goal Line', 95, 100],
+      ['Backed Up', ['Backed up']],
+      ['Open Field', ['Own 11–39', 'Midfield']],
+      ['Opp 40–20', ['Opp 40–20']],
+      ['Red Zone', ['Red zone']],
+      ['Goal Line', ['Goal line']],
     ];
-    const zones = zoneSpecs.map(([name, min, max]) => summarize(name, source.filter(p => {
-      const spot = this._absYardLine(p.tags);
-      return spot != null && spot >= min && spot <= max;
-    })));
+    const zones = zoneSpecs.map(([name, buckets]) => summarize(name,
+      source.filter(p => buckets.includes(this._fieldZone(p.tags)))));
     const hashes = ['Left', 'Middle', 'Right'].map(name => summarize(name, source.filter(p => p.tags.hash === name)));
-    const motionNames = ranked(grouped(source, p => p.tags.motion || 'No Motion')).map(row => row.name === 'No Motion' ? row : row);
+    const motionNames = ranked(grouped(source, p => p.tags.motion || 'No Motion'));
 
     return {
       total: source.length, summary, recent,
@@ -1627,7 +1637,7 @@ export class StatsEngine {
       recentThirdDownAllowed: rateAllowed(recent.plays, '3'), recentFourthDownAllowed: rateAllowed(recent.plays, '4'),
       byGame, downs: downRows, quarters: quarterRows, playTypes,
       formations, personnel, backfields, directions,
-      topCalls: topCalls.slice(0, 3), worstCalls: worstCalls.slice(0, 3),
+      topCalls: topCalls.slice(0, 4), worstCalls: worstCalls.slice(0, 4),
       pressure: { blitz, noBlitz }, pressureSituations,
       downDistance: ddRows, zones, hashes, motions: motionNames,
     };
@@ -4631,9 +4641,13 @@ export class StatsEngine {
    *  actually carries. A blank pressure is OMITTED, never relabelled
    *  "No blitz" -- an untagged field is missing data, not a charted call. */
   static _defenseCallKey(play) {
-    const front = StatsEngine.splitFronts(play.tags.defFront).filter(Boolean).join(' + ');
+    const frontOrder = new Map(SeasonStore.OUR_DEF_ONLY_FRONTS.map((name, index) => [name, index]));
+    const front = [...new Set(StatsEngine.splitFronts(play.tags.defFront).filter(Boolean))]
+      .sort((a, b) => (frontOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (frontOrder.get(b) ?? Number.MAX_SAFE_INTEGER)
+        || (a < b ? -1 : a > b ? 1 : 0))
+      .join(' + ');
     const coverage = StatsEngine.proj(play).coverage || '';
-    const pressure = StatsEngine.splitBlitzes(play.tags.blitz).filter(Boolean).join(' + ');
+    const pressure = StatsEngine._matchupSet(StatsEngine.splitBlitzes(play.tags.blitz));
     return [front, coverage, pressure].filter(Boolean).join(' · ') || null;
   }
 

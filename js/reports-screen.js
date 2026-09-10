@@ -190,13 +190,11 @@ export class ReportsScreen {
    * opponent perspective (its own answer-sheet header already states the
    * sample), so it never duplicates a header the tab already carries.
    */
-  exportDefense(report, scoped) {
-    if (!report?.total) return false;
-    const stats = this.app.stats.compute(scoped);
-    const defScout = this.app.stats.generateDefensiveSelfScout(scoped);
+  exportDefense(dashboard, scoped) {
+    if (!dashboard?.total) return false;
     const scopeLabel = this.defenseScope === 'season' ? 'Full season' : 'Current game';
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
-    const html = buildDefenseHtmlReport({ title: `Defensive Report: ${team}`, report, stats, defScout, scopeLabel });
+    const html = buildDefenseHtmlReport({ title: `Defensive Report: ${team}`, dashboard, scopeLabel });
     window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `defensive_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }
