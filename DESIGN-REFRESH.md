@@ -1,5 +1,9 @@
 # Gridiron IQ — Visual Design Refresh Spec
 
+> **DOCUMENT STATUS:** SUPERSEDED HISTORICAL SPEC. Its single-file target is
+> deleted. Current presentation authority is the design-approval registry and
+> `GRIDIRON-IQ-PLAN-V2.md`.
+
 **Target:** `football-film-analyzer.html` (single-file app, no build step, must remain offline-capable)
 **Scope:** Visual/CSS refresh only. Zero functional changes. No renamed IDs, no removed classes that JS hooks on, no altered keyboard shortcuts, no changed data handling.
 **Primary device:** Desktop, mouse + keyboard. Do not optimize for touch.

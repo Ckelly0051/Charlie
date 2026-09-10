@@ -4,11 +4,11 @@
   "designStatus": "COMP_APPROVED",
   "productionStatus": "REJECTED",
   "approvedOn": "2026-09-09",
-  "approvalNote": "Charlie approved the fixed four-screen Defense composition and directed the Calls by formation usefulness amendment; the implementation is awaiting production review.",
+  "approvalNote": "Charlie approved the fixed four-screen Defense composition and the 2026-09-10 usefulness amendments: Top 6 formations with all play types, current-game drive outcomes, strength-relative attack direction, and sans module titles. Production remains awaiting review.",
   "canonicalArtifact": {
     "path": "design-comps/reports-defense-2026-09-09",
     "kind": "directory",
-    "sha256": "931ca2b56d1a26f56b092ed07dd8dd524c8af75241bfbd6c40a2dd324730fde9",
+    "sha256": "c4f26ae61652eea11c797be12bb015a7ee75925fc59e189bc6bd4eb30c24ab5a",
     "fileCount": 11
   },
   "decisionRecord": "design-comps/reports-defense-2026-09-09/RATIONALE.md"

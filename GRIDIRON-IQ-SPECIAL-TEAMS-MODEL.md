@@ -1,7 +1,9 @@
 # GridIron IQ Special Teams Model
 
-> **Status:** Proposed Phase 4E contract. Product direction approved for
-> research and redesign; production implementation has not started. This model
+> **Status:** BINDING MODEL CONTRACT. Phase 4E is implemented; current defects
+> and release status live in `docs/OPEN-DEFECTS.md` and `CLAUDE.md`. Historical
+> proposal and milestone language below records how the contract was formed.
+> This model
 > prioritizes fast, accurate future charting over exact semantic migration of
 > the legacy `scoreFor` workflow.
 

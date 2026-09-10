@@ -1,7 +1,10 @@
 # GridIron IQ Structured Penalty Model
 
-> **Status:** Phase 4D implemented at `461d0b1`; Codex self-review fixes and
-> functional beta packaging landed at `e6573b1`. Coach smoke pending.
+> **Status:** BINDING MODEL CONTRACT. The Phase 4D milestone note below is
+> historical; current implementation and release status live in `CLAUDE.md` and
+> `docs/OPEN-DEFECTS.md`.
+> Phase 4D implemented at `461d0b1`; Codex self-review fixes and functional beta
+> packaging landed at `e6573b1`.
 > This model optimizes trustworthy future charting over semantic migration of
 > the legacy `result: 'Penalty'` workflow.
 

@@ -1,5 +1,8 @@
 # GridIron IQ Product Redesign — Shared Claude/Codex Plan
 
+> **DOCUMENT STATUS:** SUPERSEDED BY `GRIDIRON-IQ-PLAN-V2.md`. Preserve this as
+> historical design rationale; do not use its production baseline as current.
+
 > **Status:** Approved product direction; incremental production implementation
 > is underway behind opt-in boundaries. Keep this document current whenever Claude or Codex changes
 > the redesign scope, implementation status, or compatibility assumptions.

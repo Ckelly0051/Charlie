@@ -1,5 +1,9 @@
 # GridIron IQ Break Down Redesign Parity Audit
 
+> **DOCUMENT STATUS:** HISTORICAL BASELINE AUDIT. Current Breakdown status and
+> defects live in `CLAUDE.md`, `GRIDIRON-IQ-PLAN-V2.md`, and
+> `docs/OPEN-DEFECTS.md`.
+
 **Reference:** `design-v1.1` in `ux-prototype-v2/`
 **Compared against:** local production source after `v1.12.0-2`
 **Status:** R9 parity audit complete; recovery remains local and uncommitted

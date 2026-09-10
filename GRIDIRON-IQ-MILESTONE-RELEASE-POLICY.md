@@ -71,7 +71,11 @@ The app, documentation, GitHub tag, and installer version must agree.
 - The coach tests the published beta and alone approves data cleanup or stable
   promotion.
 
-## Current Closeout Application
+## Historical Closeout Application
+
+The application below records the July 2026 C1/C2 milestone only. It is not the
+current release state; current version, package, and acceptance truth lives in
+`CLAUDE.md`, `docs/DOCUMENTATION-INDEX.md`, and the applicable smoke file.
 
 C1 route retirement and C2 linked-film truth remain one milestone. Do not ship
 C1 alone.
@@ -85,4 +89,3 @@ build. Two adversarial self-reviews stand in the interim; both found real
 defects (a P0 film-load race, a wrong-game messaging leak, a 32px mobile touch
 target, and a first-launch form-composition bug), which is the honest argument
 for keeping the independent pass on the schedule rather than dropping it.
-

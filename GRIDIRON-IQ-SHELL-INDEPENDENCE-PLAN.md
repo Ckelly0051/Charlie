@@ -1,5 +1,8 @@
 # GridIron IQ — Shell Independence & Redesign Plan
 
+> **DOCUMENT STATUS:** COMPLETED HISTORICAL MIGRATION PLAN. The classic shell is
+> deleted; current architecture lives in `AGENTS.md` and `CLAUDE.md`.
+
 ## 🔒 REVIEWER'S CHECKLIST — MANDATORY, RUN BEFORE WRITING ANY VERDICT
 
 **Coach's standing rule (2026-07-29): the reviewer re-reads this plan at every

@@ -53,9 +53,25 @@ contract, but must obtain independent review before release. If Codex is
 unavailable, Fable may implement a bounded checkpoint and Codex reviews it when
 available. No agent self-certifies a release.
 
-**Current exception:** Claude is already building C1/C2 closeout work; Codex is
-its independent reviewer. After this milestone, the default returns to Fable
-orchestration and Codex implementation.
+**Current posture:** no historical role exception remains active. Each handoff
+names its builder and independent reviewer. The open OLL Reports pass is
+investigation-only until the coach approves proposed repairs; see
+`docs/OPEN-DEFECTS.md`.
+
+## Documentation Discipline
+
+- `docs/DOCUMENTATION-INDEX.md` defines current authority. A historical status
+  line in any other file cannot override it.
+- `docs/OPEN-DEFECTS.md` is the one current defect index. Conversation history
+  is not durable issue tracking.
+- Open, reclassify, and close defects in the same commit as the evidence or
+  repair that changes their state.
+- Do not maintain volatile module, harness, or assertion totals in prose when
+  the repository can enumerate them.
+- Changing canonical design evidence requires the owning manifest update and a
+  green `node tools/audit-design-approvals.mjs` in the same checkpoint.
+- Every handoff states whether source, docs, tests, approval evidence, version,
+  package, tag, push, and publication changed.
 ## Preservation Hierarchy
 
 Preserve, in order:
@@ -101,4 +117,3 @@ An agent should respectfully challenge the current direction when:
 
 The challenge must be timely: raise it during planning or scoping, not after the
 builder has completed the avoidable work.
-

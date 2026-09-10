@@ -1,7 +1,8 @@
 # GridIron IQ Workspace Contract
 
-> Introduced as the P0-d interface baseline and now consumed by the opt-in Home /
-> Break Down / Study / Plan shell. Classic remains the default workspace.
+> **Status:** BINDING INTERFACE CONTRACT. The Preact workspace is now the only
+> coach-facing shell; the classic workspace described in historical sections is
+> deleted. Current ownership and status live in `CLAUDE.md` and `AGENTS.md`.
 
 ## Shell Routes
 

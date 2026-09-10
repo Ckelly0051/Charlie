@@ -1,6 +1,8 @@
 # GridIron IQ — Team Hub interaction specification
 
-**Status:** implemented at `f78d9e4`; R1-R4 repaired at `3f40216`; awaiting independent Claude re-review.
+**Status:** BINDING INTERACTION REFERENCE. Team Hub is implemented and the native
+route is current; historical milestone-review notes below do not describe the
+current release status. See `CLAUDE.md` and `docs/OPEN-DEFECTS.md`.
 **Owner route:** S3 — native Team Hub / Season Library.
 **Why it exists:** Team Hub is the app's front door *and* was the last surface pinning
 `#wsClassicOutlet` — before S3, `_openLibrary()` had to reveal the outlet because

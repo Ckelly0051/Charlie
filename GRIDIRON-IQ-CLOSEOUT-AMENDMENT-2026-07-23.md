@@ -1,5 +1,8 @@
 # Binding Closeout Amendment - 2026-07-23
 
+> **DOCUMENT STATUS:** HISTORICAL AMENDMENT TO THE JULY 2026 CLOSEOUT. Standing
+> current rules live in the agent agreement and release-policy documents.
+
 > **Status:** ACTIVE AND BINDING
 >
 > This document amends `GRIDIRON-IQ-CURRENT-PASS-CLOSEOUT.md`. Where the two
@@ -126,4 +129,3 @@ At Claude's next documentation checkpoint:
 - Reference `GRIDIRON-IQ-AGENT-WORKING-AGREEMENT.md`.
 - Record the exact C1/C2 commit SHAs, tests, mutations, and remaining smoke
   obligations.
-

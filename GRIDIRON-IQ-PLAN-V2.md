@@ -7,19 +7,22 @@
 > customer data.
 
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production and gate-verified. The unsigned Windows `1.12.0-77` local handoff
+> production. Earlier committed baselines were gate-verified, but the unsigned
+> Windows `1.12.0-77` local handoff
 > was packaged from version commit `15cd78d` after the Reports repair in
 > `0ecec0f`. Per coach instruction it was not harnessed or gated. It is not an
 > accepted release, and Breakdown Delete play remains a confirmed open defect.
-> release state. Home remains accepted through `f615fcd`
-> and its `1.12.0-70` smoke. The Step 2 documentation/repository-hygiene pass,
+> `1.12.0-70` remains the last accepted installed release snapshot, but current
+> Home production is `REJECTED` after the `1.12.0-74` visual smoke. The Step 2
+> documentation/repository-hygiene pass,
 > global-bridge retirement, and CSS-ownership cleanup remain complete and
 > reviewed; `e2e-design-system` is 17/0. Historical incomplete-state notes below
-> are not open Home work.
+> are not open Home work. All unresolved product defects are indexed in
+> `docs/OPEN-DEFECTS.md`.
 
-## Current Home - APPROVED AND RELEASE-READY (2026-09-02)
+## Home Accepted Baseline - Current Production Rejected (2026-09-10)
 
-The approved comp now governs production Home for all three meaningful states: first launch, season library/no open season, and a populated open season. First launch is part of Home, not a centered Team Hub onboarding panel. It offers the approved Program/Opponent choice, structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Team Hub remains the canonical season-library management destination after setup, while creation continues through its existing service boundaries.
+The approved comp remains the design contract for all three meaningful Home states: first launch, season library/no open season, and a populated open season. The `1.12.0-70` installed snapshot was accepted, but current Home production is `REJECTED` after the `1.12.0-74` installed screen was reported visually off. Do not interpret the accepted baseline below as current production acceptance. First launch is part of Home, not a centered Team Hub onboarding panel. It offers the approved Program/Opponent choice, structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Team Hub remains the canonical season-library management destination after setup, while creation continues through its existing service boundaries.
 
 The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 

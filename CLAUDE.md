@@ -16,8 +16,9 @@ local handoff, versioned in `15cd78d` after the two-file Reports repair in
 `0ecec0f`. Per coach instruction, no harness or release gate was run. Tauri
 produced both NSIS and MSI packages with updater signing disabled by
 `--no-sign`. Breakdown is not acceptance-ready: Delete play has a confirmed
-source defect still awaiting the coach's repair batch. See
-`SMOKE-1.12.0-77.md`.
+source defect still awaiting the coach's repair batch. Reports also has an open
+OLL live-data audit and a shared renamed-export defect. See
+`SMOKE-1.12.0-77.md` and `docs/OPEN-DEFECTS.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
@@ -27,6 +28,8 @@ found. Do not re-litigate a closed finding from it.
 
 **Product direction** lives in `GRIDIRON-IQ-PLAN-V2.md`, not here.
 **Testing tiers** live in `docs/TESTING.md`.
+**Documentation authority and open defects** live in
+`docs/DOCUMENTATION-INDEX.md` and `docs/OPEN-DEFECTS.md`.
 
 ---
 
@@ -278,11 +281,14 @@ screenshots with real data. Zero overflow with unreadable content still fails.
 
 ---
 
-## Accepted state
+## Accepted baseline and current status
 
-Home is accepted and packaged as the `1.12.0-70` Windows x64 Beta smoke
-candidate (`SMOKE-1.12.0-70.md`). Plan V2 lanes V2-A through V2-H are complete
-and accepted.
+Home was accepted and packaged in the `1.12.0-70` Windows x64 Beta smoke
+candidate (`SMOKE-1.12.0-70.md`). That release snapshot remains accepted, but
+current Home production is `REJECTED` after the `1.12.0-74` installed visual
+smoke and has not regained production acceptance. Plan V2 lanes V2-A through
+V2-H remain functionally complete; current presentation and defect status is
+governed separately by the approval registry and `docs/OPEN-DEFECTS.md`.
 
 Home's accepted composition: the approved comp governs first launch, the
 season-library/no-open-season state, and a populated open season. The rail is
@@ -1029,6 +1035,10 @@ product is wrong.
 ---
 
 ## Open and deferred
+
+`docs/OPEN-DEFECTS.md` is the canonical current defect index. Update it in the
+same commit that opens, reclassifies, repairs, or closes an issue; this section
+may summarize active work but must not become a competing ledger.
 
 **Reports OLL live-data audit (OPEN 2026-09-10).** Ten investigation items from
 the complete 29-view capture are recorded in

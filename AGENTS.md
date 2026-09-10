@@ -2,8 +2,9 @@
 
 Where the code lives and how the pieces fit. **Rules and invariants live in
 `CLAUDE.md`; product direction lives in `GRIDIRON-IQ-PLAN-V2.md`; testing tiers
-live in `docs/TESTING.md`; desktop packaging lives in `TAURI.md`.** This file
-does not restate those.
+live in `docs/TESTING.md`; desktop packaging lives in `TAURI.md`; documentation
+authority and open issues live in `docs/DOCUMENTATION-INDEX.md` and
+`docs/OPEN-DEFECTS.md`.** This file does not restate those.
 
 A browser-based football film analysis tool for coaches, also shipped as an
 installed Windows desktop app. Load game film, mark plays, tag them, get stats,
@@ -64,7 +65,7 @@ confirmation, toast timing — is `GRIDIRON-IQ-OVERLAY-SPEC.md`.
 
 ---
 
-## Module map (103 modules in `js/`)
+## Module map
 
 **Shell and routes**
 `workspace-shell.js`, `workspace-context.js`, `game-context.js`,
@@ -214,5 +215,6 @@ goldens, and film-reference equality pins the cut-up each row opens.
   network call until the coach opts in via Settings → Analysis.
 - `design-system/` — tokens, bundled Plex faces, and route comps.
 - `src-tauri/` — the Rust desktop shell. See `TAURI.md`.
-- `tools/` — 105 `e2e-*.mjs` harnesses plus the gate runner. See
+- `tools/` — `e2e-*.mjs` harnesses plus the gate runner. Enumerate them from
+  the filesystem; do not maintain a volatile count in prose. See
   `docs/TESTING.md`.

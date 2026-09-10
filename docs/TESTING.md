@@ -1,6 +1,7 @@
 # Testing
 
-There are **106 harnesses** in `tools/e2e-*.mjs`. Each is a standalone Node
+Harnesses are discovered from `tools/e2e-*.mjs`; enumerate them from the
+filesystem rather than maintaining a count in prose. Each is a standalone Node
 script. Most drive the built app in headless Chromium via Puppeteer; a handful
 that test DOM-free logic import the owning module directly and need no browser
 at all (`e2e-core`, `e2e-catalog-backend`, `e2e-analytics-metrics`,

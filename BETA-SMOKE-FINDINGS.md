@@ -1,5 +1,9 @@
 # GridIron IQ Beta Smoke Findings
 
+> **DOCUMENT STATUS:** HISTORICAL JULY 2026 SMOKE RECORD. Do not use this file
+> for current defects or release status; see `docs/OPEN-DEFECTS.md` and
+> `CLAUDE.md`.
+
 > Status (2026-07-16): `v1.12.0-6` at commit `92fdee8` is the pushed,
 > installable smoke baseline. BETA-009 is implemented and verified only in the
 > local working tree; it is not committed, pushed, packaged, tagged, or released.

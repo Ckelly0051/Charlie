@@ -1,5 +1,8 @@
 # GridIron IQ - Future Visual Recomposition Plan
 
+> **DOCUMENT STATUS:** SUPERSEDED PLANNING RECORD. Current visual work is
+> governed by the design-approval registry and `GRIDIRON-IQ-PLAN-V2.md`.
+
 **Status:** PAUSED until usage reset. Do not begin implementation yet.
 
 ## Why This Exists

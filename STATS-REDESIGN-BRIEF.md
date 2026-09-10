@@ -1,5 +1,10 @@
 # Stats Dashboard Re-Design — Working Brief
 
+> **DOCUMENT STATUS:** SUPERSEDED HISTORICAL HANDOFF. The target build path and
+> dashboard architecture described below are retired. Current Reports authority
+> is the approval registry, `GRIDIRON-IQ-PLAN-V2.md`, and
+> `docs/OPEN-DEFECTS.md`.
+
 > **Status: ACTIVE / IN PROGRESS — direction LOCKED.** This is a handoff brief
 > for the stats-dashboard visual re-work in a **local** Claude Code session (so
 > the assistant can actually *see* the rendered UI via the Claude-in-Chrome

@@ -1,5 +1,8 @@
 # GridIron IQ - Installed Design & UX Audit
 
+> **DOCUMENT STATUS:** HISTORICAL `1.12.0-15` AUDIT. Current presentation status
+> is held by `design-approvals/APPROVALS.json` and its manifests.
+
 ## Status
 
 **ACTIVE.** Created from the coach's installed `1.12.0-15` smoke on 2026-07-30.

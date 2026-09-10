@@ -1,6 +1,8 @@
 # GridIron IQ — Overlay interaction specification
 
-**Status:** P0 primitives and S4-a accepted; S4-b legacy More / undo-toast retirement built at `e26ee3d`, awaiting independent review.
+**Status:** BINDING INTERACTION CONTRACT. Native overlays are the current sole
+presentation owner; historical milestone and review notes below are preserved
+as implementation evidence, not current status.
 **Owner:** P0 builds the native overlay host and primitives; S4 migrates the
 remaining legacy overlays onto it.
 **Why P0 and not later:** Team & Film Settings (S2) is a *drawer*. If the native

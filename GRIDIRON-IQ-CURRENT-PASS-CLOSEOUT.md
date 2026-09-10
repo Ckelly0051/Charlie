@@ -1,5 +1,8 @@
 # GridIron IQ Current-Pass Closeout
 
+> **DOCUMENT STATUS:** HISTORICAL CLOSEOUT RECORD. It does not describe current
+> review, defect, or release state.
+
 > **Status:** IMPLEMENTED — awaiting Codex combined review.
 >
 > **Builder:** Claude
