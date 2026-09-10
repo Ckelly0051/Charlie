@@ -2,7 +2,23 @@
 
 ## Status
 
-**OPEN - investigation and repair proposals pending.** These findings came from
+**REPAIRED IN CODE 2026-09-10, awaiting Codex review and a Charlie Gate.** All
+ten items are closed below, plus one found while verifying item 1 (the Success
+rate sub read a field `_efficiencyStats` never returns and printed a constant
+`0 successful snaps` on every game and every season). Seven commits, each with
+failing-first and mutation evidence recorded in its message. The production
+decision record is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`.
+
+**No surface advanced past `REJECTED` and no installed WebView2 smoke was run
+against these repairs.** Nothing here is accepted state. Three questions are
+carried to the coach in `docs/OPEN-DEFECTS.md` rather than decided here: the
+defensive `Yds / play` denominator, whether Stop Rate should be deleted from
+two approved compositions rather than repositioned, and two charting-workflow
+gaps in the coach's own data.
+
+The original findings, verbatim, follow with their disposition.
+
+These findings came from
 a read-only production capture of the canonical `2025-st-joseph-mavericks-jv`
 season, Week 5 vs OL Lakes Lakers (`gmqpt95xh58z0a`, 83 charted plays). The
 capture covered all 29 Our Program Reports views and produced no page or console

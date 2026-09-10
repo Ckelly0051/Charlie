@@ -13,7 +13,18 @@
 > `0ecec0f`. Per coach instruction it was not harnessed or gated. It is not an
 > accepted release, and Breakdown Delete play remains a confirmed open defect.
 > `1.12.0-70` remains the last accepted installed release snapshot, but current
-> Home production is `REJECTED` after the `1.12.0-74` visual smoke. The Step 2
+> Home production is `REJECTED` after the `1.12.0-74` visual smoke.
+>
+> **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
+> `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
+> repaired in code across seven commits from `d3c71e6`. Three product decisions
+> reached in that work and binding going forward: Reports name the cohort they
+> measure (charted versus classified) and never present one as the other; a
+> phase is counted from the snap and never derived by subtraction; and the
+> dedicated Special Teams fields are authoritative on every surface, player
+> rollups included. Three questions are carried to the coach unanswered and are
+> listed in `docs/OPEN-DEFECTS.md`. No surface advanced past `REJECTED` and no
+> installed smoke was run against these repairs. The Step 2
 > documentation/repository-hygiene pass,
 > global-bridge retirement, and CSS-ownership cleanup remain complete and
 > reviewed; `e2e-design-system` is 17/0. Historical incomplete-state notes below

@@ -1479,7 +1479,7 @@
      },
      {
       "personnel": "21",
-      "situation": "2nd & Long",
+      "situation": "2nd & 4+",
       "count": 4,
       "runs": 4,
       "passes": 0,
@@ -2376,7 +2376,7 @@
       },
       {
        "key": "3|Long",
-       "label": "3rd & Long"
+       "label": "3rd & 7+"
       }
      ],
      "rows": [
@@ -4570,7 +4570,7 @@
        },
        {
         "personnel": "21",
-        "situation": "2nd & Long",
+        "situation": "2nd & 4+",
         "count": 4,
         "runs": 4,
         "passes": 0,
@@ -7005,7 +7005,7 @@
       },
       {
        "key": "3|Long",
-       "label": "3rd & Long"
+       "label": "3rd & 7+"
       }
      ],
      "rows": [
@@ -9970,7 +9970,7 @@
     "list": [
      {
       "personnel": "21",
-      "situation": "2nd & Long",
+      "situation": "2nd & 4+",
       "count": 4,
       "runs": 4,
       "passes": 0,
@@ -11606,7 +11606,7 @@
       "list": [
        {
         "personnel": "21",
-        "situation": "2nd & Long",
+        "situation": "2nd & 4+",
         "count": 4,
         "runs": 4,
         "passes": 0,

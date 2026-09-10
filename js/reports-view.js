@@ -83,8 +83,9 @@ export function situationalTiles(stats) {
     tile('Red zone', s.redZone, 'situation', 'redZone', item => `${item.tds} TD, ${item.total} snaps`),
     tile('Goal line', s.goalLine, 'situation', 'goalLine', item => `${item.tds} TD, ${item.total} snaps`),
     { title: 'Third down', value: third.total ? `${third.conversionPct}%` : '—', sub: third.total ? stats.downs.thirdDownConv : 'No data', cutType: 'down', cutVal: '3', plays: third.total, cutLabel: third.total ? `Third down — ${third.total} plays` : null },
-    tile('3rd & long', s.thirdLong, 'situation', 'thirdLong', item => `${item.successes} of ${item.total}`),
-    tile('3rd & short', s.thirdShort, 'situation', 'thirdShort', item => `${item.successes} of ${item.total}`),
+    // Same thresholds as `_distBucket`'s Long and Short, so the same wording.
+    tile('3rd & 7+', s.thirdLong, 'situation', 'thirdLong', item => `${item.successes} of ${item.total}`),
+    tile('3rd & 1-3', s.thirdShort, 'situation', 'thirdShort', item => `${item.successes} of ${item.total}`),
     tile('Backed up', s.backedUp, 'situation', 'backedUp', item => `${item.successes} of ${item.total}`),
   ];
 }
@@ -488,7 +489,7 @@ export function personnelSituation(stats) {
 export function situationalBreakdown(stats) {
   const s = stats.situational;
   const row = (name, b, key) => b.total === 0 ? null : { name, key, total: b.total, yards: b.yards, avg: b.avg, success: `${b.successPct}%`, tds: b.tds };
-  const rows = [row('Red Zone', s.redZone, 'redZone'), row('Goal Line', s.goalLine, 'goalLine'), row('Backed Up', s.backedUp, 'backedUp'), row('3rd & Long', s.thirdLong, 'thirdLong'), row('3rd & Short', s.thirdShort, 'thirdShort')].filter(Boolean);
+  const rows = [row('Red Zone', s.redZone, 'redZone'), row('Goal Line', s.goalLine, 'goalLine'), row('Backed Up', s.backedUp, 'backedUp'), row('3rd & 7+', s.thirdLong, 'thirdLong'), row('3rd & 1-3', s.thirdShort, 'thirdShort')].filter(Boolean);
   const byQuarter = Object.entries(s.byQuarter || {}).filter(([, qs]) => qs.plays > 0).map(([q, qs]) => ({ q, plays: qs.plays, yards: qs.yards, tds: qs.tds }));
   return { rows, byQuarter, redZonePct: s.redZone.total ? Math.round(s.redZone.tds / s.redZone.total * 100) : null, backedUpPct: parseFloat(s.backedUp.successPct) || null };
 }

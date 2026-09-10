@@ -104,6 +104,23 @@ The smallest existing harness for the route or domain you touched.
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
+**Cohort and label contracts added 2026-09-10.** `e2e-reports-overview-realdata`
+pins that Total plays is the CHARTED count with the classified count as its
+qualifier, that Snaps by phase counts each phase from the charted cohort and its
+three rows sum to it, and that the Success rate sub counts real successful
+snaps. `e2e-reports-defense-realdata` additionally pins the season's four
+cohorts (201/173 offensive, 174/154 defensive) and that every Game-by-game row
+satisfies `Total yds = Rush yds + Pass yds`. `e2e-reports-self-scout` pins all
+twelve down-and-distance rows in football order with explicit yardage, held
+rows carrying the absence treatment rather than a zero, `Turnovers` never
+`Giveaways`, a populated section never badging zero, and that no defensive tell
+reports its own grouping dimension. `e2e-reports-players` pins that punt
+distance and return yardage come from the dedicated ST fields and that Players
+and the team Special Teams report agree. `e2e-reports-matchup` pins that no
+composite-identity column is labelled a play call. `e2e-reports-offense-realdata`
+now exercises **Season scope** at both release widths, which is the gap that let
+a season-only containment defect ship.
+
 `e2e-reports-defense-realdata` is the Defense composition authority. It loads
 only `2025-st-joseph-mavericks-jv`, checks all six games at 1440 and 1280,
 pins the approved module and row inventory plus canonical KPI/call/situation

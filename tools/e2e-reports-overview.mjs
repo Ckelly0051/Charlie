@@ -61,7 +61,7 @@ const FIXED_METAS = {
 const KPIS = ['Total plays', 'Success rate', 'Yards / play', 'Explosive Plays',
   'Turnovers', 'Plays for loss', 'Penalties'];
 const SITUATIONAL_TILES = ['Red zone', 'Goal line', 'Third down',
-  '3rd & long', '3rd & short', 'Backed up'];
+  '3rd & 7+', '3rd & 1-3', 'Backed up'];
 const KEY_METRICS = ['Efficiency', 'Explosive Plays', 'Situational',
   'Tendencies', 'Negative', 'Points / drive'];
 const RUSHING_ROWS = ['Attempts', 'Yards', 'Average', 'Touchdowns', 'Longest',

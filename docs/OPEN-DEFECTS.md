@@ -9,12 +9,26 @@
 
 ## Reports
 
-1. **OLL live-data audit - investigation pending.** Ten items covering play
-   cohorts, Self-Scout counts/labels/dimensions, defensive yardage, Matchup
-   semantics, Special Teams cross-surface values, Stop Rate composition drift,
-   and layout integrity are recorded in
-   `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`. Claude is to identify root causes
-   and propose repairs, then stop for coach approval before editing.
+1. **OLL live-data audit - REPAIRED, awaiting Codex review and a Charlie
+   Gate.** All ten items plus one found in passing are closed in code at
+   `d3c71e6..` (seven commits). Detail, reconciliation and mutation evidence
+   are in `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; the production decision
+   record is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`. No
+   surface advanced past `REJECTED`, and no installed WebView2 smoke has been
+   run against these repairs, so none of it is accepted state.
+
+   **Three questions carried to the coach, deliberately not decided:**
+   - Defensive `Yds / play` still divides by every defensive snap, which is
+     what the approved `2.9` KPI is measured over. Moving that denominator to
+     the classified count makes it `3.2` and changes an approved value.
+   - Deleting Stop Rate outright from the Self-Scout KPI band or Overview's
+     Defense & discipline module would change an approved row count. It was
+     moved out of the headline position instead; both compositions keep six
+     slots.
+   - Four OLL plays (ids 63, 67, 76, 90 - two sacks, a pass, a run) carry no
+     `unit` tag, and punt distance, hang time and return yardage are
+     essentially uncharted across the season. Both are charting-workflow gaps
+     raised for the coach; nothing was inferred or written back.
 2. **Renamed HTML report does not open correctly after save.** Reproduced by the
    coach for both Defense Report and Game Report. Keeping the default filename
    works; changing it during the native save flow does not. Treat this as a

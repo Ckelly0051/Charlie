@@ -169,3 +169,24 @@ density comes from geometry and never from shrinking type. Measured after:
 
 `e2e-reports-offense-realdata` now exercises Season scope, which is the gap
 that let this ship.
+
+## Remaining legacy situation labels
+
+Found by inspecting the repaired captures rather than by a grep: three more
+label producers survived the `_ddPretty` change.
+
+- `_selfScoutMatrix`'s `SITS` uses `_ddKey`'s own bucket keys and carried the
+  engine's internal names. It takes `DIST_LABELS`.
+- `defensivePerformance`'s `3rd & Short` / `3rd & Long` situation specs and
+  Overview's matching Situational tiles and Key-metrics rows use EXACTLY
+  `_distBucket`'s thresholds (1-3 and 7+), so they take exactly its wording.
+- `_situationBucket` does NOT: second down splits at 3 with no middle band. Its
+  labels are made explicit against its OWN thresholds - `2nd & 1-3`,
+  `2nd & 4+`, `3rd & 1-3`, `3rd & 4-6`, `3rd & 7+` - rather than borrowing
+  1-3 / 4-6 / 7+ wording that would misdescribe the cohort. The thresholds
+  themselves are unchanged; harmonising them is a football decision and was not
+  taken here.
+
+The parity golden correction for this pass is six label-only lines, three
+`2nd & Long -> 2nd & 4+` and three `3rd & Long -> 3rd & 7+`, with no numeric
+drift.

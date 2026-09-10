@@ -1499,8 +1499,9 @@ export class StatsEngine {
       ['2nd Down', p => p.tags.down === '2'],
       ['3rd Down', p => p.tags.down === '3'],
       ['4th Down', p => p.tags.down === '4'],
-      ['3rd & Short', p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 1 && (parseInt(p.tags.distance, 10) || 0) <= 3],
-      ['3rd & Long', p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 7],
+      // Exactly `_distBucket`'s Short and Long thresholds, so exactly its wording.
+      [`3rd & ${StatsEngine.DIST_LABELS.Short}`, p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 1 && (parseInt(p.tags.distance, 10) || 0) <= 3],
+      [`3rd & ${StatsEngine.DIST_LABELS.Long}`, p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 7],
       ['Red Zone', p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 80; }],
       ['Goal Line', p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 95; }],
     ];
@@ -2834,15 +2835,20 @@ export class StatsEngine {
     return { list, hasData: list.length > 0 };
   }
 
+  /* Explicit yardage, like every other situation label in Reports. These
+   * thresholds are this bucket's OWN and are NOT `_distBucket`'s — second down
+   * splits at 3 with no middle band — so the labels state what each one
+   * actually matches rather than borrowing 1-3 / 4-6 / 7+ wording that would
+   * misdescribe the cohort. */
   _situationBucket(p) {
     const d = p.tags.down;
     const dist = parseInt(p.tags.distance) || 0;
     if (d === '1') return '1st Down';
-    if (d === '2' && dist <= 3) return '2nd & Short';
-    if (d === '2') return '2nd & Long';
-    if (d === '3' && dist <= 3) return '3rd & Short';
-    if (d === '3' && dist <= 6) return '3rd & Med';
-    if (d === '3') return '3rd & Long';
+    if (d === '2' && dist <= 3) return '2nd & 1-3';
+    if (d === '2') return '2nd & 4+';
+    if (d === '3' && dist <= 3) return '3rd & 1-3';
+    if (d === '3' && dist <= 6) return '3rd & 4-6';
+    if (d === '3') return '3rd & 7+';
     if (d === '4') return '4th Down';
     return 'Other';
   }
@@ -4655,14 +4661,17 @@ export class StatsEngine {
 
   /** Build the Formation × Situation matrix from classifiable offensive plays. */
   _selfScoutMatrix(plays) {
+    /* These keys ARE `_ddKey`'s buckets, so the labels are `_ddPretty`'s
+       wording — they carried the engine's internal bucket names instead. */
+    const L = StatsEngine.DIST_LABELS;
     const SITS = [
       { key: '1', label: '1st' },
-      { key: '2|Short', label: '2nd & Short' },
-      { key: '2|Medium', label: '2nd & Med' },
-      { key: '2|Long', label: '2nd & Long' },
-      { key: '3|Short', label: '3rd & Short' },
-      { key: '3|Medium', label: '3rd & Med' },
-      { key: '3|Long', label: '3rd & Long' },
+      { key: '2|Short', label: `2nd & ${L.Short}` },
+      { key: '2|Medium', label: `2nd & ${L.Medium}` },
+      { key: '2|Long', label: `2nd & ${L.Long}` },
+      { key: '3|Short', label: `3rd & ${L.Short}` },
+      { key: '3|Medium', label: `3rd & ${L.Medium}` },
+      { key: '3|Long', label: `3rd & ${L.Long}` },
       { key: '4', label: '4th' },
     ];
     const cells = {}, rowN = {}, colHas = {};
