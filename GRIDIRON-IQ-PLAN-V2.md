@@ -7,10 +7,10 @@
 > customer data.
 
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production and gate-verified. The unsigned Windows `1.12.0-75` candidate was
-> packaged from version commit `0a50e7c` after the Reports title and release-gate
-> repairs in `c9b91cb` and `6eec197`; its complete gate passed 109/109 with real
-> data 10/10 and parity 2/2. It is pending installed smoke and is not accepted
+> production and gate-verified. The unsigned Windows `1.12.0-76` candidate was
+> packaged from version commit `523d2cd` after the Defense reporting batch in
+> `e0ce2f7`; its complete gate passed 109/109 with Defense real data 42/0,
+> canonical real data 10/10 and parity 2/2. It is pending installed smoke and is not accepted
 > release state. Home remains accepted through `f615fcd`
 > and its `1.12.0-70` smoke. The Step 2 documentation/repository-hygiene pass,
 > global-bridge retirement, and CSS-ownership cleanup remain complete and
@@ -662,8 +662,8 @@ Retain every meaningful production field while reducing everyday clutter.
 > reviewed in an installed build. Release repairs through `6eec197` leave the
 > complete gate 109/109, real data 10/10 and parity 2/2. Shared chrome now
 > follows actual scope: game-only score/KPI framing cannot appear over a
-> full-season or matchup board. The unsigned `1.12.0-75` candidate was packaged
-> from `0a50e7c` and is awaiting installed smoke.
+> full-season or matchup board. The unsigned `1.12.0-76` candidate was packaged
+> from `523d2cd` and is awaiting installed smoke.
 > Season's `Games` count includes scheduled Our Program games while its
 > `Yards / Game` denominator includes only offense-charted games; that
 > eligibility distinction is intentional, not a defect.
