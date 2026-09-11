@@ -320,7 +320,7 @@ neutral panels, controls or structural borders.
 
 **Primary route navigation.** Desktop route targets are long, readable
 navigation labels on transparent shell chrome, not small filled tabs. The
-current route is communicated by primary copy plus the blue route underline;
+current route is communicated by primary copy plus the gold route underline;
 mobile uses the same unfilled selection treatment at its top edge. Select
 controls should spend available horizontal room rather than clipping their
 current value into compact prototype widths.

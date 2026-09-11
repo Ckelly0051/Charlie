@@ -36,7 +36,10 @@
 /* Existing context commands remain, in the comp's compact breadcrumb band. */
 @media(min-width:1001px){
   body.ws-shell-active.ws-route-breakdown .ws-contextbar{display:flex;justify-content:flex-start;gap:12px}
-  body.ws-shell-active.ws-route-breakdown .ws-ctx{flex:0 1 auto;max-width:45%;padding:0 18px 0 12px;border:0;gap:6px}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx{max-width:none;padding:0 18px 0 12px;border:0;gap:6px}
+  body.ws-shell-active.ws-route-breakdown #wsCtxProgram{flex:0 1 clamp(180px,15vw,240px)}
+  body.ws-shell-active.ws-route-breakdown #wsCtxSeason,
+  body.ws-shell-active.ws-route-breakdown #wsCtxGame{flex:0 1 clamp(280px,26vw,440px)}
   body.ws-shell-active.ws-route-breakdown .ws-ctx-label{display:inline;color:var(--gi-bd-copy);font-size:10px}
 }
 @media(max-width:1100px){
