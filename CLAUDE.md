@@ -16,7 +16,9 @@ candidate, versioned in `2d67515` after the global secondary-copy repair in
 `b534a3f`. The production build and focused design-system, shell, Breakdown and
 Reports suites passed; the full release gate was not run for this palette-only
 handoff. Tauri produced both NSIS and MSI packages with updater signing disabled
-by `--no-sign`. This is not an accepted, tagged, pushed or published release.
+by `--no-sign`. The coach passed the installed visual check for the shared
+typography, navigation, selector-width and neutral-palette scope. This is not an
+accepted, tagged, pushed or published release.
 See `SMOKE-1.12.0-80.md` and `docs/OPEN-DEFECTS.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
@@ -317,6 +319,11 @@ variable does **not** repaint descendants that already inherited a computed
 copy. Blue, cyan and gold are reserved for their named accent and football
 semantics; do not reintroduce a blue cast into neutral panels, controls,
 structural borders, metadata, status copy or subdued labels.
+
+The complete coach-approved contract, including exact desktop navigation
+dimensions, selector behavior, typography floors and dashboard composition,
+lives in `docs/VISUAL-SYSTEM-RULES.md`. Do not replace it with a partial
+surface-local interpretation.
 
 **Primary route navigation.** Desktop route targets are long, readable
 navigation labels on transparent shell chrome, not small filled tabs. They use

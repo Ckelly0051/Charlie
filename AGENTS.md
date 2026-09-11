@@ -4,7 +4,8 @@ Where the code lives and how the pieces fit. **Rules and invariants live in
 `CLAUDE.md`; product direction lives in `GRIDIRON-IQ-PLAN-V2.md`; testing tiers
 live in `docs/TESTING.md`; desktop packaging lives in `TAURI.md`; documentation
 authority and open issues live in `docs/DOCUMENTATION-INDEX.md` and
-`docs/OPEN-DEFECTS.md`.** This file does not restate those.
+`docs/OPEN-DEFECTS.md`; the shared visual contract lives in
+`docs/VISUAL-SYSTEM-RULES.md`.** This file does not restate those.
 
 A browser-based football film analysis tool for coaches, also shipped as an
 installed Windows desktop app. Load game film, mark plays, tag them, get stats,

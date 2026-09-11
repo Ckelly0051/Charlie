@@ -72,6 +72,12 @@ build internal candidate  →  smoke it  →  publish/tag as the beta release
 **Packaging is not publishing.** An internal candidate may be built freely. Only
 a passed smoke record promotes it to a published prerelease.
 
+**Shared visual acceptance is scoped.** Palette, typography, global navigation,
+context selectors, and static dashboard composition are governed by
+`docs/VISUAL-SYSTEM-RULES.md`. A coach pass on one of those shared corrections
+must be recorded as the exact named scope; it does not silently approve every
+surface or waive unrelated release rows.
+
 ## The matrix
 
 Every row must pass before an internal candidate is promoted to a published

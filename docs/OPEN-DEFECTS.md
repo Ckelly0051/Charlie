@@ -59,20 +59,6 @@
    their totals do not reconcile at the observed viewport. Preserve the static
    dashboard schema, but make its row, header, padding and module-height math
    explicit and exact rather than allowing data volume to resize the board.
-5. **Reports typography accepted by the coach; Breakdown reflow repaired in
-   source, awaiting installed confirmation.** The shared semantic floor is now
-   12.5px for labels, 13px for controls and 13.5px for body copy. Defense tabs,
-   section and module titles, table headers, dense formation headers, KPI
-   evidence and direction labels now use readable IBM Plex Sans roles with
-   zero tracking. Breakdown route controls, theater metadata, play cards and
-   charting-rail controls follow the same hierarchy. Condensed remains reserved
-   for page identity and prominent football numbers. The coach accepted the
-   larger Reports typography in isolation. Installed Breakdown showed that its
-   older narrow play-browser and charting columns were not reflowed around the
-   larger type; the route-scoped source correction is recorded below. The
-   shared surface and interactive chrome now use the approved neutral graphite
-   ramp, and global secondary copy uses neutral `--gi-11` rather than the old
-   blue-gray. Installed confirmation remains pending.
 
 ## Breakdown
 
@@ -93,12 +79,15 @@
    results including `Gain + Touchdown` and `Penalty + Loss`. Full text remains
    in accessible labels/tooltips, but the visible presentation is incomplete.
    Open visual repair against the accepted Breakdown composition.
-5. **Wide Breakdown columns were sized for the retired compact type.** At a
-   1920px CSS viewport the play browser received about 288px and the charting
-   rail about 461px. With the accepted readable font floor, both columns crowd
-   their real labels. The route-scoped correction widens them without changing
-   Reports typography or the shared token floor; installed confirmation remains
-   required.
+
+## Closed Visual Baseline
+
+The shared typography, wider Breakdown columns, global route navigation,
+context-selector widths, graphite chrome, and neutral secondary-copy repair
+passed installed visual inspection in `1.12.0-80` on 2026-09-11. The binding
+contract is `docs/VISUAL-SYSTEM-RULES.md`. This closes the prior small-type and
+wide-column findings only; it does not close the open Reports composition or
+Breakdown film-state defects above.
 
 ## Deferred Beta Maintenance
 
@@ -116,7 +105,8 @@
 
 ## Release Impact
 
-- `1.12.0-80` is a focused local visual-smoke handoff and is not accepted.
+- `1.12.0-80` passed its named installed visual scope but is not an accepted
+  release because the full gate and unrelated defect work remain open.
 - Current Home and every Reports surface remain `REJECTED` in the design
   approval registry even though `1.12.0-70` remains the last accepted installed
   release snapshot.

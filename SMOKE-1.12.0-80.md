@@ -11,11 +11,14 @@
 - MSI bytes: `5,545,984`
 - MSI SHA-256: `F26951F54CC3B193669C7DD1421E171984026F15C0F536E84C011821F735C01E`
 
-## Status - LOCAL VISUAL-SMOKE CANDIDATE
+## Status - INSTALLED VISUAL CHECK PASSED (NAMED SCOPE)
 
 The executable FileVersion and ProductVersion both read `1.12.0-80`. Tauri
 rebuilt the frontend and produced unsigned NSIS and MSI packages with
-`--no-sign`. This candidate is not accepted, tagged, pushed or published.
+`--no-sign`. On 2026-09-11 the coach approved the installed shared typography,
+global navigation, context-selector width, graphite chrome, and neutral
+secondary-copy result. This is a scoped visual pass, not whole-surface or
+release acceptance; the candidate is not tagged, pushed or published.
 
 ## Verification
 
@@ -26,9 +29,10 @@ rebuilt the frontend and produced unsigned NSIS and MSI packages with
 - Native Reports: 99/99.
 - Full release gate: not run for this palette-only visual handoff.
 
-## Installed Check
+## Installed Result
 
-Confirm subdued shell status text such as `No film selected`, context metadata,
-and secondary labels now read as neutral gray with no blue cast. Spot-check
-Breakdown and Reports to ensure primary copy and semantic blue, cyan, gold,
-green and red accents remain unchanged.
+Passed. Subdued shell status text such as `No film selected`, context metadata,
+and secondary labels read as neutral gray with no blue cast. The larger global
+route navigation, widened selectors, and Breakdown typography/reflow were also
+approved in the installed app. Primary copy and semantic blue, cyan, gold,
+green and red accents remain distinct.

@@ -153,6 +153,11 @@ WebView2. Before accepting any desktop release, on the installed app:
 3. Chart a play, close the app, reopen, and confirm both data and film.
 4. Switch seasons and confirm counts, tags, and film identity survive.
 
+When a candidate changes shared palette, typography, route navigation, context
+selectors, or dashboard composition, also run and record the installed visual
+inspection defined in `docs/VISUAL-SYSTEM-RULES.md`. Name the approved scope;
+do not convert a visual spot-check into whole-release acceptance.
+
 ## Why this is the robust answer
 
 - **No browser wipe.** Seasons are normal files; clearing a browser can't touch

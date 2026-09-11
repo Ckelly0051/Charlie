@@ -70,6 +70,9 @@ investigation-only until the coach approves proposed repairs; see
   the repository can enumerate them.
 - Changing canonical design evidence requires the owning manifest update and a
   green `node tools/audit-design-approvals.mjs` in the same checkpoint.
+- `docs/VISUAL-SYSTEM-RULES.md` is the shared visual contract. Update it in the
+  same commit as any approved global palette, typography, navigation, selector,
+  or static-dashboard rule; route-local CSS may not silently redefine it.
 - Every handoff states whether source, docs, tests, approval evidence, version,
   package, tag, push, and publication changed.
 ## Preservation Hierarchy

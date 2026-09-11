@@ -9,6 +9,8 @@
 - `GRIDIRON-IQ-PLAN-V2.md` - active product roadmap and accepted decisions.
 - `docs/OPEN-DEFECTS.md` - canonical index of unresolved defects.
 - `docs/TESTING.md` - testing tiers and execution rules.
+- `docs/VISUAL-SYSTEM-RULES.md` - coach-approved shared palette, typography,
+  navigation, selector, and static-dashboard composition rules.
 - `TAURI.md` - desktop build, packaging, and installed-smoke requirements.
 - `design-approvals/APPROVALS.json` plus per-surface manifests - design and
   production acceptance status.
@@ -28,6 +30,7 @@
 - Candidate: unsigned local visual-smoke handoff from `2d67515`, after the
   global secondary-copy repair in `b534a3f`; focused suites passed, full gate
   not run, and the candidate is not accepted, tagged, pushed, or published.
+  Its named installed visual scope passed on 2026-09-11.
 - Last accepted installed release snapshot: `1.12.0-70`.
 - Current production status: Home and all eight Our Program Reports surfaces are
   `REJECTED`; approved comps remain binding design evidence.
@@ -65,6 +68,8 @@ Every milestone handoff must update, in the same commit:
 4. The owning approval manifest when canonical evidence or status changes.
 5. `docs/TESTING.md` only for changed test contracts; derive inventories rather
    than maintaining volatile totals.
+6. `docs/VISUAL-SYSTEM-RULES.md` whenever a shared palette, typography,
+   navigation, selector, or dashboard-composition decision changes.
 
 Run `node tools/audit-design-approvals.mjs` after any canonical artifact or
 manifest change. A documentation handoff is incomplete while that audit is red.

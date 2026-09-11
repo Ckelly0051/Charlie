@@ -49,6 +49,10 @@ Design expectations:
   charting, honest analytics, and exact evidence-to-film traceability.
 - Evaluate designs with real coaching tasks and real film, not only component
   screenshots or successful automated clicks.
+- Apply `docs/VISUAL-SYSTEM-RULES.md` as the shared chrome and readability
+  contract while preserving each surface's approved comp as its composition
+  schema. Never trade readable type for density or use neutral blue-gray where
+  the approved system calls for graphite and gray.
 
 The agent should proactively propose improvements. Permission is required before
 any action that may delete, migrate, reinterpret, or place real coach data at
@@ -93,4 +97,3 @@ Do not wait for the coach to identify that:
 
 The trusted-advisor obligation is proactive. Raising the correct concern after
 the avoidable work is already complete is too late.
-

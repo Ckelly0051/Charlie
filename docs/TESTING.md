@@ -325,3 +325,16 @@ of synthetic data proves less than it appears to.
 
 Both are why the Charlie Gate — show the real app with real data and get
 PASS / REVISE / REJECT — happens before packaging, not after.
+
+### Shared visual-system changes
+
+`docs/VISUAL-SYSTEM-RULES.md` is the acceptance contract for shared palette,
+typography, route navigation, and context selectors. Any change to a shared
+token or shell rule requires:
+
+1. The production Vite build and focused design-system and shell harnesses.
+2. The focused harnesses for every materially affected reference surface.
+3. Populated screenshots at the release widths with the pointer parked.
+4. Installed WebView2 inspection of shared chrome, Breakdown, and Reports.
+5. A smoke record naming exactly what the coach accepted; do not infer whole-
+   surface or release acceptance from approval of one shared visual correction.

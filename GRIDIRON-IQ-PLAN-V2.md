@@ -11,7 +11,9 @@
 > packaged from version commit `2d67515` after the global secondary-copy repair
 > in `b534a3f`. The production build and focused design-system, shell, Breakdown
 > and Reports suites passed; the full release gate was not run for this
-> palette-only candidate. It is not an accepted release.
+> palette-only candidate. The coach passed its installed visual check for the
+> shared typography, navigation, selector-width and neutral-palette scope. It
+> is not an accepted release.
 > `1.12.0-70` remains the last accepted installed release snapshot, but current
 > Home production is `REJECTED` after the `1.12.0-74` visual smoke.
 >
@@ -66,12 +68,13 @@ Build and focused behavioral checks passed; populated production screenshots and
 
 **Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
 
-**Deferred small-text readability polish (coach screenshots, 2026-09-03):** Text exemplified by the "Wildcat" control and "Run Outside" label is too small and thin, appears to bleed, and is difficult to read. In a future coordinated typography pass, identify the actual font family, weight, size, contrast, and rendering used by these elements and their shared consumers. Use a more readable size and weight; evaluate the font family rather than assuming contrast alone fixes the problem. Verify in the installed Windows app at normal display scale with representative short and long labels. Preserve density through layout, not tiny type. References: `codex-clipboard-7ffbc340-fced-40a8-bf40-d9c1a184ca0d.png` and `codex-clipboard-9d902dd9-be99-4e2d-8aa9-be6afb8b689f.png`. Explicit instruction: record only; no UI repair now.
+**Resolved shared typography and navigation correction (coach-approved in installed `1.12.0-80`, 2026-09-11):** The coordinated pass raised the coach-facing type floor, reflowed Breakdown around it, promoted the five global routes to 18px/700 desktop labels with 19px icons, widened the Program/Season/Game selectors, and replaced blue-gray neutral chrome and secondary copy with graphite/gray tokens. The installed result was approved for this named visual scope. The binding rules now live in `docs/VISUAL-SYSTEM-RULES.md`; the earlier screenshots remain historical defect evidence, not open work.
 
-**Deferred universal-navigation depth and Home pointer polish (coach screenshot, 2026-09-03):**
-- Make the universal Home / Break Down / Study / Reports / Plan buttons wider and visibly raised. Use deliberate edge highlights, shadowing, and raised/pressed surfaces so these primary navigation controls have substantial visual presence and are immediately recognizable as clickable. A flat background highlight or underline alone is insufficient. Preserve clear default, hover, keyboard-focus, selected, and pressed states without layout shift or clipping. The coach explicitly authorizes departing from the existing design-system treatment to achieve this; current tokens must not constrain the result to the rejected flat appearance. Reference: `codex-clipboard-db6e764c-af1a-4dc9-acf7-3301d7e1a6fd.png`.
+**Universal-navigation follow-up status (2026-09-11):**
+- Closed by the installed `1.12.0-80` visual approval. The final coach-selected treatment is transparent shell navigation with larger copy and icons, stable wider targets, and a gold active underline. This supersedes the earlier proposed raised-button treatment; do not revive blue-gray filled route buttons or decorative elevation.
 - Audit all enabled clickable text on Home, including links and text-based actions inside cards and rows. Each must display the hand/link-select pointer (`cursor: pointer`) throughout its clickable hit area, not just on selected child elements. Preserve visible hover and keyboard-focus feedback. Do not apply the pointer to noninteractive text or disabled controls.
-- Batch with the deferred typography polish above. Record only; no UI repair now.
+- The Home pointer audit remains separate beta maintenance; it was not part of
+  the `1.12.0-80` visual approval.
 
 ## Prior Breakdown Checkpoint — ACCEPTED (2026-08-28)
 
@@ -681,7 +684,8 @@ Retain every meaningful production field while reducing everyday clutter.
 > packaged from `15cd78d` without a harness or gate run and is not accepted.
 > The newer unsigned `1.12.0-80` visual-smoke candidate was packaged from
 > `2d67515`; it changes global secondary copy to neutral gray and remains
-> unaccepted pending installed inspection. Season's `Games` count includes
+> unaccepted as a release, but its named installed visual check passed on
+> 2026-09-11. Season's `Games` count includes
 > scheduled Our Program games while its `Yards / Game` denominator includes
 > only offense-charted games; that
 > eligibility distinction is intentional, not a defect.
