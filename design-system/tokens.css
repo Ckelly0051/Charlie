@@ -2,7 +2,7 @@
  *
  * Decided with the coach:
  *   TYPE     IBM Plex — Sans (interface), Condensed (football numbers), Mono (data/labels).
- *   COLOR    Radix-style 12-step role scale, tuned cool. Every step has a job.
+ *   COLOR    Radix-style 12-step role scale with neutral graphite UI chrome.
  *   DENSITY  Carbon rhythm and table anatomy, at OUR touch minimum.
  *   THEATER  Spectrum's content-is-hero: one surface BELOW the app floor, for film.
  *   IDENTITY Broadcast semantics — line-of-scrimmage blue, first-down yellow.
@@ -26,12 +26,12 @@
   --gi-film:#04070a;
   --gi-1:#080c11;   /* app background            */
   --gi-2:#101822;   /* panel                     */
-  --gi-3:#1b2634;   /* interactive rest          */
-  --gi-4:#263345;   /* interactive hover         */
-  --gi-5:#324256;   /* interactive active        */
-  --gi-6:#3c5069;   /* border subtle             */
-  --gi-7:#4d6784;   /* border default            */
-  --gi-8:#6482a3;   /* border strong / disabled  */
+  --gi-3:#202428;   /* interactive rest          */
+  --gi-4:#2a2f34;   /* interactive hover         */
+  --gi-5:#353b41;   /* interactive active        */
+  --gi-6:#3f474e;   /* border subtle             */
+  --gi-7:#515b64;   /* border default            */
+  --gi-8:#68737d;   /* border strong / disabled  */
   --gi-9:#2b6fff;   /* solid accent — CURRENT    */
   --gi-10:#5a92ff;  /* solid accent hover        */
   --gi-11:#93a9c1;  /* text secondary            */
