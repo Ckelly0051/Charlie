@@ -541,6 +541,7 @@ export class PlayTagger {
   }
 
   async deleteCurrentPlay() {
+    const id = this.currentPlayId;
     if (!id) return;
 
     // Folder/multi-clip mode: the play is backed by a playlist clip. Deleting

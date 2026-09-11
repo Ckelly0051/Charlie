@@ -55,14 +55,23 @@
 
 ## Breakdown
 
-1. **Delete play is broken.** Confirmed source defect:
-   `PlayTagger.deleteCurrentPlay()` reads `id` before assigning it. The visible
-   button reaches that method through `BreakdownTheaterScreen.deletePlay()`.
-   Existing delete/undo coverage does not exercise this button-to-method path.
-2. **Installed Breakdown presentation appears regressed.** The coach reported
-   that formatting looked off between commits. This remains an untriaged visual
-   investigation, not a confirmed CSS root cause. Compare the installed screen
-   against the accepted Breakdown evidence before proposing a repair.
+1. **Delete play - REPAIRED 2026-09-10.** `PlayTagger.deleteCurrentPlay()` read
+   `id` before assigning it. It now captures `currentPlayId` before any delete
+   logic. `e2e-native-breakdown-theater` exercises the rendered button through
+   confirmation and proves that exactly the selected play is removed and the
+   adjacent play becomes current.
+2. **Reconnect notice obscures lower tagging controls.** Confirmed against a
+   read-only OLL browser copy at both 1440 and 1280. The persistent notice sits
+   over lower tagging content and actions. Open visual repair; do not alter its
+   migration guidance until its lifecycle and owning component are identified.
+3. **Breakdown reports contradictory film state.** On the same OLL render, the
+   shell says `No film selected` while a persistent notice says 89 clips need
+   reconnection. Open state-ownership investigation; the canonical OLL data has
+   83 unique plays, 83 unique charted clip ids, and 89 playlist entries.
+4. **Play-card result labels truncate.** The 1440 OLL play strip clips visible
+   results including `Gain + Touchdown` and `Penalty + Loss`. Full text remains
+   in accessible labels/tooltips, but the visible presentation is incomplete.
+   Open visual repair against the accepted Breakdown composition.
 
 ## Release Impact
 

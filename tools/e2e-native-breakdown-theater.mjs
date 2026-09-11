@@ -386,7 +386,33 @@ ok(state.minHit >= 44 && state.internal, 'Visible mobile controls meet touch tar
 await page.keyboard.press('Escape');
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'breakdown-theater-390.png') });
 
-console.log('\n== 4. Exact restore leaves current route ownership untouched ==');
+console.log('\n== 4. Rendered Delete play removes the selected play ==');
+await page.setViewport({ width: 1440, height: 900 });
+await page.evaluate(() => window.app.tagger.selectPlay(1));
+const deleteBefore = await page.evaluate(() => ({
+  count: window.app.tagger.plays.length,
+  selected: window.app.tagger.currentPlayId,
+}));
+await page.click('.gi-theater-actions-risk .is-danger');
+await page.waitForSelector('#ffaConfirmModal [data-act="ok"]');
+const deletePrompt = await page.$eval('#ffaConfirmModal .ffa-confirm-msg', node => node.textContent.trim());
+await page.$eval('#ffaConfirmModal [data-act="ok"]', node => node.click());
+await new Promise(resolve => setTimeout(resolve, 250));
+const deleteAfter = await page.evaluate(() => ({
+  count: window.app.tagger.plays.length,
+  selected: window.app.tagger.currentPlayId,
+  deletedStillPresent: !!window.app.tagger.getPlay(1),
+  modalStillOpen: !!document.getElementById('ffaConfirmModal'),
+  playlist: { hasClips: !!window.app.tagger.playlist?.hasClips,
+    clips: window.app.tagger.playlist?.clips?.length ?? null },
+}));
+ok(deleteBefore.selected === 1 && /Delete Play 1\?/.test(deletePrompt)
+  && deleteAfter.count === deleteBefore.count - 1 && !deleteAfter.deletedStillPresent
+  && deleteAfter.selected === 2,
+  'Delete play button confirms, removes exactly the selected play, and advances to its neighbor',
+  JSON.stringify({ deleteBefore, deletePrompt, deleteAfter }));
+
+console.log('\n== 5. Exact restore leaves current route ownership untouched ==');
 state = await page.evaluate(() => {
   const media = document.getElementById('videoContainer');
   const original = window.app.breakdownTheater._home.parent;
