@@ -50,13 +50,13 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-mobile-nav{display:none}
 .ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}
 .ws-top-brand b{color:var(--ws-blue)}
-.ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:2px}
-.ws-top-nav button{min-width:92px;padding:0 17px;border:1px solid transparent;border-bottom:2px solid transparent;background:var(--ws-raised);color:var(--ws-muted);font:inherit;font-size:12px;font-weight:750}.ws-top-nav button span{margin-right:5px}
-.ws-top-nav button:hover:not(:disabled){background:var(--ws-hover);border-color:var(--ws-line-strong);color:var(--ws-text);box-shadow:var(--gi-raise-1)}
-.ws-top-nav button.active:hover:not(:disabled){background:var(--ws-sel-strong);border-bottom-color:var(--ws-blue);color:var(--ws-on-solid)}
+.ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:0;margin-left:8px}
+.ws-top-nav button{min-width:112px;padding:0 22px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--ws-muted);font:600 14px/1 var(--gi-sans)}.ws-top-nav button span{margin-right:7px}
+.ws-top-nav button:hover:not(:disabled){background:var(--ws-hover);color:var(--ws-text)}
+.ws-top-nav button.active:hover:not(:disabled){background:var(--ws-hover);border-bottom-color:var(--ws-blue);color:var(--ws-text)}
 .ws-top-nav button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:var(--ws-sel);color:var(--ws-on-solid);box-shadow:var(--gi-raise-1)}
-.ws-top-nav button.active:focus-visible{box-shadow:var(--gi-raise-1),var(--gi-focus)}
+.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:transparent;color:var(--ws-text);box-shadow:none}
+.ws-top-nav button.active:focus-visible{box-shadow:var(--gi-focus)}
 .ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
 
 /* Keep the canonical Settings command and global history tools reachable in the compact shell. */
@@ -64,13 +64,13 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 /* Final Engine Independence: WorkspaceShell._mountChrome() renders these itself
    as real .ws-icon-btn elements (shared with Plan/Study) -- there is no adopted
    legacy .btn/#btnShortcuts to style here any more. */
-@media(max-width:1150px) and (min-width:901px){.ws-top-nav button{min-width:66px;padding:0 7px}.ws-top-nav button span{display:none}}
+@media(max-width:1150px) and (min-width:901px){.ws-top-nav{margin-left:2px}.ws-top-nav button{min-width:78px;padding:0 10px;font-size:13px}.ws-top-nav button span{display:none}}
 
 @media(max-width:900px){
   .ws-mobile-head strong{min-width:0;margin-left:auto;overflow:hidden;color:var(--ws-text);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
   .ws-mobile-head .ws-icon-btn{flex:0 0 auto}
   .ws-mobile-nav{position:fixed;z-index:80;left:0;right:0;bottom:0;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--ws-nav);border-top:1px solid var(--ws-line)}
-  .ws-mobile-nav button{min-width:0;min-height:56px;border:0;background:transparent;color:var(--ws-muted);font:inherit;font-size:11.5px;font-weight:700}.ws-mobile-nav button span{display:block;height:21px;font-size:16px}.ws-mobile-nav button.active{color:var(--ws-sel-text);background:var(--ws-sel)}.ws-mobile-nav button:disabled{opacity:.35}
+  .ws-mobile-nav button{min-width:0;min-height:56px;border:0;border-top:3px solid transparent;background:transparent;color:var(--ws-muted);font:inherit;font-size:12.5px;font-weight:600}.ws-mobile-nav button span{display:block;height:21px;font-size:16px}.ws-mobile-nav button.active{color:var(--ws-text);border-top-color:var(--ws-blue);background:transparent}.ws-mobile-nav button:disabled{opacity:.35}
   .ws-main{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
 }
 
