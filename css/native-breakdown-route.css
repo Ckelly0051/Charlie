@@ -31,7 +31,7 @@
 .gi-breakdown-route.is-film-focus .gi-breakdown-deck,.gi-breakdown-route.is-film-focus .gi-breakdown-rail-host{display:none}
 @media(min-width:1350px) and (max-width:1699.98px){.gi-breakdown-composition{grid-template-rows:minmax(0,1fr) 84px}}
 @media(min-width:1700px){
-  .gi-breakdown-composition{grid-template-columns:minmax(0,1fr) clamp(230px,15vw,300px) clamp(430px,24vw,480px);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater rail deck'}
+  .gi-breakdown-composition{grid-template-columns:minmax(0,1fr) clamp(320px,17.5vw,340px) clamp(480px,26vw,500px);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater rail deck'}
 }
 /* Existing context commands remain, in the comp's compact breadcrumb band. */
 @media(min-width:1001px){

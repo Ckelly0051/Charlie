@@ -1,6 +1,6 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-10.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-11.
 >
 > This file indexes unresolved coach-observed defects and investigations. Detail
 > may live in a linked audit, but an item is not closed until this index and the
@@ -59,17 +59,17 @@
    their totals do not reconcile at the observed viewport. Preserve the static
    dashboard schema, but make its row, header, padding and module-height math
    explicit and exact rather than allowing data volume to resize the board.
-5. **Reports and Breakdown typography hierarchy - REPAIRED IN SOURCE,
-   awaiting installed visual confirmation.** The shared semantic floor is now
+5. **Reports typography accepted by the coach; Breakdown reflow repaired in
+   source, awaiting installed confirmation.** The shared semantic floor is now
    12.5px for labels, 13px for controls and 13.5px for body copy. Defense tabs,
    section and module titles, table headers, dense formation headers, KPI
    evidence and direction labels now use readable IBM Plex Sans roles with
    zero tracking. Breakdown route controls, theater metadata, play cards and
    charting-rail controls follow the same hierarchy. Condensed remains reserved
-   for page identity and prominent football numbers. No layout geometry or
-   report composition changed, and no new data captures were generated; the
-   focused source checks are green, but the installed presentation still needs
-   the coach's visual confirmation.
+   for page identity and prominent football numbers. The coach accepted the
+   larger Reports typography in isolation. Installed Breakdown showed that its
+   older narrow play-browser and charting columns were not reflowed around the
+   larger type; the route-scoped source correction is recorded below.
 
 ## Breakdown
 
@@ -90,6 +90,26 @@
    results including `Gain + Touchdown` and `Penalty + Loss`. Full text remains
    in accessible labels/tooltips, but the visible presentation is incomplete.
    Open visual repair against the accepted Breakdown composition.
+5. **Wide Breakdown columns were sized for the retired compact type.** At a
+   1920px CSS viewport the play browser received about 288px and the charting
+   rail about 461px. With the accepted readable font floor, both columns crowd
+   their real labels. The route-scoped correction widens them without changing
+   Reports typography or the shared token floor; installed confirmation remains
+   required.
+
+## Deferred Beta Maintenance
+
+1. **Visual regression coverage is weaker than its release language.** Current
+   Chromium harnesses prove behavior, minimum font sizes and containment, but
+   they do not compare populated production screens with the approved captures
+   or certify installed WebView2 rendering. Add mutation-verified visual
+   baselines for representative real-data screens when the beta workflow can
+   absorb the maintenance cost.
+2. **Shared typography-token changes need explicit cross-surface review.** A
+   token edit can alter every route while a focused harness remains green.
+   Until broader visual automation exists, keep presentation repairs scoped to
+   the owning route where possible and inspect affected surfaces before calling
+   an installer visually accepted.
 
 ## Release Impact
 
