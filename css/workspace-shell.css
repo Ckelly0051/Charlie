@@ -51,7 +51,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}
 .ws-top-brand b{color:var(--ws-blue)}
 .ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:0;margin-left:8px}
-.ws-top-nav button{min-width:120px;padding:0 24px;border:0;border-bottom:3px solid transparent;background:transparent;color:color-mix(in srgb,var(--gi-12) 72%,var(--gi-2));font:600 15px/1 var(--gi-sans)}.ws-top-nav button span{margin-right:8px;font-size:17px}
+.ws-top-nav button{min-width:128px;padding:0 26px;border:0;border-bottom:3px solid transparent;background:transparent;color:color-mix(in srgb,var(--gi-12) 76%,var(--gi-2));font:700 18px/1 var(--gi-sans)}.ws-top-nav button span{margin-right:9px;font-size:19px}
 .ws-top-nav button:hover:not(:disabled){background:var(--ws-hover);color:var(--ws-text)}
 .ws-top-nav button.active:hover:not(:disabled){background:var(--ws-hover);border-bottom-color:var(--gi-bd-gold);color:var(--ws-text)}
 .ws-top-nav button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
@@ -64,7 +64,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 /* Final Engine Independence: WorkspaceShell._mountChrome() renders these itself
    as real .ws-icon-btn elements (shared with Plan/Study) -- there is no adopted
    legacy .btn/#btnShortcuts to style here any more. */
-@media(max-width:1150px) and (min-width:901px){.ws-top-nav{margin-left:2px}.ws-top-nav button{min-width:82px;padding:0 10px;font-size:13.5px}.ws-top-nav button span{display:none}}
+@media(max-width:1150px) and (min-width:901px){.ws-top-nav{margin-left:2px}.ws-top-nav button{min-width:86px;padding:0 12px;font-size:15px}.ws-top-nav button span{display:none}}
 
 @media(max-width:900px){
   .ws-mobile-head strong{min-width:0;margin-left:auto;overflow:hidden;color:var(--ws-text);font-size:12px;text-overflow:ellipsis;white-space:nowrap}

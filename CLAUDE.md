@@ -319,7 +319,9 @@ their named accent and football semantics; do not reintroduce a blue cast into
 neutral panels, controls or structural borders.
 
 **Primary route navigation.** Desktop route targets are long, readable
-navigation labels on transparent shell chrome, not small filled tabs. The
+navigation labels on transparent shell chrome, not small filled tabs. They use
+the shell's dominant operational type so route names are among the largest copy
+on the working screen, never caption-sized utilities. The
 current route is communicated by primary copy plus the gold route underline;
 mobile uses the same unfilled selection treatment at its top edge. Select
 controls should spend available horizontal room rather than clipping their
