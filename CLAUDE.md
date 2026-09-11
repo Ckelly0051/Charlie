@@ -313,9 +313,10 @@ variable does **not** repaint descendants that already inherited a computed
 `color` — set the property explicitly.
 
 **Neutral UI chrome.** Interactive rest, hover, active and border steps
-`--gi-3` through `--gi-8` use the coach-approved neutral graphite ramp. Blue,
-cyan and gold are reserved for their named accent and football semantics; do
-not reintroduce a blue cast into neutral controls or structural borders.
+`--gi-3` through `--gi-8` use the coach-approved neutral graphite ramp, with
+`--gi-2` as its darker panel foundation. Blue, cyan and gold are reserved for
+their named accent and football semantics; do not reintroduce a blue cast into
+neutral panels, controls or structural borders.
 
 **Film is never obstructed.** No control, overlay, border, or transform may
 cover or resample the media surface.
