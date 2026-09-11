@@ -52,6 +52,24 @@
    not visually acceptable. This is lower-priority product work, separate from
    the renamed-file functional defect and not permission to change the approved
    in-app dashboard composition.
+4. **Defense Situational Results has broken vertical rhythm.** The Down &
+   Distance and Field Zone modules leave visible unused space instead of fitting
+   their declared static rows cleanly. The board currently combines fixed module
+   heights (`338px` and `225px`) with separately fixed header and row heights;
+   their totals do not reconcile at the observed viewport. Preserve the static
+   dashboard schema, but make its row, header, padding and module-height math
+   explicit and exact rather than allowing data volume to resize the board.
+5. **Reports and Breakdown typography hierarchy - REPAIRED IN SOURCE,
+   awaiting installed visual confirmation.** The shared semantic floor is now
+   12.5px for labels, 13px for controls and 13.5px for body copy. Defense tabs,
+   section and module titles, table headers, dense formation headers, KPI
+   evidence and direction labels now use readable IBM Plex Sans roles with
+   zero tracking. Breakdown route controls, theater metadata, play cards and
+   charting-rail controls follow the same hierarchy. Condensed remains reserved
+   for page identity and prominent football numbers. No layout geometry or
+   report composition changed, and no new data captures were generated; the
+   focused source checks are green, but the installed presentation still needs
+   the coach's visual confirmation.
 
 ## Breakdown
 

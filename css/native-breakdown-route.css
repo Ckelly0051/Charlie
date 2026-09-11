@@ -69,3 +69,10 @@
   .gi-breakdown-save{font-size:10px;padding-left:6px}
   .gi-breakdown-composition{grid-template-rows:460px 40px auto}
 }
+
+/* Breakdown uses the shared readable UI roles. Tiny route labels were a
+   leftover from the compact prototype and no longer define production density. */
+.gi-breakdown-toolbar button{font:var(--gi-text-control)}
+.gi-breakdown-save{font:var(--gi-text-label);letter-spacing:0}
+body.ws-shell-active.ws-route-breakdown .ws-ctx-label{font-size:12px}
+body.ws-shell-active.ws-route-breakdown .ws-ctx-value{font-size:12.5px}

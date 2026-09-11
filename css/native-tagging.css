@@ -105,3 +105,19 @@
 @media(max-width:1000px){.gi-native-tagging{height:auto;grid-template-rows:auto auto auto}.gi-native-form{overflow:visible}.gi-tag-group{scroll-margin-top:12px}}
 @media(max-width:620px){.gi-tag-context{flex-wrap:wrap}.gi-tag-actions{overflow-x:auto}.gi-tag-actions>*{flex-shrink:0}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 108px 66px;gap:6px}.gi-tag-situation-row .gi-tag-chips button{padding-inline:4px}.gi-tag-players{grid-template-columns:1fr}.gi-tag-group>summary span{font-size:12px}.gi-tag-nav kbd{display:none}}
 @media(pointer:coarse){.gi-native-tagging :is(button,select,input:not([type="checkbox"]),textarea),.gi-tag-check{min-height:44px}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 66px}.gi-tag-situation-row>:first-child{grid-column:1/-1}.gi-tag-situation-row .gi-tag-chips{flex-wrap:wrap}.gi-tag-players{grid-template-columns:1fr}.gi-tag-spot-field{width:182px}.gi-tag-spot-field>.gi-tag-field-label,.gi-tag-spot{grid-template-columns:108px 66px}.gi-player-quick{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));max-height:144px}}
+
+/* Charting rail typography follows the same semantic floor as the theater.
+   Controls stay compact through geometry, not undersized text. */
+.gi-tag-title p,.gi-tag-subject,.gi-tag-hint,.gi-tag-group>summary span,
+.gi-tag-field-label small,.gi-play-call-defaults,.gi-tag-warning,.gi-tag-check{
+  font-size:13px
+}
+.gi-unit-switch button,.gi-tag-actions button,.gi-tag-actions select,
+.gi-diagram-actions button,.gi-tag-group-body>button,.gi-tag-drive-row>button,
+.gi-tag-field-label,.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,
+.gi-tag-custom button,.gi-player-quick button,.gi-tag-input,.gi-tag-players strong,
+.gi-player-roster-toggle,.gi-play-call-entry button,.gi-play-call-quick button,
+.gi-tag-nav>button{
+  font-size:12.5px;letter-spacing:0
+}
+.gi-tag-field-label button,.gi-tag-nav kbd{font-size:12px}

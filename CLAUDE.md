@@ -522,6 +522,13 @@ from Strength. Strength-relative rows require both a Left/Right direction and a
 Left/Right declared strength; balanced or missing strength is not guessed.
 Relative rows are a second lens and never inflate the absolute run/pass legend.
 Reports module and chart titles use the approved sans face, not Condensed.
+Small interface type does not create dashboard density. Operational labels,
+controls, section tabs, table headers, charting-rail copy and supporting values
+use the shared readable Sans roles: 12.5px is the label floor, 13px is the
+control floor, and body copy starts at 13.5px. Letter spacing stays zero.
+Condensed remains reserved for page identity and prominent football numbers.
+When space is tight, simplify or recompose the container; do not shrink
+operational text back into the 9-11px range.
 
 The shared Reports title must always display its complete team, season/game and
 report identity. A tooltip is supplemental and never substitutes for visible

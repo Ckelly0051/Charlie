@@ -123,3 +123,21 @@
 @media(max-width:1000px){.gi-breakdown-rail-host:has(.is-open){position:relative;overflow:visible;z-index:21}.gi-breakdown-rail-host .gi-drive-strip.is-open{position:absolute;inset:0 0 auto;width:100%;height:320px}.gi-breakdown-theater>.gi-drive-strip{height:34px;flex-basis:34px}}
 @media(pointer:coarse){.gi-icon-command,.gi-play-command,.gi-theater-actions button,.gi-breakdown-theater select,.gi-plays-toggle,.gi-rail-close{min-height:44px}.gi-icon-command,.gi-play-command{min-width:38px}}
 @media(max-width:620px){.gi-breakdown-theater button,.gi-breakdown-theater select,.gi-theater-media-slot .dropzone-actions button,.gi-plays-toggle,.gi-rail-close,.gi-play-card{min-height:44px}.gi-theater-transport-main .gi-icon-command,.gi-theater-transport-main .gi-play-command{width:38px}.gi-theater-selected-play header{align-items:flex-start}.gi-theater-selected-play header span{line-height:1.5}}
+
+/* Readable theater typography. Geometry stays fixed; this only replaces the
+   prototype's 11px copy with the shared UI hierarchy. */
+.gi-chyron-k{font:var(--gi-text-label);letter-spacing:0}
+.gi-chyron-v{font-size:13.5px}
+.gi-icon-command,.gi-play-command,.gi-theater-command,.gi-theater-actions button,
+.gi-breakdown-theater select,.gi-theater-anglebar input{font:var(--gi-text-control)}
+.gi-theater-anglebar,.gi-autoplay-toggle{font:var(--gi-text-caption)}
+.gi-theater-time{font-size:12px}
+.gi-theater-selected-play header span{font-size:12px}
+.gi-theater-selected-play summary{font:var(--gi-text-label)}
+.gi-drive-strip>header{font:var(--gi-text-caption)}
+.gi-drive-strip>header strong,.gi-drive-group h3{font:var(--gi-text-label);letter-spacing:0}
+.gi-play-card{font-size:13px}
+.gi-play-card>span{font-size:12px}
+.gi-play-card>strong{font-size:13px}
+.gi-play-card small{font-size:12px}
+.gi-plays-toggle{font:var(--gi-text-control)}

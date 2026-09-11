@@ -3168,6 +3168,47 @@
   .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow{height:33px}
 }
 
+/* Coordinated type floor. Reports accumulated local 9-11px Condensed labels
+   while the shared type system moved operational copy to readable Sans roles.
+   Keep Condensed for page identity and major numbers; navigation, module
+   labels, table copy and supporting evidence use the semantic UI scale. */
+.gi-reports .gi-zone-nav-item,
+.gi-reports .gi-def-secnav-item{
+  font:var(--gi-text-control);letter-spacing:0
+}
+.gi-reports .gi-zone-nav-item>b,
+.gi-reports .gi-def-secnav-item>b{
+  font:600 11.5px/1 var(--gi-sans);letter-spacing:0
+}
+.gi-reports .gi-zone-rule h2,
+.gi-reports .gi-def-secrule h2,
+.gi-reports .gi-overview-module>header strong,
+.gi-reports .gi-defense-board .gi-def-kpi span{
+  font:var(--gi-text-eyebrow);letter-spacing:0
+}
+.gi-reports th,
+.gi-reports .stats-table th,
+.gi-reports .gi-overview-board .gi-overview-module th{
+  font:var(--gi-text-label);letter-spacing:0
+}
+.gi-reports td{font-size:13px;line-height:1.3}
+.gi-reports .gi-defense-board .gi-def-kpi small,
+.gi-reports .gi-defense-board .gi-def-type-summary small,
+.gi-reports .gi-defense-board .gi-def-answer span,
+.gi-reports .gi-defense-board .gi-def-answers td:first-child small,
+.gi-reports .gi-defense-board .gi-def-no-sample{
+  font-family:var(--gi-sans);font-size:12px;line-height:1.3
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls table{font-size:12px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(n+3){
+  font-size:11.5px;line-height:1.15
+}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row>strong{font-size:12.5px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key{font-size:12px}
+@media(max-width:1300px){
+  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi small{font-size:11.5px}
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    REPORTS > SPECIAL TEAMS
    Approved comp: design-comps/reports-special-teams-2026-09-04/ (RATIONALE.md
