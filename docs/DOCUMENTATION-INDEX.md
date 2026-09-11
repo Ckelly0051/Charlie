@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-10.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-11.
 
 ## Current Authority
 
@@ -24,9 +24,10 @@
 
 ## Current Snapshot
 
-- Source version: `1.12.0-77` in all four version owners.
-- Candidate: unsigned, ungated local handoff from `15cd78d`; not accepted,
-  tagged, pushed, or published.
+- Source version: `1.12.0-80` in all four version owners.
+- Candidate: unsigned local visual-smoke handoff from `2d67515`, after the
+  global secondary-copy repair in `b534a3f`; focused suites passed, full gate
+  not run, and the candidate is not accepted, tagged, pushed, or published.
 - Last accepted installed release snapshot: `1.12.0-70`.
 - Current production status: Home and all eight Our Program Reports surfaces are
   `REJECTED`; approved comps remain binding design evidence.

@@ -116,7 +116,7 @@
 
 ## Release Impact
 
-- `1.12.0-77` is an ungated local handoff and is not accepted.
+- `1.12.0-80` is a focused local visual-smoke handoff and is not accepted.
 - Current Home and every Reports surface remain `REJECTED` in the design
   approval registry even though `1.12.0-70` remains the last accepted installed
   release snapshot.

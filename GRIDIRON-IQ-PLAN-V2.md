@@ -7,11 +7,11 @@
 > customer data.
 
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production. Earlier committed baselines were gate-verified, but the unsigned
-> Windows `1.12.0-77` local handoff
-> was packaged from version commit `15cd78d` after the Reports repair in
-> `0ecec0f`. Per coach instruction it was not harnessed or gated. It is not an
-> accepted release, and Breakdown Delete play remains a confirmed open defect.
+> production. The unsigned Windows `1.12.0-80` local visual-smoke handoff was
+> packaged from version commit `2d67515` after the global secondary-copy repair
+> in `b534a3f`. The production build and focused design-system, shell, Breakdown
+> and Reports suites passed; the full release gate was not run for this
+> palette-only candidate. It is not an accepted release.
 > `1.12.0-70` remains the last accepted installed release snapshot, but current
 > Home production is `REJECTED` after the `1.12.0-74` visual smoke.
 >
@@ -679,8 +679,11 @@ Retain every meaningful production field while reducing everyday clutter.
 > follows actual scope: game-only score/KPI framing cannot appear over a
 > full-season or matchup board. The unsigned `1.12.0-77` local handoff was
 > packaged from `15cd78d` without a harness or gate run and is not accepted.
-> Season's `Games` count includes scheduled Our Program games while its
-> `Yards / Game` denominator includes only offense-charted games; that
+> The newer unsigned `1.12.0-80` visual-smoke candidate was packaged from
+> `2d67515`; it changes global secondary copy to neutral gray and remains
+> unaccepted pending installed inspection. Season's `Games` count includes
+> scheduled Our Program games while its `Yards / Game` denominator includes
+> only offense-charted games; that
 > eligibility distinction is intentional, not a defect.
 > Reports dashboards are static compositions: each approved comp fixes its
 > module order, row/tile counts, and board geometry. Real data fills that schema;
