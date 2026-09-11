@@ -24,7 +24,6 @@
 .gi-tag-group>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px;padding:0 12px 0 0;cursor:pointer}
 .gi-tag-group>summary strong{display:inline-flex;align-items:center;min-height:24px;padding:0 22px 0 10px;clip-path:var(--gi-lower-third);background:var(--gi-3);color:var(--gi-12);font:600 12.5px/1 var(--gi-sans);text-transform:uppercase;letter-spacing:0}
 .gi-tag-group[open]>summary strong{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
-.gi-tag-group>summary span{min-width:0;overflow:hidden;color:var(--gi-bd-copy);font:400 13px var(--gi-sans);text-overflow:ellipsis;white-space:nowrap}
 .gi-tag-group>summary i{color:var(--gi-bd-copy);font-style:normal}.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
 .gi-tag-group-body{display:grid;gap:8px;padding:8px 12px 12px}
 .gi-tag-group:has([data-native-field="defFront"]),.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
@@ -103,12 +102,12 @@
 .gi-tag-nav kbd{padding:2px 4px;border:0;background:var(--gi-scrim-soft);color:inherit;font:500 11px var(--gi-sans)}
 .gi-tag-empty{display:grid;min-height:160px;place-items:center;align-self:start;margin:12px;padding:20px;border:1px dashed var(--gi-7);color:var(--gi-bd-copy);font:400 14px/1.5 var(--gi-sans);text-align:center}
 @media(max-width:1000px){.gi-native-tagging{height:auto;grid-template-rows:auto auto auto}.gi-native-form{overflow:visible}.gi-tag-group{scroll-margin-top:12px}}
-@media(max-width:620px){.gi-tag-context{flex-wrap:wrap}.gi-tag-actions{overflow-x:auto}.gi-tag-actions>*{flex-shrink:0}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 108px 66px;gap:6px}.gi-tag-situation-row .gi-tag-chips button{padding-inline:4px}.gi-tag-players{grid-template-columns:1fr}.gi-tag-group>summary span{font-size:12px}.gi-tag-nav kbd{display:none}}
+@media(max-width:620px){.gi-tag-context{flex-wrap:wrap}.gi-tag-actions{overflow-x:auto}.gi-tag-actions>*{flex-shrink:0}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 108px 66px;gap:6px}.gi-tag-situation-row .gi-tag-chips button{padding-inline:4px}.gi-tag-players{grid-template-columns:1fr}.gi-tag-nav kbd{display:none}}
 @media(pointer:coarse){.gi-native-tagging :is(button,select,input:not([type="checkbox"]),textarea),.gi-tag-check{min-height:44px}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 66px}.gi-tag-situation-row>:first-child{grid-column:1/-1}.gi-tag-situation-row .gi-tag-chips{flex-wrap:wrap}.gi-tag-players{grid-template-columns:1fr}.gi-tag-spot-field{width:182px}.gi-tag-spot-field>.gi-tag-field-label,.gi-tag-spot{grid-template-columns:108px 66px}.gi-player-quick{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));max-height:144px}}
 
 /* Charting rail typography follows the same semantic floor as the theater.
    Controls stay compact through geometry, not undersized text. */
-.gi-tag-title p,.gi-tag-subject,.gi-tag-hint,.gi-tag-group>summary span,
+.gi-tag-title p,.gi-tag-subject,.gi-tag-hint,
 .gi-tag-field-label small,.gi-play-call-defaults,.gi-tag-warning,.gi-tag-check{
   font-size:13px
 }

@@ -148,7 +148,7 @@ function ResultField({screen, state}) {
   </div>;
 }
 
-function Group({title, detail='', open=false, syncOpen=false, children}) {
+function Group({title, open=false, syncOpen=false, children}) {
   const [expanded,setExpanded] = useState(open);
   // Offense/Defense/Special Teams groups pass syncOpen: their `open` prop is
   // a function of the active unit, not a one-time default. useState only
@@ -159,7 +159,7 @@ function Group({title, detail='', open=false, syncOpen=false, children}) {
   // still letting a manual toggle stick within one unit's session.
   useLayoutEffect(() => { if (syncOpen) setExpanded(open); }, [open, syncOpen]);
   return <details class="gi-tag-group" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-    <summary><strong>{title}</strong>{detail && <span>{detail}</span>}<i aria-hidden="true">▾</i></summary>
+    <summary><strong>{title}</strong><i aria-hidden="true">▾</i></summary>
     <div class="gi-tag-group-body">{children}</div>
   </details>;
 }

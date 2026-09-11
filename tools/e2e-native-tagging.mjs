@@ -279,7 +279,7 @@ state=await page.evaluate(()=>{
     bodyCount:bodies.length,
     pads:[...new Set(bodies.map(pad))],
     titleFaces:[...new Set(titles.map(face))],
-    descFaces:[...new Set(descs.map(face))],
+    descCount:descs.length,
     pageOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
   };
 });
@@ -289,9 +289,8 @@ ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&
   'Coverage Call keeps all labels readable in compact wrapping rows',JSON.stringify(state));
 ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='8/12',
   'Every native charting group body owns the approved 8px lead and 12px closing rhythm',JSON.stringify(state));
-ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])
-  &&state.descFaces.every(f=>/IBM Plex Sans 400/.test(f)&&parseFloat(f.split(' ').pop())>=13),
-  'Charting group titles are Plex Sans 600 and descriptions Plex Sans 400 at 13px or more',JSON.stringify(state));
+ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])&&state.descCount===0,
+  'Charting group headers keep one title hierarchy with no explanatory prose',JSON.stringify(state));
 ok(state.pageOverflow<=0,'The charting deck introduces no page-level horizontal overflow',JSON.stringify(state));
 
 console.log('\n== 7. S7-a: diagram, OCR and templates on the native surface, across a relaunch ==');
