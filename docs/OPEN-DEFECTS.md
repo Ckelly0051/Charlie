@@ -69,7 +69,10 @@
    for page identity and prominent football numbers. The coach accepted the
    larger Reports typography in isolation. Installed Breakdown showed that its
    older narrow play-browser and charting columns were not reflowed around the
-   larger type; the route-scoped source correction is recorded below.
+   larger type; the route-scoped source correction is recorded below. The
+   shared surface and interactive chrome now use the approved neutral graphite
+   ramp, and global secondary copy uses neutral `--gi-11` rather than the old
+   blue-gray. Installed confirmation remains pending.
 
 ## Breakdown
 

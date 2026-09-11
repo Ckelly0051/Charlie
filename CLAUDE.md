@@ -314,9 +314,10 @@ variable does **not** repaint descendants that already inherited a computed
 
 **Neutral UI chrome.** Interactive rest, hover, active and border steps
 `--gi-3` through `--gi-8` use the coach-approved neutral graphite ramp, with
-`--gi-2` as its darker panel foundation. Blue, cyan and gold are reserved for
-their named accent and football semantics; do not reintroduce a blue cast into
-neutral panels, controls or structural borders.
+`--gi-2` as its darker panel foundation and `--gi-11` as neutral secondary
+copy. Blue, cyan and gold are reserved for their named accent and football
+semantics; do not reintroduce a blue cast into neutral panels, controls,
+structural borders, metadata, status copy or subdued labels.
 
 **Primary route navigation.** Desktop route targets are long, readable
 navigation labels on transparent shell chrome, not small filled tabs. They use
