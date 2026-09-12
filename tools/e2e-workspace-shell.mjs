@@ -7,6 +7,7 @@ import { mkdir } from 'node:fs/promises';
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 800 });
@@ -1258,6 +1259,124 @@ ok(r.unresolved.length === 0 && Object.values(r.resolved).every(value => /^(#|rg
   'Every shell colour role resolves to a real value through the design-system tokens', JSON.stringify(r.unresolved));
 ok(Object.values(r.pairs).every(value => value >= 4.5),
   'Shell text stays at or above WCAG AA contrast on every surface it sits on', JSON.stringify(r.pairs));
+
+/* ══ The approved global navigation and context contract ═══════════════════
+   `docs/VISUAL-SYSTEM-RULES.md` states exact desktop numbers and a
+   no-truncation rule for the Program / Season / Game values. Before this block
+   nothing enforced either, so the rules file was a claim rather than a
+   contract. The longest canonical names are used deliberately: a selector that
+   fits `Mavericks` proves nothing. */
+console.log('\n== 26. Approved navigation dimensions and context-value truncation ==');
+const LONG_TEAM = 'St. Joseph Mavericks';
+const LONG_SEASON = '2025 St. Joseph Mavericks - JV';
+const LONG_GAME = 'Week 1 vs St. Peter Lutheran Patriots';
+await page.evaluate(async (team, seasonName, gameName) => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  store.data.teamName = team;
+  store.data.name = seasonName;
+  const game = store.activeGame();
+  if (game) { game.name = gameName; game.gameInfo = { ...(game.gameInfo || {}), opponent: 'St. Peter Lutheran Patriots' }; }
+  await app.storage._loadActiveGame();
+}, LONG_TEAM, LONG_SEASON, LONG_GAME);
+const navGeometry = [];
+for (const [width, height] of [[1440, 900], [1280, 800]]) {
+  await page.setViewport({ width, height });
+  await sleep(350);
+  for (const route of ['home', 'breakdown', 'study', 'reports', 'plan']) {
+    await page.evaluate(name => window.app.workspaceShell.show(name), route);
+    await sleep(250);
+    navGeometry.push({ width, route, ...await page.evaluate((team, seasonName, gameName) => {
+      /* The shell's OWN writer, with the longest canonical values. The context
+         bar reads the team registry rather than the season store, so writing
+         them here — through _text, the production writer — is what puts the
+         real worst-case strings in the real tracks. Re-asserted below, so an
+         injection that silently failed cannot pass this block. */
+      const shell = window.app.workspaceShell;
+      shell._text('wsCtxProgramValue', team);
+      shell._text('wsCtxSeasonValue', seasonName);
+      shell._text('wsCtxGameValue', gameName);
+      const cs = el => getComputedStyle(el);
+      const nav = [...document.querySelectorAll('.ws-top-nav button')];
+      const active = nav.find(b => b.classList.contains('active'));
+      const ctx = [...document.querySelectorAll('.ws-ctx')].map(button => {
+        const value = button.querySelector('.ws-ctx-value');
+        return { id: button.id, text: (value?.textContent || '').trim(),
+          truncated: !!value && value.scrollWidth > value.clientWidth + 1,
+          size: value ? parseFloat(cs(value).fontSize) : null };
+      });
+      return {
+        navCount: nav.length,
+        navVisible: nav.filter(b => b.getBoundingClientRect().width > 0).length,
+        navSize: nav[0] ? parseFloat(cs(nav[0]).fontSize) : null,
+        iconSize: nav[0]?.querySelector('span') ? parseFloat(cs(nav[0].querySelector('span')).fontSize) : null,
+        minTarget: Math.min(...nav.map(b => Math.round(b.getBoundingClientRect().width))),
+        navTruncated: nav.filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent.trim()),
+        activeUnderline: active ? cs(active).borderBottomColor : null,
+        activeFill: active ? cs(active).backgroundColor : null,
+        pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        ctx,
+      };
+    }, LONG_TEAM, LONG_SEASON, LONG_GAME) });
+  }
+}
+ok(navGeometry.every(item => item.navCount === 5 && item.navVisible === 5),
+  'all five desktop routes stay visible at both release widths',
+  JSON.stringify(navGeometry.filter(item => item.navVisible !== 5).slice(0, 3)));
+ok(navGeometry.every(item => item.navSize === 18 && item.iconSize === 19 && item.minTarget >= 128),
+  'desktop route labels are the documented 18px with 19px icons on targets of at least 128px',
+  JSON.stringify(navGeometry.map(item => ({ w: item.width, size: item.navSize, icon: item.iconSize, min: item.minTarget }))[0]));
+ok(navGeometry.every(item => item.navTruncated.length === 0 && item.pageOverflowX === 0),
+  'no route name truncates and the shell introduces no horizontal page overflow',
+  JSON.stringify(navGeometry.filter(item => item.navTruncated.length || item.pageOverflowX).slice(0, 3)));
+ok(navGeometry.every(item => /217,\s*162,\s*26/.test(item.activeUnderline || '')
+  && /rgba\(0,\s*0,\s*0,\s*0\)/.test(item.activeFill || '')),
+  'the active route is the gold underline on transparent chrome, not a filled pill',
+  JSON.stringify(navGeometry.map(item => ({ underline: item.activeUnderline, fill: item.activeFill }))[0]));
+const ctxRows = navGeometry.flatMap(item => item.ctx.map(row => ({ width: item.width, route: item.route, ...row })));
+const truncatedCtx = ctxRows.filter(row => row.truncated);
+ok(ctxRows.length > 0 && truncatedCtx.length === 0,
+  'the longest canonical Program, Season and Game values render in full at both release widths',
+  JSON.stringify(truncatedCtx.slice(0, 4)));
+ok(ctxRows.some(row => row.text === LONG_GAME) && ctxRows.some(row => row.text === LONG_SEASON)
+  && ctxRows.some(row => row.text === LONG_TEAM),
+  'those selectors really are showing the long values, so the check is not vacuous',
+  JSON.stringify([...new Set(ctxRows.map(row => row.text))]));
+ok(ctxRows.every(row => row.size >= 12.5),
+  'every context value meets the shared 12.5px floor',
+  JSON.stringify(ctxRows.filter(row => row.size < 12.5).slice(0, 4)));
+
+/* DISABLED IS A COLOUR, NOT AN OPACITY. On first launch four of the five routes
+   are disabled, and the approved transparent chrome gives a 35%-opacity label
+   no backing of its own: measured 2.2:1 at 18px, which is the state a new coach
+   meets. Measured here on the rendered button, compositing its own opacity. */
+const disabledContrast = await page.evaluate(() => {
+  /* A season is open in this harness, so force the disabled ATTRIBUTE on one
+     route: that is what :disabled matches, so the measurement is of the real
+     CSS treatment a first-launch coach sees on four of the five routes. */
+  const button = [...document.querySelectorAll('.ws-top-nav button')].find(b => b.disabled)
+    || document.querySelector('.ws-top-nav button');
+  button.disabled = true;
+  const parse = value => (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+  const lum = channels => { const l = channels.map(c => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; };
+  const cs = getComputedStyle(button);
+  const alpha = Number(cs.opacity);
+  let ground = null;
+  for (let node = button; node; node = node.parentElement) {
+    const bg = getComputedStyle(node).backgroundColor;
+    const rgba = (bg.match(/[\d.]+/g) || []).map(Number);
+    if (rgba.length >= 3 && (rgba.length < 4 || rgba[3] > 0)) { ground = rgba.slice(0, 3); break; }
+  }
+  ground = ground || [0, 0, 0];
+  const ink = parse(cs.color);
+  const composited = ink.map((channel, i) => channel * alpha + ground[i] * (1 - alpha));
+  const [hi, lo] = [lum(composited), lum(ground)].sort((a, b) => b - a);
+  return { disabled: button.disabled, opacity: alpha, color: cs.color,
+    ratio: +((hi + 0.05) / (lo + 0.05)).toFixed(2), fontSize: cs.fontSize };
+});
+ok(disabledContrast.disabled && disabledContrast.ratio >= 3,
+  'a disabled route label stays at or above 3:1 against its own background',
+  JSON.stringify(disabledContrast));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

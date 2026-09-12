@@ -174,7 +174,7 @@ function Choice({label, options, value, choose}) {
 
 function Penalties({screen, state}) {
   const situation = state.resultingSituation || {down:'',distance:'',fieldSide:'',yardLine:'',confirmed:false};
-  return <Group title="Penalties" detail={state.penalties.length ? `${state.penalties.length} charted` : 'foul, enforcement, resulting situation'}>
+  return <Group title="Penalties">
     <button type="button" class="gi-tag-add" onClick={() => screen.addPenalty()}>Add penalty</button>
     {state.penalties.map((penalty, index) =>
       <article class="gi-penalty-card" key={penalty.id || index}>
@@ -290,7 +290,7 @@ function SpecialTeams({screen, state}) {
   const needsRecovery = st && (['recovered','muffed','blocked'].includes(st.outcome.status) || (st.outcome.score === 'touchdown' && ['kickoff','fieldGoalBlock'].includes(st.unit)));
   const subject = state.perspective === 'scout' ? 'Scouted team' : 'Our team';
   const other = state.perspective === 'scout' ? 'Other team' : 'Opponent';
-  return <Group title="Special Teams" detail="phase, result, field position" open>
+  return <Group title="Special Teams" open>
     {state.legacySpecial && <p class="gi-tag-warning">Legacy Special Teams details are uncharted.</p>}
     <Choice label="Unit" value={st?.unit} options={ST_UNITS} choose={value => screen.setSpecialUnit(value)}/>
     {isTry ? <TryEditor screen={screen} state={state} st={st}/> : st && <>
@@ -332,7 +332,7 @@ function Players({screen, state}) {
   // without hiding one-click jersey-number attribution.
   const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
     passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner' };
-  return <Group title="Players & Grades" detail={state.unit === 'defense' ? 'tacklers and takeaways — separate multiple with a comma' : 'individual performance'} open>
+  return <Group title="Players & Grades" open>
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
@@ -388,7 +388,7 @@ function NativeTagging({screen}) {
     </div>
     {!state.enabled ? <div class="gi-tag-empty">Select or mark a play to begin charting.</div> : <main class="gi-native-form">
       <datalist id="giPenaltyFouls">{['False Start','Holding','Illegal Formation','Illegal Motion','Delay of Game','Offside','Encroachment','Defensive Pass Interference','Facemask','Personal Foul','Unsportsmanlike','Block in the Back','Roughing the Kicker'].map(v => <option key={v}>{v}</option>)}</datalist>
-      <Group title="Situation" detail="quarter, down, distance, field position" open>
+      <Group title="Situation" open>
         <div class="gi-tag-situation-row is-primary" data-situation-row="primary">
           {chips('quarter','Quarter',OPTIONS.quarter)}{chips('down','Down',OPTIONS.down)}
           <Field screen={screen} field="distance" label="Distance" value={state.values.distance} min="1" max="99"/>
@@ -402,18 +402,18 @@ function NativeTagging({screen}) {
       {state.unit === 'special' ? <SpecialTeams screen={screen} state={state}/> : (() => {
         // Charting defense, OUR call comes first and the offense we faced
         // second. The group a coach is actually charting leads.
-        const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open={state.unit !== 'defense'} syncOpen>
+        const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} open={state.unit !== 'defense'} syncOpen>
           <PlayCallField screen={screen} state={state}/>
           {chips('formation','Formation',state.libraries.formation,'select all','formation')}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment,'optional')}
           {chips('backfield','Backfield',state.libraries.backfield,'optional','backfield')}
           {chips('strength','Strength',OPTIONS.strength)}{chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
         </Group>;
-        const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} detail="front, coverage, pressure" open={state.unit === 'defense'} syncOpen>
+        const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} open={state.unit === 'defense'} syncOpen>
           {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
-        const playResult = <Group key="pr" title="Play &amp; Result" detail="call, direction, outcome" open>
+        const playResult = <Group key="pr" title="Play &amp; Result" open>
           {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',state.libraries.playType,'','playType')}
           {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} state={state}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
@@ -422,7 +422,7 @@ function NativeTagging({screen}) {
       })()}
       <Players screen={screen} state={state}/>
       <Penalties screen={screen} state={state}/>
-      <Group title="Notes & Details" detail="staff notes and situation">
+      <Group title="Notes & Details">
         <label class="gi-tag-input"><span>Play notes</span><textarea value={state.notes} onInput={e => screen.setNotes(e.currentTarget.value)}/></label>
         <button type="button" onClick={() => screen.addNoteTimestamp()}>Add video time</button>
         <div class="gi-tag-grid gi-tag-drive-row">
@@ -436,11 +436,11 @@ function NativeTagging({screen}) {
           <input value={customTag} placeholder="Custom tag" onInput={e => setCustomTag(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); screen.addCustomTag(customTag); setCustomTag(''); }}}/></div>
         <button type="button" onClick={() => screen.openCustomFields()}>Edit custom fields</button>
       </Group>
-      <Group title="Play Diagram" detail="saved with this play">
+      <Group title="Play Diagram">
         <div class="gi-tag-actions"><button type="button" onClick={() => screen.clearDiagram()}>Clear</button><button type="button" onClick={() => screen.drawDiagram()}>Draw</button></div>
         {state.diagram && <img src={state.diagram} alt="Current play diagram"/>}
       </Group>
-      <Group title="More Tools" detail="charting setup, scoreboard OCR and play detection">
+      <Group title="More Tools">
         <div class="gi-tag-toggles">
           <label class="gi-tag-check"><input type="checkbox" checked={state.autoDD} onChange={e => screen.setAutoDD(e.currentTarget.checked)}/> Auto down &amp; distance</label>
           <label class="gi-tag-check"><input type="checkbox" checked={state.carryScheme} onChange={e => screen.setCarryScheme(e.currentTarget.checked)}/> Carry formation to next play</label>

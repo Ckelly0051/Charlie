@@ -386,6 +386,69 @@ ok(state.minHit >= 44 && state.internal, 'Visible mobile controls meet touch tar
 await page.keyboard.press('Escape');
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'breakdown-theater-390.png') });
 
+/* ══ 6. The transport row is one aligned row at both release widths ════════
+   The playback-speed select was given an explicit 34px box so it matches the
+   icon commands beside it. Nothing asserted that, so the repair rested on one
+   inspection. The control is PROVED RENDERED first — a zero-box element would
+   satisfy any equal-height check trivially, which is exactly the vacuous result
+   this block exists to refuse. */
+console.log('\n== 6. Playback-speed geometry matches its transport row ==');
+const transport = [];
+for (const [width, height] of [[1440, 900], [1280, 800]]) {
+  await page.setViewport({ width, height });
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => {
+    /* The narrow play browser is a dialog that overlays the theater, and the
+       mounted host is a fixed overlay that does not re-lay-out on a viewport
+       change by itself. Close the dialog and give the theater a resize tick, or
+       the transport measures as a zero box — which is precisely the vacuous
+       result this block must not accept. */
+    document.querySelector('.gi-drive-strip.is-open')?.classList.remove('is-open');
+    window.dispatchEvent(new Event('resize'));
+  });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await new Promise(resolve => setTimeout(resolve, 400));
+  /* Below the wide layout the transport tools collapse behind their own
+     `More playback tools` disclosure. Open it, so the control is measured where
+     the coach actually reaches it at that width instead of as a zero box. */
+  const collapsed = await page.evaluate(() => {
+    const tools = document.querySelector('.gi-theater-transport-tools');
+    if (!tools || getComputedStyle(tools).display !== 'none') return false;
+    document.querySelector('.gi-transport-more-trigger')?.click();
+    return true;
+  });
+  if (collapsed) await new Promise(resolve => setTimeout(resolve, 250));
+  transport.push({ width, collapsed, ...await page.evaluate(() => {
+    const tools = document.querySelector('.gi-theater-transport-tools');
+    const speed = tools?.querySelector('select');
+    const box = el => { const r = el.getBoundingClientRect(); return { h: Math.round(r.height), w: Math.round(r.width), top: Math.round(r.top) }; };
+    const siblings = tools ? [...tools.children].filter(node => node !== speed) : [];
+    return {
+      present: !!tools && !!speed,
+      speed: speed ? box(speed) : null,
+      speedValue: speed?.value ?? null,
+      speedOptions: speed ? speed.options.length : 0,
+      speedClipped: speed ? speed.scrollWidth > speed.clientWidth + 1 : null,
+      siblings: siblings.map(box),
+      visible: speed ? getComputedStyle(speed).visibility !== 'hidden' && getComputedStyle(speed).display !== 'none' : false,
+    };
+  }) });
+}
+ok(transport.every(row => row.present && row.visible && row.speed.h > 0 && row.speed.w > 0
+  && row.speedOptions === 5 && row.siblings.length >= 2 && row.siblings.every(sib => sib.h > 0)),
+  'the playback-speed control and its transport row are really rendered before anything is measured',
+  JSON.stringify(transport));
+ok(transport.every(row => row.siblings.every(sib => sib.h === row.speed.h)),
+  'the playback-speed control is exactly as tall as every control beside it, at 1440 and 1280',
+  JSON.stringify(transport.map(row => ({ w: row.width, speed: row.speed?.h, siblings: row.siblings.map(s => s.h) }))));
+ok(transport.every(row => row.siblings.every(sib => sib.top === row.speed.top)),
+  'the transport tools share one baseline row rather than stepping',
+  JSON.stringify(transport.map(row => ({ w: row.width, speed: row.speed?.top, siblings: row.siblings.map(s => s.top) }))));
+ok(transport.every(row => row.speedClipped === false),
+  'the selected playback speed is not clipped by its own box',
+  JSON.stringify(transport.map(row => ({ w: row.width, value: row.speedValue, clipped: row.speedClipped }))));
+await page.setViewport({ width: 1440, height: 900 });
+
 console.log('\n== 4. Rendered Delete play removes the selected play ==');
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluate(() => window.app.tagger.selectPlay(1));
