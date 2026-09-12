@@ -11,15 +11,17 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-80` is the current unsigned local visual-smoke
-candidate, versioned in `2d67515` after the global secondary-copy repair in
-`b534a3f`. The production build and focused design-system, shell, Breakdown and
-Reports suites passed; the full release gate was not run for this palette-only
-handoff. Tauri produced both NSIS and MSI packages with updater signing disabled
-by `--no-sign`. The coach passed the installed visual check for the shared
-typography, navigation, selector-width and neutral-palette scope. This is not an
-accepted, tagged, pushed or published release.
-See `SMOKE-1.12.0-80.md` and `docs/OPEN-DEFECTS.md`.
+**Packaging status:** `1.12.0-81` is the current unsigned local visual-smoke
+candidate, versioned in `674860d` on top of `5f10e36`. It is the first
+installer carrying the repaired Reports typography floor, the completed neutral
+ladder, the Defense charted-versus-measured cohort contract, the recomposed
+shared Reports chrome and the restored Breakdown geometry. The FULL gate passed
+on `5f10e36`: 110 harnesses, 110 green, 0 skipped, 0 failed. Tauri produced both
+NSIS and MSI packages with updater signing disabled by `--no-sign`. The coach's
+installed smoke has NOT been run against it, so nothing here is accepted,
+tagged, pushed or published state, and no surface advances past its current
+approval status.
+See `SMOKE-1.12.0-81.md`, `SMOKE-1.12.0-80.md` and `docs/OPEN-DEFECTS.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
