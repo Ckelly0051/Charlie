@@ -32,7 +32,7 @@
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
@@ -42,7 +42,18 @@ const ok = (condition, label, detail = '') => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-const CANON_DIR = 'design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4';
+/* CANONICAL PIXEL EVIDENCE. The 2026-08 `charlie-gate-density4` captures were
+ * superseded for COLOUR AND TYPE ONLY on 2026-09-11: the coach-approved global
+ * graphite palette and the shared readable type floor repaint every surface on
+ * this board, so the old rasters can no longer be the reference for either.
+ * The composition they fix — module inventory, order, row counts, band rhythm —
+ * is unchanged and is still asserted here against the new captures. The prior
+ * directory is retained untouched as the approval history.
+ *
+ * Regenerate with GIQ_OVERVIEW_CAPTURE=<dir>; the captures must come from this
+ * harness's own fixture and settle path, or the comparison is meaningless. */
+const CANON_DIR = 'design-comps/reports-overview-2026-09-11/canonical';
+const CAPTURE_DIR = process.env.GIQ_OVERVIEW_CAPTURE || '';
 
 /* ══ The approved composition, transcribed from the canonical record ═══════ */
 
@@ -811,6 +822,11 @@ for (const [width, height] of VIEWPORTS) {
   await sleep(400);
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   const shot = await page.screenshot();
+  if (CAPTURE_DIR) {
+    mkdirSync(CAPTURE_DIR, { recursive: true });
+    writeFileSync(`${CAPTURE_DIR}/${canonName(key)}`, shot);
+    console.log(`  CAPTURED ${CAPTURE_DIR}/${canonName(key)}`);
+  }
   const prodUri = uriFor(shot);
   const canonUri = uriFor(readFileSync(`${CANON_DIR}/${canonName(key)}`));
   const prodBox = await detectBoard(prodUri);
@@ -958,10 +974,23 @@ const fallbacks = fonts.filter(([, f]) => !f || !/IBM Plex/.test(f.family));
 ok(fallbacks.length === 0,
   'every Overview face is a bundled IBM Plex face, never a host fallback',
   JSON.stringify(fallbacks));
+/* THE BOARD'S TYPE SCALE, re-pinned 2026-09-11 for the shared readable floor.
+   `docs/VISUAL-SYSTEM-RULES.md` makes 12.5px the label floor for coach-facing
+   copy and names module titles and table cells as categories that may NOT be
+   exempted, so the board's module title moved from 9.5px Condensed to the
+   12.5px Sans eyebrow role and its table cells from 12px to 12.5px. The KPI
+   headline pair stays the approved broadcast display treatment and is the one
+   recorded exception on this board, named in the rules file.
+
+   Still exact values, not a floor with slack: a drift in either direction
+   reds. */
 ok(density.type.kpiValue.size === '28px' && density.type.kpiLabel.size === '9.5px'
-  && density.type.moduleTitle.size === '9.5px' && density.type.tableCell.size === '12px'
+  && density.type.moduleTitle.size === '12.5px' && density.type.tableCell.size === '12.5px'
   && density.type.rowLabel.size === '12.5px',
-  'the board\'s type scale is unchanged', JSON.stringify(density.type));
+  'the board\'s type scale is the approved scale at the shared readable floor', JSON.stringify(density.type));
+ok(['moduleTitle', 'tableCell', 'rowLabel'].every(key => parseFloat(density.type[key].size) >= 12.5),
+  'no Overview module title, table cell or row label sits below the 12.5px shared floor',
+  JSON.stringify(density.type));
 
 /* ══ 10. Containment at every registered viewport ════════════════════════ */
 console.log('\n== 10. Containment at every registered viewport ==');

@@ -475,3 +475,48 @@ count, and geometry come from its approved composition, not from the amount of
 data in the selected game. Missing ranked entries hold their approved slots
 with the board's absence treatment; excess candidates are deterministically
 ranked and capped. Data variability changes values, never board geometry.
+
+---
+
+## Addendum — 2026-09-11: canonical pixel evidence superseded for palette and type
+
+**Scope of this addendum: colour and type only. The approved Overview
+composition in the sections above is unchanged and unchallenged.**
+
+The coach approved the global graphite palette, the neutral secondary copy and
+the shared readable type floor in the installed `1.12.0-80` visual smoke on
+2026-09-11 (`SMOKE-1.12.0-80.md`, `docs/VISUAL-SYSTEM-RULES.md`). Two
+consequences reach this surface:
+
+1. **Surfaces.** `--gi-2` through `--gi-8` and `--gi-11` moved from the tuned
+   cool ramp to neutral graphite. A `:root` palette edit is an app-wide edit, so
+   every panel on this board repaints. The 2026-08 `charlie-gate-density4`
+   rasters carry the retired blue-grey surfaces and could no longer serve as the
+   colour reference: an independent pre-gate review found
+   `e2e-reports-overview` red at 7 of its assertions, reporting production
+   painting `20,24,28` where the approved capture has `16,24,34`, at all four
+   registered viewports.
+2. **Type.** The shared floor makes 12.5px the label floor for coach-facing
+   copy and explicitly refuses to exempt module titles or table cells. The
+   module title therefore moved from 9.5px Condensed uppercase to the 12.5px
+   Sans eyebrow role, and the table cell from 12px to 12.5px. The KPI headline
+   pair (28px Condensed value over its 9.5px Condensed label) is retained as the
+   approved broadcast display treatment and is recorded as this board's one
+   named exception.
+
+**New canonical evidence:** `design-comps/reports-overview-2026-09-11/canonical`
+(four captures plus a provenance README). The prior directory is retained
+untouched and is named in the manifest as `supersededArtifact` with its own
+hash, so the approval history stays auditable.
+
+**What did NOT change, and is still asserted against the new captures:** the
+thirteen approved modules and their order, every row and tile count, the KPI
+band, the band rhythm the capture repeats, the coach-directed 29px row pitch and
+77px tile row, the approved absence treatments, and containment at 1440, 1280,
+768 and 390. `e2e-reports-overview` is 109/0 and no geometry, rhythm, typography
+or composition assertion was weakened or deleted; the type-scale assertion still
+pins exact values and gained a floor check beside it.
+
+**Status is unchanged.** Overview production remains `REJECTED`. This
+supersession is evidence maintenance, not a promotion, and it does not qualify
+`1.12.0-80` as a release.

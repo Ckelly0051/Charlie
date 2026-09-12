@@ -4,14 +4,23 @@
   "designStatus": "COMP_APPROVED",
   "productionStatus": "REJECTED",
   "approvedOn": "2026-08-20",
-  "approvalNote": "The Charlie Gate density4 production captures are canonical. The earlier FPO HTML is superseded.",
+  "approvalNote": "The Charlie Gate density4 production captures approved the Overview COMPOSITION on 2026-08-20 and still govern it. Their pixel evidence was superseded for COLOUR AND TYPE ONLY on 2026-09-11 by design-comps/reports-overview-2026-09-11/canonical, under the coach's installed 1.12.0-80 visual approval of the global graphite palette and the shared readable type floor. Module inventory, order, row and tile counts, band rhythm and board geometry are unchanged and are asserted against the new captures. The earlier FPO HTML remains superseded.",
   "canonicalArtifact": {
+    "path": "design-comps/reports-overview-2026-09-11/canonical",
+    "kind": "directory",
+    "sha256": "a9331d1e66b6192617cbf9ff3b8b6129c4f13ff19c5db0912a8e8085130440dd",
+    "fileCount": 5
+  },
+  "supersededArtifact": {
     "path": "design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4",
     "kind": "directory",
     "sha256": "90c49e660f0dbae96eb14cd6392562e5716cce3795649c02fc4a61ab7f2d7542",
-    "fileCount": 33
+    "fileCount": 33,
+    "supersededOn": "2026-09-11",
+    "reason": "Palette and type only. Retained untouched as the approval history and as the record of the approved Overview composition.",
+    "authority": "SMOKE-1.12.0-80.md installed visual approval, 2026-09-11; docs/VISUAL-SYSTEM-RULES.md"
   },
   "decisionRecord": "design-comps/reports-overview-2026-09-07/RATIONALE.md",
   "priorDecisionRecord": "docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md",
-  "approvalEvidence": "design-comps/visual-reset-2026-08/part2-verification/charlie-gate-density4/1440x900-overview.png"
+  "approvalEvidence": "design-comps/reports-overview-2026-09-11/canonical/1440x900-overview.png"
 }
