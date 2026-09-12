@@ -4,11 +4,11 @@
   "designStatus": "COMP_APPROVED",
   "productionStatus": "REJECTED",
   "approvedOn": "2026-08-20",
-  "approvalNote": "The Charlie Gate density4 production captures approved the Overview COMPOSITION on 2026-08-20 and still govern it. Their pixel evidence was superseded for COLOUR AND TYPE ONLY on 2026-09-11 by design-comps/reports-overview-2026-09-11/canonical, under the coach's installed 1.12.0-80 visual approval of the global graphite palette and the shared readable type floor. Module inventory, order, row and tile counts, band rhythm and board geometry are unchanged and are asserted against the new captures. The earlier FPO HTML remains superseded.",
+  "approvalNote": "The Charlie Gate density4 production captures approved the Overview COMPOSITION on 2026-08-20 and still govern it. Their pixel evidence was superseded for COLOUR AND TYPE ONLY on 2026-09-11 by design-comps/reports-overview-2026-09-11/canonical, under the coach's installed 1.12.0-80 visual approval of the global graphite palette and the shared readable type floor, and re-captured after the shared-chrome alignment repair that stopped the linescore band wrapping at 1280. Module inventory, order, row and tile counts, band rhythm and board geometry are unchanged and are asserted against the new captures. The earlier FPO HTML remains superseded.",
   "canonicalArtifact": {
     "path": "design-comps/reports-overview-2026-09-11/canonical",
     "kind": "directory",
-    "sha256": "a9331d1e66b6192617cbf9ff3b8b6129c4f13ff19c5db0912a8e8085130440dd",
+    "sha256": "230e58e0f753e2ff77a6dfb3191a85526d15998d22d35043188cfb093ca8a9bd",
     "fileCount": 5
   },
   "supersededArtifact": {

@@ -1274,7 +1274,13 @@
 .gi-reports .gi-scorebug-meta{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 18px;border-left:1px solid var(--gi-bd-line);text-align:right}
 .gi-reports .gi-scorebug-meta strong{font:700 11px/1.2 var(--gi-cond);letter-spacing:.12em;text-transform:uppercase}
 .gi-reports .gi-scorebug-meta span{color:var(--gi-bd-muted);font-size:11px}
-.gi-reports .gi-reports-reporthead{display:flex;align-items:flex-end;gap:14px;padding:8px 14px 0;background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
+/* ONE RIGHT EDGE DOWN THE COLUMN. Measured at 1280 the right edge stepped six
+   times between the shell and the board — 1262, 1280, 1266, 1248, 1247, 1235 —
+   and the left edge four times: 0, 14, 32, 35. Every band that carries Reports
+   content now shares the route frame's own 32px inset, so the title, the tab
+   strip, the scorebug's score and identity strip, and the board all start and
+   end on the same two lines. */
+.gi-reports .gi-reports-reporthead{display:flex;align-items:flex-end;gap:14px;padding:8px var(--gi-6x) 0;background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
 .gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:1 1 360px;min-width:0;padding:0;border:0;background:transparent}
 .gi-reports .gi-reports-reporthead .gi-reports-eyebrow{display:none}
 .gi-reports .gi-reports-reporthead .gi-reports-title-block h1{max-width:100%;margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase;white-space:normal;overflow:visible;overflow-wrap:anywhere;text-overflow:clip}
@@ -2837,15 +2843,26 @@
    The name track yields and wraps so imported names are never shortened,
    truncated or detached from the score they belong to.
    ─────────────────────────────────────────────────────────────────────── */
+/* ONE ROW, THREE BLOCKS THAT SIT NEXT TO EACH OTHER.
+   This band used to WRAP at 1280: the score asked for 680px, the story sized to
+   its own content, and the identity strip declared a 370px floor — about 1380px
+   of demand in an 1154px bar. The identity strip dropped to a second full-width
+   row, where `grid-auto-flow:column` spread Base front, Base coverage and Blitz
+   rate across the entire screen on no grid at all, aligned to nothing above
+   them. The score's `1fr` name track then absorbed every spare pixel on the
+   first row, leaving a ~300px void between the team name and its own Q1.
+
+   The score is sized to its content, the story yields, and the identity strip
+   takes the remainder with no floor to force a wrap. */
 .gi-reports .gi-reports-scorebug.is-linescore{
   --sb-q:52px; --sb-tot:64px;
-  display:flex;flex-wrap:wrap;align-items:stretch;gap:0;background:var(--gi-bd-panel);
+  display:flex;flex-wrap:nowrap;align-items:stretch;gap:0;background:var(--gi-bd-panel);
   grid-template-columns:none
 }
 .gi-reports .gi-scorebug-score{
-  flex:0 1 680px;display:grid;align-items:stretch;min-width:0;
-  grid-template-columns:minmax(190px,1fr) repeat(4,var(--sb-q)) var(--sb-tot);
-  padding:7px 0 9px var(--gi-4x)
+  flex:0 0 auto;display:grid;align-items:stretch;min-width:0;
+  grid-template-columns:minmax(150px,240px) repeat(4,var(--sb-q)) var(--sb-tot);
+  padding:7px 0 9px var(--gi-6x)
 }
 .gi-reports .gi-scorebug-row{ display:contents }
 .gi-reports .gi-scorebug-name,
@@ -2873,17 +2890,20 @@
 .gi-reports .gi-scorebug-total.is-head{ font:700 14px/1 var(--gi-cond);letter-spacing:.1em }
 .gi-reports .gi-scorebug-row:last-child>*{ border-top:1px solid var(--gi-bd-line) }
 .gi-reports .is-linescore .gi-scorebug-story{
-  flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:0 var(--gi-6x);
+  flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:12px;padding:0 var(--gi-4x);
   border-left:0;box-shadow:-1px 0 var(--gi-bd-line);white-space:nowrap
 }
 .gi-reports .is-linescore .gi-scorebug-story>strong{ color:var(--gi-bd-cyan);font:700 30px/1.15 var(--gi-cond) }
 .gi-reports .is-linescore .gi-scorebug-story>span{
   max-width:none;white-space:normal;color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans)
 }
+/* No min-width floor: a floor is what forced the wrap. The strip takes what is
+   left of the row and its three cells stay equal columns inside THAT, beside
+   the score rather than stretched across the whole bar beneath it. */
 .gi-reports .gi-scorebug-ident{
-  flex:1 1 auto;min-width:370px;display:grid;grid-auto-flow:column;
+  flex:1 1 auto;min-width:0;display:grid;grid-auto-flow:column;
   grid-auto-columns:minmax(0,1fr);align-items:center;
-  padding:0 var(--gi-4x);box-shadow:-1px 0 var(--gi-bd-line)
+  padding:0 var(--gi-6x) 0 var(--gi-3x);box-shadow:-1px 0 var(--gi-bd-line)
 }
 .gi-reports .gi-scorebug-ident>div{ min-width:0;padding:0 var(--gi-3x) }
 .gi-reports .gi-scorebug-ident span{

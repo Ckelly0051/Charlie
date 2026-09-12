@@ -132,6 +132,30 @@ for (const game of games) {
           /* The rendered cohort reconciliation, and the rendered proof that no
              tendency row prints a numeric zero for a look the coach charted. */
           defSample: text(board?.querySelector('[data-def-sample]')),
+          /* COMPOSITION, NOT CONTAINMENT. Every check here measured clipping,
+             overflow and scrollers, so a band could sit on its own margin and
+             pass all of them. Measured at 1280 the right edge stepped six times
+             down the column and the left edge four times, and nothing reported
+             it because nothing was looking. The scorebug and title band are
+             full-bleed by design: their BACKGROUND spans the viewport, their
+             CONTENT shares the route frame's inset. */
+          edges: Object.fromEntries([
+            ['title', '.gi-reports-reporthead .gi-reports-title-block'],
+            ['headActions', '.gi-reports-reporthead .gi-reports-actions'],
+            ['score', '.gi-scorebug-score'],
+            ['ident', '.gi-scorebug-ident'],
+            ['pane', '.gi-report-pane'],
+          ].map(([key, selector]) => {
+            const node = document.querySelector(selector);
+            if (!node) return [key, null];
+            /* CONTENT edges, not border boxes. A full-bleed band's own box
+               starts at 0 by design; where its CONTENT starts is the thing that
+               has to line up, so its padding comes off here. */
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            return [key, { left: Math.round(rect.left + parseFloat(style.paddingLeft)),
+              right: Math.round(rect.right - parseFloat(style.paddingRight)) }];
+          })),
           zeroSnapCells: modules.flatMap(module => {
             const name = title(module);
             if (!['Top 6 formations', 'Personnel faced', 'Backfield faced', 'Motion',
@@ -198,6 +222,31 @@ ok(observations.every(item => !item.reportTitleClipped),
   JSON.stringify(observations.filter(item => item.reportTitleClipped).slice(0, 4)));
 ok(observations.every(item => item.clipped.length === 0), 'no Defense label or value is clipped',
   JSON.stringify(observations.filter(item => item.clipped.length).slice(0, 4)));
+/* SHARED CHROME ALIGNMENT. One left edge and one right edge down the column. */
+const withEdges = observations.filter(item => item.edges?.pane && item.edges?.score && item.edges?.ident);
+ok(withEdges.length === observations.length,
+  'every shared Reports band is on screen before its edges are measured',
+  JSON.stringify(observations.filter(item => !item.edges?.score).map(item => item.section).slice(0, 3)));
+const leftRagged = withEdges.flatMap(item => ['title', 'score']
+  .filter(key => Math.abs(item.edges[key].left - item.edges.pane.left) > 1)
+  .map(key => `${item.game}/${item.width}:${key}:${item.edges[key].left} vs pane ${item.edges.pane.left}`));
+ok(leftRagged.length === 0,
+  'the report title and the linescore start on the report frame\'s own left inset',
+  JSON.stringify([...new Set(leftRagged)].slice(0, 4)));
+const rightRagged = withEdges.flatMap(item => ['headActions', 'ident']
+  .filter(key => Math.abs(item.edges[key].right - item.edges.pane.right) > 1)
+  .map(key => `${item.game}/${item.width}:${key}:${item.edges[key].right} vs pane ${item.edges.pane.right}`));
+ok(rightRagged.length === 0,
+  'the title-band commands and the identity strip end on the report frame\'s own right inset',
+  JSON.stringify([...new Set(rightRagged)].slice(0, 4)));
+/* The linescore must stay ONE row. It wrapped at 1280, dropping the identity
+   strip onto its own full-width row where three items were spread across the
+   entire bar on no grid, aligned to nothing above them. */
+const wrappedBand = withEdges.filter(item => item.edges.ident.left < item.edges.score.right)
+  .map(item => `${item.game}/${item.width}`);
+ok(wrappedBand.length === 0,
+  'the linescore, its story and its identity strip stay on one row at both release widths',
+  JSON.stringify([...new Set(wrappedBand)].slice(0, 4)));
 /* THE RENDERED COHORT RECONCILIATION. Compact factual data, present on every
    section at both widths, naming both cohorts and mislabelling neither. */
 const missingSample = observations.filter(item => !/^\d+ charted · \d+ with play type$/.test(item.defSample || ''));

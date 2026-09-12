@@ -68,6 +68,37 @@ a frequency ranking. The board and its HTML export both state the reconciliation
 compactly: `40 charted · 37 with play type`. The byte-identical `classified`
 alias is deleted.
 
+## Found by the coach at the board, 2026-09-11 — shared Reports chrome
+
+The repair above passed 58 assertions on Defense and still shipped a band the
+coach rejected on sight. Containment was measured; composition was not.
+
+1. **The linescore band wrapped at 1280.** Score 680 + story + a 370px identity
+   floor is ~1380px of demand in an 1154px bar, so the identity strip dropped to
+   its own full-width row and `grid-auto-flow:column` spread Base front, Base
+   coverage and Blitz rate across the entire screen, aligned to nothing above
+   them. Blocks are sized to content now and the floor that forced the wrap is
+   gone.
+2. **The score's name track was `1fr`** and absorbed every spare pixel, leaving
+   ~300px of dead space between the team name and its own Q1. Capped at 240px.
+3. **Six right edges down one column** — 1262, 1280, 1266, 1248, 1247, 1235 —
+   and four left edges. The Reports chrome shares the route frame's 32px inset
+   now, measured on content edges rather than border boxes.
+4. **The KPI rail contradicted the board underneath it.** The rail printed
+   `3.3 Yards per play allowed · 132 yds, 40 snaps` above a board reading 3.4
+   over 127 yards and `40 charted · 37 with play type`. `_defenseScorebug` ran
+   its own `defensivePerformance` maths, and the yardage was never measured at
+   all: `Math.round(ypp * total)` synthesized it from a rate times a count, under
+   a comment claiming nothing there was computed. It reads
+   `defenseDashboard` — the tab's only football-value owner — and blitz rate
+   divides by charted Blitz plus charted No Blitz rather than every snap.
+
+**Still not aligned, deliberately, and needing a decision.** The shell top bar
+ends at 1262 and the context bar runs flush to 1280, against the Reports column's
+1248. Unifying them is a shell-wide composition change affecting Home, Study and
+Plan, which is beyond the scope of a review repair. The context bar's cells are
+edge-to-edge by design; the top bar's 18px inset is not.
+
 ## Deferred, measured, not hidden
 
 1. **Legacy sub-floor type on five Reports boards.** Self-Scout, Season,

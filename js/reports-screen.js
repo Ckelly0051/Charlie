@@ -394,37 +394,59 @@ export class ReportsScreen {
 
   /**
    * Defense adds its performance story and identity strip to the shared
-   * full-name linescore. Every value is read from the same owners the rest of
-   * the tab uses; nothing is computed here. The story metric is yards per play
-   * allowed over the defensive cohort currently in scope, and the identity
-   * strip states the base front, base coverage and blitz rate.
+   * full-name linescore.
+   *
+   * THE RAIL AND THE BOARD ARE ONE OWNER. This method used to compute its own
+   * defensive story from `defensivePerformance`, and the two disagreed on the
+   * same screen: the rail printed `3.3 Yards per play allowed · 132 yds, 40
+   * snaps` directly above a board reading 3.4 over 127 yards and `40 charted ·
+   * 37 with play type`. Both halves were wrong in the way the 2026-09-10 repair
+   * had already fixed on the board — 132 is the unreconciled total that printed
+   * above 72 + 55, and 40 is the charted denominator a classified yardage may
+   * not be divided by.
+   *
+   * Worse, the yardage was never measured: `Math.round(ypp * total)` SYNTHESIZED
+   * it from a rate times a count, under a comment claiming nothing here is
+   * computed. `StatsEngine.defenseDashboard()` is the only football-value owner
+   * for this tab, so the rail reads its measured yardage, its measured cohort
+   * and its charted sample, and states both cohorts the way the board does.
    */
   _defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game }) {
-    const { scoped } = this._defenseCohort();
-    const report = this.app.stats.defensivePerformance(scoped);
+    const { scoped, labels } = this._defenseCohort();
+    const dashboard = this.app.stats.defenseDashboard(scoped, labels);
     const def = this.app.stats.compute(scoped).defensive || {};
-    const allowed = report.total ? report.summary.yardsPerPlay.toFixed(1) : '—';
-    const yardsAllowed = report.total ? Math.round(report.summary.yardsPerPlay * report.total) : 0;
+    const charted = dashboard.total;
+    const measured = dashboard.measured;
+    const allowed = dashboard.summary.ypp == null ? '—' : dashboard.summary.ypp.toFixed(1);
+    const yardsAllowed = dashboard.summary.yards == null ? '—' : dashboard.summary.yards;
 
     // A dimension with no charted sample says so rather than reporting a zero.
+    // Shares divide by the CHARTED cohort, which is what a front or coverage is
+    // charted on — the same denominator the board's own frequency uses.
     const top = (list, unit) => {
       const first = (list || [])[0];
       if (!first) return { value: '—', sub: 'none charted' };
       const count = first.count ?? first.n ?? 0;
-      const share = report.total ? Math.round(count / report.total * 100) : 0;
+      const share = charted ? Math.round(count / charted * 100) : 0;
       return { value: first.name, sub: `${count} ${unit}, ${share}%` };
     };
     const front = top(def.fronts, 'snaps');
     const cover = top(def.coverages, 'snaps');
-    const blitzRate = def.hasData && def.blitzRate != null ? `${def.blitzRate}%` : '—';
-    const blitzSub = def.hasData && report.total
-      ? `${def.blitzTotal || 0} of ${report.total} snaps` : 'none charted';
+    /* Blitz% divides by charted Blitz plus charted No Blitz, never by every
+       defensive snap: untagged defensive structure must not dilute the rate,
+       and the sub has to state the cohort the percentage is actually over. */
+    const blitzCharted = dashboard.pressure?.blitz?.charted || 0;
+    const noBlitzCharted = dashboard.pressure?.noBlitz?.charted || 0;
+    const blitzCohort = blitzCharted + noBlitzCharted;
+    const blitzRate = blitzCohort ? `${Math.round(blitzCharted / blitzCohort * 100)}%` : '—';
+    const blitzSub = blitzCohort
+      ? `${blitzCharted} of ${blitzCohort} charted calls` : 'none charted';
     const ident = [['Base front', front.value, front.sub], ['Base coverage', cover.value, cover.sub],
       ['Blitz rate', blitzRate, blitzSub]]
       .map(([label, value, sub]) => `<div><span>${label}</span><strong>${esc(String(value))}</strong><small>${esc(sub)}</small></div>`).join('');
 
     return `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
-      <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds, ${report.total}&nbsp;snaps</span></div>
+      <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds over ${measured}&nbsp;classified, ${charted}&nbsp;charted</span></div>
       <div class="gi-scorebug-ident">${ident}</div>`;
   }
 

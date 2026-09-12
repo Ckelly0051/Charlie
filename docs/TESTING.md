@@ -333,6 +333,27 @@ of synthetic data proves less than it appears to.
 Both are why the Charlie Gate — show the real app with real data and get
 PASS / REVISE / REJECT — happens before packaging, not after.
 
+### Containment is not composition
+
+A band that clips nothing, overflows nothing and engages no scroller can still be
+badly composed, and every geometry check in this repository was written to catch
+the first three. On 2026-09-11 the coach rejected a Defense screen that had just
+passed 58 assertions: the linescore band had wrapped into two rows, its identity
+strip was spread across the whole viewport on no grid, its name track held a
+300px void, and six different right edges ran down the column.
+
+When a change touches shared chrome, assert the composition explicitly:
+
+- Content edges — not border boxes — of every band that carries route content,
+  against the route frame's own inset, left and right.
+- That a shared band stays on ONE row at every release width.
+- That no flexible track absorbs slack into a void beside fixed content.
+- That two surfaces reporting the same measurement report the same number. The
+  KPI rail and the board beneath it disagreed for a full release cycle.
+
+`e2e-reports-defense-realdata` carries these for the Reports column. None of it
+replaces looking at the populated screen.
+
 ### A global token change is not a focused change
 
 The 2026-09-11 shared visual range ran six focused suites, all green, and

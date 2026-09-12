@@ -1219,6 +1219,19 @@ product is wrong.
 same commit that opens, reclassifies, repairs, or closes an issue; this section
 may summarize active work but must not become a competing ledger.
 
+**Containment is not composition, and the coach found that at the board
+(2026-09-11).** A Defense screen that had just passed 58 assertions shipped a
+linescore band wrapped into two rows, an identity strip spread across the whole
+viewport on no grid, a 300px void inside the score's own name track, six
+different right edges down one column, and a KPI rail printing `3.3 · 132 yds,
+40 snaps` above a board reading 3.4 over 127 yards. The rail's yardage was never
+measured — it was `Math.round(ypp * total)`. Every geometry check in this
+repository was written to catch clipping, overflow and scrollers; none of them
+looks at alignment, balance or rhythm. `e2e-reports-defense-realdata` now asserts
+content edges against the route frame's inset, that a shared band stays on one
+row, and that the rail and the board report the same number — and none of that
+replaces looking at the populated screen.
+
 **The shared visual range failed its pre-gate review and was repaired
 (2026-09-11).** An independent non-builder review of `7afa94d..44adcc6` found
 four Reports harnesses red, two against hash-protected approved evidence, behind

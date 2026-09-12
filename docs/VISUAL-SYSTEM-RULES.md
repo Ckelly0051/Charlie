@@ -140,6 +140,35 @@ raising them requires re-deriving each board's row math. Tracked in
 - Remove explanatory prose that does not change the coach's next decision.
   Titles and labels name the data directly.
 
+## Composition is inspected, not inferred from containment
+
+Zero clipping, zero overflow and zero engaged scrollers say a band FITS. They say
+nothing about whether it is composed. A band can sit on its own margin, spread
+three items across a screen on no grid, and pass every containment check ever
+written for it — which is what happened on 2026-09-11, when the coach looked at a
+Defense screen that had just passed 58 assertions.
+
+What the checks missed, and what they now assert:
+
+- **One left edge and one right edge down the column.** Measured at 1280, the
+  right edge stepped six times between the shell and the board — 1262, 1280,
+  1266, 1248, 1247, 1235 — and the left edge four times: 0, 14, 32, 35. Every
+  band carrying Reports content now shares the route frame's 32px inset. A
+  full-bleed band's BACKGROUND spans the viewport; its CONTENT aligns, and the
+  assertion measures content edges, not border boxes.
+- **A shared band may not wrap into a second row.** The linescore asked for
+  ~1380px in an 1154px bar, so its identity strip dropped to its own full-width
+  row and spread Base front, Base coverage and Blitz rate across the whole
+  screen. Sizing blocks to content and removing the min-width floor that forced
+  the wrap keeps it one row.
+- **A flexible track may not become a void.** The linescore's name track was
+  `1fr` and absorbed every spare pixel, leaving ~300px of nothing between the
+  team name and its own Q1.
+
+Enforced in `e2e-reports-defense-realdata` across all six canonical games at both
+release widths. Still true, and still the last word: an automated geometry check
+is not visual approval. Look at the populated screen.
+
 ## A global token change is an app-wide change, including to approved evidence
 
 A `:root` palette or type-token edit repaints and re-measures every surface,
