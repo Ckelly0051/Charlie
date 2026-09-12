@@ -233,11 +233,7 @@ function playCallParts({ stats, screen }) {
   const situations = <Module title="Calls by situation">
     {renderLenses(['Down & Distance', 'Field Position'])}
   </Module>;
-  const direction = <Module title="Direction vs Strength" cls="is-offense">
-    {renderLenses(['Direction vs Strength'])}
-  </Module>;
-
-  return { calls, concepts, situations, direction };
+  return { calls, concepts, situations };
 }
 
 
@@ -626,10 +622,14 @@ const OFFENSE_ROWS = {
  *  RECORDED MISMATCH: the comp's third lens is `Hash`, and
  *  `_playCallAnalysis` computes no hash dimension — its five are Down &
  *  Distance, Formation, Personnel, Field Position and Direction vs Strength.
- *  Rather than invent a lens the engine does not produce, the third slot takes
- *  `Direction vs Strength`, the nearest situational dimension it does. Raised
- *  in the implementation RATIONALE for the coach. */
-const OFFENSE_LENSES = [['Down & Distance', 4], ['Field Position', 4], ['Direction vs Strength', 4]];
+ *  The third slot briefly took `Direction vs Strength` as the nearest
+ *  situational dimension the engine does produce. That is what put a CALL lens
+ *  under a module named for a charted dimension, leaving it permanently empty
+ *  on a season charting no play calls. That module measures the dimension
+ *  itself now (`StatsEngine._dirStrengthStats`), so this one holds only the
+ *  two lenses both the engine and the comp have. The absent hash lens stays
+ *  raised in the implementation RATIONALE for the coach. */
+const OFFENSE_LENSES = [['Down & Distance', 4], ['Field Position', 4]];
 const OFFENSE_MATRIX_COLS = 5;
 const OFFENSE_EPA_ROWS = {
   'By play type': 6, 'By formation': 5, 'By personnel': 5, 'By down': 4,
@@ -699,6 +699,7 @@ export function OffenseTab({ stats, screen }) {
   const tend = view.tendencyBreakdown(stats);
   const bf = view.backfieldStrength(stats, engine);
   const dm = view.directionMotion(stats);
+  const dirStrength = view.dirStrengthTendencies(engine, stats.offPlays);
   const pa = view.playAction(stats);
   const advanced = view.advancedData(stats, engine);
   const personnel = view.personnelGroups(stats);
@@ -772,7 +773,16 @@ export function OffenseTab({ stats, screen }) {
     <div class="gi-overview-band gi-off-b2 gi-off-call-band">
       <div class="gi-off-call-stack">
         <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
-        {calls.direction}
+        <Module title="Direction vs Strength" meta="ball direction vs declared strength" cls="is-offense">
+          <DataTable emptyText="Insufficient charted data" columns={breakdownColumns}
+            rows={fitRows(dirStrength, OFFENSE_ROWS['Direction vs Strength']).map((row, index) => (row.absent ? row
+              : {
+                ...row, id: row.name || `dvs-${index}`,
+                ...(row.refs?.length
+                  ? { onActivate: () => screen.watchRefs(row.refs, row.cutLabel), label: row.cutLabel }
+                  : {}),
+              }))} />
+        </Module>
       </div>
       {calls.situations}
     </div>

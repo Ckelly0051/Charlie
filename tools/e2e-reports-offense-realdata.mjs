@@ -332,6 +332,53 @@ for (const [width, height] of VIEWPORTS) {
     JSON.stringify(measured.engagedScrollers));
 }
 
+/* ── Direction vs Strength reports a CHARTED dimension ────────────────────
+   The module used to render one of `_playCallAnalysis`'s play-call lenses,
+   which filters its source to plays carrying a `playCall`. This season charts
+   0 of 449, so the module was structurally empty while `playDir` and
+   `strength` -- the two tags it is named for -- were charted on most snaps.
+   Found by the coach at the board, 2026-09-12.
+
+   Asserted on the canonical season, not a fixture: the four buckets are the
+   fixed set in football order, at least one is measured, every measured row
+   carries film, and a bucket no snap reached HOLDS its label with dashes
+   rather than reporting a fabricated zero. */
+const DIR_STRENGTH_BUCKETS = ['Toward strength', 'Away from strength', 'Middle', 'n-a (balanced)'];
+for (const [width] of VIEWPORTS) {
+  await page.setViewport({ width, height: 900 });
+  /* The Season block above leaves the page on Reports > Season, whose Offense
+     lives behind a sub-tab -- the Offense board is NOT mounted. Navigate back
+     and prove the subject is on screen before measuring it. */
+  await page.evaluate(() => { window.app.reportsScreen.selectTab('offense'); });
+  await new Promise(r => setTimeout(r, 350));
+  const onOffense = await page.evaluate(() => window.app.reportsScreen.activeTab === 'offense'
+    && !!document.querySelector('.gi-offense-board'));
+  ok(onOffense, `${width}: the Offense board is on screen before Direction vs Strength is measured`);
+  const dvs = await page.evaluate(() => {
+    const module = [...document.querySelectorAll('.gi-overview-module')]
+      .find(node => node.querySelector('header strong')?.textContent.trim() === 'Direction vs Strength');
+    if (!module) return { present: false };
+    const rows = [...module.querySelectorAll('tbody tr')].map(tr => {
+      const cells = [...tr.children].map(td => td.textContent.trim());
+      return { name: cells[0], plays: cells[1], measured: cells[1] !== '-' && cells[1] !== '—' && cells[1] !== '', watchable: !!(tr.onclick || tr.getAttribute('tabindex') !== null || tr.querySelector('button')) };
+    });
+    const headers = [...module.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    return { present: true, headers, rows };
+  });
+  ok(dvs.present, `${width}: Direction vs Strength renders on the Offense board`, JSON.stringify(dvs));
+  ok(dvs.present && dvs.rows.length === 4 && dvs.rows.every((row, i) => row.name === DIR_STRENGTH_BUCKETS[i]),
+    `${width}: Direction vs Strength holds its four fixed buckets in football order`,
+    JSON.stringify(dvs.rows?.map(r => r.name)));
+  ok(dvs.present && !dvs.headers.includes('Top Call'),
+    `${width}: Direction vs Strength is no longer a play-call lens`, JSON.stringify(dvs.headers));
+  ok(dvs.present && dvs.rows.some(row => row.measured),
+    `${width}: Direction vs Strength MEASURES the canonical season instead of rendering empty`,
+    JSON.stringify(dvs.rows));
+  ok(dvs.present && dvs.rows.every(row => row.measured || row.plays === '-'),
+    `${width}: an unreached bucket holds its label with a dash, never a fabricated zero`,
+    JSON.stringify(dvs.rows));
+}
+
 await browser.close();
 
 console.log('\n── Evidence handoff ──────────────────────────────────────────');

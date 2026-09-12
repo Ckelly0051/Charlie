@@ -474,6 +474,26 @@ export function directionMotion(stats) {
   };
 }
 
+/**
+ * Direction vs Strength rows for the Offense board, in the shared
+ * `breakdownColumns` shape its sibling modules use.
+ *
+ * A HELD bucket keeps its label and carries `-` in every measured cell, the
+ * same treatment Self-Scout's twelve fixed down-and-distance rows use: an
+ * unfaced situation is an absence, not a measured zero. It also carries no
+ * `refs`, so it offers no film affordance for a cohort that does not exist.
+ */
+export function dirStrengthTendencies(engine, offPlays) {
+  const model = engine._dirStrengthStats(offPlays || []);
+  return model.list.map(row => (row.held
+    ? { name: row.name, count: '-', ypp: '-', success: '-', held: true }
+    : {
+      name: row.name, count: row.count, runs: row.runs, passes: row.passes,
+      ypp: row.avg, success: `${row.successPct}%`, refs: row.refs,
+      cutLabel: `Direction vs Strength: ${row.name} — ${row.count} plays`,
+    }));
+}
+
 export function hashTendencies(stats) {
   if (!stats.hash || !stats.hash.hasData) return [];
   return groupBreakdown(stats.hash.list || [], 'hash');

@@ -3,6 +3,43 @@
 > **Status:** CURRENT DEFECT INDEX. Updated 2026-09-12 for the next protected
 > Home workstream after the active Reports repair review.
 
+## Coach smoke, 1.12.0-81 (2026-09-12)
+
+Found at the board on the installed visual-smoke candidate.
+
+1. **CLOSED — Break Down bled off the left edge.** The film's content sat 4px
+   from the viewport and the charting deck's 8px, and the 4px was
+   `.gi-theater-stage`'s letterbox padding painted in `--gi-film` on a
+   `--gi-film` ground, so the left gutter was invisible while the right read as
+   padded. Both content edges now land on the 12px gutter
+   `.gi-breakdown-toolbar` already uses, and the theater host carries the
+   matching `border-left` its `border-right` always had — geometry alone did
+   not fix it, because `--gi-film` and `--gi-1` are near-identical blacks.
+
+2. **CLOSED — `Direction vs Strength` measured nothing it was named for.** The
+   module rendered one of `_playCallAnalysis`'s play-call lenses, and that
+   analysis filters its source to plays carrying a `playCall`. The canonical
+   season charts 0 of 449, so the module was structurally empty — while 19 of
+   Week 5's offensive snaps carried both `playDir` and `strength`. It now reads
+   those tags through the canonical `dirVsStrength` extractor already shared
+   with the tendency pivot, holding its four fixed buckets in football order
+   with a held dash for any bucket no snap reached. `Calls by situation` keeps
+   the two lenses the engine and the comp both have.
+
+3. **NOT A DEFECT — five Offense modules are honestly empty.** `Play calls`,
+   `Concepts`, both `Calls by situation` lenses and Identity's `Top call` all
+   key on `playCall` / `playConcept`, which are filled on **0 of 449** plays
+   season-wide; `Play-action` is empty on Week 5 because the season charts one
+   play-action snap in total, in Week 2. These are charting-vocabulary gaps, not
+   code defects: the Playbook & Calls library was never populated, so there is
+   nothing for a play to snapshot. Reopen only if the coach begins charting
+   calls and the modules stay empty.
+
+4. **OPEN — `n-a (balanced)` is an engine token in coach-facing copy.** The
+   fourth Direction vs Strength bucket prints the extractor's own label. The
+   same label appears in the Study/tendency pivot, so renaming it in one place
+   would split the two surfaces. Coach decision required.
+
 ## Home
 
 Home is a high-priority navigation and data-accuracy surface. Current production

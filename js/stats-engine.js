@@ -1214,6 +1214,57 @@ export class StatsEngine {
     });
     return { eligible: source.length, calls, concepts, situations };
   }
+  /** Direction vs Strength as a MEASURED dimension, not a play-call lens.
+   *
+   *  The Offense board's `Direction vs Strength` module rendered one of
+   *  `_playCallAnalysis`'s situational lenses, which groups a situation's
+   *  snaps by `playCall` and reports the most frequent one. That analysis
+   *  filters its source to plays CARRYING a `playCall`, so a season charting
+   *  none renders the module structurally empty -- while `playDir` and
+   *  `strength`, the two tags the module is NAMED for, are charted on most
+   *  snaps. On the canonical 2025 JV season that is 0 of 449 calls against 19
+   *  Week 5 offensive snaps carrying both direction and strength: a module
+   *  reporting nothing about a dimension the coach charted. Found at the
+   *  board, 2026-09-12.
+   *
+   *  This reads those two tags through `_matrixDimensions()`'s canonical
+   *  `dirVsStrength` extractor -- the one owner of the toward/away rule and of
+   *  the side convention, already shared with the tendency pivot -- so the
+   *  module measures what its title says. Run, pass, yardage and success come
+   *  from the SAME helpers the sibling Personnel, Backfield, Play direction
+   *  and Strength modules use, so a row here reconciles with the rows beside
+   *  it.
+   *
+   *  `DIR_STRENGTH_BUCKETS` is a FIXED football set in a fixed order. A bucket
+   *  no snap reached is HELD -- `held: true`, keeping its label and carrying no
+   *  measurement -- never a fabricated zero, and never a row that vanishes. */
+  _dirStrengthStats(plays) {
+    const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
+    const groups = new Map(StatsEngine.DIR_STRENGTH_BUCKETS.map(name => [name, []]));
+    if (extract) {
+      (plays || []).filter(p => (p.tags.unit || 'offense') === 'offense').forEach(p => {
+        (extract(p) || []).forEach(key => { if (groups.has(key)) groups.get(key).push(p); });
+      });
+    }
+    const list = [...groups.entries()].map(([name, cohort]) => {
+      if (!cohort.length) return { name, held: true };
+      const yards = cohort.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
+      const runs = cohort.filter(p => StatsEngine.isRun(p)).length;
+      const successes = cohort.filter(p => this._isSuccessfulPlay(p)).length;
+      return {
+        name,
+        count: cohort.length,
+        runs,
+        passes: cohort.length - runs,
+        yards,
+        avg: (yards / cohort.length).toFixed(1),
+        successPct: ((successes / cohort.length) * 100).toFixed(0),
+        refs: StatsEngine._refsOf(cohort),
+      };
+    });
+    return { hasData: list.some(row => !row.held), list };
+  }
+
   _personnelStats(plays) {
     const groups = {};
     plays.forEach(p => {
@@ -4484,6 +4535,12 @@ export class StatsEngine {
    *  patching the string at three call sites — so every other surface printed
    *  "1st & Long" while Defense printed "1st & 7+". This is the one owner. */
   static DIST_LABELS = { Short: '1-3', Medium: '4-6', Long: '7+' };
+
+  /** The fixed Direction vs Strength set, in football order, matching exactly
+   *  the values `_matrixDimensions()`'s `dirVsStrength` extractor emits. The
+   *  Offense board allocates four rows to this module; these are those four,
+   *  so data can never add, drop or reorder one. */
+  static DIR_STRENGTH_BUCKETS = ['Toward strength', 'Away from strength', 'Middle', 'n-a (balanced)'];
 
   /** Pretty-print a down&distance key. Handles the bucket form ("3|Long" →
    *  "3rd & 7+"), the legacy exact form ("3&7" → "3rd & 7"), and a bare
