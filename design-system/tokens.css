@@ -32,7 +32,10 @@
   --gi-6:#3f474e;   /* border subtle             */
   --gi-7:#515b64;   /* border default            */
   --gi-8:#68737d;   /* border strong / disabled  */
-  --gi-9:#2b6fff;   /* solid accent — CURRENT    */
+  /* Solid accent. Still the selection fill inside a route's own surfaces; the
+   * SHELL's current route is the gold underline on transparent chrome, so this
+   * step no longer marks the primary navigation state. */
+  --gi-9:#2b6fff;   /* solid accent              */
   --gi-10:#5a92ff;  /* solid accent hover        */
   --gi-11:#a7adb3;  /* text secondary            */
   --gi-12:#f2f6fa;  /* text primary              */

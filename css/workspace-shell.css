@@ -57,7 +57,13 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-top-nav button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-top-nav button.active{border-bottom-color:var(--gi-bd-gold);background:transparent;color:var(--ws-text);box-shadow:none}
 .ws-top-nav button.active:focus-visible{box-shadow:var(--gi-focus)}
-.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
+/* DISABLED IS A COLOUR, NOT AN OPACITY. On the filled prototype pill a 35%
+   label still had its own backing; on the approved transparent chrome the same
+   opacity composites straight onto the shell and measured 2.2:1 at 18px — and
+   on first launch four of the five routes are disabled, so that is the state a
+   new coach meets. `--gi-8` is the design system's own disabled step and
+   measures 3.7:1 on `--ws-nav`, above the 3:1 minimum, with no layout shift. */
+.ws-top-nav button:disabled{color:var(--gi-8);opacity:1;cursor:not-allowed}
 
 /* Keep the canonical Settings command and global history tools reachable in the compact shell. */
 .ws-global-tools{display:flex;align-items:center;gap:6px}
@@ -70,7 +76,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
   .ws-mobile-head strong{min-width:0;margin-left:auto;overflow:hidden;color:var(--ws-text);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
   .ws-mobile-head .ws-icon-btn{flex:0 0 auto}
   .ws-mobile-nav{position:fixed;z-index:80;left:0;right:0;bottom:0;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--ws-nav);border-top:1px solid var(--ws-line)}
-  .ws-mobile-nav button{min-width:0;min-height:56px;border:0;border-top:3px solid transparent;background:transparent;color:color-mix(in srgb,var(--gi-12) 72%,var(--gi-2));font:inherit;font-size:12.5px;font-weight:600}.ws-mobile-nav button span{display:block;height:21px;font-size:17px}.ws-mobile-nav button.active{color:var(--ws-text);border-top-color:var(--gi-bd-gold);background:transparent}.ws-mobile-nav button:disabled{opacity:.35}
+  .ws-mobile-nav button{min-width:0;min-height:56px;border:0;border-top:3px solid transparent;background:transparent;color:color-mix(in srgb,var(--gi-12) 72%,var(--gi-2));font:inherit;font-size:12.5px;font-weight:600}.ws-mobile-nav button span{display:block;height:21px;font-size:17px}.ws-mobile-nav button.active{color:var(--ws-text);border-top-color:var(--gi-bd-gold);background:transparent}.ws-mobile-nav button:disabled{color:var(--gi-8);opacity:1}
   .ws-main{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
 }
 
@@ -148,7 +154,11 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
  * rows -- mobile-head + content) must keep winning below that, where the
  * contextbar itself is hidden and mobile-head carries the game name instead. */
 @media(min-width:901px){.ws-main{grid-template-rows:var(--ws-top) 64px minmax(0,1fr)}}
-.ws-contextbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(170px,.7fr) minmax(260px,1.15fr) minmax(230px,1fr) auto;align-items:stretch;border-bottom:1px solid var(--ws-line);background:var(--ws-ink)}
+/* The Program track holds a real program name in full. `minmax(170px,…)` left
+   `St. Joseph Mavericks` ellipsized at BOTH release widths while the rules file
+   said no context value may clip: the 14px/30px insets take 44px off the track, so 240px is the floor that holds
+   for a 170px string. The Breakdown override below carries the same floor. */
+.ws-contextbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(240px,.7fr) minmax(260px,1.15fr) minmax(230px,1fr) auto;align-items:stretch;border-bottom:1px solid var(--ws-line);background:var(--ws-ink)}
 .ws-ctx{position:relative;min-width:0;border:0;border-right:1px solid var(--ws-line);background:var(--ws-nav);text-align:left;padding:8px 30px 7px 14px;cursor:pointer;color:var(--ws-text)}
 .ws-ctx:hover:not(:disabled){background:var(--ws-hover)}
 .ws-ctx:disabled{cursor:not-allowed;opacity:.5}

@@ -37,7 +37,7 @@
 @media(min-width:1001px){
   body.ws-shell-active.ws-route-breakdown .ws-contextbar{display:flex;justify-content:flex-start;gap:12px}
   body.ws-shell-active.ws-route-breakdown .ws-ctx{max-width:none;padding:0 18px 0 12px;border:0;gap:6px}
-  body.ws-shell-active.ws-route-breakdown #wsCtxProgram{flex:0 1 clamp(180px,15vw,240px)}
+  body.ws-shell-active.ws-route-breakdown #wsCtxProgram{flex:0 1 clamp(215px,17vw,260px)}
   body.ws-shell-active.ws-route-breakdown #wsCtxSeason,
   body.ws-shell-active.ws-route-breakdown #wsCtxGame{flex:0 1 clamp(280px,26vw,440px)}
   body.ws-shell-active.ws-route-breakdown .ws-ctx-label{display:inline;color:var(--gi-bd-copy);font-size:10px}
@@ -77,5 +77,5 @@
    leftover from the compact prototype and no longer define production density. */
 .gi-breakdown-toolbar button{font:var(--gi-text-control)}
 .gi-breakdown-save{font:var(--gi-text-label);letter-spacing:0}
-body.ws-shell-active.ws-route-breakdown .ws-ctx-label{font-size:12px}
+body.ws-shell-active.ws-route-breakdown .ws-ctx-label{font-size:12.5px}
 body.ws-shell-active.ws-route-breakdown .ws-ctx-value{font-size:12.5px}
