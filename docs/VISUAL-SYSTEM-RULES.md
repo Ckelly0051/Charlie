@@ -36,8 +36,12 @@
   preserve its predecessor's relative luminance, so no contrast ratio moves:
   panel-on-background, text-on-panel, border-on-surface and every disabled state
   measure exactly what they measured before. Only the hue changes.
-- Ordinary secondary copy uses `--gi-11` (`#a7adb3`). Breakdown's operational
-  secondary copy uses `--gi-bd-copy` (`#a6a6a6`). Both must read as gray.
+- Ordinary secondary copy uses `--gi-11`. Breakdown's operational secondary copy
+  uses `--gi-bd-copy`. Both read as neutral gray.
+- **This file names tokens; `design-system/tokens.css` owns their values.** It
+  quoted `--gi-11` as `#a7adb3` after production had moved to `#acacac`, which
+  defeats the point of a single source of truth. Do not restate a hex here — if
+  a value matters to a rule, point at the token.
 - Blue, cyan, gold, green, red, and orange are semantic signals, not neutral
   decoration. Preserve their named roles for selection, unit identity,
   achievement, health, destructive outcomes, and warning states.
@@ -93,11 +97,50 @@ values. `e2e-reports-overview` pins the Overview scale exactly and asserts its
 module title, table cell and row label are at or above the floor. A floor
 without a test is a preference, not a contract.
 
-**Known remaining work, measured not hidden.** Self-Scout, Season, Players,
-Special Teams and Matchup still carry legacy sub-floor labels inside their own
-approved fixed-height boards. They are not exempt; they are unfinished, and
-raising them requires re-deriving each board's row math. Tracked in
-`docs/OPEN-DEFECTS.md` rather than quietly allowed.
+### Where the floor is enforced today — and where it is not
+
+**The floor is not yet satisfied app-wide, and this rule does not claim it is.**
+It is enforced on the shared chrome, Overview, Offense and Defense. Five Reports
+boards have not been migrated, and each one's current minimum is pinned in its
+own harness as a named `*_TYPE_FLOOR_DEFERRED` constant so it cannot drift
+further while it waits:
+
+The census below is measured on the **canonical season** by
+`tools/e2e-reports-typefloor-realdata.mjs`, which is the only place this claim is
+allowed to be measured: every board's own composition harness runs a synthetic
+fixture, and `CLAUDE.md` is explicit that synthetic data cannot establish Reports
+visual parity. Those harnesses mirror their board's number as a same-fixture
+regression guard and say so.
+
+| Board | Minimum | Below 12.5px @1440 | Below 12.5px @1280 | Status |
+|---|---|---|---|---|
+| Overview | 9.5px | 35 / 313 | 35 / 313 | Migrated, broadcast exception |
+| Defense | 9.5px | 1 / 143 | 1 / 143 | Migrated, broadcast exception |
+| Offense | 9.5px | 118 / 997 | **876 / 997** | Migrated at 1440; see below |
+| Matchup | 10px | 58 / 156 | 58 / 156 | Deferred |
+| Players | 11px | 46 / 237 | 46 / 237 | Deferred |
+| Self-Scout | 11px | 20 / 77 | 20 / 77 | Deferred |
+| Season | 11px | 30 / 138 | 30 / 138 | Deferred |
+| Special Teams | 9.5px | 98 / 160 | 98 / 160 | Deferred |
+
+SVG chart labels are excluded from the census: a `<text>` inside a scaled
+`viewBox` reports its pre-scale font-size, so comparing it to an HTML pixel floor
+measures the viewBox rather than the type.
+
+**Offense at 1280 is not what this file previously claimed.** The narrow-width
+exception was written for the eight five-column Zone 2 / Zone 3 tables, but it is
+scoped to `.gi-offense-board .gi-overview-module th, td` — every table on the
+board. That is why 876 of 997 nodes sit below the floor at 1280 against 118 at
+1440. The rule should be band-scoped; until it is, this table states the real
+number rather than the intended one. Open in `docs/OPEN-DEFECTS.md`.
+
+The deferrals are **not a second standard**: each board's approved comp pins its
+row math, so raising its labels means re-deriving that geometry, and doing five
+boards blind is how the last regression happened. Each board's minimum is pinned
+EXACTLY in the census, in both directions — a board that drifts down has
+regressed, and a board that drifts up has been migrated and reds until this table
+is updated in the same commit. A green harness must never again mean "this board
+meets the floor" when it only means "this board has not got worse."
 
 ## Global Navigation
 

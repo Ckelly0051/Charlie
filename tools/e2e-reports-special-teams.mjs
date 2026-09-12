@@ -19,6 +19,20 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
+   coach-facing floor. This board has NOT been migrated to it: raising its labels
+   means re-deriving the fixed row math its approved comp pins, so the migration
+   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
+   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
+   synthetic data cannot establish Reports visual parity. The number below is
+   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
+   and mirrored here as a same-fixture regression guard only. The
+   canonical minimum for this board is 9.5px -- the furthest from the shared
+   floor of the five. Pinning it here means the board
+   cannot drift further from the floor while it waits, and the number moves only
+   when the migration moves it -- it is a deferral, not a second standard. */
+const ST_TYPE_FLOOR_DEFERRED = 9.5;
+
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await browser.newPage();
@@ -332,12 +346,12 @@ console.log('\n== 9. Layout contracts ==');
 for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 800]]) {
   await page.setViewport({ width: w, height: h });
   await sleep(200);
-  const layout = await page.evaluate(() => {
+  const layout = await page.evaluate(floorPx => {
     const pane = document.querySelector('[data-native-report-content]');
     const under = [...pane.querySelectorAll('*')].filter(el => {
       if (!el.getClientRects().length) return false;
       if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return false;
-      return parseFloat(getComputedStyle(el).fontSize) < 9.5;
+      return parseFloat(getComputedStyle(el).fontSize) < floorPx;
     });
     const cut = [...pane.querySelectorAll('*')].filter(el => {
       if (el.closest('.gi-st-table-wrap')) return false;
@@ -345,11 +359,18 @@ for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 800]]) {
       if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return false;
       return el.scrollWidth - el.clientWidth > 1 && el.clientWidth > 0;
     });
-    return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    const sizes = [...pane.querySelectorAll('*')]
+      .filter(el => el.getClientRects().length
+        && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+      .map(el => parseFloat(getComputedStyle(el).fontSize));
+    return { min: sizes.length ? Math.min(...sizes) : null,
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       under: under.length, cut: cut.length };
-  });
+  }, ST_TYPE_FLOOR_DEFERRED);
   ok(layout.overflow <= 0, `no page-level horizontal scroll at ${w}`, `${layout.overflow}px`);
-  ok(layout.under === 0, `no text under the 9.5px floor at ${w}`, `${layout.under} nodes`);
+  ok(layout.under === 0,
+    `no text under the deferred ${ST_TYPE_FLOOR_DEFERRED}px board floor at ${w}, pending migration to the shared 12.5px floor`,
+    `${layout.under} nodes, smallest ${layout.min}px`);
   ok(layout.cut === 0, `no truncated text at ${w}`, `${layout.cut} nodes`);
 }
 await page.setViewport({ width: 1440, height: 900 });

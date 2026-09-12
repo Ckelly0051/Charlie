@@ -23,6 +23,19 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
+   coach-facing floor. This board has NOT been migrated to it: raising its labels
+   means re-deriving the fixed row math its approved comp pins, so the migration
+   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
+   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
+   synthetic data cannot establish Reports visual parity. The number below is
+   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
+   and mirrored here as a same-fixture regression guard only. The
+   canonical minimum for this board is 11px. Pinning it here means the board
+   cannot drift further from the floor while it waits, and the number moves only
+   when the migration moves it -- it is a deferral, not a second standard. */
+const SELF_SCOUT_TYPE_FLOOR_DEFERRED = 11;
+
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
@@ -292,7 +305,9 @@ ok(type.tdSize === 13, 'data rows are 13px', String(type.tdSize));
 ok(type.rowHeight === 38, 'data rows are 38px', String(type.rowHeight));
 ok(type.navSize === 12 && type.navTransform === 'none',
   'section navigation is readable 12px Sans with no forced uppercase', `${type.navSize} / ${type.navTransform}`);
-ok(type.floor >= 9.5, 'nothing on the board renders below the 9.5px floor', String(type.floor));
+ok(type.floor >= SELF_SCOUT_TYPE_FLOOR_DEFERRED,
+  `the board holds its deferred ${SELF_SCOUT_TYPE_FLOOR_DEFERRED}px floor, pending migration to the shared 12.5px floor`,
+  String(type.floor));
 
 /* ══ 4. Offensive Summary — composition and canonical values ══════════════ */
 console.log('\n== 4. Offensive Summary ==');

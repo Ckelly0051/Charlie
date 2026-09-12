@@ -623,7 +623,20 @@ ok(type.thSize === 12 && type.thWeight === 600 && /Plex Sans/.test(type.thFace),
   'table headers are 12px semibold Plex Sans', `${type.thSize} / ${type.thWeight}`);
 ok(type.tdSize === 13 && type.rowHeight === 38, 'table rows are 13px on 38px rows',
   `${type.tdSize} / ${type.rowHeight}`);
-ok(type.floor >= 9.5, 'nothing on the board renders below the 9.5px floor', String(type.floor));
+/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the
+   coach-facing floor; this board has not been migrated to it, because raising
+   its labels means re-deriving its fixed row math. The migration is open work
+   in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC FIXTURE, so it cannot
+   establish the value: the canonical minimum is measured by
+   `tools/e2e-reports-typefloor-realdata.mjs` and mirrored here as a same-fixture
+   regression guard only. The smallest
+   text on this board is 11px, so that is pinned EXACTLY: the board cannot
+   drift further from the floor while it waits, and this number moves only when
+   the migration moves it. */
+const SEASON_TYPE_FLOOR_DEFERRED = 11;
+ok(type.floor >= SEASON_TYPE_FLOOR_DEFERRED,
+  `the board holds its deferred ${SEASON_TYPE_FLOOR_DEFERRED}px floor, pending migration to the shared 12.5px floor`,
+  String(type.floor));
 ok(type.fonts.some(f => /IBM Plex Sans/.test(f)), 'IBM Plex loads from the bundled source',
   JSON.stringify(type.fonts.slice(0, 4)));
 let overflowAt = [], clipped = [], scrollers = [], unequal = [];

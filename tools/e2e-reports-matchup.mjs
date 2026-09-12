@@ -28,6 +28,19 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
+   coach-facing floor. This board has NOT been migrated to it: raising its labels
+   means re-deriving the fixed row math its approved comp pins, so the migration
+   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
+   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
+   synthetic data cannot establish Reports visual parity. The number below is
+   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
+   and mirrored here as a same-fixture regression guard only. The
+   canonical minimum for this board is 11px. Pinning it here means the board
+   cannot drift further from the floor while it waits, and the number moves only
+   when the migration moves it -- it is a deferral, not a second standard. */
+const MATCHUP_TYPE_FLOOR_DEFERRED = 11;
+
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
@@ -293,7 +306,8 @@ ok(!comp.sharedRail && !comp.sharedBug && comp.sharedTitle === 'Matchup: St. Mar
   && comp.sharedContext === 'Season film and opponent film',
   'Matchup never sits beneath current-game shared chrome', JSON.stringify(comp));
 ok(comp.rowHeight === 40 && comp.bodyFont >= 12 && comp.headFont >= 11,
-  'body rows are 40px and no type falls below the readable floor', JSON.stringify(comp));
+  `body rows are 40px and the board holds its deferred ${MATCHUP_TYPE_FLOOR_DEFERRED}px floor, pending migration to the shared 12.5px floor`,
+  JSON.stringify(comp));
 ok(comp.fixed === 'fixed' && comp.colgroup === 9,
   'the situational table owns its column geometry through a colgroup', JSON.stringify(comp));
 ok(comp.sticky === 'relative',

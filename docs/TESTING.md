@@ -102,7 +102,7 @@ The smallest existing harness for the route or domain you touched.
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
 **Cohort and label contracts added 2026-09-10.** `e2e-reports-overview-realdata`
 pins that Total plays is the CHARTED count with the classified count as its
@@ -332,6 +332,26 @@ of synthetic data proves less than it appears to.
 
 Both are why the Charlie Gate — show the real app with real data and get
 PASS / REVISE / REJECT — happens before packaging, not after.
+
+### The typography floor is measured on the canonical season
+
+`tools/e2e-reports-typefloor-realdata.mjs` is the only place the shared type
+floor is established. Every board's own composition harness runs a SYNTHETIC
+fixture, and the canonical-data rule in `CLAUDE.md` is explicit that synthetic
+data cannot establish Reports visual parity: a QA fixture has different labels,
+name lengths and row counts, so it renders different type. The first attempt at
+this pinned five boards' floors from their own synthetic fixtures and recorded
+Special Teams as 11px when the real figure is 9.5px.
+
+The census reads every Reports board at both release widths off a read-only copy
+of the canonical season, hashes the source before and after, and pins each
+board's minimum EXACTLY in both directions. Down is a regression. Up means the
+board was migrated and reds until `docs/VISUAL-SYSTEM-RULES.md` is updated in
+the same commit -- a silent improvement leaves the documentation lying about
+where the floor is enforced, which is what this file exists to stop.
+
+The board harnesses mirror their own number as a same-fixture regression guard
+and say so in the comment rather than claiming canonical provenance.
 
 ### Containment is not composition
 

@@ -4,11 +4,11 @@
   "designStatus": "COMP_APPROVED",
   "productionStatus": "REJECTED",
   "approvedOn": "2026-08-20",
-  "approvalNote": "The Charlie Gate density4 production captures approved the Overview COMPOSITION on 2026-08-20 and still govern it. Their pixel evidence was superseded for COLOUR AND TYPE ONLY on 2026-09-11 by design-comps/reports-overview-2026-09-11/canonical, under the coach's installed 1.12.0-80 visual approval of the global graphite palette and the shared readable type floor, re-captured after the shared-chrome alignment repair that stopped the linescore band wrapping at 1280, and re-captured again after the coach-directed neutral-grey correction of the remaining blue-biased surface tokens on 2026-09-11. Module inventory, order, row and tile counts, band rhythm and board geometry are unchanged and are asserted against the new captures. The earlier FPO HTML remains superseded.",
+  "approvalNote": "The Charlie Gate density4 production captures approved the Overview COMPOSITION on 2026-08-20 and still govern it. Their pixel evidence was superseded for COLOUR AND TYPE ONLY on 2026-09-11 by design-comps/reports-overview-2026-09-11/canonical, under the coach's installed 1.12.0-80 visual approval of the global graphite palette and the shared readable type floor, re-captured after the shared-chrome alignment repair that stopped the linescore band wrapping at 1280, and re-captured again after the coach-directed neutral-grey correction of the remaining blue-biased surface tokens, and after the global cut-row marker moved out of the text flow, all on 2026-09-11. The canonical README lists all four changes these captures contain. Module inventory, order, row and tile counts, band rhythm and board geometry are unchanged and are asserted against the new captures. The earlier FPO HTML remains superseded.",
   "canonicalArtifact": {
     "path": "design-comps/reports-overview-2026-09-11/canonical",
     "kind": "directory",
-    "sha256": "5a45ca0c08d4f193e0e8f4d57e1a0cc1ba77bbba17cd14a616ac5de6db58398e",
+    "sha256": "f779560abd9f08388f9fabdb6341e8d478c6da7fd084a2be1c350d09926deaac",
     "fileCount": 5
   },
   "supersededArtifact": {

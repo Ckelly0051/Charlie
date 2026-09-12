@@ -22,6 +22,19 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
+   coach-facing floor. This board has NOT been migrated to it: raising its labels
+   means re-deriving the fixed row math its approved comp pins, so the migration
+   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
+   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
+   synthetic data cannot establish Reports visual parity. The number below is
+   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
+   and mirrored here as a same-fixture regression guard only. The
+   canonical minimum for this board is 11px. Pinning it here means the board
+   cannot drift further from the floor while it waits, and the number moves only
+   when the migration moves it -- it is a deferral, not a second standard. */
+const PLAYERS_TYPE_FLOOR_DEFERRED = 11;
+
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await browser.newPage();
@@ -270,7 +283,7 @@ ok(headerOverlay.every(h => h.position !== 'sticky'),
 /* ══ 4. No clipping, no page overflow, at every release width ═════════════ */
 console.log('\n== 4. Every release width, both scopes, every section ==');
 const inspect = async label => {
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(floorPx => {
     const over = [];
     document.querySelectorAll('.gi-player-table th,.gi-player-table td').forEach(c => {
       if (!c.getClientRects().length) return;
@@ -288,14 +301,16 @@ const inspect = async label => {
         .filter(e => e.scrollWidth > e.clientWidth + 1).length,
       tiny: [...new Set([...document.querySelectorAll('.gi-players-board *')]
         .filter(el => el.getClientRects().length && el.textContent.trim() && !el.children.length
-          && parseFloat(getComputedStyle(el).fontSize) < 9.5)
+          && parseFloat(getComputedStyle(el).fontSize) < floorPx)
         .map(el => `${el.tagName}.${el.className}`.slice(0, 40)))],
     };
-  });
+  }, PLAYERS_TYPE_FLOOR_DEFERRED);
   ok(r.pageOverflow <= 0, `${label}: no page-level horizontal scrolling`, `${r.pageOverflow}px`);
   ok(!r.clipped.length, `${label}: no clipped header, name or value`, r.clipped.join('; '));
   ok(!r.scrollers, `${label}: no table scroller engages`, String(r.scrollers));
-  ok(!r.tiny.length, `${label}: no text below the 9.5px floor`, r.tiny.join('; '));
+  ok(!r.tiny.length,
+    `${label}: no text below the deferred ${PLAYERS_TYPE_FLOOR_DEFERRED}px board floor, pending migration to the shared 12.5px floor`,
+    r.tiny.join('; '));
 };
 for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720]]) {
   await page.setViewport({ width: w, height: h });

@@ -130,12 +130,43 @@ edge-to-edge by design; the top bar's 18px inset is not.
 
 ## Deferred, measured, not hidden
 
-1. **Legacy sub-floor type on five Reports boards.** Self-Scout, Season,
-   Players, Special Teams and Matchup still carry labels below the 12.5px floor
-   inside their own approved fixed-height boards. Raising them requires
-   re-deriving each board's row math, so they are unfinished rather than exempt.
-   The enforcing assertion currently covers the Defense board, Overview and the
-   shell; extend it per board as each one's geometry is re-derived.
+1. **Legacy sub-floor type on five Reports boards — DEFERRED, MEASURED, PINNED.**
+   Self-Scout, Season, Players, Special Teams and Matchup carry labels below the
+   12.5px floor inside their own approved fixed-height boards. Measured on the
+   canonical season at 1440:
+
+   | Board | Minimum | Below 12.5px |
+   |---|---|---|
+   | Self-Scout | 11px | 20 / 77 |
+   | Season | 11px | 30 / 138 |
+   | Players | 11px | 46 / 237 |
+   | Special Teams | 9.5px | 98 / 160 |
+   | Matchup | 10px | 58 / 156 |
+
+   **Measured on the canonical season** by
+   `tools/e2e-reports-typefloor-realdata.mjs`, which exists because the first
+   attempt measured this in the wrong place: every board's composition harness
+   runs a SYNTHETIC fixture, and `CLAUDE.md` is explicit that synthetic data
+   cannot establish Reports visual parity. The first pass also recorded Special
+   Teams as 11px from its own QA fixture; the canonical figure is 9.5px, the
+   furthest of the five from the floor. Each board's harness now mirrors its
+   canonical number as a same-fixture regression guard and says so in the
+   comment rather than claiming canonical provenance it does not have.
+
+   Before this, those harnesses asserted an obsolete 9.5px floor and stayed
+   green while the binding rule said 12.5 — a green suite meaning "not worse",
+   read as "meets the standard".
+
+2. **The Offense narrow-width type exception is scoped too widely.** It was
+   written for the eight five-column Zone 2 / Zone 3 tables that cannot fit a
+   379px band half at the floor, but it is scoped to
+   `.gi-offense-board .gi-overview-module th, td` — every table on the board.
+   The census measures the cost: 876 of 997 nodes below the floor at 1280,
+   against 118 at 1440. Narrow the rule to the bands that need it.
+
+   Raising a board means re-deriving the row math its approved comp pins; doing
+   five blind is how the last regression happened. Migrate one board at a time,
+   move its constant to 12.5, and delete its row from both tables.
 2. **The Offense three-up band at 1280.** Eight five-column tables share a 379px
    half and measure 387-418px of content at the floor, so at that width only
    their cells keep 12px body and 11.5px column labels. The approved board
