@@ -1081,18 +1081,21 @@ function DefenseModuleTable({ title, meta, headers, rows, count, cells, screen, 
 function DefenseKpis({ dashboard, seasonScope }) {
   const games = Math.max(1, dashboard.byGame.length);
   const recentGames = Math.max(1, Math.min(3, dashboard.byGame.length));
-  const perGame = value => (value / games).toFixed(1);
-  const recentPerGame = value => (value / recentGames).toFixed(1);
+  const perGame = value => (value == null ? '-' : (value / games).toFixed(1));
+  const recentPerGame = value => (value == null ? '-' : (value / recentGames).toFixed(1));
+  /* A production field is null when nothing in the cohort carried a play type.
+     It must render the board's dash, never a blank headline or `NaN/game`. */
+  const num = value => (value == null ? '-' : value);
   const seasonSub = (all, recent, suffix = '/game') => seasonScope
     ? `${all}${suffix} | Last 3: ${recent}`
     : 'Current game';
   const kpis = [
-    ['Total yards allowed', dashboard.summary.yards, seasonSub(perGame(dashboard.summary.yards), recentPerGame(dashboard.recent.yards))],
-    ['Rush yards allowed', dashboard.summary.runYards, seasonSub(perGame(dashboard.summary.runYards), recentPerGame(dashboard.recent.runYards))],
-    ['Pass yards allowed', dashboard.summary.passYards, seasonSub(perGame(dashboard.summary.passYards), recentPerGame(dashboard.recent.passYards))],
+    ['Total yards allowed', num(dashboard.summary.yards), seasonSub(perGame(dashboard.summary.yards), recentPerGame(dashboard.recent.yards))],
+    ['Rush yards allowed', num(dashboard.summary.runYards), seasonSub(perGame(dashboard.summary.runYards), recentPerGame(dashboard.recent.runYards))],
+    ['Pass yards allowed', num(dashboard.summary.passYards), seasonSub(perGame(dashboard.summary.passYards), recentPerGame(dashboard.recent.passYards))],
     ['Yards / play', defDash(dashboard.summary.ypp?.toFixed(1)), seasonSub('Season', defDash(dashboard.recent.ypp?.toFixed(1)), '')],
     ['Turnovers', dashboard.summary.turnovers, seasonSub(perGame(dashboard.summary.turnovers), recentPerGame(dashboard.recent.turnovers))],
-    ['Explosives allowed', dashboard.summary.explosives, seasonSub(perGame(dashboard.summary.explosives), recentPerGame(dashboard.recent.explosives))],
+    ['Explosives allowed', num(dashboard.summary.explosives), seasonSub(perGame(dashboard.summary.explosives), recentPerGame(dashboard.recent.explosives))],
     ['3rd down allowed', dashboard.thirdDownAllowed.rate == null ? '-' : `${dashboard.thirdDownAllowed.rate}%`, seasonScope
       ? `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts} | Last 3: ${defDash(dashboard.recentThirdDownAllowed.rate == null ? null : `${dashboard.recentThirdDownAllowed.rate}%`)}`
       : `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts} in current game`],
@@ -1161,6 +1164,11 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
   const baseline = dashboard.summary.ypp;
   const seasonScope = fixedScope || screen.defenseScope === 'season';
   const baselineLabel = `${seasonScope ? 'season' : 'game'} baseline: ${defDash(baseline?.toFixed(1))} yds/play`;
+  /* SAMPLE RECONCILIATION, not prose. Every Snaps count on this board is the
+     charted cohort and every yardage and rate is the run/pass-classified
+     subset, so the board states both numbers once. `data-def-sample` is the
+     rendered hook the canonical harness asserts on. */
+  const sampleLabel = `${dashboard.total} charted · ${dashboard.measured} with play type`;
   const resultCells = row => [row.name, row.n, row.yards, row.ypp?.toFixed(1), defSigned(row.ypp == null || baseline == null ? null : row.ypp - baseline), row.explosives, row.touchdowns];
   const tendencyCells = row => [row.name, row.n, defRunPass(row), row.yards, row.ypp?.toFixed(1), defSigned(row.ypp == null || baseline == null ? null : row.ypp - baseline)];
   const smallCells = row => [row.name, row.n, defRunPass(row), row.ypp?.toFixed(1), row.explosives];
@@ -1175,7 +1183,7 @@ export function DefenseTab({ report, dashboard, scoped, screen, fixedScope = fal
       <button class="btn btn-sm gi-def-export" onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(dashboard, scoped)}>Export Report</button>
     </div>
     <SectionTabs sections={DEFENSE_SECTIONS} active={section} onSelect={setSection} />
-    <div class="gi-def-secrule"><h2>{meta.label}</h2></div>
+    <div class="gi-def-secrule"><h2>{meta.label}</h2><span data-def-sample>{sampleLabel}</span></div>
 
     {section === 'd1' && <>
       <DefenseKpis dashboard={dashboard} seasonScope={seasonScope} />

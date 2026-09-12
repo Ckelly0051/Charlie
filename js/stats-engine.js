@@ -1539,7 +1539,8 @@ export class StatsEngine {
     const refsOf = cohort => [...new Set((cohort || []).map(StatsEngine._compositeRef).filter(Boolean))].sort();
     const summarize = (name, cohort) => {
       const rows = cohort || [];
-      if (!rows.length) return { name, n: null, charted: null, held: true, runs: 0, passes: 0,
+      if (!rows.length) return { name, n: null, charted: null, measured: null, held: true,
+        runs: 0, passes: 0,
         yards: null, runYards: null, passYards: null, ypp: null,
         explosives: null, touchdowns: null, turnovers: null, refs: [], plays: [] };
       const runs = rows.filter(StatsEngine.isRun);
@@ -1559,30 +1560,44 @@ export class StatsEngine {
        * are disjoint on this data, but the union is taken rather than added so
        * a snap tagged both could never be counted twice.
        *
-       * `n` AND `ypp` USE THAT SAME COHORT. A production row cannot print the
-       * charted count beside classified yards and a classified rate: the three
-       * adjacent values would not reconcile. Keep the complete sample as the
-       * explicitly named `charted` field for call-frequency calculations and
-       * sample disclosure.
+       * `ypp` DIVIDES BY THAT SAME COHORT. Left on `rows.length` it charged the
+       * reduced yardage against every defensive snap, so each excluded penalty
+       * row read as a zero-yard play and flattered the defense. The approved
+       * 2.9 was a value printed in a comp fixture, not an approved formula: a
+       * rate whose numerator and denominator describe different cohorts is not
+       * a measurement. Coach ruling 2026-09-10.
        *
-       * Left on `rows.length`, `ypp` charged
-       * the reduced yardage against every defensive snap, so each excluded
-       * penalty row read as a zero-yard play and flattered the defense. The
-       * approved 2.9 was a value printed in a comp fixture, not an approved
-       * formula: a rate whose numerator and denominator describe different
-       * cohorts is not a measurement. Coach ruling 2026-09-10. */
+       * TWO COHORTS, BOTH NAMED, NEITHER STANDING IN FOR THE OTHER. The first
+       * repair made the displayed count classified too, which fixed the
+       * arithmetic and broke the football: a Trade motion the opponent charted
+       * once, with no play type on it, printed `0 snaps` — a look the coach
+       * charted reported as a look nobody ran, and the same artifact pushed it
+       * to the bottom of a frequency ranking.
+       *
+       *   `charted`  — every defensive snap in this cohort. FREQUENCY: the
+       *                displayed Snaps count, every ranking, and every call or
+       *                blitz percentage. `n` is its alias, because `n` is what
+       *                every consumer already reads for a displayed count.
+       *   `measured` — the run/pass-classified subset. PRODUCTION: total, rush
+       *                and pass yards, yards per play, explosives.
+       *
+       * With `measured === 0` there is no production to report, so every
+       * production field is null and renders the board's dash. A charted look
+       * with nothing measured is an absence of measurement, never a zero.
+       * Coach ruling 2026-09-11. */
       const scrimmage = [...new Set([...runs, ...passes])];
-      const yards = scrimmage.reduce((sum, p) => sum + yard(p), 0);
+      const measured = scrimmage.length;
+      const yards = measured ? scrimmage.reduce((sum, p) => sum + yard(p), 0) : null;
       const turnovers = rows.reduce((sum, p) => sum
         + (StatsEngine.hasResult(p, 'Interception') ? 1 : 0)
         + (StatsEngine.isFumbleRecovered(p) ? 1 : 0), 0);
       return {
-        name, n: scrimmage.length, charted: rows.length, classified: scrimmage.length,
+        name, n: rows.length, charted: rows.length, measured,
         runs: runs.length, passes: passes.length, yards,
-        runYards: runs.reduce((sum, p) => sum + yard(p), 0),
-        passYards: passes.reduce((sum, p) => sum + yard(p), 0),
-        ypp: scrimmage.length ? +(yards / scrimmage.length).toFixed(1) : null,
-        explosives: rows.filter(StatsEngine.isExplosive).length,
+        runYards: measured ? runs.reduce((sum, p) => sum + yard(p), 0) : null,
+        passYards: measured ? passes.reduce((sum, p) => sum + yard(p), 0) : null,
+        ypp: measured ? +(yards / measured).toFixed(1) : null,
+        explosives: measured ? rows.filter(StatsEngine.isExplosive).length : null,
         touchdowns: rows.filter(p => StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) !== 'us').length,
         turnovers, refs: refsOf(rows), plays: rows,
       };
@@ -1747,7 +1762,11 @@ export class StatsEngine {
     const motionNames = ranked(grouped(source, p => p.tags.motion || 'No Motion'));
 
     return {
-      total: source.length, summary, recent,
+      /* `total` is the charted defensive sample; `measured` is the run/pass
+       * subset every production value on this board is computed over. The board
+       * states both, because a coach reading 3.2 yards allowed per play is
+       * entitled to know the denominator is 37 of 40 charted snaps. */
+      total: source.length, measured: summary.measured ?? 0, summary, recent,
       thirdDownAllowed: rateAllowed(source, '3'), fourthDownAllowed: rateAllowed(source, '4'),
       recentThirdDownAllowed: rateAllowed(recent.plays, '3'), recentFourthDownAllowed: rateAllowed(recent.plays, '4'),
       byGame, downs: downRows, quarters: quarterRows, playTypes,

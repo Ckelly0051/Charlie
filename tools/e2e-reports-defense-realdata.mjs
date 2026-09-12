@@ -129,6 +129,29 @@ for (const game of games) {
               || getComputedStyle(node).textOverflow === 'ellipsis');
           })(),
           titleFonts: modules.map(module => getComputedStyle(module.querySelector('header strong')).fontFamily),
+          /* The rendered cohort reconciliation, and the rendered proof that no
+             tendency row prints a numeric zero for a look the coach charted. */
+          defSample: text(board?.querySelector('[data-def-sample]')),
+          zeroSnapCells: modules.flatMap(module => {
+            const name = title(module);
+            if (!['Top 6 formations', 'Personnel faced', 'Backfield faced', 'Motion',
+              'By hash', 'Production by play type'].includes(name)) return [];
+            const head = [...module.querySelectorAll('thead th')].map(text);
+            const col = head.findIndex(label => label === 'Snaps');
+            if (col < 0) return [];
+            return [...module.querySelectorAll('tbody tr')]
+              .filter(row => !row.classList.contains('is-absent'))
+              .filter(row => text(row.children[col]) === '0')
+              .map(row => `${name}:${text(row.children[0])}`);
+          }),
+          minFontSizes: [...(board?.querySelectorAll('th,td,span,small,strong,b,button,h2') || [])]
+            .filter(node => getComputedStyle(node).visibility !== 'hidden'
+              && [...node.childNodes].some(child => child.nodeType === 3 && child.nodeValue.trim()))
+            .map(node => ({ cls: [String(node.className || node.tagName),
+              String(node.parentElement?.className || ''),
+              String(node.closest('.gi-overview-module')?.className || '')].join(' ').slice(0, 90),
+              size: parseFloat(getComputedStyle(node).fontSize) }))
+            .filter(item => item.size < 12.5),
         };
       });
       observations.push({ game: game.name, width, section: section.label, ...result });
@@ -175,6 +198,41 @@ ok(observations.every(item => !item.reportTitleClipped),
   JSON.stringify(observations.filter(item => item.reportTitleClipped).slice(0, 4)));
 ok(observations.every(item => item.clipped.length === 0), 'no Defense label or value is clipped',
   JSON.stringify(observations.filter(item => item.clipped.length).slice(0, 4)));
+/* THE RENDERED COHORT RECONCILIATION. Compact factual data, present on every
+   section at both widths, naming both cohorts and mislabelling neither. */
+const missingSample = observations.filter(item => !/^\d+ charted · \d+ with play type$/.test(item.defSample || ''));
+ok(missingSample.length === 0,
+  'every Defense section states its charted sample and its measured subset',
+  JSON.stringify(missingSample.map(item => ({ game: item.game, width: item.width, sample: item.defSample })).slice(0, 4)));
+ok(observations.some(item => {
+  const [, charted, measured] = (item.defSample || '').match(/^(\d+) charted · (\d+) with play type$/) || [];
+  return charted && measured && Number(charted) > Number(measured);
+}), 'the disclosure really does report two different numbers on this season, so it is not decorative',
+  JSON.stringify([...new Set(observations.map(item => item.defSample))]));
+/* THE TYPOGRAPHY FLOOR, ENFORCED WHERE IT APPLIES.
+   `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the floor for coach-facing copy
+   and names the categories that may never be exempted. Before this assertion
+   the rules file was a claim: the range that codified it shipped 11.5px
+   formation-matrix headers, a 9px KPI subline below 1300px, and 11.5px nav
+   counts. Everything below the floor on this board must now be one of the
+   named exceptions, by class, and the list is short on purpose. */
+const FLOOR_EXCEPTIONS = [
+  'gi-def-tile', 'gi-def-type-summary', 'gi-def-rank', 'gi-def-secrule',
+  'gi-def-kpi', 'gi-def-compare-card', 'gi-def-direction-key', 'gi-def-zonerow',
+  'gi-def-answer', 'gi-def-pop', 'gi-scorebug', 'gi-reports-', 'gi-def-secnav',
+  'gi-def-toolbar', 'gi-def-scope', 'gi-def-export',
+];
+const floorViolations = observations.flatMap(item => (item.minFontSizes || [])
+  .filter(entry => !FLOOR_EXCEPTIONS.some(allowed => entry.cls.includes(allowed)))
+  .map(entry => `${item.width}:${item.section}:${entry.cls}@${entry.size}`));
+ok(floorViolations.length === 0,
+  'every Defense value outside the named broadcast-display exceptions meets the 12.5px floor',
+  JSON.stringify([...new Set(floorViolations)].slice(0, 12)));
+/* NO FABRICATED ZERO. A look the coach charted must never read `0` snaps. */
+const zeroSnaps = observations.filter(item => item.zeroSnapCells.length);
+ok(zeroSnaps.length === 0,
+  'no rendered Defense tendency row prints 0 snaps for a charted look',
+  JSON.stringify(zeroSnaps.map(item => ({ game: item.game, width: item.width, cells: item.zeroSnapCells })).slice(0, 4)));
 ok(observations.every(item => item.contentOverflow.length === 0), 'every module remains inside its fixed panel',
   JSON.stringify(observations.filter(item => item.contentOverflow.length).slice(0, 4)));
 ok(observations.every(item => item.rowEscape.length === 0), 'the final allocated row remains visible inside every module',
@@ -213,7 +271,9 @@ const canonical = await page.evaluate(() => {
   const { scoped, labels } = app.reportsScreen._defenseCohort();
   const model = app.stats.defenseDashboard(scoped, labels);
   return {
-    total: model.total, summarySnaps: model.summary.n, summaryCharted: model.summary.charted,
+    total: model.total, measured: model.measured,
+    summarySnaps: model.summary.n, summaryCharted: model.summary.charted,
+    summaryMeasured: model.summary.measured,
     yards: model.summary.yards, rush: model.summary.runYards,
     pass: model.summary.passYards, ypp: model.summary.ypp, turnovers: model.summary.turnovers,
     explosives: model.summary.explosives,
@@ -237,8 +297,29 @@ const canonical = await page.evaluate(() => {
     productionRows: [model.summary, ...model.byGame, ...model.downs, ...model.quarters,
       ...model.playTypes, ...model.personnel, ...model.backfields, ...model.directions,
       model.pressure.blitz, model.pressure.noBlitz, ...model.zones, ...model.hashes,
-      ...model.motions].map(row => ({ name: row.name, n: row.n, charted: row.charted,
-        yards: row.yards, ypp: row.ypp })),
+      ...model.motions, ...model.downDistance].map(row => ({ name: row.name, n: row.n,
+        charted: row.charted, measured: row.measured, held: !!row.held,
+        yards: row.yards, runYards: row.runYards, passYards: row.passYards,
+        ypp: row.ypp, explosives: row.explosives })),
+    /* The blitz cohort, from both ends: the two displayed cards and the
+       situational rate's own denominator must be one charted population. */
+    blitzCohort: {
+      blitz: model.pressure.blitz.n, noBlitz: model.pressure.noBlitz.n,
+      blitzCharted: model.pressure.blitz.charted, noBlitzCharted: model.pressure.noBlitz.charted,
+      situations: model.downDistance.map(row => ({ name: row.name, n: row.n,
+        charted: row.charted, callPct: row.callPct, blitzPct: row.blitzPct })),
+    },
+    /* Every ranked tendency set, to prove frequency ordering is the charted
+       count and that a charted-but-unmeasured look keeps its real count. */
+    ranked: {
+      formationCalls: model.formationCalls.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+      personnel: model.personnel.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+      backfields: model.backfields.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+      motions: model.motions.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+      hashes: model.hashes.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+      zones: model.zones.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+      directions: model.directions.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
+    },
   };
 });
 /* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT, on every row.
@@ -296,15 +377,63 @@ ok(canonical.ypp === +(canonical.yards / cohorts.defenseClassified).toFixed(1),
 ok(canonical.ypp !== +(canonical.yards / canonical.total).toFixed(1),
   'the two denominators really do differ here, so that assertion can fail',
   JSON.stringify({ classified: cohorts.defenseClassified, charted: canonical.total }));
-ok(canonical.summarySnaps === cohorts.defenseClassified
-  && canonical.summaryCharted === cohorts.defenseCharted,
-  'production Snaps is classified while the explicitly named charted sample remains available',
-  JSON.stringify({ displayed: canonical.summarySnaps, charted: canonical.summaryCharted, cohorts }));
-const mixedProductionRows = canonical.productionRows.filter(row => row.n
-  && row.ypp !== +(row.yards / row.n).toFixed(1));
-ok(mixedProductionRows.length === 0,
-  'every defensive production row reconciles displayed Snaps, Total yards, and Yards/play',
-  JSON.stringify(mixedProductionRows));
+/* TWO COHORTS, BOTH NAMED. `charted` is the displayed Snaps, the frequency
+   ranking key and every call or blitz percentage; `measured` is the run/pass
+   subset every yardage and rate divides by. The first repair collapsed the
+   displayed count onto `measured`, which is how a Trade motion charted once
+   with no play type printed `0 snaps`. */
+ok(canonical.summarySnaps === cohorts.defenseCharted
+  && canonical.summaryCharted === cohorts.defenseCharted
+  && canonical.summaryMeasured === cohorts.defenseClassified
+  && canonical.total === cohorts.defenseCharted && canonical.measured === cohorts.defenseClassified,
+  'displayed Snaps is the charted cohort and the measured cohort is named separately',
+  JSON.stringify({ snaps: canonical.summarySnaps, charted: canonical.summaryCharted,
+    measured: canonical.summaryMeasured, total: canonical.total, modelMeasured: canonical.measured, cohorts }));
+/* Every production row divides its own yardage by its own measured cohort.
+   The `row.n &&` guard the first pass carried skipped exactly the rows where
+   the two cohorts diverge to zero — the reviewer's blind spot — so this walks
+   every row and splits the two cases explicitly. */
+const measuredRows = canonical.productionRows.filter(row => !row.held && row.measured > 0);
+const mixedProductionRows = measuredRows.filter(row =>
+  row.ypp !== +(row.yards / row.measured).toFixed(1)
+  || row.yards !== (row.runYards || 0) + (row.passYards || 0));
+ok(measuredRows.length >= 40 && mixedProductionRows.length === 0,
+  'every measured defensive row reconciles Total yards, Rush plus Pass, and Yards/play over its own measured cohort',
+  JSON.stringify({ rows: measuredRows.length, mixed: mixedProductionRows }));
+/* CHARTED BUT UNMEASURED: the case the first repair got wrong. The row keeps
+   its real charted count and reports NO production at all. */
+const unmeasuredRows = canonical.productionRows.filter(row => !row.held
+  && row.charted > 0 && row.measured === 0);
+const badUnmeasured = unmeasuredRows.filter(row => row.n !== row.charted
+  || row.yards !== null || row.runYards !== null || row.passYards !== null
+  || row.ypp !== null || row.explosives !== null);
+ok(unmeasuredRows.length > 0 && badUnmeasured.length === 0,
+  'a charted-but-unmeasured row keeps its charted Snaps and reports every production value as absent',
+  JSON.stringify({ found: unmeasuredRows, bad: badUnmeasured }));
+/* No ranked tendency set may print a numeric zero where the coach charted a
+   look. Checked on the model here and on the rendered board below. */
+const zeroSnapRows = Object.entries(canonical.ranked).flatMap(([set, rows]) =>
+  rows.filter(row => row.charted > 0 && row.n === 0).map(row => `${set}:${row.name}`));
+ok(zeroSnapRows.length === 0,
+  'no defensive tendency row reports 0 snaps for a look the coach charted',
+  JSON.stringify(zeroSnapRows));
+/* Frequency ranking is the charted count, descending, in every ranked set. */
+const misordered = Object.entries(canonical.ranked)
+  .filter(([set]) => ['formationCalls', 'personnel', 'backfields', 'motions'].includes(set))
+  .flatMap(([set, rows]) => rows.slice(1)
+    .filter((row, i) => (row.charted ?? 0) > (rows[i].charted ?? 0)).map(row => `${set}:${row.name}`));
+ok(misordered.length === 0, 'every ranked tendency set orders by charted frequency',
+  JSON.stringify(misordered));
+/* ONE BLITZ COHORT. The two displayed cards and the situational blitz rate's
+   own denominator must count the same charted snaps. */
+const blitzSituations = canonical.blitzCohort.situations;
+const blitzDenomMismatch = blitzSituations.filter(row => row.n !== row.charted);
+ok(canonical.blitzCohort.blitz === canonical.blitzCohort.blitzCharted
+  && canonical.blitzCohort.noBlitz === canonical.blitzCohort.noBlitzCharted
+  && blitzDenomMismatch.length === 0,
+  'the displayed Blitz and No Blitz counts and every situational blitz rate use one charted cohort',
+  JSON.stringify({ cohort: canonical.blitzCohort.blitz, noBlitz: canonical.blitzCohort.noBlitz,
+    mismatch: blitzDenomMismatch }));
 ok(canonical.third.made === 8 && canonical.third.attempts === 43 && canonical.third.rate === 18.6
   && canonical.fourth.made === 9 && canonical.fourth.attempts === 17 && canonical.fourth.rate === 52.9,
   'third- and fourth-down allowed use offensive conversion polarity', JSON.stringify(canonical));

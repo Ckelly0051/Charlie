@@ -206,12 +206,12 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
   ];
   const performance = metrics([
-    { label: 'Total yards allowed', value: dashboard.summary.yards, sub: trend(dashboard.summary.yards, dashboard.recent.yards) },
-    { label: 'Rush yards allowed', value: dashboard.summary.runYards, sub: trend(dashboard.summary.runYards, dashboard.recent.runYards) },
-    { label: 'Pass yards allowed', value: dashboard.summary.passYards, sub: trend(dashboard.summary.passYards, dashboard.recent.passYards) },
+    { label: 'Total yards allowed', value: shown(dashboard.summary.yards), sub: trend(dashboard.summary.yards, dashboard.recent.yards) },
+    { label: 'Rush yards allowed', value: shown(dashboard.summary.runYards), sub: trend(dashboard.summary.runYards, dashboard.recent.runYards) },
+    { label: 'Pass yards allowed', value: shown(dashboard.summary.passYards), sub: trend(dashboard.summary.passYards, dashboard.recent.passYards) },
     { label: 'Yards / play', value: decimal(dashboard.summary.ypp), sub: seasonScope ? `Last 3: ${decimal(dashboard.recent.ypp)}` : 'Current game' },
     { label: 'Turnovers', value: dashboard.summary.turnovers, sub: trend(dashboard.summary.turnovers, dashboard.recent.turnovers) },
-    { label: 'Explosives allowed', value: dashboard.summary.explosives, sub: trend(dashboard.summary.explosives, dashboard.recent.explosives) },
+    { label: 'Explosives allowed', value: shown(dashboard.summary.explosives), sub: trend(dashboard.summary.explosives, dashboard.recent.explosives) },
     { label: '3rd down allowed', value: dashboard.thirdDownAllowed.rate == null ? '-' : `${dashboard.thirdDownAllowed.rate}%`, sub: `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts}` },
     { label: '4th down allowed', value: dashboard.fourthDownAllowed.rate == null ? '-' : `${dashboard.fourthDownAllowed.rate}%`, sub: `${dashboard.fourthDownAllowed.made} of ${dashboard.fourthDownAllowed.attempts}` },
   ]) + table('Game-by-game', [
@@ -266,7 +266,10 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
   ], dashboard.downDistance) + `<div class="two-up">${table('Field zone', tendencyColumns.slice(0, 2).concat(tendencyColumns.slice(3)), fixed(dashboard.zones, 5))}${table('By hash', resultColumns.slice(0, 5), fixed(dashboard.hashes, 5))}</div>`
     + table('Motion', tendencyColumns, fixed(dashboard.motions, 5));
   const body = `${chapter(1, 'Defensive Performance', performance)}${chapter(2, 'Opponent Offense', opponent)}${chapter(3, 'Scheme', scheme)}${chapter(4, 'Situational Results', situations)}`;
-  return documentShell({ title, subtitle: `${scopeLabel} - ${dashboard.total} defensive snaps`,
+  /* The export states the same cohort reconciliation the board does: Snaps is
+     the charted sample, every yardage and rate is the classified subset. */
+  return documentShell({ title,
+    subtitle: `${scopeLabel} - ${dashboard.total} charted defensive snaps, ${dashboard.measured} with play type`,
     meta: `Generated ${generatedAt.toLocaleString()}`, body });
 }
 

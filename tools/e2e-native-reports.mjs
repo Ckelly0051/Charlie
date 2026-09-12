@@ -1211,7 +1211,11 @@ result = await page.evaluate(async () => {
 {
   const defense = result.find(item => /^defensive_report_/.test(item.name));
   const selfScout = result.find(item => /^self_scout_report_/.test(item.name));
-  ok(defense && /Defensive Report:/.test(defense.html) && /Full season - \d+ defensive snaps/.test(defense.html)
+  /* The export states the same cohort reconciliation the board does, so the
+     subtitle now carries BOTH numbers: the charted sample and the classified
+     subset every yardage and rate in the report divides by. */
+  ok(defense && /Defensive Report:/.test(defense.html)
+    && /Full season - \d+ charted defensive snaps, \d+ with play type/.test(defense.html)
     && /Defensive Performance/.test(defense.html) && !/Offensive Performance/.test(defense.html),
     'Defense Export Report downloads the displayed full-season defensive report, not the active-game omnibus report',
     JSON.stringify(result.map(item => item.name)));
