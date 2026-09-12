@@ -26,7 +26,10 @@
 
 ## Current Snapshot
 
-- Source version: `1.12.0-80` in all four version owners.
+- Source version: `1.12.0-80` in all four version owners. Source has advanced
+  past that installer: the shared visual range failed its independent pre-gate
+  review on 2026-09-11 and the repairs are committed but un-packaged, so **no
+  installed build contains current source**.
 - Candidate: unsigned local visual-smoke handoff from `2d67515`, after the
   global secondary-copy repair in `b534a3f`; focused suites passed, full gate
   not run, and the candidate is not accepted, tagged, pushed, or published.
@@ -70,6 +73,10 @@ Every milestone handoff must update, in the same commit:
    than maintaining volatile totals.
 6. `docs/VISUAL-SYSTEM-RULES.md` whenever a shared palette, typography,
    navigation, selector, or dashboard-composition decision changes.
+7. The owning manifest's `supersededArtifact` whenever a global token change
+   invalidates canonical pixel evidence. Regenerate under a new tracked path,
+   never overwrite or delete the prior captures, and state what the new evidence
+   supersedes and why.
 
 Run `node tools/audit-design-approvals.mjs` after any canonical artifact or
 manifest change. A documentation handoff is incomplete while that audit is red.

@@ -596,10 +596,19 @@ cohort.** Left on every defensive snap it charged the reduced yardage against
 the excluded penalty rows as though each were a zero-yard play, flattering the
 defense: 497/174 = 2.9 against the honest 497/154 = 3.2. The approved 2.9 was a
 value printed in a comp fixture, not an approved formula, and a rate whose two
-halves describe different cohorts is not a measurement. Production `Snaps`
-uses that same CLASSIFIED cohort so the adjacent count, yards and rate reconcile.
-The complete sample remains available only through an explicitly named
-`charted` field for call-frequency calculations and sample disclosure.
+halves describe different cohorts is not a measurement.
+
+**TWO COHORTS, BOTH NAMED, NEITHER STANDING IN FOR THE OTHER.** `charted` is
+every defensive snap in the cohort: the displayed `Snaps`, the frequency ranking
+key, and every call and blitz percentage. `measured` is the run/pass-classified
+subset: the denominator for total, rush and pass yards, yards per play and
+explosives. `n` aliases `charted`, because `n` is what every consumer already
+reads for a displayed count. With `measured === 0` every production field is
+`null` and renders the dash — a charted look with nothing measured shows its real
+charted count and no production, never `0`. Making the displayed count classified
+was the mistake in between: a `Trade` motion charted once with no play type
+printed `0 snaps`, a look the coach charted reported as one nobody ran. The board
+and its export both state `40 charted · 37 with play type`.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp
@@ -1209,6 +1218,20 @@ product is wrong.
 `docs/OPEN-DEFECTS.md` is the canonical current defect index. Update it in the
 same commit that opens, reclassifies, repairs, or closes an issue; this section
 may summarize active work but must not become a competing ledger.
+
+**The shared visual range failed its pre-gate review and was repaired
+(2026-09-11).** An independent non-builder review of `7afa94d..44adcc6` found
+four Reports harnesses red, two against hash-protected approved evidence, behind
+a verification list that named six green suites and omitted every surface the
+range had changed. The repairs, the charted-versus-measured Defense contract, the
+new Overview evidence path and the remaining measured work are all in
+`docs/OPEN-DEFECTS.md`; the enforceable typography contract is
+`docs/VISUAL-SYSTEM-RULES.md`. `1.12.0-80` remains a historical installed
+visual-scope pass; this repair is un-packaged source work made after that
+installer, so no installed build contains it. **A global token change is an
+app-wide change, including to the rasters a comp was approved against** — repair
+the geometry first, then regenerate the affected canonical evidence under a new
+tracked path and name the old one as superseded.
 
 **Reports OLL live-data audit (REPAIRED 2026-09-10, awaiting Codex re-review
 and a Charlie Gate).** The ten investigation items from the complete 29-view

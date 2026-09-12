@@ -110,10 +110,17 @@ qualifier, that Snaps by phase counts each phase from the charted cohort and its
 three rows sum to it, and that the Success rate sub counts real successful
 snaps. `e2e-reports-defense-realdata` additionally pins the season's four
 cohorts (201/173 offensive, 174/154 defensive) and that every Game-by-game row
-satisfies `Total yds = Rush yds + Pass yds`, that production `Snaps` is the
-classified denominator, and that every production row satisfies
-`Yards / play = Total yards / Snaps`. The explicitly named charted count remains
-available for frequency and sample contracts. `e2e-reports-self-scout` pins all
+satisfies `Total yds = Rush yds + Pass yds`, that displayed `Snaps` is the
+CHARTED cohort while `measured` is the classified denominator, that every
+measured row satisfies `Yards / play = Total yards / measured`, that a
+charted-but-unmeasured row keeps its charted count and reports every production
+value as absent, that no rendered tendency row prints `0` snaps for a charted
+look, that the Blitz/No Blitz counts and every situational blitz rate share one
+charted cohort, that the `N charted · M with play type` disclosure renders on
+every section at both widths, and that every value outside a named
+broadcast-display exception meets the 12.5px floor. The reconciliation walk has
+no truthiness guard: the first version skipped `n === 0` rows, which is exactly
+where the two cohorts diverge. `e2e-reports-self-scout` pins all
 twelve down-and-distance rows in football order with explicit yardage, held
 rows carrying the absence treatment rather than a zero, `Turnovers` never
 `Giveaways`, a populated section never badging zero, and that no defensive tell
@@ -325,6 +332,29 @@ of synthetic data proves less than it appears to.
 
 Both are why the Charlie Gate — show the real app with real data and get
 PASS / REVISE / REJECT — happens before packaging, not after.
+
+### A global token change is not a focused change
+
+The 2026-09-11 shared visual range ran six focused suites, all green, and
+shipped four red Reports harnesses behind them — two failing against
+hash-protected approved evidence. The rule below was already written when that
+happened; it was not followed. A `:root` palette or type edit repaints and
+re-measures **every** surface, so "materially affected reference surface" means
+every board that renders text, not the routes you edited.
+
+The concrete list for a shared token change: `e2e-reports-overview`,
+`e2e-reports-offense`, `e2e-reports-offense-realdata`,
+`e2e-reports-defense-realdata`, `e2e-reports-self-scout`, `e2e-reports-season`,
+`e2e-reports-players`, `e2e-reports-matchup`, `e2e-reports-special-teams`,
+`e2e-native-reports`, `e2e-design-system`, `e2e-workspace-shell`,
+`e2e-native-breakdown-theater`, `e2e-native-tagging`, `e2e-p0-exit`,
+`e2e-parity`, `e2e-css-ownership`, and `audit-design-approvals`.
+
+Two things the harnesses now enforce that they did not before: the typography
+floor by class, with a named exception list rather than hundreds of unexplained
+ones (`e2e-reports-defense-realdata`), and the no-truncation rule for the longest
+canonical Program, Season and Game values on all five routes at both release
+widths (`e2e-workspace-shell`).
 
 ### Shared visual-system changes
 

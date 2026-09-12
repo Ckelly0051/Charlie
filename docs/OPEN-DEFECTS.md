@@ -1,6 +1,88 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-11.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-11 (second entry of the day,
+> after the independent pre-gate review of `7afa94d..44adcc6`).
+
+## Pre-gate review of the shared visual range — FAILED, then repaired
+
+An independent non-builder review of `7afa94d..44adcc6` **failed the pre-gate
+checkpoint**. The range's own verification list named six green suites; it did
+not run the surfaces it had changed. At `44adcc6` four Reports harnesses were
+red, two of them against hash-protected approved design evidence:
+
+| Harness | At `44adcc6` | Repaired |
+|---|---|---|
+| `e2e-reports-overview` | 101/7 | 109/0 |
+| `e2e-reports-offense-realdata` | 28/3 | 31/0 |
+| `e2e-reports-defense-realdata` | 46/4 | 58/0 |
+| `e2e-reports-self-scout` | 109/1 | 110/0 |
+| `e2e-reports-season` | 97/1 | 98/0 |
+
+What was wrong, and what was done:
+
+1. **The global palette invalidated Overview's approved rasters.** Production
+   painted `20,24,28` where the approved capture has `16,24,34`, at all four
+   registered viewports. New canonical evidence is
+   `design-comps/reports-overview-2026-09-11/canonical`; the 2026-08 captures are
+   retained untouched and named in the manifest as `supersededArtifact`.
+   Palette and type only — the composition is unchanged.
+2. **Two approved 14px module titles were shrunk to 12.5px** inside a
+   readability pass, because `.gi-reports .gi-overview-module>header strong` tied
+   with `.gi-ss-module` / `.gi-season-module` on specificity and won on source
+   order. Both surface rules now carry their board class.
+3. **Containment regressed.** `Top 5 Tendencies` engaged an internal scroller at
+   both widths at season scope — the defect closed in `c4b1ada` — and eight
+   Offense tables engaged horizontal scrollers at 1280. Row pitch re-derived to
+   52px; the Offense band's cell padding pays for the type raise.
+4. **Defense clipped and escaped.** `Away from Strength` was cut at 1440 and
+   1280; the twelfth Down & distance row escaped its module; the full-season
+   board overran the 1280 viewport by 5px. The label now wraps inside its own
+   fixed 32px row, and `.gi-def-situations` carries its measured height (332px,
+   322px at 1280) instead of a slack value.
+5. **A charted look printed `0 snaps`.** See the Defense cohort contract below.
+6. **Disabled route labels measured 2.2:1**; the Program selector clipped
+   `St. Joseph Mavericks` on Home at both widths. Both repaired and both now
+   asserted.
+
+No installer, version bump, tag, push, publication, full gate, or coach-data
+write occurred in this repair. `1.12.0-80` remains a historical installed
+visual-scope pass and is not an accepted release; no installed build contains
+these repairs.
+
+## The Defense cohort contract — charted versus measured
+
+`StatsEngine.defenseDashboard`'s `summarize` returns both cohorts, named:
+
+- **`charted`** — every defensive snap in the cohort. This is the displayed
+  `Snaps` count, the frequency ranking key, and every call and blitz percentage.
+  `n` is its alias, because `n` is what every consumer already reads.
+- **`measured`** — the run/pass-classified subset. This is the denominator for
+  total, rush and pass yards, yards per play, and explosives.
+
+With `measured === 0` every production field is `null` and renders the board's
+dash. A charted look with nothing measured shows its real charted count and no
+production values — never `0`. The first repair collapsed the displayed count
+onto `measured`, which is how a `Trade` motion charted once with no play type
+printed `0 snaps` on Week 3, and how the same artifact pushed it to the bottom of
+a frequency ranking. The board and its HTML export both state the reconciliation
+compactly: `40 charted · 37 with play type`. The byte-identical `classified`
+alias is deleted.
+
+## Deferred, measured, not hidden
+
+1. **Legacy sub-floor type on five Reports boards.** Self-Scout, Season,
+   Players, Special Teams and Matchup still carry labels below the 12.5px floor
+   inside their own approved fixed-height boards. Raising them requires
+   re-deriving each board's row math, so they are unfinished rather than exempt.
+   The enforcing assertion currently covers the Defense board, Overview and the
+   shell; extend it per board as each one's geometry is re-derived.
+2. **The Offense three-up band at 1280.** Eight five-column tables share a 379px
+   half and measure 387-418px of content at the floor, so at that width only
+   their cells keep 12px body and 11.5px column labels. The approved board
+   forbids both a scroller and a resize; recompose the band.
+3. **Down & distance still leaves 6px** at the foot of its module after the
+   height was re-derived from the rendered board. Visible dead space is closed;
+   the residual is within one row's rounding.
 >
 > This file indexes unresolved coach-observed defects and investigations. Detail
 > may live in a linked audit, but an item is not closed until this index and the

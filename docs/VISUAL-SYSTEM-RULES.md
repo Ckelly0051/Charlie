@@ -46,6 +46,46 @@
 - Text hierarchy must be visible through size, weight, and placement. Small
   labels may support a control but cannot become the dominant navigation.
 
+### The floor is enforceable, and these are the only exceptions
+
+The floors above govern coach-facing copy. They may **never** be waived for
+ordinary buttons, route or context values, module titles, table headers, table
+cells, formation-matrix headers, KPI evidence lines, section navigation, or any
+coach-facing label — and density is not a reason. When type and a fixed
+composition genuinely conflict, recompose the container, spend padding, or open
+a defect; do not shrink the text.
+
+Four narrow exceptions, each named, each for a non-primary utility annotation:
+
+1. **Technical timecodes.** The theater's monospaced elapsed/duration readout.
+2. **Keyboard hints.** `kbd` shortcut chips.
+3. **An approved comp's broadcast display pair.** Where a registered comp fixes
+   a Condensed uppercase micro-label directly above its own large display
+   number — Overview's KPI and tile labels, the Defense board's tile and
+   type-summary labels — that pairing is the approved composition and changing
+   it needs a new coach approval, not a silent raise. Every such class is listed
+   in the enforcing assertion, not left implicit.
+4. **One measured geometric conflict, recorded and open.** The eight
+   five-column Offense Zone 2 / Zone 3 tables share a 379px band half at 1280
+   and measure 387-418px of content at the floor. At that width only, their
+   cells keep 12px body and 11.5px column labels. The approved board forbids
+   both an internal scroller and a resize, so the fix is to recompose the
+   three-up band; it is open in `docs/OPEN-DEFECTS.md`.
+
+**Enforcement.** `e2e-reports-defense-realdata` walks every rendered text
+element on the Defense board at both release widths and fails on anything below
+12.5px that is not in its named exception list. `e2e-workspace-shell` pins the
+shell's 18px route labels, 19px icons, ≥128px targets and the ≥12.5px context
+values. `e2e-reports-overview` pins the Overview scale exactly and asserts its
+module title, table cell and row label are at or above the floor. A floor
+without a test is a preference, not a contract.
+
+**Known remaining work, measured not hidden.** Self-Scout, Season, Players,
+Special Teams and Matchup still carry legacy sub-floor labels inside their own
+approved fixed-height boards. They are not exempt; they are unfinished, and
+raising them requires re-deriving each board's row math. Tracked in
+`docs/OPEN-DEFECTS.md` rather than quietly allowed.
+
 ## Global Navigation
 
 - Home, Break Down, Study, Reports, and Plan are the primary desktop routes and
@@ -56,6 +96,12 @@
   blue-gray filled pills. The active route uses primary copy and the gold
   underline. Hover, focus, disabled, and pressed states must remain distinct
   without shifting layout.
+- **Disabled is a colour, not an opacity.** On transparent chrome a 35%-opacity
+  label composites straight onto the shell: measured 2.2:1 at 18px, and on first
+  launch four of the five routes are disabled, so that is the state a new coach
+  meets. Disabled route labels take `--gi-8`, which measures 3.7:1 on
+  `--ws-nav`. Minimum 3:1, measured on the rendered control with its own
+  opacity composited, and asserted in `e2e-workspace-shell`.
 - The compact 901-1150px treatment may reduce dimensions to preserve all five
   routes, but it cannot truncate route names or introduce horizontal scrolling.
 - Mobile keeps the same transparent, underline-led selection language in its
@@ -69,6 +115,17 @@
   must render in full; do not clip them to preserve obsolete prototype widths.
   At narrower mobile widths, expose any shortened value in full accessibly and
   preserve the primary route navigation.
+- **This applies to every route that shows the bar, not only Breakdown.** The
+  first pass widened Breakdown's tracks alone, and `St. Joseph Mavericks`
+  ellipsized in the Program selector on Home at both 1440 and 1280 while
+  `.ws-ctx-value` still carried `text-overflow:ellipsis`. Three owners set that
+  width — `css/workspace-shell.css` for the shared grid,
+  `css/native-breakdown-route.css` and `css/native-home.css` for their own route
+  overrides — and all three now carry a floor that holds the longest canonical
+  program name. The ellipsis stays as a last-resort safeguard for an imported
+  name longer than any panel can give it; it must not be the normal case.
+- Enforced by `e2e-workspace-shell` on all five routes at 1440 and 1280, using
+  the longest canonical Program, Season and Game strings.
 - Never truncate team names in score or matchup presentation. Team identity and
   its aligned score must remain visually unambiguous.
 
@@ -83,6 +140,28 @@
 - Remove explanatory prose that does not change the coach's next decision.
   Titles and labels name the data directly.
 
+## A global token change is an app-wide change, including to approved evidence
+
+A `:root` palette or type-token edit repaints and re-measures every surface,
+including the rasters a comp was approved against. When it does:
+
+1. Repair the geometry and typography regressions first. A scroller, a clipped
+   label, an escaped row or a shrunken approved title is a defect, not a
+   consequence to accept.
+2. Then, and only then, regenerate the affected canonical evidence under a NEW
+   tracked path. Never overwrite or delete the prior captures: name them in the
+   manifest as `supersededArtifact` with their own hash, so the approval history
+   stays auditable.
+3. Say exactly what the new evidence supersedes and why. Palette and type only
+   is a palette-and-type supersession; it does not license a composition change
+   and does not promote any surface.
+4. Re-point the harness only after the evidence exists, and never by weakening
+   a geometry, rhythm, typography or composition check.
+
+Worked example: `design-comps/reports-overview-2026-09-11/canonical`, recorded in
+`design-approvals/reports/overview/manifest.json` and in the 2026-09-11 addendum
+to `design-comps/reports-overview-2026-09-07/RATIONALE.md`.
+
 ## Acceptance
 
 The installed `1.12.0-80` smoke approved this shared visual rule set: larger
@@ -90,3 +169,10 @@ primary navigation, wider context selectors, readable typography, neutral
 graphite chrome, and neutral secondary copy. That approval does not change any
 surface manifest from `REJECTED`, close unrelated functional defects, or replace
 the full release gate.
+
+**The first implementation of these rules did not deliver them.** An independent
+non-builder review of `7afa94d..44adcc6` failed the pre-gate checkpoint: four
+Reports harnesses were red, two of them against hash-protected approved
+evidence. The repairs are recorded in `docs/OPEN-DEFECTS.md`. `1.12.0-80` remains
+a historical installed visual-scope pass; this repair is un-packaged source work
+made after that installer, so no installed build contains it.

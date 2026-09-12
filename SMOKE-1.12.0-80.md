@@ -20,6 +20,24 @@ global navigation, context-selector width, graphite chrome, and neutral
 secondary-copy result. This is a scoped visual pass, not whole-surface or
 release acceptance; the candidate is not tagged, pushed or published.
 
+## Superseded by source — read this first (added 2026-09-11)
+
+**This record describes an installer, not current source.** An independent
+non-builder review of `7afa94d..44adcc6` **failed the pre-gate checkpoint**: four
+Reports harnesses were red at `44adcc6`, two of them against hash-protected
+approved design evidence, behind the six green suites listed below.
+
+The verification list below is accurate and incomplete. It names the suites that
+were run; it does not name `e2e-reports-overview` (101/7),
+`e2e-reports-offense-realdata` (28/3), `e2e-reports-defense-realdata` (46/4),
+`e2e-reports-self-scout` (109/1) or `e2e-reports-season` (97/1), all of which the
+range had materially changed.
+
+Those regressions are repaired in source after this installer. **No installed
+build contains the repairs.** `1.12.0-80` remains a historical installed
+visual-scope pass and is not an accepted release. Detail:
+`docs/OPEN-DEFECTS.md`; contract: `docs/VISUAL-SYSTEM-RULES.md`.
+
 ## Verification
 
 - Production Vite build: passed.
