@@ -29,6 +29,13 @@ const breakdownColumns = [
   } },
   { key: 'ypp', label: 'Yds/play', numeric: true }, { key: 'success', label: 'Success' },
 ];
+const directionStrengthColumns = [
+  { key: 'name', label: 'Direction' },
+  { key: 'count', label: 'Runs', numeric: true },
+  { key: 'runShare', label: 'Run share', numeric: true },
+  { key: 'ypp', label: 'Yds/run', numeric: true },
+  { key: 'success', label: 'Success' },
+];
 function breakdownRows(rows, screen) {
   // A held slot passes through untouched: no cut, no film, no label.
   return rows.map(row => (row.absent ? row
@@ -773,15 +780,9 @@ export function OffenseTab({ stats, screen }) {
     <div class="gi-overview-band gi-off-b2 gi-off-call-band">
       <div class="gi-off-call-stack">
         <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
-        <Module title="Direction vs Strength" meta="ball direction vs declared strength" cls="is-offense">
-          <DataTable emptyText="Insufficient charted data" columns={breakdownColumns}
-            rows={fitRows(dirStrength, OFFENSE_ROWS['Direction vs Strength']).map((row, index) => (row.absent ? row
-              : {
-                ...row, id: row.name || `dvs-${index}`,
-                ...(row.refs?.length
-                  ? { onActivate: () => screen.watchRefs(row.refs, row.cutLabel), label: row.cutLabel }
-                  : {}),
-              }))} />
+        <Module title="Direction vs Strength" meta="strength-tagged runs" cls="is-offense">
+          <DataTable emptyText="Insufficient charted data" columns={directionStrengthColumns}
+            rows={breakdownRows(fitRows(dirStrength, OFFENSE_ROWS['Direction vs Strength']), screen)} />
         </Module>
       </div>
       {calls.situations}

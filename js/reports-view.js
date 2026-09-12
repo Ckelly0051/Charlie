@@ -486,11 +486,12 @@ export function directionMotion(stats) {
 export function dirStrengthTendencies(engine, offPlays) {
   const model = engine._dirStrengthStats(offPlays || []);
   return model.list.map(row => (row.held
-    ? { name: row.name, count: '-', ypp: '-', success: '-', held: true }
+    ? { name: row.name, count: '-', runShare: '-', ypp: '-', success: '-', held: true }
     : {
-      name: row.name, count: row.count, runs: row.runs, passes: row.passes,
+      name: row.name, count: row.count, runShare: `${row.sharePct}%`,
       ypp: row.avg, success: `${row.successPct}%`, refs: row.refs,
-      cutLabel: `Direction vs Strength: ${row.name} — ${row.count} plays`,
+      cutType: 'directionStrength', cutVal: row.name,
+      cutLabel: `Direction vs Strength: ${row.name} — ${row.count} runs`,
     }));
 }
 

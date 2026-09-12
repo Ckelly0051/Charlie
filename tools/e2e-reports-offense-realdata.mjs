@@ -56,6 +56,7 @@ const games = season.games || [];
 const totalPlays = games.reduce((t, g) => t + (g.plays || []).length, 0);
 const activeId = season.activeGameId || games[0]?.id;
 const activeGame = games.find(g => g.id === activeId) || games[0];
+const ollGame = games.find(g => /OL Lakes Lakers/i.test(g.name || ''));
 
 console.log(`\nCanonical season: ${season.seasonName} (${season.id || SEASON_ID})`);
 console.log(`  ${games.length} games, ${totalPlays} charted plays`);
@@ -332,18 +333,26 @@ for (const [width, height] of VIEWPORTS) {
     JSON.stringify(measured.engagedScrollers));
 }
 
-/* ── Direction vs Strength reports a CHARTED dimension ────────────────────
-   The module used to render one of `_playCallAnalysis`'s play-call lenses,
-   which filters its source to plays carrying a `playCall`. This season charts
-   0 of 449, so the module was structurally empty while `playDir` and
-   `strength` -- the two tags it is named for -- were charted on most snaps.
-   Found by the coach at the board, 2026-09-12.
-
-   Asserted on the canonical season, not a fixture: the four buckets are the
-   fixed set in football order, at least one is measured, every measured row
-   carries film, and a bucket no snap reached HOLDS its label with dashes
-   rather than reporting a fabricated zero. */
-const DIR_STRENGTH_BUCKETS = ['Toward strength', 'Away from strength', 'Middle', 'n-a (balanced)'];
+/* ── Direction vs Strength answers the OLL rushing question ───────────────
+   The original module was a play-call lens, then its first repair counted
+   mixed run/pass rows. Select the game from the coach finding explicitly and
+   pin the four run-only buckets, their shares, and their film affordances. */
+const DIR_STRENGTH_EXPECTED = [
+  { name: 'Toward strength', runs: '7', share: '58%' },
+  { name: 'Away from strength', runs: '1', share: '8%' },
+  { name: 'Middle', runs: '1', share: '8%' },
+  { name: 'n-a (balanced)', runs: '3', share: '25%' },
+];
+ok(!!ollGame, 'the OLL game named in the coach finding exists in the canonical season');
+if (ollGame) {
+  await page.evaluate(async gid => {
+    window.app.storage.seasonStore.data.activeGameId = gid;
+    await window.app.storage._loadActiveGame();
+    window.app.workspaceShell.show('reports');
+    window.app.reportsScreen.selectTab('offense');
+  }, ollGame.id);
+  await sleep(700);
+}
 for (const [width] of VIEWPORTS) {
   await page.setViewport({ width, height: 900 });
   /* The Season block above leaves the page on Reports > Season, whose Offense
@@ -360,23 +369,30 @@ for (const [width] of VIEWPORTS) {
     if (!module) return { present: false };
     const rows = [...module.querySelectorAll('tbody tr')].map(tr => {
       const cells = [...tr.children].map(td => td.textContent.trim());
-      return { name: cells[0], plays: cells[1], measured: cells[1] !== '-' && cells[1] !== '—' && cells[1] !== '', watchable: !!(tr.onclick || tr.getAttribute('tabindex') !== null || tr.querySelector('button')) };
+      return { name: cells[0], runs: cells[1], share: cells[2], ypr: cells[3], success: cells[4], watchable: !!(tr.onclick || tr.getAttribute('tabindex') !== null || tr.querySelector('button')) };
     });
     const headers = [...module.querySelectorAll('thead th')].map(th => th.textContent.trim());
     return { present: true, headers, rows };
   });
   ok(dvs.present, `${width}: Direction vs Strength renders on the Offense board`, JSON.stringify(dvs));
-  ok(dvs.present && dvs.rows.length === 4 && dvs.rows.every((row, i) => row.name === DIR_STRENGTH_BUCKETS[i]),
-    `${width}: Direction vs Strength holds its four fixed buckets in football order`,
-    JSON.stringify(dvs.rows?.map(r => r.name)));
-  ok(dvs.present && !dvs.headers.includes('Top Call'),
-    `${width}: Direction vs Strength is no longer a play-call lens`, JSON.stringify(dvs.headers));
-  ok(dvs.present && dvs.rows.some(row => row.measured),
-    `${width}: Direction vs Strength MEASURES the canonical season instead of rendering empty`,
-    JSON.stringify(dvs.rows));
-  ok(dvs.present && dvs.rows.every(row => row.measured || row.plays === '-'),
-    `${width}: an unreached bucket holds its label with a dash, never a fabricated zero`,
-    JSON.stringify(dvs.rows));
+  ok(dvs.present && JSON.stringify(dvs.headers) === JSON.stringify(['Direction', 'Runs', 'Run share', 'Yds/run', 'Success']),
+    `${width}: Direction vs Strength states the run-frequency question directly`, JSON.stringify(dvs.headers));
+  ok(dvs.present && dvs.rows.length === 4 && dvs.rows.every((row, i) => row.name === DIR_STRENGTH_EXPECTED[i].name),
+    `${width}: Direction vs Strength holds its four fixed buckets in football order`, JSON.stringify(dvs.rows));
+  ok(dvs.present && dvs.rows.every((row, i) => row.runs === DIR_STRENGTH_EXPECTED[i].runs && row.share === DIR_STRENGTH_EXPECTED[i].share),
+    `${width}: OLL run counts and shares are exact`, JSON.stringify(dvs.rows));
+  ok(dvs.present && dvs.rows.every(row => row.watchable),
+    `${width}: every measured OLL direction row opens its exact run film`, JSON.stringify(dvs.rows));
+  const cutCounts = await page.evaluate(names => names.map(name => window.app.tagger.plays
+    .filter(window.app.stats._buildCutFilter('directionStrength', name)).length),
+  DIR_STRENGTH_EXPECTED.map(row => row.name));
+  ok(JSON.stringify(cutCounts) === JSON.stringify([7, 1, 1, 3]),
+    `${width}: each OLL film cut contains exactly the runs printed in its row`, JSON.stringify(cutCounts));
+  if (width === 1440) {
+    const module = await page.evaluateHandle(() => [...document.querySelectorAll('.gi-overview-module')]
+      .find(node => node.querySelector('header strong')?.textContent.trim() === 'Direction vs Strength'));
+    await module.asElement().screenshot({ path: `${OUT}/w5-direction-strength-1440.png` });
+  }
 }
 
 await browser.close();

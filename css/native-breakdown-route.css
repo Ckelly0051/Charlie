@@ -18,29 +18,12 @@
 .gi-breakdown-save{margin-left:auto;padding-left:12px;border-left:1px solid var(--gi-6);flex:0 0 auto;color:var(--gi-bd-copy);font:600 11px var(--gi-sans);text-transform:uppercase}
 .gi-breakdown-save::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;background:var(--gi-ok)}
 .gi-breakdown-save.is-pending::before{background:var(--gi-warn)}
-/* ROUTE GUTTER. Both content edges land on the 12px gutter `.gi-breakdown-
-   toolbar` above them already uses, so the film's left edge and the charting
-   deck's right edge register with the toolbar and with each other.
-
-   Measured before this rule: the film's own content sat 4px from the viewport
-   while the deck's sat 8px, and the 4px was `.gi-theater-stage`'s letterbox
-   padding painted in `--gi-film` on a `--gi-film` ground -- invisible, so the
-   film read as bleeding off the left edge of the screen while the right side
-   read as padded. The asymmetry is the defect; the invisibility is why it
-   looked larger than 4px.
-
-   The two values differ because each side already carries part of its gutter:
-   the stage contributes 4px on the left and the deck's own inner inset 8px on
-   the right. What is symmetric is the CONTENT edge, which is what the coach
-   sees -- not the padding declaration. */
-.gi-breakdown-composition{display:grid;min-width:0;min-height:0;padding:0 4px 0 8px;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:minmax(0,1fr) 34px;grid-template-areas:'theater deck' 'rail deck'}
+/* One route-owned gutter. Child padding belongs to the film and charting
+   components and must not be counted to manufacture page-level symmetry. */
+.gi-breakdown-composition{display:grid;min-width:0;min-height:0;padding-inline:6px;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:minmax(0,1fr) 34px;grid-template-areas:'theater deck' 'rail deck'}
 .gi-breakdown-theater-host,.gi-breakdown-deck,.gi-breakdown-rail-host,.gi-breakdown-tagging-host,.gi-breakdown-film-room-host{min-width:0;min-height:0}
-/* The film stage is BOUNDED on both sides, not just the deck side. With only
-   the right border the stage's `--gi-film` met the route's `--gi-1` at the
-   viewport edge -- two near-identical blacks a few steps apart on the neutral
-   ladder -- so the film read as running off the screen no matter how much
-   gutter sat beside it. The
-   gutter is geometry; this is what makes the gutter visible. */
+/* Bound the film on both sides so the route gutter remains visible against two
+   neighboring near-black surfaces. */
 .gi-breakdown-theater-host{grid-area:theater;overflow:hidden;border-left:1px solid var(--gi-7);border-right:1px solid var(--gi-7);background:var(--gi-film)}
 .gi-breakdown-rail-host{grid-area:rail;overflow:hidden}
 .gi-breakdown-deck{grid-area:deck;overflow:hidden;background:var(--gi-1)}
