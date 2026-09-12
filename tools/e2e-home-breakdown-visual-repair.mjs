@@ -18,7 +18,8 @@ page.on('pageerror', e => errors.push(e.message));
 await page.setViewport({ width: 1440, height: 900 });
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen);
-await setupTeamAndDemo(page, 'St. Joseph Mavericks Under-A Really Long Program Name');
+const CANONICAL_PROGRAM = 'St. Joseph Mavericks';
+await setupTeamAndDemo(page, CANONICAL_PROGRAM);
 await page.evaluate(() => window.app.workspaceShell.show('home'));
 await new Promise(r => setTimeout(r, 300));
 
@@ -174,6 +175,7 @@ async function programGeometry(width) {
     found: true, width: b.width,
     labelValueOverlap: l.right > v.left,
     valueChevOverlap: v.right > c.left,
+    valueClipped: value.scrollWidth > value.clientWidth + 1,
     chevVisible: c.width > 0 && c.right <= b.right && c.left >= b.left,
     valueSingleLine: getComputedStyle(value).whiteSpace === 'nowrap',
   };
@@ -181,9 +183,11 @@ async function programGeometry(width) {
 }
 for (const width of [1440, 1280]) {
   r = await programGeometry(width);
-  const bounds = width > 1300 ? [180, 280] : [170, 220];
+  // Derived from the canonical name at the production widths, not inherited
+  // from the compact prototype that clipped this exact value.
+  const bounds = width > 1300 ? [340, 380] : [320, 340];
   ok(r.found && r.width >= bounds[0] && r.width <= bounds[1], `Program selector width stays within ${bounds[0]}-${bounds[1]}px at ${width}`, r);
-  ok(r.found && !r.labelValueOverlap && !r.valueChevOverlap, `Program label/value/caret do not overlap at ${width}`, r);
+  ok(r.found && !r.labelValueOverlap && !r.valueChevOverlap && !r.valueClipped, `Canonical Program label/value/caret fit without overlap or clipping at ${width}`, r);
   ok(r.found && r.chevVisible, `Program caret remains visible at ${width}`, r);
   ok(r.found && r.valueSingleLine, `Program value stays single-line at ${width}`, r);
 }

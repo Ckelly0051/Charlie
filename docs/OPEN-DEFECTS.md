@@ -40,6 +40,24 @@ authority until a replacement composition is reviewed and approved.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 
+### Full-gate geometry failures on `2073e2e` — repaired 2026-09-12
+
+The full gate exposed two contracts that the focused Reports review did not
+exercise. Neither was waived:
+
+- Home already rendered its repaired Program selector at 340px / 320px, but
+  `e2e-home-breakdown-visual-repair` still required the compact prototype's
+  180–280px / 170–220px widths. The harness now uses the canonical
+  `St. Joseph Mavericks` name, asserts the production bounds, and fails on
+  actual text clipping as well as overlap.
+- Breakdown's 1920 three-column composition reserved up to 340px for the play
+  rail and 500px for the deck, leaving a 1075.8×605.1 picture against the
+  approved 1150×645 budget. The utility columns are now bounded at 280–300px
+  and 440–460px so the primary film surface clears its existing budget. At
+  1440, the 400px deck remains fixed; its top command row is a four-track grid
+  instead of a 441px flex row, removing the 41px internal overflow without
+  hiding controls or shrinking type.
+
 An independent non-builder review of `7afa94d..44adcc6` **failed the pre-gate
 checkpoint**. The range's own verification list named six green suites; it did
 not run the surfaces it had changed. At `44adcc6` four Reports harnesses were

@@ -357,6 +357,12 @@ and say so in the comment rather than claiming canonical provenance.
 
 ### Containment is not composition
 
+The full gate must include both `e2e-breakdown-geometry` and
+`e2e-home-breakdown-visual-repair` after shared shell or typography changes.
+The former protects the film picture budget as well as deck containment; the
+latter must derive selector bounds from canonical names and test the rendered
+text for clipping, not preserve compact prototype dimensions.
+
 A band that clips nothing, overflows nothing and engages no scroller can still be
 badly composed, and every geometry check in this repository was written to catch
 the first three. On 2026-09-11 the coach rejected a Defense screen that had just

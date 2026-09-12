@@ -31,7 +31,11 @@
 .gi-breakdown-route.is-film-focus .gi-breakdown-deck,.gi-breakdown-route.is-film-focus .gi-breakdown-rail-host{display:none}
 @media(min-width:1350px) and (max-width:1699.98px){.gi-breakdown-composition{grid-template-rows:minmax(0,1fr) 84px}}
 @media(min-width:1700px){
-  .gi-breakdown-composition{grid-template-columns:minmax(0,1fr) clamp(320px,17.5vw,340px) clamp(480px,26vw,500px);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater rail deck'}
+  /* The original 340px play rail plus 500px deck left only 1085px for film at
+     1920, below the approved 1150x645 picture budget. Both utility columns
+     remain fully usable at these bounded widths; the recovered space belongs
+     to the primary coaching surface. */
+  .gi-breakdown-composition{grid-template-columns:minmax(0,1fr) clamp(280px,15vw,300px) clamp(440px,24vw,460px);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater rail deck'}
 }
 /* Existing context commands remain, in the comp's compact breadcrumb band. */
 @media(min-width:1001px){

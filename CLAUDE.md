@@ -1273,6 +1273,15 @@ app-wide change, including to the rasters a comp was approved against** — repa
 the geometry first, then regenerate the affected canonical evidence under a new
 tracked path and name the old one as superseded.
 
+**The full gate after `2073e2e` exposed two inherited geometry contracts; both
+were repaired, not waived (2026-09-12).** Home's production Program selector
+already used its required 340px / 320px widths while an older harness still
+pinned the clipping prototype. That harness now uses the canonical program name
+and checks actual clipping. Breakdown's 1920 utility columns were recomposed to
+restore the existing 1150x645 film budget, and its fixed 400px deck now lays out
+the top command row without internal overflow. Exact measurements and ownership
+are recorded in `docs/OPEN-DEFECTS.md`.
+
 **Reports OLL live-data audit (REPAIRED 2026-09-10, awaiting Codex re-review
 and a Charlie Gate).** The ten investigation items from the complete 29-view
 capture, plus one found in passing, are closed in code; three further repairs

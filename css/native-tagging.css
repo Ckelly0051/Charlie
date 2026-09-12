@@ -14,6 +14,8 @@
 .gi-native-tagging button{cursor:pointer}
 .gi-native-tagging button:disabled{cursor:default;opacity:.45}
 .gi-tag-actions{display:flex;align-items:center;gap:4px;min-width:0;padding:5px 8px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-native-tagging>.gi-tag-actions{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content max-content}
+.gi-native-tagging>.gi-tag-actions select{width:100%;min-width:0}
 .gi-tag-actions button,.gi-tag-actions select,.gi-diagram-actions button{min-height:30px;padding:0 7px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
 .gi-tag-actions select{flex:1 1 180px;min-width:180px;width:auto;padding-inline:10px}
 .gi-tag-actions .gi-is-risk{margin-left:auto;color:var(--gi-turnover)}
