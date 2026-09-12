@@ -1,7 +1,42 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-11 (second entry of the day,
-> after the independent pre-gate review of `7afa94d..44adcc6`).
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-12 for the next protected
+> Home workstream after the active Reports repair review.
+
+## Home
+
+Home is a high-priority navigation and data-accuracy surface. Current production
+remains `REJECTED`; the approved 2026-08-31 Home comp remains the design
+authority until a replacement composition is reviewed and approved.
+
+1. **Consolidate Home into one renderer and one composition.** Production
+   currently presents three Home-like experiences: the no-open-season library,
+   the populated open-season game library, and the full-page Team Hub in Program
+   and Opponent Scout modes. Keep the populated game-library composition as the
+   primary Home. Render no-season, empty-season, and Opponent Scout as states of
+   that same shell and hierarchy. Retain Team Hub's underlying operations, but
+   remove its duplicate full-page landing composition; season management,
+   recovery, roster, film, and program settings should enter from Home through
+   their existing focused owners. Do not rebuild persistence or duplicate those
+   services while consolidating the presentation.
+2. **Remove the duplicate workspace switcher.** The shell-level `Our Program /
+   Opponent Scout` control is the sole workspace-mode owner. Home and Team Hub
+   must not render a second `Program / Opponent Scout` card pair for the same
+   state. The Home canvas begins with the active library or game content; gold
+   and cyan remain semantic workspace accents, not duplicate navigation.
+3. **Season film-health counts can be wrong outside the active season.** The
+   coach observed 2025 JV as `5 of 6 games linked` in the season library while
+   the opened season reports all six linked. `TeamHubScreen._verifyFilmHealth`
+   peeks a non-active season's games, then calls `WorkspaceContext.filmHealth`,
+   whose managed-film lookup ultimately builds
+   `seasons/{backend.currentId}/films/{gameId}`. A closed season can therefore be
+   checked against the active backend season, particularly when game IDs are
+   reused. Repair the owner so film health is explicitly season-scoped (season
+   ID plus game ID), read-only for closed seasons, and shared by every Home and
+   library presentation. Always print an explicit result such as `6 of 6 games
+   linked`, `5 of 6 games linked`, or `No film linked`. Add a regression fixture
+   with reused game IDs in two seasons. Do not declare either observed count
+   correct until the actual season-specific film sources are verified.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 

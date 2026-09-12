@@ -38,6 +38,32 @@
 
 The approved comp remains the design contract for all three meaningful Home states: first launch, season library/no open season, and a populated open season. The `1.12.0-70` installed snapshot was accepted, but current Home production is `REJECTED` after the `1.12.0-74` installed screen was reported visually off. Do not interpret the accepted baseline below as current production acceptance. First launch is part of Home, not a centered Team Hub onboarding panel. It offers the approved Program/Opponent choice, structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Team Hub remains the canonical season-library management destination after setup, while creation continues through its existing service boundaries.
 
+### Next Home Pass - One Surface, One Workspace Switcher, Season-Scoped Film Truth
+
+Home is the next protected workstream after the active Reports repair review.
+The populated open-season game library is the primary composition to preserve.
+No-open-season, empty-season, and Opponent Scout are states of that same Home
+shell, not separate Home-like products. The full-page Team Hub presentation is
+to be retired as a competing destination while its existing controllers remain
+the owners of season creation/deletion/recovery, roster, film, and program
+settings. Those operations enter from Home through focused dialogs or Home's
+library state; this pass does not rewrite their persistence boundaries.
+
+The shell's `Our Program / Opponent Scout` selector is the only workspace-mode
+control. Remove the duplicate Program/Opponent card selector from the page body.
+One route, one switcher, one renderer, and one approved state matrix must cover
+first use, no season, empty season, populated season, and scout mode. Historical
+Home and Team Hub artifacts remain evidence but must be explicitly superseded
+when the replacement composition is approved; do not delete approval history.
+
+Film status is part of this pass's data contract, not presentation copy. Every
+season summary and every game row must consume one season-scoped resolver keyed
+by both season ID and game ID. Non-active-season verification must be read-only
+and must never resolve managed film through `backend.currentId`. The observed
+`5 of 6` versus `6 of 6` disagreement is open until the actual 2025 JV sources
+are checked. The regression proof must include reused game IDs across seasons
+and agreement between the closed-season library summary and the opened Home.
+
 The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 
 ### Accepted Home Repair Sequence
