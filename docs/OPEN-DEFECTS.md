@@ -7,6 +7,12 @@
 
 Found at the board on the installed visual-smoke candidate.
 
+**Additional CLOSED fixes — Breakdown utility alignment and watermark.** Every `Edit Library`
+   action now aligns to the full charting-module edge rather than the final chip
+   in its own row. The film watermark follows the actual contained video
+   rectangle, including letterbox and pillarbox offsets, instead of the larger
+   media container.
+
 1. **CLOSED — Break Down bled off the left edge.** The first repair inferred
    route spacing from unrelated child padding and produced asymmetric outer
    padding that changed meaning by view. The composition now owns equal 6px
@@ -19,11 +25,11 @@ Found at the board on the installed visual-smoke candidate.
    season charts 0 of 449, so the module was structurally empty — while 19 of
    Week 5's offensive snaps carried both `playDir` and `strength`. It now reads
    those tags through the canonical `dirVsStrength` extractor already shared
-   with the tendency pivot. The table is now run-only and reports run count,
-   share of all strength-tagged runs, yards per run and success. OLL's exact
-   7/1/1/3 counts and 58/8/8/25 shares are pinned, as is film activation for
-   every measured row. `Calls by situation` keeps the two lenses the engine
-   and the comp both have.
+   with the tendency pivot. Each fixed direction row now reports total snaps,
+   run count and within-row run rate, pass count and within-row pass rate,
+   yards per play and success. OLL's exact 10/2/2/5 cohorts and their run/pass
+   splits are pinned, as is film activation for every measured row. `Calls by
+   situation` keeps the two lenses the engine and the comp both have.
 
 3. **NOT A DEFECT — five Offense modules are honestly empty.** `Play calls`,
    `Concepts`, both `Calls by situation` lenses and Identity's `Top call` all

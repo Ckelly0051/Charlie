@@ -338,10 +338,10 @@ for (const [width, height] of VIEWPORTS) {
    mixed run/pass rows. Select the game from the coach finding explicitly and
    pin the four run-only buckets, their shares, and their film affordances. */
 const DIR_STRENGTH_EXPECTED = [
-  { name: 'Toward strength', runs: '7', share: '58%' },
-  { name: 'Away from strength', runs: '1', share: '8%' },
-  { name: 'Middle', runs: '1', share: '8%' },
-  { name: 'n-a (balanced)', runs: '3', share: '25%' },
+  { name: 'Toward strength', snaps: '10', runs: '7 (70%)', passes: '3 (30%)' },
+  { name: 'Away from strength', snaps: '2', runs: '1 (50%)', passes: '1 (50%)' },
+  { name: 'Middle', snaps: '2', runs: '1 (50%)', passes: '1 (50%)' },
+  { name: 'n-a (balanced)', snaps: '5', runs: '3 (60%)', passes: '2 (40%)' },
 ];
 ok(!!ollGame, 'the OLL game named in the coach finding exists in the canonical season');
 if (ollGame) {
@@ -369,25 +369,26 @@ for (const [width] of VIEWPORTS) {
     if (!module) return { present: false };
     const rows = [...module.querySelectorAll('tbody tr')].map(tr => {
       const cells = [...tr.children].map(td => td.textContent.trim());
-      return { name: cells[0], runs: cells[1], share: cells[2], ypr: cells[3], success: cells[4], watchable: !!(tr.onclick || tr.getAttribute('tabindex') !== null || tr.querySelector('button')) };
+      return { name: cells[0], snaps: cells[1], runs: cells[2], passes: cells[3], ypp: cells[4], success: cells[5], watchable: !!(tr.onclick || tr.getAttribute('tabindex') !== null || tr.querySelector('button')) };
     });
     const headers = [...module.querySelectorAll('thead th')].map(th => th.textContent.trim());
     return { present: true, headers, rows };
   });
   ok(dvs.present, `${width}: Direction vs Strength renders on the Offense board`, JSON.stringify(dvs));
-  ok(dvs.present && JSON.stringify(dvs.headers) === JSON.stringify(['Direction', 'Runs', 'Run share', 'Yds/run', 'Success']),
-    `${width}: Direction vs Strength states the run-frequency question directly`, JSON.stringify(dvs.headers));
+  ok(dvs.present && JSON.stringify(dvs.headers) === JSON.stringify(['Direction', 'Snaps', 'Runs (rate)', 'Passes (rate)', 'Yds/play', 'Success']),
+    `${width}: Direction vs Strength states run and pass frequency directly`, JSON.stringify(dvs.headers));
   ok(dvs.present && dvs.rows.length === 4 && dvs.rows.every((row, i) => row.name === DIR_STRENGTH_EXPECTED[i].name),
     `${width}: Direction vs Strength holds its four fixed buckets in football order`, JSON.stringify(dvs.rows));
-  ok(dvs.present && dvs.rows.every((row, i) => row.runs === DIR_STRENGTH_EXPECTED[i].runs && row.share === DIR_STRENGTH_EXPECTED[i].share),
-    `${width}: OLL run counts and shares are exact`, JSON.stringify(dvs.rows));
+  ok(dvs.present && dvs.rows.every((row, i) => row.snaps === DIR_STRENGTH_EXPECTED[i].snaps
+    && row.runs === DIR_STRENGTH_EXPECTED[i].runs && row.passes === DIR_STRENGTH_EXPECTED[i].passes),
+    `${width}: OLL snap, run and pass rates are exact`, JSON.stringify(dvs.rows));
   ok(dvs.present && dvs.rows.every(row => row.watchable),
-    `${width}: every measured OLL direction row opens its exact run film`, JSON.stringify(dvs.rows));
+    `${width}: every measured OLL direction row opens its exact film`, JSON.stringify(dvs.rows));
   const cutCounts = await page.evaluate(names => names.map(name => window.app.tagger.plays
     .filter(window.app.stats._buildCutFilter('directionStrength', name)).length),
   DIR_STRENGTH_EXPECTED.map(row => row.name));
-  ok(JSON.stringify(cutCounts) === JSON.stringify([7, 1, 1, 3]),
-    `${width}: each OLL film cut contains exactly the runs printed in its row`, JSON.stringify(cutCounts));
+  ok(JSON.stringify(cutCounts) === JSON.stringify([10, 2, 2, 5]),
+    `${width}: each OLL film cut contains exactly the snaps printed in its row`, JSON.stringify(cutCounts));
   if (width === 1440) {
     const module = await page.evaluateHandle(() => [...document.querySelectorAll('.gi-overview-module')]
       .find(node => node.querySelector('header strong')?.textContent.trim() === 'Direction vs Strength'));

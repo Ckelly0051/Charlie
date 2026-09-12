@@ -31,9 +31,10 @@ const breakdownColumns = [
 ];
 const directionStrengthColumns = [
   { key: 'name', label: 'Direction' },
-  { key: 'count', label: 'Runs', numeric: true },
-  { key: 'runShare', label: 'Run share', numeric: true },
-  { key: 'ypp', label: 'Yds/run', numeric: true },
+  { key: 'count', label: 'Snaps', numeric: true },
+  { key: 'runs', label: 'Runs (rate)', numeric: true },
+  { key: 'passes', label: 'Passes (rate)', numeric: true },
+  { key: 'ypp', label: 'Yds/play', numeric: true },
   { key: 'success', label: 'Success' },
 ];
 function breakdownRows(rows, screen) {
@@ -780,7 +781,7 @@ export function OffenseTab({ stats, screen }) {
     <div class="gi-overview-band gi-off-b2 gi-off-call-band">
       <div class="gi-off-call-stack">
         <BigTwelve data={view.bigTwelve(engine, stats.offPlays, engine._subjectName('Our Offense'))} screen={screen} cls="is-offense" variant="zone" />
-        <Module title="Direction vs Strength" meta="strength-tagged runs" cls="is-offense">
+        <Module title="Direction vs Strength" meta="usage and production by relationship" cls="is-offense">
           <DataTable emptyText="Insufficient charted data" columns={directionStrengthColumns}
             rows={breakdownRows(fitRows(dirStrength, OFFENSE_ROWS['Direction vs Strength']), screen)} />
         </Module>

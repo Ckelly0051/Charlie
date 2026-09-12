@@ -72,8 +72,8 @@
 
 .brand-bug {
   position: absolute;
-  top: 7px;
-  right: 9px;
+  top: var(--gi-video-top-inset, 7px);
+  right: var(--gi-video-right-inset, 9px);
   z-index: 8;
   color: rgba(255, 255, 255, 0.55);
   font-family: var(--display);

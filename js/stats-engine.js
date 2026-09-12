@@ -1230,10 +1230,10 @@ export class StatsEngine {
    *  This reads those two tags through `_matrixDimensions()`'s canonical
    *  `dirVsStrength` extractor -- the one owner of the toward/away rule and of
    *  the side convention, already shared with the tendency pivot -- so the
-   *  module measures what its title says. The coaching question is how often
-   *  the offense RUNS toward or away from strength, so pass snaps do not enter
-   *  either the numerator or denominator. Count and share answer frequency;
-   *  yards per run and success answer effectiveness.
+   *  module measures what its title says. Each direction bucket reports the
+   *  run/pass counts and rates within that bucket, alongside production and
+   *  success, so the coach sees both usage and effectiveness without deriving
+   *  either rate from a compressed mixed-value cell.
    *
    *  `DIR_STRENGTH_BUCKETS` is a FIXED football set in a fixed order. A bucket
    *  no snap reached is HELD -- `held: true`, keeping its label and carrying no
@@ -1242,26 +1242,32 @@ export class StatsEngine {
     const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
     const groups = new Map(StatsEngine.DIR_STRENGTH_BUCKETS.map(name => [name, []]));
     if (extract) {
-      (plays || []).filter(p => (p.tags.unit || 'offense') === 'offense' && StatsEngine.isRun(p)).forEach(p => {
+      (plays || []).filter(p => (p.tags.unit || 'offense') === 'offense'
+        && (StatsEngine.isRun(p) || StatsEngine.isPass(p))).forEach(p => {
         (extract(p) || []).forEach(key => { if (groups.has(key)) groups.get(key).push(p); });
       });
     }
-    const measuredRuns = [...groups.values()].reduce((sum, cohort) => sum + cohort.length, 0);
+    const measuredPlays = [...groups.values()].reduce((sum, cohort) => sum + cohort.length, 0);
     const list = [...groups.entries()].map(([name, cohort]) => {
       if (!cohort.length) return { name, held: true };
       const yards = cohort.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
+      const runs = cohort.filter(p => StatsEngine.isRun(p)).length;
+      const passes = cohort.filter(p => StatsEngine.isPass(p)).length;
       const successes = cohort.filter(p => this._isSuccessfulPlay(p)).length;
       return {
         name,
         count: cohort.length,
-        sharePct: measuredRuns ? Math.round((cohort.length / measuredRuns) * 100) : 0,
+        runs,
+        passes,
+        runPct: Math.round((runs / cohort.length) * 100),
+        passPct: Math.round((passes / cohort.length) * 100),
         yards,
         avg: (yards / cohort.length).toFixed(1),
         successPct: ((successes / cohort.length) * 100).toFixed(0),
         refs: StatsEngine._refsOf(cohort),
       };
     });
-    return { hasData: measuredRuns > 0, measuredRuns, list };
+    return { hasData: measuredPlays > 0, measuredPlays, list };
   }
 
   _personnelStats(plays) {
@@ -3637,7 +3643,8 @@ export class StatsEngine {
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
       case 'directionStrength': {
         const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
-        return p => isOff(p) && StatsEngine.isRun(p) && (extract?.(p) || []).includes(val);
+        return p => isOff(p) && (StatsEngine.isRun(p) || StatsEngine.isPass(p))
+          && (extract?.(p) || []).includes(val);
       }
       case 'motion':    return p => isOff(p) && (val === 'No Motion' ? !p.tags.motion
                                   : val === 'Any' ? !!p.tags.motion

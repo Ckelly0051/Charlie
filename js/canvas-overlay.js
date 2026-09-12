@@ -41,6 +41,7 @@ export class CanvasOverlay {
       this.canvas.style.height = this.container.clientHeight + 'px';
       this.canvas.style.top = '0px';
       this.canvas.style.left = '0px';
+      this._syncBrandBug(0, 0);
       return;
     }
 
@@ -71,8 +72,16 @@ export class CanvasOverlay {
     this.canvas.style.height = renderH + 'px';
     this.canvas.width = Math.round(renderW * devicePixelRatio);
     this.canvas.height = Math.round(renderH * devicePixelRatio);
+    this._syncBrandBug(offsetX, offsetY);
 
     this.render();
+  }
+
+  _syncBrandBug(offsetX, offsetY) {
+    const media = this.container.parentElement;
+    if (!media?.classList.contains('video-container')) return;
+    media.style.setProperty('--gi-video-top-inset', `${offsetY + 7}px`);
+    media.style.setProperty('--gi-video-right-inset', `${offsetX + 9}px`);
   }
 
   setTool(toolName) {
