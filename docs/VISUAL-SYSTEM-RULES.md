@@ -134,6 +134,11 @@ alone is not a contract: raising 45 of 46 Players elements and leaving one at
 11px would pass, and so would adding an ordinary new 10px Offense label. Both
 change a count in the census and red.
 
+The narrow Offense exception also pins ownership: the exact eight module titles
+must carry `gi-off-narrow-fit`, and every sub-floor `th` or `td` at 1280 must be
+inside one of those modules. Moving the class to an equivalent-size table cannot
+pass by preserving only the aggregate size/tag count.
+
 SVG chart labels are excluded: a `<text>` inside a scaled `viewBox` reports its
 pre-scale font-size, so comparing it to an HTML pixel floor measures the viewBox
 rather than the type.

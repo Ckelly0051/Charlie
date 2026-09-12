@@ -344,11 +344,13 @@ this pinned five boards' floors from their own synthetic fixtures and recorded
 Special Teams as 11px when the real figure is 9.5px.
 
 The census reads every Reports board at both release widths off a read-only copy
-of the canonical season, hashes the source before and after, and pins each
-board's minimum EXACTLY in both directions. Down is a regression. Up means the
-board was migrated and reds until `docs/VISUAL-SYSTEM-RULES.md` is updated in
-the same commit -- a silent improvement leaves the documentation lying about
-where the floor is enforced, which is what this file exists to stop.
+of the canonical season and hashes the source before and after. It pins the
+complete sub-floor map by size, tag and count plus each board's minimum, in both
+directions. The Offense narrow-width exception additionally pins its eight named
+module owners and proves every affected table cell belongs to one of them. Down
+is a regression. Up means work was completed and reds until
+`docs/VISUAL-SYSTEM-RULES.md` is updated in the same commit -- a silent
+improvement leaves the documentation lying about where the floor is enforced.
 
 The board harnesses mirror their own number as a same-fixture regression guard
 and say so in the comment rather than claiming canonical provenance.

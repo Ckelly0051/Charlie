@@ -31,15 +31,11 @@ const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
 const WIDTHS = [[1440, 900], [1280, 800]];
 
-/* THE SHARED FLOOR, and the boards that do not meet it yet.
- *
- * `floor` is each board's measured smallest coach-facing text on the canonical
- * season. `migrated` says whether that board has been brought to the shared
- * 12.5px floor; a false here is a DEFERRAL recorded in docs/OPEN-DEFECTS.md,
- * never a second standard. The three migrated boards keep a named exception for
- * the approved broadcast display pair — a Condensed uppercase micro-label
- * directly above its own large display number — which is composition fixed by
- * their comps and cannot be raised without a new coach approval. */
+/* THE SHARED FLOOR, measured across every Reports board. No board is described
+ * as fully migrated: Overview and Defense retain approved broadcast labels,
+ * Offense retains approved micro-labels plus one scoped narrow-width exception,
+ * and the other five boards remain explicitly deferred. These are recorded
+ * debts, not a second standard. */
 const SHARED_FLOOR = 12.5;
 const BOARDS = [
   { tab: 'overview', label: 'Overview' },
@@ -74,6 +70,10 @@ const OFFENSE_BASE = {
    the rule was scoped to that class it was scoped to every module on the board,
    which is how 876 of 997 elements sat below the floor. */
 const OFFENSE_NARROW_FIT = { '11.5|TH': 40, '12|TD': 165 };
+const OFFENSE_NARROW_MODULES = [
+  'Backfield', 'Field hash', 'Formation', 'Motion',
+  'Personnel', 'Play direction', 'Play type', 'Strength',
+];
 const SPECIAL = {
   '9.5|SPAN': 7, '10|I': 4, '10.5|SPAN': 16, '11|SPAN': 4, '11|P': 1, '11|B': 1,
   '11.5|STRONG': 11, '12|SPAN': 49, '12|STRONG': 3, '12|P': 2,
@@ -164,11 +164,22 @@ const census = () => page.evaluate(() => {
     const key = `${item.size}|${item.cls.split('.')[0]}`;
     signature[key] = (signature[key] || 0) + 1;
   });
+  const narrowModules = [...pane.querySelectorAll('.gi-off-narrow-fit')]
+    .map(module => module.querySelector(':scope > header > strong')?.textContent.trim() || '')
+    .sort();
+  const narrowCellNodes = sized.filter(item => (item.cls.startsWith('TH.') || item.cls.startsWith('TD.'))
+    && item.size < 12.5);
+  const narrowOwnedCells = nodes.filter(el => (el.tagName === 'TH' || el.tagName === 'TD')
+    && parseFloat(getComputedStyle(el).fontSize) < 12.5
+    && el.closest('.gi-off-narrow-fit')).length;
   return {
     min,
     total: sized.length,
     below: under.length,
     signature,
+    narrowModules,
+    narrowCellCount: narrowCellNodes.length,
+    narrowOwnedCells,
     carriers: [...new Set(under.filter(item => item.size === min).map(item => item.cls))].slice(0, 4),
   };
 });
@@ -214,6 +225,19 @@ for (const row of observed) {
   ok(drift.length === 0,
     `${row.label} at ${row.width} matches its pinned sub-floor census exactly`,
     JSON.stringify(drift.slice(0, 6)));
+}
+
+/* THE OFFENSE EXCEPTION HAS AN OWNER. Aggregate size/tag counts alone cannot
+   detect moving the class to a different table with the same footprint. Pin the
+   eight approved modules and prove every sub-floor table cell belongs to one. */
+for (const row of observed.filter(item => item.tab === 'offense')) {
+  ok(JSON.stringify(row.narrowModules) === JSON.stringify(OFFENSE_NARROW_MODULES),
+    `Offense at ${row.width} scopes gi-off-narrow-fit to the eight named modules`,
+    JSON.stringify(row.narrowModules));
+  const expectedCells = row.width <= 1300 ? 205 : 0;
+  ok(row.narrowCellCount === expectedCells && row.narrowOwnedCells === expectedCells,
+    `Offense at ${row.width} keeps every sub-floor table cell inside gi-off-narrow-fit`,
+    JSON.stringify({ expectedCells, below: row.narrowCellCount, owned: row.narrowOwnedCells }));
 }
 
 /* The totals the documentation quotes, asserted as totals rather than left to be

@@ -1220,15 +1220,14 @@ worth designing for. Verified exact on a fully charted game including a missed
 XP, a pick-six credited to us rather than the offense on the field, and a
 safety on a defensive play: quarters sum to totals on both rows.
 
-**Type on the Overview and Offense boards follows the design-system tokens.**
-Table column labels take `--gi-text-label` (the token whose own comment reads
-"field + column labels"), not the 9.5px condensed face the broadcast block used
-— a column label is operational copy, not a heading or a major number, and at
-9.5px in `--gi-bd-muted` it measured 3.63:1, below the 4.5:1 small-text
-minimum. Secondary ink is `--gi-bd-copy` at 7.66:1. Row height is unchanged:
-`--gi-row` already carried a 12px label. The coach's decision was that both
-boards share this treatment rather than Offense carrying an exception, so it
-is scoped to `.gi-overview-board`; Overview's composition is untouched.
+**Reports typography has one shared target and explicitly recorded debt.**
+The coach-facing floor is 12.5px. Overview and Defense retain only their
+approved broadcast micro-labels; Offense retains approved micro-labels and, at
+1280, a temporary 12px body / 11.5px column-label exception on the eight named
+`gi-off-narrow-fit` modules. Special Teams, Players, Self-Scout, Season and
+Matchup remain deferred. None of those exceptions creates a second standard;
+the exact canonical-season census and the work required to remove them live in
+`docs/VISUAL-SYSTEM-RULES.md` and `docs/OPEN-DEFECTS.md`.
 
 **A fixture is part of the evidence.** Three "defects" reported during this
 work were unrepresentative fixtures, each caught only in review: quarters
