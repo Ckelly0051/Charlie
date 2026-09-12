@@ -14,6 +14,27 @@
 /* ── SURFACES ───────────────────────────────────────────────────────────────
  * 1-2 surfaces · 3-5 interactive states · 6-8 borders · 9-10 solid · 11-12 text
  * `film` sits below step 1 so video is always the brightest object on screen. */
+/* NEUTRAL GREY, completed 2026-09-11 at the coach's direction. The earlier pass
+ * neutralised `--gi-2` through `--gi-8` and `--gi-11` and left everything else
+ * on the old cool values, so the app still read blue: `--gi-1`, the app
+ * background, carried a +9 blue bias, `--gi-film` +6, and the whole BROADCAST
+ * surface family — which is what every Reports board actually paints with — was
+ * never touched at all: `--gi-bd-panel` +11, `--gi-bd-control-active` +19,
+ * `--gi-bd-line` +22, `--gi-bd-muted` +24, `--gi-bd-bone` and `--gi-bd-draw`
+ * +27. A half-neutralised ramp is why "it's too blue" survived a pass that was
+ * supposed to fix exactly that.
+ *
+ * Every near-neutral SURFACE and INK step is now true grey. Each new value was
+ * computed to hold its predecessor's RELATIVE LUMINANCE, so no contrast ratio in
+ * the app moved: panel-on-background, text-on-panel, border-on-surface and every
+ * disabled state measure exactly what they measured before. Only the hue is
+ * gone.
+ *
+ * Semantic hues are untouched and stay reserved: gold, cyan, the line-of-
+ * scrimmage blue, turnover red, health green, warning orange, the categorical
+ * chart set, and the deliberately blue-tinted `--gi-info-*` / `--gi-accent-*`
+ * selection surfaces. */
+
 /* SURFACE LADDER, re-tuned (S6-4e). The steps were spaced too tightly through
  * the middle: 2/3/4 sat within a few points of luminance of each other, so a
  * panel, a resting control and a hovered control all read as the same box, and
@@ -23,22 +44,22 @@
  * film and panels separate from it, and the border steps carry enough contrast
  * to actually draw an edge. */
 :root{
-  --gi-film:#04070a;
-  --gi-1:#080c11;   /* app background            */
-  --gi-2:#14181c;   /* panel                     */
-  --gi-3:#202428;   /* interactive rest          */
-  --gi-4:#2a2f34;   /* interactive hover         */
-  --gi-5:#353b41;   /* interactive active        */
-  --gi-6:#3f474e;   /* border subtle             */
-  --gi-7:#515b64;   /* border default            */
-  --gi-8:#68737d;   /* border strong / disabled  */
+  --gi-film:#070707;
+  --gi-1:#0c0c0c;   /* app background            */
+  --gi-2:#181818;   /* panel                     */
+  --gi-3:#232323;   /* interactive rest          */
+  --gi-4:#2e2e2e;   /* interactive hover         */
+  --gi-5:#3a3a3a;   /* interactive active        */
+  --gi-6:#464646;   /* border subtle             */
+  --gi-7:#5a5a5a;   /* border default            */
+  --gi-8:#727272;   /* border strong / disabled  */
   /* Solid accent. Still the selection fill inside a route's own surfaces; the
    * SHELL's current route is the gold underline on transparent chrome, so this
    * step no longer marks the primary navigation state. */
   --gi-9:#2b6fff;   /* solid accent              */
   --gi-10:#5a92ff;  /* solid accent hover        */
-  --gi-11:#a7adb3;  /* text secondary            */
-  --gi-12:#f2f6fa;  /* text primary              */
+  --gi-11:#acacac;  /* text secondary            */
+  --gi-12:#f5f5f5;  /* text primary              */
 
   /* ── BROADCAST SEMANTICS. Football's own language; each means ONE thing. */
   --gi-los:var(--gi-9);        /* current: selection, active route, scrimmage */
@@ -108,7 +129,7 @@
   --gi-scrim:rgba(3,7,12,.76);
   --gi-shadow-overlay:0 24px 72px rgba(0,0,0,.62);
   --gi-shadow-toast:0 14px 34px rgba(0,0,0,.44);
-  --gi-on-solid:#f5fbff;
+  --gi-on-solid:#fafafa;
   /* A printable-document preview (Call Sheet) shows what will actually print
    * -- genuine white paper, not a themeable UI surface. Named so the native
    * stylesheet consuming it has zero raw color literals of its own. */
@@ -206,17 +227,17 @@
   --gi-bd-gold-ink:#14100a;
   --gi-bd-cyan:#12a9cb;
   --gi-bd-cyan-ink:#03151a;
-  --gi-bd-bone:#4a5765;
-  --gi-bd-stage:#06080b;
+  --gi-bd-bone:#565656;
+  --gi-bd-stage:#080808;
   /* Approved broadcast-density Reports palette. Keeping these values as
    * named tokens preserves the canonical comp without route-local colors. */
   --gi-bd-score:#000;
   --gi-bd-score-ink:#03150b;
-  --gi-bd-panel:#0e1319;
-  --gi-bd-control:#151c24;
-  --gi-bd-control-active:#1b242e;
-  --gi-bd-line:#222d38;
-  --gi-bd-muted:#66727e;
+  --gi-bd-panel:#131313;
+  --gi-bd-control:#1b1b1b;
+  --gi-bd-control-active:#232323;
+  --gi-bd-line:#2c2c2c;
+  --gi-bd-muted:#717171;
   /* Was #9daab7 -- a real blue-gray (R157/G170/B183, ~15% cool cast), not a
      neutral. Flagged across two review rounds on the Break Down comp; fixed
      here at the shared token rather than worked around locally, since this
@@ -226,10 +247,10 @@
      matching lightness -- confirmed consistent on both surfaces before this
      value shipped. */
   --gi-bd-copy:#a6a6a6;
-  --gi-bd-strong:#f2f5f8;
+  --gi-bd-strong:#f5f5f5;
   --gi-bd-win:#3fa96b;
   --gi-bd-loss:#d2564f;
-  --gi-bd-draw:#4a5765;
+  --gi-bd-draw:#565656;
   --gi-bd-gold-surface:#5e4712;
   /* Football identifiers and section labels — the condensed role. Values,
    * controls, and body copy use --gi-sans (see the Part 1 contract in

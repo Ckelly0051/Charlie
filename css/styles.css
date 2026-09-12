@@ -1238,12 +1238,24 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
    appears on hover so it's discoverable as a "watch these plays" control. */
 .cut-row { cursor: pointer; transition: background var(--transition); }
 .cut-row:hover { background: rgba(16,24,40,0.12); }
+/* THE ROW MARKER COSTS THE COLUMN NO WIDTH. Reserved inline it took ~13px off
+   the first cell of every CLICKABLE row while a held row kept none, so a fixed
+   football set rendered two left edges: on Defense's Down & distance the
+   populated rows sat at 56px and the held ones at 43px. Absolutely positioned
+   in the cell's own left inset it still moves no text, because it never
+   occupies any — the same correction the Players and Self-Scout tables already
+   carry. */
+.cut-row td:first-child { position: relative; }
 .cut-row td:first-child::before {
   content: '▶';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 9px;
   color: var(--accent);
   opacity: 0;
-  margin-right: 5px;
+  pointer-events: none;
   transition: opacity var(--transition);
 }
 .cut-row:hover td:first-child::before { opacity: 1; }

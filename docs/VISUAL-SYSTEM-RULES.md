@@ -20,9 +20,22 @@
 
 ## Color
 
-- Neutral UI means neutral graphite. Panels, resting controls, hover/active
-  states, and structural borders use `--gi-2` through `--gi-8`; they must not
-  carry a blue cast.
+- Neutral UI means neutral grey. Every near-neutral surface and ink step is
+  true grey — `--gi-film` and `--gi-1` through `--gi-8`, `--gi-11`, `--gi-12`,
+  `--gi-on-solid`, and the whole broadcast family (`--gi-bd-stage`,
+  `--gi-bd-panel`, `--gi-bd-control`, `--gi-bd-control-active`, `--gi-bd-line`,
+  `--gi-bd-bone`, `--gi-bd-draw`, `--gi-bd-muted`, `--gi-bd-strong`). None of
+  them carries a blue cast.
+- **Neutralise the whole ladder or none of it.** The first pass moved `--gi-2`
+  through `--gi-8` and `--gi-11` and left the app background, the film surface
+  and every broadcast surface on the old cool values — `--gi-bd-line` at +22
+  blue, `--gi-bd-bone` and `--gi-bd-draw` at +27 — which is why the app still
+  read blue after a pass whose entire purpose was to fix that. The Reports
+  boards paint with the broadcast family, not with `--gi-2`.
+- **A hue correction holds luminance.** Each neutral value is computed to
+  preserve its predecessor's relative luminance, so no contrast ratio moves:
+  panel-on-background, text-on-panel, border-on-surface and every disabled state
+  measure exactly what they measured before. Only the hue changes.
 - Ordinary secondary copy uses `--gi-11` (`#a7adb3`). Breakdown's operational
   secondary copy uses `--gi-bd-copy` (`#a6a6a6`). Both must read as gray.
 - Blue, cyan, gold, green, red, and orange are semantic signals, not neutral

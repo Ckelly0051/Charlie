@@ -3116,6 +3116,21 @@
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td:first-child{
   white-space:normal;line-height:1.05
 }
+/* ONE BAND, ONE GRID. These two tables sit side by side in the same band and
+   their rows did not register: the formation matrix needs two-line column
+   labels, so its header measured 36px against the play-type table's 28px and
+   its body started 8px low — and `Shotgun + Empty + Bunch + Trips + Unbalanced`
+   then wrapped its own row to 33px, so the drift grew to 13px by the last row.
+   Both tables now share a 36px column row and a 27px data row: 36 + 7 x 27 is
+   exactly the 225px of content the 270px module has to spend, so nothing
+   overflows and the two tables read as one grid. */
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top thead th{height:36px}
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top tbody td{
+  height:27px;padding-top:1px;padding-bottom:1px
+}
+/* Two lines of a long look at 1.0 measure 25px inside the 27px row, so a
+   wrapping label no longer grows its own row out of the shared grid. */
+.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td:first-child{line-height:1}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-bottom{height:238px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls{height:225px}
 .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls td{height:38px}

@@ -313,12 +313,19 @@ Anything surface-specific belongs on that surface's selector. Re-scoping a
 variable does **not** repaint descendants that already inherited a computed
 `color` — set the property explicitly.
 
-**Neutral UI chrome.** Interactive rest, hover, active and border steps
-`--gi-3` through `--gi-8` use the coach-approved neutral graphite ramp, with
-`--gi-2` as its darker panel foundation and `--gi-11` as neutral secondary
-copy. Blue, cyan and gold are reserved for their named accent and football
-semantics; do not reintroduce a blue cast into neutral panels, controls,
-structural borders, metadata, status copy or subdued labels.
+**Neutral UI chrome is TRUE GREY, across the whole ladder.** Every near-neutral
+surface and ink step is neutral: `--gi-film`, `--gi-1` through `--gi-8`,
+`--gi-11`, `--gi-12`, `--gi-on-solid`, and the broadcast family the Reports
+boards actually paint with — `--gi-bd-stage`, `--gi-bd-panel`,
+`--gi-bd-control`, `--gi-bd-control-active`, `--gi-bd-line`, `--gi-bd-bone`,
+`--gi-bd-draw`, `--gi-bd-muted`, `--gi-bd-strong`. The first neutralisation pass
+moved only `--gi-2`..`--gi-8` and `--gi-11`, leaving the app background at +9
+blue and the broadcast family as high as +27, which is why the app still read
+blue after the pass meant to fix it: neutralise the whole ladder or none of it.
+Each value holds its predecessor's relative luminance, so no contrast ratio
+moved — only the hue. Blue, cyan and gold stay reserved for their named accent
+and football semantics; do not reintroduce a blue cast into neutral panels,
+controls, structural borders, metadata, status copy or subdued labels.
 
 The complete coach-approved contract, including exact desktop navigation
 dimensions, selector behavior, typography floors and dashboard composition,

@@ -168,6 +168,45 @@ for (const game of games) {
               .filter(row => text(row.children[col]) === '0')
               .map(row => `${name}:${text(row.children[0])}`);
           }),
+          /* ROW REGISTRATION. Two tables sharing a band must share a grid. The
+             formation matrix needs two-line column labels, so its header ran
+             36px against the play-type table's 28px and its body started 8px
+             low; a wrapping look then grew its own row to 33px and the drift
+             reached 13px by the last row. Neither containment nor clipping saw
+             any of it. */
+          bandRegistration: [...(board?.querySelectorAll('.gi-def-band, .gi-def-tendency-top, .gi-def-tendency-bottom, .gi-def-context-band') || [])]
+            .map(band => [...band.querySelectorAll('.gi-overview-module')]
+              .map(module => {
+                const head = module.querySelector('thead');
+                const first = module.querySelector('tbody tr');
+                if (!head || !first) return null;
+                return { title: title(module),
+                  headH: Math.round(head.getBoundingClientRect().height),
+                  firstTop: Math.round(first.getBoundingClientRect().top) };
+              }).filter(Boolean))
+            .filter(group => group.length > 1)
+            .flatMap(group => group.slice(1)
+              .filter(item => Math.abs(item.headH - group[0].headH) > 1
+                || Math.abs(item.firstTop - group[0].firstTop) > 1)
+              .map(item => `${group[0].title}(${group[0].headH}/${group[0].firstTop}) vs ${item.title}(${item.headH}/${item.firstTop})`)),
+          /* ONE LEFT EDGE PER COLUMN. The global `.cut-row` marker was reserved
+             INLINE, so a clickable row's first cell indented ~13px while a held
+             row's did not and a fixed football set rendered two left edges. The
+             text origin is measured with a Range, because the cell box is
+             identical in both cases — only the text inside it moved. */
+          columnOrigins: [...(board?.querySelectorAll('.gi-overview-module') || [])]
+            .map(module => {
+              const rows = [...module.querySelectorAll('tbody tr')];
+              if (rows.length < 2) return null;
+              const lefts = [...new Set(rows.map(row => {
+                const cell = row.children[0];
+                if (!cell) return null;
+                const range = document.createRange();
+                range.selectNodeContents(cell);
+                return Math.round(range.getBoundingClientRect().left);
+              }).filter(value => value !== null))];
+              return lefts.length > 1 ? `${title(module)}:${lefts.join('/')}` : null;
+            }).filter(Boolean),
           minFontSizes: [...(board?.querySelectorAll('th,td,span,small,strong,b,button,h2') || [])]
             .filter(node => getComputedStyle(node).visibility !== 'hidden'
               && [...node.childNodes].some(child => child.nodeType === 3 && child.nodeValue.trim()))
@@ -222,6 +261,20 @@ ok(observations.every(item => !item.reportTitleClipped),
   JSON.stringify(observations.filter(item => item.reportTitleClipped).slice(0, 4)));
 ok(observations.every(item => item.clipped.length === 0), 'no Defense label or value is clipped',
   JSON.stringify(observations.filter(item => item.clipped.length).slice(0, 4)));
+/* ONE LEFT EDGE PER COLUMN. A clickable row and a held row start their label on
+   the same pixel; the film marker lives in the cell's inset and costs no width. */
+const raggedColumns = observations.flatMap(item => (item.columnOrigins || [])
+  .map(entry => `${item.game}/${item.width}/${item.section}: ${entry}`));
+ok(raggedColumns.length === 0,
+  'every Defense first column has one left edge, whether or not a row opens film',
+  JSON.stringify([...new Set(raggedColumns)].slice(0, 4)));
+/* ROW REGISTRATION. Side-by-side modules in one band share one grid: the same
+   column-row height and the same first data row. */
+const misregistered = observations.flatMap(item => (item.bandRegistration || [])
+  .map(entry => `${item.game}/${item.width}/${item.section}: ${entry}`));
+ok(misregistered.length === 0,
+  'side-by-side modules in a band share one column-row height and one first data row',
+  JSON.stringify([...new Set(misregistered)].slice(0, 4)));
 /* SHARED CHROME ALIGNMENT. One left edge and one right edge down the column. */
 const withEdges = observations.filter(item => item.edges?.pane && item.edges?.score && item.edges?.ident);
 ok(withEdges.length === observations.length,

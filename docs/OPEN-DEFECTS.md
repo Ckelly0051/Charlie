@@ -68,6 +68,35 @@ a frequency ranking. The board and its HTML export both state the reconciliation
 compactly: `40 charted · 37 with play type`. The byte-identical `classified`
 alias is deleted.
 
+## Coach direction, 2026-09-11 — finish the neutral palette
+
+The app still read blue after the pass that was meant to neutralise it. The
+reason is that the pass was half done: `--gi-2` through `--gi-8` and `--gi-11`
+moved to graphite, while `--gi-1` (the app background, +9 blue), `--gi-film`
+(+6) and the **entire broadcast surface family** kept their cool values —
+`--gi-bd-panel` +11, `--gi-bd-control` +15, `--gi-bd-control-active` +19,
+`--gi-bd-line` +22, `--gi-bd-muted` +24, `--gi-bd-bone` and `--gi-bd-draw` +27.
+Every Reports board paints with that family, so the boards were the bluest
+surfaces in the app.
+
+All twenty-one near-neutral surface and ink steps are now true grey, each value
+computed to hold its predecessor's relative luminance so no contrast ratio in
+the app moved. Semantic hues are untouched: gold, cyan, line-of-scrimmage blue,
+turnover red, health green, warning orange, the categorical chart set, and the
+deliberately blue-tinted `--gi-info-*` / `--gi-accent-*` selection surfaces.
+
+## Found by the coach at the board, 2026-09-11 — chart row registration
+
+Two tables sharing one band did not share one grid. In Opponent Offense the
+formation matrix needs two-line column labels, so its header measured 36px
+against the play-type table's 28px and its body started 8px low; a wrapping look
+(`Shotgun + Empty + Bunch + Trips + Unbalanced`) then grew its own row to 33px,
+and the drift reached 13px by the last row. Both tables now share a 36px column
+row and a 27px data row, and `e2e-reports-defense-realdata` asserts that
+side-by-side modules in a band share one column-row height and one first data
+row, on all six games at both widths. Containment saw none of this: nothing
+clipped, nothing overflowed, nothing scrolled.
+
 ## Found by the coach at the board, 2026-09-11 — shared Reports chrome
 
 The repair above passed 58 assertions on Defense and still shipped a band the
