@@ -192,20 +192,24 @@ edge-to-edge by design; the top bar's 18px inset is not.
    green while the binding rule said 12.5 — a green suite meaning "not worse",
    read as "meets the standard".
 
-2. **The Offense narrow-width type exception is scoped too widely.** It was
-   written for the eight five-column Zone 2 / Zone 3 tables that cannot fit a
-   379px band half at the floor, but it is scoped to
-   `.gi-offense-board .gi-overview-module th, td` — every table on the board.
-   The census measures the cost: 876 of 997 nodes below the floor at 1280,
-   against 118 at 1440. Narrow the rule to the bands that need it.
-
    Raising a board means re-deriving the row math its approved comp pins; doing
    five blind is how the last regression happened. Migrate one board at a time,
-   move its constant to 12.5, and delete its row from both tables.
-2. **The Offense three-up band at 1280.** Eight five-column tables share a 379px
-   half and measure 387-418px of content at the floor, so at that width only
-   their cells keep 12px body and 11.5px column labels. The approved board
-   forbids both a scroller and a resize; recompose the band.
+   update its pinned census entry, and delete its row from both tables.
+
+2. **The Offense narrow-width exception — SCOPED 2026-09-12, band still open.**
+   Eight five-column modules share a 379px band half at 1280 and measure
+   387-418px of content at the floor, so at that width their cells keep 12px
+   body and 11.5px column labels. The approved board forbids both an internal
+   scroller and a resize.
+
+   The exception was scoped to `.gi-offense-board .gi-overview-module th, td` —
+   every module on the board — which put **876** of 997 elements below the floor
+   at 1280 against 118 at 1440, while the documentation claimed eight tables.
+   The eight modules now carry an explicit `gi-off-narrow-fit` class and the
+   rule is scoped to it: 323 at 1280, and the census pins the exception's whole
+   contribution as `11.5|TH: 40` and `12|TD: 165`. **Recomposing the band so
+   the exception can be deleted is still open.**
+
 3. **Down & distance still leaves 6px** at the foot of its module after the
    height was re-derived from the rendered board. Visible dead space is closed;
    the residual is within one row's rounding.

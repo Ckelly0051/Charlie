@@ -3320,12 +3320,15 @@
    Eight five-column Offense tables share a 379px half at 1280. Cell padding
    alone could not close the gap at the 12.5px floor (387-418px of content), so
    at this width only these cells keep the 12px body and 11.5px column label
-   they have always carried. Everything else on the board is at the floor. The
-   real fix is to recompose that three-up band; it is open work, not a licence
-   to shrink type elsewhere. */
+   they have always carried. The exception is scoped to those eight modules by
+   the explicit `gi-off-narrow-fit` class -- it was scoped to every module on the
+   board, which put 876 of 997 elements below the floor at 1280 against 118 at
+   1440 while the documentation claimed eight tables. The real fix is to
+   recompose that three-up band; it is open work, not a licence to shrink type
+   elsewhere. */
 @media(max-width:1300px){
-  .gi-reports .gi-offense-board .gi-overview-module td{font-size:12px}
-  .gi-reports .gi-offense-board .gi-overview-module th{font:600 11.5px/1.25 var(--gi-sans);letter-spacing:0}
+  .gi-reports .gi-offense-board .gi-off-narrow-fit td{font-size:12px}
+  .gi-reports .gi-offense-board .gi-off-narrow-fit th{font:600 11.5px/1.25 var(--gi-sans);letter-spacing:0}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

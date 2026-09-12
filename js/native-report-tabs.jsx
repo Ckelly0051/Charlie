@@ -739,10 +739,10 @@ export function OffenseTab({ stats, screen }) {
         full-width band of its own, which is a different composition. */}
     <div class="gi-overview-band gi-off-b2">{calls.calls}{calls.concepts}</div>
     <div class="gi-overview-band gi-overview-band-3 gi-off-tendency-band">
-      <Module title="Formation" meta="frequency &amp; success" cls="is-offense gi-off-formation" rows={tend.formations}>
+      <Module title="Formation" meta="frequency &amp; success" cls="is-offense gi-off-formation gi-off-narrow-fit" rows={tend.formations}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(tend.formations, OFFENSE_ROWS.Formation), screen)} />
       </Module>
-      <Module title="Play type" meta="frequency &amp; success" cls="is-offense gi-off-play-type" rows={tend.playTypes}>
+      <Module title="Play type" meta="frequency &amp; success" cls="is-offense gi-off-play-type gi-off-narrow-fit" rows={tend.playTypes}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(tend.playTypes, OFFENSE_ROWS['Play type']), screen)} />
       </Module>
       <Module title="Play-action" meta="vs straight dropback" cls="is-offense gi-off-play-action">
@@ -789,24 +789,24 @@ export function OffenseTab({ stats, screen }) {
     {/* ── ZONE 3 — structure and deployment ─────────────────────────── */}
     <ZoneRule id="gi-off-z3" title="Structure and deployment" label="Personnel, alignment, motion, direction, and hash" note="Opens film" />
     <div class="gi-overview-band gi-overview-band-3">
-      <Module title="Personnel" meta="grouping" cls="is-offense" rows={personnel}>
+      <Module title="Personnel" meta="grouping" cls="is-offense gi-off-narrow-fit" rows={personnel}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(personnel, OFFENSE_ROWS.Personnel), screen)} />
       </Module>
-      <Module title="Backfield" meta="alignment" cls="is-offense" rows={bf.backfield}>
+      <Module title="Backfield" meta="alignment" cls="is-offense gi-off-narrow-fit" rows={bf.backfield}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(bf.backfield, OFFENSE_ROWS.Backfield), screen)} />
       </Module>
-      <Module title="Motion" meta="pre-snap movement" cls="is-offense" rows={dm?.motion}>
+      <Module title="Motion" meta="pre-snap movement" cls="is-offense gi-off-narrow-fit" rows={dm?.motion}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(dm?.motion || [], OFFENSE_ROWS.Motion), screen)} />
       </Module>
     </div>
     <div class="gi-overview-band gi-overview-band-3">
-      <Module title="Play direction" meta="ball direction" cls="is-offense" rows={dm?.direction}>
+      <Module title="Play direction" meta="ball direction" cls="is-offense gi-off-narrow-fit" rows={dm?.direction}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(dm?.direction || [], OFFENSE_ROWS['Play direction']), screen)} />
       </Module>
-      <Module title="Strength" meta="declared side" cls="is-offense" rows={bf.strength}>
+      <Module title="Strength" meta="declared side" cls="is-offense gi-off-narrow-fit" rows={bf.strength}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(bf.strength, OFFENSE_ROWS.Strength), screen)} />
       </Module>
-      <Module title="Field hash" meta="starting position" cls="is-offense" rows={hash}>
+      <Module title="Field hash" meta="starting position" cls="is-offense gi-off-narrow-fit" rows={hash}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(hash, OFFENSE_ROWS['Field hash']), screen)} />
       </Module>
     </div>

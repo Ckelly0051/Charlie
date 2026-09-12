@@ -112,27 +112,40 @@ fixture, and `CLAUDE.md` is explicit that synthetic data cannot establish Report
 visual parity. Those harnesses mirror their board's number as a same-fixture
 regression guard and say so.
 
-| Board | Minimum | Below 12.5px @1440 | Below 12.5px @1280 | Status |
+| Board | Minimum | Below 12.5px @1440 | @1280 | Status |
 |---|---|---|---|---|
-| Overview | 9.5px | 35 / 313 | 35 / 313 | Migrated, broadcast exception |
-| Defense | 9.5px | 1 / 143 | 1 / 143 | Migrated, broadcast exception |
-| Offense | 9.5px | 118 / 997 | **876 / 997** | Migrated at 1440; see below |
-| Matchup | 10px | 58 / 156 | 58 / 156 | Deferred |
-| Players | 11px | 46 / 237 | 46 / 237 | Deferred |
-| Self-Scout | 11px | 20 / 77 | 20 / 77 | Deferred |
-| Season | 11px | 30 / 138 | 30 / 138 | Deferred |
-| Special Teams | 9.5px | 98 / 160 | 98 / 160 | Deferred |
+| Defense | 9.5px | 1 | 1 | One broadcast label |
+| Self-Scout | 11px | 20 | 20 | Deferred |
+| Season | 11px | 30 | 30 | Deferred |
+| Overview | 9.5px | 35 | 35 | Broadcast labels only |
+| Players | 11px | 46 | 46 | Deferred |
+| Matchup | 10px | 58 | 58 | Deferred |
+| Special Teams | 9.5px | 98 | 98 | Deferred |
+| Offense | 9.5px | 118 | 323 | Deferred + narrow-width exception |
 
-SVG chart labels are excluded from the census: a `<text>` inside a scaled
-`viewBox` reports its pre-scale font-size, so comparing it to an HTML pixel floor
-measures the viewBox rather than the type.
+**No board is fully migrated.** Overview and Defense carry only their approved
+broadcast micro-labels, which is why they read as compliant, but the honest
+statement is that every board still has sub-floor text and the census pins
+exactly how much. Offense was previously classified here as migrated; it is not,
+and it carries the most sub-floor text of the eight.
 
-**Offense at 1280 is not what this file previously claimed.** The narrow-width
-exception was written for the eight five-column Zone 2 / Zone 3 tables, but it is
-scoped to `.gi-offense-board .gi-overview-module th, td` — every table on the
-board. That is why 876 of 997 nodes sit below the floor at 1280 against 118 at
-1440. The rule should be band-scoped; until it is, this table states the real
-number rather than the intended one. Open in `docs/OPEN-DEFECTS.md`.
+Every element is pinned by **size, tag and count**, not by a minimum. A minimum
+alone is not a contract: raising 45 of 46 Players elements and leaving one at
+11px would pass, and so would adding an ordinary new 10px Offense label. Both
+change a count in the census and red.
+
+SVG chart labels are excluded: a `<text>` inside a scaled `viewBox` reports its
+pre-scale font-size, so comparing it to an HTML pixel floor measures the viewBox
+rather than the type.
+
+**The Offense narrow-width exception, scoped.** Eight five-column modules cannot
+hold a 379px band half at the floor, so at ≤1300px their cells keep 12px body and
+11.5px column labels. They carry the explicit `gi-off-narrow-fit` class and the
+census pins their whole contribution: `11.5|TH: 40` and `12|TD: 165`, which is
+the difference between Offense's 118 at 1440 and 323 at 1280. The rule was
+previously scoped to `.gi-offense-board .gi-overview-module th, td` — every
+module on the board — which put **876** of 997 elements below the floor while
+this file claimed eight tables. Recomposing that band remains open work.
 
 The deferrals are **not a second standard**: each board's approved comp pins its
 row math, so raising its labels means re-deriving that geometry, and doing five
