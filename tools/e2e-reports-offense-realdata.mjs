@@ -375,7 +375,7 @@ for (const [width] of VIEWPORTS) {
     return { present: true, headers, rows };
   });
   ok(dvs.present, `${width}: Direction vs Strength renders on the Offense board`, JSON.stringify(dvs));
-  ok(dvs.present && JSON.stringify(dvs.headers) === JSON.stringify(['Direction', 'Snaps', 'Runs (rate)', 'Passes (rate)', 'Yds/play', 'Success']),
+  ok(dvs.present && JSON.stringify(dvs.headers) === JSON.stringify(['Direction', 'Snaps', 'Run Rate', 'Pass Rate', 'Yds/play', 'Success']),
     `${width}: Direction vs Strength states run and pass frequency directly`, JSON.stringify(dvs.headers));
   ok(dvs.present && dvs.rows.length === 4 && dvs.rows.every((row, i) => row.name === DIR_STRENGTH_EXPECTED[i].name),
     `${width}: Direction vs Strength holds its four fixed buckets in football order`, JSON.stringify(dvs.rows));

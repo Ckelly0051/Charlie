@@ -32,8 +32,8 @@ const breakdownColumns = [
 const directionStrengthColumns = [
   { key: 'name', label: 'Direction' },
   { key: 'count', label: 'Snaps', numeric: true },
-  { key: 'runs', label: 'Runs (rate)', numeric: true },
-  { key: 'passes', label: 'Passes (rate)', numeric: true },
+  { key: 'runs', label: 'Run Rate', numeric: true },
+  { key: 'passes', label: 'Pass Rate', numeric: true },
   { key: 'ypp', label: 'Yds/play', numeric: true },
   { key: 'success', label: 'Success' },
 ];
