@@ -12,7 +12,7 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 all four must match; `e2e-p0-exit` asserts it).
 
 **Packaging status:** `1.12.0-82` is the current unsigned local visual-smoke
-candidate. It adds the consolidated Home route and the repaired no-open-season
+candidate, packaged from `7f22573`. It adds the consolidated Home route and the repaired no-open-season
 library composition to the `1.12.0-81` Reports/Breakdown baseline. Focused Home
 verification is green; the full gate was not rerun for this Home-only visual
 candidate. The coach's installed smoke has NOT been run against it, so nothing
