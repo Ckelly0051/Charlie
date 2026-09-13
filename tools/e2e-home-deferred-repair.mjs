@@ -604,7 +604,7 @@ const programHero = await page.evaluate(async () => {
     switches: document.querySelectorAll('.ws-workspace-switch').length,
   };
 });
-ok(programHero.route === 'home' && / seasons$/.test(programHero.title) && programHero.switches === 1,
+ok(programHero.route === 'home' && / home$/.test(programHero.title) && programHero.switches === 1,
   'Program mode reuses the same Home library and sole workspace switch', programHero);
 
 // Dialogs: create season (intro + guided/manual), edit season, setup guide, create scout.

@@ -7,18 +7,19 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-82` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-83` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-82` is the current unsigned local visual-smoke
-candidate, packaged from `7f22573`. It adds the consolidated Home route and the repaired no-open-season
-library composition to the `1.12.0-81` Reports/Breakdown baseline. Focused Home
+**Packaging status:** `1.12.0-83` is the current unsigned local visual-smoke
+candidate. It replaces the rejected `1.12.0-82` Season Library composition with
+the approved-comp structure: aggregate program band, operational season rows,
+and latest-season/film-health context. Focused Home
 verification is green; the full gate was not rerun for this Home-only visual
 candidate. The coach's installed smoke has NOT been run against it, so nothing
 here is accepted, tagged, pushed or published state, and no surface advances
 past its current approval status.
-See `SMOKE-1.12.0-82.md`, `SMOKE-1.12.0-81.md` and `docs/OPEN-DEFECTS.md`.
+See `SMOKE-1.12.0-83.md`, `SMOKE-1.12.0-82.md` and `docs/OPEN-DEFECTS.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
@@ -376,8 +377,9 @@ Scout` selector is the only rendered workspace switch. The game grid uses
 inflating video previews. Production remains `REJECTED` until coach review.
 
 **SEASON LIBRARY COMPOSITION REPAIRED - PENDING COACH SMOKE (2026-09-13).**
-The no-open-season state now uses Home-owned full-width season rows and a program
-summary/action panel rather than repacking `SeasonRow` into a sparse card grid.
+The no-open-season state now uses a full-width program summary, Home-owned season
+rows, and latest-season/film-health context rather than repacking `SeasonRow` into
+a sparse card grid.
 TeamHubScreen still owns create/open/delete/recovery and film-health behavior.
 Focused Home proof asserts Home-owned rows, no borrowed Team Hub row markup, the
 summary panel, usable desktop row width, and no overflow at 1920/1440/1280.

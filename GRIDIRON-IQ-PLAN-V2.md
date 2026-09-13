@@ -7,8 +7,8 @@
 > customer data.
 
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production. The unsigned Windows `1.12.0-82` local visual-smoke handoff adds
-> the consolidated Home route and the rebuilt no-open-season library to the
+> production. The unsigned Windows `1.12.0-83` local visual-smoke handoff adds
+> the consolidated Home route and the corrected no-open-season library to the
 > `1.12.0-81` Reports/Breakdown baseline. The production build and focused Home
 > suites passed; the full release gate was not rerun for this Home-only visual
 > candidate. It is not an accepted release.
@@ -55,11 +55,12 @@ when the replacement composition is approved; do not delete approval history.
 
 The no-open-season state is a first-impression Home surface, not a database
 maintenance grid. Home owns its presentation and may not squeeze the generic
-Team Hub row into a card layout. Program seasons render as a readable operational
-list with identity, game/play totals, explicit film state and restrained actions,
-paired with a useful program summary. The summary stacks below the list when the
-persistent rail reduces the available row width. TeamHubScreen remains the single
-controller for all underlying operations; this is not a second data path.
+Team Hub row into a card layout. A full-width program summary leads into a readable
+operational season list with identity, game/play totals, explicit film state and
+restrained actions, paired with latest-season and aggregate film-health context.
+The side panel stacks only when the persistent rail leaves insufficient width.
+TeamHubScreen remains the single controller for all underlying operations; this
+is not a second data path.
 
 Film status is part of this pass's data contract, not presentation copy. Every
 season summary and every game row must consume one season-scoped resolver keyed

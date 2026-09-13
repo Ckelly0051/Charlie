@@ -14,6 +14,7 @@ import { setupTeamAndDemo } from './hub-setup.mjs';
 const label = process.argv[2] || 'shots';
 const outDir = path.resolve(process.argv[3] || '_shots');
 const viewports = [
+  { key:'1920x1080', width:1920, height:1080 },
   { key:'1440x900', width:1440, height:900 },
   { key:'1280x720', width:1280, height:720 },
   { key:'768x1024', width:768, height:1024 },
@@ -35,6 +36,15 @@ await page.waitForFunction(() => window.app?.workspaceShell && window.app?.teamH
 // Deterministic sample state through canonical team/season owners. Team Hub
 // remains the service/dialog owner, but no longer mounts a competing page.
 await setupTeamAndDemo(page, 'St. Joseph Mavericks');
+// Exercise the real coach-facing library shape rather than approving a
+// two-row synthetic edge case while the installed program has three seasons.
+await page.evaluate(async () => {
+  await window.app.teamHubScreen.createSeason({ year:'2025', level:'JV', setupMode:'quick' });
+  await window.app.teamHubScreen.load();
+  const demo = window.app.teamHubScreen.snapshot().railSeasons.find(season => season.isDemo);
+  if (demo) await window.app.teamHubScreen.openSeason(demo.id);
+  document.querySelectorAll('.gi-native-toast').forEach(toast => toast.click());
+});
 await page.waitForFunction(() => (window.app.storage?.seasonStore?.data?.games?.length || 0) > 0
   && document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.evaluate(async () => {

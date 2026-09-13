@@ -434,28 +434,41 @@ function LibrarySeasonRow({ season, hub }) {
   </article>;
 }
 
+function libraryTotals(seasons) {
+  return {
+    games: seasons.reduce((sum, season) => sum + (Number(season.gameCount) || 0), 0),
+    plays: seasons.reduce((sum, season) => sum + (Number(season.playCount) || 0), 0),
+    linked: seasons.filter(season => season.film?.state === 'ready').length,
+    attention: seasons.filter(season => ['missing', 'partial'].includes(season.film?.state)).length,
+    clips: seasons.reduce((sum, season) => sum + (Number(season.film?.found) || 0), 0),
+    checking: seasons.some(season => !season.film || season.film.state === 'checking'),
+  };
+}
+
 function LibraryOverview({ screen, hub, hubState, seasons, scout }) {
-  const games = seasons.reduce((sum, season) => sum + (Number(season.gameCount) || 0), 0);
-  const plays = seasons.reduce((sum, season) => sum + (Number(season.playCount) || 0), 0);
-  const linked = seasons.filter(season => season.film?.state === 'ready').length;
-  const attention = seasons.filter(season => ['missing', 'partial'].includes(season.film?.state)).length;
+  const totals = libraryTotals(seasons);
+  const latest = seasons.slice().sort((a, b) => new Date(b.lastOpened || 0) - new Date(a.lastOpened || 0))[0];
+  const hasSample = seasons.some(season => season.isDemo);
+  const canRecover = hub.canRecoverSeasons();
+  const hasQuickActions = (!scout && !hasSample) || canRecover;
   return <aside class={`library-overview${scout ? ' is-scout' : ''}`} aria-label={scout ? 'Scout library summary' : 'Program library summary'}>
     <div class="library-overview-head">
-      <span class="gi-hub-kicker">{scout ? 'Scout library' : 'Program library'}</span>
-      <h3>{hubState.profile?.teamName || screen.teamName() || 'Your program'}</h3>
+      <span class="gi-hub-kicker">{scout ? 'Latest opponent' : 'Latest season'}</span>
+      <h3>{latest?.name || (hubState.profile?.teamName || screen.teamName() || 'Your program')}</h3>
+      {latest && <p>{latest.gameCount} {latest.gameCount === 1 ? 'game' : 'games'} &middot; {latest.playCount} plays</p>}
+      {latest && <button type="button" class="library-continue" onClick={() => hub.openSeason(latest.id)}>{scout ? 'Open scout' : 'Continue season'}</button>}
     </div>
-    <div class="library-overview-metrics">
-      <span><b>{seasons.length}</b><small>{scout ? 'opponents' : 'seasons'}</small></span>
-      <span><b>{games}</b><small>games</small></span>
-      <span><b>{plays}</b><small>plays</small></span>
-      <span><b>{linked}</b><small>film ready</small></span>
+    <div class="library-health">
+      <span class="gi-hub-kicker">Film health</span>
+      <span><small>Workspaces ready</small><b class={totals.linked === seasons.length ? 'is-good' : totals.linked ? 'is-warn' : ''}>{totals.linked} / {seasons.length}</b></span>
+      <span><small>Clips available</small><b>{totals.clips}</b></span>
+      <span><small>Needs attention</small><b class={totals.attention ? 'is-warn' : 'is-good'}>{totals.attention}</b></span>
     </div>
-    {attention > 0 && <div class="library-attention"><i />{attention} {attention === 1 ? 'workspace needs' : 'workspaces need'} film attention</div>}
-    <div class="library-overview-actions">
-      <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>{icon('film')}Film &amp; storage</button>
-      <button type="button" onClick={event => screen.manageProgram(event.currentTarget)}>{icon('folder')}Manage program</button>
-      {hub.canRecoverSeasons() ? <button type="button" onClick={event => hub.recoverSeasons(event.currentTarget)}>Recover seasons</button> : null}
-    </div>
+    {hasQuickActions && <div class="library-overview-actions">
+      <span class="gi-hub-kicker">Quick actions</span>
+      {!scout && !hasSample ? <button type="button" onClick={() => hub.exploreSample()}>Explore sample season</button> : null}
+      {canRecover ? <button type="button" onClick={event => hub.recoverSeasons(event.currentTarget)}>Recover seasons</button> : null}
+    </div>}
   </aside>;
 }
 
@@ -482,17 +495,31 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
   const seasons = (hubState.seasons || []).filter(s => !!s.isScout === scout);
   const ordered = orderedSeasons(seasons);
   const teamName = hubState.profile?.teamName || screen.teamName() || 'Program';
+  const totals = libraryTotals(ordered);
+  const storageLabel = totals.checking ? 'Checking film…' : totals.attention ? `${totals.attention} need attention` : totals.linked ? 'Film ready' : 'No film linked';
   const create = event => scout ? hub.openCreateScout(event.currentTarget) : hub.openCreateSeason(event.currentTarget);
   return <div class="library-panel">
     <div class="library-panel-head">
-      <div><span class="gi-hub-kicker">{scout ? 'Scouting workspaces' : 'Season library'}</span><h2>{scout ? 'Opponent scouting' : `${teamName} seasons`}</h2></div>
+      <div><span class="gi-hub-kicker">Football workspace</span><h2>{scout ? 'Opponent scouting' : `${teamName} home`}</h2></div>
       <button type="button" class="ws-btn ws-primary" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button>
     </div>
     {ordered.length
-      ? <div class="library-layout">
-          <div class="library-list" role="list">{ordered.map(season => <LibrarySeasonRow key={season.id} season={season} hub={hub} />)}</div>
+      ? <>
+        <div class={`library-summary${scout ? ' is-scout' : ''}`}>
+          <span><small>{scout ? 'Scouting program' : 'Current program'}</small><b>{teamName}</b></span>
+          <span><small>{scout ? 'Opponents' : 'Seasons'}</small><b>{ordered.length}</b></span>
+          <span><small>Games</small><b>{totals.games}</b></span>
+          <span><small>Plays</small><b>{totals.plays}</b></span>
+          <span><small>{scout ? 'Scout film' : 'Storage'}</small><b class={`library-storage${!totals.checking && !totals.attention && totals.linked ? ' is-good' : totals.attention ? ' is-warn' : ''}`}><i />{storageLabel}</b></span>
+        </div>
+        <div class="library-layout">
+          <section class="library-list-wrap" aria-labelledby="libraryListTitle">
+            <div class="library-list-head"><h3 id="libraryListTitle">{scout ? 'Opponents' : 'Team seasons'}</h3></div>
+            <div class="library-list" role="list">{ordered.map(season => <LibrarySeasonRow key={season.id} season={season} hub={hub} />)}</div>
+          </section>
           <LibraryOverview screen={screen} hub={hub} hubState={hubState} seasons={ordered} scout={scout} />
         </div>
+        </>
       : <div class="ws-empty-panel">
           <h3>{scout ? 'No opponent scouts' : 'Start the football year here'}</h3>
           <p>{scout ? 'Add an opponent and source game, then link film.' : 'Create your first season, then add games from Home.'}</p>

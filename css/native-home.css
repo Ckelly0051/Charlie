@@ -137,46 +137,62 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-tools button:hover{color:var(--gi-bd-gold)}
 .ws-home-page .rail-foot{display:flex;flex-direction:row;align-items:center;gap:10px;padding:16px 10px 0;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}.ws-home-page .rail-foot>span{display:flex;min-width:0;flex-direction:column;gap:8px}.ws-home-page .rail-logo{width:36px;height:36px;flex:0 0 36px;object-fit:contain}
 
-.ws-home-page .library-panel{display:flex;flex-direction:column;gap:16px}
-.ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:8px}
-.ws-home-page .library-panel-head h2{margin:5px 0 0;font:600 30px/1.15 var(--gi-sans);overflow-wrap:anywhere}
-.ws-home-page .library-panel-head .ws-btn{min-width:142px;min-height:40px;font-size:13px}
-.ws-home-page .library-layout{display:grid;grid-template-columns:minmax(560px,1fr) minmax(280px,320px);gap:24px;align-items:start;max-width:1280px}
-.ws-home-page .library-list{display:flex;flex-direction:column;border-top:1px solid var(--gi-bd-line)}
-.ws-home-page .library-season{position:relative;display:grid;grid-template-columns:minmax(250px,1fr) 142px minmax(145px,190px) 188px;align-items:center;gap:20px;min-width:0;min-height:112px;padding:18px 18px 18px 20px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .library-panel{display:flex;flex-direction:column;gap:0}
+.ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:4px 0 22px}
+.ws-home-page .library-panel-head h2{margin:6px 0 0;font:600 32px/1.15 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-panel-head .ws-btn{min-width:150px;min-height:42px;font-size:13px}
+.ws-home-page .library-summary{display:grid;grid-template-columns:minmax(250px,2fr) repeat(3,minmax(96px,.65fr)) minmax(170px,1fr);border-block:1px solid var(--gi-bd-line);border-left:3px solid var(--gi-bd-gold);background:var(--gi-bd-panel)}
+.ws-home-page .library-summary.is-scout{border-left-color:var(--gi-bd-cyan)}
+.ws-home-page .library-summary>span{display:flex;min-height:72px;flex-direction:column;justify-content:center;gap:6px;padding:12px 18px;border-right:1px solid var(--gi-bd-line);min-width:0}
+.ws-home-page .library-summary>span:last-child{border-right:0}
+.ws-home-page .library-summary small{color:var(--gi-bd-copy);font-size:11px;font-weight:700;text-transform:uppercase}
+.ws-home-page .library-summary b{color:var(--gi-bd-strong);font:600 21px/1.1 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-summary>span:first-child b{font-size:15px}
+.ws-home-page .library-summary .library-storage{display:flex;align-items:center;gap:8px;color:var(--gi-bd-copy);font-size:13px}
+.ws-home-page .library-summary .library-storage.is-good,.ws-home-page .library-health b.is-good{color:var(--gi-ok)}
+.ws-home-page .library-summary .library-storage.is-warn,.ws-home-page .library-health b.is-warn{color:var(--gi-bd-gold)}
+.ws-home-page .library-storage i{width:7px;height:7px;flex:0 0 7px;background:currentColor}
+.ws-home-page .library-layout{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:26px;align-items:stretch}
+.ws-home-page .library-list-wrap{min-width:0;padding:22px 0}
+.ws-home-page .library-list-head{display:flex;align-items:center;min-height:34px;border-bottom:1px solid var(--gi-bd-bone)}
+.ws-home-page .library-list-head h3{margin:0;padding-left:12px;border-left:3px solid var(--gi-bd-gold);font:600 17px/1.2 var(--gi-sans);text-transform:uppercase}
+.ws-home-page .library-list{display:flex;flex-direction:column}
+.ws-home-page .library-season{position:relative;display:grid;grid-template-columns:minmax(220px,1fr) 120px minmax(120px,150px) 164px;align-items:center;gap:16px;min-width:0;min-height:88px;padding:14px 12px 14px 16px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .library-season:hover{background:var(--gi-3)}
 .ws-home-page .library-season.is-current{box-shadow:inset 3px 0 var(--gi-bd-gold);background:var(--gi-info-surface)}
 .ws-home-page .library-season-identity{min-width:0}
-.ws-home-page .library-season-state{display:block;margin-bottom:7px;color:var(--gi-bd-copy);font-size:11px;font-weight:700;text-transform:uppercase}
-.ws-home-page .library-season h3{margin:0;color:var(--gi-bd-strong);font:600 18px/1.25 var(--gi-sans);overflow-wrap:anywhere}
-.ws-home-page .library-season p{margin:6px 0 0;color:var(--gi-bd-copy);font-size:12px;line-height:1.35}
-.ws-home-page .library-season-metrics{display:flex;align-items:center;gap:28px}
+.ws-home-page .library-season-state{display:block;margin-bottom:6px;color:var(--gi-bd-copy);font-size:11px;font-weight:700;text-transform:uppercase}
+.ws-home-page .library-season h3{margin:0;color:var(--gi-bd-strong);font:600 16px/1.25 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-season p{margin:5px 0 0;color:var(--gi-bd-copy);font-size:12px;line-height:1.35}
+.ws-home-page .library-season-metrics{display:flex;align-items:center;gap:24px}
 .ws-home-page .library-season-metrics span{display:grid;gap:3px;min-width:38px}
-.ws-home-page .library-season-metrics b{color:var(--gi-bd-strong);font:600 22px/1 var(--gi-sans)}
+.ws-home-page .library-season-metrics b{color:var(--gi-bd-strong);font:600 19px/1 var(--gi-sans)}
 .ws-home-page .library-season-metrics small{color:var(--gi-bd-copy);font-size:11px}
 .ws-home-page .library-film{display:flex;align-items:center;gap:8px;min-width:0;color:var(--gi-bd-copy);font-size:12px;line-height:1.3}
-.ws-home-page .library-film i,.ws-home-page .library-attention i{width:8px;height:8px;flex:0 0 8px;background:var(--gi-bd-muted)}
+.ws-home-page .library-film i{width:7px;height:7px;flex:0 0 7px;background:var(--gi-bd-muted)}
 .ws-home-page .library-film.is-ready i{background:var(--gi-ok)}
-.ws-home-page .library-film:is(.is-partial,.is-missing) i,.ws-home-page .library-attention i{background:var(--gi-bd-gold)}
+.ws-home-page .library-film:is(.is-partial,.is-missing) i{background:var(--gi-bd-gold)}
 .ws-home-page .library-season-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px}
-.ws-home-page .library-season-actions button{min-height:38px;border-radius:var(--gi-radius);font:600 12.5px var(--gi-sans);cursor:pointer}
-.ws-home-page .library-open{min-width:104px;padding:0 14px;border:1px solid var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.ws-home-page .library-season-actions button{min-height:36px;border-radius:var(--gi-radius);font:600 12px var(--gi-sans);cursor:pointer;white-space:nowrap}
+.ws-home-page .library-open{min-width:100px;padding:0 12px;border:1px solid var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .ws-home-page .library-delete{padding:0 4px;border:0;background:transparent;color:var(--gi-bd-copy)}
 .ws-home-page .library-delete:hover{color:var(--gi-turnover);text-decoration:underline}
-.ws-home-page .library-overview{border-top:3px solid var(--gi-bd-gold);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1)}
-.ws-home-page .library-overview.is-scout{border-top-color:var(--gi-bd-cyan)}
-.ws-home-page .library-overview-head{padding:20px 20px 18px;border-bottom:1px solid var(--gi-bd-line)}
-.ws-home-page .library-overview-head h3{margin:5px 0 0;color:var(--gi-bd-strong);font:600 19px/1.25 var(--gi-sans);overflow-wrap:anywhere}
-.ws-home-page .library-overview-metrics{display:grid;grid-template-columns:1fr 1fr}
-.ws-home-page .library-overview-metrics span{display:grid;gap:5px;padding:18px 20px;border-bottom:1px solid var(--gi-bd-line)}
-.ws-home-page .library-overview-metrics span:nth-child(odd){border-right:1px solid var(--gi-bd-line)}
-.ws-home-page .library-overview-metrics b{color:var(--gi-bd-strong);font:600 24px/1 var(--gi-sans)}
-.ws-home-page .library-overview-metrics small{color:var(--gi-bd-copy);font-size:11px;text-transform:uppercase}
-.ws-home-page .library-attention{display:flex;align-items:center;gap:9px;padding:14px 20px;border-bottom:1px solid var(--gi-bd-line);color:var(--gi-bd-strong);font-size:12px}
-.ws-home-page .library-overview-actions{display:grid;padding:12px}
-.ws-home-page .library-overview-actions button{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 10px;border:0;background:transparent;color:var(--gi-bd-strong);font:600 13px var(--gi-sans);text-align:left}
+.ws-home-page .library-overview{display:flex;min-width:0;flex-direction:column;border-inline:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .library-overview.is-scout{box-shadow:inset 0 3px var(--gi-bd-cyan)}
+.ws-home-page .library-overview-head{padding:24px;border-bottom:1px solid var(--gi-bd-line)}
+.ws-home-page .library-overview-head h3{margin:9px 0 0;color:var(--gi-bd-strong);font:600 17px/1.3 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-overview-head p{margin:7px 0 0;color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .library-continue{width:100%;min-height:40px;margin-top:18px;border:1px solid var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font:700 12.5px var(--gi-sans)}
+.ws-home-page .library-overview.is-scout .library-continue{border-color:var(--gi-bd-cyan);background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.ws-home-page .library-health{display:grid;padding:20px 24px 8px;border-bottom:1px solid var(--gi-bd-line)}
+.ws-home-page .library-health>.gi-hub-kicker{margin-bottom:7px}
+.ws-home-page .library-health>span:not(.gi-hub-kicker){display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;border-bottom:1px solid var(--gi-bd-line)}
+.ws-home-page .library-health small{color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .library-health b{color:var(--gi-bd-strong);font-size:13px}
+.ws-home-page .library-overview-actions{display:grid;gap:8px;padding:20px 24px 24px}
+.ws-home-page .library-overview-actions .gi-hub-kicker{margin-bottom:1px}
+.ws-home-page .library-overview-actions button{min-height:38px;padding:0 12px;border:1px solid var(--gi-bd-bone);background:transparent;color:var(--gi-bd-strong);font:600 12px var(--gi-sans)}
 .ws-home-page .library-overview-actions button:hover{background:var(--gi-bd-control)}
-.ws-home-page .library-overview-actions button:last-child{color:var(--gi-bd-copy)}
 
 .ws-home-page [data-first-use]{max-width:none}
 
@@ -295,12 +311,11 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}
 
 @media(min-width:1700px){.ws-home-page .home-with-rail{grid-template-columns:240px minmax(0,1fr)}.ws-home-page .home-content{padding:28px 32px 20px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 344px;gap:28px}}
-@media(max-width:1350px){
+@media(max-width:1150px){
   .ws-home-page .library-layout{grid-template-columns:1fr}
-  .ws-home-page .library-overview{display:grid;grid-template-columns:minmax(220px,1fr) minmax(360px,1.6fr)}
-  .ws-home-page .library-overview-head{border-right:1px solid var(--gi-bd-line)}
-  .ws-home-page .library-overview-metrics{grid-column:2;grid-row:1/3}
-  .ws-home-page .library-overview-actions{grid-column:1}
+  .ws-home-page .library-overview{display:grid;grid-template-columns:minmax(240px,1fr) minmax(260px,1fr) minmax(210px,.8fr)}
+  .ws-home-page .library-overview-head,.ws-home-page .library-health{border-right:1px solid var(--gi-bd-line)}
+  .ws-home-page .library-overview-actions{align-content:start}
 }
 @media(max-width:1300px){.ws-home-page .home-with-rail{grid-template-columns:190px minmax(0,1fr)}.ws-home-page .home-content{padding:20px}.ws-home-page .rail-year{padding:20px 10px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 280px;gap:18px}.ws-home-page .library-tools{flex-wrap:wrap}.ws-home-page .search{flex-basis:100%}.ws-home-page .card-status,.ws-home-page .game-meta{flex-wrap:wrap}body.ws-route-home #wsCtxProgram{flex-basis:320px;min-width:320px;max-width:340px}}
 @media(max-width:1050px){
@@ -308,8 +323,12 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .detail-pane{position:static}
 }
 @media(max-width:900px){
+  .ws-home-page .library-summary{grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(84px,.7fr))}
+  .ws-home-page .library-summary>span:nth-child(4),.ws-home-page .library-summary>span:nth-child(5){border-top:1px solid var(--gi-bd-line)}
+  .ws-home-page .library-summary>span:nth-child(5){grid-column:2/4}
   .ws-home-page .library-season{grid-template-columns:minmax(220px,1fr) 142px;grid-template-areas:'identity metrics' 'film actions';gap:14px 20px}
   .ws-home-page .library-season-identity{grid-area:identity}.ws-home-page .library-season-metrics{grid-area:metrics}.ws-home-page .library-film{grid-area:film}.ws-home-page .library-season-actions{grid-area:actions}
+  .ws-home-page .library-overview{grid-template-columns:1fr 1fr}.ws-home-page .library-overview-actions{grid-column:1/-1;border-top:1px solid var(--gi-bd-line)}
 }
 @media(max-width:700px){
   /* The rail stacks above the content here, so the route-frame scroll owner
@@ -333,9 +352,10 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .first-launch .gi-hub-workspace-choice button{min-height:92px}
   .ws-home-page .first-actions button{width:100%}.ws-home-page .first-secondary{align-items:flex-start;flex-direction:column;gap:12px}
   .ws-home-page .library-panel-head{align-items:stretch;flex-direction:column}.ws-home-page .library-panel-head .ws-btn{align-self:flex-start}
+  .ws-home-page .library-summary{grid-template-columns:1fr 1fr}.ws-home-page .library-summary>span:first-child,.ws-home-page .library-summary>span:last-child{grid-column:1/-1}.ws-home-page .library-summary>span:nth-child(5){grid-column:1/-1}
   .ws-home-page .library-season{grid-template-columns:1fr;grid-template-areas:'identity' 'metrics' 'film' 'actions';padding:16px}
   .ws-home-page .library-season-actions{justify-content:flex-start}
-  .ws-home-page .library-overview{display:block}.ws-home-page .library-overview-head{border-right:0}
+  .ws-home-page .library-overview{display:block}.ws-home-page .library-overview-head,.ws-home-page .library-health{border-right:0}
 }
 @media(max-width:760px){
   .ws-home-page .ws-home-head{flex-wrap:wrap}

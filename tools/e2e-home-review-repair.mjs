@@ -97,14 +97,14 @@ r = await page.evaluate(() => {
   const overview = document.querySelector('.library-overview')?.getBoundingClientRect();
   const actions = [...document.querySelectorAll('.library-season-actions')].map(node => node.getBoundingClientRect());
   return {
-    listBottom:list?.bottom || 0,
-    overviewTop:overview?.top || 0,
+    listRight:list?.right || 0,
+    overviewLeft:overview?.left || 0,
     overlap:actions.some(rect => rect.right > innerWidth || rect.left < 0),
     pageOverflow:document.documentElement.scrollWidth - innerWidth,
   };
 });
-ok(r.overviewTop >= r.listBottom && !r.overlap && r.pageOverflow <= 1,
-  'At 1280px the program summary stacks below the season list and row actions stay contained', JSON.stringify(r));
+ok(r.overviewLeft >= r.listRight && !r.overlap && r.pageOverflow <= 1,
+  'At 1280px the resume panel stays beside the season list and every row action remains contained', JSON.stringify(r));
 await page.setViewport({ width:1440, height:900 });
 
 console.log('\n== 1b. Real Team Hub controllers accept the school/nickname/year+level forms ==');
