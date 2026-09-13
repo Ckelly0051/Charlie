@@ -103,6 +103,34 @@ authority until a replacement composition is reviewed and approved.
    all of those contracts, and the stale Team Hub-era gate consumers now drive
    the current Home/controller architecture. The canonical gate is 110/110
    green with zero skipped or failed harnesses. Coach smoke remains pending.
+7. **OPEN P1 — roster ownership appears universal across teams and seasons.**
+   The coach reports seeing the same roster after selecting different years and
+   teams. This contradicts the accepted 2026-08-29 data-isolation contract:
+   roster ownership is season-scoped, a season's games share that roster, and
+   JV, Varsity, different years, and different programs must remain independent.
+   Investigate the complete read/write path before changing data: Home and
+   Settings entry, `RosterManager`, season open/switch, serialization, restore,
+   game projection, player attribution, Reports, exports, backups, and any
+   ambient compatibility cache. Reproduce with at least two teams and two
+   seasons under one team. Determine whether this is a presentation/context
+   leak, a persistence-key defect, or existing data previously copied into
+   multiple seasons. Do not redistribute or delete customer roster data by
+   inference. The repair must include mutation-verified cross-team and
+   cross-season isolation plus same-season sharing across games.
+8. **OPEN P2 — Add Game remains visually obsolete and mislabels analytics
+   perspective as `Film source`.** The installed form does not match the current
+   Home/design-system hierarchy and reads as an older modal. Its `Film source`
+   selector offers `Our game · start charting Offense/Defense/Special Teams` and
+   `Opponent film · Scout`; those choices control analytics perspective and the
+   initial charting unit, not a file, folder, managed copy, or linked film source.
+   Investigate whether coaches should make either decision during game creation,
+   whether opponent-scout creation already provides the only legitimate scout
+   boundary, and whether the default charting unit belongs in Break Down instead.
+   Propose a current-design-system Game form using the existing overlay service,
+   with plain football labels and no duplicate persistence path. Keep actual
+   per-game film selection/linking in the canonical film workflow. Cover create,
+   edit, Program, Opponent Scout, keyboard/focus, narrow-width containment, and
+   durable context behavior. No implementation is approved by this entry.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 
