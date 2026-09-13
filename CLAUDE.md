@@ -7,21 +7,18 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-80` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-82` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-81` is the current unsigned local visual-smoke
-candidate, versioned in `674860d` on top of `5f10e36`. It is the first
-installer carrying the repaired Reports typography floor, the completed neutral
-ladder, the Defense charted-versus-measured cohort contract, the recomposed
-shared Reports chrome and the restored Breakdown geometry. The FULL gate passed
-on `5f10e36`: 110 harnesses, 110 green, 0 skipped, 0 failed. Tauri produced both
-NSIS and MSI packages with updater signing disabled by `--no-sign`. The coach's
-installed smoke has NOT been run against it, so nothing here is accepted,
-tagged, pushed or published state, and no surface advances past its current
-approval status.
-See `SMOKE-1.12.0-81.md`, `SMOKE-1.12.0-80.md` and `docs/OPEN-DEFECTS.md`.
+**Packaging status:** `1.12.0-82` is the current unsigned local visual-smoke
+candidate. It adds the consolidated Home route and the repaired no-open-season
+library composition to the `1.12.0-81` Reports/Breakdown baseline. Focused Home
+verification is green; the full gate was not rerun for this Home-only visual
+candidate. The coach's installed smoke has NOT been run against it, so nothing
+here is accepted, tagged, pushed or published state, and no surface advances
+past its current approval status.
+See `SMOKE-1.12.0-82.md`, `SMOKE-1.12.0-81.md` and `docs/OPEN-DEFECTS.md`.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
@@ -377,6 +374,13 @@ service and focused-dialog owner, while the shell-level `Our Program / Opponent
 Scout` selector is the only rendered workspace switch. The game grid uses
 230-280px tracks so additional desktop width adds scannable columns instead of
 inflating video previews. Production remains `REJECTED` until coach review.
+
+**SEASON LIBRARY COMPOSITION REPAIRED - PENDING COACH SMOKE (2026-09-13).**
+The no-open-season state now uses Home-owned full-width season rows and a program
+summary/action panel rather than repacking `SeasonRow` into a sparse card grid.
+TeamHubScreen still owns create/open/delete/recovery and film-health behavior.
+Focused Home proof asserts Home-owned rows, no borrowed Team Hub row markup, the
+summary panel, usable desktop row width, and no overflow at 1920/1440/1280.
 
 Home's film-health contract is season-scoped. A health lookup for managed film
 must carry both season ID and game ID all the way to the filesystem path; a

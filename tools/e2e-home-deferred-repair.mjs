@@ -588,7 +588,7 @@ ok(hubCopy.route === 'home' && !hubCopy.teamHubHost,
   'Season Library remains on Home with no mounted Team Hub route', hubCopy);
 ok(hubCopy.switches === 1,
   'Home renders exactly one Program/Opponent Scout workspace switch', hubCopy);
-ok(hubCopy.title === 'Opponents',
+ok(hubCopy.title === 'Opponent scouting',
   'The Home library renders the active Opponent Scout collection', hubCopy);
 ok(![...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].some(p => hubCopy.text.includes(p)),
   'No superseded phrase renders anywhere in the Home library',
@@ -604,7 +604,7 @@ const programHero = await page.evaluate(async () => {
     switches: document.querySelectorAll('.ws-workspace-switch').length,
   };
 });
-ok(programHero.route === 'home' && programHero.title === 'Seasons' && programHero.switches === 1,
+ok(programHero.route === 'home' && / seasons$/.test(programHero.title) && programHero.switches === 1,
   'Program mode reuses the same Home library and sole workspace switch', programHero);
 
 // Dialogs: create season (intro + guided/manual), edit season, setup guide, create scout.

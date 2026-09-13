@@ -3,7 +3,7 @@
 > **Status:** CURRENT DEFECT INDEX. Updated 2026-09-12 for the next protected
 > Home workstream after the active Reports repair review.
 
-## Coach smoke, 1.12.0-81 (2026-09-12)
+## Coach smoke, 1.12.0-82 (2026-09-13)
 
 Found at the board on the installed visual-smoke candidate.
 
@@ -60,7 +60,16 @@ authority until a replacement composition is reviewed and approved.
    Program / Opponent Scout` control is the only rendered workspace-mode
    control. The duplicate card pair was removed from Home's library body, and
    the Home harness asserts one switch plus the absence of a Team Hub host.
-3. **Season film-health counts can be wrong outside the active season.** The
+3. **REPAIRED 2026-09-13 — the no-open-season library was an unacceptable
+   first impression.** Home no longer repacks the generic Team Hub season row
+   into small equal-width cards across the top of an otherwise empty canvas.
+   It owns a readable full-width season list with identity, games, plays,
+   explicit film health, restrained destructive actions, and a program summary
+   with direct library operations. The summary moves below the list whenever
+   the rail leaves insufficient row width; the 1280px collision found during
+   visual inspection is part of the responsive contract. TeamHubScreen remains
+   the sole service owner for open, create, delete, recovery, and film checks.
+4. **Season film-health counts can be wrong outside the active season.** The
    coach observed 2025 JV as `5 of 6 games linked` in the season library while
    the opened season reports all six linked. `TeamHubScreen._verifyFilmHealth`
    peeks a non-active season's games, then calls `WorkspaceContext.filmHealth`,

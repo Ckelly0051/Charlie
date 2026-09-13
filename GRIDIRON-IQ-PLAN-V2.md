@@ -7,13 +7,11 @@
 > customer data.
 
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production. The unsigned Windows `1.12.0-80` local visual-smoke handoff was
-> packaged from version commit `2d67515` after the global secondary-copy repair
-> in `b534a3f`. The production build and focused design-system, shell, Breakdown
-> and Reports suites passed; the full release gate was not run for this
-> palette-only candidate. The coach passed its installed visual check for the
-> shared typography, navigation, selector-width and neutral-palette scope. It
-> is not an accepted release.
+> production. The unsigned Windows `1.12.0-82` local visual-smoke handoff adds
+> the consolidated Home route and the rebuilt no-open-season library to the
+> `1.12.0-81` Reports/Breakdown baseline. The production build and focused Home
+> suites passed; the full release gate was not rerun for this Home-only visual
+> candidate. It is not an accepted release.
 > `1.12.0-70` remains the last accepted installed release snapshot, but current
 > Home production is `REJECTED` after the `1.12.0-74` visual smoke.
 >
@@ -54,6 +52,14 @@ One route, one switcher, one renderer, and one approved state matrix must cover
 first use, no season, empty season, populated season, and scout mode. Historical
 Home and Team Hub artifacts remain evidence but must be explicitly superseded
 when the replacement composition is approved; do not delete approval history.
+
+The no-open-season state is a first-impression Home surface, not a database
+maintenance grid. Home owns its presentation and may not squeeze the generic
+Team Hub row into a card layout. Program seasons render as a readable operational
+list with identity, game/play totals, explicit film state and restrained actions,
+paired with a useful program summary. The summary stacks below the list when the
+persistent rail reduces the available row width. TeamHubScreen remains the single
+controller for all underlying operations; this is not a second data path.
 
 Film status is part of this pass's data contract, not presentation copy. Every
 season summary and every game row must consume one season-scoped resolver keyed

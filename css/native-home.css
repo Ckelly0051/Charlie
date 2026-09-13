@@ -138,23 +138,45 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-foot{display:flex;flex-direction:row;align-items:center;gap:10px;padding:16px 10px 0;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}.ws-home-page .rail-foot>span{display:flex;min-width:0;flex-direction:column;gap:8px}.ws-home-page .rail-logo{width:36px;height:36px;flex:0 0 36px;object-fit:contain}
 
 .ws-home-page .library-panel{display:flex;flex-direction:column;gap:16px}
-.ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
-.ws-home-page .library-panel-head h2{margin:2px 0 0;font:700 24px/1 var(--gi-cond)}
-/* The reused Team Hub SeasonRow was built for a >=1120px full-width table
-   row (state chip / name / counts / film badge as four grid columns, plus
-   Open/Delete as a flex sibling needing real width of its own) -- squeezed
-   unmodified into a ~320-380px card, that grid math cannot fit and the
-   Open/Delete buttons visibly overlapped the counts (the exact
-   "controls crowd the counts" defect, found here too on inspection). Stack
-   the card vertically instead: summary content top to bottom, actions as
-   their own full-width row below it, never sharing a line with the counts. */
-.ws-home-page .library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
-.ws-home-page .library-grid .gi-hub-season{flex-direction:column;align-items:stretch;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel)}
-.ws-home-page .library-grid .gi-hub-season-summary{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:0;padding:14px 14px 4px}
-.ws-home-page .library-grid .gi-hub-season-actions{padding:8px 14px 14px;justify-content:flex-end}
-.ws-home-page .library-grid .gi-hub-season-actions button{min-height:36px;padding:6px 12px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font:600 13px var(--gi-sans)}
-.ws-home-page .library-grid .gi-hub-season-actions .gi-hub-season-open{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
-.ws-home-page .library-recover-link{align-self:flex-start;background:none;border:0;height:auto;padding:0;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
+.ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:8px}
+.ws-home-page .library-panel-head h2{margin:5px 0 0;font:600 30px/1.15 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-panel-head .ws-btn{min-width:142px;min-height:40px;font-size:13px}
+.ws-home-page .library-layout{display:grid;grid-template-columns:minmax(560px,1fr) minmax(280px,320px);gap:24px;align-items:start;max-width:1280px}
+.ws-home-page .library-list{display:flex;flex-direction:column;border-top:1px solid var(--gi-bd-line)}
+.ws-home-page .library-season{position:relative;display:grid;grid-template-columns:minmax(250px,1fr) 142px minmax(145px,190px) 188px;align-items:center;gap:20px;min-width:0;min-height:112px;padding:18px 18px 18px 20px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .library-season:hover{background:var(--gi-3)}
+.ws-home-page .library-season.is-current{box-shadow:inset 3px 0 var(--gi-bd-gold);background:var(--gi-info-surface)}
+.ws-home-page .library-season-identity{min-width:0}
+.ws-home-page .library-season-state{display:block;margin-bottom:7px;color:var(--gi-bd-copy);font-size:11px;font-weight:700;text-transform:uppercase}
+.ws-home-page .library-season h3{margin:0;color:var(--gi-bd-strong);font:600 18px/1.25 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-season p{margin:6px 0 0;color:var(--gi-bd-copy);font-size:12px;line-height:1.35}
+.ws-home-page .library-season-metrics{display:flex;align-items:center;gap:28px}
+.ws-home-page .library-season-metrics span{display:grid;gap:3px;min-width:38px}
+.ws-home-page .library-season-metrics b{color:var(--gi-bd-strong);font:600 22px/1 var(--gi-sans)}
+.ws-home-page .library-season-metrics small{color:var(--gi-bd-copy);font-size:11px}
+.ws-home-page .library-film{display:flex;align-items:center;gap:8px;min-width:0;color:var(--gi-bd-copy);font-size:12px;line-height:1.3}
+.ws-home-page .library-film i,.ws-home-page .library-attention i{width:8px;height:8px;flex:0 0 8px;background:var(--gi-bd-muted)}
+.ws-home-page .library-film.is-ready i{background:var(--gi-ok)}
+.ws-home-page .library-film:is(.is-partial,.is-missing) i,.ws-home-page .library-attention i{background:var(--gi-bd-gold)}
+.ws-home-page .library-season-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.ws-home-page .library-season-actions button{min-height:38px;border-radius:var(--gi-radius);font:600 12.5px var(--gi-sans);cursor:pointer}
+.ws-home-page .library-open{min-width:104px;padding:0 14px;border:1px solid var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.ws-home-page .library-delete{padding:0 4px;border:0;background:transparent;color:var(--gi-bd-copy)}
+.ws-home-page .library-delete:hover{color:var(--gi-turnover);text-decoration:underline}
+.ws-home-page .library-overview{border-top:3px solid var(--gi-bd-gold);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1)}
+.ws-home-page .library-overview.is-scout{border-top-color:var(--gi-bd-cyan)}
+.ws-home-page .library-overview-head{padding:20px 20px 18px;border-bottom:1px solid var(--gi-bd-line)}
+.ws-home-page .library-overview-head h3{margin:5px 0 0;color:var(--gi-bd-strong);font:600 19px/1.25 var(--gi-sans);overflow-wrap:anywhere}
+.ws-home-page .library-overview-metrics{display:grid;grid-template-columns:1fr 1fr}
+.ws-home-page .library-overview-metrics span{display:grid;gap:5px;padding:18px 20px;border-bottom:1px solid var(--gi-bd-line)}
+.ws-home-page .library-overview-metrics span:nth-child(odd){border-right:1px solid var(--gi-bd-line)}
+.ws-home-page .library-overview-metrics b{color:var(--gi-bd-strong);font:600 24px/1 var(--gi-sans)}
+.ws-home-page .library-overview-metrics small{color:var(--gi-bd-copy);font-size:11px;text-transform:uppercase}
+.ws-home-page .library-attention{display:flex;align-items:center;gap:9px;padding:14px 20px;border-bottom:1px solid var(--gi-bd-line);color:var(--gi-bd-strong);font-size:12px}
+.ws-home-page .library-overview-actions{display:grid;padding:12px}
+.ws-home-page .library-overview-actions button{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 10px;border:0;background:transparent;color:var(--gi-bd-strong);font:600 13px var(--gi-sans);text-align:left}
+.ws-home-page .library-overview-actions button:hover{background:var(--gi-bd-control)}
+.ws-home-page .library-overview-actions button:last-child{color:var(--gi-bd-copy)}
 
 .ws-home-page [data-first-use]{max-width:none}
 
@@ -273,10 +295,21 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}
 
 @media(min-width:1700px){.ws-home-page .home-with-rail{grid-template-columns:240px minmax(0,1fr)}.ws-home-page .home-content{padding:28px 32px 20px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 344px;gap:28px}}
+@media(max-width:1350px){
+  .ws-home-page .library-layout{grid-template-columns:1fr}
+  .ws-home-page .library-overview{display:grid;grid-template-columns:minmax(220px,1fr) minmax(360px,1.6fr)}
+  .ws-home-page .library-overview-head{border-right:1px solid var(--gi-bd-line)}
+  .ws-home-page .library-overview-metrics{grid-column:2;grid-row:1/3}
+  .ws-home-page .library-overview-actions{grid-column:1}
+}
 @media(max-width:1300px){.ws-home-page .home-with-rail{grid-template-columns:190px minmax(0,1fr)}.ws-home-page .home-content{padding:20px}.ws-home-page .rail-year{padding:20px 10px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 280px;gap:18px}.ws-home-page .library-tools{flex-wrap:wrap}.ws-home-page .search{flex-basis:100%}.ws-home-page .card-status,.ws-home-page .game-meta{flex-wrap:wrap}body.ws-route-home #wsCtxProgram{flex-basis:320px;min-width:320px;max-width:340px}}
 @media(max-width:1050px){
   .ws-home-page .game-workspace{grid-template-columns:1fr}
   .ws-home-page .detail-pane{position:static}
+}
+@media(max-width:900px){
+  .ws-home-page .library-season{grid-template-columns:minmax(220px,1fr) 142px;grid-template-areas:'identity metrics' 'film actions';gap:14px 20px}
+  .ws-home-page .library-season-identity{grid-area:identity}.ws-home-page .library-season-metrics{grid-area:metrics}.ws-home-page .library-film{grid-area:film}.ws-home-page .library-season-actions{grid-area:actions}
 }
 @media(max-width:700px){
   /* The rail stacks above the content here, so the route-frame scroll owner
@@ -299,6 +332,10 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .first-launch .gi-hub-workspace-choice,.ws-home-page .first-identity-row,.ws-home-page .first-season-row,.ws-home-page .first-setup-choice{grid-template-columns:1fr}
   .ws-home-page .first-launch .gi-hub-workspace-choice button{min-height:92px}
   .ws-home-page .first-actions button{width:100%}.ws-home-page .first-secondary{align-items:flex-start;flex-direction:column;gap:12px}
+  .ws-home-page .library-panel-head{align-items:stretch;flex-direction:column}.ws-home-page .library-panel-head .ws-btn{align-self:flex-start}
+  .ws-home-page .library-season{grid-template-columns:1fr;grid-template-areas:'identity' 'metrics' 'film' 'actions';padding:16px}
+  .ws-home-page .library-season-actions{justify-content:flex-start}
+  .ws-home-page .library-overview{display:block}.ws-home-page .library-overview-head{border-right:0}
 }
 @media(max-width:760px){
   .ws-home-page .ws-home-head{flex-wrap:wrap}

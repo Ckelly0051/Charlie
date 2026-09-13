@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { WorkspaceChoice, SeasonRow } from './native-team-hub.jsx';
+import { WorkspaceChoice } from './native-team-hub.jsx';
 import { fullIdentity, seasonIdentity } from './identity-labels.js';
 import '../css/native-home.css';
 
@@ -402,10 +402,68 @@ function SeasonRail({ screen, hub, hubState }) {
   </nav>;
 }
 
-/** The library state -- no season is currently open. Reuses the same
- *  `SeasonRow`/`WorkspaceChoice` Team Hub renders, so a coach landing here
- *  picks a season (or creates, or recovers one) with the identical cards
- *  used by the canonical season service. When no team exists anywhere yet, this
+function libraryDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function LibraryFilmStatus({ film }) {
+  return <span class={`library-film is-${film?.state || 'checking'}`}><i />{film?.label || 'Checking film…'}</span>;
+}
+
+function LibrarySeasonRow({ season, hub }) {
+  const opened = libraryDate(season.lastOpened);
+  const state = season.current ? 'Current season' : season.isDemo ? 'Sample season' : 'Season';
+  const meta = [season.year, season.level, opened && `opened ${opened}`].filter(Boolean).join(' · ');
+  return <article class={`library-season${season.current ? ' is-current' : ''}`} data-library-season data-season-id={season.id}>
+    <div class="library-season-identity">
+      <span class="library-season-state">{state}</span>
+      <h3>{season.name}</h3>
+      <p>{meta || 'Season workspace'}</p>
+    </div>
+    <div class="library-season-metrics" aria-label={`${season.gameCount} games and ${season.playCount} plays`}>
+      <span><b>{season.gameCount}</b><small>games</small></span>
+      <span><b>{season.playCount}</b><small>plays</small></span>
+    </div>
+    <LibraryFilmStatus film={season.film} />
+    <div class="library-season-actions">
+      <button type="button" class="library-open" data-hub-open-season={season.id} onClick={() => hub.openSeason(season.id)}>{season.current ? 'Return to Home' : 'Open season'}</button>
+      <button type="button" class="library-delete" aria-label={`${season.isDemo ? 'Remove sample season' : 'Delete season'} ${season.name}`} onClick={event => hub.deleteSeason(season.id, event.currentTarget)}>{season.isDemo ? 'Remove sample' : 'Delete'}</button>
+    </div>
+  </article>;
+}
+
+function LibraryOverview({ screen, hub, hubState, seasons, scout }) {
+  const games = seasons.reduce((sum, season) => sum + (Number(season.gameCount) || 0), 0);
+  const plays = seasons.reduce((sum, season) => sum + (Number(season.playCount) || 0), 0);
+  const linked = seasons.filter(season => season.film?.state === 'ready').length;
+  const attention = seasons.filter(season => ['missing', 'partial'].includes(season.film?.state)).length;
+  return <aside class={`library-overview${scout ? ' is-scout' : ''}`} aria-label={scout ? 'Scout library summary' : 'Program library summary'}>
+    <div class="library-overview-head">
+      <span class="gi-hub-kicker">{scout ? 'Scout library' : 'Program library'}</span>
+      <h3>{hubState.profile?.teamName || screen.teamName() || 'Your program'}</h3>
+    </div>
+    <div class="library-overview-metrics">
+      <span><b>{seasons.length}</b><small>{scout ? 'opponents' : 'seasons'}</small></span>
+      <span><b>{games}</b><small>games</small></span>
+      <span><b>{plays}</b><small>plays</small></span>
+      <span><b>{linked}</b><small>film ready</small></span>
+    </div>
+    {attention > 0 && <div class="library-attention"><i />{attention} {attention === 1 ? 'workspace needs' : 'workspaces need'} film attention</div>}
+    <div class="library-overview-actions">
+      <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>{icon('film')}Film &amp; storage</button>
+      <button type="button" onClick={event => screen.manageProgram(event.currentTarget)}>{icon('folder')}Manage program</button>
+      {hub.canRecoverSeasons() ? <button type="button" onClick={event => hub.recoverSeasons(event.currentTarget)}>Recover seasons</button> : null}
+    </div>
+  </aside>;
+}
+
+/** The library state -- no season is currently open. Home owns this
+ *  presentation while TeamHubScreen remains the sole data/action service.
+ *  A coach landing here gets a readable operational season list and useful
+ *  program context instead of generic Team Hub rows repacked as small cards.
+ *  When no team exists anywhere yet, this
  *  does NOT duplicate Team Hub's own first-team form inline -- Team Hub
  *  already owns and enforces that step before Home is ever reachable at
  *  boot (this route stays mounted, hidden, behind it), and a second live
@@ -423,20 +481,23 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
   const scout = hubState.workspaceMode === 'scout';
   const seasons = (hubState.seasons || []).filter(s => !!s.isScout === scout);
   const ordered = orderedSeasons(seasons);
+  const teamName = hubState.profile?.teamName || screen.teamName() || 'Program';
   const create = event => scout ? hub.openCreateScout(event.currentTarget) : hub.openCreateSeason(event.currentTarget);
   return <div class="library-panel">
     <div class="library-panel-head">
-      <div><span class="gi-hub-kicker">{scout ? 'Scouting workspaces' : 'Season library'}</span><h2>{scout ? 'Opponents' : 'Seasons'}</h2></div>
+      <div><span class="gi-hub-kicker">{scout ? 'Scouting workspaces' : 'Season library'}</span><h2>{scout ? 'Opponent scouting' : `${teamName} seasons`}</h2></div>
       <button type="button" class="ws-btn ws-primary" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button>
     </div>
     {ordered.length
-      ? <div class="library-grid" role="list">{ordered.map(season => <SeasonRow key={season.id} season={season} screen={hub} />)}</div>
+      ? <div class="library-layout">
+          <div class="library-list" role="list">{ordered.map(season => <LibrarySeasonRow key={season.id} season={season} hub={hub} />)}</div>
+          <LibraryOverview screen={screen} hub={hub} hubState={hubState} seasons={ordered} scout={scout} />
+        </div>
       : <div class="ws-empty-panel">
           <h3>{scout ? 'No opponent scouts' : 'Start the football year here'}</h3>
           <p>{scout ? 'Add an opponent and source game, then link film.' : 'Create your first season, then add games from Home.'}</p>
           <button type="button" class="ws-btn ws-primary" onClick={create}>{scout ? 'Create first opponent scout' : 'Create first season'}</button>
         </div>}
-    {hub.canRecoverSeasons() ? <button type="button" class="library-recover-link" onClick={event => hub.recoverSeasons(event.currentTarget)}>Recover seasons</button> : null}
   </div>;
 }
 

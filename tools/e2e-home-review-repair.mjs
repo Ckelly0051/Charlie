@@ -81,9 +81,31 @@ r = await page.evaluate(() => ({
   libraryPanel: !!document.querySelector('.library-panel'),
   workspaceSwitches: document.querySelectorAll('.ws-workspace-switch').length,
   createAction: !!document.querySelector('.library-panel .ws-btn.ws-primary'),
+  ownedRows: document.querySelectorAll('[data-library-season]').length,
+  borrowedRows: document.querySelectorAll('.library-panel .gi-hub-season').length,
+  overview: !!document.querySelector('.library-overview'),
+  rowWidth: Math.round(document.querySelector('[data-library-season]')?.getBoundingClientRect().width || 0),
 }));
 ok(r.libraryPanel && r.workspaceSwitches === 1 && r.createAction,
   'With no season open, Home renders the real library with the sole shell workspace switch', JSON.stringify(r));
+ok(r.ownedRows > 0 && r.borrowedRows === 0 && r.overview && r.rowWidth >= 540,
+  'The no-season Home uses readable Home-owned rows plus a program summary, not repacked Team Hub cards', JSON.stringify(r));
+await page.setViewport({ width:1280, height:720 });
+await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+r = await page.evaluate(() => {
+  const list = document.querySelector('.library-list')?.getBoundingClientRect();
+  const overview = document.querySelector('.library-overview')?.getBoundingClientRect();
+  const actions = [...document.querySelectorAll('.library-season-actions')].map(node => node.getBoundingClientRect());
+  return {
+    listBottom:list?.bottom || 0,
+    overviewTop:overview?.top || 0,
+    overlap:actions.some(rect => rect.right > innerWidth || rect.left < 0),
+    pageOverflow:document.documentElement.scrollWidth - innerWidth,
+  };
+});
+ok(r.overviewTop >= r.listBottom && !r.overlap && r.pageOverflow <= 1,
+  'At 1280px the program summary stacks below the season list and row actions stay contained', JSON.stringify(r));
+await page.setViewport({ width:1440, height:900 });
 
 console.log('\n== 1b. Real Team Hub controllers accept the school/nickname/year+level forms ==');
 // setupTeamAndDemo() above already exercised createFirstTeam() through the
