@@ -571,41 +571,41 @@ const scoutEmpty = await page.evaluate(async () => {
 ok(scoutEmpty.h3 === 'No source games yet' && scoutEmpty.p === 'Add a source game and link film.',
   'The scout empty state renders the approved copy', scoutEmpty);
 
-// Team Hub: hero, workspace choice, and the scout library empty state.
+// Home library: one route, one workspace switch, no competing Team Hub DOM.
 const hubCopy = await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('scout');
   await window.app.workspaceShell._openLibrary();
   await new Promise(r => setTimeout(r, 450));
-  const hero = document.querySelector('.gi-hub-workspace-hero');
-  const empty = document.querySelector('.gi-hub-empty-inline');
   return {
-    choices: [...document.querySelectorAll('#wsTeamHub .gi-hub-workspace-choice strong')].map(n => n.textContent),
-    choiceSmalls: [...document.querySelectorAll('#wsTeamHub .gi-hub-workspace-choice small')].map(n => n.textContent),
-    subtitle: document.querySelector('#giHubTitle')?.parentElement?.querySelector('p')?.textContent || '',
-    heroP: hero?.querySelector('p')?.textContent || '',
-    emptyH3: empty?.querySelector('h3')?.textContent || '',
-    emptyP: empty?.querySelector('p')?.textContent || '',
-    text: document.querySelector('#wsTeamHub')?.innerText.replace(/\s+/g, ' ') || '',
+    route: document.getElementById('workspaceShell')?.dataset.route || '',
+    teamHubHost: !!document.getElementById('wsTeamHub'),
+    switches: document.querySelectorAll('.ws-workspace-switch').length,
+    title: document.querySelector('.library-panel-head h2')?.textContent || '',
+    text: document.querySelector('#wsHome')?.innerText.replace(/\s+/g, ' ') || '',
   };
 });
-ok(hubCopy.choices[0] === 'Program' && hubCopy.choiceSmalls[0] === 'Seasons, roster, games, and film.',
-  'Team Hub workspace choice renders the approved Program copy', hubCopy);
-ok(hubCopy.subtitle === 'Program seasons and opponent scouting.',
-  'Team Hub subtitle renders the approved copy', hubCopy);
-ok(hubCopy.heroP === 'Opponent games, film, and charting.',
-  'The opponent library hero renders the approved helper', hubCopy);
+ok(hubCopy.route === 'home' && !hubCopy.teamHubHost,
+  'Season Library remains on Home with no mounted Team Hub route', hubCopy);
+ok(hubCopy.switches === 1,
+  'Home renders exactly one Program/Opponent Scout workspace switch', hubCopy);
+ok(hubCopy.title === 'Opponents',
+  'The Home library renders the active Opponent Scout collection', hubCopy);
 ok(![...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].some(p => hubCopy.text.includes(p)),
-  'No superseded phrase renders anywhere in Team Hub',
+  'No superseded phrase renders anywhere in the Home library',
   [...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].filter(p => hubCopy.text.includes(p)));
 
-// Team Hub program hero.
+// Program mode changes the same Home library rather than opening another page.
 const programHero = await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('program');
   await new Promise(r => setTimeout(r, 350));
-  return document.querySelector('.gi-hub-workspace-hero p')?.textContent || '';
+  return {
+    route: document.getElementById('workspaceShell')?.dataset.route || '',
+    title: document.querySelector('.library-panel-head h2')?.textContent || '',
+    switches: document.querySelectorAll('.ws-workspace-switch').length,
+  };
 });
-ok(programHero === 'Program seasons, games, roster, and play library.',
-  'The program hero renders the approved helper', { programHero });
+ok(programHero.route === 'home' && programHero.title === 'Seasons' && programHero.switches === 1,
+  'Program mode reuses the same Home library and sole workspace switch', programHero);
 
 // Dialogs: create season (intro + guided/manual), edit season, setup guide, create scout.
 const dialogCopy = await page.evaluate(async () => {

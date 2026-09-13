@@ -78,7 +78,7 @@ Change behavior at its owner, not at a consumer.
 |---|---|
 | Shell, routes, chrome, context bar | `js/workspace-shell.js` |
 | Home route | `js/home-screen.js` + `js/native-home.jsx` + `css/native-home.css` |
-| Team Hub / season library | `js/team-hub-screen.js` + `js/native-team-hub.jsx` |
+| Season operations and dialogs | `js/team-hub-screen.js` + reusable forms in `js/native-team-hub.jsx` |
 | Team + season registry | `js/team-registry.js` |
 | Break Down route | `js/breakdown-workspace.js` |
 | Film theater / transport / play strip | `js/breakdown-theater-screen.js` + `js/native-breakdown-theater.jsx` |
@@ -369,15 +369,14 @@ grid. Games are ordered chronologically oldest-first by date, with a valid
 numeric week only as a same-date tiebreaker. `data-season-id` is the stable
 rendered interaction hook on rail rows.
 
-**NEXT PROTECTED WORKSTREAM - HOME CONSOLIDATION (recorded 2026-09-12).** After
-the active Reports repair is independently reviewed, return to Home before
-starting another surface. Preserve the populated open-season game library as
-the primary composition and collapse first use, no season, empty season, and
-Opponent Scout into states of that one Home renderer. Retire Team Hub as a
-competing full-page Home-like composition while preserving its existing service
-owners and focused forms. The shell-level `Our Program / Opponent Scout`
-selector is the sole workspace switcher; no page-level duplicate selector may
-remain.
+**HOME CONSOLIDATION IMPLEMENTED - PENDING COACH SMOKE (2026-09-12).** First
+use, no season, empty season, populated season, Season Library, and Opponent
+Scout now render through `HomeScreen` / `native-home.jsx`. `WorkspaceShell` no
+longer creates or mounts a Team Hub route host. `TeamHubScreen` remains the
+service and focused-dialog owner, while the shell-level `Our Program / Opponent
+Scout` selector is the only rendered workspace switch. The game grid uses
+230-280px tracks so additional desktop width adds scannable columns instead of
+inflating video previews. Production remains `REJECTED` until coach review.
 
 Home's film-health contract is season-scoped. A health lookup for managed film
 must carry both season ID and game ID all the way to the filesystem path; a

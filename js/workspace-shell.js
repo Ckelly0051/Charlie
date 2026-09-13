@@ -36,12 +36,11 @@ export class WorkspaceShell {
     this.app.homeScreen?.restore();
     this.app.studyScreen?.restore();
     this.app.reportsScreen?.restore();
-    this.app.teamHubScreen?.restore();
     this.app.breakdownWorkspace?.restore();
     this._historyUnsub?.(); this._historyUnsub = null;
     this._btnUndo = null; this._btnRedo = null;
     this.root.remove(); this.root = null;
-    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
+    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
   }
   _mount() {
     const root = document.createElement('div');
@@ -55,7 +54,7 @@ export class WorkspaceShell {
       </section>
       <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" id="btnNativeMoreMobile" data-ws-action="more" aria-label="Settings and more" aria-haspopup="menu" aria-expanded="false">⋯</button></header>
       <section class="ws-home" id="wsHome" hidden></section>
-      <section class="ws-team-hub" id="wsTeamHub" hidden></section><section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
     document.body.appendChild(root);
     this.root = root;
     this._mountChrome();
@@ -64,7 +63,6 @@ export class WorkspaceShell {
     this.app.studyScreen?.mount(root.querySelector('#wsStudy'));
     this.app.reportsScreen?.mount(root.querySelector('#wsReports'));
     this.app.planScreen?.mount(root.querySelector('#wsPlan'));
-    this.app.teamHubScreen?.mount(root.querySelector('#wsTeamHub'));
     this._bind();
   }
   // The `|| '•'` is load-bearing, not defensive noise: adding the Reports route
@@ -114,7 +112,7 @@ export class WorkspaceShell {
       if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
     }
     this.app.teamHubScreen?.hide();
-    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
+    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
@@ -144,7 +142,6 @@ export class WorkspaceShell {
   _routeHosts() {
     if (!this.root) return {};
     return {
-      hub: this.root.querySelector('#wsTeamHub'),
       home: this.root.querySelector('#wsHome'),
       breakdown: this.root.querySelector('#wsBreakdown'),
       study: this.root.querySelector('#wsStudy'),
@@ -207,24 +204,25 @@ export class WorkspaceShell {
       requestAnimationFrame(()=>document.querySelector('[data-first-launch] input[name="school"]')?.focus());
       return false;
     }
-    if(this.root.dataset.route!=='team-hub')this._teamHubReturnRoute=this.app.workspace.currentRoute()||'home';
-    this.app.cutupPlayer?.stop();
-    document.body.classList.remove('ws-route-home','ws-route-breakdown','ws-route-study','ws-route-reports','ws-route-plan');
-    document.body.classList.add('ws-route-team-hub');
-    this.root.dataset.route='team-hub';
-    this.root.querySelectorAll('[data-ws-route]').forEach(button=>button.classList.remove('active'));
-    this._setRouteVisibility('hub');
-    this._syncChrome();
-    this.app.homeScreen?.leave();
-    await this.app.teamHubScreen?.show?.();
+    const storage=this.app.storage;
+    const store=storage?.seasonStore;
+    if(store?.hasCurrent?.()){
+      storage.commitActive?.();
+      const saved=await store.persist();
+      if(saved===false){
+        this.app.overlays?.toast?.({tone:'error',message:'Could not open the season library because the current season was not saved.'});
+        return false;
+      }
+      store.closeSeason();
+      storage._clearForNewGame?.();
+      this.app.roster?.loadFrom?.([],{persist:false});
+      this.app.customChips?.reload?.();
+    }
+    await this.app.teamHubScreen?.load?.();
+    await this.show('home');
     return true;
   }
-  async closeTeamHub(){
-    const target=this._teamHubReturnRoute||'home';
-    this._teamHubReturnRoute='home';
-    const guarded=this.app.workspace.guard?.(target);
-    return this.show(guarded?.ok?target:'home');
-  }
+  async closeTeamHub(){ return this.show('home'); }
   /** Home's direct "New game" action (C1 finding 4), reused by the mobile More
    *  menu -- HomeScreen.addGame() owns the one transaction (GameScreen create
    *  + the authoritative App.openGame() open, or a trip to the library with no

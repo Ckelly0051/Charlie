@@ -126,7 +126,7 @@ function HomeHead({ screen, state, hasSeason, scout, c, games }) {
       : [screen.teamName(), record.text, `${games.length} game${games.length === 1 ? '' : 's'}`].filter(Boolean).join(' · '))
     : (c.team ? 'Choose or create a season to get started.' : 'Set up your team to get started.');
   const season = screen.app.storage?.seasonStore?.data;
-  const greeting = hasSeason ? (scout ? (c.season?.name || 'Opponent scout') : seasonIdentity(season?.year, screen.teamName(), season?.level))
+  const greeting = hasSeason ? (scout ? (c.season?.name || 'Opponent scout') : [season?.year, season?.level].filter(Boolean).join(' · '))
     : (c.team ? `${c.team.name} home` : 'Team home');
   const logo = scout ? '' : screen.teamLogo();
   return <div class="ws-home-head">
@@ -294,15 +294,14 @@ function groupByYear(seasons) {
 }
 
 /** Persistent season rail. This is a LIVE view onto `TeamHubScreen` -- the
- *  same controller Team Hub itself renders from -- not a second season-
+ *  same TeamHubScreen controller used by the focused dialogs -- not a second season-
  *  management implementation. Every action (create/open/delete a season,
  *  the season-scoped tools) is the existing `TeamHubScreen`/`HomeScreen`
  *  method, called directly; the rail owns only the year-grouped presentation
- *  the approved comp specifies. "Season library" opens the full Team Hub
- *  screen for anything the compact rail doesn't surface here (team
- *  switching, backup recovery, the control center). */
+ *  the approved comp specifies. "Season library" opens Home's full library
+ *  state; focused settings and recovery remain owned by their dialogs. */
 /** A season's row inside the compact context rail. Deliberately NOT the
- *  full Team Hub `SeasonRow` -- that card carries a 4-column grid, a state
+ *  full library `SeasonRow` -- that card carries a 4-column grid, a state
  *  pill, a film badge, and Open/Delete action buttons sized for a full-width
  *  list, and squeezing it into a 236px column is exactly what left the
  *  season name a 75px sliver (the reviewed regression). The rail's job is
@@ -394,7 +393,7 @@ function SeasonRail({ screen, hub, hubState }) {
     <div class="rail-tools">
       {hasSeason && <span class="rail-scope">{seasonIdentity(store?.data?.year, screen.teamName(), store?.data?.level)}</span>}
       {hasSeason && !openScout && <button type="button" onClick={event => screen.openRoster(event.currentTarget)}>{icon('notes')}Roster</button>}
-      {hasSeason && <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>{icon('film')}Film &amp; storage</button>}
+      <button type="button" onClick={event => screen.openFilmSettings(event.currentTarget)}>{icon('film')}Film &amp; storage</button>
       {hasSeason && hubState.control?.canReviewSetup ? <button type="button" onClick={event => screen.openSeasonSetup(event.currentTarget)}>{icon('tag')}Season setup</button> : null}
       {hasSeason && !openScout && <button type="button" onClick={event => screen.openEditSeason(event.currentTarget)}>{icon('pencil')}Edit season details</button>}
       <button type="button" onClick={event => screen.manageProgram(event.currentTarget)}>{icon('folder')}Manage program</button>
@@ -406,7 +405,7 @@ function SeasonRail({ screen, hub, hubState }) {
 /** The library state -- no season is currently open. Reuses the same
  *  `SeasonRow`/`WorkspaceChoice` Team Hub renders, so a coach landing here
  *  picks a season (or creates, or recovers one) with the identical cards
- *  they'd see in the full Team Hub. When no team exists anywhere yet, this
+ *  used by the canonical season service. When no team exists anywhere yet, this
  *  does NOT duplicate Team Hub's own first-team form inline -- Team Hub
  *  already owns and enforces that step before Home is ever reachable at
  *  boot (this route stays mounted, hidden, behind it), and a second live
@@ -426,7 +425,6 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
   const ordered = orderedSeasons(seasons);
   const create = event => scout ? hub.openCreateScout(event.currentTarget) : hub.openCreateSeason(event.currentTarget);
   return <div class="library-panel">
-    <WorkspaceChoice mode={hubState.workspaceMode} screen={hub} compact />
     <div class="library-panel-head">
       <div><span class="gi-hub-kicker">{scout ? 'Scouting workspaces' : 'Season library'}</span><h2>{scout ? 'Opponents' : 'Seasons'}</h2></div>
       <button type="button" class="ws-btn ws-primary" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button>
@@ -450,7 +448,7 @@ function NativeHome({ screen }) {
   // Refresh whenever Home BECOMES the active route (state.active flips
   // true), not just once on first idle load -- a season can be created,
   // deleted, or explored (the sample-season action) through TeamHubScreen
-  // while Team Hub itself was the visible route, which durably changes
+  // while a focused Team Hub dialog was open, which durably changes
   // canonical data without ever re-running TeamHubScreen's own load() a
   // second time. Without this, the rail/library can render a stale,
   // pre-change season list (including "no seasons" right after one was
@@ -488,7 +486,7 @@ function NativeHome({ screen }) {
     <div class="home-with-rail">
       {state.active && <SeasonRail screen={screen} hub={hub} hubState={hubState} />}
       <div class="home-content">
-        {hasTeam && <HomeHead screen={screen} state={state} hasSeason={hasSeason} scout={scout} c={c} games={games} />}
+        {hasTeam && hasSeason && <HomeHead screen={screen} state={state} hasSeason={hasSeason} scout={scout} c={c} games={games} />}
         {state.status !== 'ready' || !state.active ? null : hasSeason
           ? (!games.length ? <EmptySeasonPanel screen={screen} scout={scout} /> : <GameWorkspace screen={screen} state={state} games={games} scout={scout} c={c} />)
           : hasTeam ? <SeasonLibraryPanel screen={screen} hub={hub} hubState={hubState} hasTeam={hasTeam} /> : <FirstLaunch screen={screen} hub={hub} mode={hubState.workspaceMode} />}

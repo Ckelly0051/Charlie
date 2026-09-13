@@ -51,21 +51,15 @@ Home is a high-priority navigation and data-accuracy surface. Current production
 remains `REJECTED`; the approved 2026-08-31 Home comp remains the design
 authority until a replacement composition is reviewed and approved.
 
-1. **Consolidate Home into one renderer and one composition.** Production
-   currently presents three Home-like experiences: the no-open-season library,
-   the populated open-season game library, and the full-page Team Hub in Program
-   and Opponent Scout modes. Keep the populated game-library composition as the
-   primary Home. Render no-season, empty-season, and Opponent Scout as states of
-   that same shell and hierarchy. Retain Team Hub's underlying operations, but
-   remove its duplicate full-page landing composition; season management,
-   recovery, roster, film, and program settings should enter from Home through
-   their existing focused owners. Do not rebuild persistence or duplicate those
-   services while consolidating the presentation.
-2. **Remove the duplicate workspace switcher.** The shell-level `Our Program /
-   Opponent Scout` control is the sole workspace-mode owner. Home and Team Hub
-   must not render a second `Program / Opponent Scout` card pair for the same
-   state. The Home canvas begins with the active library or game content; gold
-   and cyan remain semantic workspace accents, not duplicate navigation.
+1. **REPAIRED 2026-09-12 — Home has one renderer and one composition.** The
+   shell no longer creates or mounts `#wsTeamHub`. Season Library now saves and
+   closes the active season, then renders the no-open-season library inside the
+   existing Home route. Team Hub remains only the controller/dialog owner for
+   season operations, recovery, roster, film, and program settings.
+2. **REPAIRED 2026-09-12 — one workspace switcher.** The shell-level `Our
+   Program / Opponent Scout` control is the only rendered workspace-mode
+   control. The duplicate card pair was removed from Home's library body, and
+   the Home harness asserts one switch plus the absence of a Team Hub host.
 3. **Season film-health counts can be wrong outside the active season.** The
    coach observed 2025 JV as `5 of 6 games linked` in the season library while
    the opened season reports all six linked. `TeamHubScreen._verifyFilmHealth`

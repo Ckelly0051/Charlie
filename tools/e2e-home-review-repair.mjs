@@ -79,11 +79,11 @@ await page.evaluate(() => window.app.workspaceShell.show('home'));
 await page.waitForFunction(() => document.querySelector('[data-native-home] .library-panel, [data-native-home] .ws-empty-panel'));
 r = await page.evaluate(() => ({
   libraryPanel: !!document.querySelector('.library-panel'),
-  workspaceChoice: !!document.querySelector('.library-panel .gi-hub-workspace-choice'),
+  workspaceSwitches: document.querySelectorAll('.ws-workspace-switch').length,
   createAction: !!document.querySelector('.library-panel .ws-btn.ws-primary'),
 }));
-ok(r.libraryPanel && r.workspaceChoice && r.createAction,
-  'With no season open, Home renders the real library state (workspace choice + create), not a bare link', JSON.stringify(r));
+ok(r.libraryPanel && r.workspaceSwitches === 1 && r.createAction,
+  'With no season open, Home renders the real library with the sole shell workspace switch', JSON.stringify(r));
 
 console.log('\n== 1b. Real Team Hub controllers accept the school/nickname/year+level forms ==');
 // setupTeamAndDemo() above already exercised createFirstTeam() through the
@@ -100,11 +100,7 @@ ok(r.school === 'St. Joseph Mavericks' && r.teamName === 'St. Joseph Mavericks',
   'The real first-team form produced a team with the typed school identity intact', JSON.stringify(r));
 
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('[data-native-team-hub]');
-await page.evaluate(() => {
-  const button = [...document.querySelectorAll('.gi-hub-hero-action, .gi-hub-primary')].find(b => /new season/i.test(b.textContent));
-  button?.click();
-});
+await page.evaluate(() => { window.app.teamHubScreen.openCreateSeason(null); });
 await page.waitForSelector('.gi-hub-dialog-form input[name="year"]');
 // Clear the way a coach does -- select-all + Backspace through the real
 // keyboard -- not by assigning `.value`, which changes the DOM without firing

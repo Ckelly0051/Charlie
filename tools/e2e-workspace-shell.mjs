@@ -685,23 +685,31 @@ const reportsLibrary = await page.evaluate(async () => {
   await shell._openLibrary();
   const whileOpen = {
     reportsHidden: document.getElementById('wsReports').hidden,
-    hubVisible: !document.getElementById('wsTeamHub').hidden,
+    homeVisible: !document.getElementById('wsHome').hidden,
+    libraryVisible: !!document.querySelector('#wsHome .library-panel'),
+    teamHubHost: !!document.getElementById('wsTeamHub'),
     // S7 demolition: #wsClassicOutlet is deleted — absence IS "never visible".
     outletVisible: !!document.getElementById('wsClassicOutlet'),
   };
-  await shell.closeTeamHub();
-  await new Promise(resolve => setTimeout(resolve, 0));
   return {
     whileOpen,
     after: {
-      reportsVisible: !document.getElementById('wsReports').hidden,
+      homeVisible: !document.getElementById('wsHome').hidden,
       outletHidden: !document.getElementById('wsClassicOutlet'),
     },
   };
 });
-ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.hubVisible && !reportsLibrary.whileOpen.outletVisible
-  && reportsLibrary.after.reportsVisible && reportsLibrary.after.outletHidden,
-  'Opening and backing out of native Team Hub from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));await page.click('.ws-top-nav [data-ws-route="study"]');
+ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.homeVisible && reportsLibrary.whileOpen.libraryVisible
+  && !reportsLibrary.whileOpen.teamHubHost && !reportsLibrary.whileOpen.outletVisible
+  && reportsLibrary.after.homeVisible && reportsLibrary.after.outletHidden,
+  'Opening Season Library from Reports lands on the one Home renderer with no Team Hub route', JSON.stringify(reportsLibrary));
+await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  await hub.load();
+  const season = hub.snapshot().railSeasons.find(row => !row.isScout && row.gameCount > 0);
+  if (season) await hub.openSeason(season.id);
+});
+await page.click('.ws-top-nav [data-ws-route="study"]');
 
 await page.click('.ws-top-nav [data-ws-route="plan"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: !document.querySelector('#wsClassicOutlet'), text: document.querySelector('#wsPlan')?.textContent || '' }));
@@ -718,9 +726,8 @@ r = await page.evaluate(() => ({
 ok(r.noClassicBtn && r.noUseClassic, 'Classic-layout escape hatch fully retired: no "Use classic" button, no useClassic()', JSON.stringify(r));
 ok(r.newGameBtn, 'Home exposes a direct New Game action (finding 4)', JSON.stringify(r));
 
-// S3 ownership regression: Teams and seasons are a native route. Opening the
-// Hub from another workspace route must never reveal #wsClassicOutlet, and Back
-// must restore the exact invoking route. Reports remains native too.
+// S3 ownership regression: Teams and seasons are a Home state, never a second
+// route or a path back to #wsClassicOutlet. Reports remains native too.
 r = await page.evaluate(async () => {
   const shell = window.app.workspaceShell;
   // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion —
@@ -728,28 +735,32 @@ r = await page.evaluate(async () => {
   const outletHidden = () => !document.getElementById('wsClassicOutlet');
   await shell.show('breakdown');
   await shell._openLibrary();
-  const hubVisible = !document.getElementById('wsTeamHub').hidden;
-  const outletWhileHubOpen = outletHidden();
-  await shell.closeTeamHub();
-  const breakdownRestored = !document.getElementById('wsBreakdown').hidden;
-  const outletAfterHubClose = outletHidden();
+  const homeLibraryVisible = !document.getElementById('wsHome').hidden && !!document.querySelector('#wsHome .library-panel');
+  const teamHubAbsent = !document.getElementById('wsTeamHub');
+  const outletWhileLibraryOpen = outletHidden();
   shell.showAdvancedReports();
   await new Promise(resolve => setTimeout(resolve, 0));
   const outletWhileReportsOpen = outletHidden();
   await shell.show('breakdown');
   await new Promise(resolve => setTimeout(resolve, 0));
   return {
-    hubVisible, outletWhileHubOpen, breakdownRestored, outletAfterHubClose,
+    homeLibraryVisible, teamHubAbsent, outletWhileLibraryOpen,
     outletWhileReportsOpen, outletAfterReportsClose: outletHidden(),
     breadcrumbGone: !document.getElementById('breadcrumb') && !document.getElementById('gameDropdown'),
   };
 });
-ok(r.hubVisible && r.outletWhileHubOpen && r.breakdownRestored && r.outletAfterHubClose,
-  'Native Team Hub never reveals the classic outlet and Back restores Break Down', JSON.stringify(r));
+ok(r.homeLibraryVisible && r.teamHubAbsent && r.outletWhileLibraryOpen,
+  'Season Library uses Home and no Team Hub route or classic outlet exists', JSON.stringify(r));
 ok(r.outletWhileReportsOpen && r.outletAfterReportsClose,
   'Advanced Reports NEVER reveals the classic outlet (it is a shell route now)', JSON.stringify(r));
 ok(r.breadcrumbGone,
   'The legacy breadcrumb + game dropdown are DELETED, not merely hidden', JSON.stringify(r));
+await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  await hub.load();
+  const season = hub.snapshot().railSeasons.find(row => !row.isScout && row.gameCount > 0);
+  if (season) await hub.openSeason(season.id);
+});
 // disable() remains as the INTERNAL mount/restore teardown contract (tested
 // lifecycle hygiene). It is not reachable from any product affordance.
 //
@@ -1217,15 +1228,15 @@ r = await page.evaluate(async () => {
   return {
     label,
     route: document.getElementById('workspaceShell')?.dataset.route,
-    hubVisible: !document.getElementById('wsTeamHub')?.hidden,
-    nativeHub: !!document.querySelector('#wsTeamHub [data-native-team-hub]'),
+    homeVisible: !document.getElementById('wsHome')?.hidden,
+    libraryVisible: !!document.querySelector('#wsHome .library-panel'),
+    teamHubHost: !!document.getElementById('wsTeamHub'),
   };
 });
 ok(r.label.includes('Season Library'),
   'The universal Season selector names the full Season Library explicitly', JSON.stringify(r));
-ok(r.route === 'team-hub' && r.hubVisible && r.nativeHub,
-  'Season Library opens the existing native Team Hub instead of a second navigation path', JSON.stringify(r));
-await page.evaluate(() => window.app.workspaceShell.closeTeamHub());
+ok(r.route === 'home' && r.homeVisible && r.libraryVisible && !r.teamHubHost,
+  'Season Library opens inside Home with no second navigation path', JSON.stringify(r));
 await new Promise(res => setTimeout(res, 200));
 
 console.log('\n== S6-4b UX-4: shell palette resolves and stays legible ==');
@@ -1270,6 +1281,12 @@ console.log('\n== 26. Approved navigation dimensions and context-value truncatio
 const LONG_TEAM = 'St. Joseph Mavericks';
 const LONG_SEASON = '2025 St. Joseph Mavericks - JV';
 const LONG_GAME = 'Week 1 vs St. Peter Lutheran Patriots';
+await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  await hub.load();
+  const season = hub.snapshot().railSeasons.find(row => !row.isScout && row.gameCount > 0);
+  if (season) await hub.openSeason(season.id);
+});
 await page.evaluate(async (team, seasonName, gameName) => {
   const app = window.app;
   const store = app.storage.seasonStore;

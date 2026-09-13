@@ -36,21 +36,20 @@
 
 ## Home Accepted Baseline - Current Production Rejected (2026-09-10)
 
-The approved comp remains the design contract for all three meaningful Home states: first launch, season library/no open season, and a populated open season. The `1.12.0-70` installed snapshot was accepted, but current Home production is `REJECTED` after the `1.12.0-74` installed screen was reported visually off. Do not interpret the accepted baseline below as current production acceptance. First launch is part of Home, not a centered Team Hub onboarding panel. It offers the approved Program/Opponent choice, structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Team Hub remains the canonical season-library management destination after setup, while creation continues through its existing service boundaries.
+The approved comp remains the design contract for all three meaningful Home states: first launch, season library/no open season, and a populated open season. The `1.12.0-70` installed snapshot was accepted, but current Home production is `REJECTED` after the `1.12.0-74` installed screen was reported visually off. Do not interpret the accepted baseline below as current production acceptance. First launch is part of Home, not a centered Team Hub onboarding panel. It offers structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Home now owns the season-library presentation; Team Hub retains only its existing service and focused-form boundaries.
 
-### Next Home Pass - One Surface, One Workspace Switcher, Season-Scoped Film Truth
+### Home Consolidation Implemented - Pending Coach Smoke
 
-Home is the next protected workstream after the active Reports repair review.
-The populated open-season game library is the primary composition to preserve.
+The populated open-season game library remains the primary composition.
 No-open-season, empty-season, and Opponent Scout are states of that same Home
 shell, not separate Home-like products. The full-page Team Hub presentation is
-to be retired as a competing destination while its existing controllers remain
+retired as a competing destination while its existing controllers remain
 the owners of season creation/deletion/recovery, roster, film, and program
 settings. Those operations enter from Home through focused dialogs or Home's
 library state; this pass does not rewrite their persistence boundaries.
 
 The shell's `Our Program / Opponent Scout` selector is the only workspace-mode
-control. Remove the duplicate Program/Opponent card selector from the page body.
+control. The duplicate Program/Opponent card selector is absent from the page body.
 One route, one switcher, one renderer, and one approved state matrix must cover
 first use, no season, empty season, populated season, and scout mode. Historical
 Home and Team Hub artifacts remain evidence but must be explicitly superseded

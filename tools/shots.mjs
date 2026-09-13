@@ -9,6 +9,7 @@ import puppeteer from 'puppeteer';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { setupTeamAndDemo } from './hub-setup.mjs';
 
 const label = process.argv[2] || 'shots';
 const outDir = path.resolve(process.argv[3] || '_shots');
@@ -31,16 +32,9 @@ await page.goto(APP_URL, { waitUntil:'networkidle0' });
 // the same boot-ready signal e2e-native-team-hub.mjs already uses.
 await page.waitForFunction(() => window.app?.workspaceShell && window.app?.teamHubScreen);
 
-// Deterministic sample state, reached through the native Team Hub controls.
-await page.waitForSelector('.gi-hub-first');
-await page.type('.gi-hub-first input[name="school"]', 'St. Joseph Mavericks');
-await page.select('.gi-hub-first select', 'navy');
-await page.click('.gi-hub-first .gi-hub-primary');
-await page.waitForSelector('[data-hub-team].is-active');
-await page.evaluate(() => {
-  [...document.querySelectorAll('.gi-hub-section-head button')]
-    .find(button => /Explore sample season/i.test(button.textContent || ''))?.click();
-});
+// Deterministic sample state through canonical team/season owners. Team Hub
+// remains the service/dialog owner, but no longer mounts a competing page.
+await setupTeamAndDemo(page, 'St. Joseph Mavericks');
 await page.waitForFunction(() => (window.app.storage?.seasonStore?.data?.games?.length || 0) > 0
   && document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.evaluate(async () => {
@@ -80,8 +74,14 @@ for(const viewport of viewports){
   await page.setViewport({ width:viewport.width, height:viewport.height });
 
   await page.evaluate(() => window.app.workspaceShell._openLibrary());
-  await capture(viewport,'01-team-hub','#wsTeamHub:not([hidden]) [data-native-team-hub]');
+  await capture(viewport,'01-home-library','#wsHome:not([hidden]) .library-panel');
 
+  await page.evaluate(async () => {
+    const hub = window.app.teamHubScreen;
+    await hub.load();
+    const season = hub.snapshot().railSeasons.find(row => !row.isScout && row.gameCount > 0);
+    if (season) await hub.openSeason(season.id);
+  });
   await route('home');
   await capture(viewport,'02-home','#wsHome:not([hidden])');
 

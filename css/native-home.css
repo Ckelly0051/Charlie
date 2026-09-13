@@ -153,7 +153,7 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .library-grid .gi-hub-season-summary{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:0;padding:14px 14px 4px}
 .ws-home-page .library-grid .gi-hub-season-actions{padding:8px 14px 14px;justify-content:flex-end}
 .ws-home-page .library-grid .gi-hub-season-actions button{min-height:36px;padding:6px 12px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font:600 13px var(--gi-sans)}
-.ws-home-page .library-grid .gi-hub-season-actions .gi-hub-primary{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.ws-home-page .library-grid .gi-hub-season-actions .gi-hub-season-open{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .ws-home-page .library-recover-link{align-self:flex-start;background:none;border:0;height:auto;padding:0;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
 
 .ws-home-page [data-first-use]{max-width:none}
@@ -178,8 +178,9 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .filters button.active{border-bottom-color:var(--gi-bd-gold);color:var(--gi-bd-strong)}
 .ws-home-page .filters button span{margin-left:5px;color:var(--gi-bd-copy);font-size:12px;font-weight:600}
 
-.ws-home-page .game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-@media(min-width:1400px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ws-home-page .game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(min-width:1100px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1700px){.ws-home-page .game-grid{grid-template-columns:repeat(4,minmax(0,280px))}}
 
 /* Own alignment explicitly -- the unscoped shell rule (workspace-shell.css
    .ws-game-row, a 5-column grid predating this card) sets
@@ -195,7 +196,7 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .ws-game-row:focus-within{box-shadow:var(--gi-focus)}
 .ws-home-page .game-card-select:focus-visible{outline:0}
 .ws-home-page .game-card-open{position:absolute;z-index:2;top:8px;right:8px;min-height:30px;padding:0 10px;border:1px solid var(--gi-bd-gold);border-radius:2px;background:var(--gi-bd-gold);color:var(--gi-on-solid);font:700 12.5px/1 var(--gi-sans);cursor:pointer}.ws-home-page .game-card-open:hover{filter:brightness(1.06)}.ws-home-page .game-card-open:active{filter:brightness(0.94)}.ws-home-page .game-card-open:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-.ws-home-page .thumbnail{position:relative;aspect-ratio:16/9;flex-shrink:0;background:var(--gi-bd-stage);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ws-home-page .thumbnail{position:relative;aspect-ratio:16/9;max-height:150px;flex-shrink:0;background:var(--gi-bd-stage);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .ws-home-page .thumbnail img{width:100%;height:100%;object-fit:cover;display:block}
 .ws-home-page .thumbnail .week{position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:2px;background:var(--gi-1);color:var(--gi-bd-strong);font-size:11px;font-weight:700}
 .ws-home-page .thumbnail .film-missing{display:flex;align-items:center;gap:8px;color:var(--gi-bd-copy);font-size:13px}
@@ -203,12 +204,12 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .thumbnail button{position:absolute;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--gi-bd-copy);background:var(--gi-bd-stage);color:var(--gi-bd-strong);display:grid;place-items:center}
 .ws-home-page .thumbnail button:hover{background:var(--gi-bd-control-active);border-color:var(--gi-bd-strong)}
 .ws-home-page .thumbnail button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-.ws-home-page .game-card-copy{padding:12px 13px}
+.ws-home-page .game-card-copy{padding:10px 12px 11px}
 .ws-home-page .ws-game-row h3{margin:0;font-size:14px;line-height:1.35;color:var(--gi-bd-strong);overflow-wrap:anywhere}
 .ws-home-page .matchup-schools{margin:4px 0 0;color:var(--gi-bd-copy);font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 .ws-home-page .game-meta{display:flex;justify-content:space-between;gap:8px;margin-top:6px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .game-meta .score{color:var(--gi-bd-strong);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ws-home-page .card-status{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ws-home-page .card-status{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:9px}
 .ws-home-page .health{display:inline-flex;align-items:center;gap:6px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .health::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gi-ok);flex-shrink:0}
 .ws-home-page .health.warning::before{background:var(--gi-warn)}

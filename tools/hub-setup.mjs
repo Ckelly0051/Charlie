@@ -3,15 +3,15 @@
  *
  * S7-c deleted the legacy SeasonLibrary overlay, and with it the
  * `#teamSetupName` / `#btnTeamSetupSave` / `#btnExploreDemo` controls that
- * seven harnesses used to reach a usable app. They now drive the NATIVE Team
- * Hub, which is what a coach actually uses.
+ * seven harnesses used to reach a usable app. They now drive Home's real
+ * first-launch flow and the canonical TeamHubScreen service owner.
  *
  * One implementation on purpose: seven inline copies of a setup flow drift, and
  * a harness that silently stops reaching the real first-run path is worse than
  * one that fails loudly.
  */
 
-/** Open the Team Hub and create the first team. Resolves once the hub reloads. */
+/** Open Home and create the first team. Resolves once Home leaves first use. */
 export async function createFirstTeam(page, teamName = 'Mavericks', color = 'navy') {
   // Some harnesses boot straight onto the hub and some start on Home, so only
   // navigate when the setup form is not already on screen.
@@ -34,15 +34,11 @@ export async function createFirstTeam(page, teamName = 'Mavericks', color = 'nav
   await page.waitForFunction(() => !document.querySelector('[data-first-launch]'), { timeout: 15000 });
 }
 
-/** Load the sample season through the Team Hub's own action. */
+/** Load the sample season through the canonical service owner. */
 export async function exploreSampleSeason(page) {
-  await page.evaluate(() => window.app?.workspaceShell?._openLibrary?.());
-  await page.waitForFunction(() => [...document.querySelectorAll('.gi-hub-section-head button')]
-    .some(b => /sample season/i.test(b.textContent)), { timeout: 15000 });
-  await page.evaluate(() => {
-    const button = [...document.querySelectorAll('.gi-hub-section-head button')]
-      .find(b => /sample season/i.test(b.textContent));
-    button?.click();
+  await page.evaluate(async () => {
+    await window.app?.workspaceShell?._openLibrary?.();
+    await window.app?.teamHubScreen?.exploreSample?.();
   });
   await page.waitForFunction(() => !!window.app?.storage?.seasonStore?.hasCurrent?.(), { timeout: 20000 });
 }
