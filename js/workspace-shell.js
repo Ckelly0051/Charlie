@@ -87,7 +87,6 @@ export class WorkspaceShell {
       if (action === 'workspace-program' || action === 'workspace-scout') {
         const mode = action === 'workspace-scout' ? 'scout' : 'program';
         await this.app.teamHubScreen?.selectWorkspace?.(mode);
-        await this._openLibrary();
         return;
       }
       if (action === 'seasons') await this._openLibrary();

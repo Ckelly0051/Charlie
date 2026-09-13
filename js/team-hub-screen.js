@@ -90,12 +90,36 @@ export class TeamHubScreen {
     };
   }
 
-  selectWorkspace(mode) {
+  _workspaceTarget(mode) {
+    const scout = mode === 'scout';
+    return [...(this._state.railSeasons || [])]
+      .filter(season => season.isScout === scout)
+      .sort((a, b) => String(b.lastOpened || '').localeCompare(String(a.lastOpened || '')))[0] || null;
+  }
+
+  async selectWorkspace(mode) {
     const workspaceMode = mode === 'scout' ? 'scout' : 'program';
     if (workspaceMode === this._state.workspaceMode) return true;
+    const previousMode = this._state.workspaceMode;
     try { localStorage.setItem('giq_home_workspace', workspaceMode); } catch {}
     this._state.workspaceMode = workspaceMode;
-    return this.load();
+    await this.load();
+
+    // A workspace is season-scoped, not a filter over an unrelated open
+    // season. Restore the most recently opened season in the destination
+    // workspace. Existing lastOpened metadata is the durable owner of that
+    // choice, so this does not introduce a second season-context cache.
+    const target = this._workspaceTarget(workspaceMode);
+    const changed = target
+      ? await this.openSeason(target.id)
+      : await this.app.workspaceShell?._openLibrary?.();
+    if (changed !== false) return true;
+
+    try { localStorage.setItem('giq_home_workspace', previousMode); } catch {}
+    this._state.workspaceMode = previousMode;
+    await this.load();
+    this.app.workspaceShell?._syncChrome?.();
+    return false;
   }
 
   async show() {

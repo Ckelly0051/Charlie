@@ -153,17 +153,22 @@ ok(shape.openSeasonId === programId && shape.openKind !== 'scout',
 bothVisible(shape, 'after opening a program season from an open scout');
 ok(shape.activeCount === 1, 'Still exactly one highlighted rail row after the cross-section open', shape);
 
-// Season-scoped actions derive from the OPEN SEASON kind, not the filter.
+// The workspace switch restores the most recently used season for each side.
+// Exercise the rendered shell buttons: this is the path that previously
+// changed the filter and then unconditionally closed the selected season.
 let tools = await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].map(b => b.textContent.trim()));
 ok(tools.includes('Roster') && tools.some(t => /Edit season details/.test(t)),
   'Program actions are available while a program season is open', tools);
-await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('scout'); });
-await new Promise(r => setTimeout(r, 250));
-tools = await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].map(b => b.textContent.trim()));
-ok(tools.includes('Roster') && tools.some(t => /Edit season details/.test(t)),
-  'Program actions REMAIN available when only the main-panel filter changes to scout', tools);
-await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('program'); });
-await new Promise(r => setTimeout(r, 200));
+await page.click('[data-ws-action="workspace-scout"]');
+await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, { timeout: 8000 }, scoutId);
+shape = await railShape();
+ok(shape.openSeasonId === scoutId && shape.openKind === 'scout',
+  'Opponent Scout restores its most recently used scout season', { shape, scoutId });
+await page.click('[data-ws-action="workspace-program"]');
+await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, { timeout: 8000 }, programId);
+shape = await railShape();
+ok(shape.openSeasonId === programId && shape.openKind !== 'scout',
+  'Our Program restores the selected program season instead of the season library', { shape, programId });
 
 // Returning Home from another route keeps both trees.
 await page.evaluate(async () => { await window.app.workspaceShell.show('reports'); });
@@ -594,18 +599,20 @@ ok(![...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].some(p => hubCopy.text.includes
   'No superseded phrase renders anywhere in the Home library',
   [...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].filter(p => hubCopy.text.includes(p)));
 
-// Program mode changes the same Home library rather than opening another page.
+// Program mode restores its season context rather than stranding the coach in
+// the season picker.
 const programHero = await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('program');
   await new Promise(r => setTimeout(r, 350));
   return {
     route: document.getElementById('workspaceShell')?.dataset.route || '',
-    title: document.querySelector('.library-panel-head h2')?.textContent || '',
+    currentSeasonId: window.app.storage.seasonStore.currentSeasonId || '',
+    currentKind: window.app.storage.seasonStore.data?.kind || 'program',
     switches: document.querySelectorAll('.ws-workspace-switch').length,
   };
 });
-ok(programHero.route === 'home' && / home$/.test(programHero.title) && programHero.switches === 1,
-  'Program mode reuses the same Home library and sole workspace switch', programHero);
+ok(programHero.route === 'home' && programHero.currentSeasonId && programHero.currentKind !== 'scout' && programHero.switches === 1,
+  'Program mode restores a program season on Home through the sole workspace switch', programHero);
 
 // Dialogs: create season (intro + guided/manual), edit season, setup guide, create scout.
 const dialogCopy = await page.evaluate(async () => {

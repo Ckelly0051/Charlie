@@ -81,6 +81,13 @@ authority until a replacement composition is reviewed and approved.
    linked`, `5 of 6 games linked`, or `No film linked`. Add a regression fixture
    with reused game IDs in two seasons. Do not declare either observed count
    correct until the actual season-specific film sources are verified.
+5. **REPAIRED 2026-09-13 — workspace switching preserves season context.**
+   Switching from an open program season to Opponent Scout and back no longer
+   closes the season and strands the coach in the season picker. Each side
+   restores its most recently opened season using the canonical `lastOpened`
+   metadata already maintained by season storage. A workspace with no seasons
+   still opens its correctly filtered library. The rendered shell-button path
+   is covered by the Home regression harness.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 

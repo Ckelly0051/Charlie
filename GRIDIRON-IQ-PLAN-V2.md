@@ -48,6 +48,10 @@ library state; this pass does not rewrite their persistence boundaries.
 
 The shell's `Our Program / Opponent Scout` selector is the only workspace-mode
 control. The duplicate Program/Opponent card selector is absent from the page body.
+The selector changes season-scoped workspaces, not only the visible library
+filter: each side restores its most recently opened season from canonical
+season metadata, and falls back to its filtered library only when no season
+exists in that workspace.
 One route, one switcher, one renderer, and one approved state matrix must cover
 first use, no season, empty season, populated season, and scout mode. Historical
 Home and Team Hub artifacts remain evidence but must be explicitly superseded

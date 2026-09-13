@@ -21,6 +21,13 @@ here is accepted, tagged, pushed or published state, and no surface advances
 past its current approval status.
 See `SMOKE-1.12.0-83.md`, `SMOKE-1.12.0-82.md` and `docs/OPEN-DEFECTS.md`.
 
+The Home workspace switch is season-scoped. `Our Program` and `Opponent Scout`
+restore the most recently opened season of their own kind using storage-owned
+`lastOpened` metadata; the switch opens a filtered season library only when the
+destination workspace has no season. The shell must not call `_openLibrary()`
+after `TeamHubScreen.selectWorkspace()` because that would discard the season
+the controller just restored.
+
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
 in **`docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md`**. Read the archive
