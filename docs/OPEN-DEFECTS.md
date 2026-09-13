@@ -88,6 +88,13 @@ authority until a replacement composition is reviewed and approved.
    metadata already maintained by season storage. A workspace with no seasons
    still opens its correctly filtered library. The rendered shell-button path
    is covered by the Home regression harness.
+6. **REPAIRED 2026-09-13 — empty Opponent Scout is a full workspace.** The
+   tiny centered empty card and duplicate create actions were replaced with
+   the same operational composition used by the Program library: a full-width
+   zero-state summary, the actual opponent/season/source-game/play/film table
+   structure, and one anchored create/status panel. No sample opponent data is
+   fabricated. Focused proof covers structure, single-action ownership, and
+   horizontal containment; coach smoke remains pending.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 

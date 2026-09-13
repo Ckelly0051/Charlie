@@ -107,6 +107,26 @@ ok(r.overviewLeft >= r.listRight && !r.overlap && r.pageOverflow <= 1,
   'At 1280px the resume panel stays beside the season list and every row action remains contained', JSON.stringify(r));
 await page.setViewport({ width:1440, height:900 });
 
+// Empty Opponent Scout is an operational library state, not a small generic
+// card floating in the workspace. It keeps the same summary/list/overview
+// composition as Program and exposes one primary creation action.
+await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('scout'); });
+await page.waitForFunction(() => document.querySelector('.library-scout-empty'));
+r = await page.evaluate(() => ({
+  summary: !!document.querySelector('.library-summary.is-scout'),
+  table: !!document.querySelector('.scout-table-head'),
+  status: !!document.querySelector('.scout-start .library-health'),
+  primaryActions: document.querySelectorAll('.library-panel .ws-primary, .library-panel .library-continue').length,
+  emptyTitle: document.querySelector('.scout-table-empty h3')?.textContent || '',
+  overflow: document.documentElement.scrollWidth - innerWidth,
+}));
+ok(r.summary && r.table && r.status && r.emptyTitle === 'No opponents yet',
+  'Empty Opponent Scout uses the full operational library composition', JSON.stringify(r));
+ok(r.primaryActions === 1 && r.overflow <= 1,
+  'Empty Opponent Scout has one primary create action and no horizontal overflow', JSON.stringify(r));
+await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('program'); });
+await page.waitForFunction(() => window.app.storage.seasonStore.data?.kind !== 'scout');
+
 console.log('\n== 1b. Real Team Hub controllers accept the school/nickname/year+level forms ==');
 // setupTeamAndDemo() above already exercised createFirstTeam() through the
 // real .gi-hub-first form -- confirm the team it produced actually carries

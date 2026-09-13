@@ -62,6 +62,9 @@ maintenance grid. Home owns its presentation and may not squeeze the generic
 Team Hub row into a card layout. A full-width program summary leads into a readable
 operational season list with identity, game/play totals, explicit film state and
 restrained actions, paired with latest-season and aggregate film-health context.
+The empty Opponent Scout state follows that same composition: summary metrics,
+the real future scout-table columns, and one create/status panel. It must not
+collapse to a small centered empty card or duplicate its primary creation action.
 The side panel stacks only when the persistent rail leaves insufficient width.
 TeamHubScreen remains the single controller for all underlying operations; this
 is not a second data path.

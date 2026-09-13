@@ -28,6 +28,11 @@ destination workspace has no season. The shell must not call `_openLibrary()`
 after `TeamHubScreen.selectWorkspace()` because that would discard the season
 the controller just restored.
 
+Empty Opponent Scout is also an operational Home library state. It renders the
+shared summary band, the opponent/season/source-game/play/film table structure,
+and one create/status panel. Do not replace it with a generic centered empty
+card, duplicate the create action, or populate it with invented opponent data.
+
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim
 in **`docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md`**. Read the archive

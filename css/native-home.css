@@ -193,6 +193,12 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .library-overview-actions .gi-hub-kicker{margin-bottom:1px}
 .ws-home-page .library-overview-actions button{min-height:38px;padding:0 12px;border:1px solid var(--gi-bd-bone);background:transparent;color:var(--gi-bd-strong);font:600 12px var(--gi-sans)}
 .ws-home-page .library-overview-actions button:hover{background:var(--gi-bd-control)}
+.ws-home-page .library-scout-empty{min-height:330px}
+.ws-home-page .scout-table-head{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(100px,.75fr) minmax(110px,.75fr) minmax(72px,.5fr) minmax(110px,.8fr);min-height:44px;align-items:center;padding:0 16px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel);color:var(--gi-bd-copy);font-size:11px;font-weight:700;text-transform:uppercase}
+.ws-home-page .scout-table-empty{display:flex;min-height:210px;flex-direction:column;align-items:flex-start;justify-content:center;padding:32px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .scout-table-empty h3{margin:8px 0 0;color:var(--gi-bd-strong);font:600 22px/1.2 var(--gi-sans)}
+.ws-home-page .scout-start{align-self:stretch}
+.ws-home-page .scout-start .library-overview-head{padding-top:27px}
 
 .ws-home-page [data-first-use]{max-width:none}
 
@@ -329,6 +335,8 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .library-season{grid-template-columns:minmax(220px,1fr) 142px;grid-template-areas:'identity metrics' 'film actions';gap:14px 20px}
   .ws-home-page .library-season-identity{grid-area:identity}.ws-home-page .library-season-metrics{grid-area:metrics}.ws-home-page .library-film{grid-area:film}.ws-home-page .library-season-actions{grid-area:actions}
   .ws-home-page .library-overview{grid-template-columns:1fr 1fr}.ws-home-page .library-overview-actions{grid-column:1/-1;border-top:1px solid var(--gi-bd-line)}
+  .ws-home-page .library-scout-empty{display:grid;grid-template-columns:1fr}
+  .ws-home-page .scout-table-head{grid-template-columns:minmax(150px,1.4fr) repeat(4,minmax(76px,.7fr))}
 }
 @media(max-width:700px){
   /* The rail stacks above the content here, so the route-frame scroll owner
@@ -356,6 +364,7 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .library-season{grid-template-columns:1fr;grid-template-areas:'identity' 'metrics' 'film' 'actions';padding:16px}
   .ws-home-page .library-season-actions{justify-content:flex-start}
   .ws-home-page .library-overview{display:block}.ws-home-page .library-overview-head,.ws-home-page .library-health{border-right:0}
+  .ws-home-page .scout-table-head{display:none}.ws-home-page .scout-table-empty{min-height:150px}
 }
 @media(max-width:760px){
   .ws-home-page .ws-home-head{flex-wrap:wrap}

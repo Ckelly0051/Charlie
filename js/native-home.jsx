@@ -472,6 +472,35 @@ function LibraryOverview({ screen, hub, hubState, seasons, scout }) {
   </aside>;
 }
 
+function EmptyScoutLibrary({ create }) {
+  return <div class="library-layout library-scout-empty">
+    <section class="library-list-wrap" aria-labelledby="libraryListTitle">
+      <div class="library-list-head"><h3 id="libraryListTitle">Opponent scouts</h3></div>
+      <div class="scout-table-head" aria-hidden="true">
+        <span>Opponent</span><span>Season</span><span>Source games</span><span>Plays</span><span>Film</span>
+      </div>
+      <div class="scout-table-empty">
+        <span class="gi-hub-kicker">Scouting queue</span>
+        <h3>No opponents yet</h3>
+      </div>
+    </section>
+    <aside class="library-overview is-scout scout-start" aria-label="Create opponent scout">
+      <div class="library-overview-head">
+        <span class="gi-hub-kicker">First scout</span>
+        <h3>Create opponent scout</h3>
+        <p>Opponent &middot; season &middot; source game</p>
+        <button type="button" class="library-continue" onClick={create}>Create opponent scout</button>
+      </div>
+      <div class="library-health">
+        <span class="gi-hub-kicker">Workspace status</span>
+        <span><small>Opponent</small><b>Not selected</b></span>
+        <span><small>Source games</small><b>0</b></span>
+        <span><small>Film</small><b>No film linked</b></span>
+      </div>
+    </aside>
+  </div>;
+}
+
 /** The library state -- no season is currently open. Home owns this
  *  presentation while TeamHubScreen remains the sole data/action service.
  *  A coach landing here gets a readable operational season list and useful
@@ -501,17 +530,17 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
   return <div class="library-panel">
     <div class="library-panel-head">
       <div><span class="gi-hub-kicker">Football workspace</span><h2>{scout ? 'Opponent scouting' : `${teamName} home`}</h2></div>
-      <button type="button" class="ws-btn ws-primary" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button>
+      {ordered.length || !scout ? <button type="button" class="ws-btn ws-primary" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button> : null}
     </div>
+    {ordered.length || scout ? <div class={`library-summary${scout ? ' is-scout' : ''}`}>
+      <span><small>{scout ? 'Scouting program' : 'Current program'}</small><b>{teamName}</b></span>
+      <span><small>{scout ? 'Opponents' : 'Seasons'}</small><b>{ordered.length}</b></span>
+      <span><small>{scout ? 'Source games' : 'Games'}</small><b>{totals.games}</b></span>
+      <span><small>Plays</small><b>{totals.plays}</b></span>
+      <span><small>{scout ? 'Scout film' : 'Storage'}</small><b class={`library-storage${!totals.checking && !totals.attention && totals.linked ? ' is-good' : totals.attention ? ' is-warn' : ''}`}><i />{storageLabel}</b></span>
+    </div> : null}
     {ordered.length
       ? <>
-        <div class={`library-summary${scout ? ' is-scout' : ''}`}>
-          <span><small>{scout ? 'Scouting program' : 'Current program'}</small><b>{teamName}</b></span>
-          <span><small>{scout ? 'Opponents' : 'Seasons'}</small><b>{ordered.length}</b></span>
-          <span><small>Games</small><b>{totals.games}</b></span>
-          <span><small>Plays</small><b>{totals.plays}</b></span>
-          <span><small>{scout ? 'Scout film' : 'Storage'}</small><b class={`library-storage${!totals.checking && !totals.attention && totals.linked ? ' is-good' : totals.attention ? ' is-warn' : ''}`}><i />{storageLabel}</b></span>
-        </div>
         <div class="library-layout">
           <section class="library-list-wrap" aria-labelledby="libraryListTitle">
             <div class="library-list-head"><h3 id="libraryListTitle">{scout ? 'Opponents' : 'Team seasons'}</h3></div>
@@ -520,7 +549,7 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
           <LibraryOverview screen={screen} hub={hub} hubState={hubState} seasons={ordered} scout={scout} />
         </div>
         </>
-      : <div class="ws-empty-panel">
+      : scout ? <EmptyScoutLibrary create={create} /> : <div class="ws-empty-panel">
           <h3>{scout ? 'No opponent scouts' : 'Start the football year here'}</h3>
           <p>{scout ? 'Add an opponent and source game, then link film.' : 'Create your first season, then add games from Home.'}</p>
           <button type="button" class="ws-btn ws-primary" onClick={create}>{scout ? 'Create first opponent scout' : 'Create first season'}</button>
