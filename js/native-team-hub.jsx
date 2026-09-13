@@ -321,10 +321,10 @@ export function RecoverSeasonsForm({ candidates, onRecover }) {
 
 export function WorkspaceChoice({ mode = 'program', screen, compact = false }) {
   return <div class={`gi-hub-workspace-choice${compact ? ' is-compact' : ''}`} role="group" aria-label="Football workspace">
-    <button class={mode === 'program' ? 'is-active' : ''} aria-pressed={mode === 'program'} onClick={() => screen.selectWorkspace('program')}>
+    <button type="button" class={mode === 'program' ? 'is-active' : ''} aria-pressed={mode === 'program'} onClick={() => screen.selectWorkspace('program')}>
       <span class="gi-hub-workspace-icon">O</span><span><strong>Program</strong><small>Seasons, roster, games, and film.</small></span>
     </button>
-    <button class={mode === 'scout' ? 'is-active' : ''} aria-pressed={mode === 'scout'} onClick={() => screen.selectWorkspace('scout')}>
+    <button type="button" class={mode === 'scout' ? 'is-active' : ''} aria-pressed={mode === 'scout'} onClick={() => screen.selectWorkspace('scout')}>
       <span class="gi-hub-workspace-icon is-scout">S</span><span><strong>Opponent Scout</strong><small>Opponent film, source games, and scouting reports.</small></span>
     </button>
   </div>;

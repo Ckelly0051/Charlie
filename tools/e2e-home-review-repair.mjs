@@ -16,11 +16,14 @@
    Original mutation evidence is recorded with the corresponding repair.
    Sections 6-8 cover the independently reproduced e3930fb findings. */
 import fs from 'node:fs';
+import path from 'node:path';
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';
 
 let pass = 0, fail = 0;
+const shotDir = process.env.GIQ_HOME_REVIEW_SHOTS_DIR || '';
+if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
 const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log(`  PASS  ${label}`))
   : (fail++, console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`));
@@ -110,20 +113,74 @@ await page.setViewport({ width:1440, height:900 });
 // Empty Opponent Scout is an operational library state, not a small generic
 // card floating in the workspace. It keeps the same summary/list/overview
 // composition as Program and exposes one primary creation action.
-await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('scout'); });
+await page.click('[data-library-season] .library-open');
+await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
+const rollbackBefore = await page.evaluate(() => {
+  const store = window.app.storage.seasonStore;
+  window.__workspacePersist = store.persist;
+  store.persist = async () => false;
+  return { seasonId: store.currentSeasonId, mode: window.app.teamHubScreen.snapshot().workspaceMode };
+});
+await page.click('[data-ws-action="workspace-scout"]');
+await new Promise(resolve => setTimeout(resolve, 200));
+r = await page.evaluate(() => ({
+  seasonId: window.app.storage.seasonStore.currentSeasonId,
+  mode: window.app.teamHubScreen.snapshot().workspaceMode,
+  programPressed: document.querySelector('[data-ws-action="workspace-program"]')?.getAttribute('aria-pressed'),
+  toast: [...document.querySelectorAll('.gi-native-toast')].at(-1)?.textContent || '',
+}));
+ok(r.seasonId === rollbackBefore.seasonId && r.mode === rollbackBefore.mode && r.programPressed === 'true' && /not saved/.test(r.toast),
+  'An empty-workspace switch rolls back completely when the open season cannot be saved', JSON.stringify({ rollbackBefore, after: r }));
+await page.evaluate(() => {
+  window.app.storage.seasonStore.persist = window.__workspacePersist;
+  delete window.__workspacePersist;
+  document.querySelectorAll('.gi-native-toast').forEach(node => node.click());
+});
+
+// A failed preload must stop before target selection and restore the chrome.
+r = await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  const before = { mode: hub.snapshot().workspaceMode, seasonId: window.app.storage.seasonStore.currentSeasonId };
+  const realLoad = hub.load;
+  hub.load = async () => false;
+  const changed = await hub.selectWorkspace('scout');
+  hub.load = realLoad;
+  return { before, changed, mode: hub.snapshot().workspaceMode, seasonId: window.app.storage.seasonStore.currentSeasonId,
+    programPressed: document.querySelector('[data-ws-action="workspace-program"]')?.getAttribute('aria-pressed') };
+});
+ok(r.changed === false && r.mode === r.before.mode && r.seasonId === r.before.seasonId && r.programPressed === 'true',
+  'A failed workspace preload cannot navigate with stale season rows', JSON.stringify(r));
+
+await page.click('[data-ws-action="workspace-scout"]');
 await page.waitForFunction(() => document.querySelector('.library-scout-empty'));
 r = await page.evaluate(() => ({
   summary: !!document.querySelector('.library-summary.is-scout'),
-  table: !!document.querySelector('.scout-table-head'),
+  table: document.querySelector('.scout-empty-table')?.getAttribute('role'),
+  columns: document.querySelectorAll('.scout-table-head [role="columnheader"]').length,
   status: !!document.querySelector('.scout-start .library-health'),
-  primaryActions: document.querySelectorAll('.library-panel .ws-primary, .library-panel .library-continue').length,
   emptyTitle: document.querySelector('.scout-table-empty h3')?.textContent || '',
+  railEmpty: document.querySelector('[data-rail-section="Opponent Scouts"] .rail-empty')?.textContent || '',
   overflow: document.documentElement.scrollWidth - innerWidth,
 }));
-ok(r.summary && r.table && r.status && r.emptyTitle === 'No opponents yet',
+ok(r.summary && r.table === 'table' && r.columns === 5 && r.status && r.emptyTitle === 'No opponents yet' && r.railEmpty === 'None yet',
   'Empty Opponent Scout uses the full operational library composition', JSON.stringify(r));
-ok(r.primaryActions === 1 && r.overflow <= 1,
-  'Empty Opponent Scout has one primary create action and no horizontal overflow', JSON.stringify(r));
+const scoutResponsive = [];
+for (const [width, height] of [[1920,1080],[1440,900],[1280,800],[768,900],[390,844]]) {
+  await page.setViewport({ width, height, isMobile: width === 390, hasTouch: width === 390 });
+  await page.evaluate(() => { scrollTo(0, 0); return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
+  if (shotDir && (width === 1440 || width === 390)) {
+    await page.screenshot({ path:path.join(shotDir, `empty-scout-${width}.png`), fullPage:true });
+  }
+  scoutResponsive.push(await page.evaluate(() => {
+    const actions = [...document.querySelectorAll('.library-panel .library-mobile-create, .library-panel .library-continue')]
+      .filter(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length)
+      .map(node => node.getBoundingClientRect().toJSON());
+    return { width: innerWidth, height: innerHeight, actions, overflow: document.documentElement.scrollWidth - innerWidth };
+  }));
+}
+ok(scoutResponsive.every(item => item.actions.length === 1 && item.actions[0].top >= 0 && item.actions[0].bottom <= item.height && item.overflow <= 1),
+  'Empty Opponent Scout keeps exactly one visible, in-viewport create action at every release width', JSON.stringify(scoutResponsive));
+await page.setViewport({ width:1440, height:900 });
 await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('program'); });
 await page.waitForFunction(() => window.app.storage.seasonStore.data?.kind !== 'scout');
 

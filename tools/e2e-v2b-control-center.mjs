@@ -17,12 +17,12 @@ const shotDir = process.env.GIQ_V2B_SHOTS_DIR || '';
 if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
 
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-first-launch]'));
 let r = await page.evaluate(() => ({
-  choices: [...document.querySelectorAll('.gi-hub-workspace-choice button')].map(button => button.textContent.trim()),
-  storage: document.querySelector('.gi-hub-storage-promise')?.textContent || '',
+  choices: [...document.querySelectorAll('[data-ws-action="workspace-program"], [data-ws-action="workspace-scout"]')]
+    .map(button => button.textContent.trim()),
 }));
-ok(r.choices.length === 2 && /Program/.test(r.choices[0]) && /Opponent Scout/.test(r.choices[1]),
+ok(r.choices.length === 2 && /Our Program/.test(r.choices[0]) && /Opponent Scout/.test(r.choices[1]),
   'First run presents Program and Opponent Scout as explicit football workflows', JSON.stringify(r));
 // The first-run film-storage promise (.gi-hub-storage-promise) is retired
 // from production -- the approved first-launch composition does not disclose
@@ -48,15 +48,15 @@ r = await page.evaluate(() => ({
   stored: localStorage.getItem('giq_home_workspace'),
   active: document.querySelector('[data-ws-action="workspace-scout"]')?.classList.contains('is-active'),
   pressed: document.querySelector('[data-ws-action="workspace-scout"]')?.getAttribute('aria-pressed'),
-  eyebrow: document.getElementById('wsHomeEyebrow')?.textContent?.trim(),
+  title: document.querySelector('.library-panel-head h2')?.textContent?.trim(),
 }));
-ok(r.stored === 'scout' && r.active && r.pressed === 'true' && r.eyebrow === 'Opponent Scout / Film Library',
+ok(r.stored === 'scout' && r.active && r.pressed === 'true' && r.title === 'Opponent scouting',
   'Scout choice and Home copy remain aligned after leaving Team Hub before any season exists', JSON.stringify(r));
 await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('program');
   await window.app.workspaceShell._openLibrary();
 });
-await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Program');
+await page.waitForFunction(() => document.querySelector('[data-ws-action="workspace-program"]')?.classList.contains('is-active'));
 r = await page.evaluate(async () => window.app.teamHubScreen.createSeason({ name: '2026 Mavericks', year: '2026', level: 'JV' }));
 ok(r?.ok, 'Program season creation uses the program path', JSON.stringify(r));
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
@@ -68,27 +68,27 @@ const program = await page.evaluate(() => ({
 ok(program.kind === 'program' && program.games === 1, 'Program season is explicitly typed and owns its seeded game', JSON.stringify(program));
 
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('[data-native-team-hub]');
+await page.waitForSelector('.library-panel');
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-program-control-center.png'), fullPage: true });
 r = await page.evaluate(() => ({
-  control: [...document.querySelectorAll('.gi-hub-control-row strong')].map(node => node.textContent.trim()),
-  mode: document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent,
+  control: [...document.querySelectorAll('.rail-tools button')].map(node => node.textContent.trim()),
+  mode: document.querySelector('[data-ws-action="workspace-program"]')?.classList.contains('is-active') ? 'Program' : '',
 }));
-ok(r.mode === 'Program' && ['Film storage', 'Roster'].every(label => r.control.includes(label)),
+ok(r.mode === 'Program' && r.control.some(label => /Film & storage/.test(label)),
   'Program Home exposes one clear control center for film and roster', JSON.stringify(r));
 
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('scout'));
-await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Opponent Scout');
+await page.waitForFunction(() => document.querySelector('[data-ws-action="workspace-scout"]')?.classList.contains('is-active'));
 r = await page.evaluate(() => ({
-  rows: document.querySelectorAll('[data-native-team-hub] [data-season-id]').length,
-  empty: document.querySelector('.gi-hub-empty-inline')?.textContent || '',
+  rows: document.querySelectorAll('[data-library-season]').length,
+  empty: document.querySelector('.library-scout-empty')?.textContent || '',
 }));
 // The old copy promised isolation in words ("without touching our season").
 // The copy standard now forbids data-safety language in an empty state, so that
 // clause is deliberately gone; isolation is a DATA guarantee, proven by the
 // season-isolation and integrity harnesses rather than by reassuring text. What
 // the empty state must still do is name the object and the next action.
-ok(r.rows === 0 && /No opponent scouts/.test(r.empty) && /Create first opponent scout/.test(r.empty),
+ok(r.rows === 0 && /No opponents yet/.test(r.empty) && /Create opponent scout/.test(r.empty),
   'Scout library starts empty and names the object and its next action', JSON.stringify(r));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-scout-library.png'), fullPage: true });
 
@@ -124,17 +124,17 @@ ok(scout.programRows === 1 && scout.scoutRows === 1 && scout.id !== program.id,
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-scout-home.png'), fullPage: true });
 
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('[data-native-team-hub]');
+await page.waitForSelector('.library-panel');
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
-await page.waitForFunction(() => document.querySelector('.gi-hub-workspace-choice button.is-active strong')?.textContent === 'Program');
+await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, {}, program.id);
 r = await page.evaluate(() => ({
-  rows: [...document.querySelectorAll('[data-season-id]')].map(row => row.textContent),
+  season: window.app.storage.seasonStore.data?.seasonName || '',
   mode: localStorage.getItem('giq_home_workspace'),
 }));
 // createSeason composes its own name as "Year · Level" now (2026-08-31 Home
 // naming contract); the caller's "name" field above is ignored, so the real
 // season reads "2026 · JV", never "2026 Mavericks".
-ok(r.mode === 'program' && r.rows.length === 1 && /2026 · JV/.test(r.rows[0]) && !/Holy Family/.test(r.rows[0]),
+ok(r.mode === 'program' && /2026 · Mavericks · JV/.test(r.season) && !/Holy Family/.test(r.season),
   'Explicitly switching back to Program wins even while a scout season is open', JSON.stringify(r));
 
 await page.evaluate(id => window.app.teamHubScreen.openSeason(id), program.id);

@@ -13,7 +13,7 @@ await page.setViewport({ width: 1280, height: 800 });
 const errors = [];
 page.on('pageerror', error => errors.push(error.stack || error.message));
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.workspaceShell?.root && document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(() => window.app?.workspaceShell?.root && document.querySelector('[data-native-home]'));
 
 const fixture = await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Native Season', team: 'Mavericks', year: '2026' });

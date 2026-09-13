@@ -4,9 +4,9 @@
  */
 export const P0_CAPABILITIES = [
   // Home / shell ownership
-  { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'First run offers team setup before any season' },
-  { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home New Game action opens a chartable game in Break Down' },
-  { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
+  { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'First run is owned by Home with no retired Team Hub presentation' },
+  { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home New Game opens a chartable game in Break Down' },
+  { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Opening a Home game lands in Break Down' },
   { id:'home.unit-progress', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Home shows charting progress per unit matching the canonical play data' },
   { id:'home.film-source', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'A managed copy and a linked folder never read identically -- the exact ambiguity that made a prior smoke unprovable' },
   { id:'shell.containment', surface:'shell', evidence:'behavior', harness:'e2e-responsive-containment.mjs', assertion:'Every shell route contains itself at every reviewed viewport including the installed window size' },
@@ -100,21 +100,21 @@ export const P0_CAPABILITIES = [
   { id:'plan.strip', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Selecting a strip entry moves the stage and scrolls the strip without starting film' },
 
   // Team Hub / season library
-  { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup is owned by the approved Home first-launch state while Team Hub remains mounted but hidden' },
+  { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup uses the sole Home renderer while TeamHubScreen remains the service owner' },
   // The five-step progress indicator this capability originally named is retired
   // from production; nothing renders step counts any more. The coach-facing
   // guarantee that survived it is that setup stays RESUMABLE -- a coach who
   // stops half way can reopen the guide and carry on -- so that is what this
   // critical capability now certifies. Re-pointed rather than dropped, because
   // deleting a critical capability to make a guard green is how coverage is lost.
-  { id:'team-hub.onboarding-progress', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Review season setup reopens one resumable, fully skippable guide' },
-  { id:'team-hub.create-season', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Approved Home setup creates the active team and season through canonical owners' },
+  { id:'team-hub.onboarding-progress', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Home rail reopens the canonical resumable season guide' },
+  { id:'team-hub.create-season', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Home setup creates the canonical team and season' },
   { id:'team-hub.team-switch', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Team switch fails closed when the outgoing canonical season save fails' },
-  { id:'team-hub.delete-impact', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Season delete names game/play impact and managed-versus-linked film consequences' },
-  { id:'team-hub.mobile', surface:'team-hub', evidence:'a11y', harness:'e2e-native-team-hub.mjs', assertion:'Mobile Team Hub preserves complete touch access without page-level scrolling traps' },
+  { id:'team-hub.delete-impact', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Season deletion names game/play impact and managed-versus-linked film consequences' },
+  { id:'team-hub.mobile', surface:'team-hub', evidence:'a11y', harness:'e2e-native-team-hub.mjs', assertion:'Mobile Home library preserves a reachable primary action without reviving Team Hub' },
   // Team + film storage truth
   { id:'settings.first-run-storage', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'First desktop launch opens the one native film-storage setup owner' },
-  { id:'settings.pre-game-entry', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'Team Hub settings action opens the consolidated panel before a game is opened' },
+  { id:'settings.pre-game-entry', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'Home library Film & storage action opens the consolidated panel before a game is opened' },
   { id:'settings.managed-disclosure', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Native Film settings persists managed mode and discloses copying' },
   { id:'settings.link-root', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Existing-library choice saves the selected root once' },
   { id:'settings.failed-link-rollback', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Failed canonical save rolls the entire game link back and reports failure' },
@@ -132,7 +132,7 @@ export const P0_CAPABILITIES = [
   { id:'settings.restore-fail-closed', surface:'settings', evidence:'data', harness:'e2e-native-recovery.mjs', assertion:'Failed season restore rolls back in memory, keeps canonical storage unchanged, and never reloads stale backup data' },
   { id:'settings.game-versions', surface:'settings', evidence:'data', harness:'e2e-native-recovery.mjs', assertion:'Game version restore changes only the open game and versions remain game-scoped' },
   { id:'settings.game-version-fail-closed', surface:'settings', evidence:'data', harness:'e2e-native-recovery.mjs', assertion:'Failed game-version restore keeps the live game and canonical season on the pre-restore state' },
-  { id:'settings.roster', surface:'settings', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Team Hub Roster action opens the canonical native roster workspace' },
+  { id:'settings.roster', surface:'settings', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Home rail opens the canonical roster workspace' },
 
   { id:'study.pivot', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Study renders a cross-tab with row and column dimensions plus totals' },
   { id:'study.pivot-refs', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'A pivot cell plays exactly the plays carrying both its row and column value' },

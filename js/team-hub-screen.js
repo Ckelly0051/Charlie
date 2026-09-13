@@ -103,7 +103,21 @@ export class TeamHubScreen {
     const previousMode = this._state.workspaceMode;
     try { localStorage.setItem('giq_home_workspace', workspaceMode); } catch {}
     this._state.workspaceMode = workspaceMode;
-    await this.load();
+    const loaded = await this.load();
+    if (!loaded) {
+      try { localStorage.setItem('giq_home_workspace', previousMode); } catch {}
+      this._state.workspaceMode = previousMode;
+      this.app.workspaceShell?._syncChrome?.();
+      return false;
+    }
+
+    // First launch has no season library to enter yet. The workspace choice
+    // changes the setup form in place; treating _openLibrary()'s intentional
+    // no-team false as a failed transition would immediately roll it back.
+    if (!this._state.teams.length) {
+      this.app.workspaceShell?._syncChrome?.();
+      return true;
+    }
 
     // A workspace is season-scoped, not a filter over an unrelated open
     // season. Restore the most recently opened season in the destination

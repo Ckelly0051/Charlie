@@ -9,9 +9,11 @@
 > **Release checkpoint:** all eight Our Program Reports tabs are implemented in
 > production. The unsigned Windows `1.12.0-83` local visual-smoke handoff adds
 > the consolidated Home route and the corrected no-open-season library to the
-> `1.12.0-81` Reports/Breakdown baseline. The production build and focused Home
-> suites passed; the full release gate was not rerun for this Home-only visual
-> candidate. It is not an accepted release.
+> `1.12.0-81` Reports/Breakdown baseline. Current source has advanced beyond
+> that package with the reviewed Home/empty-Scout cleanup. The production build,
+> focused responsive proof, and canonical gate passed (110/110, zero skipped,
+> zero failed), but the new source has not been packaged or coach-smoked. It is
+> not an accepted release.
 > `1.12.0-70` remains the last accepted installed release snapshot, but current
 > Home production is `REJECTED` after the `1.12.0-74` visual smoke.
 >
@@ -65,9 +67,14 @@ restrained actions, paired with latest-season and aggregate film-health context.
 The empty Opponent Scout state follows that same composition: summary metrics,
 the real future scout-table columns, and one create/status panel. It must not
 collapse to a small centered empty card or duplicate its primary creation action.
+Exactly one create action remains visible in the initial viewport at desktop,
+tablet, and 390px mobile widths. The empty table retains semantic rows and
+column headers, its rail and body empty-state labels are distinct, and structural
+spacing aligns the list and status panel without compensating magic offsets.
 The side panel stacks only when the persistent rail leaves insufficient width.
 TeamHubScreen remains the single controller for all underlying operations; this
-is not a second data path.
+is not a second data path. Workspace switching is fail-closed: save or preload
+failure restores the prior workspace mode, open season, and shell control state.
 
 Film status is part of this pass's data contract, not presentation copy. Every
 season summary and every game row must consume one season-scoped resolver keyed

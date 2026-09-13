@@ -85,7 +85,8 @@ await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team
 // (that belongs to e2e-home-first-launch / e2e-native-team-hub). Its fake
 // backend is deliberately narrow, and the desktop-test first-run path will not
 // complete against it, so establish team + season context through the canonical
-// services and then open the Team Hub the settings action lives on.
+// services and then open Home's consolidated season library, where the
+// persistent Film & storage action now lives.
 await page.evaluate(async () => {
   const app = window.app;
   app.teamRegistry.saveTeamIdentity('Storage Test Team');
@@ -93,17 +94,14 @@ await page.evaluate(async () => {
   await app.teamHubScreen.load();
   await app.workspaceShell._openLibrary();
 });
-await page.waitForFunction(() => {
-  const hub = document.querySelector('[data-native-team-hub]');
-  const box = hub && hub.getBoundingClientRect();
-  return !!box && box.width > 0 && box.height > 0;
-});
-await page.waitForSelector('#btnNativeTeamFilmSettings');
+await page.waitForSelector('.library-panel');
+await page.waitForSelector('.rail-tools');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
-await page.click('#btnNativeTeamFilmSettings');
+await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')]
+  .find(button => /Film & storage/i.test(button.textContent || ''))?.click());
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 ok(await page.evaluate(() => document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length === 1),
-  'Team Hub settings action opens the consolidated panel before a game is opened');
+  'Home library Film & storage action opens the consolidated panel before a game is opened');
 await page.click('[data-settings-tab="film"]');
 await page.waitForSelector('[data-settings-panel="film"]');
 r = await page.evaluate(() => ({

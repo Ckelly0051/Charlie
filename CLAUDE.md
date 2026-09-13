@@ -14,11 +14,13 @@ all four must match; `e2e-p0-exit` asserts it).
 **Packaging status:** `1.12.0-83` is the current unsigned local visual-smoke
 candidate, packaged from `9ab20d5`. It replaces the rejected `1.12.0-82` Season Library composition with
 the approved-comp structure: aggregate program band, operational season rows,
-and latest-season/film-health context. Focused Home
-verification is green; the full gate was not rerun for this Home-only visual
-candidate. The coach's installed smoke has NOT been run against it, so nothing
-here is accepted, tagged, pushed or published state, and no surface advances
-past its current approval status.
+and latest-season/film-health context. Current source has advanced beyond that
+package with the empty-Scout and Home consolidation cleanup. Its production
+build, focused responsive visual proof, and canonical gate are green (110/110,
+zero skipped, zero failed), but that source has not been packaged or installed.
+The coach's installed smoke has NOT been run against it, so nothing here is
+accepted, tagged, pushed or published state, and no surface advances past its
+current approval status.
 See `SMOKE-1.12.0-83.md`, `SMOKE-1.12.0-82.md` and `docs/OPEN-DEFECTS.md`.
 
 The Home workspace switch is season-scoped. `Our Program` and `Opponent Scout`
@@ -30,8 +32,14 @@ the controller just restored.
 
 Empty Opponent Scout is also an operational Home library state. It renders the
 shared summary band, the opponent/season/source-game/play/film table structure,
-and one create/status panel. Do not replace it with a generic centered empty
-card, duplicate the create action, or populate it with invented opponent data.
+and one create/status panel. Exactly one create action must be visible and
+reachable in the initial viewport at every release width. The desktop table
+must retain real row and column-header semantics; rail and main-body empty copy
+must remain distinct. Do not replace this state with a generic centered empty
+card, duplicate the create action, use magic offsets to fake column alignment,
+or populate it with invented opponent data. Workspace selection is fail-closed:
+if the current season cannot save or the destination cannot load, restore the
+prior mode, season, and shell pressed state rather than navigating on stale data.
 
 This file is current state only. The complete dated history through 2026-09-02
 — every milestone, review, repair, smoke, and incident — is preserved verbatim

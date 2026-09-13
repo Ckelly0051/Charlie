@@ -268,7 +268,8 @@ bothVisible(shape, 'after a reload with scout mode persisted');
 ok(!/No opponents yet/.test(shape.rows.flat().join(' ')),
   'Program seasons are not replaced by an opponent empty state after reload', shape);
 
-// "No opponents yet" appears ONLY inside an empty Opponent Scouts section.
+// The compact rail and main workspace use distinct empty copy so the same
+// phrase is not repeated twice on one screen.
 const emptyCase = await page.evaluate(async () => {
   const hub = window.app.teamHubScreen;
   const scouts = hub.snapshot().railSeasons.filter(s => s.isScout);
@@ -288,8 +289,8 @@ const emptyCase = await page.evaluate(async () => {
 });
 ok(emptyCase.sections === 2 && emptyCase.programRows >= 2 && emptyCase.programEmpty === 0,
   'Program Seasons keeps all of its rows when every scout is deleted', emptyCase);
-ok(emptyCase.scoutRows === 0 && emptyCase.scoutEmptyText === 'No opponents yet',
-  '"No opponents yet" renders only inside the empty Opponent Scouts section', emptyCase);
+ok(emptyCase.scoutRows === 0 && emptyCase.scoutEmptyText === 'None yet',
+  'The empty Opponent Scouts rail uses concise copy distinct from the main workspace', emptyCase);
 
 // Long histories scroll inside the rail; entries are never dropped. The rail
 // is TWO PERMANENT PANES rather than one shared scroller: a single scroll

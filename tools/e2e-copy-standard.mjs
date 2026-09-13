@@ -90,10 +90,17 @@ for (const route of ['home', 'breakdown', 'study', 'plan', 'reports']) {
   record(route, await scan());
 }
 
-// Team Hub is not reachable through show(); it has its own entry point.
+// The retired full-page Team Hub is gone. Exercise both Home library modes:
+// the program library and the empty Scout workspace, then restore the program
+// season before walking Reports.
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
 await new Promise(r => setTimeout(r, 1000));
-record('team-hub', await scan());
+record('home/program-library', await scan());
+await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('scout'));
+await new Promise(r => setTimeout(r, 700));
+record('home/scout-library', await scan());
+await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
+await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
 
 // Every Reports tab, in self perspective, plus the Season sub-tabs — the pane
 // that carried the lens board's questions into a second route.

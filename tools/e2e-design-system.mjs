@@ -40,7 +40,7 @@ const definitions = new Set([...tokens.matchAll(/(--gi-[\w-]+)\s*:/g)].map(match
 // per-instance value) rather than declared once in the shared palette. These
 // are not design-system tokens and have no business living in tokens.css --
 // keep this list explicit and require a real inline-style setter for each.
-const instanceScopedVars = new Set(['--gi-kpi-cols', '--gi-library-inset']);
+const instanceScopedVars = new Set(['--gi-kpi-cols']);
 const missing = sources.flatMap(({ path, source }) =>
   [...new Set([...source.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))]
     .filter(name => !definitions.has(name) && !instanceScopedVars.has(name))

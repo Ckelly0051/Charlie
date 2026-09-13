@@ -1,7 +1,7 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-12 for the next protected
-> Home workstream after the active Reports repair review.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-13 after the protected
+> Home consolidation cleanup and full-gate verification.
 
 ## Coach smoke, 1.12.0-83 (2026-09-13)
 
@@ -93,8 +93,16 @@ authority until a replacement composition is reviewed and approved.
    the same operational composition used by the Program library: a full-width
    zero-state summary, the actual opponent/season/source-game/play/film table
    structure, and one anchored create/status panel. No sample opponent data is
-   fabricated. Focused proof covers structure, single-action ownership, and
-   horizontal containment; coach smoke remains pending.
+   fabricated. The responsive composition keeps exactly one visible create
+   action reachable in the initial viewport, including at 390px; the table uses
+   real row and column-header semantics; rail and body empty-state copy is
+   intentionally distinct; and the list/status columns share structural spacing
+   rather than a compensating magic offset. Workspace changes now fail closed:
+   a failed save or preload restores the prior mode, season, and pressed state.
+   Workspace-choice buttons are explicitly non-submitting. Focused proof covers
+   all of those contracts, and the stale Team Hub-era gate consumers now drive
+   the current Home/controller architecture. The canonical gate is 110/110
+   green with zero skipped or failed harnesses. Coach smoke remains pending.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 

@@ -43,8 +43,7 @@ await page.waitForSelector('[data-first-launch]');
 await page.evaluate(() => { window.app.teamRegistry.saveTeamIdentity('Mavericks'); });
 await page.evaluate(async () => { await window.app.teamHubScreen.load(); });
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
-
-await page.waitForSelector('[data-hub-team].is-active');
+await page.waitForSelector('.library-panel');
 await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: 'Fall 2026' });
   window.app.roster.loadFrom([
@@ -86,26 +85,27 @@ await new Promise(r => setTimeout(r, 1000));
 const rec = await page.evaluate(() => {
   const teams = JSON.parse(localStorage.getItem('ffa_teams') || '[]');
   const profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}');
-  const hub = document.querySelector('[data-native-team-hub]');
+  const home = document.querySelector('[data-native-home]');
+  const state = window.app.teamHubScreen.snapshot();
   return {
     setupHidden: !document.querySelector('[data-first-launch]'),
-    teamShown: !!document.querySelector('[data-hub-team].is-active'),
-    teamText: document.querySelector('[data-hub-team].is-active')?.textContent || '',
+    teamShown: state.activeTeamId === teams[0]?.id,
+    teamText: state.profile?.teamName || '',
     teamCount: teams.length,
     teamName: (teams[0] || {}).teamName,
     profileName: profile.teamName,
     rosterInMemory: window.app.roster.players.length,
     playbook: window.app.playbook.list(),
-    listText: hub?.textContent || '',
+    listText: home?.textContent || '',
   };
 });
 check('NO first-run setup screen over existing data', rec.setupHidden, JSON.stringify(rec));
-check('native Team Hub restores the original team', rec.teamShown && rec.teamText.includes('Mavericks'));
+check('Home restores the original team through the canonical registry', rec.teamShown && rec.teamText.includes('Mavericks'));
 check('registry rebuilt with original team', rec.teamCount === 1 && rec.teamName === 'Mavericks', JSON.stringify(rec));
 check('profile restored', rec.profileName === 'Mavericks');
 check('no roster is overlaid before a season is opened', rec.rosterInMemory === 0, 'got ' + rec.rosterInMemory);
 check('team playbook restored from the newest season mirror', rec.playbook.length === 1 && rec.playbook[0].name === '26 Blast' && rec.playbook[0].defaults.playDir === 'Right', JSON.stringify(rec.playbook));
-check('recovered season is visible in Team Hub', rec.listText.includes('Fall 2026'), rec.listText.slice(0, 200));
+check('recovered season is visible in Home', rec.listText.includes('Fall 2026'), rec.listText.slice(0, 200));
 
 // ---- Open the recovered season: plays intact ----
 const opened = await page.evaluate(async () => {
@@ -135,7 +135,7 @@ await page.evaluate(() => {
 await page.reload({ waitUntil: 'load' });
 await new Promise(r => setTimeout(r, 1000));
 const orphan = await page.evaluate(() => ({
-  listText: document.querySelector('[data-native-team-hub]')?.textContent || '',
+  listText: document.querySelector('[data-native-home]')?.textContent || '',
 }));
 check('orphaned season still visible under rebuilt team', orphan.listText.includes('Fall 2026'), orphan.listText.slice(0, 200));
 

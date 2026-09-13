@@ -1,4 +1,6 @@
-/* S3 native Team Hub journey. Drives the actual route and BrowserBackend. */
+/* TeamHubScreen integration through the consolidated Home owner. The retired
+ * full-page Team Hub renderer is deliberately absent; its controllers and
+ * focused dialogs remain the canonical season/team operation boundary. */
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer';
@@ -19,261 +21,142 @@ await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-first-launch]'));
 
 let r = await page.evaluate(() => ({
-  native: document.querySelectorAll('[data-native-team-hub]').length,
-  first: !!document.querySelector('[data-first-launch]'),
-  // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
-  // read true once el is gone, so this asserts absence, which cannot invert.
-  legacy: !!document.getElementById('libraryOverlay'),
-  outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
   route: document.getElementById('workspaceShell')?.dataset.route,
+  first: !!document.querySelector('[data-first-launch]'),
+  teamHubHosts: document.querySelectorAll('[data-native-team-hub], #wsTeamHub').length,
+  legacy: !!document.getElementById('libraryOverlay') || !!document.getElementById('wsClassicOutlet'),
 }));
-ok(r.native === 1 && r.first && !r.legacy && !r.outlet && r.route === 'home',
-  'Startup is owned by the approved Home first-launch state while Team Hub remains mounted but hidden', JSON.stringify(r));
+ok(r.route === 'home' && r.first && r.teamHubHosts === 0 && !r.legacy,
+  'Startup uses the sole Home renderer while TeamHubScreen remains the service owner', JSON.stringify(r));
 
 await page.type('[data-first-launch] input[name="school"]', 'Mavericks');
 await page.click('[data-first-launch] .first-setup-choice button:nth-child(2)');
 await page.click('[data-first-launch] .ws-primary');
-await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home' && !document.querySelector('[data-first-launch]'));
+await page.waitForFunction(() => !document.querySelector('[data-first-launch]') && window.app.storage.seasonStore.hasCurrent());
+const seasonName = `${new Date().getFullYear()} · Mavericks · JV`;
 r = await page.evaluate(() => ({
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
   season: window.app.storage.seasonStore.data?.seasonName,
-  teamId: window.app.storage.seasonStore.data?.teamId,
   games: window.app.storage.seasonStore.data?.games?.length,
+  route: document.getElementById('workspaceShell')?.dataset.route,
 }));
-const seasonName = `${new Date().getFullYear()} · Mavericks · JV`;
-ok(r.profile.teamName === 'Mavericks' && r.season === seasonName && r.teamId === 'mavericks' && r.games === 1,
-  'Approved Home setup creates the active team and season through canonical owners', JSON.stringify(r));
-ok(!await page.$('[data-overlay-id="team-hub-season-setup"]'),
-  'Set up manually bypasses the entire guided workflow');
+ok(r.profile.teamName === 'Mavericks' && r.season === seasonName && r.games === 1 && r.route === 'home',
+  'Home setup creates the canonical team and season', JSON.stringify(r));
 
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('[data-native-team-hub] [data-season-id]');
+await page.waitForSelector('.library-panel [data-library-season]');
+await page.waitForFunction(() => document.querySelector('[data-library-season] .library-film')?.textContent.trim() === 'No film linked');
 r = await page.evaluate(() => ({
-  rows: document.querySelectorAll('[data-season-id]').length,
-  current: document.querySelector('[data-season-id].is-current')?.textContent || '',
-  film: document.querySelector('[data-season-id].is-current .gi-hub-film')?.textContent.trim(),
-  // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
-  // read true once el is gone, so this asserts absence, which cannot invert.
-  legacy: !!document.getElementById('libraryOverlay'),
-  outlet: !!document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
+  rows: document.querySelectorAll('.library-panel [data-library-season]').length,
+  open: document.querySelector('[data-library-season] .library-open')?.textContent.trim(),
+  film: document.querySelector('[data-library-season] .library-film')?.textContent.trim(),
+  teamHubHosts: document.querySelectorAll('[data-native-team-hub], #wsTeamHub').length,
 }));
-ok(r.rows === 1 && /Current/.test(r.current) && /No film linked/.test(r.film) && !r.legacy && !r.outlet,
-  'Current season is explicit with honest neutral film health and no legacy owner', JSON.stringify(r));
-r = await page.evaluate(() => ({ review: document.querySelector('[data-native-hub-review-setup]')?.textContent || '' }));
-ok(/Season setup/.test(r.review) && /Review/.test(r.review),
-  'Control Center keeps season setup available after creation', JSON.stringify(r));
-await page.click('.gi-hub-hero-action');
+ok(r.rows === 1 && r.open === 'Open season' && r.film === 'No film linked' && r.teamHubHosts === 0,
+  'Home library renders the season with honest film health and no competing owner', JSON.stringify(r));
+
+await page.click('.library-panel-head .ws-primary');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
 r = await page.evaluate(() => ({
-  options: [...document.querySelectorAll('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button')].map(button => ({ text: button.textContent.trim(), checked: button.getAttribute('aria-checked') })),
+  options: [...document.querySelectorAll('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button')]
+    .map(button => ({ text: button.textContent.trim(), checked: button.getAttribute('aria-checked') })),
 }));
-ok(/Quick create/.test(r.options[1].text) && r.options[1].checked === 'true' && /Use guided setup/.test(r.options[0].text),
-  'Returning coaches default to Quick create while Guided setup remains optional', JSON.stringify(r));
-if (shotDir) await page.screenshot({ path: path.join(shotDir, 'returning-season-choice.png'), fullPage: true });
-await page.evaluate(() => {
-  const hub = window.app.teamHubScreen;
-  window.__guidedSetupProbe = { createSeason: hub.createSeason, openSeasonSetup: hub.openSeasonSetup, values: null, opens: 0 };
-  hub.createSeason = async values => { window.__guidedSetupProbe.values = values; return { ok: true }; };
-  hub.openSeasonSetup = () => { window.__guidedSetupProbe.opens += 1; return Promise.resolve(true); };
-});
-await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-setup-mode button:first-child');
-// createSeason is mocked above; only setupMode/opens are asserted from it,
-// so the default valid Year + Level (Varsity) needs no typing to submit.
-await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
-await page.waitForFunction(() => window.__guidedSetupProbe?.opens === 1);
-r = await page.evaluate(() => {
-  const probe = window.__guidedSetupProbe;
-  const result = { mode: probe.values?.setupMode, opens: probe.opens };
-  window.app.teamHubScreen.createSeason = probe.createSeason;
-  window.app.teamHubScreen.openSeasonSetup = probe.openSeasonSetup;
-  delete window.__guidedSetupProbe;
-  return result;
-});
-ok(r.mode === 'guided' && r.opens === 1, 'Selecting Guided setup hands the successful canonical creation boundary to the guide', JSON.stringify(r));
-await page.click('[data-native-hub-review-setup]');
+ok(/Quick create/.test(r.options[1]?.text) && r.options[1]?.checked === 'true' && /Use guided setup/.test(r.options[0]?.text),
+  'Home opens the canonical create-season dialog with optional guided setup', JSON.stringify(r));
+await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions button');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-hub-create-season"]'));
+
+await page.click('[data-library-season] .library-open');
+await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
+await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].find(button => /Season setup/.test(button.textContent))?.click());
 await page.waitForSelector('[data-overlay-id="team-hub-season-setup"] .gi-season-guide');
 r = await page.evaluate(() => ({
   title: document.querySelector('.gi-season-guide h2')?.textContent.trim(),
   steps: [...document.querySelectorAll('.gi-season-guide-steps li')].map(row => row.textContent.trim()),
   skip: document.querySelector('.gi-season-guide .gi-hub-form-actions button')?.textContent,
 }));
-ok(r.title === seasonName && r.steps.length === 5 && /Season details/.test(r.steps[0]) && /Roster/.test(r.steps[1]) && /Film storage/.test(r.steps[2]) && /First game/.test(r.steps[3]) && /Ready to chart/.test(r.steps[4]) && /Skip guide/.test(r.skip),
-  'Review season setup reopens one resumable, fully skippable guide', JSON.stringify(r));
-if (shotDir) await page.screenshot({ path: path.join(shotDir, 'season-setup-guide.png'), fullPage: true });
+ok(r.title === seasonName && r.steps.length === 5 && /Skip guide/.test(r.skip),
+  'Home rail reopens the canonical resumable season guide', JSON.stringify(r));
 await page.click('.gi-season-guide .gi-hub-form-actions button');
-await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
-await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('[data-native-team-hub] [data-season-id]');
-r = await page.evaluate(() => {
-  const list = document.querySelector('.gi-hub-seasons').getBoundingClientRect();
-  const row = document.querySelector('.gi-hub-season').getBoundingClientRect();
-  const state = document.querySelector('.gi-hub-season-state').getBoundingClientRect();
-  const open = document.querySelector('.gi-hub-season-open');
-  const remove = document.querySelector('.gi-hub-delete');
-  const openRect = open.getBoundingClientRect();
-  const removeRect = remove.getBoundingClientRect();
-  return {
-    listWidth: Math.round(list.width), rowWidth: Math.round(row.width),
-    // This row is intentionally below the 900px fold in the full Team Hub.
-    // The regression is horizontal stretching/overflow; vertical visibility
-    // belongs to the document scroll journey, not a viewport-containment check.
-    stateFitsWidth: state.left >= 0 && state.right <= innerWidth,
-    openText: open.textContent.trim(), removeText: remove.textContent.trim(),
-    actionGap: Math.round(removeRect.left - openRect.right),
-    directionalCopy: /→/.test(document.querySelector('.gi-hub-season').textContent),
-  };
-});
-ok(r.listWidth <= 1120 && r.rowWidth === r.listWidth && r.stateFitsWidth,
-  'Season rows stay compact and fully visible instead of stretching across the viewport', JSON.stringify(r));
-ok(r.openText === 'Return to Home' && r.removeText === 'Delete' && r.actionGap >= 8 && !r.directionalCopy,
-  'Open is a distinct primary action and Delete is separated without a misleading arrow', JSON.stringify(r));
-if (shotDir) await page.screenshot({ path: path.join(shotDir, 'team-hub-1280.png'), fullPage: true });
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-hub-season-setup"]'));
 
-await page.click('.gi-hub-add-team');
-await page.waitForSelector('[data-overlay-id="team-hub-add-team"]');
-// School/nickname are separate fields now; typing the whole label into
-// school (nickname left blank) still composes teamName === 'Mavericks JV'.
-await page.type('[data-overlay-id="team-hub-add-team"] input[name="school"]', 'Mavericks JV');
-ok(await page.$eval('[data-overlay-id="team-hub-add-team"] input[name="school"]', input => input.value === 'Mavericks JV'),
-  'Rapid team-name entry reaches the submit boundary intact');
-await page.click('[data-overlay-id="team-hub-add-team"] .gi-hub-form-actions .is-primary');
-await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active')?.textContent.includes('JV'));
-r = await page.evaluate(() => ({
-  activeId: localStorage.getItem('ffa_active_team_id'),
-  current: window.app.storage.seasonStore.currentSeasonId,
-  seasons: document.querySelectorAll('[data-season-id]').length,
-  roster: window.app.roster.players,
-}));
-ok(r.activeId === 'mavericks-jv' && !r.current && r.seasons === 0 && r.roster.length === 0,
-  'Adding a team starts blank, closes outgoing season context, and scopes its season list', JSON.stringify(r));
-
-await page.click('[data-hub-team="mavericks"]');
-await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
-r = await page.evaluate(() => ({ rows: document.querySelectorAll('[data-season-id]').length, current: !!document.querySelector('[data-season-id].is-current') }));
-ok(r.rows === 1 && !r.current, 'Switching back shows only that team seasons without implicitly opening one', JSON.stringify(r));
-// S8-1: a closed (non-current) season's film health is now verified in the
-// background against its OWN stored data via SeasonStore.peekSeason, instead
-// of being stuck on a permanent "Film status not checked" placeholder. This
-// season's one auto-seeded game has no film at all, so it honestly resolves
-// to "No film linked" rather than staying an ambiguous non-answer.
-await page.waitForFunction(() => document.querySelector('[data-season-id] .gi-hub-film')?.textContent.trim() === 'No film linked', { timeout: 5000 });
-ok(true, 'Closed-season film health resolves to a real aggregate instead of a permanent "not checked" placeholder');
-
-r = await page.evaluate(async () => {
-  const store = window.app.storage.seasonStore;
-  const hub = window.app.teamHubScreen;
-  const realPeek = store.peekSeason.bind(store);
-  // Never resolves: reproduces the moment verification is genuinely pending.
-  store.peekSeason = () => new Promise(() => {});
-  await hub.load();
-  const pendingLabel = document.querySelector('[data-season-id] .gi-hub-film')?.textContent.trim();
-  store.peekSeason = realPeek;
-  await hub.load();   // restore real (resolving) state before continuing the journey
-  await new Promise(resolve => setTimeout(resolve, 30));
-  const resolvedLabel = document.querySelector('[data-season-id] .gi-hub-film')?.textContent.trim();
-  return { pendingLabel, resolvedLabel };
-});
-ok(/Checking film/.test(r.pendingLabel), 'A season row reads an honest "Checking film…" state while verification is pending, never "not checked"', JSON.stringify(r));
-ok(r.resolvedLabel === 'No film linked', 'The pending state resolves to a real aggregate once verification completes', JSON.stringify(r));
-
-r = await page.evaluate(async () => {
-  const hub = window.app.teamHubScreen;
-  const before = JSON.stringify(hub._state.seasons.map(s => ({ id: s.id, film: s.film })));
-  const staleToken = hub._loadToken - 1;   // guaranteed to disagree with the live _loadToken
-  const rigged = async () => ({ state: 'none', label: 'STALE ANSWER SHOULD NEVER APPEAR', expected: 0, found: 0, missing: 0 });
-  const real = hub._aggregateFilm.bind(hub);
-  hub._aggregateFilm = rigged;
-  hub._verifyFilmHealth(hub._state.seasons, hub._state.currentSeasonId, staleToken);
-  await new Promise(resolve => setTimeout(resolve, 30));
-  hub._aggregateFilm = real;
-  const after = JSON.stringify(hub._state.seasons.map(s => ({ id: s.id, film: s.film })));
-  return { before, after };
-});
-ok(r.before === r.after, 'A film check run under a stale load token cannot patch the live season list', JSON.stringify(r));
-
-await page.click('[data-hub-open-season]');
-await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
-await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('[data-season-id].is-current');
-await page.evaluate(() => { window.__realPersist = window.app.storage.seasonStore.persist; window.app.storage.seasonStore.persist = async () => false; });
-await page.click('[data-hub-team="mavericks-jv"]');
-await new Promise(resolve => setTimeout(resolve, 100));
-r = await page.evaluate(() => ({
-  active: localStorage.getItem('ffa_active_team_id'),
-  current: window.app.storage.seasonStore.currentSeasonId,
-  toast: [...document.querySelectorAll('.gi-native-toast')].at(-1)?.textContent || '',
-}));
-ok(r.active === 'mavericks' && r.current && /not saved/.test(r.toast),
-  'Team switch fails closed when the outgoing canonical season save fails', JSON.stringify(r));
-await page.click('.gi-native-toast');
-await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
-await page.evaluate(() => { window.app.storage.seasonStore.persist = window.__realPersist; });
-
-const beforeDelete = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
-await page.click('.gi-hub-delete');
-await page.waitForSelector('[data-overlay-id] .gi-overlay-panel.is-destructive');
-await page.waitForFunction(() => document.activeElement?.name === 'confirm');
-r = await page.evaluate(() => ({
-  message: document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '',
-  initial: document.activeElement?.name || '',
-  overlayInitialAction: window.app.overlays.snapshot().overlays.at(-1)?.initialAction || '',
-  defaultActions: window.app.overlays.snapshot().overlays.at(-1)?.actions.filter(action => action.default).map(action => action.key) || [],
-  cancelActions: document.querySelectorAll('[data-overlay-action="cancel"]').length,
-  deleteDisabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
-}));
-ok(/1 game/.test(r.message) && /0 plays/.test(r.message) && /Managed film copies/.test(r.message) && /Linked original folders are never deleted/.test(r.message),
-  'Season delete names game/play impact and managed-versus-linked film consequences', JSON.stringify(r));
-ok(r.initial === 'confirm' && r.overlayInitialAction === 'cancel' && JSON.stringify(r.defaultActions) === '["cancel"]',
-  'Typed season delete focuses its confirmation field while Cancel remains the sole safe default action', JSON.stringify(r));
-ok(r.cancelActions === 1 && r.deleteDisabled,
-  'Season delete has one service-owned Cancel action and starts disarmed', JSON.stringify(r));
-await page.type('.gi-confirm-delete input[name="confirm"]', 'dele');
-ok(await page.$eval('.gi-confirm-delete button.is-danger', button => button.disabled),
-  'An incomplete confirmation phrase cannot delete the season');
-await page.type('.gi-confirm-delete input[name="confirm"]', 'te');
-ok(await page.$eval('.gi-confirm-delete button.is-danger', button => !button.disabled),
-  'The exact confirmation phrase arms the destructive action');
-await page.click('[data-overlay-action="cancel"]');
-await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
-const afterDeleteCancel = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
-ok(beforeDelete === afterDeleteCancel, 'Canceling season delete preserves the complete open season byte-for-byte');
-await page.click('.gi-hub-team-actions .is-danger');
-await page.waitForSelector('[data-overlay-id] .gi-overlay-panel');
-r = await page.evaluate(() => ({ title: document.querySelector('.gi-overlay-panel h2')?.textContent, text: document.querySelector('.gi-overlay-panel')?.textContent || '', destructive: !!document.querySelector('.gi-overlay-panel.is-destructive') }));
-ok(/Team still has seasons/.test(r.title) && /owns 1 season/.test(r.text) && !r.destructive,
-  'A team with seasons has no destructive removal path', JSON.stringify(r));
-await page.click('[data-overlay-action="ok"]');
-await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
-
-await page.click('#btnNativeTeamFilmSettings');
+await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].find(button => /Film & storage/.test(button.textContent))?.click());
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 ok(await page.evaluate(() => document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length === 1),
-  'Team Hub opens the one native Team & Film Settings owner before a game is opened');
+  'Home rail opens the one native Team and Film Settings owner');
 await page.evaluate(() => window.app.settingsScreen.close('test-complete'));
 
-await page.click('.gi-hub-team-actions button:first-child');
+await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].find(button => /^Roster$/.test(button.textContent.trim()))?.click());
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-settings-panel="roster"]');
-r = await page.evaluate(() => ({
-  owners: document.querySelectorAll('[data-settings-panel="roster"]').length,
-  legacy: !!document.getElementById('settingsDrawer') || !!document.getElementById('rosterPanel'),
-  selected: document.querySelector('[data-settings-tab="roster"]')?.getAttribute('aria-current'),
-}));
-ok(r.owners === 1 && !r.legacy && r.selected === 'page',
-  'Team Hub Roster action opens the canonical native roster workspace', JSON.stringify(r));
+ok(await page.evaluate(() => document.querySelectorAll('[data-settings-panel="roster"]').length === 1),
+  'Home rail opens the canonical roster workspace');
 await page.evaluate(() => window.app.settingsScreen.close('test-complete'));
+
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForSelector('[data-library-season] .library-delete');
+const beforeDelete = await page.evaluate(() => JSON.stringify(window.app.teamHubScreen.snapshot().railSeasons.map(row => row.id)));
+await page.click('[data-library-season] .library-delete');
+await page.waitForSelector('.gi-confirm-delete input[name="confirm"]');
+r = await page.evaluate(() => ({
+  deleteDisabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
+  cancelActions: document.querySelectorAll('[data-overlay-action="cancel"]').length,
+  impact: document.querySelector('.gi-confirm-delete')?.textContent || '',
+}));
+ok(r.deleteDisabled && r.cancelActions === 1,
+  'Season deletion remains typed, disarmed, and cancel-safe', JSON.stringify(r));
+ok(/1 game/.test(r.impact) && /0 plays/.test(r.impact) && /Managed film copies/.test(r.impact)
+  && /Linked original folders are never deleted/.test(r.impact),
+  'Season deletion names game/play impact and managed-versus-linked film consequences', r.impact);
+await page.click('[data-overlay-action="cancel"]');
+await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
+const afterDelete = await page.evaluate(() => JSON.stringify(window.app.teamHubScreen.snapshot().railSeasons.map(row => row.id)));
+ok(beforeDelete === afterDelete, 'Canceling season deletion preserves the library');
+
+// Team switching is still a service-level operation now that the duplicate
+// full-page team selector has been retired. Exercise its fail-closed boundary
+// against a real open season and a second registered team.
+await page.evaluate(() => window.app.teamHubScreen.addTeam({ school: 'Bench Team' }));
+await page.waitForFunction(() => window.app.teamRegistry.activeTeamId() === 'bench-team');
+await page.evaluate(() => window.app.teamHubScreen.switchTeam('mavericks'));
+await page.waitForFunction(() => window.app.teamRegistry.activeTeamId() === 'mavericks');
+await page.evaluate(async () => {
+  const season = window.app.teamHubScreen.snapshot().railSeasons[0];
+  await window.app.teamHubScreen.openSeason(season.id);
+});
+await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
+r = await page.evaluate(async () => {
+  const store = window.app.storage.seasonStore;
+  const originalPersist = store.persist.bind(store);
+  store.persist = async () => false;
+  const switched = await window.app.teamHubScreen.switchTeam('bench-team');
+  store.persist = originalPersist;
+  return {
+    switched,
+    activeTeamId: window.app.teamRegistry.activeTeamId(),
+    hasCurrent: store.hasCurrent(),
+  };
+});
+ok(r.switched === false && r.activeTeamId === 'mavericks' && r.hasCurrent,
+  'Team switch fails closed when the outgoing canonical season save fails', JSON.stringify(r));
+await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForSelector('.library-panel');
 
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-await new Promise(resolve => setTimeout(resolve, 80));
-await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub');
-r = await page.evaluate(() => ({
-  overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  small: [...document.querySelectorAll('[data-native-team-hub] button')].filter(button => button.getClientRects().length && button.getBoundingClientRect().height < 44).map(button => button.textContent.trim()),
-  route: document.getElementById('workspaceShell')?.dataset.route,
-}));
-ok(!r.overflow && !r.small.length && r.route === 'team-hub',
-  'Mobile Team Hub preserves complete touch access without page-level scrolling traps', JSON.stringify(r));
-if (shotDir) await page.screenshot({ path: path.join(shotDir, 'team-hub-390.png'), fullPage: true });
+await page.evaluate(() => { scrollTo(0, 0); return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
+r = await page.evaluate(() => {
+  const primary = document.querySelector('.library-panel-head .ws-primary');
+  const box = primary?.getBoundingClientRect();
+  return {
+    overflow: document.documentElement.scrollWidth - innerWidth,
+    route: document.getElementById('workspaceShell')?.dataset.route,
+    primaryVisible: !!box && box.top >= 0 && box.bottom <= innerHeight && box.width > 0,
+    teamHubHosts: document.querySelectorAll('[data-native-team-hub], #wsTeamHub').length,
+  };
+});
+ok(r.overflow <= 1 && r.route === 'home' && r.primaryVisible && r.teamHubHosts === 0,
+  'Mobile Home library preserves a reachable primary action without reviving Team Hub', JSON.stringify(r));
+if (shotDir) await page.screenshot({ path: path.join(shotDir, 'home-library-390.png'), fullPage: true });
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

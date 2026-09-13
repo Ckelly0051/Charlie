@@ -1,5 +1,5 @@
 /* PC-3 explicit recovery journey (Convergence Plan Invariant #6). Drives the
-   real native Team Hub UI end to end. Runs against the browser build
+   real Home library UI end to end. Runs against the browser build
    (BrowserBackend), which has no Documents-mirror concept at all -- so this
    proves TWO things at that layer first (the capability gate genuinely hides
    the feature where it doesn't apply, and doesn't apply it silently), then
@@ -26,25 +26,17 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.stack || e.message));
 await page.evaluateOnNewDocument(() => localStorage.clear());
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(() => window.app?.teamHubScreen && document.querySelector('[data-native-home]'));
 
-// First-run team setup, so Team Hub renders its normal (non-first-team) shell.
+// First-run team setup, so Home renders its normal season workspace.
 await createFirstTeam(page, 'Recovery Test');
-// createFirstTeam leaves the coach on the approved Home first-launch outcome;
-// Team Hub stays mounted but hidden, so its controls exist yet are unclickable.
-// This journey is about Team Hub, so open it explicitly.
+// Open the consolidated Home library where recovery now lives.
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForFunction(() => {
-  const hub = document.querySelector('[data-native-team-hub]');
-  if (!hub) return false;
-  const box = hub.getBoundingClientRect();
-  return box.width > 0 && box.height > 0;
-});
-await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
+await page.waitForSelector('.library-panel');
 
 // ---- 1. BrowserBackend has no recovery concept: the button is genuinely absent ----
 let r = await page.evaluate(() => ({
-  hasButton: !!document.querySelector('[data-native-hub-recover]'),
+  hasButton: [...document.querySelectorAll('.library-overview-actions button')].some(button => /Recover seasons/.test(button.textContent || '')),
   canRecover: window.app.teamHubScreen.canRecoverSeasons(),
   hasScan: typeof window.app.storage.seasonStore.backend.scanRecoverableSeasons === 'function',
 }));
@@ -79,12 +71,15 @@ await page.evaluate(() => {
   };
 });
 await page.evaluate(() => window.app.teamHubScreen.load());
-await page.waitForFunction(() => !!document.querySelector('[data-native-hub-recover]'));
-r = await page.evaluate(() => ({ hasButton: !!document.querySelector('[data-native-hub-recover]') }));
+await page.waitForFunction(() => [...document.querySelectorAll('.library-overview-actions button')]
+  .some(button => /Recover seasons/.test(button.textContent || '')));
+r = await page.evaluate(() => ({ hasButton: [...document.querySelectorAll('.library-overview-actions button')]
+  .some(button => /Recover seasons/.test(button.textContent || '')) }));
 ok(r.hasButton, 'once a backend exposes the recovery contract, the button appears (capability, not a hardcoded assumption)', JSON.stringify(r));
 
 // ---- 3. Empty scan: an honest "nothing found" dialog, no crash, no silent no-op ----
-await page.click('[data-native-hub-recover]');
+await page.evaluate(() => [...document.querySelectorAll('.library-overview-actions button')]
+  .find(button => /Recover seasons/.test(button.textContent || ''))?.click());
 await page.waitForFunction(() => document.body.textContent.includes('No recoverable seasons found'));
 r = await page.evaluate(() => ({ text: document.querySelector('.gi-overlay-panel')?.textContent || '' }));
 ok(/No Documents-mirror recovery snapshots/.test(r.text), 'an empty scan shows an honest message naming what was searched, not a blank dialog', r.text);
@@ -100,7 +95,8 @@ await page.evaluate(() => {
     { id: 'rec-legacy', valid: false, reason: 'legacy-unenveloped', name: 'Old Format Season', team: 'Recovery Test', gameCount: 2, playCount: 18, revision: null, timestamp: null, existsInCatalog: false },
   ];
 });
-await page.click('[data-native-hub-recover]');
+await page.evaluate(() => [...document.querySelectorAll('.library-overview-actions button')]
+  .find(button => /Recover seasons/.test(button.textContent || ''))?.click());
 await page.waitForSelector('[data-overlay-id="team-hub-recover-seasons"]');
 r = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.gi-hub-recover-row')];
@@ -161,13 +157,16 @@ r = await page.evaluate(() => window.__recoverCalls);
 ok(r.length === 2 && r[1].id === 'rec-conflict' && r[1].opts?.confirmOverwrite === true,
   'confirming the overwrite calls recoverSeasonFromMirror with confirmOverwrite:true, explicitly', JSON.stringify(r));
 
-// ---- 7. A successful recovery actually reloads Team Hub with the new season present ----
+// ---- 7. A successful recovery actually reloads Home with the new season present ----
 await page.click('[data-overlay-action="close"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-hub-recover-seasons"]'));
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForFunction(() => [...document.querySelectorAll('[data-library-season] h3')]
+  .some(node => node.textContent === 'Recovered Season'));
 r = await page.evaluate(() => ({
-  seasonNames: [...document.querySelectorAll('[data-season-id] strong')].map(el => el.textContent),
+  seasonNames: [...document.querySelectorAll('[data-library-season] h3')].map(el => el.textContent),
 }));
-ok(r.seasonNames.includes('Recovered Season'), 'the recovered season actually appears in Team Hub\'s season list, proving the reload is real, not just a UI status flag', JSON.stringify(r));
+ok(r.seasonNames.includes('Recovered Season'), 'the recovered season actually appears in Home\'s season list, proving the reload is real, not just a UI status flag', JSON.stringify(r));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

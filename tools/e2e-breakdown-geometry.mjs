@@ -11,7 +11,7 @@ page.on('console',message=>{if(message.type()==='error')errors.push(message.text
 await page.goto(APP_URL,{waitUntil:'networkidle0'});
 await page.evaluate(()=>localStorage.removeItem('ffa_breakdown_film_focus'));
 await page.reload({waitUntil:'networkidle0'});
-await page.waitForFunction(()=>window.app?.breakdownWorkspace&&document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(()=>window.app?.breakdownWorkspace&&document.querySelector('[data-native-home]'));
 await page.evaluate(async()=>{
   await app.storage.createSeason({name:'S5d Geometry',team:'Mavericks',year:'2026'});
   const game=app.storage.seasonStore.activeGame();

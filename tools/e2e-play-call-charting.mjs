@@ -13,7 +13,7 @@ page.on('pageerror', error => errors.push(error.stack || error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 await page.setViewport({ width: 1440, height: 900 });
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.nativeTagging && document.querySelector('[data-native-team-hub]'));
+await page.waitForFunction(() => window.app?.nativeTagging && document.querySelector('[data-native-home]'));
 
 console.log('\n== Play-call charting ==');
 await page.evaluate(async () => {
@@ -204,6 +204,7 @@ const titleOf = node => node.querySelector('header strong')?.textContent.trim();
 const callModule = callGrid.find(node => titleOf(node) === 'Play calls');
   
 const conceptModule = callGrid.find(node => titleOf(node) === 'Concepts');
+  const directionModule = callGrid.find(node => titleOf(node) === 'Direction vs Strength');
   const blastRow = [...(callModule?.querySelectorAll('tbody tr') || [])]
     .find(row => row.cells[0]?.textContent.trim() === '26 Blast');
   const contexts = [...root.querySelectorAll('.gi-call-context')];
@@ -228,6 +229,8 @@ const conceptModule = callGrid.find(node => titleOf(node) === 'Concepts');
     analysis,
     callText: blastRow?.textContent || '',
     conceptText: conceptModule?.textContent || '',
+    directionText: directionModule?.textContent || '',
+    moduleTitles: callGrid.map(titleOf),
     lenses: contexts.map(node => node.querySelector('h4')?.textContent.trim()),
     calls,
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -241,9 +244,10 @@ ok(reportBlast?.n === 2 && reportBlast.sharePct === 66.7 && reportBlast.successR
 ok(state.callText.includes('26 Blast') && state.callText.includes('Blast') && state.callText.includes('66.7%')
   && state.conceptText.includes('Blast') && state.conceptText.includes('26 Blast'),
   'Reports renders exact calls and nests precise calls under their concept roll-up', JSON.stringify({ call: state.callText, concept: state.conceptText }));
-ok(['Down & Distance', 'Field Position', 'Direction vs Strength']
-  .every(label => state.lenses.includes(label)),
-  'Reports answers what we call by situation, field position, and strength relationship', JSON.stringify(state.lenses));
+ok(['Down & Distance', 'Field Position'].every(label => state.lenses.includes(label))
+  && /Toward strength/i.test(state.directionText) && /Away from strength/i.test(state.directionText)
+  && /Run Rate/.test(state.directionText) && /Pass Rate/.test(state.directionText),
+  'Reports answers what we call by situation, field position, and strength relationship', JSON.stringify({ lenses: state.lenses, directionText: state.directionText, moduleTitles: state.moduleTitles }));
 ok(state.calls.length === 1 && state.calls[0].refs?.length === 1
   && /^[^:]+::1$/.test(state.calls[0].refs[0]) && !state.overflow,
   'A situational result opens only its exact composite-ref film cohort without horizontal page overflow', JSON.stringify(state));

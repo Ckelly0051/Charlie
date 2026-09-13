@@ -223,16 +223,9 @@ for (const [unit, playId] of units) {
       const form = document.querySelector('.gi-native-form');
       const editButtons = [...document.querySelectorAll('.gi-tag-field-label button')].filter(b => /edit library/i.test(b.textContent));
       const editAlign = editButtons.map(btn => {
-        const field = btn.closest('.gi-tag-field');
-        const chips = field?.querySelector('.gi-tag-chips');
-        const rows = chips ? [...chips.children].reduce((acc, child) => {
-          const top = Math.round(child.getBoundingClientRect().top);
-          (acc[top] = acc[top] || []).push(child);
-          return acc;
-        }, {}) : {};
-        const rowRights = Object.values(rows).map(items => Math.max(...items.map(i => i.getBoundingClientRect().right)));
-        const widest = rowRights.length ? Math.max(...rowRights) : null;
-        return { field: field?.dataset?.nativeField, delta: widest != null ? btn.getBoundingClientRect().right - widest : null };
+        const owner = btn.closest('.gi-tag-field') || btn.closest('.gi-play-call');
+        const right = owner?.getBoundingClientRect().right;
+        return { field: owner?.dataset?.nativeField || (owner?.matches('.gi-play-call') ? 'playCall' : undefined), delta: right != null ? right - btn.getBoundingClientRect().right : null };
       });
       return {
         formScroll: form ? form.scrollWidth : null, formClient: form ? form.clientWidth : null,
@@ -243,10 +236,12 @@ for (const [unit, playId] of units) {
     // 10. scrollWidth <= clientWidth + 1 at every required width, per unit.
     ok(data.formScroll != null && data.formScroll <= data.formClient + 1, `${unit} at ${width}: charting pane has no internal horizontal scrollbar`, data);
     ok(data.pageOverflow <= 1, `${unit} at ${width}: no page-level horizontal overflow`, data);
-    // 11. Every Edit Library right edge follows the furthest rendered chip.
+    // 11. Every Edit Library right edge aligns to the full module content
+    // edge. Chip rows are content-dependent and deliberately end at different
+    // positions; using them as the alignment target recreated the defect.
     for (const entry of data.editAlign) {
       if (entry.delta == null) continue;
-      ok(Math.abs(entry.delta) <= 8, `${unit} at ${width}: Edit Library (${entry.field}) aligns within 8px of its option content`, entry);
+      ok(Math.abs(entry.delta) <= 1, `${unit} at ${width}: Edit Library (${entry.field}) aligns to the module edge`, entry);
     }
   }
 }

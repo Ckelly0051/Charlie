@@ -388,7 +388,7 @@ function SeasonRail({ screen, hub, hubState }) {
         emptyText="No program seasons yet." />
       <RailSection title="Opponent Scouts" seasons={scouts} hub={hub}
         createLabel="New opponent scout" onCreate={event => hub.openCreateScout(event.currentTarget)}
-        emptyText="No opponents yet" />
+        emptyText="None yet" />
     </div>}
     <div class="rail-tools">
       {hasSeason && <span class="rail-scope">{seasonIdentity(store?.data?.year, screen.teamName(), store?.data?.level)}</span>}
@@ -476,12 +476,14 @@ function EmptyScoutLibrary({ create }) {
   return <div class="library-layout library-scout-empty">
     <section class="library-list-wrap" aria-labelledby="libraryListTitle">
       <div class="library-list-head"><h3 id="libraryListTitle">Opponent scouts</h3></div>
-      <div class="scout-table-head" aria-hidden="true">
-        <span>Opponent</span><span>Season</span><span>Source games</span><span>Plays</span><span>Film</span>
-      </div>
-      <div class="scout-table-empty">
-        <span class="gi-hub-kicker">Scouting queue</span>
-        <h3>No opponents yet</h3>
+      <div class="scout-empty-table" role="table" aria-label="Opponent scout workspaces">
+        <div class="scout-table-head" role="row">
+          <span role="columnheader">Opponent</span><span role="columnheader">Season</span><span role="columnheader">Source games</span><span role="columnheader">Plays</span><span role="columnheader">Film</span>
+        </div>
+        <div class="scout-table-empty">
+          <span class="gi-hub-kicker">Scouting queue</span>
+          <h3>No opponents yet</h3>
+        </div>
       </div>
     </section>
     <aside class="library-overview is-scout scout-start" aria-label="Create opponent scout">
@@ -531,6 +533,7 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
     <div class="library-panel-head">
       <div><span class="gi-hub-kicker">Football workspace</span><h2>{scout ? 'Opponent scouting' : `${teamName} home`}</h2></div>
       {ordered.length || !scout ? <button type="button" class="ws-btn ws-primary" onClick={create}>+ {scout ? 'New opponent scout' : 'New season'}</button> : null}
+      {!ordered.length && scout ? <button type="button" class="ws-btn ws-primary library-mobile-create" onClick={create}>+ New opponent scout</button> : null}
     </div>
     {ordered.length || scout ? <div class={`library-summary${scout ? ' is-scout' : ''}`}>
       <span><small>{scout ? 'Scouting program' : 'Current program'}</small><b>{teamName}</b></span>

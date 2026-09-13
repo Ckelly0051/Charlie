@@ -59,13 +59,19 @@ const clickEditorFooter = (text) => page.evaluate(t => {
 const escapeEditor = () => page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
 const editorOpen = () => page.evaluate(() => !!document.querySelector('.gi-film-cell-editor'));
 
-// Team Hub -> Home -> open the sample game -> Film Room view. The sole
-// game-entry route; Film Room is a MODE inside the native breakdown route,
-// never a standalone reveal-able surface.
+// Home -> open the sample game -> Film Room view. If a prior team switch
+// closed the season, reopen it through Home's consolidated library first.
+// Film Room is a MODE inside the native breakdown route, never a standalone
+// reveal-able surface.
 const openFilmRoom = async () => {
-  await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
-    && !!document.querySelector('[data-hub-open-season]'));
-  await page.click('[data-hub-open-season]');
+  const hasSeason = await page.evaluate(() => !!window.app.storage.seasonStore.hasCurrent());
+  if (!hasSeason) {
+    await page.evaluate(() => window.app.workspaceShell._openLibrary());
+    await page.waitForSelector('[data-library-season] .library-open');
+    await page.click('[data-library-season] .library-open');
+    await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
+  }
+  await page.evaluate(() => window.app.workspaceShell.show('home'));
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
   // V2-A: no per-row Open button -- preview the row, then Continue charting.
   await page.click('.ws-game-row');
@@ -77,11 +83,9 @@ const openFilmRoom = async () => {
   await frame();
 };
 
-// Re-enter Team Hub -> reopen the season -> reopen the same game -> Film Room
-// view. Used before the final interactive block, since the multi-team
-// section closes the active season on team switch.
+// Reopen the season and same game through Home after the multi-team section
+// closes the active season.
 const reopenFilmRoom = async () => {
-  await page.evaluate(() => window.app.workspaceShell._openLibrary());
   await openFilmRoom();
 };
 
@@ -630,17 +634,17 @@ ok(r.reapplied === r.filteredCount && r.reapplied < r.clearedCount,
   'saved filter re-applies identically', JSON.stringify({ f: r.filteredCount, re: r.reapplied, all: r.clearedCount }));
 ok(r.after.length === 0, 'saved filter deletable');
 
-console.log('\n== 9. Multi-team: add a JV team, switch between hubs ==');
-await page.evaluate(async () => { await window.app.workspaceShell.enable(); window.app.workspaceShell._openLibrary(); });
-await page.waitForSelector('[data-native-team-hub] [data-hub-team]');
+console.log('\n== 9. Multi-team: add a JV team through the canonical controller ==');
+await page.evaluate(async () => { await window.app.workspaceShell.enable(); await window.app.workspaceShell._openLibrary(); });
+await page.waitForSelector('.library-panel');
 r = await page.evaluate(() => ({
-  teams: [...document.querySelectorAll('[data-hub-team]')].map(button => button.textContent.trim()),
-  add: !!document.querySelector('.gi-hub-add-team'),
+  teams: window.app.teamRegistry.teams().map(team => team.teamName),
+  route: document.getElementById('workspaceShell')?.dataset.route,
 }));
-ok(r.teams.length === 1 && r.teams[0] === 'Mavericks', 'one native team selector for Mavericks', JSON.stringify(r));
-ok(r.add, '+ Add team action present');
+ok(r.teams.length === 1 && r.teams[0] === 'Mavericks' && r.route === 'home',
+  'Home library begins with the Mavericks program', JSON.stringify(r));
 
-await page.click('.gi-hub-add-team');
+await page.evaluate(() => { window.app.teamHubScreen.openAddTeam(null); });
 await page.waitForSelector('[data-overlay-id="team-hub-add-team"]');
 r = await page.evaluate(() => ({
   form: !!document.querySelector('[data-overlay-id="team-hub-add-team"] .gi-hub-dialog-form'),
@@ -649,42 +653,41 @@ r = await page.evaluate(() => ({
 ok(r.form && r.cancel, 'native add-team dialog shows with Cancel', JSON.stringify(r));
 await page.type('[data-overlay-id="team-hub-add-team"] input[name="school"]', 'JV Squad');
 await page.click('[data-overlay-id="team-hub-add-team"] .gi-hub-form-actions .is-primary');
-await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active')?.textContent.trim() === 'JV Squad');
+await page.waitForFunction(() => JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName === 'JV Squad');
 r = await page.evaluate(() => ({
-  name: document.getElementById('giHubTitle')?.textContent,
-  active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
-  teams: document.querySelectorAll('[data-hub-team]').length,
-  seasons: document.querySelectorAll('[data-season-id]').length,
+  active: window.app.teamHubScreen.snapshot().profile.teamName,
+  teams: window.app.teamRegistry.teams().length,
+  seasons: window.app.teamHubScreen.snapshot().railSeasons.length,
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
   hasCurrent: window.app.storage.seasonStore.hasCurrent(),
 }));
 ok(r.teams === 2 && r.active === 'JV Squad', 'JV team added and active', JSON.stringify(r));
-ok(r.name === 'JV Squad' && r.profile === 'JV Squad', 'native Hub and profile show JV', JSON.stringify(r));
-ok(r.seasons === 0, 'JV hub shows no seasons because the sample belongs to Mavericks', String(r.seasons));
+ok(r.profile === 'JV Squad', 'canonical profile shows JV', JSON.stringify(r));
+ok(r.seasons === 0, 'JV program has no seasons because the sample belongs to Mavericks', String(r.seasons));
 ok(!r.hasCurrent, 'open season was closed on team switch');
 
 console.log('\n== 10. No-season roster state cannot leak across teams ==');
 await page.evaluate(() => window.app.roster.loadFrom([{ num: '7', name: 'JV Kid', pos: 'QB', side: 'O' }]));
-await page.click('[data-hub-team="mavericks"]');
-await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
+await page.evaluate(() => window.app.teamHubScreen.switchTeam('mavericks'));
+await page.waitForFunction(() => window.app.teamRegistry.activeTeamId() === 'mavericks');
 const mavCount = await page.evaluate(() => window.app.roster.players.length);
-await page.click('[data-hub-team="jv-squad"]');
-await page.waitForFunction(() => document.querySelector('[data-hub-team="jv-squad"]')?.classList.contains('is-active'));
+await page.evaluate(() => window.app.teamHubScreen.switchTeam('jv-squad'));
+await page.waitForFunction(() => window.app.teamRegistry.activeTeamId() === 'jv-squad');
 r = await page.evaluate(() => ({ count:window.app.roster.players.length, name:window.app.roster.players[0]?.name || '' }));
 ok(mavCount === 0, 'Mavericks roster untouched by JV player', String(mavCount));
 ok(r.count === 0 && !r.name, 'a roster with no owning season is not restored on switch back', JSON.stringify(r));
 
-console.log('\n== 11. Mavericks hub still owns the sample; remove-team guard ==');
-await page.click('[data-hub-team="mavericks"]');
-await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
+console.log('\n== 11. Mavericks still owns the sample; remove-team guard ==');
+await page.evaluate(() => window.app.teamHubScreen.switchTeam('mavericks'));
+await page.waitForFunction(() => window.app.teamRegistry.activeTeamId() === 'mavericks');
 r = await page.evaluate(() => ({
-  seasonIds: [...document.querySelectorAll('[data-season-id]')].map(node => node.dataset.seasonId),
+  seasonIds: window.app.teamHubScreen.snapshot().railSeasons.map(season => season.id),
   demoId: localStorage.getItem('ffa_demo_season_id') || '',
 }));
 const mavericksSeasonCount = r.seasonIds.length;
 ok(mavericksSeasonCount >= 1 && r.demoId && r.seasonIds.includes(r.demoId),
-  'Mavericks hub still lists the sample season by canonical id', JSON.stringify(r));
-await page.click('.gi-hub-team-actions .is-danger');
+  'Mavericks still lists the sample season by canonical id', JSON.stringify(r));
+await page.evaluate(() => { window.app.teamHubScreen.removeActiveTeam(null); });
 await page.waitForSelector('.gi-overlay-panel');
 r = await page.evaluate(() => document.querySelector('.gi-overlay-panel')?.textContent || '');
 ok(new RegExp(`owns ${mavericksSeasonCount} seasons?`, 'i').test(r),
@@ -692,16 +695,16 @@ ok(new RegExp(`owns ${mavericksSeasonCount} seasons?`, 'i').test(r),
 await page.click('[data-overlay-action="ok"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
 
-await page.click('[data-hub-team="jv-squad"]');
-await page.waitForFunction(() => document.querySelector('[data-hub-team="jv-squad"]')?.classList.contains('is-active'));
-await page.click('.gi-hub-team-actions .is-danger');
+await page.evaluate(() => window.app.teamHubScreen.switchTeam('jv-squad'));
+await page.waitForFunction(() => window.app.teamRegistry.activeTeamId() === 'jv-squad');
+await page.evaluate(() => { window.app.teamHubScreen.removeActiveTeam(null); });
 await page.waitForSelector('.gi-overlay-panel.is-destructive');
 r = await page.evaluate(() => document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '');
 ok(/Remove JV Squad/i.test(r), 'empty team gets the remove confirmation', r);
 await page.click('[data-overlay-action="delete"]');
-await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
+await page.waitForFunction(() => window.app.teamRegistry.teams().length === 1);
 r = await page.evaluate(() => ({
-  teams:document.querySelectorAll('[data-hub-team]').length,
+  teams:window.app.teamRegistry.teams().length,
   active:JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
   rosterCount:window.app.roster.players.length,
 }));

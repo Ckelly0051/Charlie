@@ -193,12 +193,14 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .library-overview-actions .gi-hub-kicker{margin-bottom:1px}
 .ws-home-page .library-overview-actions button{min-height:38px;padding:0 12px;border:1px solid var(--gi-bd-bone);background:transparent;color:var(--gi-bd-strong);font:600 12px var(--gi-sans)}
 .ws-home-page .library-overview-actions button:hover{background:var(--gi-bd-control)}
-.ws-home-page .library-scout-empty{min-height:330px}
+.ws-home-page .library-scout-empty{min-height:330px;padding-top:22px}
+.ws-home-page .library-scout-empty .library-list-wrap{padding-top:0}
+.ws-home-page .library-mobile-create{display:none}
+.ws-home-page .scout-empty-table{display:block}
 .ws-home-page .scout-table-head{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(100px,.75fr) minmax(110px,.75fr) minmax(72px,.5fr) minmax(110px,.8fr);min-height:44px;align-items:center;padding:0 16px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel);color:var(--gi-bd-copy);font-size:11px;font-weight:700;text-transform:uppercase}
 .ws-home-page .scout-table-empty{display:flex;min-height:210px;flex-direction:column;align-items:flex-start;justify-content:center;padding:32px;border-bottom:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .scout-table-empty h3{margin:8px 0 0;color:var(--gi-bd-strong);font:600 22px/1.2 var(--gi-sans)}
-.ws-home-page .scout-start{align-self:stretch}
-.ws-home-page .scout-start .library-overview-head{padding-top:27px}
+.ws-home-page .scout-start{align-self:start;margin-top:0}
 
 .ws-home-page [data-first-use]{max-width:none}
 
@@ -360,6 +362,7 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .first-launch .gi-hub-workspace-choice button{min-height:92px}
   .ws-home-page .first-actions button{width:100%}.ws-home-page .first-secondary{align-items:flex-start;flex-direction:column;gap:12px}
   .ws-home-page .library-panel-head{align-items:stretch;flex-direction:column}.ws-home-page .library-panel-head .ws-btn{align-self:flex-start}
+  .ws-home-page .library-mobile-create{display:inline-flex}.ws-home-page .scout-start .library-continue{display:none}
   .ws-home-page .library-summary{grid-template-columns:1fr 1fr}.ws-home-page .library-summary>span:first-child,.ws-home-page .library-summary>span:last-child{grid-column:1/-1}.ws-home-page .library-summary>span:nth-child(5){grid-column:1/-1}
   .ws-home-page .library-season{grid-template-columns:1fr;grid-template-areas:'identity' 'metrics' 'film' 'actions';padding:16px}
   .ws-home-page .library-season-actions{justify-content:flex-start}
