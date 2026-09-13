@@ -123,14 +123,16 @@ authority until a replacement composition is reviewed and approved.
    selector offers `Our game · start charting Offense/Defense/Special Teams` and
    `Opponent film · Scout`; those choices control analytics perspective and the
    initial charting unit, not a file, folder, managed copy, or linked film source.
-   Investigate whether coaches should make either decision during game creation,
-   whether opponent-scout creation already provides the only legitimate scout
-   boundary, and whether the default charting unit belongs in Break Down instead.
-   Propose a current-design-system Game form using the existing overlay service,
-   with plain football labels and no duplicate persistence path. Keep actual
-   per-game film selection/linking in the canonical film workflow. Cover create,
-   edit, Program, Opponent Scout, keyboard/focus, narrow-width containment, and
-   durable context behavior. No implementation is approved by this entry.
+   **Coach decision: remove this selection entirely.** Program versus Opponent
+   Scout is derived from the owning season; the active charting unit is selected
+   in Break Down and already derives the play perspective there. The repair must
+   preserve those canonical rules without resetting existing game context when
+   an old game is edited. Propose a current-design-system Game form using the
+   existing overlay service, with plain football labels and no duplicate
+   persistence path. Keep actual per-game film selection/linking in the canonical
+   film workflow. Cover create, edit, Program, Opponent Scout, keyboard/focus,
+   narrow-width containment, durable context behavior, and downstream Reports
+   cohort safety. No implementation is approved by this entry.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 
