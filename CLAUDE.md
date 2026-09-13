@@ -12,7 +12,7 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 all four must match; `e2e-p0-exit` asserts it).
 
 **Packaging status:** `1.12.0-83` is the current unsigned local visual-smoke
-candidate. It replaces the rejected `1.12.0-82` Season Library composition with
+candidate, packaged from `9ab20d5`. It replaces the rejected `1.12.0-82` Season Library composition with
 the approved-comp structure: aggregate program band, operational season rows,
 and latest-season/film-health context. Focused Home
 verification is green; the full gate was not rerun for this Home-only visual
