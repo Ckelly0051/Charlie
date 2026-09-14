@@ -190,7 +190,9 @@ workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedS
       // program season adopts itself, and an open scout adopts its own stored
       // parent. Nothing here searches by team/year/level or lastOpened.
       const liveData = this._store()?.data || null;
-      if (context && liveData) context.adoptOpenedSeason(liveData);
+      // PASSIVE: a re-render adopts the parent but must not restate the mode of
+      // an open program season, or it would undo the switch that triggered it.
+      if (context && liveData) context.syncParentFromOpen(liveData);
       const programSeasonId = context ? context.programSeasonId() : '';
       const parentSeason = teamSeasons.find(season => String(season.id) === String(programSeasonId)) || null;
       // `seasons` stays the MAIN-PANEL filtered collection (the library grid
@@ -477,10 +479,13 @@ workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedS
     // season's id is stored on it durably. Without a parent there is nothing to
     // own the scout, and inventing one from team/year/level is the guess this
     // model exists to remove.
+    // Created inside a parent program season's Opponent Scout view, that season
+    // owns it. Created at FIRST LAUNCH -- the accepted opponent-first setup path,
+    // where no program season exists yet -- it is born unassigned and surfaced
+    // as needing a parent, exactly like a legacy scout. Refusing here instead
+    // would delete a coach flow, and inventing a program season to own it would
+    // be the guess this model exists to remove.
     const programSeasonId = String(this._context()?.programSeasonId?.() || '');
-    if (!programSeasonId) {
-      return { ok: false, message: 'Open the program season this scout belongs to, then create the scout from its Opponent Scout view.' };
-    }
     try {
       const rec = await this._storage().createSeason({
         name: seasonName, year: cleanYear, level: cleanLevel, kind: 'scout',

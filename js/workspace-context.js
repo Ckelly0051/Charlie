@@ -89,15 +89,33 @@ export class WorkspaceContext {
       return this._programSeasonId;
     }
     if (!id) return this._programSeasonId;
-    // A program season can legitimately be open in EITHER view: Our Program, or
-    // its own scout library while it stays open as the parent. So the mode is
-    // only forced when the PARENT ITSELF changes -- opening a different program
-    // season is a new context and starts on Our Program. Forcing it on every
-    // adopt instead is what silently undid a switch the coach had just made,
-    // because `load()` adopts on every pass.
-    const parentChanged = id !== this._programSeasonId;
+    // DELIBERATELY opening a program season is a request for Our Program -- a
+    // rail row, the season picker, the library. The mode follows.
     this.setParentSeason(id);
-    if (parentChanged) this.setWorkspaceMode('program');
+    this.setWorkspaceMode('program');
+    return this._programSeasonId;
+  }
+
+  /**
+   * PASSIVE re-read of the open document (a re-render, not a navigation).
+   *
+   * It may only adopt the parent, never the mode of a program season: a program
+   * season is legitimately open in EITHER view — Our Program, or its own scout
+   * library while it stays open as the parent. Forcing the mode here is what
+   * silently undid a switch the coach had just made, because `load()` runs on
+   * every pass. A scout still pins the mode, because a scout cannot be open in
+   * Our Program at all.
+   */
+  syncParentFromOpen(data) {
+    if (!data) return this._programSeasonId;
+    if (data.kind === 'scout') {
+      const parent = String(data.programSeasonId || '');
+      if (parent) this.setParentSeason(parent);
+      this.setWorkspaceMode('scout');
+      return this._programSeasonId;
+    }
+    const id = String(data.id || '');
+    if (id) this.setParentSeason(id);
     return this._programSeasonId;
   }
 
