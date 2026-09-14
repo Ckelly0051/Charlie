@@ -65,7 +65,9 @@ const legacyBoundaries = await page.evaluate(() => {
   const store = window.app.storage.seasonStore;
   const SeasonStore = store.constructor;
   const game = { id:'legacy-game', roster:[{ num:'8', name:'Legacy Player' }], plays:[] };
-  const viaBoundary = payload => store._normalize(SeasonStore.adoptLegacyRoster(structuredClone(payload))).roster.map(player => player.name);
+  // The boundary returns a RESULT ({data, status, conflict, ...}) so a caller can
+  // surface a migration conflict instead of guessing which copy wins.
+  const viaBoundary = payload => store._normalize(SeasonStore.adoptLegacyRoster(structuredClone(payload)).data).roster.map(player => player.name);
   const viaLoad = payload => store._normalize(structuredClone(payload)).roster.map(player => player.name);
   return {
     absent: viaBoundary({ id:'legacy-absent', games:[game] }),
@@ -74,10 +76,13 @@ const legacyBoundaries = await page.evaluate(() => {
     nowhere: viaBoundary({ id:'legacy-nowhere', games:[{ id:'empty-game', plays:[] }] }),
     loadAbsent: viaLoad({ id:'load-absent', games:[game] }),
     twice: (() => {
-      const once = SeasonStore.adoptLegacyRoster({ id:'twice', games:[game] });
+      // Conversion also REMOVES the game-level copy, so a second run has
+      // nothing to find even before the marker refuses it -- both guards are
+      // asserted separately in e2e-roster-ownership.
+      const once = SeasonStore.adoptLegacyRoster({ id:'twice', games:[structuredClone(game)] }).data;
       once.rosterOwnership = SeasonStore.ROSTER_OWNERSHIP;
       once.roster = [];
-      return SeasonStore.adoptLegacyRoster(once).roster.map(player => player.name);
+      return SeasonStore.adoptLegacyRoster(once).data.roster.map(player => player.name);
     })(),
   };
 });

@@ -128,15 +128,23 @@ await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Mavericks JV', team: 'Mavericks', year: '2026', level: 'JV' });
 });
 
+/* `rosters` is `{ season, games }`. The SEASON owns the roster
+   (SeasonStore.ROSTER_OWNERSHIP), so a game node gets one ONLY when a case
+   deliberately plants a legacy/scout copy there for attribution to ignore --
+   giving every game an empty `roster: []` was the fixture reproducing the dual
+   ownership the model no longer has. */
 const load = async (list, rosters = null) => {
   await page.evaluate(async (rows, byId) => {
     const store = window.app.storage.seasonStore;
+    const planted = (byId && byId.games) || null;
     store.data.games = rows.map(game => ({ id: game.id, name: '', nextId: game.plays.length + 1,
-      roster: (byId && byId[game.id]) || [],
+      ...(planted && planted[game.id] ? { roster: planted[game.id] } : {}),
       plays: game.plays.map((row, i) => ({ id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 },
         notes: '', annotations: [], tags: { custom: [], players: {}, grades: {}, ...row } })),
       gameInfo: game.info, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }));
     store.data.activeGameId = rows[rows.length - 1].id;
+    store.data.roster = (byId && byId.season) || [];
+    window.app.roster?.loadFrom?.(store.data.roster, { persist: false });
     await window.app.storage._loadActiveGame({ renderGames: false });
   }, list, rosters);
   await sleep(550);
@@ -520,8 +528,14 @@ ok(/No data/.test(partialTrends.gbg || ''),
 
 /* ══ 9c. Opponent-scout rosters never rename our players ══════════════════ */
 console.log('\n== 9c. Roster identity ==');
-await load(FULL, { g1: ROSTER_SELF, 'scout-1': ROSTER_SCOUT });
+await load(FULL, { season: ROSTER_SELF, games: { 'scout-1': ROSTER_SCOUT } });
 const roster = await page.evaluate(() => window.app.season.reportModel().rosterLabels);
+/* The hostile copy has to BE there, or "no opponent name reaches the season
+   roster" is satisfied by an empty fixture rather than by the model. */
+const plantedScout = await page.evaluate(() =>
+  (window.app.storage.seasonStore.data.games.find(g => g.id === 'scout-1')?.roster || []).map(p => p.name));
+ok(plantedScout.join('|') === 'OPPONENT BACK|OPPONENT QB',
+  'the scout game really does carry a conflicting roster on its own node', JSON.stringify(plantedScout));
 ok(roster['22'] === 'Terrance Whitfield' && roster['12'] === 'Jaylen Ruiz',
   'a shared jersey number keeps OUR player\'s name', JSON.stringify(roster));
 ok(!Object.values(roster).some(name => /OPPONENT/.test(name)),
