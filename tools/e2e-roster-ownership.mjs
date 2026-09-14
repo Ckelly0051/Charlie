@@ -20,11 +20,22 @@
  *     normal revision-fenced write queue BEFORE exposing the season, and a
  *     second open dispatches no write at all.
  *
+ * And a conflict or a failed migration write ABORTS the operation (2026-09-14).
+ * Exposing a conflicted season was itself destructive on a path no single open
+ * could show: `_normalize` coerced a synthetic `season.roster: []` beside the
+ * surviving copies, the next ordinary save persisted it, and the open after that
+ * read it as an EXPLICIT season roster and deleted every conflicting copy. Open,
+ * import and restore therefore refuse, preserving the prior active season, its
+ * live roster, the backend pointer and the source bytes.
+ *
  * Every section is written to fail for a specific reason. Mutation-verified:
- * restoring "first non-empty copy wins" reds 7's conflict assertions; keeping
- * the game-level copies reds 7/7b/7d/8's removal assertions; converting in
- * memory only (skipping the durable write) reds 7b's on-disk assertions; and
- * marking a conflicted season reds 7c. Recorded in docs/OPEN-DEFECTS.md.
+ * restoring "first non-empty copy wins" reds 7 assertions; keeping the
+ * game-level copies reds 10; converting in memory only reds 3; re-exposing
+ * `_normalize(original)` after a conflict reds 8 (and reproduces the
+ * save-then-reopen deletion in the output); continuing `adopt()` past a conflict
+ * reds 4; continuing `restoreBackup()` past one reds 3; reverting the marker
+ * check to `roster.length` reds 1; and exposing a target after a failed
+ * migration write reds 2. Recorded in docs/OPEN-DEFECTS.md.
  */
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
@@ -141,6 +152,7 @@ ok(r.newGameHasRoster === false, 'A newly created game carries no roster field',
 console.log('\n== 6. Modern loading NEVER adopts a roster from a game node ==');
 r = await run(async () => {
   const st = window.app.storage.seasonStore;
+  const SeasonStore = st.constructor;
   // A season deliberately emptied, whose legacy game nodes still carry players.
   const body = {
     id: 'adopt-probe', seasonName: 'Adopt Probe', year: '2026', level: 'JV', roster: [],
@@ -152,10 +164,22 @@ r = await run(async () => {
   const normalizedNoKey = st._normalize(JSON.parse(JSON.stringify(noKey)));
   // A modern season -- no game node carries the field at all.
   const modern = st._normalize({ id: 'modern', roster: [{ num: '5' }], games: [{ id: 'g1', plays: [] }] });
+  // An EMPTY own property is still dual ownership: the property exists, and a
+  // later writer filling it would recreate the copy under a marker asserting
+  // none can exist.
+  const emptyProp = st._normalize({ id: 'emptyprop', roster: [{ num: '5' }], games: [{ id: 'g1', plays: [], roster: [] }] });
+  const removedProp = st._normalize({
+    id: 'removedprop', roster: [{ num: '5' }],
+    games: [SeasonStore.adoptLegacyRoster({ id: 'x', roster: [{ num: '5' }], games: [{ id: 'g1', plays: [], roster: [] }] }).data.games[0]],
+  });
   return {
     emptied: (normalized.roster || []).length, legacyMarker: normalized.rosterOwnership || '(none)',
     noKey: (normalizedNoKey.roster || []).length,
     modernMarker: modern.rosterOwnership || '(none)',
+    emptyPropMarker: emptyProp.rosterOwnership || '(none)',
+    emptyPropRetained: Object.prototype.hasOwnProperty.call(emptyProp.games[0], 'roster'),
+    removedPropMarker: removedProp.rosterOwnership || '(none)',
+    removedPropKey: Object.prototype.hasOwnProperty.call(removedProp.games[0], 'roster'),
   };
 });
 ok(r.emptied === 0, 'An explicitly empty season stays empty even when its games hold players', String(r.emptied));
@@ -167,6 +191,11 @@ ok(r.modernMarker === 'season', 'A season with no game-level copies is marked as
    a conflicting season would be stranded with its copies forever. */
 ok(r.legacyMarker === '(none)',
   '`_normalize` refuses to mark a season whose games still carry rosters', r.legacyMarker);
+ok(r.emptyPropRetained === true && r.emptyPropMarker === '(none)',
+  'A game holding `roster: []` blocks the settled marker -- the PROPERTY is the dual ownership, not its length',
+  JSON.stringify({ retained: r.emptyPropRetained, marker: r.emptyPropMarker }));
+ok(r.removedPropKey === false && r.removedPropMarker === 'season',
+  'Removing that empty property is what settles it', JSON.stringify({ key: r.removedPropKey, marker: r.removedPropMarker }));
 
 console.log('\n== 7. The boundary VALIDATES; it never guesses which copy wins ==');
 r = await run(async () => {
@@ -291,53 +320,175 @@ ok(r.secondRecord === null, 'A settled season reports no migration at all', JSON
 ok(r.afterEmptying.live === '' && r.afterEmptying.disk.roster === '' && r.afterEmptying.disk.gameRosters === 0,
   'Emptying and saving the roster does NOT resurrect players on the next open', JSON.stringify(r.afterEmptying));
 
-console.log('\n== 7c. A conflicting legacy season opens WITHOUT a silent decision ==');
+console.log('\n== 7c. A conflicting legacy season DOES NOT OPEN ==');
+/* Exposing it was itself destructive, on a three-step path a single open cannot
+   show: `_normalize` coerced a synthetic `season.roster: []` beside the
+   surviving conflicting game rosters, the next ordinary save persisted that
+   synthetic roster, and the open after THAT read it as an explicit season
+   roster and deleted every conflicting copy. So the season is refused: the one
+   the coach already had open stays open, untouched, and nothing about the
+   refused season is written. */
 r = await run(async () => {
   const S = window.app.storage, st = S.seasonStore;
-  const body = {
-    id: 'legacy-conflict', seasonName: 'Legacy Conflict', year: '2024', level: 'JV',
+  const bodyOf = id => ({
+    id, seasonName: 'Legacy Conflict', year: '2024', level: 'JV',
     games: [
       { id: 'cg1', name: 'Week 1', plays: [], roster: [{ num: '11', name: 'Ames' }] },
       { id: 'cg2', name: 'Week 2', plays: [], roster: [{ num: '22', name: 'Vega' }] },
     ],
+  });
+  await st.backend.saveSeason('legacy-conflict', bodyOf('legacy-conflict'));
+  const sourceBytes = JSON.stringify(await st.backend.loadSeason('legacy-conflict'));
+  // A real season the coach is working in, with its own roster and live state.
+  const held = await window.__r.make('Held Open', 'HO Team', '2026', 'Varsity', [17, 18]);
+  const before = {
+    id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored(),
+    pointer: st.backend.currentSeason(), activeGameId: st.data.activeGameId,
+    loadedGameId: S._loadedGameId,
   };
-  await st.backend.saveSeason('legacy-conflict', JSON.parse(JSON.stringify(body)));
   const reports = [];
-  st.onRosterMigration = record => reports.push(record);
-  await S.openSeasonById('legacy-conflict');
+  st.onRosterMigration = record => reports.push(record && { ok: record.ok, status: record.status, variants: record.variants, season: record.season });
+  const opened = await S.openSeasonById('legacy-conflict');
+  const after = {
+    returned: opened, id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored(),
+    pointer: st.backend.currentSeason(), activeGameId: st.data.activeGameId,
+    loadedGameId: S._loadedGameId,
+    dataIsHeld: st.data.id === before.id,
+  };
+  // The refused season's bytes, and the fact that no library row was written.
+  const sameBytes = JSON.stringify(await st.backend.loadSeason('legacy-conflict')) === sourceBytes;
+  /* Now the destructive sequence, driven end to end: save the season that IS
+     open, switch away and back, then try the conflicted season again. None of
+     that may turn the conflict into an explicit empty roster. */
+  window.app.roster.loadFrom([{ num: '17', name: 'P17' }, { num: '18', name: 'P18' }]);
+  S.commitActive(); await st.persist();
+  await S.openSeasonById(held);
+  const secondAttempt = await S.openSeasonById('legacy-conflict');
+  const stillSameBytes = JSON.stringify(await st.backend.loadSeason('legacy-conflict')) === sourceBytes;
   const disk = await st.backend.loadSeason('legacy-conflict');
-  const out = {
-    live: window.__r.stored(),
-    liveGameRosters: (st.data.games || []).filter(g => Array.isArray(g.roster)).length,
+  st.onRosterMigration = null;
+  return {
+    before, after, sameBytes, secondAttempt, stillSameBytes,
     diskMarker: disk?.rosterOwnership || '(none)',
-    diskRoster: (disk?.roster || []).length,
+    diskHasRosterKey: Object.prototype.hasOwnProperty.call(disk || {}, 'roster'),
     diskGameRosters: (disk?.games || []).filter(g => Array.isArray(g.roster)).length,
     diskNums: (disk?.games || []).flatMap(g => (g.roster || []).map(p => String(p.num))).sort().join(','),
-    reported: reports.map(rec => rec && { ok: rec.ok, status: rec.status, variants: rec.variants }),
+    reported: reports,
   };
-  /* And the ordinary save that switching seasons performs must not settle it
-     either. `openSeasonById` commits and persists the outgoing season, so a
-     season marked in memory during a conflicted open would have that marker
-     written to disk by the very next navigation -- stranding the conflicting
-     copies behind a marker that says the migration is finished. */
-  await window.__r.make('Conflict Exit', 'CE Team', '2026', 'Varsity', [5]);
-  const after = await st.backend.loadSeason('legacy-conflict');
-  out.afterSwitch = {
-    marker: after?.rosterOwnership || '(none)',
-    gameRosters: (after?.games || []).filter(g => Array.isArray(g.roster)).length,
-  };
-  st.onRosterMigration = null;
-  return out;
 });
-ok(r.live === '', 'Neither conflicting roster is promoted to the season', r.live);
-ok(r.diskGameRosters === 2 && r.diskNums === '11,22' && r.diskRoster === 0,
+ok(r.after.returned === false, 'A conflicted season cannot become the editable current season', JSON.stringify(r.after.returned));
+ok(r.after.id === r.before.id && r.after.dataIsHeld,
+  'The previously selected season is still the current season', JSON.stringify({ before: r.before.id, after: r.after.id }));
+ok(r.after.live === r.before.live && r.after.stored === r.before.stored && r.after.live === '17,18',
+  'Its live roster and stored roster are untouched', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.after.pointer === r.before.pointer && r.after.loadedGameId === r.before.loadedGameId
+  && r.after.activeGameId === r.before.activeGameId,
+  'The backend current-season pointer and the loaded game are restored', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.sameBytes, 'The refused season\'s durable bytes are byte-identical after the attempt', String(r.sameBytes));
+ok(r.secondAttempt === false && r.stillSameBytes,
+  'Saving, switching away and reopening cannot convert the conflict or delete its game rosters', JSON.stringify({ second: r.secondAttempt, same: r.stillSameBytes }));
+ok(r.diskGameRosters === 2 && r.diskNums === '11,22',
   'Both source rosters are left exactly as found on disk', JSON.stringify(r));
-ok(r.diskMarker === '(none)',
-  'An unresolved conflict is never recorded as a settled migration', r.diskMarker);
-ok(r.reported.length === 1 && r.reported[0].ok === false && r.reported[0].status === 'conflict' && r.reported[0].variants === 2,
-  'The conflict is surfaced to the app, not swallowed', JSON.stringify(r.reported));
-ok(r.afterSwitch.marker === '(none)' && r.afterSwitch.gameRosters === 2,
-  'Leaving the season does not write a settled marker over an unresolved conflict', JSON.stringify(r.afterSwitch));
+ok(r.diskHasRosterKey === false && r.diskMarker === '(none)',
+  'No synthetic season roster and no settled marker are ever written', JSON.stringify({ roster: r.diskHasRosterKey, marker: r.diskMarker }));
+/* Three reports, in order: the first refusal, `null` for the healthy season
+   reopened in between, and the second refusal. Both refusals must be surfaced --
+   a conflict that reports only the first time leaves the coach with a season
+   that silently does nothing when clicked. */
+const refusals = r.reported.filter(rec => rec && rec.ok === false);
+ok(r.reported.length === 3 && r.reported[1] === null && refusals.length === 2
+  && refusals.every(rec => rec.status === 'conflict' && rec.variants === 2 && rec.season === 'Legacy Conflict'),
+  'Every refusal is surfaced, naming the season', JSON.stringify(r.reported));
+
+console.log('\n== 7e. A FAILED migration write is contained the same way ==');
+r = await run(async () => {
+  const S = window.app.storage, st = S.seasonStore;
+  const body = {
+    id: 'legacy-writefail', seasonName: 'Write Fail', year: '2024', level: 'JV',
+    games: [{ id: 'wf1', name: 'G1', plays: [], roster: [{ num: '77', name: 'Legacy' }] }],
+  };
+  await st.backend.saveSeason('legacy-writefail', JSON.parse(JSON.stringify(body)));
+  const sourceBytes = JSON.stringify(await st.backend.loadSeason('legacy-writefail'));
+  const held = await window.__r.make('Held For Fail', 'HF Team', '2026', 'JV', [41]);
+  const before = { id: st.currentSeasonId, live: window.__r.nums(), pointer: st.backend.currentSeason() };
+  // Reject only the migration write for THIS season; every other write is real.
+  const realSave = st.backend.saveSeason.bind(st.backend);
+  st.backend.saveSeason = async (id, data) => (id === 'legacy-writefail' ? false : realSave(id, data));
+  const reports = [];
+  st.onRosterMigration = record => reports.push(record && { ok: record.ok, status: record.status });
+  const opened = await S.openSeasonById('legacy-writefail');
+  st.backend.saveSeason = realSave;
+  st.onRosterMigration = null;
+  const after = { id: st.currentSeasonId, live: window.__r.nums(), pointer: st.backend.currentSeason() };
+  const sameBytes = JSON.stringify(await st.backend.loadSeason('legacy-writefail')) === sourceBytes;
+  // With the backend healthy again, the migration must still be available.
+  const retry = await S.openSeasonById('legacy-writefail');
+  return { opened, before, after, sameBytes, reports, retry, retryRoster: window.__r.stored(), held };
+});
+ok(r.opened === false, 'A season whose migration write fails is not opened', JSON.stringify(r.opened));
+ok(r.after.id === r.before.id && r.after.live === r.before.live && r.after.pointer === r.before.pointer,
+  'The previous season stays active with its own roster after a failed migration write', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.sameBytes, 'The target\'s durable source is unchanged by a failed migration write', String(r.sameBytes));
+ok(r.reports.length === 1 && r.reports[0].ok === false && r.reports[0].status === 'failed',
+  'The write failure is reported as a failure, not as a migration', JSON.stringify(r.reports));
+ok(r.retry === true && r.retryRoster === '77',
+  'The migration is still available and converts once the write can land', JSON.stringify({ retry: r.retry, roster: r.retryRoster }));
+
+console.log('\n== 7f. A conflicting import is refused, changing nothing ==');
+r = await run(async () => {
+  const S = window.app.storage, st = S.seasonStore;
+  const dest = await window.__r.make('Import Dest', 'ID Team', '2026', 'Varsity', [64]);
+  const beforeBytes = JSON.stringify(await st.backend.loadSeason(dest));
+  const before = { id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored() };
+  const result = await st.adopt({
+    type: 'season', seasonName: 'Conflicted Import', year: '2023', level: 'JV',
+    games: [
+      { id: 'ci1', name: 'Week 1', plays: [], roster: [{ num: '1', name: 'One' }] },
+      { id: 'ci2', name: 'Week 2', plays: [], roster: [{ num: '2', name: 'Two' }] },
+    ],
+  });
+  const afterBytes = JSON.stringify(await st.backend.loadSeason(dest));
+  return {
+    ok: result?.ok, data: result?.data, conflict: result?.conflict ? { variants: result.conflict.variants, games: result.conflict.games } : null,
+    before, after: { id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored(), name: st.data.seasonName },
+    sameBytes: beforeBytes === afterBytes,
+  };
+});
+ok(r.ok === false && r.data === null, 'A conflicting import returns ok:false', JSON.stringify({ ok: r.ok, data: r.data }));
+ok(r.conflict && r.conflict.variants === 2 && r.conflict.games.join(',') === 'Week 1,Week 2',
+  'It returns structured conflict information', JSON.stringify(r.conflict));
+ok(r.after.id === r.before.id && r.after.stored === r.before.stored && r.after.live === r.before.live && r.after.name === 'Import Dest',
+  'The destination season, its roster and the live roster are unchanged', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.sameBytes, 'The conflicted import is never persisted', String(r.sameBytes));
+
+console.log('\n== 7g. A conflicting restore aborts, changing nothing ==');
+r = await run(async () => {
+  const S = window.app.storage, st = S.seasonStore;
+  const target = await window.__r.make('Restore Dest', 'RD Team', '2026', 'JV', [8, 9]);
+  const beforeBytes = JSON.stringify(await st.backend.loadSeason(target));
+  const before = { id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored() };
+  const rec = await st.backend.createBackup(target, {
+    id: target, type: 'season', seasonName: 'Restore Dest',
+    games: [
+      { id: 'rb1', name: 'Week 1', plays: [], roster: [{ num: '3', name: 'Three' }] },
+      { id: 'rb2', name: 'Week 2', plays: [], roster: [{ num: '4', name: 'Four' }] },
+    ],
+  }, 'conflicting backup');
+  const bid = rec && typeof rec === 'object' ? rec.id : rec;
+  const backupBefore = JSON.stringify(await st.backend.getBackup(target, bid));
+  const restored = await S.restoreBackup(bid);
+  return {
+    attempted: bid != null, restored,
+    before, after: { id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored() },
+    sameSeason: beforeBytes === JSON.stringify(await st.backend.loadSeason(target)),
+    sameBackup: backupBefore === JSON.stringify(await st.backend.getBackup(target, bid)),
+  };
+});
+ok(r.attempted && r.restored === false, 'A conflicting restore reports failure through the existing API', JSON.stringify(r.restored));
+ok(r.after.id === r.before.id && r.after.stored === r.before.stored && r.after.live === r.before.live,
+  'The current season and its live roster are unchanged by a refused restore', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.sameSeason, 'No canonical season data is replaced', String(r.sameSeason));
+ok(r.sameBackup, 'The conflicting backup keeps its own bytes', String(r.sameBackup));
 
 console.log('\n== 7d. Import and adopt obey the same ownership contract ==');
 r = await run(async () => {
