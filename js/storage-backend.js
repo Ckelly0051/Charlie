@@ -207,6 +207,8 @@ export class BrowserBackend extends StorageBackend {
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
       level: meta.level || '', teamId: meta.teamId || '',
+      // A scout names the program season that owns it. Program seasons carry ''.
+      programSeasonId: meta.programSeasonId || '',
       isDemo: !!meta.isDemo, kind: meta.isDemo ? 'demo' : (meta.kind || ''),
       games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
@@ -712,6 +714,8 @@ export class TauriBackend extends StorageBackend {
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
       level: meta.level || '', teamId: meta.teamId || '',
+      // A scout names the program season that owns it. Program seasons carry ''.
+      programSeasonId: meta.programSeasonId || '',
       isDemo: !!meta.isDemo, kind: meta.isDemo ? 'demo' : (meta.kind || ''),
       games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };

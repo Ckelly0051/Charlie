@@ -574,6 +574,11 @@ export class StorageManager {
     // retaining the prior non-empty value is how JV/Varsity rosters leaked into
     // one another. `persist:false` prevents a read from scheduling a write.
     app?.roster?.loadFrom?.(this.seasonStore.data?.roster || [], { persist: false });
+    // One post-open seam adopts the Home parent context, so every path that
+    // opens a season -- Home, the shell picker, recovery, import -- lands on the
+    // same owner. A program season is its own parent; a scout adopts the parent
+    // it stores.
+    app?.workspace?.adoptOpenedSeason?.(this.seasonStore.data || null);
     this._reportRosterMigration();
     this._clearForNewGame();
     // _loadActiveGame already refreshes the season chip + games panel and resets

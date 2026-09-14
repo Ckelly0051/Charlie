@@ -19,17 +19,147 @@ const WORKSPACE_ROUTES = Object.freeze([
  * Study, and Plan, plus an async film-health view model over StorageBackend.
  */
 export class WorkspaceContext {
+  /** The one durable key for the Home parent context. It replaces
+   *  `giq_home_workspace`, which stored only the mode and left ownership to be
+   *  re-guessed from `lastOpened` on every switch. */
+  static PARENT_KEY = 'giq_home_parent';
+
   constructor(app) {
     if (!app || !app.storage) throw new TypeError('WorkspaceContext requires App storage');
     this.app = app;
     this._route = 'home';
     this._filmOperations = new Map();
+    // THE ONE OWNER of the Home parent context. `_programSeasonId` is the
+    // program season that owns this workspace; `_workspaceMode` is which of its
+    // two views is showing. They are deliberately separate from "which season
+    // document is currently open in the store": entering Opponent Scout changes
+    // the view without closing the parent, and opening a scout changes the open
+    // document without changing the parent.
+    this._programSeasonId = '';
+    this._workspaceMode = 'program';
+    this._restoreParent();
   }
 
   listRoutes() { return WORKSPACE_ROUTES.slice(); }
   currentRoute() { return this._route; }
 
   _store() { return this.app.storage?.seasonStore || null; }
+
+  // ---- Home parent context (the single ownership seam) ---------------------
+
+  /** The program season that owns the current Home workspace. Never inferred
+   *  from `lastOpened`, team/year/level, or which document happens to be open. */
+  programSeasonId() { return this._programSeasonId; }
+  workspaceMode() { return this._workspaceMode; }
+
+  /** Adopt a program season as the parent context. Called when a program season
+   *  is opened, and when a scout is opened (with the scout's own stored
+   *  `programSeasonId`). Returns the id actually held. */
+  setParentSeason(id) {
+    const next = String(id || '');
+    if (next !== this._programSeasonId) {
+      this._programSeasonId = next;
+      this._persistParent();
+    }
+    return this._programSeasonId;
+  }
+
+  setWorkspaceMode(mode) {
+    const next = mode === 'scout' ? 'scout' : 'program';
+    if (next !== this._workspaceMode) {
+      this._workspaceMode = next;
+      this._persistParent();
+    }
+    return this._workspaceMode;
+  }
+
+  /** Adopt the parent implied by a season record that has just been opened: a
+   *  program season IS its own parent; a scout names its parent explicitly. A
+   *  scout with no stored parent leaves the current parent untouched rather than
+   *  guessing one — an unassigned scout is surfaced, never silently attached. */
+  adoptOpenedSeason(data) {
+    if (!data) return this._programSeasonId;
+    const id = String(data.id || '');
+    // A scout can only be open in the Opponent Scout view, so the mode is
+    // DERIVED here rather than stored -- there is no ambiguity to record.
+    if (data.kind === 'scout') {
+      const parent = String(data.programSeasonId || '');
+      if (parent) this.setParentSeason(parent);
+      this.setWorkspaceMode('scout');
+      return this._programSeasonId;
+    }
+    if (!id) return this._programSeasonId;
+    // A program season can legitimately be open in EITHER view: Our Program, or
+    // its own scout library while it stays open as the parent. So the mode is
+    // only forced when the PARENT ITSELF changes -- opening a different program
+    // season is a new context and starts on Our Program. Forcing it on every
+    // adopt instead is what silently undid a switch the coach had just made,
+    // because `load()` adopts on every pass.
+    const parentChanged = id !== this._programSeasonId;
+    this.setParentSeason(id);
+    if (parentChanged) this.setWorkspaceMode('program');
+    return this._programSeasonId;
+  }
+
+  _persistParent() {
+    try {
+      localStorage.setItem(WorkspaceContext.PARENT_KEY,
+        JSON.stringify({ programSeasonId: this._programSeasonId, mode: this._workspaceMode }));
+    } catch (e) {}
+  }
+
+  _restoreParent() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WorkspaceContext.PARENT_KEY) || 'null');
+      if (raw && typeof raw === 'object') {
+        this._programSeasonId = String(raw.programSeasonId || '');
+        this._workspaceMode = raw.mode === 'scout' ? 'scout' : 'program';
+        return;
+      }
+    } catch (e) {}
+    // One-time carry from the mode-only key this replaces. The mode is all it
+    // ever held, so no parent can be recovered from it — and none is invented.
+    try { this._workspaceMode = localStorage.getItem('giq_home_workspace') === 'scout' ? 'scout' : 'program'; }
+    catch (e) {}
+  }
+
+  /**
+   * THE COMPATIBILITY BOUNDARY for a scout record written before
+   * `programSeasonId` existed.
+   *
+   * Exactly one program season sharing the scout's teamId, year and level is an
+   * unambiguous parent and may be adopted. Zero or several is NOT resolvable,
+   * and guessing is forbidden — the scout keeps its data and is reported as
+   * needing assignment. `lastOpened` is never consulted: it orders scouts
+   * inside an already-correct parent and can never establish ownership.
+   *
+   * Pure: reads metas, writes nothing.
+   * @returns {{ status: 'explicit'|'inferred'|'unassigned', programSeasonId: string, candidates: string[] }}
+   */
+  static resolveScoutParent(scout, seasons) {
+    const explicit = String(scout?.programSeasonId || '');
+    if (explicit) return { status: 'explicit', programSeasonId: explicit, candidates: [explicit] };
+    const key = value => String(value ?? '').trim().toLowerCase();
+    const candidates = (seasons || []).filter(season => season && season.kind !== 'scout'
+      && key(season.teamId) === key(scout?.teamId)
+      && key(season.year) === key(scout?.year)
+      && key(season.level) === key(scout?.level));
+    if (candidates.length === 1) {
+      return { status: 'inferred', programSeasonId: String(candidates[0].id), candidates: [String(candidates[0].id)] };
+    }
+    return { status: 'unassigned', programSeasonId: '', candidates: candidates.map(season => String(season.id)) };
+  }
+
+  /** The scouts belonging to one program season. Parent-scoped by the durable
+   *  relationship only; `lastOpened` may ORDER them and nothing more. */
+  static scoutsForParent(seasons, programSeasonId) {
+    const parent = String(programSeasonId || '');
+    if (!parent) return [];
+    return (seasons || [])
+      .filter(season => season?.kind === 'scout'
+        && WorkspaceContext.resolveScoutParent(season, seasons).programSeasonId === parent)
+      .sort((a, b) => String(b.lastOpened || '').localeCompare(String(a.lastOpened || '')));
+  }
 
   snapshot() {
     const store = this._store();
@@ -48,6 +178,10 @@ export class WorkspaceContext {
     const gameInfo = game?.gameInfo || {};
     return {
       route: this._route,
+      // The Home parent context, read from its one owner. `season` below is the
+      // OPEN document, which in Opponent Scout is a scout rather than the parent.
+      workspaceMode: this._workspaceMode,
+      programSeasonId: this._programSeasonId,
       team: teamName || teamId ? { id: teamId, name: teamName } : null,
       season: data && seasonId ? {
         id: seasonId,

@@ -1,6 +1,7 @@
 import { h } from 'preact';
 import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, CreateScoutForm, EditSeasonForm, SeasonSetupGuide, ConfirmDeleteForm, RecoverSeasonsForm } from './native-team-hub.jsx';
 import { fullIdentity, seasonIdentity } from './identity-labels.js';
+import { WorkspaceContext } from './workspace-context.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -14,7 +15,10 @@ export class TeamHubScreen {
     this.host = null;
     this._native = null;
     this._listeners = new Set();
-    this._state = { status: 'idle', teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, workspaceMode: (() => { try { return localStorage.getItem('giq_home_workspace') === 'scout' ? 'scout' : 'program'; } catch { return 'program'; } })(), allTeamSeasonCount: 0, control: null, error: '' };
+    this._state = { status: 'idle', teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, // `workspaceMode` is a RENDERING PROJECTION of WorkspaceContext, which owns it
+// along with the parent program season. It is not a second cache: load() reads
+// it back from that owner on every pass, and nothing else writes it.
+workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedScouts: [], allTeamSeasonCount: 0, control: null, error: '' };
     this._loadToken = 0;
   }
 
@@ -90,50 +94,70 @@ export class TeamHubScreen {
     };
   }
 
-  _workspaceTarget(mode) {
-    const scout = mode === 'scout';
-    return [...(this._state.railSeasons || [])]
-      .filter(season => season.isScout === scout)
-      .sort((a, b) => String(b.lastOpened || '').localeCompare(String(a.lastOpened || '')))[0] || null;
-  }
+  /** The one owner of the Home parent context (`app.workspace`). */
+  _context() { return this.app.workspace || null; }
 
+  /**
+   * ONE ATOMIC WORKSPACE TRANSITION.
+   *
+   * Our Program and Opponent Scout are two VIEWS of one parent program season,
+   * so switching between them changes a view, not a season. There is exactly
+   * one state change and one render:
+   *
+   *   - Entering Opponent Scout keeps the parent program season open and
+   *     renders its own scoped scout library. It does not close the season, does
+   *     not call `_openLibrary()`, and never auto-opens a scout — the coach picks
+   *     one.
+   *   - Returning to Our Program re-opens the parent only when the OPEN document
+   *     is a scout, and then by the scout's exact `programSeasonId`. If the
+   *     parent is already the open season there is no open at all.
+   *
+   * What this replaced: set mode -> load() (render 1) -> search every team
+   * season by kind and `lastOpened` -> openSeason() (render 2) ->
+   * show('home') (render 3), or `_openLibrary()` when nothing matched — which is
+   * the Scout / library / unrelated-season bounce the coach reported.
+   */
   async selectWorkspace(mode) {
+    const context = this._context();
     const workspaceMode = mode === 'scout' ? 'scout' : 'program';
-    if (workspaceMode === this._state.workspaceMode) return true;
-    const previousMode = this._state.workspaceMode;
-    try { localStorage.setItem('giq_home_workspace', workspaceMode); } catch {}
+    const previousMode = context ? context.workspaceMode() : this._state.workspaceMode;
+    if (workspaceMode === previousMode) return true;
+    const store = this._store();
+    const openIsScout = store?.data?.kind === 'scout';
+    const parentId = context?.programSeasonId?.() || '';
+
+    // Returning to Our Program from an open scout is the only case that needs a
+    // season open, and it targets the scout's exact parent id -- never a
+    // team/year/level search and never `lastOpened`.
+    if (workspaceMode === 'program' && openIsScout) {
+      const target = String(store?.data?.programSeasonId || parentId || '');
+      if (!target) {
+        this.overlays.toast({ tone: 'error', message: 'This scout is not assigned to a program season yet.' });
+        return false;
+      }
+      const opened = await this._storage().openSeasonById(target);
+      if (opened === false) {
+        // A refused open leaves the prior context and UI exactly as they were.
+        this.app.workspaceShell?._syncChrome?.();
+        return false;
+      }
+      context?.setWorkspaceMode('program');
+      const loaded = await this.load();
+      this.app.workspaceShell?._syncChrome?.();
+      return loaded !== false;
+    }
+
+    context?.setWorkspaceMode(workspaceMode);
     this._state.workspaceMode = workspaceMode;
     const loaded = await this.load();
     if (!loaded) {
-      try { localStorage.setItem('giq_home_workspace', previousMode); } catch {}
+      context?.setWorkspaceMode(previousMode);
       this._state.workspaceMode = previousMode;
       this.app.workspaceShell?._syncChrome?.();
       return false;
     }
-
-    // First launch has no season library to enter yet. The workspace choice
-    // changes the setup form in place; treating _openLibrary()'s intentional
-    // no-team false as a failed transition would immediately roll it back.
-    if (!this._state.teams.length) {
-      this.app.workspaceShell?._syncChrome?.();
-      return true;
-    }
-
-    // A workspace is season-scoped, not a filter over an unrelated open
-    // season. Restore the most recently opened season in the destination
-    // workspace. Existing lastOpened metadata is the durable owner of that
-    // choice, so this does not introduce a second season-context cache.
-    const target = this._workspaceTarget(workspaceMode);
-    const changed = target
-      ? await this.openSeason(target.id)
-      : await this.app.workspaceShell?._openLibrary?.();
-    if (changed !== false) return true;
-
-    try { localStorage.setItem('giq_home_workspace', previousMode); } catch {}
-    this._state.workspaceMode = previousMode;
-    await this.load();
     this.app.workspaceShell?._syncChrome?.();
-    return false;
+    return true;
   }
 
   async show() {
@@ -158,8 +182,17 @@ export class TeamHubScreen {
       const allSeasons = await this._storage().listSeasons();
       const teamSeasons = teams.length ? registry.seasonsForTeam(allSeasons, activeTeamId) : [];
       const currentSeasonId = this._store()?.currentSeasonId || '';
-      let workspaceMode = this._state.workspaceMode;
+      const context = this._context();
+      let workspaceMode = context ? context.workspaceMode() : this._state.workspaceMode;
       if (!['program', 'scout'].includes(workspaceMode)) workspaceMode = 'program';
+      // THE PARENT PROGRAM SEASON owns this workspace. It is whatever the
+      // context owner holds; when nothing is held yet (first load) an open
+      // program season adopts itself, and an open scout adopts its own stored
+      // parent. Nothing here searches by team/year/level or lastOpened.
+      const liveData = this._store()?.data || null;
+      if (context && liveData) context.adoptOpenedSeason(liveData);
+      const programSeasonId = context ? context.programSeasonId() : '';
+      const parentSeason = teamSeasons.find(season => String(season.id) === String(programSeasonId)) || null;
       // `seasons` stays the MAIN-PANEL filtered collection (the library grid
       // and Team Hub's own list follow the coach's workspace choice).
       // `railSeasons` is the COMPLETE team collection, unfiltered: the Home
@@ -167,7 +200,20 @@ export class TeamHubScreen {
       // mode, so entering Opponent Scout must never remove the program
       // seasons from navigation (the recorded rail defect). Two collections,
       // one source -- no second storage or ownership path.
-      const seasons = teamSeasons.filter(season => workspaceMode === 'scout' ? season.kind === 'scout' : season.kind !== 'scout');
+      // Opponent Scout shows only the scouts belonging to THIS parent program
+      // season, through the durable `programSeasonId` relationship (or the
+      // documented single-candidate inference for a legacy record). A scout
+      // belonging to another season, year, level or team cannot appear, and
+      // `lastOpened` only orders what is already correctly scoped.
+      const seasons = workspaceMode === 'scout'
+        ? WorkspaceContext.scoutsForParent(teamSeasons, programSeasonId)
+        : teamSeasons.filter(season => season.kind !== 'scout');
+      // Scouts this team owns that name no resolvable parent. Kept intact and
+      // surfaced so the coach can assign one; never attached to a guess.
+      const unassignedScouts = teamSeasons
+        .filter(season => season.kind === 'scout'
+          && WorkspaceContext.resolveScoutParent(season, teamSeasons).status === 'unassigned')
+        .map(season => this._seasonRowShell(season, currentSeasonId));
       // Season rows render immediately from list metadata (name, counts,
       // current) so a large library or a slow film check never blocks Team
       // Hub from appearing. Film health resolves in the background per row
@@ -183,7 +229,15 @@ export class TeamHubScreen {
       if (token !== this._loadToken) return false;
       const control = await this._controlStatus(teamSeasons);
       if (token !== this._loadToken) return false;
-      this._set({ status: 'ready', teams, seasons: rows, railSeasons: railRows, activeTeamId, currentSeasonId, profile, checklist, workspaceMode, allTeamSeasonCount: teamSeasons.length, control, error: '' });
+      this._set({
+        status: 'ready', teams, seasons: rows, railSeasons: railRows, activeTeamId, currentSeasonId,
+        profile, checklist, workspaceMode, allTeamSeasonCount: teamSeasons.length, control, error: '',
+        // Parent identity travels with the state so BOTH views can name the
+        // program season that owns them without re-deriving it.
+        programSeasonId,
+        parentSeasonName: parentSeason?.name || (String(programSeasonId) === String(currentSeasonId) ? (this._store()?.data?.seasonName || '') : ''),
+        unassignedScouts,
+      });
       this._verifyFilmHealth(railRows, currentSeasonId, token);
       return true;
     } catch (error) {
@@ -419,16 +473,28 @@ export class TeamHubScreen {
     if (!current()) return { ok: false, message: 'The workspace changed. Reopen the form and try again.' };
     if (duplicate) return { ok: false, message: `A ${cleanYear} · ${cleanLevel} scout of ${cleanOpponent} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
     const seasonName = [cleanYear, cleanLevel, opponentIdentity, 'Scout'].filter(Boolean).join(' · ');
+    // The scout is created INSIDE a parent program season's workspace, so that
+    // season's id is stored on it durably. Without a parent there is nothing to
+    // own the scout, and inventing one from team/year/level is the guess this
+    // model exists to remove.
+    const programSeasonId = String(this._context()?.programSeasonId?.() || '');
+    if (!programSeasonId) {
+      return { ok: false, message: 'Open the program season this scout belongs to, then create the scout from its Opponent Scout view.' };
+    }
     try {
       const rec = await this._storage().createSeason({
         name: seasonName, year: cleanYear, level: cleanLevel, kind: 'scout',
         team: this._state.profile.teamName || '', teamId: this._state.activeTeamId,
+        programSeasonId,
       });
       if (!rec) return { ok: false, message: 'The opponent scout could not be created. Nothing changed.' };
       const store = this._store();
       const game = store?.activeGame?.();
       if (!game) return { ok: false, message: 'The source game could not be created.' };
       store.data.kind = 'scout';
+      // The durable relationship is written into the season body, which is what
+      // `listSeasons()` reads it back from -- not only into the library row.
+      store.data.programSeasonId = programSeasonId;
       store.data.scout = { opponent: opponentIdentity, opponentSchool: cleanOpponent, opponentNickname: cleanOpponentNickname, year: cleanYear, level: cleanLevel };
       this.app._applyGameInfoDraft({
         opponent: opponentIdentity, date: String(date || '').trim(), perspective: 'scout', gameType: 'scout',
@@ -440,7 +506,9 @@ export class TeamHubScreen {
       this._storage().commitActive();
       const saved = await store.persist();
       if (saved === false) throw new Error('The opponent scout could not be saved.');
-      try { localStorage.setItem('giq_home_workspace', 'scout'); } catch {}
+      // The new scout is now the open document, and its parent is unchanged --
+      // `adoptOpenedSeason` reads the parent off the scout itself.
+      this._context()?.adoptOpenedSeason(store.data);
       this._state.workspaceMode = 'scout';
       await this.app.workspaceShell.show('home');
       this.overlays.toast({ tone: 'success', message: `${cleanOpponent} scout created. Link the source-game folder, then chart the opponent.` });
@@ -660,9 +728,11 @@ export class TeamHubScreen {
         await this.load();
         return false;
       }
+      // Opening a season sets the parent context at its one owner: a program
+      // season is its own parent, and a scout adopts the parent it stores.
       const mode = row.kind === 'scout' ? 'scout' : 'program';
-      try { localStorage.setItem('giq_home_workspace', mode); } catch {}
-      this._state.workspaceMode = mode;
+      this._context()?.adoptOpenedSeason(this._store()?.data || { id: row.id, kind: row.kind });
+      this._state.workspaceMode = this._context()?.workspaceMode?.() || mode;
       await this.app.workspaceShell.show('home');
       return true;
     } catch (error) {

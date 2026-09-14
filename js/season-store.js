@@ -302,6 +302,10 @@ export class SeasonStore {
     return {
       version: this.SCHEMA, type: 'season',
       id: '', seasonName: '', team: '', year: '', level: '', kind: '',
+      // An opponent scout names the program season that owns it. A program
+      // season carries '' — it IS its own parent. This is the durable
+      // relationship; nothing infers it from team/year/level or lastOpened.
+      programSeasonId: '',
       // A brand-new season is born owning its roster: the marker is part of the
       // blank shape, so a freshly created season is never a migration candidate
       // and its first open performs no compatibility write.
@@ -616,6 +620,10 @@ export class SeasonStore {
       ? { version: Number(d.playbook.version) || 1, calls: d.playbook.calls }
       : { version: 1, calls: [] };
     d.seasonName = d.seasonName || '';
+    // Coerced, never inferred: a legacy scout with no stored parent normalizes
+    // to '' and is surfaced as needing assignment rather than attached to a
+    // guess. Only a program season may be '' legitimately.
+    d.programSeasonId = typeof d.programSeasonId === 'string' ? d.programSeasonId : '';
     d.team = d.team || (d.teamProfile && d.teamProfile.teamName) || '';
     d.year = d.year || '';
     d.level = d.level || '';
@@ -698,6 +706,7 @@ export class SeasonStore {
     this.data.seasonName = rec.name;
     this.data.team = rec.team; this.data.teamId = rec.teamId || meta?.teamId || ''; this.data.year = rec.year; this.data.level = rec.level;
     this.data.kind = rec.kind || meta?.kind || '';
+    this.data.programSeasonId = String(rec.programSeasonId || meta?.programSeasonId || '');
     if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
     if (meta?.playbook && Array.isArray(meta.playbook.calls)) this.data.playbook = meta.playbook;
   }

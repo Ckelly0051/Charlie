@@ -314,7 +314,13 @@ export class SqlCatalog {
         try { body = JSON.parse(r.body_json || '{}') || {}; } catch (e) {}
         return {
           id: r.id, name: r.name || r.team || 'Untitled Season', team: r.team || '', year: r.year || '', level: r.level || '',
-          teamId: body.teamId || '', games: r.games_count || 0, plays: r.plays_count || 0,
+          teamId: body.teamId || '',
+          // The durable scout→program-season relationship. It rides in
+          // body_json beside teamId, so the library can scope a scout list by
+          // its parent without peeking every season body and without a schema
+          // migration. Empty on a program season and on a legacy scout.
+          programSeasonId: body.programSeasonId || '',
+          games: r.games_count || 0, plays: r.plays_count || 0,
           created: r.created || '', updated: r.updated || '', lastOpened: r.last_opened || '',
           isDemo: !!r.is_demo, kind: r.kind || '',
         };

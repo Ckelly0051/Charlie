@@ -1,4 +1,5 @@
 import { isPlayTagged } from './football-rules.js';
+import { WorkspaceContext } from './workspace-context.js';
 
 /**
  * The one native application shell.
@@ -156,10 +157,15 @@ export class WorkspaceShell {
   /** UX-2/V2-A: three persistent context selectors, not one breadcrumb button.
    *  All three read the SAME canonical `WorkspaceContext.snapshot()` this class
    *  already used for the old single breadcrumb — no new context pointer. */
+  /** Read from the ONE owner. This used to prefer `store.data.kind === 'scout'`
+   *  and fall back to a `giq_home_workspace` localStorage read, so the shell,
+   *  TeamHubScreen and that key were three sources for one fact and could
+   *  disagree mid-transition -- which is how a switch could paint a Program
+   *  workspace over a scout season, or the reverse. The workspace mode is now a
+   *  property of the Home parent context, not an inference from which document
+   *  happens to be open. */
   _isScoutWorkspace() {
-    const store = this.app.storage?.seasonStore;
-    if (store?.hasCurrent?.()) return store.data?.kind === 'scout';
-    try { return localStorage.getItem('giq_home_workspace') === 'scout'; } catch { return false; }
+    return this.app.workspace?.workspaceMode?.() === 'scout';
   }
   _syncChrome() {
     if (!this.root) return;
@@ -300,7 +306,12 @@ export class WorkspaceShell {
     let seasons=[], failed=false; try{seasons=await this.app.storage.listSeasons();}catch(e){failed=true;console.error('listSeasons failed',e);}
     try{const r=this.app.teamRegistry;if(!failed&&r?.teams().length)seasons=r.seasonsForTeam(seasons,r.activeTeamId());}catch{}
     const scoutMode=this._isScoutWorkspace();
-    if(!failed)seasons=seasons.filter(season=>scoutMode?season.kind==='scout':season.kind!=='scout');
+    // Scout mode lists only the scouts belonging to the PARENT program season,
+    // through the same durable relationship Home's library uses. A team-wide
+    // scout list here is how a scout from another season became reachable.
+    if(!failed)seasons=scoutMode
+      ?WorkspaceContext.scoutsForParent(seasons,this.app.workspace?.programSeasonId?.()||'')
+      :seasons.filter(season=>season.kind!=='scout');
     const items=failed
       ? [{key:'load-failed',label:'Seasons could not be loaded',detail:'This is a read failure, not an empty library.',disabled:true}]
       : seasons.map(season=>({key:`season-${season.id}`,label:season.name||'Untitled Season',
