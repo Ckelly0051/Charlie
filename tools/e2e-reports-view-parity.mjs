@@ -27,10 +27,17 @@ const result = await page.evaluate(async () => {
     down: '1', distance: '10', formation: 'Trips', quarter: 'Q1', hash: 'Middle',
     players: {}, grades: {}, ...over,
   } });
+  // The roster belongs to the SEASON, which is where a real season stores it.
+  // This fixture used to hang it on the game node and lean on `_normalize`
+  // adopting it -- behaviour that is now confined to the explicit compatibility
+  // boundary, and that a fixture installing `store.data` directly never reaches.
+  // The assertions below are unchanged: Players must still resolve #22 to
+  // "Runner" and #55 to "Linebacker".
   store.data = store._normalize({
-    seasonName: 'Parity Fixture', activeGameId: 'g1', games: [{
+    seasonName: 'Parity Fixture', activeGameId: 'g1',
+    roster: [{ num: '22', name: 'Runner' }, { num: '7', name: 'Quarterback' }, { num: '1', name: 'Receiver' }, { num: '55', name: 'Linebacker' }],
+    games: [{
       id: 'g1', name: 'Week 1', gameInfo: { opponent: 'Fixture Opp', scoreUs: '21', scoreThem: '14' },
-      roster: [{ num: '22', name: 'Runner' }, { num: '7', name: 'Quarterback' }, { num: '1', name: 'Receiver' }, { num: '55', name: 'Linebacker' }],
       plays: [
         play(1, { players: { ballCarrier: '22' } }),
         play(2, { playType: 'Deep Pass', runPass: 'Pass', result: 'Incomplete', yardage: '0', down: '2' }),

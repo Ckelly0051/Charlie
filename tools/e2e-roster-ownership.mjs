@@ -142,8 +142,30 @@ r = await run(async () => {
   };
 });
 ok(r.emptied === 0, 'An explicitly empty season stays empty even when its games hold players', String(r.emptied));
-ok(r.noKey === 0, 'Ordinary loading of an unmarked season does NOT promote a game roster', String(r.noKey));
+ok(r.noKey === 0, '`_normalize` itself never promotes a game roster', String(r.noKey));
 ok(r.marker === 'season', 'Normalized seasons carry the rosterOwnership marker', r.marker);
+
+/* The durable READ is a compatibility boundary too: a genuine legacy file
+   already in the library is opened, not imported, and without conversion there
+   its roster would simply vanish. It must convert exactly once and must never
+   refill a season the coach emptied. */
+r = await run(async () => {
+  const S = window.app.storage, st = S.seasonStore;
+  const legacy = {
+    id: 'legacy-on-disk', seasonName: 'Legacy On Disk', year: '2024', level: 'JV',
+    games: [{ id: 'lg1', name: 'G1', plays: [], roster: [{ num: '33', name: 'Legacy' }] }],
+  };
+  await st.backend.saveSeason('legacy-on-disk', JSON.parse(JSON.stringify(legacy)));
+  await S.openSeasonById('legacy-on-disk');
+  const first = window.__r.stored();
+  // Empty it the way a coach would, save, and reopen: it must STAY empty.
+  window.app.roster.loadFrom([]);
+  S.commitActive(); await st.persist();
+  await S.openSeasonById('legacy-on-disk');
+  return { first, afterEmptying: window.__r.stored(), marker: window.__r.marker() };
+});
+ok(r.first === '33', 'A legacy season opened off disk converts its game roster once', JSON.stringify(r));
+ok(r.afterEmptying === '', 'Reopening it after the coach empties it does NOT refill from the game node', JSON.stringify(r));
 
 console.log('\n== 7. The legacy boundary converts EXACTLY ONCE ==');
 r = await run(async () => {

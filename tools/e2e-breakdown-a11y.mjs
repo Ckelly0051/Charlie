@@ -38,15 +38,21 @@ ok(state.names && state.summaries, 'Header commands and collapsible groups expos
 
 await page.focus('[data-bd-context="scout"]');
 await page.keyboard.press('Enter');
-await page.waitForFunction(() => document.querySelector('[data-overlay-id="game-details"]') && document.activeElement?.name === 'perspective');
+// REPOINTED 2026-09-13. This waited on `[name="perspective"]` taking focus --
+// the `Film source` control the coach removed, which now matches nothing and
+// would leave the dialog unfocused. Game settings still owns the rest of the
+// game's context, so the surviving claim is that keyboard activation opens it
+// with focus landing on a real named field and a visible ring.
+await page.waitForFunction(() => document.querySelector('[data-overlay-id="game-details"]') && document.activeElement?.name === 'opponent');
 state = await page.evaluate(() => {
   const focused = document.activeElement;
   return {
     // Final Engine Independence: #tagForm no longer exists. The real,
     // native-visible scout indicator is native-tagging.jsx's own
-    // .gi-tag-subject line, which the form only renders when
-    // perspective === 'scout' -- checking it verifies the coach-visible
-    // presentation, not just the canonical data field read below.
+    // .gi-tag-subject line, which renders only when perspective === 'scout' --
+    // checking it verifies the coach-visible presentation, not just the
+    // canonical data field read below. Perspective is now DERIVED from the
+    // owning season, so a program season must still show no scout subject.
     scout: !!document.querySelector('.gi-tag-subject'),
     perspective: window.app.gameContext.snapshot().perspective,
     modal: !!document.querySelector('[data-overlay-id="game-details"]'),
@@ -54,8 +60,8 @@ state = await page.evaluate(() => {
     focusRing: getComputedStyle(focused).boxShadow,
   };
 });
-ok(!state.scout && state.perspective === 'offense' && state.modal && state.focused === 'perspective' && state.focusRing !== 'none',
-  'Keyboard activation opens canonical Film Source settings with visible focus and no silent relabel', JSON.stringify(state));
+ok(!state.scout && state.perspective === 'offense' && state.modal && state.focused === 'opponent' && state.focusRing !== 'none',
+  'Keyboard activation opens Game settings with visible focus and no silent relabel', JSON.stringify(state));
 await page.click('[data-overlay-id="game-details"] .gi-game-actions button:not(.is-danger)[type="button"]');
 
 await page.evaluate(() => {

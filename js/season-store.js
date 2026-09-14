@@ -95,7 +95,16 @@ export class SeasonStore {
     if (!this.currentSeasonId) return null;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) {}
-    this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
+    // Reading a season OFF DISK is the last compatibility boundary: a genuine
+    // pre-season-model file already in the library is opened, not imported, so
+    // without this its roster would simply disappear. `adoptLegacyRoster` runs
+    // here at most once -- the marker `_normalize` stamps is persisted with the
+    // season, so the second open finds it already converted and does nothing,
+    // and a season the coach deliberately emptied is never refilled. What the
+    // coach ruled out was REPEATED inference on every load, not conversion.
+    this.data = (parsed && Array.isArray(parsed.games))
+      ? this._normalize(SeasonStore.adoptLegacyRoster(parsed))
+      : this._empty();
     this._seedRevision(this.currentSeasonId, this.data);   // PC-4: continue the persisted sequence
     return this.data;
   }
@@ -568,7 +577,16 @@ export class SeasonStore {
     this.currentSeasonId = id;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(id); } catch (e) {}
-    this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
+    // Reading a season OFF DISK is the last compatibility boundary: a genuine
+    // pre-season-model file already in the library is opened, not imported, so
+    // without this its roster would simply disappear. `adoptLegacyRoster` runs
+    // here at most once -- the marker `_normalize` stamps is persisted with the
+    // season, so the second open finds it already converted and does nothing,
+    // and a season the coach deliberately emptied is never refilled. What the
+    // coach ruled out was REPEATED inference on every load, not conversion.
+    this.data = (parsed && Array.isArray(parsed.games))
+      ? this._normalize(SeasonStore.adoptLegacyRoster(parsed))
+      : this._empty();
     this.data.id = id;
     this._seedRevision(id, this.data);   // PC-4: continue the persisted sequence
     try { await this.backend.touchOpened(id); } catch (e) {}
