@@ -100,6 +100,16 @@ await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('scout'));
 await new Promise(r => setTimeout(r, 700));
 record('home/scout-library', await scan());
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
+/* FIXTURE REPOINTED 2026-09-14. This waited for a season to become current after
+   the toggle, which only held while a workspace switch restored one by
+   `lastOpened` -- the retired redirect. `_openLibrary()` above deliberately
+   closes the season, so the coach is in the library and the toggle opens
+   nothing; the season to walk Reports with is now opened explicitly. */
+await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  const program = (hub.snapshot().railSeasons || []).find(season => !season.isScout);
+  if (program) await window.app.storage.openSeasonById(program.id);
+});
 await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
 
 // Every Reports tab, in self perspective, plus the Season sub-tabs — the pane
