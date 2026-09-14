@@ -115,41 +115,119 @@ await page.setViewport({ width:1440, height:900 });
 // composition as Program and exposes one primary creation action.
 await page.click('[data-library-season] .library-open');
 await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
-const rollbackBefore = await page.evaluate(() => {
-  const store = window.app.storage.seasonStore;
-  window.__workspacePersist = store.persist;
-  store.persist = async () => false;
-  return { seasonId: store.currentSeasonId, mode: window.app.teamHubScreen.snapshot().workspaceMode };
-});
-await page.click('[data-ws-action="workspace-scout"]');
-await new Promise(resolve => setTimeout(resolve, 200));
-r = await page.evaluate(() => ({
-  seasonId: window.app.storage.seasonStore.currentSeasonId,
-  mode: window.app.teamHubScreen.snapshot().workspaceMode,
-  programPressed: document.querySelector('[data-ws-action="workspace-program"]')?.getAttribute('aria-pressed'),
-  toast: [...document.querySelectorAll('.gi-native-toast')].at(-1)?.textContent || '',
-}));
-ok(r.seasonId === rollbackBefore.seasonId && r.mode === rollbackBefore.mode && r.programPressed === 'true' && /not saved/.test(r.toast),
-  'An empty-workspace switch rolls back completely when the open season cannot be saved', JSON.stringify({ rollbackBefore, after: r }));
-await page.evaluate(() => {
-  window.app.storage.seasonStore.persist = window.__workspacePersist;
-  delete window.__workspacePersist;
-  document.querySelectorAll('.gi-native-toast').forEach(node => node.click());
-});
+/* RETIRED 2026-09-14, not weakened: "An empty-workspace switch rolls back
+   completely when the open season cannot be saved".
 
-// A failed preload must stop before target selection and restore the chrome.
+   That assertion pinned the REMOVED transition strategy. A workspace toggle used
+   to save the open season, search the team for the most recently opened season of
+   the destination kind, and open it — so a failed `persist()` had something to
+   roll back. Opponent Scout is now a VIEW of the parent program season: a toggle
+   saves nothing, opens nothing and closes nothing, so there is no write whose
+   failure could revert it. Stubbing `persist` to fail no longer describes any
+   step of the operation, which is why the check could only ever go red.
+
+   What still performs a real open is scout -> Our Program, and THAT is where a
+   refusal must preserve everything. Replacement coverage below drives it through
+   the rendered switch. */
 r = await page.evaluate(async () => {
-  const hub = window.app.teamHubScreen;
-  const before = { mode: hub.snapshot().workspaceMode, seasonId: window.app.storage.seasonStore.currentSeasonId };
+  const S = window.app.storage, store = S.seasonStore, hub = window.app.teamHubScreen, ctx = window.app.workspace;
+  // Open a scout that names its parent, from that parent's own scout library.
+  const parentId = store.currentSeasonId;
+  await hub.selectWorkspace('scout');
+  let scoutId = hub.snapshot().seasons[0]?.id || '';
+  let created = false;
+  if (!scoutId) {
+    const made = await hub.createScout({ opponent: 'Refusal', year: '2026', level: 'Varsity', sourceTeamA: 'Refusal', sourceTeamB: 'Central' });
+    scoutId = made.seasonId;
+    created = true;
+  }
+  await S.openSeasonById(scoutId);
+  await hub.load();
+  // A pending game deletion with its Undo window open, so the refusal cannot
+  // quietly close it.
+  store.data.games.push({ id: 'refusal-g2', name: 'G2', plays: [], annotations: [], gameInfo: {}, nextId: 1, status: 'active' });
+  S.removeGame('refusal-g2');
+  const before = {
+    route: document.getElementById('workspaceShell')?.dataset.route || '',
+    mode: ctx.workspaceMode(), parent: ctx.programSeasonId(),
+    open: store.currentSeasonId, loadedGame: S._loadedGameId,
+    roster: (window.app.roster?.players || []).map(p => String(p.num)).join(','),
+    pointer: store.backend.currentSeason(),
+    pendingFilm: S._lastDeletedGame?.filmGameId || null,
+    timer: Boolean(S._filmPurgeTimer),
+  };
+  // REFUSE the parent open, the way a legacy roster migration conflict does.
+  const realOpen = S.openSeasonById;
+  S.openSeasonById = async () => false;
+  const changed = await hub.selectWorkspace('program');
+  S.openSeasonById = realOpen;
+  const after = {
+    route: document.getElementById('workspaceShell')?.dataset.route || '',
+    mode: ctx.workspaceMode(), parent: ctx.programSeasonId(),
+    open: store.currentSeasonId, loadedGame: S._loadedGameId,
+    roster: (window.app.roster?.players || []).map(p => String(p.num)).join(','),
+    pointer: store.backend.currentSeason(),
+    pendingFilm: S._lastDeletedGame?.filmGameId || null,
+    timer: Boolean(S._filmPurgeTimer),
+    scoutPressed: document.querySelector('[data-ws-action="workspace-scout"]')?.getAttribute('aria-pressed'),
+  };
+  const undoOk = S.undoRemoveGame();
+  return { parentId, scoutId, changed, before, after, undoOk, created };
+});
+ok(r.changed === false, 'A refused parent open reports failure rather than navigating', JSON.stringify(r.changed));
+ok(r.after.route === r.before.route && r.after.mode === r.before.mode && r.after.mode === 'scout'
+  && r.after.scoutPressed === 'true',
+  'It preserves the current route and workspace mode, and the switch still reads Opponent Scout', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.after.parent === r.before.parent && r.after.open === r.before.open && r.after.open === r.scoutId,
+  'It preserves the parent programSeasonId and the open scout document', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.after.loadedGame === r.before.loadedGame && r.after.roster === r.before.roster && r.after.pointer === r.before.pointer,
+  'It preserves the loaded game, the live roster and the backend current-season pointer', JSON.stringify({ before: r.before, after: r.after }));
+ok(r.after.pendingFilm === r.before.pendingFilm && r.after.timer === r.before.timer && r.before.pendingFilm === 'refusal-g2' && r.undoOk,
+  'It preserves the pending game deletion, its managed film, its purge timer and a working Undo', JSON.stringify({ before: r.before, after: r.after, undoOk: r.undoOk }));
+/* This block's fixture is torn down so the EMPTY Opponent Scout composition
+   section below still sees a parent with no scouts. A test that leaves a scout
+   behind silently rewrites the precondition of everything after it. */
+await page.evaluate(async (state) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen;
+  if (state.created) await S.deleteSeason(state.scoutId);
+  await S.openSeasonById(state.parentId);
+  await hub.selectWorkspace('program');
+  await hub.load();
+}, { created: r.created, scoutId: r.scoutId, parentId: r.parentId });
+
+/* KEPT, repointed onto the operation it describes: the TOGGLE-ONLY direction
+   (a program season open, entering Opponent Scout). That path opens nothing, so a
+   failed render must leave the mode exactly as it was — stale rows cannot become
+   the rendered workspace.
+
+   It previously ran after the retired block above had already left the mode on
+   `scout`, so its own switch to `scout` was a no-op returning true. Scout -> Our
+   Program is deliberately NOT the subject here: that direction performs a real
+   season open, and once the open has succeeded the navigation HAS happened, so a
+   failed render there is a view error on a season that is genuinely open, not a
+   navigation to roll back. The refusal case for that direction is covered above,
+   where the open itself is refused. */
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, ctx = window.app.workspace;
+  // Land on a program season in Our Program, so the switch under test opens nothing.
+  const parent = ctx.programSeasonId();
+  if (S.seasonStore.data?.kind === 'scout' || S.seasonStore.currentSeasonId !== parent) {
+    await S.openSeasonById(parent);
+    await hub.load();
+  }
+  const before = { mode: ctx.workspaceMode(), seasonId: S.seasonStore.currentSeasonId, parent: ctx.programSeasonId() };
   const realLoad = hub.load;
   hub.load = async () => false;
   const changed = await hub.selectWorkspace('scout');
   hub.load = realLoad;
-  return { before, changed, mode: hub.snapshot().workspaceMode, seasonId: window.app.storage.seasonStore.currentSeasonId,
-    programPressed: document.querySelector('[data-ws-action="workspace-program"]')?.getAttribute('aria-pressed') };
+  return { before, changed, mode: ctx.workspaceMode(), parent: ctx.programSeasonId(),
+    seasonId: S.seasonStore.currentSeasonId,
+    pressed: document.querySelector('[data-ws-action="workspace-program"]')?.getAttribute('aria-pressed') };
 });
-ok(r.changed === false && r.mode === r.before.mode && r.seasonId === r.before.seasonId && r.programPressed === 'true',
-  'A failed workspace preload cannot navigate with stale season rows', JSON.stringify(r));
+ok(r.before.mode === 'program', 'the fixture really starts in Our Program with its parent open', JSON.stringify(r.before));
+ok(r.changed === false && r.mode === 'program' && r.seasonId === r.before.seasonId
+  && r.parent === r.before.parent && r.pressed === 'true',
+  'A failed workspace render cannot navigate with stale season rows', JSON.stringify(r));
 
 await page.click('[data-ws-action="workspace-scout"]');
 await page.waitForFunction(() => document.querySelector('.library-scout-empty'));

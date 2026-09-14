@@ -153,22 +153,41 @@ ok(shape.openSeasonId === programId && shape.openKind !== 'scout',
 bothVisible(shape, 'after opening a program season from an open scout');
 ok(shape.activeCount === 1, 'Still exactly one highlighted rail row after the cross-section open', shape);
 
-// The workspace switch restores the most recently used season for each side.
-// Exercise the rendered shell buttons: this is the path that previously
-// changed the filter and then unconditionally closed the selected season.
 let tools = await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].map(b => b.textContent.trim()));
 ok(tools.includes('Roster') && tools.some(t => /Edit season details/.test(t)),
   'Program actions are available while a program season is open', tools);
+
+/* RETIRED 2026-09-14, not weakened. These two assertions read:
+     "Opponent Scout restores its most recently used scout season"
+     "Our Program restores the selected program season instead of the season library"
+   Both pinned the REMOVED redirect strategy — a toggle searched the whole team by
+   kind and `lastOpened` and opened the winner, which is the Scout / library /
+   unrelated-season bounce the coach reported. Opponent Scout is now a VIEW of the
+   parent program season: the toggle opens nothing and the coach selects a scout
+   explicitly. `lastOpened` may order scouts inside a parent and can no longer
+   choose one. Their replacement asserts the atomic contract through the same
+   rendered shell buttons. */
 await page.click('[data-ws-action="workspace-scout"]');
-await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, { timeout: 8000 }, scoutId);
+await new Promise(r => setTimeout(r, 400));
 shape = await railShape();
-ok(shape.openSeasonId === scoutId && shape.openKind === 'scout',
-  'Opponent Scout restores its most recently used scout season', { shape, scoutId });
+ok(shape.workspaceMode === 'scout' && shape.openSeasonId === programId && shape.openKind !== 'scout',
+  'The rendered switch enters Opponent Scout with the PARENT program season still open', { shape, programId });
+ok(shape.count === 2 && shape.activeCount === 1,
+  'Entering Opponent Scout renders both trees once, with the parent still the single active row', shape);
+const scopedScouts = await page.evaluate(() => ({
+  listed: window.app.teamHubScreen.snapshot().seasons.map(s => s.id),
+  parent: window.app.workspace.programSeasonId(),
+  library: document.querySelectorAll('.library-panel-head').length,
+}));
+ok(scopedScouts.parent === programId,
+  'The parent context is the program season the coach was in, not a recency winner', JSON.stringify(scopedScouts));
+ok(scopedScouts.listed.every(id => id !== programId) && scopedScouts.listed.length <= 3,
+  'The Opponent Scout view lists scouts scoped to that parent and no program season', JSON.stringify(scopedScouts));
 await page.click('[data-ws-action="workspace-program"]');
-await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, { timeout: 8000 }, programId);
+await new Promise(r => setTimeout(r, 400));
 shape = await railShape();
-ok(shape.openSeasonId === programId && shape.openKind !== 'scout',
-  'Our Program restores the selected program season instead of the season library', { shape, programId });
+ok(shape.workspaceMode === 'program' && shape.openSeasonId === programId && shape.openKind !== 'scout',
+  'Returning to Our Program leaves that same program season open -- no second open, no library', { shape, programId });
 
 // Returning Home from another route keeps both trees.
 await page.evaluate(async () => { await window.app.workspaceShell.show('reports'); });
@@ -256,8 +275,16 @@ for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280
 await page.setViewport({ width: 1440, height: 900 });
 await new Promise(r => setTimeout(r, 300));
 
-// Reload with scout mode persisted -- both trees must come back.
-await page.evaluate(() => localStorage.setItem('giq_home_workspace', 'scout'));
+// Reload with scout mode persisted -- both trees must come back. FIXTURE
+// REPOINTED 2026-09-14: the durable owner of the workspace mode is
+// WorkspaceContext, which persists the parent program season alongside it under
+// `giq_home_parent`. The old `giq_home_workspace` key held the mode only and
+// could not name a parent, which is why "restore the most recent season of this
+// kind" had to guess one. The claim is unchanged -- the mode survives a reload.
+await page.evaluate(() => {
+  const parent = window.app.workspace.programSeasonId();
+  localStorage.setItem('giq_home_parent', JSON.stringify({ programSeasonId: parent, mode: 'scout' }));
+});
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen);
 await page.evaluate(async () => { await window.app.workspaceShell.show('home'); });
@@ -600,20 +627,31 @@ ok(![...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].some(p => hubCopy.text.includes
   'No superseded phrase renders anywhere in the Home library',
   [...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].filter(p => hubCopy.text.includes(p)));
 
-// Program mode restores its season context rather than stranding the coach in
-// the season picker.
+/* RETIRED 2026-09-14, not weakened: "Program mode restores a program season on
+   Home through the sole workspace switch".
+
+   It pinned the same removed redirect. The block above deliberately opens the
+   Season Library, which closes the open season — that is where the coach ASKED to
+   be. A mode toggle is not a season open, so it must not resurrect a season to
+   fill the gap; the coach picks one from the library they are looking at. The
+   surviving claims are that the toggle stays on Home, invents no season, and
+   still renders exactly one workspace switch. */
 const programHero = await page.evaluate(async () => {
-  await window.app.teamHubScreen.selectWorkspace('program');
+  const before = window.app.storage.seasonStore.currentSeasonId || '';
+  const changed = await window.app.teamHubScreen.selectWorkspace('program');
   await new Promise(r => setTimeout(r, 350));
   return {
+    before, changed,
     route: document.getElementById('workspaceShell')?.dataset.route || '',
     currentSeasonId: window.app.storage.seasonStore.currentSeasonId || '',
-    currentKind: window.app.storage.seasonStore.data?.kind || 'program',
+    mode: window.app.workspace.workspaceMode(),
     switches: document.querySelectorAll('.ws-workspace-switch').length,
   };
 });
-ok(programHero.route === 'home' && programHero.currentSeasonId && programHero.currentKind !== 'scout' && programHero.switches === 1,
-  'Program mode restores a program season on Home through the sole workspace switch', programHero);
+ok(programHero.route === 'home' && programHero.switches === 1 && programHero.mode === 'program',
+  'From the Season Library, the toggle changes mode in place on Home with one switch rendered', programHero);
+ok(programHero.currentSeasonId === programHero.before,
+  'It opens no season of its own -- the coach selects one from the library they asked for', programHero);
 
 // Dialogs: create season (intro + guided/manual), edit season, setup guide, create scout.
 const dialogCopy = await page.evaluate(async () => {
