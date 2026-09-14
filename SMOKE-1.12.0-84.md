@@ -2,13 +2,17 @@
 
 ## Artifacts
 
-- Source commit packaged: `<filled after packaging>`
+- Source commit packaged: `4f5ef9c`
 - NSIS installer: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-84_x64-setup.exe`
-- NSIS bytes: `<filled after packaging>`
-- NSIS SHA-256: `<filled after packaging>`
+- NSIS bytes: `4,004,107`
+- NSIS SHA-256: `1320678BAE1221F537A2B41A8BE1D5CE913395B2EEC63309781EB837FEFBA2E0`
 - MSI package: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-84_x64_en-US.msi`
-- MSI bytes: `<filled after packaging>`
-- MSI SHA-256: `<filled after packaging>`
+- MSI bytes: `5,550,080`
+- MSI SHA-256: `2F7C713CBD9B2C1121D8DEF8F072D3D0A37327C4F49F61FA379582FAA841FC5B`
+
+Tauri rebuilt the Vite frontend and produced both unsigned Windows packages.
+Updater signing was intentionally skipped with `--no-sign`. The built exe
+reports FileVersion and ProductVersion `1.12.0-84`.
 
 ## What This Build Carries
 
