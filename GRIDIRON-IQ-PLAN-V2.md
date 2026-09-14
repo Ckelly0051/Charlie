@@ -132,6 +132,25 @@ Build and focused behavioral checks passed; populated production screenshots and
 
 **Data-isolation repair completed 2026-08-29:** roster ownership is season-scoped, not global or per-team. A season's games share one roster; JV and Varsity seasons under the same program remain independent. Ambient roster caches no longer participate in opening, switching, or saving a season. This repair is accepted and closed a live Settings-boundary bypass and a silent no-season mutation no-op (see `CLAUDE.md`'s "CODEX ROSTER SETTINGS-BOUNDARY REPAIR" and "CLAUDE V2-H REPAIR" entries); it did not redistribute existing roster data.
 
+**Completed 2026-09-13:** that 2026-08-29 repair stopped new leakage but could
+not fix seasons already written, and the coach found the residue at the board —
+the same roster under every team, year and level. Two things closed it. Ordinary
+season loading no longer infers ownership from game nodes at all; promotion
+happens once, at `SeasonStore.adoptLegacyRoster()`, marked so it cannot repeat.
+And a coach-authorized one-time normalization gave the 19-player roster to the
+2025 JV season alone and emptied both 2026 seasons, with identity verified from
+stable game ids rather than a directory name. The full ledger, including the
+catalog-versus-mirror divergence and the backup hashes, is
+`docs/ROSTER-NORMALIZATION-2026-09-13.md`.
+
+**Add Game's `Film source` selector is deleted (2026-09-13).** It wrote
+`perspective`, and choosing `Opponent film · Scout` inside a Program season made
+a program game scout — which `SeasonManager._selfGames()` excludes, so the game
+left our record silently. Program versus Opponent Scout now derives from the
+owning season, the charting unit stays Break Down's, and the form was rebuilt on
+the neutral/gold system. No Program game in any store carried an invalid scout
+perspective, so no historical data was rewritten.
+
 The pre-redesign ownership blockers are closed. The comp-governed presentation phase completed with a binding rule that was honored throughout: density comes from layout and progressive disclosure, never from reducing ordinary coach-facing text and controls below the shared design-system sizes. Breakdown (Chart, Film Room, and the shared Theater) received a complete, coherent visual/composition pass — canonical typography, 30px desktop controls, wrapping utilities, aligned field-position controls, an automated computed-style/containment gate, shared type rhythm across the Theater and Film Room, and a native-owned template/utility row with no detached legacy selector.
 Accepted implementation range: `a3cc8b4`, `574493a`, `e5481e5`, `4c8c1c5`, the Chart form body checkpoint, the Film Room composition checkpoint (including its keyboard-accessibility repair), and the Chart header/scheme-group synchronization fix at `9b73789`.
 

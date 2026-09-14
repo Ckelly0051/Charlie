@@ -106,7 +106,7 @@ Change behavior at its owner, not at a consumer.
 | Reports | `js/reports-screen.js` + `js/native-report-tabs.jsx` |
 | Plan | `js/plan-screen.js` + `js/native-plan.jsx` |
 | Settings | `js/settings-screen.js` + `js/native-settings.jsx` |
-| Game create/edit | `js/game-screen.js` |
+| Game create/edit | `js/game-screen.js` — derives `perspective`/`gameType` from the owning season; the form asks for neither |
 | Overlays (dialog/sheet/toast/popover) | `js/native-overlay-service.js` — see `GRIDIRON-IQ-OVERLAY-SPEC.md` |
 | Season model + persistence | `js/season-store.js` |
 | Live ↔ store bridge, film load | `js/storage.js` |
@@ -157,6 +157,19 @@ These are invariants, not preferences. Every one is enforced in current source.
   `docs/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
   is read-only; `tools/normalize-roster-ownership.mjs` writes only behind
   `--apply`, only after verifying identity from stable game ids.
+
+**Add Game asks for no analytics perspective.** The selector labeled `Film
+source` is deleted, not renamed. It wrote `perspective`, and its
+`Opponent film · Scout` option made a PROGRAM season produce a scout game —
+which `SeasonManager._selfGames()` excludes, so the game silently left our
+record, yardage, success rate and turnover margin. Program versus Opponent
+Scout derives from the owning season in `GameScreen.save()`, which also drops
+any `perspective` arriving with the form values; a create seeds the existing
+`offense` default and an edit omits the field so `_applyGameInfoDraft`
+preserves what the game already stores. The charting unit stays Break Down's,
+and it already derives the play perspective from that unit. Film linking stays
+in the per-game film workflow; this form carries no file, folder, storage-mode,
+perspective or initial-unit control.
 
 **Season isolation**
 - A season is the unit of work; each is its own file/row. `SeasonStore.data` is

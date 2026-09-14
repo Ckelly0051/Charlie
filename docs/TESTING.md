@@ -171,7 +171,19 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
 - **Cross-route:** `e2e-workspace-shell`, `e2e-workspace-context`,
   `e2e-game-context`
 - **Persistence:** `e2e-projform-durability`, `e2e-season-roster-scope`,
-  `e2e-operation-diff`
+  `e2e-roster-ownership`, `e2e-operation-diff`
+- **Roster ownership:** `e2e-roster-ownership` (24) is the contract harness —
+  cross-team and cross-season isolation, empty-stays-empty across switching and
+  reload, same-season sharing with no game-level copies, game creation neither
+  copying nor clearing, ordinary loading never adopting a game roster, the
+  legacy boundary converting exactly once, backup/restore scoped to one season,
+  and season-scoped attribution. `tools/audit-roster-ownership.mjs` is the
+  read-only cross-store auditor; it prints counts and a roster hash, never
+  player data.
+- **Game context and form:** `e2e-game-form-context` (20) proves Add Game asks
+  for no analytics perspective and that Program/Scout is derived from the
+  owning season; `e2e-game-form-visual` (242) is its visual contract across
+  four variants and five release widths.
 - **Responsive/visual:** `e2e-responsive-containment`, `e2e-breakdown-a11y`
 - **Populated screenshots** at 1440×900, 1280×800, 768×1024, 390×844 — captured
   with real multi-season data and **inspected**, not merely produced. Reports

@@ -167,18 +167,34 @@ authority until a replacement composition is reviewed and approved.
    the gap is why that edit case exists. `e2e-native-game`'s scout-from-form
    assertion is RETIRED, not repointed: its subject was the removed defect.
 
-   **Still open: the presentation.** The installed form does not match the
-   current Home/design-system hierarchy and reads as an older modal.
-   **Coach decision: remove this selection entirely.** Program versus Opponent
-   Scout is derived from the owning season; the active charting unit is selected
-   in Break Down and already derives the play perspective there. The repair must
-   preserve those canonical rules without resetting existing game context when
-   an old game is edited. Propose a current-design-system Game form using the
-   existing overlay service, with plain football labels and no duplicate
-   persistence path. Keep actual per-game film selection/linking in the canonical
-   film workflow. Cover create, edit, Program, Opponent Scout, keyboard/focus,
-   narrow-width containment, durable context behavior, and downstream Reports
-   cohort safety. No implementation is approved by this entry.
+   **Presentation REBUILT 2026-09-13.** Neutral `--gi-bd-*` surfaces, a gold
+   primary, one 12.5px label role in sentence case, and four ordered groups —
+   opponent, schedule, optional score, actions — on hairlines rather than the
+   nested fieldset card. It uses the existing overlay service and adds no
+   second persistence path; film linking stays in the canonical per-game film
+   workflow.
+
+   Four defects here were found by LOOKING at the captures, not by the geometry
+   pass, and each now has its own assertion: a legacy global in `styles.css`
+   (`input:focus:not(.ws-shell *)`) painted a focused border with `--accent`,
+   and this dialog renders outside `.ws-shell`; a global number-input rule
+   outranked the form's element selector and painted the score fields as
+   unbordered filled bars; an `auto` separator track took 194px of a 474px row
+   and threw `Us` and `Them` to opposite ends of the dialog; and a native date
+   input renders ~10px taller than a text input, giving one row three top edges.
+   A fifth was self-inflicted: a mobile `order:1` on the destructive action made
+   tab order disagree with visual order.
+
+   `tools/e2e-game-form-visual.mjs` (242) covers program create/edit and scout
+   create/edit at 1920×1080, 1440×900, 1280×800, 768×1024 and 390×844.
+   Captures: `artifacts/game-form-visual`.
+
+   **OPEN, deliberately not changed here — the shared focus ring is blue.**
+   `--gi-focus` resolves through `--gi-los` to `--gi-9` (#2b6fff), so every
+   focused control in every modern dialog draws a blue ring. Neutralizing it is
+   an app-wide palette edit, not a change one form may make on its own. Needs a
+   coach decision; until then the form's RESTING state carries no legacy blue
+   and its assertion measures exactly that.
 
 ## Pre-gate review of the shared visual range — FAILED, then repaired
 
