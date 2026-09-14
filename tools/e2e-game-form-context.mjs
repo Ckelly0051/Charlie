@@ -139,6 +139,16 @@ r = await page.evaluate(async () => {
 ok(r.perspective === 'scout', 'a scout source game is always perspective scout', String(r.perspective));
 ok(r.gameType === 'scout', 'a scout source game is always gameType scout', String(r.gameType));
 
+/* NOT ASSERTED HERE, DELIBERATELY. `native-root.jsx` now refuses to apply a
+   dialog's initial focus if focus is already inside the panel, because the full
+   gate caught its deferred requestAnimationFrame landing after typing had begun
+   and diverting an opponent name into the Week field (`week: "2Bravo Bears"`).
+   Puppeteer's waitForSelector resolves only AFTER that frame has run, so the
+   race window is not reachable from a harness: an assertion written here passes
+   with the guard removed, which makes it coverage in name only. The guard is
+   reasoned from the gate's own evidence and left unpinned rather than pinned by
+   a check that cannot fail. Recorded in docs/OPEN-DEFECTS.md. */
+
 console.log('\n== 6. No page errors ==');
 ok(errors.length === 0, 'zero page errors across the journey', errors.slice(0, 3).join(' | '));
 

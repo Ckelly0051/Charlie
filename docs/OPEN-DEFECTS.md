@@ -189,6 +189,18 @@ authority until a replacement composition is reviewed and approved.
    create/edit at 1920×1080, 1440×900, 1280×800, 768×1024 and 390×844.
    Captures: `artifacts/game-form-visual`.
 
+   **A deferred overlay focus frame could divert typing (2026-09-13).** The full
+   gate caught `e2e-native-game` recording `week: "2Bravo Bears"` — an opponent
+   name landing in the Week field. `native-root.jsx` applies a dialog's initial
+   focus in a `requestAnimationFrame`; under load that frame can land after
+   someone has clicked into another field and begun typing, and it yanked focus
+   back unconditionally. It now refuses to move focus that is already inside the
+   panel. **Unpinned, deliberately:** Puppeteer's `waitForSelector` resolves only
+   after that frame has run, so the race window is unreachable from a harness —
+   an assertion written for it passes with the guard removed, which is coverage
+   in name only. Verified by reproduction of the symptom in the gate and by
+   every overlay harness staying green, not by a check that cannot fail.
+
    **OPEN, deliberately not changed here — the shared focus ring is blue.**
    `--gi-focus` resolves through `--gi-los` to `--gi-9` (#2b6fff), so every
    focused control in every modern dialog draws a blue ring. Neutralizing it is

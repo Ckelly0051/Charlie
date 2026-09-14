@@ -38,6 +38,15 @@ function OverlayPanel({ overlay, service, top, effectiveModal }) {
       const first = overlay.type === 'sheet'
         ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
         : panel?.querySelector(focusableSelector);
+      // NEVER STEAL FOCUS THE COACH HAS ALREADY PLACED. This frame is deferred,
+      // and under load it can land well after the panel paints -- long enough
+      // for someone to have clicked or tabbed into a different field and begun
+      // typing. Yanking focus back then sends the rest of their keystrokes to
+      // the wrong input: the full gate caught an opponent name landing in the
+      // Week field, as `week: "2Bravo Bears"`. Initial focus applies only while
+      // focus is still outside the panel.
+      const active = document.activeElement;
+      if (panel && active && active !== document.body && panel.contains(active)) return;
       // An explicitly requested field owns focus even when a destructive
       // dialog keeps Cancel as its safe default action.
       (requestedField || requested || first || panel)?.focus({ preventScroll: true });
