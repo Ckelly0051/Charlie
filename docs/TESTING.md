@@ -196,6 +196,10 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   write (failing the backend for one season id only, then retrying), a conflicting
   import, and a conflicting restore.
 
+  `e2e-delete-undo-film` also pins the navigation boundary: a migration-refused
+  season open does not count as leaving the current season, so its pending game
+  deletion, managed film, purge timer and working Undo action all remain intact.
+
   A harness fixture may not give a game node a roster except to plant a hostile
   legacy or scout copy the model must ignore — and then it must assert the copy
   is actually present. `e2e-reports-season` gave every game an empty

@@ -98,6 +98,60 @@ ok(timers.beforeTimer.length === 0, 'film is not purged immediately on delete (u
 ok(JSON.stringify(timers.afterTimer) === JSON.stringify(['b']), 'the undo-window timer purges the film on its own (delete + walk away)', JSON.stringify(timers));
 ok(timers.afterUndoTimer.length === 0, 'undo within the window cancels the purge timer — film kept', JSON.stringify(timers));
 
+// ---- refused season open: the coach did not leave, so Undo stays valid ----
+const refused = await page.evaluate(async () => {
+  const sm = window.app.storage, store = sm.seasonStore, backend = store.backend;
+  const realSupports = backend.supportsFilm, realDelete = backend.deleteFilm;
+  const deleted = [];
+  backend.supportsFilm = () => true;
+  backend.deleteFilm = async (id) => { deleted.push(id); };
+  sm.UNDO_FILM_WINDOW_MS = 60000;
+
+  const g = n => ({ id: n, name: n, gameInfo: {}, status: 'active', plays: [{ id: 1, timestamp: { start: 0, end: 5 }, clipName: n + '_a', tags: { unit: 'offense', custom: [] } }], annotations: [], nextId: 2, currentPlayId: null, clipNames: [n + '_a'], isMultiClip: true });
+  store.data = store._normalize({ version: 5, type: 'season', id: 'undo-held', seasonName: 'Undo Held', activeGameId: 'a', games: [g('a'), g('b')] });
+  store.currentSeasonId = 'undo-held';
+  backend.setCurrentSeason('undo-held');
+  await backend.saveSeason('undo-held', structuredClone(store.data));
+  sm._loadActiveGame();
+
+  sm.removeGame('b');
+  const pendingBefore = {
+    filmGameId: sm._lastDeletedGame?.filmGameId || null,
+    timer: Boolean(sm._filmPurgeTimer),
+    deleted: deleted.slice(),
+  };
+  await backend.saveSeason('undo-conflict', {
+    id: 'undo-conflict', seasonName: 'Undo Conflict', activeGameId: 'c1',
+    games: [
+      { id: 'c1', name: 'Week 1', plays: [], roster: [{ num: '11', name: 'One' }] },
+      { id: 'c2', name: 'Week 2', plays: [], roster: [{ num: '22', name: 'Two' }] },
+    ],
+  });
+
+  const opened = await sm.openSeasonById('undo-conflict');
+  const pendingAfter = {
+    seasonId: store.currentSeasonId,
+    filmGameId: sm._lastDeletedGame?.filmGameId || null,
+    timer: Boolean(sm._filmPurgeTimer),
+    deleted: deleted.slice(),
+  };
+  const undoOk = sm.undoRemoveGame();
+  const gameRestored = store.data.games.some(game => game.id === 'b');
+
+  backend.supportsFilm = realSupports;
+  backend.deleteFilm = realDelete;
+  return { opened, pendingBefore, pendingAfter, undoOk, gameRestored, deleted };
+});
+
+ok(refused.opened === false && refused.pendingAfter.seasonId === 'undo-held',
+  'a migration-refused open leaves the outgoing season current', JSON.stringify(refused));
+ok(refused.pendingBefore.filmGameId === 'b' && refused.pendingBefore.timer
+  && refused.pendingAfter.filmGameId === 'b' && refused.pendingAfter.timer
+  && refused.deleted.length === 0,
+  'a refused open preserves the pending film and its undo-window timer', JSON.stringify(refused));
+ok(refused.undoOk && refused.gameRestored && refused.deleted.length === 0,
+  'Undo still restores the deleted game without losing its film after a refused open', JSON.stringify(refused));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 process.exit(fail ? 1 : 0);

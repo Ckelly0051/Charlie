@@ -167,7 +167,9 @@ These are invariants, not preferences. Every one is enforced in current source.
   prior `currentSeasonId`, the prior `data` and the backend current-season
   pointer; `openSeasonById()` returns false without running
   `_afterSeasonLoaded()`, so the season the coach already had open keeps its live
-  roster, active game and undo history. `adopt()` returns
+  roster, active game and undo history. The outgoing season's pending deleted
+  film is purged only after a successful open; a refused open leaves its purge
+  timer and working Undo action intact. `adopt()` returns
   `{ok:false, data:null, conflict}` before staging or persisting. `restoreBackup()`
   runs the boundary BEFORE its safety snapshot and returns null, so a refused
   restore writes nothing and the backup keeps its own bytes. `TeamHubScreen.

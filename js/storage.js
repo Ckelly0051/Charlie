@@ -405,9 +405,12 @@ export class StorageManager {
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();   // a debounced save must never straddle the switch
-    this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
     const opened = await this.seasonStore.openSeason(id);
     if (!opened) { this._reportRosterMigration(); return false; }
+    // Only a successful switch closes the outgoing season's delete-undo window.
+    // A refused migration open leaves that season current, so purging earlier
+    // would delete its pending film while the coach still has a valid Undo.
+    this._purgeStaleDeletedFilm();
     this._afterSeasonLoaded();
     return true;
   }
