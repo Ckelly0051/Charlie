@@ -355,7 +355,215 @@ ok(r.toProgram.parent === built.varsity && r.toProgram.mode === 'program',
 ok(r.toScout.active === 1 && r.toProgram.active === 1,
   'Exactly one rail row is active after each rendered click', JSON.stringify({ scout: r.toScout.active, program: r.toProgram.active }));
 
-console.log('\n== 10. No page or console errors ==');
+console.log('\n== 10. A parent is only valid while it exists and is not a scout ==');
+r = (() => {
+  const pool = [jv, varsity, { id: 's-x', kind: 'scout', programSeasonId: 'p-jv' }];
+  return {
+    real: WorkspaceContext.isValidParent(pool, 'p-jv'),
+    missing: WorkspaceContext.isValidParent(pool, 'p-gone'),
+    scout: WorkspaceContext.isValidParent(pool, 's-x'),
+    blank: WorkspaceContext.isValidParent(pool, ''),
+  };
+})();
+ok(r.real === true, 'a live program season is a valid parent');
+ok(r.missing === false, 'a dangling id -- a deleted or imported foreign parent -- is not', String(r.missing));
+ok(r.scout === false, 'a scout can never be another scout\'s parent', String(r.scout));
+ok(r.blank === false, 'an empty id is not a parent', String(r.blank));
+
+console.log('\n== 11. A team switch takes the parent context with it ==');
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, ctx = window.app.workspace, reg = window.app.teamRegistry;
+  // Team A already holds a parent from the sections above.
+  await S.openSeasonById(hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id);
+  await hub.load();
+  const teamA = { team: reg.activeTeamId(), parent: ctx.programSeasonId() };
+  const added = await hub.addTeam({ teamName: 'Second School', school: 'Second School', nickname: 'Hawks' });
+  const afterSwitch = { team: reg.activeTeamId(), parent: ctx.programSeasonId(), mode: ctx.workspaceMode() };
+  // Same year and level as Team A's season, so a team-blind match would collide.
+  await hub.createSeason({ year: '2026', level: 'JV' });
+  await hub.load();
+  const teamBParent = ctx.programSeasonId();
+  await hub.selectWorkspace('scout');
+  const made = await hub.createScout({
+    opponent: 'Crosstown', year: '2026', level: 'JV',
+    sourceTeamA: 'Crosstown', sourceTeamB: 'Second School',
+  });
+  const metas = await S.listSeasons();
+  const scoutMeta = metas.find(m => m.id === made.seasonId) || {};
+  // And a stale persisted context from Team A must not survive validation when
+  // no season is open to overwrite it -- the reload-after-team-switch shape.
+  S.seasonStore.closeSeason();
+  ctx.setParentSeason(teamA.parent);
+  await hub.load();
+  return {
+    added: added.ok, teamA, afterSwitch, teamBParent,
+    scoutParent: scoutMeta.programSeasonId || '', scoutId: made.seasonId,
+    afterValidation: ctx.programSeasonId(),
+    listedForTeamB: hub.snapshot().seasons.map(s => s.id),
+  };
+});
+ok(r.added && r.afterSwitch.team !== r.teamA.team, 'a second team was added and became active', JSON.stringify({ a: r.teamA.team, b: r.afterSwitch.team }));
+ok(r.afterSwitch.parent === '' && r.afterSwitch.mode === 'program',
+  'the switch CLEARS the outgoing team\'s parent context', JSON.stringify(r.afterSwitch));
+ok(r.teamBParent && r.teamBParent !== r.teamA.parent,
+  'the new team\'s own season becomes its parent', JSON.stringify({ a: r.teamA.parent, b: r.teamBParent }));
+ok(r.scoutParent === r.teamBParent,
+  'a scout created under Team B stores Team B\'s program season, at the same year and level', JSON.stringify(r));
+ok(r.afterValidation === '',
+  'a persisted parent from another team is dropped on validation, not used', JSON.stringify(r.afterValidation));
+
+console.log('\n== 12. An unassigned scout carries no borrowed parent ==');
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, ctx = window.app.workspace, st = S.seasonStore;
+  const programA = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  await S.openSeasonById(programA);
+  await hub.load();
+  const held = ctx.programSeasonId();
+  /* A genuinely UNASSIGNED scout: no stored parent AND no unique compatible
+     program season, so the documented read-only inference cannot resolve it
+     either. A blank level matches no program season exactly, which is the
+     first-launch shape (the scout exists before any season does). */
+  const rec = await st.backend.createSeason({
+    name: 'Unassigned Opponent · Scout', year: '2026', level: '', kind: 'scout',
+    teamId: window.app.teamRegistry.activeTeamId(), team: 'Second School',
+  });
+  await st.backend.saveSeason(rec.id, {
+    id: rec.id, type: 'season', version: 5, seasonName: 'Unassigned Opponent · Scout', kind: 'scout',
+    teamId: window.app.teamRegistry.activeTeamId(), year: '2026', level: '', roster: [], rosterOwnership: 'season',
+    games: [{ id: `${rec.id}-g1`, name: 'Source', plays: [], annotations: [], gameInfo: {}, nextId: 1, status: 'active' }],
+    activeGameId: `${rec.id}-g1`,
+  });
+  await S.openSeasonById(rec.id);
+  await hub.load();
+  const onScout = { parent: ctx.programSeasonId(), mode: ctx.workspaceMode(), open: st.currentSeasonId };
+  const back = await hub.selectWorkspace('program');
+  const after = { parent: ctx.programSeasonId(), open: st.currentSeasonId, mode: ctx.workspaceMode() };
+  return { held, scoutId: rec.id, onScout, back, after, unassigned: (hub.snapshot().unassignedScouts || []).map(s => s.id) };
+});
+ok(r.held && r.onScout.open === r.scoutId, 'a program season was the parent, then an unassigned scout was opened', JSON.stringify(r));
+ok(r.onScout.parent === '',
+  'opening it CLEARS the parent instead of borrowing the program season that was held', JSON.stringify(r.onScout));
+ok(r.back === false && r.after.open === r.scoutId && r.after.mode === 'scout',
+  'Our Program refuses rather than substituting a stale parent -- the scout stays open', JSON.stringify(r.after));
+ok(r.unassigned.includes(r.scoutId),
+  'the scout is listed for assignment, not lost', JSON.stringify(r.unassigned));
+const unassignedId = r.scoutId;
+
+console.log('\n== 13. Assignment is explicit, durable, and verified ==');
+r = await page.evaluate(async (scoutId) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore;
+  const target = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  const blank = await hub.assignScoutToSeason(scoutId, '');
+  const bogus = await hub.assignScoutToSeason(scoutId, 'no-such-season');
+  const untouched = String((await st.peekSeason(scoutId))?.programSeasonId || '');
+  // A failed durable write must leave it unassigned and say so.
+  const realSave = st.backend.saveSeason.bind(st.backend);
+  st.backend.saveSeason = async (id, data) => (id === scoutId ? false : realSave(id, data));
+  const failed = await hub.assignScoutToSeason(scoutId, target);
+  st.backend.saveSeason = realSave;
+  const afterFailure = {
+    stored: String((await st.peekSeason(scoutId))?.programSeasonId || ''),
+    unassigned: (hub.snapshot().unassignedScouts || []).map(s => s.id),
+  };
+  const good = await hub.assignScoutToSeason(scoutId, target);
+  const body = await st.peekSeason(scoutId);
+  const meta = (await S.listSeasons()).find(m => m.id === scoutId) || {};
+  const again = await hub.assignScoutToSeason(scoutId, target);
+  return {
+    target, blank, bogus, untouched, failed, afterFailure, good, again,
+    bodyParent: String(body?.programSeasonId || ''), metaParent: String(meta.programSeasonId || ''),
+    games: (body?.games || []).length, opponent: body?.scout?.opponentSchool ?? null,
+  };
+}, unassignedId);
+ok(r.blank.ok === false && r.bogus.ok === false && r.untouched === '',
+  'no parent, or a parent that is not a live program season, is refused and writes nothing', JSON.stringify(r));
+ok(r.failed.ok === false && /unchanged and still unassigned/.test(r.failed.message || '')
+  && r.afterFailure.stored === '' && r.afterFailure.unassigned.includes(unassignedId),
+  'a failed durable write reports failure and leaves the scout unassigned', JSON.stringify({ failed: r.failed, after: r.afterFailure }));
+ok(r.good.ok === true && r.bodyParent === r.target && r.metaParent === r.target,
+  'a confirmed assignment persists to the season body AND the library row', JSON.stringify(r));
+ok(r.games === 1 && r.opponent === null,
+  'assignment touches no game, film, tag, roster or opponent-identity field', JSON.stringify({ games: r.games, opponent: r.opponent }));
+ok(r.again.ok === false && /already belongs/.test(r.again.message || ''),
+  'an already assigned scout is not silently reassigned (reassignment deferred)', JSON.stringify(r.again));
+
+r = await page.evaluate(async (scoutId) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, ctx = window.app.workspace;
+  const parent = String((await S.listSeasons()).find(m => m.id === scoutId)?.programSeasonId || '');
+  // Reload simulation: drop every live handle and re-read from durable storage.
+  S.seasonStore.data = null; S.seasonStore.currentSeasonId = null;
+  await S.openSeasonById(parent);
+  await hub.load();
+  await hub.selectWorkspace('scout');
+  return {
+    parent, listed: hub.snapshot().seasons.map(s => s.id),
+    unassigned: (hub.snapshot().unassignedScouts || []).map(s => s.id),
+    ctxParent: ctx.programSeasonId(),
+  };
+}, unassignedId);
+ok(r.listed.includes(unassignedId) && !r.unassigned.includes(unassignedId),
+  'after a reload the assigned scout appears under its parent and no longer in the unassigned list', JSON.stringify(r));
+
+console.log('\n== 14. A parent that owns scouts cannot be deleted away ==');
+r = await page.evaluate(async (scoutId) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen;
+  const parent = String((await S.listSeasons()).find(m => m.id === scoutId)?.programSeasonId || '');
+  const owned = await hub._ownedScouts(parent);
+  // Drive the REAL command. It opens a blocking, non-destructive dialog and
+  // resolves false only once the coach dismisses it, so the promise is held and
+  // dismissed from the harness rather than awaited inline.
+  window.__deleteResult = hub.deleteSeason(parent);
+  return { parent, owned: owned.map(s => s.id) };
+}, unassignedId);
+const deleteDialog = await page.evaluate(async () => {
+  await new Promise(res => setTimeout(res, 300));
+  const panel = document.querySelector('[data-overlay-id], .gi-overlay-panel');
+  const text = panel?.textContent || '';
+  const button = [...(panel?.querySelectorAll('button') || [])].find(b => /close/i.test(b.textContent));
+  const hasButton = !!button;
+  if (button) button.click();
+  await new Promise(res => setTimeout(res, 250));
+  const deleted = await window.__deleteResult;
+  const S = window.app.storage;
+  const metas = await S.listSeasons();
+  return {
+    text, hasButton, deleted,
+    stillThere: metas.some(m => m.id === window.__deleteParent),
+    destructive: /delete/i.test(panel?.className || ''),
+  };
+});
+r = await page.evaluate(async (scoutId) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen;
+  const parent = String((await S.listSeasons()).find(m => m.id === scoutId)?.programSeasonId || '');
+  const owned = await hub._ownedScouts(parent);
+  const metas = await S.listSeasons();
+  const stillThere = metas.some(m => m.id === parent);
+  const scoutSurvives = metas.some(m => m.id === scoutId);
+  const deleted = false;
+  // A DANGLING parent id -- the imported-foreign-parent case -- must not block,
+  // and its scout must land in the unassigned workflow.
+  const st = S.seasonStore;
+  const body = await st.peekSeason(scoutId);
+  body.programSeasonId = 'imported-from-another-machine';
+  await st.backend.saveSeason(scoutId, body);
+  await S.openSeasonById(parent);
+  await hub.load();
+  await hub.selectWorkspace('scout');
+  return {
+    parent, owned: owned.map(s => s.id), deleted, stillThere, scoutSurvives,
+    danglingUnassigned: (hub.snapshot().unassignedScouts || []).map(s => s.id),
+    danglingListed: hub.snapshot().seasons.map(s => s.id),
+  };
+}, unassignedId);
+ok(r.owned.includes(unassignedId), 'the parent really owns that scout explicitly', JSON.stringify(r.owned));
+ok(deleteDialog.hasButton && /opponent scout/i.test(deleteDialog.text) && /Reassign or delete/.test(deleteDialog.text),
+  'the block is a real, dismissible dialog naming the owned scouts and the two ways forward', JSON.stringify({ text: deleteDialog.text.slice(0, 180), hasButton: deleteDialog.hasButton }));
+ok(deleteDialog.deleted === false && r.stillThere && r.scoutSurvives,
+  'deleting it is BLOCKED -- neither season is removed and no scouting data is cascaded', JSON.stringify({ dialog: deleteDialog.deleted, parent: r.stillThere, scout: r.scoutSurvives }));
+ok(r.danglingUnassigned.includes(unassignedId),
+  'a scout naming a parent that does not exist falls into the unassigned workflow', JSON.stringify(r));
+
+console.log('\n== 15. No page or console errors ==');
 ok(errors.length === 0, 'zero page/console errors across every transition', errors.slice(0, 3).join(' | '));
 
 await browser.close();

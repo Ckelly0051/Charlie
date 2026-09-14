@@ -64,6 +64,41 @@ export class WorkspaceContext {
     return this._programSeasonId;
   }
 
+  /** Drop the parent context entirely. Used when the active TEAM changes (the
+   *  prior team's season cannot own the new team's workspace) and when the open
+   *  scout names no parent at all. */
+  clearParent() {
+    if (this._programSeasonId === '' && this._workspaceMode === 'program') return '';
+    this._programSeasonId = '';
+    this._workspaceMode = 'program';
+    this._persistParent();
+    return '';
+  }
+
+  /**
+   * A held parent is only usable while it is still a real program season of the
+   * APPLICABLE team collection. Persisted context outlives the thing it points
+   * at: a team switch, a deleted season, or an imported season body carrying a
+   * foreign `programSeasonId` all leave a parent id that resolves to nothing —
+   * or, worse, to a scout. An invalid parent is dropped, which puts any scout
+   * that named it into the unassigned workflow instead of a dangling context.
+   */
+  validateParent(seasons) {
+    if (!this._programSeasonId) return '';
+    if (!WorkspaceContext.isValidParent(seasons, this._programSeasonId)) return this.clearParent();
+    return this._programSeasonId;
+  }
+
+  /** True only when `id` names a season present in `seasons` that is not itself
+   *  a scout. Both halves matter: a missing id is dangling, and a scout can
+   *  never be another scout's parent. */
+  static isValidParent(seasons, id) {
+    const wanted = String(id || '');
+    if (!wanted) return false;
+    const found = (seasons || []).find(season => String(season?.id) === wanted);
+    return !!found && found.kind !== 'scout';
+  }
+
   setWorkspaceMode(mode) {
     const next = mode === 'scout' ? 'scout' : 'program';
     if (next !== this._workspaceMode) {
@@ -75,8 +110,8 @@ export class WorkspaceContext {
 
   /** Adopt the parent implied by a season record that has just been opened: a
    *  program season IS its own parent; a scout names its parent explicitly. A
-   *  scout with no stored parent leaves the current parent untouched rather than
-   *  guessing one — an unassigned scout is surfaced, never silently attached. */
+   *  scout with no stored parent CLEARS the parent rather than guessing one or
+   *  keeping the last one — an unassigned scout is surfaced, never attached. */
   adoptOpenedSeason(data) {
     if (!data) return this._programSeasonId;
     const id = String(data.id || '');
@@ -84,7 +119,12 @@ export class WorkspaceContext {
     // DERIVED here rather than stored -- there is no ambiguity to record.
     if (data.kind === 'scout') {
       const parent = String(data.programSeasonId || '');
+      // An UNASSIGNED scout CLEARS the parent rather than inheriting whatever was
+      // held before it. Keeping the previous parent let an unrelated program
+      // season stand in as this scout's owner, which then answered "return to Our
+      // Program" with a season the scout has no relationship to.
       if (parent) this.setParentSeason(parent);
+      else if (this._programSeasonId) { this._programSeasonId = ''; this._persistParent(); }
       this.setWorkspaceMode('scout');
       return this._programSeasonId;
     }
@@ -110,7 +150,12 @@ export class WorkspaceContext {
     if (!data) return this._programSeasonId;
     if (data.kind === 'scout') {
       const parent = String(data.programSeasonId || '');
+      // An UNASSIGNED scout CLEARS the parent rather than inheriting whatever was
+      // held before it. Keeping the previous parent let an unrelated program
+      // season stand in as this scout's owner, which then answered "return to Our
+      // Program" with a season the scout has no relationship to.
       if (parent) this.setParentSeason(parent);
+      else if (this._programSeasonId) { this._programSeasonId = ''; this._persistParent(); }
       this.setWorkspaceMode('scout');
       return this._programSeasonId;
     }
@@ -156,7 +201,18 @@ export class WorkspaceContext {
    */
   static resolveScoutParent(scout, seasons) {
     const explicit = String(scout?.programSeasonId || '');
-    if (explicit) return { status: 'explicit', programSeasonId: explicit, candidates: [explicit] };
+    if (explicit) {
+      // An explicit id is authoritative ONLY while it resolves to a real program
+      // season of this collection. A deleted parent, or a body imported from
+      // another machine carrying a foreign id, otherwise left the scout filed
+      // under a season that does not exist -- present in storage and invisible in
+      // every parent-scoped list. It becomes UNASSIGNED instead, which is the
+      // visible, recoverable state. The stored id is reported, never rewritten.
+      if (WorkspaceContext.isValidParent(seasons, explicit)) {
+        return { status: 'explicit', programSeasonId: explicit, candidates: [explicit] };
+      }
+      return { status: 'unassigned', programSeasonId: '', candidates: [], danglingParentId: explicit };
+    }
     const key = value => String(value ?? '').trim().toLowerCase();
     const candidates = (seasons || []).filter(season => season && season.kind !== 'scout'
       && key(season.teamId) === key(scout?.teamId)

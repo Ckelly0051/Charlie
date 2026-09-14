@@ -199,7 +199,22 @@ export class TeamHubScreen {
       // PASSIVE: a re-render adopts the parent but must not restate the mode of
       // an open program season, or it would undo the switch that triggered it.
       if (context && liveData) context.syncParentFromOpen(liveData);
-      const programSeasonId = context ? context.programSeasonId() : '';
+      // Then validate it against THIS team's collection. Persisted context
+      // outlives what it points at -- a team switch, a deleted parent, or an
+      // imported body carrying a foreign programSeasonId all leave an id that
+      // resolves to nothing, or to a scout. An invalid parent is dropped here, so
+      // its scouts fall into the unassigned workflow instead of a dangling view.
+      let programSeasonId = context ? context.validateParent(teamSeasons) : '';
+      // A LEGACY scout with no stored parent but exactly one compatible program
+      // season is listed under that season, so navigation must agree with the
+      // list: adopt the inferred parent for this session only. Read-only -- the
+      // inference is never written to the scout. An ambiguous scout resolves to
+      // nothing and stays in the unassigned workflow.
+      if (context && !programSeasonId && liveData?.kind === 'scout' && !String(liveData.programSeasonId || '')) {
+        const meta = teamSeasons.find(season => String(season.id) === String(liveData.id));
+        const resolved = meta ? WorkspaceContext.resolveScoutParent(meta, teamSeasons) : null;
+        if (resolved?.status === 'inferred') programSeasonId = context.setParentSeason(resolved.programSeasonId);
+      }
       const parentSeason = teamSeasons.find(season => String(season.id) === String(programSeasonId)) || null;
       // `seasons` stays the MAIN-PANEL filtered collection (the library grid
       // and Team Hub's own list follow the coach's workspace choice).
@@ -378,6 +393,11 @@ export class TeamHubScreen {
       store.closeSeason();
       storage._clearForNewGame();
     }
+    // The Home parent context belongs to the OUTGOING team. Cleared in the same
+    // step that changes the active team, before anything can read it: a stale
+    // parent here meant a scout created under the new team could be stamped with
+    // the previous team's program-season id.
+    this._context()?.clearParent();
     this._registry().setActiveTeamId(id);
     this._registry().saveTeamProfile({ teamName: next.teamName, school:next.school || '', nickname:next.nickname || '', jerseyColor: next.jerseyColor || '' });
     // No season is open after a team switch, so no roster has an owner yet.
@@ -458,6 +478,58 @@ export class TeamHubScreen {
       if (String(opponent).trim().toLowerCase() === opponentSchool.toLowerCase()) return season;
     }
     return null;
+  }
+
+  /** Scouts whose stored `programSeasonId` is EXPLICITLY this season. Read fresh
+   *  from the library, never from cached rows, because deletion is irreversible. */
+  async _ownedScouts(programSeasonId) {
+    const wanted = String(programSeasonId || '');
+    if (!wanted) return [];
+    const all = await this._storage().listSeasons();
+    return all.filter(season => season?.kind === 'scout' && String(season.programSeasonId || '') === wanted);
+  }
+
+  /**
+   * Assign an UNASSIGNED scout to an explicit program season.
+   *
+   * The coach chooses the parent; nothing here infers one. The relationship is
+   * written through the canonical storage APIs into BOTH the season body and the
+   * library row, and only a durable write counts: a failed persist leaves the
+   * scout unassigned, restores the body, and reports the failure rather than
+   * showing an assignment that did not land. No game, film, tag, roster,
+   * opponent identity or source-game field is read or written.
+   */
+  async assignScoutToSeason(scoutId, programSeasonId) {
+    const scout = String(scoutId || ''), parent = String(programSeasonId || '');
+    if (!scout || !parent) return { ok: false, message: 'Choose the program season this scout belongs to.' };
+    const all = await this._storage().listSeasons();
+    const teamSeasons = this._registry().seasonsForTeam(all, this._state.activeTeamId);
+    if (!WorkspaceContext.isValidParent(teamSeasons, parent)) {
+      return { ok: false, message: 'That program season is no longer available. Pick another.' };
+    }
+    const record = all.find(season => String(season.id) === scout);
+    if (!record || record.kind !== 'scout') return { ok: false, message: 'That opponent scout could not be found.' };
+    const store = this._store();
+    const body = await store.peekSeason(scout);
+    if (!body) return { ok: false, message: 'That opponent scout could not be read. Nothing was changed.' };
+    if (String(body.programSeasonId || '')) {
+      // Reassignment is deliberately out of scope for this pass -- see
+      // docs/OPEN-DEFECTS.md. Assigning only an unassigned scout keeps this
+      // workflow additive and never moves an existing relationship.
+      return { ok: false, message: 'That scout already belongs to a program season.' };
+    }
+    body.programSeasonId = parent;
+    const saved = await store.backend.saveSeason(scout, body);
+    if (saved === false) {
+      return { ok: false, message: 'The assignment could not be saved. The scout is unchanged and still unassigned.' };
+    }
+    // Verify from durable storage rather than trusting the write's return value.
+    const readBack = await store.peekSeason(scout);
+    if (String(readBack?.programSeasonId || '') !== parent) {
+      return { ok: false, message: 'The assignment did not save. The scout is unchanged and still unassigned.' };
+    }
+    await this.load();
+    return { ok: true, seasonId: scout, programSeasonId: parent };
   }
 
   createScout(values) { return this._changeSeason(current => this._createScout(values, current)); }
@@ -762,8 +834,29 @@ export class TeamHubScreen {
   }
 
   async deleteSeason(id, invoker) {
-    const row = this._state.seasons.find(season => season.id === String(id));
+    const row = this._state.seasons.find(season => season.id === String(id))
+      || (this._state.railSeasons || []).find(season => season.id === String(id));
     if (!row) return false;
+    /* A program season that OWNS scouts cannot be deleted out from under them.
+       Cascading would destroy charted opponent film the coach never asked to
+       lose, and deleting the parent alone would strand its scouts: they would
+       name an id that resolves to nothing and drop out of every parent-scoped
+       list. So the delete is BLOCKED with the count and the two ways forward.
+       Only EXPLICIT owners block -- a legacy scout merely inferred to this
+       season is not durably owned by it, and losing that inference moves it into
+       the unassigned workflow, which is visible and recoverable. */
+    if (!row.isScout) {
+      const owned = (await this._ownedScouts(row.id));
+      if (owned.length) {
+        await this.overlays.dialog({
+          title: `${row.name} has ${owned.length} opponent scout${owned.length === 1 ? '' : 's'}`,
+          returnFocus: invoker,
+          message: `Reassign or delete ${owned.length === 1 ? 'it' : 'them'} first: ${owned.map(scout => scout.name).join(', ')}. Deleting this season now would leave that scouting film with no season.`,
+          actions: [{ key: 'close', label: 'Close', default: true }],
+        }).result;
+        return false;
+      }
+    }
     const linkedCopy = row.isDemo
       ? 'Your teams, roster, and other seasons are untouched.'
       : 'Managed film copies stored by GridIron IQ for this season are also removed. Linked original folders are never deleted.';

@@ -127,6 +127,13 @@ export class StorageBackend {
       team, year: (data && data.year) || '', level: (data && data.level) || '',
       isDemo: !!(data && (data.isDemo || data.kind === 'demo')),
       kind: (data && (data.isDemo || data.kind === 'demo')) ? 'demo' : (data && data.kind) || '',
+      // Identity/ownership fields ride along ONLY when the payload carries them.
+      // `_touchMeta` merges this over the existing row, so emitting '' would
+      // erase a relationship the row already holds -- and these are the two
+      // fields a library row cannot re-derive: the owning team, and the program
+      // season that owns a scout.
+      ...(data && data.teamId ? { teamId: data.teamId } : {}),
+      ...(data && data.programSeasonId ? { programSeasonId: data.programSeasonId } : {}),
       games, plays, updated: new Date().toISOString(),
     };
   }

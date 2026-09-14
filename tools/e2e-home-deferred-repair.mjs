@@ -710,8 +710,17 @@ const safeguards = await page.evaluate(async () => {
   const dupe = await hub.createSeason({ year: '2026', level: 'Varsity' });
   await hub.load();
   const after = hub.snapshot().railSeasons.length;
-  // Destructive delete still requires a typed confirmation.
-  const program = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo);
+  /* Destructive delete still requires a typed confirmation. FIXTURE REPOINTED
+     2026-09-14: it must target a program season that owns NO opponent scouts. A
+     parent with scouts is now blocked before the confirm is ever offered --
+     deleting it would strand charted opponent film under a season id that no
+     longer exists, and cascading it would destroy scouting data the coach never
+     agreed to lose. The typed-confirmation claim is unchanged and still live;
+     the owned-scout block has its own coverage in e2e-scout-ownership. */
+  const owners = new Set((await window.app.storage.listSeasons())
+    .filter(season => season.kind === 'scout' && season.programSeasonId)
+    .map(season => String(season.programSeasonId)));
+  const program = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo && !owners.has(String(s.id)));
   hub.deleteSeason(program.id, null);
   await new Promise(r => setTimeout(r, 350));
   const panel = document.querySelector('[data-overlay-id] .gi-overlay-panel');
