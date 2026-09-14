@@ -503,6 +503,58 @@ function EmptyScoutLibrary({ create }) {
   </div>;
 }
 
+/**
+ * Opponent scouts this team owns that belong to no program season: a scout
+ * created at first launch before any season existed, a legacy record with no
+ * unique compatible parent, and one whose stored parent no longer resolves
+ * (deleted, or imported from another machine).
+ *
+ * They are never hidden and never auto-attached. Each row names the scout and
+ * carries one explicit control: choose a program season, then Assign. Only the
+ * ACTIVE TEAM's real program seasons are offered, each labelled with its year
+ * and level so two similarly named seasons are distinguishable. With no program
+ * season to choose, the row offers the one action that unblocks it -- create a
+ * season -- and the scout stays exactly where it is.
+ */
+function UnassignedScouts({ hub, hubState }) {
+  const scouts = hubState.unassignedScouts || [];
+  if (!scouts.length) return null;
+  const parents = (hubState.railSeasons || []).filter(season => !season.isScout && !season.isDemo);
+  const label = season => [season.name, [season.year, season.level].filter(Boolean).join(' · ')]
+    .filter(Boolean).join(' — ');
+  return <section class="library-unassigned" aria-labelledby="unassignedScoutsTitle">
+    <div class="library-list-head">
+      <h3 id="unassignedScoutsTitle">Needs a program season</h3>
+      <p>{scouts.length === 1 ? 'This scout is not attached to a season yet.' : `${scouts.length} scouts are not attached to a season yet.`}</p>
+    </div>
+    <div class="library-unassigned-list" role="list">
+      {scouts.map(scout => <div class="library-unassigned-row" role="listitem" data-unassigned-scout={scout.id}>
+        <div class="library-unassigned-identity">
+          <strong>{scout.name}</strong>
+          <small>{[scout.year, scout.level].filter(Boolean).join(' · ') || 'No season details'} · {scout.gameCount === 1 ? '1 source game' : `${scout.gameCount || 0} source games`}</small>
+        </div>
+        {parents.length
+          ? <form class="library-assign" onSubmit={event => {
+              event.preventDefault();
+              const select = event.currentTarget.querySelector('select');
+              hub.assignScoutFromHome(scout.id, select?.value || '');
+            }}>
+            <label>
+              <span class="gi-hub-kicker">Program season</span>
+              <select name={`assign-${scout.id}`} aria-label={`Program season for ${scout.name}`}>
+                <option value="">Choose a season</option>
+                {parents.map(season => <option key={season.id} value={season.id}>{label(season)}</option>)}
+              </select>
+            </label>
+            <button type="submit" class="ws-btn ws-primary">Assign</button>
+          </form>
+          : <button type="button" class="ws-btn ws-primary"
+              onClick={event => hub.openCreateSeason(event.currentTarget)}>Create a program season</button>}
+      </div>)}
+    </div>
+  </section>;
+}
+
 /** The library state -- no season is currently open. Home owns this
  *  presentation while TeamHubScreen remains the sole data/action service.
  *  A coach landing here gets a readable operational season list and useful
@@ -536,7 +588,11 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
       {!ordered.length && scout ? <button type="button" class="ws-btn ws-primary library-mobile-create" onClick={create}>+ New opponent scout</button> : null}
     </div>
     {ordered.length || scout ? <div class={`library-summary${scout ? ' is-scout' : ''}`}>
-      <span><small>{scout ? 'Scouting program' : 'Current program'}</small><b>{teamName}</b></span>
+      {/* In Opponent Scout the first cell names the PARENT SEASON, because that
+          is the context these scouts belong to and the thing the coach returns
+          to. Without it the view could not be told apart from another season's
+          scout library. */}
+      <span><small>{scout ? 'Program season' : 'Current program'}</small><b>{scout ? (hubState.parentSeasonName || teamName) : teamName}</b></span>
       <span><small>{scout ? 'Opponents' : 'Seasons'}</small><b>{ordered.length}</b></span>
       <span><small>{scout ? 'Source games' : 'Games'}</small><b>{totals.games}</b></span>
       <span><small>Plays</small><b>{totals.plays}</b></span>
@@ -551,8 +607,9 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
           </section>
           <LibraryOverview screen={screen} hub={hub} hubState={hubState} seasons={ordered} scout={scout} />
         </div>
+        {scout && <UnassignedScouts hub={hub} hubState={hubState} />}
         </>
-      : scout ? <EmptyScoutLibrary create={create} /> : <div class="ws-empty-panel">
+      : scout ? <><EmptyScoutLibrary create={create} /><UnassignedScouts hub={hub} hubState={hubState} /></> : <div class="ws-empty-panel">
           <h3>{scout ? 'No opponent scouts' : 'Start the football year here'}</h3>
           <p>{scout ? 'Add an opponent and source game, then link film.' : 'Create your first season, then add games from Home.'}</p>
           <button type="button" class="ws-btn ws-primary" onClick={create}>{scout ? 'Create first opponent scout' : 'Create first season'}</button>
@@ -585,6 +642,14 @@ function NativeHome({ screen }) {
   // during the brief window before hub.load() first resolves.
   const hubReady = hub && hubState.status !== 'loading' && hubState.status !== 'idle';
   const hasTeam = hubReady ? !!hubState.teams?.length : !!c.team;
+  // Opponent Scout with the PARENT program season open is the scout LIBRARY --
+  // the parent's own scoped list of opponents, or its empty state. It renders
+  // without closing the parent, which is what makes the switch one transition.
+  // Before this, `hasSeason` was true (the parent stays open by design) so the
+  // program game workspace won and the approved scout composition was reachable
+  // only through `_openLibrary()`, i.e. by closing the season -- the bounce.
+  // An open SCOUT keeps the ordinary game workspace below.
+  const browsingScoutLibrary = hasTeam && hasSeason && !scout && hubState.workspaceMode === 'scout';
 
   // HomeHead ALWAYS renders -- its Team & Film Settings / Season report /
   // + Add game actions are the coach's persistent way out of any state
@@ -607,7 +672,9 @@ function NativeHome({ screen }) {
       {state.active && <SeasonRail screen={screen} hub={hub} hubState={hubState} />}
       <div class="home-content">
         {hasTeam && hasSeason && <HomeHead screen={screen} state={state} hasSeason={hasSeason} scout={scout} c={c} games={games} />}
-        {state.status !== 'ready' || !state.active ? null : hasSeason
+        {state.status !== 'ready' || !state.active ? null : browsingScoutLibrary
+          ? <SeasonLibraryPanel screen={screen} hub={hub} hubState={hubState} hasTeam={hasTeam} />
+          : hasSeason
           ? (!games.length ? <EmptySeasonPanel screen={screen} scout={scout} /> : <GameWorkspace screen={screen} state={state} games={games} scout={scout} c={c} />)
           : hasTeam ? <SeasonLibraryPanel screen={screen} hub={hub} hubState={hubState} hasTeam={hasTeam} /> : <FirstLaunch screen={screen} hub={hub} mode={hubState.workspaceMode} />}
       </div>

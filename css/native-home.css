@@ -338,6 +338,13 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .library-season-identity{grid-area:identity}.ws-home-page .library-season-metrics{grid-area:metrics}.ws-home-page .library-film{grid-area:film}.ws-home-page .library-season-actions{grid-area:actions}
   .ws-home-page .library-overview{grid-template-columns:1fr 1fr}.ws-home-page .library-overview-actions{grid-column:1/-1;border-top:1px solid var(--gi-bd-line)}
   .ws-home-page .library-scout-empty{display:grid;grid-template-columns:1fr}
+   /* Once the empty Scout layout stacks, its create panel falls below the fold,
+      so the ONE create action moves to the panel head where it stays in the
+      initial viewport. Swapped here rather than at 700px, which left 768 with its
+      only create action off-screen. Still exactly one: .library-mobile-create
+      renders only in this empty state, and the aside button is hidden with it. */
+   .ws-home-page .library-mobile-create{display:inline-flex}
+   .ws-home-page .scout-start .library-continue{display:none}
   .ws-home-page .scout-table-head{grid-template-columns:minmax(150px,1.4fr) repeat(4,minmax(76px,.7fr))}
 }
 @media(max-width:700px){

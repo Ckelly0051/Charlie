@@ -507,29 +507,46 @@ export class TeamHubScreen {
     if (!WorkspaceContext.isValidParent(teamSeasons, parent)) {
       return { ok: false, message: 'That program season is no longer available. Pick another.' };
     }
-    const record = all.find(season => String(season.id) === scout);
-    if (!record || record.kind !== 'scout') return { ok: false, message: 'That opponent scout could not be found.' };
-    const store = this._store();
-    const body = await store.peekSeason(scout);
-    if (!body) return { ok: false, message: 'That opponent scout could not be read. Nothing was changed.' };
-    if (String(body.programSeasonId || '')) {
-      // Reassignment is deliberately out of scope for this pass -- see
-      // docs/OPEN-DEFECTS.md. Assigning only an unassigned scout keeps this
-      // workflow additive and never moves an existing relationship.
-      return { ok: false, message: 'That scout already belongs to a program season.' };
+    // THE SCOUT MUST BELONG TO THE ACTIVE TEAM. Validating only the parent left
+    // the scout resolved from the whole catalog, so a direct call with another
+    // team's scout id would have attached it to this team's season.
+    const record = teamSeasons.find(season => String(season.id) === scout);
+    if (!record || record.kind !== 'scout') {
+      return { ok: false, message: 'That opponent scout could not be found for this team.' };
     }
-    body.programSeasonId = parent;
-    const saved = await store.backend.saveSeason(scout, body);
-    if (saved === false) {
+    const store = this._store();
+    const body = String(store.currentSeasonId || '') === scout ? store.data : await store.peekSeason(scout);
+    if (!body) return { ok: false, message: 'That opponent scout could not be read. Nothing was changed.' };
+    /* Three states, three answers. A BLANK parent is assignable. A stored parent
+       that no longer resolves to a real program season of this team -- deleted,
+       or imported from another machine -- is REPAIRABLE, which is what makes the
+       parent-deletion dialog's "reassign or delete" instruction true. A parent
+       that is still valid is left alone: silent reassignment is not this
+       workflow's job (see docs/OPEN-DEFECTS.md). */
+    const stored = String(body.programSeasonId || '');
+    if (stored && WorkspaceContext.isValidParent(teamSeasons, stored)) {
+      return { ok: false, message: 'That scout already belongs to a program season.', reason: 'already-assigned' };
+    }
+    const result = await store.assignScoutParent(scout, parent);
+    if (!result.ok) {
       return { ok: false, message: 'The assignment could not be saved. The scout is unchanged and still unassigned.' };
     }
-    // Verify from durable storage rather than trusting the write's return value.
-    const readBack = await store.peekSeason(scout);
-    if (String(readBack?.programSeasonId || '') !== parent) {
-      return { ok: false, message: 'The assignment did not save. The scout is unchanged and still unassigned.' };
-    }
     await this.load();
-    return { ok: true, seasonId: scout, programSeasonId: parent };
+    return { ok: true, seasonId: scout, programSeasonId: parent, repaired: !!stored };
+  }
+
+  /** The Home unassigned-scout row's Assign action: the same command, with
+   *  coach-facing feedback either way. */
+  async assignScoutFromHome(scoutId, programSeasonId) {
+    if (!String(programSeasonId || '')) {
+      this.overlays.toast({ tone: 'error', message: 'Choose the program season this scout belongs to.' });
+      return false;
+    }
+    const result = await this.assignScoutToSeason(scoutId, programSeasonId);
+    this.overlays.toast(result.ok
+      ? { tone: 'success', message: 'Opponent scout assigned to its program season.' }
+      : { tone: 'error', message: result.message });
+    return result.ok;
   }
 
   createScout(values) { return this._changeSeason(current => this._createScout(values, current)); }

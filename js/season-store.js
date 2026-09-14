@@ -1329,6 +1329,47 @@ export class SeasonStore {
     return this.backend.createBackup(seasonId, data, label);
   }
 
+  /**
+   * THE CANONICAL WRITE for a scout's parent program season.
+   *
+   * It is a season write like any other, so it goes through the same seam every
+   * other durable write uses -- the per-season FIFO queue and the PC-4 revision
+   * fence (`_dispatchWrite`) -- rather than reaching `backend.saveSeason()`
+   * directly. That ordering is the whole point: a body written outside the queue
+   * can be overwritten by an ordinary persist that was already in flight with the
+   * stale parent, so the assignment would silently disappear on the next save.
+   *
+   * When the scout is the OPEN season the live `data` is updated too, in the same
+   * step, so no later `commitActive()`/`persist()` can write the old value back.
+   * Every unrelated field is preserved: the body is the one read from storage
+   * with a single key set on it.
+   *
+   * Returns `{ ok, reason }`. A refused or failed write changes nothing -- the
+   * live object is restored, and success is claimed only after the durable body
+   * is read back and confirmed.
+   */
+  async assignScoutParent(scoutId, programSeasonId) {
+    const scout = String(scoutId || ''), parent = String(programSeasonId || '');
+    if (!scout || !parent) return { ok: false, reason: 'invalid-input' };
+    const isOpen = String(this.currentSeasonId || '') === scout;
+    const body = isOpen ? this.data : await this.peekSeason(scout);
+    if (!body || body.kind !== 'scout') return { ok: false, reason: 'not-a-scout' };
+    const previous = String(body.programSeasonId || '');
+    const payload = isOpen ? body : { ...body };
+    payload.programSeasonId = parent;
+    if (isOpen) this.data.programSeasonId = parent;
+    const ok = await this._dispatchWrite(scout, payload, revision => {
+      payload.revision = revision;
+      return Promise.resolve(this.backend.saveSeason(scout, payload)).then(saved => saved !== false);
+    });
+    const readBack = ok === false ? null : await this.peekSeason(scout);
+    if (ok === false || String(readBack?.programSeasonId || '') !== parent) {
+      if (isOpen) this.data.programSeasonId = previous;
+      return { ok: false, reason: 'write-failed' };
+    }
+    return { ok: true, previous, programSeasonId: parent };
+  }
+
   listBackups() { return this.backend.listBackups(this.currentSeasonId); }
 
   /**

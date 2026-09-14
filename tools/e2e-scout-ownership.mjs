@@ -563,7 +563,139 @@ ok(deleteDialog.deleted === false && r.stillThere && r.scoutSurvives,
 ok(r.danglingUnassigned.includes(unassignedId),
   'a scout naming a parent that does not exist falls into the unassigned workflow', JSON.stringify(r));
 
-console.log('\n== 15. No page or console errors ==');
+console.log('\n== 15. The unassigned section is RENDERED and its Assign works ==');
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore;
+  const teamId = window.app.teamRegistry.activeTeamId();
+  const parent = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  // A genuinely unassigned scout for this team (blank level matches no season).
+  const rec = await st.backend.createSeason({ name: 'Rendered Assign · Scout', year: '2026', level: '', kind: 'scout', teamId, team: 'Second School' });
+  await st.backend.saveSeason(rec.id, {
+    id: rec.id, type: 'season', version: 5, seasonName: 'Rendered Assign · Scout', kind: 'scout',
+    teamId, year: '2026', level: '', roster: [], rosterOwnership: 'season',
+    games: [{ id: `${rec.id}-g1`, name: 'Source', plays: [], annotations: [], gameInfo: {}, nextId: 1, status: 'active' }],
+    activeGameId: `${rec.id}-g1`,
+  });
+  await S.openSeasonById(parent);
+  await hub.load();
+  await hub.selectWorkspace('scout');
+  await window.app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 500));
+  const row = document.querySelector(`[data-unassigned-scout="${rec.id}"]`);
+  const select = row?.querySelector('select');
+  const options = [...(select?.querySelectorAll('option') || [])].map(o => ({ value: o.value, text: o.textContent }));
+  const button = [...(row?.querySelectorAll('button') || [])].find(b => /assign/i.test(b.textContent));
+  const box = row?.getBoundingClientRect();
+  // Drive the REAL control: choose the season, submit the form.
+  if (select) { select.value = parent; select.dispatchEvent(new Event('change', { bubbles: true })); }
+  if (button) button.click();
+  await new Promise(res => setTimeout(res, 900));
+  const meta = (await S.listSeasons()).find(m => m.id === rec.id) || {};
+  return {
+    scoutId: rec.id, parent,
+    rendered: !!row, visible: !!box && box.width > 0 && box.height > 0,
+    hasSelect: !!select, hasButton: !!button, options,
+    storedParent: String(meta.programSeasonId || ''),
+    stillUnassigned: (hub.snapshot().unassignedScouts || []).some(s => s.id === rec.id),
+    nowListed: hub.snapshot().seasons.some(s => s.id === rec.id),
+  };
+});
+ok(r.rendered && r.visible && r.hasSelect && r.hasButton,
+  'the unassigned scout renders a real, visible row with a season control and an Assign action', JSON.stringify({ rendered: r.rendered, visible: r.visible, select: r.hasSelect, button: r.hasButton }));
+ok(r.options.length >= 2 && r.options.some(o => o.value === r.parent && /\d{4}/.test(o.text)),
+  'the control offers this team\'s program seasons, labelled with year and level', JSON.stringify(r.options));
+ok(r.storedParent === r.parent,
+  'submitting the rendered form persists the parent', JSON.stringify({ stored: r.storedParent, parent: r.parent }));
+ok(!r.stillUnassigned && r.nowListed,
+  'the row leaves the unassigned section and appears in the parent\'s scoped library immediately', JSON.stringify(r));
+
+console.log('\n== 16. A scout of ANOTHER team cannot be assigned here ==');
+r = await page.evaluate(async (ids) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen;
+  // `built.jv` belongs to the FIRST team; the active team is the second one.
+  const foreignScouts = (await S.listSeasons()).filter(m => m.kind === 'scout');
+  const teamSeasons = window.app.teamRegistry.seasonsForTeam(await S.listSeasons(), window.app.teamRegistry.activeTeamId());
+  const foreign = foreignScouts.find(m => !teamSeasons.some(s => s.id === m.id));
+  const target = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  const attempt = foreign ? await hub.assignScoutToSeason(foreign.id, target) : null;
+  const after = foreign ? String((await S.listSeasons()).find(m => m.id === foreign.id)?.programSeasonId || '') : '';
+  return { foreignId: foreign?.id || '', attempt, after, target };
+}, built);
+ok(!!r.foreignId, 'a scout owned by the other team exists to try', JSON.stringify(r.foreignId));
+ok(r.attempt?.ok === false && /could not be found for this team/.test(r.attempt?.message || ''),
+  'assigning it is refused at the command boundary, even called directly with its id', JSON.stringify(r.attempt));
+ok(r.after !== r.target,
+  'and its stored parent is untouched', JSON.stringify({ after: r.after, target: r.target }));
+
+console.log('\n== 17. A dangling parent is repairable; a valid one is not reassigned ==');
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore;
+  const parent = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  const scout = hub.snapshot().seasons[0]?.id || '';
+  const body = await st.peekSeason(scout);
+  const valid = await hub.assignScoutToSeason(scout, parent);
+  // Now break the stored parent the way an import from another machine does.
+  body.programSeasonId = 'gone-from-this-machine';
+  await st.backend.saveSeason(scout, body);
+  await hub.load();
+  await hub.selectWorkspace('scout');
+  const surfaced = (hub.snapshot().unassignedScouts || []).some(s => s.id === scout);
+  const repair = await hub.assignScoutToSeason(scout, parent);
+  const stored = String((await st.peekSeason(scout))?.programSeasonId || '');
+  return { scout, parent, valid, surfaced, repair, stored };
+});
+ok(r.valid.ok === false && r.valid.reason === 'already-assigned',
+  'a scout whose stored parent is still valid is NOT silently reassigned', JSON.stringify(r.valid));
+ok(r.surfaced, 'once that parent no longer resolves, the scout is surfaced as unassigned', String(r.surfaced));
+ok(r.repair.ok === true && r.repair.repaired === true && r.stored === r.parent,
+  'and it can then be REPAIRED by explicit assignment', JSON.stringify({ repair: r.repair, stored: r.stored }));
+
+console.log('\n== 18. The assignment goes through the canonical write boundary ==');
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore;
+  const parent = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  const teamId = window.app.teamRegistry.activeTeamId();
+  const rec = await st.backend.createSeason({ name: 'Open Assign · Scout', year: '2026', level: '', kind: 'scout', teamId, team: 'Second School' });
+  await st.backend.saveSeason(rec.id, {
+    id: rec.id, type: 'season', version: 5, seasonName: 'Open Assign · Scout', kind: 'scout',
+    teamId, year: '2026', level: '', roster: [], rosterOwnership: 'season',
+    games: [{ id: `${rec.id}-g1`, name: 'Source', plays: [], annotations: [], gameInfo: {}, nextId: 1, status: 'active' }],
+    activeGameId: `${rec.id}-g1`,
+  });
+  // Assign the scout while it is the OPEN season, then take an ordinary save.
+  await S.openSeasonById(rec.id);
+  const assigned = await hub.assignScoutToSeason(rec.id, parent);
+  const liveAfterAssign = String(st.data?.programSeasonId || '');
+  S.commitActive();
+  const persisted = await st.persist();
+  // Reload from durable storage.
+  st.data = null; st.currentSeasonId = null;
+  await S.openSeasonById(rec.id);
+  const body = await st.peekSeason(rec.id);
+  const meta = (await S.listSeasons()).find(m => m.id === rec.id) || {};
+  // An OVERLAPPING write: dispatch an ordinary persist and an assignment for the
+  // same season back to back; the queue must order them and the newer value win.
+  const other = hub.snapshot().railSeasons.filter(s => !s.isScout && !s.isDemo).map(s => s.id).find(id => id !== parent) || parent;
+  const racePersist = st.persist();
+  const raceAssign = st.assignScoutParent(rec.id, other);
+  await Promise.all([racePersist, raceAssign]);
+  await st.drainWrites(rec.id);
+  const raced = String((await st.peekSeason(rec.id))?.programSeasonId || '');
+  return {
+    scoutId: rec.id, parent, other, assigned, liveAfterAssign, persisted,
+    bodyParent: String(body?.programSeasonId || ''), metaParent: String(meta.programSeasonId || ''),
+    liveParent: String(st.data?.programSeasonId || ''), raced,
+  };
+});
+ok(r.assigned.ok === true && r.liveAfterAssign === r.parent,
+  'assigning the OPEN scout updates the live season object in the same step', JSON.stringify({ ok: r.assigned.ok, live: r.liveAfterAssign }));
+ok(r.persisted !== false && r.bodyParent === r.parent && r.metaParent === r.parent,
+  'a subsequent ordinary save cannot restore the stale parent -- it survives in body AND catalog row', JSON.stringify(r));
+ok(r.liveParent === r.parent, 'and it survives the reload in the live object too', JSON.stringify(r.liveParent));
+ok(r.raced === r.other,
+  'an overlapping persist and assignment are ordered by the per-season write queue, newest wins', JSON.stringify({ raced: r.raced, expected: r.other }));
+
+console.log('\n== 19. No page or console errors ==');
 ok(errors.length === 0, 'zero page/console errors across every transition', errors.slice(0, 3).join(' | '));
 
 await browser.close();
