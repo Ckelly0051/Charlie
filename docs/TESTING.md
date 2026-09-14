@@ -199,6 +199,9 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-delete-undo-film` also pins the navigation boundary: a migration-refused
   season open does not count as leaving the current season, so its pending game
   deletion, managed film, purge timer and working Undo action all remain intact.
+  Its successful-switch case reuses one game ID across two seasons and asserts
+  both the explicit outgoing season passed to `deleteFilm` and the desktop
+  filesystem path, so a browser-only game-id spy cannot hide pointer drift.
 
   A harness fixture may not give a game node a roster except to plant a hostile
   legacy or scout copy the model must ignore — and then it must assert the copy

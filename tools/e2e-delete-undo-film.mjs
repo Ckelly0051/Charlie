@@ -7,6 +7,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 
    Run after build:  node tools/e2e-delete-undo-film.mjs */
 import puppeteer from 'puppeteer';
+import { TauriBackend } from '../js/storage-backend.js';
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
@@ -151,6 +152,47 @@ ok(refused.pendingBefore.filmGameId === 'b' && refused.pendingBefore.timer
   'a refused open preserves the pending film and its undo-window timer', JSON.stringify(refused));
 ok(refused.undoOk && refused.gameRestored && refused.deleted.length === 0,
   'Undo still restores the deleted game without losing its film after a refused open', JSON.stringify(refused));
+
+// ---- successful switch: deletion remains scoped to the outgoing season ----
+const scoped = await page.evaluate(async () => {
+  const sm = window.app.storage, store = sm.seasonStore, backend = store.backend;
+  const realSupports = backend.supportsFilm, realDelete = backend.deleteFilm;
+  const deleted = [];
+  backend.supportsFilm = () => true;
+  backend.deleteFilm = async (gameId, seasonId) => { deleted.push({ gameId, seasonId, pointer: backend.currentSeason() }); };
+  sm.UNDO_FILM_WINDOW_MS = 60000;
+
+  const g = id => ({ id, name: id, gameInfo: {}, status: 'active', plays: [{ id: 1, timestamp: { start: 0, end: 5 }, clipName: id + '_a', tags: { unit: 'offense', custom: [] } }], annotations: [], nextId: 2, currentPlayId: null, clipNames: [id + '_a'], isMultiClip: true });
+  const outgoing = store._normalize({ version: 5, type: 'season', id: 'film-outgoing', seasonName: 'Film Outgoing', activeGameId: 'keep', games: [g('keep'), g('shared-game')] });
+  const incoming = store._normalize({ version: 5, type: 'season', id: 'film-incoming', seasonName: 'Film Incoming', activeGameId: 'shared-game', games: [g('shared-game')] });
+  await backend.saveSeason('film-outgoing', structuredClone(outgoing));
+  await backend.saveSeason('film-incoming', structuredClone(incoming));
+  store.data = outgoing;
+  store.currentSeasonId = 'film-outgoing';
+  backend.setCurrentSeason('film-outgoing');
+  sm._loadActiveGame();
+
+  sm.removeGame('shared-game');
+  const opened = await sm.openSeasonById('film-incoming');
+  const current = store.currentSeasonId;
+
+  backend.supportsFilm = realSupports;
+  backend.deleteFilm = realDelete;
+  return { opened, current, deleted };
+});
+
+ok(scoped.opened === true && scoped.current === 'film-incoming',
+  'the successful-switch fixture opens the incoming season with the reused game id', JSON.stringify(scoped));
+ok(scoped.deleted.length === 1
+  && scoped.deleted[0].gameId === 'shared-game'
+  && scoped.deleted[0].seasonId === 'film-outgoing'
+  && scoped.deleted[0].pointer === 'film-incoming',
+  'film purge carries the outgoing season id instead of using the incoming backend pointer', JSON.stringify(scoped));
+
+const desktopPath = TauriBackend.prototype._filmsDir.call(
+  { currentId: 'film-incoming' }, 'shared-game', 'film-outgoing');
+ok(desktopPath === 'seasons/film-outgoing/films/shared-game',
+  'the desktop filesystem path honors the explicit season id when game ids collide', desktopPath);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

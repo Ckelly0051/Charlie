@@ -1336,7 +1336,12 @@ export class StorageManager {
     const stash = this._lastDeletedGame;
     if (!stash || !stash.filmGameId) return;
     const backend = this.seasonStore.backend;
-    if (backend.supportsFilm && backend.supportsFilm()) backend.deleteFilm(stash.filmGameId).catch(() => {});
+    if (backend.supportsFilm && backend.supportsFilm()) {
+      // Game ids can repeat across seasons. Carry the stash's owner all the way
+      // to the filesystem instead of letting the current navigation pointer
+      // choose which season's film directory is deleted.
+      backend.deleteFilm(stash.filmGameId, stash.seasonId).catch(() => {});
+    }
     stash.filmGameId = null;
   }
 

@@ -506,6 +506,9 @@ JV mismatch (`5 of 6 games linked` in the library versus six linked in opened
 Home) remains unresolved until the actual season-specific sources are verified.
 Every Home/library renderer must consume one resolver and print an explicit
 season result. Regression coverage must use two seasons with reused game IDs.
+Managed-film deletion follows the same identity rule: `deleteFilm(gameId,
+seasonId)` must receive the deleted game's stored season ID and may not resolve
+its path from whichever season the backend currently points at.
 The full decision and defect detail is in `GRIDIRON-IQ-PLAN-V2.md` and
 `docs/OPEN-DEFECTS.md`. Home remains `REJECTED`; this record is not approval to
 change the manifest or canonical evidence before coach review.

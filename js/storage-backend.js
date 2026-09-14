@@ -82,7 +82,7 @@ export class StorageBackend {
   supportsFilm() { return false; }
   async importFilm(_gameId, _files, _onProgress) { return null; }
   async filmUrl(_gameId, _filename) { return null; }
-  async deleteFilm(_gameId) {}
+  async deleteFilm(_gameId, _seasonId) {}
   async listFilmFiles(_gameId) { return []; }
   async managedGameDir(_gameId) { return ''; }
 
@@ -1023,7 +1023,7 @@ export class TauriBackend extends StorageBackend {
 
   supportsFilm() { return this._ok(); }
 
-  _filmsDir(gameId) { return `seasons/${this.currentId}/films/${gameId}`; }
+  _filmsDir(gameId, seasonId = this.currentId) { return `seasons/${seasonId}/films/${gameId}`; }
 
   async importFilm(gameId, files, onProgress) {
     if (!this._ok() || !this.currentId) return null;
@@ -1104,9 +1104,9 @@ export class TauriBackend extends StorageBackend {
     return convert(abs);
   }
 
-  async deleteFilm(gameId) {
-    if (!this._ok() || !this.currentId) return;
-    const dir = this._filmsDir(gameId);
+  async deleteFilm(gameId, seasonId = this.currentId) {
+    if (!this._ok() || !seasonId) return;
+    const dir = this._filmsDir(gameId, seasonId);
     try {
       if (await this._exists(dir))
         await this.fs.remove(dir, { baseDir: this.baseDir, recursive: true });
