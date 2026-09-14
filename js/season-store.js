@@ -1355,7 +1355,12 @@ export class SeasonStore {
     const body = isOpen ? this.data : await this.peekSeason(scout);
     if (!body || body.kind !== 'scout') return { ok: false, reason: 'not-a-scout' };
     const previous = String(body.programSeasonId || '');
-    const payload = isOpen ? body : { ...body };
+    // ALWAYS a copy, never the live object. Sharing the reference made the live
+    // update a side effect of building the payload, so the explicit assignment
+    // below could be deleted with no visible consequence -- a guard that cannot
+    // fail is not a guard. The two updates are now independent and each is
+    // separately provable.
+    const payload = JSON.parse(JSON.stringify(body));
     payload.programSeasonId = parent;
     if (isOpen) this.data.programSeasonId = parent;
     const ok = await this._dispatchWrite(scout, payload, revision => {

@@ -673,18 +673,46 @@ r = await page.evaluate(async () => {
   await S.openSeasonById(rec.id);
   const body = await st.peekSeason(rec.id);
   const meta = (await S.listSeasons()).find(m => m.id === rec.id) || {};
-  // An OVERLAPPING write: dispatch an ordinary persist and an assignment for the
-  // same season back to back; the queue must order them and the newer value win.
+  // Captured while the SCOUT is still the open season -- the race block below
+  // deliberately opens the parent instead.
+  const liveParentAfterReload = String(st.data?.programSeasonId || '');
+  /* An OVERLAPPING write, constructed so an UNQUEUED assignment loses.
+     The ordinary persist's backend write is held open while it still carries the
+     OLD parent; the assignment is dispatched during that window. Through the
+     per-season queue the assignment waits for the persist and its value is the
+     one left on disk. Written directly to the backend instead, it lands first and
+     the held persist overwrites it with the stale parent -- which is the whole
+     reason this operation belongs in the queue. */
   const other = hub.snapshot().railSeasons.filter(s => !s.isScout && !s.isDemo).map(s => s.id).find(id => id !== parent) || parent;
-  const racePersist = st.persist();
+  // Leave the scout CLOSED for this one. With it open, an in-flight `persist()`
+  // serializes the LIVE object at write time and therefore picks up the live
+  // parent update on its own -- which is real protection, but it is the live
+  // update doing the work, not the ordering. A closed scout removes that help:
+  // the frozen stale payload is the only thing the held write carries.
+  const frozen = JSON.parse(JSON.stringify(await st.peekSeason(rec.id)));
+  frozen.programSeasonId = '';
+  await S.openSeasonById(parent);
+  const realSave = st.backend.saveSeason.bind(st.backend);
+  let release = null;
+  const held = new Promise(res => { release = res; });
+  let first = true;
+  st.backend.saveSeason = async (id, data) => {
+    if (id === rec.id && first) { first = false; await held; }
+    return realSave(id, data);
+  };
+  const racePersist = st.persist(rec.id, frozen);   // in flight, carrying NO parent
+  await new Promise(res => setTimeout(res, 50));
   const raceAssign = st.assignScoutParent(rec.id, other);
+  await new Promise(res => setTimeout(res, 50));
+  release();
   await Promise.all([racePersist, raceAssign]);
   await st.drainWrites(rec.id);
+  st.backend.saveSeason = realSave;
   const raced = String((await st.peekSeason(rec.id))?.programSeasonId || '');
   return {
     scoutId: rec.id, parent, other, assigned, liveAfterAssign, persisted,
     bodyParent: String(body?.programSeasonId || ''), metaParent: String(meta.programSeasonId || ''),
-    liveParent: String(st.data?.programSeasonId || ''), raced,
+    liveParent: liveParentAfterReload, raced,
   };
 });
 ok(r.assigned.ok === true && r.liveAfterAssign === r.parent,
