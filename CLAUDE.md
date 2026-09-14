@@ -7,21 +7,28 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-83` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-84` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-83` is the current unsigned local visual-smoke
-candidate, packaged from `9ab20d5`. It replaces the rejected `1.12.0-82` Season Library composition with
-the approved-comp structure: aggregate program band, operational season rows,
-and latest-season/film-health context. Current source has advanced beyond that
-package with the empty-Scout and Home consolidation cleanup. Its production
-build, focused responsive visual proof, and canonical gate are green (110/110,
-zero skipped, zero failed), but that source has not been packaged or installed.
-The coach's installed smoke has NOT been run against it, so nothing here is
-accepted, tagged, pushed or published state, and no surface advances past its
-current approval status.
-See `SMOKE-1.12.0-83.md`, `SMOKE-1.12.0-82.md` and `docs/OPEN-DEFECTS.md`.
+**Packaging status:** `1.12.0-84` is the current unsigned local smoke candidate,
+packaged from the version bump on top of `501e263`. It is the FIRST package
+carrying the roster-ownership work: one roster owner per season with a single
+validated compatibility boundary, conflicts and failed migration writes aborting
+the open/import/restore instead of exposing half-migrated state, Add Game with no
+film-source/perspective selector, a refused open preserving the outgoing season's
+pending game-delete Undo, and managed-film deletion scoped to the deleted game's
+own season id. Its full canonical gate is green (113 harnesses, 113 green, zero
+skipped, zero failed) and `e2e-p0-exit` was re-run after the bump. The coach's
+installed smoke has NOT been run against it, so nothing here is accepted, tagged,
+pushed or published state, and no surface advances past its current approval
+status — Home production in particular remains `REJECTED`.
+See `SMOKE-1.12.0-84.md`, `SMOKE-1.12.0-83.md` and `docs/OPEN-DEFECTS.md`.
+
+`1.12.0-83` was the preceding unsigned visual-smoke candidate, packaged from
+`9ab20d5` to replace the rejected `1.12.0-82` Season Library composition with the
+approved-comp structure: aggregate program band, operational season rows, and
+latest-season/film-health context.
 
 The Home workspace switch is season-scoped. `Our Program` and `Opponent Scout`
 restore the most recently opened season of their own kind using storage-owned
