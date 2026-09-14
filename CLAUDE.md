@@ -142,16 +142,54 @@ These are invariants, not preferences. Every one is enforced in current source.
 - A roster belongs to ONE season. That season's games share it. Different teams,
   years, levels and seasons are independent. Modern game records store no roster
   of their own, and nothing in the app writes one.
-- **Ordinary loading never infers ownership.** `_normalize` only coerces
-  `season.roster`. Promotion from a legacy `games[].roster` happens at ONE
-  compatibility boundary — `SeasonStore.adoptLegacyRoster()`, called by the
-  legacy single-game import, `adopt()` and `restoreBackup()`. It reads only the
-  season's own game nodes, so it cannot move a roster across a season boundary,
-  and the stored `rosterOwnership: 'season'` marker makes it run at most once.
-  Before this, recovery ran inside `_normalize` on every load, restore and
-  import, so a deliberately emptied season re-acquired its old players.
-- The fallback was MOVED, not deleted: old single-game saves and
-  pre-season-model backups still convert, exactly once.
+- **`_normalize` never infers ownership.** It only coerces `season.roster`.
+  Promotion from a legacy `games[].roster` happens at ONE compatibility
+  boundary — `SeasonStore.adoptLegacyRoster()` — called by the durable read
+  (`_hydrate()`, behind `load()` and `openSeason()`), `adopt()` and
+  `restoreBackup()`. It reads only the season's own game nodes, so no comparison
+  or move can cross a season boundary. Before this, recovery ran inside
+  `_normalize` on every load, restore and import, so a deliberately emptied
+  season re-acquired its old players. The fallback was MOVED, not deleted: old
+  single-game saves and pre-season-model backups still convert.
+- **Opening a legacy season DOES run the boundary, on purpose.** Such a season
+  is opened rather than imported, so without it the roster would simply vanish.
+  What is forbidden is repeated *inference*, not conversion. State it that way;
+  do not write "ordinary loading never infers ownership" as though an open were
+  exempt.
+- **Promotion is VALIDATED, never guessed.** Every non-empty legacy copy in the
+  season is compared through `SeasonStore.rosterIdentity()` — key order,
+  whitespace and row order normalized, no player value rewritten — and a roster
+  is promoted only when all copies agree. Taking the first non-empty copy is the
+  defect this replaced.
+- **A disagreement STOPS the migration.** No copy is chosen, no copy is removed,
+  the season is left unmarked, and the conflict (naming the games and the number
+  of variants) is returned, logged and toasted by
+  `StorageManager._reportRosterMigration()`. A later open reconsiders it, so a
+  resolved season still converts.
+- **One owner, enforced.** A settled conversion deletes `roster` from EVERY game
+  node — including a season whose own roster already won over stale copies.
+  Modern game records never write the field. `updateActiveGame()` carries a
+  surviving legacy copy forward the way it carries `filmMode`, because
+  `_serialize()` produces none and the first ordinary save after a conflicted
+  open otherwise destroyed the active game's only copy.
+- **The migration is DURABLE and once-only.** `_hydrate()` detects and converts
+  before hydration, writes a `Before roster migration` restore point, persists
+  `season.roster`, `rosterOwnership: 'season'` and the removal through the normal
+  revision-fenced per-season write queue, and only then exposes the season. A
+  failed write exposes the UNCONVERTED season and reports through the shared
+  persist-failure seam — the legacy nodes are still on disk, so nothing is lost
+  and the next open retries. A season nothing changed on dispatches no write at
+  all, so a settled season neither converts twice nor mints a revision the PC-4
+  fence reads as a commit.
+- **The marker asserts BOTH halves** — the season owns the roster AND no game
+  node retains a copy — so `_normalize` refuses to stamp a season still carrying
+  legacy rosters. Otherwise the ordinary save that switching seasons performs
+  writes a settled marker over an unresolved conflict and strands the copies.
+- **Attribution reads the selected season's roster.** `SeasonManager.
+  _mergeRoster()` takes `season.roster` (plus the live roster, which is that
+  same season's as the coach edits it) instead of merging `games[].roster` across
+  the Our Program cohort — which makes the opponent-scout exclusion structural
+  rather than a hand-written filter.
 - The 2026-09-13 coach-authorized data normalization, its identity proof, the
   catalog/mirror divergence and its backup hashes are in
   `docs/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
@@ -1066,10 +1104,14 @@ with no eligible game, the measure is `No data`, never zero.
 
 **Opponent-scout rosters never rename our players.** `_mergeRoster()` read
 `_effectiveGames()`, so a scout game's roster — both teams field a 22 — could
-relabel our own player across the Season Players board and the export. It takes
-`_selfGames()` now. The same repair surfaced a second hole: `storage._serialize()`
-carries no roster, so the ACTIVE game's own roster was missing from every season
-consumer; `_effectiveGames()` now carries it onto the live projection.
+relabel our own player across the Season Players board and the export. Filtering
+to `_selfGames()` fixed that, and carrying the active game's own roster onto the
+live projection fixed the hole it exposed. **Both are superseded (2026-09-13):**
+the SEASON is the sole roster owner, so `_mergeRoster()` reads
+`season.roster` plus the live roster, no game node carries a roster to merge, and
+`_effectiveGames()` deliberately puts none on its live projection. The exclusion
+is now structural rather than a hand-written filter — a season's roster is its own
+team's, and no other season's is reachable from there.
 
 **The export reports the same scope and structure as the board.** It need not
 look like it, but it prints the same six aggregate KPIs, the same Game Log over

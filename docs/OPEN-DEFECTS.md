@@ -113,14 +113,52 @@ authority until a replacement composition is reviewed and approved.
    repeated inference rather than a stored fact and a deliberately emptied
    season re-acquired players from its own legacy game nodes.
 
-   **Architecture.** Ordinary loading now only coerces `season.roster`.
-   Promotion from a legacy game node happens at ONE boundary,
-   `SeasonStore.adoptLegacyRoster()`, called by the legacy single-game import,
-   `adopt()` and `restoreBackup()`. It reads only the season's own game nodes,
-   so it can never move a roster across a season boundary, and the stored
-   `rosterOwnership: 'season'` marker makes it run at most once per season. The
-   fallback was moved, not deleted: old single-game saves and pre-season-model
-   backups still convert.
+   **Architecture (completed 2026-09-13, second pass).** `_normalize` only
+   coerces `season.roster`; it never promotes. Promotion happens at ONE
+   boundary, `SeasonStore.adoptLegacyRoster()`, called by the durable read
+   (`_hydrate`, used by `load()` and `openSeason()`), `adopt()` and
+   `restoreBackup()`. It reads only the season's own game nodes, so no
+   comparison or move can cross a season boundary. The fallback was moved, not
+   deleted: old single-game saves and pre-season-model backups still convert.
+
+   Opening a legacy season DOES invoke that boundary — deliberately, because
+   such a season is opened rather than imported, and without it the roster would
+   simply vanish. What the coach ruled out was repeated INFERENCE on every load,
+   which is gone. The honest statement of the boundary is:
+
+   - **Validated, never guessed.** Every non-empty `games[].roster` in the
+     season is compared through `SeasonStore.rosterIdentity()` — key order,
+     whitespace and row order normalized, no player value rewritten. Promotion
+     happens only when all copies agree.
+   - **A disagreement stops the migration.** No copy is selected, no copy is
+     removed, the season is left unmarked, and the conflict — naming the games
+     and the number of variants — is returned, logged, and toasted by
+     `StorageManager._reportRosterMigration()`. The next open reconsiders it, so
+     a resolved season still converts later.
+   - **Single ownership, not merely preferred.** A settled conversion deletes
+     `roster` from every game node, including a season whose own roster already
+     won over stale copies. Modern game records never carry the field, and
+     `SeasonStore.updateActiveGame()` carries a surviving legacy copy forward
+     the way it carries `filmMode` — `_serialize()` produces none, so without
+     that the first ordinary save after a conflicted open destroyed the active
+     game's copy.
+   - **Durable and once-only.** `_hydrate()` detects and converts before
+     hydration, writes a `Before roster migration` restore point, then persists
+     `season.roster`, `rosterOwnership: 'season'` and the removal through the
+     normal revision-fenced per-season write queue, and only then exposes the
+     season. A failed write exposes the UNCONVERTED season and reports through
+     the shared persist-failure seam; nothing is lost, because the legacy nodes
+     are still on disk. A season nothing changed on dispatches no write at all,
+     so a settled season neither converts twice nor mints a revision the PC-4
+     fence would read as a commit.
+   - **The marker asserts both halves** — season ownership AND no surviving game
+     copy — so `_normalize` refuses to stamp a season still carrying legacy
+     rosters. Otherwise the ordinary save that switching seasons performs would
+     write a settled marker over an unresolved conflict.
+   - **Attribution follows the owner.** `SeasonManager._mergeRoster()` reads the
+     selected season's roster rather than merging `games[].roster` across the
+     Our Program cohort, which makes the hand-written opponent-scout exclusion
+     structural.
 
    **Authorized data normalization (Charlie, 2026-09-13).** The 19-player roster
    belongs only to the 2025 St. Joseph Mavericks JV season; no roster was
@@ -130,15 +168,28 @@ authority until a replacement composition is reviewed and approved.
    is the read-only auditor; `tools/normalize-roster-ownership.mjs` performed the
    one-time write behind `--apply` with timestamped backups.
 
-   **Coverage.** `tools/e2e-roster-ownership.mjs` (24) pins cross-team and
+   **Coverage.** `tools/e2e-roster-ownership.mjs` (52) pins cross-team and
    cross-season isolation, empty-stays-empty across switching and reload,
    same-season sharing with no game-level copies, game creation neither copying
-   nor clearing, loading never adopting, the boundary converting exactly once,
-   backup/restore scoped to one season, and season-scoped attribution.
+   nor clearing, `_normalize` never promoting and never marking an unfinished
+   migration, validated promotion, the conflict contract, removal of every game
+   copy, the first legacy open's durable write read back FROM DISK, a second
+   open dispatching no write, emptying not resurrecting, import/adopt/restore
+   landing the same structure, backup/restore scoped to one season, and
+   attribution reading the selected season's own roster.
    `e2e-season-roster-scope` (19) keeps the four legacy-boundary cases,
-   repointed to the boundary rather than weakened. Mutation-verified:
-   reinstating the `_normalize` adoption reds "Ordinary loading of an unmarked
-   season does NOT promote a game roster".
+   repointed to the boundary rather than weakened.
+
+   Section 9's `(no seasonManager)` escape hatch is REMOVED: it let the whole
+   attribution section pass having measured nothing. `e2e-reports-season` (99)
+   also had its fixture repointed — it gave every game an empty `roster: []`,
+   reproducing the dual ownership the model no longer has; our players now sit on
+   the season, the conflicting scout roster stays planted on its own game node,
+   and a new assertion proves it is actually there.
+
+   Mutation-verified: reinstating first-non-empty guessing reds 7 assertions;
+   retaining the game-level copies reds 10; converting in memory only (skipping
+   the durable write) reds 3; marking a conflicted season reds 2.
 8. **LOGIC REPAIRED 2026-09-13, presentation still open — Add Game mislabeled
    analytics perspective as `Film source`.**
 

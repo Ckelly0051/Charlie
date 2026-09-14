@@ -172,14 +172,25 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-game-context`
 - **Persistence:** `e2e-projform-durability`, `e2e-season-roster-scope`,
   `e2e-roster-ownership`, `e2e-operation-diff`
-- **Roster ownership:** `e2e-roster-ownership` (24) is the contract harness —
+- **Roster ownership:** `e2e-roster-ownership` (52) is the contract harness —
   cross-team and cross-season isolation, empty-stays-empty across switching and
   reload, same-season sharing with no game-level copies, game creation neither
-  copying nor clearing, ordinary loading never adopting a game roster, the
-  legacy boundary converting exactly once, backup/restore scoped to one season,
-  and season-scoped attribution. `tools/audit-roster-ownership.mjs` is the
+  copying nor clearing, `_normalize` never adopting a game roster and never
+  marking a season whose games still carry one, VALIDATED promotion (identical
+  copies converge; disagreeing copies are not promoted, name their games and
+  leave the source intact), removal of `roster` from every game node once
+  settled, the first legacy open's durable write asserted against DISK, a second
+  open dispatching no migration write, emptying not resurrecting players,
+  import/adopt/restore landing the same structure, backup/restore scoped to one
+  season, and attribution reading the selected season's own roster with no
+  "missing owner" escape hatch. `tools/audit-roster-ownership.mjs` is the
   read-only cross-store auditor; it prints counts and a roster hash, never
   player data.
+
+  A harness fixture may not give a game node a roster except to plant a hostile
+  legacy or scout copy the model must ignore — and then it must assert the copy
+  is actually present. `e2e-reports-season` gave every game an empty
+  `roster: []`, which reproduced the dual ownership the model no longer has.
 - **Game context and form:** `e2e-game-form-context` (20) proves Add Game asks
   for no analytics perspective and that Program/Scout is derived from the
   owning season; `e2e-game-form-visual` (242) is its visual contract across

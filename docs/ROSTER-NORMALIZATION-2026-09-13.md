@@ -88,6 +88,20 @@ Ledger stamp `2026-09-14T00-24-43-224Z`.
 Each record also gained the `rosterOwnership: 'season'` marker. Mirror envelopes
 were rewritten through `SnapshotEnvelope.wrap`, so their checksums stay valid.
 
+**The marker's meaning was tightened later the same day**, after the migration
+architecture was finished (see `docs/OPEN-DEFECTS.md` item 7 and CLAUDE.md's
+roster-ownership block). It now asserts BOTH halves of the contract — the season
+owns the roster AND no game node retains a copy — so `_normalize` refuses to
+stamp a season still carrying legacy game rosters. Every record in the table
+above satisfies both, because this normalization removed the game-level copies as
+well as stamping the marker, so nothing here is affected. The app-level migration
+would now reach the same end state on its own: `SeasonStore.adoptLegacyRoster()`
+validates every copy in a season before promoting one, removes all of them once
+settled, and `_hydrate()` persists the result before exposing the season. What it
+would NOT have done is choose between the three seasons' rosters — that decision
+was cross-season, which the boundary cannot see, and is exactly why this
+normalization was authorized by hand.
+
 **Deliberately untouched:** mirror `2025-st-joseph-mavericks-jv`, the registered
 canonical Reports data authority — CLAUDE.md forbids writing to it — and mirror
 `2026-st-joseph-mavericks-jv`, an orphan whose roster was already empty.

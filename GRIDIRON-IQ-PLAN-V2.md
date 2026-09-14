@@ -134,10 +134,14 @@ Build and focused behavioral checks passed; populated production screenshots and
 
 **Completed 2026-09-13:** that 2026-08-29 repair stopped new leakage but could
 not fix seasons already written, and the coach found the residue at the board —
-the same roster under every team, year and level. Two things closed it. Ordinary
-season loading no longer infers ownership from game nodes at all; promotion
-happens once, at `SeasonStore.adoptLegacyRoster()`, marked so it cannot repeat.
-And a coach-authorized one-time normalization gave the 19-player roster to the
+the same roster under every team, year and level. Two things closed it.
+`_normalize` no longer infers ownership from game nodes at all; promotion happens
+at one boundary, `SeasonStore.adoptLegacyRoster()`, which a legacy season's open
+deliberately invokes — validated across every copy in that season rather than
+taking the first, refusing to choose when they disagree, removing every
+game-level copy once settled, and persisting the roster, the
+`rosterOwnership: 'season'` marker and the removal before the season is exposed,
+so it cannot repeat. And a coach-authorized one-time normalization gave the 19-player roster to the
 2025 JV season alone and emptied both 2026 seasons, with identity verified from
 stable game ids rather than a directory name. The full ledger, including the
 catalog-versus-mirror divergence and the backup hashes, is
