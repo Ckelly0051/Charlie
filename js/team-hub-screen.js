@@ -15,10 +15,16 @@ export class TeamHubScreen {
     this.host = null;
     this._native = null;
     this._listeners = new Set();
-    this._state = { status: 'idle', teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, // `workspaceMode` is a RENDERING PROJECTION of WorkspaceContext, which owns it
-// along with the parent program season. It is not a second cache: load() reads
-// it back from that owner on every pass, and nothing else writes it.
-workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedScouts: [], allTeamSeasonCount: 0, control: null, error: '' };
+    // `workspaceMode`, `programSeasonId` and `parentSeasonName` are RENDERING
+    // PROJECTIONS of WorkspaceContext, which owns the parent program season and
+    // the mode. Not a second cache: load() reads both back from that owner on
+    // every pass, and nothing else writes them.
+    this._state = {
+      status: 'idle', teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '',
+      profile: {}, checklist: { visible: false, items: [], doneCount: 0 },
+      workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedScouts: [],
+      allTeamSeasonCount: 0, control: null, error: '',
+    };
     this._loadToken = 0;
   }
 
@@ -725,11 +731,19 @@ workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedS
     const row = this._findSeasonRow(id);
     if (!row) return false;
     try {
+      // "Already open?" is answered by the LIVE STORE, never by the row's cached
+      // `current` flag. A rail row carries the flag from the `load()` that built
+      // it, and `load()` cancels itself when a newer one starts (`_loadToken`),
+      // so a superseded pass leaves rows still flagged current for a season the
+      // coach has since navigated away from. Trusting that flag made this method
+      // skip the open entirely and report success -- the rail row looked dead,
+      // intermittently, depending on which load won the race.
+      const alreadyOpen = String(this._store()?.currentSeasonId || '') === String(row.id);
       // Fail closed on a REFUSED open too, not only on a thrown one: the store
       // returns false when a legacy roster migration conflict blocks the season,
       // and the prior season is still the live one, so navigating would show
       // Home for a season the coach did not open. It reports its own message.
-      if (!row.current && (await this._storage().openSeasonById(row.id)) === false) {
+      if (!alreadyOpen && (await this._storage().openSeasonById(row.id)) === false) {
         await this.load();
         return false;
       }

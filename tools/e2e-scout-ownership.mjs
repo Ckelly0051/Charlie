@@ -299,7 +299,63 @@ ok(r.unassigned.includes(r.ambigId),
 ok(r.soloStored === '' && r.ambigStored === '',
   'NEITHER inference was written to disk -- reading is not assigning', JSON.stringify(r));
 
-console.log('\n== 9. No page or console errors ==');
+console.log('\n== 9. The RENDERED rail rows open their exact season ==');
+/* Driven through real DOM clicks, not controller calls, because the defect this
+   pins was invisible to a controller call: `openSeason()` answered "is this
+   season already open?" from the clicked ROW's cached `current` flag. A row
+   carries that flag from the `load()` that built it, and `load()` cancels itself
+   when a newer one starts (`_loadToken`), so a superseded pass left rows still
+   flagged current for a season the coach had navigated away from -- and the
+   click then skipped the open and reported success. The rail row looked dead,
+   intermittently, depending on which load won the race. The store is now the
+   authority for that question. */
+r = await page.evaluate(async (ids) => {
+  const S = window.app.storage, hub = window.app.teamHubScreen;
+  await S.openSeasonById(ids.jv);
+  await hub.load();
+  await window.app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 400));
+  const click = async id => {
+    const sel = `.rail-row[data-season-id="${id}"]`;
+    const node = document.querySelector(sel);
+    if (!node) return { clicked: false };
+    const box = node.getBoundingClientRect();
+    // Deliberately STALE the row flags the way a cancelled load would, so the
+    // assertion fails if the cached flag is ever trusted again.
+    hub._state.railSeasons = (hub._state.railSeasons || []).map(row => ({ ...row, current: true }));
+    node.click();
+    await new Promise(res => setTimeout(res, 900));
+    return {
+      clicked: true, rendered: box.width > 0 && box.height > 0,
+      open: S.seasonStore.currentSeasonId,
+      kind: S.seasonStore.data?.kind || 'program',
+      parent: window.app.workspace.programSeasonId(),
+      mode: window.app.workspace.workspaceMode(),
+      active: document.querySelectorAll('.rail-row.is-current').length,
+      library: document.querySelectorAll('.library-panel-head').length,
+    };
+  };
+  // Program season open -> click a SCOUT row.
+  await hub.selectWorkspace('scout');
+  const scoutId = hub.snapshot().seasons[0]?.id || '';
+  const toScout = await click(scoutId);
+  // Scout open -> click a PROGRAM row.
+  const toProgram = await click(ids.varsity);
+  return { scoutId, toScout, toProgram };
+}, built);
+ok(r.toScout.clicked && r.toScout.rendered && r.toScout.open === r.scoutId && r.toScout.kind === 'scout',
+  'Clicking a Scout row while a program season is open opens that exact scout', JSON.stringify(r.toScout));
+ok(r.toScout.parent === built.jv && r.toScout.mode === 'scout',
+  'That open keeps the scout\'s parent and changes the mode once', JSON.stringify(r.toScout));
+ok(r.toProgram.clicked && r.toProgram.open === built.varsity && r.toProgram.kind !== 'scout',
+  'Clicking a Program row while a scout is open opens that exact program season -- even with every row flagged stale-current',
+  JSON.stringify(r.toProgram));
+ok(r.toProgram.parent === built.varsity && r.toProgram.mode === 'program',
+  'The parent follows the deliberately opened program season, in one mode change', JSON.stringify(r.toProgram));
+ok(r.toScout.active === 1 && r.toProgram.active === 1,
+  'Exactly one rail row is active after each rendered click', JSON.stringify({ scout: r.toScout.active, program: r.toProgram.active }));
+
+console.log('\n== 10. No page or console errors ==');
 ok(errors.length === 0, 'zero page/console errors across every transition', errors.slice(0, 3).join(' | '));
 
 await browser.close();
