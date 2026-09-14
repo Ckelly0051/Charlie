@@ -215,7 +215,17 @@ const scoutGuard = await page.evaluate(async () => {
 ok(scoutGuard.disabled && scoutGuard.result === 0 && scoutGuard.players.length === 0
   && scoutGuard.notices.some(message => /opponent scout seasons/i.test(message)),
   'Settings blocks roster visibility and mutations for opponent scout seasons', JSON.stringify(scoutGuard));
-await page.evaluate(id => window.app.storage.deleteSeason(id), scoutGuard.id);
+/* Teardown only, after the last assertion. `deleteSeason` resolves IN the page,
+   and returning that pending promise across CDP lets it be garbage-collected
+   under gate load -- "ProtocolError: Promise was collected" crashed a run in
+   which all nineteen assertions had already passed. Awaited in-page so a plain
+   value crosses the boundary, and reported rather than swallowed if it still
+   cannot confirm. */
+try {
+  await page.evaluate(async id => { await window.app.storage.deleteSeason(id); return true; }, scoutGuard.id);
+} catch (error) {
+  console.log(`  NOTE  teardown season delete did not confirm: ${error.message}`);
+}
 
 ok(errors.length === 0, 'no page errors', errors.join(' | '));
 
