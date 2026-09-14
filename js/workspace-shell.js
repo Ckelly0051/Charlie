@@ -306,7 +306,10 @@ export class WorkspaceShell {
       : seasons.map(season=>({key:`season-${season.id}`,label:season.name||'Untitled Season',
           detail:`${season.games||0} game${season.games===1?'':'s'} · ${season.plays||0} play${season.plays===1?'':'s'}`,
           selected:String(season.id)===String(currentId),
-          onSelect:async()=>{ if(String(season.id)===String(currentId)) return; await this.app.storage.openSeasonById(season.id); await this.show('home'); }}));
+          // A refused open (a legacy roster migration conflict) returns false and
+          // leaves the prior season live; navigating would show Home for a
+          // season that never opened. The store reports its own message.
+          onSelect:async()=>{ if(String(season.id)===String(currentId)) return; if(await this.app.storage.openSeasonById(season.id)===false) return; await this.show('home'); }}));
     items.push({key:'season-library',label:'Season Library',detail:scoutMode?'Manage opponent scout seasons':'View and manage all program seasons',separator:!!items.length,
       onSelect:()=>this._openLibrary()});
     items.push({key:scoutMode?'new-scout':'new-season',label:scoutMode?'+ New opponent scout':'+ New season',separator:false,

@@ -392,13 +392,24 @@ export class StorageManager {
     return result;
   }
 
-  /** Open an existing season and restore its active game into the app. */
+  /**
+   * Open an existing season and restore its active game into the app.
+   *
+   * Returns false, having changed nothing, when the store REFUSES the open --
+   * a legacy roster migration conflict, or a migration write that did not land.
+   * The season the coach had open stays open with its live state intact, so the
+   * app must not run `_afterSeasonLoaded()` on it: reloading the prior season's
+   * active game would reset its undo history and film state for a navigation
+   * that never happened.
+   */
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();   // a debounced save must never straddle the switch
     this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
-    await this.seasonStore.openSeason(id);
+    const opened = await this.seasonStore.openSeason(id);
+    if (!opened) { this._reportRosterMigration(); return false; }
     this._afterSeasonLoaded();
+    return true;
   }
 
   /** Create a new season ({name, team, year, level}) and open it. */
@@ -582,7 +593,10 @@ export class StorageManager {
   _reportRosterMigration() {
     const record = this.seasonStore?.rosterMigration;
     this.seasonStore.rosterMigration = null;
-    if (!record || record.ok !== false || record.seasonId !== this.seasonStore.currentSeasonId) return;
+    if (!record || record.ok !== false) return;
+    // Not gated on the record's season still being current: a refused open
+    // deliberately leaves the PRIOR season current, so matching the two would
+    // suppress the one message the coach actually needs.
     this.tagger?.toast?.(record.message);
   }
 
@@ -1511,7 +1525,10 @@ export class StorageManager {
     // id, so the guard's equality check passes and the write proceeds.
     this._cancelPendingSaves();
     const data = await this.seasonStore.restoreBackup(id);
-    if (!data) return false;
+    // A restore refused because the backup's own legacy game rosters disagree
+    // reports that specific fact; every other failure keeps its existing
+    // caller-owned messaging.
+    if (!data) { this._reportRosterMigration(); return false; }
     this._afterSeasonLoaded();
     return true;
   }
@@ -1611,7 +1628,13 @@ export class StorageManager {
           if (scaffoldSeasonId) {
             try { await this.seasonStore.deleteSeason(scaffoldSeasonId); } catch (err3) {}
           }
-          this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+          // A refused import and a failed write are both `ok:false` but are not
+          // the same fact. A legacy roster migration conflict says nothing could
+          // be saved BECAUSE the file's own game rosters disagree, which
+          // "could not be saved" would misreport as a storage failure.
+          this.tagger?.toast?.(result?.conflict?.message
+            || 'Import failed — the season could not be saved. Nothing on screen changed.', 8000);
+          this.seasonStore.rosterMigration = null;   // reported here; no second toast
           return;
         }
         if (this.seasonStore.currentSeasonId !== destSeasonId) {

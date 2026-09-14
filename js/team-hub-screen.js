@@ -652,7 +652,14 @@ export class TeamHubScreen {
     const row = this._findSeasonRow(id);
     if (!row) return false;
     try {
-      if (!row.current) await this._storage().openSeasonById(row.id);
+      // Fail closed on a REFUSED open too, not only on a thrown one: the store
+      // returns false when a legacy roster migration conflict blocks the season,
+      // and the prior season is still the live one, so navigating would show
+      // Home for a season the coach did not open. It reports its own message.
+      if (!row.current && (await this._storage().openSeasonById(row.id)) === false) {
+        await this.load();
+        return false;
+      }
       const mode = row.kind === 'scout' ? 'scout' : 'program';
       try { localStorage.setItem('giq_home_workspace', mode); } catch {}
       this._state.workspaceMode = mode;

@@ -108,10 +108,15 @@ export class SeasonStore {
       const variants = [...new Set(copies.map(game => SeasonStore.rosterIdentity(game.roster)))];
       if (variants.length > 1) {
         const names = copies.map(game => String(game.name || game.id || '(unnamed game)'));
+        const season = String(d.seasonName || d.id || 'This season');
         result.status = 'conflict';
         result.conflict = {
-          copies: copies.length, variants: variants.length, games: names,
-          message: `Roster migration needs a decision: ${copies.length} games in this season store ${variants.length} different rosters (${names.join(', ')}). The season roster was left empty and no game record was changed. Open the game whose roster is correct, save it as the season roster, then reopen the season.`,
+          season, copies: copies.length, variants: variants.length, games: names,
+          // States what happened and what was NOT changed. It deliberately
+          // offers no remediation step, because reconciling per-game rosters is
+          // not something any current screen can do -- telling the coach to do
+          // it would be an instruction the app cannot honor.
+          message: `${season} could not be opened: ${copies.length} of its games store ${variants.length} different rosters (${names.join(', ')}). Nothing was changed, and the season you had open is still open.`,
         };
         return result;   // source data intact: nothing promoted, nothing removed
       }
@@ -169,11 +174,18 @@ export class SeasonStore {
   /** Reload the current season's data from storage (after one is selected). */
   async load() {
     if (!this.currentSeasonId) return null;
+    const priorData = this.data;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) {}
-    this.data = (parsed && Array.isArray(parsed.games))
-      ? await this._hydrate(this.currentSeasonId, parsed)
-      : this._empty();
+    if (parsed && Array.isArray(parsed.games)) {
+      const hydrated = await this._hydrate(this.currentSeasonId, parsed);
+      // Blocked by a migration conflict or a failed migration write: keep the
+      // live season exactly as it was rather than exposing half-migrated state.
+      if (!hydrated) return priorData;
+      this.data = hydrated;
+    } else {
+      this.data = this._empty();
+    }
     return this.data;
   }
 
@@ -197,16 +209,26 @@ export class SeasonStore {
    *      other durable write uses;
    *   4. only then expose it.
    *
-   * A failed write is never dressed up as a migration: the UNCONVERTED season
-   * is exposed, the failure is reported through the same `onPersistError` seam
-   * every other failed durable write uses, and nothing is lost -- the legacy
-   * game nodes are still on disk, so the next open retries. An unresolved
-   * conflict is exposed unconverted and unmarked for the same reason.
+   * A CONFLICT OR A FAILED WRITE BLOCKS THE OPEN -- it returns null, and the
+   * caller restores the season the coach already had. Nothing half-migrated is
+   * ever exposed as the editable current season, because exposing it was itself
+   * destructive: `_normalize` would coerce a synthetic `season.roster: []` next
+   * to the surviving conflicting game rosters, the next ordinary save would
+   * persist that synthetic roster, and the open after that would read it as an
+   * EXPLICIT season roster and delete every conflicting copy. A conflict that
+   * silently becomes an explicit empty roster two saves later is worse than no
+   * conversion at all, so the conflicted season simply does not open.
    */
   async _hydrate(seasonId, parsed) {
     const original = JSON.parse(JSON.stringify(parsed));
     original.id = seasonId;
     const result = SeasonStore.adoptLegacyRoster(parsed);
+    if (result.status === 'conflict') {
+      // Refused BEFORE `_normalize` ever touches the payload, so no synthetic
+      // season roster is created even in memory.
+      this._reportRosterMigration({ ok: false, seasonId, status: 'conflict', ...result.conflict });
+      return null;
+    }
     const data = this._normalize(result.data);
     // The migration write targets THIS library slot. `saveSeason` refuses a
     // payload whose own id disagrees with its destination (PC-1), so a season
@@ -214,10 +236,6 @@ export class SeasonStore {
     data.id = seasonId;
     this._seedRevision(seasonId, data);   // PC-4: continue the persisted sequence
 
-    if (result.status === 'conflict') {
-      this._reportRosterMigration({ ok: false, seasonId, status: 'conflict', ...result.conflict });
-      return this._normalize(original);   // source data intact, season left unmarked
-    }
     // A migration write is dispatched only when the boundary actually CHANGED
     // the season -- promoted a roster, or removed a game-level copy. A season
     // that merely lacks the marker while already holding no game copies needs
@@ -241,11 +259,16 @@ export class SeasonStore {
     }
     const ok = await this.persist(seasonId, data);
     if (ok === false) {
+      // Same containment as a conflict: the converted season is NOT exposed,
+      // because the only states available are half-migrated-in-memory (which a
+      // later save turns into a different season than the one on disk) and
+      // unconverted (whose roster looks lost). The target's durable bytes are
+      // untouched, so the next open retries the whole migration.
       this._reportRosterMigration({
         ok: false, seasonId, status: 'failed', backup: backup || null,
-        message: 'The season opened, but its one-time roster migration could not be saved. The original season is unchanged on disk; nothing was lost. Try opening it again.',
+        message: `${String(original.seasonName || seasonId)} could not be opened: its one-time roster migration could not be saved. Nothing was changed, and the season you had open is still open.`,
       });
-      return this._normalize(original);   // nothing converted is claimed
+      return null;
     }
     this._reportRosterMigration(result.changed
       ? {
@@ -579,7 +602,13 @@ export class SeasonStore {
     // UNMARKED and the boundary reconsiders it on the next open. Stamping it
     // here unconditionally would record an unfinished migration as settled and
     // strand the conflicting copies forever.
-    const legacyCopies = d.games.some(game => Array.isArray(game?.roster) && game.roster.length);
+    // ANY own `roster` property disqualifies the marker, including `roster: []`.
+    // Gating on `roster.length` let an empty property survive alongside a
+    // settled marker, so the invariant degraded from "no game object has its own
+    // roster" to "no game object has a non-empty one" -- and a later writer
+    // filling that surviving array would have recreated dual ownership under a
+    // marker asserting it could not exist.
+    const legacyCopies = d.games.some(game => game && Object.prototype.hasOwnProperty.call(game, 'roster'));
     if (!legacyCopies && d.rosterOwnership !== SeasonStore.ROSTER_OWNERSHIP) {
       d.rosterOwnership = SeasonStore.ROSTER_OWNERSHIP;
     }
@@ -748,8 +777,19 @@ export class SeasonStore {
     return { rec, claimed: true };
   }
 
-  /** Open an existing season by id and load its data as the current season. */
+  /**
+   * Open an existing season by id and load its data as the current season.
+   *
+   * Returns null and opens NOTHING when the one-time legacy roster migration is
+   * blocked -- conflicting legacy rosters, or a migration write that did not
+   * land. In that case the season the coach already had open stays open, its
+   * live data is untouched, and the backend's current-season pointer is put back
+   * exactly as it was, so no later write can be aimed at the refused season.
+   */
   async openSeason(id) {
+    const priorSeasonId = this.currentSeasonId;
+    const priorData = this.data;
+    const priorPointer = (typeof this.backend.currentSeason === 'function') ? this.backend.currentSeason() : undefined;
     this.cancelPendingDiskWrite();   // a stale debounce must not target the new season
     this.backend.setCurrentSeason(id);
     this.currentSeasonId = id;
@@ -760,7 +800,14 @@ export class SeasonStore {
     // exposed. See _hydrate().
     if (parsed && Array.isArray(parsed.games)) {
       parsed.id = id;   // the migration write targets this library slot, not the payload's own id
-      this.data = await this._hydrate(id, parsed);
+      const hydrated = await this._hydrate(id, parsed);
+      if (!hydrated) {
+        this.currentSeasonId = priorSeasonId;
+        this.data = priorData;
+        if (priorPointer !== undefined) { try { this.backend.setCurrentSeason(priorPointer); } catch (e) {} }
+        return null;
+      }
+      this.data = hydrated;
     } else {
       this.data = this._empty();
     }
@@ -1282,16 +1329,23 @@ export class SeasonStore {
   async restoreBackup(id) {
     const data = await this.backend.getBackup(this.currentSeasonId, id);
     if (!data || !Array.isArray(data.games)) return null;
-    const safetyId = await this.snapshot('Before restore');
-    if (!safetyId) return null;
-    const current = this.data;
     // A backup can predate the season roster model, so restore is one of the
     // three boundary callers. Validated and once-only, like the import path;
     // the persist below is what makes the conversion durable.
+    //
+    // The boundary runs BEFORE the safety snapshot, so a conflicted backup
+    // aborts the restore having written nothing at all: the live season stays
+    // current, the canonical season is not replaced, and the backup keeps its
+    // own bytes. Continuing past a conflict here made the restore itself the
+    // thing that destroyed the disagreement it had just detected.
     const adopted = SeasonStore.adoptLegacyRoster(data);
     if (adopted.status === 'conflict') {
       this._reportRosterMigration({ ok: false, seasonId: this.currentSeasonId, status: 'conflict', ...adopted.conflict });
+      return null;
     }
+    const safetyId = await this.snapshot('Before restore');
+    if (!safetyId) return null;
+    const current = this.data;
     this.data = this._normalize(adopted.data);
     const persisted = await this.persist();
     if (persisted === false) {
@@ -1450,7 +1504,13 @@ export class SeasonStore {
       return { ok: false, data: null };
     }
     if (adopted.status === 'conflict') {
+      // ABORTED. A conflicted payload must not replace the destination season:
+      // continuing here persisted it and returned ok, so an import whose
+      // migration had stopped still overwrote whatever the coach had open.
+      // `this.data`, `currentSeasonId`, the live roster and the destination's
+      // durable bytes are all untouched -- nothing has been written yet.
       this._reportRosterMigration({ ok: false, seasonId: destSeasonId, status: 'conflict', ...adopted.conflict });
+      return { ok: false, data: null, conflict: adopted.conflict };
     }
     next = this._normalize(adopted.data);
     const stillOwns = () => this.currentSeasonId === destSeasonId;
