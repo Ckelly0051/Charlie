@@ -172,6 +172,27 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-game-context`
 - **Persistence:** `e2e-projform-durability`, `e2e-season-roster-scope`,
   `e2e-roster-ownership`, `e2e-operation-diff`
+- **Opponent-scout ownership and Home navigation:** `e2e-scout-ownership` (79)
+  is the contract harness — the pure parent-resolution rules, the atomic toggle
+  (instrumented for the ABSENCE of `_openLibrary`, `closeSeason` and any
+  auto-open), parent-scoped lists, create-time persistence, the exact-parent
+  return, rendered rail clicks in both directions with every row's `current` flag
+  deliberately staled, cross-team isolation with reused year and level, the
+  unassigned row driven through its real select and Assign button, a foreign-team
+  scout refused at the command boundary, dangling-parent repair versus no silent
+  reassignment, the canonical write boundary (open-scout assignment surviving a
+  later ordinary save and a reload in body, catalog row and live object) and an
+  overlapping persist/assignment ordered by the per-season queue.
+  `e2e-home-deferred-repair` (105) and `e2e-home-review-repair` (37) own the
+  rendered Home states, including the approved empty Opponent Scout composition.
+  `tools/capture-scout-workspace.mjs` captures eight states at 1920/1440/1280/768/390.
+
+  **A workspace toggle must never be proven by a season change.** Five
+  assertions across the two Home harnesses asserted that each side "restores its
+  most recently opened season of its own kind"; that redirect is retired, and any
+  replacement asserts the parent stays open, nothing is auto-opened, and the list
+  is parent-scoped. Their retirement reasoning is recorded beside each one.
+
 - **Roster ownership:** `e2e-roster-ownership` (71) is the contract harness —
   cross-team and cross-season isolation, empty-stays-empty across switching and
   reload, same-season sharing with no game-level copies, game creation neither

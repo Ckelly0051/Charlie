@@ -30,12 +30,48 @@ See `SMOKE-1.12.0-84.md`, `SMOKE-1.12.0-83.md` and `docs/OPEN-DEFECTS.md`.
 approved-comp structure: aggregate program band, operational season rows, and
 latest-season/film-health context.
 
-The Home workspace switch is season-scoped. `Our Program` and `Opponent Scout`
-restore the most recently opened season of their own kind using storage-owned
-`lastOpened` metadata; the switch opens a filtered season library only when the
-destination workspace has no season. The shell must not call `_openLibrary()`
-after `TeamHubScreen.selectWorkspace()` because that would discard the season
-the controller just restored.
+**A PROGRAM SEASON IS THE PARENT HOME CONTEXT, and every opponent scout belongs
+to exactly one of them** through a durable `programSeasonId` on the scout's
+season body and library row. `Our Program` and `Opponent Scout` are two VIEWS of
+that one parent, so the switch changes a view, never a season.
+
+- **`WorkspaceContext` is the sole owner** of the parent id and the workspace
+  mode, persisted together under `giq_home_parent`. Nothing else caches either.
+  The mode is derived where it can be — a scout can only be open in Opponent
+  Scout — and a passive re-render may adopt the parent but never restate the
+  mode of an open program season, or it would undo the switch that caused it.
+- **The toggle is ONE state change and ONE render.** Entering Opponent Scout
+  keeps the parent program season OPEN and renders its own scoped opponent
+  library (Home's `browsingScoutLibrary` body state). It does not call
+  `closeSeason()` or `_openLibrary()`, and it never auto-opens a scout — the
+  coach selects one. Returning to Our Program opens a season only when the open
+  document is a scout, and then by that scout's exact `programSeasonId`.
+- **Scout lists are parent-scoped.** `lastOpened` may ORDER scouts inside an
+  already-correct parent and can never determine ownership.
+- **Legacy inference is read-only and unique-match only:** exactly one program
+  season sharing `teamId + year + level`. Zero or several leaves the scout
+  UNASSIGNED, intact and visible.
+- **Unassigned and dangling scouts are surfaced, never attached.** A scout with
+  no parent (first launch, or an ambiguous legacy record) and one whose stored
+  parent no longer resolves both appear in Home's `Needs a program season`
+  section with an explicit season selector. Assignment writes only after the
+  coach confirms, through `SeasonStore.assignScoutParent()` — the canonical
+  boundary, inside the per-season write queue and the PC-4 revision fence, which
+  also updates the live object when that scout is open so a later ordinary save
+  cannot restore the stale parent. A failed write leaves the scout unassigned
+  and says so. Reassigning an already-valid parent is deliberately out of scope.
+- **The active team bounds both sides.** A team switch clears the parent
+  atomically, persisted context is validated against the active team on every
+  load, and assignment resolves the SCOUT as well as the parent from that team.
+- **A program season that owns scouts cannot be deleted.** The command blocks
+  with the owned scouts named; nothing cascades and no scouting data is lost.
+
+**Retired 2026-09-14:** the claim that each workspace "restores the most recently
+opened season of its own kind" using `lastOpened`. That redirect — set mode,
+search the team by kind and recency, open the winner, re-render — is the
+Scout / library / unrelated-season bounce the coach reported, and `lastOpened` is
+not ownership. Do not reintroduce `_workspaceTarget()` or an `_openLibrary()`
+call inside a workspace toggle.
 
 Empty Opponent Scout is also an operational Home library state. It renders the
 shared summary band, the opponent/season/source-game/play/film table structure,

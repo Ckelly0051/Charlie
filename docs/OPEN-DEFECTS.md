@@ -81,13 +81,45 @@ authority until a replacement composition is reviewed and approved.
    linked`, `5 of 6 games linked`, or `No film linked`. Add a regression fixture
    with reused game IDs in two seasons. Do not declare either observed count
    correct until the actual season-specific film sources are verified.
-5. **REPAIRED 2026-09-13 — workspace switching preserves season context.**
-   Switching from an open program season to Opponent Scout and back no longer
-   closes the season and strands the coach in the season picker. Each side
-   restores its most recently opened season using the canonical `lastOpened`
-   metadata already maintained by season storage. A workspace with no seasons
-   still opens its correctly filtered library. The rendered shell-button path
-   is covered by the Home regression harness.
+5. **SUPERSEDED 2026-09-14 — "each side restores its most recently opened
+   season" was the defect, not the repair.** The 2026-09-13 entry recorded
+   `lastOpened` restoration as the fix for workspace switching. The coach then
+   reported the real behavior: entering Opponent Scout visibly moved through
+   Opponent Scout, a Home/library flash, and an automatic redirect into an
+   unrelated season. Three defects were stacked — scouts had NO durable
+   relationship to a program season, so recency stood in for ownership; the
+   workspace mode had three competing owners; and the transition was a sequence
+   of full navigations, each of which rendered.
+
+   **The model (2026-09-14).** A program season is the parent Home context and
+   every scout belongs to exactly one through a durable `programSeasonId` on its
+   body and library row. `WorkspaceContext` solely owns the parent id and the
+   mode. A toggle is one state change and one render: entering Opponent Scout
+   keeps the parent OPEN and renders its own scoped library; it never calls
+   `closeSeason()` or `_openLibrary()` and never auto-opens a scout. Returning
+   opens a season only from an open scout, by its exact `programSeasonId`.
+   `lastOpened` may only order scouts inside a correct parent.
+
+   **Lifecycle.** Legacy inference is read-only and unique-match only
+   (`teamId + year + level`); zero or several leaves the scout unassigned.
+   Unassigned scouts — first launch, ambiguous legacy, or a stored parent that
+   no longer resolves — render in Home's `Needs a program season` section with an
+   explicit season selector, and assignment persists only after the coach
+   confirms, through `SeasonStore.assignScoutParent()` (inside the per-season
+   write queue and the PC-4 fence, updating the live object when that scout is
+   open). A team switch clears the parent atomically and persisted context is
+   validated against the active team. A program season that owns scouts cannot be
+   deleted; the command blocks with them named and cascades nothing.
+
+   **Coverage.** `e2e-scout-ownership` (79), `e2e-home-deferred-repair` (105),
+   `e2e-home-review-repair` (37). Five assertions across the two Home harnesses
+   that enforced the retired redirect were retired with their replacements
+   recorded inline. Captures: `artifacts/scout-workspace/`.
+
+   **Deferred, genuinely out of scope:** reassigning a scout whose parent is
+   still valid (only blank or dangling parents are assignable), and Home's mobile
+   layout at 390, where the stacked rail occupies the first viewport before any
+   workspace body — a Home-wide composition question, not scout-specific.
 6. **REPAIRED 2026-09-13 — empty Opponent Scout is a full workspace.** The
    tiny centered empty card and duplicate create actions were replaced with
    the same operational composition used by the Program library: a full-width
@@ -571,6 +603,31 @@ edge-to-edge by design; the top bar's 18px inset is not.
    results including `Gain + Touchdown` and `Penalty + Loss`. Full text remains
    in accessible labels/tooltips, but the visible presentation is incomplete.
    Open visual repair against the accepted Breakdown composition.
+5. **Drive-number grouping conflates the two possession teams.** Breakdown
+   currently groups plays by the raw `driveNumber` tag, so our Drive 1 and the
+   opponent's Drive 1 can appear in the same group even though each team owns
+   its own drive sequence. Use a composite possession-side plus drive-number
+   identity while keeping concise visible labels such as `Our Drive 1` and
+   `Opponent Drive 1`. Audit the Study `Drive` dimension, which also exposes the
+   raw tag, so the repair is shared rather than limited to Breakdown. Add a
+   regression with alternating possessions where both teams have Drive 1 and
+   Drive 2; each team/number pair must remain a distinct group. Reconstructed
+   report possessions use separate logic and should not change without evidence.
+6. **Rapid or repeated timeline scrubbing can falsely mark linked film as
+   unavailable.** In installed WebView2, moving the playback slider aggressively
+   can replace still-visible linked film with the permanent `Film unavailable`
+   recovery card and the shell's red `Film missing` state. Closing and reopening
+   the app loads the same D-drive source normally, so this is not evidence that
+   the file or folder link is actually missing. The current scrubber sends every
+   `input` directly to `video.currentTime`, while `VideoController` promotes any
+   resulting media `error` event to the terminal missing-film presentation.
+   Capture the native `MediaError` code/message and seek event sequence, coalesce
+   rapid seek requests, and distinguish a transient seek/decoder failure from a
+   source that fails a fresh reload. Preserve the selected play, clip and desired
+   seek position during bounded recovery; show missing/re-link guidance only when
+   the linked source genuinely cannot be reopened. Add event-sequence regression
+   coverage plus an installed WebView2 scrub stress smoke, because Chromium's
+   media pipeline may not reproduce the native failure.
 
 ## Closed Visual Baseline
 

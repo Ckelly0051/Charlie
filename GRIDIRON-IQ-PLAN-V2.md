@@ -50,10 +50,16 @@ library state; this pass does not rewrite their persistence boundaries.
 
 The shell's `Our Program / Opponent Scout` selector is the only workspace-mode
 control. The duplicate Program/Opponent card selector is absent from the page body.
-The selector changes season-scoped workspaces, not only the visible library
-filter: each side restores its most recently opened season from canonical
-season metadata, and falls back to its filtered library only when no season
-exists in that workspace.
+The selector changes the VIEW of one parent program season, not the season.
+Every opponent scout belongs to exactly one program season through a durable
+`programSeasonId`, `WorkspaceContext` solely owns that parent and the mode, and
+the toggle is one state change and one render: Opponent Scout keeps the parent
+open and shows its own scoped opponent library, opening nothing. Returning uses
+the open scout's exact parent id. Restoring "the most recently opened season of
+this kind" from `lastOpened` is RETIRED — recency is not ownership, and that
+redirect was the Home/library bounce the coach reported (docs/OPEN-DEFECTS.md
+Home item 5). Scouts with no resolvable parent are surfaced for explicit
+assignment rather than attached to a guess.
 One route, one switcher, one renderer, and one approved state matrix must cover
 first use, no season, empty season, populated season, and scout mode. Historical
 Home and Team Hub artifacts remain evidence but must be explicitly superseded
