@@ -138,6 +138,26 @@ These are invariants, not preferences. Every one is enforced in current source.
 - Legacy data is read through compatibility projection, not rewritten.
   `tag-projection.js` is read-time only and never mutates.
 
+**Roster ownership**
+- A roster belongs to ONE season. That season's games share it. Different teams,
+  years, levels and seasons are independent. Modern game records store no roster
+  of their own, and nothing in the app writes one.
+- **Ordinary loading never infers ownership.** `_normalize` only coerces
+  `season.roster`. Promotion from a legacy `games[].roster` happens at ONE
+  compatibility boundary — `SeasonStore.adoptLegacyRoster()`, called by the
+  legacy single-game import, `adopt()` and `restoreBackup()`. It reads only the
+  season's own game nodes, so it cannot move a roster across a season boundary,
+  and the stored `rosterOwnership: 'season'` marker makes it run at most once.
+  Before this, recovery ran inside `_normalize` on every load, restore and
+  import, so a deliberately emptied season re-acquired its old players.
+- The fallback was MOVED, not deleted: old single-game saves and
+  pre-season-model backups still convert, exactly once.
+- The 2026-09-13 coach-authorized data normalization, its identity proof, the
+  catalog/mirror divergence and its backup hashes are in
+  `docs/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
+  is read-only; `tools/normalize-roster-ownership.mjs` writes only behind
+  `--apply`, only after verifying identity from stable game ids.
+
 **Season isolation**
 - A season is the unit of work; each is its own file/row. `SeasonStore.data` is
   null until a season is opened.

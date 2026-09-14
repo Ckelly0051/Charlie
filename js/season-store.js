@@ -31,6 +31,37 @@ export class SeasonStore {
    *  genuinely increments (unlike Number.MAX_SAFE_INTEGER, where it does not). */
   static MAX_REVISION = Number.MAX_SAFE_INTEGER - 1024;
 
+  /** The stored marker proving a season's roster ownership has been settled at
+   *  the season level. Its presence is what makes the legacy game-node
+   *  conversion in `adoptLegacyRoster()` run exactly once per season: ordinary
+   *  loading stamps it, so a converted season can never be re-converted, and a
+   *  season whose roster was deliberately emptied never re-acquires one. */
+  static ROSTER_OWNERSHIP = 'season';
+
+  /**
+   * THE ONE COMPATIBILITY BOUNDARY for legacy roster promotion.
+   *
+   * Old single-game saves and pre-season-model backups carried the roster on
+   * the GAME node. Those files still have to open, so the conversion survives
+   * -- but only here, only for a season that has never been marked, and only
+   * when the season itself carries no roster field at all. An explicitly empty
+   * season roster is a real coach decision and is left empty.
+   *
+   * Mutates and returns `d`. Call BEFORE `_normalize`, which stamps the marker.
+   * Cross-season safety: this reads only the season's OWN game nodes, so it can
+   * never move a roster across a season boundary -- it promotes within one
+   * season or does nothing.
+   */
+  static adoptLegacyRoster(d) {
+    if (!d || typeof d !== 'object') return d;
+    if (d.rosterOwnership === SeasonStore.ROSTER_OWNERSHIP) return d;
+    if (Object.prototype.hasOwnProperty.call(d, 'roster')) return d;
+    const games = Array.isArray(d.games) ? d.games : [];
+    const legacy = games.find(game => Array.isArray(game?.roster) && game.roster.length)?.roster;
+    d.roster = Array.isArray(legacy) ? legacy.map(player => ({ ...player })) : [];
+    return d;
+  }
+
   constructor(backend) {
     this.SCHEMA = 5;
     this.data = null;
@@ -347,15 +378,24 @@ export class SeasonStore {
       d.activeGameId = d.games[0].id;
     }
     d.teamProfile = d.teamProfile || {};
-    // Season is the roster boundary. Older single-game saves carried the roster
-    // on the game node; recover it once only when the season-level field is truly
-    // absent. An explicit empty season roster remains empty.
-    if (!Object.prototype.hasOwnProperty.call(d, 'roster')) {
-      const legacyRoster = d.games.find(game => Array.isArray(game?.roster))?.roster;
-      d.roster = Array.isArray(legacyRoster) ? legacyRoster : [];
-    } else {
-      d.roster = Array.isArray(d.roster) ? d.roster : [];
-    }
+    // THE SEASON OWNS THE ROSTER, AND ORDINARY LOADING NEVER INFERS THAT.
+    //
+    // This used to adopt `games[].roster` whenever the season-level key was
+    // absent, on EVERY normalize -- which is every load, every import, every
+    // restore. That made ownership a repeated inference rather than a stored
+    // fact: a season whose roster was legitimately removed re-acquired one from
+    // its own legacy game nodes the next time it was opened, and no marker
+    // recorded that a conversion had ever happened.
+    //
+    // Normal loading now only coerces the field. Promotion from a legacy game
+    // node happens at ONE explicit compatibility boundary --
+    // `adoptLegacyRoster()`, called by the legacy single-game import and the
+    // snapshot/backup import paths -- and stamps `rosterOwnership` so it can
+    // never run twice on the same season. The fallback is not deleted, because
+    // old single-game saves and backups still need it; it is moved to where it
+    // belongs and made idempotent.
+    d.roster = Array.isArray(d.roster) ? d.roster : [];
+    if (d.rosterOwnership !== SeasonStore.ROSTER_OWNERSHIP) d.rosterOwnership = SeasonStore.ROSTER_OWNERSHIP;
     d.playbook = d.playbook && Array.isArray(d.playbook.calls)
       ? { version: Number(d.playbook.version) || 1, calls: d.playbook.calls }
       : { version: 1, calls: [] };
@@ -1040,7 +1080,9 @@ export class SeasonStore {
     const safetyId = await this.snapshot('Before restore');
     if (!safetyId) return null;
     const current = this.data;
-    this.data = this._normalize(data);
+    // A backup can predate the season roster model, so restore is the other
+    // compatibility boundary. Marked and idempotent, like the import path.
+    this.data = this._normalize(SeasonStore.adoptLegacyRoster(data));
     const persisted = await this.persist();
     if (persisted === false) {
       this.data = current;
@@ -1183,9 +1225,17 @@ export class SeasonStore {
     const prior = this.data;
     let next;
     if (parsed && Array.isArray(parsed.games)) {
-      next = this._normalize({ ...parsed, id: destSeasonId });
+      // The import/adopt boundary is where a legacy roster may be promoted from
+      // a game node -- exactly once, marked. Ordinary loading never does this.
+      next = this._normalize(SeasonStore.adoptLegacyRoster({ ...parsed, id: destSeasonId }));
     } else if (parsed && Array.isArray(parsed.plays)) {
-      next = this._normalize({ id: destSeasonId, roster: parsed.roster, games: [this.gameFromLegacy(parsed)] });
+      // A legacy SINGLE-GAME save: the roster may live on the payload or on the
+      // game node it becomes. `adoptLegacyRoster` handles the second case and
+      // leaves an explicit payload roster (including an empty one) alone.
+      next = this._normalize(SeasonStore.adoptLegacyRoster(
+        Object.prototype.hasOwnProperty.call(parsed, 'roster')
+          ? { id: destSeasonId, roster: parsed.roster, games: [this.gameFromLegacy(parsed)] }
+          : { id: destSeasonId, games: [this.gameFromLegacy(parsed)] }));
     } else {
       return { ok: false, data: null };
     }

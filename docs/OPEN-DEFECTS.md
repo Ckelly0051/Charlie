@@ -103,20 +103,42 @@ authority until a replacement composition is reviewed and approved.
    all of those contracts, and the stale Team Hub-era gate consumers now drive
    the current Home/controller architecture. The canonical gate is 110/110
    green with zero skipped or failed harnesses. Coach smoke remains pending.
-7. **OPEN P1 — roster ownership appears universal across teams and seasons.**
-   The coach reports seeing the same roster after selecting different years and
-   teams. This contradicts the accepted 2026-08-29 data-isolation contract:
-   roster ownership is season-scoped, a season's games share that roster, and
-   JV, Varsity, different years, and different programs must remain independent.
-   Investigate the complete read/write path before changing data: Home and
-   Settings entry, `RosterManager`, season open/switch, serialization, restore,
-   game projection, player attribution, Reports, exports, backups, and any
-   ambient compatibility cache. Reproduce with at least two teams and two
-   seasons under one team. Determine whether this is a presentation/context
-   leak, a persistence-key defect, or existing data previously copied into
-   multiple seasons. Do not redistribute or delete customer roster data by
-   inference. The repair must include mutation-verified cross-team and
-   cross-season isolation plus same-season sharing across games.
+7. **REPAIRED 2026-09-13 — roster ownership appeared universal across teams and
+   seasons.** The isolation CODE was correct and reproduced clean in every
+   direction. The defect was in the DATA: all three seasons in the live catalog
+   each stored the same 19-player roster at rest, written before the 2026-08-29
+   repair, and every store faithfully rendered what it held. A second, live
+   defect sat behind it — `_normalize` adopted `games[].roster` whenever the
+   season key was absent, on every load, restore and import, so ownership was a
+   repeated inference rather than a stored fact and a deliberately emptied
+   season re-acquired players from its own legacy game nodes.
+
+   **Architecture.** Ordinary loading now only coerces `season.roster`.
+   Promotion from a legacy game node happens at ONE boundary,
+   `SeasonStore.adoptLegacyRoster()`, called by the legacy single-game import,
+   `adopt()` and `restoreBackup()`. It reads only the season's own game nodes,
+   so it can never move a roster across a season boundary, and the stored
+   `rosterOwnership: 'season'` marker makes it run at most once per season. The
+   fallback was moved, not deleted: old single-game saves and pre-season-model
+   backups still convert.
+
+   **Authorized data normalization (Charlie, 2026-09-13).** The 19-player roster
+   belongs only to the 2025 St. Joseph Mavericks JV season; no roster was
+   entered for 2026 JV or 2026 Varsity, so both are empty. Identity was verified
+   from stable game ids and metadata, never a directory name — see the ledger in
+   `docs/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
+   is the read-only auditor; `tools/normalize-roster-ownership.mjs` performed the
+   one-time write behind `--apply` with timestamped backups.
+
+   **Coverage.** `tools/e2e-roster-ownership.mjs` (24) pins cross-team and
+   cross-season isolation, empty-stays-empty across switching and reload,
+   same-season sharing with no game-level copies, game creation neither copying
+   nor clearing, loading never adopting, the boundary converting exactly once,
+   backup/restore scoped to one season, and season-scoped attribution.
+   `e2e-season-roster-scope` (19) keeps the four legacy-boundary cases,
+   repointed to the boundary rather than weakened. Mutation-verified:
+   reinstating the `_normalize` adoption reds "Ordinary loading of an unmarked
+   season does NOT promote a game roster".
 8. **OPEN P2 — Add Game remains visually obsolete and mislabels analytics
    perspective as `Film source`.** The installed form does not match the current
    Home/design-system hierarchy and reads as an older modal. Its `Film source`
