@@ -45,7 +45,7 @@ await page.evaluate(async () => {
 });
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
-  stored: localStorage.getItem('giq_home_workspace'),
+  stored: window.app.workspace.workspaceMode(),
   active: document.querySelector('[data-ws-action="workspace-scout"]')?.classList.contains('is-active'),
   pressed: document.querySelector('[data-ws-action="workspace-scout"]')?.getAttribute('aria-pressed'),
   title: document.querySelector('.library-panel-head h2')?.textContent?.trim(),
@@ -123,13 +123,17 @@ ok(scout.programRows === 1 && scout.scoutRows === 1 && scout.id !== program.id,
   'Program and scout remain separate canonical seasons', JSON.stringify(scout));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-scout-home.png'), fullPage: true });
 
-await page.evaluate(() => window.app.workspaceShell._openLibrary());
-await page.waitForSelector('.library-panel');
+/* FIXTURE REPOINTED 2026-09-14. This opened the Season Library first -- which
+   closes the season -- and then relied on the toggle restoring one by
+   `lastOpened`. That redirect is retired. The claim ("switching back to Program
+   wins while a scout season is open") is now exercised directly and is stronger
+   for it: the SCOUT stays open, and the toggle returns to that scout's exact
+   stored `programSeasonId`. */
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
 await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, {}, program.id);
 r = await page.evaluate(() => ({
   season: window.app.storage.seasonStore.data?.seasonName || '',
-  mode: localStorage.getItem('giq_home_workspace'),
+  mode: window.app.workspace.workspaceMode(),
 }));
 // createSeason composes its own name as "Year · Level" now (2026-08-31 Home
 // naming contract); the caller's "name" field above is ignored, so the real
@@ -142,7 +146,7 @@ await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId 
 r = await page.evaluate(() => ({
   kind: window.app.storage.seasonStore.data.kind,
   games: window.app.storage.seasonStore.data.games.length,
-  mode: localStorage.getItem('giq_home_workspace'),
+  mode: window.app.workspace.workspaceMode(),
 }));
 ok(r.kind === 'program' && r.games === program.games && r.mode === 'program',
   'Returning to Program restores its untouched schedule and context', JSON.stringify(r));
