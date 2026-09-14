@@ -138,10 +138,14 @@ the same roster under every team, year and level. Two things closed it.
 `_normalize` no longer infers ownership from game nodes at all; promotion happens
 at one boundary, `SeasonStore.adoptLegacyRoster()`, which a legacy season's open
 deliberately invokes — validated across every copy in that season rather than
-taking the first, refusing to choose when they disagree, removing every
-game-level copy once settled, and persisting the roster, the
-`rosterOwnership: 'season'` marker and the removal before the season is exposed,
-so it cannot repeat. And a coach-authorized one-time normalization gave the 19-player roster to the
+taking the first, removing every game-level copy once settled, and persisting the
+roster, the `rosterOwnership: 'season'` marker and the removal before the season
+is exposed, so it cannot repeat. When the copies disagree, or when that write
+fails, the operation ABORTS: the season does not open, import and restore return
+failure, the season the coach already had open stays open with its live state, and
+the source bytes are untouched. Conflict state is never editable — exposing it
+let a later save and reopen turn the disagreement into an explicit empty roster
+and delete the copies. And a coach-authorized one-time normalization gave the 19-player roster to the
 2025 JV season alone and emptied both 2026 seasons, with identity verified from
 stable game ids rather than a directory name. The full ledger, including the
 catalog-versus-mirror divergence and the backup hashes, is

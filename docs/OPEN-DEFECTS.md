@@ -130,11 +130,31 @@ authority until a replacement composition is reviewed and approved.
      season is compared through `SeasonStore.rosterIdentity()` — key order,
      whitespace and row order normalized, no player value rewritten. Promotion
      happens only when all copies agree.
-   - **A disagreement stops the migration.** No copy is selected, no copy is
-     removed, the season is left unmarked, and the conflict — naming the games
-     and the number of variants — is returned, logged, and toasted by
-     `StorageManager._reportRosterMigration()`. The next open reconsiders it, so
-     a resolved season still converts later.
+   - **A disagreement ABORTS the operation (repaired 2026-09-14).** The season
+     does not open at all. Nothing is selected, nothing is removed, nothing is
+     written, and the conflicted season is never exposed as the editable current
+     season. `openSeason()` returns null and restores the prior
+     `currentSeasonId`, the prior `data` and the backend current-season pointer;
+     `openSeasonById()` returns false without `_afterSeasonLoaded()`;
+     `adopt()` returns `{ok:false, data:null, conflict}` before staging or
+     persisting; `restoreBackup()` runs the boundary before its safety snapshot
+     and returns null. `TeamHubScreen.openSeason()` and the shell's season picker
+     fail closed on that false return. The next open reconsiders it, so a
+     resolved season still converts later.
+
+     **The first attempt at this was destructive and looked contained.**
+     `_hydrate` returned `_normalize(original)`, which coerced a synthetic
+     `season.roster: []` beside the surviving conflicting copies; the next
+     ordinary save persisted that synthetic roster; and the open after that
+     classified it as an EXPLICIT season roster and deleted every conflicting
+     copy. Three steps, none visibly wrong on its own. The harness now drives
+     that whole sequence, and the mutation that restores the old return reds
+     eight assertions and reproduces the deletion in its own output.
+
+     The coach-facing message names the season and its games and offers no
+     remediation step, because no current screen can reconcile per-game rosters.
+     The import path reports that message instead of "could not be saved", which
+     would misreport disagreeing rosters as a storage failure.
    - **Single ownership, not merely preferred.** A settled conversion deletes
      `roster` from every game node, including a season whose own roster already
      won over stale copies. Modern game records never carry the field, and
@@ -146,15 +166,19 @@ authority until a replacement composition is reviewed and approved.
      hydration, writes a `Before roster migration` restore point, then persists
      `season.roster`, `rosterOwnership: 'season'` and the removal through the
      normal revision-fenced per-season write queue, and only then exposes the
-     season. A failed write exposes the UNCONVERTED season and reports through
-     the shared persist-failure seam; nothing is lost, because the legacy nodes
-     are still on disk. A season nothing changed on dispatches no write at all,
+     season. A failed write blocks the open exactly like a conflict: the target's
+     durable bytes are untouched, the prior season stays active, and the failure
+     is reported through the shared persist-failure seam, so the next open retries
+     the whole migration. A season nothing changed on dispatches no write at all,
      so a settled season neither converts twice nor mints a revision the PC-4
      fence would read as a commit.
-   - **The marker asserts both halves** — season ownership AND no surviving game
-     copy — so `_normalize` refuses to stamp a season still carrying legacy
-     rosters. Otherwise the ordinary save that switching seasons performs would
-     write a settled marker over an unresolved conflict.
+   - **The marker asserts both halves** — season ownership AND **no game object
+     holding its own `roster` property at all**, `roster: []` included. Gating on
+     `roster.length` (the first implementation) degraded the invariant to "no
+     non-empty copy", and a later writer filling that surviving array would
+     recreate dual ownership under a marker asserting it could not exist.
+     `_normalize` refuses to stamp a season any of whose games still carries the
+     property.
    - **Attribution follows the owner.** `SeasonManager._mergeRoster()` reads the
      selected season's roster rather than merging `games[].roster` across the
      Our Program cohort, which makes the hand-written opponent-scout exclusion
@@ -168,15 +192,27 @@ authority until a replacement composition is reviewed and approved.
    is the read-only auditor; `tools/normalize-roster-ownership.mjs` performed the
    one-time write behind `--apply` with timestamped backups.
 
-   **Coverage.** `tools/e2e-roster-ownership.mjs` (52) pins cross-team and
+   **Coverage.** `tools/e2e-roster-ownership.mjs` (71) pins cross-team and
    cross-season isolation, empty-stays-empty across switching and reload,
    same-season sharing with no game-level copies, game creation neither copying
    nor clearing, `_normalize` never promoting and never marking an unfinished
-   migration, validated promotion, the conflict contract, removal of every game
-   copy, the first legacy open's durable write read back FROM DISK, a second
-   open dispatching no write, emptying not resurrecting, import/adopt/restore
-   landing the same structure, backup/restore scoped to one season, and
-   attribution reading the selected season's own roster.
+   migration (including a game holding `roster: []`), validated promotion,
+   removal of every game copy, the first legacy open's durable write read back
+   FROM DISK, a second open dispatching no write, emptying not resurrecting,
+   import/adopt/restore landing the same structure, backup/restore scoped to one
+   season, and attribution reading the selected season's own roster.
+
+   Containment is proven end to end rather than at a single open: a real season
+   is held open with its own live roster, the conflicted season is refused, an
+   ordinary save and a season switch follow, and a second attempt is refused —
+   with the returned false, the preserved season id and `data`, the preserved
+   live and stored rosters, the restored backend pointer and loaded game id,
+   byte-identical source bytes after both attempts, no season `roster` key or
+   marker on disk, and both refusals surfaced. A failed migration write gets the
+   same treatment plus a retry that converts once the write can land (the backend
+   is failed for one season id only, so every other write in that section is
+   real). Conflicting import and conflicting restore each prove memory, canonical
+   disk state and the backup are untouched.
    `e2e-season-roster-scope` (19) keeps the four legacy-boundary cases,
    repointed to the boundary rather than weakened.
 
@@ -189,7 +225,12 @@ authority until a replacement composition is reviewed and approved.
 
    Mutation-verified: reinstating first-non-empty guessing reds 7 assertions;
    retaining the game-level copies reds 10; converting in memory only (skipping
-   the durable write) reds 3; marking a conflicted season reds 2.
+   the durable write) reds 3; re-exposing `_normalize(original)` after a conflict
+   reds 8; continuing `adopt()` past a conflict reds 4; continuing
+   `restoreBackup()` past one reds 3; reverting the marker check to
+   `roster.length` reds 1; exposing a target after a failed migration write
+   reds 2. `js/season-store.js` was confirmed byte-identical to its pre-mutation
+   baseline before committing.
 8. **LOGIC REPAIRED 2026-09-13, presentation still open — Add Game mislabeled
    analytics perspective as `Film source`.**
 

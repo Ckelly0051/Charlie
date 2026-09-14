@@ -172,20 +172,29 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-game-context`
 - **Persistence:** `e2e-projform-durability`, `e2e-season-roster-scope`,
   `e2e-roster-ownership`, `e2e-operation-diff`
-- **Roster ownership:** `e2e-roster-ownership` (52) is the contract harness —
+- **Roster ownership:** `e2e-roster-ownership` (71) is the contract harness —
   cross-team and cross-season isolation, empty-stays-empty across switching and
   reload, same-season sharing with no game-level copies, game creation neither
   copying nor clearing, `_normalize` never adopting a game roster and never
-  marking a season whose games still carry one, VALIDATED promotion (identical
-  copies converge; disagreeing copies are not promoted, name their games and
-  leave the source intact), removal of `roster` from every game node once
-  settled, the first legacy open's durable write asserted against DISK, a second
-  open dispatching no migration write, emptying not resurrecting players,
-  import/adopt/restore landing the same structure, backup/restore scoped to one
-  season, and attribution reading the selected season's own roster with no
-  "missing owner" escape hatch. `tools/audit-roster-ownership.mjs` is the
-  read-only cross-store auditor; it prints counts and a roster hash, never
-  player data.
+  marking a season whose games still carry one (`roster: []` included), VALIDATED
+  promotion, removal of `roster` from every game node once settled, the first
+  legacy open's durable write asserted against DISK, a second open dispatching no
+  migration write, emptying not resurrecting players, import/adopt/restore landing
+  the same structure, backup/restore scoped to one season, and attribution reading
+  the selected season's own roster with no "missing owner" escape hatch.
+  `tools/audit-roster-ownership.mjs` is the read-only cross-store auditor; it
+  prints counts and a roster hash, never player data.
+
+  **A conflict or a failed migration write must be proven across a save and a
+  reopen, not at the open.** A conflicted season refuses to open, and the first
+  attempt at containment — exposing `_normalize(original)` — was destructive two
+  saves later: the synthetic `season.roster: []` it created was persisted by the
+  next ordinary save and read as an explicit roster by the open after that, which
+  deleted every conflicting copy. Sections 7c/7e/7f/7g therefore hold a real
+  season open, refuse the conflicted one, save, switch, refuse again, and assert
+  byte-identical source bytes throughout — plus the same containment for a failed
+  write (failing the backend for one season id only, then retrying), a conflicting
+  import, and a conflicting restore.
 
   A harness fixture may not give a game node a roster except to plant a hostile
   legacy or scout copy the model must ignore — and then it must assert the copy

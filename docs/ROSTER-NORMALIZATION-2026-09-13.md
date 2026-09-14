@@ -94,13 +94,19 @@ roster-ownership block). It now asserts BOTH halves of the contract — the seas
 owns the roster AND no game node retains a copy — so `_normalize` refuses to
 stamp a season still carrying legacy game rosters. Every record in the table
 above satisfies both, because this normalization removed the game-level copies as
-well as stamping the marker, so nothing here is affected. The app-level migration
+well as stamping the marker — the `roster` property is gone from every game node,
+not merely emptied, which is what the tightened check requires. The app-level migration
 would now reach the same end state on its own: `SeasonStore.adoptLegacyRoster()`
 validates every copy in a season before promoting one, removes all of them once
 settled, and `_hydrate()` persists the result before exposing the season. What it
 would NOT have done is choose between the three seasons' rosters — that decision
 was cross-season, which the boundary cannot see, and is exactly why this
 normalization was authorized by hand.
+
+Had any of these seasons held *disagreeing* game rosters, the app would have
+refused to open it rather than converting: since 2026-09-14 a conflict aborts the
+open, the import and the restore, preserving the prior active season and the
+source bytes. None of them did — every copy in each season matched.
 
 **Deliberately untouched:** mirror `2025-st-joseph-mavericks-jv`, the registered
 canonical Reports data authority — CLAUDE.md forbids writing to it — and mirror

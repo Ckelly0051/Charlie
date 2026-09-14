@@ -161,11 +161,30 @@ These are invariants, not preferences. Every one is enforced in current source.
   whitespace and row order normalized, no player value rewritten — and a roster
   is promoted only when all copies agree. Taking the first non-empty copy is the
   defect this replaced.
-- **A disagreement STOPS the migration.** No copy is chosen, no copy is removed,
-  the season is left unmarked, and the conflict (naming the games and the number
-  of variants) is returned, logged and toasted by
-  `StorageManager._reportRosterMigration()`. A later open reconsiders it, so a
-  resolved season still converts.
+- **A disagreement ABORTS THE OPERATION — the season does not open.** No copy is
+  chosen, no copy is removed, nothing is written, and the season is never exposed
+  as the editable current season. `openSeason()` returns null and restores the
+  prior `currentSeasonId`, the prior `data` and the backend current-season
+  pointer; `openSeasonById()` returns false without running
+  `_afterSeasonLoaded()`, so the season the coach already had open keeps its live
+  roster, active game and undo history. `adopt()` returns
+  `{ok:false, data:null, conflict}` before staging or persisting. `restoreBackup()`
+  runs the boundary BEFORE its safety snapshot and returns null, so a refused
+  restore writes nothing and the backup keeps its own bytes. `TeamHubScreen.
+  openSeason()` and the shell's season picker fail closed on the false return
+  rather than navigating. A later open reconsiders the season, so a resolved one
+  still converts.
+- **Exposing a conflicted season was itself destructive**, on a path no single
+  open could show: `_hydrate` returned `_normalize(original)`, which coerced a
+  synthetic `season.roster: []` beside the surviving conflicting copies; the next
+  ordinary save persisted that synthetic roster; and the open after that read it
+  as an EXPLICIT season roster and deleted every conflicting copy. Never make
+  conflict state editable, and never let `_normalize` see a conflicted payload.
+- **The coach-facing message names the season and its games and stops there.**
+  It offers no remediation step, because no current screen can reconcile per-game
+  rosters — an instruction the app cannot honor is worse than none. The import
+  path reports that message rather than "could not be saved", which would
+  misreport disagreeing rosters as a storage failure.
 - **One owner, enforced.** A settled conversion deletes `roster` from EVERY game
   node — including a season whose own roster already won over stale copies.
   Modern game records never write the field. `updateActiveGame()` carries a
@@ -175,16 +194,19 @@ These are invariants, not preferences. Every one is enforced in current source.
 - **The migration is DURABLE and once-only.** `_hydrate()` detects and converts
   before hydration, writes a `Before roster migration` restore point, persists
   `season.roster`, `rosterOwnership: 'season'` and the removal through the normal
-  revision-fenced per-season write queue, and only then exposes the season. A
-  failed write exposes the UNCONVERTED season and reports through the shared
-  persist-failure seam — the legacy nodes are still on disk, so nothing is lost
-  and the next open retries. A season nothing changed on dispatches no write at
-  all, so a settled season neither converts twice nor mints a revision the PC-4
-  fence reads as a commit.
-- **The marker asserts BOTH halves** — the season owns the roster AND no game
-  node retains a copy — so `_normalize` refuses to stamp a season still carrying
-  legacy rosters. Otherwise the ordinary save that switching seasons performs
-  writes a settled marker over an unresolved conflict and strands the copies.
+  revision-fenced per-season write queue, and only then exposes the season. **A
+  failed write blocks the open exactly like a conflict** — the target's durable
+  bytes are untouched, the prior season stays active, and the failure is reported
+  through the shared persist-failure seam, so the next open retries the whole
+  migration. A season nothing changed on dispatches no write at all, so a settled
+  season neither converts twice nor mints a revision the PC-4 fence reads as a
+  commit.
+- **The marker asserts BOTH halves** — the season owns the roster AND **no game
+  object has its own `roster` property at all**, `roster: []` included. Gating on
+  `roster.length` degraded that to "no non-empty one", and a later writer filling
+  the surviving array would recreate dual ownership under a marker asserting it
+  could not exist. `_normalize` refuses to stamp a season any of whose games still
+  carries the property.
 - **Attribution reads the selected season's roster.** `SeasonManager.
   _mergeRoster()` takes `season.roster` (plus the live roster, which is that
   same season's as the coach edits it) instead of merging `games[].roster` across
