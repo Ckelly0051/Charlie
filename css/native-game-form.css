@@ -1,13 +1,113 @@
-.gi-game-form{width:min(620px,100%);color:var(--gi-12);font-family:var(--gi-sans)}
-.gi-game-intro{margin:0 0 var(--gi-4x);color:var(--gi-11);font-size:12px;line-height:1.5}
-.gi-game-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gi-3x);margin-bottom:var(--gi-3x)}
+/* Add / Edit Game — rebuilt 2026-09-13 on the current neutral + gold system.
+   It was the last surface still painting from the legacy accent family:
+   `--gi-10` on every label, legend, helper line and the score separator, and
+   `--gi-los` (-> `--gi-9`) on the primary action, which is why the installed
+   dialog read blue in an app whose chrome is graphite and whose primary is
+   gold. Labels were 12px and helper text 11.5px, both under the 12.5px floor.
+
+   Structure is four ordered groups — identity, schedule, optional score,
+   actions — separated by hairlines rather than nested cards, so the form reads
+   as one surface the way Home and the Breakdown dialogs do. */
+
+.gi-game-form{width:min(620px,100%);color:var(--gi-bd-strong);font-family:var(--gi-sans)}
+.gi-game-intro{margin:0 0 var(--gi-4x);color:var(--gi-bd-muted);font-size:12.5px;line-height:1.5}
+
+/* ── Groups ───────────────────────────────────────────────────────────────
+   A group is a hairline and a label, never a card: nesting a bordered panel
+   inside an already-bordered dialog reads as two competing containers. */
+.gi-game-group{margin:0 0 var(--gi-4x);padding:0 0 var(--gi-4x);border-bottom:1px solid var(--gi-bd-line)}
+.gi-game-group:last-of-type{margin-bottom:0;padding-bottom:0;border-bottom:0}
+.gi-game-group>h3{margin:0 0 var(--gi-3x);color:var(--gi-bd-copy);font:600 12.5px/1.2 var(--gi-sans);letter-spacing:0}
+.gi-game-group>h3 small{margin-left:var(--gi-2x);color:var(--gi-bd-muted);font:inherit;font-weight:500}
+
+/* `align-items:end` so every input in a row shares one baseline. Without it a
+   label that wraps (`Week optional` at 768 in a three-column row) pushed its
+   own input ~5px below the inputs beside it, and the row read as misaligned. */
+.gi-game-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gi-3x);align-items:end}
 /* School gets more room than the (usually shorter) optional nickname; a
    scout game's four cells (Team A school/nickname, Team B school/nickname)
    wrap into two natural rows at this same two-column definition. */
 .gi-game-grid.is-identity{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
-.gi-game-form label{display:grid;gap:var(--gi-1x)}.gi-game-form label>span,.gi-game-score legend{color:var(--gi-10);font:600 12px/1 var(--gi-sans);text-transform:uppercase}.gi-game-form label>span small,.gi-game-score legend small{font:inherit;text-transform:none}
-.gi-game-form input,.gi-game-form select,.gi-game-form button{min-height:var(--gi-control);border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-2);color:var(--gi-12);font:500 12px var(--gi-sans)}.gi-game-form input,.gi-game-form select{width:100%;padding:0 var(--gi-3x)}.gi-game-form button{padding:0 var(--gi-3x);font-weight:650;cursor:pointer}.gi-game-form button:hover:not(:disabled){border-color:var(--gi-9);background:var(--gi-4)}.gi-game-form input:focus-visible,.gi-game-form select:focus-visible,.gi-game-form button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-.gi-game-field{margin:var(--gi-4x) 0}.gi-game-field>small{color:var(--gi-10);font-size:11.5px;line-height:1.4}
-.gi-game-score{margin:var(--gi-4x) 0 0;padding:var(--gi-3x);border:1px solid var(--gi-6);background:var(--gi-1)}.gi-game-score>div:first-of-type{display:grid;grid-template-columns:minmax(90px,140px) auto minmax(90px,140px);align-items:end;gap:var(--gi-2x)}.gi-game-score b{padding-bottom:9px;color:var(--gi-10);font:700 20px/1 var(--gi-cond)}.gi-game-tracked{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-3x);margin-top:var(--gi-3x);padding-top:var(--gi-3x);border-top:1px solid var(--gi-6);color:var(--gi-10);font-size:12px}.gi-game-tracked strong{margin-left:var(--gi-2x);color:var(--gi-12);font:700 18px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.gi-game-actions{display:flex;justify-content:flex-end;gap:var(--gi-2x);margin-top:var(--gi-5x)}.gi-game-actions .is-primary{border-color:var(--gi-los);background:var(--gi-los);color:var(--gi-on-solid)}.gi-game-actions .is-danger{margin-right:auto;border-color:var(--gi-turnover);color:var(--gi-turnover)}.gi-game-error{padding:var(--gi-2x) var(--gi-3x);border-left:3px solid var(--gi-turnover);background:var(--gi-danger-surface);color:var(--gi-12);font-size:12px}
-@media(max-width:700px){.gi-game-grid,.gi-game-grid.is-identity{grid-template-columns:1fr}.gi-game-form input,.gi-game-form select,.gi-game-form button{min-height:44px}.gi-game-score>div:first-of-type{grid-template-columns:1fr auto 1fr}.gi-game-tracked{align-items:stretch;flex-direction:column}.gi-game-actions button{flex:1}}
+.gi-game-grid+.gi-game-grid{margin-top:var(--gi-3x)}
+
+/* ── Fields ───────────────────────────────────────────────────────────────
+   One label role at the 12.5px floor, sentence case, no forced uppercase and
+   no tracking. `optional` is a lighter suffix, one casing everywhere. */
+.gi-game-form label{display:grid;gap:var(--gi-1x);min-width:0}
+.gi-game-form label>span{color:var(--gi-bd-copy);font:600 12.5px/1.3 var(--gi-sans)}
+.gi-game-form label>span small{color:var(--gi-bd-muted);font:500 12.5px/1.3 var(--gi-sans)}
+
+.gi-game-form input,
+.gi-game-form select,
+.gi-game-form button{min-height:var(--gi-control);border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font:500 13px var(--gi-sans)}
+/* A fixed height, not just a minimum: a native `type="date"` input carries its
+   own picker button and renders ~10px taller than a text input, so a row of
+   mixed controls had three different top edges. */
+.gi-game-form input,.gi-game-form select{width:100%;height:var(--gi-control);padding:0 var(--gi-3x)}
+.gi-game-form input::placeholder{color:var(--gi-bd-muted)}
+.gi-game-form input:disabled{color:var(--gi-bd-muted);background:var(--gi-bd-panel)}
+.gi-game-form input:hover:not(:disabled),
+.gi-game-form select:hover{border-color:var(--gi-bd-bone)}
+.gi-game-form button{padding:0 var(--gi-4x);font-weight:650;cursor:pointer}
+.gi-game-form button:hover:not(:disabled){border-color:var(--gi-bd-bone);background:var(--gi-bd-control-active)}
+/* `css/styles.css` still carries a legacy global,
+   `input:focus:not(.ws-shell *){border-color:var(--accent)}`, and this dialog
+   renders OUTSIDE `.ws-shell` — so a focused field took the legacy blue border
+   no matter what the resting rule said. The form states its own focus border
+   rather than inheriting that one. The RING stays the shared `--gi-focus`
+   token every modern surface uses. */
+.gi-game-form input:focus,
+.gi-game-form select:focus,
+.gi-game-form input:focus-visible,
+.gi-game-form select:focus-visible,
+.gi-game-form button:focus-visible{outline:0;border-color:var(--gi-bd-bone);box-shadow:var(--gi-focus)}
+
+.gi-game-field{margin:0}
+.gi-game-field>small{color:var(--gi-bd-muted);font-size:12.5px;line-height:1.4}
+
+/* ── Optional final score ─────────────────────────────────────────────────
+   The score inputs carry the SAME border, background and height as every
+   other input. They previously rendered as unbordered filled bars inside a
+   fieldset, which read as a different control type for no reason. */
+/* `max-content` for the separator, and the grid packed to the start. With an
+   `auto` middle track the separator column took 194px of a 474px row and threw
+   the two score fields to opposite ends of the dialog. */
+.gi-game-score{display:grid;grid-template-columns:minmax(84px,120px) max-content minmax(84px,120px);justify-content:start;align-items:end;gap:var(--gi-3x)}
+.gi-game-score b{padding-bottom:10px;color:var(--gi-bd-muted);font:700 18px/1 var(--gi-cond)}
+/* `css/styles.css` carries a global number-input treatment that outranks the
+   element selector above and painted these two as unbordered filled bars --
+   the "score inputs look like a different control" defect. Stated explicitly so
+   a score field is the same control as every other field on the form. */
+.gi-game-form .gi-game-score input[type="number"]{border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.gi-game-form .gi-game-score input[type="number"]:hover{border-color:var(--gi-bd-bone)}
+.gi-game-form .gi-game-score input[type="number"]:focus,
+.gi-game-form .gi-game-score input[type="number"]:focus-visible{border-color:var(--gi-bd-bone);box-shadow:var(--gi-focus)}
+.gi-game-tracked{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-3x);margin-top:var(--gi-3x);color:var(--gi-bd-muted);font-size:12.5px}
+.gi-game-tracked strong{margin-left:var(--gi-2x);color:var(--gi-bd-strong);font:700 16px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.gi-game-tracked button{flex:0 0 auto}
+
+/* ── Actions ──────────────────────────────────────────────────────────────
+   Gold primary, neutral secondary, destructive pushed to the far left so it
+   can never be the button a coach reaches for by muscle memory. */
+.gi-game-actions{display:flex;justify-content:flex-end;gap:var(--gi-2x);margin-top:var(--gi-5x)}
+.gi-game-actions .is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-game-actions .is-primary:hover:not(:disabled){border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);filter:brightness(1.08)}
+.gi-game-actions .is-primary:disabled{opacity:.6;cursor:default}
+.gi-game-actions .is-danger{margin-right:auto;border-color:var(--gi-turnover);color:var(--gi-turnover);background:transparent}
+.gi-game-actions .is-danger:hover:not(:disabled){border-color:var(--gi-turnover);background:var(--gi-danger-surface)}
+.gi-game-error{margin:var(--gi-3x) 0 0;padding:var(--gi-2x) var(--gi-3x);border-left:3px solid var(--gi-turnover);background:var(--gi-danger-surface);color:var(--gi-bd-strong);font-size:12.5px}
+
+@media(max-width:700px){
+  .gi-game-grid,.gi-game-grid.is-identity{grid-template-columns:1fr}
+  .gi-game-form input,.gi-game-form select,.gi-game-form button{min-height:44px}
+  .gi-game-form input,.gi-game-form select{height:44px}
+  .gi-game-score{grid-template-columns:1fr auto 1fr}
+  .gi-game-tracked{align-items:stretch;flex-direction:column}
+  .gi-game-actions{flex-wrap:wrap}
+  .gi-game-actions button{flex:1}
+  /* No `order` here. Reordering visually while the DOM keeps its own sequence
+     makes tab order disagree with what the coach sees — the destructive action
+     gets its own full-width row in its real DOM position instead, which also
+     keeps it clear of the primary. */
+  .gi-game-actions .is-danger{flex-basis:100%;margin-right:0}
+}
