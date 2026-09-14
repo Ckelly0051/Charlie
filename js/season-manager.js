@@ -43,10 +43,10 @@ export class SeasonManager {
       live.filmMode = active.filmMode;
       live.filmDir = active.filmDir;
     }
-    // `_serialize()` carries no roster, so without this the ACTIVE game's own
-    // roster was missing from every season consumer -- `_mergeRoster` included,
-    // which is how a jersey could end up labelled from some other game.
-    if (!live.roster && active.roster) live.roster = active.roster;
+    // NOTE: no roster is carried onto this projection. A game node has no roster
+    // of its own -- the SEASON owns it (SeasonStore.ROSTER_OWNERSHIP) and
+    // `_mergeRoster` below reads it from there, so copying one onto the live
+    // game would recreate the dual ownership the migration removed.
     return games.map(game => String(game.id) === String(active.id) ? live : game);
   }
 
@@ -84,14 +84,23 @@ export class SeasonManager {
       }));
   }
 
-  /** Merge jersey#→name across every OUR PROGRAM game's roster (+ the live
-   *  roster). Opponent-scout rosters are excluded: both teams field a 22, so a
-   *  scout roster read here relabelled our own player on the Season Players
-   *  board and in the export. A scout game's roster names their players. */
+  /**
+   * Jersey#→name for player attribution, read from THE CURRENTLY SELECTED
+   * SEASON's own roster (plus the live roster, which is that same season's
+   * roster as the coach is editing it).
+   *
+   * It used to merge `games[].roster` across every Our Program game, which
+   * required excluding scout games by hand -- both teams field a 22, so a scout
+   * game's roster relabelled our own players on the Season Players board and in
+   * the export. With the season as the sole roster owner that exclusion is
+   * structural: a season's roster is its own team's, and no other season's
+   * roster is reachable from here.
+   */
   _mergeRoster() {
     const map = {};
     const live = (window.app && window.app.roster) ? window.app.roster.players : [];
-    [...this._selfGames().flatMap(g => g.roster || []), ...live].forEach(p => {
+    const season = this._store()?.data?.roster || [];
+    [...season, ...live].forEach(p => {
       if (p && p.num != null && p.name) map[String(p.num)] = p.name;
     });
     return map;

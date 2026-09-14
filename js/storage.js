@@ -560,6 +560,7 @@ export class StorageManager {
     // retaining the prior non-empty value is how JV/Varsity rosters leaked into
     // one another. `persist:false` prevents a read from scheduling a write.
     app?.roster?.loadFrom?.(this.seasonStore.data?.roster || [], { persist: false });
+    this._reportRosterMigration();
     this._clearForNewGame();
     // _loadActiveGame already refreshes the season chip + games panel and resets
     // the finish hint, so only the season-level UI (history/versions) is left.
@@ -568,6 +569,21 @@ export class StorageManager {
       if (app.history) app.history.init();
       if (app.versions) app.versions.renderList();
     }
+  }
+
+  /**
+   * Surface the one-time legacy roster migration's outcome, once, for the
+   * season that just opened. A migration conflict (the season's games hold
+   * DIFFERENT rosters, so none may be promoted) and a migration whose durable
+   * write failed both have to reach the coach -- silently opening a season with
+   * an empty roster is how a real roster looks lost. Consumed here so the
+   * record cannot be re-reported when the next season opens.
+   */
+  _reportRosterMigration() {
+    const record = this.seasonStore?.rosterMigration;
+    this.seasonStore.rosterMigration = null;
+    if (!record || record.ok !== false || record.seasonId !== this.seasonStore.currentSeasonId) return;
+    this.tagger?.toast?.(record.message);
   }
 
   /** Capture the live tagger/canvas/gameInfo state into the active game node. */
