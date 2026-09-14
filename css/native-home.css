@@ -193,6 +193,26 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .library-overview-actions .gi-hub-kicker{margin-bottom:1px}
 .ws-home-page .library-overview-actions button{min-height:38px;padding:0 12px;border:1px solid var(--gi-bd-bone);background:transparent;color:var(--gi-bd-strong);font:600 12px var(--gi-sans)}
 .ws-home-page .library-overview-actions button:hover{background:var(--gi-bd-control)}
+/* Unassigned opponent scouts: identity on the left, one explicit assignment
+   control on the right. The head's title and its supporting line stack rather
+   than running together, and each row's name and details do the same -- the
+   shared `.library-list-head` lays its children inline, which ran the heading
+   straight into its own sentence. */
+.ws-home-page .library-unassigned{border-top:1px solid var(--gi-bd-line);margin-top:18px;padding-top:18px}
+.ws-home-page .library-unassigned .library-list-head{align-items:flex-start;display:block}
+.ws-home-page .library-unassigned .library-list-head h3{margin:0 0 4px}
+.ws-home-page .library-unassigned .library-list-head p{color:var(--gi-bd-muted);font-size:13px;margin:0}
+.ws-home-page .library-unassigned-list{display:grid;gap:10px;margin-top:14px}
+.ws-home-page .library-unassigned-row{align-items:center;background:var(--gi-bd-panel);border:1px solid var(--gi-bd-line);
+  border-radius:8px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) auto;padding:14px 16px}
+.ws-home-page .library-unassigned-identity{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ws-home-page .library-unassigned-identity strong{font-size:14px}
+.ws-home-page .library-unassigned-identity small{color:var(--gi-bd-muted);font-size:12.5px}
+.ws-home-page .library-assign{align-items:end;display:flex;gap:12px}
+.ws-home-page .library-assign label{display:flex;flex-direction:column;gap:6px}
+.ws-home-page .library-assign select{background:var(--gi-bd-control);border:1px solid var(--gi-bd-line);border-radius:6px;
+  color:var(--gi-bd-bone);font:inherit;font-size:13px;height:var(--gi-control,34px);max-width:280px;min-width:200px;padding:0 10px}
+.ws-home-page .library-assign select:focus-visible{border-color:var(--gi-bd-bone);outline:none}
 .ws-home-page .library-scout-empty{min-height:330px;padding-top:22px}
 .ws-home-page .library-scout-empty .library-list-wrap{padding-top:0}
 .ws-home-page .library-mobile-create{display:none}
@@ -344,6 +364,10 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
       only create action off-screen. Still exactly one: .library-mobile-create
       renders only in this empty state, and the aside button is hidden with it. */
    .ws-home-page .library-mobile-create{display:inline-flex}
+   .ws-home-page .library-unassigned-row{grid-template-columns:1fr}
+   .ws-home-page .library-assign{align-items:stretch;flex-direction:column}
+   .ws-home-page .library-assign select{max-width:none;min-width:0;width:100%}
+   .ws-home-page .library-assign button{width:100%}
    .ws-home-page .scout-start .library-continue{display:none}
   .ws-home-page .scout-table-head{grid-template-columns:minmax(150px,1.4fr) repeat(4,minmax(76px,.7fr))}
 }
