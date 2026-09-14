@@ -139,12 +139,36 @@ authority until a replacement composition is reviewed and approved.
    repointed to the boundary rather than weakened. Mutation-verified:
    reinstating the `_normalize` adoption reds "Ordinary loading of an unmarked
    season does NOT promote a game roster".
-8. **OPEN P2 — Add Game remains visually obsolete and mislabels analytics
-   perspective as `Film source`.** The installed form does not match the current
-   Home/design-system hierarchy and reads as an older modal. Its `Film source`
-   selector offers `Our game · start charting Offense/Defense/Special Teams` and
-   `Opponent film · Scout`; those choices control analytics perspective and the
-   initial charting unit, not a file, folder, managed copy, or linked film source.
+8. **LOGIC REPAIRED 2026-09-13, presentation still open — Add Game mislabeled
+   analytics perspective as `Film source`.**
+
+   **The selector is gone.** It was worse than mislabeled: choosing
+   `Opponent film · Scout` inside a Program season stamped
+   `perspective:'scout'` on a program game, and `SeasonManager._selfGames()`
+   excludes scout games, so that game silently left our record, yardage, success
+   rate and turnover margin. `native-game-form.jsx` renders and submits no
+   `perspective`; `GameScreen.save()` derives it from the owning season and
+   drops any value that arrives with the form; a create seeds the existing
+   `offense` default that `unitFromPerspective` turns into Break Down's opening
+   unit, and an edit omits the field so `_applyGameInfoDraft` preserves whatever
+   the game already stores. `breakdown-workspace.js` no longer focuses a
+   `[name="perspective"]` selector that would match nothing.
+
+   **No game-data repair was necessary.** A read-only sweep of every game in
+   every store — catalog, app-data JSON and Documents mirror — found **zero**
+   Program-season games carrying `perspective:'scout'`. Nothing historical was
+   rewritten.
+
+   **Coverage.** `tools/e2e-game-form-context.mjs` (20) pins the control's
+   absence from source and from the rendered form, program creation, scout
+   creation, and edit preservation. Mutation-verified: removing the save-seam
+   guard reds "editing a Program game cannot smuggle perspective scout through
+   the save seam" — and finding that the create path's explicit `offense` masked
+   the gap is why that edit case exists. `e2e-native-game`'s scout-from-form
+   assertion is RETIRED, not repointed: its subject was the removed defect.
+
+   **Still open: the presentation.** The installed form does not match the
+   current Home/design-system hierarchy and reads as an older modal.
    **Coach decision: remove this selection entirely.** Program versus Opponent
    Scout is derived from the owning season; the active charting unit is selected
    in Break Down and already derives the play perspective there. The repair must

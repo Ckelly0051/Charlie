@@ -34,8 +34,10 @@ export class GameScreen {
       week: source.week || '',
       opponent: source.opponentSchool || source.opponent || '', opponentNickname: source.opponentNickname || '',
       date: source.date || (mode === 'create' ? new Date().toISOString().slice(0, 10) : ''),
+      // No `perspective` here: the form no longer renders or submits one, and
+      // carrying a dead value into its state would be the only place left that
+      // implies the coach chooses it.
       homeAway: source.homeAway || '', gameType: source.gameType || 'game',
-      perspective: scout ? 'scout' : (source.perspective || 'offense'),
       sourceTeamA: source.sourceTeamASchool || source.sourceTeamA || scoutTarget, sourceTeamANickname: source.sourceTeamANickname || '',
       sourceTeamB: source.sourceTeamBSchool || source.sourceTeamB || '', sourceTeamBNickname: source.sourceTeamBNickname || '',
       scoreUs: source.scoreUs ?? '', scoreThem: source.scoreThem ?? '',
@@ -143,7 +145,20 @@ export class GameScreen {
         };
       } else {
         const school = String(values.opponent || '').trim(), nickname = String(values.opponentNickname || '').trim();
-        values = { ...values, opponent: fullIdentity(school, nickname), opponentSchool: school, opponentNickname: nickname };
+        // A PROGRAM SEASON MAKES PROGRAM GAMES, derived here and asked nowhere.
+        // Any `perspective` arriving with the values is dropped: the form no
+        // longer sends one, and nothing else may make a program game scout.
+        // On create we seed the existing `offense` default, which is what
+        // `unitFromPerspective` already turns into Break Down's opening unit.
+        // On edit we omit the field entirely so `_applyGameInfoDraft` preserves
+        // whatever the game already stores -- editing must not reset context.
+        const { perspective: _fromForm, ...rest } = values;
+        const gameType = String(rest.gameType || '').trim();
+        values = {
+          ...rest, opponent: fullIdentity(school, nickname), opponentSchool: school, opponentNickname: nickname,
+          gameType: gameType === 'scout' ? 'game' : (gameType || 'game'),
+          ...(context.mode === 'create' ? { perspective: 'offense' } : {}),
+        };
       }
       this.app._applyGameInfoDraft(values);
       if (store.data?.kind === 'scout') {

@@ -57,7 +57,6 @@ await page.type('[data-native-game-form] [name="opponent"]', 'Bravo Bears');
 await page.$eval('[data-native-game-form] [name="date"]', el => { el.value = '2026-08-27'; el.dispatchEvent(new Event('input', { bubbles: true })); });
 await page.select('[data-native-game-form] [name="homeAway"]', 'away');
 await page.select('[data-native-game-form] [name="gameType"]', 'game');
-await page.select('[data-native-game-form] [name="perspective"]', 'scout');
 await page.click('[data-native-game-form] .gi-game-actions .is-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]') && !window.app.gameScreen.handle);
 r = await page.evaluate(async firstId => {
@@ -77,9 +76,17 @@ r = await page.evaluate(async firstId => {
 }, fixture.firstId);
 ok(r.calls === 1 && r.games === 2, 'Create game performs one durable write and adds exactly one game', JSON.stringify(r));
 ok(r.dialogClosed, 'Game settings closes after a successful create', JSON.stringify(r));
-ok(r.info.opponent === 'Bravo Bears' && r.info.date === '2026-08-27' && r.info.homeAway === 'away' && r.info.perspective === 'scout', 'Create stores the complete football context', JSON.stringify(r.info));
+ok(r.info.opponent === 'Bravo Bears' && r.info.date === '2026-08-27' && r.info.homeAway === 'away' && r.info.perspective === 'offense', 'Create stores the complete football context', JSON.stringify(r.info));
 ok(JSON.stringify(r.info) === JSON.stringify(r.durableInfo), 'Created game context survives canonical backend reload', JSON.stringify(r));
-ok(r.perspective === 'scout' && r.defaultUnit === 'offense' && /Ace/.test(r.firstIntact), 'Create syncs scout context without mutating prior-game film tags', JSON.stringify(r));
+/* RETIRED, not repointed: this used to drive the form's `Film source` select to
+   `scout` and assert that a PROGRAM-season create produced a scout game. That is
+   the defect the coach removed on 2026-09-13 -- a program game marked scout
+   leaves `SeasonManager._selfGames()` and silently drops out of our season
+   record, yardage, success rate and turnover margin. The surviving claim is the
+   one that still has a subject: a program season derives a program game, and
+   creating it does not disturb the previous game's film tags. Scout-season
+   creation is covered by e2e-game-form-context section 5. */
+ok(r.perspective === 'offense' && r.defaultUnit === 'offense' && /Ace/.test(r.firstIntact), 'A program season derives a program game without mutating prior-game film tags', JSON.stringify(r));
 ok(r.headerButton && /Bravo Bears/.test(r.headerSummary) && /Bravo Bears/.test(r.shellContext), 'Game header remains an edit launcher and reflects the created game', JSON.stringify(r));
 
 await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'edit' }); });

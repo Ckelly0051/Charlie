@@ -15,8 +15,17 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
       week: clean(values.week), opponent: clean(values.opponent), opponentNickname: clean(values.opponentNickname),
       sourceTeamA: clean(values.sourceTeamA), sourceTeamANickname: clean(values.sourceTeamANickname),
       sourceTeamB: clean(values.sourceTeamB), sourceTeamBNickname: clean(values.sourceTeamBNickname), date: clean(values.date),
+      // NO `perspective`. Program versus Opponent Scout is derived from the
+      // owning season in `GameScreen.save()`, and the per-play charting unit is
+      // selected in Break Down, which already derives perspective from it
+      // (`native-tagging-screen.js` _derivePerspective). This form asked for
+      // both under the label `Film source`, which is neither: choosing
+      // `Opponent film · Scout` inside a Program season produced a program game
+      // marked scout, and `SeasonManager._selfGames()` excludes scout games, so
+      // that game silently left our record, yardage, success rate and turnover
+      // margin. Removed by coach decision 2026-09-13.
       homeAway: clean(values.homeAway), gameType: clean(values.gameType) || 'game',
-      perspective: clean(values.perspective) || 'offense', scoreUs: clean(values.scoreUs), scoreThem: clean(values.scoreThem),
+      scoreUs: clean(values.scoreUs), scoreThem: clean(values.scoreThem),
     });
     if (!result?.ok) { setError(result?.message || 'The game could not be saved. Nothing changed.'); setBusy(false); }
   };
@@ -45,7 +54,6 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
       <label><span>Location</span><select name="homeAway" value={values.homeAway} onInput={update}><option value="">Not set</option><option value="home">Home</option><option value="away">Away</option><option value="neutral">Neutral</option></select></label>
       {scout ? <label><span>Film purpose</span><input value="Opponent scout" disabled /></label> : <label><span>Game type</span><select name="gameType" value={values.gameType} onInput={update}><option value="game">Game</option><option value="scrimmage">Scrimmage</option><option value="playoff">Playoff</option></select></label>}
     </div>
-    {scout ? <label class="gi-game-field"><span>Film source</span><input value="Opponent Scout · chart their offense and defense" disabled /><small>Study and Reports describe the opponent. This game never counts in our program record.</small></label> : <label class="gi-game-field"><span>Film source</span><select name="perspective" value={values.perspective} onInput={update}><option value="offense">Our game · start charting Offense</option><option value="defense">Our game · start charting Defense</option><option value="special">Our game · start charting Special Teams</option><option value="scout">Opponent film · Scout</option></select><small>This controls who the analytics describe and which unit a new play starts on.</small></label>}
     <fieldset class="gi-game-score"><legend>Final score <small>optional</small></legend><div><label><span>{scout ? (values.sourceTeamA || 'Team A') : 'Us'}</span><input name="scoreUs" type="number" min="0" inputMode="numeric" value={values.scoreUs} onInput={update} /></label><b aria-hidden="true">–</b><label><span>{scout ? (values.sourceTeamB || 'Team B') : 'Them'}</span><input name="scoreThem" type="number" min="0" inputMode="numeric" value={values.scoreThem} onInput={update} /></label></div>
       <div class="gi-game-tracked"><span>Tagged score <strong>{trackedScore.us}–{trackedScore.them}</strong></span><button type="button" onClick={applyTracked} disabled={!trackedScore.hasData}>Use tagged score</button></div>
     </fieldset>

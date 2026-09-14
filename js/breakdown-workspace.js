@@ -188,9 +188,12 @@ export class BreakdownWorkspace {
   }
 
   _openFilmContextSettings() {
-    // Film context is a perspective decision, so land the coach on the
-    // perspective field. Passed as the native dialog's one focus target.
-    this.app.gameScreen?.open({ mode: 'edit', focus: 'perspective' });
+    // There is no perspective FIELD any more -- Program versus Opponent Scout
+    // is derived from the owning season and the charting unit is chosen here in
+    // Break Down. Game settings still owns the rest of the game's context, so
+    // this lands on the game's identity instead of a `[name="perspective"]`
+    // selector that would now match nothing and leave the dialog unfocused.
+    this.app.gameScreen?.open({ mode: 'edit', focus: 'opponent' });
   }
 
   _syncScoutGame() {
