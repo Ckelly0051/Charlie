@@ -110,6 +110,15 @@ authority until a replacement composition is reviewed and approved.
    reserved for film that cannot be COUNTED: an unreachable linked folder, or a
    listing that failed.
 
+   **Codex review follow-up - REPAIRED 2026-09-15.** The aggregate now treats
+   `managed-list-failed` and a rejected `filmHealth` call as uncountable, just
+   like a failed linked listing. It checks that state before the zero-expected
+   shortcut, so a filesystem/read failure cannot be presented as either
+   `0 of N games linked` or `No film linked`. One failed lookup also prevents a
+   mixed season from printing a falsely authoritative count. Evidence:
+   `e2e-data-correctness-batch1` (76), with distinct managed-list, all-rejected,
+   and partially rejected fixtures.
+
    **B1-1b live-data verification - RESOLVED 2026-09-15. The library was right and
    the opened season was wrong. The true count is `5 of 6 games linked`.**
    Determined by read-only inspection of the installed data and the coach's real

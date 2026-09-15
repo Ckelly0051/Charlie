@@ -329,7 +329,7 @@ export class TeamHubScreen {
     // than claim "no film linked" for a season we could not actually read.
     if (!Array.isArray(games)) return { state: 'checking', label: 'Checking film…', expected: 0, found: 0, missing: 0, seasonId: String(seasonId ?? '') };
     if (!games.length) return { state: 'none', label: 'No games yet', expected: 0, found: 0, missing: 0, seasonId: String(seasonId ?? '') };
-    const health = await Promise.all(games.map(game => this.app.workspace.filmHealth(game, seasonId).catch(() => ({ state: 'missing', expected: 0, found: 0, missing: 0 }))));
+    const health = await Promise.all(games.map(game => this.app.workspace.filmHealth(game, seasonId).catch(() => ({ state: 'error', detail: 'health-lookup-failed', expected: 0, found: 0, missing: 0 }))));
     const expected = health.reduce((sum, item) => sum + (item.expected || 0), 0);
     const found = health.reduce((sum, item) => sum + (item.found || (item.ready ? item.expected || 0 : 0)), 0);
     const missing = health.reduce((sum, item) => sum + (item.missing || 0), 0);
@@ -346,16 +346,18 @@ export class TeamHubScreen {
     if (health.some(item => ['checking', 'saving', 'repairing'].includes(item.state))) {
       return { state: 'checking', label: 'Checking film…', expected, found, missing, seasonId: season };
     }
-    if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing, seasonId: season };
-    // `Film needs attention` is for a season whose film could not be COUNTED —
-    // an unavailable linked folder, or a listing that failed. Gating on
+    // A failed lookup cannot contribute an honest denominator or linked count.
+    // Check it before the zero-expected shortcut, which would otherwise turn
+    // an all-failed season into "No film linked".
+    // Gating the attention state on
     // `action === 'reconnect'` instead swallowed the ordinary partial case: a
     // linked game missing one clip also asks to reconnect, so the coach's real
     // 2025 JV season (89 expected, 88 on disk in one of six games) reported
     // `Film needs attention` where the honest answer is `5 of 6 games linked`.
-    if (health.some(item => item.state === 'unauthorized' || item.detail === 'linked-list-failed')) {
+    if (health.some(item => item.state === 'unauthorized' || ['linked-list-failed', 'managed-list-failed', 'health-lookup-failed'].includes(item.detail))) {
       return { state: 'missing', label: 'Film needs attention', expected, found, missing, seasonId: season };
     }
+    if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing, seasonId: season };
     if (gamesLinked === games.length) return { state: 'ready', label: linkedOf(games.length), expected, found: expected, missing: 0, seasonId: season };
     return { state: 'partial', label: linkedOf(gamesLinked), expected, found, missing, seasonId: season };
   }

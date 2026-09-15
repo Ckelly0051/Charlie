@@ -231,6 +231,18 @@ const result = await page.evaluate(async () => {
   // An unavailable linked FOLDER genuinely cannot be counted, so it keeps the
   // needs-attention state rather than printing a fabricated count.
   out.linkedGoneAgg = await hub._aggregateFilm([linkedGame('lg3', '(gone)')], 'A');
+  store.backend = { ...backend, listFilmFiles: async () => { throw new Error('managed listing failed'); } };
+  out.managedListFailed = await hub._aggregateFilm([gameFor()], 'A');
+  store.backend = backend;
+  const realFilmHealth = app.workspace.filmHealth;
+  app.workspace.filmHealth = async () => { throw new Error('film health failed'); };
+  out.allLookupsFailed = await hub._aggregateFilm([gameFor()], 'A');
+  app.workspace.filmHealth = async function(game, seasonId) {
+    if (game.id === 'g2') throw new Error('one film health lookup failed');
+    return realFilmHealth.call(this, game, seasonId);
+  };
+  out.oneLookupFailed = await hub._aggregateFilm([gameFor(), { id: 'g2', plays: [], clipNames: [] }], 'A');
+  app.workspace.filmHealth = realFilmHealth;
   store.backend = backend;
 
   // ---- B1-4 in-flight film operations are season-scoped too --------------
@@ -345,6 +357,12 @@ ok(result.linkedPartialAgg.state === 'partial' && result.linkedPartialAgg.label 
   'A linked season missing one clip prints its count, not "Film needs attention"', result.linkedPartialAgg);
 ok(result.linkedGoneAgg.state === 'missing' && result.linkedGoneAgg.label === 'Film needs attention',
   'A linked folder that cannot be reached keeps the needs-attention state', result.linkedGoneAgg);
+ok(result.managedListFailed.state === 'missing' && result.managedListFailed.label === 'Film needs attention',
+  'A failed managed listing cannot be reported as a linked count', result.managedListFailed);
+ok(result.allLookupsFailed.state === 'missing' && result.allLookupsFailed.label === 'Film needs attention',
+  'Rejected health lookups cannot become No film linked', result.allLookupsFailed);
+ok(result.oneLookupFailed.state === 'missing' && result.oneLookupFailed.label === 'Film needs attention',
+  'One rejected lookup invalidates a mixed season count', result.oneLookupFailed);
 
 console.log('\n-- B1-4 in-flight film operations are season-scoped --');
 ok(result.opA.state === 'saving' && result.opA.progress?.done === 3,

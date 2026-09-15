@@ -201,7 +201,7 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   replacement asserts the parent stays open, nothing is auto-opened, and the list
   is parent-scoped. Their retirement reasoning is recorded beside each one.
 
-- **Repair Batch 1 data correctness:** `e2e-data-correctness-batch1` (73) is the
+- **Repair Batch 1 data correctness:** `e2e-data-correctness-batch1` (76) is the
   contract harness for three defects, each mutation-verified. **Season film
   health** — a two-season fixture reusing game id `g1` with different film on
   disk, proving `WorkspaceContext.filmHealth(game, seasonId)` and
@@ -228,7 +228,9 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   caller that stops threading the season reopens the hole where no in-page
   assertion can see it. **A linked season missing one clip prints its count**,
   not `Film needs attention` — that label is reserved for film that cannot be
-  COUNTED (an unreachable folder, a failed listing).
+  COUNTED (an unreachable folder, a failed listing, or a rejected health
+  lookup). Managed-list failure, total lookup rejection, and one rejected game
+  in a mixed season are pinned so none can print a trustworthy-looking count.
 
 - **Live film-source binding:** `e2e-film-health-realdata` (14) audits the
   registered `2026-varsity-demo` season ("2025 St. Joseph Mavericks - JV")
