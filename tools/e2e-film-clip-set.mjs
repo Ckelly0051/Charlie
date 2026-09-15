@@ -73,7 +73,14 @@ const result = await page.evaluate(async () => {
     st._removedClipIds = new Set();
     tagger.plays = plays;
     tagger.currentPlayId = plays.length ? plays[0].id : null;
-    if (playlist) { playlist.clips = playlistClips; playlist.activeClipIndex = playlistClips.length ? 0 : -1; }
+    if (playlist) {
+      playlist.clips = playlistClips;
+      playlist.activeClipIndex = playlistClips.length ? 0 : -1;
+      // Each section is its own game. Production clears this in reset() on a
+      // game switch; seeding the arrays directly bypasses that, and an inherited
+      // stash would let one section's removed clip reappear in the next.
+      playlist._undoClips.clear();
+    }
     app.history?.reset?.();
   };
   const ids = () => st._buildClipIndex().map(c => c.clipPath);
@@ -134,6 +141,89 @@ const result = await page.evaluate(async () => {
   out.unchartedRetained = ids();
   playlist.removeClip(1);
   out.unchartedRemoved = ids();
+
+  // -- an UNCHARTED clip removal must reach disk on its own ------------------
+  // The orphaned-record case this repair exists for emits no play event, so it
+  // rode no autosave: closing the app resurrected the record and the mismatch.
+  {
+    seed({
+      clips: ['c1', 'c2'], plays: [play(1, 'c1')],
+      playlistClips: [
+        { id: 1, name: 'c1', clipPath: 'c1', playId: 1, file: null, assetUrl: 'blob:c1', objectUrl: null, duration: 5 },
+        { id: 2, name: 'c2', clipPath: 'c2', playId: null, file: null, assetUrl: 'blob:c2', objectUrl: null, duration: 5 },
+      ],
+    });
+    const realCommit = st._commitAndPersist;
+    let commits = 0;
+    let committedAt = null;
+    st._commitAndPersist = function () { commits++; committedAt = st._buildClipIndex().map(c => c.clipPath); };
+    clearTimeout(st.autoSaveTimer); st.autoSaveTimer = null;
+    playlist.removeClip(1);                         // the clip with NO play
+    out.unchartedArmedSave = st.autoSaveTimer != null;
+    out.unchartedEmittedPlayDeleted = false;        // nothing to emit; that is the point
+    await new Promise(r => setTimeout(r, 1200));    // let the real debounce fire
+    out.unchartedCommits = commits;
+    out.unchartedCommittedIndex = committedAt;
+    st._commitAndPersist = realCommit;
+    clearTimeout(st.autoSaveTimer); st.autoSaveTimer = null;
+  }
+
+  // -- Undo restores a LOADED playlist clip, not just its play ---------------
+  {
+    const vcReal = { setSrc: app.vc?.setSrc, setLoad: app.vc?._setLoadState };
+    if (app.vc) {
+      app.vc.setSrc = () => {};
+      app.vc._setLoadState = () => {};
+    }
+    // `clipId` is what makes deleteCurrentPlay take its PLAYLIST branch, exactly
+    // as loading film sets it; without it the single-video branch runs and the
+    // clip is never offered to the playlist at all.
+    const backed = (id, clip, clipId) => ({ ...play(id, clip), clipId });
+    seed({
+      clips: ['c1', 'c2', 'c3'],
+      plays: [backed(1, 'c1', 1), backed(2, 'c2', 2), backed(3, 'c3', 3)],
+      playlistClips: [
+        { id: 1, name: 'c1', clipPath: 'c1', playId: 1, file: { name: 'c1.mp4' }, assetUrl: null, objectUrl: 'blob:keep-1', duration: 5 },
+        { id: 2, name: 'c2', clipPath: 'c2', playId: 2, file: null, assetUrl: 'blob:c2', objectUrl: null, duration: 5 },
+        { id: 3, name: 'c3', clipPath: 'c3', playId: 3, file: null, assetUrl: 'blob:c3', objectUrl: null, duration: 5 },
+      ],
+    });
+    playlist.activeClipIndex = 2;
+    tagger.currentPlayId = 1;
+    const removedRef = playlist.clips[0];
+    await tagger.deleteCurrentPlay();               // takes the playlist branch
+    out.undoClipAfterDelete = playlist.clips.map(c => c.clipPath);
+    out.undoIndexAfterDelete = ids();
+    out.undoStashSize = playlist._undoClips.size;
+    const didUndo = app.history?.undo?.();
+    out.undoClipReturned = didUndo === true;
+    out.undoClipAfterUndo = playlist.clips.map(c => c.clipPath);
+    out.undoClipPlayable = playlist.clips[0]
+      ? !!(playlist.clips[0].assetUrl || playlist.clips[0].objectUrl || playlist.clips[0].file) : false;
+    // `objectUrl` is a recreatable CACHE, not the clip's playability:
+    // `_releaseObjectUrlsExcept` revokes it for any clip that is not the active
+    // or preloaded one as a standing memory policy, and `_sourceForClip`
+    // recreates it from `clip.file` on demand. So the invariant that matters is
+    // that the stash returns the SAME clip object with its source intact.
+    out.undoClipIsSameObject = playlist.clips[0] === removedRef;
+    out.undoClipSource = playlist.clips[0]
+      ? !!(playlist.clips[0].assetUrl || playlist.clips[0].file) : false;
+    out.undoIndexAfterUndo = ids();
+    out.undoPlaysAfterUndo = tagger.plays.map(p => p.id);
+    // Redo takes both away again, so the durable record agrees either way.
+    const didRedo = app.history?.redo?.();
+    out.redoReturned = didRedo === true;
+    out.redoClips = playlist.clips.map(c => c.clipPath);
+    out.redoIndex = ids();
+    // The stash belongs to the outgoing game: a switch clears it, so Undo can
+    // never inject a clip into a different game's playlist.
+    playlist.reset();
+    out.stashClearedByReset = playlist._undoClips.size;
+    if (app.vc) {
+      if (vcReal.setSrc) app.vc.setSrc = vcReal.setSrc;
+      if (vcReal.setLoad) app.vc._setLoadState = vcReal.setLoad;
+    }
+  }
 
   // -- persistence / reopen --------------------------------------------------
   seed({ clips: ['c1', 'c2', 'c3'], plays: [play(1, 'c1'), play(2, 'c2')], playlistClips: [] });
@@ -232,6 +322,33 @@ ok(same(result.unchartedRetained, ['c1', 'c2']),
   'A loaded folder video with no play is still part of the game\'s record', result.unchartedRetained);
 ok(same(result.unchartedRemoved, ['c1']),
   'Removing that uncharted clip in the app drops it too', result.unchartedRemoved);
+
+console.log('\n-- an uncharted clip removal is persisted on its own --');
+ok(result.unchartedArmedSave,
+  'Removing a clip with no play arms the durable save', result.unchartedArmedSave);
+ok(result.unchartedCommits === 1,
+  'That save actually fires — closing the app can no longer resurrect the record', result.unchartedCommits);
+ok(same(result.unchartedCommittedIndex, ['c1']),
+  'The write it performs is the one without the removed clip', result.unchartedCommittedIndex);
+
+console.log('\n-- Undo restores the loaded clip, not just its play --');
+ok(same(result.undoClipAfterDelete, ['c2', 'c3']) && same(result.undoIndexAfterDelete, ['c2', 'c3']),
+  'Deleting a play in the playlist removes its clip and its record',
+  [result.undoClipAfterDelete, result.undoIndexAfterDelete]);
+ok(result.undoStashSize === 1, 'The removed clip is held for Undo rather than destroyed', result.undoStashSize);
+ok(result.undoClipReturned && same(result.undoClipAfterUndo, ['c1', 'c2', 'c3']),
+  'Undo puts the live clip back at its original position', result.undoClipAfterUndo);
+ok(result.undoClipPlayable, 'The restored clip is still playable, not a revoked shell');
+ok(result.undoClipIsSameObject,
+  'Undo returns the very clip that was removed, not a reconstruction', result.undoClipIsSameObject);
+ok(result.undoClipSource,
+  'The restored clip still carries the source its URL is rebuilt from', result.undoClipSource);
+ok(same(result.undoIndexAfterUndo, ['c1', 'c2', 'c3']) && same(result.undoPlaysAfterUndo, [1, 2, 3]),
+  'The durable record comes back with it', [result.undoIndexAfterUndo, result.undoPlaysAfterUndo]);
+ok(result.redoReturned && same(result.redoClips, ['c2', 'c3']) && same(result.redoIndex, ['c2', 'c3']),
+  'Redo takes the clip and its record away again', [result.redoClips, result.redoIndex]);
+ok(result.stashClearedByReset === 0,
+  'A game switch clears the stash, so Undo cannot cross into another game', result.stashClearedByReset);
 
 console.log('\n-- retention where something still needs the clip --');
 ok(same(result.sharedAfterDelete, ['c1']) && same(result.sharedPlaysLeft, [2]),

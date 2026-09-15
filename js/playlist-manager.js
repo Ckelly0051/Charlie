@@ -29,8 +29,16 @@ export class PlaylistManager {
     this._nextClipId = 1;
     this._nextPreloadEl = null;
     this._nextPreloadIndex = -1;
+    // Clips removed by a play deletion, held so Undo can put them back: playId
+    // -> { clip, index, removed }. HistoryManager snapshots plays only, so this
+    // is the live half of that history. Cleared (and its URLs released) by
+    // reset(), which runs on every game switch.
+    this._undoClips = new Map();
 
     this._bindEvents();
+    // Undo/Redo replace the whole plays array and announce it here. That is the
+    // one signal a non-snapshotted structure can reconcile against.
+    this.tagger?.on?.('plays-loaded', () => this._reconcileUndoClips());
   }
 
   _bindEvents() {
@@ -585,13 +593,7 @@ export class PlaylistManager {
     const wasActive = index === this.activeClipIndex;
     const clip = this.clips[index];
 
-    // A clip removed here is a DELIBERATE in-app deletion, so its durable
-    // identity must go too — otherwise the game keeps a clip record with no
-    // play and no reason. Recorded, never applied blindly: the clip index drops
-    // it only when no surviving play references it, so a shared clip stays and
-    // Undo brings both back. The coach's source file is never touched.
     const removedIdentity = ((clip.clipPath || clip.name) || '').trim();
-    if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
 
     // Remove the associated play
     const removedPlay = clip.playId !== null;
@@ -603,8 +605,15 @@ export class PlaylistManager {
       }
     }
 
-    // Clean up URL
-    if (clip.objectUrl) {
+    if (removedPlay) {
+      // A play-backed removal is UNDOABLE — the delete toast offers it — but
+      // HistoryManager snapshots plays only, so nothing else can bring the live
+      // clip back. Keep the clip object (and its object URL, which revoking
+      // would make unplayable) in an undo stash keyed by its play, and let
+      // _reconcileUndoClips re-insert it when Undo restores that play.
+      this._undoClips.set(clip.playId, { clip, index, removed: true });
+    } else if (clip.objectUrl) {
+      // No play, so no undo path can restore it: release the URL now.
       URL.revokeObjectURL(clip.objectUrl);
       clip.objectUrl = null;
     }
@@ -630,10 +639,70 @@ export class PlaylistManager {
     this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
     this._updateClipCount();
+    // A DELIBERATE in-app deletion, so the durable clip identity goes too —
+    // otherwise the game keeps a clip record with no play and no reason.
+    // Recorded, never applied blindly: the clip index drops it only when no
+    // surviving play references it, so a shared clip stays and Undo brings both
+    // back. `forgetClipIdentity` also schedules the save, which is what makes an
+    // UNCHARTED removal durable — this path emits no play event for it. The
+    // coach's source file is never touched.
+    // Recorded AFTER the play is gone so the very first serialize already agrees.
+    if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
+
     // The playlist panel's per-clip ✕ calls this directly (not through
     // tagger.deleteCurrentPlay), so the play removal must be announced here
     // or the Film Room grid keeps a ghost row.
     if (removedPlay) this.tagger._emit('play-deleted');
+  }
+
+  /**
+   * Sync the live playlist to a wholesale plays replacement (Undo / Redo).
+   * HistoryManager snapshots plays only — a File and an object URL cannot
+   * round-trip through JSON — so the clips a deletion removed are held in
+   * `_undoClips` and reconciled here instead.
+   *
+   * Scoped on purpose to clips THIS manager removed: a game load also emits
+   * `plays-loaded`, and sweeping live clips on that signal would tear down a
+   * freshly loaded playlist. `reset()` clears the stash, and it runs before that
+   * event, so an incoming game starts with nothing to reconcile.
+   */
+  _reconcileUndoClips() {
+    if (!this._undoClips.size) return false;
+    const live = new Set((this.tagger.plays || []).map(p => p.id));
+    const storage = window.app?.storage;
+    let changed = false;
+    for (const [playId, entry] of this._undoClips) {
+      const wanted = live.has(playId);
+      if (wanted && entry.removed) {
+        const at = Math.max(0, Math.min(entry.index, this.clips.length));
+        this.clips.splice(at, 0, entry.clip);
+        if (this.activeClipIndex >= at) this.activeClipIndex += 1;
+        else if (this.activeClipIndex < 0) this.activeClipIndex = at;
+        entry.removed = false;
+        changed = true;
+        const id = ((entry.clip.clipPath || entry.clip.name) || '').trim();
+        if (id) storage?.rememberClipIdentity?.(id);
+      } else if (!wanted && !entry.removed) {
+        // Redo of the same deletion: the play is gone again, so the clip goes
+        // with it and the durable identity is dropped again.
+        const at = this.clips.indexOf(entry.clip);
+        if (at !== -1) {
+          this.clips.splice(at, 1);
+          if (this.activeClipIndex > at) this.activeClipIndex -= 1;
+          else if (this.activeClipIndex === at) this.activeClipIndex = Math.min(at, this.clips.length - 1);
+        }
+        entry.removed = true;
+        changed = true;
+        const id = ((entry.clip.clipPath || entry.clip.name) || '').trim();
+        if (id) storage?.forgetClipIdentity?.(id);
+      }
+    }
+    if (!changed) return false;
+    if (this.clips.length && this.activeClipIndex >= 0) this.switchToClip(Math.min(this.activeClipIndex, this.clips.length - 1));
+    this.tagger._updateFormEnabled();
+    this._updatePlaylistUI();
+    this._updateClipCount();
+    return true;
   }
 
   /**
@@ -647,6 +716,13 @@ export class PlaylistManager {
       if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
       clip.objectUrl = null;
     }
+    // The undo stash belongs to the outgoing game, like its undo history. Its
+    // URLs were deliberately kept alive for a possible Undo; release them here.
+    for (const entry of this._undoClips.values()) {
+      if (entry.clip?.objectUrl) URL.revokeObjectURL(entry.clip.objectUrl);
+      if (entry.clip) entry.clip.objectUrl = null;
+    }
+    this._undoClips.clear();
     this.clips = [];
     this.activeClipIndex = -1;
     this._nextClipId = 1;

@@ -1474,7 +1474,25 @@ export class StorageManager {
   forgetClipIdentity(identity) {
     const id = String(identity || '').trim();
     if (!id) return false;
+    if (this._removedClipIds.has(id)) return true;
     this._removedClipIds.add(id);
+    // The removal has to reach disk on its own. A clip with a play rides the
+    // `play-deleted` autosave, but an UNCHARTED clip — the orphaned-record case
+    // this whole repair exists for — emits no play event, so removing one only
+    // updated memory and closing the app resurrected both the record and the
+    // mismatch. Debounced like every other edit, so the play-backed path
+    // coalesces into the same single write.
+    this._autoSave();
+    return true;
+  }
+
+  /** Undo the signal above: the clip is wanted again, so the durable index stops
+   *  dropping it. Called when Undo restores a play whose clip was removed. */
+  rememberClipIdentity(identity) {
+    const id = String(identity || '').trim();
+    if (!id || !this._removedClipIds.has(id)) return false;
+    this._removedClipIds.delete(id);
+    this._autoSave();
     return true;
   }
 
