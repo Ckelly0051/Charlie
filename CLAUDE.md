@@ -337,6 +337,43 @@ compatibility is a contract:** `normalize` still accepts
 point through every report, and no historical data is rewritten. The retired
 `Scored by Us/Them` control stays retired.
 
+**ONE owner for the charting vocabulary, and `Option` is a built-in.**
+`TagLibrary.DEFINITIONS` owns every library-managed field's defaults; a screen
+that carries its own copy is how a new built-in reaches the deck and never
+reaches the grid or the cut-up filter. Two had drifted and now read the owner:
+`native-tagging`'s OPTIONS fallback, and `native-settings`' cut-up FILTERS, which
+was already missing `Trick Play`. `Option` is a default offensive play type,
+distinct from `RPO` by football meaning — an option is a post-snap ball-carrier
+decision, an RPO a pass-or-run read — and consistent with it in behaviour:
+AMBIGUOUS for run/pass (`PlayTagger.runPassForPlayType`) and NOT in
+`EXCLUSIVE_GROUPS.playType`, so `Option + Run Outside` charts the call and the
+realized look together. **A new default needs a version migration**: a stored
+`enabled` array was written before the value existed, so `_normalize` filters it
+out and the choice would be hidden for every existing team. `TagLibrary.VERSION`
+is 4 and pushes it into `enabled`, visibility only, never a stored tag — the same
+shape the version-2 formation additions used. It is deliberately NOT added to
+`OVERVIEW_PLAY_TYPES` or the Defense board's seven production rows: those are
+approved fixed schemas, and resizing one is the coach's decision.
+
+**A non-modal sheet must retarget, never swallow.** `SettingsScreen.open()`
+returned the live sheet's promise when one was already open, discarding the
+requested tab, chart group and typed play-call name — which made the charting
+deck's `Edit library` and the play-call field's `Add to Playbook` do nothing at
+all, and say nothing. It retargets instead. Child panels consume
+`chartGroup`/`initialPlayCall` in `useState` INITIALIZERS, so a retarget nonce is
+part of the child key and remounts that panel with the new initial target.
+
+**Chromium's scrollbars are OVERLAY; installed WebView2's are CLASSIC.** Classic
+scrollbars consume ~17px of layout AND render arrow buttons with no accessible
+name. Any pane that fits exactly under overlay scrollbars can therefore overflow
+on the installed build, which is the horizontal track and the anonymous arrows
+reported in Breakdown at ~1420x1000 — and it is why every geometry harness was
+green. Breakdown reserves the scrollbar gutter in BOTH environments so a harness
+measures the installed layout, forbids a horizontal track on vertical-only panes,
+and removes the scrollbar arrow buttons. **The play filmstrip is the one exempt
+horizontal scroller**, by name, because wide content scrolling inside its own
+container is the contract; its cards are scrolled, not clipped.
+
 **Add Game asks for no analytics perspective.** The selector labeled `Film
 source` is deleted, not renamed. It wrote `perspective`, and its
 `Opponent film · Scout` option made a PROGRAM season produce a scout game —
@@ -624,6 +661,18 @@ current route is communicated by primary copy plus the gold route underline;
 mobile uses the same unfilled selection treatment at its top edge. Select
 controls should spend available horizontal room rather than clipping their
 current value into compact prototype widths.
+
+**The Program / Season / Game selectors are controls, not labels.** One neutral
+graphite surface, declared in the shell's own `:root` token block
+(`--ws-ctx-surface` / `-hover` / `-open` / `--ws-ctx-edge`) and applied at the
+shared context-bar owner, so every route that renders the bar gets it — never a
+per-route patch. Measured: the bar and the selectors differed by 1.25:1, which
+reads as a label. **The border draws the boundary**, and it must clear 3:1
+against the bar; the chosen step measures 4.1:1, and the step below it measured
+2.86 and was rejected. The open state never uses the blue-tinted selected-surface
+role and keeps the gold underline as its marker. Widths, typography, caret
+treatment and route hierarchy are fixed by the approved composition and do not
+move to solve contrast.
 
 **Film is never obstructed.** No control, overlay, border, or transform may
 cover or resample the media surface.

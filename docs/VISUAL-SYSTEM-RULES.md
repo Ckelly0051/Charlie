@@ -183,6 +183,22 @@ meets the floor" when it only means "this board has not got worse."
 
 ## Context Selectors
 
+- **They are controls, and must look like controls.** One neutral graphite
+  surface, declared once in the shell's own `:root` token block
+  (`--ws-ctx-surface` / `-hover` / `-open` / `--ws-ctx-edge`) and applied at the
+  shared context-bar owner. Measured 2026-09-15 before the repair: the bar and
+  the three selectors differed by **1.25:1**, so they read as labels, and the
+  open state used the blue-tinted selected-surface role — the rejected blue-gray.
+  **The border draws the boundary and must clear 3:1 against the bar**; the
+  chosen ladder step measures 4.1:1 and the step below it measured 2.86 and was
+  rejected rather than the threshold being lowered. The open state never returns
+  to the blue-tinted role; the gold underline stays its marker. Rest, hover,
+  keyboard focus, open and disabled are each distinct.
+- Contrast is **measured, never eyeballed or hard-coded** — `e2e-breakdown-viewport`
+  computes the ratio from the live computed styles, so a token change that
+  silently flattens the control reds.
+- Widths, typography, caret treatment and route hierarchy are fixed by the
+  approved composition and never move to solve contrast.
 - Program, Season, and Game selectors spend the available row width. Their
   grid tracks are flexible and weighted toward longer Season and Game values.
 - At supported desktop release widths, current Program, Season, and Game values

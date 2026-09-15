@@ -232,6 +232,43 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   lookup). Managed-list failure, total lookup rejection, and one rejected game
   in a mixed season are pinned so none can print a trustworthy-looking count.
 
+- **Play-library vocabulary (PL-1, PL-2):** `e2e-play-library` (42) drives the
+  RENDERED Add controls, not the services behind them. It reproduces the dead
+  route - a live settings sheet swallowing an `Edit library` / `Add to Playbook`
+  request - then proves the retarget carries the tab, the chart group and the
+  typed play-call name. Adding a custom play type is asserted through the real
+  input and button: added exactly once, one rendered row, an IMMEDIATE charting
+  choice with no reload, the field cleared, blank refused in words, exact and
+  case-only duplicates refused, a built-in unaddable as a custom, one canonical
+  store per team with no parallel cache, and survival of a real page reload. The
+  playbook side covers add, duplicate and a blank that cannot be submitted.
+  `Option` is asserted in the owner (distinct from RPO, ambiguous for run/pass,
+  outside the exclusive group), in the deck, in the Film Room grid editor through
+  `PlayGrid._options`, in the cut-up filter, in Study's dimension, in the Reports
+  breakdown, and across an export/import round trip - plus the version-4
+  visibility migration for a team saved before the bump. Mutation-verified five
+  ways. Every fixture is a synthetic season on an isolated team id.
+
+- **Breakdown installed viewport and the shared context selector (BD-VP, BD-CTX):**
+  `e2e-breakdown-viewport` (151) measures 1920x1080, ~1420x1000, 1440x900 and
+  1280x720 in populated Offense, Defense and Special Teams charting. **It reserves
+  the scrollbar gutter, which is the point:** Chromium's overlay scrollbars
+  consume no layout while installed WebView2's classic scrollbars consume ~17px
+  and render unnamed arrow buttons, so without the gutter this harness measures a
+  friendlier layout than the coach's. It asserts no page-level horizontal
+  scrolling, that the play filmstrip is the ONLY thing scrolling sideways (exempt
+  BY NAME, reported separately so the exemption cannot widen), nothing clipped
+  past a viewport edge, no anonymous arrow-only control anywhere, global
+  navigation wholly inside the viewport, and the approved picture budget at each
+  width. The selector half measures CONTRAST rather than asserting a hex: each
+  selector visibly distinct from the bar, a 3:1 border boundary, no blue-gray, one
+  shared token across all three, preserved caret and typography, and rest / hover
+  / focus / open / disabled - plus the same surface on another route, because the
+  owner is shared. Screenshots land in `artifacts/breakdown-viewport/` as
+  IMPLEMENTATION EVIDENCE ONLY; they confer no design approval. Mutation-verified
+  twice. **Chromium cannot certify** the classic scrollbars this repair is about -
+  that stays an installed check.
+
 - **Linked clip-set reconciliation (FILM-01):** `e2e-film-clip-set` (45) owns
   the two-direction rule and the durable clip-identity lifecycle. Equal sets
   are no error; a clip the game records and the folder lacks stays `missing`;

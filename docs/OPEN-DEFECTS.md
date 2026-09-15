@@ -881,46 +881,104 @@ edge-to-edge by design; the top bar's 18px inset is not.
    point, and no historical data was rewritten. The retired `Scored by Us/Them`
    control was not restored. Evidence: `e2e-data-correctness-batch1` (58),
    mutation-verified in both halves (the service writer and the UI selector).
-8. **Adding a custom play from the play library does nothing.** The Add button
-   receives the click, but the action route is dead: no play is created, no
-   library state changes, and no useful error is shown. Trace the rendered Edit
-   Library action through its screen/controller, canonical play-library owner,
-   persistence, and re-render. Repair the broken route without creating a second
-   library store or mutating unrelated coach data. Add a rendered regression that
-   enters a unique custom play name, clicks Add, proves it appears exactly once
-   in the active season/team library and charting choices, then persists across
-   close/reopen. Cover duplicate and blank-name handling explicitly.
-9. **`Option` is missing from the built-in play list.** Add `Option` as a
-   canonical built-in offensive play choice using the existing vocabulary and
-   analytics path. It must be available without creating a custom play, remain
-   distinct from `RPO`, round-trip through persistence/export/import, and appear
-   consistently in Breakdown, Study, and Reports wherever play type is consumed.
-10. **Installed Breakdown sizing overflows the available viewport and exposes
-    anonymous floating scrollbar arrows.** In the 2026-09-14 installed smoke at
-    approximately 1420x1000, the Breakdown theater, play list and tagging deck
-    exceed the window's horizontal budget. The left side of the workspace and
-    global navigation are visibly clipped, internal horizontal tracks appear at
-    the bottom, and their tiny detached arrow controls are technically clickable
-    but give no useful visual indication of what they scroll. Restore explicit
-    responsive column and control budgets so the complete Breakdown workspace
-    fits the installed viewport without page-level or nested horizontal
-    scrolling. Do not solve this by shrinking typography below the approved
-    floor. Preserve usable video area, the play list, and the tagging deck; any
-    intentional collapse/resizer control must use a familiar icon, visible hit
-    target, accessible label, tooltip, and clear state. Add installed-size
-    geometry coverage at the observed viewport plus 1440x900, 1280x720 and the
-    documented wide layout, asserting no clipped global navigation, no horizontal
-    overflow, and no anonymous arrow-only controls.
-11. **The Program, Season and Game context selectors blend into their surrounding
-    bar.** Their size and structure are acceptable, but the selector surfaces use
-    nearly the same graphite value as the context bar, so the three dropdowns read
-    as labels rather than interactive controls. Apply one shared neutral control
-    surface that is visibly distinct from its surroundings while remaining inside
-    the approved non-blue graphite palette. Preserve the established typography,
-    widths, caret treatment and active route hierarchy. Use the same token and
-    interaction states for all three selectors, with accessible hover, focus and
-    disabled contrast, and verify the change anywhere the shared context bar is
-    rendered rather than patching Breakdown alone.
+8. **PL-1 - REPAIRED 2026-09-15 - The play-library Add controls were dead while a
+   settings sheet was open.** `SettingsScreen.open()` began
+   `if (this.handle) return this.handle.result;` - it returned the live sheet's
+   promise and DISCARDED the requested tab, chart group and typed play-call name.
+   The sheet is non-modal, so reaching the charting deck while it is up is
+   ordinary use, and in that state both the Play Type field's `Edit library` and
+   the play-call field's `Add to Playbook` did nothing and said nothing.
+   Reproduced deterministically before the repair: the panel stayed on `film`, the
+   Add control never rendered, and the typed name was dropped.
+
+   `open()` now RETARGETS the live sheet - same sheet, new destination - resolving
+   the tab through the same roster guard (extracted as `_resolveTab`) and
+   notifying subscribers. `NativeSettingsContent` subscribes and moves;
+   `chartGroup` and `initialPlayCall` are consumed by child `useState`
+   INITIALIZERS, so a retarget nonce is part of the child key, which remounts that
+   panel with the new initial target. The canonical owners are untouched:
+   `TagLibrary` still owns the vocabulary and `Playbook` the calls, with no second
+   store, cache or persistence path, and no coach season data is written.
+
+   Evidence: `e2e-play-library` (42) - rendered Add, immediate charting-choice
+   refresh with no reload, blank refused in words, exact and case-only duplicates
+   refused, a built-in unaddable as a custom, persistence through a real page
+   reload, one canonical store per team, and the playbook side. Mutation-verified
+   five ways, including restoring the swallow.
+
+9. **PL-2 - REPAIRED 2026-09-15 - `Option` is a built-in offensive play.** Owned
+   once by `TagLibrary.DEFINITIONS.playType` and reached by every consumer through
+   that owner, so it needs no custom entry. It is distinct from `RPO` by football
+   meaning - an option is a post-snap ball-carrier decision, an RPO a pass-or-run
+   read - and behaves consistently with it: AMBIGUOUS for run/pass classification
+   (`PlayTagger.runPassForPlayType`), and NOT a member of
+   `EXCLUSIVE_GROUPS.playType`, so `Option + Run Outside` charts the call and the
+   realized look together. A new DEFAULT is filtered out of a stored `enabled`
+   array, so `TagLibrary.VERSION` goes to 4 with the same visibility-only
+   migration the version-2 formation additions used; no stored tag is touched.
+   Two screens carried their own copy of the vocabulary and now read the owner -
+   `native-tagging`'s OPTIONS fallback, and `native-settings`' cut-up FILTERS,
+   which had ALREADY drifted (missing `Trick Play`). Study reads it through the
+   `playType` dimension and Reports through the tendencies breakdown, both
+   dynamically.
+
+   **Stated limitation, not an oversight.** `Option` is NOT added to
+   `StatsEngine.OVERVIEW_PLAY_TYPES` (Overview's approved fixed SIX) or to the
+   Defense board's approved seven `Production by play type` rows. Both are pinned
+   static schemas with approved row counts; adding a row there is a design
+   decision for the coach, not an implementation one, and `e2e-reports-overview`
+   pins "the FIXED six play types" against approved evidence. The Offense
+   play-type table takes Option as a ranked candidate, where `fitRows` caps the
+   board so no fixed count moves.
+
+10. **BD-VP - REPAIRED 2026-09-15 (Chromium); installed confirmation still
+    outstanding - Breakdown sizing overflowed the installed viewport and exposed
+    anonymous scrollbar arrows.** Root cause, and the reason every geometry
+    harness was green while the coach saw the defect: Chromium's headless
+    scrollbars are OVERLAY and consume no layout, while installed WebView2 uses
+    classic Windows scrollbars, which consume ~17px **and render arrow buttons
+    with no accessible name**. Every Breakdown pane that scrolls vertically
+    therefore loses 17px of inner width on the installed build only, so a pane
+    that fits exactly under overlay scrollbars overflows there - which is the
+    horizontal track at the bottom and the "tiny detached arrow controls". Under
+    overlay scrollbars the defect cannot exist, so no existing check could have
+    caught it.
+
+    The route owner now reserves the scrollbar gutter in BOTH environments (so the
+    harness measures the installed layout, not a friendlier one), forbids a
+    horizontal track on the panes that must only scroll vertically, and removes
+    the scrollbar arrow buttons. Typography is untouched and the approved picture
+    budgets are asserted rather than spent.
+
+    **The play filmstrip is deliberately exempt.** Wide content scrolling inside
+    its own container is the contract, and its cards are scrolled, not clipped. It
+    is exempt BY NAME and reported separately so the exemption cannot widen
+    silently, and its own scrollbar is asserted to render no arrow buttons.
+
+    Evidence: `e2e-breakdown-viewport` (151) across 1920x1080, ~1420x1000,
+    1440x900 and 1280x720 in populated Offense, Defense and Special Teams
+    charting, with 12 screenshots in `artifacts/breakdown-viewport/` as
+    IMPLEMENTATION EVIDENCE ONLY - no design approval. Mutation-verified by
+    restoring the arrow buttons (12 red). **Still needs an installed check**: only
+    WebView2 renders the classic scrollbars this repair is about.
+
+11. **BD-CTX - REPAIRED 2026-09-15 - The Program, Season and Game context
+    selectors blended into their surrounding bar.** Measured, not estimated: the
+    bar painted `#0c0c0c` and the three selectors `#181818` - a 1.25:1 ratio, so
+    they read as labels rather than controls - and the open state used
+    `--gi-accent-surface` `#17283d`, the rejected blue-gray. One neutral graphite
+    control surface now lives in the shell's own `:root` token block
+    (`--ws-ctx-surface` / `-hover` / `-open` / `--ws-ctx-edge`) and is applied at
+    the shared context-bar owner, so every route that renders the bar gets it
+    rather than Breakdown alone. **The border draws the boundary**: `--gi-8`
+    measures 4.1:1 against the bar, clearing the 3:1 a non-text control boundary
+    needs. `--gi-7` measured 2.86 and missed, so the TOKEN moved rather than the
+    threshold. Widths, typography, caret treatment and route hierarchy are
+    unchanged; rest, hover, focus, open and disabled are each asserted, and the
+    open state keeps the existing gold underline as its marker. Evidence:
+    `e2e-breakdown-viewport` (151), mutation-verified by flattening the surface
+    back onto the bar (4 red, including the cross-route check).
+
 12. **The Home rail gives static utilities too much permanent height and starts
     truncating season navigation with only three seasons.** Program Seasons is
     forced into a short internal scroll region while the lower roster, storage,

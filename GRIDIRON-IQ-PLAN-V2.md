@@ -100,11 +100,26 @@ prune either side. This precedes rapid-scrubbing repair because it defines what
 both mismatch directions, shared clip references, persistence/reopen, and
 agreement between the closed-season library and opened Home. Those behaviors
 passed installed smoke on 2026-09-15. The separate rapid-scrubbing `Film missing`
-report could not be reproduced and is deliberately deferred. **Next batch:**
-repair the dead custom-play Add route; add `Option` to the canonical built-in
-offensive vocabulary; repair Breakdown viewport overflow/anonymous arrows; and
-apply the shared neutral contrast treatment to Program/Season/Game selectors.
-Home season-rail scaling remains a separate layout pass.
+report could not be reproduced and is deliberately deferred.
+
+**That batch is implemented (2026-09-15), Chromium-verified, awaiting Codex
+review.** The dead custom-play Add route was `SettingsScreen.open()` swallowing a
+request while its non-modal sheet was already up, discarding the tab, chart group
+and typed play-call name; it retargets the live sheet now. `Option` is a built-in
+offensive play type owned once by `TagLibrary.DEFINITIONS`, distinct from `RPO`,
+ambiguous for run/pass and combinable with a realized look, behind a version-4
+visibility migration — deliberately NOT added to Overview's approved fixed six or
+the Defense board's approved seven, because resizing an approved schema is the
+coach's decision. Breakdown's viewport defect was scrollbar-layout parity:
+Chromium's overlay scrollbars consume no layout while installed WebView2's classic
+scrollbars consume ~17px and render unnamed arrow buttons, so the route now
+reserves the gutter in both environments, forbids a horizontal track on
+vertical-only panes, and removes the arrow buttons. The Program/Season/Game
+selectors take one neutral graphite surface from the shell's own token block,
+applied at the shared context-bar owner, with a border that measures 4.1:1 against
+the bar. **Two items remain open:** the installed confirmation of the scrollbar
+repair, which only WebView2 can give, and Home season-rail scaling, still a
+separate layout pass.
 
 The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 
