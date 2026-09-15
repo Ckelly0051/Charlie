@@ -28,6 +28,15 @@
   --ws-amber:var(--gi-warn);
   --ws-red:var(--gi-turnover);
   --ws-sel:var(--gi-accent-surface);                /* selected surface — blue-tinted          */
+  /* Program / Season / Game control surface. Neutral graphite, never the
+     blue-tinted --ws-sel. The bar is --ws-ink #0c0c0c and the selectors used to
+     be --ws-nav #181818, a 1.25:1 ratio that read as a label rather than a
+     control. --gi-8 is the edge because it measures 4.1:1 against the bar,
+     clearing the 3:1 a control boundary needs; --gi-7 measured 2.86 and missed. */
+  --ws-ctx-surface:var(--gi-4);    /* selector rest                           */
+  --ws-ctx-surface-hover:var(--gi-5); /* selector hover                       */
+  --ws-ctx-surface-open:var(--gi-5);  /* selector open — no blue              */
+  --ws-ctx-edge:var(--gi-8);       /* selector boundary, 3:1 against the bar   */
   --ws-sel-strong:var(--gi-accent-surface-strong);         /* selected surface, emphatic              */
   --ws-sel-line:var(--gi-accent-border);           /* selected border                         */
   --ws-sel-text:var(--gi-accent-text);           /* selected label                          */
@@ -159,11 +168,22 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
    said no context value may clip: the 14px/30px insets take 44px off the track, so 240px is the floor that holds
    for a 170px string. The Breakdown override below carries the same floor. */
 .ws-contextbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(240px,.7fr) minmax(260px,1.15fr) minmax(230px,1fr) auto;align-items:stretch;border-bottom:1px solid var(--ws-line);background:var(--ws-ink)}
-.ws-ctx{position:relative;min-width:0;border:0;border-right:1px solid var(--ws-line);background:var(--ws-nav);text-align:left;padding:8px 30px 7px 14px;cursor:pointer;color:var(--ws-text)}
-.ws-ctx:hover:not(:disabled){background:var(--ws-hover)}
+/* ONE neutral graphite control surface for Program / Season / Game, applied at
+   the shared context-bar owner so every route that renders the bar gets it.
+   Measured before: the selectors sat one ladder step off the bar at a 1.25:1
+   ratio, so the three dropdowns read as labels rather than controls. The surface
+   lifts one graphite step and takes a full border, and it is the BORDER that
+   draws the control boundary at 4.1:1 against the bar. The open state no longer
+   uses the selected-surface role, because that role is the rejected blue-gray
+   role; the existing gold underline stays its marker. Widths, typography,
+   caret and route hierarchy are untouched. Token values live in the :root block
+   above. */
+.ws-ctx{position:relative;min-width:0;border:1px solid var(--ws-ctx-edge);background:var(--ws-ctx-surface);text-align:left;padding:7px 29px 6px 13px;cursor:pointer;color:var(--ws-text)}
+.ws-ctx+.ws-ctx{border-left-width:0}
+.ws-ctx:hover:not(:disabled){background:var(--ws-ctx-surface-hover)}
 .ws-ctx:disabled{cursor:not-allowed;opacity:.5}
 .ws-ctx:focus-visible{outline:none;box-shadow:var(--gi-focus)}
-.ws-ctx[aria-expanded="true"]{background:var(--ws-sel)}
+.ws-ctx[aria-expanded="true"]{background:var(--ws-ctx-surface-open)}
 .ws-ctx[aria-expanded="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--gi-bd-gold)}
 .ws-ctx-label{display:block;font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--ws-muted)}
 .ws-ctx-value{display:block;margin-top:2px;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

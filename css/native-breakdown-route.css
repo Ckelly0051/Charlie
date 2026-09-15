@@ -28,6 +28,32 @@
 .gi-breakdown-rail-host{grid-area:rail;overflow:hidden}
 .gi-breakdown-deck{grid-area:deck;overflow:hidden;background:var(--gi-1)}
 .gi-breakdown-tagging-host,.gi-breakdown-film-room-host{width:100%;height:100%;overflow:hidden}
+
+/* SCROLLBAR LAYOUT PARITY. Chromium's headless scrollbars are OVERLAY: they
+   consume no layout. Installed WebView2 uses classic Windows scrollbars, which
+   consume ~17px and render arrow BUTTONS with no accessible name. So every
+   Breakdown pane that scrolls vertically loses 17px of inner width on the
+   installed build only - a pane that fits exactly here then overflows there,
+   producing the horizontal track and the "tiny detached arrows" reported at
+   ~1420x1000. No geometry harness could ever have caught it, because under
+   overlay scrollbars the defect cannot exist.
+   Three things fix it at the route owner: reserve the gutter in BOTH
+   environments so the layout is identical and testable; forbid a horizontal
+   track on panes that must only scroll vertically; and remove the arrow buttons
+   so no anonymous arrow-only control can render. */
+.ws-breakdown [data-scroll-pane],
+.ws-breakdown .gi-native-form,
+.ws-breakdown .gi-drive-scroll,
+.ws-breakdown .gi-player-quick,
+.ws-breakdown .gi-film-table-wrap{scrollbar-gutter:stable;scrollbar-width:thin}
+.ws-breakdown .gi-native-form,
+.ws-breakdown .gi-player-quick{overflow-x:hidden}
+.ws-breakdown ::-webkit-scrollbar{width:10px;height:10px}
+.ws-breakdown ::-webkit-scrollbar-button{display:none;width:0;height:0}
+.ws-breakdown ::-webkit-scrollbar-corner{background:transparent}
+.ws-breakdown ::-webkit-scrollbar-track{background:var(--gi-2)}
+.ws-breakdown ::-webkit-scrollbar-thumb{background:var(--gi-6);border:2px solid var(--gi-2)}
+.ws-breakdown ::-webkit-scrollbar-thumb:hover{background:var(--gi-7)}
 .gi-breakdown-tagging-host[hidden],.gi-breakdown-film-room-host[hidden]{display:none}
 .ws-breakdown.is-film-room .gi-breakdown-composition{grid-template-columns:minmax(0,36%) minmax(0,1fr);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater deck'}
 .ws-breakdown.is-film-room .gi-breakdown-rail-host{display:none}
