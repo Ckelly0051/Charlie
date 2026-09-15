@@ -14,6 +14,8 @@
  * API with a structured football-analysis prompt. Response is parsed into
  * the same { tags, confidence, reasons } shape the rest of the app expects.
  */
+import { TagLibrary } from './tag-library.js';
+
 export class VisionAnalyzer {
   constructor(opts = {}) {
     this.apiKey = opts.apiKey || '';
@@ -225,7 +227,7 @@ Return ONLY valid JSON with these fields (use ONLY the listed enum values, or ""
 {
   "formation": "Shotgun"|"Under Center"|"Pistol"|"I-Form"|"Singleback"|"Split Back"|"Single Wing"|"Empty"|"Wildcat"|"Goal Line"|"",
   "personnel": "00"|"10"|"11"|"12"|"13"|"20"|"21"|"22"|"23"|"Jumbo"|"Goal Line"|"",
-  "playType": "Run Inside"|"Run Outside"|"Screen"|"Short Pass"|"Medium Pass"|"Deep Pass"|"Play Action"|"RPO"|"Trick Play"|"",
+  "playType": ${VisionAnalyzer.ALLOWED.playType.map(v => `"${v}"`).join('|')}|"",
   "result": "Gain"|"Loss"|"No Gain"|"Incomplete"|"Interception"|"Touchdown"|"Sack"|"Fumble"|"Penalty"|"Punt"|"Field Goal"|"Good"|"No Good"|"Kneel"|"Spike"|"",
   "yardage": integer or "",
   "hash": "Left"|"Middle"|"Right"|"",
@@ -293,7 +295,12 @@ IMPORTANT:
     return {
       formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Empty', 'Wildcat', 'Goal Line', 'Wing-T', 'Flexbone', 'Double Wing', 'Power-I', 'Bunch', 'Unbalanced'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
-      playType: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play'],
+      // The charting vocabulary has ONE owner. Carrying a copy here meant a new
+      // built-in reached the deck, the grid and the reports while a valid vision
+      // response naming it was SILENTLY DISCARDED by this validator — the enum
+      // in the prompt above is generated from this same list, so the two can no
+      // longer disagree either.
+      playType: [...TagLibrary.DEFINITIONS.playType],
       result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike'],
       hash: ['Left', 'Middle', 'Right'],
       defFront: ['4-3', '3-4', '4-4', '5-2', '3-3-5', '4-2-5', 'Nickel', 'Dime', 'Quarter', '4-6'],

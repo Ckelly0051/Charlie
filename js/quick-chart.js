@@ -10,7 +10,7 @@ import { NativeQuickChart } from './native-quick-chart.jsx';
  * Keyboard map (active when quick-chart panel is focused):
  *   Play type:  R = Run Inside, O = Run Outside, P = Short Pass,
  *               M = Medium Pass, D = Deep Pass, S = Screen,
- *               A = Play Action, Q = RPO, X = Trick
+ *               A = Play Action, Q = RPO, B = Option, X = Trick
  *   Result:     G = Gain, L = Loss, N = No Gain, I = Incomplete,
  *               T = Touchdown, U = Turnover (INT), F = Fumble,
  *               W = Sack, E = Penalty
@@ -236,6 +236,7 @@ export class QuickChart {
       'S': 'Screen',
       'A': 'Play Action',
       'Q': 'RPO',
+      'B': 'Option',
       'X': 'Trick Play'
     };
     if (typeMap[key] && !e.shiftKey && !e.ctrlKey) {

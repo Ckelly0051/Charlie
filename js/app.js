@@ -1371,6 +1371,7 @@ class App {
       'KeyD': ['playType', 'Deep Pass'],
       'KeyA': ['playType', 'Play Action'],
       'KeyQ': ['playType', 'RPO'],
+      'KeyB': ['playType', 'Option'],
       'KeyX': ['playType', 'Trick Play'],
       'KeyG': ['result', 'Gain'],
       'KeyL': ['result', 'Loss'],

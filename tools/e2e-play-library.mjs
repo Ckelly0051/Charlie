@@ -22,6 +22,11 @@ import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
 import { TagLibrary } from '../js/tag-library.js';
 import { PlayTagger } from '../js/play-tagger.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
 
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
@@ -302,6 +307,45 @@ ok(playbook.rows === 1, 'And renders one row', playbook.rows);
 ok(playbook.blankDisabled, 'A blank call cannot be submitted at all');
 ok(/26 Blast/.test(playbook.stored || ''), 'The call is in the canonical playbook store', (playbook.stored || '').slice(0, 80));
 
+// -- PL-2 EVERY charting workflow, not just the main deck -------------------
+// Codex review, 2026-09-15: the vision analyzer kept its own play-type enum and
+// its own validator, so a valid `Option` response was SILENTLY DISCARDED, and
+// neither keyboard map offered the new built-in. These assert the whole set, so
+// the next built-in cannot be dropped from one workflow the same way.
+console.log('\n-- PL-2 every charting workflow carries the built-ins --');
+{
+  const { TagLibrary: TL } = await import('../js/tag-library.js');
+  const { VisionAnalyzer } = await import('../js/vision-analyzer.js');
+  const builtIns = TL.DEFINITIONS.playType;
+  ok(builtIns.every(v => VisionAnalyzer.ALLOWED.playType.includes(v)),
+    'The vision validator accepts every built-in play type',
+    builtIns.filter(v => !VisionAnalyzer.ALLOWED.playType.includes(v)));
+  ok(VisionAnalyzer.ALLOWED.playType.includes('Option'),
+    'Including Option, which it used to discard silently');
+  // The prompt enum and the validator must be the same list, or the model is
+  // asked for values the validator will throw away.
+  const va = new VisionAnalyzer({ apiKey: 'test' });
+  const prompt = String(va._buildSystemPrompt({ teamName: 'Mavericks' }) || '');
+  const line = prompt.split('\n').find(l => l.includes('"playType"')) || '';
+  ok(line !== '', 'The vision prompt declares a playType enum', prompt.slice(0, 80));
+  ok(line !== '' && builtIns.every(v => line.includes(`"${v}"`)),
+    'The vision PROMPT offers exactly what the validator accepts',
+    builtIns.filter(v => !line.includes(`"${v}"`)));
+
+  const src = name => readFileSync(join(REPO, 'js', name), 'utf8');
+  const quick = src('quick-chart.js');
+  const shell = src('app.js');
+  const missingQuick = builtIns.filter(v => !new RegExp(`'[A-Z]':\\s*'${v}'`).test(quick));
+  ok(missingQuick.length === 0, 'Quick Chart has a key for every built-in play type', missingQuick);
+  const missingShell = builtIns.filter(v => !new RegExp(`'Key[A-Z]':\\s*\\['playType',\\s*'${v}'\\]`).test(shell));
+  ok(missingShell.length === 0, 'The global charting shortcuts cover every built-in', missingShell);
+  // One key, one meaning, in each map.
+  const keysOf = (text, re) => (text.match(re) || []).map(m => m.match(/'([A-Z][a-zA-Z]*)'/)[1]);
+  const qKeys = keysOf(quick, /'[A-Z]':\s*'[^']+'/g);
+  ok(new Set(qKeys).size === qKeys.length, 'Quick Chart assigns no key twice', qKeys);
+  ok(/\bB\b/.test(src('native-shortcuts.jsx').match(/\[\[.*?\], 'Play type shortcuts'\]/)?.[0] || ''),
+    'The coach-facing shortcut legend lists the new key');
+}
 // -- PL-2 Study and Reports read Option through the canonical path ----------
 console.log('\n-- PL-2 Study and Reports consume it through the canonical path --');
 const analytics = await page.evaluate(() => {
