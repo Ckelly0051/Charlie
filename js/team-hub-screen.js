@@ -580,6 +580,19 @@ export class TeamHubScreen {
     // as needing a parent, exactly like a legacy scout. Refusing here instead
     // would delete a coach flow, and inventing a program season to own it would
     // be the guess this model exists to remove.
+    // FAIL CLOSED from the sample season. It can never own a scout (a
+    // disposable season would trap real opponent film, and a parent that owns
+    // scouts cannot be deleted), and silently creating the scout unassigned here
+    // would be indistinguishable from first launch while the coach is plainly
+    // sitting in a season. Nothing is written -- this returns before any record
+    // is created, so there is no partially saved scout.
+    // Only the SAMPLE season blocks. An open SCOUT does not: creating a second
+    // scout from inside the Opponent Scout workspace is ordinary, and the parent
+    // context is held by WorkspaceContext, not by whichever document is open.
+    const openData = this._store()?.data;
+    if (openData && (openData.isDemo || openData.kind === 'demo')) {
+      return { ok: false, message: 'The sample season cannot own an opponent scout. Open or create a program season first.' };
+    }
     const programSeasonId = String(this._context()?.programSeasonId?.() || '');
     try {
       const rec = await this._storage().createSeason({

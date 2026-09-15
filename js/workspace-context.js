@@ -89,14 +89,30 @@ export class WorkspaceContext {
     return this._programSeasonId;
   }
 
-  /** True only when `id` names a season present in `seasons` that is not itself
-   *  a scout. Both halves matter: a missing id is dangling, and a scout can
-   *  never be another scout's parent. */
+  /**
+   * A valid scout parent is a REAL PROGRAM SEASON. Not a scout, not the sample
+   * season, not a blank id, and not a record that does not exist.
+   *
+   * The demo exclusion is not cosmetic. The sample season is disposable and
+   * regenerable, while valid-parent reassignment is deferred and a parent that
+   * owns scouts cannot be deleted — so adopting it as a parent could trap real
+   * opponent film under a season built to be thrown away, or block the coach
+   * from removing the sample at all. The assignment UI already excluded demos;
+   * this makes every other path agree.
+   */
+  static isProgramSeasonRecord(record) {
+    if (!record) return false;
+    if (record.kind === 'scout' || record.kind === 'demo') return false;
+    return !record.isDemo;
+  }
+
+  /** True only when `id` names a record in `seasons` that
+   *  `isProgramSeasonRecord` accepts. A missing id is dangling; a scout can
+   *  never be another scout's parent; a demo is disposable. */
   static isValidParent(seasons, id) {
     const wanted = String(id || '');
     if (!wanted) return false;
-    const found = (seasons || []).find(season => String(season?.id) === wanted);
-    return !!found && found.kind !== 'scout';
+    return WorkspaceContext.isProgramSeasonRecord((seasons || []).find(season => String(season?.id) === wanted));
   }
 
   setWorkspaceMode(mode) {
@@ -129,6 +145,16 @@ export class WorkspaceContext {
       return this._programSeasonId;
     }
     if (!id) return this._programSeasonId;
+    // Opening the SAMPLE season is a request for Our Program, but the sample can
+    // never become the parent context: a scout stamped with it would be trapped
+    // under a disposable season. The parent is cleared instead, which surfaces
+    // any scout that named it as unassigned rather than attaching it elsewhere.
+    if (!WorkspaceContext.isProgramSeasonRecord(data)) {
+      this._programSeasonId = '';
+      this.setWorkspaceMode('program');
+      this._persistParent();
+      return this._programSeasonId;
+    }
     // DELIBERATELY opening a program season is a request for Our Program -- a
     // rail row, the season picker, the library. The mode follows.
     this.setParentSeason(id);
@@ -160,6 +186,11 @@ export class WorkspaceContext {
       return this._programSeasonId;
     }
     const id = String(data.id || '');
+    // Same rule on the passive path: a sample season never becomes the parent.
+    if (!WorkspaceContext.isProgramSeasonRecord(data)) {
+      if (this._programSeasonId) { this._programSeasonId = ''; this._persistParent(); }
+      return this._programSeasonId;
+    }
     if (id) this.setParentSeason(id);
     return this._programSeasonId;
   }
@@ -214,7 +245,9 @@ export class WorkspaceContext {
       return { status: 'unassigned', programSeasonId: '', candidates: [], danglingParentId: explicit };
     }
     const key = value => String(value ?? '').trim().toLowerCase();
-    const candidates = (seasons || []).filter(season => season && season.kind !== 'scout'
+    // Legacy inference offers REAL program seasons only -- the sample season is
+    // never a candidate, so it can never become the unique match.
+    const candidates = (seasons || []).filter(season => WorkspaceContext.isProgramSeasonRecord(season)
       && key(season.teamId) === key(scout?.teamId)
       && key(season.year) === key(scout?.year)
       && key(season.level) === key(scout?.level));

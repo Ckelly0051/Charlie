@@ -518,6 +518,15 @@ function EmptyScoutLibrary({ create }) {
  */
 function UnassignedScouts({ hub, hubState }) {
   const scouts = hubState.unassignedScouts || [];
+  /* Selection is held per SCOUT ID, never in the DOM. The rows were unkeyed with
+     uncontrolled selects: when one row disappeared after being assigned, Preact
+     reused its DOM node for the next scout, so the season the coach had chosen
+     for the assigned scout stayed selected and could be submitted through the
+     NEXT scout's handler -- assigning the wrong scout to a season nobody picked
+     for it. Keyed rows plus id-scoped state means a newly exposed row always
+     starts blank, and `busy` blocks a second submit while one is in flight. */
+  const [choice, setChoice] = useState({});
+  const [busy, setBusy] = useState('');
   if (!scouts.length) return null;
   const parents = (hubState.railSeasons || []).filter(season => !season.isScout && !season.isDemo);
   const label = season => [season.name, [season.year, season.level].filter(Boolean).join(' · ')]
@@ -528,25 +537,39 @@ function UnassignedScouts({ hub, hubState }) {
       <p>{scouts.length === 1 ? 'This scout is not attached to a season yet.' : `${scouts.length} scouts are not attached to a season yet.`}</p>
     </div>
     <div class="library-unassigned-list" role="list">
-      {scouts.map(scout => <div class="library-unassigned-row" role="listitem" data-unassigned-scout={scout.id}>
+      {scouts.map(scout => <div class="library-unassigned-row" role="listitem" key={scout.id} data-unassigned-scout={scout.id}>
         <div class="library-unassigned-identity">
           <strong>{scout.name}</strong>
           <small>{[scout.year, scout.level].filter(Boolean).join(' · ') || 'No season details'} · {scout.gameCount === 1 ? '1 source game' : `${scout.gameCount || 0} source games`}</small>
         </div>
         {parents.length
-          ? <form class="library-assign" onSubmit={event => {
+          ? <form class="library-assign" onSubmit={async event => {
               event.preventDefault();
-              const select = event.currentTarget.querySelector('select');
-              hub.assignScoutFromHome(scout.id, select?.value || '');
+              // State is the authority for what this row DISPLAYS; the row's own
+              // select is read as a fallback for a change that has not flushed
+              // yet. Safe because the rows are keyed: this form's select belongs
+              // to this scout and cannot be a node reused from a departed row.
+              const picked = choice[scout.id] || event.currentTarget.querySelector('select')?.value || '';
+              // One assignment at a time, and never a stale one: the value comes
+              // from this scout's own state, not from whatever the DOM holds.
+              if (busy || !picked) { if (!picked) hub.assignScoutFromHome(scout.id, ''); return; }
+              setBusy(scout.id);
+              try { await hub.assignScoutFromHome(scout.id, picked); }
+              finally {
+                setBusy('');
+                setChoice(prev => { const next = { ...prev }; delete next[scout.id]; return next; });
+              }
             }}>
             <label>
               <span class="gi-hub-kicker">Program season</span>
-              <select name={`assign-${scout.id}`} aria-label={`Program season for ${scout.name}`}>
+              <select name={`assign-${scout.id}`} aria-label={`Program season for ${scout.name}`}
+                value={choice[scout.id] || ''} disabled={busy === scout.id}
+                onChange={event => { const value = event.currentTarget.value; setChoice(prev => ({ ...prev, [scout.id]: value })); }}>
                 <option value="">Choose a season</option>
                 {parents.map(season => <option key={season.id} value={season.id}>{label(season)}</option>)}
               </select>
             </label>
-            <button type="submit" class="ws-btn ws-primary">Assign</button>
+            <button type="submit" class="ws-btn ws-primary" disabled={busy === scout.id}>Assign</button>
           </form>
           : <button type="button" class="ws-btn ws-primary"
               onClick={event => hub.openCreateSeason(event.currentTarget)}>Create a program season</button>}

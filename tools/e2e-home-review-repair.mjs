@@ -131,7 +131,13 @@ await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
    the rendered switch. */
 r = await page.evaluate(async () => {
   const S = window.app.storage, store = S.seasonStore, hub = window.app.teamHubScreen, ctx = window.app.workspace;
-  // Open a scout that names its parent, from that parent's own scout library.
+  /* Open a scout that names its parent, from that parent's own scout library.
+     FIXTURE REPOINTED 2026-09-14: a REAL program season must be open first. The
+     sample season can no longer own a scout (it is disposable, and a parent that
+     owns scouts cannot be deleted), so creating one from sample context now
+     fails closed -- which previously left this block with no scout to open. */
+  const real = (hub.snapshot().railSeasons || []).find(season => !season.isScout && !season.isDemo);
+  if (real && store.currentSeasonId !== real.id) { await S.openSeasonById(real.id); await hub.load(); }
   const parentId = store.currentSeasonId;
   await hub.selectWorkspace('scout');
   let scoutId = hub.snapshot().seasons[0]?.id || '';

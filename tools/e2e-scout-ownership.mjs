@@ -723,7 +723,134 @@ ok(r.liveParent === r.parent, 'and it survives the reload in the live object too
 ok(r.raced === r.other,
   'an overlapping persist and assignment are ordered by the per-season write queue, newest wins', JSON.stringify({ raced: r.raced, expected: r.other }));
 
-console.log('\n== 19. No page or console errors ==');
+console.log('\n== 19. Two unassigned rows cannot transfer a selection ==');
+/* Codex finding, 2026-09-14. The rows were unkeyed with uncontrolled selects, so
+   when one disappeared after assignment Preact reused its DOM node for the next
+   scout -- the season chosen for the ASSIGNED scout stayed selected and could be
+   submitted through the NEXT scout's handler. Driven through the rendered
+   controls, because that reuse is invisible to a controller call. */
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore;
+  const teamId = window.app.teamRegistry.activeTeamId();
+  const parent = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo).id;
+  const make = async name => {
+    const rec = await st.backend.createSeason({ name, year: '2026', level: '', kind: 'scout', teamId, team: 'Second School' });
+    await st.backend.saveSeason(rec.id, {
+      id: rec.id, type: 'season', version: 5, seasonName: name, kind: 'scout', teamId, year: '2026', level: '',
+      roster: [], rosterOwnership: 'season',
+      games: [{ id: `${rec.id}-g1`, name: 'Source', plays: [], annotations: [], gameInfo: {}, nextId: 1, status: 'active' }],
+      activeGameId: `${rec.id}-g1`,
+    });
+    return rec.id;
+  };
+  const first = await make('Transfer One · Scout');
+  const second = await make('Transfer Two · Scout');
+  await S.openSeasonById(parent);
+  await hub.load();
+  await hub.selectWorkspace('scout');
+  await window.app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 500));
+  const rowOf = id => document.querySelector(`[data-unassigned-scout="${id}"]`);
+  const before = { first: !!rowOf(first), second: !!rowOf(second) };
+  // 1-2. Choose a parent for the FIRST scout through its own control, assign it.
+  const sel = rowOf(first).querySelector('select');
+  sel.value = parent;
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+  rowOf(first).querySelector('button[type="submit"]').click();
+  await new Promise(res => setTimeout(res, 1200));
+  const metas = await S.listSeasons();
+  const stored = id => String(metas.find(m => m.id === id)?.programSeasonId || '');
+  // 4. The surviving row's selector must be blank.
+  const survivor = rowOf(second);
+  const survivorValue = survivor?.querySelector('select')?.value ?? '(no row)';
+  // 5. Submitting it with nothing chosen must assign nothing.
+  survivor?.querySelector('button[type="submit"]')?.click();
+  await new Promise(res => setTimeout(res, 900));
+  const after = await S.listSeasons();
+  return {
+    first, second, parent, before, survivorValue,
+    firstStored: stored(first), secondStored: stored(second),
+    secondAfterBlankSubmit: String(after.find(m => m.id === second)?.programSeasonId || ''),
+    stillUnassigned: (hub.snapshot().unassignedScouts || []).map(s => s.id),
+  };
+});
+ok(r.before.first && r.before.second, 'both unassigned scouts render their own row', JSON.stringify(r.before));
+ok(r.firstStored === r.parent, 'the scout whose control was used is the one assigned', JSON.stringify({ first: r.firstStored, parent: r.parent }));
+ok(r.secondStored === '', 'the other scout is NOT assigned by that submit', JSON.stringify({ second: r.secondStored }));
+ok(r.survivorValue === '', 'the surviving row\'s selector is blank, not the departed row\'s value', JSON.stringify(r.survivorValue));
+ok(r.secondAfterBlankSubmit === '' && r.stillUnassigned.includes(r.second),
+  'submitting the surviving row with no season chosen assigns nothing', JSON.stringify(r));
+
+console.log('\n== 20. The sample season can never own a scout ==');
+r = await page.evaluate(async () => {
+  const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore, ctx = window.app.workspace;
+  const W = ctx.constructor;
+  const demoMeta = { id: 'demo-1', kind: 'demo', isDemo: true, teamId: 't1', year: '2026', level: 'JV' };
+  const flagged = { id: 'demo-2', kind: '', isDemo: true, teamId: 't1', year: '2026', level: 'JV' };
+  const real = { id: 'real-1', kind: '', teamId: 't1', year: '2026', level: 'JV' };
+  const pure = {
+    demoKind: W.isValidParent([demoMeta], 'demo-1'),
+    demoFlag: W.isValidParent([flagged], 'demo-2'),
+    real: W.isValidParent([real], 'real-1'),
+    // A demo must not be the unique legacy match either.
+    inferDemoOnly: W.resolveScoutParent({ id: 's', kind: 'scout', teamId: 't1', year: '2026', level: 'JV' }, [demoMeta]),
+    inferReal: W.resolveScoutParent({ id: 's', kind: 'scout', teamId: 't1', year: '2026', level: 'JV' }, [real]),
+  };
+  // Live: open the sample season and confirm it establishes no parent.
+  const demoId = await S.loadDemoSeason();
+  await hub.load();
+  const openDemo = { demoId, parent: ctx.programSeasonId(), isDemo: S.isDemoSeason(demoId) };
+  // Creating a scout from the sample must write nothing.
+  const before = (await S.listSeasons()).length;
+  const attempt = await hub.createScout({
+    opponent: 'Sample Opponent', year: '2026', level: 'Varsity',
+    sourceTeamA: 'Sample Opponent', sourceTeamB: 'Central',
+  });
+  const after = (await S.listSeasons()).length;
+  // An EXISTING scout naming a demo must surface as unassigned, data intact.
+  const teamId = window.app.teamRegistry.activeTeamId();
+  const rec = await st.backend.createSeason({ name: 'Demo Parent · Scout', year: '2026', level: '', kind: 'scout', teamId, team: 'Second School' });
+  await st.backend.saveSeason(rec.id, {
+    id: rec.id, type: 'season', version: 5, seasonName: 'Demo Parent · Scout', kind: 'scout', teamId,
+    year: '2026', level: '', programSeasonId: demoId, roster: [], rosterOwnership: 'season',
+    games: [{ id: `${rec.id}-g1`, name: 'Source', plays: [{ id: 1, tags: { unit: 'offense', custom: [] } }], annotations: [], gameInfo: {}, nextId: 2, status: 'active' }],
+    activeGameId: `${rec.id}-g1`,
+  });
+  const parent = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo)?.id || '';
+  await S.openSeasonById(parent);
+  await hub.load();
+  await hub.selectWorkspace('scout');
+  const snap = hub.snapshot();
+  const body = await st.peekSeason(rec.id);
+  // The sample stays removable, and removing it touches no scout data.
+  const removed = await S.seasonStore.deleteSeason(demoId);
+  const bodyAfter = await st.peekSeason(rec.id);
+  return {
+    pure, openDemo, attempt, before, after, scoutId: rec.id,
+    unassigned: (snap.unassignedScouts || []).map(s => s.id),
+    listed: snap.seasons.map(s => s.id),
+    storedParent: String(body?.programSeasonId || ''),
+    plays: (body?.games || []).reduce((n, g) => n + (g.plays || []).length, 0),
+    removed, playsAfterRemoval: (bodyAfter?.games || []).reduce((n, g) => n + (g.plays || []).length, 0),
+    parentStillStored: String(bodyAfter?.programSeasonId || ''),
+  };
+});
+ok(r.pure.demoKind === false && r.pure.demoFlag === false && r.pure.real === true,
+  'isValidParent rejects a demo by kind AND by isDemo, and still accepts a real program season', JSON.stringify(r.pure));
+ok(r.pure.inferDemoOnly.status === 'unassigned' && r.pure.inferReal.status === 'inferred',
+  'legacy inference never treats a demo as the unique compatible parent', JSON.stringify({ demo: r.pure.inferDemoOnly.status, real: r.pure.inferReal.status }));
+ok(r.openDemo.isDemo && r.openDemo.parent === '',
+  'opening the sample season establishes NO parent context', JSON.stringify(r.openDemo));
+ok(r.attempt.ok === false && /sample season cannot own/i.test(r.attempt.message || '') && r.after === r.before,
+  'creating a scout from the sample fails closed and writes nothing', JSON.stringify({ attempt: r.attempt, before: r.before, after: r.after }));
+ok(r.unassigned.includes(r.scoutId) && !r.listed.includes(r.scoutId),
+  'an existing scout naming a demo surfaces as unassigned, in no parent library', JSON.stringify({ unassigned: r.unassigned, listed: r.listed }));
+ok(r.storedParent && r.plays === 1,
+  'its stored id is NOT rewritten and its charted data is intact', JSON.stringify({ stored: r.storedParent, plays: r.plays }));
+ok(r.removed === true && r.playsAfterRemoval === 1 && r.parentStillStored === r.storedParent,
+  'the sample stays removable, and removing it changes no scout data', JSON.stringify(r));
+
+console.log('\n== 21. No page or console errors ==');
 ok(errors.length === 0, 'zero page/console errors across every transition', errors.slice(0, 3).join(' | '));
 
 await browser.close();
