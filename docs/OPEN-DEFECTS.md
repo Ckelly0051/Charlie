@@ -112,10 +112,37 @@ Found at the board on the installed visual-smoke candidate.
    them, so **no claim is made about which historical action orphaned it.** The
    live season and the D-drive data were not modified.
 
-   Evidence: `e2e-film-clip-set` (29), mutation-verified three ways - restoring
+   **Two follow-up findings from Codex review, both repaired 2026-09-15.**
+
+   - **The central case was not persisted (P1).** Removing an orphaned clip such
+     as `IMG_6690` only updated `_removedClipIds`: a clip with no play emits no
+     `play-deleted`, so it rode no autosave, and closing the app resurrected both
+     the record and the mismatch. `forgetClipIdentity` now schedules the durable
+     write itself, so the signal cannot be recorded without reaching disk, and
+     `rememberClipIdentity` is its symmetric undo. Debounced like every other
+     edit, so the play-backed path still coalesces into one write.
+   - **Undo restored the play but not its playable clip (P2).** The delete toast
+     offers Undo, and `HistoryManager` snapshots plays only - a `File` and an
+     object URL cannot round-trip through JSON - while `removeClip` destroyed the
+     live clip. A play-backed removal now stashes the clip in
+     `PlaylistManager._undoClips` instead, and `_reconcileUndoClips` re-inserts
+     it at its original index on `plays-loaded`, the event Undo and Redo already
+     emit. Redo takes it away again, and the durable identity follows both ways.
+     The reconcile is scoped to clips this manager removed, because a game load
+     emits the same event; `reset()` clears the stash and releases its URLs, and
+     it runs before that event. An UNCHARTED removal stays permanent by design -
+     nothing snapshots a clip with no play, and that path offers no Undo.
+     `objectUrl` is a recreatable cache, not the clip's playability:
+     `_releaseObjectUrlsExcept` revokes it for any non-adjacent clip as a
+     standing memory policy and `_sourceForClip` rebuilds it from `clip.file`,
+     so the invariant asserted is that the stash returns the SAME clip object
+     with its source intact.
+
+   Evidence: `e2e-film-clip-set` (41), mutation-verified five ways - restoring
    the one-way comparison (7 red, including the Home and library agreement
-   checks), restoring stale durable-deletion behaviour (7 red), and restoring the
-   prior prune (4 red).
+   checks), restoring stale durable-deletion behaviour (7 red), restoring the
+   prior prune (4 red), removing the save the removal signal schedules (3 red),
+   and destroying the clip instead of stashing it (3 red).
 
    **Still needs installed WebView2 verification** and remains the first item in
    Film-State Batch 2, before the rapid-scrubbing failure. Chromium proves the

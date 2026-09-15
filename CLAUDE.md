@@ -392,6 +392,21 @@ perspective or initial-unit control.
   removal never follows a reused clip id into another season. Nothing here
   touches a coach-owned file: an externally deleted video stays a visible
   mismatch until the coach removes the app record.
+- **The removal signal schedules its own save, and a removed clip is stashed
+  rather than destroyed.** Two halves that a green first pass missed. A clip
+  with no play emits no `play-deleted`, so it rode no autosave and closing the
+  app resurrected the record — `forgetClipIdentity` now calls `_autoSave()`
+  itself (`rememberClipIdentity` is its symmetric undo), which is what makes
+  the orphaned-record case this repair exists for actually durable. And
+  `HistoryManager` snapshots plays only — a `File` and an object URL cannot
+  round-trip through JSON — so a play-backed removal keeps its clip in
+  `PlaylistManager._undoClips` and `_reconcileUndoClips` re-inserts it on
+  `plays-loaded`, the event Undo and Redo already emit. That reconcile is
+  scoped to clips this manager removed, because a game load emits the same
+  event; `reset()` clears the stash first. An uncharted removal is permanent
+  by design and offers no Undo. `objectUrl` is a recreatable cache, not
+  playability: `_releaseObjectUrlsExcept` revokes it for non-adjacent clips
+  and `_sourceForClip` rebuilds it from `clip.file`.
 - The game film index is derived from the plays' own clip identities **unioned**
   with the live playlist (`_buildClipIndex`). It must never be rebuilt from the
   playlist alone, which is what once silently emptied it.
