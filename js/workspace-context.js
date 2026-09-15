@@ -332,10 +332,29 @@ export class WorkspaceContext {
     return { ...result, current: this._route };
   }
 
-  setFilmOperation(gameId, state, progress = {}) {
+  /** An in-flight film operation belongs to a GAME IN A SEASON, not to a bare
+   *  game id. Keyed by id alone, a save running in the open season made every
+   *  other season that reuses that game id report "Checking film…" instead of
+   *  its own settled count — the same identity defect as the managed-film path,
+   *  one layer up. */
+  static operationKey(seasonId, gameId) { return `${String(seasonId ?? '')}::${String(gameId ?? '')}`; }
+
+  /** The season an operation belongs to, captured when it STARTS. Film import
+   *  and repair write under the season that is open at that moment, so that is
+   *  the owner even if the coach navigates away mid-write. */
+  _operationSeason(seasonId) {
+    if (seasonId != null && seasonId !== '') return String(seasonId);
+    const store = this._store();
+    return String(store?.currentSeasonId ?? store?.data?.id ?? '');
+  }
+
+  setFilmOperation(gameId, state, progress = {}, seasonId = null) {
     if (!gameId || !['saving', 'repairing'].includes(state)) return false;
-    this._filmOperations.set(String(gameId), {
+    const season = this._operationSeason(seasonId);
+    this._filmOperations.set(WorkspaceContext.operationKey(season, gameId), {
       state,
+      seasonId: season,
+      gameId: String(gameId),
       progress: {
         done: Math.max(0, Number(progress.done) || 0),
         total: Math.max(0, Number(progress.total) || 0),
@@ -344,7 +363,22 @@ export class WorkspaceContext {
     return true;
   }
 
-  clearFilmOperation(gameId) { this._filmOperations.delete(String(gameId || '')); }
+  /** Clearing is deliberately fail-SAFE rather than symmetric. With an explicit
+   *  season it removes that one entry; without one it removes every season's
+   *  entry for this game, because a stale operation is worse than an extra
+   *  delete — it pins a season on a transient "Saving film" label forever. */
+  clearFilmOperation(gameId, seasonId = null) {
+    const id = String(gameId ?? '');
+    if (!id) return false;
+    if (seasonId != null && seasonId !== '') {
+      return this._filmOperations.delete(WorkspaceContext.operationKey(seasonId, id));
+    }
+    let removed = false;
+    for (const [key, operation] of [...this._filmOperations]) {
+      if (operation.gameId === id) { this._filmOperations.delete(key); removed = true; }
+    }
+    return removed;
+  }
 
   _identity(value) {
     const raw = typeof value === 'string' ? value : (value?.path || value?.name || '');
@@ -398,7 +432,9 @@ export class WorkspaceContext {
     if (!game) return this._view('empty', { persistent: false, action: 'add-film', season });
     const expectedIds = this._expected(game);
     const expected = expectedIds.length;
-    const operation = this._filmOperations.get(String(game.id));
+    // Scoped to the season being asked about, so an operation in one season
+    // cannot answer for another that reuses the same game id.
+    const operation = this._filmOperations.get(WorkspaceContext.operationKey(season, game.id));
     if (operation) {
       return this._view(operation.state, {
         mode: game.filmMode || 'managed', expected,

@@ -574,14 +574,18 @@ class App {
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  _showFilmImportProgress(done, total, operation = 'saving', ownerGameId = null) {
+  /** `ownerSeasonId` is the season the write belongs to, captured by the caller
+   *  when the operation started — a film operation is identified by season AND
+   *  game, never by a bare game id. */
+  _showFilmImportProgress(done, total, operation = 'saving', ownerGameId = null, ownerSeasonId = null) {
     const gameId = ownerGameId || this.storage?.seasonStore?.activeGame?.()?.id;
+    const seasonId = ownerSeasonId || null;
     if (done >= total) {
-      if (gameId) this.workspace?.clearFilmOperation(gameId);
+      if (gameId) this.workspace?.clearFilmOperation(gameId, seasonId);
       this.updater._toast('Film saved to library');
       return;
     }
-    if (gameId) this.workspace?.setFilmOperation(gameId, operation, { done, total });
+    if (gameId) this.workspace?.setFilmOperation(gameId, operation, { done, total }, seasonId);
     let el = document.getElementById('filmImportToast');
     if (!el) {
       el = document.createElement('div');

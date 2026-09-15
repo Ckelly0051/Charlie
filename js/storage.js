@@ -1006,10 +1006,14 @@ export class StorageManager {
     // every add path (top-bar picker + Playlist-panel "Add Clips"), so it must be
     // a safe no-op for a linked game.
     if (game.filmMode === 'linked') return;
+    // The season this write belongs to, pinned BEFORE the await: managed film
+    // lands under the season open right now, and the in-flight operation is
+    // identified by that season plus the game, never by a bare game id.
+    const filmSeasonId = this.seasonStore.currentSeasonId;
     try {
       await backend.importFilm(game.id, files, (done, total) => {
         const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'saving', game.id);
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'saving', game.id, filmSeasonId);
       });
       // This game's film now lives in the managed library — record the mode so
       // auto-load takes the managed branch on reopen. (Clears a stale filmMode so
@@ -1021,7 +1025,7 @@ export class StorageManager {
         this.seasonStore.persist();
       }
     } catch (e) {
-      window.app?.workspace?.clearFilmOperation(game.id);
+      window.app?.workspace?.clearFilmOperation(game.id, filmSeasonId);
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
     }
@@ -1054,14 +1058,15 @@ export class StorageManager {
         ]);
       if (ok !== 'repair') return false;
       this._maybeSnapshot(true, 'Before film repair');
+      const filmSeasonId = this.seasonStore.currentSeasonId;
       let imported;
       try {
         imported = await backend.importFilm(game.id, [file], (done, total) => {
           const app = window.app;
-          if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id);
+          if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id, filmSeasonId);
         });
       } catch (e) {
-        window.app?.workspace?.clearFilmOperation(game.id);
+        window.app?.workspace?.clearFilmOperation(game.id, filmSeasonId);
         throw e;
       }
       const ref = (Array.isArray(imported) && imported[0]) || file.name;
@@ -1099,12 +1104,13 @@ export class StorageManager {
       ]);
     if (choice !== 'repair') return false;
 
+    const repairSeasonId = this.seasonStore.currentSeasonId;
     try {
       this._maybeSnapshot(true, 'Before film repair');
       const matchedFiles = plan.matches.map(m => m.file);
       const imported = await backend.importFilm(game.id, matchedFiles, (done, total) => {
         const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id);
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id, repairSeasonId);
       });
       const playableMatches = await Promise.all(plan.matches.map(async (m, i) => {
         const ref = (Array.isArray(imported) && imported[i]) || (m.file && (m.file.webkitRelativePath || m.file.relativePath || m.file.path || m.file.name)) || '';
@@ -1128,7 +1134,7 @@ export class StorageManager {
         : `Film repaired and loaded: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
       return true;
     } catch (e) {
-      window.app?.workspace?.clearFilmOperation(game.id);
+      window.app?.workspace?.clearFilmOperation(game.id, repairSeasonId);
       console.warn('Film repair failed:', e);
       this.tagger.toast?.('Film repair failed before changes were saved. Try the folder again.');
       return false;

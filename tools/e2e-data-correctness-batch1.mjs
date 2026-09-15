@@ -60,6 +60,22 @@ console.log('\n-- B1-1 desktop managed-film path (pinned in source) --');
     'The managed film directory is built from an explicit season id');
   ok(/async listFilmFiles\(_gameId, _seasonId\)/.test(backendSrc),
     'The backend base class declares the season-scoped signature');
+
+  // B1-4: every producer of an in-flight film operation must name the season it
+  // pinned before its await. A caller that stops threading it silently reopens
+  // the cross-season identity hole, which no in-page assertion can see.
+  const appSrc = source('app.js');
+  ok(/_showFilmImportProgress\(done, total, operation = 'saving', ownerGameId = null, ownerSeasonId = null\)/.test(appSrc),
+    'The progress seam takes the owning season id');
+  ok(/clearFilmOperation\(gameId, seasonId\)/.test(appSrc) && /setFilmOperation\(gameId, operation, \{ done, total \}, seasonId\)/.test(appSrc),
+    'The progress seam passes that season id to both operation calls');
+  const storageSrc = source('storage.js');
+  const progressCalls = storageSrc.match(/_showFilmImportProgress\([^)]*\)/g) || [];
+  ok(progressCalls.length === 3 && progressCalls.every(call => /game\.id, (film|repair)SeasonId/.test(call)),
+    'Every film write reports progress against a season id pinned before its await', progressCalls);
+  const clearCalls = storageSrc.match(/clearFilmOperation\([^)]*\)/g) || [];
+  ok(clearCalls.length === 3 && clearCalls.every(call => /game\.id, (film|repair)SeasonId/.test(call)),
+    'Every film-write failure path clears the operation it actually created', clearCalls);
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +208,61 @@ const result = await page.evaluate(async () => {
   out.aggMixed = await hub._aggregateFilm([gameFor(), { id: 'g2', plays: [], clipNames: [], isMultiClip: false }], 'A');
   out.aggNoGames = await hub._aggregateFilm([], 'A');
 
+  // A LINKED game missing one clip is an ordinary partial season, not an
+  // uncountable one: its per-game action is 'reconnect', and gating the
+  // needs-attention branch on that action swallowed the count on the coach's
+  // real 2025 JV season (89 expected, 88 on disk in one of six games).
+  const linkedBackend = files => ({
+    currentId: 'A', supportsFilm: () => true, supportsLinkedFilm: () => true,
+    getLibraryRoot: () => 'D:/root',
+    linkedGameDir: async dir => (dir === '(gone)' ? '' : `D:/root/${dir}`),
+    isLinkedDirAllowed: () => true,
+    listLinkedFilm: async () => files,
+    listFilmFiles: async () => [],
+  });
+  const linkedGame = (id, dir) => ({
+    id, filmMode: 'linked', filmDir: dir, isMultiClip: true,
+    clipPaths: ['endzone/001', 'endzone/002'], clipNames: ['001', '002'],
+    plays: [{ id: 1, clipPath: 'endzone/001' }, { id: 2, clipPath: 'endzone/002' }],
+  });
+  store.backend = linkedBackend([{ name: '001.mp4', path: 'endzone/001.mp4' }]);
+  out.linkedPartialGame = await app.workspace.filmHealth(linkedGame('lg1', 'Week 1'), 'A');
+  out.linkedPartialAgg = await hub._aggregateFilm([linkedGame('lg1', 'Week 1'), linkedGame('lg2', 'Week 2')], 'A');
+  // An unavailable linked FOLDER genuinely cannot be counted, so it keeps the
+  // needs-attention state rather than printing a fabricated count.
+  out.linkedGoneAgg = await hub._aggregateFilm([linkedGame('lg3', '(gone)')], 'A');
+  store.backend = backend;
+
+  // ---- B1-4 in-flight film operations are season-scoped too --------------
+  // Both seasons have their film on disk, so both are settled; only the season
+  // actually saving may report the transient state. Keyed by game id alone, a
+  // save in season A made season B report "Checking film..." over a real count.
+  disk.B = [{ name: '001.mp4', path: 'endzone/001.mp4' }];
+  const ws = app.workspace;
+  ws.setFilmOperation('g1', 'saving', { done: 3, total: 10 }, 'A');
+  out.opA = await ws.filmHealth(gameFor(), 'A');
+  out.opB = await ws.filmHealth(gameFor(), 'B');
+  out.opAggB = await hub._aggregateFilm([gameFor()], 'B');
+  out.opAggA = await hub._aggregateFilm([gameFor()], 'A');
+  // An explicit season clears exactly that season's operation.
+  ws.clearFilmOperation('g1', 'A');
+  out.opAfterClearA = await ws.filmHealth(gameFor(), 'A');
+  // No season given: the fail-safe sweep removes every season's entry for this
+  // game, so a stale operation can never pin a season on a transient label.
+  ws.setFilmOperation('g1', 'saving', { done: 1, total: 4 }, 'A');
+  ws.setFilmOperation('g1', 'repairing', { done: 2, total: 4 }, 'B');
+  out.sweptReturn = ws.clearFilmOperation('g1');
+  out.opSweptA = await ws.filmHealth(gameFor(), 'A');
+  out.opSweptB = await ws.filmHealth(gameFor(), 'B');
+  // Omitting the season at CREATION means the season open at that moment, not
+  // every season that shares the id.
+  ws.setFilmOperation('g1', 'saving', { done: 2, total: 5 });
+  out.opDefaultA = await ws.filmHealth(gameFor(), 'A');
+  out.opDefaultB = await ws.filmHealth(gameFor(), 'B');
+  ws.clearFilmOperation('g1');
+  out.opKey = app.workspace.constructor.operationKey('A', 'g1');
+  disk.B = [];
+
   // ---- B1-2 the play strip groups on the composite identity --------------
   const theater = app.breakdownTheater;
   const strip = theater._driveGroups([
@@ -268,6 +339,31 @@ ok(result.aggA.seasonId === 'A' && result.aggB.seasonId === 'B',
   'The aggregate result names the season it measured', [result.aggA.seasonId, result.aggB.seasonId]);
 ok(result.aggNoGames.state === 'none' && result.aggNoGames.label === 'No games yet',
   'A season with no games says so rather than reporting a film count', result.aggNoGames);
+ok(result.linkedPartialGame.state === 'missing' && result.linkedPartialGame.action === 'reconnect',
+  'A linked game missing a clip still asks to reconnect at the game level', result.linkedPartialGame);
+ok(result.linkedPartialAgg.state === 'partial' && result.linkedPartialAgg.label === '0 of 2 games linked',
+  'A linked season missing one clip prints its count, not "Film needs attention"', result.linkedPartialAgg);
+ok(result.linkedGoneAgg.state === 'missing' && result.linkedGoneAgg.label === 'Film needs attention',
+  'A linked folder that cannot be reached keeps the needs-attention state', result.linkedGoneAgg);
+
+console.log('\n-- B1-4 in-flight film operations are season-scoped --');
+ok(result.opA.state === 'saving' && result.opA.progress?.done === 3,
+  'The season actually saving reports its own in-flight operation', result.opA);
+ok(result.opB.state === 'managed' && result.opB.ready,
+  'Another season reusing the game id reports its OWN settled film, not the operation', result.opB);
+ok(result.opAggB.label === '1 of 1 game linked' && result.opAggB.state === 'ready',
+  'The library prints the untouched season\'s real count, not "Checking film…"', result.opAggB);
+ok(result.opAggA.state === 'checking',
+  'The season with the in-flight write is the one that reads as checking', result.opAggA);
+ok(result.opAfterClearA.state === 'managed' && result.opAfterClearA.ready,
+  'Clearing with an explicit season releases that season', result.opAfterClearA);
+ok(result.sweptReturn === true && result.opSweptA.state === 'managed' && result.opSweptB.state === 'managed',
+  'Clearing without a season sweeps every season\'s entry for that game',
+  [result.sweptReturn, result.opSweptA.state, result.opSweptB.state]);
+ok(result.opDefaultA.state === 'saving' && result.opDefaultB.state === 'managed',
+  'An operation created with no season id belongs to the season open at that moment',
+  [result.opDefaultA.state, result.opDefaultB.state]);
+ok(result.opKey === 'A::g1', 'The operation key is season plus game', result.opKey);
 
 console.log('\n-- B1-2 play strip and Study dimension --');
 ok(result.strip.length === 4 && new Set(result.strip.map(g => g.key)).size === 4,

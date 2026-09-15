@@ -347,7 +347,15 @@ export class TeamHubScreen {
       return { state: 'checking', label: 'Checking film…', expected, found, missing, seasonId: season };
     }
     if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing, seasonId: season };
-    if (health.some(item => item.state === 'unauthorized' || item.action === 'reconnect')) return { state: 'missing', label: 'Film needs attention', expected, found, missing, seasonId: season };
+    // `Film needs attention` is for a season whose film could not be COUNTED —
+    // an unavailable linked folder, or a listing that failed. Gating on
+    // `action === 'reconnect'` instead swallowed the ordinary partial case: a
+    // linked game missing one clip also asks to reconnect, so the coach's real
+    // 2025 JV season (89 expected, 88 on disk in one of six games) reported
+    // `Film needs attention` where the honest answer is `5 of 6 games linked`.
+    if (health.some(item => item.state === 'unauthorized' || item.detail === 'linked-list-failed')) {
+      return { state: 'missing', label: 'Film needs attention', expected, found, missing, seasonId: season };
+    }
     if (gamesLinked === games.length) return { state: 'ready', label: linkedOf(games.length), expected, found: expected, missing: 0, seasonId: season };
     return { state: 'partial', label: linkedOf(gamesLinked), expected, found, missing, seasonId: season };
   }
