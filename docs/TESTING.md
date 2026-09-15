@@ -232,7 +232,7 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   lookup). Managed-list failure, total lookup rejection, and one rejected game
   in a mixed season are pinned so none can print a trustworthy-looking count.
 
-- **Play-library vocabulary (PL-1, PL-2):** `e2e-play-library` (42) drives the
+- **Play-library vocabulary (PL-1, PL-2):** `e2e-play-library` (50) drives the
   RENDERED Add controls, not the services behind them. It reproduces the dead
   route - a live settings sheet swallowing an `Edit library` / `Add to Playbook`
   request - then proves the retarget carries the tab, the chart group and the
@@ -247,7 +247,16 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `PlayGrid._options`, in the cut-up filter, in Study's dimension, in the Reports
   breakdown, and across an export/import round trip - plus the version-4
   visibility migration for a team saved before the bump. Mutation-verified five
-  ways. Every fixture is a synthetic season on an isolated team id.
+  ways. **EVERY charting workflow is asserted, not just the deck** - Codex's
+  2026-09-15 review found the vision analyzer keeping its own play-type enum AND
+  its own validator, so a valid `Option` response was silently discarded, and
+  neither keyboard map offered the new built-in. The harness now pins that the
+  vision validator accepts every built-in, that its PROMPT offers exactly what
+  the validator accepts, that Quick Chart and the global charting shortcuts each
+  carry a key for every built-in with no key assigned twice, and that the
+  coach-facing legend lists it - so the next built-in cannot be dropped from one
+  workflow the same way. Every fixture is a synthetic season on an isolated team
+  id.
 
 - **Breakdown installed viewport and the shared context selector (BD-VP, BD-CTX):**
   `e2e-breakdown-viewport` (151) measures 1920x1080, ~1420x1000, 1440x900 and

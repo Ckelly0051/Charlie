@@ -1028,6 +1028,16 @@ Breakdown film-state defects above.
   rapid-scrubbing report is separate, open, and deprioritized.
 - Home and every Reports surface remain `REJECTED` in the formal design approval
   registry; beta smoke acceptance is not formal design approval or publication.
-- The next batch is the dead custom-play Add route, canonical built-in `Option`,
-  Breakdown viewport overflow/anonymous arrows, and shared context-selector
-  contrast. Home rail scaling remains separate.
+- That batch is DONE in source and Chromium-verified (PL-1, PL-2, BD-VP, BD-CTX
+  above): the dead custom-play Add route, canonical built-in `Option`, Breakdown
+  viewport overflow/anonymous arrows, and shared context-selector contrast. It
+  has focused proof at `e2e-play-library` 50/50 and `e2e-breakdown-viewport`
+  151/151, and is awaiting Codex review; **no full gate has been run on it and it
+  is not packaged.**
+- Two items from that batch remain open, both named in their own entries:
+  BD-VP's installed confirmation, which only WebView2 can give because the
+  defect is classic-versus-overlay scrollbars; and `Option`'s absence from
+  Overview's approved fixed six and the Defense board's approved seven, which is
+  a coach decision about an approved schema rather than an implementation gap.
+- **The next batch is Home rail scaling** (item 12 above), still a separate
+  layout pass, plus whatever the pending Codex review returns.

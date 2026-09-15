@@ -342,7 +342,14 @@ point through every report, and no historical data is rewritten. The retired
 that carries its own copy is how a new built-in reaches the deck and never
 reaches the grid or the cut-up filter. Two had drifted and now read the owner:
 `native-tagging`'s OPTIONS fallback, and `native-settings`' cut-up FILTERS, which
-was already missing `Trick Play`. `Option` is a default offensive play type,
+was already missing `Trick Play`. **The optional workflows count too**: the
+vision analyzer kept its own enum AND its own validator, so a valid response
+naming a new built-in was SILENTLY DISCARDED — its `ALLOWED.playType` now derives
+from the owner and its prompt enum is generated from that same list, so the two
+cannot disagree. Quick Chart and the global charting shortcuts each need a key
+for every built-in (`Option` is `B`), and the coach-facing legend must list it;
+`e2e-play-library` pins all of that, because "one owner" is only true if every
+consumer actually reads it. `Option` is a default offensive play type,
 distinct from `RPO` by football meaning — an option is a post-snap ball-carrier
 decision, an RPO a pass-or-run read — and consistent with it in behaviour:
 AMBIGUOUS for run/pass (`PlayTagger.runPassForPlayType`) and NOT in
