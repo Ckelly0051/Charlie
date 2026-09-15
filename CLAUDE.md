@@ -407,6 +407,16 @@ perspective or initial-unit control.
   by design and offers no Undo. `objectUrl` is a recreatable cache, not
   playability: `_releaseObjectUrlsExcept` revokes it for non-adjacent clips
   and `_sourceForClip` rebuilds it from `clip.file`.
+- **The selection after an Undo is History's, not the playlist's.**
+  `switchToClip` selects whatever clip it loads, so a reconcile that switched
+  to the clip left active by the deletion overwrote the `currentPlayId`
+  History had just restored — Undo returned the clip and then landed the coach
+  on the next play. The reconcile prefers the restored play's own clip as its
+  switch target so film and selection agree, and restores History's selection
+  afterwards when the target has to be another clip. `_selectPlayNoSeek` is the
+  one selection owner both paths call. Redo is different and correct: it
+  restores the snapshot the deletion produced, whose selection is cleared, so
+  the neighbouring clip's own play is the honest selection.
 - The game film index is derived from the plays' own clip identities **unioned**
   with the live playlist (`_buildClipIndex`). It must never be rebuilt from the
   playlist alone, which is what once silently emptied it.

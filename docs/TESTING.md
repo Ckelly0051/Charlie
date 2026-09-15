@@ -241,7 +241,7 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   and linked source files remain coach-owned and must never be deleted by play
   deletion.
 
-- **Linked clip-set reconciliation (FILM-01):** `e2e-film-clip-set` (41) owns
+- **Linked clip-set reconciliation (FILM-01):** `e2e-film-clip-set` (45) owns
   the two-direction rule and the durable clip-identity lifecycle. Equal sets
   are no error; a clip the game records and the folder lacks stays `missing`;
   a folder video with no record is `mismatch`, as is both at once, each with
@@ -254,14 +254,20 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   Settings status mapper is pinned in source because an unnamed state there
   silently reads "No film" - a different claim. Mutation-verified three ways:
   the one-way comparison, stale durable-deletion behaviour, and the prior
-  prune, removing the save the removal signal schedules, and destroying the
-  removed clip instead of stashing it. Two of those exist because a green
-  first pass missed them: an uncharted removal reached no autosave, and Undo
-  restored a play without its live clip — the original Undo case was checked
-  with an EMPTY playlist, so it could not see either. The Undo section now
-  runs a loaded three-clip playlist with `clipId` set, which is what makes
-  `deleteCurrentPlay` take its playlist branch at all. Every fixture is
-  synthetic and every substitution restored; no coach
+  prune, removing the save the removal signal schedules, destroying the removed
+  clip instead of stashing it, and restoring the adjacent-clip switch that
+  overwrote the restored selection. Three of those exist because a green pass
+  missed them, each found by a later review: an uncharted removal reached no
+  autosave; Undo restored a play without its live clip; and Undo then landed on
+  the adjacent play. The first two were invisible because the original Undo case
+  ran with an EMPTY playlist; the third because the loaded case asserted the
+  clip and play ARRAYS and never the selection. **Assert the selection, not just
+  the collections** — a reconcile that calls `switchToClip` moves
+  `currentPlayId` as a side effect. The Undo section runs a loaded three-clip
+  playlist with `clipId` set, which is what makes `deleteCurrentPlay` take its
+  playlist branch at all, and pins the restored selection, the active clip and
+  the tag form together. Every fixture is synthetic and every substitution
+  restored; no coach
   season, catalog row or film file is read or written. **Chromium cannot
   certify** Tauri's own `fs.readDir`/`exists`, the asset protocol, or a folder
   edited outside the app while it runs - those stay installed checks.

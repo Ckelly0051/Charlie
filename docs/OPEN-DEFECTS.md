@@ -138,11 +138,25 @@ Found at the board on the installed visual-smoke candidate.
      so the invariant asserted is that the stash returns the SAME clip object
      with its source intact.
 
-   Evidence: `e2e-film-clip-set` (41), mutation-verified five ways - restoring
+   - **Undo restored the clip but landed on the adjacent play (P2, third
+     review round).** `switchToClip` selects whatever clip it loads, and the
+     reconcile switched to the clip that happened to be active AFTER the
+     deletion - so it overwrote the `currentPlayId` History had just restored.
+     The selection belongs to History: the reconcile now prefers the restored
+     play's OWN clip as the switch target, so film and selection agree, and where
+     the target has to be another clip it puts History's selection back
+     afterwards. `_selectPlayNoSeek` was extracted from `switchToClip` so both
+     paths share one selection owner rather than two copies of the same four
+     lines. Redo is unchanged and correct: it restores the snapshot the deletion
+     produced, whose selection is cleared, so the neighbouring clip's own play is
+     the honest selection.
+
+   Evidence: `e2e-film-clip-set` (45), mutation-verified six ways - restoring
    the one-way comparison (7 red, including the Home and library agreement
    checks), restoring stale durable-deletion behaviour (7 red), restoring the
    prior prune (4 red), removing the save the removal signal schedules (3 red),
-   and destroying the clip instead of stashing it (3 red).
+   destroying the clip instead of stashing it (3 red), and restoring the
+   adjacent-clip switch that overwrote the restored selection (3 red).
 
    **Still needs installed WebView2 verification** and remains the first item in
    Film-State Batch 2, before the rapid-scrubbing failure. Chromium proves the
