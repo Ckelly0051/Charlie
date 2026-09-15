@@ -7,11 +7,18 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-84` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-85` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-84` is the current unsigned local smoke candidate,
+**Packaging status:** `1.12.0-85` is the current unsigned local smoke candidate,
+packaged from `130962a` — the opponent-scout ownership model and atomic Home
+navigation, reviewed and approved over `2c90b66..c2e088a` with the canonical gate
+at 114/114, zero skipped, zero failed. See `SMOKE-1.12.0-85.md`. The coach's
+installed smoke has NOT been run against it, so nothing here is accepted, tagged,
+pushed or published state, and Home production remains `REJECTED`.
+
+`1.12.0-84` was the preceding unsigned local smoke candidate,
 packaged from the version bump on top of `501e263`. It is the FIRST package
 carrying the roster-ownership work: one roster owner per season with a single
 validated compatibility boundary, conflicts and failed migration writes aborting
