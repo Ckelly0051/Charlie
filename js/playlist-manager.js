@@ -585,6 +585,14 @@ export class PlaylistManager {
     const wasActive = index === this.activeClipIndex;
     const clip = this.clips[index];
 
+    // A clip removed here is a DELIBERATE in-app deletion, so its durable
+    // identity must go too — otherwise the game keeps a clip record with no
+    // play and no reason. Recorded, never applied blindly: the clip index drops
+    // it only when no surviving play references it, so a shared clip stays and
+    // Undo brings both back. The coach's source file is never touched.
+    const removedIdentity = ((clip.clipPath || clip.name) || '').trim();
+    if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
+
     // Remove the associated play
     const removedPlay = clip.playId !== null;
     if (removedPlay) {

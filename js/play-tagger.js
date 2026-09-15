@@ -593,7 +593,12 @@ export class PlayTagger {
 
     // Single-video mode: remove the play. Keep the film loaded while other
     // plays remain — select the adjacent play so tagging flows on.
+    // This branch also covers deleting a play with NO film loaded, which is
+    // where a durable clip record used to survive its own play indefinitely:
+    // the playlist is empty, so nothing else ever signalled the removal.
     const idx = this.plays.findIndex(p => p.id === id);
+    const removedIdentity = ((play?.clipPath || play?.clipName) || '').trim();
+    if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();

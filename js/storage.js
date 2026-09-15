@@ -31,6 +31,14 @@ export class StorageManager {
     this.filter = null;
     this.seasonStore = new SeasonStore();
     this._loadedGameId = null;   // which game the live tagger holds (guards commitActive vs cross-game writes)
+    // Clip identities the coach DELIBERATELY removed in this game session.
+    // The durable clip index retains everything it has ever recorded, so an
+    // intentional deletion needs an explicit signal — otherwise the identity is
+    // carried forward forever, which is how a clip outlives both its play and
+    // its file. Only an identity no surviving play references is actually
+    // dropped, so Undo (which restores the play) restores the clip with it.
+    // Per game, like undo history: reset in _loadActiveGame.
+    this._removedClipIds = new Set();
     // Latest-film-load-wins guard. Film auto-load is async (list files, resolve
     // N clip URLs, probe, rehydrate) and then mutates the SHARED player/playlist.
     // Two rapid game opens run two overlapping _autoLoadFilm calls; if the FIRST
@@ -656,6 +664,10 @@ export class StorageManager {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
     this._loadedGameId = g ? g.id : null;   // the tagger now holds THIS game; commitActive guards on it
+    // Deliberate clip removals are per GAME, exactly like undo history below: a
+    // removal recorded while editing one game must never drop a clip from the
+    // next one.
+    this._removedClipIds = new Set();
     this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = window.app;
     if (app) {
@@ -1435,9 +1447,47 @@ export class StorageManager {
     };
   }
 
-  // Ordered clip index for the game node: every clip the PLAYS reference (their
-  // durable clipName/clipPath) enriched by the live playlist's load state. Never
-  // shrinks below what the plays reference — the fix for the film-index wipe.
+  /** The clip identity of a durable clipRef, in the SAME key space the plays
+   *  and the playlist use (a trimmed raw path/name). `SqlCatalog
+   *  .ensureClipIdentities` reads a ref the same way; this is not a second
+   *  resolver, it is that one field order applied to one ref. */
+  _refIdentity(ref) {
+    if (!ref) return '';
+    return String(ref.originalRelativePath || ref.libraryRelativePath || ref.id
+      || ref.displayName || ref.originalName || '').trim();
+  }
+
+  /** Clip identities recorded on the game node the live tagger is loaded from.
+   *  Empty whenever the tagger does not hold the active game, so a cross-game
+   *  serialize can never inherit another game's film index. */
+  _priorClipRefs() {
+    const data = this.seasonStore?.data;
+    if (!data || this._loadedGameId == null || this._loadedGameId !== data.activeGameId) return [];
+    const node = this.seasonStore.activeGame?.();
+    return Array.isArray(node?.clipRefs) ? node.clipRefs : [];
+  }
+
+  /** Mark a clip identity as deliberately removed by the coach. Honoured by
+   *  `_buildClipIndex` only when no surviving play references it, so a shared
+   *  clip survives one of its plays being deleted, and Undo restores both.
+   *  The coach's source file is never touched by this. */
+  forgetClipIdentity(identity) {
+    const id = String(identity || '').trim();
+    if (!id) return false;
+    this._removedClipIds.add(id);
+    return true;
+  }
+
+  // Ordered clip index for the game node: the game's OWN durable clip records,
+  // unioned with every clip the PLAYS reference (their durable clipName/
+  // clipPath) and with the live playlist's load state. Never shrinks below what
+  // the plays reference — the fix for the film-index wipe — and never below what
+  // the game already recorded, which is the fix for the reverse wipe: opening a
+  // game WITHOUT its film left the playlist empty, so a save rebuilt the index
+  // from the plays alone and silently pruned every clip that had no play
+  // (OL Lakes: 89 durable records against 83 charted clips). The only way an
+  // identity leaves is `forgetClipIdentity` — a deliberate in-app deletion —
+  // and only when no surviving play still references it.
   _buildClipIndex() {
     const order = [];
     const byId = new Map();
@@ -1447,6 +1497,19 @@ export class StorageManager {
       const e = byId.get(id);
       for (const k of Object.keys(data)) if (data[k] != null && data[k] !== '') e[k] = data[k];
     };
+    // The game's own record first, so durable order is stable across saves.
+    for (const ref of this._priorClipRefs()) {
+      const id = this._refIdentity(ref);
+      if (!id) continue;
+      put(id, {
+        name: ref.displayName || ref.originalName || id,
+        clipPath: ref.originalRelativePath || ref.libraryRelativePath || id,
+        catalogClipId: ref.catalogClipId || null,
+        originalName: ref.originalName || ref.displayName || id,
+        duration: ref.duration != null ? ref.duration : null,
+        importStatus: ref.importStatus || null,
+      });
+    }
     for (const p of (this.tagger.plays || [])) {
       const id = ((p.clipPath || p.clipName) || '').trim();
       if (!id) continue;
@@ -1458,6 +1521,17 @@ export class StorageManager {
         const id = ((c.clipPath || c.name) || '').trim();
         put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, catalogClipId: c.catalogClipId || null, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
       }
+    }
+    // Deliberate removals, applied last and only where nothing survives that
+    // still needs the clip. A play restored by Undo puts its identity back into
+    // `referenced` and so keeps its clip.
+    if (this._removedClipIds.size) {
+      const referenced = new Set();
+      for (const p of (this.tagger.plays || [])) {
+        const id = ((p.clipPath || p.clipName) || '').trim();
+        if (id) referenced.add(id);
+      }
+      return order.filter(id => !this._removedClipIds.has(id) || referenced.has(id)).map(id => byId.get(id));
     }
     return order.map(id => byId.get(id));
   }

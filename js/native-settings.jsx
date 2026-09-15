@@ -19,6 +19,11 @@ const healthLabel = health => {
   if (health.state === 'repairing') return 'Repairing';
   if (health.state === 'unauthorized') return 'Reconnect';
   if (health.state === 'missing') return health.missing ? `${health.missing} missing` : 'Missing';
+  // Folder-only videos, and the both-directions case. Named rather than folded
+  // into 'Missing' so the coach can tell which side is out of step.
+  if (health.state === 'mismatch') return health.missing
+    ? `${health.missing} missing · ${health.extra} extra`
+    : `${health.extra} extra in folder`;
   if (health.state === 'browser-only') return 'Session only';
   return 'No film';
 };

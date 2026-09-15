@@ -399,13 +399,21 @@ export class WorkspaceContext {
       empty: 'No film added', 'browser-only': 'Film must be re-added',
       managed: 'Film managed', linked: 'Film linked',
       missing: 'Film missing', saving: 'Saving film', repairing: 'Repairing film',
-      unauthorized: 'Linked folder unavailable'
+      unauthorized: 'Linked folder unavailable',
+      // The folder holds video this game has no record of. Distinct from
+      // `missing` (the game records a clip the folder does not have) so the
+      // coach is told which direction is out of step.
+      mismatch: 'Film does not match folder',
     };
     return {
       state, label: labels[state], ready: state === 'managed' || state === 'linked',
       persistent: opts.persistent ?? (state !== 'browser-only' && state !== 'empty'),
       mode: opts.mode || null, expected: opts.expected || 0, found: opts.found || 0,
-      missing: opts.missing || 0, progress: opts.progress || null,
+      missing: opts.missing || 0,
+      // Folder videos this game has no durable record of — the other half of the
+      // linked clip-set equality rule.
+      extra: opts.extra || 0,
+      progress: opts.progress || null,
       action: opts.action || null, detail: opts.detail || '',
       // Resolved source, so Home can be honest about WHERE film lives rather than
       // only how many clips it found. Linked games carry the real directory that
@@ -478,10 +486,32 @@ export class WorkspaceContext {
     const foundIds = new Set((files || []).map(file => this._identity(file)).filter(Boolean));
     const missing = expectedIds.filter(id => !foundIds.has(id)).length;
     const found = Math.max(0, expected - missing);
+    // LINKED film is the coach's own folder, and the binding rule is exact set
+    // EQUALITY between the durable clip index and that folder's videos. Only the
+    // app-only direction was ever checked, so a video sitting in the folder with
+    // no record in the game was invisible — the coach could not tell a complete
+    // game from one silently short a clip. Managed film is app-owned storage and
+    // keeps its existing one-way rule: extra files there are the app's own
+    // business, not a coach-facing mismatch.
+    // Both directions are mismatches; they keep DIFFERENT states so the coach is
+    // told which one, and so the long-standing app-only contract every consumer
+    // already renders (`missing`, with its count and repair/reconnect action) is
+    // not renamed out from under them.
+    const expectedSet = new Set(expectedIds);
+    const extraIds = linked ? [...foundIds].filter(id => !expectedSet.has(id)) : [];
+    const extra = extraIds.length;
+    if (extra) {
+      return this._view('mismatch', {
+        mode: linked ? 'linked' : 'managed', expected, found, missing, extra,
+        action: 'reconnect', persistent: true, path: sourcePath, season,
+        detail: missing ? 'clip-set-both' : 'clip-set-folder-only',
+      });
+    }
     if (missing) {
       return this._view('missing', {
-        mode: linked ? 'linked' : 'managed', expected, found, missing,
+        mode: linked ? 'linked' : 'managed', expected, found, missing, extra,
         action: linked ? 'reconnect' : 'repair', persistent: true, path: sourcePath, season,
+        detail: linked ? 'clip-set-app-only' : '',
       });
     }
     return this._view(linked ? 'linked' : 'managed', {
