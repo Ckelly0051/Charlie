@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { TagLibrary } from './tag-library.js';
 import '../css/native-settings.css';
 
 const JERSEY_COLORS = ['white','black','red','blue','navy','green','yellow','orange','purple','maroon','gray','teal'];
@@ -7,7 +8,9 @@ const DRAW_TOOLS = [['line','Line'],['arrow','Arrow'],['circle','Circle'],['rect
 const DRAW_COLORS = ['#ffffff','#ffff00','#ff4444','#4488ff','#44ff44','#ff8800'];
 const FILTERS = {
   downs:['1','2','3','4'], quarters:['Q1','Q2','Q3','Q4','OT'],
-  playTypes:['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO'],
+  // One vocabulary owner. This list had drifted - it was already missing
+  // `Trick Play`, so a cut-up could not filter on a type the deck offers.
+  playTypes:TagLibrary.DEFINITIONS.playType.slice(),
   results:['Gain','Loss','No Gain','Incomplete','Touchdown','Interception','Fumble','Sack'],
   personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
 };
@@ -274,8 +277,20 @@ export function NativeSettingsContent({ screen, required = false, finish, initia
   const requestedTab=required?'film':initialTab;
   const [tab,setTabState]=useState(requestedTab==='roster'&&!rosterAllowed?'film':requestedTab);
   const setTab=next=>{if(screen.setActiveTab(next)===false)return;setTabState(next);};
+  // A retarget request from an already-open sheet. `chartGroup` and
+  // `initialPlayCall` are consumed by child useState INITIALIZERS, so a prop
+  // change alone would not move them - the nonce is part of the child key, which
+  // remounts that panel with the new initial target.
+  const [retarget,setRetarget]=useState(null);
+  useEffect(()=>screen.onRetarget?.(next=>{
+    setRetarget(prev=>({...next,nonce:(prev?.nonce||0)+1}));
+    if(!required)setTabState(next.tab==='roster'&&!rosterAllowed?'film':next.tab);
+  }),[screen,required,rosterAllowed]);
+  const activeGroup=retarget?.chartGroup||chartGroup;
+  const activeCall=retarget?.initialPlayCall??initialPlayCall;
+  const panelKey=`${tab}-${retarget?.nonce||0}`;
   const tabsRef=useRef(null);
   useEffect(()=>{const nav=tabsRef.current,active=nav?.querySelector('[aria-current="page"]');if(!nav||!active)return;nav.scrollLeft=Math.max(0,active.offsetLeft-(nav.clientWidth-active.offsetWidth)/2);},[tab]);
-  const content = tab==='film'?<FilmSettings screen={screen} required={required} finish={finish}/>:tab==='team'?<TeamSettings screen={screen} initialPlayCall={initialPlayCall}/>:tab==='roster'?<RosterSettings screen={screen}/>:tab==='charting'?<ChartingSettings screen={screen} initialGroup={chartGroup}/>:tab==='cutup'?<CutupSettings screen={screen}/>:tab==='drawing'?<DrawingSettings screen={screen}/>:tab==='recovery'?<RecoverySettings screen={screen}/>:<AnalysisSettings screen={screen}/>;
+  const content = tab==='film'?<FilmSettings key={panelKey} screen={screen} required={required} finish={finish}/>:tab==='team'?<TeamSettings key={panelKey} screen={screen} initialPlayCall={activeCall}/>:tab==='roster'?<RosterSettings key={panelKey} screen={screen}/>:tab==='charting'?<ChartingSettings key={panelKey} screen={screen} initialGroup={activeGroup}/>:tab==='cutup'?<CutupSettings key={panelKey} screen={screen}/>:tab==='drawing'?<DrawingSettings key={panelKey} screen={screen}/>:tab==='recovery'?<RecoverySettings key={panelKey} screen={screen}/>:<AnalysisSettings key={panelKey} screen={screen}/>;
   return <div class="gi-settings" data-native-settings><nav ref={tabsRef} class="gi-settings-tabs" aria-label="Settings sections">{(required?TABS.slice(0,1):TABS).map(([key,label])=>{const disabled=key==='roster'&&!rosterAllowed;return <button key={key} type="button" data-settings-tab={key} class={tab===key?'is-active':''} aria-current={tab===key?'page':undefined} disabled={disabled} title={disabled?screen.rosterUnavailableMessage():undefined} onClick={()=>setTab(key)}>{label}</button>;})}</nav>{content}</div>;
 }

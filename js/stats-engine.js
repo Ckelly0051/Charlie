@@ -1508,8 +1508,11 @@ export class StatsEngine {
 
     const run = source.filter(StatsEngine.isRun);
     const pass = source.filter(StatsEngine.isPass);
+    // Candidate order for the Offense play-type table. `fitRows` caps the board
+    // to its approved allocation, so a new candidate cannot resize the module —
+    // `Option` becomes rankable here without changing any fixed row count.
     const detailOrder = ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass',
-      'Deep Pass', 'RPO', 'Play Action', 'Trick Play'];
+      'Deep Pass', 'RPO', 'Option', 'Play Action', 'Trick Play'];
     // Build each play-type cohort exactly once. `playTypes` and `answers`
     // both need "the plays for this play type" -- previously `answers`
     // re-derived it with a second full pass over `source` per type instead

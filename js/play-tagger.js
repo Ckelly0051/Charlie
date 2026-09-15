@@ -1028,12 +1028,16 @@ export class PlayTagger {
 
   /**
    * Map a play type to Run/Pass when it's unambiguous, else '' (ambiguous:
-   * RPO, Play Action, Trick Play — coach picks).
+   * RPO, Option, Play Action, Trick Play — coach picks). `Option` is ambiguous
+   * for the same reason RPO is and for a different football reason: the read
+   * happens after the snap, so the realized play can be either. It is NOT in
+   * EXCLUSIVE_GROUPS.playType, so `Option + Run Outside` charts the call and the
+   * realized look together.
    */
   static runPassForPlayType(playType) {
     const runTypes = new Set(['Run Inside','Run Outside']);
     const passTypes = new Set(['Screen','Short Pass','Medium Pass','Deep Pass']);
-    const ambiguousTypes = new Set(['RPO','Play Action','Trick Play']);
+    const ambiguousTypes = new Set(['RPO','Option','Play Action','Trick Play']);
     const types = StatsEngine.splitPlayTypes(playType);
     if (types.some(type => !runTypes.has(type) && !passTypes.has(type) && !ambiguousTypes.has(type))) return '';
     const classified = new Set(types.map(type =>

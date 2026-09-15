@@ -41,10 +41,40 @@ export class SettingsScreen {
     this.overlays = overlays;
     this.handle = null;
     this.activeTab = null;
+    // Retarget subscribers: a mounted sheet listens so a second open() request
+    // can move it rather than being swallowed.
+    this._retargetListeners = new Set();
+  }
+
+  /** Subscribe a mounted settings sheet to retarget requests. Returns an
+   *  unsubscribe function. */
+  onRetarget(fn) {
+    this._retargetListeners.add(fn);
+    return () => this._retargetListeners.delete(fn);
+  }
+
+  _resolveTab(required, initialTab) {
+    const requested = required ? 'film' : initialTab;
+    const tab = requested === 'roster' && !this.canManageRoster() ? 'film' : requested;
+    if (requested === 'roster' && tab !== 'roster') this._toast(this.rosterUnavailableMessage(), 'info');
+    return tab;
   }
 
   open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formation', initialPlayCall = '' } = {}) {
-    if (this.handle) return this.handle.result;
+    // A sheet is ALREADY open. It is non-modal, so the coach can reach the
+    // charting deck's `Edit library` and the play-call field's
+    // `Add to Playbook` while it is up — and returning the existing result here
+    // discarded the requested tab, chart group and typed play-call name, so both
+    // controls did nothing at all and said nothing. Retarget the live sheet
+    // instead: same sheet, new destination.
+    if (this.handle) {
+      const tab = this._resolveTab(required, initialTab);
+      this.activeTab = tab;
+      this._retargetListeners.forEach(fn => {
+        try { fn({ tab, chartGroup, initialPlayCall }); } catch (e) {}
+      });
+      return this.handle.result;
+    }
     const requestedTab = required ? 'film' : initialTab;
     this.activeTab = requestedTab === 'roster' && !this.canManageRoster() ? 'film' : requestedTab;
     if (requestedTab === 'roster' && this.activeTab !== 'roster') this._toast(this.rosterUnavailableMessage(), 'info');

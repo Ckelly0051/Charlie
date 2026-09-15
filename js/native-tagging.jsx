@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import { useLayoutEffect, useState } from 'preact/hooks';
+import { TagLibrary } from './tag-library.js';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -12,7 +13,11 @@ export const OPTIONS = {
   down:['1','2','3','4'], qbAlignment:['Under Center','Pistol','Shotgun'],
   strength:['Right','Left','Balanced'], personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
   motion:['Jet','Orbit','Shift','Trade'], runPass:['Run','Pass'],
-  playType:['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Trick Play'],
+  // Play type is LIBRARY-managed, so its vocabulary has one owner
+  // (TagLibrary.DEFINITIONS). This entry is the fallback PlayGrid's inline Film
+  // Room editor uses when no library is wired; carrying its own copy is how a
+  // new built-in could reach the deck and never reach the grid.
+  playType:TagLibrary.DEFINITIONS.playType.slice(),
   playDir:['Left','Middle','Right'],
   coverage:['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
   coverageFamily:['Man','Zone','Match'], blitz:['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],

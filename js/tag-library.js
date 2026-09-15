@@ -1,6 +1,6 @@
 /** Per-team charting vocabulary. Visibility and ordering change controls, never stored tags. */
 export class TagLibrary {
-  static VERSION = 3;
+  static VERSION = 4;
   static DEFINITIONS = {
     // Classification-critical fields (down, result, run/pass, QB alignment,
     // coverage family, strength and direction) intentionally remain fixed.
@@ -8,7 +8,13 @@ export class TagLibrary {
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
     coverage: ['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
-    playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Trick Play'],
+    // `Option` is a built-in offensive play, distinct from `RPO`: an option is a
+    // ball-carrier decision after the snap, an RPO a pass-or-run read. Both are
+    // AMBIGUOUS for run/pass classification (PlayTagger.runPassForPlayType) and
+    // neither joins the run/pass-depth exclusive group, so `Option + Run Outside`
+    // is chartable. Added as a default at VERSION 4 — see load()'s migration,
+    // which pushes it into every existing team's enabled list.
+    playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Option','Trick Play'],
     blitz: ['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   };
 
@@ -39,8 +45,16 @@ export class TagLibrary {
       const values = [...defaults, ...custom];
       const enabledSource = Array.isArray(source.enabled) ? source.enabled : values;
       const enabled = [...new Set(enabledSource.map(String).filter(value => values.includes(value)))];
-      if ((Number(raw?.version) || 1) < 2 && key === 'formation') {
+      const storedVersion = Number(raw?.version) || 1;
+      if (storedVersion < 2 && key === 'formation') {
         for (const added of ['I-Form','Split Back']) if (!enabled.includes(added)) enabled.push(added);
+      }
+      // A new DEFAULT is filtered out of a saved `enabled` array (it was not a
+      // value when that array was written), so without this every existing team
+      // would get the choice hidden. Same shape as the version-2 formation
+      // migration above; visibility only, never a stored tag.
+      if (storedVersion < 4 && key === 'playType') {
+        for (const added of ['Option']) if (!enabled.includes(added)) enabled.push(added);
       }
       const savedOrder = Array.isArray(source.order) ? source.order.map(String).filter(value => values.includes(value)) : [];
       const order = [...new Set([...savedOrder, ...values])];
