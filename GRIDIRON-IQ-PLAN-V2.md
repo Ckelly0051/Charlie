@@ -87,10 +87,23 @@ failure restores the prior workspace mode, open season, and shell control state.
 Film status is part of this pass's data contract, not presentation copy. Every
 season summary and every game row must consume one season-scoped resolver keyed
 by both season ID and game ID. Non-active-season verification must be read-only
-and must never resolve managed film through `backend.currentId`. The observed
-`5 of 6` versus `6 of 6` disagreement is open until the actual 2025 JV sources
-are checked. The regression proof must include reused game IDs across seasons
-and agreement between the closed-season library summary and the opened Home.
+and must never resolve managed film through `backend.currentId`. That ownership
+repair is implemented and gate-green through `7862aa6`. Read-only inspection of
+the actual 2025 JV sources explains the observed `5 of 6` versus `6 of 6`:
+OL Lakes records `IMG_6690` in its durable playlist, but the file is absent and
+no surviving play references it. The current library mismatch count is supported;
+the installed game view's `fully linked` claim is not.
+
+**Next film-state repair: FILM-01.** Health requires exact equality between the
+app's durable clip set and the linked folder's video set. App-only and folder-only
+identities both produce a mismatch; equal sets produce no error. In-app deletion
+must durably remove an unreferenced clip identity, loaded or unloaded, preserve
+Undo, and never delete coach-owned source film. External deletion remains a
+mismatch until the app record is deliberately removed; load must never silently
+prune either side. This precedes rapid-scrubbing repair because it defines what
+`Film missing` is allowed to mean. Regression proof includes reused game IDs,
+both mismatch directions, shared clip references, persistence/reopen, and
+agreement between the closed-season library and opened Home.
 
 The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 
@@ -126,7 +139,7 @@ Build and focused behavioral checks passed; populated production screenshots and
 
 **Containment is not composition (coach at the board, 2026-09-11).** A Defense screen that had just passed 58 assertions was rejected on sight: the linescore band wrapped into two rows, its identity strip was spread across the whole viewport on no grid, its name track held a 300px void, six different right edges ran down one column, and the KPI rail printed a synthesized `132 yds, 40 snaps` above a board reading 127 over 37. Every geometry check in this repository catches clipping, overflow and scrollers; none looked at alignment, balance or rhythm. Repaired, and now asserted: content edges against the route frame's inset, one row for a shared band, and the rail sourced from the same owner as the board. The shell top bar (1262) and context bar (flush 1280) still differ from the Reports column (1248); unifying them is a shell-wide composition change and is recorded as an open decision in `docs/OPEN-DEFECTS.md`.
 
-**The shared visual range failed its pre-gate review and was repaired (2026-09-11).** An independent non-builder review of `7afa94d..44adcc6` failed the pre-gate checkpoint: four Reports harnesses were red at `44adcc6`, two of them against hash-protected approved design evidence, behind a verification list that named six green suites and omitted every surface the range had changed. The coach's approved visual scope below stands; the implementation of it did not deliver it. Repairs, the charted-versus-measured Defense contract, the new Overview evidence path and three deferred items stated with their measurements are in `docs/OPEN-DEFECTS.md`; the enforceable typography contract is `docs/VISUAL-SYSTEM-RULES.md`. Source has advanced past the `1.12.0-80` installer and **no installed build contains these repairs**, so `1.12.0-80` remains a historical installed visual-scope pass and is not an accepted release. The durable lesson, now written into the rules file: a global token change is an app-wide change, including to the rasters a comp was approved against — repair the geometry first, then regenerate the affected canonical evidence under a new tracked path and name the old one as superseded.
+**The shared visual range failed its pre-gate review and was repaired (2026-09-11).** An independent non-builder review of `7afa94d..44adcc6` failed the pre-gate checkpoint: four Reports harnesses were red at `44adcc6`, two of them against hash-protected approved design evidence, behind a verification list that named six green suites and omitted every surface the range had changed. The coach's approved visual scope below stands; the implementation of it did not deliver it. Repairs, the charted-versus-measured Defense contract, the new Overview evidence path and three deferred items stated with their measurements are in `docs/OPEN-DEFECTS.md`; the enforceable typography contract is `docs/VISUAL-SYSTEM-RULES.md`. These repairs reached the later coach-smoked `1.12.0-85` beta build; newer Batch 1 source remains un-packaged. `1.12.0-80` is a historical visual-scope pass, not the current beta build. The durable lesson, now written into the rules file: a global token change is an app-wide change, including to the rasters a comp was approved against — repair the geometry first, then regenerate the affected canonical evidence under a new tracked path and name the old one as superseded.
 
 **Resolved shared typography and navigation correction (coach-approved in installed `1.12.0-80`, 2026-09-11):** The coordinated pass raised the coach-facing type floor, reflowed Breakdown around it, promoted the five global routes to 18px/700 desktop labels with 19px icons, widened the Program/Season/Game selectors, and replaced blue-gray neutral chrome and secondary copy with graphite/gray tokens. The installed result was approved for this named visual scope. The binding rules now live in `docs/VISUAL-SYSTEM-RULES.md`; the earlier screenshots remain historical defect evidence, not open work.
 

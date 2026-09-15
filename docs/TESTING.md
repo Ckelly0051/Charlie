@@ -232,6 +232,15 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   lookup). Managed-list failure, total lookup rejection, and one rejected game
   in a mixed season are pinned so none can print a trustworthy-looking count.
 
+  **Known open contract (`FILM-01`):** these checks currently prove only the
+  app-recorded-to-folder direction. The next film-state repair must compare the
+  complete durable app clip set with the complete linked-folder video set in both
+  directions. Required fixtures: equal sets, app-only identity, folder-only
+  file, loaded and unloaded in-app deletion, two plays sharing one clip,
+  persistence/reopen, and Undo. No load path may silently prune either set,
+  and linked source files remain coach-owned and must never be deleted by play
+  deletion.
+
 - **Live film-source binding:** `e2e-film-health-realdata` (14) audits the
   registered `2026-varsity-demo` season ("2025 St. Joseph Mavericks - JV")
   against the coach's real film library at `D:\Football\Film`

@@ -82,7 +82,17 @@ managed-film deletion is scoped to the deleted game's own season id.
 
 ## Status
 
-Unsigned local smoke candidate for coach testing. Not accepted, tagged, pushed or
-published state. Home production remains `REJECTED` pending coach review. The
-newly logged Breakdown defects (Field Goal / XP ownership, custom play Add, the
-missing `Option` play) are NOT addressed in this build.
+Coach-smoked on 2026-09-14 and **APPROVED FOR NOW** for continued beta use. The
+three deferred visual findings remain open: Breakdown viewport overflow and
+anonymous scrollbar arrows, insufficient context-selector contrast, and early
+season-rail truncation. This is not tagged, pushed or published state, and Home
+remains formally `REJECTED` in the design registry.
+
+This package predates Repair Batch 1 (`7276d45..7862aa6`). Its Home/game film
+labels do not validate the repaired season-scoped health logic. In particular,
+the installed OL Lakes game may say `fully linked` even though the app records
+`IMG_6690` and the linked folder does not contain it. No surviving play references
+that identity. `FILM-01` now defines the unresolved rule: app and folder clip sets
+must match exactly; a difference in either direction is an error. The Field
+Goal/XP ownership repair is also absent from this build. Custom play Add and the
+missing built-in `Option` remain open.

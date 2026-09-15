@@ -11,12 +11,15 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-85` is the current unsigned local smoke candidate,
+**Packaging status:** `1.12.0-85` is the current unsigned installed beta build,
 packaged from `130962a` — the opponent-scout ownership model and atomic Home
 navigation, reviewed and approved over `2c90b66..c2e088a` with the canonical gate
-at 114/114, zero skipped, zero failed. See `SMOKE-1.12.0-85.md`. The coach's
-installed smoke has NOT been run against it, so nothing here is accepted, tagged,
-pushed or published state, and Home production remains `REJECTED`.
+at 114/114, zero skipped, zero failed. See `SMOKE-1.12.0-85.md`. The coach
+approved that installed checkpoint for continued beta use on 2026-09-14, with
+three deferred visual findings. It is not tagged, pushed or published, and Home
+production remains formally `REJECTED`. Current source through `7862aa6` is newer:
+its build and Batch 1 harness are green (76/76), and Claude reported the canonical
+gate green, but it has not been packaged or installed-smoked.
 
 `1.12.0-84` was the preceding unsigned local smoke candidate,
 packaged from the version bump on top of `501e263`. It is the FIRST package
@@ -27,9 +30,10 @@ film-source/perspective selector, a refused open preserving the outgoing season'
 pending game-delete Undo, and managed-film deletion scoped to the deleted game's
 own season id. Its full canonical gate is green (113 harnesses, 113 green, zero
 skipped, zero failed) and `e2e-p0-exit` was re-run after the bump. The coach's
-installed smoke has NOT been run against it, so nothing here is accepted, tagged,
-pushed or published state, and no surface advances past its current approval
-status — Home production in particular remains `REJECTED`.
+installed smoke was not run against that version; its historical package alone
+established no acceptance. The later installed `1.12.0-85` checkpoint was
+approved for continued beta use. Neither was tagged, pushed or published, and
+Home's formal production status remains `REJECTED`.
 See `SMOKE-1.12.0-84.md`, `SMOKE-1.12.0-83.md` and `docs/OPEN-DEFECTS.md`.
 
 `1.12.0-83` was the preceding unsigned visual-smoke candidate, packaged from
@@ -617,22 +621,26 @@ land under the season open at that moment), every producer threads it, and
 clearing without a season deliberately sweeps every season's entry for that
 game: a stale operation would pin a season on a transient label forever.
 **`Film needs attention` is reserved for film that cannot be COUNTED** — an
-unavailable linked folder or a failed listing. A linked game missing one clip
+unavailable linked folder, failed listing, or rejected health lookup. A linked game missing one clip
 sets `action: 'reconnect'` too, so gating on that action swallowed the count on
 the coach's own season; a partial season prints `N of M games linked`.
 
-**The 2025 JV count is settled: `5 of 6 games linked` (2026-09-15).** The
-library was right and the opened season was wrong. All six games are LINKED
-under `D:\Football\Film`, and OL Lakes (`OLL 13-13`) references 89 clip
-identities against 88 files — `IMG_6690` exists nowhere under `D:\Football`. A
-genuinely absent clip, not a matching defect, and deliberately not "repaired":
-restoring or unlinking a coach clip is the coach's call.
+**The 2025 JV mismatch is explained: the current recorded-set result is `5 of 6
+games linked` (2026-09-15).** All six games are LINKED under `D:\Football\Film`.
+OL Lakes (`OLL 13-13`) records 89 clip identities against 88 files; `IMG_6690`
+exists nowhere under `D:\Football`, and no surviving play references its filename
+or stable catalog id. It is an orphaned durable playlist entry, not missing film
+for a surviving charted play. No coach data was changed.
 `e2e-film-health-realdata` binds the presentation to those real sources,
 read-only, and cannot certify Tauri's own filesystem calls — that stays an
-installed check. Those 89 identities are the same playlist named in the open OLL
-finding (83 charted clip ids against 89 playlist entries); film health reports
-the playlist honestly, and whether the playlist should carry an entry with no
-file behind it is that separate finding's question.
+installed check. The current OL Lakes body has 82 surviving plays and 89 durable
+playlist entries; `IMG_6690` has no surviving play. The active product defect is
+**FILM-01**: linked film is healthy only when the app's durable clip set and the
+folder's video set are exactly equal. Either app-only or folder-only identities
+produce a mismatch; equal sets produce no error. In-app deletion must durably
+remove unreferenced clip identities without deleting coach-owned source files,
+including when film is unloaded, and preserve Undo. Load must not silently prune
+either side. Repair this before rapid-scrubbing state work.
 Every Home/library renderer must consume one resolver and print an explicit
 season result. Regression coverage must use two seasons with reused game IDs.
 Managed-film deletion follows the same identity rule: `deleteFilm(gameId,

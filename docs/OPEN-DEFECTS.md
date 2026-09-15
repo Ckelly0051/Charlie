@@ -1,11 +1,9 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after Repair Batch 1
-> (data correctness) and the Codex review of `3954b03..fb02619`: B1-1 season
-> film-health scoping, B1-2 drive-number possession identity, B1-3 Field Goal /
-> XP authoring ownership, B1-4 in-flight film-operation identity. B1-1 carries
-> SEPARATE statuses for its code fix and its live-data verification. Nothing
-> else in this index changed status.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 through `7862aa6` after
+> Repair Batch 1, its Codex review repairs, and a green canonical gate reported
+> by Claude. `FILM-01` records the remaining clip-set reconciliation defect;
+> repaired Batch 1 items remain below as history until the index is normalized.
 
 ## Coach smoke, 1.12.0-85 (2026-09-14)
 
@@ -60,6 +58,25 @@ Found at the board on the installed visual-smoke candidate.
    fourth Direction vs Strength bucket prints the extractor's own label. The
    same label appears in the Study/tendency pivot, so renaming it in one place
    would split the two surfaces. Coach decision required.
+
+## Film Health
+
+1. **FILM-01 - OPEN - App and linked-folder clip sets are not reconciled in both
+   directions.** Film health currently detects an app-recorded clip missing from
+   the folder, but it does not detect a folder video absent from the app's durable
+   clip index. The deletion workflow can also leave historical clip metadata
+   behind after its play and source file are gone; OL Lakes' orphaned `IMG_6690`
+   is the live example. The binding rule is exact set equality: app-only clips or
+   folder-only videos produce a mismatch; equal sets produce no error. Deleting a
+   play/clip in the app must durably remove that clip identity when no surviving
+   play uses it, including when film is not loaded, while preserving Undo and
+   never deleting the coach-owned source file. External file deletion remains a
+   mismatch until the app record is deliberately removed. Do not silently prune
+   either side during load. Repair the canonical clip-index owner and the shared
+   film-health resolver, then verify matching sets, app-only identities,
+   folder-only files, loaded and unloaded in-app deletion, shared clip references,
+   persistence/reopen, and Undo. This is the first item in Film-State Batch 2,
+   before the rapid-scrubbing failure.
 
 ## Home
 
@@ -119,8 +136,9 @@ authority until a replacement composition is reviewed and approved.
    `e2e-data-correctness-batch1` (76), with distinct managed-list, all-rejected,
    and partially rejected fixtures.
 
-   **B1-1b live-data verification - RESOLVED 2026-09-15. The library was right and
-   the opened season was wrong. The true count is `5 of 6 games linked`.**
+   **B1-1b live-data verification - RESOLVED 2026-09-15. The library's mismatch
+   count was right and the installed game view's `fully linked` state was wrong.
+   The current recorded-set result is `5 of 6 games linked`.**
    Determined by read-only inspection of the installed data and the coach's real
    film library; nothing was relinked, renamed, deleted or rewritten. All six games
    of `2026-varsity-demo` ("2025 St. Joseph Mavericks - JV") are LINKED, not
@@ -139,21 +157,20 @@ authority until a replacement composition is reviewed and approved.
    drives this season's count at all - linked film resolves from the game's own
    `filmDir` under the library root and is deliberately season-independent.
 
-   The gap is a genuinely absent file, not an identity or matching defect:
-   `IMG_6690` is referenced by the OL Lakes game and exists nowhere under
-   `D:\Football` at all, under any path or basename, and is not in that game's
-   leftover managed directory either. **No repair is proposed and none was made** -
-   restoring or unlinking a coach clip is the coach's decision, and the honest
-   presentation of an absent clip is the count the app now prints. Noted in passing
-   and also untouched: `D:\Football\OLL 13-13` (82 entries) sits OUTSIDE the
-   library root as a separate, older copy of that game's film.
+   The unequal identity is `IMG_6690`: it remains in OL Lakes' `clipRefs`,
+   `clipPaths` and `clipNames` as playlist entry 85 of 89, but exists nowhere
+   under `D:\Football` and **no surviving play references either its filename or
+   stable catalog id**. This is an orphaned app clip entry, not missing film for
+   a surviving charted play. No coach data was changed. The active product defect
+   is `FILM-01` below: normal in-app deletion and external folder maintenance must
+   converge on an exact set comparison rather than leaving this contradiction.
+   Noted in passing and also untouched: `D:\Football\OLL 13-13` (82 entries) sits
+   outside the library root as a separate, older copy of that game's film.
 
-   **This connects to the open OLL playlist finding in the Breakdown section**
-   ("83 unique plays, 83 unique charted clip ids, and 89 playlist entries"): the
-   89 expected identities here ARE that playlist, and `IMG_6690` is one of its
-   entries with no file behind it. Film health is therefore reporting the playlist
-   honestly; whether the playlist should carry an entry for a clip that does not
-   exist is that separate finding's question, and it stays open.
+   This is the concrete explanation for the OLL playlist discrepancy: 82
+   surviving plays, 89 recorded playlist entries, and `IMG_6690` has neither a
+   file nor a surviving play. The broader reconciliation defect stays open as
+   `FILM-01`.
 
    Evidence: `e2e-film-health-realdata` (14) reads the installed season body and
    walks the real directories, then asserts the repaired owner prints exactly
@@ -844,10 +861,13 @@ Breakdown film-state defects above.
 
 ## Release Impact
 
-- `1.12.0-80` passed its named installed visual scope but is not an accepted
-  release because the full gate and unrelated defect work remain open.
-- Current Home and every Reports surface remain `REJECTED` in the design
-  approval registry even though `1.12.0-70` remains the last accepted installed
-  release snapshot.
-- Do not package or promote until the active repair scope has been reviewed,
-  gated at the required tier, and smoked in installed WebView2.
+- Installed `1.12.0-85` is **APPROVED FOR NOW** for continued beta use after the
+  2026-09-14 coach smoke; its three deferred visual findings remain open. It
+  predates Repair Batch 1 and therefore cannot validate that source work.
+- Current source through `7862aa6` has a clean build, focused Batch 1 proof at
+  76/76, and a canonical gate reported green by Claude. It is not packaged or
+  installed-smoked. `FILM-01` remains open.
+- Home and every Reports surface remain `REJECTED` in the formal design approval
+  registry; beta smoke acceptance is not formal design approval or publication.
+- Do not package or promote the current source until its active scope is reviewed
+  and the requested installed WebView2 smoke is defined.

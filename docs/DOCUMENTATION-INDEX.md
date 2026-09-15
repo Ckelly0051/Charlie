@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-11.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-15.
 
 ## Current Authority
 
@@ -26,19 +26,20 @@
 
 ## Current Snapshot
 
-- Source version: `1.12.0-80` in all four version owners. Source has advanced
-  past that installer: the shared visual range failed its independent pre-gate
-  review on 2026-09-11 and the repairs are committed but un-packaged, so **no
-  installed build contains current source**.
-- Candidate: unsigned local visual-smoke handoff from `2d67515`, after the
-  global secondary-copy repair in `b534a3f`; focused suites passed, full gate
-  not run, and the candidate is not accepted, tagged, pushed, or published.
-  Its named installed visual scope passed on 2026-09-11.
-- Last accepted installed release snapshot: `1.12.0-70`.
+- Source version: `1.12.0-85` in the four version owners; source HEAD is
+  `7862aa6`. Repair Batch 1 is newer than the installed package.
+- Installed candidate: unsigned `1.12.0-85`, packaged from `130962a` and
+  coach-smoked on 2026-09-14. **Approved for continued beta use**, with three
+  deferred visual findings. Not tagged, pushed, or published.
+- Current source: build clean, focused Batch 1 harness 76/76, and Claude
+  reported a green canonical gate. No installed build contains Batch 1.
+- `FILM-01` is open: app and linked-folder clip sets must agree in both
+  directions. OL Lakes has an orphaned `IMG_6690` app entry and no surviving
+  play referencing it; coach data has not been changed.
 - Current production status: Home and all eight Our Program Reports surfaces are
   `REJECTED`; approved comps remain binding design evidence.
 - Current harness inventory is discovered from `tools/e2e-*.mjs`; do not copy a
-  volatile total into prose. On 2026-09-10 the filesystem contains 109.
+  volatile total into prose.
 - The OLL Reports audit and other unresolved issues are indexed in
   `docs/OPEN-DEFECTS.md`.
 
