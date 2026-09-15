@@ -1,7 +1,21 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-13 after the protected
-> Home consolidation cleanup and full-gate verification.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after Repair Batch 1
+> (data correctness): B1-1 season film-health scoping, B1-2 drive-number
+> possession identity, B1-3 Field Goal / XP authoring ownership. The three are
+> marked REPAIRED in place below; nothing else in this index changed status.
+
+## Coach smoke, 1.12.0-85 (2026-09-14)
+
+**APPROVED FOR NOW.** The installed Scout-ownership checkpoint is accepted for
+continued beta use. Program/season/scout navigation, season-scoped roster behavior,
+and the surrounding Home work are good enough to move forward. This approval does
+not close the three visual findings recorded during the smoke: Breakdown viewport
+overflow and anonymous scrollbar arrows (Breakdown item 10), insufficient contrast
+on the Program/Season/Game context selectors (Breakdown item 11), and premature
+season-rail truncation plus poor long-library scaling (Breakdown item 12). Those
+remain open for a later coordinated visual repair. No latent bug repair is included
+in this approval.
 
 ## Coach smoke, 1.12.0-83 (2026-09-13)
 
@@ -68,19 +82,26 @@ authority until a replacement composition is reviewed and approved.
    latest-season/film-health panel. The 1280px collision found during visual
    inspection is part of the containment contract. TeamHubScreen remains
    the sole service owner for open, create, delete, recovery, and film checks.
-4. **Season film-health counts can be wrong outside the active season.** The
-   coach observed 2025 JV as `5 of 6 games linked` in the season library while
-   the opened season reports all six linked. `TeamHubScreen._verifyFilmHealth`
-   peeks a non-active season's games, then calls `WorkspaceContext.filmHealth`,
-   whose managed-film lookup ultimately builds
-   `seasons/{backend.currentId}/films/{gameId}`. A closed season can therefore be
-   checked against the active backend season, particularly when game IDs are
-   reused. Repair the owner so film health is explicitly season-scoped (season
-   ID plus game ID), read-only for closed seasons, and shared by every Home and
-   library presentation. Always print an explicit result such as `6 of 6 games
-   linked`, `5 of 6 games linked`, or `No film linked`. Add a regression fixture
-   with reused game IDs in two seasons. Do not declare either observed count
-   correct until the actual season-specific film sources are verified.
+4. **B1-1 - REPAIRED 2026-09-15 - Season film-health counts could be wrong
+   outside the active season.** The owning season id is now a first-class
+   argument all the way to the filesystem: `WorkspaceContext.filmHealth(game,
+   seasonId)` passes it to `StorageBackend.listFilmFiles(gameId, seasonId)`,
+   which builds `seasons/{seasonId}/films/{gameId}` from that id rather than
+   `backend.currentId`. Every result carries the `season` it is about, and
+   `TeamHubScreen._aggregateFilm(games, seasonId)` is the one season-scoped
+   result every Home and library presentation consumes (peeks stay read-only).
+   The label is always an explicit count - `6 of 6 games linked`,
+   `5 of 6 games linked`, `No film linked`, `No games yet`; a settled season
+   can no longer sit on a permanent `Checking film...`, which is what one linked
+   game beside one game with no film added used to produce. Evidence:
+   `e2e-data-correctness-batch1` (58) with two seasons reusing game id `g1` and
+   different film on disk, mutation-verified by dropping the season argument -
+   which reproduces the coach's symptom exactly (the closed season reported the
+   OPEN season's film). **Still open, and NOT verified by this repair:** which of
+   the two observed 2025 JV counts is the true one. That needs the actual
+   season-specific film sources inspected on the installed build; no coach film or
+   season record was read or written here. The Tauri directory resolution itself is
+   pinned in source because Chromium cannot exercise the desktop filesystem.
 5. **SUPERSEDED 2026-09-14 — "each side restores its most recently opened
    season" was the defect, not the repair.** The 2026-09-13 entry recorded
    `lastOpened` restoration as the fix for workspace switching. The coach then
@@ -614,16 +635,20 @@ edge-to-edge by design; the top bar's 18px inset is not.
    results including `Gain + Touchdown` and `Penalty + Loss`. Full text remains
    in accessible labels/tooltips, but the visible presentation is incomplete.
    Open visual repair against the accepted Breakdown composition.
-5. **Drive-number grouping conflates the two possession teams.** Breakdown
-   currently groups plays by the raw `driveNumber` tag, so our Drive 1 and the
-   opponent's Drive 1 can appear in the same group even though each team owns
-   its own drive sequence. Use a composite possession-side plus drive-number
-   identity while keeping concise visible labels such as `Our Drive 1` and
-   `Opponent Drive 1`. Audit the Study `Drive` dimension, which also exposes the
-   raw tag, so the repair is shared rather than limited to Breakdown. Add a
-   regression with alternating possessions where both teams have Drive 1 and
-   Drive 2; each team/number pair must remain a distinct group. Reconstructed
-   report possessions use separate logic and should not change without evidence.
+5. **B1-2 - REPAIRED 2026-09-15 - Drive-number grouping conflated the two
+   possession teams.** A drive identity is now possession side plus drive number,
+   owned once in `football-rules.js` (`drivePossessionSide`,
+   `groupPlaysByDrive`, `driveLabel`) and consumed by Breakdown's play strip,
+   the theater chyron and Study's `drive` dimension, so the two surfaces cannot
+   disagree. Labels are `Our Drive 1` / `Opponent Drive 1` on a program season,
+   and `Offense Drive 1` / `Defense Drive 1` on a scout season and in Study,
+   which aggregates across seasons and so cannot claim a perspective. Possession
+   is read from the charted unit ONLY: a special-teams snap joins its surrounding
+   drive of the same number instead of splitting it, and a blank legacy unit keeps
+   the plain `Drive N` rather than being relabeled on no evidence. Reconstructed
+   report possessions use separate logic and are unchanged. Evidence:
+   `e2e-data-correctness-batch1` (58) with alternating possessions where both
+   teams hold Drives 1 and 2, mutation-verified by regrouping on the raw tag.
 6. **Rapid or repeated timeline scrubbing can falsely mark linked film as
    unavailable.** In installed WebView2, moving the playback slider aggressively
    can replace still-visible linked film with the permanent `Film unavailable`
@@ -639,6 +664,77 @@ edge-to-edge by design; the top bar's 18px inset is not.
    the linked source genuinely cannot be reopened. Add event-sequence regression
    coverage plus an installed WebView2 scrub stress smoke, because Chromium's
    media pipeline may not reproduce the native failure.
+7. **B1-3 - REPAIRED 2026-09-15 - The redundant `Field Goal / XP` authoring
+   path could award an opponent XP to us.** The unit is presented as `Field Goal`
+   in the charting deck and the Film Room grid, and nothing can author an extra
+   point through it: the `Attempt` selector is deleted, the screen's `attempt`
+   action key is gone, and the charting service's `stAttempt` writer is deleted
+   rather than narrowed. A new field-goal event is seeded
+   `attemptType: 'fieldGoal'` from one owner,
+   `SpecialTeamsModel.defaultAttemptType(unit)`, so no click is required and the
+   seed is not treated as charted detail by the change-unit warning. `Try` and
+   `Defending a Try` remain the only XP/two-point authoring paths and credit the
+   attempting and defending sides respectively. Read and reporting compatibility
+   is untouched: `SpecialTeamsModel.normalize` still accepts
+   `unit: 'fieldGoal', attemptType: 'extraPoint'`, such a record still scores one
+   point, and no historical data was rewritten. The retired `Scored by Us/Them`
+   control was not restored. Evidence: `e2e-data-correctness-batch1` (58),
+   mutation-verified in both halves (the service writer and the UI selector).
+8. **Adding a custom play from the play library does nothing.** The Add button
+   receives the click, but the action route is dead: no play is created, no
+   library state changes, and no useful error is shown. Trace the rendered Edit
+   Library action through its screen/controller, canonical play-library owner,
+   persistence, and re-render. Repair the broken route without creating a second
+   library store or mutating unrelated coach data. Add a rendered regression that
+   enters a unique custom play name, clicks Add, proves it appears exactly once
+   in the active season/team library and charting choices, then persists across
+   close/reopen. Cover duplicate and blank-name handling explicitly.
+9. **`Option` is missing from the built-in play list.** Add `Option` as a
+   canonical built-in offensive play choice using the existing vocabulary and
+   analytics path. It must be available without creating a custom play, remain
+   distinct from `RPO`, round-trip through persistence/export/import, and appear
+   consistently in Breakdown, Study, and Reports wherever play type is consumed.
+10. **Installed Breakdown sizing overflows the available viewport and exposes
+    anonymous floating scrollbar arrows.** In the 2026-09-14 installed smoke at
+    approximately 1420x1000, the Breakdown theater, play list and tagging deck
+    exceed the window's horizontal budget. The left side of the workspace and
+    global navigation are visibly clipped, internal horizontal tracks appear at
+    the bottom, and their tiny detached arrow controls are technically clickable
+    but give no useful visual indication of what they scroll. Restore explicit
+    responsive column and control budgets so the complete Breakdown workspace
+    fits the installed viewport without page-level or nested horizontal
+    scrolling. Do not solve this by shrinking typography below the approved
+    floor. Preserve usable video area, the play list, and the tagging deck; any
+    intentional collapse/resizer control must use a familiar icon, visible hit
+    target, accessible label, tooltip, and clear state. Add installed-size
+    geometry coverage at the observed viewport plus 1440x900, 1280x720 and the
+    documented wide layout, asserting no clipped global navigation, no horizontal
+    overflow, and no anonymous arrow-only controls.
+11. **The Program, Season and Game context selectors blend into their surrounding
+    bar.** Their size and structure are acceptable, but the selector surfaces use
+    nearly the same graphite value as the context bar, so the three dropdowns read
+    as labels rather than interactive controls. Apply one shared neutral control
+    surface that is visibly distinct from its surroundings while remaining inside
+    the approved non-blue graphite palette. Preserve the established typography,
+    widths, caret treatment and active route hierarchy. Use the same token and
+    interaction states for all three selectors, with accessible hover, focus and
+    disabled contrast, and verify the change anywhere the shared context bar is
+    rendered rather than patching Breakdown alone.
+12. **The Home rail gives static utilities too much permanent height and starts
+    truncating season navigation with only three seasons.** Program Seasons is
+    forced into a short internal scroll region while the lower roster, storage,
+    setup, edit and program-management actions reserve a much larger block. The
+    primary navigation should receive the rail's flexible vertical space; compact
+    utility actions remain anchored below it without dictating an oversized
+    allocation. Three ordinary seasons must render without an internal scrollbar
+    at the observed installed height. Design for 8-10 seasons with year-group
+    disclosure: keep the active/current year expanded, allow older years to
+    collapse, preserve the selected season in view, and introduce scrolling only
+    after the available navigation region is genuinely consumed. Program seasons
+    and opponent scouts must remain distinct and reachable, with visible counts
+    and keyboard-accessible disclosure controls. Add installed viewport coverage
+    for 3, 8 and 10 seasons and verify that static actions neither crowd out nor
+    overlap the season tree.
 
 ## Closed Visual Baseline
 

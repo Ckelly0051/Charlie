@@ -201,6 +201,26 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   replacement asserts the parent stays open, nothing is auto-opened, and the list
   is parent-scoped. Their retirement reasoning is recorded beside each one.
 
+- **Repair Batch 1 data correctness:** `e2e-data-correctness-batch1` (58) is the
+  contract harness for three defects, each mutation-verified. **Season film
+  health** — a two-season fixture reusing game id `g1` with different film on
+  disk, proving `WorkspaceContext.filmHealth(game, seasonId)` and
+  `StorageBackend.listFilmFiles(gameId, seasonId)` carry the owning season to
+  the lookup, that every result states the season it is about, and that the
+  Home/library aggregate always prints an explicit `N of M games linked`. The
+  Tauri directory resolution itself is pinned in SOURCE, because Chromium cannot
+  exercise the desktop filesystem — that half still needs an installed check.
+  **Drive grouping** — alternating possessions where both teams hold Drives 1
+  and 2 must produce four groups with distinct identities in the shared owner,
+  in Breakdown's play strip, and in Study's `drive` dimension; a special-teams
+  snap joins its surrounding drive and a blank unit keeps the plain label.
+  **Field Goal / XP** — no authoring route can store `attemptType:'extraPoint'`
+  on a field-goal unit, both try directions credit the right team, and a
+  historical `unit:'fieldGoal', attemptType:'extraPoint'` record still reads and
+  still scores one point. The UI half is asserted against the owning source, not
+  the minified bundle: `Extra Point` legitimately survives there as a Study
+  dimension label, so a bundle-text search cannot discriminate.
+
 - **Roster ownership:** `e2e-roster-ownership` (71) is the contract harness —
   cross-team and cross-season isolation, empty-stays-empty across switching and
   reload, same-season sharing with no game-level copies, game creation neither

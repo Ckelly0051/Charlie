@@ -286,6 +286,39 @@ These are invariants, not preferences. Every one is enforced in current source.
   is read-only; `tools/normalize-roster-ownership.mjs` writes only behind
   `--apply`, only after verifying identity from stable game ids.
 
+**A drive belongs to a possession, not to a number.** Each team runs its own
+drive sequence, so a drive identity is possession SIDE plus drive number.
+`football-rules.js` owns it once — `drivePossessionSide()`,
+`groupPlaysByDrive()`, `driveLabel()` — and Breakdown's play strip, the theater
+chyron and Study's `drive` dimension all consume that owner, so the surfaces
+cannot disagree. Grouping on the raw `driveNumber` tag put our Drive 1 and the
+opponent's Drive 1 in one group. Labels are `Our Drive 1` / `Opponent Drive 1`
+on a program season and `Offense Drive 1` / `Defense Drive 1` on a scout season
+and in Study, which aggregates across seasons and so cannot claim a perspective.
+**Possession is read from the charted unit ONLY.** Legacy `stType` carries no
+perspective and field position carries no proven owner, so a special-teams snap
+has no side: it joins the surrounding drive of the same number rather than
+splitting it, and it can never merge two known sides. A blank legacy unit keeps
+the plain `Drive N` — analytics default a blank to offense for cohort
+membership, but relabeling an all-legacy game `Our Drive N` would assert
+possession nobody charted. `StatsEngine._reconstructDrives` is separate logic
+for reports and is unchanged.
+
+**Extra points are authored ONLY under `Try` and `Defending a Try`.** The unit
+formerly labeled `Field Goal / XP` is `Field Goal`, and no route can store
+`attemptType:'extraPoint'` on it: the `Attempt` selector, the screen's
+`attempt` action key and the charting service's `stAttempt` writer are all
+DELETED, not narrowed. `unit:'fieldGoal'` is always "the subject attempting"
+(`SpecialTeamsModel.ROLES`), so an opponent extra point charted there scored for
+us — the try units encode the attempting side and credit subject and opponent
+correctly. A new field-goal event is seeded `fieldGoal` from the one owner,
+`SpecialTeamsModel.defaultAttemptType(unit)`, so nothing has to be chosen and
+the seed is not treated as charted detail by the change-unit warning. **Read
+compatibility is a contract:** `normalize` still accepts
+`unit:'fieldGoal', attemptType:'extraPoint'`, such a record still scores its one
+point through every report, and no historical data is rewritten. The retired
+`Scored by Us/Them` control stays retired.
+
 **Add Game asks for no analytics perspective.** The selector labeled `Film
 source` is deleted, not renamed. It wrote `perspective`, and its
 `Opponent film · Scout` option made a PROGRAM season produce a scout game —
@@ -565,9 +598,17 @@ TeamHubScreen still owns create/open/delete/recovery and film-health behavior.
 Focused Home proof asserts Home-owned rows, no borrowed Team Hub row markup, the
 summary panel, usable desktop row width, and no overflow at 1920/1440/1280.
 
-Home's film-health contract is season-scoped. A health lookup for managed film
-must carry both season ID and game ID all the way to the filesystem path; a
-peeked non-active season may not inherit `backend.currentId`. The observed 2025
+**Home's film-health contract is season-scoped, and that is now implemented.**
+`WorkspaceContext.filmHealth(game, seasonId)` carries the owning season to
+`StorageBackend.listFilmFiles(gameId, seasonId)`, which builds
+`seasons/{seasonId}/films/{gameId}` from that id; every result states the
+`season` it is about, and `TeamHubScreen._aggregateFilm(games, seasonId)` is the
+one season-scoped result Home and the library both consume. A peeked non-active
+season may not inherit `backend.currentId`. The aggregate label is always an
+explicit count (`6 of 6 games linked`, `5 of 6 games linked`, `No film linked`,
+`No games yet`) — a settled season may never rest on the transient
+`Checking film…`, which one linked game beside one game with no film added used
+to produce. Only a genuinely in-flight check is `checking`. The observed 2025
 JV mismatch (`5 of 6 games linked` in the library versus six linked in opened
 Home) remains unresolved until the actual season-specific sources are verified.
 Every Home/library renderer must consume one resolver and print an explicit

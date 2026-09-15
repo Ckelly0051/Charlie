@@ -20,7 +20,7 @@ The first choice is the unit being evaluated:
 - Kick Return
 - Punt
 - Punt Return
-- Field Goal / Extra Point
+- Field Goal
 - Field Goal Block
 
 That choice tells GridIron IQ whether the analytics subject is kicking,
@@ -149,8 +149,11 @@ play.specialTeams = {
 - `unit` is coach-facing and intentionally distinguishes Kickoff from Kick
   Return and Punt from Punt Return. `subjectRole` is stored explicitly so
   analytics do not have to parse a label.
-- `attemptType` distinguishes Field Goal from Extra Point even on a miss, when
-  no scoring value exists. Two-point tries use the dedicated `try` / `tryDefense`
+- `attemptType` is `fieldGoal` on every event of the field-goal units, seeded
+  at creation (`SpecialTeamsModel.defaultAttemptType`) rather than chosen, so no
+  authoring path can store an extra point there: `unit:'fieldGoal'` is always the
+  subject attempting, which credited an opponent XP to us. Extra points and
+  two-point tries use the dedicated `try` / `tryDefense`
   amendment in §4b; they are never stored as field-goal events.
 - `outcome.status` describes ball state or attempt disposition only. It never
   stores touchdown or safety; `score` is the one scoring-event field.
@@ -184,7 +187,8 @@ this app.
 
 **The Phase 4E structured redesign dropped it.** `SpecialTeamsModel` defines six
 units — kickoff, kickoffReturn, punt, puntReturn, fieldGoal, fieldGoalBlock —
-and no 2-Pt. `attemptType` accepts only `fieldGoal | extraPoint`. The
+and no 2-Pt. `attemptType` still READS `fieldGoal | extraPoint` for compatibility with
+historical records, but only `fieldGoal` can be authored. The
 phase-first form offers those six and hides the legacy chips as
 `.bdv-st-legacy`.
 
@@ -704,16 +708,19 @@ timing, style, and player detail can expand without leaving the play.
 - Possession spot, return yards, end spot
 - Returner, blocker, recoverer
 
-### Field Goal / Extra Point
+### Field Goal
 
-- Attempt type: Field Goal or Extra Point
+- Attempt type is not asked: this unit attempts a field goal. Extra points and
+  two-point tries are charted under Try / Defending a Try (§4b), which encode
+  the attempting side.
 - Attempt distance and optional operation time
 - Outcome: Good, No Good, Blocked, Bad Snap, Fake
 - Kicker, holder, snapper, blocker when known
 
 ### Field Goal Block
 
-- Opponent attempt type and distance
+- Opponent attempt distance (a field-goal attempt; a blocked try is charted
+  under Defending a Try)
 - Outcome: Good, No Good, Blocked, Bad Snap, Fake
 - Blocker, recoverer, returner, return yards/end spot when applicable
 
