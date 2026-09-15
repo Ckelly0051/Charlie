@@ -608,9 +608,31 @@ season may not inherit `backend.currentId`. The aggregate label is always an
 explicit count (`6 of 6 games linked`, `5 of 6 games linked`, `No film linked`,
 `No games yet`) — a settled season may never rest on the transient
 `Checking film…`, which one linked game beside one game with no film added used
-to produce. Only a genuinely in-flight check is `checking`. The observed 2025
-JV mismatch (`5 of 6 games linked` in the library versus six linked in opened
-Home) remains unresolved until the actual season-specific sources are verified.
+to produce. Only a genuinely in-flight check is `checking`, and **an in-flight
+operation is itself identified by season AND game** — keyed by game id alone, a
+save in the open season made every other season reusing that id report
+`Checking film…` over its own settled count. `WorkspaceContext.operationKey`
+owns that key, the season is captured when the operation STARTS (film writes
+land under the season open at that moment), every producer threads it, and
+clearing without a season deliberately sweeps every season's entry for that
+game: a stale operation would pin a season on a transient label forever.
+**`Film needs attention` is reserved for film that cannot be COUNTED** — an
+unavailable linked folder or a failed listing. A linked game missing one clip
+sets `action: 'reconnect'` too, so gating on that action swallowed the count on
+the coach's own season; a partial season prints `N of M games linked`.
+
+**The 2025 JV count is settled: `5 of 6 games linked` (2026-09-15).** The
+library was right and the opened season was wrong. All six games are LINKED
+under `D:\Football\Film`, and OL Lakes (`OLL 13-13`) references 89 clip
+identities against 88 files — `IMG_6690` exists nowhere under `D:\Football`. A
+genuinely absent clip, not a matching defect, and deliberately not "repaired":
+restoring or unlinking a coach clip is the coach's call.
+`e2e-film-health-realdata` binds the presentation to those real sources,
+read-only, and cannot certify Tauri's own filesystem calls — that stays an
+installed check. Those 89 identities are the same playlist named in the open OLL
+finding (83 charted clip ids against 89 playlist entries); film health reports
+the playlist honestly, and whether the playlist should carry an entry with no
+file behind it is that separate finding's question.
 Every Home/library renderer must consume one resolver and print an explicit
 season result. Regression coverage must use two seasons with reused game IDs.
 Managed-film deletion follows the same identity rule: `deleteFilm(gameId,

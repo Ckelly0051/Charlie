@@ -1,9 +1,11 @@
 # GridIron IQ Open Defects
 
 > **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after Repair Batch 1
-> (data correctness): B1-1 season film-health scoping, B1-2 drive-number
-> possession identity, B1-3 Field Goal / XP authoring ownership. The three are
-> marked REPAIRED in place below; nothing else in this index changed status.
+> (data correctness) and the Codex review of `3954b03..fb02619`: B1-1 season
+> film-health scoping, B1-2 drive-number possession identity, B1-3 Field Goal /
+> XP authoring ownership, B1-4 in-flight film-operation identity. B1-1 carries
+> SEPARATE statuses for its code fix and its live-data verification. Nothing
+> else in this index changed status.
 
 ## Coach smoke, 1.12.0-85 (2026-09-14)
 
@@ -97,11 +99,83 @@ authority until a replacement composition is reviewed and approved.
    `e2e-data-correctness-batch1` (58) with two seasons reusing game id `g1` and
    different film on disk, mutation-verified by dropping the season argument -
    which reproduces the coach's symptom exactly (the closed season reported the
-   OPEN season's film). **Still open, and NOT verified by this repair:** which of
-   the two observed 2025 JV counts is the true one. That needs the actual
-   season-specific film sources inspected on the installed build; no coach film or
-   season record was read or written here. The Tauri directory resolution itself is
-   pinned in source because Chromium cannot exercise the desktop filesystem.
+   OPEN season's film). No coach film or season record was read
+   or written by that repair.
+
+   **B1-1a code fix - REPAIRED 2026-09-15.** The season-scoped managed lookup
+   above, plus one further repair the live audit below exposed: `Film needs
+   attention` was gated on a per-game `action === 'reconnect'`, which a LINKED
+   game missing a single clip also sets - so a season that could be counted
+   perfectly well reported a state instead of its count. That label is now
+   reserved for film that cannot be COUNTED: an unreachable linked folder, or a
+   listing that failed.
+
+   **B1-1b live-data verification - RESOLVED 2026-09-15. The library was right and
+   the opened season was wrong. The true count is `5 of 6 games linked`.**
+   Determined by read-only inspection of the installed data and the coach's real
+   film library; nothing was relinked, renamed, deleted or rewritten. All six games
+   of `2026-varsity-demo` ("2025 St. Joseph Mavericks - JV") are LINKED, not
+   managed, and resolve under `D:\Football\Film`:
+
+   | game | film folder | expected | on disk | state |
+   |---|---|---|---|---|
+   | St. Peter Lutheran Patriots | `St Peter 41-0` | 69 | 69 | linked |
+   | ND Prep Fighting Irish | `Marist 8-6-2025` | 79 | 79 | linked |
+   | OL Refuge Ravens | `Refuge 7-13` | 81 | 81 | linked |
+   | OL Sorrows Lancers | `Sorrows 18-6` | 72 | 72 | linked |
+   | **OL Lakes Lakers** | `OLL 13-13` | **89** | **88** | **missing 1** |
+   | Holy Family Wildcats | `Holy Family` | 81 | 81 | linked |
+
+   Because every game is linked, the managed season-scoping repair is not what
+   drives this season's count at all - linked film resolves from the game's own
+   `filmDir` under the library root and is deliberately season-independent.
+
+   The gap is a genuinely absent file, not an identity or matching defect:
+   `IMG_6690` is referenced by the OL Lakes game and exists nowhere under
+   `D:\Football` at all, under any path or basename, and is not in that game's
+   leftover managed directory either. **No repair is proposed and none was made** -
+   restoring or unlinking a coach clip is the coach's decision, and the honest
+   presentation of an absent clip is the count the app now prints. Noted in passing
+   and also untouched: `D:\Football\OLL 13-13` (82 entries) sits OUTSIDE the
+   library root as a separate, older copy of that game's film.
+
+   **This connects to the open OLL playlist finding in the Breakdown section**
+   ("83 unique plays, 83 unique charted clip ids, and 89 playlist entries"): the
+   89 expected identities here ARE that playlist, and `IMG_6690` is one of its
+   entries with no file behind it. Film health is therefore reporting the playlist
+   honestly; whether the playlist should carry an entry for a clip that does not
+   exist is that separate finding's question, and it stays open.
+
+   Evidence: `e2e-film-health-realdata` (14) reads the installed season body and
+   walks the real directories, then asserts the repaired owner prints exactly
+   `5 of 6 games linked` and that every per-game count matches its own source. It
+   is read-only and skips honestly when the data is absent.
+
+   **STILL NOT VERIFIED, and only an installed run can be:** Tauri's own
+   `fs.readDir` / `exists` inside WebView2. The audit reads the same paths with
+   Node and the managed directory resolution is pinned in source, but Chromium
+   cannot exercise the desktop filesystem - so "the installed app sees these same
+   files" is asserted, not proven.
+4b. **B1-4 - REPAIRED 2026-09-15 - In-flight film operations were keyed by game
+   id alone.** Found by Codex reviewing `3954b03..fb02619`: the same identity
+   defect as B1-1, one layer up. A save or repair running in the open season made
+   every OTHER season that reuses that game id report `Checking film…` instead of
+   its own settled count, because `filmHealth` found the operation under the bare
+   game id. Operations are now keyed `season::game`
+   (`WorkspaceContext.operationKey`), the season is captured when the operation
+   STARTS - film writes land under the season open at that moment, so that is the
+   owner even if the coach navigates away mid-write - and every producer threads
+   it: `_showFilmImportProgress(done, total, operation, gameId, seasonId)` and all
+   three `storage.js` write paths pin their season before the await. Clearing is
+   deliberately asymmetric and fail-SAFE: with an explicit season it removes that
+   one entry, without one it removes every season's entry for that game, because a
+   stale operation is worse than an extra delete - it would pin a season on a
+   transient label forever. Evidence: `e2e-data-correctness-batch1` (73), a
+   two-season reused-id fixture covering the scoped read, the explicit clear, the
+   sweep and the create-time default, with the producers pinned in source;
+   mutation-verified by reverting to bare-game-id keying, which reproduces the
+   reported symptom exactly.
+
 5. **SUPERSEDED 2026-09-14 — "each side restores its most recently opened
    season" was the defect, not the repair.** The 2026-09-13 entry recorded
    `lastOpened` restoration as the fix for workspace switching. The coach then

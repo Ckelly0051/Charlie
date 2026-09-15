@@ -201,7 +201,7 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   replacement asserts the parent stays open, nothing is auto-opened, and the list
   is parent-scoped. Their retirement reasoning is recorded beside each one.
 
-- **Repair Batch 1 data correctness:** `e2e-data-correctness-batch1` (58) is the
+- **Repair Batch 1 data correctness:** `e2e-data-correctness-batch1` (73) is the
   contract harness for three defects, each mutation-verified. **Season film
   health** — a two-season fixture reusing game id `g1` with different film on
   disk, proving `WorkspaceContext.filmHealth(game, seasonId)` and
@@ -220,6 +220,29 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   still scores one point. The UI half is asserted against the owning source, not
   the minified bundle: `Extra Point` legitimately survives there as a Study
   dimension label, so a bundle-text search cannot discriminate.
+  **In-flight film operations** are keyed by season AND game: a save running in
+  one season must not make another season that reuses the game id report
+  "Checking film…" over its own settled count. Covered on a two-season reused-id
+  fixture, with the explicit-season clear, the no-season fail-safe sweep, and the
+  create-time season default; the producers are pinned in source, because a
+  caller that stops threading the season reopens the hole where no in-page
+  assertion can see it. **A linked season missing one clip prints its count**,
+  not `Film needs attention` — that label is reserved for film that cannot be
+  COUNTED (an unreachable folder, a failed listing).
+
+- **Live film-source binding:** `e2e-film-health-realdata` (14) audits the
+  registered `2026-varsity-demo` season ("2025 St. Joseph Mavericks - JV")
+  against the coach's real film library at `D:\Football\Film`
+  (`GIQ_FILM_LIBRARY_ROOT` overrides) and asserts the repaired owner prints the
+  count those sources actually support. It is READ-ONLY: it reads the installed
+  season body and walks the film directories, never writes, renames, relinks or
+  deletes, and never touches the backend the running app uses. Per-game truth is
+  computed in Node from the app's own `_expected` / `_identity` /
+  `listLinkedFilm` rules, then fed to the real in-page `filmHealth` and
+  `_aggregateFilm` through a stub returning those real listings. **It cannot
+  certify Tauri's own `fs.readDir`/`exists` inside the installed WebView2
+  build** — that stays an installed check. Skips honestly when the season body
+  or the library root is absent, and a skipped run certifies nothing.
 
 - **Roster ownership:** `e2e-roster-ownership` (71) is the contract harness —
   cross-team and cross-season isolation, empty-stays-empty across switching and
