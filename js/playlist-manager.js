@@ -522,6 +522,19 @@ export class PlaylistManager {
   /**
    * Switch the video player to show a specific clip by index.
    */
+  /** Point the tagger at a play WITHOUT re-seeking — the caller has already
+   *  loaded the media. One owner, because the undo reconcile has to restore the
+   *  selection `switchToClip` would otherwise overwrite. */
+  _selectPlayNoSeek(playId) {
+    if (playId == null) return false;
+    this.tagger.currentPlayId = playId;
+    const play = this.tagger.getPlay(playId);
+    if (!play) return false;
+    this.tagger._loadTagForm(play);
+    this.tagger._emit('play-selected', play);
+    return true;
+  }
+
   switchToClip(index) {
     if (index < 0 || index >= this.clips.length) return;
 
@@ -550,15 +563,7 @@ export class PlaylistManager {
     this.vc.placeholder.classList.add('hidden');
 
     // Select the associated play in the tagger
-    if (clip.playId !== null) {
-      // Use internal method to avoid re-seeking since we just loaded
-      this.tagger.currentPlayId = clip.playId;
-      const play = this.tagger.getPlay(clip.playId);
-      if (play) {
-        this.tagger._loadTagForm(play);
-        this.tagger._emit('play-selected', play);
-      }
-    }
+    if (clip.playId !== null) this._selectPlayNoSeek(clip.playId);
 
     this._preloadNext(index);
     this._updatePlaylistUI();
@@ -665,15 +670,26 @@ export class PlaylistManager {
    * `plays-loaded`, and sweeping live clips on that signal would tear down a
    * freshly loaded playlist. `reset()` clears the stash, and it runs before that
    * event, so an incoming game starts with nothing to reconcile.
+   *
+   * The SELECTION is History's, not this method's. `switchToClip` selects
+   * whatever clip it loads, so switching to the adjacent clip that happened to
+   * be active after the deletion overwrote the play History had just restored —
+   * Undo put the clip back and then landed the coach on the next play. The
+   * restored play's own clip is preferred as the switch target, and where the
+   * target has to be some other clip its selection is put back afterwards.
    */
   _reconcileUndoClips() {
     if (!this._undoClips.size) return false;
     const live = new Set((this.tagger.plays || []).map(p => p.id));
     const storage = window.app?.storage;
+    // Pinned before any splice: this is the play HistoryManager restored.
+    const restoredPlayId = this.tagger.currentPlayId;
+    let restoredClip = null;
     let changed = false;
     for (const [playId, entry] of this._undoClips) {
       const wanted = live.has(playId);
       if (wanted && entry.removed) {
+        if (playId === restoredPlayId) restoredClip = entry.clip;
         const at = Math.max(0, Math.min(entry.index, this.clips.length));
         this.clips.splice(at, 0, entry.clip);
         if (this.activeClipIndex >= at) this.activeClipIndex += 1;
@@ -698,7 +714,19 @@ export class PlaylistManager {
       }
     }
     if (!changed) return false;
-    if (this.clips.length && this.activeClipIndex >= 0) this.switchToClip(Math.min(this.activeClipIndex, this.clips.length - 1));
+    if (this.clips.length) {
+      // Prefer the restored play's own clip, so the film and the selection agree.
+      const restoredAt = restoredClip ? this.clips.indexOf(restoredClip) : -1;
+      if (restoredAt !== -1) {
+        this.switchToClip(restoredAt);
+      } else if (this.activeClipIndex >= 0) {
+        this.switchToClip(Math.min(this.activeClipIndex, this.clips.length - 1));
+        // That switch selected its own clip's play. History's selection wins.
+        if (restoredPlayId != null && live.has(restoredPlayId) && this.tagger.currentPlayId !== restoredPlayId) {
+          this._selectPlayNoSeek(restoredPlayId);
+        }
+      }
+    }
     this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
     this._updateClipCount();

@@ -195,9 +195,16 @@ const result = await page.evaluate(async () => {
     out.undoClipAfterDelete = playlist.clips.map(c => c.clipPath);
     out.undoIndexAfterDelete = ids();
     out.undoStashSize = playlist._undoClips.size;
+    out.selectionAfterDelete = tagger.currentPlayId;
     const didUndo = app.history?.undo?.();
     out.undoClipReturned = didUndo === true;
     out.undoClipAfterUndo = playlist.clips.map(c => c.clipPath);
+    // The selection is History's. switchToClip() selects whatever clip it loads,
+    // so the reconcile must land on the RESTORED play, not the adjacent clip
+    // that happened to be active after the deletion.
+    out.undoSelection = tagger.currentPlayId;
+    out.undoActiveClip = playlist.clips[playlist.activeClipIndex]?.clipPath || '';
+    out.undoFormPlay = tagger.getPlay(tagger.currentPlayId)?.clipPath || '';
     out.undoClipPlayable = playlist.clips[0]
       ? !!(playlist.clips[0].assetUrl || playlist.clips[0].objectUrl || playlist.clips[0].file) : false;
     // `objectUrl` is a recreatable CACHE, not the clip's playability:
@@ -215,6 +222,12 @@ const result = await page.evaluate(async () => {
     out.redoReturned = didRedo === true;
     out.redoClips = playlist.clips.map(c => c.clipPath);
     out.redoIndex = ids();
+    // Redo restores the snapshot the deletion produced, whose selection is
+    // cleared, so the neighbouring clip's own play is the honest selection here.
+    out.redoSelection = tagger.currentPlayId;
+    out.redoSelectionSurvives = (tagger.plays || []).some(p => p.id === tagger.currentPlayId);
+    out.redoActiveClip = playlist.clips[playlist.activeClipIndex]?.clipPath || '';
+    out.redoSelectedClip = tagger.getPlay(tagger.currentPlayId)?.clipPath || '';
     // The stash belongs to the outgoing game: a switch clears it, so Undo can
     // never inject a clip into a different game's playlist.
     playlist.reset();
@@ -345,8 +358,18 @@ ok(result.undoClipSource,
   'The restored clip still carries the source its URL is rebuilt from', result.undoClipSource);
 ok(same(result.undoIndexAfterUndo, ['c1', 'c2', 'c3']) && same(result.undoPlaysAfterUndo, [1, 2, 3]),
   'The durable record comes back with it', [result.undoIndexAfterUndo, result.undoPlaysAfterUndo]);
+ok(result.undoSelection === 1,
+  'Undo selects the play it restored, not the adjacent one', [result.selectionAfterDelete, result.undoSelection]);
+ok(result.undoActiveClip === 'c1',
+  'The active clip is the restored play\'s own clip, so film and selection agree', result.undoActiveClip);
+ok(result.undoFormPlay === 'c1',
+  'The tag form holds that same restored play', result.undoFormPlay);
 ok(result.redoReturned && same(result.redoClips, ['c2', 'c3']) && same(result.redoIndex, ['c2', 'c3']),
   'Redo takes the clip and its record away again', [result.redoClips, result.redoIndex]);
+ok(result.redoSelectionSurvives && result.redoSelection !== 1
+  && result.redoSelectedClip === result.redoActiveClip,
+  'Redo leaves a surviving play selected, on that play\'s own clip',
+  [result.redoSelection, result.redoSelectedClip, result.redoActiveClip]);
 ok(result.stashClearedByReset === 0,
   'A game switch clears the stash, so Undo cannot cross into another game', result.stashClearedByReset);
 
