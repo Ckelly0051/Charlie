@@ -205,7 +205,7 @@ function Penalties({screen, state}) {
 // Exported so the theater chyron (breakdown-theater-screen.js) can compose the
 // live lower-third from these SAME canonical coach-facing labels instead of a
 // second, independently-drifting copy of the vocabulary.
-export const ST_UNITS = [['kickoff','Kickoff'],['kickoffReturn','Kick Return'],['punt','Punt'],['puntReturn','Punt Return'],['fieldGoal','Field Goal / XP'],['fieldGoalBlock','Field Goal Block'],['try','Try'],['tryDefense','Defending a Try']];
+export const ST_UNITS = [['kickoff','Kickoff'],['kickoffReturn','Kick Return'],['punt','Punt'],['puntReturn','Punt Return'],['fieldGoal','Field Goal'],['fieldGoalBlock','Field Goal Block'],['try','Try'],['tryDefense','Defending a Try']];
 export const ST_OUTCOMES = {
   kickoff:[['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['outOfBounds','Out of Bounds'],['recovered','Recovered']],
   kickoffReturn:[['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['muffed','Muffed'],['outOfBounds','Out of Bounds']],
@@ -265,7 +265,6 @@ function SpecialTeams({screen, state}) {
   const kickFields = st && ['kickoff','punt','fieldGoal','fieldGoalBlock'].includes(st.unit);
   const landingFields = st && ['kickoff','kickoffReturn','punt','puntReturn'].includes(st.unit);
   const returnFields = st && ['kickoff','kickoffReturn','punt','puntReturn','fieldGoalBlock'].includes(st.unit);
-  const isKickAttempt = st && ['fieldGoal','fieldGoalBlock'].includes(st.unit);
   const scoreChoices = st?.unit === 'fieldGoal' ? [] : [['touchdown','Touchdown'],['safety','Safety']];
   const needsOwner = st && (st.outcome.score === 'safety' || st.outcome.scoredBy === 'unknown');
   const needsRecovery = st && (['recovered','muffed','blocked'].includes(st.outcome.status) || (st.outcome.score === 'touchdown' && ['kickoff','fieldGoalBlock'].includes(st.unit)));
@@ -275,7 +274,11 @@ function SpecialTeams({screen, state}) {
     {state.legacySpecial && <p class="gi-tag-warning">Legacy Special Teams details are uncharted.</p>}
     <Choice label="Unit" value={st?.unit} options={ST_UNITS} choose={value => screen.setSpecialUnit(value)}/>
     {isTry ? <TryEditor screen={screen} state={state} st={st}/> : st && <>
-      {isKickAttempt && <Choice label="Attempt" value={st.attemptType} options={[['fieldGoal','Field Goal'],['extraPoint','Extra Point']]} choose={v => screen.specialAction('attempt',v)}/>}
+      {/* No Attempt selector. The field-goal units attempt a field goal, and
+          nothing here can author an extra point: `unit:'fieldGoal'` is always
+          the subject attempting, so an opponent XP charted through it scored
+          for us. XP and two-point tries are charted under Try / Defending a
+          Try, which encode the attempting side. */}
       <Choice label="Outcome" value={st.outcome.status} options={ST_OUTCOMES[st.unit] || []} choose={v => screen.specialAction('status',v)}/>
       <div class="gi-tag-grid">
         {st.unit === 'kickoff' && <Choice label="Type" value={st.isOnside ? 'isOnside' : ''} options={[['isOnside','Onside']]} choose={() => screen.specialAction('toggle','isOnside')}/>}

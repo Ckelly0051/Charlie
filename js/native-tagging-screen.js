@@ -221,7 +221,7 @@ export class NativeTaggingScreen {
   penaltySituation(field,value,checked=false) { return this.app.breakdownCharting?.penaltySituation?.(field,value,checked) === true; }
   setSpecialUnit(value) { return this.app.breakdownCharting?.setSpecialUnit?.(value); }
   specialAction(key,value) {
-    const map={status:'stOutcome',attempt:'stAttempt',score:'stScore',owner:'stOwner',recovery:'stRecovery',toggle:'stToggle',spot:'stSpotSide',tryAttempt:'stTryAttempt',tryResult:'stTryResult',tryEvent:'stTryEvent',tryTurnover:'stTryTurnover',tryScore:'stTryScore',returnAward:'stReturnAward'};
+    const map={status:'stOutcome',score:'stScore',owner:'stOwner',recovery:'stRecovery',toggle:'stToggle',spot:'stSpotSide',tryAttempt:'stTryAttempt',tryResult:'stTryResult',tryEvent:'stTryEvent',tryTurnover:'stTryTurnover',tryScore:'stTryScore',returnAward:'stReturnAward'};
     const dataKey=map[key];
     return dataKey ? this.app.breakdownCharting?.specialAction?.(dataKey,value) === true : false;
   }

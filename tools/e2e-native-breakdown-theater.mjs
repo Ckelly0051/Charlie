@@ -49,7 +49,11 @@ const mounted = await page.evaluate(async () => {
 ok(mounted.didMount && mounted.native === 1 && mounted.sameMedia, 'One native theater adopts the one canonical media node', JSON.stringify(mounted));
 ok(!mounted.legacyControls, 'Native theater owns its controls and strip instead of legacy chrome');
 ok(mounted.dataSame, 'Mounting the theater is a season-data no-op');
-ok(mounted.cards === 12 && mounted.drives.join('|') === 'Drive 1|Drive 2|No drive', 'Strip preserves order and groups plays by drive', JSON.stringify(mounted));
+// Drive identity is possession side + number (B1-2), so the strip's headings
+// are side-qualified. The fixture charts only offensive snaps, which is why
+// every numbered drive here is ours; the two-team case is
+// e2e-data-correctness-batch1's subject.
+ok(mounted.cards === 12 && mounted.drives.join('|') === 'Our Drive 1|Our Drive 2|No drive', 'Strip preserves order and groups plays by drive with its possession side', JSON.stringify(mounted));
 
 let state = await page.evaluate(() => {
   document.querySelector('[data-drive-scroll]').style.maxWidth = '500px';

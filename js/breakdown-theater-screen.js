@@ -1,6 +1,7 @@
 import { TagProjection } from './tag-projection.js';
 import { StatsEngine } from './stats-engine.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { groupPlaysByDrive, drivePossessionSide, driveLabel, driveNumberOf } from './football-rules.js';
 import { ST_UNITS, ST_OUTCOMES, TRY_RESULT_LABELS } from './native-tagging.jsx';
 import { mountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
 
@@ -150,7 +151,11 @@ export class BreakdownTheaterScreen {
       currentPlayId: current?.id ?? null,
       currentLabel: current ? this._cardLabel(current) : 'No play selected',
       currentNotes: current?.notes || '',
-      currentDrive: current?.tags?.driveNumber || '',
+      // The full drive label, so the theater names the same possession the
+      // play strip groups it under rather than a bare number both teams share.
+      currentDrive: current && driveNumberOf(current.tags)
+        ? driveLabel(drivePossessionSide(current.tags), driveNumberOf(current.tags), this._driveLabelMode())
+        : '',
       chyron: this._chyron(current),
       // V2-H: the play strip only ever reads this count (its header line),
       // never the array itself -- mapping every play through _playView here
@@ -437,20 +442,17 @@ export class BreakdownTheaterScreen {
     return { situation, call, result: raw ? `${result}: ${Number(raw) > 0 ? '+' : ''}${raw}` : result };
   }
 
+  /** Drive groups on composite possession-side + drive-number identity. The
+   *  raw `driveNumber` tag alone merged our Drive 1 with the opponent's
+   *  Drive 1 into one group, because each team runs its own drive sequence.
+   *  The identity and the labels are owned by football-rules.js so Study's
+   *  Drive dimension cannot disagree with this strip. */
   _driveGroups(plays) {
-    const groups = [];
-    let current = null;
-    plays.forEach(play => {
-      const view = this._playView(play);
-      const key = view.drive || 'unassigned';
-      if (!current || current.key !== key) {
-        current = { key, label: view.drive ? `Drive ${view.drive}` : 'No drive', plays: [] };
-        groups.push(current);
-      }
-      current.plays.push(view);
-    });
-    return groups;
+    return groupPlaysByDrive(plays, { project: play => this._playView(play), mode: this._driveLabelMode() });
   }
+
+  /** A scout season charts another team's film, so neither side is "ours". */
+  _driveLabelMode() { return this.app.storage?.seasonStore?.data?.kind === 'scout' ? 'unit' : 'perspective'; }
 
   selectPlay(id) { this.app.tagger?.selectPlay?.(Number(id)); }
   toggleStrip() { this.setStripCollapsed(!this.stripCollapsed); }

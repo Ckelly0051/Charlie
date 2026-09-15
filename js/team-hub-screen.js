@@ -301,7 +301,7 @@ export class TeamHubScreen {
         ? (this._store()?.data?.games || null)
         : await this._peekGames(row.id);
       if (token !== this._loadToken) return;
-      const film = await this._aggregateFilm(games);
+      const film = await this._aggregateFilm(games, row.id);
       if (token !== this._loadToken) return;
       const patch = list => list.map(season => String(season.id) === String(row.id) ? { ...season, film } : season);
       this._set({ seasons: patch(this._state.seasons), railSeasons: patch(this._state.railSeasons || []) });
@@ -319,21 +319,37 @@ export class TeamHubScreen {
     catch (e) { return null; }
   }
 
-  async _aggregateFilm(games) {
+  /** `seasonId` is the season these games BELONG to, and it is required: a
+   *  closed season's managed film lives under its own season directory, so a
+   *  check that omitted it resolved against `backend.currentId` and answered
+   *  about the OPEN season's film whenever the two seasons reuse a game id.
+   *  Every Home and library presentation consumes this one result. */
+  async _aggregateFilm(games, seasonId) {
     // Peek failed (unreadable file, race with a delete) — stay honest rather
     // than claim "no film linked" for a season we could not actually read.
-    if (!Array.isArray(games)) return { state: 'checking', label: 'Checking film…', expected: 0, found: 0, missing: 0 };
-    if (!games.length) return { state: 'none', label: 'No games yet', expected: 0, found: 0, missing: 0 };
-    const health = await Promise.all(games.map(game => this.app.workspace.filmHealth(game).catch(() => ({ state: 'missing', expected: 0, found: 0, missing: 0 }))));
+    if (!Array.isArray(games)) return { state: 'checking', label: 'Checking film…', expected: 0, found: 0, missing: 0, seasonId: String(seasonId ?? '') };
+    if (!games.length) return { state: 'none', label: 'No games yet', expected: 0, found: 0, missing: 0, seasonId: String(seasonId ?? '') };
+    const health = await Promise.all(games.map(game => this.app.workspace.filmHealth(game, seasonId).catch(() => ({ state: 'missing', expected: 0, found: 0, missing: 0 }))));
     const expected = health.reduce((sum, item) => sum + (item.expected || 0), 0);
     const found = health.reduce((sum, item) => sum + (item.found || (item.ready ? item.expected || 0 : 0)), 0);
     const missing = health.reduce((sum, item) => sum + (item.missing || 0), 0);
     const gamesLinked = health.filter(item => item.ready).length;
-    if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing };
-    if (health.some(item => item.state === 'unauthorized' || item.action === 'reconnect')) return { state: 'missing', label: 'Film needs attention', expected, found, missing };
-    if (missing || health.some(item => item.state === 'missing')) return { state: 'partial', label: `${gamesLinked} of ${games.length} game${games.length === 1 ? '' : 's'} linked`, expected, found, missing };
-    if (health.every(item => item.ready)) return { state: 'ready', label: 'Film linked', expected, found: expected, missing: 0 };
-    return { state: 'checking', label: 'Checking film…', expected, found, missing };
+    const season = String(seasonId ?? '');
+    // Always an explicit count, never a bare "Film linked": the coach compares
+    // this line against the opened season, and "linked" cannot be reconciled
+    // with "5 of 6" by looking at it.
+    const linkedOf = count => `${count} of ${games.length} game${games.length === 1 ? '' : 's'} linked`;
+    // Only a genuinely in-flight check is 'checking'. A settled season always
+    // ends on an explicit count: with one linked game beside one game that has
+    // no film added, neither `missing` nor `every(ready)` held, so the row sat
+    // on "Checking film…" permanently — a transient label over a final answer.
+    if (health.some(item => ['checking', 'saving', 'repairing'].includes(item.state))) {
+      return { state: 'checking', label: 'Checking film…', expected, found, missing, seasonId: season };
+    }
+    if (!expected) return { state: 'none', label: 'No film linked', expected, found, missing, seasonId: season };
+    if (health.some(item => item.state === 'unauthorized' || item.action === 'reconnect')) return { state: 'missing', label: 'Film needs attention', expected, found, missing, seasonId: season };
+    if (gamesLinked === games.length) return { state: 'ready', label: linkedOf(games.length), expected, found: expected, missing: 0, seasonId: season };
+    return { state: 'partial', label: linkedOf(gamesLinked), expected, found, missing, seasonId: season };
   }
 
   close() { return this.app.workspaceShell?.closeTeamHub?.(); }

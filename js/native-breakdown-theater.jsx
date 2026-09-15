@@ -180,7 +180,7 @@ function SelectedPlay({ state }) {
     <p>{c.result}</p>
     {c.lookLabel && <details><summary>More detail</summary><p>{c.lookLabel}: {c.lookValue}</p></details>}
     {state.currentNotes && <p class="gi-selected-notes">{state.currentNotes}</p>}
-    {state.currentDrive && <p>Drive {state.currentDrive}</p>}
+    {state.currentDrive && <p>{state.currentDrive}</p>}
   </section>;
 }
 

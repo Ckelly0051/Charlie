@@ -25,6 +25,20 @@ export class SpecialTeamsModel {
   static TURNOVERS = new Set(['interception', 'fumble']);
   static RETURN_AWARDS = new Set(['none', 'subject', 'opponent']);
 
+  /**
+   * The attempt type a NEW event of this unit carries. The field-goal units
+   * attempt exactly one thing — a field goal — so nothing has to be chosen,
+   * and nothing can author an extra point through them. Extra points and
+   * two-point tries are authored only under `try` / `tryDefense`, which encode
+   * the attempting side; `unit:'fieldGoal'` is always "the subject attempting",
+   * so an opponent XP charted there scored for us. Existing records carrying
+   * `attemptType:'extraPoint'` are still READ (see `normalize`) and never
+   * rewritten.
+   */
+  static defaultAttemptType(unit) {
+    return unit === 'fieldGoal' || unit === 'fieldGoalBlock' ? 'fieldGoal' : null;
+  }
+
   static _object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
   static _text(value) { return typeof value === 'string' ? value : ''; }
   static _choice(value, choices) { return choices.has(value) ? value : null; }

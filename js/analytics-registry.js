@@ -7,6 +7,7 @@
  */
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
+import { driveLabel, drivePossessionSide, driveNumberOf } from './football-rules.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -52,7 +53,15 @@ export class AnalyticsRegistry {
       ready('opponent', 'Opponent', context('opponent'), 'query context.opponent'),
       ready('date', 'Date', context('date'), 'query context.date'),
       ready('quarter', 'Quarter', tag('quarter'), 'play.tags.quarter'),
-      ready('drive', 'Drive', tag('driveNumber'), 'play.tags.driveNumber'),
+      // Composite possession-side + drive-number identity, the same rule
+      // Breakdown's play strip groups on (football-rules.driveLabel). Keying on
+      // the raw tag put our Drive 1 and the opponent's Drive 1 in ONE bucket,
+      // because each team runs its own drive sequence. Study aggregates across
+      // seasons, so it uses the `unit` wording rather than claiming Our/Opponent.
+      ready('drive', 'Drive', p => {
+        const number = driveNumberOf(p?.tags);
+        return number ? [driveLabel(drivePossessionSide(p?.tags), number, 'unit')] : [];
+      }, 'football-rules.driveLabel(drivePossessionSide, play.tags.driveNumber)'),
       ready('unit', 'Unit', p => [p?.tags?.unit || 'offense'], 'legacy blank => offense'),
       ready('down', 'Down', tag('down'), 'play.tags.down'),
       ready('distance', 'Distance', tag('distance'), 'play.tags.distance'),

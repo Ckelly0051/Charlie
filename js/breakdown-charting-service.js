@@ -73,7 +73,9 @@ export class BreakdownChartingService {
 
   _newSpecial(unit) {
     return SpecialTeamsModel.normalize({
-      version:1, unit, subjectRole:SpecialTeamsModel.ROLES[unit], attemptType:null,
+      version:1, unit, subjectRole:SpecialTeamsModel.ROLES[unit],
+      // A field-goal unit attempts a field goal; there is no authoring choice.
+      attemptType:SpecialTeamsModel.defaultAttemptType(unit),
       result:null, events:{}, kick:{}, return:{}, outcome:{}, isOnside:false,
       isFake:false, players:{}, notes:'', legacy:false,
     });
@@ -90,7 +92,11 @@ export class BreakdownChartingService {
   }
 
   _hasSpecialDetails(st) {
-    return !!(st.attemptType || st.result || Object.values(st.events || {}).some(Boolean)
+    // The seeded field-goal attempt type is not charted detail — it is the
+    // unit's own definition — so it must not trigger the "this will clear your
+    // charted details" confirmation on an untouched event.
+    const charted = st.attemptType && st.attemptType !== SpecialTeamsModel.defaultAttemptType(st.unit);
+    return !!(charted || st.result || Object.values(st.events || {}).some(Boolean)
       || st.outcome.returnAward || st.outcome.status || st.outcome.score
       || st.outcome.recoveredBy || st.outcome.scoredBy || st.isOnside || st.isFake
       || st.kick.distance != null || st.kick.hangTime != null
@@ -159,10 +165,10 @@ export class BreakdownChartingService {
       if (st.outcome.status === 'good') st.outcome.score = st.attemptType;
       else if (st.outcome.score === 'fieldGoal' || st.outcome.score === 'extraPoint') st.outcome.score = null;
     });
-    if (key === 'stAttempt') return this._saveSpecial(st => {
-      st.attemptType = value;
-      st.outcome.score = st.outcome.status === 'good' ? st.attemptType : null;
-    });
+    // `stAttempt` is DELETED, not narrowed: it existed only to choose between
+    // Field Goal and Extra Point on the field-goal units, and an extra point
+    // authored there is always credited to the subject team. `Try` and
+    // `Defending a Try` are the only XP/two-point authoring paths.
     if (key === 'stScore') return this._saveSpecial(st => {
       st.outcome.score = st.outcome.score === value ? null : value;
       st.outcome.scoredBy = null;

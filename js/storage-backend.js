@@ -83,7 +83,7 @@ export class StorageBackend {
   async importFilm(_gameId, _files, _onProgress) { return null; }
   async filmUrl(_gameId, _filename) { return null; }
   async deleteFilm(_gameId, _seasonId) {}
-  async listFilmFiles(_gameId) { return []; }
+  async listFilmFiles(_gameId, _seasonId) { return []; }
   async managedGameDir(_gameId) { return ''; }
 
   // ---- linked film library (desktop only): coach-owned folder, referenced
@@ -1131,9 +1131,14 @@ export class TauriBackend extends StorageBackend {
     try { return await pathApi.join(await pathApi.appDataDir(), 'seasons', String(this.currentId), 'films', String(gameId)); }
     catch { return this._filmsDir(gameId); }
   }
-  async listFilmFiles(gameId) {
-    if (!this._ok() || !this.currentId) return [];
-    const dir = this._filmsDir(gameId);
+  /** Managed film lives under the OWNING season, so the caller supplies it.
+   *  Defaulting to `currentId` is correct only for the open season; a Home or
+   *  library check of a CLOSED season that omitted it was answered from
+   *  whichever season the backend happened to point at, which reported the
+   *  wrong count whenever two seasons reuse a game id. */
+  async listFilmFiles(gameId, seasonId = this.currentId) {
+    if (!this._ok() || !seasonId) return [];
+    const dir = this._filmsDir(gameId, seasonId);
     try {
       if (!(await this._exists(dir))) return [];
       const out = [];

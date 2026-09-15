@@ -307,7 +307,9 @@ export class HomeScreen {
     const seasonId = this._state.seasonId;
     this._games().forEach(async g => {
       let h;
-      try { h = await this.app.workspace.filmHealth(g); }
+      // Home's games belong to `seasonId`; state it rather than letting the
+      // backend's current-season pointer answer for them.
+      try { h = await this.app.workspace.filmHealth(g, seasonId); }
       catch { h = { state: 'missing', label: 'Film unavailable', action: 'repair', expected: 0, found: 0 }; }
       if (token !== this._filmToken || this._state.seasonId !== seasonId) return;
       this._set({ filmHealth: { ...this._state.filmHealth, [String(g.id)]: h } });

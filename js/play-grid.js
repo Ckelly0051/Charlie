@@ -323,7 +323,7 @@ export class PlayGrid {
     if (col.type === 'st-readonly') {
       const special = SpecialTeamsModel.normalize(play.specialTeams);
       if (!special) return '—';
-      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block', try:'Try - Attempting', tryDefense:'Try - Defending' };
+      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal', fieldGoalBlock:'Field Goal Block', try:'Try - Attempting', tryDefense:'Try - Defending' };
       if (col.key === 'stUnit') return names[special.unit] || special.unit;
       if (col.key === 'stOutcome') return [special.attemptType, special.result || special.outcome.status, special.events?.badSnap ? 'badSnap' : '', special.events?.blocked ? 'blocked' : '', special.events?.turnover || '', special.events?.defensiveReturn ? 'defensiveReturn' : '', special.outcome.returnAward || '', special.outcome.score].filter(Boolean).join(' · ');
       if (col.key === 'stKick') return [special.kick.distance == null ? '' : `${special.kick.distance} yds`, special.kick.hangTime == null ? '' : `${special.kick.hangTime}s`].filter(Boolean).join(' · ');

@@ -378,28 +378,39 @@ export class WorkspaceContext {
       // filmHealth already resolved for its own listing — this adds no new read.
       // Managed games have no coach-facing path; they say so instead of guessing.
       path: opts.path || '',
+      // The season this answer is ABOUT. Managed film resolves under a season
+      // directory, so a result with no stated season cannot be checked against
+      // the season the caller asked about.
+      season: opts.season == null ? '' : String(opts.season),
     };
   }
 
-  async filmHealth(gameOverride = null) {
+  /** Film health for one game, scoped to the season that OWNS it.
+   *  `seasonId` is required whenever the game does not belong to the open
+   *  season — Home and the season library peek closed seasons, and managed
+   *  film paths are season-scoped. Omitting it means "the open season". */
+  async filmHealth(gameOverride = null, seasonId = null) {
     const store = this._store();
     const game = gameOverride || store?.activeGame?.();
-    if (!game) return this._view('empty', { persistent: false, action: 'add-film' });
+    const season = seasonId == null || seasonId === ''
+      ? (store?.currentSeasonId ?? store?.data?.id ?? '')
+      : seasonId;
+    if (!game) return this._view('empty', { persistent: false, action: 'add-film', season });
     const expectedIds = this._expected(game);
     const expected = expectedIds.length;
     const operation = this._filmOperations.get(String(game.id));
     if (operation) {
       return this._view(operation.state, {
         mode: game.filmMode || 'managed', expected,
-        progress: { ...operation.progress }, persistent: true,
+        progress: { ...operation.progress }, persistent: true, season,
       });
     }
-    if (!expected) return this._view('empty', { persistent: false, action: 'add-film' });
+    if (!expected) return this._view('empty', { persistent: false, action: 'add-film', season });
 
     const backend = store?.backend;
     const supportsFilm = !!(backend?.supportsFilm && backend.supportsFilm());
     if (!supportsFilm) {
-      return this._view('browser-only', { mode: 'browser', expected, missing: expected, persistent: false, action: 'repair' });
+      return this._view('browser-only', { mode: 'browser', expected, missing: expected, persistent: false, action: 'repair', season });
     }
 
     const linked = game.filmMode === 'linked';
@@ -409,21 +420,22 @@ export class WorkspaceContext {
     let sourcePath = '';
     if (linked) {
       if (!backend.supportsLinkedFilm || !backend.supportsLinkedFilm()) {
-        return this._view('unauthorized', { mode: 'linked', expected, missing: expected, action: 'reconnect' });
+        return this._view('unauthorized', { mode: 'linked', expected, missing: expected, action: 'reconnect', season });
       }
       const absDir = await backend.linkedGameDir(game.filmDir);
       if (!absDir || (backend.isLinkedDirAllowed && !backend.isLinkedDirAllowed(absDir))) {
-        return this._view('unauthorized', { mode: 'linked', expected, missing: expected, action: 'reconnect' });
+        return this._view('unauthorized', { mode: 'linked', expected, missing: expected, action: 'reconnect', season });
       }
       sourcePath = absDir;
       try { files = await backend.listLinkedFilm(absDir); }
       catch (e) {
-        return this._view('missing', { mode: 'linked', expected, missing: expected, action: 'reconnect', persistent: true, detail: 'linked-list-failed', path: sourcePath });
+        return this._view('missing', { mode: 'linked', expected, missing: expected, action: 'reconnect', persistent: true, detail: 'linked-list-failed', path: sourcePath, season });
       }
     } else {
-      try { files = await backend.listFilmFiles(game.id); }
+      // Season id FIRST-CLASS, not inherited from backend.currentId.
+      try { files = await backend.listFilmFiles(game.id, season); }
       catch (e) {
-        return this._view('missing', { mode: 'managed', expected, missing: expected, action: 'repair', persistent: true, detail: 'managed-list-failed' });
+        return this._view('missing', { mode: 'managed', expected, missing: expected, action: 'repair', persistent: true, detail: 'managed-list-failed', season });
       }
     }
 
@@ -433,12 +445,12 @@ export class WorkspaceContext {
     if (missing) {
       return this._view('missing', {
         mode: linked ? 'linked' : 'managed', expected, found, missing,
-        action: linked ? 'reconnect' : 'repair', persistent: true, path: sourcePath,
+        action: linked ? 'reconnect' : 'repair', persistent: true, path: sourcePath, season,
       });
     }
     return this._view(linked ? 'linked' : 'managed', {
       mode: linked ? 'linked' : 'managed', expected, found, persistent: true, action: 'open',
-      path: sourcePath,
+      path: sourcePath, season,
     });
   }
 }
