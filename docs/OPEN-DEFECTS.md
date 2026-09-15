@@ -1,10 +1,20 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after Repair Batch 1, its
-> Codex review repairs, and the `FILM-01` clip-set repair on top of `f9e7783`.
-> `FILM-01` is repaired in Chromium with a green canonical gate and is awaiting
-> installed WebView2 verification; repaired Batch 1 items remain below as history
-> until the index is normalized.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after the installed
+> `1.12.0-86` FILM-01 smoke. FILM-01 is accepted for beta use. The intermittent
+> rapid-scrubbing failure remains recorded but is deliberately deprioritized;
+> repaired Batch 1 items remain below as history until the index is normalized.
+
+## Coach smoke, 1.12.0-86 (2026-09-15)
+
+**FILM-01 APPROVED FOR BETA USE.** Installed smoke passed linked-folder
+set equality/mismatch, durable uncharted-clip removal across close/reopen, and
+loaded delete/Undo with the restored playable clip, play, and selection aligned.
+No coach-owned source film was deleted.
+
+The rapid/repeated-scrubbing transition to `Film missing` could not be reproduced.
+It is not closed: it remains an intermittent native-media defect with the evidence
+below. By coach decision it is tabled and does not block the next repair batch.
 
 ## Coach smoke, 1.12.0-85 (2026-09-14)
 
@@ -158,11 +168,10 @@ Found at the board on the installed visual-smoke candidate.
    destroying the clip instead of stashing it (3 red), and restoring the
    adjacent-clip switch that overwrote the restored selection (3 red).
 
-   **Still needs installed WebView2 verification** and remains the first item in
-   Film-State Batch 2, before the rapid-scrubbing failure. Chromium proves the
-   comparison, the deletion semantics, persistence, Undo and isolation against a
-   stub backend; it cannot exercise Tauri's own `fs.readDir` / `exists`, the
-   asset protocol, or a real folder edit made outside the app while it runs.
+   **Installed WebView2 verification passed in `1.12.0-86` on 2026-09-15.** The
+   coach verified real linked-folder equality/mismatch behavior, durable removal
+   across close/reopen, and loaded delete/Undo with film and selection aligned.
+   FILM-01 is accepted for beta use.
 
 ## Home
 
@@ -838,8 +847,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
    report possessions use separate logic and are unchanged. Evidence:
    `e2e-data-correctness-batch1` (58) with alternating possessions where both
    teams hold Drives 1 and 2, mutation-verified by regrouping on the raw tag.
-6. **Rapid or repeated timeline scrubbing can falsely mark linked film as
-   unavailable.** In installed WebView2, moving the playback slider aggressively
+6. **DEFERRED / INTERMITTENT - Rapid or repeated timeline scrubbing can falsely
+   mark linked film as unavailable.** In installed WebView2, moving the playback slider aggressively
    can replace still-visible linked film with the permanent `Film unavailable`
    recovery card and the shell's red `Film missing` state. Closing and reopening
    the app loads the same D-drive source normally, so this is not evidence that
@@ -852,7 +861,10 @@ edge-to-edge by design; the top bar's 18px inset is not.
    seek position during bounded recovery; show missing/re-link guidance only when
    the linked source genuinely cannot be reopened. Add event-sequence regression
    coverage plus an installed WebView2 scrub stress smoke, because Chromium's
-   media pipeline may not reproduce the native failure.
+   media pipeline may not reproduce the native failure. The coach could not
+   reproduce it in the `1.12.0-86` smoke and explicitly tabled investigation.
+   Keep the evidence; do not schedule it ahead of the current functional and
+   small Breakdown presentation batch unless frequency or impact rises.
 7. **B1-3 - REPAIRED 2026-09-15 - The redundant `Field Goal / XP` authoring
    path could award an opponent XP to us.** The unit is presented as `Field Goal`
    in the charting deck and the Film Room grid, and nothing can author an extra
@@ -950,14 +962,14 @@ Breakdown film-state defects above.
 
 ## Release Impact
 
-- Installed `1.12.0-85` is **APPROVED FOR NOW** for continued beta use after the
-  2026-09-14 coach smoke; its three deferred visual findings remain open. It
-  predates Repair Batch 1 and therefore cannot validate that source work.
-- Current source has a clean build, focused Batch 1 proof at 76/76, the
-  `FILM-01` clip-set proof at 29/29, and a canonical gate reported green by
-  Claude. It is not packaged or installed-smoked. `FILM-01`'s repair is therefore
-  Chromium-proven only; its installed WebView2 verification is still outstanding.
+- Installed `1.12.0-86` is **APPROVED FOR BETA USE** for FILM-01 after the
+  2026-09-15 coach smoke. It also contains Repair Batch 1. The deferred visual
+  findings inherited from `1.12.0-85` remain open.
+- FILM-01 has focused proof at 45/45, a green 117-harness canonical gate on its
+  code baseline, and the installed checks recorded above. The intermittent
+  rapid-scrubbing report is separate, open, and deprioritized.
 - Home and every Reports surface remain `REJECTED` in the formal design approval
   registry; beta smoke acceptance is not formal design approval or publication.
-- Do not package or promote the current source until its active scope is reviewed
-  and the requested installed WebView2 smoke is defined.
+- The next batch is the dead custom-play Add route, canonical built-in `Option`,
+  Breakdown viewport overflow/anonymous arrows, and shared context-selector
+  contrast. Home rail scaling remains separate.

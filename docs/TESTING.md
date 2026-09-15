@@ -232,15 +232,6 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   lookup). Managed-list failure, total lookup rejection, and one rejected game
   in a mixed season are pinned so none can print a trustworthy-looking count.
 
-  **Known open contract (`FILM-01`):** these checks currently prove only the
-  app-recorded-to-folder direction. The next film-state repair must compare the
-  complete durable app clip set with the complete linked-folder video set in both
-  directions. Required fixtures: equal sets, app-only identity, folder-only
-  file, loaded and unloaded in-app deletion, two plays sharing one clip,
-  persistence/reopen, and Undo. No load path may silently prune either set,
-  and linked source files remain coach-owned and must never be deleted by play
-  deletion.
-
 - **Linked clip-set reconciliation (FILM-01):** `e2e-film-clip-set` (45) owns
   the two-direction rule and the durable clip-identity lifecycle. Equal sets
   are no error; a clip the game records and the folder lacks stays `missing`;
@@ -270,7 +261,10 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   restored; no coach
   season, catalog row or film file is read or written. **Chromium cannot
   certify** Tauri's own `fs.readDir`/`exists`, the asset protocol, or a folder
-  edited outside the app while it runs - those stay installed checks.
+  edited outside the app while it runs - those stay installed checks. The
+  `1.12.0-86` installed smoke passed those focused checks on 2026-09-15. The
+  separate rapid-scrubbing defect was not reproduced and is deferred; a future
+  repair still requires native event-sequence evidence and WebView2 stress smoke.
 
 - **Live film-source binding:** `e2e-film-health-realdata` (14) audits the
   registered `2026-varsity-demo` season ("2025 St. Joseph Mavericks - JV")

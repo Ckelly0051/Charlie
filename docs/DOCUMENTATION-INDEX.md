@@ -26,16 +26,16 @@
 
 ## Current Snapshot
 
-- Source version: `1.12.0-85` in the four version owners; source HEAD is
-  `7862aa6`. Repair Batch 1 is newer than the installed package.
-- Installed candidate: unsigned `1.12.0-85`, packaged from `130962a` and
-  coach-smoked on 2026-09-14. **Approved for continued beta use**, with three
-  deferred visual findings. Not tagged, pushed, or published.
-- Current source: build clean, focused Batch 1 harness 76/76, and Claude
-  reported a green canonical gate. No installed build contains Batch 1.
-- `FILM-01` is open: app and linked-folder clip sets must agree in both
-  directions. OL Lakes has an orphaned `IMG_6690` app entry and no surviving
-  play referencing it; coach data has not been changed.
+- Source version: `1.12.0-86` in the four version owners; source HEAD is
+  `9086e95` (documentation on top of package bump `b08d89c`).
+- Installed candidate: unsigned `1.12.0-86`, packaged from `b08d89c` and
+  coach-smoked on 2026-09-15. **FILM-01 is approved for beta use.** Not tagged,
+  pushed, or published.
+- Current source: clean build; FILM-01 focused proof 45/45; canonical gate
+  117/117 on the code baseline. Repair Batch 1 and FILM-01 are installed.
+- The rapid-scrubbing `Film missing` report remains open but intermittent and
+  deprioritized. Next is the custom-play/`Option` repair plus the two small
+  Breakdown presentation findings; Home rail scaling remains separate.
 - Current production status: Home and all eight Our Program Reports surfaces are
   `REJECTED`; approved comps remain binding design evidence.
 - Current harness inventory is discovered from `tools/e2e-*.mjs`; do not copy a

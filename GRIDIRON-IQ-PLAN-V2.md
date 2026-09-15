@@ -6,16 +6,11 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-> **Release checkpoint:** all eight Our Program Reports tabs are implemented in
-> production. The unsigned Windows `1.12.0-83` local visual-smoke handoff adds
-> the consolidated Home route and the corrected no-open-season library to the
-> `1.12.0-81` Reports/Breakdown baseline. Current source has advanced beyond
-> that package with the reviewed Home/empty-Scout cleanup. The production build,
-> focused responsive proof, and canonical gate passed (110/110, zero skipped,
-> zero failed), but the new source has not been packaged or coach-smoked. It is
-> not an accepted release.
-> `1.12.0-70` remains the last accepted installed release snapshot, but current
-> Home production is `REJECTED` after the `1.12.0-74` visual smoke.
+> **Release checkpoint:** unsigned Windows `1.12.0-86` contains Repair Batch 1
+> and FILM-01. Its FILM-01 installed smoke passed on 2026-09-15 and is accepted
+> for beta use. It is not tagged, pushed, or published. The visual findings
+> inherited from `1.12.0-85` remain open, and Home production remains formally
+> `REJECTED` despite beta-smoke acceptance.
 >
 > **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
 > `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
@@ -94,7 +89,7 @@ OL Lakes records `IMG_6690` in its durable playlist, but the file is absent and
 no surviving play references it. The current library mismatch count is supported;
 the installed game view's `fully linked` claim is not.
 
-**Next film-state repair: FILM-01.** Health requires exact equality between the
+**FILM-01 repaired and installed-smoked in `1.12.0-86`.** Health requires exact equality between the
 app's durable clip set and the linked folder's video set. App-only and folder-only
 identities both produce a mismatch; equal sets produce no error. In-app deletion
 must durably remove an unreferenced clip identity, loaded or unloaded, preserve
@@ -103,7 +98,13 @@ mismatch until the app record is deliberately removed; load must never silently
 prune either side. This precedes rapid-scrubbing repair because it defines what
 `Film missing` is allowed to mean. Regression proof includes reused game IDs,
 both mismatch directions, shared clip references, persistence/reopen, and
-agreement between the closed-season library and opened Home.
+agreement between the closed-season library and opened Home. Those behaviors
+passed installed smoke on 2026-09-15. The separate rapid-scrubbing `Film missing`
+report could not be reproduced and is deliberately deferred. **Next batch:**
+repair the dead custom-play Add route; add `Option` to the canonical built-in
+offensive vocabulary; repair Breakdown viewport overflow/anonymous arrows; and
+apply the shared neutral contrast treatment to Program/Season/Game selectors.
+Home season-rail scaling remains a separate layout pass.
 
 The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 

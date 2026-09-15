@@ -101,8 +101,14 @@ unexpectedly, stop and report rather than re-linking.
 
 ## Status
 
-Unsigned local smoke candidate. Not accepted, tagged, pushed or published. Home
-production remains formally `REJECTED`. The three deferred visual findings from
-the 1.12.0-85 smoke (Breakdown viewport overflow and anonymous scrollbar arrows,
-context-selector contrast, Home rail truncation) are NOT addressed in this build.
-Windows SmartScreen will warn on launch because the build is unsigned.
+**FILM-01 installed smoke passed and is accepted for beta use (2026-09-15).**
+The coach verified linked-folder equality/mismatch behavior, durable uncharted
+clip removal across close/reopen, and loaded delete/Undo with the restored play,
+clip, and selection aligned. The intermittent rapid-scrubbing `Film missing`
+report could not be reproduced and is tabled rather than closed.
+
+Unsigned local build; not tagged, pushed or published. Home production remains
+formally `REJECTED`. The three deferred visual findings from the 1.12.0-85 smoke
+(Breakdown viewport overflow and anonymous scrollbar arrows, context-selector
+contrast, Home rail truncation) are NOT addressed in this build. Windows
+SmartScreen will warn on launch because the build is unsigned.

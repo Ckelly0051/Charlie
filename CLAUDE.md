@@ -18,13 +18,13 @@ Repair Batch 1 (B1-1 season-scoped film health, B1-2 drive possession identity,
 B1-3 Field Goal / XP authoring, B1-4 in-flight operation identity) and FILM-01
 (two-way linked clip-set equality, a durable clip index that no longer prunes on
 an unloaded save, deliberate deletion that persists on its own, and an Undo that
-restores the live clip and the play it restored). **None of that has been in an
-installed build before**, and the coach approved it for this smoke on 2026-09-15.
-The FILM-01 work is Chromium-proven only: Tauri's own filesystem calls, the asset
-protocol, media reload from a recreated blob URL, a folder edited outside the
-running app, and whether a scheduled removal survives a real close are exactly
-what this smoke exists to check. Not tagged, pushed or published; Home production
-remains formally `REJECTED`.
+restores the live clip and the play it restored). The coach installed and passed
+the focused FILM-01 smoke on 2026-09-15: linked-folder equality/mismatch,
+durable uncharted-clip removal across close/reopen, and loaded delete/Undo with
+the restored play, clip, and selection aligned. FILM-01 is accepted for beta
+use. The separate rapid-scrubbing `Film missing` report remains open but is
+intermittent and could not be reproduced in this smoke; investigation is tabled.
+Not tagged, pushed or published; Home production remains formally `REJECTED`.
 
 `1.12.0-85` was the preceding unsigned installed beta build, packaged from
 `130962a` — the opponent-scout ownership model and atomic Home navigation,
@@ -700,13 +700,14 @@ for a surviving charted play. No coach data was changed.
 `e2e-film-health-realdata` binds the presentation to those real sources,
 read-only, and cannot certify Tauri's own filesystem calls — that stays an
 installed check. The current OL Lakes body has 82 surviving plays and 89 durable
-playlist entries; `IMG_6690` has no surviving play. The active product defect is
-**FILM-01**: linked film is healthy only when the app's durable clip set and the
+playlist entries; `IMG_6690` has no surviving play. The repaired **FILM-01**
+contract is: linked film is healthy only when the app's durable clip set and the
 folder's video set are exactly equal. Either app-only or folder-only identities
 produce a mismatch; equal sets produce no error. In-app deletion must durably
 remove unreferenced clip identities without deleting coach-owned source files,
 including when film is unloaded, and preserve Undo. Load must not silently prune
-either side. Repair this before rapid-scrubbing state work.
+either side. The `1.12.0-86` installed smoke passed this contract on 2026-09-15.
+The separate intermittent rapid-scrubbing failure is recorded but deprioritized.
 Every Home/library renderer must consume one resolver and print an explicit
 season result. Regression coverage must use two seasons with reused game IDs.
 Managed-film deletion follows the same identity rule: `deleteFilm(gameId,
