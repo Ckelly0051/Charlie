@@ -1,9 +1,10 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 through `7862aa6` after
-> Repair Batch 1, its Codex review repairs, and a green canonical gate reported
-> by Claude. `FILM-01` records the remaining clip-set reconciliation defect;
-> repaired Batch 1 items remain below as history until the index is normalized.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after Repair Batch 1, its
+> Codex review repairs, and the `FILM-01` clip-set repair on top of `f9e7783`.
+> `FILM-01` is repaired in Chromium with a green canonical gate and is awaiting
+> installed WebView2 verification; repaired Batch 1 items remain below as history
+> until the index is normalized.
 
 ## Coach smoke, 1.12.0-85 (2026-09-14)
 
@@ -61,22 +62,66 @@ Found at the board on the installed visual-smoke candidate.
 
 ## Film Health
 
-1. **FILM-01 - OPEN - App and linked-folder clip sets are not reconciled in both
-   directions.** Film health currently detects an app-recorded clip missing from
-   the folder, but it does not detect a folder video absent from the app's durable
-   clip index. The deletion workflow can also leave historical clip metadata
-   behind after its play and source file are gone; OL Lakes' orphaned `IMG_6690`
-   is the live example. The binding rule is exact set equality: app-only clips or
-   folder-only videos produce a mismatch; equal sets produce no error. Deleting a
-   play/clip in the app must durably remove that clip identity when no surviving
-   play uses it, including when film is not loaded, while preserving Undo and
-   never deleting the coach-owned source file. External file deletion remains a
-   mismatch until the app record is deliberately removed. Do not silently prune
-   either side during load. Repair the canonical clip-index owner and the shared
-   film-health resolver, then verify matching sets, app-only identities,
-   folder-only files, loaded and unloaded in-app deletion, shared clip references,
-   persistence/reopen, and Undo. This is the first item in Film-State Batch 2,
-   before the rapid-scrubbing failure.
+1. **FILM-01 - REPAIRED 2026-09-15 (Chromium); installed verification still
+   outstanding - App and linked-folder clip sets are now reconciled in both
+   directions.** The binding rule for LINKED film is exact identity-set equality
+   between the game's durable clip index and the folder's videos, and both
+   directions are now reported, with different states so the coach is told WHICH
+   way the sets differ: a clip the game records and the folder lacks stays
+   `missing` (the long-standing contract every surface already renders,
+   `detail: 'clip-set-app-only'`), and a folder video the game has no record of -
+   alone or alongside a missing one - is `mismatch` /
+   `Film does not match folder` (`clip-set-folder-only`, `clip-set-both`),
+   carrying a new `extra` count. Managed film keeps its one-way rule on purpose:
+   that directory is app-owned storage, not a folder the coach maintains, so an
+   extra file there is not a coach-facing mismatch. Home's game row, the
+   selected-game film fact, the Settings film table and the library aggregate all
+   consume that one result; the mismatched game counts as not linked.
+
+   **The deletion half had two opposite defects, and repairing one without the
+   other would have traded a stale record for data loss.** The durable clip index
+   was rebuilt from the plays unioned with the LIVE playlist, so:
+
+   - Opening a game WITHOUT its film left the playlist empty, and the next save
+     pruned every clip that had no play. That is a silent record loss on ordinary
+     navigation, and the shape that fits OL Lakes (89 durable records against 83
+     charted clips). `_buildClipIndex` now seeds from the game's OWN durable
+     `clipRefs` first, so the index never shrinks below what the game already
+     recorded - and never below what the plays reference, which was the original
+     film-index-wipe fix and is unchanged.
+   - With retention in place, an intentional deletion needs an explicit signal, or
+     a clip would outlive its play forever. `StorageManager.forgetClipIdentity`
+     is that signal, recorded by the two deliberate in-app deletion paths
+     (`PlaylistManager.removeClip` and `PlayTagger.deleteCurrentPlay`'s
+     no-playlist branch, which is the one that covers deleting with film
+     UNLOADED). A recorded removal is honoured only when no surviving play
+     references the clip, so a clip two plays share survives one of them, and Undo
+     - which restores the play - restores the clip with it. The set is per game,
+     reset in `_loadActiveGame` exactly like undo history, so a removal in one
+     season never follows the same clip id into another.
+
+   Nothing here deletes, renames, relinks or rewrites a coach-owned source file,
+   and no load path prunes either side. An externally deleted file therefore
+   remains visible as a mismatch until the coach deliberately removes the app
+   record.
+
+   **What the OL Lakes `IMG_6690` case shows, and what it does not.** Read-only
+   evidence: it is a durable clip record with no surviving play and no source file
+   anywhere under `D:\Football`. Both of the mechanisms above could produce a
+   record in that state, and the live season carries no history that distinguishes
+   them, so **no claim is made about which historical action orphaned it.** The
+   live season and the D-drive data were not modified.
+
+   Evidence: `e2e-film-clip-set` (29), mutation-verified three ways - restoring
+   the one-way comparison (7 red, including the Home and library agreement
+   checks), restoring stale durable-deletion behaviour (7 red), and restoring the
+   prior prune (4 red).
+
+   **Still needs installed WebView2 verification** and remains the first item in
+   Film-State Batch 2, before the rapid-scrubbing failure. Chromium proves the
+   comparison, the deletion semantics, persistence, Undo and isolation against a
+   stub backend; it cannot exercise Tauri's own `fs.readDir` / `exists`, the
+   asset protocol, or a real folder edit made outside the app while it runs.
 
 ## Home
 
@@ -161,16 +206,19 @@ authority until a replacement composition is reviewed and approved.
    `clipPaths` and `clipNames` as playlist entry 85 of 89, but exists nowhere
    under `D:\Football` and **no surviving play references either its filename or
    stable catalog id**. This is an orphaned app clip entry, not missing film for
-   a surviving charted play. No coach data was changed. The active product defect
-   is `FILM-01` below: normal in-app deletion and external folder maintenance must
-   converge on an exact set comparison rather than leaving this contradiction.
+   a surviving charted play. No coach data was changed. The product defect behind it
+   is `FILM-01` below - normal in-app deletion and external folder maintenance must
+   converge on an exact set comparison - and that comparison is now implemented.
+   **Which historical action left this particular entry orphaned is not
+   determined**, and the record carries no history that would settle it.
    Noted in passing and also untouched: `D:\Football\OLL 13-13` (82 entries) sits
    outside the library root as a separate, older copy of that game's film.
 
    This is the concrete explanation for the OLL playlist discrepancy: 82
    surviving plays, 89 recorded playlist entries, and `IMG_6690` has neither a
-   file nor a surviving play. The broader reconciliation defect stays open as
-   `FILM-01`.
+   file nor a surviving play. The reconciliation defect itself is repaired under
+   `FILM-01`; this entry stays as the read-only evidence it was gathered as, and
+   the live season was not modified to resolve it.
 
    Evidence: `e2e-film-health-realdata` (14) reads the installed season body and
    walks the real directories, then asserts the repaired owner prints exactly
@@ -864,9 +912,10 @@ Breakdown film-state defects above.
 - Installed `1.12.0-85` is **APPROVED FOR NOW** for continued beta use after the
   2026-09-14 coach smoke; its three deferred visual findings remain open. It
   predates Repair Batch 1 and therefore cannot validate that source work.
-- Current source through `7862aa6` has a clean build, focused Batch 1 proof at
-  76/76, and a canonical gate reported green by Claude. It is not packaged or
-  installed-smoked. `FILM-01` remains open.
+- Current source has a clean build, focused Batch 1 proof at 76/76, the
+  `FILM-01` clip-set proof at 29/29, and a canonical gate reported green by
+  Claude. It is not packaged or installed-smoked. `FILM-01`'s repair is therefore
+  Chromium-proven only; its installed WebView2 verification is still outstanding.
 - Home and every Reports surface remain `REJECTED` in the formal design approval
   registry; beta smoke acceptance is not formal design approval or publication.
 - Do not package or promote the current source until its active scope is reviewed

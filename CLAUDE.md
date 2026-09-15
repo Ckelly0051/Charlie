@@ -365,6 +365,33 @@ perspective or initial-unit control.
 - Durable identity is `clipPath` / `clipRefs` / `catalogClipId` — never a bare
   basename. `planClipMatch` is the one matcher (catalog id → exact path →
   basename → Windows `(n)` → order) shared by every relink path.
+- **A LINKED game's clip set must EQUAL its folder's videos.** Both directions
+  are reported, with different states so the coach is told which way they
+  differ: a clip the game records and the folder lacks is `missing`
+  (`clip-set-app-only`); a folder video the game has no record of, alone or
+  beside a missing one, is `mismatch` / `Film does not match folder`
+  (`clip-set-folder-only`, `clip-set-both`) and carries an `extra` count. Only
+  the app-only direction was ever checked, so a video sitting in the folder
+  with no record was invisible. **Managed film keeps its one-way rule** — that
+  directory is app-owned storage, not a folder the coach maintains. Every
+  surface consumes the one result: Home's row, the selected-game fact, the
+  Settings film table (which must NAME the state, or it silently reads
+  "No film") and the library aggregate, where a mismatched game is not linked.
+- **The durable clip index never shrinks, and only a deliberate deletion
+  removes an identity.** It seeds from the game's own `clipRefs`, then the
+  plays, then the live playlist. Seeding from plays + playlist alone meant
+  opening a game WITHOUT its film left the playlist empty and the next save
+  pruned every clip that had no play — a silent record loss on ordinary
+  navigation. An intentional in-app deletion signals
+  `StorageManager.forgetClipIdentity`, recorded by the two deletion paths
+  (`PlaylistManager.removeClip`, and `PlayTagger.deleteCurrentPlay`'s
+  no-playlist branch, which is the one that covers deleting with film
+  unloaded). A recorded removal applies ONLY when no surviving play references
+  the clip, so a shared clip survives one of its plays and Undo restores both.
+  The set is per game, reset in `_loadActiveGame` like undo history, so a
+  removal never follows a reused clip id into another season. Nothing here
+  touches a coach-owned file: an externally deleted video stays a visible
+  mismatch until the coach removes the app record.
 - The game film index is derived from the plays' own clip identities **unioned**
   with the live playlist (`_buildClipIndex`). It must never be rebuilt from the
   playlist alone, which is what once silently emptied it.

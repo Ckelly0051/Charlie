@@ -241,6 +241,24 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   and linked source files remain coach-owned and must never be deleted by play
   deletion.
 
+- **Linked clip-set reconciliation (FILM-01):** `e2e-film-clip-set` (29) owns
+  the two-direction rule and the durable clip-identity lifecycle. Equal sets
+  are no error; a clip the game records and the folder lacks stays `missing`;
+  a folder video with no record is `mismatch`, as is both at once, each with
+  its own `detail`. Managed film keeps its one-way rule. The deletion half
+  covers loaded and unloaded in-app deletion, an uncharted folder clip removed
+  through the playlist, a clip two plays share, Undo, commit/reopen, per-game
+  reset of the removal set, season isolation on a reused game id, and a
+  cross-game serialize inheriting no film index. Home's row, the selected-game
+  fact and the library aggregate are asserted to agree on one result, and the
+  Settings status mapper is pinned in source because an unnamed state there
+  silently reads "No film" - a different claim. Mutation-verified three ways:
+  the one-way comparison, stale durable-deletion behaviour, and the prior
+  prune. Every fixture is synthetic and every substitution restored; no coach
+  season, catalog row or film file is read or written. **Chromium cannot
+  certify** Tauri's own `fs.readDir`/`exists`, the asset protocol, or a folder
+  edited outside the app while it runs - those stay installed checks.
+
 - **Live film-source binding:** `e2e-film-health-realdata` (14) audits the
   registered `2026-varsity-demo` season ("2025 St. Joseph Mavericks - JV")
   against the coach's real film library at `D:\Football\Film`
