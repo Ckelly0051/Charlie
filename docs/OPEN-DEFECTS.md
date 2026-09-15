@@ -111,8 +111,18 @@ authority until a replacement composition is reviewed and approved.
    validated against the active team. A program season that owns scouts cannot be
    deleted; the command blocks with them named and cascades nothing.
 
-   **Coverage.** `e2e-scout-ownership` (79), `e2e-home-deferred-repair` (105),
-   `e2e-home-review-repair` (37). Five assertions across the two Home harnesses
+   **Two Codex findings on that range, repaired 2026-09-14.** (a) The unassigned
+   rows were UNKEYED with uncontrolled selects, so Preact could reuse a departed
+   row's DOM node and submit the season chosen for the assigned scout through the
+   next scout's handler. Rows are keyed by scout id, selection is held per scout
+   id, and an in-flight assignment locks its own control. (b) `isValidParent()`
+   admitted any non-scout record including the SAMPLE season, so the demo could
+   become a parent and be persisted onto a real scout - trapping opponent film
+   under a disposable season, since reassignment is deferred and a parent owning
+   scouts cannot be deleted. A valid parent is now defined once in
+   `WorkspaceContext.isProgramSeasonRecord()` and applied to every path.
+
+   **Coverage.** `e2e-scout-ownership` (91), `e2e-home-deferred-repair` (105),   `e2e-home-review-repair` (37). Five assertions across the two Home harnesses
    that enforced the retired redirect were retired with their replacements
    recorded inline. Captures: `artifacts/scout-workspace/`.
 

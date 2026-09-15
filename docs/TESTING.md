@@ -172,7 +172,7 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-game-context`
 - **Persistence:** `e2e-projform-durability`, `e2e-season-roster-scope`,
   `e2e-roster-ownership`, `e2e-operation-diff`
-- **Opponent-scout ownership and Home navigation:** `e2e-scout-ownership` (79)
+- **Opponent-scout ownership and Home navigation:** `e2e-scout-ownership` (91)
   is the contract harness — the pure parent-resolution rules, the atomic toggle
   (instrumented for the ABSENCE of `_openLibrary`, `closeSeason` and any
   auto-open), parent-scoped lists, create-time persistence, the exact-parent
@@ -186,6 +186,14 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   `e2e-home-deferred-repair` (105) and `e2e-home-review-repair` (37) own the
   rendered Home states, including the approved empty Opponent Scout composition.
   `tools/capture-scout-workspace.mjs` captures eight states at 1920/1440/1280/768/390.
+  It also pins the two 2026-09-14 Codex findings: two unassigned rows where the
+  first is assigned through its own rendered control and the survivor's selector
+  must be blank and unsubmittable; and the sample season rejected as a parent by
+  `isValidParent`, excluded from legacy inference, establishing no parent when
+  opened, refusing scout creation without writing, surfacing an existing
+  demo-parented scout as unassigned with its data intact, and staying removable.
+  The row defect needs BOTH guards removed to reproduce — keying alone and
+  controlled state alone each prevent it — so its mutation removes both.
 
   **A workspace toggle must never be proven by a season change.** Five
   assertions across the two Home harnesses asserted that each side "restores its

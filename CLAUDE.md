@@ -60,9 +60,25 @@ that one parent, so the switch changes a view, never a season.
   also updates the live object when that scout is open so a later ordinary save
   cannot restore the stale parent. A failed write leaves the scout unassigned
   and says so. Reassigning an already-valid parent is deliberately out of scope.
+- **A valid parent is a REAL PROGRAM SEASON**, defined once in
+  `WorkspaceContext.isProgramSeasonRecord()`: not a scout, not the sample season
+  (by `kind` or `isDemo`), not blank, not missing. The sample is disposable and
+  regenerable while reassignment is deferred and a parent owning scouts cannot be
+  deleted, so adopting it would trap opponent film under a throwaway season. The
+  rule applies to `isValidParent()`, both adopt paths, legacy inference,
+  persisted-parent validation, assignment, scout creation and parent-scoped
+  listing. Opening the sample establishes no parent; creating a scout from sample
+  context fails closed and writes nothing; an existing scout naming a demo
+  surfaces as unassigned with its stored id and data untouched. An open SCOUT
+  does not block creating another scout — only the sample does.
 - **The active team bounds both sides.** A team switch clears the parent
   atomically, persisted context is validated against the active team on every
   load, and assignment resolves the SCOUT as well as the parent from that team.
+- **Unassigned rows are keyed and their selection is scoped per scout.** Unkeyed
+  rows with uncontrolled selects let Preact reuse a departed row's DOM node, so a
+  season chosen for an assigned scout could be submitted through the next
+  scout's handler. Keyed rows, id-scoped selection and an in-flight lock keep a
+  newly exposed row blank and a stale value unsubmittable.
 - **A program season that owns scouts cannot be deleted.** The command blocks
   with the owned scouts named; nothing cascades and no scouting data is lost.
 

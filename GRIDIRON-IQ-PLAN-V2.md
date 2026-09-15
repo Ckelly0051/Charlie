@@ -59,7 +59,9 @@ the open scout's exact parent id. Restoring "the most recently opened season of
 this kind" from `lastOpened` is RETIRED — recency is not ownership, and that
 redirect was the Home/library bounce the coach reported (docs/OPEN-DEFECTS.md
 Home item 5). Scouts with no resolvable parent are surfaced for explicit
-assignment rather than attached to a guess.
+assignment rather than attached to a guess. The sample season is never a valid
+parent: it is disposable, so a scout stamped with it would be trapped under a
+season built to be thrown away.
 One route, one switcher, one renderer, and one approved state matrix must cover
 first use, no season, empty season, populated season, and scout mode. Historical
 Home and Team Hub artifacts remain evidence but must be explicitly superseded
