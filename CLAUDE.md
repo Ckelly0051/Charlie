@@ -17,9 +17,12 @@ at 119/119, zero skipped, zero failed. See `SMOKE-1.12.0-87.md`. It carries the
 PL/BD batch, reviewed by Codex over `56e75f1..6651195` with no findings
 outstanding: PL-1 the dead play-library Add controls, PL-2 `Option` as a
 built-in offensive play, BD-VP Breakdown scrollbar-layout parity, and BD-CTX the
-context-selector surface. **BD-VP is the reason this smoke exists** - the defect
-is classic-versus-overlay scrollbars, and only WebView2 renders the classic ones
-Chromium cannot. Not tagged, pushed or published; Home production remains
+context-selector surface. **That installed smoke DISPROVED BD-VP** - Breakdown
+still showed floating scrollbar arrow controls and a horizontal track in the
+charting deck, and the deck spacing had regressed. BD-VP is REOPENED in
+`docs/OPEN-DEFECTS.md` and repaired again on top of this package, with its
+rendered half still needing an installed re-smoke; PL-1, PL-2 and BD-CTX stand.
+Not tagged, pushed or published; Home production remains
 formally `REJECTED`. Two items from the batch are deliberately absent and
 recorded in `docs/OPEN-DEFECTS.md`: `Option` is not added to Overview's approved
 fixed six play types or the Defense board's approved seven production rows,
@@ -379,16 +382,36 @@ all, and say nothing. It retargets instead. Child panels consume
 `chartGroup`/`initialPlayCall` in `useState` INITIALIZERS, so a retarget nonce is
 part of the child key and remounts that panel with the new initial target.
 
-**Chromium's scrollbars are OVERLAY; installed WebView2's are CLASSIC.** Classic
-scrollbars consume ~17px of layout AND render arrow buttons with no accessible
-name. Any pane that fits exactly under overlay scrollbars can therefore overflow
-on the installed build, which is the horizontal track and the anonymous arrows
-reported in Breakdown at ~1420x1000 — and it is why every geometry harness was
-green. Breakdown reserves the scrollbar gutter in BOTH environments so a harness
-measures the installed layout, forbids a horizontal track on vertical-only panes,
-and removes the scrollbar arrow buttons. **The play filmstrip is the one exempt
-horizontal scroller**, by name, because wide content scrolling inside its own
-container is the contract; its cards are scrolled, not clipped.
+**CHROMIUM CANNOT VERIFY SCROLLBAR CHROME AT ALL, and BD-VP is OPEN.** The first
+BD-VP repair was disproved by the `1.12.0-87` installed smoke while every
+Chromium check stayed green. Headless Chromium renders overlay scrollbars
+unconditionally - a probe with `::-webkit-scrollbar{width:40px}` measures a 0px
+gutter, and `--disable-features=OverlayScrollbar,FluentOverlayScrollbar,
+FluentScrollbar` does not change it - so no harness here can render, measure or
+fail on a scrollbar arrow or a horizontal track. Never claim a scrollbar repair
+on Chromium evidence; pin the CONDITIONS instead and say the rendered half is
+unverified until an installed smoke runs.
+
+**`scrollbar-width` and `scrollbar-color` SUPPRESS every `::-webkit-scrollbar-*`
+rule on that element.** Setting `scrollbar-width:thin` beside
+`::-webkit-scrollbar-button{display:none}` is exactly what made the arrow
+suppression dead on arrival. No Breakdown pane sets either property - the webkit
+rules are the sole authority and `e2e-breakdown-viewport` pins their absence.
+
+**`scrollbar-gutter:stable` is banned in Breakdown.** It reserves the
+ENVIRONMENT's scrollbar width - 0 under overlay, ~17px under classic - so it
+builds a different content box per runtime, which is the "fits in the harness,
+overflows on the installed build" mechanism rather than a defense against it.
+Every deck row must REFLOW instead: no chip row may be pinned `flex-wrap:nowrap`
+and no deck control may carry a hard `min-width` floor. **The play filmstrip is
+the one exempt horizontal scroller**, by name, because wide content scrolling
+inside its own container is the contract; its cards are scrolled, not clipped.
+
+**The charting deck has ONE 12px inset.** Section headers, labels, chip rows,
+inputs and the Edit Library actions all start there and nothing crosses it on
+either side; the collapse caret is right-aligned. The group's 3px accent border
+is absorbed by the padding rather than pushing content right, and a nested
+action row adds no inset of its own.
 
 **Add Game asks for no analytics perspective.** The selector labeled `Film
 source` is deleted, not renamed. It wrote `perspective`, and its

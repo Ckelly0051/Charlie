@@ -111,16 +111,22 @@ offensive play type owned once by `TagLibrary.DEFINITIONS`, distinct from `RPO`,
 ambiguous for run/pass and combinable with a realized look, behind a version-4
 visibility migration — deliberately NOT added to Overview's approved fixed six or
 the Defense board's approved seven, because resizing an approved schema is the
-coach's decision. Breakdown's viewport defect was scrollbar-layout parity:
-Chromium's overlay scrollbars consume no layout while installed WebView2's classic
-scrollbars consume ~17px and render unnamed arrow buttons, so the route now
-reserves the gutter in both environments, forbids a horizontal track on
-vertical-only panes, and removes the arrow buttons. The Program/Season/Game
+coach's decision. **Breakdown's viewport defect is REOPENED:** the `1.12.0-87`
+installed smoke disproved the first repair. That pass set `scrollbar-width:thin`
+beside `::-webkit-scrollbar-button{display:none}`, and Chromium ignores every
+`::-webkit-scrollbar-*` rule on an element setting `scrollbar-width` — so the
+arrow suppression was dead on arrival — and it reserved a `scrollbar-gutter`,
+which sizes to the ENVIRONMENT and so built a different content box per runtime
+instead of preventing the overflow. The second repair removes both from all four
+Breakdown CSS owners, requires every deck row to reflow rather than reserving
+width (no pinned `flex-wrap:nowrap`, no hard `min-width` floor), and corrects the
+charting deck to one 12px inset with a right-aligned caret. The Program/Season/Game
 selectors take one neutral graphite surface from the shell's own token block,
 applied at the shared context-bar owner, with a border that measures 4.1:1 against
-the bar. **Two items remain open:** the installed confirmation of the scrollbar
-repair, which only WebView2 can give, and Home season-rail scaling, still a
-separate layout pass.
+the bar. **Two items remain open:** BD-VP's rendered scrollbar chrome, which no
+Chromium harness can render, measure or fail on and which only an installed
+WebView2 smoke can confirm, and Home season-rail scaling, still a separate layout
+pass.
 
 The first-launch implementation has dedicated behavioral and responsive proof at 1440, 1280, 768, and 390 pixels, including manual, guided/skippable, and opponent-first creation. Focused results are recorded in the newest `CLAUDE.md` entry. The complete Home implementation and repair sequence through `f615fcd` is accepted for the `1.12.0-70` smoke candidate. No customer-data rewrite is included.
 

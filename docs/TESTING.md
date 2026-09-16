@@ -259,24 +259,34 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   id.
 
 - **Breakdown installed viewport and the shared context selector (BD-VP, BD-CTX):**
-  `e2e-breakdown-viewport` (151) measures 1920x1080, ~1420x1000, 1440x900 and
-  1280x720 in populated Offense, Defense and Special Teams charting. **It reserves
-  the scrollbar gutter, which is the point:** Chromium's overlay scrollbars
-  consume no layout while installed WebView2's classic scrollbars consume ~17px
-  and render unnamed arrow buttons, so without the gutter this harness measures a
-  friendlier layout than the coach's. It asserts no page-level horizontal
-  scrolling, that the play filmstrip is the ONLY thing scrolling sideways (exempt
-  BY NAME, reported separately so the exemption cannot widen), nothing clipped
-  past a viewport edge, no anonymous arrow-only control anywhere, global
-  navigation wholly inside the viewport, and the approved picture budget at each
-  width. The selector half measures CONTRAST rather than asserting a hex: each
-  selector visibly distinct from the bar, a 3:1 border boundary, no blue-gray, one
-  shared token across all three, preserved caret and typography, and rest / hover
-  / focus / open / disabled - plus the same surface on another route, because the
-  owner is shared. Screenshots land in `artifacts/breakdown-viewport/` as
+  `e2e-breakdown-viewport` (167) measures 1920x1080, ~1420x1000, 1440x900 and
+  1280x720 in populated Offense, Defense and Special Teams charting. **BD-VP is
+  OPEN: the `1.12.0-87` installed smoke disproved the first repair while this
+  harness was green throughout.** Headless Chromium renders overlay scrollbars
+  unconditionally - a `::-webkit-scrollbar{width:40px}` probe measures a 0px
+  gutter - so it can never render, measure or fail on a scrollbar arrow or a
+  horizontal track. The BD-VP assertions are therefore deliberately environment-
+  INDEPENDENT: they pin the CONDITIONS that produce the chrome, not the chrome. No
+  Breakdown stylesheet may set `scrollbar-width`/`scrollbar-color` (they suppress
+  every `::-webkit-scrollbar-*` rule, which is what killed the arrow suppression)
+  or `scrollbar-gutter` (it reserves a per-runtime width, which is the overflow
+  mechanism); the arrow suppression must survive on both axes; no chip row may be
+  pinned `flex-wrap:nowrap`; the charting deck scrolls vertically only with
+  nothing reaching past its content box; and every full-width deck row starts at
+  ONE inset that nothing crosses on either side. It also asserts no page-level
+  horizontal scrolling, that the play filmstrip is the ONLY thing scrolling
+  sideways (exempt BY NAME, reported separately so the exemption cannot widen),
+  nothing clipped past a viewport edge, no anonymous arrow-only control anywhere,
+  global navigation wholly inside the viewport, and the approved picture budget at
+  each width. The selector half measures CONTRAST rather than asserting a hex:
+  each selector visibly distinct from the bar, a 3:1 border boundary, no blue-gray,
+  one shared token across all three, preserved caret and typography, and rest /
+  hover / focus / open / disabled - plus the same surface on another route, because
+  the owner is shared. Screenshots land in `artifacts/breakdown-viewport/` as
   IMPLEMENTATION EVIDENCE ONLY; they confer no design approval. Mutation-verified
-  twice. **Chromium cannot certify** the classic scrollbars this repair is about -
-  that stays an installed check.
+  by restoring the original padding, the `nowrap` chip row and `scrollbar-width`
+  (4 red). **Chromium cannot certify** the rendered scrollbar chrome this repair
+  is about - that stays an installed check, and a green run here is not a repair.
 
 - **Linked clip-set reconciliation (FILM-01):** `e2e-film-clip-set` (45) owns
   the two-direction rule and the durable clip-identity lifecycle. Equal sets

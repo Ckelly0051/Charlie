@@ -1,13 +1,14 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after the PL/BD batch was
-> reviewed, gated at 119/119 and packaged as `1.12.0-87` for an installed smoke:
-> PL-1 the dead play-library Add route, PL-2 built-in `Option`, BD-VP Breakdown
-> scrollbar-layout parity, BD-CTX the context-selector surface. The preceding
-> `1.12.0-86` FILM-01 smoke passed and FILM-01 is accepted for beta use. The
-> intermittent rapid-scrubbing failure remains recorded but is deliberately
-> deprioritized; repaired items remain below as history until the index is
-> normalized.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after the `1.12.0-87`
+> installed smoke DISPROVED the first BD-VP repair: Breakdown still showed
+> floating scrollbar arrow controls and a horizontal track in the charting deck,
+> and the deck spacing had regressed. **BD-VP is REOPENED** (item 10) with a new
+> repair whose rendered half only an installed smoke can confirm. PL-1, PL-2 and
+> BD-CTX from that batch stand. The preceding `1.12.0-86` FILM-01 smoke passed and
+> FILM-01 is accepted for beta use. The intermittent rapid-scrubbing failure
+> remains recorded but is deliberately deprioritized; repaired items remain below
+> as history until the index is normalized.
 
 ## Coach smoke, 1.12.0-86 (2026-09-15)
 
@@ -935,36 +936,68 @@ edge-to-edge by design; the top bar's 18px inset is not.
    play-type table takes Option as a ranked candidate, where `fitRows` caps the
    board so no fixed count moves.
 
-10. **BD-VP - REPAIRED 2026-09-15 (Chromium); installed confirmation still
-    outstanding - Breakdown sizing overflowed the installed viewport and exposed
-    anonymous scrollbar arrows.** Root cause, and the reason every geometry
-    harness was green while the coach saw the defect: Chromium's headless
-    scrollbars are OVERLAY and consume no layout, while installed WebView2 uses
-    classic Windows scrollbars, which consume ~17px **and render arrow buttons
-    with no accessible name**. Every Breakdown pane that scrolls vertically
-    therefore loses 17px of inner width on the installed build only, so a pane
-    that fits exactly under overlay scrollbars overflows there - which is the
-    horizontal track at the bottom and the "tiny detached arrow controls". Under
-    overlay scrollbars the defect cannot exist, so no existing check could have
-    caught it.
+10. **BD-VP - REOPENED 2026-09-15. The installed `1.12.0-87` smoke DISPROVED the
+    first repair.** Breakdown still showed floating scrollbar arrow controls and a
+    horizontal track in the charting deck, and the deck spacing had regressed and
+    read cramped despite unused width. The installed screenshots are the
+    authority. The Chromium harness was green throughout - which is the finding,
+    not an excuse.
 
-    The route owner now reserves the scrollbar gutter in BOTH environments (so the
-    harness measures the installed layout, not a friendlier one), forbids a
-    horizontal track on the panes that must only scroll vertically, and removes
-    the scrollbar arrow buttons. Typography is untouched and the approved picture
-    budgets are asserted rather than spent.
+    **Root cause of the arrows.** The first repair set `scrollbar-width:thin` in
+    the same rules as `::-webkit-scrollbar-button{display:none}` - and Chromium
+    IGNORES every `::-webkit-scrollbar-*` rule for an element that sets
+    `scrollbar-width` or `scrollbar-color`. The arrow suppression was therefore
+    dead from the moment it was written, on every runtime that draws classic
+    scrollbars. Both properties are now removed from all four Breakdown CSS
+    owners (`native-breakdown-route.css`, `native-tagging.css`,
+    `native-breakdown-theater.css`, `native-film-room.css`), so the webkit rules
+    are the sole authority; directional `:start:decrement` / `:end:increment`
+    selectors are added for both axes, and the harness pins the absence.
 
-    **The play filmstrip is deliberately exempt.** Wide content scrolling inside
-    its own container is the contract, and its cards are scrolled, not clipped. It
-    is exempt BY NAME and reported separately so the exemption cannot widen
-    silently, and its own scrollbar is asserted to render no arrow buttons.
+    **`scrollbar-gutter:stable` was the other half of the mistake, and it is
+    gone.** It reserves the ENVIRONMENT's scrollbar width - 0 under overlay
+    scrollbars, ~17px under classic ones - so it produced a DIFFERENT content box
+    in the two runtimes, which is the "fits in the harness, overflows on the
+    installed build" mechanism itself. Reserving it was reasoning about the
+    symptom. The deck now reserves nothing and every row must REFLOW instead:
+    `.gi-tag-situation-row .gi-tag-chips` was pinned `flex-wrap:nowrap`, the one
+    chip row in the deck with no escape if its text measured wider in another
+    engine, and an earlier pass had only narrowed its track behind a comment
+    admitting the symptom could not be reproduced here. Narrowing moves a
+    threshold; wrapping removes the failure mode. The `min-width:180px` floor on
+    deck selects is also gone for the same reason.
 
-    Evidence: `e2e-breakdown-viewport` (151) across 1920x1080, ~1420x1000,
+    **The spacing regression is real, measured, and fixed in one pass.** Section
+    headers rendered content 3px from the form edge while their own bodies sat at
+    15px; every row had a 12px right inset against that 15px left, because the
+    group's 3px accent border ate the left with nothing balancing the right; an
+    action row nested in a body added a further 8px for 20px; and the collapse
+    caret floated wherever the section title happened to end, its right inset
+    ranging 20px to 142px. All four are corrected to ONE 12px inset with the
+    caret right-aligned (9px of padding plus the 3px border = 12px), and removing
+    the reserved gutter returned 10px of content width (450 -> 460px).
+
+    **WHAT CHROMIUM CANNOT DO - stated because it decides what this evidence is
+    worth.** Headless Chromium renders overlay scrollbars unconditionally: a probe
+    with `::-webkit-scrollbar{width:40px}` measures a **0px** gutter, and
+    `--disable-features=OverlayScrollbar,FluentOverlayScrollbar,FluentScrollbar`
+    does not change it. **No Chromium harness can render, measure, or fail on the
+    arrows or the horizontal track.** The assertions added here are therefore
+    deliberately environment-INDEPENDENT - they pin the CONDITIONS that produce
+    the chrome (no `scrollbar-width`/`scrollbar-color` in any Breakdown owner, no
+    reserved gutter, no unwrappable chip row, one shared inset nothing crosses on
+    either side, the deck scrolling vertically only with nothing past its content
+    box), never the chrome itself. Anything claiming otherwise is a false green.
+
+    Evidence: `e2e-breakdown-viewport` (167) across 1920x1080, ~1420x1000,
     1440x900 and 1280x720 in populated Offense, Defense and Special Teams
-    charting, with 12 screenshots in `artifacts/breakdown-viewport/` as
+    charting, with screenshots in `artifacts/breakdown-viewport/` as
     IMPLEMENTATION EVIDENCE ONLY - no design approval. Mutation-verified by
-    restoring the arrow buttons (12 red). **Still needs an installed check**: only
-    WebView2 renders the classic scrollbars this repair is about.
+    restoring the original padding, the `nowrap` chip row and `scrollbar-width`
+    (4 red, reporting the measured `{"distinct":[3,15,23]}`). **This item STAYS
+    OPEN.** The spacing repair is Chromium-proven; the arrow and horizontal-track
+    repair is a documented-mechanism fix that remains UNVERIFIED until the next
+    installed WebView2 smoke.
 
 11. **BD-CTX - REPAIRED 2026-09-15 - The Program, Season and Game context
     selectors blended into their surrounding bar.** Measured, not estimated: the
@@ -1032,17 +1065,19 @@ Breakdown film-state defects above.
   rapid-scrubbing report is separate, open, and deprioritized.
 - Home and every Reports surface remain `REJECTED` in the formal design approval
   registry; beta smoke acceptance is not formal design approval or publication.
-- That batch is DONE (PL-1, PL-2, BD-VP, BD-CTX above): the dead custom-play Add
-  route, canonical built-in `Option`, Breakdown viewport overflow/anonymous
-  arrows, and shared context-selector contrast. Codex-reviewed over
-  `56e75f1..6651195` with no findings remaining, focused proof at
-  `e2e-play-library` 50/50 and `e2e-breakdown-viewport` 151/151, canonical gate
-  119/119, and packaged as `1.12.0-87` for an installed smoke. **It is not
-  accepted, tagged, pushed or published until that smoke runs.**
-- Two items from that batch remain open, both named in their own entries:
-  BD-VP's installed confirmation, which only WebView2 can give because the
-  defect is classic-versus-overlay scrollbars; and `Option`'s absence from
-  Overview's approved fixed six and the Defense board's approved seven, which is
-  a coach decision about an approved schema rather than an implementation gap.
-- **The next batch is Home rail scaling** (item 12 above), still a separate
-  layout pass, plus whatever the `1.12.0-87` installed smoke returns.
+- **BD-VP is REOPENED** (item 10): the `1.12.0-87` installed smoke disproved the
+  first repair while every Chromium check stayed green. The second repair removes
+  `scrollbar-width` (which suppresses the arrow rules), removes the reserved
+  scrollbar gutter (which built a per-runtime content box), lets every deck row
+  reflow, and corrects the deck to one 12px inset. Focused proof is
+  `e2e-breakdown-viewport` 167/167, mutation-verified. Its spacing half is proven
+  here; its rendered-chrome half is NOT and cannot be - only an installed
+  WebView2 smoke can close it.
+- PL-1, PL-2 and BD-CTX from that batch stand as repaired: the dead custom-play
+  Add route, canonical built-in `Option`, and shared context-selector contrast.
+  Codex-reviewed over `56e75f1..6651195`, `e2e-play-library` 50/50, canonical
+  gate 119/119, packaged as `1.12.0-87`. `Option`'s absence from Overview's
+  approved fixed six and the Defense board's approved seven stays open as a coach
+  decision about an approved schema, not an implementation gap.
+- **The next batch is the BD-VP installed re-smoke**, then Home rail scaling
+  (item 12 above), which remains a separate layout pass.

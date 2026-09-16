@@ -14,6 +14,27 @@
 ProductVersion `1.12.0-87`, and the packaged `dist/assets/index-DP_tY8Ig.js`
 carries the same string. Updater signing was intentionally skipped.
 
+## Smoke Result - 2026-09-15
+
+**BD-VP FAILED. PL-1, PL-2 and BD-CTX passed.** The coach's two 1920x1080
+screenshots of this installed build show floating scrollbar arrow controls still
+present in Breakdown, a horizontal track still at the bottom of the charting
+deck, and charting-area spacing that had regressed to uneven and cramped despite
+unused width. Those screenshots are the authority; every Chromium check was green.
+
+Why the first repair could not have worked: it set `scrollbar-width:thin` in the
+same rules as `::-webkit-scrollbar-button{display:none}`, and Chromium ignores
+every `::-webkit-scrollbar-*` rule for an element that sets `scrollbar-width` or
+`scrollbar-color` - so the arrow suppression never applied on any runtime that
+draws classic scrollbars. And reserving `scrollbar-gutter:stable` sized the
+reservation to the ENVIRONMENT (0 under overlay, ~17px under classic), which built
+a DIFFERENT content box in the two runtimes rather than preventing the overflow.
+
+BD-VP is reopened in `docs/OPEN-DEFECTS.md` item 10 and repaired again on source
+after this package. **The description below is the disproved first attempt, kept
+as the record of what was claimed.** The rendered half of the second repair needs
+another installed smoke; no Chromium harness can render, measure or fail on it.
+
 ## What This Build Carries
 
 Everything since `1.12.0-86`: the four repairs from this batch, Codex-reviewed
@@ -35,7 +56,7 @@ charts both. Keyboard shortcut **B**, in both Quick Chart and the global chartin
 shortcuts. Existing teams get it visible through a version migration; no stored
 tag was touched.
 
-**BD-VP - Breakdown fits the installed viewport, with no anonymous arrows.** The
+**BD-VP - DISPROVED BY THIS SMOKE; see the result section above.** The
 cause was scrollbar layout: Chromium's scrollbars are overlay and cost no space,
 while installed WebView2 uses classic Windows scrollbars that consume ~17px AND
 render arrow buttons with no name. Panes that fit in testing overflowed on your
