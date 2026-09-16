@@ -1,9 +1,13 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after the installed
-> `1.12.0-86` FILM-01 smoke. FILM-01 is accepted for beta use. The intermittent
-> rapid-scrubbing failure remains recorded but is deliberately deprioritized;
-> repaired Batch 1 items remain below as history until the index is normalized.
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after the PL/BD batch was
+> reviewed, gated at 119/119 and packaged as `1.12.0-87` for an installed smoke:
+> PL-1 the dead play-library Add route, PL-2 built-in `Option`, BD-VP Breakdown
+> scrollbar-layout parity, BD-CTX the context-selector surface. The preceding
+> `1.12.0-86` FILM-01 smoke passed and FILM-01 is accepted for beta use. The
+> intermittent rapid-scrubbing failure remains recorded but is deliberately
+> deprioritized; repaired items remain below as history until the index is
+> normalized.
 
 ## Coach smoke, 1.12.0-86 (2026-09-15)
 
@@ -1028,16 +1032,17 @@ Breakdown film-state defects above.
   rapid-scrubbing report is separate, open, and deprioritized.
 - Home and every Reports surface remain `REJECTED` in the formal design approval
   registry; beta smoke acceptance is not formal design approval or publication.
-- That batch is DONE in source and Chromium-verified (PL-1, PL-2, BD-VP, BD-CTX
-  above): the dead custom-play Add route, canonical built-in `Option`, Breakdown
-  viewport overflow/anonymous arrows, and shared context-selector contrast. It
-  has focused proof at `e2e-play-library` 50/50 and `e2e-breakdown-viewport`
-  151/151, and is awaiting Codex review; **no full gate has been run on it and it
-  is not packaged.**
+- That batch is DONE (PL-1, PL-2, BD-VP, BD-CTX above): the dead custom-play Add
+  route, canonical built-in `Option`, Breakdown viewport overflow/anonymous
+  arrows, and shared context-selector contrast. Codex-reviewed over
+  `56e75f1..6651195` with no findings remaining, focused proof at
+  `e2e-play-library` 50/50 and `e2e-breakdown-viewport` 151/151, canonical gate
+  119/119, and packaged as `1.12.0-87` for an installed smoke. **It is not
+  accepted, tagged, pushed or published until that smoke runs.**
 - Two items from that batch remain open, both named in their own entries:
   BD-VP's installed confirmation, which only WebView2 can give because the
   defect is classic-versus-overlay scrollbars; and `Option`'s absence from
   Overview's approved fixed six and the Defense board's approved seven, which is
   a coach decision about an approved schema rather than an implementation gap.
 - **The next batch is Home rail scaling** (item 12 above), still a separate
-  layout pass, plus whatever the pending Codex review returns.
+  layout pass, plus whatever the `1.12.0-87` installed smoke returns.

@@ -102,8 +102,9 @@ agreement between the closed-season library and opened Home. Those behaviors
 passed installed smoke on 2026-09-15. The separate rapid-scrubbing `Film missing`
 report could not be reproduced and is deliberately deferred.
 
-**That batch is implemented (2026-09-15), Chromium-verified, awaiting Codex
-review.** The dead custom-play Add route was `SettingsScreen.open()` swallowing a
+**That batch is implemented (2026-09-15), Codex-reviewed with no findings
+remaining, gated at 119/119, and packaged as `1.12.0-87` for an installed
+smoke.** The dead custom-play Add route was `SettingsScreen.open()` swallowing a
 request while its non-modal sheet was already up, discarding the tab, chart group
 and typed play-call name; it retargets the live sheet now. `Option` is a built-in
 offensive play type owned once by `TagLibrary.DEFINITIONS`, distinct from `RPO`,

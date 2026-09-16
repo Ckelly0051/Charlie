@@ -7,24 +7,32 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-86` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-87` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-86` is the current unsigned smoke candidate,
-packaged from `b08d89c` (the bump on top of `dbd3d8d`) with the canonical gate
-at 117/117, zero skipped, zero failed. See `SMOKE-1.12.0-86.md`. It carries
-Repair Batch 1 (B1-1 season-scoped film health, B1-2 drive possession identity,
-B1-3 Field Goal / XP authoring, B1-4 in-flight operation identity) and FILM-01
-(two-way linked clip-set equality, a durable clip index that no longer prunes on
-an unloaded save, deliberate deletion that persists on its own, and an Undo that
-restores the live clip and the play it restored). The coach installed and passed
-the focused FILM-01 smoke on 2026-09-15: linked-folder equality/mismatch,
-durable uncharted-clip removal across close/reopen, and loaded delete/Undo with
-the restored play, clip, and selection aligned. FILM-01 is accepted for beta
-use. The separate rapid-scrubbing `Film missing` report remains open but is
-intermittent and could not be reproduced in this smoke; investigation is tabled.
-Not tagged, pushed or published; Home production remains formally `REJECTED`.
+**Packaging status:** `1.12.0-87` is the current unsigned smoke candidate,
+packaged from `398e1d6` (the bump on top of `6651195`) with the canonical gate
+at 119/119, zero skipped, zero failed. See `SMOKE-1.12.0-87.md`. It carries the
+PL/BD batch, reviewed by Codex over `56e75f1..6651195` with no findings
+outstanding: PL-1 the dead play-library Add controls, PL-2 `Option` as a
+built-in offensive play, BD-VP Breakdown scrollbar-layout parity, and BD-CTX the
+context-selector surface. **BD-VP is the reason this smoke exists** - the defect
+is classic-versus-overlay scrollbars, and only WebView2 renders the classic ones
+Chromium cannot. Not tagged, pushed or published; Home production remains
+formally `REJECTED`. Two items from the batch are deliberately absent and
+recorded in `docs/OPEN-DEFECTS.md`: `Option` is not added to Overview's approved
+fixed six play types or the Defense board's approved seven production rows,
+because resizing an approved board is a coach decision; and Home season-rail
+scaling stays a separate layout pass.
+
+`1.12.0-86` was the preceding unsigned smoke candidate, packaged from `b08d89c`
+with the gate at 117/117. It carried Repair Batch 1 and FILM-01, and its
+installed smoke PASSED on 2026-09-15 and is accepted for continued beta use -
+linked-folder equality, durable uncharted clip removal across close/reopen, and
+loaded delete/Undo with the restored play, clip and selection aligned. The
+intermittent rapid-scrubbing `Film missing` report could not be reproduced there
+and is tabled rather than closed. See `SMOKE-1.12.0-86.md`.
 
 `1.12.0-85` was the preceding unsigned installed beta build, packaged from
 `130962a` — the opponent-scout ownership model and atomic Home navigation,
@@ -32,8 +40,9 @@ reviewed and approved over `2c90b66..c2e088a` with the canonical gate at 114/114
 zero skipped, zero failed. See `SMOKE-1.12.0-85.md`. The coach approved that
 installed checkpoint for continued beta use on 2026-09-14, with three deferred
 visual findings — Breakdown viewport overflow and anonymous scrollbar arrows,
-context-selector contrast, and Home rail truncation — which `1.12.0-86` does NOT
-address. It is not tagged, pushed or published.
+context-selector contrast, and Home rail truncation. `1.12.0-86` addressed none
+of them; `1.12.0-87` addresses the first two (BD-VP, BD-CTX) and leaves Home rail
+truncation open as a separate layout pass. It is not tagged, pushed or published.
 
 `1.12.0-84` was the preceding unsigned local smoke candidate,
 packaged from the version bump on top of `501e263`. It is the FIRST package
