@@ -4,7 +4,8 @@
 > installed smoke DISPROVED the first BD-VP repair: Breakdown still showed
 > floating scrollbar arrow controls and a horizontal track in the charting deck,
 > and the deck spacing had regressed. **BD-VP is REOPENED** (item 10) with a new
-> repair whose rendered half only an installed smoke can confirm. PL-1, PL-2 and
+> repair whose rendered half only an installed smoke can confirm; it is gated at
+> 119/119 and packaged as `1.12.0-88` for that re-smoke. PL-1, PL-2 and
 > BD-CTX from that batch stand. The preceding `1.12.0-86` FILM-01 smoke passed and
 > FILM-01 is accepted for beta use. The intermittent rapid-scrubbing failure
 > remains recorded but is deliberately deprioritized; repaired items remain below
@@ -994,10 +995,12 @@ edge-to-edge by design; the top bar's 18px inset is not.
     charting, with screenshots in `artifacts/breakdown-viewport/` as
     IMPLEMENTATION EVIDENCE ONLY - no design approval. Mutation-verified by
     restoring the original padding, the `nowrap` chip row and `scrollbar-width`
-    (4 red, reporting the measured `{"distinct":[3,15,23]}`). **This item STAYS
-    OPEN.** The spacing repair is Chromium-proven; the arrow and horizontal-track
-    repair is a documented-mechanism fix that remains UNVERIFIED until the next
-    installed WebView2 smoke.
+    (4 red, reporting the measured `{"distinct":[3,15,23]}`). The canonical gate
+    is 119/119 on this baseline, and the repair is packaged as `1.12.0-88`
+    (`SMOKE-1.12.0-88.md`) for the re-smoke. **This item STAYS OPEN.** The
+    spacing repair is Chromium-proven; the arrow and horizontal-track repair is
+    a documented-mechanism fix that remains UNVERIFIED until that installed
+    WebView2 smoke returns.
 
 11. **BD-CTX - REPAIRED 2026-09-15 - The Program, Season and Game context
     selectors blended into their surrounding bar.** Measured, not estimated: the

@@ -7,11 +7,27 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-87` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-88` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-87` is the current unsigned smoke candidate,
+**Packaging status:** `1.12.0-88` is the current unsigned smoke candidate,
+packaged from `3438fc9` (the bump on top of `1b684da`) with the canonical gate
+at 119/119, zero skipped, zero failed. See `SMOKE-1.12.0-88.md`. **It exists for
+one reason: the `1.12.0-87` installed smoke DISPROVED BD-VP**, and it carries
+exactly one change over that package — the second BD-VP repair (`dd5202e`) and
+its documentation (`1b684da`). The first attempt set `scrollbar-width:thin`
+beside `::-webkit-scrollbar-button{display:none}`, which Chromium discards along
+with every other `::-webkit-scrollbar-*` rule on that element, so the arrow
+suppression was dead on arrival; and it reserved a `scrollbar-gutter`, which
+sizes to the ENVIRONMENT and so built a different content box per runtime rather
+than preventing the overflow. Both are gone, the deck now reflows instead of
+reserving width, and its spacing is corrected to one 12px inset.
+**No Chromium harness can confirm the rendered half** — this build is the only
+way to know. BD-VP stays OPEN until this smoke returns. Not tagged, pushed or
+published; Home production remains formally `REJECTED`.
+
+`1.12.0-87` was the preceding unsigned smoke candidate,
 packaged from `398e1d6` (the bump on top of `6651195`) with the canonical gate
 at 119/119, zero skipped, zero failed. See `SMOKE-1.12.0-87.md`. It carries the
 PL/BD batch, reviewed by Codex over `56e75f1..6651195` with no findings
