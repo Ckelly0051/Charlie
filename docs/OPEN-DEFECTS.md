@@ -1,15 +1,23 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-15 after the `1.12.0-87`
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-16. The `1.12.0-87`
 > installed smoke DISPROVED the first BD-VP repair: Breakdown still showed
 > floating scrollbar arrow controls and a horizontal track in the charting deck,
-> and the deck spacing had regressed. **BD-VP is REOPENED** (item 10) with a new
-> repair whose rendered half only an installed smoke can confirm; it is gated at
-> 119/119 and packaged as `1.12.0-88` for that re-smoke. PL-1, PL-2 and
+> and the deck spacing had regressed. **BD-VP is now CLOSED FOR BETA USE** (item 10):
+> its second repair is gated at 119/119 and the coach approved the installed
+> `1.12.0-88` smoke on 2026-09-16. PL-1, PL-2 and
 > BD-CTX from that batch stand. The preceding `1.12.0-86` FILM-01 smoke passed and
 > FILM-01 is accepted for beta use. The intermittent rapid-scrubbing failure
 > remains recorded but is deliberately deprioritized; repaired items remain below
 > as history until the index is normalized.
+
+## Coach smoke, 1.12.0-88 (2026-09-16)
+
+**APPROVED FOR BETA USE.** The coach approved the newest installed build,
+`1.12.0-88`, closing BD-VP's acceptance checkpoint for floating arrows,
+horizontal charting overflow and deck spacing. No additional viewport/DPI
+matrix is claimed. Home rail scaling remains open; formal design approvals,
+tagging, push and publication are unchanged.
 
 ## Coach smoke, 1.12.0-86 (2026-09-15)
 
@@ -937,7 +945,7 @@ edge-to-edge by design; the top bar's 18px inset is not.
    play-type table takes Option as a ranked candidate, where `fitRows` caps the
    board so no fixed count moves.
 
-10. **BD-VP - REOPENED 2026-09-15. The installed `1.12.0-87` smoke DISPROVED the
+10. **BD-VP - CLOSED FOR BETA USE 2026-09-16. The installed `1.12.0-87` smoke DISPROVED the
     first repair.** Breakdown still showed floating scrollbar arrow controls and a
     horizontal track in the charting deck, and the deck spacing had regressed and
     read cramped despite unused width. The installed screenshots are the
@@ -997,10 +1005,10 @@ edge-to-edge by design; the top bar's 18px inset is not.
     restoring the original padding, the `nowrap` chip row and `scrollbar-width`
     (4 red, reporting the measured `{"distinct":[3,15,23]}`). The canonical gate
     is 119/119 on this baseline, and the repair is packaged as `1.12.0-88`
-    (`SMOKE-1.12.0-88.md`) for the re-smoke. **This item STAYS OPEN.** The
-    spacing repair is Chromium-proven; the arrow and horizontal-track repair is
-    a documented-mechanism fix that remains UNVERIFIED until that installed
-    WebView2 smoke returns.
+    (`SMOKE-1.12.0-88.md`) for the re-smoke. **The coach approved that installed
+    smoke on 2026-09-16, closing this item for beta use.** Installed acceptance,
+    not Chromium, closes the arrow, horizontal-track and spacing checkpoint.
+    No additional viewport/DPI matrix is claimed.
 
 11. **BD-CTX - REPAIRED 2026-09-15 - The Program, Season and Game context
     selectors blended into their surrounding bar.** Measured, not estimated: the
@@ -1068,19 +1076,19 @@ Breakdown film-state defects above.
   rapid-scrubbing report is separate, open, and deprioritized.
 - Home and every Reports surface remain `REJECTED` in the formal design approval
   registry; beta smoke acceptance is not formal design approval or publication.
-- **BD-VP is REOPENED** (item 10): the `1.12.0-87` installed smoke disproved the
+- **BD-VP is CLOSED FOR BETA USE** (item 10): the `1.12.0-87` installed smoke disproved the
   first repair while every Chromium check stayed green. The second repair removes
   `scrollbar-width` (which suppresses the arrow rules), removes the reserved
   scrollbar gutter (which built a per-runtime content box), lets every deck row
   reflow, and corrects the deck to one 12px inset. Focused proof is
   `e2e-breakdown-viewport` 167/167, mutation-verified. Its spacing half is proven
-  here; its rendered-chrome half is NOT and cannot be - only an installed
-  WebView2 smoke can close it.
+  here; the coach's approved `1.12.0-88` installed WebView2 smoke on 2026-09-16
+  closes the rendered-chrome checkpoint. `1.12.0-88` is the current approved beta build.
 - PL-1, PL-2 and BD-CTX from that batch stand as repaired: the dead custom-play
   Add route, canonical built-in `Option`, and shared context-selector contrast.
   Codex-reviewed over `56e75f1..6651195`, `e2e-play-library` 50/50, canonical
   gate 119/119, packaged as `1.12.0-87`. `Option`'s absence from Overview's
   approved fixed six and the Defense board's approved seven stays open as a coach
   decision about an approved schema, not an implementation gap.
-- **The next batch is the BD-VP installed re-smoke**, then Home rail scaling
+- **The next presentation batch is Home rail scaling**
   (item 12 above), which remains a separate layout pass.

@@ -261,7 +261,8 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
 - **Breakdown installed viewport and the shared context selector (BD-VP, BD-CTX):**
   `e2e-breakdown-viewport` (167) measures 1920x1080, ~1420x1000, 1440x900 and
   1280x720 in populated Offense, Defense and Special Teams charting. **BD-VP is
-  OPEN: the `1.12.0-87` installed smoke disproved the first repair while this
+  CLOSED FOR BETA USE after the coach-approved `1.12.0-88` installed smoke on
+  2026-09-16: the `1.12.0-87` installed smoke disproved the first repair while this
   harness was green throughout.** Headless Chromium renders overlay scrollbars
   unconditionally - a `::-webkit-scrollbar{width:40px}` probe measures a 0px
   gutter - so it can never render, measure or fail on a scrollbar arrow or a

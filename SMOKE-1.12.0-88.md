@@ -85,10 +85,9 @@ chrome (no `scrollbar-width`/`scrollbar-color`, no reserved gutter, no
 unwrappable chip row, one shared inset, vertical-only deck scrolling), never the
 chrome itself.
 
-So: **the spacing repair is proven and the arrow/track repair is not.** The
-second is a documented-mechanism fix, and this build is the only way to know
-whether it worked. BD-VP stays OPEN in `docs/OPEN-DEFECTS.md` until this smoke
-says otherwise.
+Before installed smoke, the spacing repair was Chromium-proven and the
+arrow/track repair was not. The coach approved this installed build on
+2026-09-16; that native evidence closes BD-VP for beta use.
 
 ## Smoke Sequence
 
@@ -114,5 +113,10 @@ says otherwise.
 
 ## Status
 
-Not tagged, pushed or published. Home production remains formally `REJECTED`.
-This package establishes no acceptance on its own; the installed smoke does.
+**APPROVED FOR BETA USE - installed coach smoke passed 2026-09-16.** The coach
+approved the newest build, `1.12.0-88`. This closes BD-VP's installed acceptance
+checkpoint for floating arrows, horizontal charting overflow and deck spacing.
+No additional viewport/DPI matrix is claimed beyond the coach's smoke.
+
+Not tagged, pushed or published. Home production remains formally `REJECTED`;
+beta smoke approval does not advance the formal design approval registry.
