@@ -20,6 +20,11 @@
 import puppeteer from 'puppeteer';
 import fs from 'node:fs';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;
@@ -165,6 +170,105 @@ for (const [w, h] of VIEWPORTS) {
     const floor = MEDIA_FLOOR[w];
     ok(!!s.media && s.media.w >= floor[0] && s.media.h >= floor[1],
       `${tag} ${unit}: the video keeps its useful area (>= ${floor[0]}x${floor[1]})`, s.media);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// BD-VP round 2. The 2026-09-15 installed smoke DISPROVED the first repair:
+// floating scrollbar arrows and a horizontal track were still present, and the
+// deck spacing had regressed. Root cause of the arrows: `scrollbar-width` was
+// set in the same rules as `::-webkit-scrollbar-button{display:none}`, and
+// Chromium ignores EVERY `::-webkit-scrollbar-*` rule for an element that sets
+// `scrollbar-width` or `scrollbar-color` — so the suppression was dead on any
+// runtime that draws classic scrollbars.
+//
+// THESE ASSERTIONS ARE ENVIRONMENT-INDEPENDENT ON PURPOSE. Headless Chromium
+// renders overlay scrollbars unconditionally (a `::-webkit-scrollbar{width:40px}`
+// probe measures a 0px gutter, and --disable-features=OverlayScrollbar does not
+// change it), so nothing here can measure rendered scrollbar chrome. What it can
+// pin is ownership, reflow and spacing — the conditions that make the chrome
+// appear at all.
+console.log('\n-- BD-VP scroll ownership, reflow and deck spacing --');
+{
+  const src = f => readFileSync(join(REPO, 'css', f), 'utf8');
+  const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const f of ['native-breakdown-route.css', 'native-tagging.css',
+                   'native-breakdown-theater.css', 'native-film-room.css']) {
+    const css = strip(src(f));
+    ok(!/scrollbar-width\s*:/.test(css) && !/scrollbar-color\s*:/.test(css),
+      `${f} sets no scrollbar-width/color, so ::-webkit-scrollbar-* stays authoritative`,
+      (css.match(/scrollbar-(width|color)\s*:[^;}]*/g) || []).slice(0, 3));
+    ok(!/scrollbar-gutter\s*:/.test(css),
+      `${f} reserves no environment-dependent scrollbar gutter`,
+      (css.match(/scrollbar-gutter\s*:[^;}]*/g) || []).slice(0, 3));
+  }
+  const route = strip(src('native-breakdown-route.css'));
+  ok(/::-webkit-scrollbar-button\s*\{[^}]*display\s*:\s*none/.test(route),
+    'The route still suppresses scrollbar arrow buttons');
+  // The one chip row that could not reflow is the one that had no escape.
+  ok(!/\.gi-tag-situation-row\s+\.gi-tag-chips\s*\{[^}]*flex-wrap\s*:\s*nowrap/.test(strip(src('native-tagging.css'))),
+    'No chip row in the deck is pinned to nowrap');
+
+  const deck = await page.evaluate(() => {
+    const form = document.querySelector('.gi-breakdown-deck .gi-native-form');
+    if (!form) return null;
+    const f = form.getBoundingClientRect();
+    const contentRight = f.left + form.clientWidth;
+    // The VISIBLE content edge, not the container box. A section header and a
+    // group body are block children of the accent-bordered group, so their own
+    // boxes always span it; what the coach sees is where their content starts
+    // and ends. Measured before this repair: headers began 3px from the form
+    // edge while their own content sat at 15px, and every row's right inset was
+    // 12px against a 15px left.
+    const edges = n => {
+      const kids = [...n.children].filter(k => k.getBoundingClientRect().width > 2);
+      if (!kids.length) return null;
+      const boxes = kids.map(k => k.getBoundingClientRect());
+      return { left: Math.min(...boxes.map(b => b.left)), right: Math.max(...boxes.map(b => b.right)) };
+    };
+    const insets = [];
+    for (const sel of ['.gi-tag-group>summary', '.gi-tag-group-body', '.gi-tag-chips',
+                       '.gi-tag-field-label', '.gi-tag-input', '.gi-tag-actions']) {
+      for (const n of form.querySelectorAll(sel)) {
+        const b = n.getBoundingClientRect();
+        if (b.width < form.clientWidth - 40) continue;   // full-width rows only
+        const e = edges(n);
+        if (!e) continue;
+        insets.push({ sel, left: Math.round(e.left - f.left), right: Math.round(contentRight - e.right) });
+      }
+    }
+    // Everything must fit the content box with the scrollbar gutter gone.
+    const past = [];
+    for (const n of form.querySelectorAll('*')) {
+      const b = n.getBoundingClientRect();
+      if (b.width > 2 && b.right > contentRight + 0.5) past.push(Math.round(b.right - contentRight));
+    }
+    return { content: form.clientWidth, insets, past,
+      overX: form.scrollWidth - form.clientWidth,
+      ox: getComputedStyle(form).overflowX };
+  });
+  ok(!!deck, 'The charting deck form is on screen');
+  if (deck) {
+    ok(deck.ox === 'hidden' && deck.overX === 0,
+      'The charting form scrolls vertically only', { ox: deck.ox, overX: deck.overX });
+    ok(deck.past.length === 0, 'Nothing in the form reaches past its content box', deck.past.slice(0, 5));
+    // Section headers and their own content share ONE inset, and it is
+    // symmetric. Measured before this repair: headers 3/0, content 15/12.
+    // ONE shared inset that nothing violates. A wrapped chip row legitimately
+    // ends short of the right inset - that is wrapping, not ragged padding -
+    // but no row may START at a different inset or END past it. The defect this
+    // replaced failed both halves: section headers began 3px from the form edge
+    // while their own content sat at 15px, and every row's right inset was 12px
+    // against a 15px left.
+    const lefts = [...new Set(deck.insets.map(i => i.left))];
+    ok(lefts.length === 1,
+      'Headers, labels, chip rows, inputs and actions all start at ONE inset',
+      { distinct: lefts, offenders: deck.insets.filter(i => i.left !== lefts[0]).slice(0, 6) });
+    const past = deck.insets.filter(i => i.right < lefts[0]);
+    ok(past.length === 0, 'No row reaches past that inset on the right',
+      past.slice(0, 5));
+    ok(lefts[0] >= 8 && lefts[0] <= 16,
+      'The shared inset is the deck\'s own 12px step', lefts);
   }
 }
 

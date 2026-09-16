@@ -17,17 +17,26 @@
 .gi-native-tagging>.gi-tag-actions{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content max-content}
 .gi-native-tagging>.gi-tag-actions select{width:100%;min-width:0}
 .gi-tag-actions button,.gi-tag-actions select,.gi-diagram-actions button{min-height:30px;padding:0 7px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
-.gi-tag-actions select{flex:1 1 180px;min-width:180px;width:auto;padding-inline:10px}
+.gi-tag-actions select{flex:1 1 140px;min-width:0;width:auto;padding-inline:10px}
 .gi-tag-actions .gi-is-risk{margin-left:auto;color:var(--gi-turnover)}
-.gi-tag-group-body .gi-tag-actions{flex-wrap:wrap;overflow:visible}
+/* The group body already supplies the section inset; the action row adding
+   its own 8px put these controls 20px in against every neighbour's 12px. */
+.gi-tag-group-body .gi-tag-actions{flex-wrap:wrap;overflow:visible;padding-inline:0}
 .gi-tag-group-body>button,.gi-tag-drive-row>button{justify-self:start;min-height:30px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans)}
-.gi-native-form{display:block;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0;scrollbar-width:thin;scrollbar-color:var(--gi-7) var(--gi-1)}
+/* No `scrollbar-width` / `scrollbar-color` here. Chromium ignores EVERY
+   `::-webkit-scrollbar-*` rule for an element that sets either of them, so the
+   route's arrow-button suppression was dead on any runtime that draws classic
+   scrollbars — which is installed WebView2, and never headless Chromium. */
+.gi-native-form{display:block;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0}
 .gi-tag-group{min-width:0;margin:0;border:0;border-bottom:1px solid var(--gi-7);border-left:3px solid var(--gi-bd-bone);border-radius:0;background:var(--gi-1)}
-.gi-tag-group>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px;padding:0 12px 0 0;cursor:pointer}
+.gi-tag-group>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px;padding:0 12px 0 9px;cursor:pointer}
 .gi-tag-group>summary strong{display:inline-flex;align-items:center;min-height:24px;padding:0 22px 0 10px;clip-path:var(--gi-lower-third);background:var(--gi-3);color:var(--gi-12);font:600 12.5px/1 var(--gi-sans);text-transform:uppercase;letter-spacing:0}
 .gi-tag-group[open]>summary strong{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
-.gi-tag-group>summary i{color:var(--gi-bd-copy);font-style:normal}.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
-.gi-tag-group-body{display:grid;gap:8px;padding:8px 12px 12px}
+/* The collapse caret is the row's right-hand item. Left in the flexible
+   middle track it floated wherever the section title ended, so the header row
+   read as ragged against a flush-right body below it. */
+.gi-tag-group>summary i{justify-self:end;color:var(--gi-bd-copy);font-style:normal}.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
+.gi-tag-group-body{display:grid;gap:8px;padding:8px 12px 12px 9px}
 .gi-tag-group:has([data-native-field="defFront"]),.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
 .gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-tag-field{display:grid;gap:4px;min-width:0;max-width:100%}
@@ -56,7 +65,11 @@
    charting-pane scrollbar reported on the installed build can't be
    reproduced from a fresh headless measurement alone. */
 .gi-tag-situation-row{display:grid;grid-template-columns:minmax(0,165px) 100px 66px;align-items:end;gap:6px;min-width:0}
-.gi-tag-situation-row .gi-tag-chips{flex-wrap:nowrap;gap:3px}
+/* WRAP, never nowrap. This was the one chip row in the deck that could not
+   reflow: if its text measures wider than its track in another engine, the row
+   has no escape and overflows horizontally. Narrowing the track (the previous
+   pass) only moved the threshold; allowing the wrap removes the mechanism. */
+.gi-tag-situation-row .gi-tag-chips{flex-wrap:wrap;gap:3px}
 .gi-tag-situation-row .gi-tag-chips button{padding-inline:6px}
 .gi-tag-input-distance,.gi-tag-input-yardLine{width:66px}
 .gi-tag-result-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
@@ -76,7 +89,7 @@
 .gi-tag-players input,.gi-tag-players select{width:100%;min-height:32px;padding:0 6px}
 .gi-tag-players input{font:500 15px var(--gi-sans);font-variant-numeric:tabular-nums}
 .gi-player-roster-toggle{grid-column:1/-1;justify-self:start;min-height:28px;padding:0;border:0;background:transparent;color:var(--gi-bd-copy);font:500 12px var(--gi-sans)}
-.gi-player-quick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:3px;max-height:100px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gi-7) transparent}
+.gi-player-quick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:3px;max-height:100px;overflow-y:auto;overflow-x:hidden}
 .gi-player-quick button{min-height:24px;padding:0 2px;font:500 12px var(--gi-sans)}
 .gi-penalty-card{display:grid;gap:6px;padding:8px;border-left:3px solid var(--gi-first-down);background:var(--gi-2)}
 .gi-penalty-card header,.gi-penalty-situation header{display:flex;align-items:center;justify-content:space-between}

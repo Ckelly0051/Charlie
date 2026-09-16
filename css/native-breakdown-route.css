@@ -29,27 +29,40 @@
 .gi-breakdown-deck{grid-area:deck;overflow:hidden;background:var(--gi-1)}
 .gi-breakdown-tagging-host,.gi-breakdown-film-room-host{width:100%;height:100%;overflow:hidden}
 
-/* SCROLLBAR LAYOUT PARITY. Chromium's headless scrollbars are OVERLAY: they
-   consume no layout. Installed WebView2 uses classic Windows scrollbars, which
-   consume ~17px and render arrow BUTTONS with no accessible name. So every
-   Breakdown pane that scrolls vertically loses 17px of inner width on the
-   installed build only - a pane that fits exactly here then overflows there,
-   producing the horizontal track and the "tiny detached arrows" reported at
-   ~1420x1000. No geometry harness could ever have caught it, because under
-   overlay scrollbars the defect cannot exist.
-   Three things fix it at the route owner: reserve the gutter in BOTH
-   environments so the layout is identical and testable; forbid a horizontal
-   track on panes that must only scroll vertically; and remove the arrow buttons
-   so no anonymous arrow-only control can render. */
-.ws-breakdown [data-scroll-pane],
-.ws-breakdown .gi-native-form,
-.ws-breakdown .gi-drive-scroll,
-.ws-breakdown .gi-player-quick,
-.ws-breakdown .gi-film-table-wrap{scrollbar-gutter:stable;scrollbar-width:thin}
+/* SCROLL OWNERSHIP AND SCROLLBAR CHROME.
+
+   The 2026-09-15 installed smoke DISPROVED the first attempt here. It set
+   `scrollbar-width:thin` in the same rules as `::-webkit-scrollbar-button
+   {display:none}` — and Chromium ignores EVERY `::-webkit-scrollbar-*` rule
+   for an element that sets `scrollbar-width` or `scrollbar-color`. So the
+   arrow-button suppression never applied on a runtime that draws classic
+   scrollbars, which is installed WebView2 and never headless Chromium. Both
+   properties are now gone from every Breakdown pane so these rules are the
+   authority. Do not reintroduce `scrollbar-width` here.
+
+   `scrollbar-gutter:stable` is gone too. It reserves the ENVIRONMENT's
+   scrollbar width, which is 0 under overlay scrollbars and ~17px under
+   classic ones — so it produced a different content box in the two runtimes,
+   which is the "fits in the harness, overflows on the installed build"
+   mechanism itself. The deck form instead carries no reserved gutter and its
+   rows are all required to reflow, so a narrower content box costs layout
+   rather than producing a horizontal track.
+
+   HEADLESS CHROMIUM CANNOT VERIFY ANY OF THIS. It renders overlay scrollbars
+   unconditionally: a probe with `::-webkit-scrollbar{width:40px}` measures a
+   0px gutter, and --disable-features=OverlayScrollbar does not change it. The
+   ownership and reflow assertions in e2e-breakdown-viewport are environment-
+   independent; the rendered scrollbar chrome stays an installed check. */
 .ws-breakdown .gi-native-form,
 .ws-breakdown .gi-player-quick{overflow-x:hidden}
 .ws-breakdown ::-webkit-scrollbar{width:10px;height:10px}
 .ws-breakdown ::-webkit-scrollbar-button{display:none;width:0;height:0}
+.ws-breakdown ::-webkit-scrollbar-button:start:decrement,
+.ws-breakdown ::-webkit-scrollbar-button:end:increment,
+.ws-breakdown ::-webkit-scrollbar-button:horizontal:start:decrement,
+.ws-breakdown ::-webkit-scrollbar-button:horizontal:end:increment,
+.ws-breakdown ::-webkit-scrollbar-button:vertical:start:decrement,
+.ws-breakdown ::-webkit-scrollbar-button:vertical:end:increment{display:none;width:0;height:0}
 .ws-breakdown ::-webkit-scrollbar-corner{background:transparent}
 .ws-breakdown ::-webkit-scrollbar-track{background:var(--gi-2)}
 .ws-breakdown ::-webkit-scrollbar-thumb{background:var(--gi-6);border:2px solid var(--gi-2)}
