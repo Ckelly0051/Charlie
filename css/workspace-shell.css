@@ -113,7 +113,10 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
    study-screen.css and plan-screen.css after this file, so a `.ws-study-head h1`
    rule written here would lose on source order and do nothing. */
 .ws-home h1,.ws-plan-state h1{font:var(--gi-text-display);font-size:34px;letter-spacing:0}
-.ws-mobile-brand{font-family:var(--gi-cond)}
+/* The wordmark never wraps or shrinks: the context label beside it is the
+   flexible item and ellipsizes instead. Left shrinkable, a long context
+   squeezed the button to min-content and dropped IQ onto a second line. */
+.ws-mobile-brand{font-family:var(--gi-cond);flex:0 0 auto;white-space:nowrap}
 
 /* THE SIGNATURE, ON HOME. Every section head becomes a lower-third plate — the
    same mark Reports gives `.stats-section>h3` and the deck gives its group

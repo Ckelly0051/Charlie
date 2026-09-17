@@ -359,8 +359,16 @@ const boardModel = await page.evaluate(gameId => {
     dashboardUnchanged: JSON.stringify(strip(seasonBoard.dashboard)) === JSON.stringify(strip(seasonDash)),
     gameComparison: gameBoard.comparison.find(row => row.name === 'Yards / play'),
     labelsDiffer: labels !== opponents,
+    leverage: Object.fromEntries(seasonBoard.highLeverage.map(row => [row.name, { sample: row.sample, touchdownsAllowed: row.touchdownsAllowed }])),
   };
 }, stPeter.id);
+const leverage = boardModel.leverage;
+ok(leverage['Red-zone possessions']?.sample === 8 && leverage['Red-zone possessions']?.touchdownsAllowed === 6,
+  '2025 JV full season: 8 opponent red-zone possessions, 6 ending in a touchdown allowed (measured from our goal line)', JSON.stringify(leverage));
+ok(leverage['Goal line / snaps']?.sample <= leverage['Inside our 20 / snaps']?.sample
+  && leverage['Inside our 20 / snaps']?.touchdownsAllowed >= leverage['Goal line / snaps']?.touchdownsAllowed
+  && leverage['Opponent backed up / snaps']?.touchdownsAllowed === 0,
+  'goal-line snaps are a subset of inside-our-20 snaps, and no touchdown is allowed from the opponent backed up', JSON.stringify(leverage));
 ok(boardModel.season.touchdownsAllowed === 7 && boardModel.season.defensiveTouchdowns === 0,
   '2025 JV full season: Touchdowns Allowed 7, Defensive Touchdowns 0', JSON.stringify(boardModel.season));
 ok(boardModel.game.touchdownsAllowed === 0 && boardModel.game.defensiveTouchdowns === 0,

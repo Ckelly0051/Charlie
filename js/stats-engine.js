@@ -162,6 +162,16 @@ export class StatsEngine {
     return gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown');
   }
 
+  /** A conversion the OPPONENT made on a defensive snap: it gained the line to
+   *  gain, or the opponent scored. `isConversion` accepts any touchdown, so a
+   *  pick-six on third down read as a third down allowed. Our own return
+   *  touchdown is not their conversion, and a touchdown whose scoring side is
+   *  unknown is not inferred to be one. */
+  static isConversionAllowed(p) {
+    if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.scoringSide(p) === 'them';
+    return gainedFirstDown(p.tags);
+  }
+
   /** Canonical tackle for loss: a defensive stop behind the line on a run or
    *  pass. Negative yardage from a Sack, Penalty, Kneel or Spike is NOT a
    *  tackle for loss (see `_defensiveStats`, which owns the same rule). */
@@ -1686,7 +1696,7 @@ export class StatsEngine {
     const summary = summarize('Season', source);
     const rateAllowed = (cohort, down) => {
       const rows = cohort.filter(p => p.tags.down === down);
-      const allowed = rows.filter(StatsEngine.isConversion).length;
+      const allowed = rows.filter(StatsEngine.isConversionAllowed).length;
       return { made: allowed, attempts: rows.length, rate: rows.length ? +(allowed / rows.length * 100).toFixed(1) : null };
     };
     const downRows = ['1', '2', '3', '4'].map(down => summarize(
@@ -1885,7 +1895,8 @@ export class StatsEngine {
         n: rows.length, measured: measured.length, runs: runs.length, passes: passes.length,
         ypp: ypp(measured), rushYpp: ypp(runs), passYpp: ypp(passes),
         success: rate(measured.filter(p => this._isSuccessfulPlay(p)).length, measured.length),
-        explosives: measured.filter(S.isExplosive).length,
+        // Nothing classified means nothing measured: no explosive count at all.
+        explosives: measured.length ? measured.filter(S.isExplosive).length : null,
         touchdownsAllowed: touchdownsAllowed(rows), refs: S._refsOf(rows),
       };
     };
@@ -1904,7 +1915,8 @@ export class StatsEngine {
     };
     const disruption = rows => {
       const sacks = rows.filter(p => S.hasResult(p, 'Sack'));
-      const tfl = rows.filter(S.isTackleForLoss);
+      // RUN TFL: a negative-yardage pass is not a run stopped behind the line.
+      const tfl = rows.filter(p => S.isRun(p) && S.isTackleForLoss(p));
       const interceptions = rows.filter(p => S.hasResult(p, 'Interception'));
       const recoveries = rows.filter(S.isFumbleRecovered);
       // A play carrying two events is ONE disruptive play.
@@ -1986,7 +1998,27 @@ export class StatsEngine {
       ['Punt', 'Punt'], ['Turnover', 'Turnover'], ['Downs', 'Downs'], ['Safety', 'Safety'],
       ['Kneel', 'Kneel'], ['Other', 'Other / unresolved']];
     const outcomeName = outcome => DRIVE_OUTCOMES.find(([key]) => key === outcome)?.[1] || outcome;
-    const driveStats = this._driveStats(ps, { all });
+    /* SCORING SIDE DECIDES WHOSE POINTS A DRIVE ENDED WITH. `_driveStats` is
+       side-agnostic: a pick-six ends an opponent drive as `TD` for 6 points.
+       On an opponent possession only an opponent score is theirs. Our
+       touchdown on a takeaway ends their drive as a Turnover; one without a
+       charted takeaway stays unresolved rather than inferring how the ball
+       changed hands. A safety is ours, so it keeps its outcome and scores the
+       opponent nothing. Drives zip with `_reconstructDrives` by index, which is
+       the order `_driveStats` builds them in, because bare play ids collide
+       across games. */
+    const opponentDrives = (plays, context) => {
+      const drives = this._reconstructDrives(plays);
+      return this._driveStats(plays, context).list.map((drive, idx) => {
+        const last = drives[idx]?.at(-1);
+        if (!last || !['TD', 'FG', 'Safety'].includes(drive.outcome)) return drive;
+        if (S.scoringSide(last) === 'them') return drive;
+        if (drive.outcome === 'Safety') return { ...drive, points: 0 };
+        return { ...drive, outcome: S.isTakeaway(last) || S.isGiveaway(last) ? 'Turnover' : 'Other', points: 0 };
+      });
+    };
+    const driveList = opponentDrives(ps, { all });
+    const driveStats = { list: driveList, total: driveList.length };
     const outcomeKeys = [...DRIVE_OUTCOMES.map(([key]) => key),
       ...[...new Set(driveStats.list.map(drive => drive.outcome))].filter(key => !DRIVE_OUTCOMES.some(([k]) => k === key))];
     const driveOutcomes = outcomeKeys.map(key => {
@@ -2008,9 +2040,9 @@ export class StatsEngine {
     const possessions = gameOrder.flatMap(([gid]) => {
       const gameAll = all.filter(p => String(p.__gid ?? 'current') === gid);
       const gameDefense = gameAll.filter(isDefense);
-      return this._driveStats(gameDefense, { all: gameAll }).list.map(drive => {
-        const cohort = gameDefense.filter(p => drive.playIds.includes(p.id));
-        const last = cohort.at(-1);
+      const gameDrives = this._reconstructDrives(gameDefense);
+      return opponentDrives(gameDefense, { all: gameAll }).map((drive, idx) => {
+        const last = gameDrives[idx]?.at(-1);
         return { opponent: labels[gid] || gid, name: `Drive ${drive.number}`, start: spot(drive.startYL),
           lastSnap: spot(last ? this._absYardLine(last.tags) : null), plays: drive.plays, yards: drive.yards,
           outcome: drive.outcome === 'Other' ? 'Unresolved' : outcomeName(drive.outcome),
@@ -2122,19 +2154,24 @@ export class StatsEngine {
     const downDistance = d.downDistance.map((row, index) => ({ row, key: ddKeys[index] })).filter(({ row }) => row.n)
       .map(({ row, key }) => {
         const cohort = ps.filter(p => this._ddKey(p.tags) === key);
-        const firstDowns = cohort.filter(S.isConversion).length;
+        const firstDowns = cohort.filter(S.isConversionAllowed).length;
         return { name: row.name, n: row.n, runs: row.runs, passes: row.passes, yards: row.yards, ypp: row.ypp,
           firstDowns, allowedPct: rate(firstDowns, cohort.length), topCall: row.topCall, blitzPct: row.blitzPct, refs: row.refs };
       });
 
-    /* HIGH-LEVERAGE FIELD POSITION. Red-zone possessions depend on
-       reconstructed drives and charted field position. */
-    const inside20 = p => { const yl = this._absYardLine(p.tags); return yl != null && yl >= 80; };
+    /* HIGH-LEVERAGE FIELD POSITION, FROM OUR GOAL. `_absYardLine` measures
+       from our own goal line, so on a defensive snap the opponent attacks
+       toward 0: inside our 20 is 1-20, the goal line is 1-5, and the opponent
+       is backed up at 90-99. `_fieldZone` names zones for the OFFENSE and reads
+       the wrong end here. Red-zone possessions depend on reconstructed drives
+       and charted field position. */
+    const yardLineWithin = (min, max) => p => { const yl = this._absYardLine(p.tags); return yl != null && yl >= min && yl <= max; };
+    const inside20 = yardLineWithin(0, 20);
     const redZoneDrives = this._reconstructDrives(ps).filter(drive => drive.some(inside20));
     const redZoneTouchdowns = redZoneDrives.filter(drive => touchdownsAllowed(drive) > 0).length;
     const inside = ps.filter(inside20);
-    const goalLine = ps.filter(p => this._fieldZone(p.tags) === 'Goal line');
-    const backedUp = ps.filter(p => this._fieldZone(p.tags) === 'Backed up');
+    const goalLine = ps.filter(yardLineWithin(0, 5));
+    const backedUp = ps.filter(yardLineWithin(90, 100));
     const highLeverage = [
       { name: 'Red-zone possessions', sample: redZoneDrives.length, ypp: null, touchdownsAllowed: redZoneTouchdowns,
         refs: S._refsOf(redZoneDrives.flat()) },

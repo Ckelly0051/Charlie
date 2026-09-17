@@ -880,6 +880,26 @@ r = await page.evaluate(() => ({
 }));
 ok(!r.overflow && r.mobileHeader && r.sidebarAbsent && r.bottomTabs === 'absent', 'Mobile Home has no overflow and hides classic navigation', JSON.stringify(r));
 await capture('home-390x844');
+// The wordmark stays on one line beside a long context label at a narrow phone
+// width: the label ellipsizes and the brand never shrinks to min-content.
+await page.setViewport({ width: 366, height: 800 });
+r = await page.evaluate(() => {
+  const context = document.querySelector('#wsMobileContext');
+  const before = context.textContent;
+  context.textContent = '2025 St. Joseph Mavericks - JV · Week 5 vs St. Peter Lutheran';
+  const brand = document.querySelector('.ws-mobile-brand');
+  const range = document.createRange();
+  range.selectNodeContents(brand.firstChild);
+  const word = range.getBoundingClientRect(), iq = brand.querySelector('b').getBoundingClientRect();
+  const out = { wordTop: Math.round(word.top), iqTop: Math.round(iq.top), iqLeft: Math.round(iq.left), wordRight: Math.round(word.right),
+    contextWidth: Math.round(context.getBoundingClientRect().width),
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+  context.textContent = before;
+  return out;
+});
+ok(r.wordTop === r.iqTop && r.iqLeft >= r.wordRight && r.contextWidth > 0 && !r.overflow,
+  'Mobile GRIDIRON IQ wordmark stays on one line beside a long context label at 366px', JSON.stringify(r));
+await page.setViewport({ width: 390, height: 844 });
 
 await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
 r = await page.evaluate(() => ({

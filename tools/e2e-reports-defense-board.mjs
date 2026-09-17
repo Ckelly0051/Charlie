@@ -161,8 +161,9 @@ const outcomes = moduleOf(seen, 'Opponent drive outcomes')?.rows || [];
 const engineOutcomes = await page.evaluate(() => {
   const app = window.app;
   const { scoped } = app.reportsScreen._selfPerspectiveCohort('season');
-  const defense = scoped.filter(p => p.tags.unit === 'defense' && app.stats.constructor._tryPenaltyResolved(p));
-  return [...new Set(app.stats._driveStats(defense, { all: scoped }).list.map(drive => drive.outcome))];
+  // The board's scoring-side-aware possessions, not raw `_driveStats`, which
+  // would read our return touchdowns as opponent touchdowns.
+  return [...new Set(app.stats.defenseBoard(scoped, { scope: 'season', seasonPlays: scoped }).possessions.map(drive => drive.outcome))];
 });
 ok(outcomes.some(row => row[0] === 'Safety') && outcomes.some(row => row[0] === 'Field Goal')
   && outcomes.some(row => row[0] === 'Punt') && outcomes.some(row => row[0] === 'Touchdown'),
@@ -322,6 +323,55 @@ ok(!/\bTD\b|ADDED/.test(seen.text) && /Touchdowns Allowed/.test(seen.text) && /E
   && /with Run\/Pass charted/.test(seen.text) && /1st Downs Allowed/.test(seen.text) && /Allowed %/.test(seen.text)
   && /Red-zone Touchdown Rate/.test(seen.text),
   'the board uses its literal labels and no ambiguous TD abbreviation or proposal marker');
+
+/* ══ 10. Scoring side, conversions, run TFL, unmeasured cohorts, field end ═ */
+console.log('\n== 10. Review repairs ==');
+const wildcats = moduleOf(seen, 'Opponent possessions')?.rows.filter(row => row[0] === 'Wildcats') || [];
+const knights = moduleOf(seen, 'Opponent possessions')?.rows.filter(row => row[0] === 'Knights') || [];
+ok(wildcats.filter(row => row[6] === 'Touchdown').length === 1
+  && wildcats.reduce((sum, row) => sum + (Number(row[7]) || 0), 0) === 6
+  && knights.find(row => row[6] === 'Safety')?.[7] === '0',
+  'our return touchdowns and our safety score the opponent nothing in Opponent possessions',
+  JSON.stringify({ wildcats, knights: knights.filter(row => row[6] !== 'Punt') }));
+ok(moduleOf(seen, 'Opponent drive outcomes')?.rows.find(row => row[0] === 'Touchdown')?.[1] === '1',
+  'Opponent drive outcomes counts only the opponent touchdown', JSON.stringify(moduleOf(seen, 'Opponent drive outcomes')?.rows));
+const repairs = await page.evaluate(() => {
+  const play = (id, tags) => ({ id, __gid: 'r', __seasonGameIdx: 0, timestamp: { start: id * 10, end: id * 10 + 6 },
+    tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } });
+  const plays = [
+    play(1, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '4', result: 'Gain', yardLine: '30', fieldSide: 'own' }),
+    play(2, { down: '3', distance: '6', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', yardLine: '34', fieldSide: 'own', players: { takeaway: '22' } }),
+    play(3, { down: '2', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '-4', result: 'Loss', yardLine: '40', fieldSide: 'opp' }),
+    play(4, { down: '3', distance: '12', runPass: 'Run', playType: 'Run Inside', yardage: '18', result: 'Touchdown', yardLine: '18', fieldSide: 'own' }),
+    play(5, { down: '1', distance: '10', defFront: 'Bear', yardage: '25', result: 'Gain', yardLine: '5', fieldSide: 'opp' }),
+    play(6, { down: '2', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '-3', result: 'Safety', yardLine: '3', fieldSide: 'opp' }),
+  ];
+  const b = window.app.stats.defenseBoard(plays, { scope: 'game', seasonPlays: plays, labels: { r: 'Repairs' } });
+  const d = window.app.stats.defenseDashboard([plays[1]], { r: 'Repairs' });
+  return {
+    possessions: b.possessions.map(row => [row.outcome, row.points]),
+    outcomes: b.driveOutcomes.map(row => row.name),
+    thirdAndMedium: b.downDistance.find(row => row.name === '3rd & 4-6'),
+    thirdAllowed: d.thirdDownAllowed,
+    runTfl: b.disruption.find(row => row.name === 'Run TFL'),
+    bear: b.fronts.find(row => row.name === 'Bear'),
+    leverage: Object.fromEntries(b.highLeverage.map(row => [row.name, [row.sample, row.touchdownsAllowed]])),
+  };
+});
+ok(JSON.stringify(repairs.possessions) === JSON.stringify([['Turnover', 0], ['Touchdown', 6], ['Safety', 0]])
+  && repairs.outcomes.filter(name => name === 'Touchdown').length === 1 && repairs.outcomes.includes('Turnover'),
+  'a pick-six ends the opponent possession as a Turnover for 0 points; only their own touchdown scores 6', JSON.stringify(repairs));
+ok(repairs.thirdAndMedium?.firstDowns === 0 && repairs.thirdAllowed?.rate === 0,
+  'a defensive touchdown on third down is neither a 1st down allowed nor a third down allowed', JSON.stringify(repairs.thirdAndMedium));
+ok(repairs.runTfl?.plays === 1 && repairs.runTfl.refs.join() === 'r::6',
+  'Run TFL counts the negative run and not the negative-yardage pass', JSON.stringify(repairs.runTfl));
+ok(repairs.bear && repairs.bear.n === 1 && repairs.bear.explosives === null,
+  'a structure cohort with no Run/Pass charted reports no explosive count rather than 0', JSON.stringify(repairs.bear));
+ok(JSON.stringify(repairs.leverage['Red-zone possessions']) === '[1,1]'
+  && JSON.stringify(repairs.leverage['Inside our 20 / snaps']) === '[1,1]'
+  && JSON.stringify(repairs.leverage['Goal line / snaps']) === '[0,0]'
+  && JSON.stringify(repairs.leverage['Opponent backed up / snaps']) === '[2,0]',
+  'high-leverage rows measure from our goal: our 18 is inside our 20, the opponent 3 and 5 are backed up', JSON.stringify(repairs.leverage));
 
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
