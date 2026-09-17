@@ -961,89 +961,123 @@ a box-shadow into the existing 1px gap: sized to content, the band's own
 `--bd-rule` background would otherwise show under a short module as a solid
 slab, and collapsing the gap moves every rule ~1.4px out of alignment.
 
-**Reports > Defense is rebuilt from the coach-approved 2026-09-09 comp and is
-gate-verified, but NOT production accepted.** The canonical artifact and
-decision record are `design-comps/reports-defense-2026-09-09/`. It has not had
-a Charlie Gate or installed smoke, so production remains rejected.
+**Reports > Defense is REVISION 2 (2026-09-17): implemented and gate-verified,
+but NOT production accepted.** Built from the coach-approved Revision 2 comp —
+`defense.html` and its generator `build.mjs` in the coach's
+`Football App/defense-revision-2` folder, whose rendered layout is the authority
+where its RATIONALE prose describes an earlier iteration. It has had no Charlie
+Gate and no installed smoke, so production remains `REJECTED`; the approval
+registry is unchanged. It replaces the 2026-09-09 four-tab board, which is gone:
+no section tabs, no `DEFENSE_DASH_ROWS`, no `Top 6 formations`, no
+`Attack direction`, no `Blitz vs No Blitz` cards.
 
-Defense is **four sections presented as a TAB STRIP**, one on screen at a time:
-Defensive performance, Opponent Offense, Scheme and Situational results. The
-old fifth Defense > Self-Scout section and its presentation code are deleted;
-it was the rejected predictability-only duplicate of the canonical top-level
-Reports > Self-Scout board.
+**Owners.** `StatsEngine.defenseBoard(plays, { labels, seasonPlays, roster,
+scope })` owns every value on the board and is built on `defenseDashboard()`,
+whose output it carries unchanged as `board.dashboard`. `js/native-defense-board.jsx`
+formats and lays out; it derives no football value. `css/native-defense-board.css`
+owns the geometry. `ReportsScreen` passes the scoped cohort, the full-season
+cohort, opponent labels (`gameInfo.opponent`) and the roster; Season > Defense
+gets the same board from `SeasonManager.reportModel().defenseBoard`.
 
-`DEFENSE_DASH_ROWS` owns the fixed ranked allocations. The approved inventory
-is: Game-by-game 6 in Full Season and 1 in Current Game; Opponent drive outcomes
-7 in Current Game; play type 7; Top 6 formations 6; personnel/backfield 5;
-Top and Worst Calls 4 slots each; pressure situations 6; all 12 down/distance buckets;
-and five slots each for field zone, hash and motion. Fixed football sets keep
-their labels and show dashes when empty. Ranked sets are deterministically
-capped. Data cannot add a module, remove a module or resize a section.
+**Composition.** One vertically scrolling report. A sticky bar holds the
+`Full season` / `Current game` control and four literal `JUMP TO` links; below
+it, four ordered sections — Defensive performance, Opponent offense, Scheme and
+passing defense, Situational results — each headed by its number, its title and
+`N charted / M with Run/Pass charted`. Defensive performance opens with ten KPIs
+in this order: Total yards allowed, Rush yards allowed, Pass yards allowed,
+Yards / play, Takeaways, Explosive Plays Allowed, Touchdowns Allowed, Defensive
+Touchdowns, 3rd Down Stop %, 4th Down Stop %. Game-by-game renders only at Full
+season; the current game's own summary is the KPI strip. The comp's standalone
+navigation, report-title block and footer line are not reproduced: the Reports
+shell's header and scorebug already carry that identity. Export Report stays in
+the bar and still prints the unchanged four-section dashboard export.
 
-`StatsEngine.defenseDashboard()` is the only football-value owner. Defensive
-calls are Front + Coverage + Pressure. Call-performance rankings require a
-run/pass-classified snap; situational call frequency includes every charted
-call in that situation. Composite fronts and pressures are deduplicated and
-order-independent; the team base front displays before its shift package.
-Calls qualify for this performance board at four snaps, distinct from
-Self-Scout's three-snap tendency gate. Third- and fourth-down "allowed" rates
-use `StatsEngine.isConversion`. Stop Rate is not shown. Module and section
-explainer prose is absent, but the three data-bearing yards/play baselines are
-retained. Every populated row carries its exact composite film refs.
+**MODULE GEOMETRY IS A CONTRACT.** A module is 96px of chrome (a 50px header, a
+44px table header, two borders) plus rows at its pitch (38px; 48, 60 or 64 for
+the long-label tables). Fixed-schema modules — Disruption, the comparison, By
+down, By quarter, Performance by Play Direction, Run / Pass vs Strength, Blitz
+Performance, Blitz Type Performance, High-leverage field position, By hash,
+Passing Defense Summary — are exactly their rows tall, with no dash row and no
+dead space. Every other module takes the smallest standard height (220 / 300 /
+380 / 460) that holds its allocation; unused visible capacity renders as `-`
+rows, and data beyond capacity scrolls inside the module under a sticky header
+at its fixed external height. Half-width modules pair with the next unpaired
+half-width module of EQUAL HEIGHT so both edges align; one with no partner
+spans the row. Gutters are 20px. The canonical season's full inventory, order,
+width and height for both scopes is pinned in `e2e-reports-defense-realdata`.
 
-Opponent Offense must answer what the opponent ran from each look, not merely
-how often a formation appeared. `Top 6 formations` combines the projected QB
-alignment, backfield and receiver structure into one football-readable look,
-then shows count and share for all seven canonical play types. The six-row
-module is static: missing rows hold dashes and additional looks are
-deterministically capped. Do not split a combined look into separate formation
-rows. Deduplicate repeated labels when a generic and specific tag resolve to the
-same display value.
+**TOUCHDOWNS HAVE TWO SIDES, and neither is inferred.** `Touchdowns Allowed`
+counts defensive-snap touchdowns whose `StatsEngine.scoringSide` is `them`;
+`Defensive Touchdowns` counts those whose side is `us`. Neither is derived from
+takeaways, and a touchdown on a defensive snap is never assumed to be the
+opponent's. Every `Touchdowns Allowed` column on the board — Game-by-game, By
+quarter, Production by play type, High-leverage field position — uses the same
+strict `them` rule. The dashboard's own `touchdowns` field counts every side that
+is not `us`; it is unchanged because the export reads it, and this board does
+not. Canonical: 2025 JV full season 7 allowed / 0 defensive; St. Peter Lutheran
+0 / 0.
 
-Current Game collapses Game-by-game to its one honest game row and uses the
-reclaimed fixed space for seven aggregate Opponent drive outcome rows:
-Touchdown, Field Goal, Missed FG, Punt, Turnover, Downs, and Other / unresolved.
-Attack direction always shows Left, Middle, Right, Toward Strength, and Away
-from Strength. Strength-relative rows require both a Left/Right direction and a
-Left/Right declared strength; balanced or missing strength is not guessed.
-Relative rows are a second lens and never inflate the absolute run/pass legend.
-Reports module and chart titles use the approved sans face, not Condensed.
-Small interface type does not create dashboard density. Operational labels,
-controls, section tabs, table headers, charting-rail copy and supporting values
-use the shared readable Sans roles: 12.5px is the label floor, 13px is the
-control floor, and body copy starts at 13.5px. Letter spacing stays zero.
-Condensed remains reserved for page identity and prominent football numbers.
-When space is tight, simplify or recompose the container; do not shrink
-operational text back into the 9-11px range.
+**Metric definitions.** `3rd Down Stop %` and `4th Down Stop %` are `100 -` the
+existing allowed rates, one decimal, a dash with no attempts. `Takeaways` is the
+dashboard's interceptions plus fumble recoveries. A pass ATTEMPT needs a charted
+Gain, Touchdown, No Gain, Incomplete or Interception; a sack is never an attempt
+and never enters Yds/att. Disruption counts sacks and interceptions over pass
+snaps, run TFL over run snaps, and fumble recoveries and distinct disruptive
+plays over charted defensive snaps; a play with two events is one distinct play.
+Blitz Performance holds exactly Blitz vs Run, No Blitz vs Run, Blitz vs Pass and
+No Blitz vs Pass (`isNoBlitz`, the same rule the blitz rate uses). Blitz Type
+Performance holds exactly A-Gap through D-Gap. Run / Pass vs Strength holds
+exactly Toward, Away from and Balanced strength, and a snap needs a charted
+direction AND a charted strength to enter it. `Off succ` is the canonical
+situation-aware success rule. Multi-select fronts, formations and blitzes can
+count in more than one row and are never summed as a team total. Player tackles
+are attributed contributions, not participation snaps; the table sorts by every
+column by mouse, Enter or Space, and dash rows stay last.
 
-The shared Reports title must always display its complete team, season/game and
-report identity. A tooltip is supplemental and never substitutes for visible
-text. At 1600px and below, collapse the familiar Scout and Export commands to
-labelled icons before taking space from the title. At 1320px and below, move
-the report tabs to their own row; allow the title to wrap if necessary. Do not
-restore ellipsis or trade the title against the final report tabs or the fixed
-dashboard height.
+**Drive outcomes are data-driven.** Opponent drive outcomes renders one row per
+outcome the reconstruction produced, in football order — Touchdown, Field Goal,
+Missed Field Goal, Punt, Turnover, Downs, Safety, Kneel, Other / unresolved —
+and no row for an outcome that did not occur. A possession the charting cannot
+settle stays `Other / unresolved` (`Unresolved` in Opponent possessions); nothing
+is folded into another outcome. Opponent possessions lists every reconstructed
+drive, per game, in one fixed-height scrolling module. Its `Yards*` is the
+drive's tagged yardage, penalties included, not classified production; `Last
+snap` is where the last charted snap began, not the final spot; `Pts*` excludes
+tries.
 
-Defense field zones reuse `_fieldZone()`. The five-slot board combines Own
-11–39 and Midfield into Open Field, then shows Opp 40–20, Red Zone and Goal
-Line separately. Call% divides by charted calls; Blitz% divides by charted
-Blitz plus charted No Blitz snaps. Untagged defensive structure never dilutes
-either rate. Current Game scope contains no `Last 3` or `Vs season avg` label.
-The Defense HTML export consumes this same dashboard and four-section model.
+**Absence.** A measured zero prints `0`. A value with no denominator or no
+required charting prints `—`. A `-` row is unused capacity, never data. A
+zero-sample categorical row (play type, direction, pressure situation, zone,
+hash, down and distance) is not rendered, and Front and Coverage performance are
+not rendered when nothing was charted.
 
-The approved examples' red/green performance tone is a recorded divergence:
-no governing football thresholds were approved, so production leaves values
-neutral rather than inventing a good/bad classification. Measured zeroes remain
-zero even where the capture showed a dash.
+**Sticky needs the route's real scrollport.** `.ws-reports` scrolls, but the
+report pane (`overflow-x:auto`) and `.gi-reports` (`overflow-x:hidden`, which
+forces `overflow-y:auto`) are scroll containers that never move, so a sticky bar
+bound to them scrolls away — the limitation the Offense zone nav documented. On
+the Defense pane ONLY, the pane is `overflow:visible` and `.gi-reports` is
+`overflow-x:clip`, which clips without becoming a scroll container. No other
+board's sticky behavior changes. Inside Season > Defense the bar is not sticky.
 
-Canonical evidence is `tools/e2e-reports-defense-realdata.mjs`: all six real
-games at 1440x900 and 1280x900, exact module/row inventories, fixed per-section
-height, separate content and band containment, honest scope labels, canonical
-KPI/call/situation values, matching export structure, no clipping, overflow,
-explainer prose or source mutation. It also pins current-game drive outcomes,
-the complete formation matrix, strength-relative direction, and title font.
-Current focused counts are recorded in
-`docs/TESTING.md`.
+**Widths.** The report body caps at 1680px and centers; the bar spans the
+report. KPI values must fit their tile: the production condensed face is wider
+than the comp's Barlow, so tiles give back side padding below 1500px, the value
+steps from 34px to 30px below 1420px, and the strip reflows to five a row below
+1240px (the comp reflows at 1100px, which the wider face cannot hold). Below
+1100px every module is full width; below 700px the KPIs are two a row and
+tables scroll horizontally inside their own module. A half-width module's
+metric headers give up 4px of side padding so `Touchdowns Allowed` never clips
+at 1280. Every coach-facing text element on the board is at or above the 12.5px
+floor; the comp's 11px `JUMP TO` label and sort glyph are 12.5px here.
+
+Evidence: `tools/e2e-reports-defense-realdata.mjs` (canonical season, read-only
+and hash-checked: all six games at 1440 and 1280, the pinned inventory and KPIs
+for both scopes, chrome edges, the floor, the dashboard's existing data
+contracts, sticky bar and jump links, KPI fit, captures at 1920/1440/1280/390)
+and `tools/e2e-reports-defense-board.mjs` (a synthetic season for what the
+canonical one lacks: both touchdown sides, a takeaway without a touchdown, Safety
+and Field Goal possessions, overflowing possessions, no front/coverage/play type,
+sorting every player column). Current counts are in `docs/TESTING.md`.
 
 **Defensive Total Yds is the sum of the two columns beside it.**
 `defenseDashboard`'s `summarize` summed `yards` over EVERY defensive snap while
@@ -1071,8 +1105,9 @@ reads for a displayed count. With `measured === 0` every production field is
 `null` and renders the dash — a charted look with nothing measured shows its real
 charted count and no production, never `0`. Making the displayed count classified
 was the mistake in between: a `Trade` motion charted once with no play type
-printed `0 snaps`, a look the coach charted reported as one nobody ran. The board
-and its export both state `40 charted · 37 with play type`.
+printed `0 snaps`, a look the coach charted reported as one nobody ran. The export
+states `40 charted · 37 with play type`; the Revision 2 board states the same two
+numbers as `40 charted / 37 with Run/Pass charted` on every section.
 
 **Reports > Special Teams is implemented and gate-verified, but NOT coach
 accepted.** Built to the approved comp
@@ -1661,8 +1696,9 @@ XP, a pick-six credited to us rather than the offense on the field, and a
 safety on a defensive play: quarters sum to totals on both rows.
 
 **Reports typography has one shared target and explicitly recorded debt.**
-The coach-facing floor is 12.5px. Overview and Defense retain only their
-approved broadcast micro-labels; Offense retains approved micro-labels and, at
+The coach-facing floor is 12.5px. Defense Revision 2 is the one fully migrated
+board: nothing on it renders below the floor. Overview retains only its approved
+broadcast micro-labels; Offense retains approved micro-labels and, at
 1280, a temporary 12px body / 11.5px column-label exception on the eight named
 `gi-off-narrow-fit` modules. Special Teams, Players, Self-Scout, Season and
 Matchup remain deferred. None of those exceptions creates a second standard;
@@ -1829,12 +1865,18 @@ it is accepted state.
    keep their historical classification; field position is never used to infer
    ownership. `e2e-reports-special-teams` pins all three directions.
 
-7. **Reports > Defense Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT, plus an installed smoke.
-8. **Offense still scrolls; Defense uses tabs.** The coach approved section
-   tabs for Defense on 2026-09-04 with Offense converting in a later pass, so
-   the two reports navigate differently until that lands. Recorded as a known
-   temporary inconsistency, not an oversight.
+7. **Reports > Defense Revision 2 Charlie Gate** — populated real-data review at
+   the release widths against the Revision 2 comp, then PASS / REVISE / REJECT,
+   plus an installed smoke. Chromium cannot certify the installed module
+   scrollbars. Carried into it: the production KPI face is wider than the comp's,
+   so values step to 30px below 1420px and the strip reflows below 1240px rather
+   than 1100px; the comp's report-title block and footer line are not rendered
+   because the Reports shell carries that identity; Export Report is retained;
+   and a variable module whose rows do not fill its standard height (Down &
+   Distance on one game) keeps the comp's own sub-row gap.
+8. **SUPERSEDED 2026-09-17 — Defense section tabs.** Defense Revision 2 is one
+   scrolling report with jump links, as the approved comp specifies. Offense
+   still scrolls with its own zone navigation.
 9. **CLOSED 2026-09-09 — Defense band gaps.** By down completes the opening
    band; fixed aligned rows complete Opponent Offense and Situational results.
 10. **CLOSED 2026-09-09 — duplicate Defense > Self-Scout.** The fifth section
@@ -1864,6 +1906,9 @@ Full tiers, commands, and what each tier can and cannot certify:
   **installed WebView2 smoke**.
 
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
+`tools/e2e-reports-defense-realdata.mjs` (Defense Revision 2 on the canonical
+season, 76), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
+on a synthetic season, 34),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the

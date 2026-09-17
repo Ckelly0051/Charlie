@@ -102,7 +102,7 @@ The smallest existing harness for the route or domain you touched.
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
 **Cohort and label contracts added 2026-09-10.** `e2e-reports-overview-realdata`
 pins that Total plays is the CHARTED count with the classified count as its
@@ -116,9 +116,9 @@ measured row satisfies `Yards / play = Total yards / measured`, that a
 charted-but-unmeasured row keeps its charted count and reports every production
 value as absent, that no rendered tendency row prints `0` snaps for a charted
 look, that the Blitz/No Blitz counts and every situational blitz rate share one
-charted cohort, that the `N charted · M with play type` disclosure renders on
-every section at both widths, and that every value outside a named
-broadcast-display exception meets the 12.5px floor. The reconciliation walk has
+charted cohort, that the `N charted / M with Run/Pass charted` disclosure renders
+on every section at both widths, and that every text element on the board meets
+the 12.5px floor. The reconciliation walk has
 no truthiness guard: the first version skipped `n === 0` rows, which is exactly
 where the two cohorts diverge. `e2e-reports-self-scout` pins all
 twelve down-and-distance rows in football order with explicit yardage, held
@@ -135,23 +135,31 @@ composite-identity column is labelled a play call. `e2e-reports-offense-realdata
 now exercises **Season scope** at both release widths, which is the gap that let
 a season-only containment defect ship.
 
-`e2e-reports-defense-realdata` is the Defense composition authority. It loads
-only `2025-st-joseph-mavericks-jv`, checks all six games at 1440 and 1280,
-pins the approved module and row inventory plus canonical KPI/call/situation
-values, verifies Top 6 formations preserves combined offensive looks and shows
-all seven canonical play-call counts and shares, verifies the one-row Current
-Game summary plus seven fixed drive-outcome rows, strength-relative attack
-direction without absolute-total inflation, and the approved module-title font,
-verifies
-current-game scope labels, canonical field zones and order-independent calls,
-checks module-content and module-to-band containment
-as separate assertions, captures all four full-season screens at both widths,
-checks the four-section Defense export, and verifies the source season remains
-byte-identical. It also rejects any clipped shared Reports title at either
-release width. Use a 900px viewport height at both release widths; a full-page
-screenshot is not a substitute for viewport fit. Captures use a per-process
-directory so a locked prior image cannot invalidate the run. Current focused
-result: 42/0.
+`e2e-reports-defense-realdata` is the Defense Revision 2 composition authority
+(76). It loads only `2025-st-joseph-mavericks-jv`, in memory and hash-checked.
+Across all six games at 1440 and 1280 in Current game scope it asserts the ten
+literal KPIs in order, the four sections, no Game-by-game, the module geometry
+rules (fixed-schema modules exactly their rows; variable modules a standard
+height with `-` rows for unused capacity; overflow scrolling internally under a
+sticky header), paired edges, 20px gutters, no page or in-module horizontal
+overflow, no clipped cell, the shared title/linescore/identity edges, the
+12.5px floor on every text element, the sans module-title face and no `0`-snap
+row. On the canonical season it pins the full module inventory, order, width
+and height and the KPI values for both scopes at both widths (Touchdowns Allowed
+7 / Defensive Touchdowns 0 for the season, 0 / 0 for St. Peter Lutheran), the
+stop inversion, the unchanged `defenseDashboard` output, every existing Defense
+data contract and the unchanged four-section export. It sweeps nine desktop
+widths forcing `100.0%` into every KPI tile, proves the bar sticks on the real
+route scroller and each jump link lands its heading under it, and captures the
+whole surface at 1920, 1440, 1280 and 390 in both scopes into a per-process
+directory. `e2e-reports-defense-board` (34) covers what the canonical season
+lacks on a synthetic season: touchdowns by both scoring sides, a takeaway
+without a touchdown, Safety and Field Goal possessions as their own outcome rows,
+possessions overflowing their module, a game with no front, coverage or play
+type, sorting every player column by mouse, Enter and Space, pairing, scope
+switching and jump targets. Both were mutation-verified: all 10 reintroduced
+defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
+mutations red in the canonical one.
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |

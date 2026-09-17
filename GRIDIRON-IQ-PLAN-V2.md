@@ -844,7 +844,18 @@ Retain every meaningful production field while reducing everyday clutter.
 > canonical self-scout presentation.
 >
 
-> **DEFENSE REBUILT TO THE APPROVED STATIC SCHEMA (2026-09-09).** The current
+> **DEFENSE REVISION 2 IMPLEMENTED (2026-09-17) — supersedes the 2026-09-09
+> board below.** Reports > Defense is one scrolling report built to the
+> coach-approved Revision 2 comp: a sticky scope and jump-link bar, ten literal
+> KPIs (including Touchdowns Allowed and Defensive Touchdowns by scoring side,
+> and 3rd/4th Down Stop %), and four ordered sections of fixed-height modules
+> that pair by equal height. `StatsEngine.defenseBoard()` owns every value on
+> top of the unchanged `defenseDashboard()`, which the export still prints.
+> Evidence: `e2e-reports-defense-realdata` (76) and `e2e-reports-defense-board`
+> (34), canonical gate green. Charlie Gate, installed smoke and production
+> acceptance remain; the approval registry is unchanged.
+>
+> **HISTORY — DEFENSE REBUILT TO THE APPROVED STATIC SCHEMA (2026-09-09).** The current
 > comp and decision record are `design-comps/reports-defense-2026-09-09/`.
 > Four fixed screens now show performance, opponent offense, complete calls and
 > pressure, and all 12 down/distance situations. Stop Rate and the former Front,

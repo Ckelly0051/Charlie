@@ -78,8 +78,8 @@ Four narrow exceptions, each named, each for a non-primary utility annotation:
 2. **Keyboard hints.** `kbd` shortcut chips.
 3. **An approved comp's broadcast display pair.** Where a registered comp fixes
    a Condensed uppercase micro-label directly above its own large display
-   number — Overview's KPI and tile labels, the Defense board's tile and
-   type-summary labels — that pairing is the approved composition and changing
+   number — Overview's KPI and tile labels — that pairing is the approved
+   composition and changing
    it needs a new coach approval, not a silent raise. Every such class is listed
    in the enforcing assertion, not left implicit.
 4. **One measured geometric conflict, recorded and open.** The eight
@@ -90,8 +90,8 @@ Four narrow exceptions, each named, each for a non-primary utility annotation:
    three-up band; it is open in `docs/OPEN-DEFECTS.md`.
 
 **Enforcement.** `e2e-reports-defense-realdata` walks every rendered text
-element on the Defense board at both release widths and fails on anything below
-12.5px that is not in its named exception list. `e2e-workspace-shell` pins the
+element on the Defense Revision 2 board across all six canonical games at both
+release widths and fails on anything below 12.5px; that board has no exception. `e2e-workspace-shell` pins the
 shell's 18px route labels, 19px icons, ≥128px targets and the ≥12.5px context
 values. `e2e-reports-overview` pins the Overview scale exactly and asserts its
 module title, table cell and row label are at or above the floor. A floor
@@ -114,7 +114,7 @@ regression guard and say so.
 
 | Board | Minimum | Below 12.5px @1440 | @1280 | Status |
 |---|---|---|---|---|
-| Defense | 9.5px | 1 | 1 | One broadcast label |
+| Defense | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-17) |
 | Self-Scout | 11px | 20 | 20 | Deferred |
 | Season | 11px | 30 | 30 | Deferred |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
@@ -123,9 +123,10 @@ regression guard and say so.
 | Special Teams | 9.5px | 98 | 98 | Deferred |
 | Offense | 9.5px | 118 | 323 | Deferred + narrow-width exception |
 
-**No board is fully migrated.** Overview and Defense carry only their approved
-broadcast micro-labels, which is why they read as compliant, but the honest
-statement is that every board still has sub-floor text and the census pins
+**Defense is the one fully migrated board.** Revision 2 renders nothing below the
+floor; the comp's 11px `JUMP TO` label and sort glyph are 12.5px in production.
+Overview carries only its approved broadcast micro-labels, which is why it reads
+as compliant, but every other board still has sub-floor text and the census pins
 exactly how much. Offense was previously classified here as migrated; it is not,
 and it carries the most sub-floor text of the eight.
 

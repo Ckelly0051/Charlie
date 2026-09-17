@@ -1,6 +1,9 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-16. The `1.12.0-87`
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-17: Reports > Defense Revision 2
+> is implemented and gate-verified (see the Reports section), awaiting its
+> Charlie Gate and installed smoke; production stays `REJECTED`. Previously
+> updated 2026-09-16. The `1.12.0-87`
 > installed smoke DISPROVED the first BD-VP repair: Breakdown still showed
 > floating scrollbar arrow controls and a horizontal track in the charting deck,
 > and the deck spacing had regressed. **BD-VP is now CLOSED FOR BETA USE** (item 10):
@@ -820,13 +823,27 @@ edge-to-edge by design; the top bar's 18px inset is not.
    not visually acceptable. This is lower-priority product work, separate from
    the renamed-file functional defect and not permission to change the approved
    in-app dashboard composition.
-4. **Defense Situational Results has broken vertical rhythm.** The Down &
-   Distance and Field Zone modules leave visible unused space instead of fitting
-   their declared static rows cleanly. The board currently combines fixed module
-   heights (`338px` and `225px`) with separately fixed header and row heights;
-   their totals do not reconcile at the observed viewport. Preserve the static
-   dashboard schema, but make its row, header, padding and module-height math
-   explicit and exact rather than allowing data volume to resize the board.
+4. **SUPERSEDED 2026-09-17 — Defense Situational Results vertical rhythm.** The
+   four-tab board is replaced by Revision 2, whose module height is explicit
+   arithmetic: 96px of chrome plus rows at the module's pitch. Fixed-schema
+   modules are exactly their rows; variable modules take a standard
+   220/300/380/460 height and fill unused capacity with `-` rows. One remainder
+   is the approved comp's own behavior and is carried into the Charlie Gate: a
+   64px-pitch module whose rows do not fill its standard height (Down & Distance
+   on a single game) keeps a sub-row gap, because no whole row fits there.
+5. **Reports > Defense Revision 2 — IMPLEMENTED 2026-09-17, awaiting Charlie Gate
+   and installed smoke.** Built to the coach-approved Revision 2 comp. Metric
+   definitions are recorded in `CLAUDE.md`. Intentional differences from the
+   standalone comp: the Reports shell's header and scorebug carry report
+   identity, so the comp's title block and footer line are not rendered; Export
+   Report is retained; the production condensed face is wider than the comp's,
+   so KPI values step to 30px below 1420px and the strip reflows below 1240px;
+   half-module metric headers lose 4px of side padding so `Touchdowns Allowed`
+   never clips at 1280; `JUMP TO` and the sort glyph are 12.5px, not 11px; and
+   the comp generator's conditional `Coverage family` module is not rendered,
+   because the approved rendering and module list omit it. Rows still open their
+   exact film cohort. **Installed-only:** Chromium cannot certify the module
+   scrollbars' classic WebView2 rendering.
 
 ## Breakdown
 
@@ -938,7 +955,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
 
    **Stated limitation, not an oversight.** `Option` is NOT added to
    `StatsEngine.OVERVIEW_PLAY_TYPES` (Overview's approved fixed SIX) or to the
-   Defense board's approved seven `Production by play type` rows. Both are pinned
+   seven play-type categories the Defense dashboard reports (Revision 2 renders
+   only the charted ones of those seven). Both are pinned
    static schemas with approved row counts; adding a row there is a design
    decision for the coach, not an implementation one, and `e2e-reports-overview`
    pins "the FIXED six play types" against approved evidence. The Offense
@@ -1088,7 +1106,7 @@ Breakdown film-state defects above.
   Add route, canonical built-in `Option`, and shared context-selector contrast.
   Codex-reviewed over `56e75f1..6651195`, `e2e-play-library` 50/50, canonical
   gate 119/119, packaged as `1.12.0-87`. `Option`'s absence from Overview's
-  approved fixed six and the Defense board's approved seven stays open as a coach
+  approved fixed six and the Defense dashboard's seven play-type categories stays open as a coach
   decision about an approved schema, not an implementation gap.
 - **The next presentation batch is Home rail scaling**
   (item 12 above), which remains a separate layout pass.
