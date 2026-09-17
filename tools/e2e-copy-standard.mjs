@@ -121,23 +121,19 @@ await page.evaluate(() => {
   s.perspective = 'self'; s._syncTabState?.(); s._renderActiveTab?.();
 });
 await new Promise(r => setTimeout(r, 500));
+let defenseCoverage = { sections: 0, modules: 0 };
 for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']) {
   await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`)?.click(), tab);
   await new Promise(r => setTimeout(r, 600));
   record(`reports/${tab}`, await scan());
-  // Defense presents its five sections as a tab strip, so four fifths of its
-  // copy is off-DOM at any moment. The sweep walks them the same way it
-  // already walks Season's sub-tabs -- otherwise the copy standard silently
-  // stops covering most of the route.
+  // Defense Revision 2 renders all four sections on one page, so the single
+  // scan above reads every section heading and module title. Prove that it
+  // did, rather than trusting a green sweep that could be reading nothing.
   if (tab === 'defense') {
-    const labels = await page.evaluate(() =>
-      [...document.querySelectorAll('.gi-def-secnav-item')].map(b => b.textContent.trim()));
-    for (const label of labels) {
-      await page.evaluate(l => [...document.querySelectorAll('.gi-def-secnav-item')]
-        .find(b => b.textContent.trim() === l)?.click(), label);
-      await new Promise(r => setTimeout(r, 450));
-      record(`reports/defense/${label.replace(/^\d/, '')}`, await scan());
-    }
+    defenseCoverage = await page.evaluate(() => ({
+      sections: document.querySelectorAll('.gi-def2 [data-def2-section] h2').length,
+      modules: document.querySelectorAll('.gi-def2 [data-def2-module] > header > h3').length,
+    }));
   }
   if (tab === 'season') {
     for (const sub of ['offense', 'defense', 'special', 'players', 'scout', 'trends']) {
@@ -157,6 +153,9 @@ console.log(`\n  inspected ${seen.headings} headings and ${seen.captions} captio
 ok(seen.headings > 90 && seen.captions > 15,
   'The sweep actually reached the routes (heading and caption counts are non-trivial)',
   JSON.stringify(seen));
+ok(defenseCoverage.sections === 4 && defenseCoverage.modules >= 20,
+  'The sweep read the Defense board: all four section headings and its module titles',
+  JSON.stringify(defenseCoverage));
 ok(offenders.length === 0,
   'Every visible heading and caption names its data — no questions, no prose openers',
   JSON.stringify(offenders, null, 1));

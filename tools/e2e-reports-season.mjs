@@ -296,7 +296,7 @@ ok(!/Situational Scorecard|Turnovers & Scoring|Game at a Glance/.test(overviewTe
 /* ══ 6. The child boards are the approved boards, unchanged ═══════════════ */
 console.log('\n== 6. Child boards ==');
 const CHILD = [
-  ['Offense', 'gi-offense-board'], ['Defense', 'gi-defense-board'], ['Special Teams', 'gi-st-board'],
+  ['Offense', 'gi-offense-board'], ['Defense', 'gi-def2'], ['Special Teams', 'gi-st-board'],
   ['Players', 'gi-players-board'], ['Self-Scout', 'gi-selfscout-board'],
 ];
 let missing = [], leaked = [], noFilm = [];

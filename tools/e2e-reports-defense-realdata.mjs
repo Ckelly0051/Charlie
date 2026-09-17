@@ -1,4 +1,21 @@
-/** Reports > Defense: fixed-schema evidence on the canonical real season. */
+/** Reports > Defense, Revision 2: canonical real-season evidence.
+ *
+ * Everything here runs against a read-only, in-memory copy of the registered
+ * `2025-st-joseph-mavericks-jv` season, hashed before and after.
+ *
+ * 1. Every real game at 1440 and 1280, Current game scope: the geometry rules
+ *    hold on real data, not just on one fixture.
+ * 2. The approved Revision 2 composition, pinned: module inventory, order,
+ *    width and external height for both scopes at both desktop widths, and the
+ *    ten KPIs with their canonical values.
+ * 3. The dashboard's existing data contracts, unchanged by Revision 2.
+ * 4. The sticky scope bar and the jump links, on the route's real scroller.
+ * 5. Populated captures of the whole surface at 1920, 1440, 1280 and 390 in
+ *    both scopes, as IMPLEMENTATION EVIDENCE ONLY - they confer no approval.
+ *
+ * Chromium measures browser layout. It cannot certify installed WebView2
+ * scrollbar rendering; that stays an installed check.
+ */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
@@ -7,20 +24,47 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
 const OUT = `artifacts/defense-production-realdata/run-${process.pid}`;
-const VIEWPORTS = [[1440, 900], [1280, 900]];
-const SECTIONS = [
-  { label: 'Defensive performance', modules: ['Game-by-game', 'Opponent drive outcomes', 'By down', 'By quarter'] },
-  { label: 'Opponent Offense', modules: ['Production by play type', 'Top 6 formations', 'Personnel faced', 'Backfield faced', 'Attack direction'] },
-  { label: 'Scheme', modules: ['Top Calls', 'Worst Calls', 'Blitz vs No Blitz', 'Pressure by situation'] },
-  { label: 'Situational results', modules: ['Down & distance', 'Field zone', 'By hash', 'Motion'] },
-];
-const ROWS = {
-  'Game-by-game': 1, 'Opponent drive outcomes': 7, 'By down': 4, 'By quarter': 4,
-  'Production by play type': 7, 'Top 6 formations': 6, 'Attack direction': 5,
-  'Personnel faced': 5, 'Backfield faced': 5,
-  'Top Calls': 4, 'Worst Calls': 4, 'Pressure by situation': 6,
-  'Down & distance': 12, 'Field zone': 5, 'By hash': 5, Motion: 5,
+const DESKTOP = [[1440, 900], [1280, 900]];
+const KPI_LABELS = ['Total yards allowed', 'Rush yards allowed', 'Pass yards allowed', 'Yards / play', 'Takeaways',
+  'Explosive Plays Allowed', 'Touchdowns Allowed', 'Defensive Touchdowns', '3rd Down Stop %', '4th Down Stop %'];
+const SECTIONS = ['Defensive performance', 'Opponent offense', 'Scheme and passing defense', 'Situational results'];
+
+/* THE APPROVED REVISION 2 COMPOSITION on the canonical season: [title, width,
+   external height]. Read off the approved comp's rendered layout; module order
+   is the order after the pairing rule runs. */
+const INVENTORY = {
+  season: [
+    ['Game-by-game', 'full', 380], ['Disruption', 'full', 286], ['Season vs Last 3', 'full', 324],
+    ['By down', 'half', 248], ['By quarter', 'half', 248], ['Opponent drive outcomes', 'full', 300],
+    ['Defensive player contributions', 'full', 460], ['Opponent possessions', 'full', 460], ['Production by play type', 'full', 380],
+    ['Performance by Play Direction', 'full', 210], ['Top 10 Formations Faced', 'full', 460], ['Personnel faced', 'half', 300],
+    ['Backfield faced', 'half', 300], ['Run / Pass vs Strength', 'full', 210], ['Defensive answers by offensive look', 'full', 460],
+    ['Passing Defense Summary', 'full', 134], ['Call Performance', 'full', 380], ['Blitz Performance', 'full', 248],
+    ['Pressure by situation', 'full', 380], ['Front performance', 'half', 220], ['Coverage performance', 'half', 220],
+    ['Blitz Type Performance', 'full', 248], ['Passing by coverage', 'full', 220], ['Call use and performance trends', 'full', 460],
+    ['Down & Distance', 'full', 460], ['High-leverage field position', 'full', 336], ['Field zone', 'full', 300],
+    ['By hash', 'full', 210], ['Motion', 'full', 300],
+  ],
+  game: [
+    ['Disruption', 'full', 286], ['Current game vs Season', 'full', 324], ['By down', 'half', 248],
+    ['By quarter', 'half', 248], ['Opponent drive outcomes', 'full', 220], ['Defensive player contributions', 'full', 380],
+    ['Opponent possessions', 'full', 300], ['Production by play type', 'full', 300], ['Performance by Play Direction', 'full', 210],
+    ['Top 10 Formations Faced', 'full', 220], ['Personnel faced', 'half', 220], ['Backfield faced', 'half', 220],
+    ['Run / Pass vs Strength', 'full', 210], ['Defensive answers by offensive look', 'full', 300], ['Passing Defense Summary', 'full', 134],
+    ['Call Performance', 'full', 300], ['Blitz Performance', 'full', 248], ['Pressure by situation', 'full', 300],
+    ['Front performance', 'half', 220], ['Coverage performance', 'half', 220], ['Blitz Type Performance', 'full', 248],
+    ['Passing by coverage', 'full', 220], ['Call use and performance trends', 'full', 300], ['Down & Distance', 'full', 460],
+    ['High-leverage field position', 'full', 336], ['Field zone', 'full', 220], ['By hash', 'full', 210],
+    ['Motion', 'full', 300],
+  ],
 };
+const KPI_VALUES = {
+  season: ['497', '271', '226', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
+  game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '100.0%', '—'],
+};
+const FIXED = new Set(['Disruption', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
+  'Performance by Play Direction', 'Run / Pass vs Strength', 'Blitz Performance', 'Blitz Type Performance',
+  'High-leverage field position', 'By hash', 'Passing Defense Summary']);
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
@@ -34,6 +78,8 @@ const raw = readFileSync(SOURCE);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
 const games = season.games || [];
+const stPeter = games.find(game => /St\. Peter Lutheran/i.test(game.gameInfo?.opponent || ''));
+if (!stPeter) throw new Error('Canonical St. Peter Lutheran game missing');
 mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
@@ -52,322 +98,283 @@ await page.evaluate(data => {
   store.data.id = data.id;
 }, season);
 
-const observations = [];
-for (const game of games) {
-  await page.evaluate(async gameId => {
+/** Open a game, set the scope through the REAL scope button, and settle. */
+async function openDefense(gameId, scope) {
+  await page.evaluate(async id => {
     const app = window.app;
-    app.storage.seasonStore.data.activeGameId = gameId;
+    app.storage.seasonStore.data.activeGameId = id;
     await app.storage._loadActiveGame();
-    app.reportsScreen.defenseScope = 'game';
     app.workspaceShell.show('reports');
     app.reportsScreen.selectTab('defense');
-  }, game.id);
-  await sleep(500);
+    document.querySelectorAll('.gi-native-toast').forEach(node => node.remove());
+  }, gameId);
+  await sleep(250);
+  await page.evaluate(s => document.querySelector(`[data-defense-scope="${s}"]`)?.click(), scope);
+  await sleep(350);
+  await page.evaluate(() => { document.querySelector('.ws-reports')?.scrollTo(0, 0); document.querySelectorAll('.gi-native-toast').forEach(node => node.remove()); });
+}
 
-  for (const [width, height] of VIEWPORTS) {
+/** The rendered board, measured. */
+const measure = () => page.evaluate(() => {
+  const board = document.querySelector('.gi-def2');
+  const text = node => (node?.textContent || '').replace(/\s+/g, ' ').trim();
+  const modules = [...(board?.querySelectorAll('[data-def2-module]') || [])].map(module => {
+    const rect = module.getBoundingClientRect();
+    const wrap = module.querySelector('.gi-def2-tablewrap');
+    const rows = [...module.querySelectorAll('tbody tr')];
+    const held = rows.filter(row => row.classList.contains('is-held')).length;
+    const head = module.querySelector('thead');
+    const clipped = [...module.querySelectorAll('th, td')].filter(cell => cell.scrollWidth > cell.clientWidth + 1).length;
+    return {
+      title: module.dataset.def2Module, schema: module.dataset.def2Schema,
+      band: [...board.querySelectorAll('.gi-def2-bands')].indexOf(module.closest('.gi-def2-bands')),
+      left: Math.round(rect.left), top: Math.round(rect.top), bottom: Math.round(rect.bottom),
+      width: Math.round(rect.width), height: Math.round(rect.height),
+      rowHeight: parseFloat(getComputedStyle(module).getPropertyValue('--def2-row-height')) || 38,
+      dataRows: rows.length - held, held, clipped,
+      wrapClient: wrap.clientHeight, wrapScroll: wrap.scrollHeight,
+      tableWider: Math.round(module.querySelector('table').scrollWidth - wrap.clientWidth),
+      headPosition: head ? getComputedStyle(head).position : '',
+      firstCells: rows.filter(row => !row.classList.contains('is-held')).map(row => text(row.cells[0])),
+    };
+  });
+  const boardRect = board?.getBoundingClientRect();
+  return {
+    present: !!board,
+    kpiLabels: [...(board?.querySelectorAll('[data-def2-kpi] span') || [])].map(text),
+    kpiValues: [...(board?.querySelectorAll('[data-def2-kpi] strong') || [])].map(text),
+    sections: [...(board?.querySelectorAll('[data-def2-section] h2') || [])].map(text),
+    samples: [...(board?.querySelectorAll('[data-def2-section] small') || [])].map(text),
+    modules,
+    pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    boardRight: boardRect ? Math.round(boardRect.right) : 0,
+    viewport: window.innerWidth,
+    text: text(board),
+    headerSub: text(document.querySelector('[data-reports-title]')?.parentElement),
+    route: document.querySelector('.gi-reports-tab.active')?.dataset.reportTab,
+    reportTitleClipped: (() => {
+      const node = document.querySelector('[data-reports-title]');
+      return !!node && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1
+        || getComputedStyle(node).textOverflow === 'ellipsis');
+    })(),
+    /* SHARED CHROME: CONTENT edges, not border boxes. A full-bleed band's own
+       box starts at 0 by design; where its content starts has to line up. */
+    edges: Object.fromEntries([
+      ['title', '.gi-reports-reporthead .gi-reports-title-block'],
+      ['headActions', '.gi-reports-reporthead .gi-reports-actions'],
+      ['score', '.gi-scorebug-score'],
+      ['ident', '.gi-scorebug-ident'],
+      ['pane', '.gi-report-pane'],
+    ].map(([key, selector]) => {
+      const node = document.querySelector(selector);
+      if (!node) return [key, null];
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      return [key, { left: Math.round(rect.left + parseFloat(style.paddingLeft)),
+        right: Math.round(rect.right - parseFloat(style.paddingRight)) }];
+    })),
+    /* ONE LEFT EDGE PER COLUMN: a row that opens film and a dash row start their
+       label on the same pixel. Measured with a Range, because only the text
+       inside an identical cell box would move. */
+    columnOrigins: [...(board?.querySelectorAll('[data-def2-module]') || [])].map(module => {
+      const rows = [...module.querySelectorAll('tbody tr')];
+      if (rows.length < 2) return null;
+      const lefts = [...new Set(rows.map(row => {
+        const range = document.createRange();
+        range.selectNodeContents(row.children[0]);
+        return Math.round(range.getBoundingClientRect().left);
+      }))];
+      return lefts.length > 1 ? `${module.dataset.def2Module}:${lefts.join('/')}` : null;
+    }).filter(Boolean),
+    /* THE 12.5px FLOOR on every text-bearing element of the board. */
+    subFloor: [...(board?.querySelectorAll('*') || [])]
+      .filter(node => getComputedStyle(node).visibility !== 'hidden'
+        && [...node.childNodes].some(child => child.nodeType === 3 && child.nodeValue.trim()))
+      .map(node => ({ what: `${node.tagName}.${String(node.className || '')}:${text(node).slice(0, 20)}`,
+        size: parseFloat(getComputedStyle(node).fontSize) }))
+      .filter(item => item.size < 12.5),
+    titleFonts: [...(board?.querySelectorAll('[data-def2-module] > header > h3') || [])].map(node => getComputedStyle(node).fontFamily),
+    /* NO FABRICATED ZERO: a charted look never reads 0 snaps. */
+    zeroSnapCells: [...(board?.querySelectorAll('[data-def2-module]') || [])].flatMap(module => {
+      if (!['Top 10 Formations Faced', 'Personnel faced', 'Backfield faced', 'Motion', 'By hash',
+        'Production by play type', 'Performance by Play Direction', 'Pressure by situation', 'Field zone',
+        'Down & Distance'].includes(module.dataset.def2Module)) return [];
+      const col = [...module.querySelectorAll('thead th')].findIndex(th => /^Snaps/.test(text(th)));
+      return col < 0 ? [] : [...module.querySelectorAll('tbody tr:not(.is-held)')]
+        .filter(row => text(row.children[col]) === '0').map(row => `${module.dataset.def2Module}:${text(row.children[0])}`);
+    }),
+  };
+});
+
+/* ══ 1. Every real game, Current game scope, both desktop widths ══════════ */
+console.log('\n== 1. Every real game at 1440 and 1280 ==');
+const geometry = [];
+for (const game of games) {
+  await openDefense(game.id, 'game');
+  for (const [width, height] of DESKTOP) {
     await page.setViewport({ width, height });
-    await sleep(250);
-    for (const section of SECTIONS) {
-      await page.evaluate(label => {
-        [...document.querySelectorAll('.gi-def-secnav-item')]
-          .find(button => button.textContent.includes(label))?.click();
-      }, section.label);
-      await sleep(100);
-      const result = await page.evaluate(() => {
-        const board = document.querySelector('.gi-defense-board');
-        const text = node => (node?.textContent || '').replace(/\s+/g, ' ').trim();
-        const title = module => text(module.querySelector('header strong'));
-        const modules = [...(board?.querySelectorAll('.gi-overview-module') || [])];
-        const rowCount = module => title(module) === 'Field zone'
-          ? module.querySelectorAll('.gi-def-zonerow').length
-          : title(module) === 'Attack direction'
-            ? module.querySelectorAll('.gi-def-direction-row').length
-          : module.querySelectorAll('tbody tr').length;
-        const clipped = [];
-        modules.forEach(module => module.querySelectorAll('th,td,strong,small').forEach(cell => {
-          if (!cell.closest('.gi-def-pop') && !cell.querySelector('.gi-def-pop')
-            && getComputedStyle(cell).visibility !== 'hidden'
-            && (cell.scrollWidth > cell.clientWidth + 1 || cell.scrollHeight > cell.clientHeight + 1)) {
-            clipped.push(`${title(module)}:${text(cell).slice(0, 24)}`);
-          }
-        }));
-        return {
-          route: document.querySelector('.gi-reports-tab.active')?.dataset.reportTab,
-          active: text(board?.querySelector('.gi-def-secnav-item.is-active')).replace(/^\d/, '').trim(),
-          titles: modules.map(title),
-          rows: Object.fromEntries(modules.map(module => [title(module), rowCount(module)])),
-          held: modules.reduce((count, module) => count + module.querySelectorAll('tr.is-absent').length, 0),
-          height: Math.round(board?.getBoundingClientRect().height || 0),
-          boardWidth: Math.round(board?.getBoundingClientRect().width || 0),
-          meta: [...(board?.querySelectorAll('.gi-overview-module>header span') || [])]
-            .filter(node => getComputedStyle(node).display !== 'none' && text(node)).map(text),
-          sectionProse: board?.querySelectorAll('.gi-def-secrule p').length || 0,
-          tabs: [...(board?.querySelectorAll('.gi-def-secnav-item') || [])].map(node => text(node).replace(/^\d/, '').trim()),
-          overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-          clipped,
-          contentOverflow: modules.filter(module => module.scrollHeight > module.clientHeight + 1)
-            .map(module => `${title(module)}:${module.scrollHeight - module.clientHeight}px`),
-          rowEscape: modules.flatMap(module => {
-            const last = module.querySelector('tbody tr:last-child, .gi-def-zonerow:last-child');
-            return last && last.getBoundingClientRect().bottom > module.getBoundingClientRect().bottom + 1
-              ? [`${title(module)}:${Math.ceil(last.getBoundingClientRect().bottom - module.getBoundingClientRect().bottom)}px`]
-              : [];
-          }),
-          bandOverflow: [...(board?.querySelectorAll('.gi-def-band') || [])].flatMap(band => {
-            const bottom = band.getBoundingClientRect().bottom;
-            return [...band.children].filter(child => child.getBoundingClientRect().bottom > bottom + 1)
-              .map(child => `${child.className}:${Math.round(child.getBoundingClientRect().bottom - bottom)}px`);
-          }),
-          kpiSubs: [...(board?.querySelectorAll('.gi-def-kpi small') || [])].map(text),
-          quarterHeaders: [...(board?.querySelectorAll('.gi-overview-module') || [])]
-            .filter(module => title(module) === 'By quarter')
-            .flatMap(module => [...module.querySelectorAll('th')].map(text)),
-          reportTitle: text(document.querySelector('[data-reports-title]')),
-          reportTitleClipped: (() => {
-            const node = document.querySelector('[data-reports-title]');
-            return !!node && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1
-              || getComputedStyle(node).textOverflow === 'ellipsis');
-          })(),
-          titleFonts: modules.map(module => getComputedStyle(module.querySelector('header strong')).fontFamily),
-          /* The rendered cohort reconciliation, and the rendered proof that no
-             tendency row prints a numeric zero for a look the coach charted. */
-          defSample: text(board?.querySelector('[data-def-sample]')),
-          /* COMPOSITION, NOT CONTAINMENT. Every check here measured clipping,
-             overflow and scrollers, so a band could sit on its own margin and
-             pass all of them. Measured at 1280 the right edge stepped six times
-             down the column and the left edge four times, and nothing reported
-             it because nothing was looking. The scorebug and title band are
-             full-bleed by design: their BACKGROUND spans the viewport, their
-             CONTENT shares the route frame's inset. */
-          edges: Object.fromEntries([
-            ['title', '.gi-reports-reporthead .gi-reports-title-block'],
-            ['headActions', '.gi-reports-reporthead .gi-reports-actions'],
-            ['score', '.gi-scorebug-score'],
-            ['ident', '.gi-scorebug-ident'],
-            ['pane', '.gi-report-pane'],
-          ].map(([key, selector]) => {
-            const node = document.querySelector(selector);
-            if (!node) return [key, null];
-            /* CONTENT edges, not border boxes. A full-bleed band's own box
-               starts at 0 by design; where its CONTENT starts is the thing that
-               has to line up, so its padding comes off here. */
-            const rect = node.getBoundingClientRect();
-            const style = getComputedStyle(node);
-            return [key, { left: Math.round(rect.left + parseFloat(style.paddingLeft)),
-              right: Math.round(rect.right - parseFloat(style.paddingRight)) }];
-          })),
-          zeroSnapCells: modules.flatMap(module => {
-            const name = title(module);
-            if (!['Top 6 formations', 'Personnel faced', 'Backfield faced', 'Motion',
-              'By hash', 'Production by play type'].includes(name)) return [];
-            const head = [...module.querySelectorAll('thead th')].map(text);
-            const col = head.findIndex(label => label === 'Snaps');
-            if (col < 0) return [];
-            return [...module.querySelectorAll('tbody tr')]
-              .filter(row => !row.classList.contains('is-absent'))
-              .filter(row => text(row.children[col]) === '0')
-              .map(row => `${name}:${text(row.children[0])}`);
-          }),
-          /* ROW REGISTRATION. Two tables sharing a band must share a grid. The
-             formation matrix needs two-line column labels, so its header ran
-             36px against the play-type table's 28px and its body started 8px
-             low; a wrapping look then grew its own row to 33px and the drift
-             reached 13px by the last row. Neither containment nor clipping saw
-             any of it. */
-          bandRegistration: [...(board?.querySelectorAll('.gi-def-band, .gi-def-tendency-top, .gi-def-tendency-bottom, .gi-def-context-band') || [])]
-            .map(band => [...band.querySelectorAll('.gi-overview-module')]
-              .map(module => {
-                const head = module.querySelector('thead');
-                const first = module.querySelector('tbody tr');
-                if (!head || !first) return null;
-                return { title: title(module),
-                  headH: Math.round(head.getBoundingClientRect().height),
-                  firstTop: Math.round(first.getBoundingClientRect().top) };
-              }).filter(Boolean))
-            .filter(group => group.length > 1)
-            .flatMap(group => group.slice(1)
-              .filter(item => Math.abs(item.headH - group[0].headH) > 1
-                || Math.abs(item.firstTop - group[0].firstTop) > 1)
-              .map(item => `${group[0].title}(${group[0].headH}/${group[0].firstTop}) vs ${item.title}(${item.headH}/${item.firstTop})`)),
-          /* ONE LEFT EDGE PER COLUMN. The global `.cut-row` marker was reserved
-             INLINE, so a clickable row's first cell indented ~13px while a held
-             row's did not and a fixed football set rendered two left edges. The
-             text origin is measured with a Range, because the cell box is
-             identical in both cases — only the text inside it moved. */
-          columnOrigins: [...(board?.querySelectorAll('.gi-overview-module') || [])]
-            .map(module => {
-              const rows = [...module.querySelectorAll('tbody tr')];
-              if (rows.length < 2) return null;
-              const lefts = [...new Set(rows.map(row => {
-                const cell = row.children[0];
-                if (!cell) return null;
-                const range = document.createRange();
-                range.selectNodeContents(cell);
-                return Math.round(range.getBoundingClientRect().left);
-              }).filter(value => value !== null))];
-              return lefts.length > 1 ? `${title(module)}:${lefts.join('/')}` : null;
-            }).filter(Boolean),
-          minFontSizes: [...(board?.querySelectorAll('th,td,span,small,strong,b,button,h2') || [])]
-            .filter(node => getComputedStyle(node).visibility !== 'hidden'
-              && [...node.childNodes].some(child => child.nodeType === 3 && child.nodeValue.trim()))
-            .map(node => ({ cls: [String(node.className || node.tagName),
-              String(node.parentElement?.className || ''),
-              String(node.closest('.gi-overview-module')?.className || '')].join(' ').slice(0, 90),
-              size: parseFloat(getComputedStyle(node).fontSize) }))
-            .filter(item => item.size < 12.5),
-        };
-      });
-      observations.push({ game: game.name, width, section: section.label, ...result });
-    }
+    await sleep(200);
+    geometry.push({ game: game.gameInfo?.opponent, width, ...(await measure()) });
   }
 }
-
-console.log('\n== Defense fixed-schema real-data gate ==');
-ok(games.length === 6 && games.reduce((sum, game) => sum + (game.plays || []).length, 0) > 0,
-  'the canonical six-game season is loaded with charted plays');
-ok(observations.every(item => item.route === 'defense' && item.boardWidth > 900),
-  'Defense is rendered and visible before geometry is measured');
-ok(observations.every(item => JSON.stringify(item.tabs) === JSON.stringify(SECTIONS.map(section => section.label))),
-  'the four approved useful sections render and the rejected duplicate Self-Scout does not');
-const wrongModules = observations.filter(item => {
-  const expected = SECTIONS.find(section => section.label === item.section)?.modules || [];
-  return JSON.stringify(item.titles) !== JSON.stringify(expected);
+ok(geometry.every(item => item.present), 'the Revision 2 board renders for every real game at both widths');
+ok(geometry.every(item => JSON.stringify(item.kpiLabels) === JSON.stringify(KPI_LABELS)),
+  'every game shows the ten KPIs, in order, with their literal labels',
+  JSON.stringify(geometry.find(item => JSON.stringify(item.kpiLabels) !== JSON.stringify(KPI_LABELS))?.kpiLabels));
+ok(geometry.every(item => JSON.stringify(item.sections) === JSON.stringify(SECTIONS)),
+  'every game renders the four sections in order', JSON.stringify(geometry.map(item => item.sections).find(s => JSON.stringify(s) !== JSON.stringify(SECTIONS))));
+ok(geometry.every(item => !item.modules.some(module => module.title === 'Game-by-game')),
+  'Current game scope never renders Game-by-game');
+const heightRule = module => {
+  if (FIXED.has(module.title)) return module.height === 96 + Math.max(1, module.dataRows) * module.rowHeight && module.held === 0;
+  if (![220, 300, 380, 460].includes(module.height)) return false;
+  const capacity = Math.floor((module.height - 96) / module.rowHeight);
+  return module.dataRows > capacity ? module.held === 0 : module.held === capacity - module.dataRows;
+};
+const heightBreaks = geometry.flatMap(item => item.modules.filter(module => !heightRule(module))
+  .map(module => `${item.game}@${item.width}:${module.title}:${module.height}/${module.dataRows}+${module.held}`));
+ok(heightBreaks.length === 0,
+  'fixed-schema modules fit their rows exactly; variable modules take a standard height and fill unused capacity with dash rows',
+  JSON.stringify(heightBreaks.slice(0, 6)));
+// Data taller than the module's row area (height minus its 96px of chrome).
+const overflowing = geometry.flatMap(item => item.modules.filter(module => module.dataRows * module.rowHeight > module.height - 96));
+ok(overflowing.length > 0 && overflowing.every(module => module.wrapScroll > module.wrapClient && module.headPosition === 'sticky'),
+  'a module whose data exceeds its capacity scrolls internally under a sticky header at its fixed height',
+  JSON.stringify(overflowing.slice(0, 3)));
+const misaligned = geometry.flatMap(item => {
+  const rows = new Map();
+  item.modules.forEach(module => rows.set(module.top, [...(rows.get(module.top) || []), module]));
+  return [...rows.values()].filter(row => row.length > 1 && (new Set(row.map(module => module.bottom)).size > 1
+    || row.some(module => module.width > item.width / 2)))
+    .map(row => `${item.game}@${item.width}:${row.map(module => module.title).join('+')}`);
 });
-ok(wrongModules.length === 0, 'every section renders its fixed module inventory', JSON.stringify(wrongModules.slice(0, 3)));
-const wrongRows = observations.flatMap(item => Object.entries(ROWS)
-  .filter(([name]) => item.titles.includes(name))
-  .filter(([name, expected]) => item.rows[name] !== expected)
-  .map(([name, expected]) => `${item.game} ${item.width} ${item.section} ${name}:${item.rows[name]}!=${expected}`));
-ok(wrongRows.length === 0, 'every table renders exactly its declared allocation', JSON.stringify(wrongRows.slice(0, 6)));
-for (const [width] of VIEWPORTS) for (const section of SECTIONS) {
-  const rows = observations.filter(item => item.width === width && item.section === section.label);
-  const heights = [...new Set(rows.map(item => item.height))];
-  ok(heights.length === 1, `${section.label} is one height across all six games at ${width}`,
-    JSON.stringify(rows.map(item => ({ game: item.game, height: item.height }))));
-}
-const expectedMeta = { 'Defensive performance': 1, 'Opponent Offense': 1, Scheme: 0, 'Situational results': 1 };
-ok(observations.every(item => item.meta.length === expectedMeta[item.section]
-    && item.meta.every(value => /game baseline: .* yds\/play/.test(value))
-    && item.sectionProse === 0),
-  'Defense omits explainer prose while retaining required data baselines',
-  JSON.stringify(observations.filter(item => item.meta.length !== expectedMeta[item.section]).slice(0, 4)));
-ok(observations.every(item => item.kpiSubs.every(value => !value.includes('Last 3'))
-    && item.quarterHeaders.every(value => value.toLowerCase() !== 'vs season avg')),
-  'Current game scope never labels one game as Last 3 or season average');
-ok(observations.some(item => item.held > 0), 'sparse real games hold unfilled slots with dashes');
-ok(observations.every(item => item.overflowX === 0), 'no page-level horizontal overflow at either release width');
-ok(observations.every(item => !item.reportTitleClipped),
+ok(misaligned.length === 0, 'paired half-width modules share top and bottom edges', JSON.stringify(misaligned.slice(0, 4)));
+/* Inside each section's band, one row of modules ends 20px above the next. */
+const gutters = geometry.flatMap(item => {
+  const breaks = [];
+  for (const band of new Set(item.modules.map(module => module.band))) {
+    const tops = [...new Set(item.modules.filter(module => module.band === band).map(module => module.top))].sort((a, b) => a - b);
+    tops.slice(1).forEach((top, index) => {
+      const bottom = Math.max(...item.modules.filter(module => module.band === band && module.top === tops[index]).map(module => module.bottom));
+      if (top - bottom !== 20) breaks.push(`${item.game}@${item.width}:band${band}:${top - bottom}`);
+    });
+  }
+  return breaks;
+});
+ok(gutters.length === 0, 'modules stack on 20px gutters', JSON.stringify(gutters.slice(0, 4)));
+ok(geometry.every(item => item.pageOverflow <= 0 && item.modules.every(module => module.tableWider <= 1)),
+  'no page-level or in-module horizontal overflow at desktop widths',
+  JSON.stringify(geometry.filter(item => item.pageOverflow > 0 || item.modules.some(module => module.tableWider > 1))
+    .map(item => ({ game: item.game, width: item.width, page: item.pageOverflow,
+      tables: item.modules.filter(module => module.tableWider > 1).map(module => module.title) })).slice(0, 3)));
+ok(geometry.every(item => item.modules.every(module => module.clipped === 0)),
+  'no table cell clips its own text',
+  JSON.stringify(geometry.flatMap(item => item.modules.filter(module => module.clipped).map(module => `${item.game}@${item.width}:${module.title}`)).slice(0, 5)));
+ok(geometry.every(item => item.route === 'defense'), 'Defense is the active report before anything is measured');
+ok(geometry.every(item => !item.reportTitleClipped),
   'the complete Reports title remains visible at both release widths',
-  JSON.stringify(observations.filter(item => item.reportTitleClipped).slice(0, 4)));
-ok(observations.every(item => item.clipped.length === 0), 'no Defense label or value is clipped',
-  JSON.stringify(observations.filter(item => item.clipped.length).slice(0, 4)));
-/* ONE LEFT EDGE PER COLUMN. A clickable row and a held row start their label on
-   the same pixel; the film marker lives in the cell's inset and costs no width. */
-const raggedColumns = observations.flatMap(item => (item.columnOrigins || [])
-  .map(entry => `${item.game}/${item.width}/${item.section}: ${entry}`));
-ok(raggedColumns.length === 0,
-  'every Defense first column has one left edge, whether or not a row opens film',
-  JSON.stringify([...new Set(raggedColumns)].slice(0, 4)));
-/* ROW REGISTRATION. Side-by-side modules in one band share one grid: the same
-   column-row height and the same first data row. */
-const misregistered = observations.flatMap(item => (item.bandRegistration || [])
-  .map(entry => `${item.game}/${item.width}/${item.section}: ${entry}`));
-ok(misregistered.length === 0,
-  'side-by-side modules in a band share one column-row height and one first data row',
-  JSON.stringify([...new Set(misregistered)].slice(0, 4)));
-/* SHARED CHROME ALIGNMENT. One left edge and one right edge down the column. */
-const withEdges = observations.filter(item => item.edges?.pane && item.edges?.score && item.edges?.ident);
-ok(withEdges.length === observations.length,
+  JSON.stringify(geometry.filter(item => item.reportTitleClipped).map(item => `${item.game}@${item.width}`).slice(0, 4)));
+const withEdges = geometry.filter(item => item.edges?.pane && item.edges?.score && item.edges?.ident && item.edges?.title && item.edges?.headActions);
+ok(withEdges.length === geometry.length,
   'every shared Reports band is on screen before its edges are measured',
-  JSON.stringify(observations.filter(item => !item.edges?.score).map(item => item.section).slice(0, 3)));
+  JSON.stringify(geometry.filter(item => !withEdges.includes(item)).map(item => `${item.game}@${item.width}`).slice(0, 3)));
 const leftRagged = withEdges.flatMap(item => ['title', 'score']
   .filter(key => Math.abs(item.edges[key].left - item.edges.pane.left) > 1)
   .map(key => `${item.game}/${item.width}:${key}:${item.edges[key].left} vs pane ${item.edges.pane.left}`));
-ok(leftRagged.length === 0,
-  'the report title and the linescore start on the report frame\'s own left inset',
+ok(leftRagged.length === 0, "the report title and the linescore start on the report frame's own left inset",
   JSON.stringify([...new Set(leftRagged)].slice(0, 4)));
 const rightRagged = withEdges.flatMap(item => ['headActions', 'ident']
   .filter(key => Math.abs(item.edges[key].right - item.edges.pane.right) > 1)
   .map(key => `${item.game}/${item.width}:${key}:${item.edges[key].right} vs pane ${item.edges.pane.right}`));
-ok(rightRagged.length === 0,
-  'the title-band commands and the identity strip end on the report frame\'s own right inset',
+ok(rightRagged.length === 0, "the title-band commands and the identity strip end on the report frame's own right inset",
   JSON.stringify([...new Set(rightRagged)].slice(0, 4)));
-/* The linescore must stay ONE row. It wrapped at 1280, dropping the identity
-   strip onto its own full-width row where three items were spread across the
-   entire bar on no grid, aligned to nothing above them. */
-const wrappedBand = withEdges.filter(item => item.edges.ident.left < item.edges.score.right)
-  .map(item => `${item.game}/${item.width}`);
-ok(wrappedBand.length === 0,
+ok(withEdges.every(item => item.edges.ident.left >= item.edges.score.right),
   'the linescore, its story and its identity strip stay on one row at both release widths',
-  JSON.stringify([...new Set(wrappedBand)].slice(0, 4)));
-/* THE RENDERED COHORT RECONCILIATION. Compact factual data, present on every
-   section at both widths, naming both cohorts and mislabelling neither. */
-const missingSample = observations.filter(item => !/^\d+ charted · \d+ with play type$/.test(item.defSample || ''));
-ok(missingSample.length === 0,
-  'every Defense section states its charted sample and its measured subset',
-  JSON.stringify(missingSample.map(item => ({ game: item.game, width: item.width, sample: item.defSample })).slice(0, 4)));
-ok(observations.some(item => {
-  const [, charted, measured] = (item.defSample || '').match(/^(\d+) charted · (\d+) with play type$/) || [];
-  return charted && measured && Number(charted) > Number(measured);
-}), 'the disclosure really does report two different numbers on this season, so it is not decorative',
-  JSON.stringify([...new Set(observations.map(item => item.defSample))]));
-/* THE TYPOGRAPHY FLOOR, ENFORCED WHERE IT APPLIES.
-   `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the floor for coach-facing copy
-   and names the categories that may never be exempted. Before this assertion
-   the rules file was a claim: the range that codified it shipped 11.5px
-   formation-matrix headers, a 9px KPI subline below 1300px, and 11.5px nav
-   counts. Everything below the floor on this board must now be one of the
-   named exceptions, by class, and the list is short on purpose. */
-const FLOOR_EXCEPTIONS = [
-  'gi-def-tile', 'gi-def-type-summary', 'gi-def-rank', 'gi-def-secrule',
-  'gi-def-kpi', 'gi-def-compare-card', 'gi-def-direction-key', 'gi-def-zonerow',
-  'gi-def-answer', 'gi-def-pop', 'gi-scorebug', 'gi-reports-', 'gi-def-secnav',
-  'gi-def-toolbar', 'gi-def-scope', 'gi-def-export',
-];
-const floorViolations = observations.flatMap(item => (item.minFontSizes || [])
-  .filter(entry => !FLOOR_EXCEPTIONS.some(allowed => entry.cls.includes(allowed)))
-  .map(entry => `${item.width}:${item.section}:${entry.cls}@${entry.size}`));
-ok(floorViolations.length === 0,
-  'every Defense value outside the named broadcast-display exceptions meets the 12.5px floor',
-  JSON.stringify([...new Set(floorViolations)].slice(0, 12)));
-/* NO FABRICATED ZERO. A look the coach charted must never read `0` snaps. */
-const zeroSnaps = observations.filter(item => item.zeroSnapCells.length);
-ok(zeroSnaps.length === 0,
-  'no rendered Defense tendency row prints 0 snaps for a charted look',
-  JSON.stringify(zeroSnaps.map(item => ({ game: item.game, width: item.width, cells: item.zeroSnapCells })).slice(0, 4)));
-ok(observations.every(item => item.contentOverflow.length === 0), 'every module remains inside its fixed panel',
-  JSON.stringify(observations.filter(item => item.contentOverflow.length).slice(0, 4)));
-ok(observations.every(item => item.rowEscape.length === 0), 'the final allocated row remains visible inside every module',
-  JSON.stringify(observations.filter(item => item.rowEscape.length).slice(0, 4)));
-ok(observations.every(item => item.bandOverflow.length === 0), 'every module remains inside its allocated band',
-  JSON.stringify(observations.filter(item => item.bandOverflow.length).slice(0, 4)));
-ok(observations.every(item => item.titleFonts.every(font => /IBM Plex Sans/i.test(font) && !/Condensed/i.test(font))),
-  'every Defense module title uses the approved sans face',
-  JSON.stringify(observations.filter(item => item.titleFonts.some(font => /Condensed/i.test(font))).slice(0, 4)));
-ok(errors.length === 0, 'the real Defense route raises no page or console errors', errors.slice(0, 3).join(' | '));
+  JSON.stringify(withEdges.filter(item => item.edges.ident.left < item.edges.score.right).map(item => `${item.game}/${item.width}`)));
+ok(geometry.every(item => item.columnOrigins.length === 0),
+  'every first column has one left edge, whether or not a row opens film',
+  JSON.stringify([...new Set(geometry.flatMap(item => item.columnOrigins))].slice(0, 4)));
+ok(geometry.every(item => item.subFloor.length === 0),
+  'every text element on the Defense board meets the 12.5px floor',
+  JSON.stringify([...new Set(geometry.flatMap(item => item.subFloor.map(entry => `${entry.what}@${entry.size}`)))].slice(0, 8)));
+ok(geometry.every(item => item.titleFonts.length > 20 && item.titleFonts.every(font => /IBM Plex Sans/i.test(font) && !/Condensed/i.test(font))),
+  'every Defense module title uses the approved sans face');
+ok(geometry.every(item => item.zeroSnapCells.length === 0),
+  'no rendered Defense row prints 0 snaps for a charted look',
+  JSON.stringify(geometry.filter(item => item.zeroSnapCells.length).map(item => ({ game: item.game, cells: item.zeroSnapCells })).slice(0, 3)));
+ok(geometry.every(item => !/Last 3/.test(item.text)),
+  'Current game scope never labels one game as Last 3');
+ok(geometry.every(item => item.samples.every(sample => /^\d+ charted \/ \d+ with Run\/Pass charted$/.test(sample))),
+  'every section names both cohorts: charted and with Run/Pass charted');
+ok(geometry.every(item => !/\bTD\b|ADDED|Click any column|Scroll inside|not a recommended call/.test(item.text)),
+  'the board carries no ambiguous TD abbreviation, proposal marker or explanatory prose',
+  (geometry.find(item => /\bTD\b|ADDED|Click any column|Scroll inside|not a recommended call/.test(item.text))?.text || '').match(/.{0,40}(\bTD\b|ADDED|Click any column|Scroll inside|not a recommended call).{0,40}/)?.[0]);
 
-for (let index = 0; index < 2; index++) {
-  await page.setViewport({ width: 1440, height: 900 });
-  await page.evaluate(label => {
-    [...document.querySelectorAll('.gi-def-secnav-item')]
-      .find(button => button.textContent.includes(label))?.click();
-    document.querySelector('.gi-reports-scroll')?.scrollTo(0, 0);
-  }, SECTIONS[index].label);
-  await sleep(100);
-  await page.screenshot({ path: `${OUT}/1440-current-section-${index + 1}.png` });
+/* ══ 2. The approved composition, pinned on the canonical season ═════════ */
+console.log('\n== 2. Canonical composition ==');
+for (const scope of ['season', 'game']) {
+  await openDefense(stPeter.id, scope);
+  for (const [width, height] of DESKTOP) {
+    await page.setViewport({ width, height });
+    await sleep(200);
+    const seen = await measure();
+    const full = width === 1440 ? 1376 : 1216;
+    const half = (full - 20) / 2;
+    const inventory = seen.modules.map(module => [module.title,
+      Math.abs(module.width - full) <= 6 ? 'full' : Math.abs(module.width - half) <= 4 ? 'half' : `w${module.width}`, module.height]);
+    ok(JSON.stringify(inventory) === JSON.stringify(INVENTORY[scope]),
+      `${scope} @${width}: module inventory, order, width and height match the approved Revision 2 composition`,
+      JSON.stringify(inventory.map((row, i) => JSON.stringify(row) === JSON.stringify(INVENTORY[scope][i]) ? null : { got: row, want: INVENTORY[scope][i] }).filter(Boolean).slice(0, 4)));
+    ok(JSON.stringify(seen.kpiValues) === JSON.stringify(KPI_VALUES[scope]),
+      `${scope} @${width}: the ten KPIs carry the canonical values`, JSON.stringify(seen.kpiValues));
+    if (width === 1440 && scope === 'season') {
+      const outcomes = seen.modules.find(module => module.title === 'Opponent drive outcomes')?.firstCells;
+      ok(JSON.stringify(outcomes) === JSON.stringify(['Touchdown', 'Punt', 'Turnover', 'Downs', 'Other / unresolved']),
+        'season drive outcomes list only the outcomes that occurred, with Touchdown spelled out', JSON.stringify(outcomes));
+    }
+    if (width === 1440 && scope === 'game') {
+      const outcomes = seen.modules.find(module => module.title === 'Opponent drive outcomes')?.firstCells;
+      ok(JSON.stringify(outcomes) === JSON.stringify(['Punt', 'Turnover', 'Downs']),
+        'the St. Peter Lutheran game lists its own three drive outcomes and no empty ones', JSON.stringify(outcomes));
+      ok(/Current game/.test(seen.headerSub) || !/Full season/.test(seen.headerSub),
+        'the scope button resynchronizes the shared header to Current game', seen.headerSub);
+    }
+  }
 }
 
-/* Review captures use the richer full-season cohort and the canonical active game. */
-await page.setViewport({ width: 1440, height: 900 });
-await page.evaluate(async gameId => {
+/* The Revision 2 model on the canonical cohort: touchdowns by scoring side and
+   the stop percentages as the inverse of the existing allowed percentages. */
+const boardModel = await page.evaluate(gameId => {
   const app = window.app;
-  app.storage.seasonStore.data.activeGameId = gameId;
-  await app.storage._loadActiveGame();
-  app.reportsScreen.defenseScope = 'season';
-  app.workspaceShell.show('reports');
-  app.reportsScreen.selectTab('defense');
-}, season.activeGameId || games[0].id);
-await sleep(500);
+  const opponents = Object.fromEntries(app.storage.seasonStore.data.games.map(g => [String(g.id), g.gameInfo?.opponent || g.id]));
+  const { scoped: seasonPlays, labels } = app.reportsScreen._selfPerspectiveCohort('season');
+  const gamePlays = seasonPlays.filter(p => String(p.__gid) === String(gameId));
+  const seasonBoard = app.stats.defenseBoard(seasonPlays, { scope: 'season', seasonPlays, labels: opponents });
+  const gameBoard = app.stats.defenseBoard(gamePlays, { scope: 'game', seasonPlays, labels: opponents });
+  const seasonDash = app.stats.defenseDashboard(seasonPlays, opponents);
+  const strip = value => JSON.parse(JSON.stringify(value, (key, v) => key === 'plays' ? undefined : v));
+  return {
+    season: seasonBoard.kpis, game: gameBoard.kpis,
+    third: seasonDash.thirdDownAllowed.rate, fourth: seasonDash.fourthDownAllowed.rate,
+    dashboardUnchanged: JSON.stringify(strip(seasonBoard.dashboard)) === JSON.stringify(strip(seasonDash)),
+    gameComparison: gameBoard.comparison.find(row => row.name === 'Yards / play'),
+    labelsDiffer: labels !== opponents,
+  };
+}, stPeter.id);
+ok(boardModel.season.touchdownsAllowed === 7 && boardModel.season.defensiveTouchdowns === 0,
+  '2025 JV full season: Touchdowns Allowed 7, Defensive Touchdowns 0', JSON.stringify(boardModel.season));
+ok(boardModel.game.touchdownsAllowed === 0 && boardModel.game.defensiveTouchdowns === 0,
+  'St. Peter Lutheran current game: Touchdowns Allowed 0, Defensive Touchdowns 0', JSON.stringify(boardModel.game));
+ok(boardModel.season.thirdDownStop === +(100 - boardModel.third).toFixed(1) && boardModel.season.thirdDownStop === 81.4
+  && boardModel.season.fourthDownStop === +(100 - boardModel.fourth).toFixed(1) && boardModel.season.fourthDownStop === 47.1,
+  '3rd and 4th Down Stop % are the inverse of the existing allowed percentages', JSON.stringify(boardModel));
+ok(boardModel.dashboardUnchanged, 'the board carries the existing defenseDashboard output unchanged');
+ok(boardModel.gameComparison?.current === 0 && boardModel.gameComparison?.comparison === 3.2,
+  'Current game vs Season compares the game with the full season', JSON.stringify(boardModel.gameComparison));
+
+/* ══ 3. The dashboard's existing data contracts ═══════════════════════════ */
+console.log('\n== 3. Existing Defense data contracts ==');
+await openDefense(season.activeGameId || games[0].id, 'season');
 const canonical = await page.evaluate(() => {
   const app = window.app;
   const { scoped, labels } = app.reportsScreen._defenseCohort();
@@ -403,16 +410,12 @@ const canonical = await page.evaluate(() => {
         charted: row.charted, measured: row.measured, held: !!row.held,
         yards: row.yards, runYards: row.runYards, passYards: row.passYards,
         ypp: row.ypp, explosives: row.explosives })),
-    /* The blitz cohort, from both ends: the two displayed cards and the
-       situational rate's own denominator must be one charted population. */
     blitzCohort: {
       blitz: model.pressure.blitz.n, noBlitz: model.pressure.noBlitz.n,
       blitzCharted: model.pressure.blitz.charted, noBlitzCharted: model.pressure.noBlitz.charted,
       situations: model.downDistance.map(row => ({ name: row.name, n: row.n,
         charted: row.charted, callPct: row.callPct, blitzPct: row.blitzPct })),
     },
-    /* Every ranked tendency set, to prove frequency ordering is the charted
-       count and that a charted-but-unmeasured look keeps its real count. */
     ranked: {
       formationCalls: model.formationCalls.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
       personnel: model.personnel.map(r => ({ name: r.name, n: r.n, charted: r.charted, measured: r.measured })),
@@ -424,18 +427,8 @@ const canonical = await page.evaluate(() => {
     },
   };
 });
-/* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT, on every row.
-   `yards` used to sum EVERY defensive snap while rush and pass summed the
-   classified subsets, so the three columns were never one cohort: OLL printed
-   132 above 72 + 55, and Week 6 printed 28 above 43 — components EXCEEDING
-   the total, because five unclassified `Penalty + Loss` snaps carried -15
-   between them. The season reconciled only by coincidence
-   (-5 + 0 + 10 + 5 + 5 - 15 = 0), which is why nothing caught it. */
 /* THE FOUR CANONICAL COHORTS, pinned so a future change cannot quietly merge
-   them. Matchup measures what a unit LINED UP in and keeps every charted snap;
-   every production measure uses the classified subset (`playType || runPass`).
-   Neither is wrong and they must not be forced together — but each surface has
-   to name which one it is showing. */
+   them. Every production measure uses the classified subset. */
 const cohorts = await page.evaluate(() => {
   const games = window.app.storage.seasonStore.data.games || [];
   const all = games.flatMap(g => g.plays || []);
@@ -454,7 +447,7 @@ ok(cohorts.charted === 449 && cohorts.offenseCharted === 201 && cohorts.offenseC
   && cohorts.defenseCharted === 174 && cohorts.defenseClassified === 154,
   'the canonical season reconciles to its four cohorts: 201/173 offensive, 174/154 defensive',
   JSON.stringify(cohorts));
-
+/* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT, on every row. */
 const unreconciled = canonical.byGame.filter(row => row.yards !== (row.rush || 0) + (row.pass || 0));
 ok(unreconciled.length === 0,
   'every Game-by-game row reconciles: Total yds equals Rush yds plus Pass yds',
@@ -469,21 +462,14 @@ ok(canonical.byGame.reduce((sum, row) => sum + row.yards, 0) === canonical.yards
 ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
   && canonical.ypp === 3.2 && canonical.turnovers === 2 && canonical.explosives === 7,
   'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));
-/* A RATE'S TWO HALVES ARE ONE COHORT. Total yards excludes the unclassified
-   penalty snaps, so dividing it by every defensive snap counted each of those
-   as a zero-yard play and flattered the defense: 497/174 = 2.9 against the
-   honest 497/154 = 3.2. */
+/* A RATE'S TWO HALVES ARE ONE COHORT. */
 ok(canonical.ypp === +(canonical.yards / cohorts.defenseClassified).toFixed(1),
   'Yards allowed / play divides the classified yardage by the classified cohort',
   JSON.stringify({ ypp: canonical.ypp, yards: canonical.yards, classified: cohorts.defenseClassified, charted: canonical.total }));
 ok(canonical.ypp !== +(canonical.yards / canonical.total).toFixed(1),
   'the two denominators really do differ here, so that assertion can fail',
   JSON.stringify({ classified: cohorts.defenseClassified, charted: canonical.total }));
-/* TWO COHORTS, BOTH NAMED. `charted` is the displayed Snaps, the frequency
-   ranking key and every call or blitz percentage; `measured` is the run/pass
-   subset every yardage and rate divides by. The first repair collapsed the
-   displayed count onto `measured`, which is how a Trade motion charted once
-   with no play type printed `0 snaps`. */
+/* TWO COHORTS, BOTH NAMED. */
 ok(canonical.summarySnaps === cohorts.defenseCharted
   && canonical.summaryCharted === cohorts.defenseCharted
   && canonical.summaryMeasured === cohorts.defenseClassified
@@ -491,10 +477,6 @@ ok(canonical.summarySnaps === cohorts.defenseCharted
   'displayed Snaps is the charted cohort and the measured cohort is named separately',
   JSON.stringify({ snaps: canonical.summarySnaps, charted: canonical.summaryCharted,
     measured: canonical.summaryMeasured, total: canonical.total, modelMeasured: canonical.measured, cohorts }));
-/* Every production row divides its own yardage by its own measured cohort.
-   The `row.n &&` guard the first pass carried skipped exactly the rows where
-   the two cohorts diverge to zero — the reviewer's blind spot — so this walks
-   every row and splits the two cases explicitly. */
 const measuredRows = canonical.productionRows.filter(row => !row.held && row.measured > 0);
 const mixedProductionRows = measuredRows.filter(row =>
   row.ypp !== +(row.yards / row.measured).toFixed(1)
@@ -502,8 +484,8 @@ const mixedProductionRows = measuredRows.filter(row =>
 ok(measuredRows.length >= 40 && mixedProductionRows.length === 0,
   'every measured defensive row reconciles Total yards, Rush plus Pass, and Yards/play over its own measured cohort',
   JSON.stringify({ rows: measuredRows.length, mixed: mixedProductionRows }));
-/* CHARTED BUT UNMEASURED: the case the first repair got wrong. The row keeps
-   its real charted count and reports NO production at all. */
+/* CHARTED BUT UNMEASURED: the row keeps its real charted count and reports NO
+   production at all. */
 const unmeasuredRows = canonical.productionRows.filter(row => !row.held
   && row.charted > 0 && row.measured === 0);
 const badUnmeasured = unmeasuredRows.filter(row => row.n !== row.charted
@@ -512,22 +494,17 @@ const badUnmeasured = unmeasuredRows.filter(row => row.n !== row.charted
 ok(unmeasuredRows.length > 0 && badUnmeasured.length === 0,
   'a charted-but-unmeasured row keeps its charted Snaps and reports every production value as absent',
   JSON.stringify({ found: unmeasuredRows, bad: badUnmeasured }));
-/* No ranked tendency set may print a numeric zero where the coach charted a
-   look. Checked on the model here and on the rendered board below. */
 const zeroSnapRows = Object.entries(canonical.ranked).flatMap(([set, rows]) =>
   rows.filter(row => row.charted > 0 && row.n === 0).map(row => `${set}:${row.name}`));
 ok(zeroSnapRows.length === 0,
   'no defensive tendency row reports 0 snaps for a look the coach charted',
   JSON.stringify(zeroSnapRows));
-/* Frequency ranking is the charted count, descending, in every ranked set. */
 const misordered = Object.entries(canonical.ranked)
   .filter(([set]) => ['formationCalls', 'personnel', 'backfields', 'motions'].includes(set))
   .flatMap(([set, rows]) => rows.slice(1)
     .filter((row, i) => (row.charted ?? 0) > (rows[i].charted ?? 0)).map(row => `${set}:${row.name}`));
 ok(misordered.length === 0, 'every ranked tendency set orders by charted frequency',
   JSON.stringify(misordered));
-/* ONE BLITZ COHORT. The two displayed cards and the situational blitz rate's
-   own denominator must count the same charted snaps. */
 const blitzSituations = canonical.blitzCohort.situations;
 const blitzDenomMismatch = blitzSituations.filter(row => row.n !== row.charted);
 ok(canonical.blitzCohort.blitz === canonical.blitzCohort.blitzCharted
@@ -543,14 +520,14 @@ ok(JSON.stringify(canonical.dd) === JSON.stringify([
   '1st & 1-3', '1st & 4-6', '1st & 7+', '2nd & 1-3', '2nd & 4-6', '2nd & 7+',
   '3rd & 1-3', '3rd & 4-6', '3rd & 7+', '4th & 1-3', '4th & 4-6', '4th & 7+',
 ]) && canonical.emptyDd.includes('1st & 4-6'),
-  'all 12 down-and-distance rows remain in football order, including the empty cohort', JSON.stringify(canonical.dd));
+  'the dashboard keeps all 12 down-and-distance buckets in football order, including the empty cohort', JSON.stringify(canonical.dd));
 ok(JSON.stringify(canonical.calls) === JSON.stringify([
   'Maverick + Jumbo Shift | Cover 3 | A-Gap:4',
   'Maverick | Cover 3:109',
   'Maverick + Jumbo Shift | Cover 3:28',
   'Maverick | Cover 3 | A-Gap:7',
 ]) && canonical.worstCalls.length === 4,
-  'Top and Worst Calls fill all four allocated slots when four calls qualify', JSON.stringify(canonical));
+  'call performance ranks the four calls that qualify at four classified snaps', JSON.stringify(canonical));
 ok(canonical.firstLongCallPct > 0 && canonical.firstLongCallPct <= 100,
   'call performance uses classified snaps while situational call share uses every charted call', JSON.stringify(canonical.calls));
 ok(JSON.stringify(canonical.zones.map(value => value.split(':')[0])) === JSON.stringify([
@@ -561,7 +538,7 @@ ok(canonical.formationCalls.length >= 6
     && row.playTypes.every(item => item.pct === Math.round(item.n / row.n * 100)))
   && canonical.formationCalls.some(row => row.name === 'I-Form + Twins'
     && row.playTypes.some(item => item.name === 'Run Inside' && item.n > 0)),
-  'Top 6 formations preserves combined offensive looks and shows every canonical play-type share',
+  'combined offensive looks are preserved with every canonical play-type share',
   JSON.stringify(canonical.formationCalls));
 ok(JSON.stringify(canonical.formationPlayTypes) === JSON.stringify([
   'Run Outside', 'Run Inside', 'RPO', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Screen',
@@ -573,10 +550,10 @@ ok(canonical.directions.length === 5
   && canonical.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.passes, 0) === 36
   && canonical.directions.some(row => row.name === 'Toward Strength' && row.isRelative)
   && canonical.directions.some(row => row.name === 'Away from Strength' && row.isRelative),
-  'Attack direction adds strength-relative rows without double-counting its absolute legend',
+  'direction adds strength-relative rows without double-counting its absolute legend',
   JSON.stringify(canonical.directions));
 ok(canonical.driveOutcomes.length === 7,
-  'Opponent drive outcomes keeps seven fixed aggregate outcome rows', JSON.stringify(canonical.driveOutcomes));
+  'the dashboard keeps its seven aggregate drive outcome groups for the export', JSON.stringify(canonical.driveOutcomes));
 
 const invariants = await page.evaluate(() => {
   const Stats = window.app.stats.constructor;
@@ -593,9 +570,7 @@ const invariants = await page.evaluate(() => {
   const rates = window.app.stats.defenseDashboard(rateRows).downDistance.find(row => row.name === '1st & 7+');
   const lookRows = Array.from({ length: 10 }, (_, index) => ({
     ...base, id: `look-${index}`,
-    tags: { ...base.tags,
-      qbAlignment: 'Under Center', backfield: 'I',
-      formation: 'Twins',
+    tags: { ...base.tags, qbAlignment: 'Under Center', backfield: 'I', formation: 'Twins',
       playType: index < 7 ? 'Run Inside' : 'Run Outside' },
   }));
   const look = window.app.stats.defenseDashboard(lookRows).formationCalls[0];
@@ -628,14 +603,16 @@ ok(invariants.look.name === 'I-Form + Twins' && invariants.look.n === 10
 ok(invariants.directions.find(row => row.name === 'Toward Strength')?.n === 1
   && invariants.directions.find(row => row.name === 'Away from Strength')?.n === 1
   && invariants.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.n, 0) === 3,
-  'strength-relative attack direction excludes balanced strength and does not alter absolute direction totals',
+  'strength-relative direction excludes balanced strength and does not alter absolute direction totals',
   JSON.stringify(invariants.directions));
 
+/* The export is unchanged by Revision 2: the same four-section dashboard
+   model, built from the dashboard exactly as before. */
 const exportText = await page.evaluate(async () => {
   let saved = null;
   const prior = window.ffaSaveBlob;
   window.ffaSaveBlob = blob => { saved = blob; };
-  document.querySelector('.gi-def-export')?.click();
+  document.querySelector('.gi-def2 .gi-def-export')?.click();
   const html = saved ? await saved.text() : '';
   window.ffaSaveBlob = prior;
   return html;
@@ -643,47 +620,100 @@ const exportText = await page.evaluate(async () => {
 ok(['Defensive Performance', 'Opponent Offense', 'Scheme', 'Situational Results']
   .every(label => exportText.includes(label)) && !exportText.includes('Defensive Tendency Tells')
   && !exportText.includes('Stop Rate') && exportText.includes('Top 6 formations')
-  && exportText.includes('Run Outside') && exportText.includes('Run Inside'),
-  'Defense export uses the same four-section dashboard model as the screen');
-const fullSeasonFits = [];
-for (let index = 0; index < SECTIONS.length; index++) {
-  await page.evaluate(label => {
-    [...document.querySelectorAll('.gi-def-secnav-item')]
-      .find(button => button.textContent.includes(label))?.click();
-    document.querySelector('.gi-reports-scroll')?.scrollTo(0, 0);
-    document.querySelectorAll('.gi-toast-stack .gi-native-toast').forEach(node => node.remove());
-  }, SECTIONS[index].label);
+  && exportText.includes('Run Outside') && exportText.includes('Run Inside')
+  && /Week \d+ vs /.test(exportText),
+  'Defense export keeps its own four-section dashboard model and game labels');
+
+/* KPI VALUES FIT THEIR TILE at every width that keeps the ten-tile row, even
+   when every tile carries the widest value the strip can print. The production
+   condensed face is wider than the comp's, and `100.0%` once ran 16px past its
+   tile divider at 1280. */
+const kpiFit = [];
+for (const [width, height] of [[1920, 1080], [1600, 900], [1440, 900], [1421, 900], [1400, 900], [1366, 768], [1301, 900], [1280, 900], [1241, 900], [1239, 900], [1101, 900]]) {
+  await page.setViewport({ width, height });
   await sleep(150);
-  fullSeasonFits.push(await page.evaluate(() => ({ width: window.innerWidth,
-    section: document.querySelector('.gi-def-secnav-item.is-active')?.textContent.trim(),
-    escape: Math.max(0, Math.ceil((document.querySelector('.gi-defense-board')?.getBoundingClientRect().bottom || 0) - window.innerHeight)) })));
-  await page.screenshot({ path: `${OUT}/1440-section-${index + 1}.png` });
-  const fullHeight = await page.evaluate(() => {
-    const board = document.querySelector('.gi-defense-board');
-    return Math.max(900, Math.ceil((board?.getBoundingClientRect().bottom || 880) + 16));
-  });
-  await page.setViewport({ width: 1440, height: Math.min(fullHeight, 1600) });
-  await sleep(100);
-  await page.screenshot({ path: `${OUT}/1440-section-${index + 1}-full.png` });
-  await page.setViewport({ width: 1440, height: 900 });
+  kpiFit.push(...await page.evaluate(w => [...document.querySelectorAll('[data-def2-kpi]')].map(tile => {
+    const strong = tile.querySelector('strong');
+    const original = strong.textContent;
+    strong.textContent = '100.0%';
+    const range = document.createRange();
+    range.selectNodeContents(strong);
+    const text = range.getBoundingClientRect();
+    const style = getComputedStyle(tile);
+    const right = tile.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+    const row = new Set([...document.querySelectorAll('[data-def2-kpi]')].map(node => Math.round(node.getBoundingClientRect().top))).size;
+    strong.textContent = original;
+    return { w, kpi: tile.dataset.def2Kpi, over: Math.round((text.right - right) * 10) / 10, size: getComputedStyle(strong).fontSize, rows: row };
+  }), width));
 }
+ok(kpiFit.every(item => item.over <= 0 && item.rows === (item.w > 1240 ? 1 : 2)),
+  'the widest KPI value fits its tile at every desktop width: ten tiles on one row above 1240px, five a row below',
+  JSON.stringify(kpiFit.filter(item => item.over > 0 || item.rows !== (item.w > 1240 ? 1 : 2)).slice(0, 4)));
+await page.setViewport({ width: 1440, height: 900 });
 
-await page.setViewport({ width: 1280, height: 900 });
-for (let index = 0; index < SECTIONS.length; index++) {
-  await page.evaluate(label => {
-    [...document.querySelectorAll('.gi-def-secnav-item')]
-      .find(button => button.textContent.includes(label))?.click();
-    document.querySelector('.gi-reports-scroll')?.scrollTo(0, 0);
-  }, SECTIONS[index].label);
-  await sleep(100);
-  fullSeasonFits.push(await page.evaluate(() => ({ width: window.innerWidth,
-    section: document.querySelector('.gi-def-secnav-item.is-active')?.textContent.trim(),
-    escape: Math.max(0, Math.ceil((document.querySelector('.gi-defense-board')?.getBoundingClientRect().bottom || 0) - window.innerHeight)) })));
-  await page.screenshot({ path: `${OUT}/1280-section-${index + 1}.png` });
+/* ══ 4. Sticky bar and jump links on the route's real scroller ═══════════ */
+console.log('\n== 4. Sticky controls and jump links ==');
+await page.setViewport({ width: 1440, height: 900 });
+await openDefense(stPeter.id, 'season');
+const sticky = await page.evaluate(async () => {
+  const scroller = document.querySelector('.ws-reports');
+  const bar = document.querySelector('.gi-def2-controls');
+  const tabs = document.querySelector('.gi-reports-head');
+  const rest = { bar: Math.round(bar.getBoundingClientRect().top), head: Math.round(tabs.getBoundingClientRect().bottom) };
+  scroller.scrollTo(0, 3000);
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const pinned = Math.round(bar.getBoundingClientRect().top);
+  const top = Math.round(scroller.getBoundingClientRect().top);
+  const jumps = [];
+  for (const link of document.querySelectorAll('[data-def2-jump]')) {
+    scroller.scrollTo(0, 0);
+    link.click();
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const heading = document.getElementById(`def2-${link.dataset.def2Jump}`);
+    jumps.push({ id: link.dataset.def2Jump, headingTop: Math.round(heading.getBoundingClientRect().top),
+      barBottom: Math.round(bar.getBoundingClientRect().bottom), label: link.textContent.trim(),
+      cursor: getComputedStyle(link).cursor, underline: getComputedStyle(link).borderBottomStyle });
+  }
+  return { rest, pinned, top, jumps };
+});
+ok(sticky.rest.bar <= sticky.rest.head + 1 && sticky.pinned === sticky.top,
+  'the scope and jump bar sits directly under the report tabs and stays pinned while the report scrolls', JSON.stringify(sticky));
+ok(sticky.jumps.length === 4 && sticky.jumps.every(jump => jump.headingTop >= jump.barBottom - 1 && jump.headingTop <= jump.barBottom + 12),
+  'each jump link lands its section heading just below the pinned bar', JSON.stringify(sticky.jumps));
+ok(JSON.stringify(sticky.jumps.map(jump => jump.label.replace('↓', '').trim())) === JSON.stringify(['Performance', 'Opponent offense', 'Scheme', 'Situations'])
+  && sticky.jumps.every(jump => jump.cursor === 'pointer' && jump.underline === 'solid'),
+  'the jump links carry their literal labels and read as interactive', JSON.stringify(sticky.jumps));
+
+/* ══ 5. Populated captures of the whole surface ═══════════════════════════ */
+console.log('\n== 5. Captures ==');
+const captures = [];
+for (const scope of ['season', 'game']) {
+  for (const [width, height] of [[1920, 1080], [1440, 900], [1280, 900], [390, 844]]) {
+    await page.setViewport({ width, height });
+    await openDefense(stPeter.id, scope);
+    const seen = await measure();
+    captures.push({ scope, width, overflow: seen.pageOverflow, boardRight: seen.boardRight,
+      tableScroll: seen.modules.filter(module => module.tableWider > 1).length,
+      modules: seen.modules.length, columns: new Set(seen.modules.map(module => module.left)).size });
+    const total = await page.evaluate(() => document.querySelector('.ws-reports').scrollHeight);
+    const step = height - 120;
+    let frame = 0;
+    for (let top = 0; top < total; top += step) {
+      await page.evaluate(t => document.querySelector('.ws-reports').scrollTo(0, t), top);
+      await sleep(80);
+      await page.screenshot({ path: `${OUT}/${scope}-${width}-${String(++frame).padStart(2, '0')}.png` });
+    }
+  }
 }
-ok(fullSeasonFits.every(item => item.escape === 0), 'the complete full-season Defense board fits the release viewport',
-  JSON.stringify(fullSeasonFits.filter(item => item.escape)));
+ok(captures.every(item => item.overflow <= 0 && item.boardRight <= item.width),
+  'no capture width produces page-level horizontal overflow', JSON.stringify(captures.filter(item => item.overflow > 0 || item.boardRight > item.width)));
+const phone = captures.filter(item => item.width === 390);
+ok(phone.every(item => item.columns === 1 && item.tableScroll > 0),
+  'at 390px every module stacks to one column and wide tables scroll inside their own module', JSON.stringify(phone));
+const wide = captures.filter(item => item.width === 1920);
+ok(wide.every(item => item.columns === 2), 'at 1920px the two-column band and its pairs hold', JSON.stringify(wide));
 
+ok(errors.length === 0, 'the real Defense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 const after = createHash('sha256').update(readFileSync(SOURCE)).digest('hex');
 ok(after === before, 'the canonical season file remains byte-identical');
 await browser.close();

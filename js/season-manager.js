@@ -283,7 +283,11 @@ export class SeasonManager {
           wins:spec.format(winSummary[spec.key]), losses:spec.format(lossSummary[spec.key]),
           winsValue:winSummary[spec.key], lossesValue:lossSummary[spec.key] })) }:null,
       defenseReport:this.statsEngine.defensivePerformance(allPlays,gameLabels),
-      defenseDashboard:this.statsEngine.defenseDashboard(allPlays,gameLabels),
+      // Season > Defense renders the Revision 2 board at full-season scope. Its
+      // game rows and possessions name the OPPONENT, not the game label.
+      defenseBoard:this.statsEngine.defenseBoard(allPlays,{ scope:'season', seasonPlays:allPlays,
+        roster:this._mergeRoster(), labels:Object.fromEntries(games.map(game =>
+          [String(game.id), String(game.gameInfo?.opponent || '').trim() || gameLabels[String(game.id)]])) }),
       defScout:this.statsEngine.generateDefensiveSelfScout(allPlays),
       specialSummary:this.statsEngine._specialTeamsSummary(allPlays,stats), selfScout:this.statsEngine.generateSelfScout(allPlays),
       situational, situationalTiles, turnoverScoring, offensiveIdentity,

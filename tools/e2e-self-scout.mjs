@@ -121,23 +121,22 @@ r = await page.evaluate(async () => {
   const selfScoutHasDef = [...document.querySelectorAll('#statsDashboard [data-pane="selfscout"] .gi-ss-module > header strong')]
     .some(node => node.textContent.trim() === 'Run Defense');
   window.app.reportsScreen.selectTab('defense');
-  const sectionTabs = [...document.querySelectorAll('#statsDashboard [data-pane="defense"] .gi-def-secnav-item')];
-  sectionTabs.find(b => b.textContent.includes('Scheme'))?.click();
-  // A tab click is Preact state and flushes on a deferred frame; reading in
-  // the same tick reads the previous section.
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const def = document.querySelector('#statsDashboard [data-pane="defense"]');
+  // Revision 2: four ordered sections on one page, not a tab strip.
+  const headings = [...(def?.querySelectorAll('[data-def2-section] h2') || [])];
+  const scheme = [...(def?.querySelectorAll('[data-def2-module]') || [])].map(node => node.dataset.def2Module);
   return {
     selfScoutHasDef,
-    defenseSections: sectionTabs.map(button => button.textContent.replace(/^\d+/, '').trim()),
-    defenseHasScheme: /Top Calls/.test(def?.textContent || '') && /Worst Calls/.test(def?.textContent || '')
-      && /Blitz vs No Blitz/.test(def?.textContent || '')
+    defenseSections: headings.map(node => node.textContent.trim()),
+    defenseHasScheme: (scheme.includes('Call Performance') || (scheme.includes('Top Calls') && scheme.includes('Worst Calls')))
+      && scheme.includes('Blitz Performance') && scheme.includes('Pressure by situation')
   };
 });
 ok(r.selfScoutHasDef, 'Self-Scout tab shows defensive section with offense present', JSON.stringify(r));
-ok(JSON.stringify(r.defenseSections) === JSON.stringify(['Defensive performance', 'Opponent Offense', 'Scheme', 'Situational results']),
-  'Defense keeps the approved four-section dashboard without a duplicate Self-Scout section', JSON.stringify(r));
-ok(r.defenseHasScheme, 'Defense Scheme shows the approved calls and pressure modules', JSON.stringify(r));
+ok(JSON.stringify(r.defenseSections) === JSON.stringify(['Defensive performance', 'Opponent offense', 'Scheme and passing defense', 'Situational results']),
+  'Defense keeps its four ordered sections without a duplicate Self-Scout section', JSON.stringify(r));
+ok(r.defenseHasScheme, 'Defense Scheme shows the call, blitz and pressure modules', JSON.stringify(r));
 
 console.log('\n== 4. generateDefensiveSelfScout computed ONCE per render (dedup) ==');
 r = await page.evaluate(async () => {

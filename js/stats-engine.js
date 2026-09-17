@@ -1837,6 +1837,328 @@ export class StatsEngine {
     };
   }
 
+  /**
+   * REPORTS > DEFENSE, REVISION 2. The one owner of every value the Revision 2
+   * board prints. It is built on `defenseDashboard()` and never changes a value
+   * that method returns: the export and every existing Defense contract still
+   * read the dashboard directly.
+   *
+   * `plays` is the scoped cohort (the current game, or the full season).
+   * `seasonPlays` is the full season cohort, which the Current game scope
+   * compares against; at Full season scope the comparison is the last three
+   * games. `labels` maps a game id to its OPPONENT name, and `roster` maps a
+   * jersey number to a player name.
+   *
+   * Every rate is returned unrounded as a 0-100 number, or null when its
+   * denominator is empty. Presentation formats; it never derives.
+   *
+   * TOUCHDOWNS HAVE TWO SIDES. `Touchdowns Allowed` counts a defensive-snap
+   * touchdown whose scoring side is `them`; `Defensive Touchdowns` counts one
+   * whose scoring side is `us`. Neither is inferred from the other, from a
+   * takeaway, or from the snap's unit alone. The dashboard's own `touchdowns`
+   * field counts every side that is not `us`, so this board does not read it.
+   */
+  defenseBoard(plays, { labels = {}, seasonPlays = null, roster = {}, scope = 'season' } = {}) {
+    const S = StatsEngine;
+    const all = plays || [];
+    const seasonAll = seasonPlays || all;
+    const isDefense = p => p?.tags?.unit === 'defense' && S._tryPenaltyResolved(p);
+    const d = this.defenseDashboard(all, labels);
+    const ps = all.filter(isDefense);
+    const yard = p => parseInt(p?.tags?.yardage, 10) || 0;
+    const rate = (n, den) => den ? n / den * 100 : null;
+    const classified = rows => [...new Set([...rows.filter(S.isRun), ...rows.filter(S.isPass)])];
+    // The dashboard's own yards-per-play rule: classified yardage over the
+    // classified cohort, one decimal, null with nothing classified.
+    const ypp = rows => {
+      const measured = classified((rows || []).filter(isDefense));
+      return measured.length ? +(measured.reduce((sum, p) => sum + yard(p), 0) / measured.length).toFixed(1) : null;
+    };
+    const touchdownsFor = side => rows => rows.filter(p => S.hasResult(p, 'Touchdown') && S.scoringSide(p) === side).length;
+    const touchdownsAllowed = touchdownsFor('them');
+    const defensiveTouchdowns = touchdownsFor('us');
+    const summarize = rows => {
+      const measured = rows.filter(p => S.isRun(p) || S.isPass(p));
+      const runs = rows.filter(S.isRun);
+      const passes = rows.filter(S.isPass);
+      return {
+        n: rows.length, measured: measured.length, runs: runs.length, passes: passes.length,
+        ypp: ypp(measured), rushYpp: ypp(runs), passYpp: ypp(passes),
+        success: rate(measured.filter(p => this._isSuccessfulPlay(p)).length, measured.length),
+        explosives: measured.filter(S.isExplosive).length,
+        touchdownsAllowed: touchdownsAllowed(rows), refs: S._refsOf(rows),
+      };
+    };
+    const grouped = (rows, keyFn) => {
+      const map = new Map();
+      rows.forEach(play => {
+        const keys = keyFn(play);
+        for (const key of Array.isArray(keys) ? keys : [keys]) {
+          if (!key) continue;
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(play);
+        }
+      });
+      return [...map].map(([name, cohort]) => ({ name, plays: cohort, ...summarize(cohort) }))
+        .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+    };
+    const disruption = rows => {
+      const sacks = rows.filter(p => S.hasResult(p, 'Sack'));
+      const tfl = rows.filter(S.isTackleForLoss);
+      const interceptions = rows.filter(p => S.hasResult(p, 'Interception'));
+      const recoveries = rows.filter(S.isFumbleRecovered);
+      // A play carrying two events is ONE disruptive play.
+      return { sacks, tfl, interceptions, recoveries,
+        distinct: [...new Set([...sacks, ...tfl, ...interceptions, ...recoveries])] };
+    };
+    /* PASSING. An attempt needs a charted pass result; a sack is never an
+       attempt and never enters yards per attempt. */
+    const passing = rows => {
+      const dropbacks = rows.filter(S.isPass);
+      const has = (p, value) => S.hasResult(p, value);
+      const attempts = dropbacks.filter(p => !has(p, 'Sack') && (has(p, 'Gain') || has(p, 'Touchdown')
+        || has(p, 'No Gain') || has(p, 'Incomplete') || has(p, 'Interception')));
+      const completions = attempts.filter(p => !has(p, 'Interception') && !has(p, 'Incomplete')
+        && (has(p, 'Gain') || has(p, 'Touchdown') || has(p, 'No Gain')));
+      const passYards = attempts.filter(p => !has(p, 'Incomplete') && !has(p, 'Interception'))
+        .reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
+      return { dropbacks: dropbacks.length, attempts: attempts.length, completions: completions.length,
+        completionRate: rate(completions.length, attempts.length),
+        yardsPerAttempt: attempts.length ? passYards / attempts.length : null,
+        sacks: dropbacks.filter(p => has(p, 'Sack')).length,
+        interceptions: attempts.filter(p => has(p, 'Interception')).length, refs: S._refsOf(dropbacks) };
+    };
+    const stop = allowed => allowed == null ? null : +(100 - allowed).toFixed(1);
+
+    /* COMPARISON COHORT. Full season compares with the last three games; the
+       current game compares with the whole season. */
+    const seasonDefense = seasonAll.filter(isDefense);
+    let compare;
+    if (scope === 'season') {
+      const recentIds = new Set(this.defenseDashboard(seasonAll, labels).byGame.slice(-3).map(row => row.gameId));
+      compare = seasonDefense.filter(p => recentIds.has(String(p.__gid ?? 'current')));
+    } else compare = seasonDefense;
+    const cd = this.defenseDashboard(compare);
+    const dis = disruption(ps);
+    const cdis = disruption(compare);
+    const passOverview = passing(ps);
+
+    const kpis = {
+      yards: d.summary.yards, runYards: d.summary.runYards, passYards: d.summary.passYards,
+      ypp: d.summary.ypp, takeaways: d.summary.turnovers, explosives: d.summary.explosives,
+      touchdownsAllowed: touchdownsAllowed(ps), defensiveTouchdowns: defensiveTouchdowns(ps),
+      thirdDownStop: stop(d.thirdDownAllowed.rate), fourthDownStop: stop(d.fourthDownAllowed.rate),
+    };
+
+    const byGame = d.byGame.map(row => ({ name: row.name, yards: row.yards, runYards: row.runYards,
+      passYards: row.passYards, ypp: row.ypp, explosives: row.explosives, takeaways: row.turnovers,
+      touchdownsAllowed: touchdownsAllowed(row.plays), refs: row.refs }));
+
+    const passSnaps = ps.filter(S.isPass), runSnaps = ps.filter(S.isRun);
+    const disruptionRows = [
+      ['Sacks', dis.sacks, passSnaps.length],
+      ['Run TFL', dis.tfl, runSnaps.length],
+      ['Interceptions', dis.interceptions, passSnaps.length],
+      ['Fumbles recovered', dis.recoveries, ps.length],
+      ['Distinct disruptive plays', dis.distinct, ps.length],
+    ].map(([name, events, eligible]) => ({ name, plays: events.length, rate: rate(events.length, eligible),
+      eligible, refs: S._refsOf(events) }));
+
+    const comparison = [
+      { name: 'Yards / play', kind: 'number', current: d.summary.ypp, comparison: cd.summary.ypp },
+      { name: 'Explosive rate', kind: 'percent', current: rate(d.summary.explosives, d.summary.measured),
+        comparison: rate(cd.summary.explosives, cd.summary.measured) },
+      { name: 'Disruption rate', kind: 'percent', current: rate(dis.distinct.length, ps.length),
+        comparison: rate(cdis.distinct.length, compare.length) },
+      { name: '3rd Down Stop %', kind: 'percent', current: stop(d.thirdDownAllowed.rate), comparison: stop(cd.thirdDownAllowed.rate) },
+      { name: '4th Down Stop %', kind: 'percent', current: stop(d.fourthDownAllowed.rate), comparison: stop(cd.fourthDownAllowed.rate) },
+      { name: 'Pass completion rate', kind: 'percent', current: passOverview.completionRate, comparison: passing(compare).completionRate },
+    ];
+
+    const downs = d.downs.map(row => ({ name: row.name, yards: row.yards, ypp: row.ypp, explosives: row.explosives, refs: row.refs }));
+    const quarters = d.quarters.map(row => ({ name: row.name, yards: row.yards, ypp: row.ypp, vsAverage: row.vsAverage,
+      touchdownsAllowed: row.n ? touchdownsAllowed(row.plays) : null, refs: row.refs }));
+
+    /* DRIVE OUTCOMES ARE DATA-DRIVEN. Every outcome the reconstruction produced
+       gets its own row in football order; an outcome it could not settle stays
+       `Other / unresolved`, and an outcome with no drives is not rendered. */
+    const DRIVE_OUTCOMES = [['TD', 'Touchdown'], ['FG', 'Field Goal'], ['Missed FG', 'Missed Field Goal'],
+      ['Punt', 'Punt'], ['Turnover', 'Turnover'], ['Downs', 'Downs'], ['Safety', 'Safety'],
+      ['Kneel', 'Kneel'], ['Other', 'Other / unresolved']];
+    const outcomeName = outcome => DRIVE_OUTCOMES.find(([key]) => key === outcome)?.[1] || outcome;
+    const driveStats = this._driveStats(ps, { all });
+    const outcomeKeys = [...DRIVE_OUTCOMES.map(([key]) => key),
+      ...[...new Set(driveStats.list.map(drive => drive.outcome))].filter(key => !DRIVE_OUTCOMES.some(([k]) => k === key))];
+    const driveOutcomes = outcomeKeys.map(key => {
+      const drives = driveStats.list.filter(drive => drive.outcome === key);
+      return { name: outcomeName(key), n: drives.length,
+        share: driveStats.total ? Math.round(drives.length / driveStats.total * 100) : null,
+        avgPlays: drives.length ? +(drives.reduce((sum, drive) => sum + drive.plays, 0) / drives.length).toFixed(1) : null,
+        avgYards: drives.length ? +(drives.reduce((sum, drive) => sum + drive.yards, 0) / drives.length).toFixed(1) : null,
+        refs: [...new Set(drives.flatMap(drive => drive.refs || []))].sort() };
+    }).filter(row => row.n);
+
+    /* EVERY RECONSTRUCTED POSSESSION, per game so no drive spans two games.
+       `yards` is the drive's tagged yardage, penalties included, which is not
+       the classified production total; `lastSnap` is where the last charted
+       snap began, not the final ball spot; points exclude tries. */
+    const spot = value => value == null ? null : value <= 50 ? `Own ${value}` : `Opp ${100 - value}`;
+    const gameOrder = [...new Map(all.map(p => [String(p.__gid ?? 'current'), p.__seasonGameIdx ?? 0])).entries()]
+      .sort((a, b) => a[1] - b[1]);
+    const possessions = gameOrder.flatMap(([gid]) => {
+      const gameAll = all.filter(p => String(p.__gid ?? 'current') === gid);
+      const gameDefense = gameAll.filter(isDefense);
+      return this._driveStats(gameDefense, { all: gameAll }).list.map(drive => {
+        const cohort = gameDefense.filter(p => drive.playIds.includes(p.id));
+        const last = cohort.at(-1);
+        return { opponent: labels[gid] || gid, name: `Drive ${drive.number}`, start: spot(drive.startYL),
+          lastSnap: spot(last ? this._absYardLine(last.tags) : null), plays: drive.plays, yards: drive.yards,
+          outcome: drive.outcome === 'Other' ? 'Unresolved' : outcomeName(drive.outcome),
+          points: drive.points, refs: drive.refs || [] };
+      });
+    });
+
+    const players = this._individualStats(ps).tacklers.map(row => ({
+      name: `#${row.num} ${roster[String(row.num)] || ''}`.trim(), num: row.num,
+      tackles: row.tackles, solo: row.solo, assists: row.assists, sacks: row.sacks, tfl: row.tfl,
+      interceptions: row.ints, fumblesRecovered: row.fumblesRec,
+      grade: row.gradeCount ? row.gradeSum / row.gradeCount : null, refs: row.refs }));
+
+    const playTypes = d.playTypes.filter(row => row.n).map(row => ({ name: row.name, n: row.n, yards: row.yards,
+      ypp: row.ypp, explosives: row.explosives, touchdownsAllowed: touchdownsAllowed(row.plays), refs: row.refs }));
+
+    const absolute = d.directions.filter(row => !row.isRelative && row.n);
+    const absoluteTotal = absolute.reduce((sum, row) => sum + row.n, 0);
+    const directions = absolute.map(row => ({ name: row.name, n: row.n, share: rate(row.n, absoluteTotal),
+      runs: row.runs, passes: row.passes, yards: row.yards, ypp: row.ypp,
+      success: summarize(row.plays).success, explosives: row.explosives, refs: row.refs }));
+
+    const formationTotal = d.formationCalls.reduce((sum, row) => sum + row.n, 0);
+    const formations = d.formationCalls.slice(0, 10).map(row => {
+      const measured = summarize(row.plays);
+      return { name: row.name, n: row.n, share: rate(row.n, formationTotal), runs: row.runs, passes: row.passes,
+        rushYpp: measured.rushYpp, passYpp: measured.passYpp, success: measured.success,
+        explosives: row.explosives, refs: row.refs };
+    });
+    const tendency = row => ({ name: row.name, n: row.n, runs: row.runs, passes: row.passes,
+      ypp: row.ypp, explosives: row.explosives, refs: row.refs });
+
+    /* STRENGTH. A relationship needs a charted direction AND a charted
+       strength; missing either is excluded, never inferred. */
+    const sided = ps.filter(p => ['Left', 'Right'].includes(p.tags.playDir) && ['Left', 'Right'].includes(S.proj(p).strength));
+    const balanced = ps.filter(p => S.proj(p).strength === 'Balanced' && String(p.tags.playDir || '').trim());
+    const strengthEligible = [...sided, ...balanced];
+    const eligibleRuns = strengthEligible.filter(S.isRun).length;
+    const eligiblePasses = strengthEligible.filter(S.isPass).length;
+    const strength = [
+      ['Toward strength', sided.filter(p => p.tags.playDir === S.proj(p).strength)],
+      ['Away from strength', sided.filter(p => p.tags.playDir !== S.proj(p).strength)],
+      ['Balanced strength', balanced],
+    ].map(([name, cohort]) => {
+      const row = summarize(cohort);
+      return { name, n: row.n, share: rate(row.n, strengthEligible.length), runs: row.runs,
+        runRate: rate(row.runs, eligibleRuns), rushYpp: row.rushYpp, passes: row.passes,
+        passRate: rate(row.passes, eligiblePasses), passYpp: row.passYpp, success: row.success,
+        explosives: row.explosives, refs: row.refs };
+    });
+
+    const answers = [];
+    for (const look of d.formationCalls) {
+      const charted = look.plays.filter(p => S._defenseCallKey(p)).length;
+      for (const call of grouped(look.plays, p => S._defenseCallKey(p))) {
+        answers.push({ look: look.name, call: call.name, n: call.n, share: rate(call.n, charted),
+          rushYpp: call.rushYpp, passYpp: call.passYpp, explosives: call.explosives, success: call.success, refs: call.refs });
+      }
+    }
+    answers.sort((a, b) => b.n - a.n);
+
+    const callKeys = rows => rows.map(row => row.name).sort().join('|');
+    const callRow = row => ({ name: row.name, n: row.n, yards: row.yards, ypp: row.ypp,
+      vsAverage: row.vsAverage, explosives: row.explosives, refs: row.refs });
+    const calls = { combined: callKeys(d.topCalls) === callKeys(d.worstCalls),
+      top: d.topCalls.map(callRow), worst: d.worstCalls.map(callRow) };
+
+    const blitzed = p => !!String(p.tags.blitz || '').trim();
+    const blitzCohorts = [
+      ['Blitz vs Run', ps.filter(p => blitzed(p) && S.isRun(p))],
+      ['No Blitz vs Run', ps.filter(p => S.isNoBlitz(p) && S.isRun(p))],
+      ['Blitz vs Pass', ps.filter(p => blitzed(p) && S.isPass(p))],
+      ['No Blitz vs Pass', ps.filter(p => S.isNoBlitz(p) && S.isPass(p))],
+    ];
+    const blitzTotal = blitzCohorts.reduce((sum, [, rows]) => sum + rows.length, 0);
+    const blitz = blitzCohorts.map(([name, rows]) => {
+      const row = summarize(rows), pass = passing(rows);
+      return { name, n: row.n, share: rate(row.n, blitzTotal), ypp: row.ypp, success: row.success,
+        explosives: row.explosives, completions: name.endsWith('Pass') && pass.attempts ? pass.completions : null,
+        attempts: name.endsWith('Pass') && pass.attempts ? pass.attempts : null,
+        sacks: pass.sacks, interceptions: pass.interceptions, refs: row.refs };
+    });
+
+    const pressure = d.pressureSituations.filter(row => row.n).map(row => ({ name: row.name, n: row.n,
+      blitzPct: row.blitzPct, blitzYpp: row.blitzYpp, baseYpp: row.baseYpp, refs: row.refs }));
+
+    const structure = row => ({ name: row.name, n: row.n, rushYpp: row.rushYpp, passYpp: row.passYpp,
+      success: row.success, explosives: row.explosives, refs: row.refs });
+    const fronts = grouped(ps, p => S.splitFormations(S.proj(p).defFront)).map(structure);
+    const coverages = grouped(ps, p => S.proj(p).coverage).map(structure);
+    const blitzTypeRows = grouped(ps, p => S.splitFormations(p.tags.blitz));
+    const blitzTypes = ['A-Gap', 'B-Gap', 'C-Gap', 'D-Gap'].map(name => {
+      const row = blitzTypeRows.find(item => item.name === name);
+      return row ? structure(row) : { name, n: null, rushYpp: null, passYpp: null, success: null, explosives: null, refs: [] };
+    });
+    const passingByCoverage = grouped(ps, p => S.proj(p).coverage).map(row => ({ name: row.name, ...passing(row.plays) }));
+
+    const scopedCalls = grouped(ps, p => S._defenseCallKey(p));
+    const comparisonCalls = grouped(compare, p => S._defenseCallKey(p));
+    const scopedCallTotal = scopedCalls.reduce((sum, row) => sum + row.n, 0);
+    const comparisonCallTotal = comparisonCalls.reduce((sum, row) => sum + row.n, 0);
+    const callTrends = scopedCalls.map(row => {
+      const other = comparisonCalls.find(item => item.name === row.name);
+      return { name: row.name, share: rate(row.n, scopedCallTotal), comparisonShare: rate(other?.n || 0, comparisonCallTotal),
+        ypp: row.ypp, comparisonYpp: other?.ypp ?? null, refs: row.refs };
+    });
+
+    const ddKeys = ['1', '2', '3', '4'].flatMap(down => ['Short', 'Medium', 'Long'].map(bucket => `${down}|${bucket}`));
+    const downDistance = d.downDistance.map((row, index) => ({ row, key: ddKeys[index] })).filter(({ row }) => row.n)
+      .map(({ row, key }) => {
+        const cohort = ps.filter(p => this._ddKey(p.tags) === key);
+        const firstDowns = cohort.filter(S.isConversion).length;
+        return { name: row.name, n: row.n, runs: row.runs, passes: row.passes, yards: row.yards, ypp: row.ypp,
+          firstDowns, allowedPct: rate(firstDowns, cohort.length), topCall: row.topCall, blitzPct: row.blitzPct, refs: row.refs };
+      });
+
+    /* HIGH-LEVERAGE FIELD POSITION. Red-zone possessions depend on
+       reconstructed drives and charted field position. */
+    const inside20 = p => { const yl = this._absYardLine(p.tags); return yl != null && yl >= 80; };
+    const redZoneDrives = this._reconstructDrives(ps).filter(drive => drive.some(inside20));
+    const redZoneTouchdowns = redZoneDrives.filter(drive => touchdownsAllowed(drive) > 0).length;
+    const inside = ps.filter(inside20);
+    const goalLine = ps.filter(p => this._fieldZone(p.tags) === 'Goal line');
+    const backedUp = ps.filter(p => this._fieldZone(p.tags) === 'Backed up');
+    const highLeverage = [
+      { name: 'Red-zone possessions', sample: redZoneDrives.length, ypp: null, touchdownsAllowed: redZoneTouchdowns,
+        refs: S._refsOf(redZoneDrives.flat()) },
+      { name: 'Red-zone Touchdown Rate', sample: null, sampleRate: rate(redZoneTouchdowns, redZoneDrives.length),
+        ypp: null, touchdownsAllowed: null, refs: [] },
+      { name: 'Inside our 20 / snaps', sample: inside.length, ypp: ypp(inside), touchdownsAllowed: touchdownsAllowed(inside), refs: S._refsOf(inside) },
+      { name: 'Goal line / snaps', sample: goalLine.length, ypp: ypp(goalLine), touchdownsAllowed: touchdownsAllowed(goalLine), refs: S._refsOf(goalLine) },
+      { name: 'Opponent backed up / snaps', sample: backedUp.length, ypp: ypp(backedUp), touchdownsAllowed: touchdownsAllowed(backedUp), refs: S._refsOf(backedUp) },
+    ];
+
+    const zones = d.zones.filter(row => row.n).map(row => ({ name: row.name, n: row.n, yards: row.yards, ypp: row.ypp, explosives: row.explosives, refs: row.refs }));
+    const hashes = d.hashes.filter(row => row.n).map(row => ({ name: row.name, n: row.n, yards: row.yards, ypp: row.ypp, refs: row.refs }));
+
+    return {
+      // The dashboard rides along unchanged because the Defense export reads it.
+      dashboard: d,
+      scope, total: d.total, measured: d.measured, kpis, byGame, disruption: disruptionRows, comparison,
+      downs, quarters, driveOutcomes, players, possessions, playTypes, directions, formations,
+      personnel: d.personnel.map(tendency), backfields: d.backfields.map(tendency), strength, answers,
+      passingSummary: passOverview, calls, blitz, pressure, fronts, coverages, blitzTypes, passingByCoverage,
+      callTrends, downDistance, highLeverage, zones, hashes, motions: d.motions.map(tendency),
+    };
+  }
+
   _countThreeAndOuts(plays) {
     // A three-and-out = the defense forced the offense to give the ball back in
     // three plays without a first down. We must NOT rely on the driveNumber

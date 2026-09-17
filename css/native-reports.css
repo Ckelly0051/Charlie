@@ -755,32 +755,7 @@
 .gi-reports .ss-def-predictability{margin:var(--gi-3x) 0;padding:var(--gi-2x) var(--gi-3x);background:var(--gi-2);color:var(--gi-11)}
 @media(max-width:900px){.gi-reports .ss-performance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:520px){.gi-reports .ss-performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-
-/* Defense report: performance first, dense enough to compare a season without
-   turning each metric into its own page-height card. */
-.gi-def-toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-3x);margin-bottom:var(--gi-3x)}
-.gi-def-scope{display:inline-flex;border:1px solid var(--gi-7)}
-.gi-def-scope button{min-height:36px;padding:0 var(--gi-4x);border:0;border-right:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-11);font:700 13px/1 var(--gi-sans)}
-.gi-def-scope button:last-child{border-right:0}.gi-def-scope button.active{background:var(--gi-los);color:var(--gi-on-solid)}
-.gi-def-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;padding:1px;background:var(--gi-6)}
-.gi-def-kpi{display:grid;align-content:center;min-height:88px;padding:var(--gi-3x) var(--gi-4x);background:var(--gi-2);text-align:center}
-.gi-def-kpi span{color:var(--gi-11);font:var(--gi-text-label);text-transform:uppercase}.gi-def-kpi strong{margin-top:3px;color:var(--gi-12);font:700 27px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.gi-def-kpi small{margin-top:3px;color:var(--gi-11);font:var(--gi-text-caption)}
-.gi-def-table-wrap,.gi-table-wrap{min-width:0;overflow-x:auto}.gi-def-type td:not(:first-child),.gi-def-type th:not(:first-child){text-align:right}
-.gi-defense-report th{position:static}
-.gi-def-type-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin-bottom:var(--gi-3x);padding:1px;background:var(--gi-6)}
-.gi-def-type-summary{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:var(--gi-1x) var(--gi-3x);min-height:66px;padding:var(--gi-3x) var(--gi-4x);border:0;border-radius:0;background:var(--gi-2);color:var(--gi-12);text-align:left}
-.gi-def-type-summary:hover,.gi-def-type-summary:focus-visible{background:var(--gi-3);outline:2px solid var(--gi-los);outline-offset:-2px}.gi-def-type-summary span{color:var(--gi-11);font:var(--gi-text-label);text-transform:uppercase}.gi-def-type-summary strong{justify-self:end;font:700 20px/1 var(--gi-cond)}.gi-def-type-summary small{grid-column:1/-1;color:var(--gi-11);font:var(--gi-text-caption)}
-.gi-def-type .gi-sort-th{cursor:pointer}.gi-def-type .gi-sort-th:hover{color:var(--gi-12)}
-.gi-def-answers td:first-child small{display:block;margin-top:2px;color:var(--gi-11)}
-.gi-def-answer{display:grid;width:100%;min-height:46px;padding:var(--gi-2x);border:1px solid var(--gi-7);border-radius:0;background:var(--gi-2);color:var(--gi-12);text-align:left}
-.gi-def-answer:hover,.gi-def-answer:focus-visible{border-color:var(--gi-los);background:var(--gi-3);outline:none}.gi-def-answer span{margin-top:3px;color:var(--gi-11);font:var(--gi-text-caption)}
-.gi-def-no-sample{color:var(--gi-8);font:var(--gi-text-caption)}
-.gi-def-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gi-4x)}
-.gi-defense-report .stats-section .stats-section{margin:0;padding:0;border:0;background:transparent}
-@media(max-width:900px){.gi-def-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gi-def-split{grid-template-columns:1fr}}
-@media(max-width:560px){.gi-def-toolbar{align-items:stretch;flex-direction:column}.gi-def-scope{display:grid;grid-template-columns:1fr 1fr}.gi-def-kpi{min-height:76px}.gi-def-kpi strong{font-size:24px}.gi-def-type-totals{grid-template-columns:1fr}}
+.gi-table-wrap{min-width:0;overflow-x:auto}
 
 /* ══════════════════════════════════════════════════════════════════════════
    BROADCAST DENSITY — PART 2, REVISION 2 (2026-08-17). The first pass painted
@@ -806,7 +781,6 @@
 .gi-reports-segment button.is-active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-reports-tab.active{border-bottom-color:var(--gi-bd-gold)}
 .gi-reports .gi-subtab.active{border-bottom-color:var(--gi-bd-gold)}
-.gi-reports .gi-def-scope button.active{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 
 /* Lower-third plates: BONE by default. This is the entire fix for the
    "yellow overpaint" finding -- every ordinary section header (Formation
@@ -841,8 +815,9 @@
   background:var(--gi-bd-lower-third-fill-cyan);
 }
 .gi-reports [data-native-main-report][data-pane="offense"]{border-left:3px solid var(--gi-bd-gold)}
-.gi-reports [data-native-main-report][data-pane="defense"]{border-left:3px solid var(--gi-bd-cyan)}
-.gi-reports .gi-def-kpis,.gi-reports .gi-def-type-totals{background:var(--gi-bd-cyan)}
+/* Defense Revision 2 draws its own frame: a vertically scrolling report on the
+   page ground. The shared pane's grid gaps and accent rule are not part of it. */
+.gi-reports [data-native-main-report][data-pane="defense"]{background:transparent;border:0}
 
 /* Run/pass identity, scoped to Reports only (the app-wide --gi-run/--gi-pass
    tokens stay whatever Break Down and every other route already use --
@@ -2712,23 +2687,6 @@
   box-shadow:-1px 0 var(--gi-bd-line)
 }
 
-/* ── REPORTS > DEFENSE (2026-09-04) ────────────────────────────────────────
-   The approved Defense composition. It reuses the Overview/Offense board
-   language — same panel, same rule colour, same label token, same box-shadow
-   band rules — rather than forking a second visual system. Defense's own
-   variables are its cyan accent and a two-column band, because its tables pair
-   naturally and it has no six-KPI band to align to.
-   ─────────────────────────────────────────────────────────────────────── */
-.gi-reports .gi-defense-board{ padding:0 }
-.gi-reports .gi-defense-board .gi-def-toolbar{
-  display:flex;align-items:center;gap:var(--gi-3x);margin:0 0 4px;
-  padding:7px var(--gi-3x);background:var(--gi-bd-panel);border:0
-}
-.gi-reports .gi-def-toolbar-label{
-  color:var(--gi-bd-muted);font:700 9.5px/1 var(--gi-cond);letter-spacing:.16em;text-transform:uppercase
-}
-.gi-reports .gi-defense-board .gi-def-export{ margin-left:auto }
-
 /* Section tabs. Same geometry and states as the Offense zone nav so the two
    reports read as one product; the accent is Defense's cyan. */
 .gi-reports .gi-def-secnav{
@@ -2767,74 +2725,6 @@
 .gi-reports .gi-def-secrule>span[data-def-sample]{
   margin-left:auto;color:var(--gi-bd-copy);font:400 12.5px/1.2 var(--gi-sans);
   font-variant-numeric:var(--gi-num-feat);white-space:nowrap
-}
-
-/* Bands: content height, rules painted into the gap — the technique the
-   Offense board settled on, for the same reason. */
-.gi-reports .gi-def-band{
-  display:grid;gap:1px;margin:0 0 4px;align-items:start;background:transparent
-}
-.gi-reports .gi-def-band>.gi-overview-module+.gi-overview-module{ box-shadow:-1px 0 var(--gi-bd-line) }
-.gi-reports .gi-def-band-1{ grid-template-columns:minmax(0,1fr) }
-.gi-reports .gi-def-band-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
-
-/* KPI band: eight across in one row. */
-.gi-reports .gi-defense-board .gi-def-kpis{
-  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:1px;margin:0 0 4px;
-  background:var(--gi-bd-line);border:0
-}
-.gi-reports .gi-defense-board .gi-def-kpi{
-  padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel);border:0;text-align:left
-}
-.gi-reports .gi-defense-board .gi-def-kpi span{
-  display:block;color:var(--gi-bd-copy);font:700 9.5px/1 var(--gi-cond);
-  letter-spacing:.15em;text-transform:uppercase
-}
-.gi-reports .gi-defense-board .gi-def-kpi strong{
-  display:block;margin-top:5px;color:var(--gi-bd-strong);font:700 30px/1.15 var(--gi-cond);
-  font-variant-numeric:var(--gi-num-feat)
-}
-.gi-reports .gi-defense-board .gi-def-kpi small{
-  display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)
-}
-.gi-reports .gi-defense-board .gi-def-kpi.is-lead strong{ color:var(--gi-bd-cyan) }
-
-/* Column labels take the body-family label token at the readable ink, matching
-   the treatment now shipping on Overview and Offense. */
-.gi-reports .gi-defense-board .gi-overview-module th{
-  font:var(--gi-text-label);letter-spacing:0;color:var(--gi-bd-copy)
-}
-.gi-reports .gi-defense-board .gi-overview-module>header span{ color:var(--gi-bd-copy) }
-.gi-reports .gi-defense-board th:first-child,
-.gi-reports .gi-defense-board td:first-child{ padding-left:var(--gi-4x) }
-.gi-reports .gi-defense-board th:last-child,
-.gi-reports .gi-defense-board td:last-child{ padding-right:var(--gi-4x) }
-.gi-reports .gi-defense-board .gi-def-table-wrap th{ top:0 }
-.gi-reports .gi-def-total-row td{ background:var(--gi-bd-control);font-weight:600 }
-.gi-reports .gi-def-note{
-  margin:6px var(--gi-3x) 0;color:var(--gi-bd-copy);font:400 11px/1.4 var(--gi-sans)
-}
-.gi-reports .gi-def-subtable h4{
-  margin:var(--gi-3x) 0 4px;color:var(--gi-bd-copy);
-  font:700 9.5px/1 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase
-}
-.gi-reports .gi-def-subtable:first-child h4{ margin-top:0 }
-
-/* Disruption tiles: the havoc arc's replacement. */
-.gi-reports .gi-def-tiles{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--gi-bd-line)
-}
-.gi-reports .gi-def-tile{ padding:var(--gi-2x) var(--gi-3x) 10px;background:var(--gi-bd-panel) }
-.gi-reports .gi-def-tile span{
-  display:block;color:var(--gi-bd-copy);font:700 9.5px/1 var(--gi-cond);
-  letter-spacing:.15em;text-transform:uppercase
-}
-.gi-reports .gi-def-tile strong{
-  display:block;margin-top:4px;color:var(--gi-bd-strong);font:700 22px/1.15 var(--gi-cond);
-  font-variant-numeric:var(--gi-num-feat)
-}
-.gi-reports .gi-def-tile small{
-  display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans)
 }
 
 /* ── SHARED REPORTS LINESCORE SCOREBUG ─────────────────────────────────────
@@ -2916,14 +2806,6 @@
 .gi-reports .gi-scorebug-ident small{
   display:block;margin-top:3px;color:var(--gi-bd-copy);font:400 10.5px/1.2 var(--gi-sans);white-space:nowrap
 }
-
-/* `line-height:1` boxes a condensed numeral shorter than its own glyph box, so
-   every display value reported a clipped descender. The Defense board gives
-   its numerals real leading. Scoped to this board; the shared rules those
-   values inherit from are left for their own tabs' passes. */
-.gi-reports .gi-defense-board .gi-def-tile strong{ line-height:1.3 }
-.gi-reports .gi-defense-board .gi-def-type-summary strong{ line-height:1.35 }
-.gi-reports .gi-defense-board .gi-def-type-summary small{ line-height:1.4 }
 .gi-reports .is-linescore .gi-scorebug-story>span{ line-height:1.45 }
 .gi-reports .is-linescore .gi-scorebug-story>strong{ line-height:1.2 }
 .gi-reports .gi-scorebug-ident strong{ line-height:1.25 }
@@ -2931,45 +2813,6 @@
 .gi-reports .gi-scorebug-q{ line-height:1.35 }
 .gi-reports .gi-scorebug-name{ line-height:1.35 }
 .gi-reports .is-linescore .gi-scorebug-story b{ line-height:1.45 }
-.gi-reports .gi-defense-board .gi-def-kpi span{ line-height:1.35 }
-
-/* Controls inherited from the pre-broadcast Defense tab: a solid cyan fill on
-   the active scope button, a cyan outline on the run/pass film buttons that
-   read as "selected", and a plain outlined Export button. They take the same
-   treatment as the rest of the board — subtle surface, cyan only as the active
-   indicator — so nothing reads as selected when it is not. */
-.gi-reports .gi-defense-board .gi-def-scope{ display:flex;gap:1px;background:var(--bd-rule) }
-.gi-reports .gi-defense-board .gi-def-scope button{
-  padding:6px 14px;border:0;border-radius:0;background:var(--bd-panel-2);
-  color:var(--bd-ink-2);font:var(--gi-text-label);cursor:pointer
-}
-.gi-reports .gi-defense-board .gi-def-scope button:hover{ background:var(--bd-panel-3);color:var(--bd-ink) }
-.gi-reports .gi-defense-board .gi-def-scope button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
-.gi-reports .gi-defense-board .gi-def-scope button.active{
-  background:var(--bd-panel-3);color:var(--bd-ink);box-shadow:inset 0 -3px var(--gi-bd-cyan)
-}
-.gi-reports .gi-defense-board .gi-def-export{
-  min-height:32px;padding:0 var(--gi-3x);border:1px solid var(--bd-rule);border-radius:0;
-  background:var(--bd-panel-2);color:var(--bd-ink-2);font:var(--gi-text-label)
-}
-.gi-reports .gi-defense-board .gi-def-export:hover{
-  background:var(--bd-panel-3);color:var(--bd-ink);border-color:var(--bd-bone)
-}
-.gi-reports .gi-defense-board .gi-def-export:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:2px }
-.gi-reports .gi-defense-board .gi-def-type-totals{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0;padding:0;background:var(--bd-rule)
-}
-.gi-reports .gi-defense-board .gi-def-type-summary{
-  min-height:0;padding:var(--gi-3x);border:0;border-radius:0;background:var(--bd-panel);
-  color:var(--bd-ink);text-align:left
-}
-.gi-reports .gi-defense-board .gi-def-type-summary:hover{ background:var(--bd-panel-2);outline:0 }
-.gi-reports .gi-defense-board .gi-def-type-summary:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
-.gi-reports .gi-defense-board .gi-def-type-summary span{
-  color:var(--bd-ink-2);font:700 9.5px/1.35 var(--gi-cond);letter-spacing:.15em;text-transform:uppercase
-}
-.gi-reports .gi-defense-board .gi-def-type-summary strong{ color:var(--bd-ink);font:700 22px/1.3 var(--gi-cond) }
-.gi-reports .gi-defense-board .gi-def-type-summary small{ color:var(--bd-ink-2);font:400 11px/1.4 var(--gi-sans) }
 
 /* The Defense empty state renders outside the board wrapper, so it never
    picked up the broadcast surface: it sat on the pre-broadcast panel with the
@@ -2997,257 +2840,10 @@
   outline:2px solid var(--gi-bd-cyan);outline-offset:2px
 }
 
-/* Best-call answer cells arrived as bordered boxes on a filled surface, so
-   every cell read as a selected control and the four columns could not fit
-   the module -- the Blitz decision column ran off the right edge into the
-   wrap's scroller. They are plain cells now: the value in strong ink, its
-   sample beneath, cyan reserved for hover and focus. */
-.gi-reports .gi-defense-board .gi-def-answer{
-  display:block;width:100%;min-height:0;padding:5px 0;
-  border:0;border-radius:0;background:transparent;color:inherit;text-align:right
-}
-.gi-reports .gi-defense-board .gi-def-answer:hover{ background:transparent;border:0 }
-.gi-reports .gi-defense-board .gi-def-answer:hover strong{ color:var(--gi-bd-cyan) }
-.gi-reports .gi-defense-board .gi-def-answer:focus-visible{
-  outline:2px solid var(--gi-bd-cyan);outline-offset:2px;background:transparent
-}
-.gi-reports .gi-defense-board .gi-def-answer strong{
-  display:block;color:var(--bd-ink);font:600 12px/1.3 var(--gi-sans)
-}
-.gi-reports .gi-defense-board .gi-def-answer span{
-  display:block;margin-top:2px;color:var(--bd-ink-2);font:400 10.5px/1.35 var(--gi-sans)
-}
-.gi-reports .gi-defense-board .gi-def-no-sample{ color:var(--bd-ink-3);font:400 11px/1.3 var(--gi-sans) }
-.gi-reports .gi-defense-board .gi-def-answers td:first-child small{
-  display:block;margin-top:2px;color:var(--bd-ink-2);font:400 10.5px/1.35 var(--gi-sans)
-}
-
-/* Self-scout marks inherited from the pre-broadcast tab: the lean bars were
-   gold-filled (Offense's accent, on a Defense report), the assessments were
-   bright filled pills, and each recommendation carried a heavy coloured left
-   bar so the list read as a stack of alerts. Same information, board
-   treatment: the lean is a proportion bar in the board's own control surface,
-   the assessment is toned text, and a recommendation is a panel row. */
-/* A module is as tall as its band. Non-table content distributes into that
-   height rather than leaving the panel short: the run/pass film buttons, the
-   disruption tiles and the recommendation rows stretch. Tables are left alone
-   -- stretching their rows would distort the row rhythm to fill space. */
-.gi-reports .gi-defense-board .gi-overview-module{ display:flex;flex-direction:column }
-.gi-reports .gi-defense-board .gi-overview-module>header{ flex:0 0 auto }
-.gi-reports .gi-defense-board .gi-def-type-totals,
-.gi-reports .gi-defense-board .gi-def-tiles{ flex:1 0 auto }
-.gi-reports .gi-defense-board .gi-def-type-totals{ grid-auto-rows:minmax(0,1fr) }
-/* One-line answer cells: the value and its evidence read as one statement. */
-.gi-reports .gi-defense-board .gi-def-answer strong{ display:inline;font:600 12px/1.4 var(--gi-sans) }
-.gi-reports .gi-defense-board .gi-def-answer span{ display:inline;margin:0;color:var(--bd-ink-2) }
-
-/* The play-type cell reads on one line. */
-.gi-reports .gi-defense-board .gi-def-answers td:first-child strong{ display:inline }
-.gi-reports .gi-defense-board .gi-def-answers td:first-child small{ display:inline;margin:0 }
-/* Film buttons are targets as well as readouts; two of them fill the band
-   beside a three-row table rather than ending 80px short. */
-.gi-reports .gi-defense-board .gi-def-type-summary{ min-height:74px }
-
-/* Static Defense board: the section and module inventory is fixed, and each
-   table holds its declared rows with dash slots. Data can replace a slot but
-   cannot resize the board. The opening right column uses real down data below
-   the run/pass split instead of preserving the old empty panel. */
-.gi-reports .gi-defense-board .gi-def-secrule p,
-.gi-reports .gi-defense-board .gi-overview-module>header span{display:none}
-.gi-reports .gi-defense-board .gi-def-band{align-items:stretch}
-.gi-reports .gi-defense-board .gi-overview-module{height:100%}
-.gi-reports .gi-defense-board .gi-overview-module th,
-.gi-reports .gi-defense-board .gi-overview-module td{height:34px}
-.gi-reports .gi-defense-board tr.is-absent td{color:var(--gi-bd-muted)}
-.gi-reports .gi-defense-board .gi-def-stack{
-  display:grid;grid-template-rows:auto 1fr;gap:4px;min-width:0
-}
-.gi-reports .gi-defense-board .gi-def-stack>.gi-overview-module:last-child{
-  display:flex;flex-direction:column
-}
-.gi-reports .gi-defense-board .gi-def-stack>.gi-overview-module:last-child>.gi-table-wrap{
-  flex:1 0 auto
-}
-.gi-reports .gi-defense-board .gi-def-type-summary{min-height:62px}
-.gi-reports .gi-defense-board .gi-def-type-summary.is-absent{cursor:default}
-.gi-reports .gi-defense-board .gi-def-answers th,
-.gi-reports .gi-defense-board .gi-def-answers td{height:48px}
-.gi-reports .gi-defense-board .gi-def-answers .gi-def-answer strong,
-.gi-reports .gi-defense-board .gi-def-answers .gi-def-answer span,
-.gi-reports .gi-defense-board .gi-def-answers td:first-child strong,
-.gi-reports .gi-defense-board .gi-def-answers td:first-child small{display:block;margin:0;white-space:nowrap}
-.gi-reports .gi-defense-board .gi-def-opponent-band{height:430px}
-
-/* 2026-09-09 approved Defense dashboard. The comp is the schema: these bands
-   and row pitches stay fixed while sparse cohorts occupy their slots with
-   dashes. All rules are scoped to the replacement board. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-band-3{
-  grid-template-columns:repeat(3,minmax(0,1fr))
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module{
-  box-sizing:border-box;min-width:0;min-height:0;padding:0;overflow:hidden;background:var(--gi-bd-panel)
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module>header{
-  box-sizing:border-box;min-height:31px;height:31px;padding:0 var(--gi-3x);display:flex;align-items:center
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module th,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module td{
-  box-sizing:border-box;height:28px;padding-top:3px;padding-bottom:3px;white-space:nowrap
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module.has-baseline>header span{
-  display:block;margin-left:auto;color:var(--gi-bd-muted);font:400 10px/1.2 var(--gi-sans)
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi{
-  min-height:82px;padding:12px 10px 9px
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi strong{font-size:27px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi small{white-space:nowrap}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-performance-split{height:179px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-performance-split th{height:26px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-performance-split td{height:27px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top{grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);height:270px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls table{table-layout:fixed}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:first-child{width:27%}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(2){width:7%}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(n+3){width:9.42%}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(n+3),
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td:nth-child(n+3){padding-left:2px;padding-right:2px;text-align:center}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(n+3){height:36px;white-space:normal}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td:first-child{
-  white-space:normal;line-height:1.05
-}
-/* ONE BAND, ONE GRID. These two tables sit side by side in the same band and
-   their rows did not register: the formation matrix needs two-line column
-   labels, so its header measured 36px against the play-type table's 28px and
-   its body started 8px low — and `Shotgun + Empty + Bunch + Trips + Unbalanced`
-   then wrapped its own row to 33px, so the drift grew to 13px by the last row.
-   Both tables now share a 36px column row and a 27px data row: 36 + 7 x 27 is
-   exactly the 225px of content the 270px module has to spend, so nothing
-   overflows and the two tables read as one grid. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top thead th{height:36px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-top tbody td{
-  height:27px;padding-top:1px;padding-bottom:1px
-}
-/* Two lines of a long look at 1.0 measure 25px inside the 27px row, so a
-   wrapping label no longer grows its own row out of the shared grid. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td:first-child{line-height:1}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-tendency-bottom{height:238px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls{height:225px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls td{height:38px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-calls td:first-child{
-  white-space:normal;line-height:1.15
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-rank{
-  display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
-  margin-right:7px;background:var(--gi-bd-control-active);color:var(--gi-bd-copy)
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .is-top .gi-def-rank{background:color-mix(in srgb,var(--gi-bd-win) 20%,var(--gi-bd-panel));color:var(--gi-bd-win)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .is-worst .gi-def-rank{background:color-mix(in srgb,var(--gi-bd-loss) 20%,var(--gi-bd-panel));color:var(--gi-bd-loss)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-pressure-band{
-  grid-template-columns:minmax(0,2fr) minmax(0,1fr);height:283px
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card{
-  display:block;min-width:0;padding:12px;border:1px solid var(--gi-bd-line);
-  background:var(--gi-bd-stage);color:inherit;text-align:left
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card h3{
-  margin:0 0 10px;color:var(--gi-bd-copy);font:700 12px/1 var(--gi-cond);text-transform:uppercase
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card>strong{
-  display:block;color:var(--gi-bd-strong);font:700 30px/1.15 var(--gi-cond)
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card>small{
-  display:block;margin-top:4px;color:var(--gi-bd-muted)
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dl{
-  display:grid;grid-template-columns:1fr auto;gap:7px;margin:13px 0 0;padding-top:9px;
-  border-top:1px solid var(--gi-bd-line)
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dt{color:var(--gi-bd-copy)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-compare-card dd{margin:0;font-weight:700}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction{padding:8px 12px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row{
-  display:grid;grid-template-columns:112px minmax(0,1fr) 58px 34px 48px;gap:7px;align-items:center;
-  width:100%;height:32px;padding:0;border:0;border-bottom:1px solid var(--gi-bd-line);
-  background:transparent;color:inherit;text-align:left
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row:not(.is-relative)+.is-relative{border-top:2px solid var(--gi-bd-line)}
-/* `Away from Strength` is the longest fixed label on this board and it must
-   render in full. At the readable 12.5px it no longer fits 112px on one line,
-   and the band cannot spare the width, so the label WRAPS inside its own
-   track: two lines at 1.1 still sit inside the fixed 32px row. Abbreviating
-   the label or shrinking the type were both refused. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row>strong{
-  white-space:normal;line-height:1.1;overflow-wrap:break-word
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row:last-of-type{border-bottom:0}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar{display:flex;height:11px;background:var(--gi-bd-stage)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar i,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar em{display:block;width:var(--w);height:100%}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar i{background:var(--gi-run)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-bar em{background:var(--gi-pass)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row b,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row small,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-ypp{text-align:right;white-space:nowrap}
-/* The key's own lead absorbs the readable 12.5px legend: five fixed 32px rows
-   plus this key sit inside the module's fixed panel with no scroller. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key{
-  display:flex;gap:16px;padding-top:7px;color:var(--gi-bd-muted);font-size:10px
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key span:first-child{color:var(--gi-run)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key span:nth-child(2){color:var(--gi-pass)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key b{margin-left:auto;color:var(--gi-bd-muted);font-weight:400}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-current-game{height:101px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-drive-outcomes{height:269px;margin-bottom:4px}
-/* EXPLICIT ROW MATH. The module was 338px over 318px of content — a 20px slab
-   of dead space at the foot of Down & distance, which is the unused-space half
-   of the open Situational-results finding; at 1280 the same slack plus the
-   readable type pushed the full-season board 5px past the release viewport.
-   The height is now exactly what the composition spends:
-       header 31 + its 6px lead + the 12-row table and its column row = 332
-   and at 1280, where the row and column heights step down: 322. Measured on
-   the rendered board, not derived from the row heights alone — the header's own
-   lead and the wrap's box are part of the module's height. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-situations{height:332px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-situations th{height:23px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-situations td{height:22px;padding-top:2px;padding-bottom:2px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonebars{padding:4px 12px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow{
-  box-sizing:border-box;display:grid;grid-template-columns:76px minmax(0,1fr) 42px 48px;gap:7px;align-items:center;
-  width:100%;height:36px;padding:0;border:0;border-bottom:1px solid var(--gi-bd-line);
-  background:transparent;color:inherit;text-align:left
-}
-
 /* Chart and module titles use the product's approved sans face. Condensed is
    reserved for display numbers and page identity, not small uppercase labels. */
 .gi-reports .gi-overview-module>header strong,
-.gi-reports .gi-epa-subhead,
-.gi-reports .gi-def-compare-card h3{font-family:var(--gi-sans)}
-.gi-reports .gi-defense-board.is-dashboard-v2 button.gi-def-zonerow:hover{color:var(--gi-bd-cyan)}
-.gi-reports .gi-defense-board.is-dashboard-v2 button.gi-def-zonerow:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow:last-child{border-bottom:0}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonebar{height:8px;background:var(--gi-bd-stage)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonebar i{display:block;width:var(--w);height:100%;background:var(--gi-bd-cyan)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow b,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow small{text-align:right}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow small{color:var(--gi-bd-muted)}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-context-band{height:225px}
-@media(max-width:1300px){
-  .gi-reports .gi-defense-board.is-dashboard-v2{margin-top:0}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-toolbar{padding-top:2px;padding-bottom:2px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi{padding-left:8px;padding-right:8px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-kpi strong{font-size:24px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module th,
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module td{padding-left:8px;padding-right:8px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-situations{height:322px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-situations th,
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-situations td{height:20px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-context-band{height:213px}
-  .gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-zonerow{height:33px}
-}
+.gi-reports .gi-epa-subhead{font-family:var(--gi-sans)}
 
 /* COORDINATED TYPE FLOOR — the enforceable version.
    Reports accumulated local 9-11px Condensed labels while the shared type
@@ -3276,8 +2872,7 @@
 }
 .gi-reports .gi-zone-rule h2,
 .gi-reports .gi-def-secrule h2,
-.gi-reports .gi-overview-module>header strong,
-.gi-reports .gi-defense-board .gi-def-kpi span{
+.gi-reports .gi-overview-module>header strong{
   font:var(--gi-text-eyebrow);letter-spacing:0
 }
 .gi-reports th,
@@ -3286,31 +2881,6 @@
   font:var(--gi-text-label);letter-spacing:0
 }
 .gi-reports td{font-size:12.5px;line-height:1.25}
-.gi-reports .gi-defense-board .gi-def-kpi small,
-.gi-reports .gi-defense-board .gi-def-type-summary small,
-.gi-reports .gi-defense-board .gi-def-answer span,
-.gi-reports .gi-defense-board .gi-def-answers td:first-child small,
-.gi-reports .gi-defense-board .gi-def-no-sample{
-  font-family:var(--gi-sans);font-size:12.5px;line-height:1.25
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls table{font-size:12.5px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th:nth-child(n+3){
-  font-size:12.5px;line-height:1.1
-}
-/* Readable 12.5px in the eight-column matrix is paid for out of cell padding,
-   not out of type: the wrap must not become a horizontal scroller at 1280. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls th,
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-formation-calls td{
-  padding-left:5px;padding-right:5px
-}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row>strong{font-size:12.5px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-key{font-size:12.5px}
-/* The module's own data-bearing meta (`game baseline: 3.2 yds/play`) and the
-   direction row's share value are measurements a coach reads, not decoration —
-   found below the floor by the new enforcement assertion, at 10px and 11.1px. */
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-overview-module.has-baseline>header span,
-.gi-reports .gi-defense-board .gi-overview-module>header span{font-size:12.5px}
-.gi-reports .gi-defense-board.is-dashboard-v2 .gi-def-direction-row small{font-size:12.5px}
 /* NAMED EXCEPTION, measured, recorded in docs/VISUAL-SYSTEM-RULES.md and open
    in docs/OPEN-DEFECTS.md. It must sit AFTER the floor block above or the
    floor's own equal-specificity rule wins on source order — which is the

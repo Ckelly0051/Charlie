@@ -599,41 +599,31 @@ result = await page.evaluate(async () => {
   await app.storage._loadActiveGame();
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
-  // Defense renders one SECTION at a time (2026-09-04). Reading the pane
-  // without activating the owning tab reads a section that is not on screen,
-  // which is how these assertions started passing against nothing.
-  const showSection = label => {
-    const btn = [...document.querySelectorAll('.gi-def-secnav-item')]
-      .find(b => b.textContent.includes(label));
-    btn?.click();
-    return !!btn;
-  };
-  showSection('Opponent Offense');
+  // Defense Revision 2 is one vertically scrolling report: every section is
+  // on screen together, so nothing needs activating before it is read.
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   // The exact production path -- same cohort the rendered pane used.
   const { scoped, labels } = app.reportsScreen._defenseCohort();
   const model = app.stats.defensivePerformance(scoped, labels);
   const pane = document.querySelector('[data-pane="defense"]');
-  const seasonActive = pane?.querySelector('[data-defense-scope="season"].active') != null;
+  const seasonActive = pane?.querySelector('[data-defense-scope="season"].is-active') != null;
   const runInside = model.playTypes.find(row => row.name === 'Run Inside');
   const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
-  const moduleByTitle = title => [...(pane?.querySelectorAll('.gi-overview-module') || [])]
-    .find(module => module.querySelector('header strong')?.textContent.trim() === title);
+  const moduleByTitle = title => pane?.querySelector(`[data-def2-module="${title}"]`);
   const typeTable = moduleByTitle('Production by play type')?.querySelector('table');
-  const typeRowsBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => row.cells[0]?.textContent.trim());
-  const yppBefore = [...(typeTable?.querySelectorAll('tbody tr') || [])].map(row => parseFloat(row.cells[3]?.textContent));
-  showSection('Defensive performance');
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  showSection('Opponent Offense');
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  // Re-query: switching sections unmounts and remounts the table, so the
-  // reference captured earlier points at a detached node.
-  const liveTypeTable = moduleByTitle('Production by play type')?.querySelector('table');
+  // Revision 2 suppresses a play type nobody ran; unused capacity is `-`.
+  const typeRowsBefore = [...(typeTable?.querySelectorAll('tbody tr:not(.is-held)') || [])].map(row => row.cells[0]?.textContent.trim());
+  const heldTypeRows = typeTable?.querySelectorAll('tbody tr.is-held').length || 0;
+  const typeModuleHeight = Math.round(moduleByTitle('Production by play type')?.getBoundingClientRect().height || 0);
+  const typeSnaps = [...(typeTable?.querySelectorAll('tbody tr:not(.is-held)') || [])].map(row => row.cells[1]?.textContent.trim());
+  const expectedTypes = app.stats.defenseBoard(scoped, { labels, seasonPlays: scoped }).playTypes.map(row => row.name);
+  const liveTypeTable = typeTable;
   const answerHead = liveTypeTable?.querySelector('thead');
   const answerFirst = liveTypeTable?.querySelector('tbody tr');
   const answerHeaderPosition = answerHead?.querySelector('th') ? getComputedStyle(answerHead.querySelector('th')).position : '';
+  const answerHeadPosition = answerHead ? getComputedStyle(answerHead).position : '';
   const answerRowsClearHeader = !answerHead || !answerFirst || answerFirst.getBoundingClientRect().top >= answerHead.getBoundingClientRect().bottom - 1;
-  const before = pane?.querySelector('.gi-def-kpi strong')?.textContent || '';
+  const before = pane?.querySelector('[data-def2-kpi="Total yards allowed"] strong')?.textContent || '';
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
   app.filmNavigation.watch = refs => { watched = refs; return true; };
@@ -647,8 +637,8 @@ result = await page.evaluate(async () => {
   watched = null;
   app.filmNavigation.watch = originalWatch;
   pane?.querySelector('[data-defense-scope="game"]')?.click();
-  const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].active') != null;
-  const after = document.querySelector('[data-pane="defense"] .gi-def-kpi strong')?.textContent || '';
+  const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].is-active') != null;
+  const after = document.querySelector('[data-pane="defense"] [data-def2-kpi="Total yards allowed"] strong')?.textContent || '';
   app.reportsScreen.defenseScope = 'season';
   app.storage.seasonStore.data.games = originalGames;
   app.storage.seasonStore.data.activeGameId = originalActiveGameId;
@@ -658,12 +648,11 @@ result = await page.evaluate(async () => {
     third: model.thirdDownStopRate, redZone: model.redZoneTdRate, takeaways: model.takeaways,
     runInside: runInside && { n: runInside.n, refs: runInside.refs },
     duplicateRefs, games: model.byGame.map(row => row.name),
-    seasonActive, gameActive, before, after, typeRowsBefore, yppBefore,
-    watchedRunInside, answerHeaderPosition, answerRowsClearHeader,
-    // Defense presents its sections as a tab strip; the labels that used to
-    // be <h3> headings are the tab labels.
-    headings: [...(pane?.querySelectorAll('.gi-def-secnav-item') || [])]
-      .map(node => node.textContent.replace(/^\d/, '').trim()),
+    seasonActive, gameActive, before, after, typeRowsBefore, heldTypeRows, typeModuleHeight, typeSnaps, expectedTypes,
+    watchedRunInside, answerHeaderPosition, answerHeadPosition, answerRowsClearHeader,
+    // Revision 2 renders its four sections in order on one page.
+    headings: [...(pane?.querySelectorAll('[data-def2-section] h2') || [])]
+      .map(node => node.textContent.trim()),
     // The fixture's third game is opponent-scout with real defensive-shaped
     // plays; a broken _defenseCohort filter would both inflate the season
     // total past 4 and add "Scout Game" to byGame.
@@ -684,21 +673,24 @@ ok(result.games.join(',') === 'Week 1,Week 2'
 // Defense presents four useful sections. The old fifth section was a
 // predictability-only duplicate of the canonical Self-Scout report and is
 // deliberately absent.
-ok(result.headings.length === 4
-  && result.headings.includes('Defensive performance')
-  && result.headings.includes('Opponent Offense')
-  && result.headings.includes('Scheme')
-  && result.headings.includes('Situational results')
-  && !result.headings.includes('Self-scout'),
+ok(JSON.stringify(result.headings) === JSON.stringify(['Defensive performance', 'Opponent offense',
+    'Scheme and passing defense', 'Situational results'])
+  && !result.headings.some(heading => /self-scout/i.test(heading)),
   'The Defense page leads with performance and covers play type, scheme and situation without the rejected duplicate Self-Scout',
   JSON.stringify(result.headings));
-ok(result.typeRowsBefore.length === 7
-  && result.typeRowsBefore[0] === 'Run Outside'
+/* Revision 2 supersedes the seven held play-type slots: a play type nobody ran
+   is suppressed, the rest stay in football order, and unused capacity is a
+   `-` row rather than a fabricated zero. */
+const FOOTBALL_ORDER = ['Run Outside', 'Run Inside', 'RPO', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Screen'];
+ok(result.typeRowsBefore.length > 0
+  && JSON.stringify(result.typeRowsBefore) === JSON.stringify(result.expectedTypes)
+  && JSON.stringify(result.typeRowsBefore) === JSON.stringify(FOOTBALL_ORDER.filter(name => result.typeRowsBefore.includes(name)))
   && result.typeRowsBefore.includes('Run Inside')
-  && result.typeRowsBefore.every(name => name !== 'All Runs' && name !== 'All Passes'),
-  'Opponent offense holds the approved seven play-type rows in football order', JSON.stringify(result));
-ok(result.answerHeaderPosition === 'static' && result.answerRowsClearHeader,
-  'Defense table headers stay in normal flow and never cover the first answer row', JSON.stringify(result));
+  && result.typeSnaps.every(snaps => Number(snaps) > 0)
+  && result.heldTypeRows === Math.max(0, Math.floor((result.typeModuleHeight - 96) / 38) - result.typeRowsBefore.length),
+  'Opponent offense lists only the play types charted, in football order, with unused capacity as dash rows', JSON.stringify(result));
+ok(result.answerHeaderPosition === 'static' && result.answerHeadPosition === 'sticky' && result.answerRowsClearHeader,
+  'Defense table headers stick inside their own module and never cover the first row at rest', JSON.stringify(result));
 
 console.log('\n== 2c. Defense does not revive the rejected duplicate Self-Scout ==');
 // Both sections used to be a `LegacyWidget` embed of a StatsEngine HTML
@@ -762,7 +754,7 @@ result = await page.evaluate(async () => {
   // Self-scout is no longer one .ss-def-section block: predictability and
   // the tells table are modules inside section 5 of the Defense tab strip.
   // The tells table and the recommendation rows are the same elements.
-  const section = pane?.querySelector('.gi-defense-board') || pane;
+  const section = pane?.querySelector('.gi-def2') || pane;
   const summaryText = [...(section?.querySelectorAll('.gi-overview-module > header span') || [])]
     .map(el => el.textContent).find(txt => /defensive snaps/i.test(txt)) || '';
   const recDivs = [...(section?.querySelectorAll('.gi-def-recs > .ss-rec') || [])].map(el => el.textContent);
@@ -1199,7 +1191,7 @@ result = await page.evaluate(async () => {
   window.ffaSaveBlob = (blob, name) => pending.push(blob.text().then(html => captures.push({ name, html })));
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
-  document.querySelector('.gi-def-toolbar .btn')?.click();
+  document.querySelector('.gi-def2 .gi-def-export')?.click();
   app.reportsScreen.selectTab('selfscout');
   // Scope, section navigation and Export share one control row in the
   // approved composition; the command lives in the row's action cell.

@@ -190,6 +190,14 @@ export class ReportsScreen {
    * opponent perspective (its own answer-sheet header already states the
    * sample), so it never duplicates a header the tab already carries.
    */
+  /** The export's own dashboard, built exactly as it was before Revision 2:
+   *  the scoped cohort with game labels. The on-screen board names opponents
+   *  instead, and must not change what the exported report prints. */
+  _defenseExportDashboard() {
+    const { scoped, labels } = this._defenseCohort();
+    return this.app.stats.defenseDashboard(scoped, labels);
+  }
+
   exportDefense(dashboard, scoped) {
     if (!dashboard?.total) return false;
     const scopeLabel = this.defenseScope === 'season' ? 'Full season' : 'Current game';
@@ -595,11 +603,17 @@ export class ReportsScreen {
       return;
     }
     if (tab === 'defense') {
-      const { scoped, labels } = this._defenseCohort();
+      const { scoped } = this._defenseCohort();
       this._defenseScopedPlays = scoped;
-      const report = statsEngine.defensivePerformance(scoped, labels);
-      const dashboard = statsEngine.defenseDashboard(scoped, labels);
-      render(h(ReportPane, { tab: 'defense' }, h(DefenseTab, { report, dashboard, scoped, screen: this })), this.content);
+      // Revision 2: the Current game scope compares against the full season,
+      // so the season cohort is always passed; rows name the opponent.
+      const { scoped: seasonPlays } = this._selfPerspectiveCohort('season');
+      const games = this.app.storage?.seasonStore?.data?.games || [];
+      const opponents = Object.fromEntries(games.map(game =>
+        [String(game.id), String(game.gameInfo?.opponent || '').trim() || game.name || `Game ${game.id}`]));
+      const board = statsEngine.defenseBoard(scoped, { scope: this.defenseScope, seasonPlays,
+        labels: opponents, roster: this.app.season?._mergeRoster?.() || {} });
+      render(h(ReportPane, { tab: 'defense' }, h(DefenseTab, { board, scoped, screen: this })), this.content);
       return;
     }
     if (tab === 'special') {

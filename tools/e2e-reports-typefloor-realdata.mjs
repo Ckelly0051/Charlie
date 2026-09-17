@@ -57,7 +57,9 @@ const BOARDS = [
  * Regenerate deliberately with GIQ_TYPEFLOOR_PRINT=1, and when you do, update
  * the table in docs/VISUAL-SYSTEM-RULES.md in the same commit. */
 const OVERVIEW = { '9.5|SPAN': 19, '12|SPAN': 16 };
-const DEFENSE = { '9.5|SPAN': 1 };
+/* Defense Revision 2 (2026-09-17) is fully migrated: no element on the board
+   renders below the shared floor, in either scope, at either width. */
+const DEFENSE = {};
 /* Offense's own broadcast micro-labels: tile and strip labels inside its
    approved comp, identical at both widths. */
 const OFFENSE_BASE = {
@@ -245,7 +247,7 @@ for (const row of observed.filter(item => item.tab === 'offense')) {
 const TOTALS = {
   'overview@1440': 35, 'overview@1280': 35,
   'offense@1440': 118, 'offense@1280': 323,
-  'defense@1440': 1, 'defense@1280': 1,
+  'defense@1440': 0, 'defense@1280': 0,
   'special@1440': 98, 'special@1280': 98,
   'players@1440': 46, 'players@1280': 46,
   'selfscout@1440': 20, 'selfscout@1280': 20,
@@ -261,7 +263,7 @@ ok(wrongTotals.length === 0,
 /* Each board's minimum, pinned in BOTH directions. Down is a regression; up
    means the migration happened and the rules file must be updated with it. */
 const MINIMA = {
-  overview: 9.5, offense: 9.5, defense: 9.5,
+  overview: 9.5, offense: 9.5, defense: 12.5,
   special: 9.5, players: 11, selfscout: 11, season: 11, matchup: 10,
 };
 for (const [tab, expected] of Object.entries(MINIMA)) {
@@ -273,9 +275,12 @@ for (const [tab, expected] of Object.entries(MINIMA)) {
     JSON.stringify(rows.map(item => ({ w: item.width, min: item.min, carriers: item.carriers }))));
 }
 
-/* NOT VACUOUS. Every board genuinely carries sub-floor text today, so none of
-   the assertions above is passing over an empty set. */
-ok(observed.every(row => row.below > 0) && observed.every(row => row.total > 20),
+/* NOT VACUOUS. Every board with documented debt genuinely carries sub-floor
+   text, and every board - including a fully migrated one, whose census is
+   empty - is measured over a real populated surface, so none of the
+   assertions above is passing over an empty set. */
+ok(observed.every(row => Object.keys(EXPECTED[`${row.tab}@${row.width}`] || {}).length === 0 || row.below > 0)
+  && observed.every(row => row.total > 20),
   'every board really does carry sub-floor text, so the census is not passing over nothing',
   JSON.stringify(observed.map(row => `${row.label}/${row.width}:${row.below}/${row.total}`)));
 
