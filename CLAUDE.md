@@ -1022,8 +1022,16 @@ existing allowed rates, one decimal, a dash with no attempts. `Takeaways` is the
 dashboard's interceptions plus fumble recoveries. A pass ATTEMPT needs a charted
 Gain, Touchdown, No Gain, Incomplete or Interception; a sack is never an attempt
 and never enters Yds/att. Disruption counts sacks and interceptions over pass
-snaps, run TFL over run snaps, and fumble recoveries and distinct disruptive
-plays over charted defensive snaps; a play with two events is one distinct play.
+snaps, run TFL (a negative-yardage RUN only) over run snaps, and fumble
+recoveries and distinct disruptive plays over charted defensive snaps; a play
+with two events is one distinct play. `1st Downs Allowed` and the dashboard's
+3rd/4th allowed rates use `StatsEngine.isConversionAllowed`: a touchdown counts
+only when the opponent scored it. **High-leverage field position is measured
+from OUR goal line**, toward which the opponent attacks: inside our 20 is
+`_absYardLine` 0-20, goal line 0-5, opponent backed up 90-100 (canonical season:
+8 red-zone possessions, 6 touchdowns allowed). `_fieldZone` names zones for the
+offense and must not be used for these rows. A structure row with nothing
+Run/Pass-classified reports no explosive count (`—`), never `0`.
 Blitz Performance holds exactly Blitz vs Run, No Blitz vs Run, Blitz vs Pass and
 No Blitz vs Pass (`isNoBlitz`, the same rule the blitz rate uses). Blitz Type
 Performance holds exactly A-Gap through D-Gap. Run / Pass vs Strength holds
@@ -1039,7 +1047,11 @@ outcome the reconstruction produced, in football order — Touchdown, Field Goal
 Missed Field Goal, Punt, Turnover, Downs, Safety, Kneel, Other / unresolved —
 and no row for an outcome that did not occur. A possession the charting cannot
 settle stays `Other / unresolved` (`Unresolved` in Opponent possessions); nothing
-is folded into another outcome. Opponent possessions lists every reconstructed
+is folded into another outcome. **Whose points a drive ended with is decided by
+`scoringSide`**, because `_driveStats` is side-agnostic: our pick-six or fumble
+return ends the opponent's drive as `Turnover` for 0 points (unresolved when no
+takeaway is charted), and a safety keeps its outcome but scores the opponent
+nothing. Opponent possessions lists every reconstructed
 drive, per game, in one fixed-height scrolling module. Its `Yards*` is the
 drive's tagged yardage, penalties included, not classified production; `Last
 snap` is where the last charted snap began, not the final spot; `Pts*` excludes
@@ -1907,8 +1919,8 @@ Full tiers, commands, and what each tier can and cannot certify:
 
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
 `tools/e2e-reports-defense-realdata.mjs` (Defense Revision 2 on the canonical
-season, 76), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
-on a synthetic season, 34),
+season, 78), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
+on a synthetic season, 41),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the

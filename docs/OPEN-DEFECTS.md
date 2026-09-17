@@ -844,6 +844,20 @@ edge-to-edge by design; the top bar's 18px inset is not.
    because the approved rendering and module list omit it. Rows still open their
    exact film cohort. **Installed-only:** Chromium cannot certify the module
    scrollbars' classic WebView2 rendering.
+6. **Defense Revision 2 review findings — REPAIRED 2026-09-17** (review of
+   `13b3579..b260d06`). High-leverage field position read the offense's end of
+   the field (canonical red zone 4 / 0, now 8 / 6); our return touchdowns scored
+   opponent possessions and drive outcomes; defensive touchdowns counted as 1st
+   downs allowed and, in the dashboard, as 3rd/4th downs allowed; Run TFL admitted
+   negative-yardage passes; an unmeasured structure row printed `0` explosives.
+   All five have failing-first, mutation-verified regressions.
+   **Still open, same root cause, not repaired here:** the dashboard's `zones`
+   (the board's Field zone module and the export) and `defensivePerformance`'s
+   red-zone situation name defensive snaps with the offense-oriented
+   `_fieldZone`, so `Red zone`, `Goal line` and `Backed up` describe the wrong end
+   on defense; and the dashboard's own drive outcomes (export) still read
+   side-agnostic `_driveStats`. Both change export output and pinned canonical
+   values, so they need their own scoped repair.
 
 ## Breakdown
 
