@@ -474,6 +474,50 @@ ok(exportedRow(drives.html, 'Touchdown', '1') && exportedRow(drives.html, 'Turno
   && exportedRow(drives.html, 'Field Goal', '1') && !exportedRow(drives.html, 'Touchdown', '3'),
   'the printed report never counts our return touchdowns as opponent touchdowns');
 
+/* ══ 12. A red-zone pick-six is a stop, not opponent production ═══════════ */
+console.log('\n== 12. Scoring side in defensivePerformance ==');
+const pickSix = await page.evaluate(() => {
+  const app = window.app;
+  const play = (id, tags) => ({ id, __gid: 'p', __seasonGameIdx: 0, timestamp: { start: id * 10, end: id * 10 + 6 },
+    tags: { unit: 'defense', custom: [], players: {}, grades: {}, defFront: 'Bear', coverage: 'Cover 3', ...tags } });
+  // One drive: a first-down run stopped short on our 12, then a pick-six from
+  // our own 10 on third down. Nothing here is the opponent's production.
+  const ours = [
+    play(1, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '2', result: 'Gain', yardLine: '12', fieldSide: 'own' }),
+    play(2, { down: '3', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', yardLine: '10', fieldSide: 'own', players: { takeaway: '22' } }),
+  ];
+  // The same two snaps, but the touchdown is the opponent's.
+  const theirs = ours.map(row => row.id === 2
+    ? play(2, { down: '3', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '10', result: 'Touchdown', yardLine: '10', fieldSide: 'own' })
+    : row);
+  const read = plays => {
+    const perf = app.stats.defensivePerformance(plays, { p: 'Pick Six' });
+    const redZone = perf.situations.find(row => row.name === 'Red Zone');
+    return { redZoneTdRate: perf.redZoneTdRate, thirdDownStopRate: perf.thirdDownStopRate,
+      touchdowns: redZone?.touchdowns, stops: redZone?.stops, stopRate: redZone?.stopRate,
+      summaryTouchdowns: perf.summary.touchdowns,
+      cohort: app.stats.defensiveCohortMetrics(plays),
+      calls: app.stats._defenseCallRows(plays).map(row => [row.n, row.stops, row.tds]),
+      selfScout: app.stats.selfScoutDefenseSummary({ defPlays: plays, defensive: {} }).negative,
+    };
+  };
+  return { ours: read(ours), theirs: read(theirs) };
+});
+ok(pickSix.ours.touchdowns === 0 && pickSix.ours.redZoneTdRate === 0 && pickSix.ours.summaryTouchdowns === 0,
+  'our red-zone pick-six is not a touchdown allowed and leaves the red-zone touchdown rate at 0%', JSON.stringify(pickSix.ours));
+ok(pickSix.ours.stops === 2 && pickSix.ours.stopRate === 100 && pickSix.ours.thirdDownStopRate === 100,
+  'the pick-six counts as a stop on third down and in its red-zone cohort', JSON.stringify(pickSix.ours));
+ok(pickSix.ours.cohort.touchdowns === 0 && pickSix.ours.cohort.stopRate === 100
+  && JSON.stringify(pickSix.ours.calls) === JSON.stringify([[2, 2, 0]])
+  && pickSix.ours.selfScout.touchdownsAllowed === 0 && pickSix.ours.selfScout.successfulAllowed === 0,
+  'every defensivePerformance consumer agrees: the shared cohort metric, the call row and Self-Scout',
+  JSON.stringify({ cohort: pickSix.ours.cohort, calls: pickSix.ours.calls, selfScout: pickSix.ours.selfScout }));
+ok(pickSix.theirs.touchdowns === 1 && pickSix.theirs.redZoneTdRate === 100 && pickSix.theirs.stopRate === 50
+  && pickSix.theirs.thirdDownStopRate === 0 && pickSix.theirs.calls[0][2] === 1
+  && pickSix.theirs.selfScout.touchdownsAllowed === 1,
+  'an opponent red-zone touchdown on the same snap still reads as allowed production',
+  JSON.stringify(pickSix.theirs));
+
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

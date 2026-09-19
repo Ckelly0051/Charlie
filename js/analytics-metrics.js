@@ -578,7 +578,13 @@ export class AnalyticsMetrics {
     const def = METRICS[metricId];
     if (!def) throw new Error(`Unknown analytics metric: ${metricId}`);
     const list = cohort || [];
-    const { value, count, eligible, denominator, refSource } = def.compute(list, this._deps, options);
+    /* `options.deps` overrides ONE dependency for this call and nothing else.
+       The defensive reports ask "did the OPPONENT succeed", which differs from
+       the ball-carrier-framed success rule only on a touchdown our own defense
+       scored, so they pass that predicate rather than keeping a second stop-rate
+       formula of their own. The instance deps remain the shared owner. */
+    const deps = options.deps ? { ...this._deps, ...options.deps } : this._deps;
+    const { value, count, eligible, denominator, refSource } = def.compute(list, deps, options);
     // Refs MUST resolve from refSource -- the exact play list that produced
     // `denominator` -- never from `list` (the raw caller cohort), or an
     // ineligible play excluded from the denominator could still open film.

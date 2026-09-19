@@ -162,6 +162,26 @@ export class StatsEngine {
     return gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown');
   }
 
+  /** OPPONENT SUCCESS on a defensive snap. `isSuccessfulPlay` is framed for the
+   *  team carrying the ball and counts EVERY touchdown as success, so our
+   *  pick-six read as opponent production: a stop became a failure and a
+   *  defensive score entered yards-allowed reporting as though the opponent had
+   *  scored it. A touchdown is theirs only when `scoringSide` says so — a
+   *  touchdown our defense scored is a stop, and a side nobody charted is not
+   *  inferred to be ours. Every other snap keeps the canonical rule, which is
+   *  why this wraps it instead of restating it. The offense-framed predicate is
+   *  unchanged for the offensive reports that own it. */
+  static isOpponentSuccess(p) {
+    if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.scoringSide(p) === 'them';
+    return StatsEngine.isSuccessfulPlay(p);
+  }
+
+  /** A touchdown the opponent scored on a defensive snap — the one rule every
+   *  "touchdowns allowed" count on every defensive surface uses. */
+  static isTouchdownAllowed(p) {
+    return StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) === 'them';
+  }
+
   /** A conversion the OPPONENT made on a defensive snap: it gained the line to
    *  gain, or the opponent scored. `isConversion` accepts any touchdown, so a
    *  pick-six on third down read as a third down allowed. Our own return
@@ -1403,7 +1423,8 @@ export class StatsEngine {
 
     plays.forEach(p => {
       const yds = parseInt(p.tags.yardage) || 0;
-      const defSuccess = !this._isSuccessfulPlay(p);
+      // Defense-framed: our own return touchdown is a stop, not opponent success.
+      const defSuccess = !StatsEngine.isOpponentSuccess(p);
       const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
         StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
       // Additive film identity: pushed in the SAME pass that increments count,
@@ -1429,7 +1450,9 @@ export class StatsEngine {
         coverages[c].count++;
         coverages[c].yards += yds;
         if (defSuccess) coverages[c].successes++;
-        if (StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')) coverages[c].comps++;
+        // A pick-six is charted `Interception + Touchdown`: it is an
+        // interception against this coverage, never a completion allowed.
+        if (StatsEngine.hasResult(p, 'Gain') || StatsEngine.isTouchdownAllowed(p) || StatsEngine.hasResult(p, 'No Gain')) coverages[c].comps++;
         if (StatsEngine.hasResult(p, 'Incomplete')) coverages[c].incs++;
         if (StatsEngine.hasResult(p, 'Interception')) coverages[c].ints++;
         if (StatsEngine.hasResult(p, 'Sack')) coverages[c].sacks++;
@@ -1563,13 +1586,16 @@ export class StatsEngine {
     const cohort = (rawCohort || []).filter(StatsEngine._tryPenaltyResolved);
     const metrics = this.metricsEngine();
     const legacyOptions = { missingAsZero: true, allowUnlinkedPlays: true };
-    const stopRate = metrics.metric(cohort, 'stopRate', {}, legacyOptions);
+    /* A stop is measured against OPPONENT success, so our own return touchdown
+       counts as a stop instead of as their conversion. */
+    const stopRate = metrics.metric(cohort, 'stopRate', {},
+      { ...legacyOptions, deps: { isSuccessfulPlay: StatsEngine.isOpponentSuccess } });
     const explosive = metrics.metric(cohort, 'explosivesAllowedRate', {}, legacyOptions);
     const havoc = metrics.metric(cohort, 'havocRate', {}, legacyOptions);
     const ypp = metrics.metric(cohort, 'yardsAllowedPerPlay', {}, legacyOptions);
     return {
       n: cohort.length, stops: stopRate.count, explosives: explosive.count, havoc: havoc.count,
-      touchdowns: cohort.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
+      touchdowns: cohort.filter(StatsEngine.isTouchdownAllowed).length,
       stopRate: stopRate.value ?? 0,
       yardsPerPlay: ypp.value ?? 0,
       explosiveRate: explosive.value ?? 0,
@@ -1668,13 +1694,13 @@ export class StatsEngine {
     const redZoneDrives = this._reconstructDrives(source).filter(drive =>
       drive.some(p => this._inRedZone(p)));
     const redZoneTouchdowns = redZoneDrives.filter(drive =>
-      drive.some(p => StatsEngine.hasResult(p, 'Touchdown'))).length;
+      drive.some(StatsEngine.isTouchdownAllowed)).length;
     return {
       total: source.length,
       summary: summarize('All Defensive Snaps', source),
       takeaways: defensive.turnovers,
       thirdDownStopRate: thirdDown.length
-        ? +(thirdDown.filter(p => !this._isSuccessfulPlay(p)).length / thirdDown.length * 100).toFixed(1) : null,
+        ? +(thirdDown.filter(p => !StatsEngine.isOpponentSuccess(p)).length / thirdDown.length * 100).toFixed(1) : null,
       redZoneTdRate: redZoneDrives.length
         ? +(redZoneTouchdowns / redZoneDrives.length * 100).toFixed(1) : null,
       playTypes, answers, byGame, situations,
@@ -5370,9 +5396,12 @@ export class StatsEngine {
       const ref = StatsEngine._compositeRef(play);
       row.n++;
       row.yards += parseInt(play.tags.yardage) || 0;
-      if (!this._isSuccessfulPlay(play)) row.stops++;
+      // Defensive rows: a stop is the absence of OPPONENT success and a
+      // touchdown counts only when the opponent scored it, so a call that
+      // produced our pick-six is not credited with allowing a touchdown.
+      if (!StatsEngine.isOpponentSuccess(play)) row.stops++;
       if (StatsEngine.isExplosive(play)) row.explosives++;
-      if (StatsEngine.hasResult(play, 'Touchdown')) row.tds++;
+      if (StatsEngine.isTouchdownAllowed(play)) row.tds++;
       if (ref) row.refs.push(ref);
     });
     return Object.values(groups).map(row => ({
@@ -5399,7 +5428,9 @@ export class StatsEngine {
     const defPlays = performance?.defPlays || [];
     const defensive = performance?.defensive || {};
     const total = defPlays.length;
-    const stops = defPlays.filter(play => !this._isSuccessfulPlay(play)).length;
+    // Stops and touchdowns allowed read the defense-framed rules: our own
+    // return touchdown is a stop, and it is not a touchdown we allowed.
+    const stops = defPlays.filter(play => !StatsEngine.isOpponentSuccess(play)).length;
     const yards = defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage) || 0), 0);
     const phase = isRunPhase => {
       const rows = defPlays.filter(play => (isRunPhase ? StatsEngine.isRun(play) : StatsEngine.isPass(play)));
@@ -5409,7 +5440,7 @@ export class StatsEngine {
         yardsAllowed: phaseYards,
         yardsPerPlay: rows.length ? +(phaseYards / rows.length).toFixed(1) : 0,
         stopRate: rows.length
-          ? Math.round(rows.filter(play => !this._isSuccessfulPlay(play)).length / rows.length * 100) : 0,
+          ? Math.round(rows.filter(play => !StatsEngine.isOpponentSuccess(play)).length / rows.length * 100) : 0,
         explosivesAllowed: rows.filter(play => StatsEngine.isExplosive(play)).length,
         // The phase-specific impact result: a TFL is the run answer, a sack
         // the pass answer. Counted over THIS phase, not the whole defense.
@@ -5434,7 +5465,7 @@ export class StatsEngine {
       negative: {
         successfulAllowed: total - stops,
         explosiveAllowed: defPlays.filter(play => StatsEngine.isExplosive(play)).length,
-        touchdownsAllowed: defPlays.filter(play => StatsEngine.hasResult(play, 'Touchdown')).length,
+        touchdownsAllowed: defPlays.filter(StatsEngine.isTouchdownAllowed).length,
       },
       run: phase(true), pass: phase(false),
       calls, topCalls: ranking.top, worstCalls: ranking.worst,

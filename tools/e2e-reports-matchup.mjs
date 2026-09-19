@@ -397,6 +397,21 @@ const redZoneSides = await page.evaluate(() => {
 ok(JSON.stringify(redZoneSides.predicates) === JSON.stringify([true, false, true, false, true]),
   'a defensive snap on our own 8 is a red-zone rep and one on the opponent 8 is not; an offensive snap is the mirror',
   JSON.stringify(redZoneSides.predicates));
+/* A defensive lane measures OUR defense, so a touchdown we scored is a stop on
+   this board too — `defensiveCohortMetrics` is the owner both surfaces read. */
+const laneScoringSide = await page.evaluate(() => {
+  const engine = window.app.stats;
+  const snap = (id, tags) => ({ id, __gid: 'm', tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } });
+  const cohort = [
+    snap(1, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '2', result: 'Gain', yardLine: '12', fieldSide: 'own' }),
+    snap(2, { down: '3', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', yardLine: '10', fieldSide: 'own', players: { takeaway: '22' } }),
+  ];
+  const allowed = [cohort[0], snap(2, { down: '3', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '10', result: 'Touchdown', yardLine: '10', fieldSide: 'own' })];
+  return { ours: engine._matchupDefenseMetrics(cohort), theirs: engine._matchupDefenseMetrics(allowed) };
+});
+ok(laneScoringSide.ours.stopRate === 100 && laneScoringSide.theirs.stopRate === 50,
+  'a defensive lane counts our pick-six as a stop and an opponent touchdown on the same snap as their success',
+  JSON.stringify(laneScoringSide));
 ok(redZoneSides.opponent?.n === 3 && redZoneSides.opponent?.label === '12 | Wing-T | Buck Sweep'
   && redZoneSides.season?.label === '4-4 | Cover 1 | No Blitz' && redZoneSides.season?.n === 3,
   'Our Defense vs Their Offense joins their red-zone offense with our own red-zone defensive reps',
