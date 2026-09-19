@@ -577,8 +577,11 @@ result = await page.evaluate(async () => {
       // b::2) so a Scheme Detail click has a real cross-game cohort to prove.
       id: 'b', name: 'Week 2', nextId: 4, gameInfo: { opponent: 'Knights', perspective: 'self' },
       plays: [
-        play(1, { runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '20', down: '3', distance: '5', fieldSide: 'opp', yardLine: '10', defFront: '5-2', coverage: 'Cover 1', blitz: 'Edge' }),
-        play(2, { runPass: 'Pass', playType: 'Short Pass', result: 'Interception', yardage: '0', down: '3', distance: '7', fieldSide: 'opp', yardLine: '10', defFront: '4-2-5', coverage: 'Cover 3', blitz: 'Edge' }),
+        // Red-zone DEFENSIVE reps are charted on our own 10: on a defensive snap
+        // the opponent offense is attacking that goal line, so `opp 10` would be
+        // the opponent backed up on its own 10, not our red zone.
+        play(1, { runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '20', down: '3', distance: '5', fieldSide: 'own', yardLine: '10', defFront: '5-2', coverage: 'Cover 1', blitz: 'Edge' }),
+        play(2, { runPass: 'Pass', playType: 'Short Pass', result: 'Interception', yardage: '0', down: '3', distance: '7', fieldSide: 'own', yardLine: '10', defFront: '4-2-5', coverage: 'Cover 3', blitz: 'Edge' }),
         { ...play(3, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '99', down: '1', distance: '10' }), penalties: [{ id: 'no-play', team: 'opponent', phase: 'offense', foul: 'False start', disposition: 'accepted', playCounts: false }] },
       ],
     },

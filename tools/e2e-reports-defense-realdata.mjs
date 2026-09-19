@@ -541,6 +541,21 @@ ok(canonical.firstLongCallPct > 0 && canonical.firstLongCallPct <= 100,
 ok(JSON.stringify(canonical.zones.map(value => value.split(':')[0])) === JSON.stringify([
   'Backed Up', 'Open Field', 'Opp 40–20', 'Red Zone', 'Goal Line',
 ]), 'field zones use five display slots backed by canonical field-position buckets', JSON.stringify(canonical.zones));
+/* FIELD ZONE IS MEASURED FROM OUR GOAL LINE. Read with the offense-oriented
+   bucketer this season reported Backed Up 11 / Open Field 110 / Opp 40–20 43 /
+   Red Zone 5 and no Goal Line row at all — the opponent's snaps inside our 20
+   counted as its own backed-up territory. The zone counts reconcile with the
+   High-leverage rows above: Red Zone + Goal Line = inside our 20, Goal Line and
+   Backed Up match exactly. */
+ok(JSON.stringify(canonical.zones) === JSON.stringify([
+  'Backed Up:2', 'Open Field:94', 'Opp 40–20:43', 'Red Zone:26', 'Goal Line:4',
+]), '2025 JV full season field zones, measured from our own goal line', JSON.stringify(canonical.zones));
+const zoneOf = name => Number((canonical.zones.find(value => value.startsWith(`${name}:`)) || '').split(':')[1]);
+ok(zoneOf('Red Zone') + zoneOf('Goal Line') === leverage['Inside our 20 / snaps']?.sample
+  && zoneOf('Goal Line') === leverage['Goal line / snaps']?.sample
+  && zoneOf('Backed Up') === leverage['Opponent backed up / snaps']?.sample,
+  'Field zone and High-leverage field position report the same field position',
+  JSON.stringify({ zones: canonical.zones, leverage }));
 ok(canonical.formationCalls.length >= 6
   && canonical.formationCalls.every(row => row.name && row.playTypes.length === 7
     && row.playTypes.every(item => item.pct === Math.round(item.n / row.n * 100)))
@@ -631,6 +646,44 @@ ok(['Defensive Performance', 'Opponent Offense', 'Scheme', 'Situational Results'
   && exportText.includes('Run Outside') && exportText.includes('Run Inside')
   && /Week \d+ vs /.test(exportText),
   'Defense export keeps its own four-section dashboard model and game labels');
+/* The export reads the same dashboard, so its Field zone table carries the
+   defensive bands and its opponent drive outcomes carry the scoring-side
+   attribution. Rows are matched as cells, so a number from another table
+   cannot satisfy them. */
+const exportRow = (label, cells) =>
+  new RegExp(`<td[^>]*>${label}</td>\\s*${cells.map(cell => `<td[^>]*>${cell}</td>\\s*`).join('')}`).test(exportText);
+ok(exportRow('Backed Up', ['2']) && exportRow('Open Field', ['94']) && exportRow('Opp 40–20', ['43'])
+  && exportRow('Red Zone', ['26']) && exportRow('Goal Line', ['4']),
+  'the Defense export prints the same defensive field zones as the board');
+const exportDrives = await page.evaluate(() => {
+  const app = window.app;
+  const { scoped, labels } = app.reportsScreen._defenseCohort();
+  const dashboard = app.stats.defenseDashboard(scoped, labels);
+  const board = app.stats.defenseBoard(scoped, { scope: 'season', seasonPlays: scoped, labels });
+  const perf = app.stats.defensivePerformance(scoped, labels);
+  return {
+    outcomes: dashboard.driveOutcomes.map(row => [row.name, row.n]),
+    possessions: board.possessions.map(row => row.outcome),
+    points: board.possessions.reduce((sum, row) => sum + (row.points || 0), 0),
+    situations: perf.situations.map(row => [row.name, row.n]),
+    redZoneTdRate: perf.redZoneTdRate,
+  };
+});
+/* `defensivePerformance` is the owner Matchup's Red Zone situation shares. Read
+   from the offense's end it reported 5 red-zone snaps, no Goal Line row and a
+   0% red-zone touchdown rate on a season that allowed six of them. */
+ok(JSON.stringify(exportDrives.situations.find(row => row[0] === 'Red Zone')) === JSON.stringify(['Red Zone', 30])
+  && JSON.stringify(exportDrives.situations.find(row => row[0] === 'Goal Line')) === JSON.stringify(['Goal Line', 4])
+  && exportDrives.redZoneTdRate === 75,
+  'defensive Red Zone and Goal Line situations and the red-zone touchdown rate measure from our goal line',
+  JSON.stringify({ situations: exportDrives.situations, rate: exportDrives.redZoneTdRate }));
+ok(JSON.stringify(exportDrives.outcomes) === JSON.stringify([['Touchdown', 7], ['Field Goal', 0], ['Missed FG', 0],
+  ['Punt', 9], ['Turnover', 6], ['Downs', 7], ['Other / unresolved', 5]]),
+  '2025 JV export drive outcomes: 7 opponent touchdowns, and no drive reclassified on a season with no defensive score',
+  JSON.stringify(exportDrives.outcomes));
+ok(exportDrives.possessions.filter(name => name === 'Touchdown').length === 7 && exportDrives.points === 42,
+  'the board possessions carry the same seven opponent touchdowns and 42 points as the export',
+  JSON.stringify({ points: exportDrives.points }));
 
 /* KPI VALUES FIT THEIR TILE at every width that keeps the ten-tile row, even
    when every tile carries the widest value the strip can print. The production

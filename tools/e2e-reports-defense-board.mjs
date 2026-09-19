@@ -373,6 +373,107 @@ ok(JSON.stringify(repairs.leverage['Red-zone possessions']) === '[1,1]'
   && JSON.stringify(repairs.leverage['Opponent backed up / snaps']) === '[2,0]',
   'high-leverage rows measure from our goal: our 18 is inside our 20, the opponent 3 and 5 are backed up', JSON.stringify(repairs.leverage));
 
+/* ══ 11. Field-zone perspective and one drive-attribution owner ═══════════ */
+console.log('\n== 11. Defensive field zones and the shared drive owner ==');
+const zoneModel = await page.evaluate(() => {
+  const engine = window.app.stats;
+  const at = (yardLine, fieldSide) => ({ yardLine: String(yardLine), fieldSide });
+  const spots = [[3, 'own'], [5, 'own'], [6, 'own'], [20, 'own'], [21, 'own'], [50, 'own'], [40, 'opp'], [11, 'opp'], [10, 'opp'], [5, 'opp']];
+  const unit = (tags, u, charted) => ({ id: 1, tags: { unit: u, custom: [], players: {}, grades: {}, ...tags }, ...(charted ? { __chartedUnit: charted } : {}) });
+  return {
+    bands: spots.map(([yardLine, fieldSide]) => {
+      const tags = at(yardLine, fieldSide);
+      return [engine._absYardLine(tags), engine._defensiveFieldZone(tags), engine._fieldZone(tags)];
+    }),
+    blank: [engine._defensiveFieldZone({}), engine._fieldZone({}),
+      engine.fieldZoneOf(unit({}, 'defense')), engine.fieldZoneOf(unit({}, 'offense'))],
+    // A relabeled Matchup rep keeps the perspective it was charted in.
+    perspective: [
+      engine.fieldZoneOf(unit(at(12, 'own'), 'defense')),
+      engine.fieldZoneOf(unit(at(12, 'own'), 'offense')),
+      engine.fieldZoneOf(unit(at(12, 'own'), 'offense', 'defense')),
+      engine.fieldZoneOf(unit(at(12, 'own'), 'defense', 'offense')),
+      engine.fieldZoneOf(unit(at(12, 'own'), 'special')),
+    ],
+    redZone: [
+      engine._inRedZone(unit(at(12, 'own'), 'defense')), engine._inRedZone(unit(at(12, 'opp'), 'defense')),
+      engine._onGoalLine(unit(at(4, 'own'), 'defense')), engine._onGoalLine(unit(at(12, 'own'), 'defense')),
+      engine._inRedZone(unit(at(12, 'opp'), 'offense')), engine._inRedZone(unit(at(12, 'own'), 'offense')),
+    ],
+    // The Matchup Red Zone situation is one of these predicates, not a threshold.
+    matchup: (() => {
+      const spec = engine._matchupSituations().find(item => item.key === 'red-zone');
+      return [spec.match(unit(at(12, 'own'), 'defense')), spec.match(unit(at(12, 'opp'), 'defense')),
+        spec.match(unit(at(12, 'opp'), 'offense')), spec.match(unit(at(12, 'own'), 'offense'))];
+    })(),
+  };
+});
+ok(JSON.stringify(zoneModel.bands) === JSON.stringify([
+  [3, 'Goal line', 'Backed up'], [5, 'Goal line', 'Backed up'], [6, 'Red zone', 'Backed up'],
+  [20, 'Red zone', 'Own 11–39'], [21, 'Opp 40–20', 'Own 11–39'], [50, 'Midfield', 'Midfield'],
+  [60, 'Midfield', 'Opp 40–20'], [89, 'Own 11–39', 'Red zone'], [90, 'Backed up', 'Red zone'],
+  [95, 'Backed up', 'Goal line'],
+]), 'the defensive bucketer mirrors the six bands and leaves the offense bucketer unchanged', JSON.stringify(zoneModel.bands));
+ok(JSON.stringify(zoneModel.blank) === JSON.stringify(['', '', '', '']),
+  'a snap with no charted field position joins no band in either perspective', JSON.stringify(zoneModel.blank));
+ok(JSON.stringify(zoneModel.perspective) === JSON.stringify(['Red zone', 'Own 11–39', 'Red zone', 'Own 11–39', 'Own 11–39']),
+  'the zone follows the unit the coach charted, including a relabeled Matchup rep', JSON.stringify(zoneModel.perspective));
+ok(JSON.stringify(zoneModel.redZone) === JSON.stringify([true, false, true, false, true, false])
+  && JSON.stringify(zoneModel.matchup) === JSON.stringify([true, false, true, false]),
+  'our 12 is a defensive red-zone snap and the opponent 12 is not; Matchup reads the same predicate',
+  JSON.stringify(zoneModel));
+const drives = await page.evaluate(async () => {
+  const app = window.app;
+  const play = (id, tags) => ({ id, __gid: 'z', __seasonGameIdx: 0, timestamp: { start: id * 10, end: id * 10 + 6 },
+    tags: { unit: 'defense', custom: [], players: {}, grades: {}, defFront: 'Bear', coverage: 'Cover 3', ...tags } });
+  const plays = [
+    // One snap per band, from our own goal outward.
+    play(1, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '3', result: 'Touchdown', yardLine: '3', fieldSide: 'own' }),
+    play(2, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '4', result: 'Gain', yardLine: '14', fieldSide: 'own' }),
+    play(3, { down: '2', distance: '6', runPass: 'Pass', playType: 'Short Pass', yardage: '5', result: 'Field Goal', yardLine: '30', fieldSide: 'own' }),
+    play(4, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Outside', yardage: '6', result: 'Gain', yardLine: '50', fieldSide: 'own' }),
+    play(5, { down: '3', distance: '4', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', yardLine: '25', fieldSide: 'opp', players: { takeaway: '22' } }),
+    play(6, { down: '2', distance: '9', runPass: 'Run', playType: 'Run Inside', yardage: '-2', result: 'Fumble + Touchdown', fumbleRecovery: 'subject', yardLine: '6', fieldSide: 'opp', players: { tackler: '31' } }),
+    play(7, { down: '2', distance: '8', runPass: 'Run', playType: 'Run Inside', yardage: '-3', result: 'Safety', yardLine: '3', fieldSide: 'opp' }),
+    play(8, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '1', result: 'Touchdown', scoreFor: 'us', yardLine: '8', fieldSide: 'opp' }),
+  ];
+  const dashboard = app.stats.defenseDashboard(plays, { z: 'Zoners' });
+  const board = app.stats.defenseBoard(plays, { scope: 'game', seasonPlays: plays, labels: { z: 'Zoners' } });
+  let saved = null;
+  const prior = window.ffaSaveBlob;
+  window.ffaSaveBlob = blob => { saved = blob; };
+  const screenScope = app.reportsScreen.defenseScope;
+  app.reportsScreen.defenseScope = 'game';
+  app.reportsScreen.exportDefense(dashboard, plays);
+  app.reportsScreen.defenseScope = screenScope;
+  window.ffaSaveBlob = prior;
+  return {
+    zones: dashboard.zones.map(row => [row.name, row.n]),
+    boardZones: board.zones.map(row => [row.name, row.n]),
+    outcomes: dashboard.driveOutcomes.filter(row => row.n).map(row => [row.name, row.n]),
+    possessions: board.possessions.map(row => [row.outcome, row.points]),
+    html: saved ? await saved.text() : '',
+  };
+});
+const exportedRow = (html, label, value) =>
+  new RegExp(`<td[^>]*>${label}</td>\\s*<td[^>]*>${value}</td>`).test(html);
+ok(JSON.stringify(drives.zones) === JSON.stringify([['Backed Up', 3], ['Open Field', 2], ['Opp 40–20', 1], ['Red Zone', 1], ['Goal Line', 1]]),
+  'defensive Field zone buckets each snap from our own goal line', JSON.stringify(drives.zones));
+ok(JSON.stringify(drives.boardZones) === JSON.stringify(drives.zones),
+  'the Revision 2 Field zone module shows the dashboard\'s defensive zones', JSON.stringify(drives.boardZones));
+ok(['Backed Up:3', 'Open Field:2', 'Opp 40–20:1', 'Red Zone:1', 'Goal Line:1']
+  .every(pair => exportedRow(drives.html, pair.split(':')[0], pair.split(':')[1])),
+  'the Defense export prints those same defensive zones', drives.html.length ? 'export produced' : 'no export HTML');
+ok(JSON.stringify(drives.possessions) === JSON.stringify([['Touchdown', 6], ['Field Goal', 3], ['Turnover', 0], ['Turnover', 0], ['Safety', 0], ['Unresolved', 0]]),
+  'board possessions: their touchdown 6, their field goal 3, our pick-six and fumble return 0, our safety 0, an unattributable return unresolved',
+  JSON.stringify(drives.possessions));
+ok(JSON.stringify(drives.outcomes) === JSON.stringify([['Touchdown', 1], ['Field Goal', 1], ['Turnover', 2], ['Other / unresolved', 2]]),
+  'the export drive outcomes agree: one opponent touchdown, one field goal, two turnovers, a safety and an unresolved return',
+  JSON.stringify(drives.outcomes));
+ok(exportedRow(drives.html, 'Touchdown', '1') && exportedRow(drives.html, 'Turnover', '2')
+  && exportedRow(drives.html, 'Field Goal', '1') && !exportedRow(drives.html, 'Touchdown', '3'),
+  'the printed report never counts our return touchdowns as opponent touchdowns');
+
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

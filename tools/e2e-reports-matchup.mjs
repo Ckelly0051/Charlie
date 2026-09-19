@@ -79,8 +79,11 @@ const SCOUT_DEFENSE = [
     result: 'Gain', yardage: '3', down: '3', distance: '2' })),
   ...rep(3, () => def({ defFront: 'Bear', coverage: 'Cover 6', blitz: 'Field', runPass: 'Pass', playType: 'Deep Pass',
     result: 'Incomplete', yardage: '0', down: '3', distance: '9' })),
+  /* A DEFENSIVE red-zone rep is charted at the defense's OWN 8: on a defensive
+     snap the offense is attacking that goal line. Charted `opp 8` the ball is on
+     the offense's own 8, which is the opponent backed up, not the red zone. */
   ...rep(4, () => def({ defFront: '4-4', coverage: 'Cover 1', runPass: 'Run', playType: 'Run Outside',
-    result: 'Gain', yardage: '3', down: '2', distance: '4', fieldSide: 'opp', yardLine: '8' })),
+    result: 'Gain', yardage: '3', down: '2', distance: '4', fieldSide: 'own', yardLine: '8' })),
 ];
 /* Their OFFENSE, charted on the same scout film. */
 const SCOUT_OFFENSE = [
@@ -145,9 +148,10 @@ const SEASON_DEFENSE = [
   ...rep(3, () => def({ defFront: 'Nickel', coverage: 'Cover 3', personnel: '10', formation: 'Empty',
     playCall: 'Smash', runPass: 'Pass', playType: 'Deep Pass', result: 'Gain', yardage: '9',
     down: '3', distance: '9' })),
+  /* Our own red-zone defensive reps: their offense on OUR 8. */
   ...rep(3, () => def({ defFront: '4-4', coverage: 'Cover 1', personnel: '12', formation: 'Wing-T',
     playCall: 'Buck Sweep', runPass: 'Run', playType: 'Run Outside', result: 'No Gain', yardage: '2',
-    down: '2', distance: '4', fieldSide: 'opp', yardLine: '8' })),
+    down: '2', distance: '4', fieldSide: 'own', yardLine: '8' })),
 ];
 
 const game = (id, opponent, perspective, plays, week) => ({
@@ -370,6 +374,33 @@ const overlap = await page.evaluate(() => {
 });
 ok(overlap.includes('3rd & 1-3') && overlap.includes('Red Zone'),
   'a red-zone third down belongs to both its down-and-distance cohort and Red Zone', JSON.stringify(overlap));
+/* THE RED ZONE IS READ FROM THE PERSPECTIVE THE SNAP WAS CHARTED IN. One lane
+   always holds a defensive cohort, where the offense attacks our goal line, so a
+   single `>= 80` threshold measured the wrong end of the field on that side. */
+const redZoneSides = await page.evaluate(() => {
+  const engine = window.app.stats;
+  const spec = engine._matchupSituations().find(item => item.key === 'red-zone');
+  const snap = (unit, fieldSide, chartedUnit) => ({
+    tags: { unit, down: '2', distance: '4', fieldSide, yardLine: '8' },
+    ...(chartedUnit ? { __chartedUnit: chartedUnit } : {}),
+  });
+  const lane = engine.matchupReport('St. Mary Falcons').defense;
+  const row = lane.situations.find(item => item.key === 'red-zone');
+  return {
+    predicates: [spec.match(snap('defense', 'own')), spec.match(snap('defense', 'opp')),
+      spec.match(snap('offense', 'opp')), spec.match(snap('offense', 'own')),
+      spec.match(snap('offense', 'own', 'defense'))],
+    opponent: row?.opponent ? { n: row.opponent.n, label: row.opponent.label } : null,
+    season: row?.season ? { label: row.season.label, n: row.season.n } : null,
+  };
+});
+ok(JSON.stringify(redZoneSides.predicates) === JSON.stringify([true, false, true, false, true]),
+  'a defensive snap on our own 8 is a red-zone rep and one on the opponent 8 is not; an offensive snap is the mirror',
+  JSON.stringify(redZoneSides.predicates));
+ok(redZoneSides.opponent?.n === 3 && redZoneSides.opponent?.label === '12 | Wing-T | Buck Sweep'
+  && redZoneSides.season?.label === '4-4 | Cover 1 | No Blitz' && redZoneSides.season?.n === 3,
+  'Our Defense vs Their Offense joins their red-zone offense with our own red-zone defensive reps',
+  JSON.stringify(redZoneSides));
 
 /* ══ 5. Ranking, tie-breaking and the Rate denominator ════════════════════ */
 console.log('\n== 5. Ranking, tie-breaking and the Rate denominator ==');

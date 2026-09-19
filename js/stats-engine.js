@@ -484,6 +484,58 @@ export class StatsEngine {
     return 'Goal line';
   }
 
+  /** WHICH END OF THE FIELD THE CHARTED UNIT WAS ATTACKING. `_absYardLine`
+   *  measures from the charting season's own goal line, so on an OFFENSIVE snap
+   *  the ball moves toward 100 and on a DEFENSIVE snap the opponent's offense
+   *  moves toward 0. The unit the coach charted is the only source: Matchup
+   *  relabels a rep to read it from the other side and carries the original as
+   *  `__chartedUnit`, so the relabel changes which cohort a snap joins and never
+   *  which goal line its yardage was measured from. Nothing is inferred from
+   *  field position itself, and a Special Teams snap keeps the offense-oriented
+   *  reading it has always had, because its unit encodes no possession. */
+  static fieldPerspective(p) {
+    const unit = (p && (p.__chartedUnit || (p.tags && p.tags.unit))) || 'offense';
+    return unit === 'defense' ? 'defense' : 'offense';
+  }
+
+  /** `_fieldZone` for a DEFENSIVE snap: the same six coach-facing bands, at the
+   *  mirrored yard lines, because the offense on the field is the opponent and
+   *  it is attacking OUR goal line. Our 1-5 is the goal line, our 6-20 the red
+   *  zone, and the opponent is backed up at 90-100. The offense-oriented
+   *  `_fieldZone` is unchanged: its consumers measure the offense that owns the
+   *  ball, and re-pointing it would move every offensive report. Missing field
+   *  position stays absent (`''`) and is never placed in a band. */
+  _defensiveFieldZone(tags) {
+    const yard = this._absYardLine(tags);
+    if (yard === null) return '';
+    if (yard <= 5) return 'Goal line';
+    if (yard <= 20) return 'Red zone';
+    if (yard <= 40) return 'Opp 40–20';
+    if (yard <= 60) return 'Midfield';
+    if (yard <= 89) return 'Own 11–39';
+    return 'Backed up';
+  }
+
+  /** The one zone owner every consumer should call when a cohort can hold both
+   *  perspectives: it reads the charted unit and picks the matching bucketer. */
+  fieldZoneOf(play) {
+    return StatsEngine.fieldPerspective(play) === 'defense'
+      ? this._defensiveFieldZone(play.tags)
+      : this._fieldZone(play.tags);
+  }
+
+  /** Red zone and goal line as PREDICATES over either perspective, derived from
+   *  the same two bucketers so a threshold can never drift from a band. The red
+   *  zone includes the goal line, which is what the offense-oriented `>= 80`
+   *  has always meant. */
+  _inRedZone(play) {
+    return ['Red zone', 'Goal line'].includes(this.fieldZoneOf(play));
+  }
+
+  _onGoalLine(play) {
+    return this.fieldZoneOf(play) === 'Goal line';
+  }
+
   static isSuccessfulPlay(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
@@ -674,6 +726,34 @@ export class StatsEngine {
     };
   }
 
+  /** OPPONENT POSSESSIONS from our defensive snaps, with each drive's outcome
+   *  and points attributed by SCORING SIDE. `_driveStats` is side-agnostic — it
+   *  reads the last snap's result — so a pick-six ended an opponent drive as a
+   *  touchdown worth 6 of THEIR points. Contracts, and the board and the export
+   *  both consume this one helper so they cannot disagree:
+   *    - their touchdown stays `TD` at 6, their field goal `FG` at 3;
+   *    - our return touchdown is a `Turnover` at 0, because the takeaway or
+   *      giveaway that produced it is charted;
+   *    - our safety keeps `Safety` and scores them 0;
+   *    - a score credited to us with no charted turnover stays `Other`
+   *      (rendered `Unresolved` / `Other / unresolved`) at 0 — how the ball
+   *      changed hands is not inferred;
+   *    - ownership comes from `scoringSide`, never from the unit alone.
+   *  Drive reconstruction and every offense-drive path are untouched: drives zip
+   *  with `_reconstructDrives` by index, the order `_driveStats` builds them in,
+   *  because bare play ids collide across games. */
+  opponentDriveList(plays, context = null) {
+    const drives = this._reconstructDrives(plays);
+    return this._driveStats(plays, context).list.map((drive, idx) => {
+      const last = drives[idx]?.at(-1);
+      if (!last || !['TD', 'FG', 'Safety'].includes(drive.outcome)) return drive;
+      if (StatsEngine.scoringSide(last) === 'them') return drive;
+      if (drive.outcome === 'Safety') return { ...drive, points: 0 };
+      return { ...drive, points: 0,
+        outcome: StatsEngine.isTakeaway(last) || StatsEngine.isGiveaway(last) ? 'Turnover' : 'Other' };
+    });
+  }
+
   // Drive-by-drive visual for the Game tab. Reuses the already-computed
   // stats.drives.list; each row carries its play ids so it's click-to-film.
     // Backfield + Strength tendency tables (the new Hudl-model dimensions). Each
@@ -711,7 +791,9 @@ export class StatsEngine {
           // why "I played them" games now populate the matchup, not just scout
           // games — same model as the Opponent Scout.)
           if (rawOpp && (t.defFront || StatsEngine.proj(p).coverage || StatsEngine.proj(p).coverageFamily)) {
-            (oppMap[rawOpp] = oppMap[rawOpp] || []).push({ ...p, __gid: g.id, tags: { ...t, unit: 'defense' } });
+            // `__chartedUnit` keeps the unit the field position was measured
+            // from; the relabel only changes which cohort reads the rep.
+            (oppMap[rawOpp] = oppMap[rawOpp] || []).push({ ...p, __gid: g.id, __chartedUnit: u, tags: { ...t, unit: 'defense' } });
           }
         } else if (u === 'defense') {
           // THE MIRROR, and it is the same shortcut read the other way. On OUR
@@ -727,7 +809,7 @@ export class StatsEngine {
           yourDef.push(stamp(p));
           const proj = StatsEngine.proj(p);
           if (rawOpp && (proj.formation || t.playType || t.runPass || proj.backfield || t.personnel)) {
-            (oppOffMap[rawOpp] = oppOffMap[rawOpp] || []).push({ ...p, __gid: g.id, tags: { ...t, unit: 'offense' } });
+            (oppOffMap[rawOpp] = oppOffMap[rawOpp] || []).push({ ...p, __gid: g.id, __chartedUnit: u, tags: { ...t, unit: 'offense' } });
           }
         }
       });
@@ -778,7 +860,10 @@ export class StatsEngine {
       { key: 'second-long', label: '2nd & 7+', match: p => p.tags.down === '2' && dist(p) >= 7 },
       { key: 'third-short', label: '3rd & 1-3', match: p => p.tags.down === '3' && dist(p) >= 1 && dist(p) <= 3 },
       { key: 'third-long', label: '3rd & 7+', match: p => p.tags.down === '3' && dist(p) >= 7 },
-      { key: 'red-zone', label: 'Red Zone', match: p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 80; } },
+      /* Both cohorts in a lane pass through these predicates, and one of them is
+         always a defensive cohort, so the red zone is read from the perspective
+         the snap was CHARTED in rather than from a single fixed threshold. */
+      { key: 'red-zone', label: 'Red Zone', match: p => this._inRedZone(p) },
     ];
   }
 
@@ -1571,15 +1656,17 @@ export class StatsEngine {
       // Exactly `_distBucket`'s Short and Long thresholds, so exactly its wording.
       [`3rd & ${StatsEngine.DIST_LABELS.Short}`, p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 1 && (parseInt(p.tags.distance, 10) || 0) <= 3],
       [`3rd & ${StatsEngine.DIST_LABELS.Long}`, p => p.tags.down === '3' && (parseInt(p.tags.distance, 10) || 0) >= 7],
-      ['Red Zone', p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 80; }],
-      ['Goal Line', p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 95; }],
+      // Defensive snaps: the opponent offense attacks OUR goal, so these read
+      // the defensive bands, not the offense-oriented `>= 80` / `>= 95`.
+      ['Red Zone', p => this._inRedZone(p)],
+      ['Goal Line', p => this._onGoalLine(p)],
     ];
     const situations = situationSpecs.map(([name, predicate]) => summarize(name, source.filter(predicate)))
       .filter(row => row.n > 0);
     const defensive = this._defensiveStats(source);
     const thirdDown = source.filter(p => p.tags.down === '3');
     const redZoneDrives = this._reconstructDrives(source).filter(drive =>
-      drive.some(p => { const spot = this._absYardLine(p.tags); return spot != null && spot >= 80; }));
+      drive.some(p => this._inRedZone(p)));
     const redZoneTouchdowns = redZoneDrives.filter(drive =>
       drive.some(p => StatsEngine.hasResult(p, 'Touchdown'))).length;
     return {
@@ -1757,7 +1844,10 @@ export class StatsEngine {
     directions.push(...['Toward Strength', 'Away from Strength'].map(name => ({ ...summarize(name,
       source.filter(play => relativeDirection(play) === name)), isRelative: true })));
 
-    const driveStats = this._driveStats(source, { all });
+    // Opponent possessions: outcomes attributed by scoring side through the one
+    // shared owner, so the export and the Revision 2 board agree exactly.
+    const driveList = this.opponentDriveList(source, { all });
+    const driveStats = { list: driveList, total: driveList.length };
     const driveGroups = [
       ['Touchdown', ['TD']], ['Field Goal', ['FG']], ['Missed FG', ['Missed FG']],
       ['Punt', ['Punt']], ['Turnover', ['Turnover']], ['Downs', ['Downs']],
@@ -1816,8 +1906,9 @@ export class StatsEngine {
         blitzPct: blitzN + noBlitzN ? Math.round(blitzN / (blitzN + noBlitzN) * 100) : null };
     }));
     // The board has five fixed slots. Preserve them by combining the two
-    // neutral-territory canonical buckets; every boundary still comes from
-    // `_fieldZone`, the app's single field-position owner.
+    // neutral-territory canonical buckets; every boundary still comes from the
+    // canonical bucketers, here the DEFENSIVE one, because these are defensive
+    // snaps and the opponent offense attacks our goal line.
     const zoneSpecs = [
       ['Backed Up', ['Backed up']],
       ['Open Field', ['Own 11–39', 'Midfield']],
@@ -1826,7 +1917,7 @@ export class StatsEngine {
       ['Goal Line', ['Goal line']],
     ];
     const zones = zoneSpecs.map(([name, buckets]) => summarize(name,
-      source.filter(p => buckets.includes(this._fieldZone(p.tags)))));
+      source.filter(p => buckets.includes(this._defensiveFieldZone(p.tags)))));
     const hashes = ['Left', 'Middle', 'Right'].map(name => summarize(name, source.filter(p => p.tags.hash === name)));
     const motionNames = ranked(grouped(source, p => p.tags.motion || 'No Motion'));
 
@@ -1998,26 +2089,9 @@ export class StatsEngine {
       ['Punt', 'Punt'], ['Turnover', 'Turnover'], ['Downs', 'Downs'], ['Safety', 'Safety'],
       ['Kneel', 'Kneel'], ['Other', 'Other / unresolved']];
     const outcomeName = outcome => DRIVE_OUTCOMES.find(([key]) => key === outcome)?.[1] || outcome;
-    /* SCORING SIDE DECIDES WHOSE POINTS A DRIVE ENDED WITH. `_driveStats` is
-       side-agnostic: a pick-six ends an opponent drive as `TD` for 6 points.
-       On an opponent possession only an opponent score is theirs. Our
-       touchdown on a takeaway ends their drive as a Turnover; one without a
-       charted takeaway stays unresolved rather than inferring how the ball
-       changed hands. A safety is ours, so it keeps its outcome and scores the
-       opponent nothing. Drives zip with `_reconstructDrives` by index, which is
-       the order `_driveStats` builds them in, because bare play ids collide
-       across games. */
-    const opponentDrives = (plays, context) => {
-      const drives = this._reconstructDrives(plays);
-      return this._driveStats(plays, context).list.map((drive, idx) => {
-        const last = drives[idx]?.at(-1);
-        if (!last || !['TD', 'FG', 'Safety'].includes(drive.outcome)) return drive;
-        if (S.scoringSide(last) === 'them') return drive;
-        if (drive.outcome === 'Safety') return { ...drive, points: 0 };
-        return { ...drive, outcome: S.isTakeaway(last) || S.isGiveaway(last) ? 'Turnover' : 'Other', points: 0 };
-      });
-    };
-    const driveList = opponentDrives(ps, { all });
+    // Scoring-side attribution belongs to `opponentDriveList`, the one owner the
+    // export reads too, so the board and the printed report cannot disagree.
+    const driveList = this.opponentDriveList(ps, { all });
     const driveStats = { list: driveList, total: driveList.length };
     const outcomeKeys = [...DRIVE_OUTCOMES.map(([key]) => key),
       ...[...new Set(driveStats.list.map(drive => drive.outcome))].filter(key => !DRIVE_OUTCOMES.some(([k]) => k === key))];
@@ -2041,7 +2115,7 @@ export class StatsEngine {
       const gameAll = all.filter(p => String(p.__gid ?? 'current') === gid);
       const gameDefense = gameAll.filter(isDefense);
       const gameDrives = this._reconstructDrives(gameDefense);
-      return opponentDrives(gameDefense, { all: gameAll }).map((drive, idx) => {
+      return this.opponentDriveList(gameDefense, { all: gameAll }).map((drive, idx) => {
         const last = gameDrives[idx]?.at(-1);
         return { opponent: labels[gid] || gid, name: `Drive ${drive.number}`, start: spot(drive.startYL),
           lastSnap: spot(last ? this._absYardLine(last.tags) : null), plays: drive.plays, yards: drive.yards,
@@ -2159,19 +2233,16 @@ export class StatsEngine {
           firstDowns, allowedPct: rate(firstDowns, cohort.length), topCall: row.topCall, blitzPct: row.blitzPct, refs: row.refs };
       });
 
-    /* HIGH-LEVERAGE FIELD POSITION, FROM OUR GOAL. `_absYardLine` measures
-       from our own goal line, so on a defensive snap the opponent attacks
-       toward 0: inside our 20 is 1-20, the goal line is 1-5, and the opponent
-       is backed up at 90-99. `_fieldZone` names zones for the OFFENSE and reads
-       the wrong end here. Red-zone possessions depend on reconstructed drives
-       and charted field position. */
-    const yardLineWithin = (min, max) => p => { const yl = this._absYardLine(p.tags); return yl != null && yl >= min && yl <= max; };
-    const inside20 = yardLineWithin(0, 20);
+    /* HIGH-LEVERAGE FIELD POSITION, FROM OUR GOAL, through the defensive band
+       owner: inside our 20 is the red-zone and goal-line bands (1-20), the goal
+       line 1-5, and the opponent is backed up at 90-100. Red-zone possessions
+       depend on reconstructed drives and charted field position. */
+    const inside20 = p => this._inRedZone(p);
     const redZoneDrives = this._reconstructDrives(ps).filter(drive => drive.some(inside20));
     const redZoneTouchdowns = redZoneDrives.filter(drive => touchdownsAllowed(drive) > 0).length;
     const inside = ps.filter(inside20);
-    const goalLine = ps.filter(yardLineWithin(0, 5));
-    const backedUp = ps.filter(yardLineWithin(90, 100));
+    const goalLine = ps.filter(p => this._onGoalLine(p));
+    const backedUp = ps.filter(p => this._defensiveFieldZone(p.tags) === 'Backed up');
     const highLeverage = [
       { name: 'Red-zone possessions', sample: redZoneDrives.length, ypp: null, touchdownsAllowed: redZoneTouchdowns,
         refs: S._refsOf(redZoneDrives.flat()) },
@@ -4664,12 +4735,12 @@ export class StatsEngine {
     const byOurLook = group(play => StatsEngine.splitFormations(StatsEngine.proj(play).formation));
     const bySituation = group(play => {
       const down = play.tags.down, distance = parseInt(play.tags.distance) || 0;
-      const yard = this._absYardLine(play.tags);
       const keys = [];
       if (down === '3' || down === '4') keys.push(distance >= 7 ? 'Money down, long' : 'Money down, short');
       else if (down) keys.push('Early down');
-      if (yard !== null && yard >= 80) keys.push('Red zone');
-      if (yard !== null && yard <= 10) keys.push('Backed up');
+      const zone = this.fieldZoneOf(play);
+      if (zone === 'Red zone' || zone === 'Goal line') keys.push('Red zone');
+      if (zone === 'Backed up') keys.push('Backed up');
       return keys;
     });
 
