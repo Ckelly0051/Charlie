@@ -851,13 +851,35 @@ edge-to-edge by design; the top bar's 18px inset is not.
    downs allowed and, in the dashboard, as 3rd/4th downs allowed; Run TFL admitted
    negative-yardage passes; an unmeasured structure row printed `0` explosives.
    All five have failing-first, mutation-verified regressions.
-   **Still open, same root cause, not repaired here:** the dashboard's `zones`
-   (the board's Field zone module and the export) and `defensivePerformance`'s
-   red-zone situation name defensive snaps with the offense-oriented
-   `_fieldZone`, so `Red zone`, `Goal line` and `Backed up` describe the wrong end
-   on defense; and the dashboard's own drive outcomes (export) still read
-   side-agnostic `_driveStats`. Both change export output and pinned canonical
-   values, so they need their own scoped repair.
+7. **Defensive field-zone ownership and export drive attribution — REPAIRED
+   2026-09-19.** The two same-root-cause defects left open by item 6.
+   **Field position now names an owner.** `StatsEngine.fieldPerspective()` reads
+   the unit the coach CHARTED — `__chartedUnit` on a rep Matchup relabels for its
+   cross-read, otherwise `tags.unit` — and `_defensiveFieldZone()` mirrors
+   `_fieldZone`'s six bands for a defensive snap: our 1-5 is `Goal line`, 6-20
+   `Red zone`, 21-40 `Opp 40–20`, 41-60 `Midfield`, 61-89 `Own 11–39`, 90-100
+   `Backed up`. `fieldZoneOf()` / `_inRedZone()` / `_onGoalLine()` are the shared
+   consumers; the offense-oriented `_fieldZone` is untouched, and so is every
+   offensive report, cut filter and Study dimension that reads it. Repaired
+   consumers: the dashboard `zones` behind the board's Field zone module AND the
+   export, `defensivePerformance`'s Red Zone / Goal Line situations and its
+   red-zone touchdown rate (the owner Matchup's Red Zone row shares), the Matchup
+   situation predicate, the Opponent Scout `_opponentDefenseJoin` situations, and
+   the board's high-leverage rows, which now read the same bands.
+   **Canonical 2025 JV, old → new:** Field zone `Backed Up` 11 → 2, `Open Field`
+   110 → 94, `Opp 40–20` 43 → 43 (a different 43 snaps), `Red Zone` 5 → 26,
+   `Goal Line` not rendered → 4; `defensivePerformance` Red Zone 5 → 30, Goal
+   Line absent → 4, red-zone touchdown rate 0% → 75%. Zones now reconcile with
+   High-leverage field position exactly.
+   **One drive owner.** `StatsEngine.opponentDriveList()` holds the
+   scoring-side attribution and both the board and the export consume it, so the
+   printed report can no longer read our pick-six as an opponent touchdown.
+   Canonical export outcomes are unchanged (that season has no defensive score).
+   **Three fixtures were corrected, not the assertions:** the Matchup, Reports
+   route and Defense fixtures charted defensive red-zone reps at `opp 8` / `opp
+   10`, which is the opponent backed up on its own 8, and now chart them on our
+   own 8 / 10. The canonical season is the evidence for the direction: every
+   touchdown it allowed sits within 23 yards of our goal line.
 
 ## Breakdown
 

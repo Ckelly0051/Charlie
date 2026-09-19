@@ -1029,9 +1029,32 @@ with two events is one distinct play. `1st Downs Allowed` and the dashboard's
 only when the opponent scored it. **High-leverage field position is measured
 from OUR goal line**, toward which the opponent attacks: inside our 20 is
 `_absYardLine` 0-20, goal line 0-5, opponent backed up 90-100 (canonical season:
-8 red-zone possessions, 6 touchdowns allowed). `_fieldZone` names zones for the
-offense and must not be used for these rows. A structure row with nothing
+8 red-zone possessions, 6 touchdowns allowed). A structure row with nothing
 Run/Pass-classified reports no explosive count (`—`), never `0`.
+
+**FIELD POSITION HAS AN OWNER, AND IT IS THE UNIT THE COACH CHARTED.**
+`_absYardLine` measures from the charting season's own goal line, so the offense
+on the field approaches 100 on an offensive snap and 0 on a defensive one.
+`StatsEngine.fieldPerspective()` decides which from `__chartedUnit` — the unit a
+rep carried before Matchup relabeled it for its cross-read — falling back to
+`tags.unit`; nothing is inferred from the yard line itself, and a Special Teams
+snap keeps the offense-oriented reading because its unit encodes no possession.
+`_defensiveFieldZone()` mirrors `_fieldZone`'s six bands for a defensive snap:
+our 1-5 `Goal line`, 6-20 `Red zone`, 21-40 `Opp 40–20`, 41-60 `Midfield`, 61-89
+`Own 11–39`, 90-100 `Backed up` — the same coach-facing band names, which on a
+defensive report describe the opponent offense the report is about.
+`fieldZoneOf()`, `_inRedZone()` and `_onGoalLine()` are the shared consumers, and
+the offense-oriented `_fieldZone` is unchanged because its own consumers measure
+the offense that owns the ball. Every defensive consumer reads the defensive
+owner: the dashboard `zones` behind both the Field zone module and the export,
+`defensivePerformance`'s Red Zone / Goal Line situations and red-zone touchdown
+rate, Matchup's Red Zone situation, the Opponent Scout situational join, and the
+board's high-leverage rows. Read from the offense's end the canonical season
+reported Field zone `Backed Up` 11 / `Open Field` 110 / `Red Zone` 5 and no
+`Goal Line` row; it is 2 / 94 / 26 / 4, and it reconciles with High-leverage
+field position exactly. A fixture that charts a defensive red-zone rep at
+`opp 8` is charting the opponent backed up on its own 8; three did, and they were
+corrected.
 Blitz Performance holds exactly Blitz vs Run, No Blitz vs Run, Blitz vs Pass and
 No Blitz vs Pass (`isNoBlitz`, the same rule the blitz rate uses). Blitz Type
 Performance holds exactly A-Gap through D-Gap. Run / Pass vs Strength holds
@@ -1048,10 +1071,12 @@ Missed Field Goal, Punt, Turnover, Downs, Safety, Kneel, Other / unresolved —
 and no row for an outcome that did not occur. A possession the charting cannot
 settle stays `Other / unresolved` (`Unresolved` in Opponent possessions); nothing
 is folded into another outcome. **Whose points a drive ended with is decided by
-`scoringSide`**, because `_driveStats` is side-agnostic: our pick-six or fumble
-return ends the opponent's drive as `Turnover` for 0 points (unresolved when no
-takeaway is charted), and a safety keeps its outcome but scores the opponent
-nothing. Opponent possessions lists every reconstructed
+`scoringSide`, in ONE owner — `StatsEngine.opponentDriveList()` — which the board
+and the EXPORT both consume**, because `_driveStats` is side-agnostic: our
+pick-six or fumble return ends the opponent's drive as `Turnover` for 0 points
+(unresolved when no takeaway is charted), and a safety keeps its outcome but
+scores the opponent nothing. Drive reconstruction boundaries and every
+offense-drive path are unchanged. Opponent possessions lists every reconstructed
 drive, per game, in one fixed-height scrolling module. Its `Yards*` is the
 drive's tagged yardage, penalties included, not classified production; `Last
 snap` is where the last charted snap began, not the final spot; `Pts*` excludes
@@ -1919,8 +1944,8 @@ Full tiers, commands, and what each tier can and cannot certify:
 
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
 `tools/e2e-reports-defense-realdata.mjs` (Defense Revision 2 on the canonical
-season, 78), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
-on a synthetic season, 41),
+season, 84), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
+on a synthetic season, 51),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
@@ -1954,7 +1979,7 @@ tie-break, the Rate denominator, the exact season-side joins and
 per-cohort metric polarity, the supporting sections, the partial and empty
 states, the separate `Opponent` / `Season` film cohorts, the nullified-penalty
 exclusion, order-independent multi-select identities, field-faithful call
-matching, per-cohort game counts, scope chrome and 1440/1280 containment, 72).
+matching, per-cohort game counts, the charted-perspective red zone, scope chrome and 1440/1280 containment, 78).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

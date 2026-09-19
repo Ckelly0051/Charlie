@@ -136,7 +136,7 @@ now exercises **Season scope** at both release widths, which is the gap that let
 a season-only containment defect ship.
 
 `e2e-reports-defense-realdata` is the Defense Revision 2 composition authority
-(78). It loads only `2025-st-joseph-mavericks-jv`, in memory and hash-checked.
+(84). It loads only `2025-st-joseph-mavericks-jv`, in memory and hash-checked.
 Across all six games at 1440 and 1280 in Current game scope it asserts the ten
 literal KPIs in order, the four sections, no Game-by-game, the module geometry
 rules (fixed-schema modules exactly their rows; variable modules a standard
@@ -153,7 +153,7 @@ data contract and the unchanged four-section export. It sweeps nine desktop
 widths forcing `100.0%` into every KPI tile, proves the bar sticks on the real
 route scroller and each jump link lands its heading under it, and captures the
 whole surface at 1920, 1440, 1280 and 390 in both scopes into a per-process
-directory. `e2e-reports-defense-board` (41) covers what the canonical season
+directory. `e2e-reports-defense-board` (51) covers what the canonical season
 lacks on a synthetic season: touchdowns by both scoring sides (our return
 touchdowns never score an opponent possession or count as a conversion
 allowed), run TFL excluding negative passes, no explosive count on an
@@ -161,7 +161,10 @@ unmeasured structure row, high-leverage field direction, a takeaway
 without a touchdown, Safety and Field Goal possessions as their own outcome rows,
 possessions overflowing their module, a game with no front, coverage or play
 type, sorting every player column by mouse, Enter and Space, pairing, scope
-switching and jump targets. Both were mutation-verified: all 16 reintroduced
+switching and jump targets, plus the defensive field-zone bands against the
+offense-oriented ones, the charted perspective of a relabeled Matchup rep, and
+the board and the export agreeing on every opponent-drive outcome. Both were
+mutation-verified: all 26 reintroduced
 defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
