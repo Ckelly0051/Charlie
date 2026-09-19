@@ -880,6 +880,24 @@ edge-to-edge by design; the top bar's 18px inset is not.
    10`, which is the opponent backed up on its own 8, and now chart them on our
    own 8 / 10. The canonical season is the evidence for the direction: every
    touchdown it allowed sits within 23 yards of our goal line.
+8. **Defensive success and touchdowns allowed ignored the scoring side —
+   REPAIRED 2026-09-19.** Found in review of `5041fd8..32c7000`: with the
+   field-zone cohort corrected, `defensivePerformance()` still counted every
+   touchdown as opponent production and measured stops with the
+   ball-carrier-framed `isSuccessfulPlay`, so a red-zone pick-six from our own 10
+   reported `Red Zone TD Rate 100%`, one touchdown allowed and a 0% stop rate,
+   contaminating Matchup and every other consumer. `StatsEngine.
+   isOpponentSuccess()` and `isTouchdownAllowed()` are the two shared rules;
+   `defensiveCohortMetrics` passes the predicate into the `AnalyticsMetrics` seam
+   through the new `options.deps` override rather than keeping a second stop-rate
+   formula. The same sweep repaired `_defensiveStats` (front, coverage and blitz
+   stop counts, and coverage completions — a pick-six is an interception against
+   that coverage, never a completion allowed), `_defenseCallRows` (stops and
+   touchdowns) and Self-Scout's defensive stops, phase stop rates and touchdowns
+   allowed. The offense-framed predicate, `compute()` output and every canonical
+   value are unchanged, because that season has no defensive score. The
+   regression is a synthetic red-zone pick-six checked against the same snap
+   scored by the opponent.
 
 ## Breakdown
 

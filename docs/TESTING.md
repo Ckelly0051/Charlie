@@ -153,7 +153,7 @@ data contract and the unchanged four-section export. It sweeps nine desktop
 widths forcing `100.0%` into every KPI tile, proves the bar sticks on the real
 route scroller and each jump link lands its heading under it, and captures the
 whole surface at 1920, 1440, 1280 and 390 in both scopes into a per-process
-directory. `e2e-reports-defense-board` (51) covers what the canonical season
+directory. `e2e-reports-defense-board` (55) covers what the canonical season
 lacks on a synthetic season: touchdowns by both scoring sides (our return
 touchdowns never score an opponent possession or count as a conversion
 allowed), run TFL excluding negative passes, no explosive count on an
@@ -163,8 +163,11 @@ possessions overflowing their module, a game with no front, coverage or play
 type, sorting every player column by mouse, Enter and Space, pairing, scope
 switching and jump targets, plus the defensive field-zone bands against the
 offense-oriented ones, the charted perspective of a relabeled Matchup rep, and
-the board and the export agreeing on every opponent-drive outcome. Both were
-mutation-verified: all 26 reintroduced
+the board and the export agreeing on every opponent-drive outcome, and a
+red-zone pick-six reading as a stop with no touchdown allowed across
+`defensivePerformance`, the shared cohort metric, the call rows and Self-Scout,
+checked against the same snap scored by the opponent. Both were
+mutation-verified: all 33 reintroduced
 defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |

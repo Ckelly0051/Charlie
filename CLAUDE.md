@@ -1017,6 +1017,25 @@ is not `us`; it is unchanged because the export reads it, and this board does
 not. Canonical: 2025 JV full season 7 allowed / 0 defensive; St. Peter Lutheran
 0 / 0.
 
+**A DEFENSIVE MEASURE ASKS WHETHER THE OPPONENT SUCCEEDED, NOT WHETHER SOMEONE
+SCORED.** `isSuccessfulPlay` is framed for the team carrying the ball and counts
+every touchdown as success, so a pick-six read as opponent production on every
+surface built from `defensivePerformance()`: a red-zone pick-six from our own 10
+reported `Red Zone TD Rate 100%`, one touchdown allowed and a 0% stop rate — the
+same numbers an opponent touchdown produces. `StatsEngine.isOpponentSuccess()`
+wraps the canonical rule and defers to `scoringSide` on a touchdown; a touchdown
+whose side nobody charted is not assumed to be ours. `StatsEngine.
+isTouchdownAllowed()` is the one touchdowns-allowed rule. Both are read by
+`defensiveCohortMetrics` (whose stop rate passes the predicate into the shared
+`AnalyticsMetrics` seam through `options.deps`, so no second stop-rate formula
+exists), `defensivePerformance`'s third-down stop rate and red-zone touchdown
+rate, `_defensiveStats`' front/coverage/blitz stop counts and its coverage
+completions — a pick-six is an interception against that coverage, never a
+completion allowed — `_defenseCallRows`' stops and touchdowns, and Self-Scout's
+defensive stops, phase stop rates and touchdowns allowed. The offense-framed
+predicate is unchanged, `compute()` output is unchanged, and the canonical season
+moves nowhere because it has no defensive score.
+
 **Metric definitions.** `3rd Down Stop %` and `4th Down Stop %` are `100 -` the
 existing allowed rates, one decimal, a dash with no attempts. `Takeaways` is the
 dashboard's interceptions plus fumble recoveries. A pass ATTEMPT needs a charted
@@ -1945,7 +1964,7 @@ Full tiers, commands, and what each tier can and cannot certify:
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
 `tools/e2e-reports-defense-realdata.mjs` (Defense Revision 2 on the canonical
 season, 84), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
-on a synthetic season, 51),
+on a synthetic season, 55),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
@@ -1979,7 +1998,7 @@ tie-break, the Rate denominator, the exact season-side joins and
 per-cohort metric polarity, the supporting sections, the partial and empty
 states, the separate `Opponent` / `Season` film cohorts, the nullified-penalty
 exclusion, order-independent multi-select identities, field-faithful call
-matching, per-cohort game counts, the charted-perspective red zone, scope chrome and 1440/1280 containment, 78).
+matching, per-cohort game counts, the charted-perspective red zone, our pick-six as a stop, scope chrome and 1440/1280 containment, 79).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the
