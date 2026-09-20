@@ -716,9 +716,16 @@ A block the subject recovers and returns for a touchdown is:
 `outcome.status:'blocked'`, `outcome.recoveredBy:'subject'`,
 `outcome.score:'touchdown'` — six points to the subject, one punt blocked, one
 punt-return touchdown, and the exact `gameId::playId` reference. Recovered by the
-opponent it scores for them. **An unrecovered block never defaults to anybody:**
-with `recoveredBy` unknown, `scoringTeam` returns `unknown` and the points go to
-neither side, the same fail-closed rule §4 already applies to an ambiguous safety.
+opponent it scores for them. **A LOOSE BALL HAS NO DEFAULT OWNER.** On `blocked`,
+`muffed` or `recovered`, `scoringTeam` returns `unknown` unless the coach charted
+`recoveredBy` — whether it is explicitly `unknown` or simply left BLANK. The deck
+offers Possession on these outcomes but does not require it, so a blank is an
+ordinary incomplete state rather than a rare edge case, and it used to fall
+through to the receiving-unit default and award the subject six points. The
+points still exist: they reach the scoreboard's `unattributed` total, so nothing
+is dropped. This is the same fail-closed rule §4 already applies to an ambiguous
+safety. A `returned`, `downed` or `fairCatch` kick keeps its unit default — the
+unit that fielded it is the unit that had it.
 
 - Possession decision: Return, Fair Catch, Let Bounce, Muff, Blocked
 - Possession spot, return yards, end spot

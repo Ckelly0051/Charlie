@@ -1194,7 +1194,13 @@ renamed unit reaches the deck and nothing else. A block recovered by the subject
 and returned scores six for us, nothing for the opponent, and reports one punt
 blocked, one punt-return touchdown and the exact `gameId::playId` reference
 through the scoreboard, the report and the export; recovered by the opponent it
-scores for them, and an unrecovered block is attributed to nobody.
+scores for them. **A LOOSE BALL HAS NO DEFAULT OWNER:** on `blocked`, `muffed`
+or `recovered`, a touchdown with `recoveredBy` blank or `unknown` is attributed
+to NEITHER team and its points land in the scoreboard's `unattributed` total.
+The deck offers Possession on those outcomes without requiring it, so a blank is
+an ordinary incomplete state, and it previously fell through to the
+receiving-unit default and awarded us six points (Codex, 2026-09-20). A
+`returned`, `downed` or `fairCatch` kick keeps its unit default.
 
 **The unassigned disclosure is counted from film references, not arithmetic.**
 `specialTeamsUnassigned` summed each module's count and subtracted, which

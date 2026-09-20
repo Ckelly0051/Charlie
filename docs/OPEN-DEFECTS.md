@@ -945,6 +945,18 @@ edge-to-edge by design; the top bar's 18px inset is not.
       → 0 on the canonical season), literal labels, badge nouns, compact empty
       modules, aligned paired edges, no clipping or page overflow at 1440 and
       1280. No module, metric, mobile or global-style change.
+    - **Two Codex findings on the pass itself, repaired 2026-09-20.**
+      **P1:** a blocked-punt touchdown with Possession left BLANK still awarded
+      six points to us — `scoringTeam` fell through to the receiving-unit default,
+      because the deck offers Possession on a loose ball without requiring it. A
+      touchdown on `blocked`, `muffed` or `recovered` with no charted
+      `recoveredBy` is now attributed to neither team and its points land in the
+      scoreboard's `unattributed` total; a `returned`, `downed` or `fairCatch`
+      kick keeps its unit default, which a mutation proves by reddening an
+      existing assertion when the guard is widened.
+      **P3:** the new persistence proof was a `testAsync` without `await`, so it
+      ran after the harness printed its summary and its PASS sat outside the
+      count. Awaited; the harness reports 28.
     - **Remaining, installed-only:** a short smoke of our punt, an opponent punt
       return, the blocked punt-return touchdown, a field-goal block, Try and
       Defending a Try. Chromium verifies the layout and the browser-backed

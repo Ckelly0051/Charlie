@@ -104,10 +104,13 @@ The smallest existing harness for the route or domain you touched.
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
-**Special Teams acceptance pass, 2026-09-19.** `e2e-special-teams-contract` (26)
+**Special Teams acceptance pass, 2026-09-19 (Codex findings repaired 2026-09-20).**
+`e2e-special-teams-contract` (28)
 pins the blocked punt-return workflow at the model: the `Punt Return / Block`
 label, `Blocked` on that unit, six points to the subject on a subject recovery,
-the opponent's six on theirs, no award at all when the recovery is unknown, the
+the opponent's six on theirs, no award at all when the recovery is unknown OR
+left blank — on every loose-ball outcome, with the points kept as `unattributed`
+and an ordinary return still following its unit — the
 scoreboard owner's own totals, the report's one punt blocked / one punt-return
 touchdown / exact composite reference, a save-reopen-normalize round trip of the
 whole authored state, and the try cohort owning the legacy-compatible
@@ -121,7 +124,18 @@ paints, and the board's migration from a deferred 9.5px floor to the shared
 zero sub-floor elements with a 12.5px minimum, in both directions. Nine
 mutations — the outcome vocabulary, the unit label, recovery ownership, the try
 cohort, the ref-based disclosure, the try remainder label, the badge noun, the
-empty-module treatment and a sub-floor KPI label — each reds its own assertion.
+empty-module treatment and a sub-floor KPI label — each reds its own assertion,
+as do three more for the Codex findings: removing the loose-ball guard, widening
+it onto an ordinary return (which reds an EXISTING unit-default assertion, so the
+guard is provably narrow), and dropping the `await` that keeps the persistence
+proof inside the printed total.
+
+**An unawaited `testAsync` silently leaves the total.** `e2e-special-teams-contract`
+prints its result line synchronously, so a `testAsync` call without `await` ran
+after the summary and its PASS was excluded from the count — a failure would
+still have set the exit code, but the documented number would not have covered
+it. Both async tests in that harness are awaited; check for this whenever a
+harness mixes sync and async cases.
 
 **Cohort and label contracts added 2026-09-10.** `e2e-reports-overview-realdata`
 pins that Total plays is the CHARTED count with the classified count as its
