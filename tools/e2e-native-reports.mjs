@@ -377,7 +377,10 @@ const clickSeasonModule = async (tab, title) => {
     const pane = document.querySelector('[data-pane="season"]');
     const module = [...pane.querySelectorAll('.gi-overview-module')]
       .find(node => node.querySelector(':scope > header > strong')?.textContent.trim() === moduleTitle);
-    const row = module?.querySelector('tbody tr[role="button"]');
+    /* A Players role table opens film from a STATISTIC after Revision 2; every
+       other Season child board still activates the row itself. */
+    const row = module?.querySelector('tbody tr[role="button"]')
+      || module?.querySelector('tbody tr [data-player-stat]');
     const detail = { title: moduleTitle, found: !!module, row: !!row,
       available: [...pane.querySelectorAll('.gi-overview-module > header > strong')].map(node => node.textContent.trim()) };
     row?.click();
@@ -1665,7 +1668,9 @@ result = await page.evaluate(async () => {
     att: row22.querySelector('td[data-col="att"]')?.textContent.trim(),
     yds: row22.querySelector('td[data-col="yds"]')?.textContent.trim(),
   } : null;
-  row22?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  /* Revision 2: film comes from a STATISTIC, not the row. `Att` is this
+     rusher's carries; the row itself opens the player detail view. */
+  row22?.querySelector('[data-player-stat*=":att:"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   const watched = calls.at(-1) || null;
 
   app.filmNavigation.watch = original;
@@ -1680,7 +1685,7 @@ ok(result.rowFound, 'The real Reports Players tab renders a leaderboard row for 
 ok(result.boxScore?.att === '2' && result.boxScore?.yds === '8',
   'The Players tab leaderboard row is a real, non-empty box score aggregated from the plays charted for that rusher (2 att, 8 yds)', JSON.stringify(result));
 ok(JSON.stringify(result.watched?.refs?.slice().sort()) === JSON.stringify(['g-players-qa::1', 'g-players-qa::2']),
-  'Activating a Players tab leaderboard row resolves the exact composite film refs for only that rusher, never the other player sharing the game', JSON.stringify(result));
+  'Activating a Players tab rushing statistic resolves the exact composite film refs for only that rusher, never the other player sharing the game', JSON.stringify(result));
 
 console.log('\n== F14. The Defense report never mislabels opponent-scout film as the coach\'s own defense ==');
 result = await page.evaluate(async () => {

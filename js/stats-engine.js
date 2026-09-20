@@ -3789,20 +3789,53 @@ export class StatsEngine {
     return hasResult(play, 'Touchdown');
   }
 
-  _individualStats(plays) {
-    const rushers = {};
-    const passers = {};
-    const receivers = {};
-    const tacklers = {};
-    const returners = {};
-    const kickers = {};
+  /**
+   * THE PLAYER CREDIT INDEX — Reports > Players Revision 2's one owner.
+   *
+   * Every number the Players board shows and every clip it opens is a bucket in
+   * here: a list of `{ play, value }` entries. A count is that list's length, a
+   * total is the sum of its values, a long is the max, and the film cohort is
+   * the composite refs of those exact plays. That is the whole point — a
+   * displayed figure and the playlist behind it cannot disagree, because they
+   * are the same list read two ways, and a game-by-game or situational split is
+   * the same list grouped rather than a second computation.
+   *
+   * `_individualStats` derives its long-standing output from this index rather
+   * than counting a second time, so `e2e-parity`'s golden is the proof that the
+   * buckets reproduce the established definitions exactly. No definition moved:
+   * the gates below (`countsFootballRoles`, the dedicated ST fields, the
+   * canonical field-goal cohort, takeaway-vs-tackler credit) are the rules this
+   * method was already applying.
+   *
+   * ROLE ATTRIBUTION IS NOT PARTICIPATION. A player is credited for the plays a
+   * coach attributed to them, never for snaps played; nothing here counts a
+   * player onto a play they were not charted on.
+   */
+  _playerCredits(plays) {
+    const index = new Map();
+    const ROLE_COHORT = StatsEngine.PLAYER_ROLE_COHORT;
+    const bucket = (num, roleKey, roleLabel, stat, play, value = null) => {
+      const id = String(num || '').trim();
+      if (!id) return;
+      if (!index.has(id)) index.set(id, { num: id, roles: new Map() });
+      const player = index.get(id);
+      if (!player.roles.has(roleKey)) {
+        player.roles.set(roleKey, { key: roleKey, label: roleLabel, stats: new Map(), gradeSum: 0, gradeCount: 0 });
+      }
+      const role = player.roles.get(roleKey);
+      if (!role.stats.has(stat)) role.stats.set(stat, []);
+      role.stats.get(stat).push({ play, value });
+    };
+    const grade = (num, roleKey, roleLabel, play, field) => {
+      const id = String(num || '').trim();
+      const value = play.tags.grades?.[field];
+      if (!id || value == null || !index.get(id)?.roles.has(roleKey)) return;
+      const role = index.get(id).roles.get(roleKey);
+      role.gradeSum += value;
+      role.gradeCount++;
+    };
 
-    plays.forEach(p => {
-      // Special Teams Presentation Independence: composite ref for THIS play,
-      // computed once and pushed into every bucket it credits in the same
-      // pass that increments that bucket's own count -- refs can never drift
-      // from what a row displays. Deduped + sorted at the return statement.
-      const ref = StatsEngine._compositeRef(p);
+    (plays || []).forEach(p => {
       const structured = SpecialTeamsModel.normalize(p.specialTeams);
       const players = StatsEngine.effectivePlayers(p);
       const yds = parseInt(p.tags.yardage) || 0;
@@ -3811,20 +3844,11 @@ export class StatsEngine {
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
-      const countsFootballRoles = StatsEngine.countsFootballRoles(p);
 
-      // --- Special teams ---
-      const structuredReturn = structured && ['kickoffReturn','puntReturn'].includes(structured.unit);
+      // --- Return game. Dedicated ST fields are authoritative; a return with
+      // no charted yardage is a return that contributed no measured yards.
+      const structuredReturn = structured && ['kickoffReturn', 'puntReturn'].includes(structured.unit);
       if (players.returner && (structuredReturn || (!structured && st.includes('Return')))) {
-        const id = players.returner;
-        /* DEDICATED ST FIELDS ARE AUTHORITATIVE. The legacy branch fell back
-         * to `yds` — the generic `tags.yardage` — which is the field the team
-         * Special Teams report deliberately does not read on an ST play. That
-         * is how Players totalled 11 returns for 43 yards from generic
-         * yardage while the team's Return Production, gated on the dedicated
-         * `returnYards`, reported the one return that actually carries it.
-         * Both surfaces now read the same field; an uncharted return has no
-         * yardage, which is an absence, not a zero. */
         const raw = String(p.tags.returnYards ?? '').trim();
         const legacy = raw === '' ? null : (Number.isFinite(Number(raw)) ? Number(raw) : null);
         const returnYards = structuredReturn && Number.isFinite(structured.return.yards)
@@ -3832,178 +3856,384 @@ export class StatsEngine {
         const returnTd = structuredReturn
           ? structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject'
           : isTD;
-        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, measured: 0, tds: 0, long: 0, refs: [] };
-        returners[id].returns++;
-        // A return with no charted yardage still HAPPENED, so it counts as a
-        // return; it just contributes no yards and no average. `measured` is
-        // the denominator an honest average needs.
-        if (returnYards != null) {
-          returners[id].measured++;
-          returners[id].yards += returnYards;
-          if (returnYards > returners[id].long) returners[id].long = returnYards;
-        }
-        if (returnTd) returners[id].tds++;
-        if (ref) returners[id].refs.push(ref);
+        bucket(players.returner, 'returns', 'Return Game', ROLE_COHORT, p);
+        bucket(players.returner, 'returns', 'Return Game', 'ret', p);
+        if (returnYards != null) bucket(players.returner, 'returns', 'Return Game', 'yds', p, returnYards);
+        if (returnTd) bucket(players.returner, 'returns', 'Return Game', 'td', p);
       }
-      // Field-goal credit routes through the canonical cohort so a kicker can
-      // never hold an attempt the Special Teams unit does not recognize. The
-      // legacy branch used to count stType 'XP' here, which is how a coach with
-      // 21 extra points and no field goals saw a kicker at 0/1 FG beside a unit
-      // reporting 0 attempts. Coach decision, 2026-09-04.
+
+      // --- Kicking / punting. The canonical field-goal cohort, so a kicker can
+      // never hold an attempt the Special Teams unit does not recognize.
       const isFg = StatsEngine.isFieldGoalAttempt(p, structured || null);
       const specialist = structured ? (players.punter || players.kicker) : players.kicker;
       if (specialist && structured && !structured.isFake && (isFg || structured.unit === 'punt')) {
-        const id = specialist;
-        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, puntsMeasured: 0, refs: [] };
+        bucket(specialist, 'kicking', 'Kicking / Punting', ROLE_COHORT, p);
         if (isFg) {
-          kickers[id].fgAtt++;
-          if (StatsEngine.isFieldGoalMade(p, structured)) kickers[id].fgMade++;
+          bucket(specialist, 'kicking', 'Kicking / Punting', 'fgAtt', p);
+          if (StatsEngine.isFieldGoalMade(p, structured)) bucket(specialist, 'kicking', 'Kicking / Punting', 'fgMade', p);
         } else {
-          kickers[id].punts++;
+          bucket(specialist, 'kicking', 'Kicking / Punting', 'punts', p);
           if (Number.isFinite(structured.kick.distance)) {
-            kickers[id].puntsMeasured++;
-            kickers[id].puntYds += structured.kick.distance;
+            bucket(specialist, 'kicking', 'Kicking / Punting', 'puntYds', p, structured.kick.distance);
           }
         }
-        if (ref) kickers[id].refs.push(ref);
-      } else if (players.kicker && !structured && st) {
-        const id = players.kicker;
-        if (isFg || st === 'Punt') {
-          if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0, puntsMeasured: 0, refs: [] };
-          if (isFg) {
-            kickers[id].fgAtt++;
-            if (StatsEngine.isFieldGoalMade(p, null)) kickers[id].fgMade++;
-          } else {
-            /* PUNT DISTANCE IS `kickDistance`, NEVER the generic `tags.yardage`.
-             * The legacy branch added `yds`, so a season charting no punt
-             * distance at all produced averages of 2.8 and 0.0 on the Players
-             * board — 11 yards over 4 punts and 0 over 1 — beside a team
-             * report correctly reporting no punt-distance data. The dedicated
-             * field is authoritative on both surfaces; where it is absent the
-             * punt average is No data. */
-            const rawDist = String(p.tags.kickDistance ?? '').trim();
-            const dist = rawDist === '' ? null : (Number.isFinite(Number(rawDist)) ? Number(rawDist) : null);
-            kickers[id].punts++;
-            if (dist != null) { kickers[id].puntsMeasured++; kickers[id].puntYds += dist; }
-          }
-          if (ref) kickers[id].refs.push(ref);
+      } else if (players.kicker && !structured && st && (isFg || st === 'Punt')) {
+        bucket(players.kicker, 'kicking', 'Kicking / Punting', ROLE_COHORT, p);
+        if (isFg) {
+          bucket(players.kicker, 'kicking', 'Kicking / Punting', 'fgAtt', p);
+          if (StatsEngine.isFieldGoalMade(p, null)) bucket(players.kicker, 'kicking', 'Kicking / Punting', 'fgMade', p);
+        } else {
+          // Punt distance is `kickDistance`, never the generic `tags.yardage`.
+          const rawDist = String(p.tags.kickDistance ?? '').trim();
+          const dist = rawDist === '' ? null : (Number.isFinite(Number(rawDist)) ? Number(rawDist) : null);
+          bucket(players.kicker, 'kicking', 'Kicking / Punting', 'punts', p);
+          if (dist != null) bucket(players.kicker, 'kicking', 'Kicking / Punting', 'puntYds', p, dist);
         }
       }
 
-      if (countsFootballRoles) {
-      // Ball carrier (rushing)
+      if (!StatsEngine.countsFootballRoles(p)) return;
+
       if (players.ballCarrier && isRun) {
-        const id = players.ballCarrier;
-        if (!rushers[id]) rushers[id] = { num: id, attempts: 0, yards: 0, tds: 0, long: 0, fumbles: 0, refs: [] };
-        rushers[id].attempts++;
-        rushers[id].yards += yds;
-        if (isTD) rushers[id].tds++;
-        if (yds > rushers[id].long) rushers[id].long = yds;
-        if (StatsEngine.hasResult(p, 'Fumble')) rushers[id].fumbles++;
-        if (ref) rushers[id].refs.push(ref);
-        if (p.tags.grades?.ballCarrier != null) {
-          if (!rushers[id].gradeSum) rushers[id].gradeSum = 0;
-          if (!rushers[id].gradeCount) rushers[id].gradeCount = 0;
-          rushers[id].gradeSum += p.tags.grades.ballCarrier;
-          rushers[id].gradeCount++;
-        }
+        bucket(players.ballCarrier, 'rushing', 'Rushing', ROLE_COHORT, p);
+        bucket(players.ballCarrier, 'rushing', 'Rushing', 'att', p);
+        bucket(players.ballCarrier, 'rushing', 'Rushing', 'yds', p, yds);
+        if (isTD) bucket(players.ballCarrier, 'rushing', 'Rushing', 'td', p);
+        if (StatsEngine.hasResult(p, 'Fumble')) bucket(players.ballCarrier, 'rushing', 'Rushing', 'fum', p);
+        grade(players.ballCarrier, 'rushing', 'Rushing', p, 'ballCarrier');
       }
 
-      // Passer
       if (players.passer && isPass) {
-        const id = players.passer;
-        if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0, refs: [] };
-        // Attempts = completions + incompletions + INTs (matches team C/A).
-        if (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) passers[id].attempts++;
+        bucket(players.passer, 'passing', 'Passing', ROLE_COHORT, p);
+        // Attempts = completions + incompletions + interceptions, the same
+        // cohort the team C/A uses. A sack is not an attempt.
+        if (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) {
+          bucket(players.passer, 'passing', 'Passing', 'att', p);
+        }
         if (isComplete) {
-          passers[id].completions++;
-          passers[id].yards += yds;
+          bucket(players.passer, 'passing', 'Passing', 'cmp', p);
+          bucket(players.passer, 'passing', 'Passing', 'yds', p, yds);
         }
-        if (isTD) passers[id].tds++;
-        if (StatsEngine.hasResult(p, 'Interception')) passers[id].ints++;
-        if (StatsEngine.hasResult(p, 'Sack')) passers[id].sacks++;
-        if (ref) passers[id].refs.push(ref);
-        if (p.tags.grades?.passer != null) {
-          if (!passers[id].gradeSum) passers[id].gradeSum = 0;
-          if (!passers[id].gradeCount) passers[id].gradeCount = 0;
-          passers[id].gradeSum += p.tags.grades.passer;
-          passers[id].gradeCount++;
-        }
+        if (isTD) bucket(players.passer, 'passing', 'Passing', 'td', p);
+        if (StatsEngine.hasResult(p, 'Interception')) bucket(players.passer, 'passing', 'Passing', 'int', p);
+        if (StatsEngine.hasResult(p, 'Sack')) bucket(players.passer, 'passing', 'Passing', 'sck', p);
+        grade(players.passer, 'passing', 'Passing', p, 'passer');
       }
 
-      // Receiver
       if (players.receiver && isPass && isComplete) {
-        const id = players.receiver;
-        if (!receivers[id]) receivers[id] = { num: id, receptions: 0, yards: 0, tds: 0, long: 0, refs: [] };
-        receivers[id].receptions++;
-        receivers[id].yards += yds;
-        if (isTD) receivers[id].tds++;
-        if (yds > receivers[id].long) receivers[id].long = yds;
-        if (ref) receivers[id].refs.push(ref);
-        if (p.tags.grades?.receiver != null) {
-          if (!receivers[id].gradeSum) receivers[id].gradeSum = 0;
-          if (!receivers[id].gradeCount) receivers[id].gradeCount = 0;
-          receivers[id].gradeSum += p.tags.grades.receiver;
-          receivers[id].gradeCount++;
-        }
+        bucket(players.receiver, 'receiving', 'Receiving', ROLE_COHORT, p);
+        bucket(players.receiver, 'receiving', 'Receiving', 'rec', p);
+        bucket(players.receiver, 'receiving', 'Receiving', 'yds', p, yds);
+        if (isTD) bucket(players.receiver, 'receiving', 'Receiving', 'td', p);
+        grade(players.receiver, 'receiving', 'Receiving', p, 'receiver');
       }
 
-      // Tackler(s) — may be multiple for shared/assisted tackles. Credit each
-      // listed jersey #. A play with 2+ tacklers marks each as an assist.
+      // Tacklers may be several on one play: each credited jersey gets the
+      // tackle, and a shared tackle is an assist for every one of them.
       const tacklerIds = StatsEngine.splitPlayers(players.tackler);
       const shared = tacklerIds.length > 1;
       const isDefPlay = p.tags.unit === 'defense';
-      // Takeaway (INT / fumble recovery) goes to the dedicated role when set —
-      // it doesn't imply a tackle. Plays tagged before the role existed fall
-      // back to crediting the listed tackler(s), the old behavior.
       const takeawayIds = StatsEngine.splitPlayers(players.takeaway);
+      // A takeaway belongs to its own role when charted; plays tagged before
+      // that role existed fall back to crediting the listed tackler(s).
       const creditTakeawayViaTackler = isDefPlay && takeawayIds.length === 0;
       tacklerIds.forEach(id => {
-        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0, refs: [] };
-        tacklers[id].tackles++;
-        if (shared) tacklers[id].assists++; else tacklers[id].solo++;
-        if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
-        // TFL excludes sacks — matches the team-level definition.
-        else if (yds < 0) tacklers[id].tfl++;
-        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
-        if (creditTakeawayViaTackler && StatsEngine.isFumbleRecovered(p)) tacklers[id].fumblesRec++;
-        if (ref) tacklers[id].refs.push(ref);
-        if (p.tags.grades?.tackler != null) {
-          if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
-          if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
-          tacklers[id].gradeSum += p.tags.grades.tackler;
-          tacklers[id].gradeCount++;
-        }
+        bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
+        bucket(id, 'tackles', 'Tackles', 'tkl', p);
+        bucket(id, 'tackles', 'Tackles', shared ? 'ast' : 'solo', p);
+        if (StatsEngine.hasResult(p, 'Sack')) bucket(id, 'tackles', 'Tackles', 'sack', p);
+        else if (yds < 0) bucket(id, 'tackles', 'Tackles', 'tfl', p); // TFL excludes sacks
+        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) bucket(id, 'tackles', 'Tackles', 'int', p);
+        if (creditTakeawayViaTackler && StatsEngine.isFumbleRecovered(p)) bucket(id, 'tackles', 'Tackles', 'fr', p);
+        grade(id, 'tackles', 'Tackles', p, 'tackler');
       });
       if (isDefPlay) {
         takeawayIds.forEach(id => {
-          if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0, refs: [] };
-          if (StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
-          if (StatsEngine.isFumbleRecovered(p)) tacklers[id].fumblesRec++;
-          if (ref) tacklers[id].refs.push(ref);
-          if (p.tags.grades?.takeaway != null) {
-            if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
-            if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
-            tacklers[id].gradeSum += p.tags.grades.takeaway;
-            tacklers[id].gradeCount++;
-          }
+          bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
+          if (StatsEngine.hasResult(p, 'Interception')) bucket(id, 'tackles', 'Tackles', 'int', p);
+          if (StatsEngine.isFumbleRecovered(p)) bucket(id, 'tackles', 'Tackles', 'fr', p);
+          grade(id, 'tackles', 'Tackles', p, 'takeaway');
         });
       }
+    });
+    return index;
+  }
+
+  /** The reserved bucket holding EVERY play attributed to a role, including one
+   *  that contributed to no displayed statistic — a pass wiped out by a penalty,
+   *  a takeaway role on a play that produced neither an interception nor a
+   *  recovery. It is the role's own film cohort (what the row's Watch action has
+   *  always opened) and the play set every game and situational split groups. */
+  static PLAYER_ROLE_COHORT = '__role';
+
+  /** One bucket, read four ways. `entries` are `{ play, value }`. */
+  static _statFacts(entries) {
+    const list = entries || [];
+    const measured = list.filter(item => Number.isFinite(item.value));
+    return {
+      n: list.length,
+      total: measured.reduce((sum, item) => sum + item.value, 0),
+      measured: measured.length,
+      long: measured.length ? Math.max(...measured.map(item => item.value)) : 0,
+      refs: StatsEngine._refsOf(list.map(item => item.play)),
+    };
+  }
+
+  _individualStats(plays) {
+    const rushers = {};
+    const passers = {};
+    const receivers = {};
+    const tacklers = {};
+    const returners = {};
+    const kickers = {};
+    const credits = this._playerCredits(plays);
+    const fact = (player, roleKey, stat) => StatsEngine._statFacts(player.roles.get(roleKey)?.stats.get(stat));
+    const gradeOf = (player, roleKey) => {
+      const role = player.roles.get(roleKey);
+      return role && role.gradeCount ? { gradeSum: role.gradeSum, gradeCount: role.gradeCount } : {};
+    };
+    const allRefs = (player, roleKey) =>
+      fact(player, roleKey, StatsEngine.PLAYER_ROLE_COHORT).refs;
+
+    credits.forEach(player => {
+      const num = player.num;
+      if (player.roles.has('rushing')) {
+        const att = fact(player, 'rushing', 'att'), yards = fact(player, 'rushing', 'yds');
+        rushers[num] = { num, attempts: att.n, yards: yards.total, tds: fact(player, 'rushing', 'td').n,
+          long: Math.max(0, yards.long), fumbles: fact(player, 'rushing', 'fum').n,
+          refs: allRefs(player, 'rushing'), ...gradeOf(player, 'rushing') };
+      }
+      if (player.roles.has('passing')) {
+        passers[num] = { num, attempts: fact(player, 'passing', 'att').n, completions: fact(player, 'passing', 'cmp').n,
+          yards: fact(player, 'passing', 'yds').total, tds: fact(player, 'passing', 'td').n,
+          ints: fact(player, 'passing', 'int').n, sacks: fact(player, 'passing', 'sck').n,
+          refs: allRefs(player, 'passing'), ...gradeOf(player, 'passing') };
+      }
+      if (player.roles.has('receiving')) {
+        const yards = fact(player, 'receiving', 'yds');
+        receivers[num] = { num, receptions: fact(player, 'receiving', 'rec').n, yards: yards.total,
+          tds: fact(player, 'receiving', 'td').n, long: Math.max(0, yards.long),
+          refs: allRefs(player, 'receiving'), ...gradeOf(player, 'receiving') };
+      }
+      if (player.roles.has('tackles')) {
+        tacklers[num] = { num, tackles: fact(player, 'tackles', 'tkl').n, solo: fact(player, 'tackles', 'solo').n,
+          assists: fact(player, 'tackles', 'ast').n, sacks: fact(player, 'tackles', 'sack').n,
+          tfl: fact(player, 'tackles', 'tfl').n, ints: fact(player, 'tackles', 'int').n,
+          fumblesRec: fact(player, 'tackles', 'fr').n, refs: allRefs(player, 'tackles'), ...gradeOf(player, 'tackles') };
+      }
+      if (player.roles.has('returns')) {
+        const yards = fact(player, 'returns', 'yds');
+        returners[num] = { num, returns: fact(player, 'returns', 'ret').n, yards: yards.total,
+          measured: yards.n, tds: fact(player, 'returns', 'td').n, long: Math.max(0, yards.long),
+          refs: allRefs(player, 'returns') };
+      }
+      if (player.roles.has('kicking')) {
+        const puntYds = fact(player, 'kicking', 'puntYds');
+        kickers[num] = { num, fgAtt: fact(player, 'kicking', 'fgAtt').n, fgMade: fact(player, 'kicking', 'fgMade').n,
+          punts: fact(player, 'kicking', 'punts').n, puntYds: puntYds.total, puntsMeasured: puntYds.n,
+          refs: allRefs(player, 'kicking') };
       }
     });
 
-    // Dedupe + sort every row's own refs once here, at the single return
-    // point every consumer reads -- never at a call site, so a row's film
-    // cohort can never disagree with what's displayed no matter who reads it.
-    const withRefs = rows => rows.map(row => ({ ...row, refs: [...new Set(row.refs)].sort() }));
     return {
-      rushers: withRefs(Object.values(rushers)).sort((a, b) => b.yards - a.yards),
-      passers: withRefs(Object.values(passers)).sort((a, b) => b.yards - a.yards),
-      receivers: withRefs(Object.values(receivers)).sort((a, b) => b.yards - a.yards),
-      tacklers: withRefs(Object.values(tacklers)).sort((a, b) => b.tackles - a.tackles),
-      returners: withRefs(Object.values(returners)).sort((a, b) => b.yards - a.yards),
-      kickers: withRefs(Object.values(kickers)).sort((a, b) => (b.fgMade + b.punts) - (a.fgMade + a.punts))
+      rushers: Object.values(rushers).sort((a, b) => b.yards - a.yards),
+      passers: Object.values(passers).sort((a, b) => b.yards - a.yards),
+      receivers: Object.values(receivers).sort((a, b) => b.yards - a.yards),
+      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles),
+      returners: Object.values(returners).sort((a, b) => b.yards - a.yards),
+      kickers: Object.values(kickers).sort((a, b) => (b.fgMade + b.punts) - (a.fgMade + a.punts)),
     };
+  }
+
+  /* ══ Reports > Players Revision 2 ═══════════════════════════════════════
+     The leaderboard, the player detail view, the game-by-game split and the
+     situational split are four readings of ONE credit index, so a figure and
+     the clips behind it are the same play list. Nothing here invents a metric:
+     every stat is a bucket `_playerCredits` already fills, every dimension
+     value comes from an existing canonical splitter, and a role a player was
+     never credited in simply does not appear.
+     ───────────────────────────────────────────────────────────────────────── */
+
+  /** The six approved roles, their order, and the stats each one displays.
+   *  `measure` marks the stats whose value is summed rather than counted; a
+   *  `clickable` stat opens exactly its own bucket. */
+  static PLAYER_ROLES = Object.freeze([
+    { key: 'rushing', label: 'Rushing', volume: 'att', production: 'yds', gradeField: 'ballCarrier',
+      stats: ['att', 'yds', 'td', 'long', 'fum'] },
+    { key: 'passing', label: 'Passing', volume: 'att', production: 'yds', gradeField: 'passer',
+      stats: ['att', 'cmp', 'yds', 'td', 'int', 'sck'] },
+    { key: 'receiving', label: 'Receiving', volume: 'rec', production: 'yds', gradeField: 'receiver',
+      stats: ['rec', 'yds', 'td', 'long'] },
+    { key: 'tackles', label: 'Tackles', volume: 'tkl', production: 'tkl', gradeField: 'tackler',
+      stats: ['tkl', 'solo', 'ast', 'sack', 'tfl', 'int', 'fr'] },
+    { key: 'returns', label: 'Return Game', volume: 'ret', production: 'yds', gradeField: null,
+      stats: ['ret', 'yds', 'td', 'long'] },
+    { key: 'kicking', label: 'Kicking / Punting', volume: 'fgAtt', production: 'puntYds', gradeField: null,
+      stats: ['fgAtt', 'fgMade', 'punts', 'puntYds'] },
+  ]);
+
+  /** A role's stats as `{ n, total, measured, long, refs }`, plus its grade and
+   *  its own full attributed cohort. One player, one role, read once. */
+  _playerRoleFacts(role) {
+    const stats = {};
+    role.stats.forEach((entries, key) => { stats[key] = StatsEngine._statFacts(entries); });
+    const cohort = role.stats.get(StatsEngine.PLAYER_ROLE_COHORT) || [];
+    return {
+      key: role.key, label: role.label, stats,
+      plays: cohort.map(item => item.play),
+      refs: StatsEngine._refsOf(cohort.map(item => item.play)),
+      // A grade average exists only where grades were actually charted.
+      grade: role.gradeCount ? +(role.gradeSum / role.gradeCount).toFixed(1) : null,
+      gradeCount: role.gradeCount,
+    };
+  }
+
+  /** Every player credited in the cohort, with each populated role's facts.
+   *  `labels` maps a game id to its opponent name; `roster` maps a jersey
+   *  number to a name. Neither is inferred. */
+  playersBoard(plays, { roster = {}, labels = {} } = {}) {
+    const credits = this._playerCredits(plays);
+    const order = new Map(StatsEngine.PLAYER_ROLES.map((role, index) => [role.key, index]));
+    const players = [...credits.values()].map(player => {
+      const roles = [...player.roles.values()]
+        .sort((a, b) => (order.get(a.key) ?? 99) - (order.get(b.key) ?? 99))
+        .map(role => this._playerRoleFacts(role));
+      const name = String(roster[player.num] || '').trim();
+      return { num: player.num, name, label: `#${player.num}${name ? ` ${name}` : ''}`, roles };
+    }).sort((a, b) => (Number(a.num) || 0) - (Number(b.num) || 0));
+    return { players, labels, roleSchema: StatsEngine.PLAYER_ROLES };
+  }
+
+  /** One player's detail: the same role facts, split by game and by a charted
+   *  dimension. `gameOrder` fixes chronology; a game with no credited play for
+   *  this player is not rendered as a zero. */
+  playerDetail(plays, num, { roster = {}, labels = {}, gameOrder = [] } = {}) {
+    const id = String(num || '').trim();
+    const cohort = (plays || []).filter(play => play && play.tags);
+    const player = this.playersBoard(cohort, { roster, labels }).players.find(item => item.num === id);
+    if (!player) return null;
+    /* GAME ROWS ARE THE SAME BUCKETS, NARROWED. Each row runs the one credit
+       owner over that game's plays, so the rows partition the cohort and sum
+       back to the totals above them by construction rather than by a second
+       calculation agreeing by luck. A game the player was credited in no role
+       on is not a row: an uncredited game is an absence, not a zero. */
+    const order = new Map(gameOrder.map((gid, position) => [String(gid), position]));
+    const ids = [...new Set(player.roles.flatMap(role =>
+      role.plays.map(play => String(play.__gid ?? 'current'))))];
+    const games = ids.map(gid => {
+      const gamePlays = cohort.filter(play => String(play.__gid ?? 'current') === gid);
+      const inGame = this.playersBoard(gamePlays, { roster, labels }).players.find(item => item.num === id);
+      return {
+        gid, opponent: labels[gid] || gid,
+        position: order.has(gid) ? order.get(gid) : Number.MAX_SAFE_INTEGER,
+        roles: Object.fromEntries((inGame?.roles || []).map(role => [role.key, role])),
+      };
+    }).sort((a, b) => a.position - b.position || String(a.opponent).localeCompare(String(b.opponent)));
+    return { ...player, games };
+  }
+
+  /** The dimensions a player's populated roles can actually be split by, in
+   *  render order. Offensive structure describes our own call and so belongs to
+   *  a player credited on offense; front/coverage/blitz describe the defense a
+   *  DEFENDER played; the Special Teams pair belongs to the kicking units. No
+   *  dimension is offered to a role whose plays cannot carry it. */
+  static PLAYER_DIMENSIONS = Object.freeze([
+    { key: 'downDistance', label: 'Down & distance', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
+    { key: 'quarter', label: 'Quarter', roles: ['rushing', 'passing', 'receiving', 'tackles', 'returns', 'kicking'] },
+    { key: 'fieldZone', label: 'Field zone', roles: ['rushing', 'passing', 'receiving', 'tackles', 'returns', 'kicking'] },
+    { key: 'hash', label: 'Hash', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
+    { key: 'runPass', label: 'Run / Pass', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
+    { key: 'playType', label: 'Play type', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
+    { key: 'playDir', label: 'Play direction', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
+    { key: 'formation', label: 'Formation', roles: ['rushing', 'passing', 'receiving'] },
+    { key: 'personnel', label: 'Personnel', roles: ['rushing', 'passing', 'receiving'] },
+    { key: 'defFront', label: 'Defensive front', roles: ['tackles'] },
+    { key: 'coverage', label: 'Coverage', roles: ['tackles'] },
+    { key: 'blitz', label: 'Blitz', roles: ['tackles'] },
+    { key: 'stUnit', label: 'Special Teams unit', roles: ['returns', 'kicking'] },
+    { key: 'stOutcome', label: 'Special Teams outcome', roles: ['returns', 'kicking'] },
+  ]);
+
+  /** One play's values for a dimension, through the CANONICAL splitter each
+   *  dimension already has. A multi-value tag credits every component, the rule
+   *  every other multi-select consumer applies. An uncharted value yields no
+   *  row rather than an invented "Unknown" bucket. */
+  _playerDimensionValues(play, key) {
+    const tags = play.tags || {};
+    const projection = StatsEngine.proj(play);
+    const text = value => String(value == null ? '' : value).trim();
+    const one = value => (text(value) ? [text(value)] : []);
+    switch (key) {
+      // `_ddKey` + `_ddPretty` are the one owner of this wording; nothing here
+      // re-buckets a distance or re-words a label.
+      case 'downDistance': { const key = this._ddKey(tags); return key ? [this._ddPretty(key)] : []; }
+      case 'quarter': return one(tags.quarter);
+      case 'fieldZone': return one(this.fieldZoneOf(play));
+      case 'hash': return one(tags.hash);
+      case 'runPass': return StatsEngine.isRun(play) ? ['Run'] : StatsEngine.isPass(play) ? ['Pass'] : [];
+      case 'playType': return StatsEngine.splitPlayTypes(tags.playType).filter(Boolean);
+      case 'playDir': return one(tags.playDir);
+      case 'formation': return StatsEngine.splitFormations(projection.formation).filter(Boolean);
+      case 'personnel': return one(tags.personnel);
+      case 'defFront': return StatsEngine.splitFronts(tags.defFront).filter(Boolean);
+      case 'coverage': return one(projection.coverage);
+      case 'blitz': return StatsEngine.splitBlitzes(tags.blitz).filter(Boolean);
+      case 'stUnit': {
+        const event = SpecialTeamsModel.normalize(play.specialTeams);
+        if (event) return one(SpecialTeamsModel.UNIT_LABELS[event.unit] || event.unit);
+        return one(tags.stType);
+      }
+      case 'stOutcome': {
+        const event = SpecialTeamsModel.normalize(play.specialTeams);
+        if (event) return one(event.outcome.status ? StatsEngine.PLAYER_ST_OUTCOME_LABELS[event.outcome.status] : '');
+        return one(tags.kickOutcome);
+      }
+      default: return [];
+    }
+  }
+
+  static PLAYER_ST_OUTCOME_LABELS = Object.freeze({
+    returned: 'Returned', touchback: 'Touchback', fairCatch: 'Fair catch', downed: 'Downed',
+    outOfBounds: 'Out of bounds', blocked: 'Blocked', muffed: 'Muffed', recovered: 'Recovered',
+    good: 'Good', noGood: 'No good', badSnap: 'Bad snap',
+  });
+
+  /** A player-role cohort split by one dimension. Volume and production are the
+   *  role's OWN measures, recomputed from the credit index over each group, so
+   *  a row reconciles with the role summary above it and opens exactly the
+   *  plays behind its own numbers. */
+  playerSituational(plays, num, roleKey, dimension, { roster = {} } = {}) {
+    const id = String(num || '').trim();
+    const schema = StatsEngine.PLAYER_ROLES.find(role => role.key === roleKey);
+    const spec = StatsEngine.PLAYER_DIMENSIONS.find(item => item.key === dimension);
+    if (!schema || !spec || !spec.roles.includes(roleKey)) return [];
+    const credits = this._playerCredits(plays);
+    const role = credits.get(id)?.roles.get(roleKey);
+    if (!role) return [];
+    const cohort = (role.stats.get(StatsEngine.PLAYER_ROLE_COHORT) || []).map(item => item.play);
+    const groups = new Map();
+    cohort.forEach(play => {
+      this._playerDimensionValues(play, dimension).forEach(value => {
+        if (!groups.has(value)) groups.set(value, []);
+        groups.get(value).push(play);
+      });
+    });
+    return [...groups.entries()].map(([value, group]) => {
+      const inGroup = this._playerCredits(group).get(id)?.roles.get(roleKey);
+      const facts = inGroup ? this._playerRoleFacts(inGroup) : null;
+      return {
+        value,
+        n: facts?.stats[schema.volume]?.n ?? 0,
+        production: schema.production === 'tkl'
+          ? (facts?.stats.tkl?.n ?? 0)
+          : (facts?.stats[schema.production]?.total ?? 0),
+        productionMeasured: schema.production === 'tkl'
+          ? (facts?.stats.tkl?.n ?? 0) > 0
+          : (facts?.stats[schema.production]?.n ?? 0) > 0,
+        grade: facts?.grade ?? null,
+        refs: facts?.refs || StatsEngine._refsOf(group),
+      };
+    }).filter(row => row.n > 0)
+      .sort((a, b) => b.n - a.n || String(a.value).localeCompare(String(b.value), undefined, { numeric: true }));
   }
 
     /** Render the defensive self-scout section, or its diagnostic empty state.

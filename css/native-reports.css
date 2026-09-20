@@ -3237,7 +3237,7 @@
   margin:0;padding:7px var(--gi-3x);background:var(--gi-bd-panel)
 }
 .gi-reports .gi-players-toolbar-label{
-  color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
+  color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
 }
 .gi-reports .gi-players-scope{ display:flex;gap:1px;background:var(--gi-bd-line) }
 .gi-reports .gi-players-scope button{
@@ -3249,7 +3249,7 @@
 .gi-reports .gi-players-scope button.active{
   background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-cyan)
 }
-.gi-reports .gi-players-sample{ color:var(--gi-bd-copy);font:400 12px/1.3 var(--gi-sans);white-space:nowrap }
+.gi-reports .gi-players-sample{ color:var(--gi-bd-copy);font:400 12.5px/1.3 var(--gi-sans);white-space:nowrap }
 .gi-reports .gi-players-sample b{ color:var(--gi-bd-strong);font-weight:600 }
 
 /* Role navigation. Readable Sans, and the counts are plain text -- a boxed
@@ -3260,13 +3260,13 @@
 }
 .gi-reports .gi-players-nav button{
   flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
-  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 12px/1 var(--gi-sans);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans);
   letter-spacing:0;text-transform:none;text-align:left;cursor:pointer;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-players-nav button>b{
   flex:0 0 auto;min-width:0;padding:0;border:0;background:transparent;
-  color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);
+  color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);
   font-variant-numeric:var(--gi-num-feat)
 }
 .gi-reports .gi-players-nav button:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
@@ -3283,7 +3283,7 @@
 /* The six role tables read as ONE report surface: bands meet on a thin rule
    rather than a four-pixel black gutter. */
 .gi-reports .gi-players-sections{ grid-column:1/-1;background:transparent }
-.gi-reports .gi-player-band{ display:grid;gap:1px;align-items:stretch;margin:0;background:transparent }
+.gi-reports .gi-player-band{ display:grid;gap:1px;align-items:start;margin:0;background:transparent }
 .gi-reports .gi-player-band.b-1{ grid-template-columns:minmax(0,1fr) }
 .gi-reports .gi-player-band.b-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
 /* Content-height modules would show the band's own background as a solid slab
@@ -3323,8 +3323,8 @@
   display:flex;align-items:center;gap:var(--gi-3x);min-height:44px;
   padding:0 var(--gi-3x);border-top:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)
 }
-.gi-reports .gi-player-empty-summary span{ color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans) }
-.gi-reports .gi-player-empty-summary strong{ color:var(--gi-bd-copy);font:400 12px/1.35 var(--gi-sans) }
+.gi-reports .gi-player-empty-summary span{ color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans) }
+.gi-reports .gi-player-empty-summary strong{ color:var(--gi-bd-copy);font:400 12.5px/1.35 var(--gi-sans) }
 
 /* The full empty state replaces the board, so it has no board ancestor to be
    scoped by -- it is scoped by its own pane instead. Its heading takes the
@@ -3387,7 +3387,7 @@
 /* An absence carries the one approved literal and drops to copy weight, so it
    can never be mistaken for a measured figure. A measured zero keeps full
    strength -- it is an observation. */
-.gi-reports .gi-player-module table.gi-player-table td.blank{ color:var(--gi-bd-muted);font-size:12px;font-weight:400 }
+.gi-reports .gi-player-module table.gi-player-table td.blank{ color:var(--gi-bd-muted);font-size:12.5px;font-weight:400 }
 .gi-reports .gi-player-module table.gi-player-table td.grade-pos{ color:var(--gi-bd-win) }
 .gi-reports .gi-player-module table.gi-player-table td.grade-neg{ color:var(--gi-bd-loss) }
 
@@ -3473,3 +3473,104 @@
     box-shadow:none;border-top:1px solid var(--gi-bd-line)
   }
 }
+
+/* ══ Reports > Players Revision 2 ═══════════════════════════════════════════
+   The same broadcast language the Defense and Special Teams boards use: panels,
+   rules, one absence label, no nested cards. Only the new affordances are
+   defined here — a clickable statistic, the identity button, the column menu,
+   the game picker and the detail view. */
+.gi-reports .gi-player-stat{
+  border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--gi-bd-line);text-underline-offset:3px
+}
+.gi-reports .gi-player-stat:hover{ color:var(--gi-bd-cyan);text-decoration-color:var(--gi-bd-cyan) }
+.gi-reports .gi-player-stat:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:2px }
+.gi-reports .gi-player-ident{
+  border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:left;
+  display:inline-flex;align-items:baseline;gap:6px;min-width:0;max-width:100%
+}
+.gi-reports .gi-player-ident:hover{ color:var(--gi-bd-cyan) }
+.gi-reports .gi-player-ident:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:2px }
+
+.gi-reports .gi-player-colmenu{ position:relative;margin-left:auto }
+.gi-reports .gi-player-colbtn{
+  min-width:26px;min-height:22px;border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
+  color:var(--gi-bd-copy);font:400 12.5px/1 var(--gi-sans);cursor:pointer
+}
+.gi-reports .gi-player-colbtn:hover{ background:var(--gi-bd-control-active);color:var(--gi-bd-strong) }
+.gi-reports .gi-player-colbtn:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:1px }
+.gi-reports .gi-player-colpanel,.gi-reports .gi-players-pickpanel{
+  position:absolute;z-index:20;top:calc(100% + 3px);right:0;min-width:170px;display:grid;gap:1px;
+  padding:4px;background:var(--gi-bd-panel);border:1px solid var(--gi-bd-line);box-shadow:var(--gi-raise-tab)
+}
+.gi-reports .gi-player-colitem,.gi-reports .gi-players-pickitem{
+  display:flex;align-items:center;gap:7px;padding:4px 6px;cursor:pointer;
+  color:var(--gi-bd-copy);font:400 12.5px/1.3 var(--gi-sans);white-space:nowrap
+}
+.gi-reports .gi-player-colitem:hover,.gi-reports .gi-players-pickitem:hover{ background:var(--gi-bd-control) }
+
+.gi-reports .gi-players-picker{ position:relative }
+.gi-reports .gi-players-pickbtn{
+  min-height:30px;padding:0 10px;border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
+  color:var(--gi-bd-strong);font:600 12.5px/1 var(--gi-sans);cursor:pointer;white-space:nowrap
+}
+.gi-reports .gi-players-pickbtn:hover{ background:var(--gi-bd-control-active) }
+.gi-reports .gi-players-pickbtn:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:1px }
+.gi-reports .gi-players-pickpanel{ left:0;right:auto;max-height:280px;overflow:auto }
+
+/* Player detail: one head, the role summaries, the game split, the situational
+   table. Content-driven heights — no fixed module box to leave dead space. */
+.gi-reports .gi-pd{ display:grid;gap:4px }
+.gi-reports .gi-pd-head{
+  display:flex;align-items:baseline;gap:var(--gi-3x);padding:8px var(--gi-3x);
+  background:var(--gi-bd-panel);border-left:3px solid var(--gi-bd-cyan)
+}
+.gi-reports .gi-pd-head h3{
+  margin:0;color:var(--gi-bd-strong);font:700 19px/1.15 var(--gi-cond);letter-spacing:.02em
+}
+.gi-reports .gi-pd-head h3 i{ font-style:normal;color:var(--gi-bd-cyan) }
+.gi-reports .gi-pd-scope{ margin-left:auto;color:var(--gi-bd-copy);font:400 12.5px/1.3 var(--gi-sans) }
+.gi-reports .gi-pd-back{
+  min-height:28px;padding:0 10px;border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
+  color:var(--gi-bd-strong);font:600 12.5px/1 var(--gi-sans);cursor:pointer
+}
+.gi-reports .gi-pd-back:hover{ background:var(--gi-bd-control-active) }
+.gi-reports .gi-pd-back:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:1px }
+.gi-reports .gi-pd-roles{ display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:4px }
+.gi-reports .gi-pd-stats{ display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--gi-bd-line) }
+.gi-reports .gi-pd-stat{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--gi-2x);
+  padding:6px var(--gi-3x);background:var(--gi-bd-panel)
+}
+.gi-reports .gi-pd-stat span{ color:var(--gi-bd-copy);font:400 12.5px/1.35 var(--gi-sans) }
+.gi-reports .gi-pd-stat strong,.gi-reports .gi-pd-stat .gi-player-stat{
+  color:var(--gi-bd-strong);font:700 15px/1.3 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)
+}
+.gi-reports .gi-pd-stat strong.blank{ color:var(--gi-bd-muted);font:400 12.5px/1.5 var(--gi-sans) }
+.gi-reports .gi-pd-role>header span{ color:var(--gi-bd-copy);font:400 12.5px/1.3 var(--gi-sans);text-transform:none;letter-spacing:0 }
+.gi-reports .gi-pd-situ>header span{ display:flex;gap:6px;margin-left:auto }
+.gi-reports .gi-pd-situ select{
+  min-height:26px;border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
+  color:var(--gi-bd-strong);font:600 12.5px/1 var(--gi-sans)
+}
+.gi-reports table.gi-pd-table{ width:100%;border-collapse:collapse;table-layout:auto }
+.gi-reports table.gi-pd-table th{
+  position:static;padding:5px var(--gi-3x);color:var(--gi-bd-muted);font:700 12.5px/1.2 var(--gi-cond);
+  letter-spacing:.06em;text-transform:uppercase;text-align:right;border-bottom:1px solid var(--gi-bd-line)
+}
+.gi-reports table.gi-pd-table td{
+  padding:5px var(--gi-3x);color:var(--gi-bd-strong);font:400 12.5px/1.35 var(--gi-sans);
+  font-variant-numeric:var(--gi-num-feat);text-align:right;border-bottom:1px solid var(--gi-bd-line)
+}
+.gi-reports table.gi-pd-table th.tl,.gi-reports table.gi-pd-table td.tl{ text-align:left }
+.gi-reports table.gi-pd-table td.blank,.gi-reports table.gi-pd-table .blank{
+  color:var(--gi-bd-muted);font:400 12.5px/1.35 var(--gi-sans)
+}
+/* Module meta on this board sits at the shared floor; the Overview/Offense
+   micro-label owner is untouched. */
+.gi-reports .gi-player-module>header span,
+.gi-reports .gi-pd-role>header span,
+.gi-reports .gi-pd-games>header span{ font:400 12.5px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none }
+/* Player detail spans the report grid: the role nav filters the LEADERBOARD and
+   is not rendered beside it. */
+.gi-reports .gi-pd{ grid-column:1 / -1 }

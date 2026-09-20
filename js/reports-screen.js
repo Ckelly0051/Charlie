@@ -2,7 +2,7 @@ import { h, render } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
 import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, OpponentOverviewTab, OpponentOffenseTab, OpponentDefenseTab, OpponentSpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Charts } from './charts.js';
-import { buildDefenseHtmlReport, buildSelfScoutHtmlReport, buildSpecialTeamsHtmlReport } from './html-report.js';
+import { buildDefenseHtmlReport, buildSelfScoutHtmlReport, buildSpecialTeamsHtmlReport, buildPlayerHtmlReport } from './html-report.js';
 
 const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']);
 
@@ -41,6 +41,12 @@ export class ReportsScreen {
     // is: a scope change re-renders the tab, and a selection held only in the
     // view is lost when that remount happens.
     this.playersSection = 'all';
+    // Revision 2 controller state, for the same reason: an ordinary Reports
+    // re-render remounts the tab, so a selection held in the component would be
+    // discarded under the coach's hands.
+    this.playersPlayer = null;
+    this.playersSelectedGames = new Set();
+    this.playersHiddenColumns = {};
     // Self-Scout's active section is controller state for the same reason
     // Players' is: any ordinary Reports re-render unmounts and remounts the
     // tab, and a selection held only in the view is lost when that happens.
@@ -173,6 +179,10 @@ export class ReportsScreen {
   export(kind) {
     const stats = this.app.stats;
     if (!stats) return false;
+    /* WHEN A PLAYER IS OPEN, EXPORT IS THAT PLAYER. Printing the leaderboard
+       while the screen says one player is selected would export something the
+       coach is not looking at. */
+    if (this.activeTab === 'players' && this.playersPlayer) return this.exportPlayer();
     if (kind === 'pdf') stats._exportStats(stats.compute());
     else if (kind === 'html') this.app.storage?.exportHtmlReport?.(stats);
     else if (kind === 'season-html') return this.app.season?.exportHtml?.() === true;
@@ -196,6 +206,35 @@ export class ReportsScreen {
   _defenseExportDashboard() {
     const { scoped, labels } = this._defenseCohort();
     return this.app.stats.defenseDashboard(scoped, labels);
+  }
+
+  /** The player analysis currently on screen: identity, cohort, every populated
+   *  role, the game split and the active situational breakdown, with the same
+   *  composite references the board opens. */
+  exportPlayer() {
+    const num = this.playersPlayer;
+    const { scoped } = this._playersCohort();
+    const detail = this.app.stats.playerDetail(scoped, num, {
+      roster: Object.fromEntries(this._playersRoster().map(item => [item.num, item.name])),
+      labels: this._playersGameLabels(),
+      gameOrder: this._playersGameOrder(),
+    });
+    if (!detail) return false;
+    const situational = detail.roles.map(role => {
+      const dimension = (this.app.stats.constructor.PLAYER_DIMENSIONS
+        .find(item => item.roles.includes(role.key)) || {}).key;
+      return dimension
+        ? { role: role.label, dimension, rows: this.app.stats.playerSituational(scoped, num, role.key, dimension) }
+        : null;
+    }).filter(Boolean);
+    const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Team';
+    const html = buildPlayerHtmlReport({
+      title: `Player Report: ${detail.label}`, team, detail, situational,
+      scopeLabel: this._playersScopeLabel(),
+    });
+    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }),
+      `player_${num}_${new Date().toISOString().slice(0, 10)}.html`);
+    return true;
   }
 
   exportDefense(dashboard, scoped) {
@@ -745,7 +784,97 @@ export class ReportsScreen {
   /** Players uses the same self-perspective, composite-ref-safe cohort as
    * Defense and Special Teams, with its own independent scope control. */
   _playersCohort() {
+    /* SELECTED GAMES is the season cohort narrowed by game id — the same
+       assembly, the same composite refs, the same opponent-scout exclusion.
+       An empty selection is not an empty board: it keeps the full season, so
+       opening the control can never blank the report. Nothing is written. */
+    if (this.playersScope === 'selected') {
+      const season = this._selfPerspectiveCohort('season');
+      const picked = this.playersSelectedGames;
+      if (!picked || !picked.size) return season;
+      return { ...season, scoped: season.scoped.filter(play => picked.has(String(play.__gid))) };
+    }
     return this._selfPerspectiveCohort(this.playersScope);
+  }
+
+  /** The program season's own games, in the store's chronological order. An
+   *  opponent-scout game is never offered: those are not our players. */
+  _playersSelectableGames() {
+    const store = this.app.storage?.seasonStore;
+    const games = store?.gamesChrono ? store.gamesChrono() : (store?.data?.games || []);
+    return games.filter(game => (game.gameInfo?.perspective || 'self') !== 'scout').map(game => {
+      const opponent = String(game.gameInfo?.opponent || '').trim();
+      const date = String(game.gameInfo?.date || '').trim();
+      return { id: String(game.id), label: [opponent || game.name || game.id, date].filter(Boolean).join(' · ') };
+    });
+  }
+
+  _playersGameLabels() {
+    return Object.fromEntries(this._playersSelectableGames()
+      .map(game => [game.id, game.label.split(' · ')[0]]));
+  }
+
+  _playersGameOrder() { return this._playersSelectableGames().map(game => game.id); }
+
+  /** Names come from `StatsEngine._playerLabel`, the one owner the leaderboard
+   *  already prints — the fixed overlay, then the season map, then the live
+   *  roster service. Reading `season.roster` directly gave the detail view a
+   *  different answer from the row the coach clicked. */
+  _playersRoster() {
+    const engine = this.app.stats;
+    const numbers = new Set();
+    const collect = rows => (rows || []).forEach(row => numbers.add(String(row.num)));
+    const individuals = engine.compute(this._playersCohort().scoped).individuals || {};
+    Object.values(individuals).forEach(collect);
+    return [...numbers].map(num => ({
+      num,
+      name: String(engine._playerLabel(num) || '').replace(/^#\S+\s*/, ''),
+    }));
+  }
+
+  _playersScopeLabel() {
+    if (this.playersScope === 'game') return 'Current game';
+    if (this.playersScope === 'season') return 'Full season';
+    return this._playersSelectedLabel();
+  }
+
+  /** States the cohort literally, never a bare count. */
+  _playersSelectedLabel() {
+    const picked = this.playersSelectedGames;
+    const all = this._playersSelectableGames();
+    if (!picked || !picked.size) return `All ${all.length} games`;
+    if (picked.size === 1) {
+      const game = all.find(item => picked.has(item.id));
+      return game ? game.label.split(' · ')[0] : '1 game';
+    }
+    return `${picked.size} of ${all.length} games`;
+  }
+
+  setPlayersScope(scope) {
+    this.playersScope = scope;
+    this.playersPlayer = null;
+    this._syncHeader();
+    this._renderActiveTab();
+  }
+
+  togglePlayersGame(id) {
+    const picked = this.playersSelectedGames || (this.playersSelectedGames = new Set());
+    const key = String(id);
+    if (picked.has(key)) picked.delete(key); else picked.add(key);
+    this._renderActiveTab();
+  }
+
+  /** Player detail opens IN the tab: Reports never navigates away from itself.
+   *  It is controller state for the same reason the scope and section are —
+   *  an ordinary re-render remounts the component. */
+  openPlayerDetail(num) {
+    this.playersPlayer = String(num);
+    this._renderActiveTab();
+  }
+
+  closePlayerDetail() {
+    this.playersPlayer = null;
+    this._renderActiveTab();
   }
 
   /** Self-Scout has no scope control of its own -- it reports the current

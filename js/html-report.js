@@ -123,6 +123,68 @@ const documentShell = ({ title, subtitle, meta, body }) => `<!doctype html><html
  * "N charted plays" the export made the same false claim Overview did. */
 const chartedLine = stats => `${stats.allPlays} of ${stats.chartedPlays ?? stats.allPlays} plays classified`;
 
+/* The stat rows each role prints, and which of them are TOTALS rather than
+   counts — the same split the detail view renders, so the printed report and the
+   screen state the same figures. */
+const PLAYER_EXPORT_STATS = {
+  rushing: [['att', 'Attempts'], ['yds', 'Yards', true], ['td', 'Touchdowns'], ['fum', 'Fumbles']],
+  passing: [['att', 'Attempts'], ['cmp', 'Completions'], ['yds', 'Yards', true], ['td', 'Touchdowns'], ['int', 'Interceptions'], ['sck', 'Sacks']],
+  receiving: [['rec', 'Receptions'], ['yds', 'Yards', true], ['td', 'Touchdowns']],
+  tackles: [['tkl', 'Tackles'], ['solo', 'Solo'], ['ast', 'Assists'], ['sack', 'Sacks'], ['tfl', 'Tackles for loss'], ['int', 'Interceptions'], ['fr', 'Fumbles recovered']],
+  returns: [['ret', 'Returns'], ['yds', 'Return yards', true], ['td', 'Touchdowns']],
+  kicking: [['fgAtt', 'Field goal attempts'], ['fgMade', 'Field goals made'], ['punts', 'Punts'], ['puntYds', 'Punt yards', true]],
+};
+const PLAYER_EXPORT_NO_DATA = 'No data';
+
+/**
+ * ONE PLAYER, THE COHORT ON SCREEN. Printed only when a player is open, so the
+ * report can never be the leaderboard while the UI says otherwise. Every role
+ * the player was credited in prints separately — no combined rating — and every
+ * row carries its own composite `gameId::playId` references, which is the stable
+ * identifier this export contract already uses everywhere else.
+ */
+export function buildPlayerHtmlReport({ title, team, detail, situational = [], scopeLabel, generatedAt = new Date() }) {
+  const statRows = role => (PLAYER_EXPORT_STATS[role.key] || []).map(([bucket, label, isTotal]) => {
+    const fact = role.stats[bucket];
+    const value = !fact ? 0 : (isTotal ? (fact.n ? fact.total : PLAYER_EXPORT_NO_DATA) : fact.n);
+    return `<tr><td>${esc(label)}</td><td>${esc(value)}</td><td>${esc((fact?.refs || []).join(' '))}</td></tr>`;
+  }).join('');
+  const roles = detail.roles.map(role => `<section class="report-section">
+    <h2>${esc(role.label)}</h2>
+    <p>${role.grade == null ? 'No grade charted' : `Average grade ${role.grade > 0 ? '+' : ''}${role.grade} over ${role.gradeCount} graded plays`}</p>
+    <div class="table-wrap"><table><thead><tr><th>Statistic</th><th>Value</th><th>Film</th></tr></thead>
+    <tbody>${statRows(role)}</tbody></table></div></section>`).join('');
+  const gameRows = detail.games.map(game => `<tr><td>${esc(game.opponent)}</td>${detail.roles.map(role => {
+    const inGame = game.roles[role.key];
+    if (!inGame) return `<td>${PLAYER_EXPORT_NO_DATA}</td>`;
+    const parts = (PLAYER_EXPORT_STATS[role.key] || []).slice(0, 2)
+      .map(([bucket, label, isTotal]) => `${isTotal ? inGame.stats[bucket]?.total ?? 0 : inGame.stats[bucket]?.n ?? 0} ${label.toLowerCase()}`);
+    return `<td>${esc(parts.join(', '))}</td>`;
+  }).join('')}</tr>`).join('');
+  const situations = situational.map(block => `<section class="report-section">
+    <h2>${esc(block.role)} by ${esc(block.dimension)}</h2>
+    ${block.rows.length ? `<div class="table-wrap"><table><thead><tr><th>Value</th><th>Volume</th><th>Production</th><th>Grade</th><th>Film</th></tr></thead><tbody>${
+      block.rows.map(row => `<tr><td>${esc(row.value)}</td><td>${esc(row.n)}</td><td>${
+        esc(row.productionMeasured ? row.production : PLAYER_EXPORT_NO_DATA)}</td><td>${
+        esc(row.grade == null ? PLAYER_EXPORT_NO_DATA : `${row.grade > 0 ? '+' : ''}${row.grade}`)}</td><td>${
+        esc((row.refs || []).join(' '))}</td></tr>`).join('')
+    }</tbody></table></div>` : `<p class="empty">${PLAYER_EXPORT_NO_DATA}</p>`}
+  </section>`).join('');
+  return documentShell({
+    title, subtitle: `${team} · ${scopeLabel}`, meta: `Generated ${generatedAt.toLocaleString()}`,
+    body: `<section class="chapter"><div class="chapter-title"><span>Player</span><h1>${esc(detail.label)}</h1></div>
+      <p>${esc(scopeLabel)} · ${detail.roles.length} role${detail.roles.length === 1 ? '' : 's'} credited</p>
+      ${roles}
+      <section class="report-section"><h2>Game by game</h2>
+        ${detail.games.length ? `<div class="table-wrap"><table><thead><tr><th>Opponent</th>${
+          detail.roles.map(role => `<th>${esc(role.label)}</th>`).join('')}</tr></thead><tbody>${gameRows}</tbody></table></div>`
+          : `<p class="empty">${PLAYER_EXPORT_NO_DATA}</p>`}
+      </section>
+      ${situations}
+    </section>`,
+  });
+}
+
 export function buildGameHtmlReport({ title, stats, engine, generatedAt = new Date() }) {
   return documentShell({ title, subtitle: chartedLine(stats), meta: `Generated ${generatedAt.toLocaleString()}`,
     body: sharedBody({ stats, engine }) });

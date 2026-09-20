@@ -59,9 +59,9 @@ export function WatchableRefs({ refs, label, screen, ...rest }) {
   return <Watchable onActivate={onActivate} label={label} {...rest} />;
 }
 
-export function Module({ title, meta, cls = '', children }) {
+export function Module({ title, meta, cls = '', action = null, children }) {
   return <section class={`gi-overview-module ${cls}`}>
-    <header><strong>{title}</strong>{meta ? <span>{meta}</span> : null}</header>
+    <header><strong>{title}</strong>{meta ? <span>{meta}</span> : null}{action}</header>
     {children}
   </section>;
 }

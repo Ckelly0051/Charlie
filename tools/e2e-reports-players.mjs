@@ -450,8 +450,12 @@ for (const scope of ['game', 'season']) {
     }
     return { rows, empty, unresolved,
       games: new Set(scoped.map(p => String(p.__gid))).size, plays: scoped.length,
+      /* Revision 2 moved the affordance OFF the row: identity opens the player
+         and each measured value with clips of its own is its own button, so a
+         row without an identity button is the defect now. */
       unclickable: [...document.querySelectorAll('.gi-player-table tbody tr')]
-        .filter(tr => tr.getAttribute('role') !== 'button').length };
+        .filter(tr => !tr.querySelector('[data-player-open]')).length,
+      firstRow: (document.querySelector('.gi-player-table tbody tr')?.innerHTML || '').slice(0, 160) };
   });
   ok(refs.rows > 0 && refs.empty === 0,
     `${scope} scope: every row carries composite references for its own role`,
@@ -459,7 +463,8 @@ for (const scope of ['game', 'season']) {
   ok(refs.unresolved === 0,
     `${scope} scope: every reference resolves to a play in the scoped cohort`, String(refs.unresolved));
   ok(refs.unclickable === 0,
-    `${scope} scope: no row renders without a film action`, String(refs.unclickable));
+    `${scope} scope: every row opens its player through its identity cell`,
+    JSON.stringify({ rows: refs.unclickable, firstRow: refs.firstRow }));
   if (scope === 'season') {
     ok(refs.games === 2 && refs.plays > 190,
       'full season is assembled from the existing multi-game cohort, not a Players-local aggregation',
@@ -474,14 +479,16 @@ const watched = await page.evaluate(() => {
   screen.watchRefs = (refs, label) => seen.push({ refs: [...refs], label });
   const module = [...document.querySelectorAll('.gi-player-module')]
     .find(m => m.querySelector('header strong').textContent.trim() === 'Receiving');
-  module.querySelector('tbody tr').click();
+  // Revision 2: a STATISTIC opens film, never the whole row. `Rec` is this
+  // player's receptions bucket in this role.
+  module.querySelector('tbody tr [data-player-stat*=":rec:"]').click();
   screen.watchRefs = original;
   return seen;
 });
-ok(watched.length === 1, 'a row click reaches the shared film-navigation service exactly once',
+ok(watched.length === 1, 'a statistic click reaches the shared film-navigation service exactly once',
   JSON.stringify(watched));
-ok(/ — Receiving$/.test(watched[0]?.label || ''),
-  'the film cohort is labelled with the row\'s own role, so a receiving cut-up is distinguishable from a rushing one',
+ok(/Receiving Rec$/.test(watched[0]?.label || ''),
+  'the film cohort is labelled with the row\'s own role and the exact statistic clicked',
   watched[0]?.label);
 ok((watched[0]?.refs || []).length > 0 && watched[0].refs.every(r => /^[^:]+::\d+$/.test(r)),
   'the cohort is composite gameId::playId references, never a generic jersey cut-up',
@@ -560,6 +567,12 @@ const interaction = await page.evaluate(() => {
   return {
     role: tr.getAttribute('role'), tab: tr.tabIndex, title: tr.getAttribute('title'),
     cursor: getComputedStyle(tr).cursor,
+    identTag: tr.querySelector('[data-player-open]')?.tagName || null,
+    identTab: tr.querySelector('[data-player-open]')?.tabIndex ?? -1,
+    identCursor: tr.querySelector('[data-player-open]') ? getComputedStyle(tr.querySelector('[data-player-open]')).cursor : null,
+    statTag: tr.querySelector('[data-player-stat]')?.tagName || null,
+    statTab: tr.querySelector('[data-player-stat]')?.tabIndex ?? -1,
+    statCursor: tr.querySelector('[data-player-stat]') ? getComputedStyle(tr.querySelector('[data-player-stat]')).cursor : null,
     chevron: getComputedStyle(td, '::before').content,
     thCursor: getComputedStyle(th).cursor, thRole: th.getAttribute('role'), thTab: th.tabIndex,
     navCursor: getComputedStyle(nav).cursor, scopeCursor: getComputedStyle(scope).cursor,
@@ -567,9 +580,14 @@ const interaction = await page.evaluate(() => {
     box: before,
   };
 });
-ok(interaction.role === 'button' && interaction.tab === 0 && interaction.cursor === 'pointer',
-  'a player row is pointer-affordant and keyboard-activatable', JSON.stringify(interaction));
-ok(/▸/.test(interaction.chevron), 'a player row carries the hover chevron', interaction.chevron);
+/* Revision 2: the row itself is no longer one button. The identity cell opens
+   the player and every clickable statistic is its own control, so the
+   affordance is asserted where it now lives — each is a real <button>, focusable
+   and pointer-affordant, which is stronger than a row-level role attribute. */
+ok(interaction.identTag === 'BUTTON' && interaction.identTab === 0 && interaction.identCursor === 'pointer',
+  'the identity cell is a pointer-affordant, keyboard-activatable control', JSON.stringify(interaction));
+ok(interaction.statTag === 'BUTTON' && interaction.statTab === 0 && interaction.statCursor === 'pointer',
+  'a clickable statistic is a pointer-affordant, keyboard-activatable control', JSON.stringify(interaction));
 ok(!interaction.resized, 'hover and focus change no layout dimension', JSON.stringify(interaction.box));
 ok(interaction.thRole === 'button' && interaction.thTab === 0 && interaction.thCursor === 'pointer',
   'a sortable header is pointer-affordant and keyboard-activatable', JSON.stringify(interaction));
@@ -672,14 +690,20 @@ ok(tackles && tackles.avail - tackles.need >= 0,
   'the nine-column Tackles identity column holds the name with room to spare',
   JSON.stringify(tackles));
 
-/* The row marker must cost the identity column no width, or it takes that room
+/* Revision 2 retired the row marker with the row action. The identity control
+   that replaced it must still cost the column no width, or it takes that room
    straight back off the name. */
 const marker = await page.evaluate(() => {
-  const td = document.querySelector('.gi-player-table .cut-row td.tl');
-  return getComputedStyle(td, '::before').position;
+  const td = document.querySelector('.gi-player-table tbody td.tl');
+  const button = td.querySelector('[data-player-open]');
+  const style = getComputedStyle(button);
+  return { marker: getComputedStyle(td, '::before').content,
+    padding: [style.paddingLeft, style.paddingRight].join(' '), border: style.borderLeftWidth,
+    fits: Math.ceil(button.getBoundingClientRect().width) <= Math.ceil(td.getBoundingClientRect().width) };
 });
-ok(marker === 'absolute',
-  'the row marker is outside the flow, so it costs the identity column no width', marker);
+ok(marker.padding === '0px 0px' && marker.border === '0px' && marker.fits,
+  'the identity control is inline and unpadded, so it costs the identity column no width',
+  JSON.stringify(marker));
 
 /* 12b. The selected role section survives a scope change. It was local view
    state, and a scope change re-renders the tab, so the board snapped back to
@@ -812,6 +836,290 @@ ok(crossSurface.playerReturnYards === crossSurface.teamReturnYards,
   JSON.stringify(crossSurface));
 ok(crossSurface.playerPuntsMeasured === 0,
   'a punt with no charted kickDistance contributes no measured distance', JSON.stringify(crossSurface));
+
+/* ══ Revision 2 ═══════════════════════════════════════════════════════════
+   The leaderboard is the entry point; the analysis lives one click deeper. Every
+   assertion below drives the real board and reads the rendered result. */
+console.log('\n== Revision 2: detail, exact cohorts, selected games, columns, export ==');
+/* TWO games, every role, one player (#22) credited in three of them — the case
+   the detail view exists for: separate labelled sections, no merged score, and
+   game rows that must sum back to the totals above them. */
+const R2_G1 = [
+  /* This run carries the coverage we FACED, which our offensive charting does
+     record. It makes the role/dimension guard load-bearing: without it a rushing
+     cohort would produce a Coverage breakdown describing the opponent's call,
+     not the runner's production. */
+  { unit: 'offense', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10',
+    hash: 'Left', playDir: 'Left', coverage: 'Cover 3', players: { ballCarrier: '22' }, grades: { ballCarrier: 1 } },
+  { unit: 'offense', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', distance: '4',
+    players: { ballCarrier: '22' } },
+  { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '14', down: '3', distance: '7',
+    players: { passer: '7', receiver: '22' } },
+  { unit: 'offense', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '9',
+    players: { passer: '7' } },
+  { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Sack', yardage: '-7', down: '3', distance: '8',
+    players: { passer: '7' } },
+  { unit: 'defense', runPass: 'Run', playType: 'Run Outside', result: 'Loss', yardage: '-3', down: '2', distance: '7',
+    defFront: '4-2-5', coverage: 'Cover 1', players: { tackler: '55' } },
+  { unit: 'defense', runPass: 'Pass', playType: 'Short Pass', result: 'Sack', yardage: '-6', down: '3', distance: '9',
+    defFront: 'Bear', coverage: 'Cover 0', players: { tackler: '55' } },
+  { unit: 'defense', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '3', distance: '12',
+    defFront: '4-2-5', coverage: 'Cover 3', players: { takeaway: '55' } },
+  { unit: 'special', stType: 'Kick Return', result: 'Gain', returnYards: '24', players: { returner: '22' } },
+];
+const R2_G2 = [
+  { unit: 'offense', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10',
+    hash: 'Right', playDir: 'Right', players: { ballCarrier: '22' } },
+  { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '9', down: '1', distance: '10',
+    players: { passer: '7', receiver: '22' } },
+  { unit: 'defense', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '2', down: '1', distance: '10',
+    defFront: 'Bear', coverage: 'Cover 2', players: { tackler: '55' } },
+];
+await load([R2_G1, R2_G2], { 22: 'Reggie Barnes', 7: 'Tyler Voss', 55: 'Devin Cross' });
+await setScope('season');
+await setSection('All roles');
+await page.evaluate(() => window.app.reportsScreen.closePlayerDetail());
+await sleep(300);
+
+/* EVERY CLICKABLE STATISTIC OPENS ITS OWN EVENTS, and the engine's buckets are
+   what it opens. Asserted against the credit index so the board and the owner
+   cannot drift: a touchdown cell opens touchdowns, an interception cell opens
+   interceptions, never the role's whole cohort. */
+const exact = await page.evaluate(() => {
+  const app = window.app;
+  const screen = app.reportsScreen;
+  const scoped = screen._playersScopedPlays || [];
+  const board = app.stats.playersBoard(scoped, {});
+  const seen = [];
+  const original = screen.watchRefs.bind(screen);
+  screen.watchRefs = (refs, label) => seen.push({ refs: [...refs].sort(), label });
+  const out = [];
+  document.querySelectorAll('.gi-player-table [data-player-stat]').forEach(button => {
+    const [roleKey, column, num] = button.dataset.playerStat.split(':');
+    seen.length = 0;
+    button.click();
+    const opened = seen[0]?.refs || [];
+    const role = board.players.find(p => p.num === num)?.roles.find(r => r.key === roleKey);
+    const bucket = { rushing: { att: 'att', yds: 'yds', avg: 'att', long: 'yds', tds: 'td', fum: 'fum' },
+      passing: { ca: 'att', pct: 'att', yds: 'yds', tds: 'td', ints: 'int', sacks: 'sck' },
+      receiving: { rec: 'rec', yds: 'yds', long: 'yds', tds: 'td' },
+      tackles: { tkl: 'tkl', solo: 'solo', ast: 'ast', sacks: 'sack', tfl: 'tfl', ints: 'int', fr: 'fr' },
+      returns: { ret: 'yds', yds: 'yds', avg: 'yds', long: 'yds', tds: 'td' },
+      kicking: { fg: 'fgAtt', punts: 'punts', puntAvg: 'puntYds' } }[roleKey]?.[column];
+    const expected = [...(role?.stats[bucket]?.refs || [])].sort();
+    out.push({ key: button.dataset.playerStat, ok: JSON.stringify(opened) === JSON.stringify(expected),
+      opened: opened.length, expected: expected.length, label: seen[0]?.label || '' });
+  });
+  screen.watchRefs = original;
+  return out;
+});
+ok(exact.length >= 12 && exact.every(item => item.ok),
+  'every clickable statistic opens exactly its own credited events, never the role cohort',
+  JSON.stringify(exact.filter(item => !item.ok).slice(0, 4)));
+ok(exact.some(item => /:tds:/.test(item.key)) && exact.some(item => /:ints:/.test(item.key))
+  && exact.some(item => /:sacks:/.test(item.key)) && exact.some(item => /:tfl:/.test(item.key)),
+  'touchdowns, interceptions, sacks and tackles for loss each carry their own distinct cohort',
+  JSON.stringify(exact.map(item => item.key)));
+
+/* A `No data` cell and a measured zero with no clips stay visible and stay
+   unclickable: there is no playlist to open, so there is no button. */
+const clipless = await page.evaluate(() => {
+  const cells = [...document.querySelectorAll('.gi-player-table tbody td')];
+  const noData = cells.filter(td => td.textContent.trim() === 'No data');
+  const zeros = cells.filter(td => td.textContent.trim() === '0');
+  return {
+    noData: noData.length,
+    noDataClickable: noData.filter(td => td.querySelector('button')).length,
+    zeros: zeros.length,
+    zeroClickable: zeros.filter(td => td.querySelector('button')).length,
+  };
+});
+ok(clipless.noData > 0 && clipless.noDataClickable === 0,
+  'a No data cell is visible and is never a film action', JSON.stringify(clipless));
+ok(clipless.zeros > 0 && clipless.zeroClickable === 0,
+  'a measured zero stays visible and is not clickable when it has no clips', JSON.stringify(clipless));
+
+/* IDENTITY OPENS THE PLAYER, not a playlist. */
+const identity = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  const watched = [];
+  const original = screen.watchRefs.bind(screen);
+  screen.watchRefs = (refs, label) => watched.push(label);
+  document.querySelector('.gi-player-table [data-player-open]')?.click();
+  screen.watchRefs = original;
+  await new Promise(r => setTimeout(r, 300));
+  const detail = document.querySelector('[data-player-detail]');
+  return { watched, opened: detail?.dataset.playerDetail || null,
+    heading: detail?.querySelector('h3')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    scope: detail?.querySelector('.gi-pd-scope')?.textContent?.trim() || '',
+    back: !!detail?.querySelector('[data-pd-back]'),
+    leaderboard: !!document.querySelector('.gi-player-table') };
+});
+ok(identity.watched.length === 0 && identity.opened,
+  'the identity cell opens player detail rather than a generic role playlist', JSON.stringify(identity));
+ok(/^#\d+/.test(identity.heading) && identity.scope && identity.back,
+  'detail names the player literally, states the active scope and offers Back to all players',
+  JSON.stringify(identity));
+
+/* MULTIPLE ROLES, ONE PLAYER, NO MERGED SCORE — and the game rows reconcile
+   EXACTLY to the totals above them. */
+const detailModel = await page.evaluate(num => {
+  const app = window.app;
+  const scoped = app.reportsScreen._playersScopedPlays || [];
+  const detail = app.stats.playerDetail(scoped, num, {});
+  const totals = {}, summed = {};
+  detail.roles.forEach(role => {
+    Object.entries(role.stats).forEach(([key, fact]) => {
+      if (key.startsWith('__')) return;
+      totals[`${role.key}.${key}`] = { n: fact.n, total: fact.total };
+      summed[`${role.key}.${key}`] = detail.games.reduce((sum, game) => {
+        const inGame = game.roles[role.key];
+        return { n: sum.n + (inGame?.stats[key]?.n || 0), total: sum.total + (inGame?.stats[key]?.total || 0) };
+      }, { n: 0, total: 0 });
+    });
+  });
+  return { roles: detail.roles.map(role => role.key), games: detail.games.map(game => game.opponent),
+    totals, summed, sections: document.querySelectorAll('.gi-pd-role').length };
+}, identity.opened);
+ok(detailModel.roles.length >= 1 && detailModel.sections === detailModel.roles.length,
+  'a player credited in several roles appears once, with one labelled section per role',
+  JSON.stringify(detailModel.roles));
+ok(JSON.stringify(detailModel.totals) === JSON.stringify(detailModel.summed),
+  'every game row sums back to the role totals above it, with nothing double counted',
+  JSON.stringify({ totals: detailModel.totals, summed: detailModel.summed }));
+
+/* SITUATIONAL rows reconcile to the same role cohort, and each row's film is
+   exactly its own contributing plays. */
+const situ = await page.evaluate(num => {
+  const app = window.app;
+  const scoped = app.reportsScreen._playersScopedPlays || [];
+  const detail = app.stats.playerDetail(scoped, num, {});
+  const role = detail.roles[0];
+  const rows = app.stats.playerSituational(scoped, num, role.key, 'quarter');
+  const schema = app.stats.constructor.PLAYER_ROLES.find(item => item.key === role.key);
+  const roleRefs = new Set(role.refs);
+  return {
+    role: role.key,
+    volume: rows.reduce((sum, row) => sum + row.n, 0),
+    expected: role.stats[schema.volume]?.n ?? 0,
+    within: rows.every(row => row.refs.every(ref => roleRefs.has(ref))),
+    rows: rows.length,
+  };
+}, identity.opened);
+ok(situ.rows > 0 && situ.volume === situ.expected,
+  'situational rows reconcile to the selected player-role cohort', JSON.stringify(situ));
+ok(situ.within,
+  'a situation row opens only plays from that player-role cohort', JSON.stringify(situ));
+
+/* ONLY DIMENSIONS THE ROLE CAN ANSWER. A rusher is never offered coverage or a
+   Special Teams outcome; a tackler is never offered our own formation. */
+const relevance = await page.evaluate(num => {
+  const app = window.app;
+  const scoped = app.reportsScreen._playersScopedPlays || [];
+  const detail = app.stats.playerDetail(scoped, num, {});
+  const dims = app.stats.constructor.PLAYER_DIMENSIONS;
+  const offered = role => dims.filter(item => item.roles.includes(role)).map(item => item.key);
+  const rendered = [...document.querySelectorAll('.gi-pd-situ select')]
+    .at(-1)?.querySelectorAll('option');
+  return {
+    roles: detail.roles.map(role => role.key),
+    rushing: offered('rushing'), tackles: offered('tackles'), returns: offered('returns'),
+    renderedCount: rendered ? rendered.length : 0,
+    empty: dims.filter(item => app.stats.playerSituational(scoped, num, 'rushing', item.key).length
+      && !item.roles.includes('rushing')).map(item => item.key),
+  };
+}, identity.opened);
+ok(!relevance.rushing.includes('coverage') && !relevance.rushing.includes('defFront')
+  && !relevance.rushing.includes('stUnit'),
+  'a rushing cohort is never offered a defensive or Special Teams dimension', JSON.stringify(relevance.rushing));
+ok(!relevance.tackles.includes('formation') && !relevance.tackles.includes('personnel')
+  && relevance.tackles.includes('coverage'),
+  'a tackles cohort is offered the defense it played, not our own offensive structure',
+  JSON.stringify(relevance.tackles));
+ok(relevance.returns.includes('stUnit') && !relevance.returns.includes('downDistance'),
+  'a return cohort is offered its Special Teams dimensions and not down and distance',
+  JSON.stringify(relevance.returns));
+ok(relevance.empty.length === 0,
+  'no dimension outside a role\'s own list can produce rows for it', JSON.stringify(relevance.empty));
+
+/* SELECTED GAMES recomputes everything together. */
+const selected = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  screen.closePlayerDetail();
+  screen.setPlayersScope('selected');
+  await new Promise(r => setTimeout(r, 300));
+  const games = screen._playersSelectableGames();
+  const all = screen._playersCohort().scoped.length;
+  screen.togglePlayersGame(games[0].id);
+  await new Promise(r => setTimeout(r, 400));
+  const one = screen._playersCohort().scoped;
+  const board = window.app.stats.playersBoard(one, {});
+  return {
+    games: games.map(game => game.label), all, one: one.length,
+    everyRefInGame: board.players.every(player => player.roles.every(role =>
+      role.refs.every(ref => ref.startsWith(`${games[0].id}::`)))),
+    sample: (document.querySelector('.gi-players-sample')?.textContent || '').replace(/\s+/g, ' ').trim(),
+    label: screen._playersSelectedLabel(),
+    rows: document.querySelectorAll('.gi-player-table tbody tr').length,
+  };
+});
+ok(selected.games.length >= 2 && selected.games.every(label => /\S/.test(label)),
+  'the game picker names the program season\'s games', JSON.stringify(selected.games));
+ok(selected.one > 0 && selected.one < selected.all,
+  'selecting one game narrows the cohort every table is computed from', JSON.stringify(selected));
+ok(selected.everyRefInGame,
+  'every film reference in the selected-games cohort belongs to a selected game', JSON.stringify(selected));
+ok(selected.sample.includes(selected.label),
+  'the sample line states the resulting cohort literally', JSON.stringify(selected));
+
+/* COLUMN VISIBILITY is presentation only. */
+const columns = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  screen.setPlayersScope('season');
+  await new Promise(r => setTimeout(r, 400));
+  const table = () => document.querySelector('.gi-player-module .gi-player-table');
+  const before = { cols: table().querySelectorAll('thead th').length,
+    firstRow: [...table().querySelectorAll('tbody tr:first-child td')].map(td => td.textContent.trim()) };
+  const engineBefore = JSON.stringify(window.app.stats.playersBoard(screen._playersScopedPlays || [], {})
+    .players.map(p => p.roles.map(r => [r.key, r.stats.att?.n ?? null])));
+  document.querySelector('.gi-player-module .gi-player-colbtn').click();
+  await new Promise(r => setTimeout(r, 150));
+  const items = [...document.querySelectorAll('.gi-player-colpanel input')];
+  const identityOffered = [...document.querySelectorAll('.gi-player-colpanel .gi-player-colitem')]
+    .some(item => /player/i.test(item.textContent));
+  items[0]?.click();
+  await new Promise(r => setTimeout(r, 200));
+  const after = { cols: table().querySelectorAll('thead th').length,
+    ident: !!table().querySelector('tbody [data-player-open]') };
+  const engineAfter = JSON.stringify(window.app.stats.playersBoard(screen._playersScopedPlays || [], {})
+    .players.map(p => p.roles.map(r => [r.key, r.stats.att?.n ?? null])));
+  return { before, after, identityOffered, same: engineBefore === engineAfter };
+});
+ok(columns.after.cols === columns.before.cols - 1 && columns.after.ident,
+  'hiding an optional column removes it and never removes the player identity', JSON.stringify(columns));
+ok(!columns.identityOffered, 'the column menu does not offer to hide the player identity');
+ok(columns.same, 'column visibility changes no calculation', JSON.stringify(columns.same));
+
+/* PLAYER EXPORT matches the selection on screen. */
+const exported = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  const num = document.querySelector('.gi-player-table [data-player-open]')?.dataset.playerOpen;
+  screen.openPlayerDetail(num);
+  await new Promise(r => setTimeout(r, 300));
+  let saved = null;
+  const prior = window.ffaSaveBlob;
+  window.ffaSaveBlob = blob => { saved = blob; };
+  const result = screen.export('html');
+  const html = saved ? await saved.text() : '';
+  window.ffaSaveBlob = prior;
+  return { num, result, html, isPlayer: /Player Report:/.test(html) };
+});
+ok(exported.result && exported.isPlayer,
+  'Export produces the player report while a player is open, never the leaderboard', String(exported.result));
+ok(exported.html.includes(`#${exported.num}`) && /Game by game/.test(exported.html)
+  && /::/.test(exported.html),
+  'the player export carries the identity, the game split and composite play references',
+  exported.html.slice(0, 120));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); console.log(errors.slice(0, 5).join('\n')); }

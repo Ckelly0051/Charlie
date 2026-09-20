@@ -624,7 +624,19 @@ export function advancedData(stats, engine) {
  *  because on this data they are genuinely uncharted rather than zero. */
 const PLAYER_NO_DATA = 'No data';
 
-export function individualStats(stats, group, playerLabel) {
+/** Revision 2: which credit bucket each DISPLAYED column opens. A derived cell
+ *  (Avg, Pct) opens the cohort it is derived from; `Long` opens the measured
+ *  plays behind it. Keyed by role so one column name cannot mean two cohorts. */
+export const PLAYER_STAT_BUCKETS = Object.freeze({
+  rushing: { att: 'att', yds: 'yds', avg: 'att', long: 'yds', tds: 'td', fum: 'fum' },
+  passing: { ca: 'att', pct: 'att', yds: 'yds', tds: 'td', ints: 'int', sacks: 'sck' },
+  receiving: { rec: 'rec', yds: 'yds', long: 'yds', tds: 'td' },
+  tackles: { tkl: 'tkl', solo: 'solo', ast: 'ast', sacks: 'sack', tfl: 'tfl', ints: 'int', fr: 'fr' },
+  returns: { ret: 'yds', yds: 'yds', avg: 'yds', long: 'yds', tds: 'td' },
+  kicking: { fg: 'fgAtt', punts: 'punts', puntAvg: 'puntYds' },
+});
+
+export function individualStats(stats, group, playerLabel, board = null) {
   const ind = stats.individuals || {};
   const showOff = group === 'all' || group === 'offense';
   const showDef = group === 'all' || group === 'defense';
@@ -641,18 +653,31 @@ export function individualStats(stats, group, playerLabel) {
   // and PlayersTab both need it for an honest role-specific cross-game click.
   const refs = row => Array.isArray(row.refs) ? row.refs : [];
   const tables = [];
+  /* THE PER-STAT FILM COHORTS. `playersBoard` holds the exact play list behind
+     every bucket, so a clicked value opens those plays and nothing else. Built
+     from the board, never reconstructed from a displayed string. */
+  const byNum = new Map((board?.players || []).map(item => [String(item.num), item]));
+  const statRefs = (roleKey, num) => {
+    const role = byNum.get(String(num))?.roles.find(item => item.key === roleKey);
+    if (!role) return {};
+    const map = PLAYER_STAT_BUCKETS[roleKey] || {};
+    return Object.fromEntries(Object.entries(map)
+      .map(([column, bucket]) => [column, role.stats[bucket]?.refs || []])
+      .filter(([, list]) => list.length));
+  };
+  const withStats = (roleKey, rows) => rows.map(row => ({ ...row, statRefs: statRefs(roleKey, row.num) }));
   if (showOff && ind.rushers?.length) tables.push({ title: 'Rushing', key: 'rushing',
     columns: [['player', 'Player'], ['att', 'Att', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true], ['fum', 'Fum', true], ['grade', 'Grade', true, 'gradeSort']],
-    rows: ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r), refs: refs(r) })) });
+    rows: withStats('rushing', ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r), refs: refs(r) }))) });
   if (showOff && ind.passers?.length) tables.push({ title: 'Passing', key: 'passing',
     columns: [['player', 'Player'], ['ca', 'C/A', true, 'caSort'], ['pct', 'Pct', true, 'pctSort'], ['yds', 'Yds', true], ['tds', 'TD', true], ['ints', 'INT', true], ['sacks', 'Sck', true], ['grade', 'Grade', true, 'gradeSort']],
-    rows: ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, caSort: p.completions, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, pctSort: p.attempts ? p.completions / p.attempts : 0, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p), refs: refs(p) })) });
+    rows: withStats('passing', ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, caSort: p.completions, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, pctSort: p.attempts ? p.completions / p.attempts : 0, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p), refs: refs(p) }))) });
   if (showOff && ind.receivers?.length) tables.push({ title: 'Receiving', key: 'receiving',
     columns: [['player', 'Player'], ['rec', 'Rec', true], ['yds', 'Yds', true], ['long', 'Long', true], ['tds', 'TD', true], ['grade', 'Grade', true, 'gradeSort']],
-    rows: ind.receivers.map(r => ({ ...player(r.num), rec: r.receptions, yds: r.yards, long: r.long, tds: r.tds, ...grade(r), refs: refs(r) })) });
+    rows: withStats('receiving', ind.receivers.map(r => ({ ...player(r.num), rec: r.receptions, yds: r.yards, long: r.long, tds: r.tds, ...grade(r), refs: refs(r) }))) });
   if (showDef && ind.tacklers?.length) tables.push({ title: 'Tackles', key: 'tackles',
     columns: [['player', 'Player'], ['tkl', 'Tkl', true], ['solo', 'Solo', true], ['ast', 'Ast', true], ['sacks', 'Sack', true], ['tfl', 'TFL', true], ['ints', 'INT', true], ['fr', 'FR', true], ['grade', 'Grade', true, 'gradeSort']],
-    rows: ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) })) });
+    rows: withStats('tackles', ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) }))) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
     /* ONE RETURN COHORT ACROSS BOTH SURFACES. Return production is measured
@@ -663,20 +688,20 @@ export function individualStats(stats, group, playerLabel) {
        different cohorts, above a team report stating 1 return for 5 yards.
        An unmeasured return is still a special-teams snap and stays in the
        unit's snap count; it is not production. Coach ruling 2026-09-10. */
-    rows: ind.returners.map(r => ({ ...player(r.num), ret: r.measured,
+    rows: withStats('returns', ind.returners.map(r => ({ ...player(r.num), ret: r.measured,
       yds: r.measured ? r.yards : PLAYER_NO_DATA,
       avg: r.measured ? (r.yards / r.measured).toFixed(1) : PLAYER_NO_DATA,
-      long: r.measured ? r.long : PLAYER_NO_DATA, tds: r.tds, refs: refs(r) })) });
+      long: r.measured ? r.long : PLAYER_NO_DATA, tds: r.tds, refs: refs(r) }))) });
   if (showST && ind.kickers?.length) tables.push({ title: 'Kicking / Punting', key: 'kicking',
     columns: [['player', 'Player'], ['fg', 'FG (M/A)', true, 'fgSort'], ['punts', 'Punts', true, 'puntsSort'], ['puntAvg', 'Punt Avg', true, 'puntAvgSort']],
     /* Punt average is measured over the punts carrying a charted
        `kickDistance`. Dividing by every punt turned a season charting no punt
        distance at all into averages of 2.8 and 0.0 — from the generic
        `tags.yardage` — beside a team report correctly reporting none. */
-    rows: ind.kickers.map(k => ({ ...player(k.num), fg: `${k.fgMade || 0}/${k.fgAtt || 0}`, fgSort: k.fgMade || 0,
+    rows: withStats('kicking', ind.kickers.map(k => ({ ...player(k.num), fg: `${k.fgMade || 0}/${k.fgAtt || 0}`, fgSort: k.fgMade || 0,
       punts: k.punts || 0, puntsSort: k.punts || 0,
       puntAvg: k.puntsMeasured ? (k.puntYds / k.puntsMeasured).toFixed(1) : PLAYER_NO_DATA,
-      puntAvgSort: k.puntsMeasured ? k.puntYds / k.puntsMeasured : null, refs: refs(k) })) });
+      puntAvgSort: k.puntsMeasured ? k.puntYds / k.puntsMeasured : null, refs: refs(k) }))) });
   return tables;
 }
 

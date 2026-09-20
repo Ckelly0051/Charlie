@@ -305,7 +305,11 @@ for (const [title, board] of CHILD) {
   const seen = await page.evaluate(cls => {
     const host = document.querySelector('.gi-season-sections');
     return { board: !!host.querySelector('.' + cls), kids: host.children.length,
-      text: host.textContent, cut: host.querySelectorAll('.cut-row').length,
+      text: host.textContent,
+      /* Players Revision 2 opens film from a STATISTIC rather than the row, so
+         its film affordance is a stat button; every other child board still
+         marks a clickable row. */
+      cut: host.querySelectorAll('.cut-row').length + host.querySelectorAll('[data-player-stat]').length,
       seasonModule: host.querySelectorAll('.gi-season-module').length };
   }, board);
   if (!seen.board) missing.push(title);
@@ -324,14 +328,14 @@ const playerRefs = await page.evaluate(() => {
   const captured = [];
   const original = screen.watchRefs;
   screen.watchRefs = (refs, label) => captured.push({ refs, label });
-  document.querySelector('.gi-players-board .cut-row')?.click();
+  document.querySelector('.gi-players-board [data-player-stat]')?.click();
   screen.watchRefs = original;
   return captured;
 });
 ok(playerRefs.length === 1 && playerRefs[0].refs.length > 0
   && playerRefs[0].refs.every(ref => /^[^:]+::\d+$/.test(ref))
   && new Set(playerRefs[0].refs.map(ref => ref.split('::')[0])).size > 1,
-'a Players row at season scope opens exact composite refs across more than one game',
+'a Players statistic at season scope opens exact composite refs across more than one game',
 JSON.stringify(playerRefs[0]?.refs?.slice(0, 3)));
 ok((playerRefs[0]?.refs || []).every(ref => !ref.startsWith('scout-1::')),
   'no scout-game reference reaches a season child-board film cohort');

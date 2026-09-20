@@ -81,7 +81,9 @@ const OFFENSE_NARROW_MODULES = [
    is a real assertion here -- the board is measured over the populated canonical
    season, and the minimum below is pinned in both directions. */
 const SPECIAL = {};
-const PLAYERS = { '11|B': 4, '12|SPAN': 8, '12|B': 3, '12|BUTTON': 4, '12|TD': 26, '12|STRONG': 1 };
+/* MIGRATED 2026-09-20 by Players Revision 2: 46 sub-floor elements at an 11px
+   minimum, now none. */
+const PLAYERS = {};
 const SELF_SCOUT = { '11|B': 5, '12|SPAN': 8, '12|B': 2, '12|BUTTON': 5 };
 const SEASON = { '11|SPAN': 1, '12|STRONG': 1, '12|BUTTON': 7, '12|SPAN': 6, '12|TH': 15 };
 const MATCHUP = {
@@ -250,7 +252,7 @@ const TOTALS = {
   'offense@1440': 118, 'offense@1280': 323,
   'defense@1440': 0, 'defense@1280': 0,
   'special@1440': 0, 'special@1280': 0,
-  'players@1440': 46, 'players@1280': 46,
+  'players@1440': 0, 'players@1280': 0,
   'selfscout@1440': 20, 'selfscout@1280': 20,
   'season@1440': 30, 'season@1280': 30,
   'matchup@1440': 58, 'matchup@1280': 58,
@@ -267,7 +269,7 @@ const MINIMA = {
   overview: 9.5, offense: 9.5, defense: 12.5,
   // Special Teams migrated to the shared floor on 2026-09-19, the second board
   // after Defense to hold it with nothing below.
-  special: 12.5, players: 11, selfscout: 11, season: 11, matchup: 10,
+  special: 12.5, players: 12.5, selfscout: 11, season: 11, matchup: 10,
 };
 for (const [tab, expected] of Object.entries(MINIMA)) {
   const rows = observed.filter(item => item.tab === tab);

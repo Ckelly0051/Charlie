@@ -921,18 +921,217 @@ const PLAYER_COL_SIZE_BY_ROLE = { tackles: { sacks: 'l2' } };
  * merely because Tackles is wide. */
 const PLAYER_HALF_1280 = 599;
 
+const PLAYER_NO_DATA_CELL = 'No data';
+
+/* Selected games: a compact checklist of the program season's own games. It
+   selects nothing on its own -- an empty selection keeps the full season cohort
+   rather than silently emptying the board -- writes nothing to stored data, and
+   never offers an opponent-scout game, because those are not our players. */
+function GamePicker({ screen }) {
+  const [open, setOpen] = useState(false);
+  const games = screen._playersSelectableGames();
+  const selected = screen.playersSelectedGames || new Set();
+  if (!games.length) return null;
+  return <div class="gi-players-picker">
+    <button type="button" class="gi-players-pickbtn" data-players-picker aria-haspopup="true" aria-expanded={open}
+      onClick={() => setOpen(!open)}>{screen._playersSelectedLabel()} ▾</button>
+    {open && <div class="gi-players-pickpanel" role="menu" aria-label="Select games">
+      {games.map(game => <label key={game.id} class="gi-players-pickitem" role="menuitemcheckbox"
+        aria-checked={selected.has(game.id)}>
+        <input type="checkbox" checked={selected.has(game.id)} data-players-game={game.id}
+          onChange={() => screen.togglePlayersGame(game.id)} />
+        <span>{game.label}</span>
+      </label>)}
+    </div>}
+  </div>;
+}
+
+/* ── Revision 2: the player detail view ────────────────────────────────────
+   One player, every role they were credited in, the same buckets split by game
+   and by a charted dimension. It opens IN the tab: Reports never navigates away
+   from itself. Roles stay separate and labelled -- there is no overall rating,
+   because a tackle and a reception do not add up to one number. */
+function PlayerStat({ label, value, refs, screen, watchLabel }) {
+  const clickable = Array.isArray(refs) && refs.length && value !== PLAYER_NO_DATA_CELL;
+  return <div class="gi-pd-stat">
+    <span>{label}</span>
+    {clickable
+      ? <button type="button" class="gi-player-stat" data-pd-stat={label}
+          onClick={() => screen.watchRefs(refs, watchLabel)}>{value}</button>
+      : <strong class={value === PLAYER_NO_DATA_CELL ? 'blank' : ''}>{value}</strong>}
+  </div>;
+}
+
+function PlayerDetail({ detail, screen, scopeLabel }) {
+  const engine = screen.app.stats;
+  const roleKeys = detail.roles.map(role => role.key);
+  const [dimRole, setDimRole] = useState(roleKeys[0]);
+  const activeRole = roleKeys.includes(dimRole) ? dimRole : roleKeys[0];
+  const dimensions = engine.constructor.PLAYER_DIMENSIONS.filter(item => item.roles.includes(activeRole));
+  const [dimension, setDimension] = useState(dimensions[0]?.key || '');
+  const activeDim = dimensions.some(item => item.key === dimension) ? dimension : (dimensions[0]?.key || '');
+  const situational = activeDim
+    ? engine.playerSituational(screen._playersScopedPlays || [], detail.num, activeRole, activeDim)
+    : [];
+  const roleSchema = engine.constructor.PLAYER_ROLES;
+  const schemaOf = key => roleSchema.find(item => item.key === key);
+  const cells = role => PLAYER_DETAIL_STATS[role.key].map(([bucket, label]) => {
+    const fact = role.stats[bucket];
+    const value = PLAYER_DETAIL_TOTALS[role.key]?.includes(bucket)
+      ? (fact && fact.n ? fact.total : (fact && fact.n === 0 ? PLAYER_NO_DATA_CELL : 0))
+      : (fact ? fact.n : 0);
+    return { label, value, refs: fact?.refs || [] };
+  });
+  return <div class="gi-pd" data-player-detail={detail.num}>
+    <div class="gi-pd-head">
+      <button type="button" class="gi-pd-back" data-pd-back onClick={() => screen.closePlayerDetail()}>← All players</button>
+      <h3><i>#{detail.num}</i>{detail.name ? ` ${detail.name}` : ''}</h3>
+      <span class="gi-pd-scope">{scopeLabel}</span>
+    </div>
+    <div class="gi-pd-roles">
+      {detail.roles.map(role => <section key={role.key} class="gi-overview-module gi-pd-role">
+        <header><strong>{role.label}</strong>
+          <span>{role.grade == null ? 'No grade charted' : `Grade ${role.grade > 0 ? '+' : ''}${role.grade}`}</span></header>
+        <div class="gi-pd-stats">
+          {cells(role).map(cell => <PlayerStat key={cell.label} {...cell} screen={screen}
+            watchLabel={`#${detail.num} ${role.label} ${cell.label}`} />)}
+        </div>
+      </section>)}
+    </div>
+    <section class="gi-overview-module gi-pd-games">
+      <header><strong>Game by game</strong><span>{detail.games.length} game{detail.games.length === 1 ? '' : 's'}</span></header>
+      <div class="gi-st-table-wrap"><table class="stats-table gi-pd-table"><thead><tr>
+        <th class="tl">Opponent</th>{detail.roles.map(role =>
+          <th key={role.key}>{role.label}</th>)}
+      </tr></thead><tbody>
+        {detail.games.map(game => <tr key={game.gid}>
+          <td class="tl">{game.opponent}</td>
+          {detail.roles.map(role => {
+            const inGame = game.roles[role.key];
+            if (!inGame) return <td key={role.key} class="blank">{PLAYER_NO_DATA_CELL}</td>;
+            const schema = schemaOf(role.key);
+            const volume = inGame.stats[schema.volume]?.n ?? 0;
+            const production = schema.production === 'tkl'
+              ? (inGame.stats.tkl?.n ?? 0) : (inGame.stats[schema.production]?.total ?? 0);
+            return <td key={role.key}>
+              <button type="button" class="gi-player-stat" data-pd-game={`${game.gid}:${role.key}`}
+                onClick={() => screen.watchRefs(inGame.refs, `#${detail.num} ${role.label} vs ${game.opponent}`)}>
+                {PLAYER_GAME_CELL[role.key](volume, production)}</button>
+            </td>;
+          })}
+        </tr>)}
+      </tbody></table></div>
+    </section>
+    <section class="gi-overview-module gi-pd-situ">
+      <header><strong>Situational</strong>
+        <span>
+          <select aria-label="Role" value={activeRole} onChange={event => setDimRole(event.currentTarget.value)}>
+            {detail.roles.map(role => <option key={role.key} value={role.key}>{role.label}</option>)}
+          </select>
+          <select aria-label="Dimension" value={activeDim} onChange={event => setDimension(event.currentTarget.value)}>
+            {dimensions.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+          </select>
+        </span>
+      </header>
+      {situational.length ? <div class="gi-st-table-wrap"><table class="stats-table gi-pd-table"><thead><tr>
+        <th class="tl">{dimensions.find(item => item.key === activeDim)?.label}</th>
+        <th>{PLAYER_SITU_HEAD[activeRole][0]}</th><th>{PLAYER_SITU_HEAD[activeRole][1]}</th><th>Grade</th>
+      </tr></thead><tbody>
+        {situational.map(row => <tr key={row.value}>
+          <td class="tl">{row.value}</td>
+          <td><button type="button" class="gi-player-stat" data-pd-situ={row.value}
+            onClick={() => screen.watchRefs(row.refs, `#${detail.num} ${activeDim} ${row.value}`)}>{row.n}</button></td>
+          <td>{row.productionMeasured ? row.production : <span class="blank">{PLAYER_NO_DATA_CELL}</span>}</td>
+          <td class={row.grade == null ? 'blank' : ''}>{row.grade == null ? PLAYER_NO_DATA_CELL
+            : `${row.grade > 0 ? '+' : ''}${row.grade}`}</td>
+        </tr>)}
+      </tbody></table></div> : <p class="gi-st-empty">{PLAYER_NO_DATA_CELL}</p>}
+    </section>
+  </div>;
+}
+
+/* The detail view's stat rows, per role: the bucket, then its literal label. */
+const PLAYER_DETAIL_STATS = {
+  rushing: [['att', 'Attempts'], ['yds', 'Yards'], ['td', 'Touchdowns'], ['fum', 'Fumbles']],
+  passing: [['att', 'Attempts'], ['cmp', 'Completions'], ['yds', 'Yards'], ['td', 'Touchdowns'], ['int', 'Interceptions'], ['sck', 'Sacks']],
+  receiving: [['rec', 'Receptions'], ['yds', 'Yards'], ['td', 'Touchdowns']],
+  tackles: [['tkl', 'Tackles'], ['solo', 'Solo'], ['ast', 'Assists'], ['sack', 'Sacks'], ['tfl', 'Tackles for loss'], ['int', 'Interceptions'], ['fr', 'Fumbles recovered']],
+  returns: [['ret', 'Returns'], ['yds', 'Return yards'], ['td', 'Touchdowns']],
+  kicking: [['fgAtt', 'Field goal attempts'], ['fgMade', 'Field goals made'], ['punts', 'Punts'], ['puntYds', 'Punt yards']],
+};
+/* The buckets whose displayed value is a TOTAL rather than a count. */
+const PLAYER_DETAIL_TOTALS = {
+  rushing: ['yds'], passing: ['yds'], receiving: ['yds'], returns: ['yds'], kicking: ['puntYds'],
+};
+const PLAYER_GAME_CELL = {
+  rushing: (n, yds) => `${n} att, ${yds} yds`,
+  passing: (n, yds) => `${n} att, ${yds} yds`,
+  receiving: (n, yds) => `${n} rec, ${yds} yds`,
+  tackles: n => `${n} tkl`,
+  returns: (n, yds) => `${n} ret, ${yds} yds`,
+  kicking: (n, yds) => `${n} FG, ${yds} punt yds`,
+};
+const PLAYER_SITU_HEAD = {
+  rushing: ['Att', 'Yds'], passing: ['Att', 'Yds'], receiving: ['Rec', 'Yds'],
+  tackles: ['Tkl', 'Tkl'], returns: ['Ret', 'Yds'], kicking: ['FG att', 'Punt yds'],
+};
+
+/* Revision 2: a compact column menu per role table. Presentation state only —
+   hiding a column changes nothing about a calculation, a sort source or a film
+   cohort, and Player is never hideable because a row without its identity
+   cannot be read. Defaults are the approved schemas. */
+function ColumnMenu({ role, columns, hidden, onToggle }) {
+  const [open, setOpen] = useState(false);
+  const optional = columns.filter(([key]) => key !== 'player');
+  if (!optional.length) return null;
+  return <div class="gi-player-colmenu">
+    <button type="button" class="gi-player-colbtn" aria-haspopup="true" aria-expanded={open}
+      aria-label={`${role.title} columns`} title="Columns" onClick={() => setOpen(!open)}>&#9636;</button>
+    {open && <div class="gi-player-colpanel" role="menu" aria-label={`${role.title} columns`}>
+      {optional.map(([key, label]) => <label key={key} class="gi-player-colitem" role="menuitemcheckbox"
+        aria-checked={!hidden.includes(key)}>
+        <input type="checkbox" checked={!hidden.includes(key)} onChange={() => onToggle(key)} />
+        <span>{label}</span>
+      </label>)}
+    </div>}
+  </div>;
+}
+
 function PlayerRoleModule({ role, table, screen }) {
   const rows = table?.rows || [];
-  const columns = (table?.columns || []).map(([key, label, numeric, sortKey]) => ({
+  const hiddenAll = screen.playersHiddenColumns || (screen.playersHiddenColumns = {});
+  const [hidden, setHiddenState] = useState(hiddenAll[role.key] || []);
+  const toggle = key => {
+    const next = hidden.includes(key) ? hidden.filter(item => item !== key) : [...hidden, key];
+    hiddenAll[role.key] = next;
+    setHiddenState(next);
+  };
+  const columns = (table?.columns || []).filter(([key]) => key === 'player' || !hidden.includes(key))
+    .map(([key, label, numeric, sortKey]) => ({
     key, label, numeric, tl: key === 'player',
     size: key === 'player' ? 'ident'
       : (PLAYER_COL_SIZE_BY_ROLE[role.key]?.[key] || PLAYER_COL_SIZE[key] || 'm'),
     // Jersey number and name are one string in the view model, so they are one
     // cell here. The number is picked out so a coach who charts by number can
     // find a row without reading the names.
+    /* IDENTITY OPENS THE PLAYER, A STATISTIC OPENS ITS OWN PLAYS. The whole-row
+       action was the only affordance and it was too broad: every cell in the row
+       did the same thing. Identity now opens player detail, and each measured
+       value with clips of its own is a button carrying exactly that bucket's
+       composite refs. A `No data` cell and a measured zero with no clips stay
+       visible and stay unclickable -- there is no playlist to open. */
     render: key === 'player'
-      ? row => <><i>{`#${row.num}`}</i>{` ${String(row.player ?? '').replace(/^#\S+\s*/, '')}`}</>
-      : undefined,
+      ? row => <button type="button" class="gi-player-ident" data-player-open={row.num}
+          onClick={event => { event.stopPropagation(); screen.openPlayerDetail?.(row.num); }}>
+          <i>{`#${row.num}`}</i>{` ${String(row.player ?? '').replace(/^#\S+\s*/, '')}`}</button>
+      : row => {
+        const refs = row.statRefs?.[key] || [];
+        const value = row[key];
+        if (!refs.length || value === PLAYER_NO_DATA_CELL) return value;
+        return <button type="button" class="gi-player-stat" data-player-stat={`${role.key}:${key}:${row.num}`}
+          onClick={event => { event.stopPropagation(); screen.watchRefs(refs, `${row.label} — ${role.title} ${label}`); }}
+        >{value}</button>;
+      },
     sortValue: sortKey ? row => row[sortKey] : undefined,
     // An uncharted measurement drops to copy weight so it cannot read as a
     // figure; a measured zero keeps full strength.
@@ -941,14 +1140,10 @@ function PlayerRoleModule({ role, table, screen }) {
   }));
   return <Module title={role.title}
     meta={`${rows.length} player${rows.length === 1 ? '' : 's'}`}
-    cls={`gi-player-module is-${role.phase}`}>
+    cls={`gi-player-module is-${role.phase}`}
+    action={<ColumnMenu role={role} columns={table?.columns || []} hidden={hidden} onToggle={toggle} />}>
     <DataTable className="stats-table gi-player-table" columns={columns} defaultSort={role.sort || null}
       rows={rows.map(row => ({ ...row, player: row.label, id: `${role.key}-${row.num}`,
-        // The row's OWN role cohort: clicking a rushing row opens the carries
-        // that produced that rushing line, never every snap the jersey appears
-        // in. `refs` are composite gameId::playId, so a full-season row plays
-        // across games through the one film-navigation service.
-        onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${row.label} — ${role.title}`) : undefined,
         label: `${row.label} — ${role.title}` }))} />
   </Module>;
 }
@@ -964,7 +1159,22 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
   const setSection = id => { screen.playersSection = id; setSectionState(id); };
   const engine = screen.app.stats;
   const playerLabel = num => labels?.[String(num)] ? `#${num} ${labels[String(num)]}` : engine._playerLabel(num);
-  const tables = view.individualStats(stats, 'all', playerLabel);
+  /* ONE CREDIT INDEX BEHIND EVERYTHING. The leaderboard's per-stat film, the
+     detail view, the game split and the situational split all read this board,
+     so a figure and its clips are the same play list. */
+  const board = engine.playersBoard(scoped || [], {
+    roster: Object.fromEntries((screen._playersRoster?.() || []).map(item => [String(item.num), item.name])),
+    labels: screen._playersGameLabels?.() || {},
+  });
+  const tables = view.individualStats(stats, 'all', playerLabel, board);
+  const openNum = screen.playersPlayer ? String(screen.playersPlayer) : '';
+  const detail = openNum
+    ? engine.playerDetail(scoped || [], openNum, {
+      roster: Object.fromEntries((screen._playersRoster?.() || []).map(item => [String(item.num), item.name])),
+      labels: screen._playersGameLabels?.() || {},
+      gameOrder: (screen._playersGameOrder?.() || []),
+    })
+    : null;
   if (!tables.length) return <EmptyState title="No player attribution" body="No players are attributed to charted plays."
     action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
 
@@ -992,26 +1202,31 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         <span class="gi-players-toolbar-label">Scope</span>
         <div class="gi-players-scope" role="group" aria-label="Players report scope">
           <button type="button" class={screen.playersScope === 'game' ? 'active' : ''} aria-pressed={screen.playersScope === 'game'}
-            onClick={() => { screen.playersScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
+            onClick={() => screen.setPlayersScope('game')}>Current game</button>
           <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
-            onClick={() => { screen.playersScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
+            onClick={() => screen.setPlayersScope('season')}>Full season</button>
+          <button type="button" class={screen.playersScope === 'selected' ? 'active' : ''} aria-pressed={screen.playersScope === 'selected'}
+            data-players-scope="selected" onClick={() => screen.setPlayersScope('selected')}>Selected games</button>
         </div>
+        {screen.playersScope === 'selected' && <GamePicker screen={screen} />}
         {/* The role count keeps its denominator whenever a role is unattributed:
             `5 roles` reads as the whole set, `5/6 roles` says one is missing.
             A full six drops the denominator, because there is nothing absent
             for it to name. */}
         <span class="gi-players-sample"><b>{playerCount}</b> players · <b>{
           tables.length === PLAYER_ROLES.length ? String(tables.length) : `${tables.length}/${PLAYER_ROLES.length}`
-        }</b> roles · <b>{playCount}</b> charted plays</span>
+        }</b> roles · <b>{playCount}</b> charted plays{screen.playersScope === 'selected'
+          ? ` · ${screen._playersSelectedLabel()}` : ''}</span>
       </div>}
-      <nav class="gi-players-nav" aria-label="Player roles">
+      {detail ? null : <nav class="gi-players-nav" aria-label="Player roles">
         {PLAYER_SECTIONS.map(([id, title]) => {
           const count = rolePlayers(sectionKeys(id)).size;
           return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
             aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
         })}
-      </nav>
-      <div class="gi-players-sections">
+      </nav>}
+      {detail ? <PlayerDetail detail={detail} screen={screen} scopeLabel={screen._playersScopeLabel()} /> : null}
+      {detail ? null : <div class="gi-players-sections">
         {bands.map((band, index) => <div key={`${section}-${index}`}
           class={`gi-player-band b-${band.length}${bandWide(band) ? ' is-wide' : ''}`}>
           {band.map(key => <PlayerRoleModule key={key} role={roleOf(key)} table={tableByKey[key]} screen={screen} />)}
@@ -1019,7 +1234,7 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         {absent.length ? <div class="gi-player-empty-summary">
           <span>No data</span><strong>{absent.map(key => roleOf(key).title).join(' · ')}</strong>
         </div> : null}
-      </div>
+      </div>}
     </div>
   </div>;
 }
