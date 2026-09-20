@@ -628,11 +628,11 @@ const PLAYER_NO_DATA = 'No data';
  *  (Avg, Pct) opens the cohort it is derived from; `Long` opens the measured
  *  plays behind it. Keyed by role so one column name cannot mean two cohorts. */
 export const PLAYER_STAT_BUCKETS = Object.freeze({
-  rushing: { att: 'att', yds: 'yds', avg: 'att', long: 'yds', tds: 'td', fum: 'fum' },
+  rushing: { att: 'att', yds: 'yds', avg: 'att', long: 'yds:long', tds: 'td', fum: 'fum' },
   passing: { ca: 'att', pct: 'att', yds: 'yds', tds: 'td', ints: 'int', sacks: 'sck' },
-  receiving: { rec: 'rec', yds: 'yds', long: 'yds', tds: 'td' },
+  receiving: { rec: 'rec', yds: 'yds', long: 'yds:long', tds: 'td' },
   tackles: { tkl: 'tkl', solo: 'solo', ast: 'ast', sacks: 'sack', tfl: 'tfl', ints: 'int', fr: 'fr' },
-  returns: { ret: 'yds', yds: 'yds', avg: 'yds', long: 'yds', tds: 'td' },
+  returns: { ret: 'yds', yds: 'yds', avg: 'yds', long: 'yds:long', tds: 'td' },
   kicking: { fg: 'fgAtt', punts: 'punts', puntAvg: 'puntYds' },
 });
 
@@ -661,8 +661,15 @@ export function individualStats(stats, group, playerLabel, board = null) {
     const role = byNum.get(String(num))?.roles.find(item => item.key === roleKey);
     if (!role) return {};
     const map = PLAYER_STAT_BUCKETS[roleKey] || {};
+    /* A `bucket:long` mapping opens the play (or the few that tie) that PRODUCED
+       the long, not every measured play in the bucket — the displayed value and
+       its film are the same fact. */
     return Object.fromEntries(Object.entries(map)
-      .map(([column, bucket]) => [column, role.stats[bucket]?.refs || []])
+      .map(([column, spec]) => {
+        const [bucket, reading] = String(spec).split(':');
+        const fact = role.stats[bucket];
+        return [column, (reading === 'long' ? fact?.longRefs : fact?.refs) || []];
+      })
       .filter(([, list]) => list.length));
   };
   const withStats = (roleKey, rows) => rows.map(row => ({ ...row, statRefs: statRefs(roleKey, row.num) }));

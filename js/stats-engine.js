@@ -3969,11 +3969,20 @@ export class StatsEngine {
   static _statFacts(entries) {
     const list = entries || [];
     const measured = list.filter(item => Number.isFinite(item.value));
+    const long = measured.length ? Math.max(...measured.map(item => item.value)) : 0;
     return {
       n: list.length,
       total: measured.reduce((sum, item) => sum + item.value, 0),
       measured: measured.length,
-      long: measured.length ? Math.max(...measured.map(item => item.value)) : 0,
+      long,
+      /* THE LONG IS ONE PLAY (or the few that tie it), not the whole measured
+         set. Pointing `Long` at every measured play meant a coach clicking a
+         12-yard long also got the 4-yard carry beside it — the displayed value
+         and its film disagreed, which is the one thing this index exists to
+         prevent. */
+      longRefs: measured.length
+        ? StatsEngine._refsOf(measured.filter(item => item.value === long).map(item => item.play))
+        : [],
       refs: StatsEngine._refsOf(list.map(item => item.play)),
     };
   }
@@ -4056,19 +4065,38 @@ export class StatsEngine {
   /** The six approved roles, their order, and the stats each one displays.
    *  `measure` marks the stats whose value is summed rather than counted; a
    *  `clickable` stat opens exactly its own bucket. */
+/* `measures` are the columns a split renders for this role, each naming its own
+   bucket and how it is read: `count` (bucket length) or `total` (sum of values).
+   A role whose credits are HETEROGENEOUS needs more than one — a kicker's group
+   may hold punts and no field goal, a defender's may hold a takeaway and no
+   tackle. Reducing either to a single "volume" stat printed `0 FG` beside 40
+   punt yards and dropped the group from the split entirely, because the filter
+   asked the wrong bucket whether anything happened. A GROUP IS RENDERED WHEN THE
+   ROLE WAS CREDITED IN IT, which is the role cohort's own length. */
   static PLAYER_ROLES = Object.freeze([
-    { key: 'rushing', label: 'Rushing', volume: 'att', production: 'yds', gradeField: 'ballCarrier',
-      stats: ['att', 'yds', 'td', 'long', 'fum'] },
-    { key: 'passing', label: 'Passing', volume: 'att', production: 'yds', gradeField: 'passer',
-      stats: ['att', 'cmp', 'yds', 'td', 'int', 'sck'] },
-    { key: 'receiving', label: 'Receiving', volume: 'rec', production: 'yds', gradeField: 'receiver',
-      stats: ['rec', 'yds', 'td', 'long'] },
-    { key: 'tackles', label: 'Tackles', volume: 'tkl', production: 'tkl', gradeField: 'tackler',
-      stats: ['tkl', 'solo', 'ast', 'sack', 'tfl', 'int', 'fr'] },
-    { key: 'returns', label: 'Return Game', volume: 'ret', production: 'yds', gradeField: null,
-      stats: ['ret', 'yds', 'td', 'long'] },
-    { key: 'kicking', label: 'Kicking / Punting', volume: 'fgAtt', production: 'puntYds', gradeField: null,
-      stats: ['fgAtt', 'fgMade', 'punts', 'puntYds'] },
+    { key: 'rushing', label: 'Rushing', gradeField: 'ballCarrier',
+      stats: ['att', 'yds', 'td', 'long', 'fum'],
+      measures: [{ key: 'att', label: 'Att', read: 'count' }, { key: 'yds', label: 'Yds', read: 'total' }] },
+    { key: 'passing', label: 'Passing', gradeField: 'passer',
+      stats: ['att', 'cmp', 'yds', 'td', 'int', 'sck'],
+      measures: [{ key: 'att', label: 'Att', read: 'count' }, { key: 'yds', label: 'Yds', read: 'total' }] },
+    { key: 'receiving', label: 'Receiving', gradeField: 'receiver',
+      stats: ['rec', 'yds', 'td', 'long'],
+      measures: [{ key: 'rec', label: 'Rec', read: 'count' }, { key: 'yds', label: 'Yds', read: 'total' }] },
+    { key: 'tackles', label: 'Tackles', gradeField: 'tackler',
+      stats: ['tkl', 'solo', 'ast', 'sack', 'tfl', 'int', 'fr'],
+      // Interceptions and fumble recoveries are the canonical takeaway pair, so a
+      // takeaway-only credit states itself instead of reading as zero tackles.
+      measures: [{ key: 'tkl', label: 'Tkl', read: 'count' },
+        { key: 'int', label: 'INT', read: 'count' }, { key: 'fr', label: 'FR', read: 'count' }] },
+    { key: 'returns', label: 'Return Game', gradeField: null,
+      stats: ['ret', 'yds', 'td', 'long'],
+      measures: [{ key: 'ret', label: 'Ret', read: 'count' }, { key: 'yds', label: 'Yds', read: 'total' }] },
+    { key: 'kicking', label: 'Kicking / Punting', gradeField: null,
+      stats: ['fgAtt', 'fgMade', 'punts', 'puntYds'],
+      measures: [{ key: 'fgAtt', label: 'FG att', read: 'count' },
+        { key: 'punts', label: 'Punts', read: 'count' },
+        { key: 'puntYds', label: 'Punt yds', read: 'total' }] },
   ]);
 
   /** A role's stats as `{ n, total, measured, long, refs }`, plus its grade and
@@ -4220,15 +4248,24 @@ export class StatsEngine {
     return [...groups.entries()].map(([value, group]) => {
       const inGroup = this._playerCredits(group).get(id)?.roles.get(roleKey);
       const facts = inGroup ? this._playerRoleFacts(inGroup) : null;
+      /* Every measure the role declares, each read from its OWN bucket. A value
+         with no bucket at all is absent, not zero; a bucket that exists and is
+         empty is a measured zero. */
+      const measures = schema.measures.map(measure => {
+        const fact = facts?.stats[measure.key];
+        return {
+          key: measure.key, label: measure.label,
+          value: fact ? (measure.read === 'total' ? fact.total : fact.n) : 0,
+          measured: !!fact,
+          refs: fact?.refs || [],
+        };
+      });
       return {
         value,
-        n: facts?.stats[schema.volume]?.n ?? 0,
-        production: schema.production === 'tkl'
-          ? (facts?.stats.tkl?.n ?? 0)
-          : (facts?.stats[schema.production]?.total ?? 0),
-        productionMeasured: schema.production === 'tkl'
-          ? (facts?.stats.tkl?.n ?? 0) > 0
-          : (facts?.stats[schema.production]?.n ?? 0) > 0,
+        // The role's own credited plays in this group: the honest "did anything
+        // happen here" test, and the count every measure sits beside.
+        n: facts?.plays.length ?? group.length,
+        measures,
         grade: facts?.grade ?? null,
         refs: facts?.refs || StatsEngine._refsOf(group),
       };

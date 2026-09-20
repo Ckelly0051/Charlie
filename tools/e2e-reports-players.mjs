@@ -900,22 +900,59 @@ const exact = await page.evaluate(() => {
     button.click();
     const opened = seen[0]?.refs || [];
     const role = board.players.find(p => p.num === num)?.roles.find(r => r.key === roleKey);
-    const bucket = { rushing: { att: 'att', yds: 'yds', avg: 'att', long: 'yds', tds: 'td', fum: 'fum' },
-      passing: { ca: 'att', pct: 'att', yds: 'yds', tds: 'td', ints: 'int', sacks: 'sck' },
-      receiving: { rec: 'rec', yds: 'yds', long: 'yds', tds: 'td' },
-      tackles: { tkl: 'tkl', solo: 'solo', ast: 'ast', sacks: 'sack', tfl: 'tfl', ints: 'int', fr: 'fr' },
-      returns: { ret: 'yds', yds: 'yds', avg: 'yds', long: 'yds', tds: 'td' },
-      kicking: { fg: 'fgAtt', punts: 'punts', puntAvg: 'puntYds' } }[roleKey]?.[column];
-    const expected = [...(role?.stats[bucket]?.refs || [])].sort();
-    out.push({ key: button.dataset.playerStat, ok: JSON.stringify(opened) === JSON.stringify(expected),
-      opened: opened.length, expected: expected.length, label: seen[0]?.label || '' });
+    /* THE EXPECTATION IS DERIVED FROM THE PLAYS, not from the view model's own
+       bucket map — a test that reuses the mapping it is checking validates the
+       implementation against itself. Each predicate below is the football
+       meaning of the column, written out here independently. */
+    const yards = play => parseInt(play.tags.yardage, 10) || 0;
+    const has = (play, result) => String(play.tags.result || '').split('+').map(s => s.trim()).includes(result);
+    const cohort = role?.plays || [];
+    const predicate = {
+      rushing: { att: () => true, yds: () => true, avg: () => true, tds: p => has(p, 'Touchdown'), fum: p => has(p, 'Fumble') },
+      passing: { ca: p => has(p, 'Gain') || has(p, 'No Gain') || has(p, 'Touchdown') || has(p, 'Incomplete') || has(p, 'Interception'),
+        pct: p => has(p, 'Gain') || has(p, 'No Gain') || has(p, 'Touchdown') || has(p, 'Incomplete') || has(p, 'Interception'),
+        yds: p => has(p, 'Gain') || has(p, 'No Gain') || has(p, 'Touchdown'),
+        tds: p => has(p, 'Touchdown'), ints: p => has(p, 'Interception'), sacks: p => has(p, 'Sack') },
+      receiving: { rec: () => true, yds: () => true, tds: p => has(p, 'Touchdown') },
+      tackles: { tkl: p => String(p.tags.players?.tackler || '').includes(num),
+        solo: p => String(p.tags.players?.tackler || '').match(/\d+/g)?.length === 1 && String(p.tags.players?.tackler || '').includes(num),
+        ast: p => (String(p.tags.players?.tackler || '').match(/\d+/g)?.length || 0) > 1 && String(p.tags.players?.tackler || '').includes(num),
+        sacks: p => has(p, 'Sack'), tfl: p => !has(p, 'Sack') && yards(p) < 0,
+        ints: p => has(p, 'Interception'), fr: p => has(p, 'Fumble') },
+      returns: { ret: p => String(p.tags.returnYards ?? '').trim() !== '',
+        yds: p => String(p.tags.returnYards ?? '').trim() !== '',
+        avg: p => String(p.tags.returnYards ?? '').trim() !== '', tds: p => has(p, 'Touchdown') },
+      kicking: { fg: () => true, punts: () => true, puntAvg: () => true },
+    }[roleKey]?.[column];
+    let expectedPlays = predicate ? cohort.filter(predicate) : null;
+    if (column === 'long') {
+      // The long is the play (or plays tying it) that produced the value.
+      const measure = roleKey === 'returns'
+        ? play => Number(String(play.tags.returnYards ?? '').trim())
+        : play => yards(play);
+      const measured = cohort.filter(play => Number.isFinite(measure(play)));
+      const best = measured.length ? Math.max(...measured.map(measure)) : null;
+      expectedPlays = best == null ? [] : measured.filter(play => measure(play) === best);
+    }
+    const expected = expectedPlays
+      ? [...new Set(expectedPlays.map(play => `${play.__gid}::${play.id}`))].sort()
+      : null;
+    out.push({ key: button.dataset.playerStat,
+      ok: expected == null ? null : JSON.stringify(opened) === JSON.stringify(expected),
+      opened: opened.length, expected: expected == null ? null : expected.length,
+      label: seen[0]?.label || '' });
   });
   screen.watchRefs = original;
   return out;
 });
-ok(exact.length >= 12 && exact.every(item => item.ok),
+ok(exact.length >= 12 && exact.every(item => item.ok !== false)
+  && exact.filter(item => item.ok === true).length >= 12,
   'every clickable statistic opens exactly its own credited events, never the role cohort',
-  JSON.stringify(exact.filter(item => !item.ok).slice(0, 4)));
+  JSON.stringify(exact.filter(item => item.ok === false).slice(0, 4)));
+const longs = exact.filter(item => /:long:/.test(item.key));
+ok(longs.length > 0 && longs.every(item => item.ok === true && item.opened >= 1),
+  'Long opens only the play that produced it, not every measured play in the bucket',
+  JSON.stringify(longs));
 ok(exact.some(item => /:tds:/.test(item.key)) && exact.some(item => /:ints:/.test(item.key))
   && exact.some(item => /:sacks:/.test(item.key)) && exact.some(item => /:tfl:/.test(item.key)),
   'touchdowns, interceptions, sacks and tackles for loss each carry their own distinct cohort',
@@ -998,16 +1035,28 @@ const situ = await page.evaluate(num => {
   const rows = app.stats.playerSituational(scoped, num, role.key, 'quarter');
   const schema = app.stats.constructor.PLAYER_ROLES.find(item => item.key === role.key);
   const roleRefs = new Set(role.refs);
+  /* Quarter is exclusive, so the split partitions the role cohort: the plays and
+     EVERY measure must sum back to the role's own totals. */
+  const measureTotals = {}, measureExpected = {};
+  schema.measures.forEach(measure => {
+    measureTotals[measure.key] = rows.reduce((sum, row) =>
+      sum + (row.measures.find(item => item.key === measure.key)?.value || 0), 0);
+    const fact = role.stats[measure.key];
+    measureExpected[measure.key] = fact ? (measure.read === 'total' ? fact.total : fact.n) : 0;
+  });
   return {
     role: role.key,
     volume: rows.reduce((sum, row) => sum + row.n, 0),
-    expected: role.stats[schema.volume]?.n ?? 0,
+    expected: role.plays.length,
+    measureTotals, measureExpected,
     within: rows.every(row => row.refs.every(ref => roleRefs.has(ref))),
     rows: rows.length,
   };
 }, identity.opened);
 ok(situ.rows > 0 && situ.volume === situ.expected,
   'situational rows reconcile to the selected player-role cohort', JSON.stringify(situ));
+ok(JSON.stringify(situ.measureTotals) === JSON.stringify(situ.measureExpected),
+  'every situational measure sums back to the role total above it', JSON.stringify(situ));
 ok(situ.within,
   'a situation row opens only plays from that player-role cohort', JSON.stringify(situ));
 
@@ -1100,9 +1149,93 @@ ok(columns.after.cols === columns.before.cols - 1 && columns.after.ident,
 ok(!columns.identityOffered, 'the column menu does not offer to hide the player identity');
 ok(columns.same, 'column visibility changes no calculation', JSON.stringify(columns.same));
 
+/* A ROLE WHOSE CREDITS ARE HETEROGENEOUS STILL APPEARS. A kicker's group may
+   hold punts and no field goal; a defender's may hold a takeaway and no tackle.
+   Filtering on one "volume" stat dropped both from the split and printed `0 FG`
+   / `0 tkl` in the game row beside real production. */
+const heterogeneous = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const play = (id, tags, extra = {}) => ({ id, timestamp: { start: id * 10, end: id * 10 + 6 }, notes: '', annotations: [],
+    tags: { quarter: 'Q1', custom: [], players: {}, grades: {}, ...tags }, ...extra });
+  store.data.games = [{
+    id: 'g-het', name: 'Week 1', nextId: 9,
+    gameInfo: { opponent: 'Hetero', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
+    plays: [
+      // A punt with no field goal anywhere: fgAtt is 0 for this kicker.
+      play(1, { unit: 'special', players: { kicker: '19' } },
+        { specialTeams: { version: 1, unit: 'punt', outcome: { status: 'downed' },
+          kick: { distance: 40 }, return: {}, players: { punter: '19' } } }),
+      // A takeaway credited through the dedicated role: no tackle for #21.
+      play(2, { unit: 'defense', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception',
+        yardage: '0', down: '3', distance: '10', players: { takeaway: '21' } }),
+    ],
+    annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
+  }];
+  store.data.activeGameId = 'g-het';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.reportsScreen.setPlayersScope('season');
+  await new Promise(r => setTimeout(r, 500));
+  const scoped = app.reportsScreen._playersScopedPlays || [];
+  const kicker = app.stats.playerSituational(scoped, '19', 'kicking', 'quarter');
+  const defender = app.stats.playerSituational(scoped, '21', 'tackles', 'quarter');
+  const kickerDetail = app.stats.playerDetail(scoped, '19', {});
+  const defenderDetail = app.stats.playerDetail(scoped, '21', {});
+  app.reportsScreen.openPlayerDetail('19');
+  await new Promise(r => setTimeout(r, 300));
+  const kickerCell = [...document.querySelectorAll('[data-pd-game]')].map(b => b.textContent.trim());
+  app.reportsScreen.openPlayerDetail('21');
+  await new Promise(r => setTimeout(r, 300));
+  const defenderCell = [...document.querySelectorAll('[data-pd-game]')].map(b => b.textContent.trim());
+  return {
+    kickerRows: kicker.map(row => ({ n: row.n, measures: row.measures.map(m => [m.label, m.value]) })),
+    defenderRows: defender.map(row => ({ n: row.n, measures: row.measures.map(m => [m.label, m.value]) })),
+    kickerGames: kickerDetail.games.length, defenderGames: defenderDetail.games.length,
+    kickerCell, defenderCell,
+  };
+});
+ok(heterogeneous.kickerRows.length === 1 && heterogeneous.kickerRows[0].n === 1,
+  'a punt-only kicking group survives the split instead of being filtered out by field-goal attempts',
+  JSON.stringify(heterogeneous.kickerRows));
+ok(JSON.stringify(heterogeneous.kickerRows[0]?.measures) === JSON.stringify([['FG att', 0], ['Punts', 1], ['Punt yds', 40]]),
+  'the kicking split states punts and punt yards beside a measured zero field-goal attempt',
+  JSON.stringify(heterogeneous.kickerRows));
+ok(heterogeneous.defenderRows.length === 1
+  && JSON.stringify(heterogeneous.defenderRows[0].measures) === JSON.stringify([['Tkl', 0], ['INT', 1], ['FR', 0]]),
+  'a takeaway-only defender survives the split and states the interception, not 0 tackles alone',
+  JSON.stringify(heterogeneous.defenderRows));
+ok(heterogeneous.kickerCell.some(text => /1 punts, 40 punt yds/.test(text)),
+  'the game row states the punt and its yards instead of an ambiguous 0 FG',
+  JSON.stringify(heterogeneous.kickerCell));
+ok(heterogeneous.defenderCell.some(text => /1 int/i.test(text)),
+  'the game row states the takeaway instead of 0 tkl', JSON.stringify(heterogeneous.defenderCell));
+
+/* The situational table is one SORTABLE results table. */
+const situSort = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  screen.openPlayerDetail('21');
+  await new Promise(r => setTimeout(r, 300));
+  const table = document.querySelector('.gi-pd-situ-table');
+  const heads = [...(table?.querySelectorAll('th') || [])];
+  const head = heads.find(th => th.textContent.trim() === 'Plays') || heads[1];
+  head?.click();
+  await new Promise(r => setTimeout(r, 120));
+  return { table: !!table, heads: heads.map(th => th.textContent.trim()),
+    role: heads.every(th => th.getAttribute('role') === 'button'),
+    tab: heads.every(th => th.tabIndex === 0),
+    sorted: !!table?.querySelector('th.is-sorted') };
+});
+ok(situSort.table && situSort.role && situSort.tab,
+  'the situational results table is sortable by mouse and keyboard on every column',
+  JSON.stringify(situSort));
+ok(situSort.sorted, 'the sorted situational column is marked', JSON.stringify(situSort));
+
 /* PLAYER EXPORT matches the selection on screen. */
 const exported = await page.evaluate(async () => {
   const screen = window.app.reportsScreen;
+  // Back to the leaderboard first: a previous block left a player open.
+  screen.closePlayerDetail();
+  await new Promise(r => setTimeout(r, 300));
   const num = document.querySelector('.gi-player-table [data-player-open]')?.dataset.playerOpen;
   screen.openPlayerDetail(num);
   await new Promise(r => setTimeout(r, 300));
@@ -1120,6 +1253,46 @@ ok(exported.html.includes(`#${exported.num}`) && /Game by game/.test(exported.ht
   && /::/.test(exported.html),
   'the player export carries the identity, the game split and composite play references',
   exported.html.slice(0, 120));
+
+/* THE EXPORT PRINTS THE BREAKDOWN ON SCREEN. It used to choose the first
+   permitted dimension of every role independently, so the report could not match
+   the analysis the coach was looking at. */
+const exportMatch = await page.evaluate(async () => {
+  const screen = window.app.reportsScreen;
+  const selects = [...document.querySelectorAll('.gi-pd-situ select')];
+  const dimSelect = selects.at(-1);
+  const options = [...(dimSelect?.options || [])].map(option => ({ value: option.value, label: option.textContent.trim() }));
+  /* The LAST permitted dimension, deliberately: picking the first cannot tell an
+     export that honours the selection from one that always takes `permitted[0]`.
+     The heading is printed whether or not the dimension produced rows, so this
+     stays discriminating without depending on the fixture's tags. */
+  const pick = options[options.length - 1];
+  screen.playersSituDimension = pick.value;
+  screen._renderActiveTab();
+  await new Promise(r => setTimeout(r, 350));
+  const onScreen = (document.querySelector('.gi-pd-situ-table th')?.textContent || '').trim();
+  const selected = [...(document.querySelectorAll('.gi-pd-situ select')[1]?.options || [])]
+    .find(option => option.selected)?.textContent.trim() || '';
+  let saved = null;
+  const prior = window.ffaSaveBlob;
+  window.ffaSaveBlob = blob => { saved = blob; };
+  screen.export('html');
+  const html = saved ? await saved.text() : '';
+  window.ffaSaveBlob = prior;
+  // The situational headings only — `Game by game` is its own section.
+  const headings = [...html.matchAll(/<h2>([^<]*by[^<]*)<\/h2>/g)]
+    .map(match => match[1]).filter(text => text !== 'Game by game');
+  return { picked: pick, onScreen, selected, headings, options: options.map(o => o.label) };
+});
+// The export escapes coach-entered and label text at the HTML sink, so the
+// heading carries `&amp;` where the control reads `&`.
+const escapedPick = exportMatch.picked.label.replace(/&/g, '&amp;');
+ok(exportMatch.headings.length === 1 && exportMatch.headings[0].endsWith(`by ${escapedPick}`),
+  'the export prints the ACTIVE situational dimension, and only that one',
+  JSON.stringify(exportMatch));
+ok(exportMatch.selected === exportMatch.picked.label
+  && (exportMatch.onScreen === '' || exportMatch.onScreen === exportMatch.picked.label),
+  'the exported dimension is the one selected on screen', JSON.stringify(exportMatch));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); console.log(errors.slice(0, 5).join('\n')); }

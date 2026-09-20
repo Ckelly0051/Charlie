@@ -161,12 +161,16 @@ export function buildPlayerHtmlReport({ title, team, detail, situational = [], s
       .map(([bucket, label, isTotal]) => `${isTotal ? inGame.stats[bucket]?.total ?? 0 : inGame.stats[bucket]?.n ?? 0} ${label.toLowerCase()}`);
     return `<td>${esc(parts.join(', '))}</td>`;
   }).join('')}</tr>`).join('');
+  /* The ACTIVE breakdown, with the role's own measures as its columns — the same
+     table the coach has on screen, not a different dimension chosen here. */
   const situations = situational.map(block => `<section class="report-section">
     <h2>${esc(block.role)} by ${esc(block.dimension)}</h2>
-    ${block.rows.length ? `<div class="table-wrap"><table><thead><tr><th>Value</th><th>Volume</th><th>Production</th><th>Grade</th><th>Film</th></tr></thead><tbody>${
-      block.rows.map(row => `<tr><td>${esc(row.value)}</td><td>${esc(row.n)}</td><td>${
-        esc(row.productionMeasured ? row.production : PLAYER_EXPORT_NO_DATA)}</td><td>${
-        esc(row.grade == null ? PLAYER_EXPORT_NO_DATA : `${row.grade > 0 ? '+' : ''}${row.grade}`)}</td><td>${
+    ${block.rows.length ? `<div class="table-wrap"><table><thead><tr><th>Value</th><th>Plays</th>${
+      (block.measures || []).map(measure => `<th>${esc(measure.label)}</th>`).join('')
+    }<th>Grade</th><th>Film</th></tr></thead><tbody>${
+      block.rows.map(row => `<tr><td>${esc(row.value)}</td><td>${esc(row.n)}</td>${
+        (row.measures || []).map(measure => `<td>${esc(measure.measured ? measure.value : PLAYER_EXPORT_NO_DATA)}</td>`).join('')
+      }<td>${esc(row.grade == null ? PLAYER_EXPORT_NO_DATA : `${row.grade > 0 ? '+' : ''}${row.grade}`)}</td><td>${
         esc((row.refs || []).join(' '))}</td></tr>`).join('')
     }</tbody></table></div>` : `<p class="empty">${PLAYER_EXPORT_NO_DATA}</p>`}
   </section>`).join('');

@@ -47,6 +47,9 @@ export class ReportsScreen {
     this.playersPlayer = null;
     this.playersSelectedGames = new Set();
     this.playersHiddenColumns = {};
+    // The situational selection, so the export prints what is on screen.
+    this.playersSituRole = '';
+    this.playersSituDimension = '';
     // Self-Scout's active section is controller state for the same reason
     // Players' is: any ordinary Reports re-render unmounts and remounts the
     // tab, and a selection held only in the view is lost when that happens.
@@ -220,13 +223,24 @@ export class ReportsScreen {
       gameOrder: this._playersGameOrder(),
     });
     if (!detail) return false;
-    const situational = detail.roles.map(role => {
-      const dimension = (this.app.stats.constructor.PLAYER_DIMENSIONS
-        .find(item => item.roles.includes(role.key)) || {}).key;
-      return dimension
-        ? { role: role.label, dimension, rows: this.app.stats.playerSituational(scoped, num, role.key, dimension) }
-        : null;
-    }).filter(Boolean);
+    /* THE BREAKDOWN ON SCREEN, not a different one. The export used to pick the
+       first permitted dimension of every role, so the printed report could not
+       match the situational analysis the coach was looking at. Role and
+       dimension are controller state for exactly this reason. */
+    const dims = this.app.stats.constructor.PLAYER_DIMENSIONS;
+    const roleKeys = detail.roles.map(role => role.key);
+    const activeRole = roleKeys.includes(this.playersSituRole) ? this.playersSituRole : roleKeys[0];
+    const permitted = dims.filter(item => item.roles.includes(activeRole));
+    const activeDim = permitted.some(item => item.key === this.playersSituDimension)
+      ? this.playersSituDimension : (permitted[0]?.key || '');
+    const activeLabel = permitted.find(item => item.key === activeDim)?.label || activeDim;
+    const schema = this.app.stats.constructor.PLAYER_ROLES.find(item => item.key === activeRole);
+    const situational = activeDim ? [{
+      role: detail.roles.find(role => role.key === activeRole)?.label || activeRole,
+      dimension: activeLabel,
+      measures: schema?.measures || [],
+      rows: this.app.stats.playerSituational(scoped, num, activeRole, activeDim),
+    }] : [];
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Team';
     const html = buildPlayerHtmlReport({
       title: `Player Report: ${detail.label}`, team, detail, situational,

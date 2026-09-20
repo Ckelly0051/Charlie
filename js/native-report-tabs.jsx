@@ -965,14 +965,23 @@ function PlayerStat({ label, value, refs, screen, watchLabel }) {
 function PlayerDetail({ detail, screen, scopeLabel }) {
   const engine = screen.app.stats;
   const roleKeys = detail.roles.map(role => role.key);
-  const [dimRole, setDimRole] = useState(roleKeys[0]);
-  const activeRole = roleKeys.includes(dimRole) ? dimRole : roleKeys[0];
+  /* The situational selection is CONTROLLER state, like the scope and the open
+     player: an ordinary re-render remounts this component, and the export has to
+     print the breakdown the coach is actually looking at. Held locally, the
+     export independently chose the first dimension of every role and could not
+     match the screen. */
+  const [, forceRender] = useState(0);
+  const activeRole = roleKeys.includes(screen.playersSituRole) ? screen.playersSituRole : roleKeys[0];
+  const setDimRole = value => { screen.playersSituRole = value; screen.playersSituDimension = ''; forceRender(n => n + 1); };
   const dimensions = engine.constructor.PLAYER_DIMENSIONS.filter(item => item.roles.includes(activeRole));
-  const [dimension, setDimension] = useState(dimensions[0]?.key || '');
-  const activeDim = dimensions.some(item => item.key === dimension) ? dimension : (dimensions[0]?.key || '');
+  const setDimension = value => { screen.playersSituDimension = value; forceRender(n => n + 1); };
+  const activeDim = dimensions.some(item => item.key === screen.playersSituDimension)
+    ? screen.playersSituDimension : (dimensions[0]?.key || '');
   const situational = activeDim
     ? engine.playerSituational(screen._playersScopedPlays || [], detail.num, activeRole, activeDim)
     : [];
+  const situationalMeasures = (engine.constructor.PLAYER_ROLES
+    .find(item => item.key === activeRole) || {}).measures || [];
   const roleSchema = engine.constructor.PLAYER_ROLES;
   const schemaOf = key => roleSchema.find(item => item.key === key);
   const cells = role => PLAYER_DETAIL_STATS[role.key].map(([bucket, label]) => {
@@ -1009,14 +1018,24 @@ function PlayerDetail({ detail, screen, scopeLabel }) {
           {detail.roles.map(role => {
             const inGame = game.roles[role.key];
             if (!inGame) return <td key={role.key} class="blank">{PLAYER_NO_DATA_CELL}</td>;
+            /* The cell states the measures that actually happened. Reading one
+               "volume" stat printed `0 FG, 40 punt yds` for a punt-only game and
+               `0 tkl` for a takeaway-only one; a game credited in a role but
+               with every measure empty states its play count instead. */
             const schema = schemaOf(role.key);
-            const volume = inGame.stats[schema.volume]?.n ?? 0;
-            const production = schema.production === 'tkl'
-              ? (inGame.stats.tkl?.n ?? 0) : (inGame.stats[schema.production]?.total ?? 0);
+            const parts = schema.measures
+              .map(measure => {
+                const fact = inGame.stats[measure.key];
+                const value = fact ? (measure.read === 'total' ? fact.total : fact.n) : 0;
+                return value ? `${value} ${measure.label.toLowerCase()}` : '';
+              })
+              .filter(Boolean);
+            const text = parts.length ? parts.join(', ')
+              : `${inGame.plays.length} play${inGame.plays.length === 1 ? '' : 's'}`;
             return <td key={role.key}>
               <button type="button" class="gi-player-stat" data-pd-game={`${game.gid}:${role.key}`}
                 onClick={() => screen.watchRefs(inGame.refs, `#${detail.num} ${role.label} vs ${game.opponent}`)}>
-                {PLAYER_GAME_CELL[role.key](volume, production)}</button>
+                {text}</button>
             </td>;
           })}
         </tr>)}
@@ -1033,19 +1052,39 @@ function PlayerDetail({ detail, screen, scopeLabel }) {
           </select>
         </span>
       </header>
-      {situational.length ? <div class="gi-st-table-wrap"><table class="stats-table gi-pd-table"><thead><tr>
-        <th class="tl">{dimensions.find(item => item.key === activeDim)?.label}</th>
-        <th>{PLAYER_SITU_HEAD[activeRole][0]}</th><th>{PLAYER_SITU_HEAD[activeRole][1]}</th><th>Grade</th>
-      </tr></thead><tbody>
-        {situational.map(row => <tr key={row.value}>
-          <td class="tl">{row.value}</td>
-          <td><button type="button" class="gi-player-stat" data-pd-situ={row.value}
-            onClick={() => screen.watchRefs(row.refs, `#${detail.num} ${activeDim} ${row.value}`)}>{row.n}</button></td>
-          <td>{row.productionMeasured ? row.production : <span class="blank">{PLAYER_NO_DATA_CELL}</span>}</td>
-          <td class={row.grade == null ? 'blank' : ''}>{row.grade == null ? PLAYER_NO_DATA_CELL
-            : `${row.grade > 0 ? '+' : ''}${row.grade}`}</td>
-        </tr>)}
-      </tbody></table></div> : <p class="gi-st-empty">{PLAYER_NO_DATA_CELL}</p>}
+      {situational.length ? <div class="gi-st-table-wrap">
+        {/* One sortable results table, every column sortable by click, Enter or
+            Space — the same DataTable the leaderboard uses. Each role brings its
+            OWN measures, so a punt-only kicking group states its punts and a
+            takeaway-only defender states the takeaway instead of reading 0. */}
+        <DataTable className="stats-table gi-player-table gi-pd-situ-table"
+          defaultSort={{ key: 'plays', dir: 'desc' }}
+          columns={[
+            { key: 'value', label: dimensions.find(item => item.key === activeDim)?.label || 'Value', tl: true, size: 'ident' },
+            { key: 'plays', label: 'Plays', numeric: true, size: 'c',
+              render: row => <button type="button" class="gi-player-stat" data-pd-situ={row.value}
+                onClick={() => screen.watchRefs(row.refs, `#${detail.num} ${activeRole} ${row.value}`)}>{row.plays}</button> },
+            ...(situationalMeasures || []).map(measure => ({
+              key: measure.key, label: measure.label, numeric: true, size: 'm',
+              render: row => {
+                const cell = row.cells[measure.key];
+                if (!cell || !cell.measured) return <span class="blank">{PLAYER_NO_DATA_CELL}</span>;
+                if (!cell.refs.length) return cell.value;
+                return <button type="button" class="gi-player-stat" data-pd-situ-stat={`${measure.key}:${row.value}`}
+                  onClick={() => screen.watchRefs(cell.refs, `#${detail.num} ${row.value} ${measure.label}`)}>{cell.value}</button>;
+              },
+            })),
+            { key: 'grade', label: 'Grade', numeric: true, size: 'g',
+              cellClass: row => (row.grade == null ? 'blank' : undefined) },
+          ]}
+          rows={situational.map(row => ({
+            id: row.value, value: row.value, plays: row.n,
+            cells: Object.fromEntries(row.measures.map(measure => [measure.key, measure])),
+            ...Object.fromEntries(row.measures.map(measure => [measure.key, measure.value])),
+            grade: row.grade == null ? PLAYER_NO_DATA_CELL : `${row.grade > 0 ? '+' : ''}${row.grade}`,
+            gradeSort: row.grade,
+          }))} />
+      </div> : <p class="gi-st-empty">{PLAYER_NO_DATA_CELL}</p>}
     </section>
   </div>;
 }
