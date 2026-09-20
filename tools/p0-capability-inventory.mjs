@@ -82,7 +82,10 @@ export const P0_CAPABILITIES = [
   // of rushing leaderboards, Special Teams, self-scout tells, the Scout
   // Opponent action, or play-call composition. Re-homed to the harnesses
   // that actually cover each capability today.
-  { id:'reports.players', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Activating a Players tab leaderboard row resolves the exact composite film refs for only that rusher, never the other player sharing the game' },
+  // Players Revision 2 moved the film affordance off the row: identity opens the
+  // player, and each measured statistic opens its own bucket. The live assertion
+  // is the stricter per-statistic one, so the capability names that.
+  { id:'reports.players', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Activating a Players tab rushing statistic resolves the exact composite film refs for only that rusher, never the other player sharing the game' },
   { id:'reports.special-teams', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Special Teams, Self-Scout, and Season retain their football-specific surfaces' },
   { id:'reports.self-scout', surface:'reports', evidence:'data', harness:'e2e-self-scout.mjs', assertion:'Formation × Down tell uses the down|bucket key' },
   { id:'reports.opponent-scout', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Every opponent with charted film is listed as scoutable, so a scout report exists for each' },
