@@ -1178,7 +1178,48 @@ accepted.** Built to the approved comp
 decision record and carries all eight coach rulings). No Charlie Gate and no
 installed smoke, so it is not accepted state.
 
-**Current Special Teams scope decision (2026-09-19): limited acceptance pass,
+**SPECIAL TEAMS ACCEPTANCE PASS COMPLETE (2026-09-19) — awaiting Codex review,
+a Charlie Gate and an installed smoke.** The board, its navigation, units,
+modules, scopes, exports and film actions are unchanged. What changed:
+
+**A blocked punt is charted on the unit that fields one.** `puntReturn` is
+displayed as `Punt Return / Block` and its outcome vocabulary gained `Blocked`;
+the existing Possession and Score controls then carry ownership. There is NO
+`puntBlock` unit, no schema value added, and no migration: the model, the report,
+the scoring and the film refs already supported the state, and only the charting
+vocabulary omitted it. `SpecialTeamsModel.UNIT_LABELS` is now the ONE owner of the
+coach-facing unit names — the deck, the theater chyron, the Film Room grid, the
+Study dimension and the Reports ledger each carried their own copy, which is how a
+renamed unit reaches the deck and nothing else. A block recovered by the subject
+and returned scores six for us, nothing for the opponent, and reports one punt
+blocked, one punt-return touchdown and the exact `gameId::playId` reference
+through the scoreboard, the report and the export; recovered by the opponent it
+scores for them, and an unrecovered block is attributed to nobody.
+
+**The unassigned disclosure is counted from film references, not arithmetic.**
+`specialTeamsUnassigned` summed each module's count and subtracted, which
+mis-stated a MIXED cohort — structured events beside legacy-only snaps, the shape
+the coach's own screen showed. Two snaps the board reports under Tries were also
+declared unit-less: an extra point stored on the field-goal unit
+(`unit:'fieldGoal' + attemptType:'extraPoint'`, §4b.3, which `_conversionStats`
+owns and `isFieldGoalAttempt` excludes) and a legacy `stType:'XP'` snap the
+structured branch skips. Every module publishes its exact ref set, so the question
+is now asked per snap. `specialTeams.tries` also counts the field-goal-shaped
+extra points (`tryUnits` / `xpOnKickUnit` / `defending` state the parts), and the
+try remainder is NAMED: a charted `Defending a Try` is the opponent's attempt, not
+a try with "no scoring team tagged".
+
+**Legacy snaps in a mixed cohort are still not inferred into units.** The
+structured branch wins, a legacy-only snap joins no unit module, and the
+disclosure states it. That is §8, not a defect.
+
+**The board is at the 12.5px floor** — the second migrated board after Defense —
+with literal labels (`Points for`/`against` became `For`/`Against`, matching the
+Touchdowns tile; `FG Block` became `Field Goal Block`), section badges that name
+what they count, and an absence anchored under its own header instead of floating
+in a stretched panel. No module, metric, mobile work or global style changed.
+
+**Scope decision this pass was bounded by (2026-09-19): limited acceptance pass,
 not a rebuild.** Preserve the current navigation, unit separation, report
 modules and analytics. The only new football capability is blocked-punt return
 charting: keep the stored `puntReturn` unit, expose it as `Punt Return / Block`,

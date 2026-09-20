@@ -702,11 +702,28 @@ timing, style, and player detail can expand without leaving the play.
 - Return allowed and end spot when applicable
 - Punter, snapper, gunner/cover player
 
-### Punt Return
+### Punt Return / Block
 
-- Possession decision: Return, Fair Catch, Let Bounce, Muff
+**IMPLEMENTED 2026-09-19.** The unit that fields a punt is the unit that blocks
+one, so `blocked` belongs to its outcome vocabulary and the coach-facing label
+names both jobs. The stored unit remains `puntReturn`: there is no `puntBlock`
+value, no schema change and no migration — only the charting vocabulary was
+missing, while the model, the report, the scoring and the film references already
+supported the state. `SpecialTeamsModel.UNIT_LABELS` is the one owner of the
+coach-facing unit names.
+
+A block the subject recovers and returns for a touchdown is:
+`outcome.status:'blocked'`, `outcome.recoveredBy:'subject'`,
+`outcome.score:'touchdown'` — six points to the subject, one punt blocked, one
+punt-return touchdown, and the exact `gameId::playId` reference. Recovered by the
+opponent it scores for them. **An unrecovered block never defaults to anybody:**
+with `recoveredBy` unknown, `scoringTeam` returns `unknown` and the points go to
+neither side, the same fail-closed rule §4 already applies to an ambiguous safety.
+
+- Possession decision: Return, Fair Catch, Let Bounce, Muff, Blocked
 - Possession spot, return yards, end spot
 - Returner, blocker, recoverer
+- Possession (who recovered) and Score are the existing shared controls
 
 ### Field Goal
 

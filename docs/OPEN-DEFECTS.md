@@ -906,34 +906,49 @@ edge-to-edge by design; the top bar's 18px inset is not.
    their touchdown allowed and their stop rate is 0%. The focused Matchup
    regression uses a normal offense-origin touchdown with no explicit
    `scoreFor`, proving the default ownership survives the projection.
-10. **Reports > Special Teams limited acceptance pass — OPEN 2026-09-19.** The
-    current board is close enough to retain. Do not rebuild it or expand its
-    analytics. Complete one bounded football-correctness repair, a source-backed
-    data audit and a restrained visual cleanup before its Charlie Gate.
-    - **Punt block touchdown cannot be authored.** The structured model and
-      report already support `puntReturn` blocks, recovery ownership, touchdowns,
-      points and exact film references, but the charting vocabulary omits
-      `blocked` from `ST_OUTCOMES.puntReturn`. Keep the stored unit and schema;
-      expose it as `Punt Return / Block`, add the `Blocked` outcome, and use the
-      existing Possession and Touchdown controls. A subject recovery plus
-      touchdown must score six for the subject and report one punt blocked, one
-      punt-return touchdown and the exact play reference after save/reopen.
-    - Audit the existing structured owners for kickoff returns, punt returns,
-      field-goal blocks, tries and defensive try returns. Score ownership, points,
-      attempts, measured return production, blocks, touchdowns and film cohorts
-      must agree across charting, scoreboard, Reports and Players. Reconcile the
-      canonical screen's 8 Special Teams snaps, 4 assigned unit snaps and 4
-      unassigned snaps without inferring or rewriting legacy data. Preserve the
-      difference between measured zero, a measured fraction and `No data`.
-    - Visual work is limited to the existing composition: move the board to the
-      12.5px floor, replace avoidable abbreviations with literal labels, clarify
-      badge counts, compact fixed empty modules, use only the few standard module
-      heights the data needs, align paired edges and keep horizontal containment
-      at 1440 and 1280. Do not add modules, metrics, mobile work or a global
-      restyle. Internal scrolling is only for a module whose row count can grow.
-    Acceptance requires focused failing-first regressions, the full gate and a
-    short installed smoke of our punt, opponent punt return, blocked punt return
-    touchdown, field-goal block, Try and Defending a Try.
+10. **Reports > Special Teams limited acceptance pass — REPAIRED 2026-09-19,
+    awaiting Codex review, a Charlie Gate and an installed smoke.**
+    - **Punt block touchdown can now be authored.** `ST_OUTCOMES.puntReturn`
+      gained `Blocked` and the unit reads `Punt Return / Block`; the stored value
+      stays `puntReturn` and no `puntBlock` exists. Possession and Score are the
+      existing controls. Proven end to end: the authored state round-trips through
+      save/reopen/normalize as `unit:'puntReturn'`, `outcome.status:'blocked'`,
+      `outcome.recoveredBy:'subject'`, `outcome.score:'touchdown'`, scores six for
+      us and zero for the opponent through `computeScoreboard`, and reports one
+      punt blocked, one punt-return touchdown, zero punts blocked against us and
+      the exact composite reference. Opponent recovery scores for the opponent;
+      an unrecovered block is attributed to nobody.
+    - **Audit result — the disclosure was over-counting on a mixed cohort.** The
+      coach's `8 snaps / 4 assigned / 4 unassigned` screen is the
+      `2026-varsity-demo` Week 2 game: 5 snaps carry structured events and 3 are
+      legacy `stType` only. Three unassigned are correct (§8: a legacy snap is
+      never inferred into a unit). The fourth was an extra point stored on the
+      field-goal unit, which the Tries module reports and which
+      `isFieldGoalAttempt` deliberately excludes from field goals; a legacy
+      `stType:'XP'` snap has the same shape. `specialTeamsUnassigned` now compares
+      film-reference sets instead of summing counts, and `specialTeams.tries`
+      counts the field-goal-shaped extra points. That game now reads 8 / 6 / 2,
+      every demo game reconciles to exactly its legacy-only snaps, and the
+      canonical 2025 JV season is unchanged at 74 / 73 / 1 (the legacy `Fake`).
+    - **The try remainder is named.** `charted − attempts` was labelled `No
+      scoring team tagged`, which is wrong for a charted `Defending a Try` — the
+      opponent is exactly who scored it. The rows are `Tries charted`,
+      `Opponent tries` and, only when non-zero, `No scoring team tagged`.
+    - **Nothing else in the audit moved.** Kickoff/punt `tdAllowed` (scoringTeam
+      `opponent`), return `td` (scoringTeam `subject`), return `attempts`
+      (charted attempt with finite yardage, never a fair catch or touchback),
+      blocks, field-goal cohorts, tries and defensive try returns, points and
+      scoring side, and every `refs` cohort were traced to their canonical owners
+      and are correct. Measured zero, a measured fraction (`1/2`) and `No data`
+      remain distinct on the board.
+    - **Visual pass:** board migrated to the 12.5px floor (98 sub-floor elements
+      → 0 on the canonical season), literal labels, badge nouns, compact empty
+      modules, aligned paired edges, no clipping or page overflow at 1440 and
+      1280. No module, metric, mobile or global-style change.
+    - **Remaining, installed-only:** a short smoke of our punt, an opponent punt
+      return, the blocked punt-return touchdown, a field-goal block, Try and
+      Defending a Try. Chromium verifies the layout and the browser-backed
+      behavior; it cannot certify WebView2 rendering.
 
 ## Breakdown
 
