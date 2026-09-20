@@ -7,11 +7,33 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-88` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-90` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-88` is the current unsigned, smoke-approved beta build,
+**Packaging status:** `1.12.0-90` is the current unsigned smoke candidate,
+packaged from `1a42282` (the bump is `aff2dd4`) with the canonical gate at
+120/120, zero skipped, zero failed, and `e2e-p0-exit` re-run after the bump.
+See `SMOKE-1.12.0-90.md`. It carries the **Reports > Special Teams acceptance
+pass** and **Reports > Players Revision 2** over `1.12.0-89`. Its installed smoke
+has NOT been run, so it establishes no acceptance of anything: Players and
+Special Teams have had no Charlie Gate, and Home production remains formally
+`REJECTED`. Not tagged, pushed or published. `cargo tauri build` exits 1 after
+producing both bundles, on the updater signing step, because
+`TAURI_SIGNING_PRIVATE_KEY` is unset — the standing condition of every unsigned
+beta package here.
+
+`1.12.0-89` was the preceding unsigned smoke candidate, packaged from `95310d6`
+(bumped in `b09f7de`) with the canonical gate at 120/120. See
+`SMOKE-1.12.0-89.md`. It carries every Defense Revision 2 repair made after
+`1.12.0-88` — defensive field position read from the charted unit, opponent drive
+attribution, and defensive success and touchdowns allowed read from the scoring
+side. Its installed smoke has not been run either. It is a separate checkpoint
+and `1.12.0-90` does not supersede its smoke: that candidate's own installed
+checks are still outstanding, and `1.12.0-90` contains the same code plus the two
+later passes.
+
+`1.12.0-88` was the preceding unsigned, smoke-approved beta build,
 packaged from `3438fc9` (the bump on top of `1b684da`) with the canonical gate
 at 119/119, zero skipped, zero failed. See `SMOKE-1.12.0-88.md`. **It exists for
 one reason: the `1.12.0-87` installed smoke DISPROVED BD-VP**, and it carries
