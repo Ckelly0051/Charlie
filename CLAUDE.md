@@ -1367,11 +1367,38 @@ the measures that actually happened, or its play count when every measure is
 empty (Codex, 2026-09-20). `Long` opens the play that PRODUCED it — the plays
 tying the maximum — not every measured play in the bucket.
 
+**ONE OWNER FOR THAT SUMMARY, because the export had the same defect.** The
+printed report built each game-by-game cell from the first two entries of its own
+fixed stat list, so a punt-only kicker exported `0 field goal attempts, 0 field
+goals made` and a takeaway-only defender `0 tackles, 0 solo` — the screen's
+repair had not reached it. `StatsEngine.playerRoleSummary`, over
+`playerRoleMeasures`, is the one owner the board and `buildPlayerHtmlReport` both
+read: the measures that happened, or the credited play count. A measured zero and
+an uncredited role (`No data`) remain different statements.
+
+**`Long` IS THE LONGEST RESULT, NEGATIVE INCLUDED.** `_individualStats` clamped
+it with `Math.max(0, …)`, so a back whose only carry lost three yards displayed
+`Long 0` while the film link opened the -3 play — the number and its clip
+described different things. Rushing, receiving and returns report the true
+longest; with nothing measured the field stays `0`, the established "nothing to
+state" value every consumer already renders as an absence; and `longRefs` is
+untouched, so tied longest plays stay linked together. The audited `e2e-parity`
+correction is three all-negative rushing cohorts in the coach's own season now
+reporting -6, -1 and -3 instead of 0. No other value moved.
+
 **The situational selection is controller state and the export prints it.** Role
 and dimension live on `ReportsScreen`, so an ordinary re-render cannot discard
 them and `exportPlayer` prints the breakdown on screen instead of independently
 choosing the first permitted dimension of every role. The results table is one
 sortable `DataTable`, sortable on every column by mouse, Enter or Space.
+
+**AN UNMEASURED VALUE IS NOT A ZERO IN THE SORT DATA EITHER.** Every situational
+measure was flattened to its displayed value, so an unmeasured cell entered the
+sort as `0` and sorted ahead of a real negative value in both directions; Grade
+displayed `No data` and sorted that string as `0` for the same reason. Unmeasured
+measures stay `null` and Grade sorts through `gradeSort` — `DataTable` already
+groups missing values last in both directions, which is the whole point of that
+rule. The rule covers every numeric measure on the table, not only Grade.
 
 **Situational analysis uses existing owners only.** `PLAYER_DIMENSIONS` lists down
 and distance, quarter, field zone, hash, run/pass, play type, direction,
@@ -2139,8 +2166,10 @@ no clipped cell, 17), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
 corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
-absence contract, the role-specific composite film cohorts and the Grade
-repair, 177) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
+absence contract, the role-specific composite film cohorts, the Grade repair, the
+one-owner game summary shared with the export, situational sort ORDER over
+positive, measured-zero, negative and unmeasured values, and the true negative
+`Long` with its film, 223) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
 composition, its title-only module headers, the composite defensive-call
 contract, both ranking rules, canonical metric reuse, exact film cohorts, the
 HTML export's own schema and 1440/1280 containment, 110) and `tools/e2e-reports-season.mjs` (the Season

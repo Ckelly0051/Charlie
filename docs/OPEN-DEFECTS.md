@@ -1003,6 +1003,34 @@ edge-to-edge by design; the top bar's 18px inset is not.
       The regressions that missed these are rewritten: the per-statistic
       expectation is derived from the plays rather than from the view model's own
       bucket map, which is what let the `Long` mapping validate itself.
+    - **Three further Codex findings on that repair, repaired 2026-09-20.**
+      **P1:** the HTML export still built each game-by-game summary from the
+      first two entries of a fixed stat list, so a punt-only kicker printed
+      `0 field goal attempts, 0 field goals made` and a takeaway-only defender
+      `0 tackles, 0 solo` — the same defect the screen had just had repaired.
+      The role-aware summary is now ONE owner both surfaces read,
+      `StatsEngine.playerRoleSummary` (with `playerRoleMeasures`); a measured
+      zero and an uncredited role (`No data`) stay distinct.
+      **P2:** the situational table flattened every measure to its displayed
+      value, so an UNMEASURED cell entered the sort data as `0` and sorted ahead
+      of a real negative value in both directions, and Grade sorted its
+      `No data` string as `0` for the same reason. Unmeasured measures stay
+      `null` and Grade sorts through `gradeSort`, which `DataTable` already
+      groups last in both directions. Every situational numeric measure is
+      covered, not only Grade.
+      **P2:** `_individualStats` clamped `Long` with `Math.max(0, …)`, so a back
+      whose only carry lost three yards displayed `Long 0` while the film link
+      opened the -3 play — the number and its clip described different plays.
+      Long is the true longest, negative included, on rushing, receiving and
+      returns; with nothing measured it stays `0`, and `longRefs` is unchanged so
+      tied longest plays stay linked together. The audited parity correction is
+      six paths in the local six-game golden: three all-negative rushing cohorts
+      now report -6, -1 and -3 instead of 0, each twice because the scout report
+      carries the same stats object. Nothing else moved, and the committed
+      synthetic golden is byte-identical.
+      Each repair is covered by a behavioral regression asserting actual row
+      order or the exported string, and each was mutation-verified red against
+      the pre-fix behaviour. `e2e-reports-players` is 223 assertions.
     - **Remaining:** Charlie Gate at the release widths and an installed smoke.
       Chromium verified layout, containment and the browser-backed behavior; it
       cannot certify WebView2 rendering.

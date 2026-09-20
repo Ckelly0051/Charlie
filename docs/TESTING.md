@@ -104,7 +104,7 @@ The smallest existing harness for the route or domain you touched.
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
-**Players Revision 2, 2026-09-20.** `e2e-reports-players` (200) keeps every
+**Players Revision 2, 2026-09-20.** `e2e-reports-players` (223) keeps every
 Revision 1 contract and adds the Revision 2 ones on a two-game fixture where one
 player is credited in three roles: every clickable statistic opens exactly its own
 credited events (asserted against `playersBoard`'s buckets, so the board and the
@@ -138,6 +138,24 @@ opening the play that produced it, and the situational table being sortable by
 mouse and keyboard. Five further mutations — volume-stat filtering, a single-
 measure game cell, an export choosing its own dimension, `Long` pointing at the
 whole bucket, and an unsortable table — each red at their own assertion.
+
+**A sortable header is not a sort order, and a fixture must be able to expose the
+defect.** The Revision 2 suite proved the situational headers were clickable and
+marked, which says nothing about where a measured zero, a negative value or an
+unmeasured one lands. It now asserts the ACTUAL row order, ascending and
+descending, on a production column and on Grade, over a passer whose four
+quarters are a positive completion, a measured zero, a completion behind the line
+and a sack — a sack is not an attempt, so its Att and Yds are genuinely
+unmeasured, which a rushing fixture (where every carry buckets both) could never
+produce. Long is asserted on four cohorts — one negative carry, all-negative with
+one longest, tied negative longest, ordinary positive longest — against the
+displayed value, the rendered cell AND `longRefs`, so the number and its film
+cannot describe different plays. The export's game-by-game summaries are compared
+string-for-string with the screen's for a punt-only kicker and a takeaway-only
+defender. Three mutations — restoring the `Math.max(0, …)` clamp (4 red),
+flattening unmeasured measures and dropping `gradeSort` (4 red), and rebuilding
+the export summary from the fixed stat list (3 red) — each red naming the exact
+reported wording.
 
 **An assertion whose subject was deliberately replaced is repointed, not
 weakened.** Revision 2 moved the film affordance off the row, so the row-level
