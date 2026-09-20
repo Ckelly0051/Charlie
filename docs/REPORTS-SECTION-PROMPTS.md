@@ -84,15 +84,15 @@ STOP BOUNDARY: Approval check first; then authorized implementation only. Commit
 ## Special Teams
 
 ```text
-TASK: Reports Special Teams
+TASK: Reports Special Teams limited acceptance pass
 
-Create the desktop Special Teams design comp, not the production implementation.
-Start with SpecialTeamsTab and every helper it calls, its scope model in js/reports-screen.js, and GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md. Inventory the live phase/unit breakdowns and every metric before drawing the layout.
-Compose the report around the existing special-teams units, keeping kickoff distinct from kick return, punt from punt return, and scoring kicks/tries from their defensive counterparts wherever the model supports them. Do not combine unlike opportunities into an invented success rate.
-Retain current-game/full-season behavior, sample counts, distance/result breakdowns, scoring outcomes, penalties, and film actions wherever currently available. Empty units must not look like zero performance. Distinguish kick distance, return yards, and net yards according to existing definitions.
-Use shared Reports styling without forcing Offense's six-zone structure or Defense's eight KPIs onto this tab. Propose a compact unit navigation only if needed and record the decision explicitly.
-Build fixtures using valid existing tags, with plausible linked outcomes and reconciled denominators. Cover a populated game, season, one populated unit, and no special-teams snaps.
-Create a dedicated design-comps/reports-special-teams-<date>/ folder containing the comp, rationale, and captures.
+The comp is already built. Do not redesign or expand the report. Preserve the current navigation, unit separation, modules, scopes, exports and film actions. Read CLAUDE.md, GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md, docs/OPEN-DEFECTS.md item 10, docs/TESTING.md and the current production owners before changing anything.
+
+Repair the missing blocked-punt touchdown workflow without a schema migration: keep unit `puntReturn`, display it as `Punt Return / Block`, add `blocked` to its outcome vocabulary and reuse the existing Possession and Touchdown controls. Prove a blocked punt recovered by the subject and returned for a touchdown survives save/reopen, awards six points to the subject, reports one punt blocked and one punt-return touchdown, and carries the exact film reference through scoreboard, Reports and Players. Do not add a `puntBlock` unit.
+
+Audit scoring ownership, points, attempts, measured return production, blocks, touchdowns, null/zero semantics and film cohorts for kickoff return, punt return, field-goal block, Try and Defending a Try. Reconcile the canonical screen's 8 Special Teams snaps, 4 assigned unit snaps and 4 unassigned snaps without inferring or rewriting legacy data. A measured zero, a measured fraction and `No data` must remain distinct.
+
+Make only a restrained visual pass: enforce the 12.5px floor, use literal labels where abbreviations are avoidable, clarify what navigation badges count, compact fixed empty modules, use a small set of standard module heights, align paired top/bottom edges and prevent page-level horizontal overflow at 1440 and 1280. Use internal scrolling only for modules whose row count can grow. Do not add modules or metrics, change global styles, rebuild mobile, or touch unrelated Reports tabs.
 
 Follow CLAUDE.md, docs/TESTING.md, and the Reports direction in GRIDIRON-IQ-PLAN-V2.md. Read current source before assuming these saved instructions describe the latest state. Work on this tab only. Preserve unrelated changes. Do not turn this into an analytics expansion, global restyle, mobile redesign, or cleanup project.
 
@@ -100,11 +100,11 @@ Use the accepted Overview and implemented Offense visual language: shared typogr
 
 Inventory every existing section, column, metric, control, scope, export, disclosure, and film action, including conditional states and child components. Record source-to-destination mapping in RATIONALE.md. Do not remove capabilities to make the layout fit. Preserve canonical formulas, football vocabulary, null/unknown semantics, sample thresholds, and gameId::playId film references. Do not invent metrics or fill missing data with zero.
 
-Do not run or create harnesses or run the full gate in this assignment. Inspect the actual comp visually at 1920, 1440, and 1280 widths with populated, empty, sparse, and long-label states. Include every existing scope. Activate each section control before its screenshot and verify the intended content is visible; park the pointer. Document precisely what was and was not checked.
+Add focused failing-first regressions for each repaired behavior. Run the Special Teams model, charting, Reports, Players, scoreboard and visual containment suites, then the full gate. Inspect populated and sparse production at 1440 and 1280. Do not touch coach data.
 
 Commit only named task files, with the rationale and associated changes together. No push, version bump, installer, dependencies, or coach-data changes. Report commit, changed files, capability mapping, screenshots, open product decisions, and verification limits. Stop at the stated approval boundary.
 
-STOP BOUNDARY: Comp only. No production files. Stop for Charlie's approval.
+STOP BOUNDARY: Commit code/tests and docs in separate logical commits, then stop for Codex review. No version bump, installer, push or coach-data write.
 ```
 ## Players
 

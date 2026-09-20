@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-15.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-19.
 
 ## Current Authority
 
@@ -26,16 +26,16 @@
 
 ## Current Snapshot
 
-- Source version: `1.12.0-86` in the four version owners; source HEAD is
-  `9086e95` (documentation on top of package bump `b08d89c`).
-- Installed candidate: unsigned `1.12.0-86`, packaged from `b08d89c` and
-  coach-smoked on 2026-09-15. **FILM-01 is approved for beta use.** Not tagged,
-  pushed, or published.
-- Current source: clean build; FILM-01 focused proof 45/45; canonical gate
-  117/117 on the code baseline. Repair Batch 1 and FILM-01 are installed.
+- Current source includes the Defense Revision 2 scoring and field-perspective
+  repairs through `95310d6`. The latest focused verification is recorded in
+  `CLAUDE.md` and `docs/TESTING.md`; run the full gate before the next installer.
+- Installed `1.12.0-88` is approved for beta use for the previously recorded
+  Breakdown and film-health scope. It does not accept the newer Defense or
+  Special Teams source work. Nothing is tagged, pushed or published here.
 - The rapid-scrubbing `Film missing` report remains open but intermittent and
-  deprioritized. Next is the custom-play/`Option` repair plus the two small
-  Breakdown presentation findings; Home rail scaling remains separate.
+  deprioritized. Next is the bounded Reports > Special Teams correctness and
+  visual pass recorded in `docs/OPEN-DEFECTS.md`; Home rail scaling remains
+  separate.
 - Current production status: Home and all eight Our Program Reports surfaces are
   `REJECTED`; approved comps remain binding design evidence.
 - Current harness inventory is discovered from `tools/e2e-*.mjs`; do not copy a

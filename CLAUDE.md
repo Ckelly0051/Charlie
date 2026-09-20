@@ -1178,6 +1178,21 @@ accepted.** Built to the approved comp
 decision record and carries all eight coach rulings). No Charlie Gate and no
 installed smoke, so it is not accepted state.
 
+**Current Special Teams scope decision (2026-09-19): limited acceptance pass,
+not a rebuild.** Preserve the current navigation, unit separation, report
+modules and analytics. The only new football capability is blocked-punt return
+charting: keep the stored `puntReturn` unit, expose it as `Punt Return / Block`,
+add `blocked` to that unit's outcome vocabulary, and reuse the existing recovery
+and score fields. `Blocked` plus subject possession plus `Touchdown` must survive
+save/reopen and agree across scoreboard, Reports, Players and exact film refs.
+Do not introduce a `puntBlock` schema value. Audit the existing Special Teams
+owners for scoring side, points, attempts, measured return cohorts, blocks,
+touchdowns and null/zero handling, including the canonical 8 snaps / 4 assigned /
+4 unassigned disclosure. The visual pass is constrained to literal labels, the
+12.5px floor, compact fixed empty modules, a small set of standard module
+heights, aligned paired edges and containment at 1440 and 1280. No new metric,
+module, mobile redesign or global restyle is authorized.
+
 Special Teams runs a **six-column rhythm** — its own number, because the model
 defines six units. Six KPI tiles, a six-card **unit ledger** showing every unit
 including the empty ones, and **five section surfaces** (All units / Kickoff &

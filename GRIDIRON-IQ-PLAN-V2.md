@@ -855,6 +855,19 @@ Retain every meaningful production field while reducing everyday clutter.
 > (34), canonical gate green. Charlie Gate, installed smoke and production
 > acceptance remain; the approval registry is unchanged.
 >
+> **SPECIAL TEAMS LIMITED ACCEPTANCE PASS (DECIDED 2026-09-19).** The existing
+> Special Teams report remains the composition; this is not another rebuild and
+> no analytics expansion is authorized. Before its Charlie Gate, add the missing
+> blocked-punt touchdown authoring path by retaining structured `puntReturn`,
+> displaying it as `Punt Return / Block`, adding `blocked` as an outcome and
+> reusing the existing possession and touchdown fields. Audit scoring ownership,
+> points, attempts, measured return cohorts, blocks, touchdowns, null/zero states
+> and exact film references across charting, scoreboard, Reports and Players.
+> The visual pass is limited to the 12.5px type floor, literal labels, compact
+> empty modules, a few standard module heights, paired-edge alignment and
+> containment at 1440 and 1280. Focused regressions, the full gate and a short
+> installed smoke are the acceptance boundary.
+>
 > **HISTORY — DEFENSE REBUILT TO THE APPROVED STATIC SCHEMA (2026-09-09).** The current
 > comp and decision record are `design-comps/reports-defense-2026-09-09/`.
 > Four fixed screens now show performance, opponent offense, complete calls and

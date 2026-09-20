@@ -1,6 +1,6 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-17: Reports > Defense Revision 2
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-19: Reports > Defense Revision 2
 > is implemented and gate-verified (see the Reports section), awaiting its
 > Charlie Gate and installed smoke; production stays `REJECTED`. Previously
 > updated 2026-09-16. The `1.12.0-87`
@@ -906,6 +906,34 @@ edge-to-edge by design; the top bar's 18px inset is not.
    their touchdown allowed and their stop rate is 0%. The focused Matchup
    regression uses a normal offense-origin touchdown with no explicit
    `scoreFor`, proving the default ownership survives the projection.
+10. **Reports > Special Teams limited acceptance pass — OPEN 2026-09-19.** The
+    current board is close enough to retain. Do not rebuild it or expand its
+    analytics. Complete one bounded football-correctness repair, a source-backed
+    data audit and a restrained visual cleanup before its Charlie Gate.
+    - **Punt block touchdown cannot be authored.** The structured model and
+      report already support `puntReturn` blocks, recovery ownership, touchdowns,
+      points and exact film references, but the charting vocabulary omits
+      `blocked` from `ST_OUTCOMES.puntReturn`. Keep the stored unit and schema;
+      expose it as `Punt Return / Block`, add the `Blocked` outcome, and use the
+      existing Possession and Touchdown controls. A subject recovery plus
+      touchdown must score six for the subject and report one punt blocked, one
+      punt-return touchdown and the exact play reference after save/reopen.
+    - Audit the existing structured owners for kickoff returns, punt returns,
+      field-goal blocks, tries and defensive try returns. Score ownership, points,
+      attempts, measured return production, blocks, touchdowns and film cohorts
+      must agree across charting, scoreboard, Reports and Players. Reconcile the
+      canonical screen's 8 Special Teams snaps, 4 assigned unit snaps and 4
+      unassigned snaps without inferring or rewriting legacy data. Preserve the
+      difference between measured zero, a measured fraction and `No data`.
+    - Visual work is limited to the existing composition: move the board to the
+      12.5px floor, replace avoidable abbreviations with literal labels, clarify
+      badge counts, compact fixed empty modules, use only the few standard module
+      heights the data needs, align paired edges and keep horizontal containment
+      at 1440 and 1280. Do not add modules, metrics, mobile work or a global
+      restyle. Internal scrolling is only for a module whose row count can grow.
+    Acceptance requires focused failing-first regressions, the full gate and a
+    short installed smoke of our punt, opponent punt return, blocked punt return
+    touchdown, field-goal block, Try and Defending a Try.
 
 ## Breakdown
 
