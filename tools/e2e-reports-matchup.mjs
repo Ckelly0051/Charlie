@@ -407,10 +407,22 @@ const laneScoringSide = await page.evaluate(() => {
     snap(2, { down: '3', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', yardLine: '10', fieldSide: 'own', players: { takeaway: '22' } }),
   ];
   const allowed = [cohort[0], snap(2, { down: '3', distance: '8', runPass: 'Pass', playType: 'Short Pass', yardage: '10', result: 'Touchdown', yardLine: '10', fieldSide: 'own' })];
-  return { ours: engine._matchupDefenseMetrics(cohort), theirs: engine._matchupDefenseMetrics(allowed) };
+  // Head-to-head film supplies THEIR defense by cross-reading OUR offensive
+  // snap. The relabel changes tags.unit, while __chartedUnit keeps score and
+  // field ownership anchored to the offense the coach actually charted.
+  const crossRead = snap(3, { down: '1', distance: '10', runPass: 'Pass', playType: 'Deep Pass', yardage: '20',
+    result: 'Touchdown', yardLine: '20', fieldSide: 'opp' });
+  crossRead.__chartedUnit = 'offense';
+  return { ours: engine._matchupDefenseMetrics(cohort), theirs: engine._matchupDefenseMetrics(allowed),
+    opponentDefense: engine.defensiveCohortMetrics([crossRead]),
+    crossReadSide: engine.constructor.scoringSide(crossRead) };
 });
 ok(laneScoringSide.ours.stopRate === 100 && laneScoringSide.theirs.stopRate === 50,
   'a defensive lane counts our pick-six as a stop and an opponent touchdown on the same snap as their success',
+  JSON.stringify(laneScoringSide));
+ok(laneScoringSide.opponentDefense.stopRate === 0 && laneScoringSide.opponentDefense.touchdowns === 1
+  && laneScoringSide.crossReadSide === 'us',
+  'an offense-origin touchdown cross-read as opponent defense remains our score and their touchdown allowed',
   JSON.stringify(laneScoringSide));
 ok(redZoneSides.opponent?.n === 3 && redZoneSides.opponent?.label === '12 | Wing-T | Buck Sweep'
   && redZoneSides.season?.label === '4-4 | Cover 1 | No Blitz' && redZoneSides.season?.n === 3,

@@ -162,24 +162,23 @@ export class StatsEngine {
     return gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown');
   }
 
-  /** OPPONENT SUCCESS on a defensive snap. `isSuccessfulPlay` is framed for the
-   *  team carrying the ball and counts EVERY touchdown as success, so our
-   *  pick-six read as opponent production: a stop became a failure and a
-   *  defensive score entered yards-allowed reporting as though the opponent had
-   *  scored it. A touchdown is theirs only when `scoringSide` says so — a
-   *  touchdown our defense scored is a stop, and a side nobody charted is not
-   *  inferred to be ours. Every other snap keeps the canonical rule, which is
-   *  why this wraps it instead of restating it. The offense-framed predicate is
-   *  unchanged for the offensive reports that own it. */
+  /** OFFENSIVE SUCCESS AGAINST THE DEFENSE BEING MEASURED. `isSuccessfulPlay`
+   *  counts every touchdown as success, so this supplies the defensive side of
+   *  the contract. A native defensive snap measures their offense against our
+   *  defense; a Matchup cross-read relabels our offensive snap as their defense
+   *  and carries `__chartedUnit:'offense'`, so it measures our offense instead.
+   *  Every non-touchdown keeps the canonical rule. */
   static isOpponentSuccess(p) {
-    if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.scoringSide(p) === 'them';
+    if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.isTouchdownAllowed(p);
     return StatsEngine.isSuccessfulPlay(p);
   }
 
-  /** A touchdown the opponent scored on a defensive snap — the one rule every
-   *  "touchdowns allowed" count on every defensive surface uses. */
+  /** A touchdown scored by the offense facing the defense this row measures.
+   *  Native defense expects `them`; an offense-origin Matchup cross-read expects
+   *  `us`. `scoringSide` reads the original charted unit, not the projection. */
   static isTouchdownAllowed(p) {
-    return StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) === 'them';
+    const offense = StatsEngine.fieldPerspective(p) === 'defense' ? 'them' : 'us';
+    return StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) === offense;
   }
 
   /** A conversion the OPPONENT made on a defensive snap: it gained the line to
@@ -188,7 +187,7 @@ export class StatsEngine {
    *  touchdown is not their conversion, and a touchdown whose scoring side is
    *  unknown is not inferred to be one. */
   static isConversionAllowed(p) {
-    if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.scoringSide(p) === 'them';
+    if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.isTouchdownAllowed(p);
     return gainedFirstDown(p.tags);
   }
 
@@ -279,7 +278,11 @@ export class StatsEngine {
     if (p.tags.scoreFor === 'them') return 'them';
     if (p.tags.scoreFor === 'us') return 'us';
     const res = StatsEngine.splitResults(p.tags.result);
-    if (p.tags.unit === 'defense') {
+    // Matchup projections can relabel an offensive rep as the opponent's
+    // defense. Scoring ownership remains anchored to the unit the coach
+    // charted, just like field position does.
+    const unit = p.__chartedUnit || p.tags.unit;
+    if (unit === 'defense') {
       if (res.includes('Safety')) return 'us';
       if (res.includes('Touchdown') &&
           (res.includes('Fumble') || res.includes('Interception'))) return 'us';

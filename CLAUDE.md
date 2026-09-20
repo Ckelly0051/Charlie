@@ -1036,6 +1036,13 @@ defensive stops, phase stop rates and touchdowns allowed. The offense-framed
 predicate is unchanged, `compute()` output is unchanged, and the canonical season
 moves nowhere because it has no defensive score.
 
+That rule is relative to the DEFENSE BEING MEASURED, not permanently to `them`.
+A native defensive snap measures their offense against our defense, while a
+Matchup cross-read relabels our offensive snap as their defense and preserves
+`__chartedUnit:'offense'`; our touchdown must therefore remain their touchdown
+allowed. `scoringSide` and the defensive success/touchdown helpers read the
+charted unit so relabeling a rep never reverses scoring ownership.
+
 **Metric definitions.** `3rd Down Stop %` and `4th Down Stop %` are `100 -` the
 existing allowed rates, one decimal, a dash with no attempts. `Takeaways` is the
 dashboard's interceptions plus fumble recoveries. A pass ATTEMPT needs a charted
@@ -1998,7 +2005,7 @@ tie-break, the Rate denominator, the exact season-side joins and
 per-cohort metric polarity, the supporting sections, the partial and empty
 states, the separate `Opponent` / `Season` film cohorts, the nullified-penalty
 exclusion, order-independent multi-select identities, field-faithful call
-matching, per-cohort game counts, the charted-perspective red zone, our pick-six as a stop, scope chrome and 1440/1280 containment, 79).
+matching, per-cohort game counts, the charted-perspective red zone, our pick-six as a stop, scope chrome and 1440/1280 containment, 80).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

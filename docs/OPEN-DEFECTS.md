@@ -898,6 +898,14 @@ edge-to-edge by design; the top bar's 18px inset is not.
    value are unchanged, because that season has no defensive score. The
    regression is a synthetic red-zone pick-six checked against the same snap
    scored by the opponent.
+9. **Matchup cross-read reversed touchdown ownership — REPAIRED 2026-09-19.**
+   Found in review of `32c7000..42239ea`: the defense-framed touchdown rule was
+   fixed to `them`, which is correct for our native defensive snaps but wrong
+   when Matchup relabels our offensive snap as the opponent's defense. The
+   relabel now remains anchored to `__chartedUnit:'offense'`: our touchdown is
+   their touchdown allowed and their stop rate is 0%. The focused Matchup
+   regression uses a normal offense-origin touchdown with no explicit
+   `scoreFor`, proving the default ownership survives the projection.
 
 ## Breakdown
 

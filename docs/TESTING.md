@@ -170,6 +170,7 @@ checked against the same snap scored by the opponent. Both were
 mutation-verified: all 33 reintroduced
 defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
+
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
 | Overlays | `e2e-native-overlay` |
@@ -181,6 +182,12 @@ mutations red in the canonical one.
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
 | Import / export | `e2e-csv-roundtrip`, `e2e-csv-projection`, `e2e-legacy-film-fields` |
 | Cross-cutting guards | `audit-design-approvals`, `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
+
+`e2e-reports-matchup` also pins scoring ownership through the cross-read: an
+offense-origin touchdown relabelled as the opponent's defense retains `us` as
+its scoring side and reports a 0% stop rate plus one touchdown allowed for that
+opponent defense. The charted unit, not the projected unit, owns both field and
+score perspective.
 
 ## Tier 2 — Affected route
 
