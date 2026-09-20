@@ -986,6 +986,23 @@ edge-to-edge by design; the top bar's 18px inset is not.
     - **Known limitation:** grade averages exist only where a grade was charted,
       which on the canonical season is a minority of plays; `No grade charted` is
       stated rather than implied.
+    - **Four Codex findings on Revision 2 itself, repaired 2026-09-20.**
+      **P1:** the situational split and the game rows reduced every role to one
+      "volume" stat, so a punt-only kicking group (zero field-goal attempts) and
+      a takeaway-only defender (zero tackles) vanished from the split, and their
+      game cells read `0 FG, 40 punt yds` and `0 tkl`. Each role now declares its
+      own `measures`, a group renders when the role was credited in it, and a
+      game cell states the measures that happened or its play count.
+      **P2:** the export chose its own situational dimension per role, so it
+      could not match the screen. Role and dimension are controller state and the
+      export prints the active one.
+      **P2:** `Long` opened every measured play in its bucket; it now opens the
+      play (or plays tying it) that produced the value, through `longRefs`.
+      **P2:** the situational table was a plain table; it is now the shared
+      sortable `DataTable`.
+      The regressions that missed these are rewritten: the per-statistic
+      expectation is derived from the plays rather than from the view model's own
+      bucket map, which is what let the `Long` mapping validate itself.
     - **Remaining:** Charlie Gate at the release widths and an installed smoke.
       Chromium verified layout, containment and the browser-backed behavior; it
       cannot certify WebView2 rendering.

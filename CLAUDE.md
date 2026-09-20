@@ -1356,6 +1356,23 @@ a reception do not add up, so there is no combined rating. Game rows are the sam
 buckets narrowed to a game, so they sum back to the totals above them by
 construction; a game the player was not credited in is `No data`, never a zero.
 
+**A ROLE'S CREDITS ARE HETEROGENEOUS, AND ONE "VOLUME" STAT CANNOT SPEAK FOR
+THEM.** Each role declares `measures` — the columns a split renders, each naming
+its own bucket and how it is read (count or total) — and a group is rendered when
+the ROLE was credited in it, which is its own cohort length. Filtering on a single
+stat dropped a punt-only kicking group (no field-goal attempt) and a
+takeaway-only defender (no tackle) out of the situational split entirely, and
+printed `0 FG, 40 punt yds` and `0 tkl` in their game rows. A game row now states
+the measures that actually happened, or its play count when every measure is
+empty (Codex, 2026-09-20). `Long` opens the play that PRODUCED it — the plays
+tying the maximum — not every measured play in the bucket.
+
+**The situational selection is controller state and the export prints it.** Role
+and dimension live on `ReportsScreen`, so an ordinary re-render cannot discard
+them and `exportPlayer` prints the breakdown on screen instead of independently
+choosing the first permitted dimension of every role. The results table is one
+sortable `DataTable`, sortable on every column by mouse, Enter or Space.
+
 **Situational analysis uses existing owners only.** `PLAYER_DIMENSIONS` lists down
 and distance, quarter, field zone, hash, run/pass, play type, direction,
 formation, personnel, front, coverage, blitz and the Special Teams unit/outcome,

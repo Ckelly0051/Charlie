@@ -125,6 +125,20 @@ game rows not narrowed, a dimension offered to a role that cannot answer it,
 identity performing a film action, and export ignoring the open player — each red
 at their own assertion.
 
+**A test that reuses the mapping it is checking validates the implementation
+against itself.** The first Players Revision 2 suite built its per-statistic
+expectations from the same bucket map the view model uses, so a wrong mapping —
+`Long` pointing at every measured play — passed. The expectations are now derived
+from the plays themselves (the football meaning of each column, written out
+independently), and the four Codex findings each gained coverage: a punt-only
+kicking group and a takeaway-only defender surviving the situational split and
+stating their real measures, the game cell stating what happened rather than a
+leading zero, the export printing the ACTIVE dimension and only that one, `Long`
+opening the play that produced it, and the situational table being sortable by
+mouse and keyboard. Five further mutations — volume-stat filtering, a single-
+measure game cell, an export choosing its own dimension, `Long` pointing at the
+whole bucket, and an unsortable table — each red at their own assertion.
+
 **An assertion whose subject was deliberately replaced is repointed, not
 weakened.** Revision 2 moved the film affordance off the row, so the row-level
 assertions in `e2e-reports-players`, `e2e-native-reports` and `e2e-reports-season`
