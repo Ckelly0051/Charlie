@@ -4005,10 +4005,16 @@ export class StatsEngine {
 
     credits.forEach(player => {
       const num = player.num;
+      /* LONG IS THE LONGEST RESULT, INCLUDING A NEGATIVE ONE. It was clamped at
+         zero, so a back whose only carry lost three yards showed `Long 0` while
+         the film link opened the -3 play: the number and its clip described
+         different things. With no measured play at all the field stays 0, which
+         is the established "nothing to state" value every consumer already
+         renders as an absence. `longRefs` is unchanged, so ties stay linked. */
       if (player.roles.has('rushing')) {
         const att = fact(player, 'rushing', 'att'), yards = fact(player, 'rushing', 'yds');
         rushers[num] = { num, attempts: att.n, yards: yards.total, tds: fact(player, 'rushing', 'td').n,
-          long: Math.max(0, yards.long), fumbles: fact(player, 'rushing', 'fum').n,
+          long: yards.n ? yards.long : 0, fumbles: fact(player, 'rushing', 'fum').n,
           refs: allRefs(player, 'rushing'), ...gradeOf(player, 'rushing') };
       }
       if (player.roles.has('passing')) {
@@ -4020,7 +4026,7 @@ export class StatsEngine {
       if (player.roles.has('receiving')) {
         const yards = fact(player, 'receiving', 'yds');
         receivers[num] = { num, receptions: fact(player, 'receiving', 'rec').n, yards: yards.total,
-          tds: fact(player, 'receiving', 'td').n, long: Math.max(0, yards.long),
+          tds: fact(player, 'receiving', 'td').n, long: yards.n ? yards.long : 0,
           refs: allRefs(player, 'receiving'), ...gradeOf(player, 'receiving') };
       }
       if (player.roles.has('tackles')) {
@@ -4032,7 +4038,7 @@ export class StatsEngine {
       if (player.roles.has('returns')) {
         const yards = fact(player, 'returns', 'yds');
         returners[num] = { num, returns: fact(player, 'returns', 'ret').n, yards: yards.total,
-          measured: yards.n, tds: fact(player, 'returns', 'td').n, long: Math.max(0, yards.long),
+          measured: yards.n, tds: fact(player, 'returns', 'td').n, long: yards.n ? yards.long : 0,
           refs: allRefs(player, 'returns') };
       }
       if (player.roles.has('kicking')) {
@@ -4105,14 +4111,52 @@ export class StatsEngine {
     const stats = {};
     role.stats.forEach((entries, key) => { stats[key] = StatsEngine._statFacts(entries); });
     const cohort = role.stats.get(StatsEngine.PLAYER_ROLE_COHORT) || [];
-    return {
-      key: role.key, label: role.label, stats,
-      plays: cohort.map(item => item.play),
-      refs: StatsEngine._refsOf(cohort.map(item => item.play)),
+    const plays = cohort.map(item => item.play);
+    const facts = {
+      key: role.key, label: role.label, stats, plays,
+      refs: StatsEngine._refsOf(plays),
       // A grade average exists only where grades were actually charted.
       grade: role.gradeCount ? +(role.gradeSum / role.gradeCount).toFixed(1) : null,
       gradeCount: role.gradeCount,
     };
+    facts.measures = StatsEngine.playerRoleMeasures(facts);
+    facts.summary = StatsEngine.playerRoleSummary(facts);
+    return facts;
+  }
+
+  /** The role's declared measures, each read from its OWN bucket. A bucket that
+   *  does not exist is unmeasured (`measured: false`), which is a different
+   *  statement from a bucket that exists and is empty — a measured zero. */
+  static playerRoleMeasures(facts) {
+    const schema = StatsEngine.PLAYER_ROLES.find(item => item.key === facts?.key);
+    if (!schema) return [];
+    return schema.measures.map(measure => {
+      const fact = facts.stats[measure.key];
+      return {
+        key: measure.key, label: measure.label,
+        value: fact ? (measure.read === 'total' ? fact.total : fact.n) : 0,
+        measured: !!fact,
+        refs: fact?.refs || [],
+      };
+    });
+  }
+
+  /**
+   * A role's one-line summary: the measures that ACTUALLY happened, or the
+   * credited play count when none of them did. THE SCREEN AND THE PRINTED
+   * REPORT READ THIS ONE OWNER, because they drifted: the export summarised a
+   * game from the first two stats of a fixed list, which printed "0 field goal
+   * attempts, 0 field goals made" for a punt-only kicker and "0 tackles, 0
+   * solo" for a takeaway-only defender — zeros that hide the production
+   * establishing the player's role. `null` means the role was not credited at
+   * all, which each surface renders in its own absence treatment.
+   */
+  static playerRoleSummary(facts) {
+    const happened = StatsEngine.playerRoleMeasures(facts)
+      .filter(measure => measure.measured && measure.value);
+    if (happened.length) return happened.map(m => `${m.value} ${m.label.toLowerCase()}`).join(', ');
+    const plays = facts?.plays?.length || 0;
+    return plays ? `${plays} play${plays === 1 ? '' : 's'}` : null;
   }
 
   /** Every player credited in the cohort, with each populated role's facts.

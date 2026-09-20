@@ -1230,6 +1230,174 @@ ok(situSort.table && situSort.role && situSort.tab,
   JSON.stringify(situSort));
 ok(situSort.sorted, 'the sorted situational column is marked', JSON.stringify(situSort));
 
+/* SORT ORDER IS ASSERTED, NOT THE AFFORDANCE. A clickable header and a sorted
+   marker say nothing about where a measured zero, a negative value or an
+   unmeasured one lands. One passer, four quarters: a positive completion, a
+   measured zero, a completion behind the line, and a sack — which is not an
+   attempt, so its Att and Yds are UNMEASURED, and which carries no grade. */
+const sortOrder = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const play = (id, quarter, result, yardage, grade) => ({ id, timestamp: { start: id * 10, end: id * 10 + 6 },
+    notes: '', annotations: [],
+    tags: { unit: 'offense', quarter, runPass: 'Pass', playType: 'Quick Pass',
+      result, yardage: String(yardage),
+      down: '1', distance: '10', custom: [], players: { passer: '12' },
+      grades: grade == null ? {} : { passer: grade } } });
+  store.data.games = [{
+    id: 'g-sort', name: 'Week 1', nextId: 9,
+    gameInfo: { opponent: 'Sorters', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
+    plays: [play(1, 'Q1', 'Gain', 12, 2), play(2, 'Q2', 'No Gain', 0, -1),
+      play(3, 'Q3', 'Gain', -4, 1), play(4, 'Q4', 'Sack', -6, null)],
+    annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
+  }];
+  store.data.activeGameId = 'g-sort';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.reportsScreen.setPlayersScope('season');
+  await new Promise(r => setTimeout(r, 400));
+  app.reportsScreen.playersSituRole = 'passing';
+  app.reportsScreen.playersSituDimension = 'quarter';
+  app.reportsScreen.openPlayerDetail('12');
+  await new Promise(r => setTimeout(r, 400));
+  const table = document.querySelector('.gi-pd-situ-table');
+  const head = label => [...table.querySelectorAll('th')].find(th => th.textContent.trim() === label);
+  const read = () => [...table.querySelectorAll('tbody tr')].map(tr => {
+    const cells = [...tr.cells].map(td => td.textContent.trim());
+    return { value: cells[0], yds: cells[3], grade: cells[4] };
+  });
+  const out = { headers: [...table.querySelectorAll('th')].map(th => th.textContent.trim()) };
+  head('Yds').click(); await new Promise(r => setTimeout(r, 120));
+  out.ydsDesc = read();
+  head('Yds').click(); await new Promise(r => setTimeout(r, 120));
+  out.ydsAsc = read();
+  head('Grade').click(); await new Promise(r => setTimeout(r, 120));
+  out.gradeDesc = read();
+  head('Grade').click(); await new Promise(r => setTimeout(r, 120));
+  out.gradeAsc = read();
+  return out;
+});
+ok(JSON.stringify(sortOrder.ydsDesc?.map(row => row.yds)) === JSON.stringify(['12', '0', '-4', 'No data']),
+  'a production column sorts descending through positive, measured zero and negative values, with the unmeasured row last',
+  JSON.stringify(sortOrder.ydsDesc));
+ok(JSON.stringify(sortOrder.ydsAsc?.map(row => row.yds)) === JSON.stringify(['-4', '0', '12', 'No data']),
+  'ascending reverses the measured values and still leaves the unmeasured row last, never read as zero',
+  JSON.stringify(sortOrder.ydsAsc));
+ok(JSON.stringify(sortOrder.gradeDesc?.map(row => row.grade)) === JSON.stringify(['+2', '+1', '-1', 'No data']),
+  'Grade sorts on its number, with the ungraded row last rather than read as zero',
+  JSON.stringify(sortOrder.gradeDesc));
+ok(JSON.stringify(sortOrder.gradeAsc?.map(row => row.grade)) === JSON.stringify(['-1', '+1', '+2', 'No data']),
+  'ascending Grade keeps the ungraded row last, never above the negative grade',
+  JSON.stringify(sortOrder.gradeAsc));
+
+/* LONG IS THE LONGEST RESULT, AND ITS FILM IS THAT PLAY. */
+const longValues = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const run = (id, num, yardage) => ({ id, timestamp: { start: id * 10, end: id * 10 + 6 },
+    notes: '', annotations: [],
+    tags: { unit: 'offense', quarter: 'Q1', runPass: 'Run', playType: 'Run Inside',
+      result: yardage < 0 ? 'Loss' : 'Gain', yardage: String(yardage), down: '1', distance: '10',
+      custom: [], players: { ballCarrier: num }, grades: {} } });
+  store.data.games = [{
+    id: 'g-long', name: 'Week 1', nextId: 20,
+    gameInfo: { opponent: 'Longs', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
+    plays: [
+      run(1, '41', -3),                                   // a single negative carry
+      run(2, '42', -3), run(3, '42', -7),                 // all negative, one longest
+      run(4, '43', -2), run(5, '43', -2), run(6, '43', -9), // tied negative longest
+      run(7, '44', 11), run(8, '44', 4),                  // ordinary positive longest
+    ],
+    annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
+  }];
+  store.data.activeGameId = 'g-long';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.reportsScreen.closePlayerDetail();
+  app.reportsScreen.setPlayersScope('season');
+  await new Promise(r => setTimeout(r, 400));
+  const scoped = app.reportsScreen._playersScopedPlays || [];
+  const board = app.stats.playersBoard(scoped, {});
+  const rushers = app.stats.compute(scoped).individuals.rushers;
+  const cell = num => {
+    const row = [...document.querySelectorAll('.gi-player-table tbody tr')]
+      .find(tr => tr.querySelector(`[data-player-open="${num}"]`));
+    return { long: row?.querySelector('[data-player-stat*=":long:"]')?.textContent.trim()
+      ?? row?.cells[4]?.textContent.trim() };
+  };
+  const refsFor = num => board.players.find(p => p.num === num)?.roles
+    .find(r => r.key === 'rushing').stats.yds.longRefs;
+  return {
+    displayed: Object.fromEntries(['41', '42', '43', '44']
+      .map(num => [num, rushers.find(r => String(r.num) === num)?.long])),
+    refs: Object.fromEntries(['41', '42', '43', '44'].map(num => [num, refsFor(num)])),
+    rendered: Object.fromEntries(['41', '42', '43', '44'].map(num => [num, cell(num).long])),
+  };
+});
+ok(longValues.displayed['41'] === -3 && JSON.stringify(longValues.refs['41']) === JSON.stringify(['g-long::1']),
+  'a single negative carry reports its true long and links that play', JSON.stringify(longValues));
+ok(longValues.displayed['42'] === -3 && JSON.stringify(longValues.refs['42']) === JSON.stringify(['g-long::2']),
+  'with every carry negative the longest is the least negative, and only that play is linked',
+  JSON.stringify(longValues));
+ok(longValues.displayed['43'] === -2
+  && JSON.stringify(longValues.refs['43']) === JSON.stringify(['g-long::4', 'g-long::5']),
+  'tied negative longest carries stay linked together', JSON.stringify(longValues));
+ok(longValues.displayed['44'] === 11 && JSON.stringify(longValues.refs['44']) === JSON.stringify(['g-long::7']),
+  'an ordinary positive longest is unchanged', JSON.stringify(longValues));
+ok(longValues.rendered['41'] === '-3' && longValues.rendered['43'] === '-2',
+  'the board renders the negative long the film opens, not a clamped zero', JSON.stringify(longValues.rendered));
+
+/* THE EXPORT SUMMARISES A GAME THE WAY THE SCREEN DOES. */
+const exportSummary = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const play = (id, tags, extra = {}) => ({ id, timestamp: { start: id * 10, end: id * 10 + 6 },
+    notes: '', annotations: [], tags: { quarter: 'Q1', custom: [], players: {}, grades: {}, ...tags }, ...extra });
+  store.data.games = [{
+    id: 'g-sum', name: 'Week 1', nextId: 9,
+    gameInfo: { opponent: 'Summaries', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
+    plays: [
+      play(1, { unit: 'special', players: { kicker: '19' } },
+        { specialTeams: { version: 1, unit: 'punt', outcome: { status: 'downed' },
+          kick: { distance: 40 }, return: {}, players: { punter: '19' } } }),
+      play(2, { unit: 'defense', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception',
+        yardage: '0', down: '3', distance: '10', players: { takeaway: '21' } }),
+    ],
+    annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
+  }];
+  store.data.activeGameId = 'g-sum';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.reportsScreen.setPlayersScope('season');
+  await new Promise(r => setTimeout(r, 400));
+  const capture = async num => {
+    app.reportsScreen.openPlayerDetail(num);
+    await new Promise(r => setTimeout(r, 300));
+    const onScreen = [...document.querySelectorAll('[data-pd-game]')].map(b => b.textContent.trim());
+    let saved = null;
+    const prior = window.ffaSaveBlob;
+    window.ffaSaveBlob = blob => { saved = blob; };
+    app.reportsScreen.export('html');
+    const html = saved ? await saved.text() : '';
+    window.ffaSaveBlob = prior;
+    const body = html.match(/<h2>Game by game<\/h2>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] || '';
+    const cells = [...body.matchAll(/<td>([^<]*)<\/td>/g)].map(match => match[1].trim());
+    return { onScreen, cells };
+  };
+  return { kicker: await capture('19'), defender: await capture('21') };
+});
+ok(exportSummary.kicker.cells.includes('1 punts, 40 punt yds')
+  && !exportSummary.kicker.cells.some(cell => /0 field goal/.test(cell)),
+  'a punt-only game exports the punt production, never 0 field goal attempts',
+  JSON.stringify(exportSummary.kicker));
+ok(exportSummary.defender.cells.includes('1 int')
+  && !exportSummary.defender.cells.some(cell => /0 tackles/.test(cell)),
+  'a takeaway-only game exports the interception, never 0 tackles',
+  JSON.stringify(exportSummary.defender));
+ok(JSON.stringify(exportSummary.kicker.cells.filter(cell => /punt/.test(cell)))
+    === JSON.stringify(exportSummary.kicker.onScreen)
+  && JSON.stringify(exportSummary.defender.cells.filter(cell => /int/.test(cell)))
+    === JSON.stringify(exportSummary.defender.onScreen),
+  'the exported game summary is the same string the screen shows',
+  JSON.stringify(exportSummary));
+
 /* PLAYER EXPORT matches the selection on screen. */
 const exported = await page.evaluate(async () => {
   const screen = window.app.reportsScreen;

@@ -982,8 +982,6 @@ function PlayerDetail({ detail, screen, scopeLabel }) {
     : [];
   const situationalMeasures = (engine.constructor.PLAYER_ROLES
     .find(item => item.key === activeRole) || {}).measures || [];
-  const roleSchema = engine.constructor.PLAYER_ROLES;
-  const schemaOf = key => roleSchema.find(item => item.key === key);
   const cells = role => PLAYER_DETAIL_STATS[role.key].map(([bucket, label]) => {
     const fact = role.stats[bucket];
     const value = PLAYER_DETAIL_TOTALS[role.key]?.includes(bucket)
@@ -1018,20 +1016,10 @@ function PlayerDetail({ detail, screen, scopeLabel }) {
           {detail.roles.map(role => {
             const inGame = game.roles[role.key];
             if (!inGame) return <td key={role.key} class="blank">{PLAYER_NO_DATA_CELL}</td>;
-            /* The cell states the measures that actually happened. Reading one
-               "volume" stat printed `0 FG, 40 punt yds` for a punt-only game and
-               `0 tkl` for a takeaway-only one; a game credited in a role but
-               with every measure empty states its play count instead. */
-            const schema = schemaOf(role.key);
-            const parts = schema.measures
-              .map(measure => {
-                const fact = inGame.stats[measure.key];
-                const value = fact ? (measure.read === 'total' ? fact.total : fact.n) : 0;
-                return value ? `${value} ${measure.label.toLowerCase()}` : '';
-              })
-              .filter(Boolean);
-            const text = parts.length ? parts.join(', ')
-              : `${inGame.plays.length} play${inGame.plays.length === 1 ? '' : 's'}`;
+            /* One owner for the summary, shared with the printed report: the
+               measures that actually happened, or the credited play count. */
+            const text = inGame.summary;
+            if (!text) return <td key={role.key} class="blank">{PLAYER_NO_DATA_CELL}</td>;
             return <td key={role.key}>
               <button type="button" class="gi-player-stat" data-pd-game={`${game.gid}:${role.key}`}
                 onClick={() => screen.watchRefs(inGame.refs, `#${detail.num} ${role.label} vs ${game.opponent}`)}>
@@ -1074,13 +1062,22 @@ function PlayerDetail({ detail, screen, scopeLabel }) {
                   onClick={() => screen.watchRefs(cell.refs, `#${detail.num} ${row.value} ${measure.label}`)}>{cell.value}</button>;
               },
             })),
+            /* Grade DISPLAYS `No data` but must SORT on its number, or the
+               string converts to 0 and an ungraded row lands above a negative
+               grade. `gradeSort` is null when ungraded, which DataTable already
+               groups last in both directions. */
             { key: 'grade', label: 'Grade', numeric: true, size: 'g',
-              cellClass: row => (row.grade == null ? 'blank' : undefined) },
+              sortValue: row => row.gradeSort,
+              cellClass: row => (row.gradeSort == null ? 'blank' : undefined) },
           ]}
           rows={situational.map(row => ({
             id: row.value, value: row.value, plays: row.n,
             cells: Object.fromEntries(row.measures.map(measure => [measure.key, measure])),
-            ...Object.fromEntries(row.measures.map(measure => [measure.key, measure.value])),
+            /* An UNMEASURED value stays null in the sort data. Flattened to its
+               displayed 0 it was indistinguishable from a measured zero and
+               sorted ahead of negative values in both directions. */
+            ...Object.fromEntries(row.measures.map(measure =>
+              [measure.key, measure.measured ? measure.value : null])),
             grade: row.grade == null ? PLAYER_NO_DATA_CELL : `${row.grade > 0 ? '+' : ''}${row.grade}`,
             gradeSort: row.grade,
           }))} />

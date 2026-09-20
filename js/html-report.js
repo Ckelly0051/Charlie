@@ -154,12 +154,14 @@ export function buildPlayerHtmlReport({ title, team, detail, situational = [], s
     <p>${role.grade == null ? 'No grade charted' : `Average grade ${role.grade > 0 ? '+' : ''}${role.grade} over ${role.gradeCount} graded plays`}</p>
     <div class="table-wrap"><table><thead><tr><th>Statistic</th><th>Value</th><th>Film</th></tr></thead>
     <tbody>${statRows(role)}</tbody></table></div></section>`).join('');
+  /* THE SAME SUMMARY THE SCREEN SHOWS. Built here from the first two entries of
+     a fixed stat list, the export printed `0 field goal attempts, 0 field goals
+     made` for a punt-only kicker and `0 tackles, 0 solo` for a takeaway-only
+     defender — zeros that hid the production establishing the player's role.
+     `StatsEngine.playerRoleSummary` is the one owner both read. */
   const gameRows = detail.games.map(game => `<tr><td>${esc(game.opponent)}</td>${detail.roles.map(role => {
     const inGame = game.roles[role.key];
-    if (!inGame) return `<td>${PLAYER_EXPORT_NO_DATA}</td>`;
-    const parts = (PLAYER_EXPORT_STATS[role.key] || []).slice(0, 2)
-      .map(([bucket, label, isTotal]) => `${isTotal ? inGame.stats[bucket]?.total ?? 0 : inGame.stats[bucket]?.n ?? 0} ${label.toLowerCase()}`);
-    return `<td>${esc(parts.join(', '))}</td>`;
+    return `<td>${esc(inGame?.summary || PLAYER_EXPORT_NO_DATA)}</td>`;
   }).join('')}</tr>`).join('');
   /* The ACTIVE breakdown, with the role's own measures as its columns — the same
      table the coach has on screen, not a different dimension chosen here. */
