@@ -962,6 +962,34 @@ edge-to-edge by design; the top bar's 18px inset is not.
       Defending a Try. Chromium verifies the layout and the browser-backed
       behavior; it cannot certify WebView2 rendering.
 
+12. **Reports > Players Revision 2 — IMPLEMENTED 2026-09-20, awaiting Codex
+    review, a Charlie Gate and an installed smoke.** An expansion of the approved
+    board, not a replacement: the six role tables, their stat definitions,
+    scopes, sorting, absence semantics and column geometry are unchanged.
+    - **One owner.** `_playerCredits` files every attributed play into a bucket
+      per player/role/statistic; `_individualStats` derives its long-standing
+      output from that index rather than counting a second time, with
+      `e2e-parity` proving the rewrite byte-identical. Every displayed figure and
+      every film cohort are the same play list.
+    - **Added:** a per-statistic film action (identity now opens player detail),
+      an in-tab player detail view with per-role sections, chronological
+      game-by-game rows that sum back to the totals above them, a situational
+      breakdown over existing canonical dimensions, a Selected-games scope, a
+      per-table column menu and a player-specific export.
+    - **Migrated to the 12.5px floor** (46 sub-floor elements → 0 canonically),
+      and role bands are content-height, so a short table pads no dead space.
+    - **Deliberately absent, and why:** participation/snap counts, targets,
+      pressures, missed tackles, blocking and coverage performance, route or
+      assignment data, and any combined rating. The charting model records none
+      of them, and inventing them would be the exact fabrication this board
+      exists to avoid. Expanded charting is the prerequisite, not a report change.
+    - **Known limitation:** grade averages exist only where a grade was charted,
+      which on the canonical season is a minority of plays; `No grade charted` is
+      stated rather than implied.
+    - **Remaining:** Charlie Gate at the release widths and an installed smoke.
+      Chromium verified layout, containment and the browser-backed behavior; it
+      cannot certify WebView2 rendering.
+
 ## Breakdown
 
 1. **Delete play - REPAIRED 2026-09-10.** `PlayTagger.deleteCurrentPlay()` read

@@ -1318,7 +1318,78 @@ vocabulary no coach uses - and its defensive KPI band led with Stop Rate. The
 export carries the held-row dash, calls `StatsEngine.ddPretty` (the static form
 of `_ddPretty`, the one owner of this wording), and prints the board's KPI
 order. `e2e-reports-self-scout` asserts against the produced HTML string.
-**Reports > Players is implemented and gate-verified, but NOT coach accepted.**
+**Reports > Players is REVISION 2 (2026-09-20): implemented and focused-suite
+verified, but NOT coach accepted.** The approved six-role leaderboard is intact —
+same roles, stat definitions, scopes, sorting, absence semantics and column
+geometry. Revision 2 adds analysis on top of it, using only fields already
+charted. No Charlie Gate and no installed smoke.
+
+**ONE CREDIT INDEX OWNS EVERY NUMBER AND EVERY CLIP.** `StatsEngine._playerCredits`
+makes one pass and files each attributed play into a bucket per player, per role,
+per statistic. A count is that bucket's length, a total is the sum of its values,
+a long is its maximum, and the film cohort is those exact plays — so a figure and
+the playlist behind it are the same list read two ways, and a game or situational
+split is that list GROUPED rather than a second computation. `_individualStats`
+now derives its long-standing output from the index instead of counting again;
+`e2e-parity`'s golden is the proof that the rewrite reproduced every established
+definition, byte for byte, on the canonical and demo seasons.
+`PLAYER_ROLE_COHORT` is the reserved bucket holding every play attributed to a
+role, including one that contributed to no displayed statistic — a pass wiped out
+by a penalty, a takeaway role on a play that produced neither turnover. It is the
+role's own film cohort and the set every split groups.
+
+**A STATISTIC OPENS ITS OWN EVENTS; IDENTITY OPENS THE PLAYER.** The old
+whole-row action made every cell in a row do the same thing. Each measured value
+with clips of its own is now a button carrying exactly that bucket's composite
+`gameId::playId` refs — `Rushing TD` opens rushing touchdowns, `INT` opens
+interceptions, `Long` opens the measured plays behind it — and the identity cell
+opens the player detail view instead. A `No data` cell and a measured zero with no
+clips stay visible and are not buttons: there is no playlist to open. Cohort
+ownership lives in the model and the view model (`PLAYER_STAT_BUCKETS`); nothing
+is reconstructed from a displayed string in JSX.
+
+**The detail view opens IN the tab.** Literal number and roster name, the active
+scope, one labelled section per populated role, an average grade only where grades
+were charted, a chronological game-by-game table and a situational breakdown. A
+player credited in several roles appears once with separate sections: a tackle and
+a reception do not add up, so there is no combined rating. Game rows are the same
+buckets narrowed to a game, so they sum back to the totals above them by
+construction; a game the player was not credited in is `No data`, never a zero.
+
+**Situational analysis uses existing owners only.** `PLAYER_DIMENSIONS` lists down
+and distance, quarter, field zone, hash, run/pass, play type, direction,
+formation, personnel, front, coverage, blitz and the Special Teams unit/outcome,
+each declaring the roles it can answer — a rusher is never offered coverage, a
+tackler is never offered our own formation. Values come from the canonical
+splitters (`_ddKey`/`_ddPretty`, `fieldZoneOf`, `splitPlayTypes`,
+`splitFormations`, `splitFronts`, `splitBlitzes`, `SpecialTeamsModel.UNIT_LABELS`),
+a multi-value tag credits every component, and an uncharted value yields no row
+rather than an invented `Unknown`.
+
+**Scope gained Selected games.** A compact checklist of the program season's own
+games; an empty selection keeps the full season rather than blanking the board,
+opponent-scout games are never offered, and every table, count, detail view, sort
+source and film cohort recomputes from that one narrowed cohort. Nothing is
+written to stored data. The sample line states the resulting cohort literally.
+
+**Column visibility is presentation only**, per role, defaulting to the approved
+schemas; the player identity can never be hidden and no calculation, sort source
+or cohort changes. **Export follows the selection:** with a player open, Export
+produces that player's report — identity, cohort, role summaries, game splits,
+situational rows, literal `No data` and composite references — never the
+leaderboard.
+
+**Players is at the 12.5px floor**, the third migrated board (46 sub-floor
+elements → 0 on the canonical season). Role bands are content-height, so a short
+table no longer pads dead space under itself.
+
+**What Revision 2 deliberately does NOT add**, because the charting model cannot
+support it honestly: participation or snap counts, targets, pressures, missed
+tackles, blocking or coverage grades per player, route or assignment data, and any
+combined player rating. Role attribution is what a coach charted, never
+participation.
+
+**Reports > Players Revision 1 is implemented and gate-verified, but NOT coach accepted.**
 Built to the approved comp (`design-comps/reports-players-2026-09-04`, whose
 RATIONALE is the decision record and whose section 16 is the final
 composition). No Charlie Gate and no installed smoke, so it is not accepted

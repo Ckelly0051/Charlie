@@ -104,6 +104,33 @@ The smallest existing harness for the route or domain you touched.
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
+**Players Revision 2, 2026-09-20.** `e2e-reports-players` (200) keeps every
+Revision 1 contract and adds the Revision 2 ones on a two-game fixture where one
+player is credited in three roles: every clickable statistic opens exactly its own
+credited events (asserted against `playersBoard`'s buckets, so the board and the
+owner cannot drift), touchdowns / interceptions / sacks / tackles for loss carry
+distinct cohorts, a `No data` cell and a clipless measured zero are visible and
+unclickable, identity opens the detail view rather than a playlist, the detail
+view shows one labelled section per role with no merged score, every game row sums
+back to the role totals, situational rows reconcile to the player-role cohort and
+open only its plays, no dimension outside a role's list can produce rows for it,
+Selected games narrows every table and reference together, column visibility
+changes no calculation and cannot hide identity, and Export produces the player
+report while a player is open. `e2e-parity` (2) is the proof that deriving
+`_individualStats` from the credit index reproduced every established definition
+exactly. `e2e-reports-typefloor-realdata` (33) pins Players at zero sub-floor
+elements with a 12.5px minimum. Six mutations — a statistic opening the role
+cohort, the role cohort losing its uncounted plays (which reds the parity golden),
+game rows not narrowed, a dimension offered to a role that cannot answer it,
+identity performing a film action, and export ignoring the open player — each red
+at their own assertion.
+
+**An assertion whose subject was deliberately replaced is repointed, not
+weakened.** Revision 2 moved the film affordance off the row, so the row-level
+assertions in `e2e-reports-players`, `e2e-native-reports` and `e2e-reports-season`
+now assert the per-statistic cohort and the identity behavior, which is a stricter
+claim than the row-level one they replaced.
+
 **Special Teams acceptance pass, 2026-09-19 (Codex findings repaired 2026-09-20).**
 `e2e-special-teams-contract` (28)
 pins the blocked punt-return workflow at the model: the `Punt Return / Block`

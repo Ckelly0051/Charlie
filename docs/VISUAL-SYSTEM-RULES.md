@@ -116,21 +116,24 @@ regression guard and say so.
 |---|---|---|---|---|
 | Defense | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-17) |
 | Special Teams | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-19) |
+| Players | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-20) |
 | Self-Scout | 11px | 20 | 20 | Deferred |
 | Season | 11px | 30 | 30 | Deferred |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
-| Players | 11px | 46 | 46 | Deferred |
 | Matchup | 10px | 58 | 58 | Deferred |
 | Offense | 9.5px | 118 | 323 | Deferred + narrow-width exception |
 
-**Defense and Special Teams are the migrated boards.** Revision 2 renders nothing below the
+**Defense, Special Teams and Players are the migrated boards.** Revision 2 renders nothing below the
 floor; the comp's 11px `JUMP TO` label and sort glyph are 12.5px in production.
 Special Teams migrated in the 2026-09-19 acceptance pass: it carried the most
 sub-floor text of any board except Offense (98 elements, 9.5px minimum) and now
 carries none. Its KPI tile labels, ledger names and headlines, section-badge
 nouns, stat rows, outcome labels, field-goal bucket labels and the scope label
 are all at the floor; the shared `.gi-overview-kpi span` micro-label owner is
-untouched, so Overview and Offense keep their approved 9.5px labels.
+untouched, so Overview and Offense keep their approved 9.5px labels. Players
+migrated in Revision 2 on 2026-09-20 (46 elements at an 11px minimum, now none):
+its sample line, role navigation and badges, module meta, absent-role summary and
+`No data` cells are at the floor, and the new detail view was authored at it.
 Overview carries only its approved broadcast micro-labels, which is why it reads
 as compliant, but every other board still has sub-floor text and the census pins
 exactly how much. Offense was previously classified here as migrated; it is not,
