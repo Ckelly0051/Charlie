@@ -1318,11 +1318,17 @@ vocabulary no coach uses - and its defensive KPI band led with Stop Rate. The
 export carries the held-row dash, calls `StatsEngine.ddPretty` (the static form
 of `_ddPretty`, the one owner of this wording), and prints the board's KPI
 order. `e2e-reports-self-scout` asserts against the produced HTML string.
-**Reports > Players is REVISION 2 (2026-09-20): implemented and focused-suite
-verified, but NOT coach accepted.** The approved six-role leaderboard is intact —
+**Reports > Players is REVISION 2 (2026-09-20): its CODE checkpoint is accepted —
+Codex reviewed `5471cb9..790e192` with no findings — but it is NOT coach
+accepted.** The approved six-role leaderboard is intact —
 same roles, stat definitions, scopes, sorting, absence semantics and column
 geometry. Revision 2 adds analysis on top of it, using only fields already
-charted. No Charlie Gate and no installed smoke.
+charted. Checkpoint evidence: `e2e-reports-players` 223/223,
+`e2e-native-reports` 99/99, and `e2e-parity` 2/2 with both cohorts green,
+including the local `mavericks-6game` golden Codex's isolated checkout could not
+run. The export game summaries, missing-value sorting and the negative `Long`
+with its film alignment are settled; do not re-litigate them. No Charlie Gate and
+no installed smoke, so production status is unchanged.
 
 **ONE CREDIT INDEX OWNS EVERY NUMBER AND EVERY CLIP.** `StatsEngine._playerCredits`
 makes one pass and files each attributed play into a bucket per player, per role,

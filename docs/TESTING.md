@@ -157,6 +157,22 @@ flattening unmeasured measures and dropping `gradeSort` (4 red), and rebuilding
 the export summary from the fixed stat list (3 red) — each red naming the exact
 reported wording.
 
+**Players Revision 2 checkpoint, 2026-09-20.** Codex reviewed
+`5471cb9..790e192` with no findings. Totals at that checkpoint:
+`e2e-reports-players` 223/223, `e2e-native-reports` 99/99, `e2e-parity` 2/2 with
+BOTH cohorts green — `synthetic-edge` (3 scopes, 189 drilldowns) and the local
+`mavericks-6game` (7 scopes, 625 drilldowns), which Codex could not run because
+that golden holds the coach's own season and is gitignored. `e2e-parity` is the
+check that mattered here: it is the only one that would show the credit-index
+rewrite or the `Long` change touching a value nobody intended, and the only
+difference in it is the audited negative-`Long` correction. Also green:
+`e2e-reports-special-teams` 57/57, `e2e-reports-self-scout` 110/110,
+`e2e-reports-season` 99/99, `e2e-reports-defense-board` 55/55,
+`e2e-reports-overview` 109/109. `node tools/audit-design-approvals.mjs` is RED for
+an unrelated pre-existing reason recorded in `docs/OPEN-DEFECTS.md` (Home's
+manifest carries a `productionStatus` outside the registry's allowed set), so no
+handoff in this repo can currently claim a green approvals audit.
+
 **An assertion whose subject was deliberately replaced is repointed, not
 weakened.** Revision 2 moved the film affordance off the row, so the row-level
 assertions in `e2e-reports-players`, `e2e-native-reports` and `e2e-reports-season`

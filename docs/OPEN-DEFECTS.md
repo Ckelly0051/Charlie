@@ -962,10 +962,31 @@ edge-to-edge by design; the top bar's 18px inset is not.
       Defending a Try. Chromium verifies the layout and the browser-backed
       behavior; it cannot certify WebView2 rendering.
 
-12. **Reports > Players Revision 2 — IMPLEMENTED 2026-09-20, awaiting Codex
-    review, a Charlie Gate and an installed smoke.** An expansion of the approved
+12. **Reports > Players Revision 2 — CODE CHECKPOINT ACCEPTED 2026-09-20, still
+    awaiting a Charlie Gate and an installed smoke.** Codex reviewed
+    `5471cb9..790e192` with NO findings, which closes the review lane for this
+    range; every finding it had raised on Revision 2 and on the repair of
+    Revision 2 is repaired and covered. The engine, view-model and export
+    behavior is accepted: the export game summaries, missing-value sorting and
+    the negative `Long` with its film alignment are settled and are not to be
+    re-litigated. **That is a code acceptance, not a presentation one** — Players
+    production status is unchanged and reaches nothing past `REJECTED` until a
+    populated Charlie Gate at the release widths and an installed smoke, per the
+    approval-state rule. An expansion of the approved
     board, not a replacement: the six role tables, their stat definitions,
     scopes, sorting, absence semantics and column geometry are unchanged.
+    - **Checkpoint evidence, 2026-09-20.** `e2e-reports-players` 223/223,
+      `e2e-native-reports` 99/99, and `e2e-parity` 2/2 with BOTH cohorts green —
+      `synthetic-edge` (3 scopes, 189 drilldowns) and the local
+      `mavericks-6game` (7 scopes, 625 drilldowns), the cohort Codex's isolated
+      checkout could not run because that golden holds the coach's own data and
+      is gitignored. The committed synthetic golden is byte-identical, so the
+      credit-index rewrite still reproduces every established definition and the
+      only intentional difference anywhere is the audited negative-`Long`
+      correction recorded below. Supporting suites re-run green at the same
+      checkpoint: `e2e-reports-special-teams` 57/57,
+      `e2e-reports-self-scout` 110/110, `e2e-reports-season` 99/99,
+      `e2e-reports-defense-board` 55/55, `e2e-reports-overview` 109/109.
     - **One owner.** `_playerCredits` files every attributed play into a bucket
       per player/role/statistic; `_individualStats` derives its long-standing
       output from that index rather than counting a second time, with
@@ -1031,6 +1052,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
       Each repair is covered by a behavioral regression asserting actual row
       order or the exported string, and each was mutation-verified red against
       the pre-fix behaviour. `e2e-reports-players` is 223 assertions.
+      **All seven findings are CLOSED**, re-reviewed by Codex over
+      `5471cb9..790e192` with nothing outstanding.
     - **Remaining:** Charlie Gate at the release widths and an installed smoke.
       Chromium verified layout, containment and the browser-backed behavior; it
       cannot certify WebView2 rendering.
@@ -1273,6 +1296,20 @@ Breakdown film-state defects above.
    Until broader visual automation exists, keep presentation repairs scoped to
    the owning route where possible and inspect affected surfaces before calling
    an installer visually accepted.
+3. **OPEN 2026-09-20 — `audit-design-approvals` is RED on the Home manifest, and
+   it is not this range's doing.** `design-approvals/home/manifest.json` carries
+   `productionStatus: "IMPLEMENTED_PENDING_REVIEW"`, which is not one of
+   `APPROVALS.json`'s six `allowedStatuses`, so the audit aborts at
+   `invalid production status for home` before checking any other surface —
+   including every Reports manifest behind it. Found while running the
+   documentation check for the Players Revision 2 checkpoint;
+   `design-approvals/` is unmodified in that work, so the registry has been in
+   this state at HEAD. **Deliberately not repaired here:** the two candidate
+   fixes are changing Home's recorded production state and adding a status to the
+   allowed set, and both are approval-authority decisions, not a builder's. It
+   needs the coach's call on which state Home actually holds. Until it is
+   resolved no documentation handoff can claim a green approvals audit, and the
+   audit cannot certify the surfaces sitting behind the abort.
 
 ## Release Impact
 
