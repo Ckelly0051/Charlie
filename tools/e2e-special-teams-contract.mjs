@@ -275,6 +275,33 @@ test('the same block recovered by the opponent scores for the opponent, and an u
   assert.equal(SpecialTeamsModel.scoringTeam(unknown), 'unknown');
 });
 
+test('a loose ball with Possession left BLANK is attributed to nobody, and its points are not lost', () => {
+  /* The deck exposes Possession on these outcomes but does not require it, so a
+     blank is an ordinary incomplete charting state -- not a rare edge case. It
+     used to fall through to the receiving-unit default and award the subject six
+     points. Every loose-ball status fails closed the same way. */
+  const engine = new StatsEngine(null);
+  for (const status of ['blocked', 'muffed', 'recovered']) {
+    const blank = SpecialTeamsModel.normalize(event({
+      outcome: { status, recoveredBy: null, score: 'touchdown', scoredBy: null } }));
+    assert.equal(SpecialTeamsModel.scoringTeam(blank), 'unknown', `${status} with no possession charted`);
+    assert.equal(SpecialTeamsModel.points(blank), 6, `${status} still scored six points`);
+    const board = engine.computeScoreboard([{ id: 4, tags: { unit: 'special', quarter: 'Q1' }, specialTeams: blank }]);
+    assert.equal(board.us, 0, `${status} awards us nothing`);
+    assert.equal(board.them, 0, `${status} awards them nothing`);
+    assert.equal(board.unattributed, 6, `${status} keeps its points as unattributed`);
+  }
+  // The coach's explicit answer still wins, in both directions.
+  const ours = SpecialTeamsModel.normalize(event({
+    outcome: { status: 'blocked', recoveredBy: 'subject', score: 'touchdown', scoredBy: null } }));
+  assert.equal(SpecialTeamsModel.scoringTeam(ours), 'subject');
+  // And a kick the receiving unit simply fielded keeps its unit default: a
+  // return touchdown with no possession field charted is still ours.
+  const returned = SpecialTeamsModel.normalize(event({
+    outcome: { status: 'returned', recoveredBy: null, score: 'touchdown', scoredBy: null } }));
+  assert.equal(SpecialTeamsModel.scoringTeam(returned), 'subject');
+});
+
 test('the scoreboard owner credits the block six to us and nothing to them', () => {
   const engine = new StatsEngine(null);
   const play = { id: 7, tags: { unit: 'special', quarter: 'Q2' }, specialTeams: blockedTd() };
@@ -304,7 +331,7 @@ test('the report counts one punt blocked, one punt-return touchdown and the exac
   assert.deepEqual(st.returns.punt.refs.td, ['g9::7']);
 });
 
-testAsync('the blocked-punt touchdown survives save, reopen and normalization', async () => {
+await testAsync('the blocked-punt touchdown survives save, reopen and normalization', async () => {
   let canonical = null;
   const backend = {
     saveSeason: async (_id, data) => { canonical = JSON.parse(JSON.stringify(data)); return true; },

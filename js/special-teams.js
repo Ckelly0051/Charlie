@@ -214,6 +214,17 @@ export class SpecialTeamsModel {
       return event.outcome.recoveredBy;
     }
     if (event.outcome.recoveredBy === 'unknown') return 'unknown';
+    /* A LOOSE BALL HAS NO DEFAULT OWNER. On a block, a muff or a recovery the
+       ball changed hands or might have, and which team came up with it is the
+       whole question — the unit alone cannot answer it. Falling through to the
+       receiving/kicking default turned an ordinarily incomplete charting state
+       (Possession left blank) into six points for the subject, which is exactly
+       the invention §4 forbids: "a safety without enough ownership evidence
+       fails closed as unknown". The points still exist and reach the
+       scoreboard's `unattributed` total, so nothing is silently dropped either.
+       A returned, downed or fair-caught kick keeps its default: the unit that
+       fielded it is the unit that had it. */
+    if (['blocked', 'muffed', 'recovered'].includes(event.outcome.status)) return 'unknown';
     if (event.subjectRole === 'attempting' || event.subjectRole === 'receiving') return 'subject';
     if (event.subjectRole === 'defending' || event.subjectRole === 'kicking') return 'opponent';
     return 'unknown';
