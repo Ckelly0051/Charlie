@@ -76,10 +76,11 @@ const OFFENSE_NARROW_MODULES = [
   'Backfield', 'Field hash', 'Formation', 'Motion',
   'Personnel', 'Play direction', 'Play type', 'Strength',
 ];
-const SPECIAL = {
-  '9.5|SPAN': 7, '10|I': 4, '10.5|SPAN': 16, '11|SPAN': 4, '11|P': 1, '11|B': 1,
-  '11.5|STRONG': 11, '12|SPAN': 49, '12|STRONG': 3, '12|P': 2,
-};
+/* MIGRATED 2026-09-19 by the Special Teams acceptance pass: this board carried
+   98 sub-floor elements at a 9.5px minimum and now carries none. An empty census
+   is a real assertion here -- the board is measured over the populated canonical
+   season, and the minimum below is pinned in both directions. */
+const SPECIAL = {};
 const PLAYERS = { '11|B': 4, '12|SPAN': 8, '12|B': 3, '12|BUTTON': 4, '12|TD': 26, '12|STRONG': 1 };
 const SELF_SCOUT = { '11|B': 5, '12|SPAN': 8, '12|B': 2, '12|BUTTON': 5 };
 const SEASON = { '11|SPAN': 1, '12|STRONG': 1, '12|BUTTON': 7, '12|SPAN': 6, '12|TH': 15 };
@@ -248,7 +249,7 @@ const TOTALS = {
   'overview@1440': 35, 'overview@1280': 35,
   'offense@1440': 118, 'offense@1280': 323,
   'defense@1440': 0, 'defense@1280': 0,
-  'special@1440': 98, 'special@1280': 98,
+  'special@1440': 0, 'special@1280': 0,
   'players@1440': 46, 'players@1280': 46,
   'selfscout@1440': 20, 'selfscout@1280': 20,
   'season@1440': 30, 'season@1280': 30,
@@ -264,7 +265,9 @@ ok(wrongTotals.length === 0,
    means the migration happened and the rules file must be updated with it. */
 const MINIMA = {
   overview: 9.5, offense: 9.5, defense: 12.5,
-  special: 9.5, players: 11, selfscout: 11, season: 11, matchup: 10,
+  // Special Teams migrated to the shared floor on 2026-09-19, the second board
+  // after Defense to hold it with nothing below.
+  special: 12.5, players: 11, selfscout: 11, season: 11, matchup: 10,
 };
 for (const [tab, expected] of Object.entries(MINIMA)) {
   const rows = observed.filter(item => item.tab === tab);

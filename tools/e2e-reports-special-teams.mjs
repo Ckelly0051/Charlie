@@ -19,19 +19,15 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
-   coach-facing floor. This board has NOT been migrated to it: raising its labels
-   means re-deriving the fixed row math its approved comp pins, so the migration
-   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
-   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
-   synthetic data cannot establish Reports visual parity. The number below is
-   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
-   and mirrored here as a same-fixture regression guard only. The
-   canonical minimum for this board is 9.5px -- the furthest from the shared
-   floor of the five. Pinning it here means the board
-   cannot drift further from the floor while it waits, and the number moves only
-   when the migration moves it -- it is a deferral, not a second standard. */
-const ST_TYPE_FLOOR_DEFERRED = 9.5;
+/* THE SHARED TYPE FLOOR, no longer deferred. `docs/VISUAL-SYSTEM-RULES.md` sets
+   12.5px as the coach-facing floor, and the 2026-09-19 acceptance pass migrated
+   this board to it: its canonical minimum was 9.5px with 98 elements below the
+   floor, and is now 12.5px with none. THIS HARNESS RUNS A SYNTHETIC FIXTURE, so
+   it cannot establish that value -- `CLAUDE.md` is explicit that synthetic data
+   cannot establish Reports visual parity. The canonical census lives in
+   `tools/e2e-reports-typefloor-realdata.mjs`; this is a same-fixture regression
+   guard that keeps the board from drifting back below the floor. */
+const ST_TYPE_FLOOR = 12.5;
 
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
@@ -108,7 +104,7 @@ ok(shape.kpis === 6, 'the KPI band is six tiles, the board\'s own rhythm', `saw 
 ok(shape.ledger === 6, 'the unit ledger shows all six units of the model', `saw ${shape.ledger}`);
 ok(shape.navs === 5, 'five unit surfaces', `saw ${shape.navs}`);
 ok(shape.rules === 1, 'exactly one section is on screen at a time', `saw ${shape.rules}`);
-ok(String(shape.names) === String(['Kickoff', 'Kick Return', 'Punt', 'Punt Return', 'Field Goal', 'FG Block']),
+ok(String(shape.names) === String(['Kickoff', 'Kick Return', 'Punt', 'Punt Return / Block', 'Field Goal', 'Field Goal Block']),
   'the ledger keeps kickoff distinct from kick return and punt from punt return',
   shape.names.join(' | '));
 
@@ -254,6 +250,73 @@ const reconClean = await page.evaluate(() =>
   !!document.querySelector('[data-native-report-content] .gi-st-unassigned'));
 ok(!reconClean, 'when every snap reconciles the line does not render at all -- no arithmetic restating the ledger');
 
+/* THE MIXED COHORT, which is the shape the coach's own screen showed: eight
+   special-teams snaps, five carrying a structured unit and three charted only as
+   legacy `stType`. The structured branch wins, so the three legacy snaps join no
+   unit module — correct under SPECIAL-TEAMS-MODEL §8, which forbids inferring a
+   unit from quarantined legacy detail — and the disclosure names them.
+
+   The fifth structured snap is an extra point stored on the field-goal unit
+   (`attemptType:'extraPoint'`, §4b.3, read and never rewritten). `_conversionStats`
+   owns it and `isFieldGoalAttempt` excludes it, so counted only under the try
+   UNITS it belonged to no module at all: the board reported it under Tries and
+   called it unassigned in the same breath. That was the fourth "unassigned" snap
+   on the coach's screen. */
+const stEvent = (unit, outcome, extra = {}) => ({ version: 1, unit,
+  outcome: { status: null, recoveredBy: null, score: null, ...outcome },
+  kick: { distance: 40 }, return: { attempted: null, yards: null, end: {} }, players: {}, ...extra });
+await load([
+  { specialTeams: stEvent('kickoff', { status: 'touchback' }) },
+  { specialTeams: stEvent('kickoffReturn', { status: 'fairCatch' }) },
+  { specialTeams: stEvent('puntReturn', { status: 'fairCatch' }) },
+  { specialTeams: stEvent('punt', { status: 'downed' }) },
+  // The legacy-compatible extra point: a try, not a field goal, and not unassigned.
+  { specialTeams: stEvent('fieldGoal', { status: 'good', score: 'extraPoint' }, { attemptType: 'extraPoint' }) },
+  { stType: 'Punt', kickOutcome: 'Downed' },
+  { stType: 'XP', result: 'Good' },
+  { stType: 'Kick Return', result: 'Gain', returnYards: '14' },
+]);
+const mixed = await page.evaluate(() => {
+  const pane = document.querySelector('[data-native-report-content]');
+  const line = pane.querySelector('.gi-st-unassigned');
+  const model = window.app.stats.compute(window.app.tagger.plays, { allPlays: window.app.tagger.plays });
+  const st = model.specialTeams;
+  return {
+    line: line ? line.textContent.replace(/\s+/g, ' ').trim() : null,
+    structured: !!st.structured,
+    tries: { n: st.tries.n, tryUnits: st.tries.tryUnits, xpOnKickUnit: st.tries.xpOnKickUnit },
+    fgAtt: st.fg.att,
+    xpAtt: model.conversions.xp.att,
+    tryRows: [...pane.querySelectorAll('.gi-st-board [data-st-section]')].length,
+  };
+});
+ok(mixed.structured && mixed.tries.n === 1 && mixed.tries.tryUnits === 0 && mixed.tries.xpOnKickUnit === 1
+  && mixed.fgAtt === 0 && mixed.xpAtt === 2,
+  'the extra point charted on the field-goal unit is counted once, as a try, and never as a field-goal attempt',
+  JSON.stringify(mixed));
+ok(mixed.line === '2 snaps are not assigned to a unit',
+  'only snaps NO module claims are unassigned: the structured extra point and the legacy XP both appear under Tries',
+  String(mixed.line));
+
+/* A charted `Defending a Try` is outside the conversion denominator by
+   construction -- it is the OPPONENT's attempt, which is a different statement
+   from a try with no scoring team tagged. */
+await load([
+  { specialTeams: stEvent('tryDefense', { score: 'extraPoint' }, { attemptType: 'extraPoint', result: 'converted' }) },
+  { specialTeams: stEvent('tryDefense', {}, { attemptType: 'extraPoint', result: 'failed' }) },
+  { specialTeams: stEvent('try', { score: 'extraPoint' }, { attemptType: 'extraPoint', result: 'converted' }) },
+]);
+const tryLabels = await page.evaluate(() => {
+  const module = [...document.querySelectorAll('[data-native-report-content] .gi-overview-module')]
+    .find(m => /^Tries$/.test(m.querySelector('header strong')?.textContent?.trim() || ''));
+  return [...(module?.querySelectorAll('.gi-st-row') || [])]
+    .map(row => `${row.querySelector('span')?.textContent?.trim()}=${row.querySelector('strong')?.textContent?.trim()}`);
+});
+ok(tryLabels.includes('Tries charted=3') && tryLabels.includes('Opponent tries=2')
+  && !tryLabels.some(row => /No scoring team tagged/.test(row)),
+  'the try remainder is named: the opponent\'s two tries are stated as theirs, not as untagged',
+  JSON.stringify(tryLabels));
+
 /* ══ 7. Outcome distributions are exclusive and open film ═════════════════ */
 console.log('\n== 7. Outcome distribution ==');
 await load([
@@ -366,14 +429,69 @@ for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 800]]) {
     return { min: sizes.length ? Math.min(...sizes) : null,
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       under: under.length, cut: cut.length };
-  }, ST_TYPE_FLOOR_DEFERRED);
+  }, ST_TYPE_FLOOR);
   ok(layout.overflow <= 0, `no page-level horizontal scroll at ${w}`, `${layout.overflow}px`);
   ok(layout.under === 0,
-    `no text under the deferred ${ST_TYPE_FLOOR_DEFERRED}px board floor at ${w}, pending migration to the shared 12.5px floor`,
+    `no text under the shared ${ST_TYPE_FLOOR}px floor at ${w}`,
     `${layout.under} nodes, smallest ${layout.min}px`);
   ok(layout.cut === 0, `no truncated text at ${w}`, `${layout.cut} nodes`);
 }
 await page.setViewport({ width: 1440, height: 900 });
+
+/* ══ 9b. The badge names its unit, and an absence is not a void ════════════ */
+console.log('\n== 9b. Badge counts and empty modules ==');
+await load([
+  { stType: 'Kickoff', kickOutcome: 'Touchback' },
+  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '18' },
+]);
+const badges = await page.evaluate(() => {
+  const pane = document.querySelector('[data-native-report-content]');
+  return [...pane.querySelectorAll('.gi-def-secnav-item')].map(item => ({
+    text: item.textContent.replace(/\s+/g, ' ').trim(),
+    noun: item.querySelector('b i')?.textContent?.trim() || null,
+    aria: item.getAttribute('aria-label'),
+  }));
+});
+ok(badges.length === 5 && badges.every(b => b.noun && /snaps|attempts|players/.test(b.noun)),
+  'every section badge states what it counts rather than leaving a bare number',
+  JSON.stringify(badges.map(b => b.text)));
+ok(badges.every(b => /\d+ (snaps|attempts|players)$/.test(b.aria || '')),
+  'the badge count and its noun are announced together', JSON.stringify(badges.map(b => b.aria)));
+/* A module with one `No data` line does not become a tall void when its paired
+   partner is populated: the absence sits under its own header, and the pair
+   still shares one top and one bottom edge. */
+const emptyModules = await page.evaluate(() => {
+  const band = [...document.querySelectorAll('[data-native-report-content] .gi-st-band')]
+    .find(b => b.querySelector('.gi-st-empty') && b.querySelector('.gi-st-row'));
+  if (!band) return null;
+  const mods = [...band.children].map(m => {
+    const rect = m.getBoundingClientRect();
+    const absence = m.querySelector('.gi-st-empty');
+    const header = m.querySelector('header');
+    /* The TEXT's own box, not the element's. A stretched panel whose text is
+       vertically centred keeps its element starting under the header, so
+       measuring the element cannot tell the two treatments apart -- the first
+       version of this check passed against the centred layout it was written to
+       reject. A Range reports where the line actually paints. */
+    let textTop = null;
+    if (absence && absence.firstChild) {
+      const range = document.createRange();
+      range.selectNodeContents(absence);
+      textTop = Math.round(range.getBoundingClientRect().top);
+    }
+    return { top: Math.round(rect.top), bottom: Math.round(rect.bottom),
+      empty: !!absence, height: Math.round(rect.height),
+      gapUnderHeader: textTop != null && header
+        ? Math.round(textTop - header.getBoundingClientRect().bottom) : null };
+  });
+  return mods;
+});
+ok(emptyModules && emptyModules.length === 2
+  && emptyModules[0].top === emptyModules[1].top && emptyModules[0].bottom === emptyModules[1].bottom,
+  'a populated module and its empty partner still align on both edges', JSON.stringify(emptyModules));
+ok(emptyModules && emptyModules.find(m => m.empty)?.gapUnderHeader <= 16,
+  'the absence sits directly under its header instead of floating in a tall empty panel',
+  JSON.stringify(emptyModules));
 
 /* ══ 10. The empty state ══════════════════════════════════════════════════ */
 console.log('\n== 10. No Special Teams snaps ==');

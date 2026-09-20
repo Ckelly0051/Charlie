@@ -424,8 +424,19 @@ ok(result.untouchedHasNoDetails,
   });
   ok(!/Field Goal \/ XP/.test(bundleText), 'The shipped bundle no longer offers a "Field Goal / XP" unit');
 
+  /* The unit NAMES moved to their one owner on 2026-09-19 —
+     `SpecialTeamsModel.UNIT_LABELS` — which the deck, the chyron, the Film Room
+     grid, the Study dimension and the Reports ledger all read. The subject of
+     this assertion is unchanged (the field-goal unit is `Field Goal`, never
+     `Field Goal / XP`); it is asserted at the owner, plus the fact that the deck
+     reads that owner instead of a private copy. The RENDERED unit chips are
+     asserted in `e2e-native-tagging`, which has the charting deck on screen. */
+  const modelLabels = source('special-teams.js');
+  ok(/fieldGoal: 'Field Goal'/.test(modelLabels) && !/Field Goal \/ XP/.test(modelLabels),
+    'The unit list presents the field-goal unit as "Field Goal"');
   const taggingSrc = source('native-tagging.jsx');
-  ok(/\['fieldGoal','Field Goal'\]/.test(taggingSrc), 'The unit list presents the field-goal unit as "Field Goal"');
+  ok(/ST_UNITS = SpecialTeamsModel\.unitOptions\(\)/.test(taggingSrc),
+    'The deck takes its unit list from that owner rather than carrying its own copy');
   ok(!/Field Goal \/ XP/.test(taggingSrc), 'The "Field Goal / XP" unit label is gone from its owner');
   ok(!/\['extraPoint','Extra Point'\]/.test(taggingSrc),
     'No "Field Goal or Extra Point" attempt selector remains in the Special Teams editor');
@@ -446,7 +457,7 @@ ok(result.untouchedHasNoDetails,
   ok(/value\.attemptType === 'fieldGoal' \|\| value\.attemptType === 'extraPoint'/.test(modelSrc),
     'The model still READS a historical field-goal-shaped extra point');
   const grid = source('play-grid.js');
-  ok(/fieldGoal:'Field Goal'/.test(grid) && !/Field Goal \/ XP/.test(grid),
+  ok(/SpecialTeamsModel\.UNIT_LABELS/.test(grid) && !/Field Goal \/ XP/.test(grid),
     'The Film Room grid names the unit Field Goal');
 }
 

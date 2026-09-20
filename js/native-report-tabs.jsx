@@ -10,6 +10,7 @@
 import { useMemo, useState } from 'preact/hooks';
 import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ZoneNav, ZoneRule } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
+import { SpecialTeamsModel } from './special-teams.js';
 import { Charts } from './charts.js';
 import { NativeHeatMaps } from './native-offense-visuals.jsx';
 import { DefenseTab } from './native-defense-board.jsx';
@@ -1176,12 +1177,16 @@ export function OpponentSpecialTeamsTab({ data, screen }) {
  *  the kicking unit against the receiving unit that faces it, so each pair is
  *  co-located. The units stay DISTINCT inside a surface -- separate modules,
  *  separate denominators -- they are never merged. */
+/* Each tab's badge states WHAT it counts. A bare number over five different
+   sections counted five different things -- snaps, then unit snaps, then
+   attempts, then rostered players -- and said so nowhere. `counts` is the noun
+   the badge belongs to; the section keeps its own label. */
 const ST_SECTIONS = [
-  { id: 'st1', label: 'All units' },
-  { id: 'st2', label: 'Kickoff & Kick Return' },
-  { id: 'st3', label: 'Punt & Punt Return' },
-  { id: 'st4', label: 'Kicking game' },
-  { id: 'st5', label: 'Specialists' },
+  { id: 'st1', label: 'All units', counts: 'snaps' },
+  { id: 'st2', label: 'Kickoff & Kick Return', counts: 'snaps' },
+  { id: 'st3', label: 'Punt & Punt Return', counts: 'snaps' },
+  { id: 'st4', label: 'Kicking game', counts: 'attempts' },
+  { id: 'st5', label: 'Specialists', counts: 'players' },
 ];
 
 /** Aligned label/value lines. A null value is the report's one absence label. */
@@ -1363,7 +1368,9 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       {ST_SECTIONS.map(s => <button key={s.id} type="button" role="tab"
         aria-selected={section === s.id} data-st-section={s.id}
         class={`gi-def-secnav-item${section === s.id ? ' is-active' : ''}${sectionCounts[s.id] ? '' : ' is-none'}`}
-        onClick={() => setSection(s.id)}><b>{sectionCounts[s.id]}</b>{s.label}</button>)}
+        onClick={() => setSection(s.id)}
+        aria-label={`${s.label} — ${sectionCounts[s.id]} ${s.counts}`}>
+        <b>{sectionCounts[s.id]}<i>{s.counts}</i></b>{s.label}</button>)}
     </div>
     <div class="gi-def-secrule"><h2>{meta.label}</h2></div>
 
@@ -1374,11 +1381,11 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       </div>
       <div class="gi-st-band gi-st-band-2">
         <UnitModule title="Punt" rows={rowsFor('punt')} refs={unit('punt').refs} label="Punts" screen={screen} />
-        <UnitModule title="Punt Return" rows={rowsFor('puntReturn')} refs={unit('puntReturn').refs} label="Punt returns" screen={screen} />
+        <UnitModule title={SpecialTeamsModel.UNIT_LABELS.puntReturn} rows={rowsFor('puntReturn')} refs={unit('puntReturn').refs} label="Punt returns" screen={screen} />
       </div>
       <div class="gi-st-band gi-st-band-3">
         <UnitModule title="Field Goal" rows={rowsFor('fieldGoal')} refs={unit('fieldGoal').refs} label="Field goals" screen={screen} />
-        <UnitModule title="FG Block" rows={rowsFor('fieldGoalBlock')} refs={unit('fieldGoalBlock').refs} label="Field goal block" screen={screen} />
+        <UnitModule title={SpecialTeamsModel.UNIT_LABELS.fieldGoalBlock} rows={rowsFor('fieldGoalBlock')} refs={unit('fieldGoalBlock').refs} label="Field goal block" screen={screen} />
         <UnitModule title="Tries" rows={tryRows} refs={st?.tries?.refs?.all || []} label="Tries" screen={screen} />
       </div>
     </>}
@@ -1409,7 +1416,7 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
         </Module>
       </div>
       <div class="gi-st-band gi-st-band-2">
-        <UnitModule title="Punt Return" meta={`${unit('puntReturn').n || 0} snaps`} rows={rowsFor('puntReturn')}
+        <UnitModule title={SpecialTeamsModel.UNIT_LABELS.puntReturn} meta={`${unit('puntReturn').n || 0} snaps`} rows={rowsFor('puntReturn')}
           refs={unit('puntReturn').refs} label="Punt returns" screen={screen} />
         <Module title="Punt return outcomes" cls={`gi-st-unit${outcomesFor('puntReturn').length ? '' : ' is-none'}`}>
           <OutcomeBars items={outcomesFor('puntReturn')} screen={screen} unit="Punt return" />
@@ -1437,7 +1444,7 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       </div>
       <div class="gi-st-band gi-st-band-3">
         <UnitModule title="Field Goal" rows={rowsFor('fieldGoal')} refs={unit('fieldGoal').refs} label="Field goals" screen={screen} />
-        <UnitModule title="FG Block" rows={rowsFor('fieldGoalBlock')} refs={unit('fieldGoalBlock').refs} label="Field goal block" screen={screen} />
+        <UnitModule title={SpecialTeamsModel.UNIT_LABELS.fieldGoalBlock} rows={rowsFor('fieldGoalBlock')} refs={unit('fieldGoalBlock').refs} label="Field goal block" screen={screen} />
         <UnitModule title="Tries" rows={tryRows} refs={st?.tries?.refs?.all || []} label="Tries" screen={screen} />
       </div>
     </>}

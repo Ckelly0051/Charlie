@@ -14,6 +14,32 @@ export class SpecialTeamsModel {
     try: 'attempting',
     tryDefense: 'defending',
   });
+  /**
+   * THE COACH-FACING UNIT NAMES, in the model's own order. One owner, because
+   * the deck, the theater chyron, the Film Room grid, the Study dimension and
+   * the Reports ledger each carried their own copy — which is how a renamed unit
+   * reaches the deck and nothing else.
+   *
+   * `puntReturn` reads `Punt Return / Block`: the unit that fields a punt is the
+   * unit that blocks one, and the stored value stays `puntReturn` (§4b's rule
+   * against another field-goal-shaped workaround). There is no `puntBlock` unit.
+   */
+  static UNIT_LABELS = Object.freeze({
+    kickoff: 'Kickoff',
+    kickoffReturn: 'Kick Return',
+    punt: 'Punt',
+    puntReturn: 'Punt Return / Block',
+    fieldGoal: 'Field Goal',
+    fieldGoalBlock: 'Field Goal Block',
+    try: 'Try',
+    tryDefense: 'Defending a Try',
+  });
+
+  /** The ordered [value, label] pairs a unit selector renders. */
+  static unitOptions() {
+    return Object.keys(this.ROLES).map(unit => [unit, this.UNIT_LABELS[unit] || unit]);
+  }
+
   static STATUSES = new Set([
     'returned', 'touchback', 'fairCatch', 'downed', 'outOfBounds',
     'blocked', 'muffed', 'recovered', 'good', 'noGood', 'badSnap',

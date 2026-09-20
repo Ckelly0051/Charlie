@@ -12,7 +12,11 @@
  * Where a value needs an instance method (e.g. StatsEngine's own
  * `_isSuccessfulPlay`), the StatsEngine instance is passed in explicitly as
  * `engine` — this module never re-derives or duplicates a formula.
+ *
+ * `SpecialTeamsModel` is imported for its coach-facing UNIT NAMES only, which
+ * it owns; no football value comes from here.
  */
+import { SpecialTeamsModel } from './special-teams.js';
 
 export function overviewKpis(stats) {
   const totalYards = stats.rushing.yards + stats.passing.yards;
@@ -760,13 +764,15 @@ export function specialTeamsKpis(stats, summary) {
         ? [[['Snaps', snaps], ['Plays charted', summary.cohort ?? snaps]]]
         : null,
       refs: summary.snaps.refs },
-    // PF / PA / Margin on ONE line (coach, 2026-09-04) -- the abbreviations are
-    // the standard scoreboard ones, and fitting all three on a line removes a
-    // whole row of mostly dead space from the band.
+    // Three values on ONE line (coach, 2026-09-04), now in words. `PF` and `PA`
+    // were scoreboard abbreviations a coach had to decode; `For` and `Against`
+    // are the same two facts in the vocabulary the Touchdowns tile below already
+    // uses (`For` / `Allowed`), and they still fit the line at the 12.5px floor,
+    // which the spelled-out pair did not.
     { label: 'Points',
       stats: [[
-        ['PF', summary.points.us],
-        ['PA', summary.points.them],
+        ['For', summary.points.us],
+        ['Against', summary.points.them],
         ['Margin', margin > 0 ? `+${margin}` : String(margin)],
       ]],
       cls: summary.points.us > summary.points.them ? 'is-good'
@@ -854,14 +860,14 @@ export function specialTeamsUnits(stats) {
         : ST_NO_DATA) },
     { key: 'punt', name: 'Punt', noun: 'punt', n: num(st.punts?.n), refs: st.punts?.refs?.all,
       headline: () => (st.punts.netAvg != null ? `${st.punts.netAvg} yd net` : `${stPlural(st.punts.blocked, 'block')} allowed`) },
-    { key: 'puntReturn', name: 'Punt Return', noun: 'return', n: num(st.returns?.punt?.n), refs: st.returns?.punt?.refs?.all,
+    { key: 'puntReturn', name: SpecialTeamsModel.UNIT_LABELS.puntReturn, noun: 'return', n: num(st.returns?.punt?.n), refs: st.returns?.punt?.refs?.all,
       // Same measure as Kick Return -- the two return units read alike.
       headline: () => (st.returns.punt.attempts
         ? `${Math.round(st.returns.punt.td / st.returns.punt.attempts * 100)}% touchdown rate`
         : ST_NO_DATA) },
     { key: 'fieldGoal', name: 'Field Goal', noun: 'attempt', n: num(st.fg?.att), refs: st.fg?.refs?.all,
       headline: () => `${st.fg.made}/${st.fg.att} made, ${st.fg.pct}% rate` },
-    { key: 'fieldGoalBlock', name: 'FG Block', noun: 'snap', n: num(st.blocks?.n), refs: st.blocks?.refs?.all,
+    { key: 'fieldGoalBlock', name: SpecialTeamsModel.UNIT_LABELS.fieldGoalBlock, noun: 'snap', n: num(st.blocks?.n), refs: st.blocks?.refs?.all,
       headline: () => `${stPlural(st.blocks.blocked, 'kick')} blocked` },
   ];
   return defs.map(def => def.n
@@ -962,9 +968,18 @@ export function specialTeamsUnitRows(stats, key) {
     // Coach decision, 2026-09-04: the classified attempts stay the calculation
     // denominator, the unclassified are stated, and they are NEVER counted as
     // misses or folded into a conversion percentage.
+    //
+    // The remainder is NAMED rather than assumed. `_conversionStats` counts only
+    // tries the subject attempted, so a charted `Defending a Try` is outside its
+    // denominator by construction — calling it "no scoring team tagged" was
+    // wrong, because the opponent is exactly who scored it. Each part is stated
+    // from its own count, and a part with nothing in it is not rendered.
     if (charted != null && charted > att) {
-      rows.push(row('Charted tries', `${charted}`, { sub: true }));
-      rows.push(row('No scoring team tagged', `${charted - att}`, { sub: true }));
+      const defending = st.tries?.defending || 0;
+      const untagged = charted - att - defending;
+      rows.push(row('Tries charted', `${charted}`, { sub: true }));
+      if (defending) rows.push(row('Opponent tries', `${defending}`, { sub: true }));
+      if (untagged > 0) rows.push(row('No scoring team tagged', `${untagged}`, { sub: true }));
     }
     return rows;
   }
@@ -995,6 +1010,32 @@ export function specialTeamsOutcomes(stats, key) {
 export function specialTeamsUnassigned(stats, summary) {
   const st = stats.specialTeams || {};
   const conv = stats.conversions || {};
+  /* COUNTED FROM FILM REFERENCES, NOT ARITHMETIC. Summing each module's count
+     and subtracting was wrong in both directions on a MIXED cohort — one with
+     structured events beside legacy-only snaps, which is what the coach's own
+     screen showed. Two snaps the board reports were still called unit-less: an
+     extra point stored on the field-goal unit (`_conversionStats` owns it,
+     `isFieldGoalAttempt` excludes it) and a legacy `stType:'XP'` snap the
+     structured branch skips but conversions still counts. Both appear under
+     Tries.
+     Every module already publishes the exact `gameId::playId` set it renders,
+     so the question "did any module claim this snap" is answered per snap
+     instead of estimated from totals. Overlapping cohorts cannot double count,
+     a conversion attempt charted outside the special-teams unit cannot reduce
+     the count (it is not in `snaps.refs`), and nothing is inferred about a
+     legacy snap: it is simply not claimed, which is exactly what the line
+     says. */
+  const snaps = summary.snaps?.refs || [];
+  const claimed = new Set([
+    ...(st.kickoffs?.refs?.all || []), ...(st.returns?.kick?.refs?.all || []),
+    ...(st.punts?.refs?.all || []), ...(st.returns?.punt?.refs?.all || []),
+    ...(st.fg?.refs?.all || []), ...(st.blocks?.refs?.all || []),
+    ...(st.tries?.refs?.all || []),
+    ...(conv.xp?.refs?.att || []), ...(conv.two?.refs?.att || []),
+  ]);
+  if (snaps.length) return snaps.filter(ref => !claimed.has(ref)).length;
+  // No resolvable film reference on the cohort (a fixture without game ids):
+  // fall back to the count difference rather than reporting a false zero.
   const assigned = (st.kickoffs?.n || 0) + (st.returns?.kick?.n || 0) + (st.punts?.n || 0)
     + (st.returns?.punt?.n || 0) + (st.fg?.att || 0) + (st.blocks?.n || 0)
     + (st.tries?.n != null ? st.tries.n : ((conv.xp?.att || 0) + (conv.two?.att || 0)));

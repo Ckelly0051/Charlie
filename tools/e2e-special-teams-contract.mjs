@@ -229,5 +229,135 @@ await testAsync('canonical persist, reopen, snapshot, and restore keep the event
   assert.equal(reopened.data.games[0].plays[0].specialTeams.players.returner, '4');
 });
 
+/* ══ Blocked punt return — the authoring path the board already reported ═══
+   The report, the model and the film refs always supported a blocked punt the
+   receiving team recovers; the charting vocabulary did not offer `blocked` on
+   that unit, so the state could not be authored. The stored unit stays
+   `puntReturn`: there is no `puntBlock` value and no migration. */
+console.log('\n== Blocked punt return ==');
+
+const blockedTd = () => event({
+  outcome: { status: 'blocked', recoveredBy: 'subject', score: 'touchdown', scoredBy: null },
+  return: { attempted: true, yards: 18, end: { fieldSide: 'opp', yardLine: '0' } },
+  players: { kicker: '', punter: '', returner: '4', blocker: '55', recoverer: '55' },
+});
+
+test('the punt-return unit offers Blocked, and the label names the block', () => {
+  assert.equal(SpecialTeamsModel.UNIT_LABELS.puntReturn, 'Punt Return / Block');
+  assert.ok(SpecialTeamsModel.STATUSES.has('blocked'));
+  // No new unit, no new schema value.
+  assert.equal(SpecialTeamsModel.ROLES.puntBlock, undefined);
+  assert.equal(SpecialTeamsModel.UNIT_LABELS.puntBlock, undefined);
+  assert.deepEqual(SpecialTeamsModel.unitOptions().find(([value]) => value === 'puntReturn'),
+    ['puntReturn', 'Punt Return / Block']);
+});
+
+test('a blocked punt recovered by the subject and returned scores six for the subject', () => {
+  const normalized = SpecialTeamsModel.normalize(blockedTd());
+  assert.equal(normalized.unit, 'puntReturn');
+  assert.equal(normalized.subjectRole, 'receiving');
+  assert.equal(normalized.outcome.status, 'blocked');
+  assert.equal(normalized.outcome.recoveredBy, 'subject');
+  assert.equal(normalized.outcome.score, 'touchdown');
+  assert.equal(SpecialTeamsModel.points(normalized), 6);
+  assert.equal(SpecialTeamsModel.scoringTeam(normalized), 'subject');
+});
+
+test('the same block recovered by the opponent scores for the opponent, and an unknown recovery scores for nobody', () => {
+  const theirs = SpecialTeamsModel.normalize(event({
+    outcome: { status: 'blocked', recoveredBy: 'opponent', score: 'touchdown', scoredBy: null } }));
+  assert.equal(SpecialTeamsModel.scoringTeam(theirs), 'opponent');
+  assert.equal(SpecialTeamsModel.points(theirs), 6);
+  // Nothing defaults to us: an unrecovered block with a touchdown stays
+  // unattributed rather than silently awarding the subject six points.
+  const unknown = SpecialTeamsModel.normalize(event({
+    outcome: { status: 'blocked', recoveredBy: 'unknown', score: 'touchdown', scoredBy: null } }));
+  assert.equal(SpecialTeamsModel.scoringTeam(unknown), 'unknown');
+});
+
+test('the scoreboard owner credits the block six to us and nothing to them', () => {
+  const engine = new StatsEngine(null);
+  const play = { id: 7, tags: { unit: 'special', quarter: 'Q2' }, specialTeams: blockedTd() };
+  const board = engine.computeScoreboard([play]);
+  assert.equal(board.us, 6);
+  assert.equal(board.them, 0);
+  assert.equal(board.unattributed, undefined);
+  assert.equal(board.events.length, 1);
+  assert.equal(board.events[0].type, 'TD');
+  assert.equal(board.events[0].side, 'us');
+  const theirs = engine.computeScoreboard([{ id: 7, tags: { unit: 'special', quarter: 'Q2' },
+    specialTeams: event({ outcome: { status: 'blocked', recoveredBy: 'opponent', score: 'touchdown', scoredBy: null } }) }]);
+  assert.equal(theirs.us, 0);
+  assert.equal(theirs.them, 6);
+});
+
+test('the report counts one punt blocked, one punt-return touchdown and the exact film reference', () => {
+  const engine = new StatsEngine(null);
+  const play = { id: 7, __gid: 'g9', tags: { unit: 'special' }, specialTeams: blockedTd() };
+  const st = engine._specialTeamsStats([play]);
+  assert.equal(st.returns.punt.n, 1);
+  assert.equal(st.returns.punt.blocked, 1);
+  assert.equal(st.returns.punt.td, 1);
+  assert.equal(st.punts.blocked, 0, 'our punt team did not have a punt blocked');
+  assert.equal(st.punts.tdAllowed, 0);
+  assert.deepEqual(st.returns.punt.refs.blocked, ['g9::7']);
+  assert.deepEqual(st.returns.punt.refs.td, ['g9::7']);
+});
+
+testAsync('the blocked-punt touchdown survives save, reopen and normalization', async () => {
+  let canonical = null;
+  const backend = {
+    saveSeason: async (_id, data) => { canonical = JSON.parse(JSON.stringify(data)); return true; },
+    loadSeason: async () => JSON.parse(JSON.stringify(canonical)),
+    diskStatus: () => ({ bound: false }),
+    createBackup: async () => 'b1',
+    listBackups: async () => [],
+  };
+  const store = new SeasonStore(backend);
+  store.currentSeasonId = 's9';
+  store.data = store._normalize({ id: 's9', activeGameId: 'g1',
+    games: [{ id: 'g1', gameInfo: {}, plays: [{ id: 7, tags: { unit: 'special' }, specialTeams: blockedTd() }] }] });
+  store.persist();
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const reopened = new SeasonStore(backend);
+  reopened.currentSeasonId = 's9';
+  await reopened.load();
+  const saved = reopened.data.games[0].plays[0].specialTeams;
+  assert.equal(saved.unit, 'puntReturn');
+  assert.equal(saved.outcome.status, 'blocked');
+  assert.equal(saved.outcome.recoveredBy, 'subject');
+  assert.equal(saved.outcome.score, 'touchdown');
+  assert.equal(saved.return.yards, 18);
+  assert.equal(saved.players.blocker, '55');
+  assert.equal(saved.players.recoverer, '55');
+  assert.equal(saved.players.returner, '4');
+  // The reopened bytes, not a fresh object, still score the same way.
+  assert.equal(SpecialTeamsModel.points(saved), 6);
+  assert.equal(SpecialTeamsModel.scoringTeam(saved), 'subject');
+  assert.equal(new StatsEngine(null).computeScoreboard(reopened.data.games[0].plays).us, 6);
+});
+
+/* ══ The try cohort owns the legacy-compatible XP shape ═══════════════════ */
+console.log('\n== Try cohort ownership ==');
+
+test('an extra point stored on the field-goal unit is a try, not an unassigned snap', () => {
+  const engine = new StatsEngine(null);
+  const xpOnKickUnit = { id: 16, __gid: 'g2', tags: { unit: 'special' },
+    specialTeams: { version: 1, unit: 'fieldGoal', attemptType: 'extraPoint',
+      outcome: { status: 'good', score: 'extraPoint' } } };
+  const tryUnit = { id: 27, __gid: 'g2', tags: { unit: 'special' },
+    specialTeams: { version: 1, unit: 'tryDefense', attemptType: 'extraPoint', result: 'converted',
+      outcome: { score: 'extraPoint' } } };
+  const st = engine._specialTeamsStats([xpOnKickUnit, tryUnit]);
+  assert.equal(st.fg.att, 0, 'an extra point is not a field-goal attempt');
+  assert.equal(st.tries.n, 2, 'both the try unit and the field-goal-shaped extra point are tries');
+  assert.equal(st.tries.tryUnits, 1);
+  assert.equal(st.tries.xpOnKickUnit, 1);
+  assert.equal(st.tries.defending, 1);
+  assert.deepEqual(st.tries.refs.all, ['g2::16', 'g2::27']);
+  assert.deepEqual(st.tries.refs.xpOnKickUnit, ['g2::16']);
+});
+
 console.log(`\n== RESULT: ${pass} passed ==`);
 if (process.exitCode) process.exit(process.exitCode);

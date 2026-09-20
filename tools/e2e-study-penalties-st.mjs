@@ -248,7 +248,11 @@ ok(direct.subjectAccepted === 1 && direct.opponentAccepted === 1,
 ok(direct.phaseOffenseAccepted === 1 && direct.phaseDefenseAccepted === 1,
   'Unit/phase-scoped penalty measures answer "penalties on our offensive snaps vs our defensive snaps" honestly', JSON.stringify({ offense: direct.phaseOffenseAccepted, defense: direct.phaseDefenseAccepted }));
 
-const expectedStUnits = ['Extra Point', 'Field Goal', 'Field Goal Block', 'Kick Return', 'Kickoff', 'Punt', 'Punt Return', 'Two-Point Try'];
+/* The unit names come from `SpecialTeamsModel.UNIT_LABELS`, the one owner the
+   deck, the grid, the chyron and Reports also read, so Study cannot drift from
+   the label a coach picked in charting. `Punt Return / Block` names both jobs of
+   the unit that fields a punt (2026-09-19). */
+const expectedStUnits = ['Extra Point', 'Field Goal', 'Field Goal Block', 'Kick Return', 'Kickoff', 'Punt', 'Punt Return / Block', 'Two-Point Try'];
 ok(expectedStUnits.every(u => direct.stUnits.includes(u)) && direct.stUnits.length === expectedStUnits.length,
   'Every Special Teams phase groups under its literal football label, including the XP/2-Pt split', JSON.stringify(direct.stUnits));
 

@@ -2710,7 +2710,33 @@ export class StatsEngine {
       const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
       const blocks = rows('fieldGoalBlock');
       const blockedRows = blocks.filter(x => x.st.outcome.status === 'blocked');
-      const tries = { n: rows('try').length + rows('tryDefense').length, refs: { all: StatsEngine._refsOf([...rows('try'), ...rows('tryDefense')], getPlay) } };
+      /* THE TRY COHORT INCLUDES THE LEGACY-COMPATIBLE XP SHAPE. An extra point
+         stored as `unit:'fieldGoal' + attemptType:'extraPoint'` (§4b.3, still
+         read and never rewritten) is a TRY here: `_conversionStats` owns it and
+         `isFieldGoalAttempt` deliberately excludes it from field goals. Counted
+         only under `try`/`tryDefense`, such a snap belonged to no module at all,
+         so the board reported it under Tries and simultaneously called it "not
+         assigned to a unit" — the canonical demo screen's fourth unassigned
+         snap. `xpOnKickUnit` is stated separately so the two cohorts stay
+         nameable; the units are disjoint, so nothing is double counted. */
+      const tryRows = [...rows('try'), ...rows('tryDefense')];
+      const xpOnKickUnitRows = [...rows('fieldGoal'), ...rows('fieldGoalBlock')]
+        .filter(x => x.st.attemptType === 'extraPoint');
+      const tries = {
+        n: tryRows.length + xpOnKickUnitRows.length,
+        tryUnits: tryRows.length,
+        // The OPPONENT's tries — `Defending a Try`. `_conversionStats` counts
+        // only attempts whose subject role is `attempting`, so these are charted
+        // tries that are correctly not ours, which is a different statement from
+        // a try with no scoring team tagged.
+        defending: rows('tryDefense').length,
+        xpOnKickUnit: xpOnKickUnitRows.length,
+        refs: {
+          all: StatsEngine._refsOf([...tryRows, ...xpOnKickUnitRows], getPlay),
+          tryUnits: StatsEngine._refsOf(tryRows, getPlay),
+          xpOnKickUnit: StatsEngine._refsOf(xpOnKickUnitRows, getPlay),
+        },
+      };
       return {
         punts, kickoffs, fg, returns, tries,
         blocks: { n: blocks.length, blocked: blockedRows.length, refs: { all: StatsEngine._refsOf(blocks, getPlay), blocked: StatsEngine._refsOf(blockedRows, getPlay) } },

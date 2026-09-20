@@ -249,6 +249,58 @@ ok(JSON.stringify(state.possession?.chipLabels)==='["Own","Opp"]'&&Math.abs(stat
 ok(JSON.stringify(state.end?.chipLabels)==='["Own","Opp"]'&&Math.abs(state.end.chipWidths[0]-state.end.chipWidths[1])<=2,'Own and Opp render at identical, stable widths on End spot',JSON.stringify(state.end));
 ok(Math.abs((state.possession?.inputWidth||0)-(state.end?.inputWidth||0))<=2,'Possession spot and End spot share the same compact yard-line width',JSON.stringify(state));
 
+/* A blocked punt the receiving team recovers and returns for a touchdown is
+   authored on the EXISTING unit: `Punt Return / Block`, outcome `Blocked`, then
+   the existing Possession and Score controls. No `puntBlock` unit exists, and
+   nothing here writes a schema value the model does not already define. */
+console.log('\n== 4c. Blocked punt return touchdown authoring ==');
+state=await page.evaluate(async()=>{
+  const app=window.app;
+  const root=()=>document.querySelector('[data-native-tagging]');
+  const field=label=>[...root().querySelectorAll('[data-native-choice]')].find(el=>el.dataset.nativeChoice===label);
+  const chip=(label,text)=>[...(field(label)?.querySelectorAll('button')||[])].find(b=>b.textContent.trim()===text);
+  const wait=()=>new Promise(r=>setTimeout(r,40));
+  app.tagger.selectPlay(3);
+  app.nativeTagging.setUnit('special');
+  await wait();
+  const unitLabels=[...(field('Unit')?.querySelectorAll('button')||[])].map(b=>b.textContent.trim());
+  await app.nativeTagging.setSpecialUnit('puntReturn');
+  await wait();
+  const outcomes=[...(field('Outcome')?.querySelectorAll('button')||[])].map(b=>b.textContent.trim());
+  chip('Outcome','Blocked')?.click();
+  await wait();
+  const possessionOffered=!!field('Possession');
+  chip('Possession','Our team')?.click();
+  await wait();
+  chip('Score','Touchdown')?.click();
+  await wait();
+  app.nativeTagging.specialInput('return-yards','18');
+  app.nativeTagging.specialInput('blocker','55');
+  app.nativeTagging.specialInput('recoverer','55');
+  await wait();
+  const play=app.tagger.getCurrentPlay();
+  const stored=structuredClone(play.specialTeams);
+  const stats=app.stats._specialTeamsStats([{...play,__gid:'gx'}]);
+  const board=app.stats.computeScoreboard([play]);
+  return {unitLabels,outcomes,possessionOffered,stored,
+    report:{blocked:stats.returns.punt.blocked,td:stats.returns.punt.td,n:stats.returns.punt.n,
+      puntsBlockedAgainst:stats.punts.blocked,refs:stats.returns.punt.refs.td},
+    board:{us:board.us,them:board.them}};
+});
+ok(state.unitLabels?.includes('Punt Return / Block')&&!state.unitLabels?.some(l=>/punt block/i.test(l)),
+  'the unit selector names the block on the punt-return unit and adds no second unit',JSON.stringify(state.unitLabels));
+ok(state.outcomes?.includes('Blocked'),'Punt Return / Block offers the Blocked outcome',JSON.stringify(state.outcomes));
+ok(state.possessionOffered,'choosing Blocked reveals the existing Possession control');
+ok(state.stored?.unit==='puntReturn'&&state.stored?.outcome?.status==='blocked'
+  &&state.stored?.outcome?.recoveredBy==='subject'&&state.stored?.outcome?.score==='touchdown'
+  &&state.stored?.return?.yards===18&&state.stored?.players?.blocker==='55'&&state.stored?.players?.recoverer==='55',
+  'the authored state stores the documented shape on the existing schema',JSON.stringify(state.stored));
+ok(state.report?.blocked===1&&state.report?.td===1&&state.report?.n===1&&state.report?.puntsBlockedAgainst===0
+  &&JSON.stringify(state.report?.refs)==='["gx::3"]',
+  'the report counts one punt blocked, one punt-return touchdown, no punt blocked against us, and the exact film reference',
+  JSON.stringify(state.report));
+ok(state.board?.us===6&&state.board?.them===0,'the scoreboard owner awards six to us and none to the opponent',JSON.stringify(state.board));
+
 console.log('\n== 6. Charting deck density, type ownership and Coverage Call ==');
 // The completed body gives fields an intentional 8px lead and 12px close:
 // enough separation to scan without returning to the old 12/16px dead air.

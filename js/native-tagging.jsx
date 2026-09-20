@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { useLayoutEffect, useState } from 'preact/hooks';
 import { TagLibrary } from './tag-library.js';
+import { SpecialTeamsModel } from './special-teams.js';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -210,12 +211,20 @@ function Penalties({screen, state}) {
 // Exported so the theater chyron (breakdown-theater-screen.js) can compose the
 // live lower-third from these SAME canonical coach-facing labels instead of a
 // second, independently-drifting copy of the vocabulary.
-export const ST_UNITS = [['kickoff','Kickoff'],['kickoffReturn','Kick Return'],['punt','Punt'],['puntReturn','Punt Return'],['fieldGoal','Field Goal'],['fieldGoalBlock','Field Goal Block'],['try','Try'],['tryDefense','Defending a Try']];
+/* The unit selector reads `SpecialTeamsModel`, the one owner of the coach-facing
+   unit names, so the deck, the chyron, the grid, Study and Reports cannot drift
+   apart on a rename. */
+export const ST_UNITS = SpecialTeamsModel.unitOptions();
 export const ST_OUTCOMES = {
   kickoff:[['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['outOfBounds','Out of Bounds'],['recovered','Recovered']],
   kickoffReturn:[['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['muffed','Muffed'],['outOfBounds','Out of Bounds']],
   punt:[['returned','Returned'],['fairCatch','Fair Catch'],['downed','Downed'],['outOfBounds','Out of Bounds'],['touchback','Touchback'],['blocked','Blocked'],['muffed','Muffed']],
-  puntReturn:[['returned','Returned'],['fairCatch','Fair Catch'],['downed','Let Bounce'],['muffed','Muffed'],['outOfBounds','Out of Bounds']],
+  /* `blocked` belongs to the RETURN unit as well as the kicking unit: the team
+     fielding a punt is the team that blocks one, and a block it recovers is its
+     own possession and possibly its own touchdown. The stored unit stays
+     `puntReturn`; `Possession` and `Score` then carry ownership, which is why no
+     `puntBlock` unit and no schema migration are needed. */
+  puntReturn:[['returned','Returned'],['fairCatch','Fair Catch'],['downed','Let Bounce'],['muffed','Muffed'],['outOfBounds','Out of Bounds'],['blocked','Blocked']],
   fieldGoal:[['good','Good'],['noGood','No Good'],['blocked','Blocked'],['badSnap','Bad Snap']],
   fieldGoalBlock:[['good','Good'],['noGood','No Good'],['blocked','Blocked'],['badSnap','Bad Snap']],
 };

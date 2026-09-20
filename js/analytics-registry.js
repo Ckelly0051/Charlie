@@ -187,10 +187,9 @@ export class AnalyticsRegistry {
         if (event.unit === 'try' || event.unit === 'tryDefense') {
           return [event.attemptType === 'twoPoint' ? 'Two-Point Try' : event.attemptType === 'extraPoint' ? 'Extra Point' : 'Try (Unspecified)'];
         }
-        const label = {
-          kickoff: 'Kickoff', kickoffReturn: 'Kick Return', punt: 'Punt', puntReturn: 'Punt Return',
-          fieldGoal: 'Field Goal', fieldGoalBlock: 'Field Goal Block',
-        }[event.unit];
+        // The model owns the unit names; the try units are split above by
+        // attempt type, so they never reach this lookup.
+        const label = SpecialTeamsModel.UNIT_LABELS[event.unit];
         return label ? [label] : [];
       }, 'SpecialTeamsModel.normalize.unit (literal label, try split by attemptType)'),
       ready('specialTeamsModifier', 'Special Teams Modifier', p => {
