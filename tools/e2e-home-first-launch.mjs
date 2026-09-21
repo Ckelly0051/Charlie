@@ -1,5 +1,9 @@
 import puppeteer from 'puppeteer';
+import {mkdirSync} from 'node:fs';
 import {APP_URL} from './app-entry.mjs';
+// The captures below write into `artifacts/`, which is untracked and absent from
+// a clean checkout; without this the harness crashed before asserting anything.
+mkdirSync('artifacts',{recursive:true});
 let pass=0,fail=0;
 const ok=(value,label,detail='')=>value?(pass++,console.log(`  PASS  ${label}`)):(fail++,console.log(`  FAIL  ${label}${detail?' -- '+detail:''}`));
 async function scenario(run){
