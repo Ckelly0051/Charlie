@@ -275,12 +275,17 @@ authority until a replacement composition is reviewed and approved.
      short rail). And at 1280 both create buttons sat 26px past the rail's right
      edge because a grid item's automatic minimum is its content; the sections
      carry `min-width:0`, and the harness checks both axes now.
-     **Current evidence:** `tools/e2e-home-rail.mjs` (55 assertions,
+     **Current evidence:** `tools/e2e-home-rail.mjs` (57 assertions,
      behavioural, including a legacy `Undated` fixture in its own browser
      context) and `artifacts/home-rail-91c/` at 1920×1080, 1440×900 and
-     1280×800 — each showing three year groups, the caret-less active heading,
-     an expanded and a folded inactive year, the selected row, the scout tree,
-     the anchored tools, populated cards and the selected-game panel.
+     1280×800. The 1920 capture shows all three year groups at once; the 1440
+     capture shows the folded 2026 group, caret-less active 2025 heading,
+     selected row and bounded tree; the 1280 capture shows the selected active
+     group, scout row, create actions and anchored tools inside the shortest
+     supported rail. Together with the measured scroll assertions, these prove
+     that groups remain reachable without pretending all three fit in the
+     narrow rail simultaneously. Every capture includes populated cards and the
+     selected-game panel.
      **Limitation, stated plainly:** the scout-track starvation is fixed and
      measured but is NOT mutation-proven — the harness's rail does not starve in
      that configuration, so that one assertion guards the contract without a

@@ -244,23 +244,32 @@ const keyboardState = () => page.evaluate(year => {
     focused: document.activeElement === toggle,
     tabbable: toggle ? toggle.tabIndex >= 0 : false,
     isButton: toggle?.tagName === 'BUTTON',
-    focusRing: toggle ? getComputedStyle(toggle).getPropertyValue('--gi-focus') !== '' : false,
+    focusVisible: toggle?.matches(':focus-visible') || false,
+    focusRing: toggle ? getComputedStyle(toggle).boxShadow : 'none',
   };
 }, KEYBOARD_YEAR);
-await page.evaluate(year => {
-  [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
-    .find(t => t.dataset.railYear === year)?.focus();
-}, KEYBOARD_YEAR);
+/* Reach the disclosure through the browser's real tab order. Programmatic
+   `.focus()` proves ownership but does not put Chromium into keyboard focus
+   modality, so `:focus-visible` correctly stays false and the painted-ring
+   assertion would be meaningless. */
+await page.evaluate(() => document.activeElement?.blur());
+let reachedDisclosure = false;
+for (let step = 0; step < 80; step++) {
+  await page.keyboard.press('Tab');
+  reachedDisclosure = await page.evaluate(year =>
+    document.activeElement?.dataset?.railYear === year, KEYBOARD_YEAR);
+  if (reachedDisclosure) break;
+}
 const kbFocused = await keyboardState();
-ok(kbFocused.focused && kbFocused.tabbable && kbFocused.isButton,
-  'the year disclosure is a real button, focusable and in the tab order', JSON.stringify(kbFocused));
+ok(reachedDisclosure && kbFocused.focused && kbFocused.tabbable && kbFocused.isButton,
+  'Tab reaches the real year-disclosure button in the page tab order', JSON.stringify(kbFocused));
+ok(kbFocused.focusVisible && kbFocused.focusRing !== 'none',
+  'the focused year disclosure paints its visible keyboard focus ring', JSON.stringify(kbFocused));
 await page.keyboard.press('Enter');
 await sleep(300);
 const afterEnter = await keyboardState();
-await page.evaluate(year => {
-  [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
-    .find(t => t.dataset.railYear === year)?.focus();
-}, KEYBOARD_YEAR);
+ok(afterEnter.focused,
+  'focus stays on the disclosure after Enter changes its controlled body', JSON.stringify(afterEnter));
 await page.keyboard.press('Space');
 await sleep(300);
 const afterSpace = await keyboardState();

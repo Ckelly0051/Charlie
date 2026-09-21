@@ -1238,9 +1238,12 @@ RATIONALE is the decision record and carries all eight coach rulings). **The
 approval is the installed smoke, not a registry state:** its manifest still
 reads `productionStatus: REJECTED`.
 
-**SPECIAL TEAMS ACCEPTANCE PASS COMPLETE (2026-09-19) — awaiting Codex review,
-a Charlie Gate and an installed smoke.** The board, its navigation, units,
-modules, scopes, exports and film actions are unchanged. What changed:
+**SPECIAL TEAMS ACCEPTANCE PASS COMPLETE (2026-09-19); installed smoke
+CONFIRMED 2026-09-21 (`1.12.0-91`).** The code checkpoint, coach review and
+installed presentation smoke are complete. Formal registry acceptance remains
+separate and the manifest still reads `productionStatus: REJECTED`. The board,
+its navigation, units, modules, scopes, exports and film actions are unchanged.
+What changed:
 
 **A blocked punt is charted on the unit that fields one.** `puntReturn` is
 displayed as `Punt Return / Block` and its outcome vocabulary gained `Blocked`;
@@ -1423,8 +1426,10 @@ charted. Checkpoint evidence: `e2e-reports-players` 223/223,
 `e2e-native-reports` 99/99, and `e2e-parity` 2/2 with both cohorts green,
 including the local `mavericks-6game` golden Codex's isolated checkout could not
 run. The export game summaries, missing-value sorting and the negative `Long`
-with its film alignment are settled; do not re-litigate them. No Charlie Gate and
-no installed smoke, so production status is unchanged.
+with its film alignment are settled; do not re-litigate them. The coach approved
+the rebuilt composition in the installed `1.12.0-91` smoke. That closes the
+presentation checkpoint but does not change the separate formal registry state,
+which remains `REJECTED`.
 
 **ONE CREDIT INDEX OWNS EVERY NUMBER AND EVERY CLIP.** `StatsEngine._playerCredits`
 makes one pass and files each attributed play into a bucket per player, per role,

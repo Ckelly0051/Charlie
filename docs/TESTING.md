@@ -170,14 +170,16 @@ distinct, headed and holding their own create actions; every utility action
 reachable, clear of the tree and at full target height at every tested viewport;
 and long labels that neither widen the rail nor clip without a title.
 
-**Home rail, CURRENT CONTRACT (2026-09-21).** `e2e-home-rail` is **55**. The
+**Home rail, CURRENT CONTRACT (2026-09-21).** `e2e-home-rail` is **57**. The
 active year is a heading that cannot fold and draws no caret; an inactive folded
 year renders no body. One `yearGroupKey()` owner means a blank-year legacy season
 groups under `Undated` and can BE the active year — covered by a legacy fixture
 in its own browser context (an open blank-year season, a second season in the
 same group, and a dated inactive year). Keyboard operation is real: Puppeteer
 focuses the disclosure and presses Enter and Space, and nothing in that block
-clicks. Containment is checked on both axes. Everything in the earlier entries
+clicks. The same focused control must match `:focus-visible` and paint a
+non-`none` box shadow, so focus ownership alone cannot satisfy the test.
+Containment is checked on both axes. Everything in the earlier entries
 below still holds except where they say a folded active year keeps its current
 row — that behaviour is gone.
 
