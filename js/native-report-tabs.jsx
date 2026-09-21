@@ -1204,7 +1204,7 @@ function PlayerRoleModule({ role, table, screen }) {
     meta={`${rows.length} player${rows.length === 1 ? '' : 's'}`}
     cls={`gi-player-module is-${role.phase}${rows.length > cap ? ' is-scrolling' : ''}`}
     action={<ColumnMenu role={role} columns={table?.columns || []} hidden={hidden} onToggle={toggle} />}>
-    <div class="gi-player-body" data-player-cap={cap} style={`--gi-player-cap:${cap}`}>
+    <div class="gi-player-body" data-player-cap={cap} style={`--player-cap:${cap}`}>
       <DataTable className="stats-table gi-player-table" columns={columns} defaultSort={role.sort || null}
         rows={bodyRows} />
     </div>

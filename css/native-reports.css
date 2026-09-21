@@ -3295,7 +3295,7 @@
 .gi-reports .gi-players-col+.gi-players-col{ box-shadow:-1px 0 var(--gi-bd-line) }
 .gi-reports .gi-player-phase{ display:grid;gap:1px;min-width:0 }
 .gi-reports .gi-player-phase+.gi-player-phase{ border-top:1px solid var(--gi-bd-line) }
-/* Capacity, in rows: the body holds exactly `--gi-player-cap` data rows plus its
+/* Capacity, in rows: the body holds exactly `--player-cap` data rows plus its
    column header, and scrolls only past that. The module header sits outside this
    box, so it never moves; the column header is sticky INSIDE it, which is why
    the Players tables opt out of the route-wide `th{top:42px}` rule. */
@@ -3303,8 +3303,8 @@
   /* Measured, not assumed: a data row and the column header are both 38px on
      this board, so capacity rows plus one header is the exact body height and a
      module at capacity does not scroll. */
-  --gi-player-row:38px;--gi-player-head:38px;
-  max-height:calc(var(--gi-player-cap) * var(--gi-player-row) + var(--gi-player-head));
+  --player-row:38px;--player-head:38px;
+  max-height:calc(var(--player-cap) * var(--player-row) + var(--player-head));
   overflow:auto;scrollbar-width:thin;min-width:0
 }
 @media (max-width:1419px){
