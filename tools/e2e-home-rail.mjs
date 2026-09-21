@@ -166,31 +166,40 @@ await page.setViewport({ width: 1440, height: 900 });
 await sleep(400);
 let eight = await measure();
 ok(eight.rowsTotal === TOTAL8 && TOTAL8 === 8, 'all eight seasons are in the tree, none dropped', JSON.stringify([eight.rowsTotal, TOTAL8]));
-ok(eight.years.length >= 4 && eight.years.every(y => y.expanded === 'true' && y.controls),
-  'every year group opens expanded and owns a labelled disclosure', JSON.stringify(eight.years));
+/* Every INACTIVE year owns a labelled disclosure and opens expanded; the active
+   year is a heading and deliberately carries neither attribute. */
+ok(eight.years.length >= 4
+  && eight.years.filter(y => y.expanded !== null).every(y => y.expanded === 'true' && y.controls)
+  && eight.years.filter(y => y.expanded === null).length === 1,
+  'every inactive year opens expanded with a labelled disclosure, and exactly one year is the active heading',
+  JSON.stringify(eight.years));
 ok(eight.currentVisible, 'the open season is visible with eight seasons loaded', JSON.stringify(eight));
 
 /* Folding a year is real: its rows leave the tree, and the count stays legible. */
 const folded = await page.evaluate(async () => {
   const toggles = [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')];
-  /* A year that does NOT hold the open season, because the open season is
-     deliberately pinned visible through a fold — that contract is asserted
-     separately below and would mask this one. */
+  /* An INACTIVE year: the active year is a heading with no control at all. */
   const target = toggles.find(t => {
     const group = t.closest('.rail-group');
-    return group.querySelectorAll('.rail-row').length === 2 && !group.querySelector('.rail-row.is-current');
+    return t.tagName === 'BUTTON' && group.querySelectorAll('.rail-row').length === 2
+      && !group.querySelector('.rail-row.is-current');
   });
+  const controls = target.getAttribute('aria-controls');
   const before = document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-row').length;
   target.click();
   await new Promise(r => setTimeout(r, 250));
   const after = document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-row').length;
-  const body = document.getElementById(target.getAttribute('aria-controls'));
-  return { before, after, expanded: target.getAttribute('aria-expanded'),
-    bodyRows: body.querySelectorAll('.rail-row').length,
-    count: target.querySelector('.rail-year-count')?.textContent.trim() };
+  const same = [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
+    .find(t => t.dataset.railYear === target.dataset.railYear);
+  return { before, after, expanded: same?.getAttribute('aria-expanded'),
+    // A fully collapsed year renders no body at all, so the DOM cannot
+    // contradict `aria-expanded="false"`.
+    bodyPresent: !!document.getElementById(controls),
+    count: same?.querySelector('.rail-year-count')?.textContent.trim() };
 });
-ok(folded.after === folded.before - 2 && folded.expanded === 'false' && folded.bodyRows === 0,
-  'folding a year removes exactly its own rows from the tree', JSON.stringify(folded));
+ok(folded.after === folded.before - 2 && folded.expanded === 'false' && !folded.bodyPresent,
+  'folding a year removes exactly its own rows and its controlled body entirely',
+  JSON.stringify(folded));
 ok(folded.count === '2', 'a folded year still states how many seasons it holds', JSON.stringify(folded));
 
 /* Keyboard: focus the disclosure and operate it with the keyboard alone. */
@@ -211,25 +220,84 @@ ok(keyboard.focused && keyboard.tabbable, 'the year disclosure is focusable and 
 ok(keyboard.expanded === 'true' && keyboard.rows === TOTAL8,
   'activating the disclosure from the keyboard expands the year again', JSON.stringify(keyboard));
 
-console.log('\n== 4. The open season survives a fold, a viewport change and a season change ==');
-const foldCurrent = await page.evaluate(async () => {
+console.log('\n== 4. The ACTIVE year is expanded and offers no collapse ==');
+/* REPOINTED: an earlier pass let the active year fold and pinned its current
+   row visible, which left `aria-expanded="false"` over rendered content and
+   offered an action that could not honestly complete. The active year is now a
+   heading. */
+const activeYear = await page.evaluate(() => {
   const section = document.querySelector('[data-rail-section="Program Seasons"]');
   const current = section.querySelector('.rail-row.is-current');
-  const year = current?.closest('.rail-group')?.querySelector('.rail-year-toggle');
-  if (!year) return { skipped: true };
-  year.click();
-  await new Promise(r => setTimeout(r, 250));
-  const stillThere = section.querySelector('.rail-row.is-current');
+  const group = current?.closest('.rail-group');
+  const header = group?.querySelector('.rail-year-toggle');
   const scroller = section.querySelector('.rail-groups');
-  const visible = stillThere
-    ? (() => { const a = stillThere.getBoundingClientRect(), b = scroller.getBoundingClientRect();
-      return a.top >= b.top - 1 && a.bottom <= b.bottom + 1; })()
-    : false;
-  return { expanded: year.getAttribute('aria-expanded'), present: !!stillThere, visible };
+  const model = (window.app.teamHubScreen.snapshot().railSeasons || [])
+    .filter(s => !s.isScout);
+  const activeYearValue = header?.dataset.railYear;
+  return {
+    isButton: header?.tagName === 'BUTTON',
+    hasAriaExpanded: header?.hasAttribute('aria-expanded'),
+    markedActive: header?.dataset.railActiveYear === 'true',
+    // Every season of the active year is rendered, not just the current one.
+    renderedInYear: group?.querySelectorAll('.rail-row').length,
+    modelInYear: model.filter(s => String(s.year) === String(activeYearValue)).length,
+    currentInScroller: (() => { const a = current.getBoundingClientRect(), b = scroller.getBoundingClientRect();
+      return a.top >= b.top - 1 && a.bottom <= b.bottom + 1; })(),
+    // Nothing anywhere may claim collapsed while rendering its own rows.
+    lyingDisclosures: [...section.querySelectorAll('.rail-group')].filter(g => {
+      const t = g.querySelector('.rail-year-toggle');
+      return t?.getAttribute('aria-expanded') === 'false' && g.querySelectorAll('.rail-row').length > 0;
+    }).length,
+  };
 });
-ok(foldCurrent.expanded === 'false' && foldCurrent.present && foldCurrent.visible,
-  'folding the OPEN season\'s year keeps that season on screen — it is never hidden',
-  JSON.stringify(foldCurrent));
+ok(!activeYear.isButton && !activeYear.hasAriaExpanded && activeYear.markedActive,
+  'the active year is a heading with no collapse control and no aria-expanded',
+  JSON.stringify(activeYear));
+ok(activeYear.renderedInYear === activeYear.modelInYear && activeYear.renderedInYear > 0,
+  'every season in the active year is rendered, not just the open one',
+  JSON.stringify(activeYear));
+ok(activeYear.lyingDisclosures === 0,
+  'no year reports aria-expanded=false while rendering rows — DOM and accessibility agree',
+  JSON.stringify(activeYear));
+ok(activeYear.currentInScroller, 'the open season is inside its own scroller', JSON.stringify(activeYear));
+
+/* Opening a season in a folded year expands that year and reveals all of it. */
+const switchYear = await page.evaluate(async () => {
+  const section = () => document.querySelector('[data-rail-section="Program Seasons"]');
+  // Fold a year that is not active, then open one of its seasons.
+  const toggle = [...section().querySelectorAll('.rail-year-toggle')]
+    .find(t => t.tagName === 'BUTTON' && t.getAttribute('aria-expanded') === 'true');
+  const year = toggle.dataset.railYear;
+  toggle.click();
+  await new Promise(r => setTimeout(r, 250));
+  const foldedRows = section().querySelectorAll(`.rail-group.is-folded .rail-row`).length;
+  const target = (window.app.teamHubScreen.snapshot().railSeasons || [])
+    .find(s => !s.isScout && String(s.year) === String(year));
+  await window.app.teamHubScreen.openSeason(target.id);
+  await new Promise(r => setTimeout(r, 900));
+  const group = [...section().querySelectorAll('.rail-group')]
+    .find(g => g.querySelector('.rail-year-toggle')?.dataset.railYear === String(year));
+  const header = group?.querySelector('.rail-year-toggle');
+  const current = section().querySelector('.rail-row.is-current');
+  const scroller = section().querySelector('.rail-groups');
+  const model = (window.app.teamHubScreen.snapshot().railSeasons || [])
+    .filter(s => !s.isScout && String(s.year) === String(year)).length;
+  return { year, foldedRows, becameActive: header?.dataset.railActiveYear === 'true',
+    isButton: header?.tagName === 'BUTTON', rendered: group?.querySelectorAll('.rail-row').length, model,
+    currentYear: current?.closest('.rail-group')?.querySelector('.rail-year-toggle')?.dataset.railYear,
+    currentVisible: current ? (() => { const a = current.getBoundingClientRect(), b = scroller.getBoundingClientRect();
+      return a.top >= b.top - 1 && a.bottom <= b.bottom + 1; })() : false };
+});
+ok(switchYear.foldedRows === 0, 'a folded inactive year renders none of its rows', JSON.stringify(switchYear));
+ok(switchYear.becameActive && !switchYear.isButton,
+  'opening a season in a folded year makes that year the expanded, non-collapsible active year',
+  JSON.stringify(switchYear));
+ok(switchYear.rendered === switchYear.model && switchYear.rendered > 0
+  && switchYear.currentYear === switchYear.year && switchYear.currentVisible,
+  'every season in the newly active year is visible and the open one is scrolled into view',
+  JSON.stringify(switchYear));
+
+console.log('\n== 4b. The open season survives a viewport change ==');
 
 await page.setViewport({ width: 1280, height: 800 });
 await sleep(450);
@@ -261,6 +329,105 @@ ok(long.railWidth === before,
 ok(long.clippedLabels === 0,
   'every clipped label carries its full name in a title attribute', JSON.stringify(long.clippedLabels));
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/home-rail-1440x900-long-labels.png` });
+
+console.log('\n== 7. Collapse state is scoped to the program it was made in ==');
+const programScope = await page.evaluate(async () => {
+  const section = () => document.querySelector('[data-rail-section="Program Seasons"]');
+  // Fold an inactive year in this program.
+  const toggle = [...section().querySelectorAll('.rail-year-toggle')]
+    .find(t => t.tagName === 'BUTTON' && t.getAttribute('aria-expanded') === 'true');
+  const foldedYear = toggle.dataset.railYear;
+  toggle.click();
+  await new Promise(r => setTimeout(r, 250));
+  const foldedHere = [...section().querySelectorAll('.rail-year-toggle')]
+    .find(t => t.dataset.railYear === foldedYear)?.getAttribute('aria-expanded');
+  // A second program, with a season in that SAME year.
+  const app = window.app;
+  const team = await app.teamHubScreen.addTeam({ school: 'Second Program', nickname: 'Owls', jerseyColor: 'navy' });
+  await new Promise(r => setTimeout(r, 500));
+  // The hub's own creator — the same path first launch uses for a new program.
+  await app.teamHubScreen.createSeason({ year: foldedYear, level: 'JV', setupMode: 'quick' });
+  await app.teamHubScreen.load();
+  app.workspaceShell.show('home');
+  // Wait for the new program's own tree, rather than assuming a fixed delay.
+  for (let attempt = 0; attempt < 30 && !section()?.querySelector('.rail-row'); attempt++) {
+    await new Promise(r => setTimeout(r, 200));
+  }
+  const years = [...section().querySelectorAll('.rail-year-toggle')].map(t => ({
+    year: t.dataset.railYear, expanded: t.getAttribute('aria-expanded'),
+    active: t.dataset.railActiveYear === 'true' }));
+  return { teamOk: team?.ok, foldedYear, foldedHere, years,
+    activeTeam: app.teamRegistry.activeTeamId(),
+    modelRows: (app.teamHubScreen.snapshot().railSeasons || []).length,
+    firstLaunch: !!document.querySelector('[data-first-launch]'),
+    rows: section()?.querySelectorAll('.rail-row').length ?? -1 };
+});
+ok(programScope.foldedHere === 'false', 'a year folds in the first program', JSON.stringify(programScope));
+ok(programScope.years.every(y => y.expanded !== 'false'),
+  'that fold does not leak into another program — the new program opens fully expanded',
+  JSON.stringify(programScope));
+ok(programScope.years.some(y => y.active) && programScope.rows > 0,
+  'the new program shows its own active year as the expanded heading', JSON.stringify(programScope));
+
+console.log('\n== 8. Home targets and one opponent identity per component ==');
+/* Real game cards, or the duplication claim would pass over an empty grid. */
+await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  store.addGame({ id: 'dup-1', name: 'Week 1', status: 'active',
+    gameInfo: { opponent: 'St. Peter Lutheran Patriots', date: '2026-09-04', scoreUs: 21, scoreThem: 7 },
+    plays: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false });
+  store.addGame({ id: 'dup-2', name: 'Week 2', status: 'active',
+    gameInfo: { opponent: 'Holy Family Wildcats', date: '2026-09-11' },
+    plays: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false });
+  app.workspaceShell.show('home');
+  for (let attempt = 0; attempt < 30 && !document.querySelector('.ws-game-row'); attempt++) {
+    await new Promise(r => setTimeout(r, 200));
+  }
+});
+await sleep(400);
+const surface = await page.evaluate(() => {
+  const text = n => (n?.textContent || '').replace(/\s+/g, ' ').trim();
+  const box = n => n.getBoundingClientRect();
+  const cards = [...document.querySelectorAll('.ws-game-row')];
+  const detail = document.querySelector('.detail-pane');
+  const overflow = document.querySelector('.detail-top .icon-btn');
+  const roster = document.querySelector('.roster-action button');
+  const linkFilm = document.querySelector('.detail-status button');
+  const target = node => node ? { label: text(node) || node.getAttribute('aria-label'),
+    w: Math.round(box(node).width), h: Math.round(box(node).height) } : null;
+  return {
+    short: [...document.querySelectorAll('.ws-home-page button')]
+      .filter(n => box(n).height > 0 && box(n).height < 30)
+      .map(n => `${text(n) || n.getAttribute('aria-label')}@${Math.round(box(n).height)}`),
+    overflow: overflow ? { ...target(overflow), labelled: !!overflow.getAttribute('aria-label'),
+      tooltip: !!overflow.getAttribute('title'), isIconButton: overflow.tagName === 'BUTTON' } : null,
+    roster: target(roster), linkFilm: target(linkFilm),
+    duplicated: cards.map(card => {
+      const title = text(card.querySelector('h3'));
+      const sub = text(card.querySelector('.matchup-schools'));
+      return !!sub && (sub === title || title.includes(sub));
+    }).filter(Boolean).length,
+    detailDuplicated: (() => {
+      const title = text(detail?.querySelector('#wsDetailName'));
+      const sub = text(detail?.querySelector('.matchup-schools'));
+      return !!sub && (sub === title || title.includes(sub));
+    })(),
+    cards: cards.length,
+  };
+});
+ok(surface.short.length === 0,
+  'every Home control meets the 30px desktop target', JSON.stringify(surface.short));
+ok(surface.overflow && surface.overflow.w >= 30 && surface.overflow.h >= 30
+  && surface.overflow.isIconButton && surface.overflow.labelled && surface.overflow.tooltip,
+  'the overflow action stays a labelled icon button with a tooltip and a 30x30 target',
+  JSON.stringify(surface.overflow));
+ok((!surface.roster || surface.roster.h >= 30) && (!surface.linkFilm || surface.linkFilm.h >= 30),
+  'the text commands keep their restraint and gain a real target',
+  JSON.stringify([surface.roster, surface.linkFilm]));
+ok(surface.cards > 0 && surface.duplicated === 0 && !surface.detailDuplicated,
+  'no card or panel prints the opponent twice — asserted over real cards, not an empty grid',
+  JSON.stringify(surface));
 
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

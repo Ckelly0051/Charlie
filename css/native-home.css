@@ -13,7 +13,9 @@ body.ws-route-home .ws-home>.ws-home-page{max-width:none;margin:0}
 .ws-home-page .home-content{min-width:0;padding:24px 28px 20px}
 .ws-home-page #wsGreeting{font:600 26px/1.2 var(--gi-sans);margin:6px 0;overflow-wrap:anywhere}
 .ws-home-page #wsHomeEyebrow{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.ws-home-page .home-library-back{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--gi-bd-copy);font:600 12px var(--gi-sans);padding:0;min-height:26px}
+.ws-home-page .home-library-back{display:flex;align-items:center;gap:6px;border:0;border-radius:var(--gi-radius);background:transparent;color:var(--gi-bd-copy);font:600 12px var(--gi-sans);padding:0 8px;margin-left:-8px;min-height:30px}
+.ws-home-page .home-library-back:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.ws-home-page .home-library-back:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .icon{width:18px;height:18px;flex-shrink:0}
 .ws-home-page .ws-primary{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 body.ws-route-home .ws-contextbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:18px}
@@ -97,7 +99,9 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-year{display:flex;flex-direction:column;gap:14px;min-width:0;height:100%;min-height:0;overflow:hidden;padding:18px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .home-content{min-height:0;overflow-y:auto}
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
+/* Both tree create actions meet the 30px desktop target; the icon, border and
+   restraint are unchanged. */
+.ws-home-page .rail-head .icon-btn{width:30px;height:30px;min-height:30px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
 .ws-home-page .rail-head .icon-btn:hover{border-color:var(--gi-bd-bone);background:var(--gi-bd-control-active)}
 .ws-home-page .rail-head .icon-btn:active{background:var(--gi-1)}
 .ws-home-page .rail-head .icon-btn:focus-visible{outline:0;box-shadow:var(--gi-focus)}
@@ -156,6 +160,10 @@ body.ws-route-home .ws-home{overflow:hidden}
 }
 .ws-home-page .rail-year-toggle:hover{background:var(--gi-bd-control)}
 .ws-home-page .rail-year-toggle:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+/* The active year is a heading, not a control: no hover affordance and no
+   pointer, because there is nothing to press. */
+.ws-home-page .rail-year-toggle.is-static{cursor:default}
+.ws-home-page .rail-year-toggle.is-static:hover{background:none}
 .ws-home-page .rail-year-caret{flex:none;width:12px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .rail-year-name{overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap}
 .ws-home-page .rail-year-count{margin-left:auto;color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans)}
@@ -340,7 +348,12 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .detail-pane{position:sticky;top:0;background:var(--gi-bd-panel);border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);padding:14px 18px 16px;min-width:0}
 .ws-home-page .detail-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .ws-home-page .detail-top span{color:var(--gi-bd-copy);font-size:12px;overflow-wrap:anywhere}
-.ws-home-page .icon-btn{width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--gi-bd-copy)}
+/* The overflow action stays an icon button with its accessible label and
+   tooltip; only its target reaches the 30px desktop floor. */
+.ws-home-page .icon-btn{width:30px;height:30px;min-height:30px;padding:0;border:0;border-radius:var(--gi-radius);background:transparent;color:var(--gi-bd-copy)}
+.ws-home-page .detail-top .icon-btn:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
+.ws-home-page .detail-top .icon-btn:active{background:var(--gi-1)}
+.ws-home-page .detail-top .icon-btn:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .detail-main,.ws-home-page .detail-side,.ws-home-page .detail-identity>div{min-width:0}
 .ws-home-page .detail-identity{display:grid;grid-template-columns:100px minmax(0,1fr);align-items:center;gap:12px}
 .ws-home-page .detail-identity .thumbnail{aspect-ratio:16/9}
@@ -353,8 +366,13 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .scoreboard strong{font:600 26px/1.3 var(--gi-cond);font-variant-numeric:tabular-nums}
 .ws-home-page .scoreboard>span{color:var(--gi-bd-copy);font-size:11px}
 .ws-home-page .detail-status{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.ws-home-page .detail-status button{border:0;background:none;height:auto;min-height:24px;padding:0;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
-.ws-home-page .detail-status button:hover{color:var(--gi-bd-strong)}
+/* `Link film` keeps its restrained underlined-command look and gains a real
+   30px target; the padding is pulled back out of the row so the status line
+   does not grow around it. */
+.ws-home-page .detail-status button{display:inline-flex;align-items:center;border:0;border-radius:var(--gi-radius);background:none;height:auto;min-height:30px;padding:0 8px;margin-right:-8px;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
+.ws-home-page .detail-status button:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.ws-home-page .detail-status button:active{background:var(--gi-1)}
+.ws-home-page .detail-status button[disabled]{opacity:.55;text-decoration:none}
 .ws-home-page .detail-status button:focus-visible{outline:0;border-radius:var(--gi-radius);box-shadow:var(--gi-focus)}
 .ws-home-page .facts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--gi-bd-line);padding-bottom:10px;margin-bottom:10px}
 .ws-home-page .fact label{display:block;color:var(--gi-bd-copy);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
@@ -378,6 +396,18 @@ body.ws-route-home .ws-home{overflow:hidden}
 body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-scout] .ws-game-row.selected{border-color:var(--gi-bd-cyan);box-shadow:0 0 0 1px var(--gi-bd-cyan)}
 
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}
+/* THE TARGET IS THE CONTROL, NOT THE INK. `View roster →` read as a quiet text
+   command but offered a 16px hit area. The type, weight and restraint are
+   unchanged; the button simply owns a real 30px target with its padding inside
+   the existing row, so nothing around it grew. */
+.ws-home-page .roster-action button{
+  display:inline-flex;align-items:center;min-height:30px;padding:0 8px;margin-right:-8px;
+  border:0;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-copy);
+  font-size:12px;font-weight:600
+}
+.ws-home-page .roster-action button:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.ws-home-page .roster-action button:active{background:var(--gi-1)}
+.ws-home-page .roster-action button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 
 @media(min-width:1700px){.ws-home-page .home-with-rail{grid-template-columns:240px minmax(0,1fr)}.ws-home-page .home-content{padding:28px 32px 20px}.ws-home-page .game-workspace{grid-template-columns:minmax(0,1fr) 344px;gap:28px}}
 @media(max-width:1150px){

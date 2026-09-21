@@ -230,10 +230,23 @@ export class HomeScreen {
     const [a, b] = this.identities(game);
     return [a.name, b.name].filter(Boolean).join(' vs ');
   }
+  /** The school line EXISTS TO ADD THE NAME THE TITLE ABBREVIATED. On a program
+   *  game the title is already the opponent, so this returned the same string
+   *  and every card and the detail panel printed the opponent twice, one line
+   *  apart. It returns a line only when that line says something the title does
+   *  not — a full school name behind a nickname, or a scout game's two sides.
+   *  One strong opponent identity per component; nothing is invented to fill
+   *  the space it leaves. */
   matchupSchoolLine(game) {
-    if (this.isScout()) return this.fullTitle(game);
-    const [, opp] = this.identities(game);
-    return opp.name || '';
+    const line = this.isScout() ? this.fullTitle(game) : (this.identities(game)[1].name || '');
+    if (!line) return '';
+    /* CONTAINED, not merely equal. The title is a matchup, so the opponent's
+       full name is usually a SUBSTRING of it rather than the whole of it —
+       "St. Joseph Mavericks vs St. Peter Lutheran Patriots" over a subline
+       reading "St. Peter Lutheran Patriots" says the opponent twice just as
+       plainly as an exact repeat does. */
+    const title = this.matchupTitle(game);
+    return title.includes(line) ? '' : line;
   }
 
   dateLabel(value) {

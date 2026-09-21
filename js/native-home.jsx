@@ -163,7 +163,7 @@ function GameCard({ screen, game, selected }) {
       <Thumbnail screen={screen} game={game} />
       <div class="game-card-copy">
         <h3>{screen.matchupTitle(game)}</h3>
-        <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p>
+        {screen.matchupSchoolLine(game) ? <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p> : null}
         <div class="game-meta">
           <span>{screen.dateLabel(game.gameInfo?.date) || 'Date not set'}</span>
           <span class="score">{summary.score !== 'Not entered' ? `${summary.score} · Final` : summary.total ? 'Score not set' : 'Scheduled'}</span>
@@ -198,7 +198,7 @@ function GameDetail({ screen, game, c, scout }) {
         <Thumbnail screen={screen} game={game} detail />
         <div>
           <h2 id="wsDetailName">{matchup}</h2>
-          <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p>
+          {screen.matchupSchoolLine(game) ? <p class="matchup-schools">{screen.matchupSchoolLine(game)}</p> : null}
           <p class="detail-date" id="wsDetailMeta">{[summary.date, summary.status].filter(Boolean).join(' · ')}</p>
         </div>
       </div>
@@ -364,21 +364,31 @@ function RailSeasonRow({ season, hub }) {
  *  recorded defect: entering Opponent Scout swapped the whole rail to
  *  Opponents and reported "No opponents yet" while the coach's program
  *  seasons still existed and were still the open season scope. */
-/** One of the rail's two permanent trees, grouped by year with a real
- *  disclosure per year.
+/** One of the rail's two permanent trees, grouped by year.
  *
- *  THE OPEN SEASON IS NEVER HIDDEN. A collapsed year still renders its current
- *  row, so collapsing the year a coach is working in cannot remove the season
- *  they are working on from navigation — which is the whole point of a rail.
- *  Collapse state is CONTROLLER state (`screen.railCollapsedYears`), so an
- *  ordinary re-render, a program change or a season change cannot silently
- *  reset what the coach folded away. */
+ *  THE ACTIVE YEAR IS EXPANDED AND HAS NO COLLAPSE CONTROL. The year holding
+ *  the open season shows every one of its seasons and offers no disclosure at
+ *  all — an action that cannot honestly complete is worse than no action, and
+ *  a folded year that still rendered its current row left `aria-expanded=false`
+ *  over visibly rendered content, so the DOM and the accessibility state
+ *  disagreed. Older years are ordinary disclosures and fold completely.
+ *
+ *  Opening a season in another year therefore expands that year by definition,
+ *  reveals every season in it, and leaves the year the coach came from at
+ *  whatever disclosure state they had chosen.
+ *
+ *  Collapse state is CONTROLLER state keyed by TEAM, section and year, so it
+ *  survives an ordinary re-render but can never leak from one program into
+ *  another — two programs' 2024s are different years. */
 function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, screen, cls = '' }) {
   const groups = groupByYear(seasons);
   const [, force] = useState(0);
   const collapsed = screen.railCollapsedYears || (screen.railCollapsedYears = new Set());
-  const keyOf = year => `${title}:${year}`;
-  const isCollapsed = year => collapsed.has(keyOf(year));
+  const teamId = String(screen.app.teamRegistry?.activeTeamId?.() ?? '');
+  const keyOf = year => `${teamId}:${title}:${year}`;
+  const activeYear = String(seasons.find(season => season.current)?.year ?? '');
+  const isActive = year => String(year) === activeYear && !!activeYear;
+  const isFolded = year => !isActive(year) && collapsed.has(keyOf(year));
   const toggle = year => {
     const key = keyOf(year);
     if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
@@ -392,23 +402,32 @@ function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, sc
     <div class="rail-groups">
       {groups.length
         ? groups.map(([year, rows]) => {
-          const folded = isCollapsed(year);
-          // A folded year keeps the open season on screen and says how many it hid.
-          const shown = folded ? rows.filter(season => season.current) : rows;
+          const active = isActive(year);
+          const folded = isFolded(year);
           const bodyId = `rail-${title.replace(/\W+/g, '-').toLowerCase()}-${year}`;
-          return <div class={`rail-group${folded ? ' is-folded' : ''}`} key={year}>
+          return <div class={`rail-group${folded ? ' is-folded' : ''}${active ? ' is-active-year' : ''}`} key={year}>
             <h3 class="rail-year-label">
-              <button type="button" class="rail-year-toggle" data-rail-year={year}
-                aria-expanded={folded ? 'false' : 'true'} aria-controls={bodyId}
-                onClick={() => toggle(year)}>
-                <span class="rail-year-caret" aria-hidden="true">{folded ? '▸' : '▾'}</span>
-                <span class="rail-year-name">{year}</span>
-                <span class="rail-year-count">{rows.length}</span>
-              </button>
+              {active
+                // The open season's year: a heading, not a control. It keeps the
+                // count and the year, and it is always fully expanded.
+                ? <span class="rail-year-toggle is-static" data-rail-year={year} data-rail-active-year="true">
+                  <span class="rail-year-caret" aria-hidden="true">▾</span>
+                  <span class="rail-year-name">{year}</span>
+                  <span class="rail-year-count">{rows.length}</span>
+                </span>
+                : <button type="button" class="rail-year-toggle" data-rail-year={year}
+                  aria-expanded={folded ? 'false' : 'true'} aria-controls={bodyId}
+                  onClick={() => toggle(year)}>
+                  <span class="rail-year-caret" aria-hidden="true">{folded ? '▸' : '▾'}</span>
+                  <span class="rail-year-name">{year}</span>
+                  <span class="rail-year-count">{rows.length}</span>
+                </button>}
             </h3>
-            <div class="rail-group-body" id={bodyId}>
-              {shown.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
-            </div>
+            {/* A folded year renders NOTHING, so `aria-expanded` and the DOM
+                always agree. The open season can never be in one. */}
+            {folded ? null : <div class="rail-group-body" id={bodyId}>
+              {rows.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
+            </div>}
           </div>;
         })
         : <p class="rail-empty">{emptyText}</p>}
