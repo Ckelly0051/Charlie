@@ -104,7 +104,7 @@ The smallest existing harness for the route or domain you touched.
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
-**Players Revision 2, 2026-09-20.** `e2e-reports-players` (223) keeps every
+**Players Revision 2, 2026-09-20.** `e2e-reports-players` (239) keeps every
 Revision 1 contract and adds the Revision 2 ones on a two-game fixture where one
 player is credited in three roles: every clickable statistic opens exactly its own
 credited events (asserted against `playersBoard`'s buckets, so the board and the
@@ -156,6 +156,32 @@ defender. Three mutations — restoring the `Math.max(0, …)` clamp (4 red),
 flattening unmeasured measures and dropping `gradeSort` (4 red), and rebuilding
 the export summary from the fixed stat list (3 red) — each red naming the exact
 reported wording.
+
+**The 1.12.0-90 REVISE repairs, 2026-09-20.** `e2e-reports-players` is **239**
+and `e2e-reports-defense-board` **60**, `e2e-reports-defense-realdata` **89**.
+The Players additions assert the composition, not its affordances: the phase
+order and contiguity, that no column interleaves two phases, Passing's three row
+slots and its exact body height (`3 × 38 + 38`), dash-filled unused capacity,
+held rows carrying no film or player action, internal scroll only past capacity
+with neither the module header nor the column header moving, and identical
+module heights across a sort and a phase filter. The Defense additions assert
+each module's cohort label against counts **re-derived from the rendered rows**,
+on a synthetic season whose numbers are nothing like the canonical one's and on
+all six canonical games. Three existing assertions whose subject the REVISE
+deliberately replaced are repointed rather than weakened — band pairing becomes
+phase columns at 1440 and a single stacked column at 1280, and the Players
+sticky opt-out becomes a sticky header bound to the module body at `top:0`.
+Mutations: reversing the column split (5 red), Passing capacity 3 → 5 (3 red),
+and hardcoding `14 direction-tagged snaps`, which reds the synthetic board at
+once and the canonical season on its second game (25 direction-tagged snaps).
+
+**A second scroll container silently steals a sticky header.** The Players
+column header had to stay put while a module body scrolls, and setting
+`max-height` plus `position:sticky` was not enough: `.gi-table-wrap` still
+carried `overflow-x:auto`, so it was itself a scrollport, and `sticky` resolves
+against the NEAREST one — a box that never scrolls. The header rode up with the
+rows while every computed-style check said `sticky`. Assert the header's
+measured position after scrolling the body, never just its `position`.
 
 **Players Revision 2 checkpoint, 2026-09-20.** Codex reviewed
 `5471cb9..790e192` with no findings. Totals at that checkpoint:

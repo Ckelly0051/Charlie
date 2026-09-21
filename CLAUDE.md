@@ -1136,6 +1136,20 @@ zero-sample categorical row (play type, direction, pressure situation, zone,
 hash, down and distance) is not rendered, and Front and Coverage performance are
 not rendered when nothing was charted.
 
+**EVERY MODULE NAMES THE COHORT IT MEASURES, IN COUNTS (2026-09-20).** Four
+valid cohorts run through this board and presenting them unlabelled is what made
+correct arithmetic read as a contradiction in the `1.12.0-90` installed smoke:
+the KPI strip measures the classified run/pass subset, Production by play type
+measures that subset through MULTI-SELECT rows that overlap and cannot be summed,
+Performance by Play Direction drops any snap with no charted direction, and
+Opponent possessions take every charted snap with penalty movement included. Each
+states its own cohort inside the existing header at the 12.5px floor:
+`15 run/pass snaps`, `15 snaps · 18 tags`, `14 direction-tagged snaps`,
+`20 snaps · penalties included`. **The tag count IS the overlap statement** — no
+sentence says rows may overlap. Every count is computed from the rows it
+describes; a hardcoded canonical value reds both the synthetic board and the
+canonical season's second game. **No total, cohort or calculation changed.**
+
 **Sticky needs the route's real scrollport.** `.ws-reports` scrolls, but the
 report pane (`overflow-x:auto`) and `.gi-reports` (`overflow-x:hidden`, which
 forces `overflow-y:auto`) are scroll containers that never move, so a sticky bar
@@ -1340,9 +1354,40 @@ vocabulary no coach uses - and its defensive KPI band led with Stop Rate. The
 export carries the held-row dash, calls `StatsEngine.ddPretty` (the static form
 of `_ddPretty`, the one owner of this wording), and prints the board's KPI
 order. `e2e-reports-self-scout` asserts against the produced HTML string.
+**PLAYERS COMPOSITION IS PHASE GROUPS, and the 1.12.0-90 installed smoke is what
+rejected the alternative (2026-09-20).** Populated roles paired two at a time in
+board order, which put Receiving beside Tackles — offense and defense in one
+band — and let a one-row module sit as dead space beside a six-row one. Roles
+group by PHASE: Offense (Rushing, Passing, Receiving), Defense (Tackles),
+Special Teams (Return Game, Kicking / Punting), each contiguous and in that
+order, two phase columns at desktop width and one below 1420px — the same
+measured breakpoint the role tables already used, because a narrower column
+cannot hold Passing's or Tackles' fixed table. Phase identity comes from the
+composition and the existing per-phase module colour; **no explanatory copy is
+added to say what a phase is.**
+
+**A MODULE IS ITS ROW CAPACITY.** Each role declares `cap` — 3, 6 or 9, three
+sizes only, each sized from the real canonical range (Passing 1-2, Kicking 0-2,
+Receiving 0-6, Return Game 0-7, Rushing 3-9, Tackles 7-12). Passing is 3.
+Unused slots render the shared HELD row — a dash in every column, never
+interactive, never sorted above real data — so a sparse role is a correctly
+sized module rather than dead space, and a module is never stretched to a
+neighbour's natural height. A cohort past capacity keeps every row and scrolls
+inside the module body while the module header and the column header stay put.
+Sorting and scope changes move no module height, because capacity owns the
+geometry and the cohort does not.
+
+**The module body is the ONLY scrollport on this board.** `.gi-table-wrap` kept
+its own `overflow-x:auto`, so it was a scroll container too and a sticky `th`
+resolved against the box that never scrolls — the column header rode up with the
+rows instead of staying. Both axes belong to `.gi-player-body`, and the column
+header is deliberately sticky at ITS `top:0`, which is the correction of the
+route-wide `th{top:42px}` rather than the opt-out Revision 1 carried.
+
 **Reports > Players is REVISION 2 (2026-09-20): its CODE checkpoint is accepted —
 Codex reviewed `5471cb9..790e192` with no findings — but it is NOT coach
-accepted.** The approved six-role leaderboard is intact —
+accepted, and its composition took a REVISE in the `1.12.0-90` installed
+smoke.** The approved six-role leaderboard is intact —
 same roles, stat definitions, scopes, sorting, absence semantics and column
 geometry. Revision 2 adds analysis on top of it, using only fields already
 charted. Checkpoint evidence: `e2e-reports-players` 223/223,
@@ -2175,8 +2220,8 @@ Full tiers, commands, and what each tier can and cannot certify:
 
 Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
 `tools/e2e-reports-defense-realdata.mjs` (Defense Revision 2 on the canonical
-season, 84), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
-on a synthetic season, 55),
+season, 89), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
+on a synthetic season, 60),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
 responsive geometry, 106), `tools/e2e-reports-overview-realdata.mjs` (the
@@ -2197,7 +2242,7 @@ corrections, legacy punt ownership, scope chrome and the printed export, 50), `t
 absence contract, the role-specific composite film cohorts, the Grade repair, the
 one-owner game summary shared with the export, situational sort ORDER over
 positive, measured-zero, negative and unmeasured values, and the true negative
-`Long` with its film, 223) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
+`Long` with its film, the phase composition and its row capacities, 239) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
 composition, its title-only module headers, the composite defensive-call
 contract, both ranking rules, canonical metric reuse, exact film cohorts, the
 HTML export's own schema and 1440/1280 containment, 110) and `tools/e2e-reports-season.mjs` (the Season

@@ -1054,9 +1054,67 @@ edge-to-edge by design; the top bar's 18px inset is not.
       the pre-fix behaviour. `e2e-reports-players` is 223 assertions.
       **All seven findings are CLOSED**, re-reviewed by Codex over
       `5471cb9..790e192` with nothing outstanding.
-    - **Remaining:** Charlie Gate at the release widths and an installed smoke.
-      Chromium verified layout, containment and the browser-backed behavior; it
-      cannot certify WebView2 rendering.
+    - **1.12.0-90 installed smoke: REVISE for composition (2026-09-20).** The
+      coach rejected the two-at-a-time band pairing: it put Receiving beside
+      Tackles, interleaving offense and defense, and left a one-row module as
+      dead space beside a six-row one. **Repaired, and still unaccepted.** Roles
+      group by phase — Offense (Rushing, Passing, Receiving), Defense (Tackles),
+      Special Teams (Return Game, Kicking / Punting) — contiguous and in that
+      order, two phase columns at desktop width, one below 1420px. Each role
+      declares a row capacity (3, 6 or 9, sized from the real canonical range);
+      Passing is 3. Unused slots are the shared held dash row; a cohort past
+      capacity scrolls inside the body with neither header moving. The header
+      staying put needed a real repair: `.gi-table-wrap` was a second scroll
+      container, so the sticky `th` resolved against a box that never scrolls.
+      Sorting, scope and phase filters move no module height. Everything the
+      smoke required preserved — scopes, filters, sorting, column menus, detail,
+      per-statistic film, situational splits, export, keyboard, absence
+      semantics. The St. Peter values reconcile (passing yards 34 = receiving
+      yards 34; six rushers over 24 carries); **no statistic was redefined.**
+      Evidence: `artifacts/players-revise-90/` — 1920/1440/1280 × current-game
+      All roles, Offense, Defense, Special Teams, plus full-season All roles. No
+      page overflow, no clipped cell, no console error at any width.
+    - **Remaining:** Charlie Gate at the release widths and a re-run installed
+      smoke on the repaired build. Chromium verified layout, containment and the
+      browser-backed behavior; it cannot certify WebView2 rendering. **The
+      `1.12.0-90` smoke is not approved** — the coach must retest.
+
+13. **Reports > Defense — `1.12.0-90` arithmetic PASSED, cohort presentation
+    REVISE, repaired 2026-09-20; awaiting a Charlie Gate and a re-run smoke.**
+    - **The reported disagreement was not a calculation defect.** Reconciled
+      play by play on the canonical St. Peter game: the final was 41-0, and all
+      15 checkable down-and-distance transitions reconcile with the tagged
+      yardage (`distance(next) == distance(prev) - yardage(prev)`), which is an
+      independent witness the yardage never feeds. The 13 charted run snaps sum
+      to exactly 0 and the two pass snaps are an interception and an incomplete,
+      so Total 0 / Rush 0 / Pass 0 / 0.0 per play is the measured truth over the
+      15 classified snaps. **Do not "repair" these totals.**
+    - **Four valid cohorts, none of them named — that was the defect.** KPI strip
+      15 classified snaps; Production by play type the same subset through
+      multi-select rows that overlap (18 tags over 15 snaps, so the rows are not
+      additive); Performance by Play Direction 14 snaps, because one snap carries
+      no direction and takes +1 yard with it, which is the entire gap between its
+      -1 and the board's 0; Opponent possessions every charted snap with penalty
+      movement included. Each now states its cohort in counts inside the existing
+      header; every count is computed, and a hardcoded canonical value reds two
+      harnesses.
+    - **The installed game has 19 defensive snaps; the Documents mirror has 20.**
+      The mirror still carries penalty snap id 4 (`Penalty + Gain`, +5, no
+      run/pass), which is exactly why the coach read 19 snaps, a -8 first drive
+      and a -10 possession total where the mirror shows 20, -3 and -5. Neither
+      copy was restored, deleted or modified. **This is a recorded data-history
+      question, not a report-code defect**, and the classified cohort is
+      identical either way, so no displayed total depends on it.
+
+14. **Reports > Special Teams — provisional `1.12.0-90` pass REMAINS VALID
+    (2026-09-20).** The Defense repair touched no shared logic: the changes are
+    `native-defense-board.jsx` presentation, `native-report-tabs.jsx` Players
+    composition and two stylesheets. No engine file changed, so Special Teams
+    yardage, scoring-side attribution, field perspective, scope, possession
+    ownership and structured/legacy classification are untouched by
+    construction. `e2e-reports-special-teams` is 57/57 unchanged, and
+    `e2e-parity` is 2/2 with no golden edited. It stays provisional pending its
+    own Charlie Gate and installed smoke.
 
 ## Breakdown
 

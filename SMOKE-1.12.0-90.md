@@ -89,4 +89,27 @@ exists.
 
 ## Result
 
-Not yet run.
+Run 2026-09-20. **Not approved — a repaired build must be re-smoked.**
+
+- **Reports > Players — REVISE (composition).** The band pairing interleaved
+  Receiving with Tackles and left sparse modules as dead space. Repaired on this
+  branch after the smoke: phase grouping, deliberate row capacities with Passing
+  at three slots, held dash rows, and internal scroll with fixed headers. Not in
+  this installer.
+- **Reports > Defense — arithmetic PASSED, cohort presentation REVISE.** The
+  reported disagreement reconciled: the game was 41-0 and all 15 checkable
+  down-and-distance transitions agree with the tagged yardage, so Total / Rush /
+  Pass 0 over the 15 classified snaps is the measured truth. What was wrong is
+  that four valid cohorts were displayed unlabelled. Repaired after the smoke
+  with compact computed cohort metadata; no total changed. Not in this installer.
+- **Reports > Special Teams — provisional pass, and it REMAINS VALID.** The
+  Defense work touched no shared engine logic; `e2e-reports-special-teams` is
+  57/57 and `e2e-parity` 2/2 with no golden edited.
+- **Data-history note, not a defect.** This installed game has 19 defensive
+  snaps where the Documents mirror has 20: the mirror still carries penalty snap
+  id 4 (`Penalty + Gain`, +5, no run/pass), which accounts exactly for the 19
+  snaps, the -8 first drive and the -10 possession total read on screen. Neither
+  copy was modified. The classified cohort is identical either way.
+
+The repairs are committed to the working branch and require a Charlie Gate and a
+new installed smoke before any of them is accepted.
