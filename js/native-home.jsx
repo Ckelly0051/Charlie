@@ -335,9 +335,25 @@ function railLabel(season) {
 }
 
 function RailSeasonRow({ season, hub }) {
+  const ref = useRef(null);
+  /* THE OPEN SEASON IS ALWAYS ON SCREEN. The tree scrolls, so after a render
+     that changes which season is current — first paint, a program switch, a
+     season switch, a reload — the current row is brought into its scroller.
+     `nearest` so an already-visible row never jumps under the coach. */
+  /* A RESIZE RE-LAYS OUT THE RAIL WITHOUT RE-RENDERING IT, so keeping the open
+     season visible needs the listener as well as the render pass: measured at
+     1440 and 1280, the current row had scrolled out of a now-shorter tree.
+     `nearest` is idempotent — a row already inside its scroller does not move. */
+  useEffect(() => {
+    if (!season.current) return undefined;
+    const keep = () => ref.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    keep();
+    window.addEventListener('resize', keep);
+    return () => window.removeEventListener('resize', keep);
+  });
   const label = railLabel(season);
   const count = season.gameCount === 1 ? '1 game' : `${season.gameCount || 0} games`;
-  return <button type="button" class={`rail-row${season.current ? ' is-current' : ''}`} data-season-id={season.id}
+  return <button type="button" ref={ref} class={`rail-row${season.current ? ' is-current' : ''}`} data-season-id={season.id}
     aria-current={season.current ? 'true' : undefined} title={season.name || label} onClick={() => hub.openSeason(season.id)}>
     {icon('folder')}<span><strong>{label}</strong><small>{count}</small></span>
   </button>;
@@ -348,19 +364,53 @@ function RailSeasonRow({ season, hub }) {
  *  recorded defect: entering Opponent Scout swapped the whole rail to
  *  Opponents and reported "No opponents yet" while the coach's program
  *  seasons still existed and were still the open season scope. */
-function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText }) {
+/** One of the rail's two permanent trees, grouped by year with a real
+ *  disclosure per year.
+ *
+ *  THE OPEN SEASON IS NEVER HIDDEN. A collapsed year still renders its current
+ *  row, so collapsing the year a coach is working in cannot remove the season
+ *  they are working on from navigation — which is the whole point of a rail.
+ *  Collapse state is CONTROLLER state (`screen.railCollapsedYears`), so an
+ *  ordinary re-render, a program change or a season change cannot silently
+ *  reset what the coach folded away. */
+function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, screen, cls = '' }) {
   const groups = groupByYear(seasons);
-  return <section class="rail-section" data-rail-section={title} aria-label={title}>
+  const [, force] = useState(0);
+  const collapsed = screen.railCollapsedYears || (screen.railCollapsedYears = new Set());
+  const keyOf = year => `${title}:${year}`;
+  const isCollapsed = year => collapsed.has(keyOf(year));
+  const toggle = year => {
+    const key = keyOf(year);
+    if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
+    force(n => n + 1);
+  };
+  return <section class={`rail-section${cls ? ` ${cls}` : ''}`} data-rail-section={title} aria-label={title}>
     <div class="rail-head">
       <span class="gi-hub-kicker">{title}</span>
       <button type="button" class="icon-btn" aria-label={createLabel} title={createLabel} onClick={onCreate}>+</button>
     </div>
     <div class="rail-groups">
       {groups.length
-        ? groups.map(([year, rows]) => <div class="rail-group" key={year}>
-            <h3 class="rail-year-label">{year}</h3>
-            {rows.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
-          </div>)
+        ? groups.map(([year, rows]) => {
+          const folded = isCollapsed(year);
+          // A folded year keeps the open season on screen and says how many it hid.
+          const shown = folded ? rows.filter(season => season.current) : rows;
+          const bodyId = `rail-${title.replace(/\W+/g, '-').toLowerCase()}-${year}`;
+          return <div class={`rail-group${folded ? ' is-folded' : ''}`} key={year}>
+            <h3 class="rail-year-label">
+              <button type="button" class="rail-year-toggle" data-rail-year={year}
+                aria-expanded={folded ? 'false' : 'true'} aria-controls={bodyId}
+                onClick={() => toggle(year)}>
+                <span class="rail-year-caret" aria-hidden="true">{folded ? '▸' : '▾'}</span>
+                <span class="rail-year-name">{year}</span>
+                <span class="rail-year-count">{rows.length}</span>
+              </button>
+            </h3>
+            <div class="rail-group-body" id={bodyId}>
+              {shown.map(season => <RailSeasonRow key={season.id} season={season} hub={hub} />)}
+            </div>
+          </div>;
+        })
         : <p class="rail-empty">{emptyText}</p>}
     </div>
   </section>;
@@ -382,11 +432,16 @@ function SeasonRail({ screen, hub, hubState }) {
   return <nav class="rail-year" aria-label="Program seasons and opponent scouts">
     <button type="button" class="rail-library-link" onClick={() => hasTeam && screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
     {!hasTeam && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
+    {/* PROGRAM SEASONS TAKES THE RAIL'S FLEXIBLE HEIGHT. Both trees previously
+        held an equal 1fr with a 112px floor, so the season tree was pinned to
+        about one row while the fixed tool block held half the rail — the
+        installed screenshot showed 2026 while 2025 JV was the open season.
+        Scouts are content-sized under a cap; seasons take the rest. */}
     {hasTeam && <div class="rail-trees">
-      <RailSection title="Program Seasons" seasons={programs} hub={hub}
+      <RailSection title="Program Seasons" seasons={programs} hub={hub} screen={screen} cls="is-seasons"
         createLabel="New season" onCreate={event => hub.openCreateSeason(event.currentTarget)}
         emptyText="No program seasons yet." />
-      <RailSection title="Opponent Scouts" seasons={scouts} hub={hub}
+      <RailSection title="Opponent Scouts" seasons={scouts} hub={hub} screen={screen} cls="is-scouts"
         createLabel="New opponent scout" onCreate={event => hub.openCreateScout(event.currentTarget)}
         emptyText="None yet" />
     </div>}

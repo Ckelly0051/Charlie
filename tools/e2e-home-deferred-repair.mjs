@@ -258,8 +258,19 @@ for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280
   ok(reach.headingsInFrame.length === 2
     && /Program Seasons/.test(reach.headingsInFrame[0]) && /Opponent Scouts/.test(reach.headingsInFrame[1]),
     `BOTH tree headings are visible inside the rail frame at ${label}`, reach);
-  ok(reach.sectionHeights.length === 2 && reach.sectionHeights.every(s => s.h >= 112),
-    `Neither tree is starved below its pane floor at ${label}`, reach);
+  /* REPOINTED for the 1.12.0-91 rail repair, not weakened. Equal 112px floors
+     for both trees is the allocation that starved navigation: it reserved a
+     scout pane the same size as the season tree whatever each held, under a
+     tool block taking nearly half the rail, so the installed build showed one
+     year while another season was open. Program Seasons now takes the rail's
+     flexible height and keeps a real floor of its own; the scout pane is
+     content-sized under a cap and is asserted separately (heading, rows and
+     create action visible) in `e2e-home-rail`. The stronger claim is that the
+     SEASON tree can never be the starved one. */
+  const seasonsPane = reach.sectionHeights.find(s => /Program Seasons/.test(s.name));
+  const scoutsPane = reach.sectionHeights.find(s => /Opponent Scouts/.test(s.name));
+  ok(reach.sectionHeights.length === 2 && seasonsPane.h >= 120 && seasonsPane.h >= scoutsPane.h,
+    `The season tree keeps the rail's flexible height and is never the starved pane at ${label}`, reach);
   // The grid owning its own scroll is what keeps the rail in place; prove the
   // rail does not move when the coach scrolls the main panel to the bottom.
   const held = await page.evaluate(() => {

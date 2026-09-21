@@ -47,7 +47,9 @@ let r = await page.evaluate(() => ({
   // compact row, not the reused Team Hub SeasonRow markup; check for its
   // own real content instead (a year heading, plus a row whose label and
   // count are non-empty, not just present).
-  railYearLabel: document.querySelector('.rail-year-label')?.textContent || '',
+  // The year label is now a disclosure carrying a caret, the year and its
+  // count; the year itself is its own element.
+  railYearLabel: document.querySelector('.rail-year-name')?.textContent || '',
   railRowText: document.querySelector('.rail-row strong')?.textContent || '',
   railRowCount: document.querySelector('.rail-row small')?.textContent || '',
   railLibraryLink: !!document.querySelector('.rail-library-link'),

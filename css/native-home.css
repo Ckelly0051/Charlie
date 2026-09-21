@@ -94,7 +94,7 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
    `.rail-trees`. Entries are never dropped to avoid scrolling, and every
    rail action stays reachable without scrolling the main panel. */
 body.ws-route-home .ws-home{overflow:hidden}
-.ws-home-page .rail-year{display:flex;flex-direction:column;gap:22px;min-width:0;height:100%;min-height:0;overflow:hidden;padding:24px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
+.ws-home-page .rail-year{display:flex;flex-direction:column;gap:14px;min-width:0;height:100%;min-height:0;overflow:hidden;padding:18px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .home-content{min-height:0;overflow-y:auto}
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ws-home-page .rail-head .icon-btn{width:26px;height:26px;min-height:26px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
@@ -116,12 +116,49 @@ body.ws-route-home .ws-home{overflow:hidden}
    rail frame. `.rail-trees` grows to claim the rail's free space so the two
    1fr rows are bounded; the fixed tools and the rail foot keep their own
    space below it. */
-.ws-home-page .rail-trees{display:grid;grid-template-rows:minmax(112px,1fr) minmax(112px,1fr);flex:1 1 auto;gap:20px;min-height:0;overflow:hidden}
+/* PROGRAM SEASONS OWNS THE FLEXIBLE HEIGHT. Equal `1fr` rows with a 112px
+   floor each gave the season tree about one visible row on an ordinary desktop,
+   which is how the installed build showed 2026 while 2025 JV was the open
+   season. Seasons take the rail's free space; scouts are content-sized under a
+   cap, so a long scout list can never starve the tree above it. */
+.ws-home-page .rail-trees{display:grid;grid-template-rows:minmax(120px,1fr) minmax(0,auto);flex:1 1 auto;gap:14px;min-height:0;overflow:hidden}
 .ws-home-page .rail-section{display:flex;flex-direction:column;gap:10px;min-height:0}
+/* Scouts are content-sized UNDER A CAP, and seasons keep a floor of their own.
+   Sized purely to content, a long scout list grew past the season tree and, on
+   a short rail, collapsed it to nothing — the same starvation in the other
+   direction. Seasons take what is left above that cap, never less than 120px. */
+.ws-home-page .rail-section.is-scouts{max-height:34%}
+/* A SHORT DESKTOP BUYS ITS HEIGHT FROM SPACING, NEVER FROM CONTROLS. At 800px
+   the rail frame is ~682px and the tool block alone was taking 40% of it. The
+   rail's own paddings and gaps give way; every button keeps its 40px target,
+   every row its 54px, and the type does not move. */
+@media (max-height:960px){
+  .ws-home-page .rail-year{gap:10px;padding:12px 14px}
+  .ws-home-page .rail-trees{gap:10px}
+  .ws-home-page .rail-section{gap:6px}
+  .ws-home-page .rail-groups{gap:8px}
+  .ws-home-page .rail-tools{gap:4px;padding-top:8px}
+  .ws-home-page .rail-foot{padding-top:8px}
+}
 .ws-home-page .rail-head{flex:none}
-.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:22px;min-height:0;overflow-y:auto;scrollbar-width:thin}
+/* ONE SCROLLPORT PER TREE. The rail itself never scrolls, the page never
+   scrolls sideways, and each tree owns its own bounded scroller. */
+.ws-home-page .rail-groups{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;scrollbar-width:thin}
 .ws-home-page .rail-group{display:flex;flex-direction:column;gap:6px}
-.ws-home-page .rail-year-label{margin:0 0 2px;padding:0 10px;color:var(--gi-bd-strong);font:600 20px/1.2 var(--gi-sans)}
+.ws-home-page .rail-group-body{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ws-home-page .rail-year-label{margin:0;padding:0}
+/* The year disclosure: a real button, keyboard-operable, with its own focus
+   ring and a count so a folded year still says how much it holds. */
+.ws-home-page .rail-year-toggle{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;
+  border:0;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-strong);
+  font:600 20px/1.2 var(--gi-sans);text-align:left;cursor:pointer
+}
+.ws-home-page .rail-year-toggle:hover{background:var(--gi-bd-control)}
+.ws-home-page .rail-year-toggle:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+.ws-home-page .rail-year-caret{flex:none;width:12px;color:var(--gi-bd-copy);font-size:12px}
+.ws-home-page .rail-year-name{overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap}
+.ws-home-page .rail-year-count{margin-left:auto;color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans)}
 .ws-home-page .rail-empty{margin:0;color:var(--gi-bd-copy);font-size:12px}
 /* RailSeasonRow -- one label, one count, one click. */
 .ws-home-page .rail-row{display:flex;align-items:center;gap:10px;width:100%;min-height:54px;padding:8px 10px;border:1px solid transparent;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-strong);text-align:left;cursor:pointer}
@@ -131,11 +168,15 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-row small{color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .rail-row.is-current{border-color:var(--gi-bd-bone);background:var(--gi-3);box-shadow:inset 3px 0 var(--gi-bd-gold)}
 .ws-home-page .rail-row.is-current strong{color:var(--gi-bd-strong)}
-.ws-home-page .rail-tools{display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:1px solid var(--gi-bd-line)}
+/* Anchored, compact, and never an oversized fixed allocation: the tool block
+   keeps its full 40px targets and its own labels, and gives back only the gaps
+   and padding that were spending the tree's height. `flex:none` keeps it
+   reachable at every supported height. */
+.ws-home-page .rail-tools{display:flex;flex:none;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--gi-bd-line)}
 .ws-home-page .rail-tools button{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:40px;padding:4px 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
 .ws-home-page .rail-scope{padding:0 10px 4px;color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .rail-tools button:hover{color:var(--gi-bd-gold)}
-.ws-home-page .rail-foot{display:flex;flex-direction:row;align-items:center;gap:10px;padding:16px 10px 0;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}.ws-home-page .rail-foot>span{display:flex;min-width:0;flex-direction:column;gap:8px}.ws-home-page .rail-logo{width:36px;height:36px;flex:0 0 36px;object-fit:contain}
+.ws-home-page .rail-foot{display:flex;flex:none;flex-direction:row;align-items:center;gap:10px;padding:12px 10px 0;border-top:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font-size:12px}.ws-home-page .rail-foot>span{display:flex;min-width:0;flex-direction:column;gap:2px;overflow:hidden}.ws-home-page .rail-foot>span>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-home-page .rail-logo{width:36px;height:36px;flex:0 0 36px;object-fit:contain}
 
 .ws-home-page .library-panel{display:flex;flex-direction:column;gap:0}
 .ws-home-page .library-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:4px 0 22px}
