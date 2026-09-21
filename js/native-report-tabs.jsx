@@ -883,17 +883,31 @@ export function OffenseTab({ stats, screen }) {
  * width the role's colgroup asks for (identity floor plus every measurement
  * column), and it is what decides whether a band can stay paired -- see the
  * `--p-*` steps and the stacking derivation in css/native-reports.css. */
+/* ROW CAPACITY IS THE MODULE'S SIZE, and it is deliberate per role rather than
+   inherited from whatever a cohort happens to hold. `cap` is the number of
+   VISIBLE data-row slots: fewer rows pad with the shared held-row dash, more
+   rows scroll inside the module body while its header and column header stay
+   put. Three sizes only — 3, 6 and 9 — sized from the real canonical range
+   (Passing 1-2, Kicking 0-2, Receiving 0-6, Return Game 0-7, Rushing 3-9,
+   Tackles 7-12), so a module is never a large empty interior and never a
+   stretched neighbour. */
 const PLAYER_ROLES = [
-  { key: 'rushing', title: 'Rushing', phase: 'off', section: 'off', w: 620, sort: { key: 'yds', dir: 'desc' } },
-  { key: 'passing', title: 'Passing', phase: 'off', section: 'off', w: 632, sort: { key: 'yds', dir: 'desc' } },
-  { key: 'receiving', title: 'Receiving', phase: 'off', section: 'off', w: 498, sort: { key: 'yds', dir: 'desc' } },
-  { key: 'tackles', title: 'Tackles', phase: 'def', section: 'def', w: 638, sort: { key: 'tkl', dir: 'desc' } },
-  { key: 'returns', title: 'Return Game', phase: 'st', section: 'st', w: 482, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'rushing', title: 'Rushing', phase: 'off', section: 'off', w: 620, cap: 6, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'passing', title: 'Passing', phase: 'off', section: 'off', w: 632, cap: 3, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'receiving', title: 'Receiving', phase: 'off', section: 'off', w: 498, cap: 6, sort: { key: 'yds', dir: 'desc' } },
+  { key: 'tackles', title: 'Tackles', phase: 'def', section: 'def', w: 638, cap: 9, sort: { key: 'tkl', dir: 'desc' } },
+  { key: 'returns', title: 'Return Game', phase: 'st', section: 'st', w: 482, cap: 6, sort: { key: 'yds', dir: 'desc' } },
   // Kicking / Punting opens unmarked: the engine orders it by made plus punts,
   // which is not a single column, and claiming a sorted column it does not have
   // would be a false statement about the data.
-  { key: 'kicking', title: 'Kicking / Punting', phase: 'st', section: 'st', w: 448 },
+  { key: 'kicking', title: 'Kicking / Punting', phase: 'st', section: 'st', w: 448, cap: 3 },
 ];
+/* Phase is the ONLY grouping. Offense, Defense and Special Teams each stay
+   contiguous and keep their listed role order; nothing pairs across a phase
+   boundary, which is what produced the rejected Receiving/Tackles checkerboard.
+   Phase identity comes from the composition and the existing per-phase module
+   colour, never from added copy. */
+const PLAYER_PHASES = ['off', 'def', 'st'];
 const PLAYER_SECTIONS = [
   ['all', 'All roles'], ['off', 'Offense'], ['def', 'Defense'], ['st', 'Special Teams'],
 ];
@@ -1174,13 +1188,26 @@ function PlayerRoleModule({ role, table, screen }) {
     cellClass: row => [key === 'grade' ? row.gradeClass : '',
       row[key] === 'No data' ? 'blank' : ''].filter(Boolean).join(' ') || undefined,
   }));
+  /* THE MODULE IS ITS ROW CAPACITY. Unused slots are the shared HELD row — a
+     dash in every column, never interactive and never sorted above real data —
+     so a sparse role is a correctly sized module instead of dead space. A cohort
+     over capacity scrolls inside the body; the module header and the column
+     header do not move, because only the table wrap scrolls. */
+  const cap = role.cap || 6;
+  const held = Math.max(0, cap - rows.length);
+  const bodyRows = [
+    ...rows.map(row => ({ ...row, player: row.label, id: `${role.key}-${row.num}`,
+      label: `${row.label} — ${role.title}` })),
+    ...Array.from({ length: held }, (_, index) => ({ id: `${role.key}-held-${index}`, absent: true })),
+  ];
   return <Module title={role.title}
     meta={`${rows.length} player${rows.length === 1 ? '' : 's'}`}
-    cls={`gi-player-module is-${role.phase}`}
+    cls={`gi-player-module is-${role.phase}${rows.length > cap ? ' is-scrolling' : ''}`}
     action={<ColumnMenu role={role} columns={table?.columns || []} hidden={hidden} onToggle={toggle} />}>
-    <DataTable className="stats-table gi-player-table" columns={columns} defaultSort={role.sort || null}
-      rows={rows.map(row => ({ ...row, player: row.label, id: `${role.key}-${row.num}`,
-        label: `${row.label} — ${role.title}` }))} />
+    <div class="gi-player-body" data-player-cap={cap} style={`--gi-player-cap:${cap}`}>
+      <DataTable className="stats-table gi-player-table" columns={columns} defaultSort={role.sort || null}
+        rows={bodyRows} />
+    </div>
   </Module>;
 }
 
@@ -1220,17 +1247,22 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
   const playerCount = rolePlayers(sectionKeys('all')).size;
   const playCount = scoped?.length ?? stats?.allPlays?.length ?? 0;
 
-  /* Populated roles pair two to a band in board order; the roles with no
-   * attribution consolidate into one literal `No data` row that names them, so
-   * the fixed role set stays visible without six mostly-empty panels or a
-   * synchronized grid gap. */
+  /* PHASE GROUPS, NOT PAIRS. Each phase keeps its own roles together and in
+   * order; the groups are laid out in two columns at desktop width (Offense
+   * beside Defense + Special Teams) and stack into one column when a column
+   * can no longer hold its widest table. The roles with no attribution still
+   * consolidate into one literal `No data` row that names them. */
   const shown = sectionKeys(section);
   const populated = shown.filter(key => tableByKey[key]?.rows.length);
   const absent = shown.filter(key => !tableByKey[key]?.rows.length);
-  const bands = [];
-  for (let i = 0; i < populated.length; i += 2) bands.push(populated.slice(i, i + 2));
   const roleOf = key => PLAYER_ROLES.find(role => role.key === key);
-  const bandWide = band => band.length === 2 && band.some(key => roleOf(key).w > PLAYER_HALF_1280);
+  const groupOf = phase => populated.filter(key => roleOf(key).phase === phase);
+  const groups = PLAYER_PHASES.map(phase => ({ phase, keys: groupOf(phase) })).filter(group => group.keys.length);
+  // One phase on screen is one column: the same capacities, order and held rows,
+  // sized to its own widest table instead of stretched over the whole board.
+  const columns = section === 'all'
+    ? [groups.filter(g => g.phase === 'off'), groups.filter(g => g.phase !== 'off')].filter(col => col.length)
+    : [groups];
 
   return <div class="gi-overview-board gi-players-board">
     <div class="gi-players-report">
@@ -1262,10 +1294,11 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         })}
       </nav>}
       {detail ? <PlayerDetail detail={detail} screen={screen} scopeLabel={screen._playersScopeLabel()} /> : null}
-      {detail ? null : <div class="gi-players-sections">
-        {bands.map((band, index) => <div key={`${section}-${index}`}
-          class={`gi-player-band b-${band.length}${bandWide(band) ? ' is-wide' : ''}`}>
-          {band.map(key => <PlayerRoleModule key={key} role={roleOf(key)} table={tableByKey[key]} screen={screen} />)}
+      {detail ? null : <div class={`gi-players-sections cols-${columns.length}`} data-players-columns={columns.length}>
+        {columns.map((column, index) => <div key={`${section}-col-${index}`} class="gi-players-col">
+          {column.map(group => <div key={group.phase} class={`gi-player-phase is-${group.phase}`} data-players-phase={group.phase}>
+            {group.keys.map(key => <PlayerRoleModule key={key} role={roleOf(key)} table={tableByKey[key]} screen={screen} />)}
+          </div>)}
         </div>)}
         {absent.length ? <div class="gi-player-empty-summary">
           <span>No data</span><strong>{absent.map(key => roleOf(key).title).join(' · ')}</strong>

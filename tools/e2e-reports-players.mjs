@@ -227,7 +227,7 @@ const geo = await page.evaluate(() => {
     hasColgroup: !!cg,
     identFloor: cs.getPropertyValue('--p-ident').trim(),
     // Every table's identity column starts at the same offset inside its panel.
-    identOffsets: [...document.querySelectorAll('.gi-player-band')].map(b =>
+    identOffsets: [...document.querySelectorAll('.gi-players-col')].map(b =>
       [...b.querySelectorAll('.gi-player-module')].map(m => {
         const cell = m.querySelector('td.tl');
         return cell ? Math.round(cell.getBoundingClientRect().left - m.getBoundingClientRect().left) : null;
@@ -243,16 +243,16 @@ ok(geo.layout === 'fixed' && geo.hasColgroup,
   `layout=${geo.layout} colgroup=${geo.hasColgroup}`);
 ok(geo.honoured, 'every measurement column renders at its declared step width');
 ok(geo.identFloor === '208px', 'the identity column keeps its declared floor', geo.identFloor);
-ok(geo.identOffsets.every(band => band.length < 2 || band[0] === band[1]),
-  'both panels of a paired band start their identity column at the same offset',
+ok(geo.identOffsets.every(column => column.every(offset => offset === column[0])),
+  'every module in a phase column starts its identity column at the same offset',
   JSON.stringify(geo.identOffsets));
 
 /* Column edges must not move when a sort reorders rows. */
-const colsOf = () => page.evaluate(() => [...document.querySelectorAll('.gi-player-band .gi-player-module')]
+const colsOf = () => page.evaluate(() => [...document.querySelectorAll('.gi-player-module')]
   .slice(0, 1).flatMap(m => [...m.querySelectorAll('thead th')].map(t => Math.round(t.getBoundingClientRect().width))));
 const colsBefore = await colsOf();
 await page.evaluate(() => {
-  const m = document.querySelector('.gi-player-band .gi-player-module');
+  const m = document.querySelector('.gi-player-module');
   [...m.querySelectorAll('thead th')].find(t => t.textContent.trim() === 'Long')?.click();
 });
 await frame();
@@ -271,13 +271,19 @@ const headerOverlay = await page.evaluate(() => [...document.querySelectorAll('.
     if (!th || !tr) return null;
     return { role: t.closest('.gi-player-module').querySelector('header strong').textContent.trim(),
       position: getComputedStyle(th).position,
+      top: getComputedStyle(th).top,
       overlap: Math.round(th.getBoundingClientRect().bottom - tr.getBoundingClientRect().top) };
   }).filter(Boolean));
 ok(headerOverlay.every(h => h.overlap <= 1),
   'no column header is pinned over its own first data row',
   JSON.stringify(headerOverlay.filter(h => h.overlap > 1)));
-ok(headerOverlay.every(h => h.position !== 'sticky'),
-  'the Players tables opt out of the route-wide sticky header',
+/* The 1.12.0-90 REVISE gave each module body its own row capacity, so the column
+   header is now DELIBERATELY sticky — but against that body's top, not the
+   route's 42px offset. The claim is unchanged in substance and stronger in
+   form: the header may never sit over its own first data row (asserted above),
+   and its offset must be the body's own zero. */
+ok(headerOverlay.every(h => h.position === 'sticky' && h.top === '0px'),
+  'the Players column header sticks to its own module body, not to the route offset',
   JSON.stringify(headerOverlay.map(h => `${h.role}:${h.position}`)));
 
 /* ══ 4. No clipping, no page overflow, at every release width ═════════════ */
@@ -331,21 +337,32 @@ await page.setViewport({ width: 1440, height: 900 });
 await setScope('season');
 await setSection('All roles');
 await frame();
-const bands1440 = await page.evaluate(() => [...document.querySelectorAll('.gi-player-band')]
-  .map(b => ({ roles: [...b.querySelectorAll('header strong')].map(s => s.textContent.trim()),
-    columns: getComputedStyle(b).gridTemplateColumns.split(' ').length })));
-ok(bands1440.length === 3 && bands1440.every(b => b.columns === 2),
-  'at 1440 every band pairs -- no table needs more than a band half',
+/* The 1.12.0-90 REVISE replaced two-at-a-time pairing with phase columns, so
+   these assert the composition that replaced it: two columns at 1440 carrying
+   Offense and Defense+Special Teams, and one column below the 1420px
+   breakpoint, where a column can no longer hold Passing's or Tackles' table. */
+const bands1440 = await page.evaluate(() => ({
+  columns: [...document.querySelectorAll('.gi-players-col')]
+    .map(col => [...col.querySelectorAll('.gi-player-module header strong')].map(s => s.textContent.trim())),
+  grid: getComputedStyle(document.querySelector('.gi-players-sections')).gridTemplateColumns.split(' ').length,
+}));
+ok(bands1440.grid === 2 && bands1440.columns.length === 2
+  && bands1440.columns[0].join(',') === 'Rushing,Passing,Receiving'
+  && bands1440.columns[1].join(',') === 'Tackles,Return Game,Kicking / Punting',
+  'at 1440 the board is two phase columns: Offense in one, Defense then Special Teams in the other',
   JSON.stringify(bands1440));
 await page.setViewport({ width: 1280, height: 720 });
 await frame();
 await sleep(200);
-const bands1280 = await page.evaluate(() => [...document.querySelectorAll('.gi-player-band')]
-  .map(b => ({ roles: [...b.querySelectorAll('header strong')].map(s => s.textContent.trim()),
-    columns: getComputedStyle(b).gridTemplateColumns.split(' ').length })));
-const paired1280 = bands1280.filter(b => b.columns === 2);
-ok(paired1280.length === 1 && paired1280[0].roles.join(',') === 'Return Game,Kicking / Punting',
-  'at 1280 only the bands whose own tables exceed the half stack -- Return Game and Kicking / Punting stay paired',
+const bands1280 = await page.evaluate(() => ({
+  grid: getComputedStyle(document.querySelector('.gi-players-sections')).gridTemplateColumns.split(' ').length,
+  order: [...document.querySelectorAll('.gi-player-module header strong')].map(s => s.textContent.trim()),
+  phases: [...document.querySelectorAll('[data-players-phase]')].map(p => p.dataset.playersPhase),
+}));
+ok(bands1280.grid === 1
+  && bands1280.order.join(',') === 'Rushing,Passing,Receiving,Tackles,Return Game,Kicking / Punting'
+  && bands1280.phases.join(',') === 'off,def,st',
+  'at 1280 the columns stack into one and the phase order and role order are unchanged',
   JSON.stringify(bands1280));
 
 /* ══ 6. Absence contract ══════════════════════════════════════════════════ */
@@ -453,8 +470,15 @@ for (const scope of ['game', 'season']) {
       /* Revision 2 moved the affordance OFF the row: identity opens the player
          and each measured value with clips of its own is its own button, so a
          row without an identity button is the defect now. */
+      /* A HELD row is unused capacity, not a player: it carries the dash in
+         every column and is deliberately not interactive, so it is excluded
+         here rather than counted as a row missing its identity control. */
       unclickable: [...document.querySelectorAll('.gi-player-table tbody tr')]
+        .filter(tr => !tr.classList.contains('is-absent'))
         .filter(tr => !tr.querySelector('[data-player-open]')).length,
+      heldRows: [...document.querySelectorAll('.gi-player-table tbody tr.is-absent')].length,
+      heldInteractive: [...document.querySelectorAll('.gi-player-table tbody tr.is-absent')]
+        .filter(tr => tr.querySelector('button, [data-player-open], [data-player-stat]')).length,
       firstRow: (document.querySelector('.gi-player-table tbody tr')?.innerHTML || '').slice(0, 160) };
   });
   ok(refs.rows > 0 && refs.empty === 0,
@@ -465,6 +489,9 @@ for (const scope of ['game', 'season']) {
   ok(refs.unclickable === 0,
     `${scope} scope: every row opens its player through its identity cell`,
     JSON.stringify({ rows: refs.unclickable, firstRow: refs.firstRow }));
+  ok(refs.heldInteractive === 0,
+    `${scope} scope: a held capacity row carries no film or player action`,
+    JSON.stringify({ held: refs.heldRows, interactive: refs.heldInteractive }));
   if (scope === 'season') {
     ok(refs.games === 2 && refs.plays > 190,
       'full season is assembled from the existing multi-game cohort, not a Players-local aggregation',
@@ -531,7 +558,9 @@ ok(grades.classed > 0, 'a charted grade carries its sign colour class', String(g
 const gradeSort = async () => page.evaluate(() => {
   const m = [...document.querySelectorAll('.gi-player-module')]
     .find(x => x.querySelector('header strong').textContent.trim() === 'Rushing');
-  return [...m.querySelectorAll('tbody td[data-col="grade"]')].map(td => td.textContent.trim());
+  // Held capacity rows are not cohort members and carry the dash in every
+  // column, so the sort claim is asserted over the real rows only.
+  return [...m.querySelectorAll('tbody tr:not(.is-absent) td[data-col="grade"]')].map(td => td.textContent.trim());
 });
 await page.evaluate(() => {
   const m = [...document.querySelectorAll('.gi-player-module')]
@@ -726,15 +755,15 @@ for (const [title, other] of [['Offense', 'season'], ['Defense', 'game'], ['Spec
 await setSection('All roles');
 await setScope('game');
 await page.evaluate(() => {
-  const m = document.querySelector('.gi-player-band .gi-player-module');
+  const m = document.querySelector('.gi-player-module');
   [...m.querySelectorAll('thead th')].find(t => t.textContent.trim() === 'Long')?.click();
 });
 await frame();
 const sortedBefore = await page.evaluate(() =>
-  document.querySelector('.gi-player-band .gi-player-module th.is-sorted')?.textContent.trim());
+  document.querySelector('.gi-player-module th.is-sorted')?.textContent.trim());
 await setScope('season');
 const sortedAfter = await page.evaluate(() =>
-  document.querySelector('.gi-player-band .gi-player-module th.is-sorted')?.textContent.trim());
+  document.querySelector('.gi-player-module th.is-sorted')?.textContent.trim());
 ok(sortedBefore === 'Long' && sortedAfter === 'Yds',
   'a scope change resets the table sort to the engine order, it is not carried across cohorts',
   `${sortedBefore} -> ${sortedAfter}`);
@@ -1461,6 +1490,178 @@ ok(exportMatch.headings.length === 1 && exportMatch.headings[0].endsWith(`by ${e
 ok(exportMatch.selected === exportMatch.picked.label
   && (exportMatch.onScreen === '' || exportMatch.onScreen === exportMatch.picked.label),
   'the exported dimension is the one selected on screen', JSON.stringify(exportMatch));
+
+/* === The REVISE composition from the 1.12.0-90 installed smoke ===
+   Phase grouping, deliberate row capacity, held dash rows, and internal scroll
+   only past capacity. The rejected layout paired populated roles two at a time
+   in board order, which put Receiving beside Tackles — offense and defense in
+   one band — and let a sparse module sit as dead space beside a tall one. */
+console.log('\n== Revision 2 composition: phase groups and row capacity ==');
+const composition = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const play = (id, tags, extra = {}) => ({ id, timestamp: { start: id * 10, end: id * 10 + 6 },
+    notes: '', annotations: [], tags: { quarter: 'Q1', down: '1', distance: '10', custom: [], players: {}, grades: {}, ...tags }, ...extra });
+  // Five rushers (over the 6-slot cap? no — under it), one passer, one receiver,
+  // one tackler, one returner, one kicker: every phase populated, Passing sparse.
+  const plays = [];
+  let id = 1;
+  ['30', '31', '32', '33'].forEach(num => plays.push(play(id++, { unit: 'offense', runPass: 'Run',
+    playType: 'Run Inside', result: 'Gain', yardage: '5', players: { ballCarrier: num } })));
+  plays.push(play(id++, { unit: 'offense', runPass: 'Pass', playType: 'Quick Pass', result: 'Gain',
+    yardage: '9', players: { passer: '12', receiver: '80' } }));
+  plays.push(play(id++, { unit: 'defense', runPass: 'Run', playType: 'Run Inside', result: 'Loss',
+    yardage: '-2', players: { tackler: '55' } }));
+  plays.push(play(id++, { unit: 'special', stType: 'Kick Return', returnYards: '12', players: { returner: '18' } }));
+  plays.push(play(id++, { unit: 'special', stType: 'Punt', kickDistance: '35', players: { kicker: '19' } }));
+  store.data.games = [{ id: 'g-comp', name: 'Week 1', nextId: 99,
+    gameInfo: { opponent: 'Composition', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
+    plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
+  store.data.activeGameId = 'g-comp';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.reportsScreen.playersPlayer = null;
+  app.reportsScreen.playersSection = 'all';
+  app.reportsScreen.setPlayersScope('game');
+  await new Promise(r => setTimeout(r, 600));
+  const read = () => {
+    const text = n => (n?.textContent || '').replace(/\s+/g, ' ').trim();
+    const cols = [...document.querySelectorAll('.gi-players-col')];
+    return {
+      phases: [...document.querySelectorAll('[data-players-phase]')].map(p => p.dataset.playersPhase),
+      // Module order as rendered, per column, so contiguity is observable.
+      columns: cols.map(col => [...col.querySelectorAll('.gi-player-module')]
+        .map(m => text(m.querySelector('h3, header strong')))),
+      phaseOfModule: [...document.querySelectorAll('[data-players-phase]')].map(p => ({
+        phase: p.dataset.playersPhase,
+        modules: [...p.querySelectorAll('.gi-player-module')].map(m => text(m.querySelector('h3, header strong'))),
+      })),
+      modules: [...document.querySelectorAll('.gi-player-module')].map(m => {
+        const body = m.querySelector('.gi-player-body');
+        const rows = [...m.querySelectorAll('tbody tr')];
+        return {
+          title: text(m.querySelector('h3, header strong')),
+          cap: Number(body?.dataset.playerCap),
+          rows: rows.length,
+          held: rows.filter(tr => tr.classList.contains('is-absent')).length,
+          heldCells: rows.filter(tr => tr.classList.contains('is-absent'))
+            .map(tr => [...tr.cells].map(td => text(td))),
+          scrolls: body ? body.scrollHeight > body.clientHeight + 1 : null,
+          headerMoves: (() => {
+            const head = m.querySelector('thead th');
+            if (!body || !head) return null;
+            const before = head.getBoundingClientRect().top;
+            body.scrollTop = 200;
+            const after = head.getBoundingClientRect().top;
+            body.scrollTop = 0;
+            return Math.abs(after - before) > 1;
+          })(),
+        };
+      }),
+    };
+  };
+  const all = read();
+  app.reportsScreen.playersSection = 'off';
+  app.reportsScreen._renderActiveTab();
+  await new Promise(r => setTimeout(r, 400));
+  const offense = read();
+  app.reportsScreen.playersSection = 'all';
+  app.reportsScreen._renderActiveTab();
+  await new Promise(r => setTimeout(r, 400));
+  const geometryBefore = [...document.querySelectorAll('.gi-player-module')]
+    .map(m => Math.round(m.getBoundingClientRect().height));
+  // A sort must not resize a module: capacity owns the height, not the cohort.
+  document.querySelector('.gi-player-module table.gi-player-table th')?.click();
+  await new Promise(r => setTimeout(r, 250));
+  const geometryAfterSort = [...document.querySelectorAll('.gi-player-module')]
+    .map(m => Math.round(m.getBoundingClientRect().height));
+  return { all, offense, geometryBefore, geometryAfterSort };
+});
+const modOf = (snapshot, title) => snapshot.modules.find(m => m.title === title);
+ok(JSON.stringify(composition.all.phases) === JSON.stringify(['off', 'def', 'st']),
+  'the board renders the approved phase order: Offense, Defense, Special Teams',
+  JSON.stringify(composition.all.phases));
+ok(JSON.stringify(composition.all.phaseOfModule.find(p => p.phase === 'off')?.modules)
+  === JSON.stringify(['Rushing', 'Passing', 'Receiving']),
+  'the offensive roles are contiguous and in their approved order',
+  JSON.stringify(composition.all.phaseOfModule));
+ok(JSON.stringify(composition.all.phaseOfModule.find(p => p.phase === 'st')?.modules)
+  === JSON.stringify(['Return Game', 'Kicking / Punting']),
+  'the Special Teams roles are contiguous', JSON.stringify(composition.all.phaseOfModule));
+ok(composition.all.columns.every(col => {
+  const phases = col.map(title => ['Rushing', 'Passing', 'Receiving'].includes(title) ? 'off'
+    : title === 'Tackles' ? 'def' : 'st');
+  // Every phase in a column occupies one unbroken run — no checkerboard.
+  return phases.every((phase, i) => i === 0 || phase === phases[i - 1] || !phases.slice(0, i).includes(phase));
+}), 'no column interleaves two phases — each phase is one unbroken run',
+  JSON.stringify(composition.all.columns));
+ok(modOf(composition.all, 'Passing')?.cap === 3 && modOf(composition.all, 'Passing')?.rows === 3,
+  'Passing reserves exactly three visible data-row slots',
+  JSON.stringify(modOf(composition.all, 'Passing')));
+ok(modOf(composition.all, 'Passing')?.held === 2
+  && modOf(composition.all, 'Passing').heldCells.every(cells => cells.every(cell => cell === '–')),
+  'a sparse Passing module fills its unused capacity with formatted dash rows, not dead space',
+  JSON.stringify(modOf(composition.all, 'Passing')));
+ok(composition.all.modules.every(m => m.rows === Math.max(m.cap, m.rows) && m.rows >= m.cap),
+  'every module renders at least its full row capacity', JSON.stringify(composition.all.modules));
+ok(composition.all.modules.every(m => m.scrolls === false),
+  'a cohort within capacity never scrolls internally', JSON.stringify(composition.all.modules.map(m => [m.title, m.scrolls])));
+ok(composition.all.modules.every(m => m.headerMoves === false),
+  'the column header stays put while the module body scrolls',
+  JSON.stringify(composition.all.modules.map(m => [m.title, m.headerMoves])));
+ok(JSON.stringify(composition.offense.phases) === JSON.stringify(['off'])
+  && JSON.stringify(composition.offense.modules.map(m => m.title)) === JSON.stringify(['Rushing', 'Passing', 'Receiving'])
+  && composition.offense.modules.every(m => m.rows >= m.cap),
+  'a phase-filtered view uses the same capacities, order and held rows',
+  JSON.stringify(composition.offense.modules.map(m => [m.title, m.cap, m.rows])));
+ok(JSON.stringify(composition.geometryBefore) === JSON.stringify(composition.geometryAfterSort),
+  'sorting changes no module height — capacity owns the geometry, not the cohort',
+  JSON.stringify([composition.geometryBefore, composition.geometryAfterSort]));
+
+/* Over capacity: the body scrolls and nothing else moves. */
+const overflow = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const plays = [];
+  // Eight passers is well past Passing's three slots.
+  ['1', '2', '3', '4', '5', '6', '7', '8'].forEach((num, index) => plays.push({
+    id: index + 1, timestamp: { start: index * 10, end: index * 10 + 6 }, notes: '', annotations: [],
+    tags: { unit: 'offense', quarter: 'Q1', runPass: 'Pass', playType: 'Quick Pass', result: 'Gain',
+      yardage: '8', down: '1', distance: '10', custom: [], players: { passer: num, receiver: '80' }, grades: {} },
+  }));
+  store.data.games = [{ id: 'g-over', name: 'Week 1', nextId: 99,
+    gameInfo: { opponent: 'Overflow', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
+    plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
+  store.data.activeGameId = 'g-over';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.reportsScreen.playersSection = 'all';
+  app.reportsScreen.setPlayersScope('game');
+  await new Promise(r => setTimeout(r, 600));
+  const text = n => (n?.textContent || '').replace(/\s+/g, ' ').trim();
+  const mod = [...document.querySelectorAll('.gi-player-module')]
+    .find(m => text(m.querySelector('h3, header strong')) === 'Passing');
+  const body = mod.querySelector('.gi-player-body');
+  const head = mod.querySelector('thead th');
+  const moduleHeader = mod.querySelector('header');
+  const headTop = head.getBoundingClientRect().top;
+  const modHeadTop = moduleHeader.getBoundingClientRect().top;
+  body.scrollTop = 150;
+  await new Promise(r => setTimeout(r, 120));
+  const after = { head: head.getBoundingClientRect().top, modHead: moduleHeader.getBoundingClientRect().top };
+  const rows = [...mod.querySelectorAll('tbody tr')];
+  return { rows: rows.length, held: rows.filter(tr => tr.classList.contains('is-absent')).length,
+    scrolls: body.scrollHeight > body.clientHeight + 1,
+    capHeight: body.clientHeight,
+    headStayed: Math.abs(after.head - headTop) <= 1, moduleHeadStayed: Math.abs(after.modHead - modHeadTop) <= 1 };
+});
+ok(overflow.rows === 8 && overflow.held === 0 && overflow.scrolls,
+  'a cohort past capacity keeps every row and scrolls inside the module body',
+  JSON.stringify(overflow));
+ok(overflow.headStayed && overflow.moduleHeadStayed,
+  'neither the module header nor the column header moves when the body scrolls',
+  JSON.stringify(overflow));
+ok(overflow.capHeight === 3 * 38 + 38,
+  'the Passing body is exactly three data rows plus its column header',
+  JSON.stringify(overflow));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); console.log(errors.slice(0, 5).join('\n')); }

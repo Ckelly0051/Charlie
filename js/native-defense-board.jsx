@@ -91,15 +91,30 @@ function buildSections(board, seasonScope) {
     { title: 'Defensive player contributions', wide: true, slots: 10, sortable: true,
       heads: ['Player', 'Tackles', 'Solo', 'Ast', 'Sacks', 'TFL', 'INT', 'FR', 'Grade'],
       rows: b.players.map(r => row([r.name, r.tackles, r.solo, r.assists, r.sacks, r.tfl, r.interceptions, r.fumblesRecovered, r.grade], r.refs)) },
+    /* Possessions measure every charted defensive snap and their `Yards*` is the
+       drive's tagged yardage WITH penalty movement, which is why they do not
+       reconcile with the classified production above them. Both facts are stated
+       as counts, from the rows themselves. */
     { title: 'Opponent possessions', wide: true, slots: 8,
+      meta: `${b.possessions.reduce((sum, r) => sum + (Number(r.plays) || 0), 0)} snaps · penalties included`,
       heads: ['Opponent', 'Possession', 'Start', 'Last snap', 'Plays', 'Yards*', 'Outcome', 'Pts*'],
       rows: b.possessions.map(r => row([r.opponent, r.name, r.start, r.lastSnap, r.plays, r.yards, r.outcome, r.points], r.refs)) },
   );
 
   const opponent = [
+    /* A multi-select play type counts in every row it names, so the rows carry
+       more TAGS than there are snaps and cannot be summed into a team total.
+       Both numbers are printed — the unique snaps behind the module and the tag
+       count its rows add up to — which makes the overlap visible without a
+       sentence about it. The unique count comes from the rows' own film refs. */
     { title: 'Production by play type', slots: 7, heads: ['Play type', 'Snaps', 'Yards', 'Yds/play', 'Expl', 'Touchdowns Allowed'],
+      meta: `${new Set(b.playTypes.flatMap(r => r.refs || [])).size} snaps · ${
+        b.playTypes.reduce((sum, r) => sum + (Number(r.n) || 0), 0)} tags`,
       rows: b.playTypes.map(r => row([r.name, r.n, r.yards, r.ypp, r.explosives, r.touchdownsAllowed], r.refs)) },
+    /* A snap with no charted direction is not in this module at all, which is the
+       whole gap between its yardage and the classified total above it. */
     { title: 'Performance by Play Direction', schema: 'fixed', slots: 4,
+      meta: `${b.directions.reduce((sum, r) => sum + (Number(r.n) || 0), 0)} direction-tagged snaps`,
       heads: ['Direction', 'Snaps', 'Share', 'Run / pass', 'Yards', 'Yds/play', 'Off succ', 'Expl'],
       rows: b.directions.map(r => row([r.name, r.n, percent(r.share), runPass(r), r.yards, r.ypp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Top 10 Formations Faced', wide: true, slots: 10, cap: true,
@@ -186,7 +201,7 @@ function compareCells(a, b) {
 
 function DefenseModule({ module, screen }) {
   const [sort, setSort] = useState({ column: null, direction: null });
-  const { title, heads, pitch, schema, height, wide, cls = '', sortable } = module;
+  const { title, heads, pitch, schema, height, wide, cls = '', sortable, meta } = module;
   let rows = module.cap ? module.rows.slice(0, module.slots) : module.rows.slice();
   if (sortable && sort.column != null) {
     rows.sort((a, b) => {
@@ -201,7 +216,12 @@ function DefenseModule({ module, screen }) {
   return <section class={`gi-def2-module${wide ? ' is-wide' : ''}${cls ? ` ${cls}` : ''}`}
     data-def2-module={title} data-def2-schema={schema}
     style={`--def2-module-height:${height}px;--def2-row-height:${pitch}px`}>
-    <header><h3>{title}</h3></header>
+    {/* THE COHORT IS NAMED, IN COUNTS, NOT IN PROSE. Modules on this board
+        legitimately measure different cohorts — the classified run/pass subset,
+        the direction-tagged subset, every charted snap with penalty movement —
+        and presenting them unlabelled is what made correct arithmetic read as a
+        contradiction. Each count is computed from the cohort it describes. */}
+    <header><h3>{title}</h3>{meta ? <span class="gi-def2-meta" data-def2-meta={title}>{meta}</span> : null}</header>
     <div class="gi-def2-tablewrap">
       <table data-def2-sortable={sortable ? 'true' : undefined}>
         <thead><tr>{heads.map((head, index) => sortable
@@ -277,8 +297,14 @@ export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
       {SECTIONS.map(section => <>
         <div class="gi-def2-heading" id={`def2-${section.id}`} key={`heading-${section.id}`} data-def2-section={section.id}>
           <span>{section.number}</span><h2>{section.title}</h2><small>{sample}</small>
+          {/* The KPI strip below measures the classified subset, and says so in
+              the same counted form the modules use. */}
+          {section.id === 'performance'
+            ? <small class="gi-def2-cohort" data-def2-cohort="performance">{`${board.measured} run/pass snaps`}</small>
+            : null}
         </div>
-        {section.id === 'performance' && <div class="gi-def2-kpis" key="kpis">
+        {section.id === 'performance' && <div class="gi-def2-kpis" key="kpis"
+          data-def2-kpi-cohort={`${board.measured} run/pass snaps`}>
           {kpis.map(([label, value]) => <div key={label} data-def2-kpi={label}><span>{label}</span><strong>{value}</strong></div>)}
         </div>}
         <div class="gi-def2-bands" key={`bands-${section.id}`}>

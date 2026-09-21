@@ -518,6 +518,77 @@ ok(pickSix.theirs.touchdowns === 1 && pickSix.theirs.redZoneTdRate === 100 && pi
   'an opponent red-zone touchdown on the same snap still reads as allowed production',
   JSON.stringify(pickSix.theirs));
 
+/* === Cohort metadata (1.12.0-90 REVISE) ===
+   The modules on this board legitimately measure different cohorts, and the
+   installed smoke read that silence as broken arithmetic. Each one now names its
+   own cohort in counts. Every count is COMPUTED from the rows it describes —
+   asserted here against a synthetic season whose numbers are nothing like the
+   canonical one's, so a hardcoded St. Peter value cannot pass. */
+const cohortMeta = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const play = (id, tags) => ({ id, timestamp: { start: id * 10, end: id * 10 + 6 }, notes: '', annotations: [],
+    tags: { unit: 'defense', quarter: 'Q1', down: '1', distance: '10', driveNumber: '1',
+      fieldSide: 'opp', yardLine: '40', custom: [], players: {}, grades: {}, ...tags } });
+  /* Six defensive snaps: four classified run/pass (two of them multi-tagged, so
+     the play-type rows carry more tags than snaps), one with no direction, and
+     one penalty snap with no run/pass at all. */
+  const plays = [
+    play(1, { runPass: 'Run', playType: 'Run Inside', playDir: 'Left', result: 'Gain', yardage: '4' }),
+    play(2, { runPass: 'Run', playType: 'Run Outside + RPO', playDir: 'Right', result: 'Gain', yardage: '6' }),
+    play(3, { runPass: 'Run', playType: 'Run Outside + RPO', playDir: 'Right', result: 'Loss', yardage: '-2' }),
+    play(4, { runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '' }),
+    play(5, { result: 'Penalty + Gain', yardage: '5' }),
+    play(6, { result: 'Penalty + Loss', yardage: '-5' }),
+  ];
+  store.data.games = [{ id: 'g-meta', name: 'Week 1', nextId: 20,
+    gameInfo: { opponent: 'Cohorts', date: '2026-09-01', week: '1', perspective: 'offense', scoreUs: 10, scoreThem: 0 },
+    plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
+  store.data.activeGameId = 'g-meta';
+  await app.storage._loadActiveGame({ renderGames: false });
+  app.workspaceShell.show('reports');
+  app.reportsScreen.selectTab('defense');
+  await new Promise(r => setTimeout(r, 300));
+  document.querySelector('[data-defense-scope="game"]')?.click();
+  await new Promise(r => setTimeout(r, 500));
+  const text = n => (n?.textContent || '').replace(/\s+/g, ' ').trim();
+  const board = app.stats.defenseBoard(app.reportsScreen._defenseScopedPlays || plays.map(p => ({ ...p, __gid: 'g-meta' })),
+    { labels: { 'g-meta': 'Cohorts' }, seasonPlays: plays.map(p => ({ ...p, __gid: 'g-meta' })), roster: {}, scope: 'game' });
+  return {
+    cohort: text(document.querySelector('[data-def2-cohort="performance"]')),
+    metas: Object.fromEntries([...document.querySelectorAll('[data-def2-meta]')].map(n => [n.dataset.def2Meta, text(n)])),
+    kpis: Object.fromEntries([...document.querySelectorAll('[data-def2-kpi]')]
+      .map(n => [n.dataset.def2Kpi, text(n.querySelector('strong'))])),
+    // Independently derived from the board model, not from the rendered string.
+    model: { measured: board.measured, total: board.total,
+      directionSnaps: board.directions.reduce((s, r) => s + r.n, 0),
+      playTypeTags: board.playTypes.reduce((s, r) => s + r.n, 0),
+      playTypeSnaps: new Set(board.playTypes.flatMap(r => r.refs || [])).size,
+      possessionSnaps: board.possessions.reduce((s, r) => s + (Number(r.plays) || 0), 0) },
+  };
+});
+ok(cohortMeta.cohort === `${cohortMeta.model.measured} run/pass snaps` && cohortMeta.model.measured === 4,
+  'Defensive performance names the classified cohort its KPIs measure',
+  JSON.stringify([cohortMeta.cohort, cohortMeta.model]));
+ok(cohortMeta.metas['Production by play type']
+  === `${cohortMeta.model.playTypeSnaps} snaps · ${cohortMeta.model.playTypeTags} tags`
+  && cohortMeta.model.playTypeTags > cohortMeta.model.playTypeSnaps,
+  'Production by play type states unique snaps AND its overlapping tag count, so the overlap needs no sentence',
+  JSON.stringify([cohortMeta.metas['Production by play type'], cohortMeta.model]));
+ok(cohortMeta.metas['Performance by Play Direction']
+  === `${cohortMeta.model.directionSnaps} direction-tagged snaps` && cohortMeta.model.directionSnaps === 3,
+  'Performance by Play Direction names its narrower direction-tagged cohort',
+  JSON.stringify([cohortMeta.metas['Performance by Play Direction'], cohortMeta.model]));
+ok(cohortMeta.metas['Opponent possessions']
+  === `${cohortMeta.model.possessionSnaps} snaps · penalties included`
+  && cohortMeta.model.possessionSnaps === 6,
+  'Opponent possessions names the full charted cohort and its penalty inclusion',
+  JSON.stringify([cohortMeta.metas['Opponent possessions'], cohortMeta.model]));
+ok(cohortMeta.kpis['Total yards allowed'] === '8' && cohortMeta.kpis['Rush yards allowed'] === '8'
+  && cohortMeta.kpis['Pass yards allowed'] === '0' && cohortMeta.kpis['Yards / play'] === '2.0',
+  'the metadata changed no total: the classified cohort still measures 4+6-2 over four snaps',
+  JSON.stringify(cohortMeta.kpis));
+
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

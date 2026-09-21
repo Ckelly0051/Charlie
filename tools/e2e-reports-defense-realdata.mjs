@@ -144,7 +144,20 @@ const measure = () => page.evaluate(() => {
     kpiLabels: [...(board?.querySelectorAll('[data-def2-kpi] span') || [])].map(text),
     kpiValues: [...(board?.querySelectorAll('[data-def2-kpi] strong') || [])].map(text),
     sections: [...(board?.querySelectorAll('[data-def2-section] h2') || [])].map(text),
-    samples: [...(board?.querySelectorAll('[data-def2-section] small') || [])].map(text),
+    // The section's own two-cohort line. `.gi-def2-cohort` is the separate
+    // KPI-strip cohort label added by the 1.12.0-90 REVISE and is asserted
+    // on its own below, so it is excluded from this one.
+    samples: [...(board?.querySelectorAll('[data-def2-section] small:not(.gi-def2-cohort)') || [])].map(text),
+    kpiCohort: text(board?.querySelector('[data-def2-cohort="performance"]')),
+    moduleMetas: Object.fromEntries([...(board?.querySelectorAll('[data-def2-meta]') || [])]
+      .map(node => [node.dataset.def2Meta, text(node)])),
+    // Re-derived from the rendered rows: the Snaps column of each module.
+    directionSnapSum: [...(board?.querySelectorAll('[data-def2-module="Performance by Play Direction"] tbody tr') || [])]
+      .filter(tr => !tr.classList.contains('is-held'))
+      .reduce((sum, tr) => sum + (Number(text(tr.cells[1])) || 0), 0),
+    playTypeSnapSum: [...(board?.querySelectorAll('[data-def2-module="Production by play type"] tbody tr') || [])]
+      .filter(tr => !tr.classList.contains('is-held'))
+      .reduce((sum, tr) => sum + (Number(text(tr.cells[1])) || 0), 0),
     modules,
     pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     boardRight: boardRect ? Math.round(boardRect.right) : 0,
@@ -306,6 +319,32 @@ ok(geometry.every(item => !/Last 3/.test(item.text)),
   'Current game scope never labels one game as Last 3');
 ok(geometry.every(item => item.samples.every(sample => /^\d+ charted \/ \d+ with Run\/Pass charted$/.test(sample))),
   'every section names both cohorts: charted and with Run/Pass charted');
+/* The 1.12.0-90 REVISE: every module that measures its own cohort names it, in
+   counts computed from that cohort. Checked on the canonical season at every
+   game, against values derived here from the same rendered rows — the board's
+   St. Peter numbers are not written into the assertion. */
+ok(geometry.every(item => /^\d+ run\/pass snaps$/.test(item.kpiCohort || '')),
+  'the KPI strip names the classified cohort it measures',
+  JSON.stringify(geometry.map(item => [item.game, item.kpiCohort]).slice(0, 3)));
+ok(geometry.every(item => /^\d+ snaps · \d+ tags$/.test(item.moduleMetas['Production by play type'] || '')),
+  'Production by play type states its unique snaps and its overlapping tag count',
+  JSON.stringify(geometry.map(item => [item.game, item.moduleMetas['Production by play type']]).slice(0, 3)));
+ok(geometry.every(item => /^\d+ direction-tagged snaps$/.test(item.moduleMetas['Performance by Play Direction'] || '')),
+  'Performance by Play Direction names its direction-tagged cohort',
+  JSON.stringify(geometry.map(item => [item.game, item.moduleMetas['Performance by Play Direction']]).slice(0, 3)));
+ok(geometry.every(item => /^\d+ snaps · penalties included$/.test(item.moduleMetas['Opponent possessions'] || '')),
+  'Opponent possessions names its cohort and its penalty inclusion',
+  JSON.stringify(geometry.map(item => [item.game, item.moduleMetas['Opponent possessions']]).slice(0, 3)));
+/* The cohort each label names must be the one the module actually measured, so
+   the counts are re-derived from the rendered rows rather than trusted. */
+ok(geometry.every(item => {
+  const direction = Number((item.moduleMetas['Performance by Play Direction'] || '').match(/^(\d+)/)?.[1]);
+  const tags = Number((item.moduleMetas['Production by play type'] || '').match(/· (\d+) tags/)?.[1]);
+  return Number.isFinite(direction) && Number.isFinite(tags)
+    && direction === item.directionSnapSum && tags === item.playTypeSnapSum;
+}), 'every cohort count equals the sum of the rows it describes',
+  JSON.stringify(geometry.map(item => [item.game, item.moduleMetas['Performance by Play Direction'],
+    item.directionSnapSum, item.moduleMetas['Production by play type'], item.playTypeSnapSum]).slice(0, 3)));
 ok(geometry.every(item => !/\bTD\b|ADDED|Click any column|Scroll inside|not a recommended call/.test(item.text)),
   'the board carries no ambiguous TD abbreviation, proposal marker or explanatory prose',
   (geometry.find(item => /\bTD\b|ADDED|Click any column|Scroll inside|not a recommended call/.test(item.text))?.text || '').match(/.{0,40}(\bTD\b|ADDED|Click any column|Scroll inside|not a recommended call).{0,40}/)?.[0]);

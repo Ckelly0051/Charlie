@@ -94,6 +94,14 @@
   border-top:2px solid var(--gi-bd-cyan);border-bottom:1px solid var(--gi-4)
 }
 .gi-reports .gi-def2-module h3{margin:0;color:var(--gi-12);font:600 17px/22px var(--gi-sans);text-transform:none;letter-spacing:0}
+/* The cohort a module measures, as counts, inside the existing 50px header — so
+   it costs no module height and cannot move the pinned geometry. At the 12.5px
+   floor and in metadata grey, because it is a qualifier, not a measurement. */
+.gi-reports .gi-def2-module>header .gi-def2-meta{
+  margin-left:auto;color:var(--gi-bd-muted);font:500 12.5px/16px var(--gi-sans);
+  white-space:nowrap;letter-spacing:0
+}
+.gi-reports .gi-def2-heading .gi-def2-cohort{ color:var(--gi-bd-muted) }
 .gi-reports .gi-def2-tablewrap{
   flex:1;min-height:0;padding:0 12px;overflow:auto;
   scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--gi-7) var(--gi-3)

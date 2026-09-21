@@ -3283,6 +3283,34 @@
 /* The six role tables read as ONE report surface: bands meet on a thin rule
    rather than a four-pixel black gutter. */
 .gi-reports .gi-players-sections{ grid-column:1/-1;background:transparent }
+/* PHASE GROUPING IS THE COMPOSITION. Two columns at desktop width — Offense in
+   one, Defense then Special Teams in the other — so each phase reads as one
+   block and nothing pairs across a phase boundary. One column below 1420px,
+   the same measured breakpoint the role tables already used, because a column
+   narrower than that cannot hold Passing's or Tackles' fixed table width. */
+.gi-reports .gi-players-sections{ display:grid;gap:1px;align-items:start }
+.gi-reports .gi-players-sections.cols-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+.gi-reports .gi-players-sections.cols-1{ grid-template-columns:minmax(0,1fr) }
+.gi-reports .gi-players-col{ display:grid;gap:1px;align-content:start;min-width:0 }
+.gi-reports .gi-players-col+.gi-players-col{ box-shadow:-1px 0 var(--gi-bd-line) }
+.gi-reports .gi-player-phase{ display:grid;gap:1px;min-width:0 }
+.gi-reports .gi-player-phase+.gi-player-phase{ border-top:1px solid var(--gi-bd-line) }
+/* Capacity, in rows: the body holds exactly `--gi-player-cap` data rows plus its
+   column header, and scrolls only past that. The module header sits outside this
+   box, so it never moves; the column header is sticky INSIDE it, which is why
+   the Players tables opt out of the route-wide `th{top:42px}` rule. */
+.gi-reports .gi-player-body{
+  /* Measured, not assumed: a data row and the column header are both 38px on
+     this board, so capacity rows plus one header is the exact body height and a
+     module at capacity does not scroll. */
+  --gi-player-row:38px;--gi-player-head:38px;
+  max-height:calc(var(--gi-player-cap) * var(--gi-player-row) + var(--gi-player-head));
+  overflow:auto;scrollbar-width:thin;min-width:0
+}
+@media (max-width:1419px){
+  .gi-reports .gi-players-sections.cols-2{ grid-template-columns:minmax(0,1fr) }
+  .gi-reports .gi-players-col+.gi-players-col{ box-shadow:none;border-top:1px solid var(--gi-bd-line) }
+}
 .gi-reports .gi-player-band{ display:grid;gap:1px;align-items:start;margin:0;background:transparent }
 .gi-reports .gi-player-band.b-1{ grid-template-columns:minmax(0,1fr) }
 .gi-reports .gi-player-band.b-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
@@ -3338,7 +3366,11 @@
    layout treats a column width as a preference and discards every one of them
    the moment the identity column asks for 100%, which silently content-sizes
    the measurements and makes the stated widths fiction. */
-.gi-reports .gi-player-module .gi-table-wrap{ min-width:0;overflow-x:auto;scrollbar-width:thin }
+/* THE MODULE BODY IS THE ONLY SCROLLPORT. Left with its own `overflow-x:auto`
+   the wrap became a scroll container too, and a sticky `th` resolves against the
+   NEAREST one — so the column header stuck to a box that never scrolls and rode
+   up with the rows. Both axes belong to `.gi-player-body`. */
+.gi-reports .gi-player-module .gi-table-wrap{ min-width:0;overflow:visible }
 /* Qualified by the ELEMENT, not by class alone. The shared
    `.gi-reports .gi-overview-module table` rule carries an element selector and
    therefore outranks a bare `.gi-player-table`, which loses both the fixed
@@ -3362,10 +3394,14 @@
 /* The route-wide `th{position:sticky;top:42px}` is measured against the wrap
    once the wrap becomes a scroll container, which pins the header 42px down
    over the first data row -- the same correction the Special Teams board
-   needed. `relative` also anchors the sort marker below. */
+   needed. Here the offset is corrected to the module body's own top rather than
+   dropped, because a body at row capacity scrolls and its column header has to
+   stay: `top:0` inside `.gi-player-body`. Sticky is still a containing block, so
+   it anchors the sort marker below exactly as `relative` did. */
 .gi-reports .gi-player-module table.gi-player-table th{
-  position:relative;top:auto;z-index:auto;
-  background:transparent;color:var(--gi-bd-copy);font:var(--gi-text-label);
+  position:sticky;top:0;z-index:2;
+  /* Opaque, because a scrolled row passes underneath it. */
+  background:var(--gi-bd-panel);color:var(--gi-bd-copy);font:var(--gi-text-label);
   text-transform:uppercase;letter-spacing:0;cursor:pointer;user-select:none
 }
 .gi-reports .gi-player-module table.gi-player-table td{ color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat) }
