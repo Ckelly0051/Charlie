@@ -68,4 +68,28 @@ Special Teams was untouched: no engine file changed, and
 
 ## Result
 
-Not yet run.
+**PASSED — approved by the coach on 2026-09-21.** The installed build is
+accepted for continued beta use.
+
+What that approval covers, precisely:
+
+- **Reports > Players composition.** The phase grouping, the row capacities with
+  Passing at three slots, the held dash rows and the internal scrolling with
+  fixed headers are accepted as built. The `1.12.0-90` REVISE is CLOSED.
+- **Reports > Defense cohort presentation.** The four computed cohort labels are
+  accepted. The `1.12.0-90` presentation REVISE is CLOSED, and the arithmetic it
+  sat beside was already reconciled as correct — the St. Peter zeros stand.
+- **Reports > Special Teams.** Its provisional pass is confirmed by this smoke;
+  the surface was unchanged between the two packages.
+
+What it does NOT cover, and must not be read into it:
+
+- **Home production remains formally `REJECTED`.** It was not in scope here.
+- **`design-approvals/APPROVALS.json` is unchanged.** Every Reports manifest
+  still reads `productionStatus: REJECTED`. Moving a surface to
+  `PRODUCTION_ACCEPTED` is a separate registry change with its own hash-verified
+  evidence, and the registry audit is currently red for an unrelated Home reason
+  (`docs/OPEN-DEFECTS.md`, Deferred Beta Maintenance 3).
+- **The other Reports surfaces** — Overview, Offense, Self-Scout, Season,
+  Matchup — were not part of this smoke and keep their existing status.
+- This build is still unsigned, untagged, unpushed and unpublished.

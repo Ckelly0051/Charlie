@@ -1074,13 +1074,21 @@ edge-to-edge by design; the top bar's 18px inset is not.
       Evidence: `artifacts/players-revise-90/` — 1920/1440/1280 × current-game
       All roles, Offense, Defense, Special Teams, plus full-season All roles. No
       page overflow, no clipped cell, no console error at any width.
-    - **Remaining:** Charlie Gate at the release widths and a re-run installed
-      smoke on the repaired build. Chromium verified layout, containment and the
-      browser-backed behavior; it cannot certify WebView2 rendering. **The
-      `1.12.0-90` smoke is not approved** — the coach must retest.
+    - **CLOSED 2026-09-21 — the `1.12.0-91` installed smoke PASSED and the coach
+      approved it.** The phase grouping, the row capacities with Passing at three
+      slots, the held dash rows and the internal scrolling with fixed headers are
+      accepted as built on the installed build, which is the only place WebView2
+      rendering can be certified. **This closes the composition verdict, not the
+      registry:** `design-approvals/reports/players/manifest.json` still reads
+      `productionStatus: REJECTED`, and moving it is a separate change with its
+      own hash-verified evidence — blocked today by the red registry audit
+      recorded under Deferred Beta Maintenance 3.
 
 13. **Reports > Defense — `1.12.0-90` arithmetic PASSED, cohort presentation
-    REVISE, repaired 2026-09-20; awaiting a Charlie Gate and a re-run smoke.**
+    REVISE, repaired 2026-09-20. CLOSED 2026-09-21: the `1.12.0-91` installed
+    smoke PASSED and the coach approved the cohort labels.** The manifest still
+    reads `productionStatus: REJECTED`; the approval is the installed smoke, not
+    a registry state.**
     - **The reported disagreement was not a calculation defect.** Reconciled
       play by play on the canonical St. Peter game: the final was 41-0, and all
       15 checkable down-and-distance transitions reconcile with the tagged
@@ -1113,8 +1121,10 @@ edge-to-edge by design; the top bar's 18px inset is not.
     yardage, scoring-side attribution, field perspective, scope, possession
     ownership and structured/legacy classification are untouched by
     construction. `e2e-reports-special-teams` is 57/57 unchanged, and
-    `e2e-parity` is 2/2 with no golden edited. It stays provisional pending its
-    own Charlie Gate and installed smoke.
+    `e2e-parity` is 2/2 with no golden edited. **CONFIRMED 2026-09-21 by the
+    `1.12.0-91` installed smoke**, which the coach approved; the surface was
+    unchanged between the two packages, so the provisional pass is now an
+    installed one. Its manifest is likewise untouched.
 
 ## Breakdown
 
@@ -1371,6 +1381,12 @@ Breakdown film-state defects above.
 
 ## Release Impact
 
+- Installed `1.12.0-91` is **APPROVED FOR BETA USE** after the 2026-09-21 coach
+  smoke, which closed both `1.12.0-90` REVISE verdicts — Reports > Players
+  composition and Reports > Defense cohort presentation — and confirmed the
+  Special Teams provisional pass. Canonical gate 120/120 at `df9d5f7`, bumped in
+  `894576d`. It is unsigned, untagged, unpushed and unpublished, and it moves no
+  manifest: beta smoke acceptance is not formal design approval or publication.
 - Installed `1.12.0-86` is **APPROVED FOR BETA USE** for FILM-01 after the
   2026-09-15 coach smoke. It also contains Repair Batch 1. The deferred visual
   findings inherited from `1.12.0-85` remain open.

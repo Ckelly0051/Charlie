@@ -11,18 +11,27 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-91` is the current unsigned smoke candidate,
-packaged from `df9d5f7` (the bump is `894576d`) with the canonical gate at
-120/120, zero skipped, zero failed, and `e2e-p0-exit` re-run after the bump.
-See `SMOKE-1.12.0-91.md`. **It exists to re-smoke the two `1.12.0-90` REVISE
-verdicts**: Players phase composition with deliberate row capacities, and the
-Defense cohort labels — whose arithmetic was reconciled as correct and is
-unchanged. Codex reviewed `fb85610..43b8c99` with no findings. Its installed
-smoke has NOT been run, so it establishes no acceptance: no Reports surface has
-had a Charlie Gate and Home production remains formally `REJECTED`. Not tagged,
-pushed or published. `cargo tauri build` exits 1 after producing both bundles,
-on the updater signing step, because `TAURI_SIGNING_PRIVATE_KEY` is unset — the
-standing condition of every unsigned beta package here.
+**Packaging status:** `1.12.0-91` is the current unsigned, **smoke-approved**
+beta build, packaged from `df9d5f7` (the bump is `894576d`) with the canonical
+gate at 120/120, zero skipped, zero failed, and `e2e-p0-exit` re-run after the
+bump. See `SMOKE-1.12.0-91.md`. It exists to re-smoke the two `1.12.0-90` REVISE
+verdicts — Players phase composition with deliberate row capacities, and the
+Defense cohort labels, whose arithmetic was reconciled as correct and is
+unchanged — and Codex reviewed `fb85610..43b8c99` with no findings.
+**The coach approved the installed smoke on 2026-09-21**, which CLOSES both
+REVISE verdicts and confirms the Special Teams provisional pass.
+
+**That approval is bounded, and the bounds matter.** It covers the Players
+composition, the Defense cohort presentation and Special Teams on the installed
+build. It does NOT move `design-approvals/APPROVALS.json`, where every Reports
+manifest still reads `productionStatus: REJECTED` — a registry change is a
+separate step with its own hash-verified evidence, and the registry audit is
+currently red for an unrelated Home reason. **Home production remains formally
+`REJECTED`** and was not in scope. Overview, Offense, Self-Scout, Season and
+Matchup keep their existing status. Not tagged, pushed or published.
+`cargo tauri build` exits 1 after producing both bundles, on the updater signing
+step, because `TAURI_SIGNING_PRIVATE_KEY` is unset — the standing condition of
+every unsigned beta package here.
 
 `1.12.0-90` was the preceding unsigned smoke candidate, packaged from `1a42282`
 (bumped in `aff2dd4`) with the canonical gate at 120/120. See
@@ -1145,7 +1154,8 @@ zero-sample categorical row (play type, direction, pressure situation, zone,
 hash, down and distance) is not rendered, and Front and Coverage performance are
 not rendered when nothing was charted.
 
-**EVERY MODULE NAMES THE COHORT IT MEASURES, IN COUNTS (2026-09-20).** Four
+**EVERY MODULE NAMES THE COHORT IT MEASURES, IN COUNTS — approved in the
+`1.12.0-91` installed smoke, 2026-09-21.** Four
 valid cohorts run through this board and presenting them unlabelled is what made
 correct arithmetic read as a contradiction in the `1.12.0-90` installed smoke:
 the KPI strip measures the classified run/pass subset, Production by play type
@@ -1363,8 +1373,9 @@ vocabulary no coach uses - and its defensive KPI band led with Stop Rate. The
 export carries the held-row dash, calls `StatsEngine.ddPretty` (the static form
 of `_ddPretty`, the one owner of this wording), and prints the board's KPI
 order. `e2e-reports-self-scout` asserts against the produced HTML string.
-**PLAYERS COMPOSITION IS PHASE GROUPS, and the 1.12.0-90 installed smoke is what
-rejected the alternative (2026-09-20).** Populated roles paired two at a time in
+**PLAYERS COMPOSITION IS PHASE GROUPS — rejected as pairs in the `1.12.0-90`
+installed smoke (2026-09-20), rebuilt, and APPROVED in the `1.12.0-91` installed
+smoke on 2026-09-21.** Populated roles paired two at a time in
 board order, which put Receiving beside Tackles — offense and defense in one
 band — and let a one-row module sit as dead space beside a six-row one. Roles
 group by PHASE: Offense (Rushing, Passing, Receiving), Defense (Tackles),
@@ -1393,10 +1404,14 @@ rows instead of staying. Both axes belong to `.gi-player-body`, and the column
 header is deliberately sticky at ITS `top:0`, which is the correction of the
 route-wide `th{top:42px}` rather than the opt-out Revision 1 carried.
 
-**Reports > Players is REVISION 2 (2026-09-20): its CODE checkpoint is accepted —
-Codex reviewed `5471cb9..790e192` with no findings — but it is NOT coach
-accepted, and its composition took a REVISE in the `1.12.0-90` installed
-smoke.** The approved six-role leaderboard is intact —
+**Reports > Players is REVISION 2, and its installed smoke PASSED on 2026-09-21
+(`1.12.0-91`).** Its code checkpoint was reviewed by Codex over
+`5471cb9..790e192` and again over `fb85610..43b8c99`, both with no findings; its
+composition took a REVISE in the `1.12.0-90` installed smoke and was rebuilt as
+phase groups, which the coach approved. **The approval is the installed smoke,
+not a registry state:** `design-approvals/reports/players/manifest.json` still
+reads `productionStatus: REJECTED`, and moving it is a separate, evidenced
+step.** The approved six-role leaderboard is intact —
 same roles, stat definitions, scopes, sorting, absence semantics and column
 geometry. Revision 2 adds analysis on top of it, using only fields already
 charted. Checkpoint evidence: `e2e-reports-players` 223/223,
