@@ -157,7 +157,9 @@ flattening unmeasured measures and dropping `gradeSort` (4 red), and rebuilding
 the export summary from the fixed stat list (3 red) — each red naming the exact
 reported wording.
 
-**Home rail, 2026-09-21.** `e2e-home-rail` (30) asserts what a coach can see and
+**Home rail, 2026-09-21 — SUPERSEDED by the entry below; kept for the reasoning,
+not the contract.** The suite is **55**, not 30, and the active year can no
+longer fold at all. `e2e-home-rail` asserts what a coach can see and
 reach, measured from laid-out geometry — never that a selector or a declaration
 exists. Three seasons with no internal season-tree scrollbar at 1920×1080 and
 1440×900; eight seasons with every year disclosed and the open season visible;
@@ -168,7 +170,30 @@ distinct, headed and holding their own create actions; every utility action
 reachable, clear of the tree and at full target height at every tested viewport;
 and long labels that neither widen the rail nor clip without a title.
 
-**The Codex repairs, 2026-09-21.** `e2e-home-rail` is **43**. It adds the active
+**Home rail, CURRENT CONTRACT (2026-09-21).** `e2e-home-rail` is **55**. The
+active year is a heading that cannot fold and draws no caret; an inactive folded
+year renders no body. One `yearGroupKey()` owner means a blank-year legacy season
+groups under `Undated` and can BE the active year — covered by a legacy fixture
+in its own browser context (an open blank-year season, a second season in the
+same group, and a dated inactive year). Keyboard operation is real: Puppeteer
+focuses the disclosure and presses Enter and Space, and nothing in that block
+clicks. Containment is checked on both axes. Everything in the earlier entries
+below still holds except where they say a folded active year keeps its current
+row — that behaviour is gone.
+
+**A shared owner can make a whole interaction untestable.** Driving real keys
+exposed that the app's global shortcut handler swallowed Space from every
+focused button; the synthetic-event test could never have caught it, because it
+called `.click()` itself. When a keyboard test needs a synthetic event to pass,
+the thing it is testing is probably broken.
+
+**Not every fix earns a mutation.** The scout-pane starvation — an `auto` track
+collapsing to 5px against 92px of content — was found in a capture and fixed,
+but the harness's own rail does not starve in that configuration, so no mutation
+reds that assertion. It is recorded as guarded-but-unproven rather than counted
+as covered.
+
+**The Codex repairs, 2026-09-21.** `e2e-home-rail` was **43** at that point. It adds the active
 year as a heading with no `aria-expanded`, every season of that year rendered,
 no year anywhere reporting `aria-expanded="false"` while rendering rows, a
 folded year whose controlled body is absent entirely, opening a season in a

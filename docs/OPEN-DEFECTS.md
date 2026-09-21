@@ -215,17 +215,17 @@ authority until a replacement composition is reviewed and approved.
      anchored and reachable; the reclaimed height came from the rail's own
      paddings and gaps, plus a tighter spacing step below 960px viewport height.
      **No control, row or type size was reduced.**
-   - Years are real disclosures (focusable, `aria-expanded`, `aria-controls`,
-     focus ring, count). A folded year still renders its current row, so the
-     open season can never be folded out of navigation. Collapse state is
-     controller state and survives re-render, program change and season change.
+   - **SUPERSEDED 2026-09-21 by the Codex repairs below:** the first pass let a
+     folded year keep its current row rendered. That is gone. The CURRENT
+     behaviour is the one recorded two entries down — the active year is a
+     heading that cannot fold, and an inactive folded year renders nothing.
    - Measured: three seasons with no internal scrollbar at 1920×1080 and
      1440×900; eight and ten seasons scroll inside the season tree only, never
      the rail and never the page; no horizontal page scrolling at 1920, 1440 or
      1280; long labels truncate with a title and never widen the rail.
-   - Evidence: `tools/e2e-home-rail.mjs` (30 assertions, behavioural),
-     `artifacts/home-rail/` (1920×1080, 1440×900, 1280×800 at 3, 8 and 10
-     seasons) and `artifacts/home-repair-91/` (populated canonical season).
+   - Superseded evidence, kept as history: `artifacts/home-rail/` and
+     `artifacts/home-repair-91/`, against a 30-assertion suite. The CURRENT
+     evidence is listed with the Codex repairs below.
      **Awaiting a Charlie Gate and an installed smoke — Home production status
      is unchanged and the registry is untouched.**
    - **Codex review of `77e7b50..3dee2ac`, repaired 2026-09-21.** Two findings.
@@ -250,6 +250,41 @@ authority until a replacement composition is reviewed and approved.
      control, no duplicated identity, no clipped text, no horizontal page
      scrolling, six of six cards, zero console errors. Evidence:
      `artifacts/home-repair-91b/`.
+   - **Codex review of `3dee2ac..a6f21d7`, repaired 2026-09-21. THIS IS THE
+     CURRENT RAIL BEHAVIOUR.**
+     **One year-group key.** Grouping normalised a missing year to `Undated`
+     while the active-year test normalised it to `''`, so an OPEN legacy season
+     with no year sat in a collapsible group. `yearGroupKey()` is the one owner
+     both read; `Undated` is the active, permanently expanded heading when it
+     holds the open season, and dated years beside it stay collapsible with
+     their team + section + year scoping. No stored metadata is read or
+     rewritten.
+     **No caret on the active heading.** It was still drawing the expanded
+     disclosure glyph while being noninteractive; alignment now comes from an
+     empty spacer of the caret's own width. An INACTIVE folded year renders no
+     body at all, so `aria-expanded` and the DOM always agree.
+     **Real keyboard operation, and a shared-owner defect behind it.** The old
+     test dispatched a synthetic `KeyboardEvent` and then called `.click()`.
+     Driving real keys exposed that `App._bindKeyboard` guarded only
+     INPUT/TEXTAREA/SELECT, so Space was swallowed from every focused button in
+     the app while also toggling film playback. The guard yields Space and Enter
+     to buttons, links, `role="button"` and editable content.
+     **Two defects the captures found.** The scout pane, sized `auto` beside the
+     flexible seasons row, collapsed to 5px against 92px of content and hid its
+     only row — its track is now its own content height capped at 34% (46% on a
+     short rail). And at 1280 both create buttons sat 26px past the rail's right
+     edge because a grid item's automatic minimum is its content; the sections
+     carry `min-width:0`, and the harness checks both axes now.
+     **Current evidence:** `tools/e2e-home-rail.mjs` (55 assertions,
+     behavioural, including a legacy `Undated` fixture in its own browser
+     context) and `artifacts/home-rail-91c/` at 1920×1080, 1440×900 and
+     1280×800 — each showing three year groups, the caret-less active heading,
+     an expanded and a folded inactive year, the selected row, the scout tree,
+     the anchored tools, populated cards and the selected-game panel.
+     **Limitation, stated plainly:** the scout-track starvation is fixed and
+     measured but is NOT mutation-proven — the harness's rail does not starve in
+     that configuration, so that one assertion guards the contract without a
+     red-proven mutation behind it.
 
 1. **REPAIRED 2026-09-12 — Home has one renderer and one composition.** The
    shell no longer creates or mounts `#wsTeamHub`. Season Library now saves and
@@ -1022,8 +1057,12 @@ edge-to-edge by design; the top bar's 18px inset is not.
       Defending a Try. Chromium verifies the layout and the browser-backed
       behavior; it cannot certify WebView2 rendering.
 
-12. **Reports > Players Revision 2 — CODE CHECKPOINT ACCEPTED 2026-09-20, still
-    awaiting a Charlie Gate and an installed smoke.** Codex reviewed
+12. **Reports > Players Revision 2 — CODE CHECKPOINT ACCEPTED 2026-09-20, and
+    its PRESENTATION passed the approved `1.12.0-91` installed smoke on
+    2026-09-21.** Both lanes are closed: the code checkpoint by review, the
+    composition by the coach on the installed build. **Formal registry
+    acceptance is a separate step and remains `REJECTED`** — the manifest is
+    unchanged. Codex reviewed
     `5471cb9..790e192` with NO findings, which closes the review lane for this
     range; every finding it had raised on Revision 2 and on the repair of
     Revision 2 is repaired and covered. The engine, view-model and export

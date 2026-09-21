@@ -2250,9 +2250,20 @@ never from shrinking a control, a row or the type** — and a tighter spacing st
 applies below 960px of viewport height. The two trees stay separate, headed and
 independently reachable; they are never merged into one tree.
 
-**THE ACTIVE YEAR IS A HEADING, NOT A CONTROL.** The year holding the open
-season is always fully expanded, shows every one of its seasons, and offers no
-collapse at all — it keeps the year and the count and nothing else. An earlier
+**THE ACTIVE YEAR IS A HEADING, NOT A CONTROL, AND CARRIES NO CARET.** The year
+holding the open season is always fully expanded, shows every one of its
+seasons, and offers no collapse at all — it keeps the year and the count and
+nothing else. **No disclosure glyph either:** a caret on a heading that cannot
+be pressed states an affordance that does not exist, so alignment with the
+disclosure rows comes from an empty spacer of the caret's own width.
+
+**ONE YEAR-GROUP KEY, `yearGroupKey()`.** Grouping normalised a missing year to
+`Undated` while the active-year test normalised it to an empty string, so an
+OPEN legacy season with no year fell between them: grouped under `Undated`,
+matching no active year, and sitting inside a collapsible group. Both read the
+one owner now, so `Undated` is the active, permanently expanded heading whenever
+it holds the open season. Nothing here reads or rewrites stored season metadata
+— it only decides which heading a row appears under. An earlier
 pass let it fold and pinned its current row visible; that left
 `aria-expanded="false"` over rendered content, so **the DOM and the
 accessibility state disagreed**, and it offered an action that could not
@@ -2274,6 +2285,25 @@ resize — a viewport change re-lays out the rail without re-rendering it, which
 is how the open season scrolled out of a shorter tree. Measured: three seasons
 render with no internal scrollbar at 1920×1080 and 1440×900; eight and ten
 seasons scroll inside the season tree only, never the rail and never the page.
+
+**SPACE AND ENTER BELONG TO A FOCUSED CONTROL.** `App._bindKeyboard`'s global
+shortcut handler guarded only `INPUT`, `TEXTAREA` and `SELECT`, so Space was
+swallowed from every focused button in the app — the rail's year disclosures
+included — while the same press toggled film playback behind the coach's back.
+The guard also yields Space and Enter to `BUTTON`, `A`, `role="button"` and
+editable content. Every other key and every other target is unchanged. A
+keyboard test that dispatches a synthetic `KeyboardEvent` and then calls
+`.click()` cannot catch this: it proves the click handler works and would pass
+on a `div` no keyboard can reach. Drive the real keys.
+
+**Both trees stay inside the rail, on BOTH axes.** The scout pane's track is its
+own content height capped at 34% of the rail (46% on a short one): sized `auto`
+beside the flexible seasons row it collapsed to 5px against 92px of content and
+hid its only row. And a section must carry `min-width:0` as well as
+`min-height:0` — a grid item's automatic minimum is its content, so the section
+refused to shrink below its head's natural width and pushed the create button
+26px past the rail's right edge at 1280, clipped and unreachable. A containment
+check that measures only top and bottom passes that defect.
 
 **Every Home control meets the 30px desktop target, and the target is the
 control, not the ink.** `View roster →` (16px), the selected-game overflow
