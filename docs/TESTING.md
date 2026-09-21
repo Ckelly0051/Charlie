@@ -96,7 +96,7 @@ The smallest existing harness for the route or domain you touched.
 
 | Domain | Harnesses |
 |---|---|
-| Home | `e2e-home-deferred-repair`, `e2e-home-review-repair`, `e2e-home-first-launch` |
+| Home | `e2e-home-rail`, `e2e-home-deferred-repair`, `e2e-home-review-repair`, `e2e-home-first-launch` |
 | Team Hub / registry | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-v2b-control-center` |
 | Break Down — theater/film | `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle` |
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
@@ -156,6 +156,28 @@ defender. Three mutations — restoring the `Math.max(0, …)` clamp (4 red),
 flattening unmeasured measures and dropping `gradeSort` (4 red), and rebuilding
 the export summary from the fixed stat list (3 red) — each red naming the exact
 reported wording.
+
+**Home rail, 2026-09-21.** `e2e-home-rail` (30) asserts what a coach can see and
+reach, measured from laid-out geometry — never that a selector or a declaration
+exists. Three seasons with no internal season-tree scrollbar at 1920×1080 and
+1440×900; eight seasons with every year disclosed and the open season visible;
+ten seasons scrolling inside the tree only; a fold that removes exactly its own
+rows; keyboard focus and activation of the disclosure; the open season still
+visible after folding its own year and after a viewport change; both trees
+distinct, headed and holding their own create actions; every utility action
+reachable, clear of the tree and at full target height at every tested viewport;
+and long labels that neither widen the rail nor clip without a title.
+
+**Seed from the model, measure from the DOM.** The harness creates seasons
+through `storage.createSeason` and waits for the rail to report them, because a
+fixed sleep is a flake — but it counts them from `teamHubScreen.snapshot()`, not
+from rendered rows: a folded year removes its rows from the DOM, which is the
+whole point of folding, so a DOM count silently under-reports and the seeding
+loop hangs. Two existing assertions were repointed for the new composition: the
+equal 112px pane floor became "the season tree is never the starved pane", and
+the year label reads its own element now that the disclosure carries a caret and
+a count. Mutation: restoring the equal `1fr` rows reds the three-season
+assertions at both viewports with 2 and 1 rows visible.
 
 **The 1.12.0-90 REVISE repairs, 2026-09-20.** `e2e-reports-players` is **239**
 and `e2e-reports-defense-board` **60**, `e2e-reports-defense-realdata` **89**.

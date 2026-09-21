@@ -1001,13 +1001,16 @@ a box-shadow into the existing 1px gap: sized to content, the band's own
 `--bd-rule` background would otherwise show under a short module as a solid
 slab, and collapsing the gap moves every rule ~1.4px out of alignment.
 
-**Reports > Defense is REVISION 2 (2026-09-17): implemented and gate-verified,
-but NOT production accepted.** Built from the coach-approved Revision 2 comp —
+**Reports > Defense is REVISION 2 (2026-09-17), and its installed smoke PASSED
+on 2026-09-21 (`1.12.0-91`).** Built from the coach-approved Revision 2 comp —
 `defense.html` and its generator `build.mjs` in the coach's
 `Football App/defense-revision-2` folder, whose rendered layout is the authority
-where its RATIONALE prose describes an earlier iteration. It has had no Charlie
-Gate and no installed smoke, so production remains `REJECTED`; the approval
-registry is unchanged. It replaces the 2026-09-09 four-tab board, which is gone:
+where its RATIONALE prose describes an earlier iteration. The `1.12.0-90` smoke
+passed its arithmetic and returned a REVISE on cohort presentation only; the
+labels were added and the coach approved them in the `1.12.0-91` smoke, which
+CLOSES that verdict. **The approval is the installed smoke, not a registry
+state:** `design-approvals/reports/defense/manifest.json` still reads
+`productionStatus: REJECTED` and the approval registry is unchanged. It replaces the 2026-09-09 four-tab board, which is gone:
 no section tabs, no `DEFENSE_DASH_ROWS`, no `Top 6 formations`, no
 `Attack direction`, no `Blitz vs No Blitz` cards.
 
@@ -1227,11 +1230,13 @@ printed `0 snaps`, a look the coach charted reported as one nobody ran. The expo
 states `40 charted · 37 with play type`; the Revision 2 board states the same two
 numbers as `40 charted / 37 with Run/Pass charted` on every section.
 
-**Reports > Special Teams is implemented and gate-verified, but NOT coach
-accepted.** Built to the approved comp
-(`design-comps/reports-special-teams-2026-09-04`, whose RATIONALE is the
-decision record and carries all eight coach rulings). No Charlie Gate and no
-installed smoke, so it is not accepted state.
+**Reports > Special Teams is implemented, gate-verified, and its provisional
+`1.12.0-90` smoke pass was CONFIRMED by the approved `1.12.0-91` installed smoke
+on 2026-09-21** — the surface was unchanged between the two packages. Built to
+the approved comp (`design-comps/reports-special-teams-2026-09-04`, whose
+RATIONALE is the decision record and carries all eight coach rulings). **The
+approval is the installed smoke, not a registry state:** its manifest still
+reads `productionStatus: REJECTED`.
 
 **SPECIAL TEAMS ACCEPTANCE PASS COMPLETE (2026-09-19) — awaiting Codex review,
 a Charlie Gate and an installed smoke.** The board, its navigation, units,
@@ -1411,7 +1416,7 @@ composition took a REVISE in the `1.12.0-90` installed smoke and was rebuilt as
 phase groups, which the coach approved. **The approval is the installed smoke,
 not a registry state:** `design-approvals/reports/players/manifest.json` still
 reads `productionStatus: REJECTED`, and moving it is a separate, evidenced
-step.** The approved six-role leaderboard is intact —
+step. The approved six-role leaderboard is intact —
 same roles, stat definitions, scopes, sorting, absence semantics and column
 geometry. Revision 2 adds analysis on top of it, using only fields already
 charted. Checkpoint evidence: `e2e-reports-players` 223/223,
@@ -1530,11 +1535,14 @@ tackles, blocking or coverage grades per player, route or assignment data, and a
 combined player rating. Role attribution is what a coach charted, never
 participation.
 
-**Reports > Players Revision 1 is implemented and gate-verified, but NOT coach accepted.**
-Built to the approved comp (`design-comps/reports-players-2026-09-04`, whose
-RATIONALE is the decision record and whose section 16 is the final
-composition). No Charlie Gate and no installed smoke, so it is not accepted
-state.
+**Reports > Players Revision 1 is the SUPERSEDED baseline, kept here because
+Revision 2 preserved its role schemas, stat definitions, scopes, sorting,
+absence semantics and column geometry unchanged.** Built to the approved comp
+(`design-comps/reports-players-2026-09-04`, whose RATIONALE is the decision
+record and whose section 16 is the final composition). Its band pairing is the
+one part Revision 2 replaced, and the `1.12.0-90` smoke is what rejected it; the
+phase composition that replaced it passed the `1.12.0-91` smoke. Read the rules
+below as the schema contract, not as the current layout.
 
 Players is **six fixed football roles** — Rushing, Passing, Receiving, Tackles,
 Return Game, Kicking / Punting — paired two to a band. Scope (Current game /
@@ -2220,14 +2228,40 @@ it is accepted state.
    and its dead presentation owner are deleted. Top-level Reports > Self-Scout
    remains the only self-scout presentation.
 
-**Accepted limitation, not open work.** At 1280×800 the Home rail's two panes
+**SUPERSEDED 2026-09-21 — the equal 112px pane floors were the defect, not an
+accepted limitation.** The record read: "At 1280×800 the Home rail's two panes
 sit at their 112px floor and a scout row falls just below the fold inside its
 own pane (measured: rail 682px = padding 40 + link 36 + gaps 66 + trees 194 +
-tools 291 + foot 55). Both headings stay visible and every fixed tool stays
-reachable, which is the contract. Freeing enough space for a visible row would
-have to come out of the tools or the foot, which the approved composition
-reserves. This is accepted for `1.12.0-70`; reopen it only if installed smoke
-raises it.
+tools 291 + foot 55) … freeing enough space would have to come out of the tools
+or the foot, which the approved composition reserves." The `1.12.0-91` installed
+smoke disproved that reasoning: the tool block was spending 291px of a 682px
+rail on five actions, and the season tree — the rail's actual purpose — held
+about one visible row, so the screen showed 2026 while 2025 JV was the open
+season. The space came out of the rail's own paddings and gaps, not out of the
+tools' targets or labels, and out of reserving a scout pane the same size as the
+season tree whatever each held.
+
+**PROGRAM SEASONS OWNS THE RAIL'S FLEXIBLE HEIGHT.** It takes the free space and
+keeps a 120px floor; Opponent Scouts is content-sized under a 34% cap. Both caps
+exist because either alone starves the other: equal `1fr` rows starved the season
+tree, and a purely content-sized scout pane collapsed it to nothing. The tool
+block keeps every 40px target and every label — **density comes from composition,
+never from shrinking a control, a row or the type** — and a tighter spacing step
+applies below 960px of viewport height. The two trees stay separate, headed and
+independently reachable; they are never merged into one tree.
+
+**A YEAR IS A REAL DISCLOSURE, AND THE OPEN SEASON IS NEVER HIDDEN.** Each year
+group is a focusable button carrying `aria-expanded`, `aria-controls`, its own
+focus ring and a count that survives folding. A folded year still renders its
+CURRENT row, so folding the year a coach is working in cannot remove the season
+they are working on from navigation. Collapse state is controller state
+(`screen.railCollapsedYears`), so an ordinary re-render, a program change or a
+season change cannot silently reset what the coach folded. The current row is
+scrolled into view on render AND on resize — a viewport change re-lays out the
+rail without re-rendering it, which is how the open season scrolled out of a
+shorter tree. Measured: three seasons render with no internal scrollbar at
+1920×1080 and 1440×900; eight and ten seasons scroll inside the season tree
+only, never the rail and never the page.
 
 ---
 

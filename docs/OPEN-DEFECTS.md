@@ -1,9 +1,13 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-19: Reports > Defense Revision 2
-> is implemented and gate-verified (see the Reports section), awaiting its
-> Charlie Gate and installed smoke; production stays `REJECTED`. Previously
-> updated 2026-09-16. The `1.12.0-87`
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-21: the installed
+> `1.12.0-91` smoke was APPROVED by the coach. It closes both `1.12.0-90` REVISE
+> verdicts — Reports > Players composition and Reports > Defense cohort
+> presentation — and confirms the Reports > Special Teams provisional pass.
+> **Those are installed-smoke approvals, not registry states:** every Reports
+> manifest in `design-approvals/APPROVALS.json` still reads
+> `productionStatus: REJECTED`, and Home production remains `REJECTED` and was
+> not in that smoke's scope. Previously updated 2026-09-19 and 2026-09-16. The `1.12.0-87`
 > installed smoke DISPROVED the first BD-VP repair: Breakdown still showed
 > floating scrollbar arrow controls and a horizontal track in the charting deck,
 > and the deck spacing had regressed. **BD-VP is now CLOSED FOR BETA USE** (item 10):
@@ -195,6 +199,42 @@ Found at the board on the installed visual-smoke candidate.
 Home is a high-priority navigation and data-accuracy surface. Current production
 remains `REJECTED`; the approved 2026-08-31 Home comp remains the design
 authority until a replacement composition is reviewed and approved.
+
+0. **REPAIRED 2026-09-21 — the navigation rail starved the season tree.** Found
+   in the approved `1.12.0-91` installed build: Program Seasons showed only 2026
+   while 2025 JV was the OPEN season. Root cause: both trees held an equal `1fr`
+   with a 112px floor beneath a tool block taking 291px of a 682px rail, so the
+   season tree held about one visible row and the open season was scrolled out
+   of it — and nothing re-scrolled it back after a resize, because a viewport
+   change re-lays out the rail without re-rendering it.
+   - Program Seasons now takes the rail's flexible height with a 120px floor;
+     Opponent Scouts is content-sized under a 34% cap. Both bounds are load
+     bearing: equal rows starved the seasons, and a purely content-sized scout
+     pane collapsed the season tree to zero at 1280×800.
+   - The five utility actions keep their 40px targets and their labels and stay
+     anchored and reachable; the reclaimed height came from the rail's own
+     paddings and gaps, plus a tighter spacing step below 960px viewport height.
+     **No control, row or type size was reduced.**
+   - Years are real disclosures (focusable, `aria-expanded`, `aria-controls`,
+     focus ring, count). A folded year still renders its current row, so the
+     open season can never be folded out of navigation. Collapse state is
+     controller state and survives re-render, program change and season change.
+   - Measured: three seasons with no internal scrollbar at 1920×1080 and
+     1440×900; eight and ten seasons scroll inside the season tree only, never
+     the rail and never the page; no horizontal page scrolling at 1920, 1440 or
+     1280; long labels truncate with a title and never widen the rail.
+   - Evidence: `tools/e2e-home-rail.mjs` (30 assertions, behavioural),
+     `artifacts/home-rail/` (1920×1080, 1440×900, 1280×800 at 3, 8 and 10
+     seasons) and `artifacts/home-repair-91/` (populated canonical season).
+     **Awaiting a Charlie Gate and an installed smoke — Home production status
+     is unchanged and the registry is untouched.**
+   - **Observed, not repaired, in the same audit:** three controls in the
+     selected-game panel sit below the 30px desktop target — `View roster →`
+     (16px, a text link), the `…` overflow button (28px) and `Link film` (24px).
+     They predate this work and belong to the approved Home composition, so
+     changing them is a composition decision rather than a rail repair. The
+     opponent name also renders twice on every game card (heading and subline)
+     and in the selected-game panel. Both are recorded here for the coach.
 
 1. **REPAIRED 2026-09-12 — Home has one renderer and one composition.** The
    shell no longer creates or mounts `#wsTeamHub`. Season Library now saves and
@@ -831,8 +871,12 @@ edge-to-edge by design; the top bar's 18px inset is not.
    is the approved comp's own behavior and is carried into the Charlie Gate: a
    64px-pitch module whose rows do not fill its standard height (Down & Distance
    on a single game) keeps a sub-row gap, because no whole row fits there.
-5. **Reports > Defense Revision 2 — IMPLEMENTED 2026-09-17, awaiting Charlie Gate
-   and installed smoke.** Built to the coach-approved Revision 2 comp. Metric
+5. **Reports > Defense Revision 2 — IMPLEMENTED 2026-09-17; installed smoke
+   PASSED and APPROVED 2026-09-21 (`1.12.0-91`).** The `1.12.0-90` smoke passed
+   its arithmetic and returned a REVISE on cohort presentation only, which is
+   repaired and closed (item 13). The manifest still reads
+   `productionStatus: REJECTED`: the approval is the installed smoke, not a
+   registry state. Built to the coach-approved Revision 2 comp. Metric
    definitions are recorded in `CLAUDE.md`. Intentional differences from the
    standalone comp: the Reports shell's header and scorebug carry report
    identity, so the comp's title block and footer line are not rendered; Export
@@ -906,8 +950,9 @@ edge-to-edge by design; the top bar's 18px inset is not.
    their touchdown allowed and their stop rate is 0%. The focused Matchup
    regression uses a normal offense-origin touchdown with no explicit
    `scoreFor`, proving the default ownership survives the projection.
-10. **Reports > Special Teams limited acceptance pass — REPAIRED 2026-09-19,
-    awaiting Codex review, a Charlie Gate and an installed smoke.**
+10. **Reports > Special Teams limited acceptance pass — REPAIRED 2026-09-19;
+    provisional `1.12.0-90` pass CONFIRMED by the approved `1.12.0-91` installed
+    smoke, 2026-09-21.** The manifest still reads `productionStatus: REJECTED`.
     - **Punt block touchdown can now be authored.** `ST_OUTCOMES.puntReturn`
       gained `Blocked` and the unit reads `Punt Return / Block`; the stored value
       stays `puntReturn` and no `puntBlock` exists. Possession and Score are the
@@ -1088,7 +1133,7 @@ edge-to-edge by design; the top bar's 18px inset is not.
     REVISE, repaired 2026-09-20. CLOSED 2026-09-21: the `1.12.0-91` installed
     smoke PASSED and the coach approved the cohort labels.** The manifest still
     reads `productionStatus: REJECTED`; the approval is the installed smoke, not
-    a registry state.**
+    a registry state.
     - **The reported disagreement was not a calculation defect.** Reconciled
       play by play on the canonical St. Peter game: the final was 41-0, and all
       15 checkable down-and-distance transitions reconcile with the tagged
