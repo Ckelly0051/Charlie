@@ -2250,18 +2250,47 @@ never from shrinking a control, a row or the type** — and a tighter spacing st
 applies below 960px of viewport height. The two trees stay separate, headed and
 independently reachable; they are never merged into one tree.
 
-**A YEAR IS A REAL DISCLOSURE, AND THE OPEN SEASON IS NEVER HIDDEN.** Each year
-group is a focusable button carrying `aria-expanded`, `aria-controls`, its own
-focus ring and a count that survives folding. A folded year still renders its
-CURRENT row, so folding the year a coach is working in cannot remove the season
-they are working on from navigation. Collapse state is controller state
-(`screen.railCollapsedYears`), so an ordinary re-render, a program change or a
-season change cannot silently reset what the coach folded. The current row is
-scrolled into view on render AND on resize — a viewport change re-lays out the
-rail without re-rendering it, which is how the open season scrolled out of a
-shorter tree. Measured: three seasons render with no internal scrollbar at
-1920×1080 and 1440×900; eight and ten seasons scroll inside the season tree
-only, never the rail and never the page.
+**THE ACTIVE YEAR IS A HEADING, NOT A CONTROL.** The year holding the open
+season is always fully expanded, shows every one of its seasons, and offers no
+collapse at all — it keeps the year and the count and nothing else. An earlier
+pass let it fold and pinned its current row visible; that left
+`aria-expanded="false"` over rendered content, so **the DOM and the
+accessibility state disagreed**, and it offered an action that could not
+honestly complete. Every INACTIVE year is a focusable button with
+`aria-expanded`, `aria-controls`, a focus ring and a count, and folding one
+removes its body entirely — a collapsed year renders nothing, so it can never
+contradict its own state. Opening a season in a folded year therefore expands
+that year by definition, reveals every season in it, and scrolls the open one
+into view with `block:'nearest'`; the year the coach came from keeps whatever
+disclosure state they chose.
+
+**Collapse state is keyed by TEAM, section and year.** Two programs' 2024s are
+different years, so nothing a coach folds in one program can leak into another,
+and a program change opens the new program's tree fully expanded with its own
+active year as the heading. It is controller state
+(`screen.railCollapsedYears`), so an ordinary re-render or a season change
+cannot silently reset it. The current row is scrolled into view on render AND on
+resize — a viewport change re-lays out the rail without re-rendering it, which
+is how the open season scrolled out of a shorter tree. Measured: three seasons
+render with no internal scrollbar at 1920×1080 and 1440×900; eight and ten
+seasons scroll inside the season tree only, never the rail and never the page.
+
+**Every Home control meets the 30px desktop target, and the target is the
+control, not the ink.** `View roster →` (16px), the selected-game overflow
+button (28px), `Link film` (24px), both rail create buttons (26px) and the
+library back link (26px) all reached it by taking padding that is pulled back
+out of their rows, so no panel grew and no type shrank. The overflow action
+stays an icon button with its accessible label and its tooltip; every control
+keeps hover, active, disabled and `:focus-visible`.
+
+**ONE OPPONENT IDENTITY PER COMPONENT.** `matchupSchoolLine` exists to add the
+name the title abbreviated, but it returned the opponent again, so every game
+card and the detail panel printed it twice a line apart. It returns a line only
+when the title does not already CONTAIN it — equality is too weak a test,
+because the title is a matchup and the opponent's full name is usually a
+substring of it. Nothing is invented to fill the space it leaves: date, score,
+status, charting and film are unchanged, and a long name still truncates with
+its full value in a `title`.
 
 ---
 

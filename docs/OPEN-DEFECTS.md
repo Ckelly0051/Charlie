@@ -228,13 +228,28 @@ authority until a replacement composition is reviewed and approved.
      seasons) and `artifacts/home-repair-91/` (populated canonical season).
      **Awaiting a Charlie Gate and an installed smoke — Home production status
      is unchanged and the registry is untouched.**
-   - **Observed, not repaired, in the same audit:** three controls in the
-     selected-game panel sit below the 30px desktop target — `View roster →`
-     (16px, a text link), the `…` overflow button (28px) and `Link film` (24px).
-     They predate this work and belong to the approved Home composition, so
-     changing them is a composition decision rather than a rail repair. The
-     opponent name also renders twice on every game card (heading and subline)
-     and in the selected-game panel. Both are recorded here for the coach.
+   - **Codex review of `77e7b50..3dee2ac`, repaired 2026-09-21.** Two findings.
+     **The active year could fold**, which pinned its current row visible under
+     `aria-expanded="false"` — rendered content behind a collapsed state, and a
+     control that could not honestly complete. The active year is now a heading
+     with no collapse; inactive years fold completely, rendering no body, so no
+     year can contradict its own state. Opening a season in a folded year makes
+     that year the expanded active heading, reveals all of it and scrolls the
+     open season into view; collapse state is keyed by team, section and year,
+     so it cannot leak across a program change.
+     **The earlier pass recorded the visual audit instead of repairing it.**
+     Now repaired: `View roster →` (16px), the `…` overflow button (28px),
+     `Link film` (24px), both rail create buttons (26px) and the library back
+     link (26px) all meet the 30px desktop target, by padding pulled back out of
+     their rows — no panel grew, no type shrank, and the overflow action keeps
+     its icon, accessible label and tooltip. The duplicated opponent identity is
+     gone from every game card and the detail panel: the school subline renders
+     only when the title does not already contain it. Score, date, status,
+     charting and film are unchanged.
+     Re-scanned populated at 1920×1080, 1440×900 and 1280×800: no sub-30px
+     control, no duplicated identity, no clipped text, no horizontal page
+     scrolling, six of six cards, zero console errors. Evidence:
+     `artifacts/home-repair-91b/`.
 
 1. **REPAIRED 2026-09-12 — Home has one renderer and one composition.** The
    shell no longer creates or mounts `#wsTeamHub`. Season Library now saves and

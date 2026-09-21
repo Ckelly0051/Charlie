@@ -168,6 +168,23 @@ distinct, headed and holding their own create actions; every utility action
 reachable, clear of the tree and at full target height at every tested viewport;
 and long labels that neither widen the rail nor clip without a title.
 
+**The Codex repairs, 2026-09-21.** `e2e-home-rail` is **43**. It adds the active
+year as a heading with no `aria-expanded`, every season of that year rendered,
+no year anywhere reporting `aria-expanded="false"` while rendering rows, a
+folded year whose controlled body is absent entirely, opening a season in a
+folded year making it the expanded active year with the open season scrolled in,
+collapse state not leaking across a program change, the 30px target on every
+Home control, and one opponent identity per component. Mutations: forcing
+`isActive` false reds 6 assertions; returning the school line unconditionally
+reds the duplication assertion with 2 duplicated cards.
+
+**A claim over an empty collection is not a claim.** The duplication assertion
+first passed with the mutation in place, because the program under test had no
+games and the card list was empty — and then passed again over real cards,
+because the subline was a SUBSTRING of the title rather than equal to it. The
+harness now seeds real game cards, asserts there are some, and tests
+containment; the production rule was strengthened the same way.
+
 **Seed from the model, measure from the DOM.** The harness creates seasons
 through `storage.createSeason` and waits for the rail to report them, because a
 fixed sleep is a flake — but it counts them from `teamHubScreen.snapshot()`, not
