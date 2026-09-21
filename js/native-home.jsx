@@ -283,10 +283,22 @@ function orderedSeasons(seasons) {
     ((LEVEL_RANK[a.level] ?? 3) - (LEVEL_RANK[b.level] ?? 3)) ||
     String(a.name || '').localeCompare(String(b.name || '')));
 }
+/** THE ONE YEAR-GROUP KEY. Grouping and the active-year test must agree or a
+ *  season falls between them: grouping normalized a missing year to `Undated`
+ *  while the active-year test normalized it to an empty string, so a legacy
+ *  season with no year was grouped under `Undated`, matched no active year, and
+ *  its group was collapsible with the OPEN season inside it. Nothing here reads
+ *  or writes stored metadata — it only decides which heading a row appears
+ *  under. */
+function yearGroupKey(season) {
+  const year = String(season?.year ?? '').trim();
+  return year || 'Undated';
+}
+
 function groupByYear(seasons) {
   const groups = new Map();
   orderedSeasons(seasons).forEach(season => {
-    const key = season.year || 'Undated';
+    const key = yearGroupKey(season);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(season);
   });
@@ -386,8 +398,10 @@ function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, sc
   const collapsed = screen.railCollapsedYears || (screen.railCollapsedYears = new Set());
   const teamId = String(screen.app.teamRegistry?.activeTeamId?.() ?? '');
   const keyOf = year => `${teamId}:${title}:${year}`;
-  const activeYear = String(seasons.find(season => season.current)?.year ?? '');
-  const isActive = year => String(year) === activeYear && !!activeYear;
+  // Through the SAME key the grouping used, so `Undated` can be the active year.
+  const openSeason = seasons.find(season => season.current);
+  const activeYear = openSeason ? yearGroupKey(openSeason) : '';
+  const isActive = year => !!activeYear && String(year) === activeYear;
   const isFolded = year => !isActive(year) && collapsed.has(keyOf(year));
   const toggle = year => {
     const key = keyOf(year);
@@ -410,8 +424,12 @@ function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, sc
               {active
                 // The open season's year: a heading, not a control. It keeps the
                 // count and the year, and it is always fully expanded.
+                /* NO DISCLOSURE GLYPH. A caret on a heading that cannot be
+                   pressed states an affordance that does not exist; the row
+                   keeps its alignment with the disclosure rows through an empty
+                   non-semantic spacer of the caret's own width. */
                 ? <span class="rail-year-toggle is-static" data-rail-year={year} data-rail-active-year="true">
-                  <span class="rail-year-caret" aria-hidden="true">▾</span>
+                  <span class="rail-year-spacer" aria-hidden="true" />
                   <span class="rail-year-name">{year}</span>
                   <span class="rail-year-count">{rows.length}</span>
                 </span>

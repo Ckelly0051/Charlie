@@ -98,7 +98,13 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-year{display:flex;flex-direction:column;gap:14px;min-width:0;height:100%;min-height:0;overflow:hidden;padding:18px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .home-content{min-height:0;overflow-y:auto}
-.ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+/* THE CREATE ACTION MUST STAY INSIDE THE RAIL. At 1280 the rail narrows to
+   190px while the section label kept its full width, pushing the `+` 26px past
+   the rail's right edge where it was clipped and unreachable. The label gives
+   way; the button never does. */
+.ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.ws-home-page .rail-head .gi-hub-kicker{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-home-page .rail-head .icon-btn{flex:none}
 /* Both tree create actions meet the 30px desktop target; the icon, border and
    restraint are unchanged. */
 .ws-home-page .rail-head .icon-btn{width:30px;height:30px;min-height:30px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
@@ -125,20 +131,30 @@ body.ws-route-home .ws-home{overflow:hidden}
    which is how the installed build showed 2026 while 2025 JV was the open
    season. Seasons take the rail's free space; scouts are content-sized under a
    cap, so a long scout list can never starve the tree above it. */
-.ws-home-page .rail-trees{display:grid;grid-template-rows:minmax(120px,1fr) minmax(0,auto);flex:1 1 auto;gap:14px;min-height:0;overflow:hidden}
-.ws-home-page .rail-section{display:flex;flex-direction:column;gap:10px;min-height:0}
+/* The scout TRACK is sized, not the section inside it. With an `auto` track the
+   flexible seasons row took everything the container had and squeezed scouts to
+   5px against 92px of content — its only row invisible, which a fixture with no
+   scouts could never show. The track takes the scouts' own content height, up
+   to 34% of the rail, and the pane scrolls inside that. */
+.ws-home-page .rail-trees{display:grid;grid-template-rows:minmax(120px,1fr) min(34%,max-content);flex:1 1 auto;gap:14px;min-height:0;overflow:hidden}
+/* `min-width:0` as well as `min-height:0`: a grid item's automatic minimum is
+   its content, so the section refused to shrink below the head's natural width
+   and pushed the create button outside the rail at 1280. */
+.ws-home-page .rail-section{display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
 /* Scouts are content-sized UNDER A CAP, and seasons keep a floor of their own.
    Sized purely to content, a long scout list grew past the season tree and, on
    a short rail, collapsed it to nothing — the same starvation in the other
    direction. Seasons take what is left above that cap, never less than 120px. */
-.ws-home-page .rail-section.is-scouts{max-height:34%}
+.ws-home-page .rail-section.is-scouts{min-height:0}
 /* A SHORT DESKTOP BUYS ITS HEIGHT FROM SPACING, NEVER FROM CONTROLS. At 800px
    the rail frame is ~682px and the tool block alone was taking 40% of it. The
    rail's own paddings and gaps give way; every button keeps its 40px target,
    every row its 54px, and the type does not move. */
 @media (max-height:960px){
   .ws-home-page .rail-year{gap:10px;padding:12px 14px}
-  .ws-home-page .rail-trees{gap:10px}
+  /* A short rail still shows a scout row whole: 34% of a small box fell six
+     pixels under one heading plus one row. */
+  .ws-home-page .rail-trees{gap:6px;grid-template-rows:minmax(120px,1fr) min(46%,max-content)}
   .ws-home-page .rail-section{gap:6px}
   .ws-home-page .rail-groups{gap:8px}
   .ws-home-page .rail-tools{gap:4px;padding-top:8px}
@@ -165,6 +181,9 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-year-toggle.is-static{cursor:default}
 .ws-home-page .rail-year-toggle.is-static:hover{background:none}
 .ws-home-page .rail-year-caret{flex:none;width:12px;color:var(--gi-bd-copy);font-size:12px}
+/* The active heading's alignment comes from an empty spacer of the caret's
+   width, never from a disclosure glyph it cannot honour. */
+.ws-home-page .rail-year-spacer{flex:none;width:12px}
 .ws-home-page .rail-year-name{overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap}
 .ws-home-page .rail-year-count{margin-left:auto;color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans)}
 .ws-home-page .rail-empty{margin:0;color:var(--gi-bd-copy);font-size:12px}

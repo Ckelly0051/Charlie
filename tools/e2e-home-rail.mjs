@@ -93,9 +93,14 @@ const measure = () => page.evaluate(() => {
   };
   const rows = [...seasons.querySelectorAll('.rail-row')];
   const current = seasons.querySelector('.rail-row.is-current');
+  /* BOTH AXES. Checking only top and bottom passed a create button that had
+     been pushed 26px past the rail's right edge at 1280, clipped and
+     unreachable — found in a capture, not by this harness. */
   const visibleInRail = node => {
     const a = node.getBoundingClientRect();
-    return a.top >= railBox.top - 1 && a.bottom <= railBox.bottom + 1 && a.height > 0;
+    return a.top >= railBox.top - 1 && a.bottom <= railBox.bottom + 1
+      && a.left >= railBox.left - 1 && a.right <= railBox.right + 1
+      && a.height > 0 && a.width > 0;
   };
   return {
     rowsTotal: rows.length,
@@ -159,6 +164,20 @@ ok(withScout.distinctTrees && withScout.seasonsHeadVisible && withScout.scoutsHe
   JSON.stringify(withScout));
 ok(/Opponent Scouts/i.test(withScout.scoutsHeadText) && withScout.scoutRows === 1 && withScout.scoutCreateVisible,
   'the scout tree holds its own rows and its own create action', JSON.stringify(withScout));
+/* The scout pane is content-sized under a cap, and the cap starved it: a track
+   sized `auto` beside a flexible seasons row collapsed it to 5px against 92px
+   of content, hiding its only row. Its rows must be inside its own scroller. */
+const scoutPane = await page.evaluate(() => {
+  const section = document.querySelector('[data-rail-section="Opponent Scouts"]');
+  const scroller = section.querySelector('.rail-groups');
+  const row = section.querySelector('.rail-row');
+  const a = row?.getBoundingClientRect(), b = scroller.getBoundingClientRect();
+  return { paneH: Math.round(b.height), contentH: scroller.scrollHeight,
+    rowVisible: a ? a.top >= b.top - 1 && a.bottom <= b.bottom + 1 : null,
+    rowH: a ? Math.round(a.height) : 0 };
+});
+ok(scoutPane.rowVisible && scoutPane.paneH >= scoutPane.rowH,
+  'the scout pane is tall enough to show its own row', JSON.stringify(scoutPane));
 
 console.log('\n== 3. Eight seasons: years fold, the open season stays visible ==');
 const TOTAL8 = await addSeasons([['2024', 'Varsity'], ['2023', 'JV'], ['2023', 'Varsity'], ['2022', 'JV'], ['2022', 'Varsity']]);
@@ -184,6 +203,8 @@ const folded = await page.evaluate(async () => {
     return t.tagName === 'BUTTON' && group.querySelectorAll('.rail-row').length === 2
       && !group.querySelector('.rail-row.is-current');
   });
+  // No BUTTON disclosure at all is a failure to report, not a crash.
+  if (!target) return { missing: true };
   const controls = target.getAttribute('aria-controls');
   const before = document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-row').length;
   target.click();
@@ -202,23 +223,55 @@ ok(folded.after === folded.before - 2 && folded.expanded === 'false' && !folded.
   JSON.stringify(folded));
 ok(folded.count === '2', 'a folded year still states how many seasons it holds', JSON.stringify(folded));
 
-/* Keyboard: focus the disclosure and operate it with the keyboard alone. */
-const keyboard = await page.evaluate(async () => {
+/* An INACTIVE, expanded year to drive with the keyboard. */
+const KEYBOARD_YEAR = await page.evaluate(() =>
+  [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
+    .find(t => t.tagName === 'BUTTON' && t.getAttribute('aria-expanded') === 'true')?.dataset.railYear);
+
+/* REAL KEYBOARD OPERATION. A synthetic KeyboardEvent followed by `.click()`
+   proves the click handler works, which is not the claim — it would pass on a
+   div that no keyboard can reach. Puppeteer focuses the control and presses
+   real keys; nothing in this block clicks. */
+const keyboardState = () => page.evaluate(year => {
   const toggle = [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
-    .find(t => t.getAttribute('aria-expanded') === 'false') || document.querySelector('.rail-year-toggle');
-  toggle.focus();
-  const focused = document.activeElement === toggle;
-  const style = getComputedStyle(toggle, ':focus-visible');
-  toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  toggle.click(); // Enter on a native button activates it; click is that activation.
-  await new Promise(r => setTimeout(r, 250));
-  return { focused, expanded: toggle.getAttribute('aria-expanded'),
-    rows: document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-row').length,
-    tabbable: toggle.tabIndex >= 0, outlineDeclared: !!style };
-});
-ok(keyboard.focused && keyboard.tabbable, 'the year disclosure is focusable and in the tab order', JSON.stringify(keyboard));
-ok(keyboard.expanded === 'true' && keyboard.rows === TOTAL8,
-  'activating the disclosure from the keyboard expands the year again', JSON.stringify(keyboard));
+    .find(t => t.dataset.railYear === year);
+  const body = toggle?.getAttribute('aria-controls')
+    ? document.getElementById(toggle.getAttribute('aria-controls')) : null;
+  return {
+    expanded: toggle?.getAttribute('aria-expanded'),
+    bodyPresent: !!body,
+    bodyRows: body ? body.querySelectorAll('.rail-row').length : 0,
+    focused: document.activeElement === toggle,
+    tabbable: toggle ? toggle.tabIndex >= 0 : false,
+    isButton: toggle?.tagName === 'BUTTON',
+    focusRing: toggle ? getComputedStyle(toggle).getPropertyValue('--gi-focus') !== '' : false,
+  };
+}, KEYBOARD_YEAR);
+await page.evaluate(year => {
+  [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
+    .find(t => t.dataset.railYear === year)?.focus();
+}, KEYBOARD_YEAR);
+const kbFocused = await keyboardState();
+ok(kbFocused.focused && kbFocused.tabbable && kbFocused.isButton,
+  'the year disclosure is a real button, focusable and in the tab order', JSON.stringify(kbFocused));
+await page.keyboard.press('Enter');
+await sleep(300);
+const afterEnter = await keyboardState();
+await page.evaluate(year => {
+  [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
+    .find(t => t.dataset.railYear === year)?.focus();
+}, KEYBOARD_YEAR);
+await page.keyboard.press('Space');
+await sleep(300);
+const afterSpace = await keyboardState();
+ok(afterEnter.expanded !== kbFocused.expanded && afterEnter.bodyPresent !== kbFocused.bodyPresent,
+  'pressing Enter toggles the disclosure and its controlled body',
+  JSON.stringify([kbFocused, afterEnter]));
+ok(afterSpace.expanded === kbFocused.expanded && afterSpace.bodyPresent === kbFocused.bodyPresent
+  && afterSpace.expanded !== afterEnter.expanded,
+  'pressing Space toggles it back, DOM and state together',
+  JSON.stringify([afterEnter, afterSpace]));
+ok(afterSpace.focused, 'focus stays on the disclosure through keyboard operation', JSON.stringify(afterSpace));
 
 console.log('\n== 4. The ACTIVE year is expanded and offers no collapse ==');
 /* REPOINTED: an earlier pass let the active year fold and pinned its current
@@ -253,6 +306,40 @@ const activeYear = await page.evaluate(() => {
 ok(!activeYear.isButton && !activeYear.hasAriaExpanded && activeYear.markedActive,
   'the active year is a heading with no collapse control and no aria-expanded',
   JSON.stringify(activeYear));
+/* No caret, no aria-controls, no pointer, no disclosure hover: a heading must
+   not advertise an affordance it does not have. */
+const activeAffordance = await page.evaluate(() => {
+  const header = document.querySelector('[data-rail-active-year="true"]');
+  if (!header) return { missing: true };
+  const text = (header.textContent || '');
+  return {
+    tag: header.tagName,
+    glyph: /[▾▸▼►▶◂◄]/.test(text),
+    caretNodes: header.querySelectorAll('.rail-year-caret').length,
+    hasAriaExpanded: header.hasAttribute('aria-expanded'),
+    hasAriaControls: header.hasAttribute('aria-controls'),
+    interactive: !!header.closest('button') || header.tagName === 'BUTTON'
+      || header.hasAttribute('onclick') || header.tabIndex >= 0,
+    cursor: getComputedStyle(header).cursor,
+    // Alignment is preserved by a spacer of the caret's own width.
+    spacerWidth: Math.round(header.querySelector('.rail-year-spacer')?.getBoundingClientRect().width || 0),
+    caretWidth: Math.round(document.querySelector('.rail-year-caret')?.getBoundingClientRect().width || 0),
+    nameLeft: Math.round(header.querySelector('.rail-year-name')?.getBoundingClientRect().left || 0),
+    inactiveNameLeft: Math.round([...document.querySelectorAll('.rail-year-toggle')]
+      .find(t => t.tagName === 'BUTTON')?.querySelector('.rail-year-name')?.getBoundingClientRect().left || 0),
+  };
+});
+ok(!activeAffordance.glyph && activeAffordance.caretNodes === 0,
+  'the active year heading renders no disclosure glyph', JSON.stringify(activeAffordance));
+ok(activeAffordance.tag !== 'BUTTON' && !activeAffordance.interactive
+  && !activeAffordance.hasAriaExpanded && !activeAffordance.hasAriaControls
+  && activeAffordance.cursor !== 'pointer',
+  'the active year heading carries no button, no aria state and no pointer cursor',
+  JSON.stringify(activeAffordance));
+ok(activeAffordance.spacerWidth === activeAffordance.caretWidth
+  && activeAffordance.nameLeft === activeAffordance.inactiveNameLeft,
+  'the heading still aligns with the disclosure rows, through a spacer rather than an icon',
+  JSON.stringify(activeAffordance));
 ok(activeYear.renderedInYear === activeYear.modelInYear && activeYear.renderedInYear > 0,
   'every season in the active year is rendered, not just the open one',
   JSON.stringify(activeYear));
@@ -318,6 +405,27 @@ ok(ten.seasonScrolls && !ten.railScrolls && !ten.pageOverflowX,
 ok(ten.currentVisible, 'the open season is visible with ten seasons loaded', JSON.stringify(ten));
 ok(ten.tools.every(tool => tool.visible) && !ten.toolsOverlap,
   'the utility block is still anchored and reachable with ten seasons', JSON.stringify(ten.tools));
+/* THE CROWDED STATE IS WHERE THE SCOUT PANE STARVES. Sized `auto` beside a
+   flexible seasons row it collapsed to 5px against 92px of content — its only
+   row invisible — and a small fixture could never show it. */
+const scoutPaneFull = await page.evaluate(async () => {
+  // Fold every inactive year first: with less season content the flexible
+  // seasons row is at its greediest, which is when the scout track starved.
+  [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
+    .filter(t => t.tagName === 'BUTTON' && t.getAttribute('aria-expanded') === 'true')
+    .forEach(t => t.click());
+  await new Promise(r => setTimeout(r, 350));
+  const section = document.querySelector('[data-rail-section="Opponent Scouts"]');
+  const scroller = section.querySelector('.rail-groups');
+  const row = section.querySelector('.rail-row');
+  const a = row?.getBoundingClientRect(), b = scroller.getBoundingClientRect();
+  return { paneH: Math.round(b.height), contentH: scroller.scrollHeight,
+    rowH: a ? Math.round(a.height) : 0,
+    rowVisible: a ? a.top >= b.top - 1 && a.bottom <= b.bottom + 1 : null };
+});
+ok(scoutPaneFull.rowVisible && scoutPaneFull.paneH >= scoutPaneFull.rowH,
+  'with the season tree full, the scout pane still shows its own row',
+  JSON.stringify(scoutPaneFull));
 
 console.log('\n== 6. Long labels truncate without widening the rail ==');
 const before = (await measure()).railWidth;
@@ -428,6 +536,88 @@ ok((!surface.roster || surface.roster.h >= 30) && (!surface.linkFilm || surface.
 ok(surface.cards > 0 && surface.duplicated === 0 && !surface.detailDuplicated,
   'no card or panel prints the opponent twice — asserted over real cards, not an empty grid',
   JSON.stringify(surface));
+
+console.log('\n== 9. A legacy season with no year groups under Undated, and can be the active year ==');
+/* Grouping normalised a missing year to `Undated` while the active-year test
+   normalised it to '', so an OPEN legacy season sat inside a collapsible group.
+   One key owner now decides both. Nothing here rewrites stored metadata: the
+   fixture stores the blank year exactly as a legacy record holds it. */
+/* ITS OWN BROWSER CONTEXT, with its own storage. The legacy shape has to be
+   the FIRST thing this profile creates: after a run's worth of seasons, games
+   and program switches, a creation that fails leaves the scenario silently
+   untested, which is exactly what happened while building this. */
+const legacyContext = await browser.createBrowserContext();
+const legacyPage = await legacyContext.newPage();
+legacyPage.on('pageerror', e => errors.push(e.stack || e.message));
+await legacyPage.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
+await legacyPage.setViewport({ width: 1440, height: 900 });
+await legacyPage.goto(APP_URL, { waitUntil: 'networkidle0' });
+await legacyPage.waitForFunction(() => window.app?.teamHubScreen);
+await createFirstTeam(legacyPage, 'Legacy Program');
+await legacyPage.evaluate(() => window.app.workspaceShell.show('home'));
+await sleep(600);
+const undated = await legacyPage.evaluate(async () => {
+  const app = window.app;
+  /* A FRESH program for the legacy case, so accumulated state from the earlier
+     sections cannot mask it. Its own first season is the ordinary DATED
+     inactive year; two more are stored exactly as a legacy record holds one,
+     with no year at all. Created through the hub's own creator — nothing is
+     migrated and no stored metadata is rewritten. */
+  /* The hub's creator requires a year — you cannot AUTHOR an undated season
+     today; only a legacy record holds one. The fixture writes that legacy shape
+     through the storage creator, which is what such a record looks like on
+     disk. Nothing existing is migrated or rewritten. `Legacy season B` is
+     created last, so it is the OPEN season. */
+  for (const name of ['Legacy season A', 'Legacy season B']) {
+    await app.storage.createSeason({ name, team: app.teamRegistry.activeTeamId(), year: '', level: 'JV' });
+    await new Promise(r => setTimeout(r, 400));
+  }
+  await app.teamHubScreen.load();
+  app.workspaceShell.show('home');
+  for (let attempt = 0; attempt < 30; attempt++) {
+    if (document.querySelector('[data-rail-year="Undated"]')) break;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  const section = document.querySelector('[data-rail-section="Program Seasons"]');
+  const model = (app.teamHubScreen.snapshot().railSeasons || [])
+    .filter(s => !s.isScout && !String(s.year || '').trim());
+  const header = section.querySelector('[data-rail-year="Undated"]');
+  const group = header?.closest('.rail-group');
+  const current = section.querySelector('.rail-row.is-current');
+  const scroller = section.querySelector('.rail-groups');
+  return {
+    allRows: (app.teamHubScreen.snapshot().railSeasons || [])
+      .map(r => [r.name, r.year, r.current ? 'current' : ''].join('|')),
+    datedYears: [...section.querySelectorAll('.rail-year-toggle')]
+      .map(t => t.dataset.railYear).filter(y => y !== 'Undated'),
+    undatedPresent: !!header,
+    modelUndated: model.length,
+    renderedUndated: group?.querySelectorAll('.rail-row').length ?? 0,
+    isActive: header?.dataset.railActiveYear === 'true',
+    isButton: header?.tagName === 'BUTTON',
+    hasAriaExpanded: header?.hasAttribute('aria-expanded'),
+    currentInUndated: !!group?.querySelector('.rail-row.is-current'),
+    currentVisible: current && scroller ? (() => {
+      const a = current.getBoundingClientRect(), b = scroller.getBoundingClientRect();
+      return a.top >= b.top - 1 && a.bottom <= b.bottom + 1; })() : false,
+    datedStillCollapsible: [...section.querySelectorAll('.rail-year-toggle')]
+      .filter(t => t.tagName === 'BUTTON' && t.dataset.railYear !== 'Undated').length,
+  };
+});
+ok(undated.undatedPresent && undated.modelUndated >= 2
+  && undated.renderedUndated === undated.modelUndated,
+  'a blank-year season groups under Undated, and every season in that group renders',
+  JSON.stringify(undated));
+ok(undated.currentInUndated && undated.isActive,
+  'the open blank-year season makes Undated the ACTIVE group', JSON.stringify(undated));
+ok(!undated.isButton && !undated.hasAriaExpanded,
+  'the active Undated group exposes no collapse control', JSON.stringify(undated));
+ok(undated.currentVisible, 'the open blank-year season stays visible', JSON.stringify(undated));
+ok(undated.datedYears.length >= 1 && undated.datedStillCollapsible >= 1,
+  'ordinary dated years are still present and still collapsible beside it',
+  JSON.stringify(undated));
+if (SHOTS) await legacyPage.screenshot({ path: `${SHOTS}/home-rail-undated-active.png` });
+await legacyContext.close();
 
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

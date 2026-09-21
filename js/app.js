@@ -794,6 +794,18 @@ class App {
       // Don't capture keys when typing in inputs
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      /* NOR WHEN A CONTROL OWNS THE KEY. Space and Enter are the native
+         activation keys for a focused button, so swallowing them here made
+         every keyboard-operated control in the app dead to Space — the rail's
+         year disclosures included — while the same press also toggled film
+         playback behind the coach's back. The guard covers native buttons,
+         links, anything explicitly given the button role, and editable
+         content; every other key and every other target is unchanged. */
+      const target = e.target;
+      const ownsKey = (e.code === 'Space' || e.key === 'Enter')
+        && (tag === 'BUTTON' || tag === 'A' || target?.isContentEditable
+          || target?.getAttribute?.('role') === 'button');
+      if (ownsKey) return;
 
       // "?" toggles the shortcuts legend; Esc closes it (handle before others).
       const shortcutsOpen = this.shortcutsScreen?.isOpen();
