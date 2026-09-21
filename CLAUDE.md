@@ -7,21 +7,30 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-90` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-91` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-90` is the current unsigned smoke candidate,
-packaged from `1a42282` (the bump is `aff2dd4`) with the canonical gate at
+**Packaging status:** `1.12.0-91` is the current unsigned smoke candidate,
+packaged from `df9d5f7` (the bump is `894576d`) with the canonical gate at
 120/120, zero skipped, zero failed, and `e2e-p0-exit` re-run after the bump.
-See `SMOKE-1.12.0-90.md`. It carries the **Reports > Special Teams acceptance
-pass** and **Reports > Players Revision 2** over `1.12.0-89`. Its installed smoke
-has NOT been run, so it establishes no acceptance of anything: Players and
-Special Teams have had no Charlie Gate, and Home production remains formally
-`REJECTED`. Not tagged, pushed or published. `cargo tauri build` exits 1 after
-producing both bundles, on the updater signing step, because
-`TAURI_SIGNING_PRIVATE_KEY` is unset — the standing condition of every unsigned
-beta package here.
+See `SMOKE-1.12.0-91.md`. **It exists to re-smoke the two `1.12.0-90` REVISE
+verdicts**: Players phase composition with deliberate row capacities, and the
+Defense cohort labels — whose arithmetic was reconciled as correct and is
+unchanged. Codex reviewed `fb85610..43b8c99` with no findings. Its installed
+smoke has NOT been run, so it establishes no acceptance: no Reports surface has
+had a Charlie Gate and Home production remains formally `REJECTED`. Not tagged,
+pushed or published. `cargo tauri build` exits 1 after producing both bundles,
+on the updater signing step, because `TAURI_SIGNING_PRIVATE_KEY` is unset — the
+standing condition of every unsigned beta package here.
+
+`1.12.0-90` was the preceding unsigned smoke candidate, packaged from `1a42282`
+(bumped in `aff2dd4`) with the canonical gate at 120/120. See
+`SMOKE-1.12.0-90.md`. It carried the **Reports > Special Teams acceptance pass**
+and **Reports > Players Revision 2**. **Its installed smoke ran on 2026-09-20 and
+is NOT approved:** Players REVISE for composition, Defense REVISE for cohort
+presentation with its arithmetic passing, Special Teams a provisional pass that
+remains valid. Those repairs are in `1.12.0-91`, not in that installer.
 
 `1.12.0-89` was the preceding unsigned smoke candidate, packaged from `95310d6`
 (bumped in `b09f7de`) with the canonical gate at 120/120. See
