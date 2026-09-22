@@ -11,8 +11,8 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-92` is the current unsigned smoke candidate for
-**Charlie's installed visual acceptance pass on Home**, packaged from `1c3b1bc`
+**Packaging status:** `1.12.0-92` is the current unsigned Home visual candidate,
+**approved by Charlie on 2026-09-22**, packaged from `1c3b1bc`
 (the bump is `9011ee7`) and built from a CLEAN WORKTREE so none of the main
 tree's uncommitted files reached it. It carries the complete Home work from
 `77e7b50` through `5b46c05`. The focused Home release checks were green before
@@ -20,7 +20,10 @@ packaging and `e2e-p0-exit` was re-run after the bump. See `SMOKE-1.12.0-92.md`:
 Claude's installed smoke is PARTIAL — it verified the rail, the caret-less active
 year, mouse / Enter / Space disclosure, painted focus, the five tools and card /
 panel agreement at 1920×1080 on real data, and stopped when the coach began
-charting in the installed app. **Nothing about it is accepted yet**, and Home
+charting in the installed app. Charlie subsequently approved the Home visual
+composition; the unrun installed viewport checks and the newly reported
+Season setup, typography and team-identity defects remain open. Breakdown
+defensive-front library and penalty Auto D&D findings are separate work. Home
 production remains formally `REJECTED`. Not tagged, pushed or published.
 
 `1.12.0-91` was the preceding unsigned, **smoke-approved** beta build, packaged from `df9d5f7` (the bump is `894576d`) with the canonical

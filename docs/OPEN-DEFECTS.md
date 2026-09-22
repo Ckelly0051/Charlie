@@ -1,6 +1,9 @@
 # GridIron IQ Open Defects
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-21: the installed
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-22: Charlie approved the
+> `1.12.0-92` Home visual composition. This does not certify unrun installed
+> viewports, close the follow-up Home/Breakdown defects below, or change Home's
+> formal `productionStatus: REJECTED`. Previously updated 2026-09-21: the installed
 > `1.12.0-91` smoke was APPROVED by the coach. It closes both `1.12.0-90` REVISE
 > verdicts — Reports > Players composition and Reports > Defense cohort
 > presentation — and confirms the Reports > Special Teams provisional pass.
@@ -198,7 +201,28 @@ Found at the board on the installed visual-smoke candidate.
 
 Home is a high-priority navigation and data-accuracy surface. Current production
 remains `REJECTED`; the approved 2026-08-31 Home comp remains the design
-authority until a replacement composition is reviewed and approved.
+authority, with the `1.12.0-92` rail revision visually approved by the coach.
+
+**Installed Home visual verdict, 2026-09-22:** Charlie approved the `1.12.0-92`
+composition. Claude's installed smoke was partial; 1440×900 and 1280×800
+captures, real-data independent tree scrolling and an installed console check
+were not completed. See `SMOKE-1.12.0-92.md`. Approval does not close these
+newly observed findings:
+- Season setup checks only the first stored game, which can be an untouched
+  starter even when later games are configured. First game and Ready to chart
+  then appear incomplete. The operating state should be derived from the
+  season's configured games without treating an empty placeholder as ready.
+- Season setup and Edit season details retain the old condensed typography,
+  including dialog headings and the season-name preview.
+- Saving team identity does not persist when opened from an individual game
+  or Manage program. Confirm the shared save/readback path before changing
+  coach-owned identity data.
+
+**Separate Breakdown follow-ups reported with this build:** the Defense deck's
+Edit library spacing regressed and Add in the defensive-front library is a dead
+button. Penalty Auto D&D is not working as expected; the coach wants the
+manual Resulting situation box removed and the next situation derived from
+penalty entry. Enforcement rules and unresolved cases need explicit tests.
 
 0. **REPAIRED 2026-09-21 — the navigation rail starved the season tree.** Found
    in the approved `1.12.0-91` installed build: Program Seasons showed only 2026
@@ -226,8 +250,9 @@ authority until a replacement composition is reviewed and approved.
    - Superseded evidence, kept as history: `artifacts/home-rail/` and
      `artifacts/home-repair-91/`, against a 30-assertion suite. The CURRENT
      evidence is listed with the Codex repairs below.
-     **Awaiting a Charlie Gate and an installed smoke — Home production status
-     is unchanged and the registry is untouched.**
+     **Historical checkpoint:** this first pass awaited a Charlie Gate. The
+     later `1.12.0-92` Home visual verdict is recorded above; production status
+     and the registry remain unchanged.
    - **Codex review of `77e7b50..3dee2ac`, repaired 2026-09-21.** Two findings.
      **The active year could fold**, which pinned its current row visible under
      `aria-expanded="false"` — rendered content behind a collapsed state, and a
@@ -1491,6 +1516,10 @@ Breakdown film-state defects above.
   Special Teams provisional pass. Canonical gate 120/120 at `df9d5f7`, bumped in
   `894576d`. It is unsigned, untagged, unpushed and unpublished, and it moves no
   manifest: beta smoke acceptance is not formal design approval or publication.
+- Installed `1.12.0-92` Home visual composition was **APPROVED by the coach** on
+  2026-09-22. Its partial installed smoke and unrun checks are recorded in
+  `SMOKE-1.12.0-92.md`; the newly reported setup, typography and identity defects
+  above remain open. This is not registry acceptance or whole-app sign-off.
 - Installed `1.12.0-86` is **APPROVED FOR BETA USE** for FILM-01 after the
   2026-09-15 coach smoke. It also contains Repair Batch 1. The deferred visual
   findings inherited from `1.12.0-85` remain open.
@@ -1513,5 +1542,7 @@ Breakdown film-state defects above.
   gate 119/119, packaged as `1.12.0-87`. `Option`'s absence from Overview's
   approved fixed six and the Defense dashboard's seven play-type categories stays open as a coach
   decision about an approved schema, not an implementation gap.
-- **The next presentation batch is Home rail scaling**
-  (item 12 above), which remains a separate layout pass.
+- **Next presentation checkpoint: Reports Overview**, then Offense. Home rail
+  scaling received the bounded `1.12.0-92` visual approval above. Breakdown's
+  newly reported functional defects and Home's identity/save defect remain
+  separate open repair work, not silently included in the Reports approval.

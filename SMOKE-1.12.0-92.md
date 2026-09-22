@@ -14,8 +14,10 @@ tree's uncommitted files reached the installer.
 beta package here, not a build failure.
 **Installed:** `%LOCALAPPDATA%\GridIron IQ\gridiron-iq.exe`, file and product
 version `1.12.0-92`.
-**Status:** unsigned, not tagged, not pushed, not published. Home production
-remains formally `REJECTED`; the registry is unchanged.
+**Status:** Home visual composition approved by Charlie on 2026-09-22, with
+follow-up defects recorded below. Unsigned, not tagged, not pushed, not
+published. Home production remains formally `REJECTED`; the registry is
+unchanged.
 
 ## Pre-package checks (clean worktree)
 
@@ -60,7 +62,7 @@ Verified:
   selected-game panel agree: 41–0, 67/67 charted, 69 clips linked.
 - No clipping, overlap or horizontal overflow observed at 1920×1080.
 
-**Not completed:** the smoke was stopped when the coach began charting a live
+**Not completed by Claude:** the smoke was stopped when the coach began charting a live
 game in the installed app (Break Down, SJM Varsity 2026, Week 4). Driving the
 app further would have sent input into his charting session. Still to check:
 
@@ -79,4 +81,17 @@ evidence, not installed evidence.
 
 ## Result
 
-Not yet accepted. Awaiting Charlie's installed visual review.
+**APPROVED by Charlie on 2026-09-22 for Home visual composition.** This is the
+coach's verdict, not a claim that Claude completed the installed viewport/DPI
+matrix or saved installed screenshots. The 1440×900 and 1280×800 captures,
+independent real-data tree scrolling and installed console check above were not
+completed; no additional evidence is invented here. Formal registry status
+remains `REJECTED`.
+
+The coach also reported follow-up defects while using this build: Season setup
+leaves First game and Ready to chart unchecked despite several games; the
+Season setup and Edit season details dialogs show the old condensed font; and
+Save team identity does not persist from either an individual game or Manage
+program. These are not cleared by the Home visual approval. Breakdown's
+defensive-front library Add action and Edit library spacing, plus penalty Auto
+D&D/resulting-situation UX, are separate open work. See `docs/OPEN-DEFECTS.md`.
