@@ -5,6 +5,17 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
+// `_gameTitle()` predates the structured exporter and returns escaped display
+// text. Decode that narrow legacy vocabulary once; `documentShell()` escapes
+// it again at the actual HTML sink.
+const legacyTitleText = value => String(value ?? '')
+  .replace(/&mdash;/g, '\u2014')
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'")
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&amp;/g, '&');
+
 const cell = value => `<td>${esc(value)}</td>`;
 const table = (title, columns, rows) => rows?.length ? `
   <section class="report-section">
@@ -111,10 +122,32 @@ const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, def
 };
 
 const stylesheet = `
-  :root{color-scheme:light;--ink:#172033;--muted:#667085;--line:#d8dee8;--soft:#f4f6f9;--blue:#1d66d1;--gold:#d99a00;--green:#16875b}
-  *{box-sizing:border-box}body{margin:0;background:#eef1f5;color:var(--ink);font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif}.page{max-width:1180px;margin:28px auto;background:#fff;padding:42px 48px;box-shadow:0 12px 40px #17203318}.masthead{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;border-bottom:4px solid var(--ink);padding-bottom:22px}.brand{color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.masthead h1,.chapter-title h1{margin:5px 0 0;font-size:30px;line-height:1.08}.meta{color:var(--muted);text-align:right}.metric-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));border:1px solid var(--line);margin:22px 0}.metric{min-height:96px;padding:15px 16px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}.metric span,.metric small{display:block;color:var(--muted)}.metric span{font-size:10px;text-transform:uppercase;font-weight:800}.metric strong{display:block;font-size:25px;line-height:1.1;margin:7px 0}.metric small{font-size:11px}.metric-stats{margin-top:7px}.metric-stats p{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin:0;padding:3px 0;font-size:12px}.metric-stats p+p{border-top:1px solid var(--soft)}.metric-stats span{display:block;color:var(--muted);font-size:11px;text-transform:none;font-weight:600}.metric-stats strong{font-size:15px;margin:0}.chapter{border-top:7px solid var(--soft);padding-top:28px;margin-top:34px}.chapter-title span{color:var(--blue);font-size:11px;text-transform:uppercase;font-weight:800}.chapter-title h1{font-size:24px}.report-section{margin:22px 0}.report-section h2{font-size:14px;text-transform:uppercase;border-bottom:2px solid var(--ink);padding:0 0 8px;margin:0}.two-up{display:grid;grid-template-columns:1fr 1fr;gap:24px}.table-wrap{overflow:hidden}table{border-collapse:collapse;width:100%;font-size:12px}th{color:var(--muted);font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.04em;background:var(--soft)}th,td{border-bottom:1px solid var(--line);padding:8px 10px}td:not(:first-child),th:not(:first-child){text-align:right}.phase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0}.phase{border:1px solid var(--line);padding:14px}.phase h3{margin:0 0 8px;font-size:13px}.phase p{display:flex;justify-content:space-between;margin:0;padding:5px 0;border-top:1px solid var(--soft);font-size:12px}.empty{color:var(--muted)}
-  @media(max-width:760px){.page{margin:0;padding:24px}.masthead{display:block}.meta{text-align:left;margin-top:12px}.two-up{grid-template-columns:1fr}.metric-band{grid-template-columns:repeat(2,1fr)}.metric{border-bottom:1px solid var(--line)}}
-  @media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:20px}.chapter{break-before:auto}.report-section,.phase{break-inside:avoid}}
+  :root{color-scheme:light;--ink:#111820;--muted:#536170;--line:#c8ced5;--line-dark:#75808b;--soft:#eef1f3;--cyan:#00a6c7;--gold:#e0a800;--green:#16875b;--white:#fff}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--white);color:var(--ink)}
+  body{font:13px/1.35 "Segoe UI",Arial,sans-serif}
+  .page{width:min(100%,1320px);margin:0 auto;background:var(--white);padding:30px 36px 42px}
+  .masthead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;border-top:6px solid var(--ink);border-bottom:1px solid var(--line-dark);padding:18px 0 16px}
+  .brand{display:inline-block;border-left:5px solid var(--gold);padding:3px 0 3px 10px;color:var(--ink);font-size:11px;font-weight:800;text-transform:uppercase}
+  .masthead h1,.chapter-title h1{margin:5px 0 0;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-weight:800;line-height:1.05}
+  .masthead h1{font-size:29px}.masthead p{margin:6px 0 0;color:var(--muted);font-weight:600}.meta{color:var(--muted);text-align:right;font-size:11px;white-space:nowrap}
+  .metric-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));border:1px solid var(--line-dark);border-top:3px solid var(--gold);margin:18px 0 22px;background:var(--white)}
+  .metric{min-height:86px;padding:11px 12px;border-right:1px solid var(--line);overflow:hidden}.metric:last-child{border-right:0}
+  .metric>span,.metric small{display:block;color:var(--muted)}.metric>span{min-height:27px;font-size:10px;line-height:1.2;text-transform:uppercase;font-weight:800}
+  .metric>strong{display:block;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-size:24px;line-height:1;margin:5px 0;font-weight:800}.metric small{font-size:10px}
+  .metric-stats{margin-top:3px}.metric-stats p{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:0;padding:3px 0;font-size:11px}.metric-stats p+p{border-top:1px solid var(--soft)}.metric-stats span{display:block;color:var(--muted);font-size:10px;font-weight:600}.metric-stats strong{font-size:13px;margin:0}
+  .chapter{border-top:3px solid var(--cyan);padding-top:0;margin-top:28px}.chapter-title{display:flex;align-items:baseline;gap:12px;border:1px solid var(--line);border-top:0;padding:10px 13px;background:var(--white)}
+  .chapter-title span{color:var(--cyan);font-size:10px;text-transform:uppercase;font-weight:800;white-space:nowrap}.chapter-title h1{font-size:19px}.chapter>.chapter-title+.metric-band{margin-top:12px}
+  .report-section{margin:16px 0;border:1px solid var(--line);border-top:3px solid var(--cyan);background:var(--white);break-inside:auto}
+  .report-section h2{font-size:12px;line-height:1.2;text-transform:uppercase;padding:9px 11px;margin:0;border-bottom:1px solid var(--line);background:var(--white);font-weight:800}
+  .report-section>p{margin:0;padding:8px 11px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .two-up{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}.two-up>.report-section{margin:16px 0 0}
+  .table-wrap{width:100%;overflow:hidden}table{border-collapse:collapse;width:100%;font-size:11px;table-layout:auto}thead{display:table-header-group}tr{break-inside:avoid}
+  th{height:32px;color:#34404c;font-size:9px;line-height:1.15;text-align:left;text-transform:uppercase;background:var(--soft);font-weight:800}th,td{border-bottom:1px solid #dce0e4;padding:7px 9px;vertical-align:middle}tbody tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#fafbfc}td:first-child{font-weight:600}td:not(:first-child),th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+  .phase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}.phase{border:1px solid var(--line);border-top:3px solid var(--gold);padding:0;background:var(--white);break-inside:avoid}.phase h3{margin:0;padding:9px 11px;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase}.phase p{display:flex;justify-content:space-between;gap:12px;margin:0;padding:6px 11px;border-bottom:1px solid #dce0e4;font-size:11px}.phase p:last-child{border-bottom:0}.phase strong{font-variant-numeric:tabular-nums}.note,.empty{color:var(--muted)}.note{border-left:3px solid var(--gold);padding:7px 10px;background:#fff9e8}
+  @media(max-width:760px){.page{padding:18px}.masthead{grid-template-columns:1fr}.meta{text-align:left}.two-up{grid-template-columns:1fr}.metric-band{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2n){border-right:0}.metric{border-bottom:1px solid var(--line)}.chapter-title{display:block}.chapter-title h1{margin-top:4px}}
+  @page{size:landscape;margin:0.42in}
+  @media print{html,body{width:100%;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{width:100%;max-width:none;margin:0;padding:0}.masthead{margin-bottom:16px}.chapter{break-before:page;margin-top:0}.chapter:first-of-type{break-before:auto}.chapter-title,.metric-band,.phase,.report-section h2{break-after:avoid}.metric-band,.phase-grid,.two-up>.report-section{break-inside:avoid}.report-section{break-inside:auto}.table-wrap{overflow:visible}table{font-size:9.5px}th,td{padding:5px 7px}.report-section h2{padding:7px 9px}.phase-grid{grid-template-columns:repeat(3,1fr)}}
 `;
 
 const documentShell = ({ title, subtitle, meta, body }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${stylesheet}</style></head><body><main class="page"><header class="masthead"><div><div class="brand">Gridiron IQ Report</div><h1>${esc(title)}</h1>${subtitle ? `<p>${esc(subtitle)}</p>` : ''}</div><div class="meta">${esc(meta)}</div></header>${body}</main></body></html>`;
@@ -192,7 +225,7 @@ export function buildPlayerHtmlReport({ title, team, detail, situational = [], s
 }
 
 export function buildGameHtmlReport({ title, stats, engine, generatedAt = new Date() }) {
-  return documentShell({ title, subtitle: chartedLine(stats), meta: `Generated ${generatedAt.toLocaleString()}`,
+  return documentShell({ title: legacyTitleText(title), subtitle: chartedLine(stats), meta: `Generated ${generatedAt.toLocaleString()}`,
     body: sharedBody({ stats, engine }) });
 }
 

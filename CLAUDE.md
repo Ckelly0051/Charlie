@@ -1396,6 +1396,15 @@ vocabulary no coach uses - and its defensive KPI band led with Stop Rate. The
 export carries the held-row dash, calls `StatsEngine.ddPretty` (the static form
 of `_ddPretty`, the one owner of this wording), and prints the board's KPI
 order. `e2e-reports-self-scout` asserts against the produced HTML string.
+**The shared HTML export is the Reports design system on paper, not a text
+dump.** Every existing game, season, Defense, Special Teams, Self-Scout and
+player export uses one white standalone document shell: square ruled modules,
+gold KPI bands, cyan section rules, alternating table rows, aligned tabular
+numbers and repeating table headers. Print media is landscape, preserves exact
+colours and starts each report chapter on a new page. The export changes no
+cohort or calculation. `e2e-native-reports` renders the generated file in a
+fresh page and pins the browser and print contracts; set
+`GIQ_REPORTS_EXPORT_SCREENSHOTS` for game and season visual captures.
 **PLAYERS COMPOSITION IS PHASE GROUPS — rejected as pairs in the `1.12.0-90`
 installed smoke (2026-09-20), rebuilt, and APPROVED in the `1.12.0-91` installed
 smoke on 2026-09-21.** Populated roles paired two at a time in
@@ -1672,8 +1681,8 @@ cell, no scroller engaged, zero console errors.
 
 ---
 
-**Reports > Self-Scout is implemented, gate-verified and coach accepted
-2026-09-22.** Built to the approved comp (`design-comps/reports-self-scout-2026-09-05`,
+**Reports > Self-Scout is implemented and canonical-data verified; installed
+smoke is pending, so it is not yet coach accepted.** Built to the approved comp (`design-comps/reports-self-scout-2026-09-05`,
 whose RATIONALE is the decision record; sections 17-18 and the revision 4
 typography correction are the composition contract, at checkpoint `dd9812a`).
 Canonical-season captures at 1440 and 1280 are in `artifacts/reports-canonical-review`.
@@ -1773,7 +1782,8 @@ season or matchup data.
 
 ---
 
-**Reports > Season is implemented, gate-verified and coach accepted 2026-09-22.**
+**Reports > Season is implemented and canonical-data verified; installed smoke
+is pending, so it is not yet coach accepted.**
 Built to the approved comp (`design-comps/reports-season-2026-09-05`, whose
 RATIONALE is the decision record, including its Revision 2), at comps `4762557`
 and `2f92ab9`. Game Log rows open the selected game's Reports Overview.
@@ -1872,7 +1882,8 @@ game-scope rail on this tab: the board's own KPI band is its scope owner.
 
 ---
 
-**Reports > Matchup is implemented, gate-verified and coach accepted 2026-09-22.**
+**Reports > Matchup is implemented and canonical-data verified; installed smoke
+is pending, so it is not yet coach accepted.**
 Built to the approved comp (`design-comps/reports-matchup-2026-09-06`, whose
 RATIONALE is the decision record). Canonical-season captures cover both directions.
 
@@ -2148,27 +2159,13 @@ it is accepted state.
    release widths, then PASS / REVISE / REJECT.
    **Reports > Players Charlie Gate** — populated real-data review at the
    release widths, then PASS / REVISE / REJECT, plus an installed smoke.
-   **Reports > Self-Scout Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT, plus an installed smoke. Three
-   questions carried into it: Top and Worst Calls overlap when fewer than six
-   calls qualify (with one qualified call it is both); the predictability
-   map is auto-layout, so a sparse season with two situation columns stretches
-   each cell across the panel; and `Yds / Play` prints `6` rather than `6.0`
-   because `_selfScoutRows`' own `avg` is a number, which the legacy tables
-   and the HTML export have always shared.
-   **Reports > Season Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT, plus an installed smoke. The
-   comp's four open decisions stand and are carried into it (`Yards / Game`
-   versus `Total Yards`, whether Situational Offense belongs on Overview or in
-   Trends, the compact quarter table versus the bar treatment, and what a Game
-   Log row should open). The Game Log row action is deliberately unbuilt until
-   that last one is answered. Two things to look at while reviewing: Wins vs
-   Losses is a three-column table, so its pair of values sits well right of the
-   metric label at 1440 and wider — the comp's own geometry; and `Games` counts
-   every scheduled Our Program game while `Yards / Game` divides by the charted
-   ones, which differ only when a game is scheduled but not yet charted.
-   **Reports > Matchup Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT, plus an installed smoke. Three
+   **Reports > Self-Scout Charlie Gate** — canonical-season review is complete;
+   installed smoke and the coach PASS / REVISE / REJECT remain.
+   **Reports > Season Charlie Gate** — canonical-season review is complete;
+   installed smoke and the coach PASS / REVISE / REJECT remain. Game Log rows
+   open the selected game's Reports Overview.
+   **Reports > Matchup Charlie Gate** — canonical-season review is complete;
+   installed smoke and the coach PASS / REVISE / REJECT remain. Three
    things to look at: the board carries no green/red performance tone, because
    production has no canonical good/bad threshold for Yds / Play or Success
    and inventing one is the inferred advantage this board refuses to compute;

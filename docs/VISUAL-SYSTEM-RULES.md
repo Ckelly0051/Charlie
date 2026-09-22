@@ -117,10 +117,10 @@ regression guard and say so.
 | Defense | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-17) |
 | Special Teams | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-19) |
 | Players | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-20) |
-| Self-Scout | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-22) |
-| Season | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-22) |
+| Self-Scout | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
+| Season | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
-| Matchup | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-22) |
+| Matchup | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
 | Offense | 9.5px | 118 | 323 | Deferred + narrow-width exception |
 
 **Defense, Special Teams, Players, Self-Scout, Season and Matchup are the migrated boards.** Revision 2 renders nothing below the
@@ -134,7 +134,8 @@ untouched, so Overview and Offense keep their approved 9.5px labels. Players
 migrated in Revision 2 on 2026-09-20 (46 elements at an 11px minimum, now none):
 its sample line, role navigation and badges, module meta, absent-role summary and
 `No data` cells are at the floor, and the new detail view was authored at it.
-Self-Scout, Season and Matchup migrated in the 2026-09-22 acceptance pass; the
+Self-Scout, Season and Matchup migrated in the 2026-09-22 canonical review pass;
+their installed smoke and coach acceptance remain pending. The
 canonical six-game season has no sub-floor text on any of the three at either
 release width. Overview carries only its approved broadcast micro-labels.
 Offense was previously classified here as migrated; it is not,

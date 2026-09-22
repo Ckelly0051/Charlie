@@ -15,6 +15,7 @@ await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
 const screenshotDir = process.env.GIQ_REPORTS_SCREENSHOTS || '';
+const exportScreenshotDir = process.env.GIQ_REPORTS_EXPORT_SCREENSHOTS || '';
 const capture = async name => {
   if (!screenshotDir) return;
   await mkdir(screenshotDir, { recursive: true });
@@ -1269,8 +1270,53 @@ result = await page.evaluate(async () => {
   const season=result.captures.find(item=>/^season_report_/.test(item.name));
   ok(!result.error && result.retiredAbsent && result.unchanged && game && season
     && /Offensive Performance/.test(game.html) && /Defensive Performance/.test(game.html)
-    && /Individual Performance/.test(game.html) && /Game Log/.test(season.html),
+    && /Individual Performance/.test(game.html) && /Game Log/.test(season.html)
+    && !game.html.includes('&amp;mdash;'),
     'Game and season HTML exports use structured report data with every legacy renderer disabled', JSON.stringify({error:result.error,names:result.captures.map(item=>item.name),unchanged:result.unchanged}));
+
+  if (game) {
+    const exportPage = await browser.newPage();
+    await exportPage.setViewport({ width: 1440, height: 900 });
+    await exportPage.setContent(game.html, { waitUntil: 'domcontentloaded' });
+    const visual = await exportPage.evaluate(() => {
+      const style = selector => getComputedStyle(document.querySelector(selector));
+      const body = style('body');
+      const module = style('.report-section');
+      const band = style('.metric-band');
+      const heading = style('thead th');
+      return {
+        background: body.backgroundColor,
+        moduleBorderTop: module.borderTopWidth,
+        moduleBorderRadius: module.borderRadius,
+        bandBorderTop: band.borderTopWidth,
+        headingBackground: heading.backgroundColor,
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    ok(visual.background === 'rgb(255, 255, 255)' && visual.moduleBorderTop === '3px'
+      && visual.moduleBorderRadius === '0px' && visual.bandBorderTop === '3px'
+      && visual.headingBackground !== 'rgba(0, 0, 0, 0)' && visual.overflow <= 0,
+      'HTML export renders as the square, ruled Reports system on a white canvas without viewport overflow',
+      JSON.stringify(visual));
+    if (exportScreenshotDir) {
+      await mkdir(exportScreenshotDir, { recursive: true });
+      await exportPage.screenshot({ path: `${exportScreenshotDir}/game-report-export.png`, fullPage: true });
+      if (season) {
+        await exportPage.setContent(season.html, { waitUntil: 'domcontentloaded' });
+        await exportPage.screenshot({ path: `${exportScreenshotDir}/season-report-export.png`, fullPage: true });
+        await exportPage.setContent(game.html, { waitUntil: 'domcontentloaded' });
+      }
+    }
+    await exportPage.emulateMediaType('print');
+    const print = await exportPage.evaluate(() => ({
+      pageWidth: getComputedStyle(document.querySelector('.page')).width,
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
+      tableHeader: getComputedStyle(document.querySelector('thead')).display,
+    }));
+    ok(print.bodyBackground === 'rgb(255, 255, 255)' && print.tableHeader === 'table-header-group',
+      'HTML export preserves its white canvas and repeating table headers in print media', JSON.stringify(print));
+    await exportPage.close();
+  }
 }
 
 console.log('\n== 6. Mobile Reports contains overflow and preserves touch targets ==');

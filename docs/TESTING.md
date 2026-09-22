@@ -327,6 +327,11 @@ rows carrying the absence treatment rather than a zero, `Turnovers` never
 reports its own grouping dimension — and section 14 asserts against the
 produced Self-Scout **HTML export string**, because the export is a second
 renderer over the same models and drifted from the board silently.
+The native Reports harness also renders the shared HTML exporter in a fresh
+browser page and asserts the white canvas, square ruled modules, KPI and table
+header treatment, zero viewport overflow, and print-media table-header contract.
+Set `GIQ_REPORTS_EXPORT_SCREENSHOTS` to capture the rendered game and season
+exports for visual review.
 `e2e-reports-players` pins that punt
 distance and return yardage come from the dedicated ST fields and that Players
 and the team Special Teams report agree on the measured return COUNT as well as
