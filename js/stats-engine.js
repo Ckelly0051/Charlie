@@ -4675,14 +4675,13 @@ export class StatsEngine {
          recorded from the OFFENSE's perspective on every play regardless of
          unit. Both derivations depend on it.
 
-         Balanced strength and middle hash have no side, so they extract to
-         'n-a' — a real value that groups honestly, never silently dropped and
-         never miscounted as Toward or Away. */
+         Balanced strength and middle hash have no side, so they remain
+         distinct buckets rather than being counted as Toward or Away. */
       { id: 'dirVsStrength', label: 'Direction vs Strength', extract: p => {
         const dir = String(p.tags.playDir || '').trim();
         const str = String(StatsEngine.proj(p).strength || '').trim();
         if (!dir || !str) return [];
-        if (str !== 'Left' && str !== 'Right') return ['n-a (balanced)'];
+        if (str !== 'Left' && str !== 'Right') return ['Balanced strength'];
         if (dir === 'Middle') return ['Middle'];
         return [dir === str ? 'Toward strength' : 'Away from strength'];
       } },
@@ -5349,7 +5348,7 @@ export class StatsEngine {
    *  the values `_matrixDimensions()`'s `dirVsStrength` extractor emits. The
    *  Offense board allocates four rows to this module; these are those four,
    *  so data can never add, drop or reorder one. */
-  static DIR_STRENGTH_BUCKETS = ['Toward strength', 'Away from strength', 'Middle', 'n-a (balanced)'];
+  static DIR_STRENGTH_BUCKETS = ['Toward strength', 'Away from strength', 'Middle', 'Balanced strength'];
 
   /** Pretty-print a down&distance key. Handles the bucket form ("3|Long" →
    *  "3rd & 7+"), the legacy exact form ("3&7" → "3rd & 7"), and a bare

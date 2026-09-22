@@ -341,7 +341,7 @@ const DIR_STRENGTH_EXPECTED = [
   { name: 'Toward strength', snaps: '10', runs: '7 (70%)', passes: '3 (30%)' },
   { name: 'Away from strength', snaps: '2', runs: '1 (50%)', passes: '1 (50%)' },
   { name: 'Middle', snaps: '2', runs: '1 (50%)', passes: '1 (50%)' },
-  { name: 'n-a (balanced)', snaps: '5', runs: '3 (60%)', passes: '2 (40%)' },
+  { name: 'Balanced strength', snaps: '5', runs: '3 (60%)', passes: '2 (40%)' },
 ];
 ok(!!ollGame, 'the OLL game named in the coach finding exists in the canonical season');
 if (ollGame) {

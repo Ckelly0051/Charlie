@@ -948,6 +948,12 @@ Position** each hold four rows in Calls by situation. Zone 2 and Zone 4 were re-
 bands, and `gi-off-b2` (8fr/4fr) / `gi-off-b2e` (6fr/6fr) put them on the
 documented 12-column rhythm.
 
+The fourth Direction vs Strength row reads **Balanced strength** in Offense and
+the Study tendency pivot. The shared extractor, fixed row set, and exact-film
+cut use that one label; only the coach-facing wording changed. The canonical
+2025 JV Offense test confirms its five Week 5 snaps and film cut at 1440 and
+1280 before the next installed smoke.
+
 Zone 2's Formation and Play Type tables now use their fixed band completely:
 Formation holds five rows, and a fixed **Formation × Play Type** matrix occupies
 the lower two-column span with the top three formations by the top five play

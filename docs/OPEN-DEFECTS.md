@@ -91,10 +91,11 @@ Found at the board on the installed visual-smoke candidate.
    nothing for a play to snapshot. Reopen only if the coach begins charting
    calls and the modules stay empty.
 
-4. **OPEN — `n-a (balanced)` is an engine token in coach-facing copy.** The
-   fourth Direction vs Strength bucket prints the extractor's own label. The
-   same label appears in the Study/tendency pivot, so renaming it in one place
-   would split the two surfaces. Coach decision required.
+4. **CLOSED 2026-09-22 — Balanced strength has a coach-facing label.** The
+   fourth Direction vs Strength bucket now reads `Balanced strength`, matching
+   the Defense report. The shared extractor supplies that label to both the
+   Offense row and the Study/tendency pivot; the fixed row list and exact-film
+   lookup use the same value. No cohort or calculation changed.
 
 ## Film Health
 
