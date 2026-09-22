@@ -260,10 +260,13 @@ rewrite or the `Long` change touching a value nobody intended, and the only
 difference in it is the audited negative-`Long` correction. Also green:
 `e2e-reports-special-teams` 57/57, `e2e-reports-self-scout` 113/113,
 `e2e-reports-season` 100/100, `e2e-reports-defense-board` 55/55,
-`e2e-reports-overview` 109/109. `node tools/audit-design-approvals.mjs` is RED for
-an unrelated pre-existing reason recorded in `docs/OPEN-DEFECTS.md` (Home's
-manifest carries a `productionStatus` outside the registry's allowed set), so no
-handoff in this repo can currently claim a green approvals audit.
+`e2e-reports-overview` 109/109. At that checkpoint,
+`node tools/audit-design-approvals.mjs` was RED because Home's manifest carried
+a status outside the registry's allowed set. That historical failure was
+repaired on 2026-09-22: Home now records its documented `REJECTED` state, and
+the later Players Revision 2 note was moved out of the hash-protected comp.
+The audit now checks all nine manifests and 434 canonical files with zero
+violations.
 
 **An assertion whose subject was deliberately replaced is repointed, not
 weakened.** Revision 2 moved the film affordance off the row, so the row-level

@@ -5,7 +5,11 @@
 > source repairs, but its installed acceptance is pending and a coach screenshot
 > disproved the Defense Edit library spacing fix. This does not certify unrun installed
 > viewports, close the follow-up Home/Breakdown defects below, or change Home's
-> formal `productionStatus: REJECTED`. Previously updated 2026-09-21: the installed
+> formal `productionStatus: REJECTED`. The Home manifest now records that valid
+> status, allowing the design-approvals audit to inspect all surfaces.
+> A later unsigned `1.12.0-94` installer packages the source correction and
+> Reports/export changes; its coach smoke is pending.
+> Previously updated 2026-09-21: the installed
 > `1.12.0-91` smoke was APPROVED by the coach. It closes both `1.12.0-90` REVISE
 > verdicts — Reports > Players composition and Reports > Defense cohort
 > presentation — and confirms the Reports > Special Teams provisional pass.
@@ -970,10 +974,12 @@ edge-to-edge by design; the top bar's 18px inset is not.
    works; changing it during the native save flow does not. Treat this as a
    shared export-delivery defect until investigation proves otherwise. Preserve
    the chosen path and extension; do not guess the cause from the symptom.
-3. **HTML report presentation needs redesign.** The current exported report is
-   not visually acceptable. This is lower-priority product work, separate from
-   the renamed-file functional defect and not permission to change the approved
-   in-app dashboard composition.
+3. **REPAIRED IN SOURCE 2026-09-22 — HTML report presentation.** Game, season,
+   Defense, Special Teams, Self-Scout and player reports now share the white,
+   ruled Reports print system. Game and season exports carry the Offense visual
+   panels; the Special Teams Units ledger stays inside its chapter. Canonical
+   2025 JV browser/PDF verification passed, but installed visual smoke remains.
+   The renamed-file save/open defect in item 2 is separate and still open.
 4. **SUPERSEDED 2026-09-17 — Defense Situational Results vertical rhythm.** The
    four-tab board is replaced by Revision 2, whose module height is explicit
    arithmetic: 96px of chrome plus rows at the module's pitch. Fixed-schema
@@ -1241,8 +1247,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
       rendering can be certified. **This closes the composition verdict, not the
       registry:** `design-approvals/reports/players/manifest.json` still reads
       `productionStatus: REJECTED`, and moving it is a separate change with its
-      own hash-verified evidence — blocked today by the red registry audit
-      recorded under Deferred Beta Maintenance 3.
+      own hash-verified evidence. The Home status mismatch that blocked the
+      registry audit is closed under Deferred Beta Maintenance 3.
 
 13. **Reports > Defense — `1.12.0-90` arithmetic PASSED, cohort presentation
     REVISE, repaired 2026-09-20. CLOSED 2026-09-21: the `1.12.0-91` installed
@@ -1524,20 +1530,15 @@ Breakdown film-state defects above.
    Until broader visual automation exists, keep presentation repairs scoped to
    the owning route where possible and inspect affected surfaces before calling
    an installer visually accepted.
-3. **OPEN 2026-09-20 — `audit-design-approvals` is RED on the Home manifest, and
-   it is not this range's doing.** `design-approvals/home/manifest.json` carries
-   `productionStatus: "IMPLEMENTED_PENDING_REVIEW"`, which is not one of
-   `APPROVALS.json`'s six `allowedStatuses`, so the audit aborts at
-   `invalid production status for home` before checking any other surface —
-   including every Reports manifest behind it. Found while running the
-   documentation check for the Players Revision 2 checkpoint;
-   `design-approvals/` is unmodified in that work, so the registry has been in
-   this state at HEAD. **Deliberately not repaired here:** the two candidate
-   fixes are changing Home's recorded production state and adding a status to the
-   allowed set, and both are approval-authority decisions, not a builder's. It
-   needs the coach's call on which state Home actually holds. Until it is
-   resolved no documentation handoff can claim a green approvals audit, and the
-   audit cannot certify the surfaces sitting behind the abort.
+3. **CLOSED 2026-09-22 — Home manifest used an invalid production status.**
+   `design-approvals/home/manifest.json` used
+   `IMPLEMENTED_PENDING_REVIEW`, which is outside the registry's allowed
+   statuses. The manifest now records `REJECTED`, the formal state already
+   documented for Home after its partial `1.12.0-92` smoke and pending
+   follow-up repairs. The coach's approval of Home's visual composition remains
+   recorded in the manifest note and `SMOKE-1.12.0-92.md`; it does not imply
+   formal production acceptance. The registry audit can now inspect all nine
+   surfaces.
 
 ## Release Impact
 
@@ -1566,15 +1567,18 @@ Breakdown film-state defects above.
   reflow, and corrects the deck to one 12px inset. Focused proof is
   `e2e-breakdown-viewport` 167/167, mutation-verified. Its spacing half is proven
   here; the coach's approved `1.12.0-88` installed WebView2 smoke on 2026-09-16
-  closes the rendered-chrome checkpoint. `1.12.0-88` is the current approved beta build.
+  closes the rendered-chrome checkpoint. The later `1.12.0-91` installed smoke
+  approved the bounded Reports changes recorded above.
 - PL-1, PL-2 and BD-CTX from that batch stand as repaired: the dead custom-play
   Add route, canonical built-in `Option`, and shared context-selector contrast.
   Codex-reviewed over `56e75f1..6651195`, `e2e-play-library` 50/50, canonical
   gate 119/119, packaged as `1.12.0-87`. `Option`'s absence from Overview's
   approved fixed six and the Defense dashboard's seven play-type categories stays open as a coach
   decision about an approved schema, not an implementation gap.
-- **Reports status:** Overview's composition is already approved; Offense is
-  built and gate-verified but still needs coach acceptance after the installed
-  REVISE. Neither is a new build checkpoint. Home rail scaling received the
-  bounded `1.12.0-92` visual approval above. The source repairs recorded above
-  do not promote Home or Breakdown to installed acceptance.
+- **Reports status:** Players composition and Defense cohort presentation passed
+  the `1.12.0-91` installed smoke; Special Teams' provisional pass was confirmed.
+  Overview's composition and Home's `1.12.0-92` visual layout are approved.
+  Offense, Self-Scout, Season, Matchup, and the revised exports still need an
+  installed verdict. The Home and Breakdown follow-up repairs need smoke in a
+  newer package. These bounded decisions do not promote a manifest to formal
+  production acceptance.

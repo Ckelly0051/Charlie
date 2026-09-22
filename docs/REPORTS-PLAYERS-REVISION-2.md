@@ -1,9 +1,10 @@
 # Reports > Players — Revision 2 decision record
 
-**Date:** 2026-09-20 · **Status:** implemented, focused suites green, awaiting
-Codex review, a Charlie Gate and an installed smoke. The Revision 1 comp in this
-folder remains the composition authority for the leaderboard; this file records
-what Revision 2 adds on top of it and why.
+**Date:** 2026-09-20 · **Status:** code review complete; Players composition
+approved in the `1.12.0-91` installed smoke on 2026-09-21. Formal production
+acceptance remains separate. The Revision 1 comp in
+`design-comps/reports-players-2026-09-04` remains the composition authority for
+the leaderboard; this file records what Revision 2 adds on top of it and why.
 
 ## What did not change
 
@@ -94,4 +95,5 @@ Each needs expanded charting first; none is a reporting change.
   role, so that play counts once in each role it was charted for and never twice
   within one.
 - **Chromium cannot certify installed WebView2 rendering.** Layout, containment
-  and browser-backed behavior are verified; the installed smoke is outstanding.
+  and browser-backed behavior were verified before the coach approved the
+  `1.12.0-91` installed composition smoke.

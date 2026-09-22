@@ -7,11 +7,15 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-93` (`js/app.js` `APP_VERSION`,
+**Main-checkout version:** `1.12.0-93` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
-all four must match; `e2e-p0-exit` asserts it).
+all four must match; `e2e-p0-exit` asserts it). The latest installer is
+`1.12.0-94`, built from `81fe261` in a clean detached worktree with a local,
+uncommitted four-owner version bump. See `SMOKE-1.12.0-94.md` for its recorded
+hash and pending coach smoke; do not mistake that package for this checkout's
+committed version.
 
-**Packaging status:** `1.12.0-93` is an unsigned Home and Breakdown repair
+**Prior packaging status:** `1.12.0-93` is an unsigned Home and Breakdown repair
 candidate; installed acceptance is pending. The scoped repair is `a93b38e`, the four-owner
 version bump is `3c6f34d`, and the NSIS installer was built from a clean
 worktree at that exact revision. See `SMOKE-1.12.0-93.md` for the package hash,
@@ -40,8 +44,9 @@ REVISE verdicts and confirms the Special Teams provisional pass.
 composition, the Defense cohort presentation and Special Teams on the installed
 build. It does NOT move `design-approvals/APPROVALS.json`, where every Reports
 manifest still reads `productionStatus: REJECTED` — a registry change is a
-separate step with its own hash-verified evidence, and the registry audit is
-currently red for an unrelated Home reason. **Home production remains formally
+separate step with its own hash-verified evidence. The Home manifest now uses
+the documented `REJECTED` state so the audit can check all surfaces.
+**Home production remains formally
 `REJECTED`** and was not in scope. Overview, Offense, Self-Scout, Season and
 Matchup keep their existing status. Not tagged, pushed or published.
 `cargo tauri build` exits 1 after producing both bundles, on the updater signing
@@ -1460,9 +1465,11 @@ composition took a REVISE in the `1.12.0-90` installed smoke and was rebuilt as
 phase groups, which the coach approved. **The approval is the installed smoke,
 not a registry state:** `design-approvals/reports/players/manifest.json` still
 reads `productionStatus: REJECTED`, and moving it is a separate, evidenced
-step. The approved six-role leaderboard is intact —
-same roles, stat definitions, scopes, sorting, absence semantics and column
-geometry. Revision 2 adds analysis on top of it, using only fields already
+step. The approved six-role leaderboard is intact — same roles, stat
+definitions, scopes, sorting, absence semantics and column geometry. The
+Revision 2 decision record is `docs/REPORTS-PLAYERS-REVISION-2.md`, outside
+the hash-protected Revision 1 comp directory. Revision 2 adds analysis on top
+of it, using only fields already
 charted. Checkpoint evidence: `e2e-reports-players` 223/223,
 `e2e-native-reports` 99/99, and `e2e-parity` 2/2 with both cohorts green,
 including the local `mavericks-6game` golden Codex's isolated checkout could not
@@ -2162,37 +2169,22 @@ it is accepted state.
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
-3. **Reports > Offense Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT. Two facts carry into it, both
-   recorded in `design-comps/reports-offense-production-2026-09-08/RATIONALE.md`:
-   the canonical season has no charted play-call fields, so the three call
-   modules are honest held slots; and the persistent KPI rail still duplicates
-   Success rate with the Offense band (comp RATIONALE §8, unchanged because it
-   affects every game-scope tab).
-4. **The remaining Reports Charlie Gates** — every tab now has a comp and is
-   built. Shared chrome follows the selected report scope: current-game boards
-   may show current-game chrome; full-season boards, Season and Matchup do not.
-   **Reports > Special Teams Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT.
-   **Reports > Players Charlie Gate** — populated real-data review at the
-   release widths, then PASS / REVISE / REJECT, plus an installed smoke.
-   **Reports > Self-Scout Charlie Gate** — canonical-season review is complete;
-   installed smoke and the coach PASS / REVISE / REJECT remain.
-   **Reports > Season Charlie Gate** — canonical-season review is complete;
-   installed smoke and the coach PASS / REVISE / REJECT remain. Game Log rows
-   open the selected game's Reports Overview.
-   **Reports > Matchup Charlie Gate** — canonical-season review is complete;
-   installed smoke and the coach PASS / REVISE / REJECT remain. Three
-   things to look at: the board carries no green/red performance tone, because
-   production has no canonical good/bad threshold for Yds / Play or Success
-   and inventing one is the inferred advantage this board refuses to compute;
-   and when the opponent's film is a game we PLAYED rather than a scout game,
-   the `Opponent` and `Season` cut-ups legitimately share a rep, because
-   `_matchupData` reads one charted snap as both our offensive rep and their
-   defensive one.
-   **One approved Special Teams change not yet built:** the context bar
-   wrapping long game names at 1280 rather than clipping (shared shell owner;
-   the shell's response to a taller bar still needs verifying).
+3. **Next installed Reports smoke** — Offense, Self-Scout, Season, Matchup and
+   the revised white-background HTML/PDF exports need the coach's installed
+   verdict. The Offense board has canonical-data verification at 1440 and 1280;
+   the three call modules remain held because the season has no charted calls.
+   Self-Scout, Season and Matchup have canonical-data browser verification but
+   no installed verdict. Season Game Log rows open the selected game's Reports
+   Overview. Matchup deliberately has no inferred good/bad color threshold,
+   and a game we played can appear in both its Opponent and Season cuts.
+4. **Installed Reports decisions already made** — the `1.12.0-91` coach smoke
+   approved Players composition and Defense cohort presentation and confirmed
+   Special Teams. Do not request those Charlie Gates again. The `1.12.0-92`
+   coach verdict approved Home's visual composition; its follow-up setup,
+   typography and identity repairs still need installed verification in a
+   newer package. The Reports context bar's proposed 1280px long-name wrapping
+   is a separate unbuilt shell change. Formal registry production acceptance
+   remains separate from these bounded installed decisions.
 5. **CLOSED 2026-09-06 — Reports scope/frame mismatch.** Full-season Special
    Teams, Defense and Players now suppress the current-game scorebug and KPI
    rail and identify the season scope in the shared header. Matchup names the
@@ -2242,15 +2234,12 @@ it is accepted state.
    keep their historical classification; field position is never used to infer
    ownership. `e2e-reports-special-teams` pins all three directions.
 
-7. **Reports > Defense Revision 2 Charlie Gate** — populated real-data review at
-   the release widths against the Revision 2 comp, then PASS / REVISE / REJECT,
-   plus an installed smoke. Chromium cannot certify the installed module
-   scrollbars. Carried into it: the production KPI face is wider than the comp's,
-   so values step to 30px below 1420px and the strip reflows below 1240px rather
-   than 1100px; the comp's report-title block and footer line are not rendered
-   because the Reports shell carries that identity; Export Report is retained;
-   and a variable module whose rows do not fill its standard height (Down &
-   Distance on one game) keeps the comp's own sub-row gap.
+7. **CLOSED 2026-09-21 — Reports > Defense Revision 2 installed verdict.** The
+   `1.12.0-91` coach smoke approved its cohort presentation and accepted the
+   reconciled St. Peter arithmetic. The Reports shell still carries the title
+   and footer identity, Export Report remains, and the approved module scroll
+   and sub-row gap behavior are unchanged. Formal registry status remains
+   `REJECTED` pending a separate production-acceptance decision.
 8. **SUPERSEDED 2026-09-17 — Defense section tabs.** Defense Revision 2 is one
    scrolling report with jump links, as the approved comp specifies. Offense
    still scrolls with its own zone navigation.

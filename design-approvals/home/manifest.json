@@ -2,9 +2,9 @@
   "surfaceId": "home",
   "title": "Home",
   "designStatus": "COMP_APPROVED",
-  "productionStatus": "IMPLEMENTED_PENDING_REVIEW",
+  "productionStatus": "REJECTED",
   "approvedOn": "2026-08-31",
-  "approvalNote": "Coach approved the Home comp; the 1.12.0-74 installed rendering was reported visually off and is not accepted.",
+  "approvalNote": "Coach approved the Home comp and the 1.12.0-92 installed visual composition. That smoke was partial, follow-up Home defects remain pending in 1.12.0-93, and formal production acceptance has not been granted; see SMOKE-1.12.0-92.md and SMOKE-1.12.0-93.md.",
   "canonicalArtifact": {
     "path": "design-comps/home-workspace-2026-08-31",
     "kind": "directory",

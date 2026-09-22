@@ -6,11 +6,15 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-> **Release checkpoint:** unsigned Windows `1.12.0-86` contains Repair Batch 1
-> and FILM-01. Its FILM-01 installed smoke passed on 2026-09-15 and is accepted
-> for beta use. It is not tagged, pushed, or published. The visual findings
-> inherited from `1.12.0-85` remain open, and Home production remains formally
-> `REJECTED` despite beta-smoke acceptance.
+> **Release checkpoint, 2026-09-22:** unsigned Windows `1.12.0-94` is the latest
+> installer, built from source `81fe261` in a clean detached worktree with a
+> local version bump that is not yet committed. Its coach smoke is pending.
+> It carries the corrected Breakdown library spacing, completed Reports/export
+> work, and Balanced strength label. `1.12.0-91` passed the coach's Players,
+> Defense cohort, and Special Teams installed smoke; `1.12.0-92` received a
+> bounded Home visual-composition approval. None is tagged, pushed, or
+> published. Home and Reports remain formally `REJECTED` in the valid registry,
+> whose audit now passes. See `CLAUDE.md` for the package and smoke scope.
 >
 > **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
 > `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
@@ -21,8 +25,9 @@
 > phase is counted from the snap and never derived by subtraction; and the
 > dedicated Special Teams fields are authoritative on every surface, player
 > rollups included. Two questions are carried to the coach unanswered and are
-> listed in `docs/OPEN-DEFECTS.md`. No surface advanced past `REJECTED` and no
-> installed smoke was run against these repairs. The Step 2
+> listed in `docs/OPEN-DEFECTS.md`. Formal production status remains
+> `REJECTED`; later installed smoke approved the bounded Players, Defense, and
+> Special Teams changes described above. The Step 2
 > documentation/repository-hygiene pass,
 > global-bridge retirement, and CSS-ownership cleanup remain complete and
 > reviewed; `e2e-design-system` is 17/0. Historical incomplete-state notes below
@@ -33,7 +38,7 @@
 
 The approved comp remains the design contract for all three meaningful Home states: first launch, season library/no open season, and a populated open season. The `1.12.0-70` installed snapshot was accepted, but current Home production is `REJECTED` after the `1.12.0-74` installed screen was reported visually off. Do not interpret the accepted baseline below as current production acceptance. First launch is part of Home, not a centered Team Hub onboarding panel. It offers structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Home now owns the season-library presentation; Team Hub retains only its existing service and focused-form boundaries.
 
-### Home Consolidation Implemented - Pending Coach Smoke
+### Home Consolidation Implemented - Layout Approved, Follow-ups Pending
 
 The populated open-season game library remains the primary composition.
 No-open-season, empty-season, and Opponent Scout are states of that same Home
@@ -800,8 +805,9 @@ Retain every meaningful production field while reducing everyday clutter.
 > **DESKTOP REPORTS COMPOSITION CHECKPOINT (2026-09-06):** All eight Our
 > Program tabs are built: Overview, Offense, Defense, Special Teams, Players,
 > Self-Scout, Season and Matchup. Their populated desktop comps and focused
-> harnesses are complete, but none is coach-accepted until the whole route is
-> reviewed in an installed build. Release repairs through `6eec197` leave the
+> harnesses were complete at that checkpoint, before the later bounded coach
+> approvals recorded in the release checkpoint above. Release repairs through
+> `6eec197` left the
 > complete gate 109/109, real data 10/10 and parity 2/2. Shared chrome now
 > follows actual scope: game-only score/KPI framing cannot appear over a
 > full-season or matchup board. The unsigned `1.12.0-77` local handoff was
@@ -852,8 +858,8 @@ Retain every meaningful production field while reducing everyday clutter.
 > that pair by equal height. `StatsEngine.defenseBoard()` owns every value on
 > top of the unchanged `defenseDashboard()`, which the export still prints.
 > Evidence: `e2e-reports-defense-realdata` (76) and `e2e-reports-defense-board`
-> (34), canonical gate green. Charlie Gate, installed smoke and production
-> acceptance remain; the approval registry is unchanged.
+> (34), canonical gate green. The later `1.12.0-91` installed smoke approved
+> Defense cohort presentation; formal production acceptance remains separate.
 >
 > **SPECIAL TEAMS LIMITED ACCEPTANCE PASS (DECIDED 2026-09-19).** The existing
 > Special Teams report remains the composition; this is not another rebuild and
@@ -866,7 +872,8 @@ Retain every meaningful production field while reducing everyday clutter.
 > The visual pass is limited to the 12.5px type floor, literal labels, compact
 > empty modules, a few standard module heights, paired-edge alignment and
 > containment at 1440 and 1280. Focused regressions, the full gate and a short
-> installed smoke are the acceptance boundary.
+> installed smoke were the acceptance boundary. The `1.12.0-91` smoke confirmed
+> Special Teams' provisional pass; formal registry status remains `REJECTED`.
 >
 > **HISTORY — DEFENSE REBUILT TO THE APPROVED STATIC SCHEMA (2026-09-09).** The current
 > comp and decision record are `design-comps/reports-defense-2026-09-09/`.
