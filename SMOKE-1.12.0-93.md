@@ -23,7 +23,10 @@ successfully. From the clean worktree's built assets: `e2e-p0-exit` 19/19,
 ## Installed smoke - pending
 
 No installation or coach-data changes were made during packaging. In the
-installed app, verify these five reported behaviors against real data:
+installed app, verify these five reported behaviors against real data. A later
+coach screenshot shows the Defense Edit library buttons still pushed to the
+far edge; the `1.12.0-93` spacing claim is **REVISE**, regardless of the other
+checks. The source-only correction made after packaging is not in this installer.
 
 1. Season setup recognizes a configured game after an empty starter and marks
    First game and Ready to chart correctly.

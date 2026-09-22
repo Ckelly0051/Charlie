@@ -1,8 +1,9 @@
 # GridIron IQ Open Defects
 
 > **Status:** CURRENT DEFECT INDEX. Updated 2026-09-22: Charlie approved the
-> `1.12.0-92` Home visual composition. `1.12.0-93` now packages the follow-up
-> source repairs but has not been installed or smoke-tested. This does not certify unrun installed
+> `1.12.0-92` Home visual composition. `1.12.0-93` packages the follow-up
+> source repairs, but its installed acceptance is pending and a coach screenshot
+> disproved the Defense Edit library spacing fix. This does not certify unrun installed
 > viewports, close the follow-up Home/Breakdown defects below, or change Home's
 > formal `productionStatus: REJECTED`. Previously updated 2026-09-21: the installed
 > `1.12.0-91` smoke was APPROVED by the coach. It closes both `1.12.0-90` REVISE
@@ -225,11 +226,12 @@ button. Penalty Auto D&D is not working as expected; the coach wants the
 manual Resulting situation box removed and the next situation derived from
 penalty entry. Enforcement rules and unresolved cases need explicit tests.
 
-**Source repair, 2026-09-22; packaged in uninstalled `1.12.0-93`:** the season setup now finds a
+**Source repair, 2026-09-22; packaged in `1.12.0-93`:** the season setup now finds a
 configured game beyond an empty starter; Season setup and Edit season details
 use the current sans display type. Identity save now updates the open program
 season's profile and games as well as the registry, and a canonical reopen test
-passes. Defense Edit library labels align in normal layout flow; a rendered
+passes. The first Defense Edit library alignment change only kept the buttons
+on the right edge and left a dead spacer; a rendered
 Defense-deck click adds a custom front, exposes it immediately, and persists it
 across reload. A refused library write now reports failure instead of clearing
 the input as though Add succeeded. The manual penalty Resulting situation form
@@ -246,6 +248,13 @@ Focused checks (also rerun on the clean package worktree where applicable):
 `e2e-native-tagging` 76/76, `e2e-field-fixes` 26/26,
 `e2e-team-registry` 24/24, `e2e-game-context` 16/16, and
 `e2e-penalty-contract` 7/7. No installed smoke or full gate claimed.
+
+**Post-package spacing correction, 2026-09-22; not in `1.12.0-93`:** a coach
+screenshot showed the Edit library actions still stranded at the far edge of
+the Defense deck. The source layout now puts each action beside its label or
+hint; the regression check requires a small actual gap, not just right-edge
+alignment. The populated Defense-deck capture was inspected and
+`e2e-native-tagging` passes 76/76. Installed verification remains pending.
 
 0. **REPAIRED 2026-09-21 — the navigation rail starved the season tree.** Found
    in the approved `1.12.0-91` installed build: Program Seasons showed only 2026

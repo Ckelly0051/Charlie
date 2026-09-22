@@ -326,9 +326,12 @@ state=await page.evaluate(()=>{
   const libraryLabels=['defFront','coverage','blitz'].map(field=>{
     const row=root.querySelector(`[data-native-field="${field}"] .gi-tag-field-label`);
     const title=row?.querySelector('span')?.getBoundingClientRect();
-    const button=row?.querySelector('button')?.getBoundingClientRect();
+    const buttonNode=row?.querySelector('button');
+    const button=buttonNode?.getBoundingClientRect();
+    const preceding=buttonNode?.previousElementSibling?.getBoundingClientRect();
     const box=row?.getBoundingClientRect();
-    return { field, titleRight:title?.right, buttonLeft:button?.left, buttonRight:button?.right, rowRight:box?.right };
+    return { field, titleRight:title?.right, precedingRight:preceding?.right,
+      buttonLeft:button?.left, buttonRight:button?.right, rowRight:box?.right };
   });
   return{
     covCount:btns.length,
@@ -343,9 +346,11 @@ state=await page.evaluate(()=>{
     pageOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
   };
 });
-ok(state.libraryLabels.every(row=>row.buttonLeft>=row.titleRight+5&&Math.abs(row.buttonRight-row.rowRight)<=1)
-  && new Set(state.libraryLabels.map(row=>Math.round(row.buttonRight))).size===1,
-  'Defense Edit library controls align on one right edge without covering their field labels',JSON.stringify(state.libraryLabels));
+if(process.env.GIQ_NATIVE_TAGGING_DEFENSE_SCREENSHOT)
+  await (await page.$('[data-native-tagging]')).screenshot({path:process.env.GIQ_NATIVE_TAGGING_DEFENSE_SCREENSHOT});
+ok(state.libraryLabels.every(row=>row.buttonLeft>=row.precedingRight+4
+  && row.buttonLeft-row.precedingRight<=12 && row.buttonRight<=row.rowRight),
+  'Defense Edit library controls sit beside their labels without a dead spacer',JSON.stringify(state.libraryLabels));
 // The approved comp uses content-sized vocabulary chips, wrapping rather
 // than squeezing seven labels into equal-width tracks.
 ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,

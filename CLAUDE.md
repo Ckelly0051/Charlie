@@ -11,13 +11,16 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-93` is an unsigned, **uninstalled** Home and
-Breakdown repair candidate. The scoped repair is `a93b38e`, the four-owner
+**Packaging status:** `1.12.0-93` is an unsigned Home and Breakdown repair
+candidate; installed acceptance is pending. The scoped repair is `a93b38e`, the four-owner
 version bump is `3c6f34d`, and the NSIS installer was built from a clean
 worktree at that exact revision. See `SMOKE-1.12.0-93.md` for the package hash,
 focused checks and installed smoke still required. It carries the season setup,
 typography, team-identity, defensive-front library and penalty Auto D&D repairs;
-none was in the installed `1.12.0-92` build. Penalty Auto D&D uses the charted
+none was in the installed `1.12.0-92` build. A later coach screenshot exposed
+that its Defense Edit library buttons are still stranded at the far edge. The
+post-package source correction places them beside their labels and is not in
+`1.12.0-93`. Penalty Auto D&D uses the charted
 ending spot for counted dead-ball fouls and the previous spot for no-play fouls;
 counted live-ball fouls and unresolved fourth-down possession changes stay blank
 for coach correction. Charlie approved the `1.12.0-92` Home visual composition,
