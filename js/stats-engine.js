@@ -5650,7 +5650,10 @@ export class StatsEngine {
   selfScoutCallRanking(callRows, min = StatsEngine._SELF_SCOUT_CALL_MIN, limit = 3) {
     const ranked = (callRows || []).filter(row => row.n >= min).slice()
       .sort((a, b) => b.succRate - a.succRate || b.avg - a.avg || b.n - a.n);
-    return { qualified: ranked, top: ranked.slice(0, limit), worst: ranked.slice().reverse().slice(0, limit) };
+    const topCount = Math.min(limit, Math.ceil(ranked.length / 2));
+    const worstCount = Math.min(limit, ranked.length - topCount);
+    return { qualified: ranked, top: ranked.slice(0, topCount),
+      worst: ranked.slice().reverse().slice(0, worstCount) };
   }
 
   /** The Offensive Summary section's model. `performance` is a compute()
@@ -5757,7 +5760,10 @@ export class StatsEngine {
   selfScoutDefenseCallRanking(rows, min = StatsEngine._SELF_SCOUT_CALL_MIN, limit = 3) {
     const ranked = (rows || []).filter(row => row.n >= min).slice()
       .sort((a, b) => b.stopRate - a.stopRate || a.avgYds - b.avgYds || b.n - a.n);
-    return { qualified: ranked, top: ranked.slice(0, limit), worst: ranked.slice().reverse().slice(0, limit) };
+    const topCount = Math.min(limit, Math.ceil(ranked.length / 2));
+    const worstCount = Math.min(limit, ranked.length - topCount);
+    return { qualified: ranked, top: ranked.slice(0, topCount),
+      worst: ranked.slice().reverse().slice(0, worstCount) };
   }
 
   /** The Defense section's model, over the SAME defensive cohort the KPI band

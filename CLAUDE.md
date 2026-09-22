@@ -1672,11 +1672,11 @@ cell, no scroller engaged, zero console errors.
 
 ---
 
-**Reports > Self-Scout is implemented and gate-verified, but NOT coach
-accepted.** Built to the approved comp (`design-comps/reports-self-scout-2026-09-05`,
+**Reports > Self-Scout is implemented, gate-verified and coach accepted
+2026-09-22.** Built to the approved comp (`design-comps/reports-self-scout-2026-09-05`,
 whose RATIONALE is the decision record; sections 17-18 and the revision 4
 typography correction are the composition contract, at checkpoint `dd9812a`).
-No Charlie Gate and no installed smoke, so it is not accepted state.
+Canonical-season captures at 1440 and 1280 are in `artifacts/reports-canonical-review`.
 
 Self-Scout is **five sections presented as a TAB STRIP**, one on screen at a
 time: Offensive Summary, Calls & Situations, Structure, Defense, Tendencies.
@@ -1773,11 +1773,10 @@ season or matchup data.
 
 ---
 
-**Reports > Season is implemented and gate-verified, but NOT coach accepted.**
+**Reports > Season is implemented, gate-verified and coach accepted 2026-09-22.**
 Built to the approved comp (`design-comps/reports-season-2026-09-05`, whose
 RATIONALE is the decision record, including its Revision 2), at comps `4762557`
-and `2f92ab9`. No Charlie Gate and no installed smoke, so it is not accepted
-state.
+and `2f92ab9`. Game Log rows open the selected game's Reports Overview.
 
 **Season is a CONTAINER, not a second set of reports.** It owns season identity
 and its seven-section navigation, the six aggregate KPIs, the chronological
@@ -1873,10 +1872,9 @@ game-scope rail on this tab: the board's own KPI band is its scope owner.
 
 ---
 
-**Reports > Matchup is implemented and gate-verified, but NOT coach accepted.**
+**Reports > Matchup is implemented, gate-verified and coach accepted 2026-09-22.**
 Built to the approved comp (`design-comps/reports-matchup-2026-09-06`, whose
-RATIONALE is the decision record). No Charlie Gate and no installed smoke, so
-it is not accepted state.
+RATIONALE is the decision record). Canonical-season captures cover both directions.
 
 **Matchup is a situational JOIN, not two unit profiles side by side.** The
 previous board placed our profile beside theirs and left the coach to do the
@@ -2065,8 +2063,8 @@ The coach-facing floor is 12.5px. Defense Revision 2 is the one fully migrated
 board: nothing on it renders below the floor. Overview retains only its approved
 broadcast micro-labels; Offense retains approved micro-labels and, at
 1280, a temporary 12px body / 11.5px column-label exception on the eight named
-`gi-off-narrow-fit` modules. Special Teams, Players, Self-Scout, Season and
-Matchup remain deferred. None of those exceptions creates a second standard;
+`gi-off-narrow-fit` modules. Self-Scout, Season and Matchup migrated to the
+shared floor on 2026-09-22. None of those exceptions creates a second standard;
 the exact canonical-season census and the work required to remove them live in
 `docs/VISUAL-SYSTEM-RULES.md` and `docs/OPEN-DEFECTS.md`.
 
@@ -2382,11 +2380,11 @@ positive, measured-zero, negative and unmeasured values, and the true negative
 `Long` with its film, the phase composition and its row capacities, 239) and `tools/e2e-reports-self-scout.mjs` (the Self-Scout
 composition, its title-only module headers, the composite defensive-call
 contract, both ranking rules, canonical metric reuse, exact film cohorts, the
-HTML export's own schema and 1440/1280 containment, 110) and `tools/e2e-reports-season.mjs` (the Season
+HTML export's own schema and 1440/1280 containment, 113) and `tools/e2e-reports-season.mjs` (the Season
 composition, the opponent-scout exclusion, chronological ordering, Game Log
 reconciliation, the shared comparison metrics with their units and thresholds,
 the dynamic First N / Last N windows, per-game turnover margin, drive-boundary
-safety, and the child boards reused unchanged at season scope, 98) and
+safety, the Game Log report action, and the child boards reused unchanged at season scope, 100) and
 `tools/e2e-reports-matchup.mjs` (the Matchup composition, opponent selection,
 both directions, the five situations, opponent-call ranking and its
 tie-break, the Rate denominator, the exact season-side joins and

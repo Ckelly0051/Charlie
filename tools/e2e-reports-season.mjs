@@ -220,6 +220,18 @@ ok(!m.gameIds.includes('scout-1'), 'an opponent-scout game is excluded from the 
   JSON.stringify(m.gameIds));
 ok(!log.some(row => row.join(' ').includes('Riverside Prep')),
   'no opponent-scout game reaches the Game Log');
+const firstGameId = m.gameLog[0]?.id;
+await page.focus('.gi-season-board .gi-season-table tbody tr.cut-row');
+await page.keyboard.press('Enter');
+await sleep(900);
+const openedGame = await page.evaluate(() => ({
+  id: window.app.storage.seasonStore.data.activeGameId,
+  tab: window.app.reportsScreen.activeTab,
+  route: window.app.workspaceShell.activeRoute,
+}));
+ok(String(openedGame.id) === String(firstGameId) && openedGame.tab === 'overview',
+  'Enter on a Game Log row opens that game in Reports Overview', JSON.stringify(openedGame));
+await load(FULL);
 ok(m.summary.games === 9 && m.summary.record === '7-2',
   'the record counts only Our Program games', `${m.summary.games} / ${m.summary.record}`);
 ok(m.summary.pointsFor === 228 && m.summary.pointsAgainst === 133,
@@ -637,8 +649,8 @@ const type = await page.evaluate(() => {
 });
 ok(type.titleSize === 14 && /Plex Sans/.test(type.titleFace) && !/Condensed/.test(type.titleFace),
   'module titles are 14px IBM Plex Sans', `${type.titleSize} / ${type.titleFace}`);
-ok(type.thSize === 12 && type.thWeight === 600 && /Plex Sans/.test(type.thFace),
-  'table headers are 12px semibold Plex Sans', `${type.thSize} / ${type.thWeight}`);
+ok(type.thSize === 12.5 && type.thWeight === 600 && /Plex Sans/.test(type.thFace),
+  'table headers are 12.5px semibold Plex Sans', `${type.thSize} / ${type.thWeight}`);
 ok(type.tdSize === 13 && type.rowHeight === 38, 'table rows are 13px on 38px rows',
   `${type.tdSize} / ${type.rowHeight}`);
 /* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the
@@ -651,9 +663,9 @@ ok(type.tdSize === 13 && type.rowHeight === 38, 'table rows are 13px on 38px row
    text on this board is 11px, so that is pinned EXACTLY: the board cannot
    drift further from the floor while it waits, and this number moves only when
    the migration moves it. */
-const SEASON_TYPE_FLOOR_DEFERRED = 11;
-ok(type.floor >= SEASON_TYPE_FLOOR_DEFERRED,
-  `the board holds its deferred ${SEASON_TYPE_FLOOR_DEFERRED}px floor, pending migration to the shared 12.5px floor`,
+const SEASON_TYPE_FLOOR = 12.5;
+ok(type.floor >= SEASON_TYPE_FLOOR,
+  `the board holds the shared ${SEASON_TYPE_FLOOR}px coach-facing floor`,
   String(type.floor));
 ok(type.fonts.some(f => /IBM Plex Sans/.test(f)), 'IBM Plex loads from the bundled source',
   JSON.stringify(type.fonts.slice(0, 4)));

@@ -34,7 +34,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
    canonical minimum for this board is 11px. Pinning it here means the board
    cannot drift further from the floor while it waits, and the number moves only
    when the migration moves it -- it is a deferral, not a second standard. */
-const SELF_SCOUT_TYPE_FLOOR_DEFERRED = 11;
+const SELF_SCOUT_TYPE_FLOOR = 12.5;
 
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
@@ -298,15 +298,15 @@ ok(/Plex Sans/.test(type.titleFace) && !/Condensed/.test(type.titleFace),
   'module titles use readable IBM Plex Sans', type.titleFace);
 ok(type.titleTransform === 'none' && (type.titleSpacing === 'normal' || parseFloat(type.titleSpacing) === 0),
   'module titles carry no forced uppercase and no tracking', `${type.titleTransform} / ${type.titleSpacing}`);
-ok(type.thSize === 12 && type.thWeight === 600, 'table column headers are 12px semibold',
+ok(type.thSize === 12.5 && type.thWeight === 600, 'table column headers are 12.5px semibold',
   `${type.thSize}px / ${type.thWeight}`);
 ok(/Plex Sans/.test(type.thFace) && !/Condensed/.test(type.thFace), 'column headers use Plex Sans', type.thFace);
 ok(type.tdSize === 13, 'data rows are 13px', String(type.tdSize));
 ok(type.rowHeight === 38, 'data rows are 38px', String(type.rowHeight));
-ok(type.navSize === 12 && type.navTransform === 'none',
-  'section navigation is readable 12px Sans with no forced uppercase', `${type.navSize} / ${type.navTransform}`);
-ok(type.floor >= SELF_SCOUT_TYPE_FLOOR_DEFERRED,
-  `the board holds its deferred ${SELF_SCOUT_TYPE_FLOOR_DEFERRED}px floor, pending migration to the shared 12.5px floor`,
+ok(type.navSize === 12.5 && type.navTransform === 'none',
+  'section navigation is readable 12.5px Sans with no forced uppercase', `${type.navSize} / ${type.navTransform}`);
+ok(type.floor >= SELF_SCOUT_TYPE_FLOOR,
+  `the board holds the shared ${SELF_SCOUT_TYPE_FLOOR}px coach-facing floor`,
   String(type.floor));
 
 /* ══ 4. Offensive Summary — composition and canonical values ══════════════ */
@@ -392,6 +392,8 @@ ok(descending(rank.topCalls), 'Top Calls rank by success rate, then yards per pl
   JSON.stringify(rank.topCalls.map(r => `${r.key} ${r.succRate}% ${r.avg} n=${r.n}`)));
 ok(descending([...rank.worstCalls].reverse()), 'Worst Calls is that same ranking reversed',
   JSON.stringify(rank.worstCalls.map(r => `${r.key} ${r.succRate}% ${r.avg} n=${r.n}`)));
+ok(!rank.topCalls.some(row => rank.worstCalls.some(worst => worst.key === row.key)),
+  'Top and Worst offensive calls never repeat a qualified call');
 const rerun = await model();
 ok(JSON.stringify(rerun.summary.topCalls.map(r => r.key)) === JSON.stringify(rank.topCalls.map(r => r.key))
   && JSON.stringify(rerun.summary.worstCalls.map(r => r.key)) === JSON.stringify(rank.worstCalls.map(r => r.key)),
@@ -443,6 +445,8 @@ ok(defDescending(d.topCalls), 'Top Calls rank by stop rate, then LOWER yards all
   JSON.stringify(d.topCalls.map(r => `${r.key} ${r.stopRate}% ${r.avgYds}`)));
 ok(defDescending([...d.worstCalls].reverse()), 'defensive Worst Calls is that same ranking reversed',
   JSON.stringify(d.worstCalls.map(r => `${r.key} ${r.stopRate}% ${r.avgYds}`)));
+ok(!d.topCalls.some(row => d.worstCalls.some(worst => worst.key === row.key)),
+  'Top and Worst defensive calls never repeat a qualified call');
 const bear = d.calls.find(r => r.key === 'Bear · Cover 0 · Field');
 const okie = d.calls.find(r => r.key === 'Okie · Cover 0 · Field');
 ok(bear && okie && bear.stopRate === okie.stopRate && bear.avgYds < okie.avgYds
@@ -641,6 +645,8 @@ const sparse = await model();
 ok(sparse.summary.topCalls.every(r => r.n >= 3) && sparse.summary.topCalls.length === 1,
   'a sparse season ranks only the calls that qualify',
   JSON.stringify(sparse.summary.topCalls.map(r => `${r.key}:${r.n}`)));
+ok(sparse.summary.worstCalls.length === 0,
+  'one qualified call appears once, under Top Calls, not twice');
 const sparseDom = await page.evaluate(() => ({
   empties: [...document.querySelectorAll('.gi-table-empty')].map(el => el.textContent.trim()),
   kpiBlank: [...document.querySelectorAll('.gi-overview-kpi.is-blank strong')].map(el => el.textContent.trim()),

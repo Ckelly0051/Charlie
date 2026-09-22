@@ -258,8 +258,8 @@ that golden holds the coach's own season and is gitignored. `e2e-parity` is the
 check that mattered here: it is the only one that would show the credit-index
 rewrite or the `Long` change touching a value nobody intended, and the only
 difference in it is the audited negative-`Long` correction. Also green:
-`e2e-reports-special-teams` 57/57, `e2e-reports-self-scout` 110/110,
-`e2e-reports-season` 99/99, `e2e-reports-defense-board` 55/55,
+`e2e-reports-special-teams` 57/57, `e2e-reports-self-scout` 113/113,
+`e2e-reports-season` 100/100, `e2e-reports-defense-board` 55/55,
 `e2e-reports-overview` 109/109. `node tools/audit-design-approvals.mjs` is RED for
 an unrelated pre-existing reason recorded in `docs/OPEN-DEFECTS.md` (Home's
 manifest carries a `productionStatus` outside the registry's allowed set), so no

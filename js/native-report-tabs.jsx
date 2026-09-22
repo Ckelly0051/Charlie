@@ -1831,7 +1831,7 @@ const seasonGameLogColumns = [
       : <b class={seasonTone(row.turnoverMargin)}>{seasonSigned(row.turnoverMargin)}</b>) },
 ];
 
-function SeasonOverview({ model }) {
+function SeasonOverview({ model, screen }) {
   const summary = model.summary;
   const scoring = model.turnoverScoring;
   return <>
@@ -1849,7 +1849,11 @@ function SeasonOverview({ model }) {
     ]} />
     <SeasonBand>
       <SeasonModule title="Game Log">
-        <SeasonTable columns={seasonGameLogColumns} rows={model.gameLog.map(row => ({ ...row, id: row.id }))} />
+        <SeasonTable columns={seasonGameLogColumns} rows={model.gameLog.map(row => ({ ...row, id: row.id,
+          label: `Open ${row.opponent} game report`,
+          onActivate: () => screen.app.openGame(row.id, { route: 'reports' })
+            .then(opened => { if (opened) screen.selectTab('overview'); }),
+        }))} />
       </SeasonModule>
     </SeasonBand>
     <SeasonBand cls="b-64">
@@ -1972,7 +1976,7 @@ export function SeasonTab({ model, screen }) {
   if (!model?.stats) return <EmptyState title="No season data yet" body="Add a game and chart plays to build season-wide reports." />;
 
   let body = null;
-  if (active === 'overview') body = <SeasonOverview model={model} />;
+  if (active === 'overview') body = <SeasonOverview model={model} screen={screen} />;
   else if (active === 'offense') body = <OffenseTab stats={model.stats} screen={seasonScreen} />;
   else if (active === 'defense') body = <DefenseTab board={model.defenseBoard}
     scoped={model.allPlays} screen={seasonScreen} fixedScope />;

@@ -1425,10 +1425,10 @@
      each measurement takes a fixed step sized from the widest thing it holds
      -- its own header or a real charted value. */
   --ss-label:220px;   /* floor for a situation / formation / call label */
-  --ss-n:64px;        /* Plays, TD -- header-driven, plus the wider last-cell inset */
+  --ss-n:72px;        /* Plays, TD -- header-driven, plus the wider last-cell inset */
   --ss-forms:104px;   /* Formations -- header-driven */
   --ss-pct:98px;      /* Success, Explosive, Giveaways, Stop, Havoc, Top % */
-  --ss-avg:92px;      /* Yds / Play -- the widest header on the board */
+  --ss-avg:104px;     /* Yds / Play -- the widest header on the board */
   --ss-split:104px;   /* Run / Pass */
   --ss-dim:150px;     /* Type -- "Formation x Strength" is a real model value */
   --ss-lean:158px;    /* Lean / Read -- a value inside its own bar */
@@ -1452,9 +1452,9 @@
   margin:0;padding:7px var(--gi-3x);background:var(--gi-bd-panel)
 }
 .gi-reports .gi-selfscout-toolbar-label{
-  color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
+  color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
 }
-.gi-reports .gi-selfscout-sample{ color:var(--gi-bd-copy);font:400 12px/1.3 var(--gi-sans);white-space:nowrap }
+.gi-reports .gi-selfscout-sample{ color:var(--gi-bd-copy);font:400 12.5px/1.3 var(--gi-sans);white-space:nowrap }
 .gi-reports .gi-selfscout-sample b{ color:var(--gi-bd-strong);font-weight:600 }
 
 .gi-reports .gi-selfscout-nav{
@@ -1462,13 +1462,13 @@
 }
 .gi-reports .gi-selfscout-nav button{
   flex:1 1 0;display:flex;align-items:center;gap:7px;min-height:34px;padding:0 var(--gi-3x);
-  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 12px/1 var(--gi-sans);
+  border:0;background:var(--gi-bd-stage);color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans);
   letter-spacing:0;text-transform:none;text-align:left;cursor:pointer;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-selfscout-nav button>b{
   flex:0 0 auto;min-width:0;padding:0;border:0;background:transparent;
-  color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);font-variant-numeric:var(--gi-num-feat)
+  color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);font-variant-numeric:var(--gi-num-feat)
 }
 .gi-reports .gi-selfscout-nav button:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
 .gi-reports .gi-selfscout-nav button:hover>b{ color:var(--gi-bd-copy) }
@@ -1486,6 +1486,7 @@
   display:inline-flex;align-items:center;height:100%;min-height:34px;padding:0 var(--gi-3x);
   border:0;background:transparent;color:var(--gi-bd-copy);font:var(--gi-text-label);cursor:pointer;white-space:nowrap
 }
+.gi-reports .gi-selfscout-acts .btn{ font-size:12.5px }
 .gi-reports .gi-selfscout-acts .btn:hover{ background:var(--gi-bd-control-active);color:var(--gi-bd-strong) }
 .gi-reports .gi-selfscout-acts .btn:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
 /* Pressed state in the board's own tokens: the comp's raw shadow is not
@@ -1534,7 +1535,7 @@
   min-width:0;padding:10px var(--gi-3x) 12px;border:0;background:var(--gi-bd-panel)
 }
 .gi-reports .gi-selfscout-board .gi-overview-kpi>span{
-  display:block;color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;
+  display:block;color:var(--gi-bd-copy);font:600 12.5px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-selfscout-board .gi-overview-kpi>strong{
@@ -1588,7 +1589,7 @@
    both needed. `relative` also anchors the sort marker below. */
 .gi-reports .gi-ss-module table.gi-ss-table th{
   position:relative;top:auto;z-index:auto;background:transparent;
-  color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);
+  color:var(--gi-bd-copy);font:600 12.5px/1.2 var(--gi-sans);
   text-transform:uppercase;letter-spacing:0;cursor:pointer;user-select:none
 }
 .gi-reports .gi-ss-module table.gi-ss-table td{ color:var(--gi-bd-copy);font-variant-numeric:var(--gi-num-feat) }
@@ -1682,18 +1683,18 @@
 }
 .gi-reports .gi-ss-module table.gi-ss-map th{
   position:relative;top:auto;z-index:auto;background:transparent;cursor:default;
-  color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);text-transform:uppercase;letter-spacing:0
+  color:var(--gi-bd-copy);font:600 12.5px/1.2 var(--gi-sans);text-transform:uppercase;letter-spacing:0
 }
 .gi-reports .gi-ss-module table.gi-ss-map th.tl,
 .gi-reports .gi-ss-module table.gi-ss-map td.tl{ text-align:left;color:var(--gi-bd-strong);font-weight:600 }
 .gi-reports .gi-ss-module table.gi-ss-map td.tl i{
-  font-style:normal;color:var(--gi-bd-muted);font-weight:400;font-size:12px
+  font-style:normal;color:var(--gi-bd-muted);font-weight:400;font-size:12.5px
 }
 .gi-reports .gi-ss-module table.gi-ss-map td.gi-ss-cell .lean{
   display:block;color:var(--gi-bd-strong);font:600 13px/1.3 var(--gi-sans);font-variant-numeric:var(--gi-num-feat)
 }
 .gi-reports .gi-ss-module table.gi-ss-map td.gi-ss-cell .n{
-  display:block;color:var(--gi-bd-muted);font:400 12px/1.3 var(--gi-sans);font-variant-numeric:var(--gi-num-feat)
+  display:block;color:var(--gi-bd-muted);font:400 12.5px/1.3 var(--gi-sans);font-variant-numeric:var(--gi-num-feat)
 }
 .gi-reports .gi-ss-module table.gi-ss-map td.is-exploit{ box-shadow:inset 0 -3px var(--gi-bd-loss) }
 .gi-reports .gi-ss-module table.gi-ss-map td.is-working{ box-shadow:inset 0 -3px var(--gi-bd-gold) }
@@ -1701,14 +1702,14 @@
 .gi-reports .gi-ss-module table.gi-ss-map td.is-low .lean{ color:var(--gi-bd-copy);font-weight:400 }
 /* An unplayed cell is an absence, not a zero. */
 .gi-reports .gi-ss-module table.gi-ss-map td.is-nodata .lean{
-  color:var(--gi-bd-muted);font-weight:400;font-size:12px
+  color:var(--gi-bd-muted);font-weight:400;font-size:12.5px
 }
 .gi-reports .gi-ss-module table.gi-ss-map td.cut-row{ cursor:pointer }
 .gi-reports .gi-ss-module table.gi-ss-map td.cut-row:hover{ background:var(--gi-bd-control) }
 .gi-reports .gi-ss-module table.gi-ss-map td.cut-row:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
 .gi-reports .gi-ss-legend{
   display:flex;flex-wrap:wrap;gap:var(--gi-4x);margin:8px 0 0;
-  color:var(--gi-bd-copy);font:400 12px/1.45 var(--gi-sans)
+  color:var(--gi-bd-copy);font:400 12.5px/1.45 var(--gi-sans)
 }
 .gi-reports .gi-ss-legend b{ display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:middle }
 .gi-reports .gi-ss-legend .k-exploit b{ background:var(--gi-bd-loss) }
@@ -1792,28 +1793,28 @@
   display:flex;align-items:center;gap:var(--gi-3x);min-width:0;
   padding:0 var(--gi-3x);background:var(--gi-bd-panel)
 }
-.gi-reports .gi-mu-pick label{ color:var(--gi-bd-muted);font:600 12px/1 var(--gi-sans);white-space:nowrap }
+.gi-reports .gi-mu-pick label{ color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);white-space:nowrap }
 .gi-reports .gi-mu-pick select{
   min-width:220px;min-height:34px;padding:0 var(--gi-3x) 0 var(--gi-2x);
   border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
-  color:var(--gi-bd-strong);font:600 12px/1 var(--gi-sans)
+  color:var(--gi-bd-strong);font:600 12.5px/1 var(--gi-sans)
 }
 .gi-reports .gi-mu-pick select:hover{ border-color:var(--gi-bd-cyan) }
 .gi-reports .gi-mu-pick select:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
 .gi-reports .gi-mu-sample{ justify-content:flex-end }
 .gi-reports .gi-mu-sample>div{ min-width:0;text-align:right }
 .gi-reports .gi-mu-sample span{
-  display:block;color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);text-transform:uppercase
+  display:block;color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);text-transform:uppercase
 }
 .gi-reports .gi-mu-sample strong{
-  display:block;margin-top:3px;color:var(--gi-bd-strong);font:600 12px/1.2 var(--gi-sans);
+  display:block;margin-top:3px;color:var(--gi-bd-strong);font:600 12.5px/1.2 var(--gi-sans);
   font-variant-numeric:var(--gi-num-feat);white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-mu-tabs{ display:flex;align-items:stretch;gap:1px;background:var(--gi-bd-line) }
 .gi-reports .gi-mu-tabs button{
   min-width:246px;min-height:42px;padding:0 var(--gi-4x);border:0;
   background:var(--gi-bd-stage);color:var(--gi-bd-copy);
-  font:600 12px/1 var(--gi-sans);cursor:pointer
+  font:600 12.5px/1 var(--gi-sans);cursor:pointer
 }
 .gi-reports .gi-mu-tabs button:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
 .gi-reports .gi-mu-tabs button:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
@@ -1832,14 +1833,14 @@
 .gi-reports .gi-mu-unit.is-opp{ border-top-color:var(--gi-bd-gold) }
 .gi-reports .gi-mu-unit>div{ min-width:0 }
 .gi-reports .gi-mu-unit span{
-  display:block;color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);text-transform:uppercase
+  display:block;color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);text-transform:uppercase
 }
 .gi-reports .gi-mu-unit strong{
   display:block;margin-top:2px;color:var(--gi-bd-strong);font:600 15px/1.2 var(--gi-sans);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-mu-unit small{
-  margin-left:auto;color:var(--gi-bd-copy);font:400 11px/1.2 var(--gi-sans);
+  margin-left:auto;color:var(--gi-bd-copy);font:400 12.5px/1.2 var(--gi-sans);
   font-variant-numeric:var(--gi-num-feat);white-space:nowrap
 }
 
@@ -1852,7 +1853,7 @@
 .gi-reports .gi-mu-title h2{ margin:0;color:var(--gi-bd-strong);font:700 14px/1 var(--gi-sans) }
 .gi-reports .gi-mu-key{
   display:flex;align-items:center;gap:var(--gi-4x);margin-left:auto;
-  color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans);text-transform:uppercase
+  color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);text-transform:uppercase
 }
 .gi-reports .gi-mu-key b{ display:inline-block;width:9px;height:9px;margin-right:5px }
 .gi-reports .gi-mu-key b.is-opp{ background:var(--gi-bd-gold) }
@@ -1878,7 +1879,7 @@
    over its own first data row -- the correction every approved board needs. */
 .gi-reports .gi-mu-section table.gi-mu-table th{
   position:relative;top:auto;z-index:auto;height:36px;background:var(--gi-bd-stage);
-  color:var(--gi-bd-copy);font:600 11px/1.15 var(--gi-sans);
+  color:var(--gi-bd-copy);font:600 12.5px/1.15 var(--gi-sans);
   text-transform:uppercase;letter-spacing:0;white-space:normal
 }
 .gi-reports .gi-mu-section table.gi-mu-table td{ color:var(--gi-bd-copy);font-size:13px }
@@ -1923,9 +1924,9 @@
    unlabelled icon. A side with no references renders no button at all. */
 .gi-reports .gi-mu-film{ display:inline-flex;gap:3px;justify-content:flex-end }
 .gi-reports .gi-mu-film button{
-  min-width:64px;height:28px;padding:0 var(--gi-2x);
+  min-width:72px;height:30px;padding:0 var(--gi-2x);
   border:1px solid var(--gi-bd-line);background:var(--gi-bd-control);
-  color:var(--gi-bd-copy);font:700 10px/1 var(--gi-sans);text-transform:none;cursor:pointer
+  color:var(--gi-bd-copy);font:700 12.5px/1 var(--gi-sans);text-transform:none;cursor:pointer
 }
 .gi-reports .gi-mu-film button:hover{
   border-color:var(--gi-bd-cyan);background:var(--gi-bd-control-active);color:var(--gi-bd-strong)
@@ -1953,7 +1954,7 @@
   background:var(--gi-bd-panel);text-align:center
 }
 .gi-reports .gi-mu-note strong{ display:block;color:var(--gi-bd-strong);font:600 16px/1.2 var(--gi-sans) }
-.gi-reports .gi-mu-note span{ display:block;margin-top:4px;color:var(--gi-bd-muted);font:400 12px/1.3 var(--gi-sans) }
+.gi-reports .gi-mu-note span{ display:block;margin-top:4px;color:var(--gi-bd-muted);font:400 12.5px/1.3 var(--gi-sans) }
 .gi-reports .gi-mu-section .gi-table-empty{
   margin:0;padding:var(--gi-4x) var(--gi-3x);color:var(--gi-bd-muted);font:400 13px/1.3 var(--gi-sans)
 }
@@ -2018,15 +2019,15 @@
   grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);
   padding:0 var(--gi-3x);background:var(--gi-bd-panel);white-space:nowrap
 }
-.gi-reports .gi-season-identity span{ color:var(--gi-bd-muted);font:600 11px/1 var(--gi-sans) }
-.gi-reports .gi-season-identity strong{ color:var(--gi-bd-strong);font:600 12px/1 var(--gi-sans) }
+.gi-reports .gi-season-identity span{ color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans) }
+.gi-reports .gi-season-identity strong{ color:var(--gi-bd-strong);font:600 12.5px/1 var(--gi-sans) }
 
 .gi-reports .gi-season-nav{
   grid-column:2;display:flex;align-items:stretch;gap:0;margin:0;background:var(--gi-bd-stage)
 }
 .gi-reports .gi-season-nav .gi-subtab{
   flex:1 1 0;min-height:38px;padding:0 var(--gi-3x);border:0;background:var(--gi-bd-stage);
-  color:var(--gi-bd-copy);font:600 12px/1 var(--gi-sans);letter-spacing:0;text-transform:none;
+  color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans);letter-spacing:0;text-transform:none;
   cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-season-nav .gi-subtab:hover{ background:var(--gi-bd-control);color:var(--gi-bd-strong) }
@@ -2039,6 +2040,7 @@
   display:inline-flex;align-items:center;min-width:104px;min-height:38px;padding:0 var(--gi-3x);
   border:0;background:transparent;color:var(--gi-bd-copy);font:var(--gi-text-label);cursor:pointer;white-space:nowrap
 }
+.gi-reports .gi-season-acts .btn{ font-size:12.5px }
 .gi-reports .gi-season-acts .btn:hover{ background:var(--gi-bd-control-active);color:var(--gi-bd-strong) }
 .gi-reports .gi-season-acts .btn:focus-visible{ outline:2px solid var(--gi-bd-cyan);outline-offset:-2px }
 .gi-reports .gi-season-acts .btn:active{ background:var(--gi-bd-line);color:var(--gi-bd-strong) }
@@ -2056,7 +2058,7 @@
   background:var(--gi-bd-panel)
 }
 .gi-reports .gi-season-board .gi-overview-kpi>span{
-  display:block;color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;
+  display:block;color:var(--gi-bd-copy);font:600 12.5px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .gi-reports .gi-season-board .gi-overview-kpi>strong{
@@ -2094,7 +2096,7 @@
   color:var(--gi-bd-cyan);font:700 14px/1.2 var(--gi-sans);letter-spacing:0;text-transform:none;white-space:nowrap
 }
 .gi-reports .gi-season-none{
-  margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12px/1.45 var(--gi-sans)
+  margin:0;padding:var(--gi-3x) 0;color:var(--gi-bd-muted);font:400 12.5px/1.45 var(--gi-sans)
 }
 
 /* Situational Offense: label and value, nothing else. */
@@ -2150,7 +2152,7 @@
 .gi-reports .gi-season-module table.gi-season-table th,
 .gi-reports .gi-season-module table.gi-season-quarters th{
   position:relative;top:auto;z-index:auto;background:transparent;
-  color:var(--gi-bd-copy);font:600 12px/1.2 var(--gi-sans);
+  color:var(--gi-bd-copy);font:600 12.5px/1.2 var(--gi-sans);
   text-transform:uppercase;letter-spacing:0;user-select:none
 }
 .gi-reports .gi-season-module table.gi-season-table th{ cursor:pointer }
@@ -2172,7 +2174,7 @@
 .gi-reports .gi-season-module table.gi-season-table tbody tr:last-child td{ border-bottom:0 }
 /* An uncharted game's measurements are absent, not zero, so they carry the
    one approved literal at copy weight. */
-.gi-reports .gi-season-module table.gi-season-table td.blank{ color:var(--gi-bd-muted);font-size:12px;font-weight:400 }
+.gi-reports .gi-season-module table.gi-season-table td.blank{ color:var(--gi-bd-muted);font-size:12.5px;font-weight:400 }
 .gi-reports .gi-season-module table.gi-season-table td.tl.blank{ color:var(--gi-bd-muted);font-weight:400 }
 /* The label column is the anchor: it holds a floor, absorbs the slack, and
    truncates rather than overrunning into the measurements. */

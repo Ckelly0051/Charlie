@@ -219,6 +219,17 @@ ok(realZero.value === '0%' && /0\/4/.test(realZero.sub || ''),
 
 console.log('\n== 6. Every identity tile with a cohort opens exact film ==');
 await load({ plays: FULL });
+const runPassTiles = await page.evaluate(() => {
+  const read = root => {
+    const tile = [...document.querySelectorAll(root)]
+      .find(el => el.querySelector('span')?.textContent.trim().toLowerCase() === 'run / pass');
+    return { value: tile?.querySelector('strong')?.textContent.trim(), sub: tile?.querySelector('small')?.textContent.trim() };
+  };
+  return { kpi: read('.gi-overview-kpi'), identity: read('.gi-off-identity-strip > *') };
+});
+ok(runPassTiles.kpi.value === '50% / 50%' && runPassTiles.kpi.sub === '8R, 8P'
+  && runPassTiles.identity.value === '50% / 50%' && runPassTiles.identity.sub === '8 run, 8 pass',
+  'both Run / pass tiles distinguish percentage shares from raw snap counts', JSON.stringify(runPassTiles));
 const identity = await page.evaluate(() => {
   const tiles = [...document.querySelectorAll('.gi-off-identity-strip > *')];
   const top = tiles.find(t => t.querySelector('span')?.textContent.trim() === 'TOP CALL'

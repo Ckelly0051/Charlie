@@ -328,7 +328,7 @@ export function offenseKpis(stats) {
   kpis.push({ label: 'Negative', value: neg != null ? `${Math.round(neg)}%` : '—',
     sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
   kpis.push({ label: 'Run / pass',
-    value: `${Math.round(parseFloat(tend.runPct) || 0)} / ${Math.round(parseFloat(tend.passPct) || 0)}`,
+    value: `${Math.round(parseFloat(tend.runPct) || 0)}% / ${Math.round(parseFloat(tend.passPct) || 0)}%`,
     sub: `${tend.runs || 0}R, ${tend.passes || 0}P` });
   kpis.push({ label: 'Points / drive', value: drives.pointsPerDrive != null ? drives.pointsPerDrive : '—',
     sub: drives.total ? `${drives.scoringDrives || 0} of ${drives.total} scored` : 'no drives charted' });
@@ -387,7 +387,7 @@ export function offenseIdentity(stats, engine, calls = null) {
   const tend = stats.tendencies || {};
   const runs = tend.runs || 0, passes = tend.passes || 0;
   items.push(runs || passes
-    ? { label: 'Run / pass', value: `${Math.round(parseFloat(tend.runPct) || 0)} / ${Math.round(parseFloat(tend.passPct) || 0)}`,
+    ? { label: 'Run / pass', value: `${Math.round(parseFloat(tend.runPct) || 0)}% / ${Math.round(parseFloat(tend.passPct) || 0)}%`,
         sub: `${runs} run, ${passes} pass` }
     : { label: 'Run / pass', value: '—', sub: 'none charted' });
 

@@ -117,13 +117,13 @@ regression guard and say so.
 | Defense | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-17) |
 | Special Teams | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-19) |
 | Players | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-20) |
-| Self-Scout | 11px | 20 | 20 | Deferred |
-| Season | 11px | 30 | 30 | Deferred |
+| Self-Scout | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-22) |
+| Season | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-22) |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
-| Matchup | 10px | 58 | 58 | Deferred |
+| Matchup | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-22) |
 | Offense | 9.5px | 118 | 323 | Deferred + narrow-width exception |
 
-**Defense, Special Teams and Players are the migrated boards.** Revision 2 renders nothing below the
+**Defense, Special Teams, Players, Self-Scout, Season and Matchup are the migrated boards.** Revision 2 renders nothing below the
 floor; the comp's 11px `JUMP TO` label and sort glyph are 12.5px in production.
 Special Teams migrated in the 2026-09-19 acceptance pass: it carried the most
 sub-floor text of any board except Offense (98 elements, 9.5px minimum) and now
@@ -134,9 +134,10 @@ untouched, so Overview and Offense keep their approved 9.5px labels. Players
 migrated in Revision 2 on 2026-09-20 (46 elements at an 11px minimum, now none):
 its sample line, role navigation and badges, module meta, absent-role summary and
 `No data` cells are at the floor, and the new detail view was authored at it.
-Overview carries only its approved broadcast micro-labels, which is why it reads
-as compliant, but every other board still has sub-floor text and the census pins
-exactly how much. Offense was previously classified here as migrated; it is not,
+Self-Scout, Season and Matchup migrated in the 2026-09-22 acceptance pass; the
+canonical six-game season has no sub-floor text on any of the three at either
+release width. Overview carries only its approved broadcast micro-labels.
+Offense was previously classified here as migrated; it is not,
 and it carries the most sub-floor text of the eight.
 
 Every element is pinned by **size, tag and count**, not by a minimum. A minimum

@@ -39,7 +39,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
    canonical minimum for this board is 11px. Pinning it here means the board
    cannot drift further from the floor while it waits, and the number moves only
    when the migration moves it -- it is a deferral, not a second standard. */
-const MATCHUP_TYPE_FLOOR_DEFERRED = 11;
+const MATCHUP_TYPE_FLOOR = 12.5;
 
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
@@ -309,8 +309,8 @@ ok(comp.kpiStrip === 0, 'no broad KPI strip is rendered', String(comp.kpiStrip))
 ok(!comp.sharedRail && !comp.sharedBug && comp.sharedTitle === 'Matchup: St. Mary Falcons'
   && comp.sharedContext === 'Season film and opponent film',
   'Matchup never sits beneath current-game shared chrome', JSON.stringify(comp));
-ok(comp.rowHeight === 40 && comp.bodyFont >= 12 && comp.headFont >= 11,
-  `body rows are 40px and the board holds its deferred ${MATCHUP_TYPE_FLOOR_DEFERRED}px floor, pending migration to the shared 12.5px floor`,
+ok(comp.rowHeight === 40 && comp.bodyFont >= MATCHUP_TYPE_FLOOR && comp.headFont >= MATCHUP_TYPE_FLOOR,
+  `body rows are 40px and the board holds the shared ${MATCHUP_TYPE_FLOOR}px coach-facing floor`,
   JSON.stringify(comp));
 ok(comp.fixed === 'fixed' && comp.colgroup === 9,
   'the situational table owns its column geometry through a colgroup', JSON.stringify(comp));

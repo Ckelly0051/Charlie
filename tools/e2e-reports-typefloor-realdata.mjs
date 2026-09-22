@@ -84,12 +84,11 @@ const SPECIAL = {};
 /* MIGRATED 2026-09-20 by Players Revision 2: 46 sub-floor elements at an 11px
    minimum, now none. */
 const PLAYERS = {};
-const SELF_SCOUT = { '11|B': 5, '12|SPAN': 8, '12|B': 2, '12|BUTTON': 5 };
-const SEASON = { '11|SPAN': 1, '12|STRONG': 1, '12|BUTTON': 7, '12|SPAN': 6, '12|TH': 15 };
-const MATCHUP = {
-  '10|BUTTON': 21, '11|SPAN': 5, '11|SMALL': 2, '11|TH': 26,
-  '12|LABEL': 1, '12|BUTTON': 2, '12|STRONG': 1,
-};
+/* Completed 2026-09-22: the three remaining report boards now hold the shared
+   coach-facing floor on the canonical season at both release widths. */
+const SELF_SCOUT = {};
+const SEASON = {};
+const MATCHUP = {};
 const EXPECTED = {
   'overview@1440': OVERVIEW, 'overview@1280': OVERVIEW,
   'offense@1440': OFFENSE_BASE, 'offense@1280': { ...OFFENSE_BASE, ...OFFENSE_NARROW_FIT },
@@ -253,9 +252,9 @@ const TOTALS = {
   'defense@1440': 0, 'defense@1280': 0,
   'special@1440': 0, 'special@1280': 0,
   'players@1440': 0, 'players@1280': 0,
-  'selfscout@1440': 20, 'selfscout@1280': 20,
-  'season@1440': 30, 'season@1280': 30,
-  'matchup@1440': 58, 'matchup@1280': 58,
+  'selfscout@1440': 0, 'selfscout@1280': 0,
+  'season@1440': 0, 'season@1280': 0,
+  'matchup@1440': 0, 'matchup@1280': 0,
 };
 const wrongTotals = observed.filter(row => TOTALS[`${row.tab}@${row.width}`] !== row.below)
   .map(row => `${row.tab}@${row.width}: documented ${TOTALS[`${row.tab}@${row.width}`]}, saw ${row.below}`);
@@ -269,7 +268,7 @@ const MINIMA = {
   overview: 9.5, offense: 9.5, defense: 12.5,
   // Special Teams migrated to the shared floor on 2026-09-19, the second board
   // after Defense to hold it with nothing below.
-  special: 12.5, players: 12.5, selfscout: 11, season: 11, matchup: 10,
+  special: 12.5, players: 12.5, selfscout: 12.5, season: 12.5, matchup: 12.5,
 };
 for (const [tab, expected] of Object.entries(MINIMA)) {
   const rows = observed.filter(item => item.tab === tab);

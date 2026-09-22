@@ -876,18 +876,17 @@ edge-to-edge by design; the top bar's 18px inset is not.
 
 ## Deferred, measured, not hidden
 
-1. **Legacy sub-floor type on five Reports boards — DEFERRED, MEASURED, PINNED.**
-   Self-Scout, Season, Players, Special Teams and Matchup carry labels below the
-   12.5px floor inside their own approved fixed-height boards. Measured on the
-   canonical season at 1440:
+1. **Legacy sub-floor type on Reports boards — PARTIALLY CLOSED.**
+   Defense, Special Teams, Players, Self-Scout, Season and Matchup now meet the
+   12.5px floor. Measured on the canonical season at 1440 and 1280:
 
    | Board | Minimum | Below 12.5px |
    |---|---|---|
-   | Self-Scout | 11px | 20 / 77 |
-   | Season | 11px | 30 / 138 |
-   | Players | 11px | 46 / 237 |
-   | Special Teams | 9.5px | 98 / 160 |
-   | Matchup | 10px | 58 / 156 |
+   | Self-Scout | 12.5px | 0 / 77 |
+   | Season | 12.5px | 0 / 138 |
+   | Players | 12.5px | 0 / 237 |
+   | Special Teams | 12.5px | 0 / 160 |
+   | Matchup | 12.5px | 0 / 156 |
 
    **Measured on the canonical season** by
    `tools/e2e-reports-typefloor-realdata.mjs`, which exists because the first
@@ -903,9 +902,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
    green while the binding rule said 12.5 — a green suite meaning "not worse",
    read as "meets the standard".
 
-   Raising a board means re-deriving the row math its approved comp pins; doing
-   five blind is how the last regression happened. Migrate one board at a time,
-   update its pinned census entry, and delete its row from both tables.
+   The remaining measured debt is Overview's approved broadcast micro-labels
+   and Offense's scoped narrow-width exception.
 
 2. **The Offense narrow-width exception — SCOPED 2026-09-12, band still open.**
    Eight five-column modules share a 379px band half at 1280 and measure
