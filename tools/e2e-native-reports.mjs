@@ -1290,13 +1290,19 @@ result = await page.evaluate(async () => {
         moduleBorderRadius: module.borderRadius,
         bandBorderTop: band.borderTopWidth,
         headingBackground: heading.backgroundColor,
+        charts: document.querySelectorAll('.export-chart').length,
+        chartSvgs: document.querySelectorAll('.export-chart svg').length,
+        histogram: !!document.querySelector('.export-chart.is-histogram'),
+        downs: !!document.querySelector('.export-chart.is-downs .gi-multiples'),
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
     ok(visual.background === 'rgb(255, 255, 255)' && visual.moduleBorderTop === '3px'
       && visual.moduleBorderRadius === '0px' && visual.bandBorderTop === '3px'
-      && visual.headingBackground !== 'rgba(0, 0, 0, 0)' && visual.overflow <= 0,
-      'HTML export renders as the square, ruled Reports system on a white canvas without viewport overflow',
+      && visual.headingBackground !== 'rgba(0, 0, 0, 0)' && visual.overflow <= 0
+      && visual.charts >= 3 && visual.chartSvgs >= 2
+      && visual.histogram && visual.downs,
+      'HTML export renders the ruled Reports system and its Offense charts on a white canvas without viewport overflow',
       JSON.stringify(visual));
     if (exportScreenshotDir) {
       await mkdir(exportScreenshotDir, { recursive: true });

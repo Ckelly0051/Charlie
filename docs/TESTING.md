@@ -102,7 +102,7 @@ The smallest existing harness for the route or domain you touched.
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+| Reports | `e2e-native-reports`, `e2e-reports-export-realdata`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
 **Players Revision 2, 2026-09-20.** `e2e-reports-players` (239) keeps every
 Revision 1 contract and adds the Revision 2 ones on a two-game fixture where one
@@ -329,9 +329,18 @@ produced Self-Scout **HTML export string**, because the export is a second
 renderer over the same models and drifted from the board silently.
 The native Reports harness also renders the shared HTML exporter in a fresh
 browser page and asserts the white canvas, square ruled modules, KPI and table
-header treatment, zero viewport overflow, and print-media table-header contract.
+header treatment, zero viewport overflow, print-media table-header contract,
+and the data-supported Offense visual panels in its compact fixture.
 Set `GIQ_REPORTS_EXPORT_SCREENSHOTS` to capture the rendered game and season
 exports for visual review.
+`e2e-reports-export-realdata` is the canonical export authority. It loads only
+`2025-st-joseph-mavericks-jv` (six games, 449 plays), captures game, season and
+Special Teams HTML exports in memory, and requires all five Offense visual
+panels in both omnibus reports. It verifies that the Units ledger is inside the
+Special Teams chapter, renders each document to a bounded landscape PDF,
+checks white-canvas containment and browser errors, and hash-checks the season
+file before and after. Set `GIQ_REPORTS_EXPORT_REALDATA_SCREENSHOTS` to capture
+all three canonical exports.
 `e2e-reports-players` pins that punt
 distance and return yardage come from the dedicated ST fields and that Players
 and the team Special Teams report agree on the measured return COUNT as well as

@@ -76,11 +76,12 @@ const stMetrics = items => `<div class="metric-band">${items.map(item => {
   return `<div class="metric"><span>${esc(item.label)}</span><div class="metric-stats">${rows}</div></div>`;
 }).join('')}</div>`;
 
-const specialTeams = (stats, summary) => {
+const specialTeams = (stats, summary, leadHtml = '') => {
   const phases = view.specialTeamsPhases(stats);
   const players = view.individualStats(stats, 'special', num => `#${num}`);
   if (!phases.length && !players.length) return '';
   return `<section class="chapter"><div class="chapter-title"><span>Special Teams</span><h1>Special Teams Performance</h1></div>
+    ${leadHtml}
     ${stMetrics(view.specialTeamsKpis(stats, summary))}
     <div class="phase-grid">${phases.map(phase => `<div class="phase"><h3>${esc(phase.title)}</h3>${phase.rows.map(row => `<p><span>${esc(row[0])}</span><strong>${esc(row[1])}</strong></p>`).join('')}</div>`).join('')}</div>
     ${players.map(playerTable).join('')}</section>`;
@@ -91,6 +92,37 @@ function playerTable(item) {
 }
 
 const playerTables = (stats, labeler) => view.individualStats(stats, 'all', labeler).map(playerTable).join('');
+
+const chartPanel = (title, note, html, cls = '') => html ? `<section class="export-chart ${cls}">
+  <h2>${esc(title)}</h2><div class="export-chart-body">${html}</div>${note ? `<p>${esc(note)}</p>` : ''}
+</section>` : '';
+
+/** The export consumes the engine's renderer-ready chart HTML, the same
+ * geometry the live Offense board renders. This remains presentation-only: no
+ * metric is recomputed here. */
+const offenseVisuals = (stats, engine) => {
+  const shape = engine._dataShape(stats, { plays: stats.offPlays || [], cut: false, profile: false });
+  const advanced = view.advancedData(stats, engine);
+  const panels = [
+    chartPanel('Yards per play', shape?.histogram?.note, shape?.histogram?.html, 'is-histogram'),
+    chartPanel('Yards vs distance to go', shape?.scatter?.note, shape?.scatter?.html, 'is-scatter'),
+    chartPanel('Success by field position', shape?.zones?.note, shape?.zones?.html, 'is-zones'),
+    chartPanel('Run / pass by down', shape?.downs?.note, shape?.downs?.html, 'is-downs'),
+  ];
+  if (advanced) {
+    const curve = `<figure class="export-epa"><svg viewBox="0 0 ${advanced.W} ${advanced.H}" role="img" aria-label="Cumulative EPA">
+      <line x1="${advanced.P}" y1="${advanced.zeroY}" x2="${advanced.W - advanced.P}" y2="${advanced.zeroY}" class="zero"/>
+      <path d="${esc(advanced.path)}"/><text x="${advanced.P}" y="16">Cumulative EPA</text>
+      <text x="${advanced.W - advanced.P}" y="16" text-anchor="end">${esc(advanced.totalText)} total</text>
+      <text x="${advanced.P}" y="${advanced.H - 8}">Play 1</text><text x="${advanced.W - advanced.P}" y="${advanced.H - 8}" text-anchor="end">Play ${advanced.n}</text>
+    </svg></figure>`;
+    const max = Math.max(1, ...advanced.byType.map(row => Math.abs(row.totalValue)));
+    const bars = `<div class="export-epa-bars">${advanced.byType.map(row => `<div><span>${esc(row.name)}</span><i class="${row.totalValue < 0 ? 'is-negative' : ''}" style="width:${Math.max(2, Math.abs(row.totalValue) / max * 100).toFixed(1)}%"></i><strong>${esc(row.total)}</strong></div>`).join('')}</div>`;
+    panels.push(chartPanel('Expected points added', 'Cumulative EPA and contribution by play type.', `${curve}${bars}`, 'is-epa'));
+  }
+  const content = panels.filter(Boolean).join('');
+  return content ? `<section class="report-section export-visuals"><h2>Offense Visuals</h2><div class="export-visual-grid">${content}</div></section>` : '';
+};
 
 const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, defensiveReport = null, specialSummary = null }) => {
   const totalYards = stats.rushing.yards + stats.passing.yards;
@@ -115,14 +147,14 @@ const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, def
   return `${overview}
     <section class="chapter"><div class="chapter-title"><span>Offense</span><h1>Offensive Performance</h1></div>
       <div class="two-up">${compactRows('Rushing', view.rushingRows(stats))}${compactRows('Passing', view.passingRows(stats))}</div>
-      ${tendencyTable(stats)}${dd}${situationalTable(stats)}${driveTable}
+      ${tendencyTable(stats)}${dd}${situationalTable(stats)}${driveTable}${offenseVisuals(stats, engine)}
     </section>
     ${defenseTables(def)}${specialTeams(stats, stSummary)}
     <section class="chapter"><div class="chapter-title"><span>Players</span><h1>Individual Performance</h1></div>${playerTables(stats, labeler) || '<p class="empty">No player attribution charted.</p>'}</section>`;
 };
 
 const stylesheet = `
-  :root{color-scheme:light;--ink:#111820;--muted:#536170;--line:#c8ced5;--line-dark:#75808b;--soft:#eef1f3;--cyan:#00a6c7;--gold:#e0a800;--green:#16875b;--white:#fff}
+  :root{color-scheme:light;--ink:#111820;--muted:#536170;--line:#c8ced5;--line-dark:#75808b;--soft:#eef1f3;--cyan:#00a6c7;--gold:#e0a800;--green:#16875b;--white:#fff;--gi-los:#00a6c7;--gi-turnover:#c93434;--gi-7:#75808b;--gi-cat-1:#00a6c7;--gi-first-down:#e0a800;--gi-run:#d99a00;--gi-pass:#187f9e}
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--white);color:var(--ink)}
   body{font:13px/1.35 "Segoe UI",Arial,sans-serif}
@@ -145,9 +177,10 @@ const stylesheet = `
   .table-wrap{width:100%;overflow:hidden}table{border-collapse:collapse;width:100%;font-size:11px;table-layout:auto}thead{display:table-header-group}tr{break-inside:avoid}
   th{height:32px;color:#34404c;font-size:9px;line-height:1.15;text-align:left;text-transform:uppercase;background:var(--soft);font-weight:800}th,td{border-bottom:1px solid #dce0e4;padding:7px 9px;vertical-align:middle}tbody tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#fafbfc}td:first-child{font-weight:600}td:not(:first-child),th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
   .phase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}.phase{border:1px solid var(--line);border-top:3px solid var(--gold);padding:0;background:var(--white);break-inside:avoid}.phase h3{margin:0;padding:9px 11px;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase}.phase p{display:flex;justify-content:space-between;gap:12px;margin:0;padding:6px 11px;border-bottom:1px solid #dce0e4;font-size:11px}.phase p:last-child{border-bottom:0}.phase strong{font-variant-numeric:tabular-nums}.note,.empty{color:var(--muted)}.note{border-left:3px solid var(--gold);padding:7px 10px;background:#fff9e8}
-  @media(max-width:760px){.page{padding:18px}.masthead{grid-template-columns:1fr}.meta{text-align:left}.two-up{grid-template-columns:1fr}.metric-band{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2n){border-right:0}.metric{border-bottom:1px solid var(--line)}.chapter-title{display:block}.chapter-title h1{margin-top:4px}}
+  .export-visuals{border-top-color:var(--gold)}.export-visual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}.export-chart{min-width:0;border:1px solid var(--line);break-inside:avoid}.export-chart>h2{padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px}.export-chart-body{min-height:142px;padding:10px}.export-chart>p{margin:0;padding:7px 10px;border-top:1px solid var(--line);color:var(--muted);font-size:9px}.export-chart figure{margin:0}.export-chart svg{display:block;width:100%;height:132px}.export-chart figcaption{display:flex;justify-content:space-between;gap:6px;color:var(--muted);font-size:8px}.gi-scatter-key{display:inline-flex;align-items:center;gap:4px}.gi-scatter-key i{display:inline-block;width:8px;height:8px}.gi-zones{display:grid;grid-template-columns:repeat(6,1fr);height:132px}.gi-zone{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;border-right:1px solid var(--line);text-align:center;overflow:hidden}.gi-zone:last-child{border-right:0}.gi-zone i{position:absolute;inset:auto 0 0;height:100%;z-index:0}.gi-zone strong,.gi-zone span,.gi-zone small{position:relative;z-index:1}.gi-zone strong{font-size:17px}.gi-zone span{font-size:8px;font-weight:700}.gi-zone small{font-size:7px;color:var(--muted)}.gi-multiples{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;height:132px;align-items:center}.gi-multiple{margin:0;text-align:center}.gi-multiple figcaption{display:block;font-weight:700}.gi-multiple-bar{display:flex;height:12px;margin:8px 0 5px;background:var(--soft)}.gi-multiple-bar i{display:block}.gi-multiple strong,.gi-multiple small{display:block}.gi-multiple small{color:var(--muted);font-size:8px}.export-chart.is-epa{grid-column:1/-1}.export-chart.is-epa .export-chart-body{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,1fr);gap:18px}.export-epa svg path{fill:none;stroke:var(--cyan);stroke-width:2}.export-epa svg line.zero{stroke:var(--line-dark);stroke-dasharray:4 4}.export-epa svg text{fill:var(--muted);font:10px "Segoe UI",Arial,sans-serif}.export-epa-bars{display:grid;align-content:center;gap:7px}.export-epa-bars>div{display:grid;grid-template-columns:90px minmax(0,1fr) 44px;align-items:center;gap:7px;font-size:9px}.export-epa-bars span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.export-epa-bars i{display:block;height:8px;background:var(--cyan)}.export-epa-bars i.is-negative{background:#c93434}.export-epa-bars strong{text-align:right;font-variant-numeric:tabular-nums}
+  @media(max-width:760px){.page{padding:18px}.masthead{grid-template-columns:1fr}.meta{text-align:left}.two-up,.export-visual-grid{grid-template-columns:1fr}.metric-band{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2n){border-right:0}.metric{border-bottom:1px solid var(--line)}.chapter-title{display:block}.chapter-title h1{margin-top:4px}.export-chart.is-epa .export-chart-body{grid-template-columns:1fr}}
   @page{size:landscape;margin:0.42in}
-  @media print{html,body{width:100%;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{width:100%;max-width:none;margin:0;padding:0}.masthead{margin-bottom:16px}.chapter{break-before:page;margin-top:0}.chapter:first-of-type{break-before:auto}.chapter-title,.metric-band,.phase,.report-section h2{break-after:avoid}.metric-band,.phase-grid,.two-up>.report-section{break-inside:avoid}.report-section{break-inside:auto}.table-wrap{overflow:visible}table{font-size:9.5px}th,td{padding:5px 7px}.report-section h2{padding:7px 9px}.phase-grid{grid-template-columns:repeat(3,1fr)}}
+  @media print{html,body{width:100%;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{width:100%;max-width:none;margin:0;padding:0}.masthead{margin-bottom:16px}.chapter{break-before:page;margin-top:0}.chapter:first-of-type{break-before:auto}.chapter-title,.metric-band,.phase,.report-section h2{break-after:avoid}.metric-band,.phase-grid,.two-up>.report-section,.export-chart{break-inside:avoid}.report-section{break-inside:auto}.table-wrap{overflow:visible}table{font-size:9.5px}th,td{padding:5px 7px}.report-section h2{padding:7px 9px}.phase-grid{grid-template-columns:repeat(3,1fr)}.export-chart-body{min-height:116px}.export-chart svg{height:106px}.gi-zones,.gi-multiples{height:106px}}
 `;
 
 const documentShell = ({ title, subtitle, meta, body }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${stylesheet}</style></head><body><main class="page"><header class="masthead"><div><div class="brand">Gridiron IQ Report</div><h1>${esc(title)}</h1>${subtitle ? `<p>${esc(subtitle)}</p>` : ''}</div><div class="meta">${esc(meta)}</div></header>${body}</main></body></html>`;
@@ -398,7 +431,7 @@ export function buildSpecialTeamsHtmlReport({ title, stats, summary, scopeLabel,
     : '';
   return documentShell({ title, subtitle: `${scopeLabel} - ${summary.snaps.n} special teams snaps`,
     meta: `Generated ${generatedAt.toLocaleString()}`,
-    body: `${ledger}${note}${specialTeams(stats, summary)}` });
+    body: specialTeams(stats, summary, `${ledger}${note}`) });
 }
 
 export function buildSelfScoutHtmlReport({ title, report, defScout, performance, callRows,

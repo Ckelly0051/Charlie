@@ -1402,9 +1402,20 @@ player export uses one white standalone document shell: square ruled modules,
 gold KPI bands, cyan section rules, alternating table rows, aligned tabular
 numbers and repeating table headers. Print media is landscape, preserves exact
 colours and starts each report chapter on a new page. The export changes no
-cohort or calculation. `e2e-native-reports` renders the generated file in a
-fresh page and pins the browser and print contracts; set
-`GIQ_REPORTS_EXPORT_SCREENSHOTS` for game and season visual captures.
+cohort or calculation. Game and season exports also carry the Offense board's
+five visual reads from the engine's existing geometry: yardage distribution,
+yards versus distance, field-position success, run/pass by down, and cumulative
+EPA with play-type contribution. The Special Teams Units ledger lives inside
+the Special Teams chapter so print pagination cannot orphan it from the
+performance section. `e2e-native-reports` renders a generated fixture in a
+fresh page and pins the browser and print contracts. The read-only
+`e2e-reports-export-realdata` harness separately loads the canonical six-game,
+449-play 2025 JV season, requires all five visual panels in game and season
+exports, checks Special Teams chapter ownership, renders bounded PDF output,
+and proves the source season bytes are unchanged. Set
+`GIQ_REPORTS_EXPORT_SCREENSHOTS` for fixture captures or
+`GIQ_REPORTS_EXPORT_REALDATA_SCREENSHOTS` for canonical game, season, and
+Special Teams captures.
 **PLAYERS COMPOSITION IS PHASE GROUPS — rejected as pairs in the `1.12.0-90`
 installed smoke (2026-09-20), rebuilt, and APPROVED in the `1.12.0-91` installed
 smoke on 2026-09-21.** Populated roles paired two at a time in
