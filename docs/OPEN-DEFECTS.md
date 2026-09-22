@@ -1,7 +1,8 @@
 # GridIron IQ Open Defects
 
 > **Status:** CURRENT DEFECT INDEX. Updated 2026-09-22: Charlie approved the
-> `1.12.0-92` Home visual composition. This does not certify unrun installed
+> `1.12.0-92` Home visual composition. `1.12.0-93` now packages the follow-up
+> source repairs but has not been installed or smoke-tested. This does not certify unrun installed
 > viewports, close the follow-up Home/Breakdown defects below, or change Home's
 > formal `productionStatus: REJECTED`. Previously updated 2026-09-21: the installed
 > `1.12.0-91` smoke was APPROVED by the coach. It closes both `1.12.0-90` REVISE
@@ -224,7 +225,7 @@ button. Penalty Auto D&D is not working as expected; the coach wants the
 manual Resulting situation box removed and the next situation derived from
 penalty entry. Enforcement rules and unresolved cases need explicit tests.
 
-**Source repair, 2026-09-22; not in an installer:** the season setup now finds a
+**Source repair, 2026-09-22; packaged in uninstalled `1.12.0-93`:** the season setup now finds a
 configured game beyond an empty starter; Season setup and Edit season details
 use the current sans display type. Identity save now updates the open program
 season's profile and games as well as the registry, and a canonical reopen test
@@ -240,7 +241,7 @@ penalty yards. Counted live-ball fouls remain blank because their enforcement
 spot is not charted; fourth-down plays that end possession also stay blank.
 The coach can correct those situations on the next snap. Missing rulings or
 yards remain blank, and previously confirmed stored situations remain readable.
-Focused checks:
+Focused checks (also rerun on the clean package worktree where applicable):
 `e2e-native-team-hub` 20/20, `e2e-play-library` 53/53,
 `e2e-native-tagging` 76/76, `e2e-field-fixes` 26/26,
 `e2e-team-registry` 24/24, `e2e-game-context` 16/16, and

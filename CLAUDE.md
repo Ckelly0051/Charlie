@@ -7,29 +7,22 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Current version:** `1.12.0-92` (`js/app.js` `APP_VERSION`,
+**Current version:** `1.12.0-93` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it).
 
-**Packaging status:** `1.12.0-92` is the current unsigned Home visual candidate,
-**approved by Charlie on 2026-09-22**, packaged from `1c3b1bc`
-(the bump is `9011ee7`) and built from a CLEAN WORKTREE so none of the main
-tree's uncommitted files reached it. It carries the complete Home work from
-`77e7b50` through `5b46c05`. The focused Home release checks were green before
-packaging and `e2e-p0-exit` was re-run after the bump. See `SMOKE-1.12.0-92.md`:
-Claude's installed smoke is PARTIAL — it verified the rail, the caret-less active
-year, mouse / Enter / Space disclosure, painted focus, the five tools and card /
-panel agreement at 1920×1080 on real data, and stopped when the coach began
-charting in the installed app. Charlie subsequently approved the Home visual
-composition; the unrun installed viewport checks and the newly reported
-Season setup, typography and team-identity defects received focused source
-repairs on 2026-09-22, as did Breakdown's defensive-front library and penalty
-Auto D&D findings; none is in the installed `1.12.0-92` build. Penalty Auto D&D
-uses the charted ending spot for counted dead-ball fouls and the previous spot
-for no-play fouls; entered actual yards move the ball by charged team. Counted
-live-ball fouls and unresolved fourth-down possession changes stay blank for
-coach correction on the next snap. Home
-production remains formally `REJECTED`. Not tagged, pushed or published.
+**Packaging status:** `1.12.0-93` is an unsigned, **uninstalled** Home and
+Breakdown repair candidate. The scoped repair is `a93b38e`, the four-owner
+version bump is `3c6f34d`, and the NSIS installer was built from a clean
+worktree at that exact revision. See `SMOKE-1.12.0-93.md` for the package hash,
+focused checks and installed smoke still required. It carries the season setup,
+typography, team-identity, defensive-front library and penalty Auto D&D repairs;
+none was in the installed `1.12.0-92` build. Penalty Auto D&D uses the charted
+ending spot for counted dead-ball fouls and the previous spot for no-play fouls;
+counted live-ball fouls and unresolved fourth-down possession changes stay blank
+for coach correction. Charlie approved the `1.12.0-92` Home visual composition,
+but that install's smoke was partial; see `SMOKE-1.12.0-92.md`. Home production
+remains formally `REJECTED`. Not tagged, pushed or published.
 
 `1.12.0-91` was the preceding unsigned, **smoke-approved** beta build, packaged from `df9d5f7` (the bump is `894576d`) with the canonical
 gate at 120/120, zero skipped, zero failed, and `e2e-p0-exit` re-run after the
