@@ -411,7 +411,7 @@ export class SettingsScreen {
     if (current.values.some(item => item.toLowerCase() === clean.toLowerCase())) return { ok:false, message:'That choice already exists.' };
     const ok = this.app.customChips.library.add(group, clean);
     if (ok) this.app.customChips.reload();
-    return { ok, message:ok ? '' : 'That choice could not be added.', group:this.chartingSnapshot(group) };
+    return { ok, message:ok ? '' : 'Could not save that choice. Check available app storage.', group:this.chartingSnapshot(group) };
   }
   async removeTagChoice(group, value) {
     const choice = await this.overlays.dialog({ title:'Remove "' + value + '"?', message:'It disappears from charting choices. Existing tagged plays and analytics stay unchanged.', actions:[{key:'cancel',label:'Keep it',default:true},{key:'remove',label:'Remove choice',tone:'destructive'}] }).result;

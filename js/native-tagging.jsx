@@ -160,7 +160,6 @@ function Choice({label, options, value, choose}) {
 }
 
 function Penalties({screen, state}) {
-  const situation = state.resultingSituation || {down:'',distance:'',fieldSide:'',yardLine:'',confirmed:false};
   return <Group title="Penalties">
     <button type="button" class="gi-tag-add" onClick={() => screen.addPenalty()}>Add penalty</button>
     {state.penalties.map((penalty, index) =>
@@ -192,19 +191,6 @@ function Penalties({screen, state}) {
         <label class="gi-tag-input"><span>Enforcement notes</span><input value={penalty.notes}
           onChange={event => screen.penaltyInput(index,'notes',event.currentTarget.value)}/></label>
       </article>)}
-    {state.penalties.length > 0 && <section class="gi-penalty-situation">
-      <header><strong>Resulting situation</strong><span>Next snap</span></header>
-      <div class="gi-tag-grid">
-        <label class="gi-tag-input"><span>Down</span><select value={situation.down} onChange={e => screen.penaltySituation('down',e.currentTarget.value)}>
-          <option value=""></option>{OPTIONS.down.map(value => <option key={value}>{value}</option>)}</select></label>
-        <label class="gi-tag-input"><span>Distance</span><input type="number" min="1" max="99" value={situation.distance} onChange={e => screen.penaltySituation('distance',e.currentTarget.value)}/></label>
-        <label class="gi-tag-input"><span>Side</span><select value={situation.fieldSide} onChange={e => screen.penaltySituation('fieldSide',e.currentTarget.value)}>
-          <option value=""></option><option value="own">Own</option><option value="opp">Opp</option></select></label>
-        <label class="gi-tag-input"><span>Yard line</span><input type="number" min="1" max="50" value={situation.yardLine} onChange={e => screen.penaltySituation('yardLine',e.currentTarget.value)}/></label>
-      </div>
-      <label class="gi-tag-check"><input type="checkbox" checked={situation.confirmed}
-        onChange={e => screen.penaltySituation('confirmed','',e.currentTarget.checked)}/> Confirm for Auto D&amp;D</label>
-    </section>}
   </Group>;
 }
 

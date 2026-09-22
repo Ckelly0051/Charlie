@@ -96,7 +96,7 @@ export class TeamRegistry {
   }
 
   saveTeamProfile(profile) {
-    try { localStorage.setItem('ffa_team_profile', JSON.stringify(profile)); } catch (e) {}
+    try { localStorage.setItem('ffa_team_profile', JSON.stringify(profile)); return true; } catch (e) { return false; }
   }
 
   setActiveTeamId(id) {
@@ -157,16 +157,20 @@ export class TeamRegistry {
     if (!cleanSchool) return false;
     const name = [cleanSchool, cleanNickname].filter(Boolean).join(' ');
     const profile = { ...this.teamProfile(), teamName: name, school: cleanSchool, nickname: cleanNickname, jerseyColor: String(jerseyColor || '') };
-    this.saveTeamProfile(profile);
     const teams = this.teams();
     const active = teams.find(team => team.id === this.activeTeamId());
-    if (active) {
-      active.teamName = name;
-      active.school = cleanSchool;
-      active.nickname = cleanNickname;
-      active.jerseyColor = profile.jerseyColor;
-      this.saveTeams(teams);
+    if (!active) {
+      if (!this.saveTeamProfile(profile)) return false;
+      if (this._syncGame) this._syncGame(profile);
+      return true;
     }
+    const previous = teams.map(team => ({ ...team }));
+    active.teamName = name;
+    active.school = cleanSchool;
+    active.nickname = cleanNickname;
+    active.jerseyColor = profile.jerseyColor;
+    if (!this.saveTeams(teams)) return false;
+    if (!this.saveTeamProfile(profile)) { this.saveTeams(previous); return false; }
     if (this._syncGame) this._syncGame(profile);
     return true;
   }

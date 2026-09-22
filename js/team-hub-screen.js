@@ -4,6 +4,10 @@ import { fullIdentity, seasonIdentity } from './identity-labels.js';
 import { WorkspaceContext } from './workspace-context.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
+const configuredGame = games => (games || []).find(game => {
+  const info = game?.gameInfo || {};
+  return [info.opponent, info.week, info.date].some(value => String(value || '').trim());
+});
 
 /** Native Team Hub controller. It is the only Team Hub: the legacy
  * SeasonLibrary overlay was deleted in S7-c, and TeamRegistry owns the
@@ -86,10 +90,9 @@ export class TeamHubScreen {
     const rosterCount = this.app.roster?.players?.length || 0;
     const current = store?.data;
     const canReviewSetup = !!current && current.kind !== 'scout';
-    const firstGame = canReviewSetup ? current.games?.[0] : null;
-    const info = firstGame?.gameInfo || {};
+    const firstGame = canReviewSetup ? configuredGame(current.games) : null;
     const storageReady = !desktop || !!root || mode === 'managed';
-    const gameReady = !!(String(info.opponent || '').trim() || String(info.week || '').trim() || String(info.date || '').trim());
+    const gameReady = !!firstGame;
     const setupDone = [rosterCount > 0, storageReady, gameReady].filter(Boolean).length;
     return {
       desktop, root, mode, games, plays, rosterCount, canReviewSetup,
@@ -666,10 +669,10 @@ export class TeamHubScreen {
     const root = desktop ? backend.getLibraryRoot?.() || '' : '';
     const mode = desktop ? backend.getFilmStorageMode?.() || '' : 'browser';
     const rosterCount = this.app.roster?.players?.length || 0;
-    const firstGame = data.games?.[0];
+    const firstGame = configuredGame(data.games);
     const info = firstGame?.gameInfo || {};
     const storageReady = !desktop || !!root || mode === 'managed';
-    const gameReady = !!(String(info.opponent || '').trim() || String(info.week || '').trim() || String(info.date || '').trim());
+    const gameReady = !!firstGame;
     const coreReady = rosterCount > 0 && storageReady && gameReady;
     return {
       seasonName: data.seasonName || season?.name || data.name || 'Current season',

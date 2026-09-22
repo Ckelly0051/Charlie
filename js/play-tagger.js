@@ -1478,12 +1478,44 @@ export class PlayTagger {
     const penalties = PenaltyModel.normalizeList(prev.penalties);
     if (penalties.length) {
       const confirmed = PenaltyModel.confirmedSituation(prev);
-      return confirmed ? {
-        down: confirmed.down,
-        distance: confirmed.distance,
-        fieldSide: confirmed.fieldSide,
-        yardLine: confirmed.yardLine,
-      } : null;
+      if (confirmed) return {
+        down: confirmed.down, distance: confirmed.distance,
+        fieldSide: confirmed.fieldSide, yardLine: confirmed.yardLine,
+      };
+      const accepted = penalties.filter(penalty => penalty.disposition === 'accepted');
+      const offsetting = penalties.filter(penalty => penalty.disposition === 'offsetting');
+      if (penalties.some(penalty => penalty.disposition === 'unknown')) return null;
+      const result = String(t.result || '').split(/\s*\+\s*/).filter(part => part && part !== 'Penalty').join(' + ');
+      const ordinary = () => this.computeNextSituation({ ...prev, penalties: [], tags: { ...t, result } });
+      if (!accepted.length && !offsetting.length) return ordinary();
+      if (offsetting.length && !accepted.length) return {
+        down: t.down, distance: t.distance, ...this._sameSpot(t),
+      };
+      if (accepted.length !== 1 || offsetting.length) return null;
+      const penalty = accepted[0];
+      const down = Number(t.down), distance = Number(t.distance);
+      if (!down || !Number.isFinite(distance) || distance < 1 || penalty.yards == null
+        || penalty.team === 'unknown' || penalty.playCounts == null || t.unit === 'special') return null;
+      // A counted live-ball foul may be enforced from the previous spot, end
+      // of run, or spot of the foul. Only a counted dead-ball foul has an
+      // unambiguous end-of-play base; no-play enforcement uses the prior spot.
+      if (penalty.playCounts && penalty.phase !== 'deadBall') return null;
+      const base = penalty.playCounts ? ordinary() : { down: t.down, distance: t.distance, ...this._sameSpot(t) };
+      if (!base?.down || !base?.distance) return null;
+      const offenseTeam = t.unit === 'defense' ? 'opponent' : 'subject';
+      const gain = penalty.team === offenseTeam ? -penalty.yards : penalty.yards;
+      const baseAbs = this._absYL(base);
+      const newAbs = baseAbs == null ? null : Math.min(99, Math.max(1, baseAbs + (t.unit === 'defense' ? -gain : gain)));
+      const spot = newAbs == null ? { fieldSide: null, yardLine: null }
+        : newAbs <= 50 ? { fieldSide: 'own', yardLine: newAbs } : { fieldSide: 'opp', yardLine: 100 - newAbs };
+      const toGoal = newAbs == null ? null : t.unit === 'defense' ? newAbs : 100 - newAbs;
+      if (penalty.automaticFirstDown && penalty.lossOfDown) return null;
+      const firstDown = penalty.automaticFirstDown === true || (gain >= Number(base.distance) && gain > 0);
+      const nextDown = firstDown ? 1 : Number(base.down) + (penalty.lossOfDown === true ? 1 : 0);
+      if (nextDown > 4) return null;
+      const nextDistance = firstDown ? Math.min(10, toGoal ?? 10)
+        : Math.min(Math.max(1, Number(base.distance) - gain), toGoal ?? Infinity);
+      return { down: String(nextDown), distance: String(Math.max(1, nextDistance)), ...spot };
     }
     const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Safety']);
     const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);

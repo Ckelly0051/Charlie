@@ -22,8 +22,13 @@ year, mouse / Enter / Space disclosure, painted focus, the five tools and card /
 panel agreement at 1920×1080 on real data, and stopped when the coach began
 charting in the installed app. Charlie subsequently approved the Home visual
 composition; the unrun installed viewport checks and the newly reported
-Season setup, typography and team-identity defects remain open. Breakdown
-defensive-front library and penalty Auto D&D findings are separate work. Home
+Season setup, typography and team-identity defects received focused source
+repairs on 2026-09-22, as did Breakdown's defensive-front library and penalty
+Auto D&D findings; none is in the installed `1.12.0-92` build. Penalty Auto D&D
+uses the charted ending spot for counted dead-ball fouls and the previous spot
+for no-play fouls; entered actual yards move the ball by charged team. Counted
+live-ball fouls and unresolved fourth-down possession changes stay blank for
+coach correction on the next snap. Home
 production remains formally `REJECTED`. Not tagged, pushed or published.
 
 `1.12.0-91` was the preceding unsigned, **smoke-approved** beta build, packaged from `df9d5f7` (the bump is `894576d`) with the canonical

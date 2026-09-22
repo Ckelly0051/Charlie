@@ -94,6 +94,86 @@ check('quarter carries across a TD (possession end)', situ.qtrAfterTD === 'Q2', 
 check('defense field position advances toward our goal', situ.defSit && situ.defSit.down === '2' && situ.defSit.distance === '3' && situ.defSit.fieldSide === 'opp' && String(situ.defSit.yardLine) === '47', JSON.stringify(situ.defSit));
 check('defense goal-to-go uses OUR goal line', situ.defGoal && situ.defGoal.down === '1' && situ.defGoal.distance === '6' && situ.defGoal.fieldSide === 'own' && String(situ.defGoal.yardLine) === '6', JSON.stringify(situ.defGoal));
 
+const penaltySituations = await page.evaluate(() => {
+  const tagger = window.app.tagger;
+  const tags = { down:'2', distance:'7', unit:'offense', fieldSide:'own', yardLine:'40', result:'Gain', yardage:'4' };
+  const penalty = { team:'subject', phase:'offense', disposition:'accepted', yards:5, playCounts:false };
+  const compute = (overrides = {}, tagOverrides = {}) => tagger.computeNextSituation({ tags:{ ...tags, ...tagOverrides }, penalties:[{ ...penalty, ...overrides }] });
+  return {
+    noPlay: compute(),
+    deadBallNoPlayUs: compute({ phase:'deadBall' }),
+    deadBallNoPlayThem: compute({ phase:'deadBall', team:'opponent' }),
+    defense: compute({ team:'subject' }, { unit:'defense' }),
+    declined: compute({ disposition:'declined' }),
+    offsetting: compute({ disposition:'offsetting' }),
+    deadBall: compute({ phase:'deadBall', playCounts:true }),
+    liveBall: compute({ playCounts:true }),
+    liveBallAgainstDefense: compute({ playCounts:true, team:'opponent' }),
+    fourthLiveBall: compute({ playCounts:true, team:'opponent' }, { down:'4' }),
+    fourthDeadBallShort: compute({ phase:'deadBall', playCounts:true, team:'opponent' }, { down:'4' }),
+    fourthDeadBallConversion: compute({ phase:'deadBall', playCounts:true }, { down:'4', yardage:'8' }),
+    fourthNoPlay: compute({ phase:'deadBall', team:'opponent', yards:10 }, { down:'4' }),
+    missingRuling: compute({ playCounts:null }),
+    missingYards: compute({ yards:null }),
+    legacy: tagger.computeNextSituation({ tags, penalties:[penalty], resultingSituation:{ down:'1', distance:'10', fieldSide:'opp', yardLine:'25', confirmed:true } }),
+    applied: (() => {
+      const next = { tags:{ down:'', distance:'', quarter:'', fieldSide:'', yardLine:'' } };
+      tagger.applyNextSituation({ tags:{ ...tags, quarter:'Q2' }, penalties:[penalty] }, next);
+      return { tags:next.tags, auto:next._autoSit };
+    })(),
+  };
+});
+check('accepted no-play offense penalty replays the down from the enforced spot',
+  penaltySituations.noPlay?.down === '2' && penaltySituations.noPlay?.distance === '12'
+  && penaltySituations.noPlay?.fieldSide === 'own' && penaltySituations.noPlay?.yardLine === 35,
+  JSON.stringify(penaltySituations.noPlay));
+check('dead-ball no-play penalties move the previous spot in either charged-team direction',
+  penaltySituations.deadBallNoPlayUs?.down === '2'
+  && penaltySituations.deadBallNoPlayUs?.distance === '12'
+  && penaltySituations.deadBallNoPlayUs?.yardLine === 35
+  && penaltySituations.deadBallNoPlayThem?.down === '2'
+  && penaltySituations.deadBallNoPlayThem?.distance === '2'
+  && penaltySituations.deadBallNoPlayThem?.yardLine === 45,
+  JSON.stringify(penaltySituations));
+check('defensive perspective applies a penalty toward the opponent goal',
+  penaltySituations.defense?.down === '2' && penaltySituations.defense?.distance === '2'
+  && penaltySituations.defense?.yardLine === 35, JSON.stringify(penaltySituations.defense));
+check('declined and offsetting flags have distinct next-snap rulings',
+  penaltySituations.declined?.down === '3' && penaltySituations.declined?.distance === '3'
+  && penaltySituations.offsetting?.down === '2' && penaltySituations.offsetting?.distance === '7',
+  JSON.stringify(penaltySituations));
+check('counted dead-ball fouls enforce from the completed play; live-ball spots stay unresolved',
+  penaltySituations.deadBall?.down === '3' && penaltySituations.deadBall?.distance === '8'
+  && penaltySituations.deadBall?.yardLine === 39
+  && penaltySituations.liveBall === null,
+  JSON.stringify(penaltySituations));
+check('fourth-down live-ball fouls and dead-ball fouls after a short play do not guess possession',
+  penaltySituations.liveBallAgainstDefense === null
+  && penaltySituations.fourthLiveBall === null
+  && penaltySituations.fourthDeadBallShort === null,
+  JSON.stringify(penaltySituations));
+check('fourth-down clear no-play enforcement can move the chains',
+  penaltySituations.fourthNoPlay?.down === '1'
+  && penaltySituations.fourthNoPlay?.distance === '10'
+  && penaltySituations.fourthNoPlay?.yardLine === 50,
+  JSON.stringify(penaltySituations.fourthNoPlay));
+check('fourth-down conversion followed by a dead-ball foul enforces from the new series',
+  penaltySituations.fourthDeadBallConversion?.down === '1'
+  && penaltySituations.fourthDeadBallConversion?.distance === '15'
+  && penaltySituations.fourthDeadBallConversion?.yardLine === 43,
+  JSON.stringify(penaltySituations.fourthDeadBallConversion));
+check('missing penalty ruling or yardage leaves Auto D&D unset',
+  penaltySituations.missingRuling === null && penaltySituations.missingYards === null,
+  JSON.stringify(penaltySituations));
+check('previously confirmed penalty situations remain readable',
+  penaltySituations.legacy?.down === '1' && penaltySituations.legacy?.yardLine === '25',
+  JSON.stringify(penaltySituations.legacy));
+check('Save-and-next Auto D&D writes the structured penalty result to the next snap',
+  penaltySituations.applied?.auto === true && penaltySituations.applied?.tags?.down === '2'
+  && penaltySituations.applied?.tags?.distance === '12'
+  && penaltySituations.applied?.tags?.yardLine === '35'
+  && penaltySituations.applied?.tags?.quarter === 'Q2', JSON.stringify(penaltySituations.applied));
+
 // ---- 3. Takeaway crediting ----
 const takeaway = await page.evaluate(() => {
   const se = window.app.stats;

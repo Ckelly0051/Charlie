@@ -100,7 +100,9 @@ export class TagLibrary {
   add(key, value) {
     const state = this.load(), group = state.groups[key], defaults = TagLibrary.DEFINITIONS[key], v = String(value || '').trim();
     if (!group || !defaults || !v || defaults.includes(v) || group.custom.includes(v)) return false;
-    group.custom.push(v); group.enabled.push(v); group.order.push(v); this._write(state); return true;
+    group.custom.push(v); group.enabled.push(v); group.order.push(v);
+    this._write(state);
+    return this._read(this.key())?.groups?.[key]?.custom?.includes(v) === true;
   }
   remove(key, value) {
     const state = this.load(), group = state.groups[key];

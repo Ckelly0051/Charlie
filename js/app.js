@@ -157,12 +157,17 @@ class App {
       // Team identity propagates into the active game's canonical metadata
       // through the draft path, not through hidden inputs inside #app.
       syncGame: profile => {
-        if (!this.storage?.gameInfo) return;
-        this._applyGameInfoDraft({
-          teamName: profile.teamName || '',
-          jerseyColor: profile.jerseyColor || '',
-        });
-        this.storage._autoSave();
+        const store = this.storage?.seasonStore;
+        if (store?.data && store.data.kind !== 'scout') {
+          store.data.teamProfile = { ...profile };
+          for (const game of store.data.games || []) {
+            game.gameInfo = { ...(game.gameInfo || {}), teamName: profile.teamName, jerseyColor: profile.jerseyColor };
+          }
+          if (this.storage.gameInfo) this._applyGameInfoDraft({ teamName: profile.teamName, jerseyColor: profile.jerseyColor });
+          this.storage._autoSave();
+        }
+        this.homeScreen?.refreshIdentity?.();
+        this.workspaceShell?._syncChrome?.();
       },
       notify: message => this.history?._toast?.(message),
     });

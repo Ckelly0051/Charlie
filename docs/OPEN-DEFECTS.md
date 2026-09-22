@@ -224,6 +224,28 @@ button. Penalty Auto D&D is not working as expected; the coach wants the
 manual Resulting situation box removed and the next situation derived from
 penalty entry. Enforcement rules and unresolved cases need explicit tests.
 
+**Source repair, 2026-09-22; not in an installer:** the season setup now finds a
+configured game beyond an empty starter; Season setup and Edit season details
+use the current sans display type. Identity save now updates the open program
+season's profile and games as well as the registry, and a canonical reopen test
+passes. Defense Edit library labels align in normal layout flow; a rendered
+Defense-deck click adds a custom front, exposes it immediately, and persists it
+across reload. A refused library write now reports failure instead of clearing
+the input as though Add succeeded. The manual penalty Resulting situation form
+is removed. Auto D&D derives declined, offsetting, and accepted penalties
+when the structured entry supplies the necessary facts: No play enforces from
+the previous spot; a counted dead-ball foul enforces from the charted play's
+ending spot. The charged team determines the direction of the entered actual
+penalty yards. Counted live-ball fouls remain blank because their enforcement
+spot is not charted; fourth-down plays that end possession also stay blank.
+The coach can correct those situations on the next snap. Missing rulings or
+yards remain blank, and previously confirmed stored situations remain readable.
+Focused checks:
+`e2e-native-team-hub` 20/20, `e2e-play-library` 53/53,
+`e2e-native-tagging` 76/76, `e2e-field-fixes` 26/26,
+`e2e-team-registry` 24/24, `e2e-game-context` 16/16, and
+`e2e-penalty-contract` 7/7. No installed smoke or full gate claimed.
+
 0. **REPAIRED 2026-09-21 — the navigation rail starved the season tree.** Found
    in the approved `1.12.0-91` installed build: Program Seasons showed only 2026
    while 2025 JV was the OPEN season. Root cause: both trees held an equal `1fr`
@@ -1542,7 +1564,8 @@ Breakdown film-state defects above.
   gate 119/119, packaged as `1.12.0-87`. `Option`'s absence from Overview's
   approved fixed six and the Defense dashboard's seven play-type categories stays open as a coach
   decision about an approved schema, not an implementation gap.
-- **Next presentation checkpoint: Reports Overview**, then Offense. Home rail
-  scaling received the bounded `1.12.0-92` visual approval above. Breakdown's
-  newly reported functional defects and Home's identity/save defect remain
-  separate open repair work, not silently included in the Reports approval.
+- **Reports status:** Overview's composition is already approved; Offense is
+  built and gate-verified but still needs coach acceptance after the installed
+  REVISE. Neither is a new build checkpoint. Home rail scaling received the
+  bounded `1.12.0-92` visual approval above. The source repairs recorded above
+  do not promote Home or Breakdown to installed acceptance.

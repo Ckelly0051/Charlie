@@ -77,6 +77,14 @@ console.log('\n-- PL-2 Option is a built-in, owned once --');
     'A team saved before the bump gets Option visible, not hidden',
     { values: group.values.includes('Option'), enabled: group.enabled.includes('Option') });
   ok(!group.custom.includes('Option'), 'Option is a DEFAULT, never a custom entry', group.custom);
+
+  const blockedStore = {
+    getItem: () => null,
+    setItem: () => { throw new Error('storage full'); },
+    removeItem: () => {},
+  };
+  ok(new TagLibrary({ storage: blockedStore, teamId: 'blocked' }).add('front', 'Bear Front') === false,
+    'A refused library write reports failure instead of clearing Add as if it saved');
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +258,28 @@ ok(owner.keys.filter(k => k.endsWith(TEAM)).length === 1 && !owner.keys.some(k =
 ok(same(owner.stored, ['Counter Trey']), 'The canonical store holds it', owner.stored);
 ok(owner.total - keysBefore <= 1, 'Adding a choice created no extra storage key', [keysBefore, owner.total]);
 
+// Defense uses the same editor, but its Front path must be exercised through
+// the actual deck and Add button rather than inferred from Play Type.
+await page.evaluate(async () => {
+  window.app.settingsScreen.close('front-test');
+  window.app.nativeTagging.setUnit('defense');
+  await window.app.workspaceShell.show('breakdown');
+});
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+await page.waitForSelector('[data-native-field="defFront"] .gi-tag-field-label button');
+await page.click('[data-native-field="defFront"] .gi-tag-field-label button');
+await page.waitForFunction(() => document.querySelector('[data-chart-group="front"]')?.getAttribute('aria-selected') === 'true');
+await type('Bear Front');
+await clickAdd();
+await page.waitForFunction(() => window.app.customChips.library.group('front').custom.includes('Bear Front'));
+const frontAdded = await page.evaluate(() => ({
+  rows: [...document.querySelectorAll('[data-tag-value]')].map(row => row.getAttribute('data-tag-value')),
+  custom: window.app.customChips.library.group('front').custom,
+  deck: window.app.nativeTagging.snapshot().libraries.defFront,
+}));
+ok(frontAdded.custom.includes('Bear Front') && frontAdded.rows.includes('Bear Front') && frontAdded.deck.includes('Bear Front'),
+  'Defense Edit library Add creates a front and returns it to the live deck', frontAdded);
+
 // -- persistence through a real reload --------------------------------------
 console.log('\n-- PL-1 persistence through reload --');
 await page.reload({ waitUntil: 'networkidle0' });
@@ -264,11 +294,13 @@ const afterReload = await page.evaluate(team => {
   return {
     custom: window.app.customChips.library.group('playType').custom,
     deck: window.app.nativeTagging.snapshot().libraries.playType,
+    front: window.app.customChips.library.group('front').custom,
   };
 }, TEAM);
 ok(same(afterReload.custom, ['Counter Trey']), 'The custom play survives an application reopen', afterReload.custom);
 ok(afterReload.deck.includes('Counter Trey') && afterReload.deck.includes('Option'),
   'Both the custom play and the built-in are charting choices after reopen', afterReload.deck.slice(-3));
+ok(afterReload.front.includes('Bear Front'), 'The custom defensive front survives an application reopen', afterReload.front);
 
 // -- PL-1 the playbook side -------------------------------------------------
 console.log('\n-- PL-1 the play-call playbook --');

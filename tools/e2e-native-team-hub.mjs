@@ -77,8 +77,48 @@ r = await page.evaluate(() => ({
 }));
 ok(r.title === seasonName && r.steps.length === 5 && /Skip guide/.test(r.skip),
   'Home rail reopens the canonical resumable season guide', JSON.stringify(r));
+const guideFonts = await page.evaluate(() => {
+  const family = selector => getComputedStyle(document.querySelector(selector)).fontFamily;
+  return {
+    title: family('[data-overlay-id="team-hub-season-setup"] .gi-overlay-head h2'),
+    season: family('.gi-season-guide-head h2'),
+    number: family('.gi-season-guide-number'),
+  };
+});
+ok(Object.values(guideFonts).every(family => family.includes('IBM Plex Sans') && !family.includes('Condensed')),
+  'Season setup titles and step numbers use the current sans type, not the old condensed display font', JSON.stringify(guideFonts));
 await page.click('.gi-season-guide .gi-hub-form-actions button');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-hub-season-setup"]'));
+
+const setupStatus = await page.evaluate(async () => {
+  const hub = window.app.teamHubScreen;
+  const store = window.app.storage.seasonStore;
+  const games = store.data.games;
+  const players = window.app.roster.players;
+  try {
+    store.data.games = [store.blankGame()];
+    window.app.roster.players = [];
+    const empty = hub._seasonSetupStatus();
+    store.data.games.push({ id: 'configured-later', name: 'Week 1 vs Patriots',
+      gameInfo: { opponent: 'Patriots', date: '2026-09-21' }, plays: [] });
+    const withGame = hub._seasonSetupStatus();
+    const control = await hub._controlStatus();
+    window.app.roster.players = [{ num: '12', name: 'Player' }];
+    const complete = hub._seasonSetupStatus();
+    const readyControl = await hub._controlStatus();
+    return { empty, withGame, control, complete, readyControl };
+  } finally {
+    store.data.games = games;
+    window.app.roster.players = players;
+  }
+});
+ok(!setupStatus.empty.steps[3].done && !setupStatus.empty.steps[4].done,
+  'An untouched starter game does not complete either setup step');
+ok(setupStatus.withGame.steps[3].done && setupStatus.withGame.steps[3].detail === 'Week 1 vs Patriots'
+  && !setupStatus.withGame.steps[4].done && setupStatus.control.setupLabel === '2 of 3 setup areas ready',
+  'A later configured game completes First game in both setup summaries, despite a blank starter', JSON.stringify(setupStatus.withGame));
+ok(setupStatus.complete.steps[4].done && setupStatus.readyControl.setupReady,
+  'A roster plus storage and a later configured game complete Ready to chart in both summaries');
 
 await page.evaluate(() => [...document.querySelectorAll('.rail-tools button')].find(button => /Film & storage/.test(button.textContent))?.click());
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
@@ -141,6 +181,63 @@ ok(r.switched === false && r.activeTeamId === 'mavericks' && r.hasCurrent,
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
 await page.waitForSelector('.library-panel');
+
+await page.evaluate(async () => {
+  await window.app.teamHubScreen.load();
+  const season = window.app.teamHubScreen.snapshot().railSeasons.find(row => row.kind !== 'scout');
+  if (season) await window.app.teamHubScreen.openSeason(season.id);
+});
+await page.evaluate(() => { window.app.teamHubScreen.openEditSeason(); });
+await page.waitForSelector('[data-overlay-id="team-hub-edit-season"]');
+const editSeasonFonts = await page.evaluate(() => ({
+  title: getComputedStyle(document.querySelector('[data-overlay-id="team-hub-edit-season"] .gi-overlay-head h2')).fontFamily,
+  preview: getComputedStyle(document.querySelector('.gi-hub-name-preview strong')).fontFamily,
+}));
+ok(Object.values(editSeasonFonts).every(family => family.includes('IBM Plex Sans') && !family.includes('Condensed')),
+  'Edit season details title and preview use the current sans type', JSON.stringify(editSeasonFonts));
+await page.click('[data-overlay-id="team-hub-edit-season"] .gi-hub-form-actions button');
+await page.evaluate(() => { window.app.settingsScreen.open({ initialTab: 'team' }); });
+await page.waitForSelector('[data-settings-panel="team"]');
+const identityInputs = '[data-settings-panel="team"] .gi-settings-field input';
+await page.evaluate(selector => {
+  const [school, nickname] = document.querySelectorAll(selector);
+  school.value = 'St. Joseph';
+  school.dispatchEvent(new Event('input', { bubbles: true }));
+  nickname.value = 'Mavericks';
+  nickname.dispatchEvent(new Event('input', { bubbles: true }));
+}, identityInputs);
+await page.click('[data-settings-panel="team"] .gi-settings-primary');
+const identitySaved = await page.evaluate(() => ({
+  notice: document.querySelector('.gi-settings-saved')?.textContent || '',
+  profile: window.app.teamRegistry.teamProfile(),
+  team: window.app.teamRegistry.teams().find(row => row.id === window.app.teamRegistry.activeTeamId()),
+  game: window.app.storage.gameInfo.teamName,
+  season: window.app.storage.seasonStore.data?.teamProfile?.teamName,
+  kind: window.app.storage.seasonStore.data?.kind,
+  games: window.app.storage.seasonStore.data?.games?.map(game => game.gameInfo?.teamName),
+}));
+ok(identitySaved.notice === 'Team identity saved' && identitySaved.profile.teamName === 'St. Joseph Mavericks'
+  && identitySaved.team?.teamName === identitySaved.profile.teamName && identitySaved.game === identitySaved.profile.teamName,
+  'Team identity save updates profile, registry, and active game together', JSON.stringify(identitySaved));
+await page.evaluate(async () => {
+  window.app.settingsScreen.close('identity-test');
+  await window.app.storage.flushPendingSaves();
+});
+await page.reload({ waitUntil: 'networkidle0' });
+await page.waitForFunction(() => window.app?.teamRegistry);
+await page.evaluate(async () => {
+  await window.app.teamHubScreen.load();
+  const season = window.app.teamHubScreen.snapshot().railSeasons.find(row => row.kind !== 'scout');
+  if (season) await window.app.teamHubScreen.openSeason(season.id);
+});
+const identityReopened = await page.evaluate(() => ({
+  profile: window.app.teamRegistry.teamProfile().teamName,
+  team: window.app.teamRegistry.teams().find(row => row.id === window.app.teamRegistry.activeTeamId())?.teamName,
+  season: window.app.storage.seasonStore.data?.teamProfile?.teamName,
+}));
+ok(identityReopened.profile === 'St. Joseph Mavericks' && identityReopened.team === identityReopened.profile
+  && identityReopened.season === identityReopened.profile,
+  'Team identity remains aligned after a canonical save and application reopen', JSON.stringify(identityReopened));
 
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 await page.evaluate(() => { scrollTo(0, 0); return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });

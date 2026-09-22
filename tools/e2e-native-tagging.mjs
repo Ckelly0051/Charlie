@@ -220,10 +220,10 @@ state=await page.evaluate(async fixture=>{
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
   button('Draw').click();button('Clear').click();button('Set OCR Region').click();button('Read Scoreboard').click();
-  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');app.nativeTagging.penaltySituation('down','2');app.nativeTagging.penaltySituation('distance','7');app.nativeTagging.penaltySituation('fieldSide','opp');app.nativeTagging.penaltySituation('yardLine','38');app.nativeTagging.penaltySituation('confirmed','',true);const playOne={penalties:structuredClone(play.penalties),situation:structuredClone(play.resultingSituation),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');return{punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
+  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');return{punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
 },fixture);
 ok(state.punt?.unit==='punt'&&state.punt?.outcome?.status==='returned'&&state.punt?.return?.yards===12&&state.punt?.players?.returner==='22'&&!state.scoredBy,'Native Special Teams stores its structured returner and exposes dedicated kick, return, field-goal, and try units without the legacy Scored-by control',JSON.stringify(state.punt));
-ok(state.penalties?.length===2&&state.penalties[0].foul==='Holding'&&state.penalties[0].playCounts===true&&state.penalties[0].phase==='special'&&state.penalties[1].foul==='Facemask'&&state.penalties[1].disposition==='declined'&&state.situation?.confirmed&&state.situation?.down==='2','Native penalty editor stores multiple independent fouls and actual enforcement',JSON.stringify({penalties:state.penalties,situation:state.situation}));
+ok(state.penalties?.length===2&&state.penalties[0].foul==='Holding'&&state.penalties[0].playCounts===true&&state.penalties[0].phase==='special'&&state.penalties[1].foul==='Facemask'&&state.penalties[1].disposition==='declined'&&!state.manualBox,'Native penalty editor stores independent rulings without a duplicate next-snap form',JSON.stringify({penalties:state.penalties,manualBox:state.manualBox}));
 ok(state.tryPlay?.unit==='try'&&state.tryPlay?.attemptType==='twoPoint'&&state.tryPlay?.events?.turnover==='interception'&&state.tryPlay?.events?.defensiveReturn&&state.tryPlay?.outcome?.returnAward==='opponent','Native try editor preserves compound events and official return ruling',JSON.stringify(state.tryPlay));
 ok(state.player==='22'&&state.notes==='Punt return right','Roster quick-pick and notes write the selected play',JSON.stringify({player:state.player,notes:state.notes}));
 ok(Object.values(state.calls).every(v=>v===1),'Diagram and OCR commands reach canonical owners exactly once',JSON.stringify(state.calls));
@@ -323,6 +323,13 @@ state=await page.evaluate(()=>{
   const descs=[...root.querySelectorAll('.gi-tag-group>summary span')].filter(x=>x.textContent.trim());
   const pad=x=>parseFloat(cs(x).paddingTop)+'/'+parseFloat(cs(x).paddingBottom);
   const face=x=>cs(x).fontFamily.split(',')[0].replace(/"/g,'')+' '+cs(x).fontWeight+' '+parseFloat(cs(x).fontSize);
+  const libraryLabels=['defFront','coverage','blitz'].map(field=>{
+    const row=root.querySelector(`[data-native-field="${field}"] .gi-tag-field-label`);
+    const title=row?.querySelector('span')?.getBoundingClientRect();
+    const button=row?.querySelector('button')?.getBoundingClientRect();
+    const box=row?.getBoundingClientRect();
+    return { field, titleRight:title?.right, buttonLeft:button?.left, buttonRight:button?.right, rowRight:box?.right };
+  });
   return{
     covCount:btns.length,
     covRows:[...new Set(btns.map(x=>Math.round(x.getBoundingClientRect().top)))].length,
@@ -332,9 +339,13 @@ state=await page.evaluate(()=>{
     pads:[...new Set(bodies.map(pad))],
     titleFaces:[...new Set(titles.map(face))],
     descCount:descs.length,
+    libraryLabels,
     pageOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
   };
 });
+ok(state.libraryLabels.every(row=>row.buttonLeft>=row.titleRight+5&&Math.abs(row.buttonRight-row.rowRight)<=1)
+  && new Set(state.libraryLabels.map(row=>Math.round(row.buttonRight))).size===1,
+  'Defense Edit library controls align on one right edge without covering their field labels',JSON.stringify(state.libraryLabels));
 // The approved comp uses content-sized vocabulary chips, wrapping rather
 // than squeezing seven labels into equal-width tracks.
 ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,
