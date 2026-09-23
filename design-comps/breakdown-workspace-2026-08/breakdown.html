@@ -1,0 +1,1789 @@
+<!doctype html>
+<html lang="en" data-state="chart-offense">
+<head>
+<meta charset="utf-8">
+<title>GridIron IQ — Break Down Workspace (comp)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- REAL production assets, referenced not re-authored — binding rule #1.
+     This file lives two levels under the repo root (design-comps/<dir>/), so
+     ../../design-system/* resolves to the real, shared source of truth. -->
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/plex.css">
+<link rel="stylesheet" href="../../design-system/material.css">
+<style>
+/* ════════════════════════════════════════════════════════════════════════
+   BREAK DOWN WORKSPACE — approval comp, 2026-08-30.
+
+   Consumes design-system/tokens.css + plex.css + material.css directly. No
+   second token system. Font weights are the embedded Plex 400/600/700 only.
+
+   RECOMPOSE, NOT RECOLOR. The production route (native-breakdown-theater.jsx,
+   native-tagging.jsx, native-film-room.jsx + their CSS) is read in full before
+   this file was written; class names below are chosen so a promotable rule
+   can be lifted into the real stylesheet with the same selector. Where a
+   piece is UNCHANGED from production (charting chips, groups, commit bar,
+   penalties, players) the structure and behavior are preserved exactly —
+   only geometry/spacing is refined. Where a piece is NEW (the play rail) or
+   RECOMPOSED (the theater stack, Film Room's color language) that is called
+   out explicitly in the design rationale document alongside this file.
+
+   Nothing here is wired to real state/persistence/football logic — every
+   value below is a representative fixture, and every control is inert
+   except the comp's own state switcher (data-state on <html>).
+
+   ── REVISION (review round 2) ──────────────────────────────────────────
+   Round 1 was returned REVISE with six findings. Fixed here, each marked
+   at its site: (1) the fixed three-column grid squeezed film and clipped
+   controls at 1440/1280 and left dead vertical space at 1440 — the rail
+   is now wide-screen-only (>=1700px); below that, film stacks over a
+   compact play band using the space that used to sit empty. (2) command
+   containment is now asserted directly (every button's rendered box vs.
+   its clipping ancestors), not inferred from page-level scrollWidth alone
+   — see capture.mjs. (3) the sticky commit bar now reserves real buffer
+   space so it can never sit over the last group's content when scrolled
+   to bottom — verified by scrolling the deck in the capture script, not
+   just screenshotting the top. (4) the sparse state no longer tells the
+   coach to "Mark Start on the video" when no video exists; the video
+   panel owns the one primary instruction, and the rail/deck read as
+   subdued unavailable states instead of repeating it. (5) the toolbar's
+   utility buttons and the two remaining accent-text links now carry real
+   button chrome instead of reading as background text. (6) Film Room's
+   theater column now fills its own dead vertical space with the selected
+   play's situation, call, and notes instead of empty black.
+   ════════════════════════════════════════════════════════════════════════ */
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--gi-1)}
+body{
+  min-width:0;overflow:hidden;color:var(--gi-12);
+  font-family:var(--gi-sans);font-synthesis:none;text-shadow:none;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit}
+svg{display:block}
+.icon{width:16px;height:16px;flex:0 0 auto}
+
+/* ── QA harness chrome — NOT part of the product; excluded from every
+   promotion mapping. Hidden before any capture.
+   REVISION (Round 4 repair, finding 6): the toggle button and the panel were
+   two SEPARATE fixed-position elements. Every capture hid `.qa-bar` (the
+   panel) but never the standalone `.qa-toggle` gear button, which sat at
+   the exact top-right corner the real app's own "More ▾" shell button
+   occupies -- so every delivered screenshot showed the prototype gear
+   sitting on top of (or immediately beside) a real, load-bearing app
+   control. Both are now one wrapper (`.qa-harness`) so a single
+   `is-hidden` class removes the whole prototype surface at once, and the
+   corner itself moved to bottom-right so even an UN-hidden reviewer session
+   never overlaps real shell chrome. ─────────────────────────────────────── */
+.qa-harness.is-hidden{display:none}
+.qa-bar{
+  position:fixed;bottom:44px;right:10px;z-index:999;display:flex;flex-direction:column;
+  gap:6px;padding:10px;max-width:230px;border:1px solid var(--gi-8);
+  background:rgba(8,12,17,.95);box-shadow:var(--gi-shadow-overlay);
+  font:600 11px var(--gi-sans);
+}
+.qa-bar.is-hidden{display:none}
+.qa-bar strong{color:var(--gi-bd-copy);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.qa-bar button{
+  min-height:26px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);
+  color:var(--gi-bd-copy);text-align:left;cursor:pointer;font:600 11px var(--gi-sans);
+}
+.qa-bar button.is-on{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.qa-toggle{
+  position:fixed;bottom:10px;right:10px;z-index:998;width:26px;height:26px;
+  border:1px solid var(--gi-8);background:var(--gi-3);color:var(--gi-bd-copy);cursor:pointer;
+}
+
+/* ══ 1. WORKSPACE FRAME ═══════════════════════════════════════════════════
+   Represents the ACCEPTED global shell faithfully (one top nav, one compact
+   Breakdown context row) — not redesigned in this checkpoint. Heights match
+   the real shell (--ws-top:54px; the Breakdown route's own compact context
+   row). */
+.app-frame{width:100vw;height:100vh;display:grid;grid-template-rows:54px 26px minmax(0,1fr);background:var(--gi-1)}
+
+.gi-shell-topbar{
+  display:flex;align-items:center;gap:24px;min-width:0;padding:0 var(--gi-4x);
+  border-bottom:1px solid var(--gi-7);background:var(--gi-2);
+}
+.gi-shell-brand{display:flex;align-items:center;gap:8px;color:var(--gi-12);font:700 15px var(--gi-cond);letter-spacing:.03em}
+.gi-shell-brand b{color:var(--gi-los)}
+.gi-shell-nav{display:flex;align-items:center;gap:2px}
+.gi-shell-nav button{
+  min-height:32px;padding:0 var(--gi-3x);border:0;background:transparent;color:var(--gi-bd-copy);
+  font:600 12.5px var(--gi-sans);cursor:pointer;border-bottom:2px solid transparent;
+}
+.gi-shell-nav button.is-active{color:var(--gi-12);border-bottom-color:var(--gi-los)}
+.gi-shell-status{margin-left:auto;display:flex;align-items:center;gap:var(--gi-3x)}
+.gi-film-pill{
+  display:inline-flex;align-items:center;gap:6px;padding:3px 10px;
+  border:1px solid var(--gi-6);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);text-transform:uppercase;letter-spacing:.04em;
+}
+.gi-film-pill::before{content:'';width:6px;height:6px;background:var(--gi-ok)}
+.gi-film-pill.is-missing{border-color:var(--gi-danger-border);color:var(--gi-turnover)}
+.gi-film-pill.is-missing::before{background:var(--gi-turnover)}
+.gi-film-pill.is-none{color:var(--gi-bd-muted)}
+.gi-film-pill.is-none::before{background:var(--gi-8)}
+.gi-shell-tools{display:flex;align-items:center;gap:4px}
+.gi-shell-tools button{
+  width:30px;height:30px;display:grid;place-items:center;border:1px solid transparent;
+  background:transparent;color:var(--gi-bd-copy);cursor:pointer;
+}
+.gi-shell-tools button:hover{border-color:var(--gi-7);background:var(--gi-3);color:var(--gi-12)}
+.gi-shell-more{
+  min-height:30px;padding:0 var(--gi-3x);border:1px solid var(--gi-7);background:var(--gi-3);
+  color:var(--gi-bd-copy);font:600 12px var(--gi-sans);cursor:pointer;
+}
+
+.gi-shell-context{
+  display:flex;align-items:center;gap:var(--gi-4x);min-width:0;padding:0 var(--gi-4x);
+  border-bottom:1px solid var(--gi-6);background:var(--gi-1);overflow:hidden;
+}
+.gi-ctx-item{display:flex;align-items:baseline;gap:6px;min-width:0;white-space:nowrap}
+.gi-ctx-item b{color:var(--gi-bd-muted);font:600 9.5px var(--gi-sans);letter-spacing:.08em;text-transform:uppercase}
+.gi-ctx-item span{color:var(--gi-bd-copy);font:600 11.5px var(--gi-sans);overflow:hidden;text-overflow:ellipsis}
+.gi-ctx-item i{color:var(--gi-bd-muted);font-style:normal;font-size:9px}
+
+/* ══ 2. SHARED PRIMITIVE — icon/command button ═══════════════════════════
+   One shape used for every transport/theater/toolbar icon action. */
+.gi-icon-command,.gi-play-command,.gi-theater-command{
+  min-height:var(--gi-hit);border:1px solid var(--gi-7);background:var(--gi-3);
+  color:var(--gi-12);font:var(--gi-text-control);cursor:pointer;box-shadow:var(--gi-edge);
+  transition:color var(--gi-quick),background var(--gi-quick),border-color var(--gi-quick);
+}
+.gi-icon-command{width:var(--gi-control);height:var(--gi-control);padding:0;display:inline-grid;place-items:center}
+.gi-icon-command:hover,.gi-theater-command:hover{background:var(--gi-4);border-color:var(--gi-8)}
+.gi-icon-command.is-active{color:var(--gi-bd-gold-ink);background:var(--gi-bd-gold);border-color:var(--gi-bd-gold)}
+.gi-play-command{width:var(--gi-control);height:var(--gi-control);padding:0;display:inline-grid;place-items:center;color:var(--gi-1);background:var(--gi-12);border-color:var(--gi-12);box-shadow:var(--gi-edge-strong)}
+.gi-play-command:hover{background:var(--gi-on-solid)}
+.gi-theater-command{padding:0 var(--gi-3x);white-space:nowrap}
+.gi-theater-command.is-danger{color:var(--gi-turnover);border-color:var(--gi-danger-border);background:var(--gi-danger-surface)}
+/* NEW (review round 3, finding 3): a command that cannot do anything must
+   not look pressable. Every transport/mark/clear/delete control, plus the
+   unit switch, is genuinely `disabled` (not just visually dimmed) whenever
+   there is no playable film -- see render()'s noPlayableFilm branch. */
+.gi-icon-command:disabled,.gi-play-command:disabled,.gi-theater-command:disabled,
+.gi-unit-switch button:disabled{opacity:.38;cursor:not-allowed;pointer-events:none;box-shadow:none}
+.gi-theater-command.is-danger:disabled{color:var(--gi-turnover);border-color:var(--gi-7);background:var(--gi-3)}
+.gi-breakdown-theater input:disabled,.gi-breakdown-theater select:disabled{opacity:.38;cursor:not-allowed}
+.gi-autoplay-toggle:has(input:disabled){opacity:.38;cursor:not-allowed}
+
+/* ══ 3. SHARED PRIMITIVE — segmented control ══════════════════════════════
+   Used for: Our Program/Opponent Scout, Chart/Film Room, Offense/Defense/Special
+   Teams unit. One shape, three jobs, so the coach reads them as one family
+   of controls rather than one-off pairs of buttons. */
+.gi-segment{display:flex;border:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-segment button{
+  min-height:var(--gi-control);padding:0 var(--gi-3x);border:0;border-right:1px solid var(--gi-7);
+  background:transparent;color:var(--gi-bd-copy);font:var(--gi-text-control);white-space:nowrap;cursor:pointer;
+  transition:background var(--gi-quick),color var(--gi-quick);
+}
+.gi-segment button:last-child{border-right:0}
+.gi-segment button:hover{background:var(--gi-4);color:var(--gi-12)}
+.gi-segment button.is-active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+/* Defense marks CONTEXT (the unit itself), so it earns cyan — the one place
+   a segmented control's active state is not gold. */
+.gi-segment button[data-tone="defense"].is-active{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-segment button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
+/* NEW (coach note, live pass): "Chart" and "Film Room" rendered at
+   different widths -- each button sized to its own content-fitted text
+   (buttons default to `width:auto`, and "Film Room" is simply longer than
+   "Chart"). `flex:1 1 0` alone does NOT equalize them: a flex item's
+   default `min-width:auto` substitutes its own min-content size as a
+   floor, so "Film Room" (the wider label) gets frozen at its own
+   min-content width during flex resolution and "Chart" absorbs 100% of
+   whatever's left -- confirmed directly (both computed `flex-grow:1`, yet
+   rendered 57px vs 86px). A shared, explicit `min-width` sized to the
+   longer label removes that floor's asymmetry outright: both buttons sit
+   at the identical width regardless of container size, and the shorter
+   label just centers within the extra room instead of the segment
+   silently redistributing space toward it. Scoped to this one segment;
+   Our Program/Opponent Scout and the Offense/Defense/Special Teams unit
+   switch keep their existing content-sized behavior, which wasn't
+   reported as a problem. */
+#modeSwitch button{flex:0 0 auto;min-width:90px;text-align:center}
+
+/* ══ ROUTE ═════════════════════════════════════════════════════════════ */
+.gi-breakdown-route{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--gi-1)}
+
+.gi-breakdown-toolbar{
+  display:flex;align-items:center;gap:var(--gi-3x);min-height:44px;padding:0 var(--gi-3x);
+  border-bottom:1px solid var(--gi-6);background:var(--gi-2);background-image:var(--gi-ramp);
+}
+/* Real button chrome AT REST (review finding 5) — these four previously had
+   a transparent border/background and only looked like controls on hover,
+   which read as background text the rest of the time. Border+background+
+   edge shadow now match every other command button in the app so they are
+   legible as commands before the coach ever touches them. */
+.gi-toolbar-tools{display:flex;align-items:center;gap:6px;margin-left:var(--gi-2x);padding-left:var(--gi-3x);border-left:1px solid var(--gi-6)}
+.gi-toolbar-tools button{
+  min-height:30px;padding:0 var(--gi-3x);border:1px solid var(--gi-7);background:var(--gi-3);
+  color:var(--gi-bd-copy);font:600 12px var(--gi-sans);display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  box-shadow:var(--gi-edge);
+}
+.gi-toolbar-tools button:hover{border-color:var(--gi-8);background:var(--gi-4);color:var(--gi-12)}
+.gi-toolbar-tools .icon{width:14px;height:14px;color:var(--gi-bd-copy)}
+/* Quick Chart and Film Focus both require a playable clip to do anything
+   useful -- disabled alongside the theater transport whenever there is no
+   film (review round 3, finding 4). Customize Fields and Game Settings
+   configure the game/library itself and stay available either way. */
+.gi-toolbar-tools button:disabled{opacity:.38;cursor:not-allowed;pointer-events:none;box-shadow:none}
+.gi-breakdown-save{
+  margin-left:auto;padding-left:var(--gi-3x);border-left:1px solid var(--gi-6);
+  color:var(--gi-bd-copy);font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.gi-breakdown-save::before{content:'';width:6px;height:6px;background:var(--gi-ok)}
+
+/* ══ 4. COMPOSITION — the recomposed core ═════════════════════════════════
+   Chart mode, MEDIUM/NARROW desktop (default, <1700px): FILM (flex) stacked
+   over a COMPACT PLAY BAND, beside the CHARTING DECK (fixed).
+   Chart mode, WIDE desktop (>=1700px): FILM (flex) · PLAY RAIL (fixed
+   sidebar) · DECK (fixed) — three columns, only once there is genuinely
+   spare width to give the rail without starving film or charting.
+   Film Room mode: FILM (fixed, narrower) · BREAKDOWN TABLE (flex, dominant).
+
+   REVISION (review round 2): round 1 fixed the three-column grid at every
+   width. Measured at 1280x720 and 1440x900 this (a) reserved rail+deck
+   width unconditionally, squeezing the theater column enough to clip
+   Clear Tags / Delete Play / the transport's right edge, and (b) at
+   1440x900 left roughly 200px of vertical theater space unused — the
+   dead space moved, it did not go away. The rail is now a genuinely
+   wide-screen-only idea: below 1700px the same play list renders as a
+   compact horizontal band UNDER the video, filling exactly the vertical
+   space a shorter theater leaves unused instead of taking width away
+   from film or the deck. At >=1700px there is real spare width for the
+   rail to earn its own column without costing either neighbor — that is
+   the genuine upgrade the rail still offers: far more plays at a glance
+   than a horizontal strip fits, once the width exists to support it. */
+.gi-breakdown-composition{min-width:0;min-height:0;display:grid}
+.gi-breakdown-composition[data-mode="chart"]{
+  grid-template-columns:minmax(0,1fr) clamp(400px,26vw,460px);
+  grid-template-rows:minmax(0,1fr) auto;
+  grid-template-areas:"theater deck" "rail deck";
+}
+.gi-breakdown-composition[data-mode="film-room"]{
+  grid-template-columns:minmax(440px,36%) minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr);
+  grid-template-areas:"theater deck";
+}
+@media (min-width:1700px){
+  .gi-breakdown-composition[data-mode="chart"]{
+    grid-template-columns:minmax(0,1fr) clamp(230px,15vw,300px) clamp(430px,24vw,480px);
+    grid-template-rows:minmax(0,1fr);
+    grid-template-areas:"theater rail deck";
+  }
+}
+.gi-breakdown-theater-host,.gi-play-rail,.gi-breakdown-deck,.gi-breakdown-filmroom-host{min-width:0;min-height:0;overflow:hidden}
+.gi-breakdown-theater-host{grid-area:theater;background:var(--gi-film);border-right:1px solid var(--gi-7)}
+.gi-breakdown-deck{grid-area:deck;overflow:auto;scroll-padding-bottom:68px;background:var(--gi-1)}
+.gi-breakdown-filmroom-host{grid-area:deck;overflow:hidden}
+[data-mode="film-room"] .gi-play-rail{display:none}
+[data-mode="chart"] .gi-breakdown-filmroom-host{display:none}
+[data-mode="film-room"] .gi-breakdown-deck{display:none}
+
+/* ══ RAIL — three genuinely different placements, not one squeezed into
+   three widths (review round 3, finding 2). Round 2's "compact band" was
+   still 128-192px tall, which is a full play-card's worth of height taken
+   directly out of the video at 1440/1280 — the black margins the review
+   measured were the video going HEIGHT-bound because it never had the
+   room to be anything else. Three tiers now:
+     <1350px   — the rail claims NOTHING beyond a slim command bar; the
+                 full list opens on demand as a bottom sheet.
+     1350-1699 — a single-row horizontal strip, one play-card tall (~84px).
+     >=1700px  — the full vertical sidebar (unchanged from round 2).
+   Every tier is a real, deliberate placement of the same data — not a
+   compromise, not a stack of ideas layered on top of each other. */
+.gi-play-rail{grid-area:rail;display:flex;flex-direction:column;background:var(--gi-2);border-top:1px solid var(--gi-7);height:auto}
+.gi-rail-head,.gi-rail-scroll{display:none}
+.gi-rail-strip{display:none}
+.gi-plays-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  min-height:34px;padding:0 var(--gi-3x);border:0;background:transparent;
+  color:var(--gi-bd-copy);font:600 12px var(--gi-sans);text-align:left;cursor:pointer;
+}
+.gi-plays-toggle .car{color:var(--gi-bd-muted);font-size:11px}
+.gi-rail-scrim{position:fixed;inset:0;background:var(--gi-scrim);z-index:6;display:none}
+.gi-rail-scrim.is-open{display:block}
+@media (max-width:1349.98px){
+  /* REVISION (review round 4, finding 2): this was `left/right: var(--gi-3x)`
+     -- a fixed overlay spanning the FULL viewport width, which sat directly
+     on top of the video, not beside it. Only the dim scrim (a genuine,
+     dismissible, coach-invoked modal backdrop -- the same pattern any
+     dialog on this surface already uses) may cover the film; the actual
+     play-list PANEL now anchors to the right at a bounded width, matching
+     roughly where the charting deck already sits, so the theater column and
+     the film inside it are never physically underneath the panel itself. */
+  .gi-play-rail.is-open{
+    position:fixed;left:auto;right:var(--gi-3x);bottom:var(--gi-3x);z-index:7;
+    width:min(80vw,380px);height:min(56vh,420px);border:1px solid var(--gi-7);background:var(--gi-2);
+    box-shadow:var(--gi-raise-2);display:grid;grid-template-rows:auto minmax(0,1fr);
+  }
+  .gi-play-rail.is-open .gi-rail-head,.gi-play-rail.is-open .gi-rail-scroll{display:flex}
+  .gi-play-rail.is-open .gi-rail-scroll{display:block;overflow-y:auto}
+  .gi-play-rail.is-open .gi-plays-toggle{display:none}
+}
+@media (min-width:1350px) and (max-width:1699.98px){
+  .gi-plays-toggle{display:none}
+  .gi-play-rail{height:84px}
+  .gi-rail-strip{display:flex;align-items:center;gap:6px;height:100%;padding:0 var(--gi-3x);overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+}
+@media (min-width:1700px){
+  .gi-plays-toggle{display:none}
+  .gi-rail-strip{display:none}
+  .gi-rail-head{display:flex;flex:0 0 auto}
+  .gi-rail-scroll{display:block;flex:1 1 auto;min-height:0}
+  .gi-play-rail{border-top:0;border-right:1px solid var(--gi-7);height:auto}
+}
+
+/* ══ 5. THEATER ═══════════════════════════════════════════════════════════ */
+.gi-breakdown-theater{width:100%;height:100%;min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto auto auto;background:var(--gi-film)}
+/* REVISION (review round 3, finding 2): stage padding halved -- the rail
+   fix freed vertical space, but chyron+transport+actions height was still
+   the binding constraint on the video's own available height at 1440 and
+   1280 (the stage is a 1fr grid row; everything else on this column is
+   `auto`, so the stage only ever gets what the other rows don't need).
+   This 4px-per-side padding change plus the trims on those three rows
+   below are what actually closes the remaining gap -- not more rail work. */
+.gi-theater-stage{min-width:0;min-height:0;padding:var(--gi-1x);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--gi-film);container-type:size}
+/* Real video cannot be embedded in a static comp. This is a disclosed,
+   composed stand-in (a broadcast-style color field, not a screenshot claim)
+   standing in for #videoContainer — see the design rationale. The width/height
+   formula is the standard container-query "contain" letterbox: it reproduces
+   exactly what the real <video style="object-fit:contain"> element does,
+   so the geometry claim (video is width-bound, ordinary vertical letterbox,
+   never height-squeezed) is demonstrated honestly rather than asserted. */
+.gi-video-stand-in{
+  position:relative;
+  width:min(100cqw,100cqh * 16 / 9);height:min(100cqh,100cqw * 9 / 16);
+  background:
+    radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.05),transparent 55%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 2px,transparent 2px 34px),
+    linear-gradient(180deg,#0b1420,#050a10 60%,#03060a);
+  border:1px solid var(--gi-6);box-shadow:var(--gi-raise-film);overflow:hidden;
+}
+.gi-video-stand-in .vsi-hash{position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,.05)}
+.gi-video-stand-in .vsi-yard{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.06)}
+.gi-video-stand-in .vsi-num{position:absolute;bottom:10%;color:rgba(255,255,255,.14);font:700 15%/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.gi-video-stand-in .vsi-badge{
+  position:absolute;top:10px;right:12px;padding:3px 9px;background:rgba(0,0,0,.5);
+  color:rgba(255,255,255,.55);font:700 10.5px var(--gi-cond);letter-spacing:.08em;text-transform:uppercase;
+}
+
+/* ── Film Room's narrower theater column (review finding 6) ────────────
+   Film Room's theater column is width-bound at ~440-550px, so the same
+   container-query "fill whichever dimension binds" formula used in Chart
+   mode produced a picture that was also height-capped near that width —
+   leaving a tall stage with real empty black space above and below the
+   video. Rather than stretch the video past its own aspect ratio (which
+   would distort it) or force the column wider (which was never the
+   complaint — the complaint was the DEAD SPACE, not the video's size),
+   the video here sizes off the column's WIDTH alone (ordinary responsive
+   video sizing, not the contain-formula chart mode needs), and the
+   vertical space that freed up is spent on a real "what am I looking at"
+   panel: the selected play's situation, call, and notes. That is useful
+   content, not filler — a coach glancing at Film Room's film pane can
+   read the play without looking away to the table. */
+.gi-breakdown-composition[data-mode="film-room"] .gi-theater-stage{
+  flex-direction:column;justify-content:flex-start;align-items:stretch;gap:var(--gi-3x);
+  padding:var(--gi-3x);overflow-y:auto;
+}
+.gi-breakdown-composition[data-mode="film-room"] .gi-video-stand-in{
+  width:100%;height:auto;aspect-ratio:16/9;flex:0 0 auto;align-self:center;max-width:100%;
+}
+.gi-filmroom-detail{
+  width:100%;flex:0 0 auto;display:grid;gap:5px;padding:10px var(--gi-3x);
+  border:1px solid var(--gi-7);border-top:2px solid var(--gi-bd-gold);background:var(--gi-2);box-shadow:var(--gi-edge);
+}
+[data-unit="defense"] .gi-filmroom-detail{border-top-color:var(--gi-bd-cyan)}
+.gi-filmroom-detail .fr-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gi-filmroom-detail .fr-head b{font:700 15px var(--gi-cond);color:var(--gi-12)}
+.gi-filmroom-detail .fr-head span{color:var(--gi-bd-copy);font:600 12px var(--gi-sans)}
+.gi-filmroom-detail .fr-call{font:700 15px var(--gi-sans);color:var(--gi-bd-gold)}
+[data-unit="defense"] .gi-filmroom-detail .fr-call{color:var(--gi-bd-cyan)}
+.gi-filmroom-detail .fr-meta{color:var(--gi-bd-copy);font:var(--gi-text-body)}
+.gi-filmroom-detail .fr-more{margin-top:2px}
+.gi-filmroom-detail .fr-more summary{list-style:none;color:var(--gi-bd-copy);font:600 11.5px var(--gi-sans);cursor:pointer}
+.gi-filmroom-detail .fr-more summary::-webkit-details-marker{display:none}
+.gi-filmroom-detail .fr-more summary::before{content:'▸ ';color:var(--gi-bd-muted)}
+.gi-filmroom-detail .fr-more[open] summary::before{content:'▾ '}
+.gi-filmroom-detail .fr-more[open] summary{margin-bottom:6px}
+.gi-filmroom-detail .fr-note{padding-top:8px;border-top:1px solid var(--gi-6);color:var(--gi-bd-copy);font:500 12.5px/1.4 var(--gi-sans);font-style:italic}
+.gi-filmroom-detail .fr-drive{margin-top:6px;color:var(--gi-bd-muted);font:600 11px var(--gi-sans);letter-spacing:.03em;text-transform:uppercase}
+
+/* Missing/failed + sparse empty states share one large, deliberately weighty
+   panel — never a small card lost in a black void. */
+.gi-stage-empty{
+  display:grid;place-items:center;gap:var(--gi-4x);width:min(92%,460px);padding:var(--gi-6x) var(--gi-6x);
+  border:1px solid var(--gi-7);background:var(--gi-2);text-align:center;box-shadow:var(--gi-edge),var(--gi-raise-2);
+}
+.gi-stage-empty .icon{width:34px;height:34px;color:var(--gi-bd-muted)}
+.gi-stage-empty.is-error .icon{color:var(--gi-turnover)}
+.gi-stage-empty h3{margin:0;color:var(--gi-12);font:700 19px var(--gi-cond)}
+.gi-stage-empty p{margin:0;color:var(--gi-bd-copy);font:var(--gi-text-body);max-width:340px}
+.gi-stage-empty p.is-file{color:var(--gi-bd-copy);font-family:var(--gi-mono);font-size:12px;word-break:break-all}
+.gi-stage-empty .gi-stage-actions{display:flex;gap:var(--gi-2x)}
+.gi-stage-empty button{min-height:var(--gi-hit);padding:0 var(--gi-4x);border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-12);font:var(--gi-text-control);cursor:pointer}
+.gi-stage-empty button.is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:700}
+.gi-stage-empty small{color:var(--gi-bd-muted);font:var(--gi-text-caption)}
+
+/* ── Chyron — below film, never over it. ─────────────────────────────── */
+.gi-theater-chyron{min-width:0;display:flex;align-items:stretch;background:var(--gi-bd-stage);border-top:2px solid var(--gi-bd-gold)}
+[data-unit="defense"] .gi-theater-chyron{border-top-color:var(--gi-bd-cyan)}
+.gi-chyron-id,.gi-chyron-cell{padding:4px 12px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--gi-6);min-width:0;flex:0 1 auto}
+/* The two long-text cells (our call / what we're facing) can carry a
+   sentence's worth of vocabulary -- capped so they can never crowd the
+   Result cell down to zero width on a narrower theater column; they still
+   ellipsize their own value rather than wrap or overflow. */
+.gi-chyron-cell.is-call{flex:1 1 160px;max-width:30%}
+.gi-chyron-cell.is-wide{flex:1 1 110px;min-width:90px;border-right:0}
+.gi-chyron-id{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+[data-unit="defense"] .gi-chyron-id{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-chyron-k{font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--gi-bd-copy)}
+.gi-chyron-id .gi-chyron-k{opacity:.75;color:inherit}
+.gi-chyron-v{margin-top:3px;font:600 13px/1 var(--gi-sans);color:var(--gi-12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-chyron-id .gi-chyron-v{font:700 21px/1 var(--gi-cond);font-stretch:75%}
+.gi-chyron-v.is-cond{font-family:var(--gi-cond);font-stretch:87.5%;font-weight:700}
+.gi-chyron-cell.is-def .gi-chyron-v{color:var(--gi-bd-cyan)}
+.gi-chyron-cell.is-off .gi-chyron-v{color:var(--gi-bd-gold)}
+.gi-chyron-cell.is-pos .gi-chyron-v{color:var(--gi-ok)}
+.gi-chyron-cell.is-neg .gi-chyron-v{color:var(--gi-turnover)}
+/* Film Room's theater column is intentionally narrower (the table is the
+   primary reader there), and the table already repeats the call/result --
+   so the chyron simplifies to situation-only rather than squeezing seven
+   cells into a column that no longer has room for them. */
+.gi-breakdown-composition[data-mode="film-room"] .gi-theater-chyron .gi-chyron-cell:nth-child(n+5){display:none}
+/* At <=1300px the theater column itself is only ~800-900px, and seven
+   stacked-label cells sharing it left every value ellipsis-truncated to
+   the point of being unreadable ("Ri...", "Gai...", even the play number
+   clipped to "4.") on a single-line pass at this width -- legibility, not
+   height, is what actually forces a reduction here (finding 2/4). Ball On
+   and Hash repeat information the Situation fields already show below, so
+   they are the two dropped; Play, Down & Distance, both calls and Result
+   keep their full stacked two-line layout and their full value text. */
+@media (max-width:1300px){
+  .gi-theater-chyron .gi-chyron-cell.is-secondary{display:none}
+  /* The chyron row is a `display:flex;align-items:stretch` strip, so every
+     cell is forced to the height of the TALLEST one -- the Play-number
+     cell, whose value line is a full 21px. Dropping it to 16px (still
+     visibly the largest, most prominent number in the row -- every other
+     value is 13px) shrinks the row every other cell is stretched to match,
+     which is the second half of finding 3's height recovery: freeing
+     chrome pixels wherever they exist, not only in the transport. */
+  .gi-chyron-id .gi-chyron-v{font-size:16px}
+}
+
+/* ── Transport ────────────────────────────────────────────────────────── */
+/* flex-wrap is the containment fix (review finding 2): rather than relying
+   on overflow:hidden upstream to hide whatever doesn't fit — which is what
+   let controls clip silently at 1280 — a too-narrow theater column now
+   drops the tools cluster to a second line instead of losing it off the
+   edge. The grid row this lives in is `auto`-sized, so wrapping costs a
+   few pixels of theater height, never a clipped or invisible control. */
+.gi-theater-transport{min-height:42px;padding:3px var(--gi-2x);display:flex;flex-wrap:wrap;row-gap:4px;align-items:center;gap:var(--gi-2x);border-top:1px solid var(--gi-6);background:var(--gi-1)}
+.gi-theater-transport-main{min-width:0;flex:1 1 auto;display:flex;align-items:center;gap:var(--gi-1x)}
+.gi-theater-transport-tools{flex:0 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:var(--gi-1x)}
+.gi-theater-time{flex:0 0 auto;min-width:46px;color:var(--gi-bd-copy);font:600 12px/1 var(--gi-mono);font-variant-numeric:var(--gi-num-feat);text-align:center;white-space:nowrap}
+.gi-theater-scrub{min-width:80px;flex:1;height:var(--gi-hit);margin:0 var(--gi-1x);accent-color:var(--gi-bd-gold);cursor:pointer}
+.gi-breakdown-theater select{min-height:var(--gi-hit);border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-12);font:500 12.5px var(--gi-mono)}
+/* REVISION (review round 3, finding 3): at <=1300px Loop/Speed/Drawing/
+   Angle/Full screen collapse into one compact trigger, freeing a full
+   control cluster's worth of transport width -- the recovered space goes
+   straight to the theater stage row's available height budget (this is the
+   named lever from the round-2 disclosure, not a fresh idea). Playback,
+   the timeline, the time readouts, and Mark Start/Mark End/Copy Last never
+   collapse -- they are the controls a coach uses on every single play. */
+.gi-transport-more{display:none}
+.gi-transport-more-trigger{min-width:36px;justify-content:center;font:700 15px/1 var(--gi-sans)}
+/* REVISION (review round 4, finding 2): the first version of this panel
+   opened UPWARD, as a labeled vertical list -- which meant it necessarily
+   grew taller than the transport row itself and landed on top of the video
+   above it (caught only once this was actually captured OPEN, not just
+   proven to exist closed). A vertical list can't stay inside one row's
+   height; a horizontal icon strip can.
+   REVISION (visual review, six-lens pass): the horizontal fix that replaced
+   it was itself still `position:absolute;right:100%` -- out of flow, so it
+   painted over whatever already occupied that space instead of displacing
+   it. Captured open, it silently hid the clip's total-duration readout and
+   the tail of the scrub track underneath its own opaque background; the
+   automated check only ever asked "does this touch the VIDEO stage", so it
+   never caught covering a sibling CONTROL. Fixed at the root: the panel is
+   now a genuine flex sibling of the trigger (order:-1 keeps it reading to
+   the trigger's left, matching the earlier decision), so opening it makes
+   `.gi-theater-transport-main` -- itself flex:1 1 auto, with the scrub
+   track's own flex:1/min-width:80px -- actually shrink to make room, the
+   same graceful-reflow contract this row's own flex-wrap already promises
+   everywhere else. Nothing is covered; nothing needs a z-index. */
+.gi-transport-more-panel{
+  order:-1;display:none;align-items:center;gap:2px;padding:0 6px;white-space:nowrap;
+  border:1px solid var(--gi-8);background:var(--gi-4);
+}
+.gi-transport-more.is-open .gi-transport-more-panel{display:flex}
+.gi-transport-more-panel button{min-width:30px;min-height:30px;justify-content:center;padding:0;border:0;background:transparent;color:var(--gi-12)}
+.gi-transport-more-panel button:hover{background:var(--gi-4)}
+.gi-transport-more-panel button .label{display:none}
+.gi-transport-more-panel select{min-height:26px;font-size:11px}
+@media (max-width:1300px){
+  .gi-theater-transport-tools{display:none}
+  .gi-transport-more{display:flex;align-items:center;gap:2px}
+  /* The row's min-height was sized for a <select> plus five icon buttons;
+     with those collapsed into one trigger, the row's own tallest remaining
+     control is the shared 30px icon-command floor, so the row can genuinely
+     shrink rather than just losing width it never needed at this height. */
+  .gi-theater-transport{min-height:36px;padding-block:2px}
+  .gi-theater-stage{padding:2px}
+}
+
+/* NEW (Round 4 repair, finding 3) -- Film Room's theater column is a FIXED
+   fraction of the viewport (`minmax(440px,36%)`), so it is always much
+   narrower than Chart mode's flexible column at the SAME viewport width.
+   Two real defects followed from sharing the unscoped rules above with a
+   column that narrow:
+   (a) at exactly 1280px, Chart's own collapse-to-"..." threshold (1300px)
+       already applies, but the collapsed row STILL didn't fit: the primary
+       transport controls (prev/step/play/step/next + both time readouts +
+       the scrub track) alone consumed the column's full width, so the "..."
+       trigger wrapped onto its own second line with nothing else on it --
+       an entire row spent on one 36px button.
+   (b) at 1440px, Chart's threshold hadn't engaged yet (>1300), so Film Room
+       showed the full five-tool cluster inline -- which ALSO didn't fit in
+       the narrow column and wrapped onto its own mostly-empty second line.
+   Measured directly (not assumed): Film Room's own column is 461px at
+   1280px and 518px at 1440px viewport width, while Chart's column at those
+   same widths is roughly 880px and 940px -- Chart's own accepted 1280/1440
+   layouts are untouched by this block because every rule here is scoped to
+   `[data-mode="film-room"]`. One fix, not two: force the compact overflow
+   trigger for Film Room specifically up to 1500px (comfortably covering
+   both 1280 and 1440 while leaving the already-fine 1920 capture alone),
+   and give the scrub track a genuine fixed floor instead of leaving it to
+   an ambient browser default. That default turned out to be the real
+   culprit: an unconstrained `<input type=range>` renders at its OWN
+   ~129px intrinsic preferred width for hypothetical-size purposes
+   regardless of `min-width`, which is what pushed the row past the column
+   the "..." trigger needed to share it -- confirmed with a forced,
+   shrink-disabled measurement before writing this rule, not inferred from
+   the CSS alone. `.gi-theater-transport-main` itself is prevented from
+   consuming the column's outer flex-grow share, so any leftover width
+   settles as ordinary trailing space after the trigger rather than as
+   swallowed dead space in the middle of the row (the two are visually
+   very different -- the first reads as a normal toolbar's own end margin,
+   the second reads as a control that's silently lost part of its row). */
+@media (max-width:1500px){
+  [data-mode="film-room"] .gi-theater-transport-tools{display:none}
+  [data-mode="film-room"] .gi-transport-more{display:flex;align-items:center;gap:2px}
+  [data-mode="film-room"] .gi-theater-transport{min-height:36px;padding-block:2px}
+  [data-mode="film-room"] .gi-theater-stage{padding:2px}
+  [data-mode="film-room"] .gi-theater-transport-main{flex:0 1 auto}
+  [data-mode="film-room"] .gi-theater-scrub{flex:0 1 104px;min-width:60px}
+  [data-mode="film-room"] .gi-theater-time{min-width:38px}
+  /* The actions row's risk group (Clear Tags / Delete Play) used
+     `margin-left:auto` to sit flush against the row's right edge -- a
+     normal, deliberate toolbar pattern WHEN there's room for all three
+     groups on one line (Film Room at 1920 still has that room and is left
+     untouched). Below 1500px the group no longer fits beside Mark Start/
+     Mark End/Copy Last + Autoplay, so it wraps -- and the stale auto-margin
+     then pushed it flush right on its OWN near-empty second line, leaving a
+     large, meaningless blank gap between the row's left edge and where the
+     two buttons actually start. Removing the auto-margin at this width lets
+     it wrap in normal left-to-right flow instead: two clean, left-aligned
+     rows (Mark Start/Mark End/Copy Last + Autoplay on the first, Clear
+     Tags/Delete Play on the second) rather than one deliberate row and one
+     orphaned, right-shoved one. */
+  [data-mode="film-room"] .gi-theater-actions-risk{margin-left:0}
+}
+
+/* ── Actions — charting shortcuts. Wraps rather than clips (finding 2). ── */
+.gi-theater-actions{min-height:36px;padding:3px var(--gi-2x);display:flex;flex-wrap:wrap;row-gap:6px;align-items:center;gap:var(--gi-3x);border-top:1px solid var(--gi-6);background:var(--gi-1)}
+.gi-theater-actions-primary,.gi-theater-actions-risk{display:flex;flex-wrap:wrap;align-items:center;gap:var(--gi-1x)}
+.gi-theater-actions-risk{margin-left:auto}
+.gi-theater-actions button{padding:0 var(--gi-2x);white-space:nowrap}
+.gi-theater-actions button.is-active{color:var(--gi-bd-gold-ink);background:var(--gi-bd-gold);border-color:var(--gi-bd-gold)}
+.gi-autoplay-toggle{min-height:var(--gi-hit);display:inline-flex;align-items:center;gap:var(--gi-1x);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);white-space:nowrap;cursor:pointer}
+.gi-autoplay-toggle input{accent-color:var(--gi-bd-gold)}
+
+/* ══ 6. PLAY RAIL — NEW component ═════════════════════════════════════════
+   `display` for .gi-play-rail and .gi-rail-head is NOT set here — it is
+   owned entirely by the tiered rules above (section 4), which decide, per
+   breakpoint, whether the sidebar head/list, the strip, or the on-demand
+   toggle is what's showing. Redeclaring it here would silently win the
+   cascade over those tier rules (later source wins at equal specificity)
+   and defeat the whole responsive scheme -- exactly the source-order
+   mistake this project's own history keeps flagging. */
+/* REVISION (Round 4 repair, finding 1): the on-demand panel had no close
+   affordance of its own -- the only ways out were re-pressing its own
+   trigger (now covered by the panel) or clicking the scrim, neither
+   disclosed. `.gi-rail-close` is an icon button in the on-demand panel's
+   header row itself, which stays pinned (the header is its own `auto` grid
+   row; only `.gi-rail-scroll` beneath it scrolls) so it's reachable no
+   matter how far the list is scrolled. */
+.gi-rail-head{align-items:center;justify-content:space-between;gap:8px;min-height:38px;padding:0 var(--gi-2x) 0 var(--gi-3x);border-bottom:1px solid var(--gi-6)}
+.gi-rail-head-label{display:flex;align-items:baseline;gap:8px;min-width:0}
+.gi-rail-head .gi-eyebrow{color:var(--gi-bd-muted);font:600 11px var(--gi-sans);letter-spacing:.05em;text-transform:uppercase}
+.gi-rail-head span{color:var(--gi-bd-copy);font:var(--gi-text-caption);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-rail-close{
+  flex:0 0 auto;width:26px;height:26px;display:grid;place-items:center;
+  border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);
+  font:700 13px/1 var(--gi-sans);cursor:pointer;
+}
+.gi-rail-close:hover{border-color:var(--gi-8);background:var(--gi-4);color:var(--gi-12)}
+@media (min-width:1350px){.gi-rail-close{display:none}}
+.gi-rail-head .gi-rail-scroll-hint{flex:0 0 20px;margin-left:auto;text-align:center;color:var(--gi-bd-copy);font:600 18px/1 var(--gi-sans)}
+.gi-rail-scroll-hint[hidden]{display:none}
+/* Firefox's own scrollbar tokens, kept for that engine; Chromium (and this
+   comp's headless capture target) ignores them entirely and needs its own
+   `::-webkit-scrollbar` rules below to render a visible, on-brand thumb
+   instead of falling back to the OS default. */
+.gi-rail-scroll{overflow-y:auto;padding:var(--gi-2x) 0 var(--gi-4x);scrollbar-width:thin;scrollbar-color:var(--gi-7) var(--gi-2)}
+.gi-rail-scroll::-webkit-scrollbar{width:9px}
+.gi-rail-scroll::-webkit-scrollbar-track{background:var(--gi-2)}
+.gi-rail-scroll::-webkit-scrollbar-thumb{background:var(--gi-7);border:2px solid var(--gi-2);background-clip:padding-box}
+.gi-rail-scroll::-webkit-scrollbar-thumb:hover{background:var(--gi-8)}
+.gi-rail-group h3{
+  display:inline-flex;align-items:center;height:auto;min-height:19px;margin:6px 0 4px var(--gi-2x);padding:0 16px 0 8px;
+  background:var(--gi-bd-lower-third-fill-bone);clip-path:var(--gi-lower-third);
+  color:var(--gi-12);font:600 10.5px/1 var(--gi-sans);letter-spacing:.06em;text-transform:uppercase;
+}
+.gi-rail-group.is-current h3{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+[data-unit="defense"] .gi-rail-group.is-current h3{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-play-row{
+  position:relative;width:100%;display:grid;grid-template-columns:auto minmax(0,52px) minmax(0,1fr) auto;
+  align-items:center;gap:8px;min-height:38px;padding:3px var(--gi-2x) 3px 10px;border:0;background:transparent;
+  color:var(--gi-12);text-align:left;cursor:pointer;
+}
+.gi-play-row::before{content:'';position:absolute;inset:2px auto 2px 0;width:3px;background:var(--gi-8)}
+.gi-play-row.is-run::before{background:var(--gi-run)}
+.gi-play-row.is-pass::before{background:var(--gi-pass)}
+.gi-play-row.is-score::before{background:var(--gi-first-down)}
+.gi-play-row.is-turnover::before{background:var(--gi-turnover)}
+.gi-play-row.is-score{box-shadow:inset -3px 0 0 var(--gi-first-down)}
+.gi-play-row.is-turnover{box-shadow:inset -3px 0 0 var(--gi-turnover)}
+.gi-play-row:hover{background:var(--gi-3)}
+.gi-play-row.is-current{background:var(--gi-5)}
+.gi-play-row.is-current[data-unit-row="offense"]{box-shadow:inset 3px 0 0 var(--gi-bd-gold)}
+.gi-play-row.is-current[data-unit-row="defense"]{box-shadow:inset 3px 0 0 var(--gi-bd-cyan)}
+.gi-play-row .rn{color:var(--gi-bd-copy);font:700 12px var(--gi-mono);font-variant-numeric:var(--gi-num-feat)}
+.gi-play-row .sit{color:var(--gi-12);font:700 13px/1.1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat);white-space:nowrap}
+.gi-play-row .call{min-width:0;color:var(--gi-bd-copy);font:500 11.5px/1.15 var(--gi-sans);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-play-row .res{flex:0 0 auto;color:var(--gi-bd-copy);font:600 11.5px var(--gi-sans);white-space:nowrap}
+.gi-play-row.is-score .res{color:var(--gi-first-down)}
+.gi-play-row.is-turnover .res{color:var(--gi-turnover)}
+/* No border/dashed-box (review finding 4) — a dashed box reads as "add
+   something here," which duplicates the video panel's own instruction.
+   This is a plain, subdued unavailable line. */
+.gi-rail-empty{margin:var(--gi-3x);padding:var(--gi-4x) var(--gi-3x);color:var(--gi-bd-muted);font:var(--gi-text-body);text-align:center}
+
+/* ── 1350-1699px compact strip — one row, ~84px, horizontally scrollable.
+   A different template from the sidebar list, not the sidebar list
+   squeezed shorter: no drive grouping (there is no vertical room for
+   section headers), each chip is self-contained. */
+/* REVISION (review round 3, finding 7): nine identically-bordered, filled
+   cards side by side read as a second dense instrumentation band, exactly
+   the "equal-weight chrome" the review is pushing back on across the whole
+   surface. An ordinary play now has no card at all -- no border, no fill --
+   it's spacing plus a thin separator hairline and its own left accent bar
+   (unchanged, still color-coded run/pass/score/turnover). Only three things
+   still earn real visual weight: the currently selected play (a filled
+   background, as before), and a scoring or turnover play (an outlined card
+   in its own semantic color, at rest, since those are the two situations a
+   coach actually wants to spot while scanning the strip, not every play). */
+.gi-strip-chip{
+  position:relative;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:1px;
+  min-width:76px;height:64px;padding:6px 10px 6px 13px;border:1px solid transparent;background:transparent;
+  color:var(--gi-12);cursor:pointer;text-align:left;
+}
+.gi-strip-chip+.gi-strip-chip{border-left:1px solid var(--gi-6)}
+.gi-strip-chip::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:var(--gi-8)}
+.gi-strip-chip.is-run::before{background:var(--gi-run)}
+.gi-strip-chip.is-pass::before{background:var(--gi-pass)}
+.gi-strip-chip.is-score::before{background:var(--gi-first-down)}
+.gi-strip-chip.is-turnover::before{background:var(--gi-turnover)}
+.gi-strip-chip.is-score{border-color:var(--gi-first-down)}
+.gi-strip-chip.is-turnover{border-color:var(--gi-turnover)}
+.gi-strip-chip:hover{background:var(--gi-4)}
+.gi-strip-chip.is-current{background:var(--gi-5);border-color:var(--gi-7)}
+.gi-strip-chip.is-current[data-unit-row="offense"]{box-shadow:inset 3px 0 0 var(--gi-bd-gold)}
+.gi-strip-chip.is-current[data-unit-row="defense"]{box-shadow:inset 3px 0 0 var(--gi-bd-cyan)}
+.gi-strip-chip .rn{color:var(--gi-bd-copy);font:700 11px var(--gi-mono);font-variant-numeric:var(--gi-num-feat)}
+.gi-strip-chip .sit{color:var(--gi-12);font:700 12.5px/1.1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.gi-strip-chip .res{color:var(--gi-bd-copy);font:600 10.5px var(--gi-sans)}
+.gi-strip-chip.is-score .res{color:var(--gi-first-down)}
+.gi-strip-chip.is-turnover .res{color:var(--gi-turnover)}
+.gi-rail-strip-empty{flex:1 1 auto;display:flex;align-items:center;color:var(--gi-bd-muted);font:var(--gi-text-caption)}
+
+/* ══ 7. CHARTING DECK — largely production-faithful, refined spacing ═════ */
+.gi-native-tagging{display:grid;min-width:0;min-height:0;background:var(--gi-1)}
+/* REVISION (visual review, "Charting" label pass): the eyebrow read as a
+   redundant explanation of a control the coach already knows they're in --
+   the whole deck below it IS the charting surface, and the row's own gold/
+   cyan unit rule already carries that signal. Removing it also exposed that
+   the row's 50px min-height was sized for three stacked lines; two lines
+   centered inside it read as loose, unintentional padding rather than a
+   composed header. The row now matches the 44px compact-header convention
+   used everywhere else in this comp (.gi-film-room-head, the toolbar), and
+   the two remaining lines carry one deliberate, even gap instead of two
+   uneven ones inherited from the removed line's different line-height. */
+.gi-tag-context{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:var(--gi-3x);min-height:44px;padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-bd-gold);background:var(--gi-1)}
+[data-unit="defense"] .gi-tag-context{border-bottom-color:var(--gi-bd-cyan)}
+.gi-tag-play-identity{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.gi-tag-play-identity h2{margin:0;font:var(--gi-text-display);color:var(--gi-12);white-space:nowrap}
+.gi-tag-play-identity p{margin:2px 0 0;color:var(--gi-bd-copy);font:600 12px/1 var(--gi-sans);white-space:nowrap}
+/* REVISION (review round 3, finding 4): this was a 1fr-per-segment grid
+   stretched across the ENTIRE remaining header width — at three segments
+   that reads as three large dashboard tiles, not a control, and it
+   competed with the play identity for the header's visual weight. It is
+   now the same compact, content-sized segmented control used everywhere
+   else in this comp (Our Program/Opponent Scout, Chart/Film Room): a standard
+   --gi-hit (30px) control, each segment sized to its own label, never
+   stretched. Special Teams is naturally a little wider because its label
+   is longer -- not because anything stretches it. Play identity stays the
+   header's primary information because the switch no longer claims most
+   of the row. */
+.gi-unit-switch{flex:0 0 auto;margin-left:auto;display:flex;border:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-unit-switch button{min-height:var(--gi-hit);padding:0 var(--gi-3x);border:0;border-left:1px solid var(--gi-7);background:transparent;color:var(--gi-bd-copy);font:600 12px var(--gi-sans);white-space:nowrap;cursor:pointer}
+.gi-unit-switch button:first-child{border-left:0}
+.gi-unit-switch button:hover{background:var(--gi-4);color:var(--gi-12)}
+.gi-unit-switch button.is-active{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-unit-switch button[data-unit="defense"].is-active{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-tag-subject{margin:0;padding:4px var(--gi-3x);color:var(--gi-warn);font:var(--gi-text-caption);background:var(--gi-warn-surface)}
+
+.gi-tag-actions{display:flex;align-items:center;gap:5px;min-width:0;padding:6px var(--gi-3x);border-bottom:1px solid var(--gi-6);background:var(--gi-2)}
+.gi-tag-actions button,.gi-tag-actions select{min-height:30px;padding:0 9px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 12px var(--gi-sans);cursor:pointer}
+.gi-tag-actions button:hover{border-color:var(--gi-8);background:var(--gi-4);color:var(--gi-12)}
+.gi-tag-actions button:disabled,.gi-tag-actions select:disabled{opacity:.38;cursor:not-allowed;pointer-events:none}
+.gi-tag-actions .gi-is-risk{margin-left:auto;color:var(--gi-turnover)}
+
+/* padding-bottom is the fix for review finding 3: a reserved buffer taller
+   than the sticky commit bar itself, so the last group's fields can never
+   end up sitting behind it once the deck is scrolled all the way down —
+   verified directly by capture.mjs, which scrolls the deck to bottom and
+   asserts the last group's content clears the bar's top edge. */
+.gi-native-form{display:grid;gap:1px;background:var(--gi-6);min-width:0;padding:0 0 68px}
+.gi-tag-group{min-width:0;background:var(--gi-2);border-left:3px solid var(--gi-bd-bone)}
+.gi-tag-group.is-def{border-left-color:var(--gi-bd-cyan)}
+.gi-tag-group>summary{list-style:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--gi-2x);min-height:38px;padding:0 var(--gi-3x) 0 0;cursor:pointer}
+.gi-tag-group>summary::-webkit-details-marker{display:none}
+.gi-tag-group>summary strong{
+  display:inline-flex;align-items:center;min-height:24px;padding:0 22px 0 var(--gi-3x);
+  background:var(--gi-bd-lower-third-fill);clip-path:var(--gi-lower-third);
+  color:var(--gi-12);font:600 12.5px var(--gi-sans);letter-spacing:0;text-transform:uppercase;
+}
+.gi-tag-group.is-def>summary strong{background:var(--gi-bd-lower-third-fill-cyan)}
+.gi-tag-group[open]>summary strong{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-tag-group.is-def[open]>summary strong{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-tag-group>summary span{min-width:0;overflow:hidden;color:var(--gi-bd-copy);font:var(--gi-text-caption);text-overflow:ellipsis;white-space:nowrap}
+.gi-tag-group>summary i{color:var(--gi-bd-copy);font-style:normal;transition:transform var(--gi-quick)}
+.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
+.gi-tag-group[open]>summary i{color:var(--gi-12)}
+.gi-tag-group-body{display:grid;gap:var(--gi-2x);padding:var(--gi-2x) var(--gi-3x) var(--gi-3x)}
+
+/* REVISION (review round 3, finding 7): field labels were 700-weight,
+   11.5px, all-caps -- every one of ~15 labels per screen reading as a
+   technical instrumentation tag. Sentence case (the HTML already carries
+   the correct casing; only the CSS forced it upper) at a calmer weight is
+   what turns "a form full of caps-lock labels" into ordinary operational
+   copy. Uppercase stays reserved for the handful of genuine section
+   eyebrows and the broadcast-style chyron -- not the majority of the
+   screen's text. */
+.gi-tag-field{display:grid;gap:5px;min-width:0}
+.gi-tag-field-label{display:flex;align-items:baseline;gap:6px;color:var(--gi-bd-copy);font:600 12.5px var(--gi-sans)}
+.gi-tag-field-label small{color:var(--gi-bd-muted);font:500 12px var(--gi-sans)}
+.gi-tag-chips{display:flex;flex-wrap:wrap;gap:var(--gi-1x)}
+.gi-tag-chips button{min-height:30px;padding:0 9px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 12px var(--gi-sans);cursor:pointer;transition:border-color var(--gi-quick),background var(--gi-quick),color var(--gi-quick)}
+.gi-tag-chips button:hover{border-color:var(--gi-8);background:var(--gi-4)}
+.gi-tag-chips button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);box-shadow:var(--gi-press)}
+.gi-tag-group.is-def .gi-tag-chips button.is-active{border-color:var(--gi-bd-cyan);background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-tag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:var(--gi-2x)}
+.gi-tag-input{display:grid;gap:4px;color:var(--gi-bd-copy);font:600 12.5px var(--gi-sans)}
+.gi-tag-input input,.gi-tag-input select{width:100%;min-height:32px;padding:6px 8px;border:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12);font:600 12px var(--gi-sans)}
+.gi-tag-situation-row{display:grid;align-items:end;gap:var(--gi-2x);min-width:0}
+.gi-tag-situation-row.is-primary{grid-template-columns:minmax(0,178px) minmax(0,108px) 66px}
+.gi-tag-situation-row.is-field{grid-template-columns:minmax(0,178px) minmax(0,108px) 66px}
+.gi-tag-input-distance,.gi-tag-input-yardLine{width:66px}
+.gi-tag-input-distance input,.gi-tag-input-yardLine input{width:66px;text-align:center;color:var(--gi-bd-copy)}
+/* REVISION (review round 3, finding 1): Quarter (5 chips) and Down (4
+   chips) were wrapping to a second internal line -- the vocabulary-chip
+   padding (9px each side) needed more width than the column had, even
+   though the column widths above already read as generous on paper. These
+   five/four values are single glyphs the coach reads at a glance, not
+   vocabulary the coach is scanning for meaning, so they can carry noticeably
+   tighter horizontal padding than a real vocabulary chip (Formation, Front,
+   etc.) while keeping the same 30px control-floor height. Scoped to
+   situation rows only via the row's own class -- no HTML change needed. */
+.gi-tag-situation-row .gi-tag-chips button{padding:0 6px}
+/* NEW (Round 4 repair, finding 2): Special Teams' "Possession spot" and its
+   Yard line were two full-width stacked rows -- the field-position chips on
+   their own row, then a full-width `.gi-tag-input` (which spans the whole
+   group body, since `.gi-tag-group-body` is a single-column grid) holding a
+   two-digit number in a control the width of the entire deck. Reuses the
+   EXACT compact pairing Situation's own field-position + yard-line row
+   already established (`.gi-tag-situation-row.is-field`'s second half) --
+   one row, a flexible chip field beside a fixed-width numeric input matching
+   `.gi-tag-input-yardLine`'s own 66px floor -- instead of inventing a new
+   size. The freed row height is spent automatically: nothing after this
+   group needed repositioning, since removing one full row moves every field
+   below it up by exactly that row's height. */
+.gi-tag-situation-row.is-special{grid-template-columns:minmax(0,1fr) 66px}
+
+.gi-play-call{display:grid;gap:6px;padding-bottom:var(--gi-2x);margin-bottom:2px;border-bottom:1px solid var(--gi-6)}
+.gi-play-call-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px}
+.gi-play-call-entry input{width:100%;min-height:34px;padding:6px 9px;border:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12);font:650 13px var(--gi-sans)}
+.gi-play-call-entry button{min-height:34px;padding:0 12px;border:1px solid var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font:700 12px var(--gi-sans);white-space:nowrap;cursor:pointer}
+.gi-play-call-quick{display:flex;flex-wrap:wrap;gap:4px}
+.gi-play-call-quick button{min-height:30px;padding:0 9px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 11.5px var(--gi-sans);cursor:pointer}
+.gi-play-call-quick button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+/* Bordered chip, not a bare accent-colored text link (review finding 5) —
+   a stray third color reads as system drift against the gold/cyan-only
+   Broadcast Density language this surface otherwise keeps to. */
+.gi-play-call-lib{margin-left:auto;min-height:22px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);cursor:pointer}
+.gi-play-call-lib:hover{border-color:var(--gi-8);background:var(--gi-4);color:var(--gi-12)}
+
+/* REVISION (Round 4 repair, finding 5): `align-items` defaulted to `stretch`
+   (the grid default), so a role card WITHOUT an open roster grid (shorter
+   natural content) was force-stretched to match its sibling's taller,
+   roster-expanded height. That alone wouldn't be visible -- the card's own
+   border/background is already invisible at rest -- except that each
+   card's OWN inner grid also defaults its content alignment to `normal`,
+   which computes to `stretch` for grid content in the block axis: with
+   extra height to fill and no explicit sizing on its own rows, the
+   collapsed card's label/input/select/toggle rows were EACH stretched
+   taller too, inflating a plain jersey-number input into a visibly
+   distorted, oversized box and throwing the two roles' labels out of
+   alignment by however many pixels of slack the taller sibling contributed.
+   `align-items:start` on the OUTER grid removes the coupling entirely: each
+   role card is sized to its own natural content, so an expanded roster
+   grows ONLY that card downward, its neighbor never stretches, and both
+   labels -- along with both jersey inputs and grade selects -- land at the
+   identical height regardless of which role (if either) has its roster
+   open. Verified directly: before this fix "Receiver" rendered at 33px tall
+   next to "Passer"'s correctly-sized 15px, purely from this coupling. */
+.gi-tag-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x);align-items:start}
+/* Passive (not-currently-focused) role card loses its border -- a visible
+   box around information nobody is acting on right now is exactly the
+   "equal-weight chrome" the review flagged (finding 7). The active card
+   keeps a real border because it's a genuine target, not passive info. */
+.gi-tag-players>div{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:var(--gi-1x);padding:var(--gi-2x) var(--gi-3x) var(--gi-3x);border:1px solid transparent;background:var(--gi-2)}
+.gi-tag-players>div.is-active{border-color:var(--gi-bd-gold);background:var(--gi-accent-surface);box-shadow:inset 0 0 0 1px var(--gi-bd-gold)}
+.gi-tag-players strong{grid-column:1/-1;color:var(--gi-bd-copy);font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.gi-tag-players input,.gi-tag-players select{min-height:32px;padding:0 6px;border:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12);font:650 15px var(--gi-cond)}
+.gi-player-quick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:2px;max-height:88px;overflow-y:auto}
+.gi-player-quick button{min-height:24px;padding:0 1px;border:1px solid var(--gi-6);background:var(--gi-2);color:var(--gi-12);font:650 11.5px/1 var(--gi-mono);font-variant-numeric:var(--gi-num-feat);cursor:pointer}
+.gi-player-quick button.is-active{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-player-roster-toggle{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--gi-6);background:var(--gi-2);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);cursor:pointer}
+.gi-player-roster-toggle:hover{border-color:var(--gi-8);color:var(--gi-12)}
+/* NEW (Round 4 repair, finding 5 + review's required "both expanded"
+   capture): every role now carries its OWN quick-pick grid in the markup
+   (previously only whichever role started expanded had one at all -- a
+   role that started collapsed had no roster to show even if toggled), with
+   a real, working click handler (see the script block) instead of static
+   decoration. `data-roster` genuinely gates visibility so a real "both
+   expanded" state is reachable, not just implied by two independent
+   screenshots. */
+[data-roster="closed"] .gi-player-quick{display:none}
+
+.gi-penalty-card{display:grid;gap:6px;padding:var(--gi-2x);border-left:3px solid var(--gi-first-down);background:var(--gi-1)}
+.gi-penalty-card header{display:flex;align-items:center;justify-content:space-between}
+.gi-penalty-empty{padding:var(--gi-3x);color:var(--gi-bd-muted);font:var(--gi-text-caption)}
+
+.gi-tag-group img.diagram{display:block;width:100%;max-width:280px;aspect-ratio:32/15;object-fit:contain;border:1px solid var(--gi-6);background:var(--gi-film)}
+
+.gi-tag-nav{position:sticky;bottom:0;z-index:3;display:grid;grid-template-columns:auto auto minmax(154px,1fr);align-items:center;gap:var(--gi-2x);min-height:56px;padding:var(--gi-2x) var(--gi-4x);border-top:1px solid var(--gi-6);background:var(--gi-2);box-shadow:var(--gi-raise-sticky)}
+.gi-tag-nav button{min-height:40px;padding-inline:var(--gi-3x);border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-12);font:var(--gi-text-control);cursor:pointer}
+.gi-tag-nav button:disabled{opacity:.42}
+.gi-tag-nav .is-primary{margin-left:var(--gi-2x);display:flex;align-items:center;justify-content:center;gap:var(--gi-2x);padding-inline:var(--gi-5x);border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:700}
+.gi-tag-nav kbd{padding:2px 5px;background:var(--gi-scrim-soft);color:inherit;font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+
+/* Deliberately SUBDUED (review finding 4) — this is an unavailable state,
+   not a second call to action. No icon, no heading weight, no fill: the
+   one real instruction lives on the video panel, and this panel only
+   explains why charting is inert right now. */
+.gi-tag-empty-panel{display:grid;place-items:center;gap:8px;min-height:200px;margin:var(--gi-4x);padding:var(--gi-6x);text-align:center;color:var(--gi-bd-muted)}
+.gi-tag-empty-panel p{margin:0;color:var(--gi-bd-copy);font:var(--gi-text-body);max-width:270px}
+.gi-tag-empty-panel small{color:var(--gi-bd-muted);font:var(--gi-text-caption)}
+
+/* ══ 8. FILM ROOM — brought onto the SAME gold/cyan language as Chart ═════
+   Prior finding: Film Room's active filter chips and eyebrow plate used the
+   shared blue --gi-los / --gi-lower-third-fill tokens, while Chart and the
+   Theater use the gold/cyan Broadcast Density tokens. That is the concrete
+   "does this feel like one system" defect the brief asks to check for —
+   fixed here by reassigning Film Room's own selectors, exactly the same
+   scoped-token pattern the Theater and Chart already use. */
+.gi-film-room{display:grid;grid-template-rows:auto auto minmax(0,1fr);min-width:0;min-height:0;height:100%;background:var(--gi-1)}
+.gi-film-room-head{display:flex;align-items:center;gap:14px;min-width:0;padding:0 var(--gi-3x);min-height:44px;border-bottom:1px solid var(--gi-6);background:var(--gi-2);background-image:var(--gi-ramp)}
+.gi-film-room-head .gi-eyebrow{
+  display:inline-flex;align-items:center;min-height:22px;padding:0 20px 0 9px;
+  background:var(--gi-bd-lower-third-fill);clip-path:var(--gi-lower-third);
+  color:var(--gi-12);font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
+}
+.gi-film-room-head p{margin:0;color:var(--gi-bd-copy);font:var(--gi-text-control);white-space:nowrap}
+.gi-film-room-actions{display:flex;gap:6px;margin-left:auto}
+.gi-film-room button{min-height:var(--gi-control);border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-12);font:var(--gi-text-control);cursor:pointer;box-shadow:var(--gi-edge)}
+.gi-film-room button:hover{border-color:var(--gi-8);background:var(--gi-4)}
+.gi-film-room button.is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+/* REVISION (review round 3, finding 6): every filter carried the same 1px
+   border as its neighbors, so the row read as one continuous strip of
+   spreadsheet-style instrumentation with no visual distinction for what
+   was actually engaged. Inactive filters now carry no border at all --
+   they read as plain text labels a coach can scan and click, not boxed
+   controls -- and the active filter gets the same solid gold fill used
+   for every other active state on this surface (unit switch, chips), so
+   it visibly pops out of the row instead of relying on a thin underline. */
+.gi-film-filters{display:flex;gap:4px;min-width:0;padding:5px var(--gi-3x);min-height:36px;align-items:center;border-bottom:1px solid var(--gi-6);overflow-x:auto}
+.gi-film-filters button{flex:0 0 auto;min-height:26px;padding:0 10px;border:1px solid transparent;background:transparent;color:var(--gi-bd-copy);font:600 11.5px var(--gi-sans);cursor:pointer}
+.gi-film-filters button:hover{color:var(--gi-12)}
+.gi-film-filters button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:700}
+.gi-film-table-wrap{position:relative;min-width:0;min-height:0;overflow:auto}
+.gi-film-table-wrap table{width:100%;min-width:900px;border-collapse:separate;border-spacing:0;font:var(--gi-text-body)}
+.gi-film-table-wrap thead{position:sticky;top:0;z-index:2;background:var(--gi-3);box-shadow:var(--gi-raise-1)}
+.gi-film-table-wrap th,.gi-film-table-wrap td{height:34px;padding:0;border-right:1px solid var(--gi-6);border-bottom:1px solid var(--gi-6);text-align:left}
+.gi-film-table-wrap thead th{padding:6px 9px;color:var(--gi-bd-copy);font:var(--gi-text-eyebrow);text-transform:uppercase;white-space:nowrap}
+.gi-film-table-wrap .is-check{position:sticky;left:0;z-index:3;width:36px;text-align:center;background:var(--gi-2)}
+.gi-film-table-wrap .is-play{position:sticky;left:36px;z-index:3;width:56px;background:var(--gi-2)}
+.gi-film-table-wrap tbody tr.is-current td,.gi-film-table-wrap tbody tr.is-current th{background:var(--gi-accent-surface)}
+.gi-film-table-wrap tbody tr.is-current .is-play{box-shadow:inset 3px 0 0 var(--gi-bd-gold)}
+.gi-film-table-wrap tbody tr.is-untagged{opacity:.62}
+.gi-film-table-wrap .is-play button{display:flex;align-items:center;gap:6px;width:100%;height:100%;padding:0 8px;border:0;background:transparent;color:inherit;font:700 13px/1 var(--gi-cond);cursor:pointer}
+.gi-film-table-wrap .is-play button span{display:grid;width:16px;height:16px;place-items:center;background:var(--gi-5);color:var(--gi-bd-copy);font:700 11px var(--gi-mono)}
+.gi-film-table-wrap td>button{display:block;width:100%;height:100%;min-height:34px;padding:0 9px;border:0;background:transparent;overflow:hidden;color:var(--gi-12);font:var(--gi-text-body);text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.gi-film-table-wrap td>button:hover{background:var(--gi-4)}
+.gi-film-table-wrap .is-td{color:var(--gi-first-down);font-weight:700}
+.gi-film-table-wrap .is-turnover{color:var(--gi-turnover);font-weight:700}
+.gi-film-table-wrap .is-empty{color:var(--gi-bd-muted)}
+
+/* ── Sparse Film Room (no plays) ─────────────────────────────────────── */
+.gi-film-empty{display:grid;min-height:220px;place-items:center;color:var(--gi-bd-muted);font:var(--gi-text-body)}
+
+/* ── Focus states, shared ──────────────────────────────────────────────── */
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+</style>
+</head>
+<body>
+
+<div class="qa-harness">
+  <button type="button" class="qa-toggle" onclick="document.querySelector('.qa-bar').classList.toggle('is-hidden')" title="Toggle reviewer controls">⚙</button>
+  <div class="qa-bar">
+    <strong>Chart — unit</strong>
+    <button data-set-state="chart-offense">Offense</button>
+    <button data-set-state="chart-defense">Defense</button>
+    <button data-set-state="chart-special">Special Teams</button>
+    <strong>Mode</strong>
+    <button data-set-state="film-room">Film Room</button>
+    <strong>Edge states</strong>
+    <button data-set-state="missing-film">Missing / failed film</button>
+    <button data-set-state="sparse">New game — no plays</button>
+  </div>
+</div>
+
+<div class="app-frame">
+  <!-- ══ shell top bar (accepted, represented) ══ -->
+  <header class="gi-shell-topbar">
+    <div class="gi-shell-brand">GRIDIRON <b>IQ</b></div>
+    <nav class="gi-shell-nav">
+      <button>Home</button>
+      <button class="is-active">Break Down</button>
+      <button>Study</button>
+      <button>Reports</button>
+      <button>Plan</button>
+    </nav>
+    <div class="gi-shell-status">
+      <span class="gi-film-pill" id="filmPill">Film linked</span>
+      <div class="gi-shell-tools">
+        <button title="Undo">↶</button>
+        <button title="Redo">↷</button>
+        <button title="Keyboard shortcuts">⌨</button>
+      </div>
+      <button class="gi-shell-more">More ▾</button>
+    </div>
+  </header>
+
+  <!-- ══ compact universal context bar (accepted, kept at its real height) ══ -->
+  <div class="gi-shell-context">
+    <div class="gi-ctx-item"><b>Program</b><span>St. Joseph Mavericks</span><i>▾</i></div>
+    <div class="gi-ctx-item"><b>Season</b><span>2026 Varsity</span><i>▾</i></div>
+    <div class="gi-ctx-item"><b>Game</b><span id="ctxGame">Wk 6 · vs. Lakeland Christian Crusaders</span><i>▾</i></div>
+  </div>
+
+  <main class="gi-breakdown-route">
+    <div class="gi-breakdown-toolbar">
+      <div class="gi-segment" role="group" aria-label="Perspective">
+        <button class="is-active">Our Program</button>
+        <button>Opponent Scout</button>
+      </div>
+      <div class="gi-segment" role="group" aria-label="Workspace mode" id="modeSwitch">
+        <button data-mode-btn="chart" class="is-active">Chart</button>
+        <button data-mode-btn="film-room">Film Room</button>
+      </div>
+      <div class="gi-toolbar-tools">
+        <button type="button" data-tool="quick-chart"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Quick Chart</button>
+        <button type="button" data-tool="customize-fields"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Customize Fields</button>
+        <button type="button" data-tool="game-settings"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Game Settings</button>
+        <button type="button" data-tool="film-focus"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Film Focus</button>
+      </div>
+      <div class="gi-breakdown-save">Saved</div>
+    </div>
+
+    <div class="gi-breakdown-composition" id="composition" data-mode="chart">
+
+      <!-- ══ THEATER (shared by both modes) ══ -->
+      <section class="gi-breakdown-theater-host">
+        <div class="gi-breakdown-theater" id="theater" data-unit="offense">
+          <div class="gi-theater-stage" id="stage">
+            <!-- populated video stand-in, swapped per state by JS -->
+          </div>
+          <div class="gi-theater-chyron" id="chyron"></div>
+          <div class="gi-theater-transport">
+            <div class="gi-theater-transport-main">
+              <button type="button" class="gi-icon-command" title="Previous clip"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="3" height="16"/><polygon points="20 4 9 12 20 20 20 4"/></svg></button>
+              <button type="button" class="gi-icon-command" title="Step back"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="3" height="16"/><polygon points="20 4 9 12 20 20 20 4"/></svg></button>
+              <button type="button" class="gi-play-command" title="Play"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+              <button type="button" class="gi-icon-command" title="Step forward"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="17" y="4" width="3" height="16"/><polygon points="4 4 15 12 4 20 4 4"/></svg></button>
+              <button type="button" class="gi-icon-command" title="Next clip"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="18" y="4" width="3" height="16"/><polygon points="4 4 15 12 4 20 4 4"/></svg></button>
+              <span class="gi-theater-time">0:07</span>
+              <input class="gi-theater-scrub" type="range" value="35">
+              <span class="gi-theater-time">0:19</span>
+            </div>
+            <div class="gi-theater-transport-tools">
+              <button type="button" class="gi-icon-command" title="Loop current play"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+              <select><option>1x</option></select>
+              <button type="button" class="gi-icon-command" title="Drawing tools"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button type="button" class="gi-icon-command" title="Add camera angle"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg></button>
+              <button type="button" class="gi-icon-command" title="Full screen"><span aria-hidden="true">⤢</span></button>
+            </div>
+            <div class="gi-transport-more" id="transportMore">
+              <button type="button" class="gi-icon-command gi-transport-more-trigger" id="transportMoreBtn" title="More playback tools" aria-haspopup="true" aria-expanded="false">⋯</button>
+              <div class="gi-transport-more-panel" id="transportMorePanel">
+                <button type="button" title="Loop current play"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span class="label">Loop current play</span></button>
+                <select title="Playback speed"><option>1x</option></select>
+                <button type="button" title="Drawing tools"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span class="label">Drawing tools</span></button>
+                <button type="button" title="Add camera angle"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg><span class="label">Add camera angle</span></button>
+                <button type="button" title="Full screen"><span aria-hidden="true">⤢</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="gi-theater-actions">
+            <div class="gi-theater-actions-primary">
+              <button type="button" class="gi-theater-command">[ Mark start</button>
+              <button type="button" class="gi-theater-command">] Mark end</button>
+              <button type="button" class="gi-theater-command">Copy last</button>
+            </div>
+            <label class="gi-autoplay-toggle"><input type="checkbox" checked><span>Autoplay next</span></label>
+            <div class="gi-theater-actions-risk">
+              <button type="button" class="gi-theater-command">Clear tags</button>
+              <button type="button" class="gi-theater-command is-danger">Delete play</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ NEW: PLAY RAIL (Chart mode only) — one component, three tiers.
+           Sidebar (head+scroll), strip (railStrip), and on-demand toggle
+           are all present at once; CSS media queries decide which of the
+           three is actually shown at the current width (see section 4/6). ══ -->
+      <aside class="gi-play-rail" id="playRail">
+        <div class="gi-rail-head">
+          <div class="gi-rail-head-label"><span class="gi-eyebrow">Plays</span><span id="railCount">67 plays · grouped by drive</span></div>
+          <span class="gi-rail-scroll-hint" id="railScrollHint" role="img" hidden></span>
+          <button type="button" class="gi-rail-close" id="playsClose" aria-label="Close plays browser">✕</button>
+        </div>
+        <div class="gi-rail-scroll" id="railScroll"></div>
+        <div class="gi-rail-strip" id="railStrip"></div>
+        <button type="button" class="gi-plays-toggle" id="playsToggle" aria-haspopup="true" aria-expanded="false">
+          <span id="playsToggleLabel">▤ Plays &middot; 67</span><span class="car">▴ open</span>
+        </button>
+      </aside>
+      <div class="gi-rail-scrim" id="playsScrim"></div>
+
+      <!-- ══ CHARTING DECK (Chart mode only) ══ -->
+      <section class="gi-breakdown-deck" id="deck"></section>
+
+      <!-- ══ FILM ROOM (Film Room mode only) ══ -->
+      <section class="gi-breakdown-filmroom-host">
+        <div class="gi-film-room" id="filmRoom"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+/* ═══ Fixture data + tiny state-render script. No production wiring — this
+   is a static comp; every control below is inert except the state switcher. */
+// REVISION (Round 4 repair, finding 4) -- these were the numbers this fix
+// exists to correct: the chyron used to hardcode its own values by unit
+// ALONE, with no idea which specific play was actually selected, so it
+// showed the SAME "Play 47 / 2nd & 12 / Gain +6" facts underneath every
+// unit's editor regardless of what that editor's own chip selections said.
+// `PLAY_FIXTURES` is now the one place these facts live; the chyron, the
+// Film Room detail card, and the rail's own "current" row all read from it
+// (or from `D.plays`/`D.filmRoom` entries built to agree with it) instead
+// of each hardcoding its own copy. Every value below was checked against
+// the corresponding DECKS.* markup's own active chip selections before
+// being written -- e.g. Defense's "Offense Faced" chips are Empty/Shotgun/
+// 00, so `lookValue` says exactly that, not a value from a different play.
+const PLAY_FIXTURES = {
+  offense: {
+    id: 47, ddText: '2nd &amp; 12', ballText: 'Own 38', hash: 'Right',
+    callLabel: 'OUR CALL', callValue: 'Trips Right Stick Draw',
+    lookLabel: 'DEFENSE FACED', lookValue: '4-2-5 Nickel · Cover 3 Zone',
+    resultText: 'Gain: +6', resultTone: 'pos',
+  },
+  defense: {
+    id: 52, ddText: '3rd &amp; 7', ballText: 'Opp 46', hash: 'Right',
+    callLabel: 'OUR CALL', callValue: 'Zone Blitz Fire X · Cover 1',
+    lookLabel: 'OFFENSE FACED', lookValue: 'Empty · Shotgun · 00 Personnel',
+    resultText: 'Sack: -8', resultTone: 'pos',
+  },
+  special: {
+    id: 61, ddText: '4th &amp; 8', ballText: 'Own 41', hash: 'Middle',
+    callLabel: 'PHASE', callValue: 'Punt · Downed',
+    lookLabel: '', lookValue: '',
+    resultText: 'Downed at Opp 12', resultTone: 'pos',
+  },
+};
+// Which play the rail/strip must highlight as "current" for each unit --
+// the same identity `PLAY_FIXTURES` describes, so the highlighted row can
+// never point at a different play than the one the deck/chyron are showing.
+const CURRENT_ID_BY_UNIT = { offense: 47, defense: 52, special: 61 };
+
+const D = {
+  plays: [
+    {n:44, drive:'Drive 8 — 3rd Qtr', unit:'offense', down:'1', dist:'10', call:'Zone Read Left', type:'Run Inside', result:'Gain', yds:4, kind:'run'},
+    {n:45, drive:'Drive 8 — 3rd Qtr', unit:'offense', down:'2', dist:'6', call:'26 Power O', type:'Run Outside', result:'Gain', yds:9, kind:'run'},
+    {n:46, drive:'Drive 8 — 3rd Qtr', unit:'offense', down:'1', dist:'10', call:'Zoom Jet Sweep', type:'Run Outside', result:'Loss', yds:-2, kind:'run'},
+    {n:47, drive:'Drive 8 — 3rd Qtr', unit:'offense', down:'2', dist:'12', call:'Trips Right Stick Draw', type:'Short Pass', result:'Gain', yds:6, kind:'pass'},
+    {n:48, drive:'Drive 8 — 3rd Qtr', unit:'offense', down:'3', dist:'6', call:'Y-Cross Naked', type:'Deep Pass', result:'Incomplete', yds:0, kind:'pass'},
+    {n:49, drive:'Drive 8 — 3rd Qtr', unit:'offense', down:'4', dist:'6', call:'Mesh Concept', type:'Medium Pass', result:'Interception', yds:0, kind:'turnover'},
+    {n:50, drive:'Drive 9 — 3rd Qtr · Defense', unit:'defense', down:'1', dist:'10', call:'3-3-5 Nickel · Cover 2 Man', type:'Deep Pass', result:'Incomplete', yds:0, kind:'run'},
+    {n:51, drive:'Drive 9 — 3rd Qtr · Defense', unit:'defense', down:'2', dist:'10', call:'4-2-5 Over · Cover 3 Match', type:'Run Inside', result:'Gain', yds:3, kind:'run'},
+    {n:52, drive:'Drive 9 — 3rd Qtr · Defense', unit:'defense', down:'3', dist:'7', call:'Zone Blitz Fire X · Cover 1', type:'Short Pass', result:'Sack', yds:-8, kind:'score'},
+    // NEW (Round 4 repair, finding 4): the special-teams state's own deck
+    // said "Play 61", but the rail's fixture list only ever went up to 52 --
+    // there was no play to highlight, so switching to the Special Teams
+    // state left the rail showing 47 (offense) as "current" underneath a
+    // completely different selected play. Added as its own drive (a punt is
+    // ordinarily the last snap of a drive), matching DECKS.special exactly:
+    // 4th & 8, Punt, Downed.
+    {n:61, drive:'Drive 10 — 4th Qtr · Special Teams', unit:'special', down:'4', dist:'8', call:'Punt · Downed', type:'Punt', result:'Downed', yds:0, kind:'run'},
+  ],
+  filmRoom: [
+    {n:41, dd:'1st & 10', call:'Zone Read Left', form:'Wing-T', qb:'Under Center', type:'Run Inside', result:'Gain', yds:4},
+    {n:42, dd:'2nd & 6', call:'26 Power O', form:'I-Form Ace', qb:'Under Center', type:'Run Outside', result:'Gain', yds:9},
+    {n:43, dd:'3rd & 2', call:'Sneak', form:'I-Form Ace', qb:'Under Center', type:'Run Inside', result:'Touchdown', yds:2, td:true},
+    {n:44, dd:'1st & 10', call:'Zone Read Left', form:'Wing-T', qb:'Under Center', type:'Run Inside', result:'Gain', yds:4},
+    {n:45, dd:'2nd & 6', call:'26 Power O', form:'I-Form Ace', qb:'Under Center', type:'Run Outside', result:'Gain', yds:9},
+    {n:46, dd:'1st & 10', call:'Zoom Jet Sweep', form:'Trips Right', qb:'Shotgun', type:'Run Outside', result:'Loss', yds:-2},
+    {n:47, dd:'2nd & 12', call:'Trips Right Stick Draw', form:'Trips Right', qb:'Shotgun', type:'Short Pass', result:'Gain', yds:6, current:true},
+    {n:48, dd:'3rd & 6', call:'Y-Cross Naked', form:'Bunch Left', qb:'Shotgun', type:'Deep Pass', result:'Incomplete', yds:0},
+    {n:49, dd:'4th & 6', call:'Mesh Concept', form:'Doubles', qb:'Shotgun', type:'Medium Pass', result:'Interception', yds:0, to:true},
+    {n:50, dd:'1st & 10', call:'Punt Coverage', form:'—', qb:'—', type:'Punt', result:'Downed', yds:0},
+    {n:51, dd:'2nd & 10', call:'3-3-5 Nickel', form:'Bunch Right', qb:'Shotgun', type:'Deep Pass', result:'Incomplete', yds:0},
+    {n:52, dd:'3rd & 7', call:'Zone Blitz Fire X', form:'Empty', qb:'Shotgun', type:'Short Pass', result:'Sack', yds:-8},
+    {n:53, dd:'1st & 10', call:'Split Zone', form:'I-Form Ace', qb:'Under Center', type:'Run Inside', result:'Gain', yds:5},
+    {n:54, dd:'2nd & 5', call:'Boot Waggle 96', form:'Wing-T', qb:'Under Center', type:'Play Action', result:'Gain', yds:11},
+    {n:55, dd:'1st & 10', call:'RPO Bubble', form:'Trips Left', qb:'Shotgun', type:'RPO', result:'Gain', yds:7},
+    {n:56, dd:'2nd & 3', call:'Dive', form:'I-Form Ace', qb:'Under Center', type:'Run Inside', result:'Touchdown', yds:3, td:true},
+  ],
+};
+// REVISION (Round 4 repair, finding 4) -- rail HTML is now built PER
+// RENDER, parameterized by `currentId`, instead of once at load time from a
+// static `p.current` flag. Two real bugs closed by this: (1) the highlighted
+// play never updated when the coach state-switched to a different unit, so
+// switching to Defense or Special Teams kept Play 47 (offense) highlighted
+// under a completely different selected play; (2) the drive-GROUP header's
+// own `.is-current` gold treatment checked `p.current` on whichever play
+// happened to be FIRST in that drive during the reduce, not on whether the
+// group genuinely contained the current play -- since the current play in
+// this fixture is never the first play of its own drive, the group header
+// highlight could never actually fire. Grouping is now done in a real
+// pre-pass (`groupByDrive`) so `.some()` can check the WHOLE group's plays,
+// not just the one the old reduce happened to be looking at when it decided
+// to open a new group.
+function groupByDrive(plays) {
+  const groups = [];
+  for (const p of plays) {
+    const g = groups[groups.length - 1];
+    if (!g || g.drive !== p.drive) groups.push({ drive: p.drive, unit: p.unit, plays: [p] });
+    else g.plays.push(p);
+  }
+  return groups;
+}
+function ddSuffix(down) { return down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'; }
+function buildRailHtml(plays, currentId) {
+  return groupByDrive(plays).map((g) => {
+    const hasCurrent = g.plays.some((p) => p.n === currentId);
+    const rows = g.plays.map((p) => {
+      const isCurrent = p.n === currentId;
+      return `<button type="button" class="gi-play-row is-${p.kind}${isCurrent ? ' is-current' : ''}" data-unit-row="${p.unit}">
+    <span class="rn">${p.n}</span><span class="sit">${p.down}${ddSuffix(p.down)} &amp; ${p.dist}</span>
+    <span class="call">${p.call} · ${p.type}</span><span class="res">${p.result}${p.yds?(p.yds>0?' +'+p.yds:' '+p.yds):''}</span></button>`;
+    }).join('');
+    return `<div class="gi-rail-group${hasCurrent ? ' is-current' : ''}"${g.unit === 'defense' ? ' data-unit-row="defense"' : ''}><h3>${g.drive}</h3>${rows}</div>`;
+  }).join('');
+}
+
+// Tier-2 (1350-1699px) compact strip — a flat row of chips, no drive
+// grouping (there's no vertical room for section headers at this height).
+function railStripHtml(plays, currentId) {
+  if (!plays.length) return '<div class="gi-rail-strip-empty">Plays will appear here once film is added.</div>';
+  return plays.map(p => `<button type="button" class="gi-strip-chip is-${p.kind}${p.n === currentId ? ' is-current' : ''}" data-unit-row="${p.unit}">
+    <span class="rn">${p.n}</span><span class="sit">${p.down}${ddSuffix(p.down)}&amp;${p.dist}</span>
+    <span class="res">${p.result}${p.yds?(p.yds>0?' +'+p.yds:' '+p.yds):''}</span></button>`).join('');
+}
+
+// Tier-3 (<1350px) on-demand bottom sheet. The toggle bar reserves ~34px
+// permanently; the full list only exists in layout while explicitly open.
+// REVISION (Round 4 repair, finding 1): closing was previously reachable
+// only by re-pressing the (now-covered) trigger or clicking the scrim, with
+// no disclosed affordance and no Escape/focus-return contract -- exactly
+// what a real modal-ish overlay needs and this one lacked. `setPlaysOpen`
+// is now the single owner of both open AND close, and every dismissal path
+// (explicit ✕, Escape, scrim click) returns focus to the trigger that
+// opened it, matching this comp's own already-established overlay pattern
+// (the transport-overflow menu already returns focus implicitly since it
+// never moves it away; the Plays browser genuinely relocates focus into a
+// fixed-position panel, so it must genuinely give it back).
+function updateRailScrollHint() {
+  const list = document.getElementById('railScroll');
+  const hint = document.getElementById('railScrollHint');
+  const above = list.scrollTop > 1;
+  const below = list.scrollHeight - list.clientHeight - list.scrollTop > 1;
+  hint.hidden = !list.clientHeight || (!above && !below);
+  hint.textContent = above ? (below ? '↕' : '↑') : '↓';
+  const label = above ? (below ? 'More plays above and below' : 'More plays above') : 'More plays below';
+  hint.title = label;
+  hint.setAttribute('aria-label', label);
+}
+const railList = document.getElementById('railScroll');
+railList.addEventListener('scroll', updateRailScrollHint, { passive: true });
+new ResizeObserver(updateRailScrollHint).observe(railList);
+window.matchMedia('(min-width:1350px)').addEventListener('change', (event) => {
+  if (event.matches) setPlaysOpen(false, { silent: true });
+});
+
+function setPlaysOpen(open, opts) {
+  const wasOpen = document.getElementById('playRail').classList.contains('is-open');
+  document.getElementById('playRail').classList.toggle('is-open', open);
+  document.getElementById('playsScrim').classList.toggle('is-open', open);
+  document.getElementById('playsToggle').setAttribute('aria-expanded', String(open));
+  const car = document.querySelector('#playsToggle .car');
+  if (car) car.textContent = open ? '▾ close' : '▴ open';
+  requestAnimationFrame(updateRailScrollHint);
+  if (open) {
+    document.getElementById('playsClose').focus();
+  } else if (wasOpen && !(opts && opts.silent)) {
+    document.getElementById('playsToggle').focus();
+  }
+}
+document.getElementById('playsToggle').addEventListener('click', () => {
+  setPlaysOpen(!document.getElementById('playRail').classList.contains('is-open'));
+});
+document.getElementById('playsClose').addEventListener('click', () => setPlaysOpen(false));
+document.getElementById('playsScrim').addEventListener('click', () => setPlaysOpen(false));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('playRail').classList.contains('is-open')) {
+    setPlaysOpen(false);
+  }
+});
+
+// The narrow-width transport overflow menu (review round 3, finding 3).
+// A plain toggle + outside-click/Escape close -- no scrim, since the panel
+// is small and anchored, not a full route takeover like the play rail.
+function setTransportMoreOpen(open) {
+  const wrap = document.getElementById('transportMore');
+  wrap.classList.toggle('is-open', open);
+  document.getElementById('transportMoreBtn').setAttribute('aria-expanded', String(open));
+}
+document.getElementById('transportMoreBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  setTransportMoreOpen(!document.getElementById('transportMore').classList.contains('is-open'));
+});
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('transportMore');
+  if (wrap.classList.contains('is-open') && !wrap.contains(e.target)) setTransportMoreOpen(false);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setTransportMoreOpen(false); });
+
+// NEW (Round 4 repair, finding 5) -- real Show/Hide roster behavior. Every
+// role card now carries a genuine `data-roster` state and its own
+// `.gi-player-quick` grid (previously a role that started collapsed had no
+// roster markup to reveal at all), so this is delegated on `document`
+// because the deck's own innerHTML is replaced wholesale on every render().
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.gi-player-roster-toggle');
+  if (!btn) return;
+  const card = btn.closest('[data-roster]');
+  if (!card) return;
+  const open = card.dataset.roster !== 'open';
+  card.dataset.roster = open ? 'open' : 'closed';
+  btn.textContent = open ? '▾ Hide roster' : '▸ Show roster';
+  btn.setAttribute('aria-expanded', String(open));
+});
+
+// REVISION (Round 4 repair, finding 4) -- every value below now comes from
+// `PLAY_FIXTURES[unit]` instead of independent per-field ternaries. This is
+// what closes the reported defect directly: Defense's editor showed Play
+// 52/3rd & 7 while the chyron STILL said Play 47/2nd & 12 (the ternaries
+// only ever branched on `unit` for LABEL text, never for which play's data
+// to show), and Special Teams' chyron hardcoded "Hash: Right" even though
+// the deck's own Hash chip was Middle. Both are now structurally impossible
+// -- there is exactly one place these facts are written.
+function chyronHtml(unit) {
+  const f = PLAY_FIXTURES[unit] || PLAY_FIXTURES.offense;
+  const isDef = unit === 'defense';
+  return `
+    <div class="gi-chyron-id"><span class="gi-chyron-k">Play</span><span class="gi-chyron-v">${f.id}</span></div>
+    <div class="gi-chyron-cell"><span class="gi-chyron-k">Down &amp; Distance</span><span class="gi-chyron-v is-cond">${f.ddText}</span></div>
+    <div class="gi-chyron-cell is-secondary"><span class="gi-chyron-k">Ball On</span><span class="gi-chyron-v is-cond">${f.ballText}</span></div>
+    <div class="gi-chyron-cell is-secondary"><span class="gi-chyron-k">Hash</span><span class="gi-chyron-v">${f.hash}</span></div>
+    <div class="gi-chyron-cell is-call ${isDef?'is-def':'is-off'}"><span class="gi-chyron-k">${f.callLabel}</span><span class="gi-chyron-v" title="${f.callValue}">${f.callValue}</span></div>
+    ${f.lookLabel ? `<div class="gi-chyron-cell is-call"><span class="gi-chyron-k">${f.lookLabel}</span><span class="gi-chyron-v" title="${f.lookValue}">${f.lookValue}</span></div>` : ''}
+    <div class="gi-chyron-cell is-wide is-${f.resultTone}"><span class="gi-chyron-k">Result</span><span class="gi-chyron-v">${f.resultText}</span></div>`;
+}
+
+function videoStandIn(kind) {
+  if (kind === 'missing') return `<div class="gi-stage-empty is-error">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <h3>Film unavailable</h3>
+      <p>Couldn&rsquo;t play the linked clip &mdash; the file may have moved or the format isn&rsquo;t supported.</p>
+      <p class="is-file">Week6_vs_Lakeland_Sideline.mov</p>
+      <div class="gi-stage-actions">
+        <button type="button" class="is-primary">Re-link folder</button>
+        <button type="button">Open folder</button>
+      </div>
+      <small>Supported formats: MP4, MOV, WebM</small>
+    </div>`;
+  if (kind === 'empty') return `<div class="gi-stage-empty">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>
+      <h3>Add game film</h3>
+      <p>Link a folder or add a video for Week 7 vs. Cedar Ridge Timberwolves. Charting and the play list open automatically once film is available.</p>
+      <div class="gi-stage-actions">
+        <button type="button" class="is-primary">Add video</button>
+        <button type="button">Add folder</button>
+      </div>
+      <small>or drop a video or folder here</small>
+    </div>`;
+  return `<div class="gi-video-stand-in">
+      <div class="vsi-badge">Wk 6 · vs. Lakeland</div>
+      <div class="vsi-hash" style="top:32%"></div><div class="vsi-hash" style="top:68%"></div>
+      <div class="vsi-yard" style="left:38%"></div><div class="vsi-num" style="left:36%">38</div>
+    </div>`;
+}
+
+// NEW (review finding 6) — fills Film Room's freed-up vertical space with
+// the selected play's real context instead of leaving it empty. Data
+// matches the same "Play 47" fixture used by the offense chyron/rail, so
+// the two surfaces never disagree about the current play.
+// REVISION (review round 3, finding 6): the note + drive position clipped
+// at 1280x720, where the stage has the least height to give. Situation,
+// call, and result now ALWAYS stay visible (never inside the disclosure);
+// the note and drive position move behind a real <details> toggle whose
+// open/closed default is decided once, in render(), by measuring the
+// viewport rather than guessing -- open at 1440/1920 (there's room), closed
+// at 1280 (there isn't). No card is ever partially visible or internally
+// scrolled to show it.
+// REVISION (Round 4 repair, finding 4): pulls from the SAME offense
+// fixture the chyron reads (Film Room's theater is always unit=offense in
+// this comp) instead of an independently hardcoded copy -- this is what was
+// carrying the stale "Cover 3 Match" text (the deck's own Coverage Family
+// chip is Zone, not Match) even after the chyron itself got the correction.
+function filmRoomDetailHtml() {
+  const f = PLAY_FIXTURES.offense;
+  return `<div class="gi-filmroom-detail">
+    <div class="fr-head"><b>Play ${f.id}</b><span>${f.ddText} · ${f.ballText} · ${f.hash} hash</span></div>
+    <div class="fr-call">${f.callValue}</div>
+    <div class="fr-meta">Short Pass · ${f.resultText} · vs. ${f.lookValue}</div>
+    <details class="fr-more">
+      <summary>More detail</summary>
+      <div class="fr-note">&ldquo;Naked boot away from trips, backside crosser open behind the Cover 3 rotation.&rdquo;</div>
+      <div class="fr-drive">Drive 8 &middot; 3rd Quarter &mdash; clip 4 of 6</div>
+    </details>
+  </div>`;
+}
+
+const DECKS = {};
+DECKS.offense = `
+  <div class="gi-tag-context">
+    <div class="gi-tag-play-identity"><h2>Play 47</h2><p>47 of 67 tagged</p></div>
+    <div class="gi-unit-switch" role="group" aria-label="Charting unit">
+      <button class="is-active">Offense</button><button data-unit="defense">Defense</button><button>Special Teams</button>
+    </div>
+  </div>
+  <div class="gi-tag-actions">
+    <button type="button">Same as Last</button>
+    <select><option>Templates</option></select>
+    <button type="button">Save Template</button>
+    <button type="button" class="gi-is-risk">Delete</button>
+  </div>
+  <div class="gi-native-form">
+    <details class="gi-tag-group" open>
+      <summary><strong>Situation</strong><span>quarter, down, distance, field position</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-situation-row is-primary">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Quarter</span></div><div class="gi-tag-chips"><button>Q1</button><button>Q2</button><button class="is-active">Q3</button><button>Q4</button><button>OT</button></div></div>
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Down</span></div><div class="gi-tag-chips"><button>1</button><button class="is-active">2</button><button>3</button><button>4</button></div></div>
+          <div class="gi-tag-input gi-tag-input-distance"><span>Distance</span><input value="12"></div>
+        </div>
+        <div class="gi-tag-situation-row is-field">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Hash</span></div><div class="gi-tag-chips"><button>Left</button><button>Middle</button><button class="is-active">Right</button></div></div>
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Field position</span></div><div class="gi-tag-chips"><button class="is-active">Own</button><button>Opp</button></div></div>
+          <div class="gi-tag-input gi-tag-input-yardLine"><span>Yard line</span><input value="38"></div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Our Offensive Look</strong><span>formation, alignment, personnel</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-play-call">
+          <div class="gi-tag-field-label"><span>Play Call</span><small>Concept: Stick Draw</small><button class="gi-play-call-lib">Edit Library</button></div>
+          <div class="gi-play-call-entry"><input value="Trips Right Stick Draw"><button type="button">Use call</button></div>
+          <div class="gi-play-call-quick"><button class="is-active">★ Trips Right Stick Draw</button><button>26 Power O</button><button>Zoom Jet Sweep</button><button>Y-Cross Naked</button></div>
+        </div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Formation</span><small>select all</small></div><div class="gi-tag-chips"><button>Wing-T</button><button>I-Form Ace</button><button class="is-active">Trips</button><button>Bunch</button><button>Doubles</button><button>Empty</button><button>Split Back</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>QB Alignment</span><small>optional</small></div><div class="gi-tag-chips"><button>Under Center</button><button>Pistol</button><button class="is-active">Shotgun</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Backfield</span><small>optional</small></div><div class="gi-tag-chips"><button>Single</button><button class="is-active">Split</button><button>I</button><button>Empty</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Strength</span></div><div class="gi-tag-chips"><button class="is-active">Right</button><button>Left</button><button>Balanced</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Personnel</span></div><div class="gi-tag-chips"><button>10</button><button class="is-active">11</button><button>12</button><button>21</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Motion</span></div><div class="gi-tag-chips"><button class="is-active">Jet</button><button>Orbit</button><button>Shift</button><button>Trade</button></div></div>
+      </div>
+    </details>
+    <details class="gi-tag-group is-def">
+      <summary><strong>Defense Faced</strong><span>front, coverage, pressure</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Front</span><small>select all</small></div><div class="gi-tag-chips"><button class="is-active">4-2-5 Nickel</button><button>3-3-5</button><button>4-3</button><button>Dime</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Coverage Call</span></div><div class="gi-tag-chips"><button>Cover 1</button><button>Cover 2</button><button class="is-active">Cover 3</button><button>Cover 4</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Coverage Family</span><small>optional</small></div><div class="gi-tag-chips"><button>Man</button><button class="is-active">Zone</button><button>Match</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Blitz</span></div><div class="gi-tag-chips"><button>A-Gap</button><button>Edge</button><button>DB Blitz</button></div></div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Play &amp; Result</strong><span>call, direction, outcome</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Run / Pass</span></div><div class="gi-tag-chips"><button>Run</button><button class="is-active">Pass</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Play Type</span></div><div class="gi-tag-chips"><button>Run Inside</button><button>Run Outside</button><button>Screen</button><button class="is-active">Short Pass</button><button>Medium Pass</button><button>Deep Pass</button><button>RPO</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Direction</span></div><div class="gi-tag-chips"><button class="is-active">Left</button><button>Middle</button><button>Right</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Result</span></div><div class="gi-tag-chips"><button class="is-active">Gain</button><button>Loss</button><button>No Gain</button><button>Incomplete</button><button>TD</button><button>Sack</button><button>INT</button><button>Fumble</button></div></div>
+        <div class="gi-tag-input"><span>Yards</span><input value="6"></div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Players &amp; Grades</strong><span>individual performance</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-players">
+          <div class="is-active" data-roster="open"><strong>Passer</strong><input value="7"><select><option>+1</option></select>
+            <button type="button" class="gi-player-roster-toggle" aria-expanded="true">▾ Hide roster</button>
+            <div class="gi-player-quick"><button class="is-active">7</button><button>14</button><button>22</button><button>84</button><button>11</button><button>3</button></div>
+          </div>
+          <div data-roster="closed"><strong>Receiver</strong><input value="84"><select><option>+2</option></select>
+            <button type="button" class="gi-player-roster-toggle" aria-expanded="false">▸ Show roster</button>
+            <div class="gi-player-quick"><button>7</button><button>14</button><button>22</button><button class="is-active">84</button><button>11</button><button>3</button></div>
+          </div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group">
+      <summary><strong>Penalties</strong><span>foul, enforcement, resulting situation</span><i>▾</i></summary>
+      <div class="gi-tag-group-body"><div class="gi-penalty-empty">No fouls charted on this play.</div></div>
+    </details>
+    <details class="gi-tag-group">
+      <summary><strong>Notes &amp; Details</strong><span>staff notes and situation</span><i>▾</i></summary>
+      <div class="gi-tag-group-body"><div class="gi-tag-input"><span>Play notes</span><textarea style="min-height:52px;padding:6px 8px;border:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12)">Naked boot away from trips, backside crosser open behind the Cover 3 rotation.</textarea></div></div>
+    </details>
+  </div>
+  <footer class="gi-tag-nav"><button type="button">← Previous</button><button type="button">Skip</button><button type="button" class="is-primary"><span>Save &amp; Next</span><kbd>Enter</kbd></button></footer>
+`;
+
+DECKS.defense = `
+  <div class="gi-tag-context">
+    <div class="gi-tag-play-identity"><h2>Play 52</h2><p>52 of 67 tagged</p></div>
+    <div class="gi-unit-switch" role="group" aria-label="Charting unit">
+      <button>Offense</button><button data-unit="defense" class="is-active">Defense</button><button>Special Teams</button>
+    </div>
+  </div>
+  <div class="gi-tag-actions"><button type="button">Same as Last</button><select><option>Templates</option></select><button type="button">Save Template</button><button type="button" class="gi-is-risk">Delete</button></div>
+  <div class="gi-native-form">
+    <details class="gi-tag-group" open>
+      <summary><strong>Situation</strong><span>quarter, down, distance, field position</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-situation-row is-primary">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Quarter</span></div><div class="gi-tag-chips"><button>Q1</button><button>Q2</button><button class="is-active">Q3</button><button>Q4</button><button>OT</button></div></div>
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Down</span></div><div class="gi-tag-chips"><button>1</button><button>2</button><button class="is-active">3</button><button>4</button></div></div>
+          <div class="gi-tag-input gi-tag-input-distance"><span>Distance</span><input value="7"></div>
+        </div>
+        <div class="gi-tag-situation-row is-field">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Hash</span></div><div class="gi-tag-chips"><button>Left</button><button>Middle</button><button class="is-active">Right</button></div></div>
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Field position</span></div><div class="gi-tag-chips"><button>Own</button><button class="is-active">Opp</button></div></div>
+          <div class="gi-tag-input gi-tag-input-yardLine"><span>Yard line</span><input value="46"></div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group is-def" open>
+      <summary><strong>Our Defensive Call</strong><span>front, coverage, pressure</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Front</span><small>select all</small></div><div class="gi-tag-chips"><button>4-2-5 Nickel</button><button class="is-active">3-3-5</button><button>4-3</button><button>Dime</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Coverage Call</span></div><div class="gi-tag-chips"><button class="is-active">Cover 1</button><button>Cover 2</button><button>Cover 3</button><button>Cover 4</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Coverage Family</span><small>optional</small></div><div class="gi-tag-chips"><button class="is-active">Man</button><button>Zone</button><button>Match</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Blitz</span></div><div class="gi-tag-chips"><button>A-Gap</button><button>Edge</button><button class="is-active">Zone Blitz</button></div></div>
+      </div>
+    </details>
+    <details class="gi-tag-group">
+      <summary><strong>Offense Faced</strong><span>formation, alignment, personnel</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Formation</span><small>select all</small></div><div class="gi-tag-chips"><button class="is-active">Empty</button><button>Bunch</button><button>Trips</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>QB Alignment</span></div><div class="gi-tag-chips"><button>Under Center</button><button>Pistol</button><button class="is-active">Shotgun</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Personnel</span></div><div class="gi-tag-chips"><button>10</button><button class="is-active">00</button><button>11</button></div></div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Play &amp; Result</strong><span>call, direction, outcome</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Run / Pass</span></div><div class="gi-tag-chips"><button>Run</button><button class="is-active">Pass</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Play Type</span></div><div class="gi-tag-chips"><button>Run Inside</button><button class="is-active">Short Pass</button><button>Deep Pass</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Result</span></div><div class="gi-tag-chips"><button>Gain</button><button>Incomplete</button><button class="is-active">Sack</button><button>INT</button><button>Fumble</button></div></div>
+        <div class="gi-tag-input"><span>Yards</span><input value="8"></div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Players &amp; Grades</strong><span>tacklers and takeaways — separate multiple with a comma</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-players">
+          <div class="is-active" data-roster="open"><strong>Tackler(s)</strong><input value="52, 8"><select><option>+2</option></select>
+            <button type="button" class="gi-player-roster-toggle" aria-expanded="true">▾ Hide roster</button>
+            <div class="gi-player-quick"><button class="is-active">52</button><button class="is-active">8</button><button>23</button><button>41</button><button>9</button><button>34</button></div>
+          </div>
+          <div data-roster="closed"><strong>Takeaway</strong><input value=""><select><option>Grade</option></select>
+            <button type="button" class="gi-player-roster-toggle" aria-expanded="false">▸ Show roster</button>
+            <div class="gi-player-quick"><button>52</button><button>8</button><button>23</button><button>41</button><button>9</button><button>34</button></div>
+          </div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group">
+      <summary><strong>Penalties</strong><span>foul, enforcement, resulting situation</span><i>▾</i></summary>
+      <div class="gi-tag-group-body"><div class="gi-penalty-empty">No fouls charted on this play.</div></div>
+    </details>
+  </div>
+  <footer class="gi-tag-nav"><button type="button">← Previous</button><button type="button">Skip</button><button type="button" class="is-primary"><span>Save &amp; Next</span><kbd>Enter</kbd></button></footer>
+`;
+
+DECKS.special = `
+  <div class="gi-tag-context">
+    <div class="gi-tag-play-identity"><h2>Play 61</h2><p>61 of 67 tagged</p></div>
+    <div class="gi-unit-switch" role="group" aria-label="Charting unit">
+      <button>Offense</button><button data-unit="defense">Defense</button><button class="is-active">Special Teams</button>
+    </div>
+  </div>
+  <div class="gi-tag-actions"><button type="button">Same as Last</button><select><option>Templates</option></select><button type="button">Save Template</button><button type="button" class="gi-is-risk">Delete</button></div>
+  <div class="gi-native-form">
+    <details class="gi-tag-group" open>
+      <summary><strong>Situation</strong><span>quarter, down, distance, field position</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-situation-row is-primary">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Quarter</span></div><div class="gi-tag-chips"><button>Q1</button><button>Q2</button><button>Q3</button><button class="is-active">Q4</button><button>OT</button></div></div>
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Down</span></div><div class="gi-tag-chips"><button>1</button><button>2</button><button>3</button><button class="is-active">4</button></div></div>
+          <div class="gi-tag-input gi-tag-input-distance"><span>Distance</span><input value="8"></div>
+        </div>
+        <div class="gi-tag-situation-row is-field">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Hash</span></div><div class="gi-tag-chips"><button>Left</button><button class="is-active">Middle</button><button>Right</button></div></div>
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Field position</span></div><div class="gi-tag-chips"><button class="is-active">Own</button><button>Opp</button></div></div>
+          <div class="gi-tag-input gi-tag-input-yardLine"><span>Yard line</span><input value="41"></div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Special Teams</strong><span>phase, result, field position</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Unit</span></div><div class="gi-tag-chips"><button>Kickoff</button><button>Kick Return</button><button class="is-active">Punt</button><button>Punt Return</button><button>Field Goal / XP</button></div></div>
+        <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Outcome</span></div><div class="gi-tag-chips"><button>Returned</button><button>Fair Catch</button><button class="is-active">Downed</button><button>Out of Bounds</button><button>Blocked</button></div></div>
+        <div class="gi-tag-grid">
+          <div class="gi-tag-input"><span>Kick distance</span><input value="41"></div>
+          <div class="gi-tag-input"><span>Hang time</span><input value="4.2"></div>
+        </div>
+        <div class="gi-tag-situation-row is-special">
+          <div class="gi-tag-field"><div class="gi-tag-field-label"><span>Possession spot</span></div>
+            <!-- FIX (visual-verification pass): was hardcoded "Own" active
+                 while the result text next to it reads "Downed at Opp 12" --
+                 the exact same fixture-consistency defect item 4 targeted,
+                 caught by actually reading this screen after compacting it
+                 for item 2. Possession spot + Yard line describe one
+                 coordinate (this group's own subtitle is "phase, result,
+                 field position"), so it must agree with the result. -->
+            <div class="gi-tag-chips"><button>Own</button><button class="is-active">Opp</button></div>
+          </div>
+          <div class="gi-tag-input gi-tag-input-yardLine"><span>Yard line</span><input value="12"></div>
+        </div>
+        <div class="gi-tag-grid">
+          <div class="gi-tag-input"><span>Blocker #</span><input value=""></div>
+          <div class="gi-tag-input"><span>Recoverer #</span><input value=""></div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group" open>
+      <summary><strong>Players &amp; Grades</strong><span>individual performance</span><i>▾</i></summary>
+      <div class="gi-tag-group-body">
+        <div class="gi-tag-players">
+          <div class="is-active" data-roster="closed"><strong>Kicker</strong><input value="14"><select><option>+1</option></select>
+            <button type="button" class="gi-player-roster-toggle" aria-expanded="false">▸ Show roster</button>
+            <div class="gi-player-quick"><button class="is-active">14</button><button>9</button><button>3</button></div>
+          </div>
+          <div data-roster="closed"><strong>Returner</strong><input value=""><select><option>Grade</option></select>
+            <button type="button" class="gi-player-roster-toggle" aria-expanded="false">▸ Show roster</button>
+            <div class="gi-player-quick"><button>22</button><button>9</button><button>3</button></div>
+          </div>
+        </div>
+      </div>
+    </details>
+    <details class="gi-tag-group">
+      <summary><strong>Penalties</strong><span>foul, enforcement, resulting situation</span><i>▾</i></summary>
+      <div class="gi-tag-group-body"><div class="gi-penalty-empty">No fouls charted on this play.</div></div>
+    </details>
+  </div>
+  <footer class="gi-tag-nav"><button type="button">← Previous</button><button type="button">Skip</button><button type="button" class="is-primary"><span>Save &amp; Next</span><kbd>Enter</kbd></button></footer>
+`;
+
+DECKS.sparse = `
+  <div class="gi-tag-context">
+    <div class="gi-tag-play-identity"><h2>No film yet</h2><p>0 of 0 tagged</p></div>
+    <div class="gi-unit-switch" role="group" aria-label="Charting unit">
+      <button class="is-active" disabled>Offense</button><button data-unit="defense" disabled>Defense</button><button disabled>Special Teams</button>
+    </div>
+  </div>
+  <div class="gi-tag-actions"><button type="button" disabled>Same as Last</button><select disabled><option>Templates</option></select><button type="button" disabled>Save Template</button><button type="button" class="gi-is-risk" disabled>Delete</button></div>
+  <div class="gi-tag-empty-panel">
+    <p>Charting is unavailable until film is added for Week 7 vs. Cedar Ridge Timberwolves.</p>
+    <small>Add video or a folder from the panel on the left.</small>
+  </div>
+`;
+
+function filmRoomHtml() {
+  const rows = D.filmRoom.map(r => `<tr class="${r.current ? 'is-current' : ''}">
+    <td class="is-check"><input type="checkbox"></td>
+    <th class="is-play"><button type="button"><span>${r.type==='Punt'?'S':'O'}</span>${r.n}</button></th>
+    <td><button type="button">${r.dd}</button></td>
+    <td><button type="button">${r.call}</button></td>
+    <td><button type="button">${r.form}</button></td>
+    <td><button type="button">${r.qb}</button></td>
+    <td><button type="button">${r.type}</button></td>
+    <td><button type="button" class="${r.td?'is-td':r.to?'is-turnover':''}">${r.result}</button></td>
+    <td><button type="button">${r.yds>0?'+':''}${r.yds}</button></td>
+  </tr>`).join('');
+  return `
+  <div class="gi-film-room-head"><span class="gi-eyebrow">Breakdown table</span><p>67 plays</p>
+    <div class="gi-film-room-actions"><button type="button">Columns</button><button type="button" class="is-primary">Watch 3</button></div>
+  </div>
+  <div class="gi-film-filters">
+    <button class="is-active">Offense</button><button>Defense</button><button>Special Teams</button>
+    <button>1st</button><button>2nd</button><button>3rd</button><button>4th</button>
+    <button>Run</button><button>Pass</button><button>TD</button><button>TO</button><button>Penalty</button><button>Untagged</button>
+  </div>
+  <div class="gi-film-table-wrap"><table>
+    <thead><tr><th class="is-check"><input type="checkbox"></th><th class="is-play">Play</th><th>Dn &amp; Dist</th><th>Play Call</th><th>Formation</th><th>QB Align</th><th>Type</th><th>Result</th><th>Yds</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+function filmRoomEmptyHtml() {
+  return `
+  <div class="gi-film-room-head"><span class="gi-eyebrow">Breakdown table</span><p>0 plays</p>
+    <div class="gi-film-room-actions"><button type="button" disabled>Columns</button><button type="button" class="is-primary" disabled>Watch 0</button></div>
+  </div>
+  <div class="gi-film-filters">
+    <button class="is-active">Offense</button><button>Defense</button><button>Special Teams</button>
+    <button>1st</button><button>2nd</button><button>3rd</button><button>4th</button>
+    <button>Run</button><button>Pass</button><button>TD</button><button>TO</button><button>Penalty</button><button>Untagged</button>
+  </div>
+  <div class="gi-film-empty">This table populates once film is added and charting begins.</div>`;
+}
+
+function render(state) {
+  document.documentElement.dataset.state = state;
+  const theater = document.getElementById('theater');
+  const stage = document.getElementById('stage');
+  const chyron = document.getElementById('chyron');
+  const deck = document.getElementById('deck');
+  const filmRoom = document.getElementById('filmRoom');
+  const composition = document.getElementById('composition');
+  const pill = document.getElementById('filmPill');
+  const ctxGame = document.getElementById('ctxGame');
+  const railHead = document.getElementById('railCount');
+  const railScroll = document.getElementById('railScroll');
+  const modeButtons = document.querySelectorAll('[data-mode-btn]');
+
+  let mode = 'chart', unit = 'offense', stageKind = 'video', deckKey = 'offense', filmRoomFn = filmRoomHtml, filmState = 'linked';
+
+  if (state === 'chart-offense') { unit = 'offense'; deckKey = 'offense'; }
+  else if (state === 'chart-defense') { unit = 'defense'; deckKey = 'defense'; }
+  else if (state === 'chart-special') { unit = 'special'; deckKey = 'special'; }
+  else if (state === 'film-room') { mode = 'film-room'; unit = 'offense'; }
+  else if (state === 'missing-film') { unit = 'offense'; deckKey = 'offense'; stageKind = 'missing'; filmState = 'missing'; }
+  else if (state === 'sparse') { unit = 'offense'; deckKey = 'sparse'; stageKind = 'empty'; filmState = 'none'; }
+
+  // Which play (by id) is genuinely selected for this state -- the SAME
+  // identity the chyron/deck are about to show, so the rail can never
+  // highlight a different play (Round 4 repair, finding 4).
+  const currentId = CURRENT_ID_BY_UNIT[unit] || 47;
+
+  composition.dataset.mode = mode;
+  theater.dataset.unit = unit;
+  modeButtons.forEach(b => b.classList.toggle('is-active', b.dataset.modeBtn === mode));
+  pill.textContent = filmState === 'missing' ? 'Film needs re-link' : (filmState === 'none' ? 'No film added' : 'Film linked');
+  pill.classList.toggle('is-missing', filmState === 'missing');
+  pill.classList.toggle('is-none', filmState === 'none');
+  ctxGame.textContent = filmState === 'none' ? 'Wk 7 · vs. Cedar Ridge Timberwolves' : 'Wk 6 · vs. Lakeland Christian Crusaders';
+
+  stage.innerHTML = videoStandIn(stageKind);
+  if (mode === 'film-room' && stageKind === 'video') {
+    stage.insertAdjacentHTML('beforeend', filmRoomDetailHtml());
+    const moreEl = stage.querySelector('.fr-more');
+    if (moreEl) moreEl.open = window.innerWidth > 1350;
+  }
+  chyron.innerHTML = (stageKind === 'video') ? chyronHtml(unit) : '';
+  chyron.style.visibility = (stageKind === 'video') ? 'visible' : 'hidden';
+  chyron.style.minHeight = (stageKind === 'video') ? '' : '0';
+  chyron.style.borderTopWidth = (stageKind === 'video') ? '2px' : '0';
+
+  // NEW (review round 3, finding 3): a command that cannot act on anything
+  // must be disabled, not merely sit beside copy saying it's unavailable.
+  // Covers both no-film (sparse) and failed-to-load (missing) -- neither
+  // has a playable video, so neither has a working transport.
+  const noPlayableFilm = stageKind !== 'video';
+  document.querySelectorAll(
+    '.gi-theater-transport button, .gi-theater-transport select, .gi-theater-transport input, ' +
+    '.gi-theater-actions button, .gi-theater-actions input, ' +
+    '[data-tool="quick-chart"], [data-tool="film-focus"]'
+  ).forEach(el => { el.disabled = noPlayableFilm; });
+  // Closing the overflow menu when its own trigger just went disabled --
+  // pointer-events:none already blocks new opens, but a menu left open
+  // from a still-video state before a game switch must not linger.
+  if (noPlayableFilm) setTransportMoreOpen(false);
+
+  deck.innerHTML = DECKS[deckKey] || '';
+  filmRoom.innerHTML = state === 'film-room' ? filmRoomFn() : (state === 'sparse' ? filmRoomEmptyHtml() : '');
+
+  // A brand-new game has no plays yet -- the rail must say so, not keep
+  // showing the fixture game's 67-play drive list underneath it. All three
+  // tiers (sidebar, strip, toggle) are kept in sync here regardless of
+  // which one CSS is currently displaying, so resizing never shows stale
+  // content in the tier that just became visible.
+  const railStrip = document.getElementById('railStrip');
+  const playsToggleLabel = document.getElementById('playsToggleLabel');
+  if (state === 'sparse') {
+    railHead.textContent = '0 plays charted yet';
+    railScroll.innerHTML = '<div class="gi-rail-empty">Plays will appear here once film is added.</div>';
+    railStrip.innerHTML = railStripHtml([], null);
+    playsToggleLabel.textContent = '▤ Plays · 0';
+  } else {
+    railHead.textContent = '67 plays · grouped by drive';
+    railScroll.innerHTML = buildRailHtml(D.plays, currentId);
+    railStrip.innerHTML = railStripHtml(D.plays, currentId);
+    playsToggleLabel.textContent = '▤ Plays · 67';
+  }
+  setPlaysOpen(false, { silent: true });
+
+  document.querySelectorAll('.qa-bar button').forEach(b => b.classList.toggle('is-on', b.dataset.setState === state));
+}
+
+document.querySelectorAll('[data-set-state]').forEach(btn => btn.addEventListener('click', () => render(btn.dataset.setState)));
+document.querySelectorAll('[data-mode-btn]').forEach(btn => btn.addEventListener('click', () => {
+  render(btn.dataset.modeBtn === 'film-room' ? 'film-room' : 'chart-offense');
+}));
+render('chart-offense');
+</script>
+</body>
+</html>

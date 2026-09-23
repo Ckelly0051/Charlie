@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GridIron IQ - Home Workspace Concept</title>
+  <style>
+    :root {
+      --ink: #080d12;
+      --panel: #0f1822;
+      --panel-2: #142131;
+      --line: #31465a;
+      --line-strong: #526b82;
+      --text: #f4f7f8;
+      --muted: #91b5d8;
+      --quiet: #6f8294;
+      --blue: #2f7df4;
+      --gold: #e5aa17;
+      --cyan: #18b9d5;
+      --green: #35d178;
+      --red: #f05461;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--ink); color: var(--text); }
+    body { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; letter-spacing: 0; }
+    button { font: inherit; }
+    .app { min-height: 900px; display: grid; grid-template-columns: 212px 1fr; grid-template-rows: 54px 1fr; }
+
+    .topbar {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 212px 1fr auto;
+      align-items: center;
+      min-width: 0;
+      border-bottom: 1px solid var(--line);
+      background: #0d151e;
+    }
+    .brand {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      border-right: 1px solid var(--line);
+      font-family: Impact, "Arial Narrow", sans-serif;
+      font-size: 20px;
+      letter-spacing: .5px;
+    }
+    .brand span { color: var(--blue); }
+    .crumb { padding: 0 24px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tools { display: flex; align-items: center; gap: 6px; padding-right: 16px; }
+    .tool, .action {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      background: #14202d;
+      color: var(--text);
+      padding: 0 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .tool.icon { width: 36px; padding: 0; font-size: 17px; }
+    .tool:hover, .action:hover { border-color: #83a6c6; background: #192a3a; }
+
+    .sidebar {
+      grid-row: 2;
+      border-right: 1px solid var(--line);
+      background: #111c28;
+      padding: 22px 14px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .team-lockup { padding: 11px 12px 13px; border: 1px solid var(--line-strong); margin-bottom: 22px; }
+    .team-lockup strong { display: block; font-size: 14px; }
+    .team-lockup span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .nav { display: grid; gap: 4px; }
+    .nav a { color: var(--muted); text-decoration: none; padding: 12px 10px; font-weight: 700; border-left: 3px solid transparent; }
+    .nav a.active { background: #1a304a; color: var(--text); border-left-color: var(--blue); }
+    .nav a.disabled { opacity: .38; }
+    .side-status { margin-top: auto; border-top: 1px solid var(--line); padding: 17px 10px 0; color: var(--muted); font-size: 12px; }
+    .dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; background: var(--green); }
+
+    main { min-width: 0; background: #090f15; }
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      min-height: 120px;
+      padding: 24px 32px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, #111d29 0, #0d151e 74%);
+    }
+    .eyebrow { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
+    h1 { margin: 0; font-family: Impact, "Arial Narrow", sans-serif; font-size: 31px; font-weight: 500; letter-spacing: .4px; }
+    .subline { color: var(--muted); font-size: 12px; margin-top: 5px; }
+    .head-actions { display: flex; gap: 8px; }
+    .action.primary { background: var(--blue); border-color: var(--blue); }
+    .action.danger { color: #ff7c85; border-color: #8f3942; background: transparent; }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 4px solid #40566e;
+      background: #0c141d;
+    }
+    .mode {
+      position: relative;
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 78px;
+      padding: 13px 24px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: #111c28;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+    }
+    .mode:last-child { border-right: 0; }
+    .mode::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 4px; background: transparent; }
+    .mode.active.program::after { background: var(--gold); }
+    .mode.active.scout::after { background: var(--cyan); }
+    .mode.active { color: var(--text); background: #172434; }
+    .mode-icon {
+      width: 42px; height: 42px; display: grid; place-items: center;
+      border: 1px solid var(--line-strong); font-size: 20px; font-weight: 900;
+    }
+    .mode.active.program .mode-icon { border-color: var(--gold); color: var(--gold); }
+    .mode.active.scout .mode-icon { border-color: var(--cyan); color: var(--cyan); }
+    .mode-title { display: block; font-family: Impact, "Arial Narrow", sans-serif; font-size: 20px; letter-spacing: .4px; }
+    .mode-detail { display: block; font-size: 12px; margin-top: 3px; color: var(--quiet); }
+    .mode-count { font-size: 12px; font-weight: 800; color: var(--muted); }
+
+    .summary { display: grid; grid-template-columns: 1.35fr repeat(3, .65fr) 1fr; border-bottom: 1px solid var(--line-strong); }
+    .summary-cell { min-height: 67px; padding: 12px 16px; border-right: 1px solid var(--line); }
+    .summary-cell:last-child { border-right: 0; }
+    .summary-label { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; font-weight: 800; }
+    .summary-value { display: block; margin-top: 3px; font-family: Impact, "Arial Narrow", sans-serif; font-size: 22px; font-weight: 500; }
+    .summary-value.small { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; font-weight: 750; margin-top: 8px; }
+    .healthy { color: var(--green); }
+
+    .content { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 577px; }
+    .library { padding: 22px 26px 30px 32px; border-right: 1px solid var(--line-strong); }
+    .aside { padding: 22px 24px; background: #0d151e; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .section-title { display: flex; align-items: center; gap: 9px; font-family: Impact, "Arial Narrow", sans-serif; font-size: 16px; letter-spacing: .4px; }
+    .section-title::before { content: ""; width: 4px; height: 19px; background: var(--gold); }
+    .scout-pane .section-title::before { background: var(--cyan); }
+    .text-action { border: 0; background: none; color: #65a0ff; padding: 5px; font-weight: 700; cursor: pointer; }
+
+    .list { border-top: 1px solid var(--line-strong); }
+    .row {
+      display: grid;
+      grid-template-columns: minmax(230px, 1.5fr) 92px 82px 112px 90px;
+      min-height: 78px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: #0e1720;
+    }
+    .row:hover { background: #132131; }
+    .row > * { min-width: 0; padding: 0 14px; }
+    .row-main { border-left: 4px solid var(--gold); padding-left: 14px; }
+    .scout-pane .row-main { border-left-color: var(--cyan); }
+    .row-main strong { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-main span, .cell span { color: var(--muted); font-size: 11px; }
+    .cell strong { display: block; font-family: Impact, "Arial Narrow", sans-serif; font-size: 19px; font-weight: 500; }
+    .cell.status strong { font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; color: var(--green); }
+    .open { height: 34px; border: 0; background: var(--blue); color: white; font-weight: 800; cursor: pointer; }
+
+    .aside-block { margin-bottom: 22px; }
+    .aside-title { color: var(--muted); font-size: 10px; text-transform: uppercase; font-weight: 900; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    .next-game { padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .next-game strong { display: block; font-size: 14px; }
+    .next-game span { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .health-line { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 9px 0; border-bottom: 1px solid #233344; font-size: 12px; }
+    .health-line b { color: var(--green); }
+    .full { width: 100%; margin-top: 12px; }
+    .workflow { display: grid; gap: 0; border-top: 1px solid var(--line); }
+    .step { display: grid; grid-template-columns: 31px 1fr; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .step-num { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--cyan); color: var(--cyan); font-weight: 900; }
+    .step strong { display: block; font-size: 12px; }
+    .step span { display: block; color: var(--quiet); font-size: 11px; margin-top: 2px; }
+
+    [hidden] { display: none !important; }
+    .scout-pane .action.primary { background: #0789a4; border-color: var(--cyan); }
+    .scout-pane .open { background: #0789a4; }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 170px 1fr; }
+      .topbar { grid-template-columns: 170px 1fr auto; }
+      .content { grid-template-columns: 1fr; }
+      .aside { border-top: 1px solid var(--line); }
+      .summary { grid-template-columns: repeat(2, 1fr); }
+      .summary-cell { border-bottom: 1px solid var(--line); }
+      .mode { grid-template-columns: 38px 1fr; padding: 10px 13px; }
+      .mode-count { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">GRIDIRON <span>IQ</span></div>
+      <div class="crumb">Mavericks &nbsp;›&nbsp; Football workspaces</div>
+      <div class="tools">
+        <button class="tool icon" title="Undo">↶</button>
+        <button class="tool icon" title="Redo">↷</button>
+        <button class="tool">☰ &nbsp;Settings</button>
+        <button class="tool">More⌄</button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="team-lockup"><strong>Mavericks</strong><span>St. Joseph • Football</span></div>
+      <nav class="nav">
+        <a class="active" href="#">⌂ &nbsp; Home</a>
+        <a class="disabled" href="#">▶ &nbsp; Break Down</a>
+        <a class="disabled" href="#">▦ &nbsp; Study</a>
+        <a class="disabled" href="#">▥ &nbsp; Reports</a>
+        <a class="disabled" href="#">▤ &nbsp; Plan</a>
+      </nav>
+      <div class="side-status"><span class="dot"></span>Workspace ready</div>
+    </aside>
+
+    <main>
+      <section class="page-head">
+        <div>
+          <div class="eyebrow">Football workspaces</div>
+          <h1>WHAT ARE YOU WORKING ON?</h1>
+          <div class="subline">Choose the football context first. GridIron IQ keeps the data and reports separated.</div>
+        </div>
+        <div class="head-actions program-actions">
+          <button class="action">Roster</button>
+          <button class="action">Team &amp; Film Settings</button>
+          <button class="action primary">+ New season</button>
+        </div>
+        <div class="head-actions scout-actions" hidden>
+          <button class="action">Manage opponents</button>
+          <button class="action primary">+ New opponent scout</button>
+        </div>
+      </section>
+
+      <section class="mode-switch" aria-label="Workspace type">
+        <button class="mode program active" data-mode="program">
+          <span class="mode-icon">M</span>
+          <span><span class="mode-title">OUR PROGRAM</span><span class="mode-detail">Team seasons, games and self-scout</span></span>
+          <span class="mode-count">2 SEASONS</span>
+        </button>
+        <button class="mode scout" data-mode="scout">
+          <span class="mode-icon">◎</span>
+          <span><span class="mode-title">OPPONENT SCOUT</span><span class="mode-detail">Future opponents and their game film</span></span>
+          <span class="mode-count">2 OPPONENTS</span>
+        </button>
+      </section>
+
+      <section class="program-pane">
+        <div class="summary">
+          <div class="summary-cell"><span class="summary-label">Current program</span><span class="summary-value small">St. Joseph Mavericks</span></div>
+          <div class="summary-cell"><span class="summary-label">Seasons</span><span class="summary-value">2</span></div>
+          <div class="summary-cell"><span class="summary-label">Games</span><span class="summary-value">8</span></div>
+          <div class="summary-cell"><span class="summary-label">Plays</span><span class="summary-value">490</span></div>
+          <div class="summary-cell"><span class="summary-label">Storage</span><span class="summary-value small healthy">● Film folders linked</span></div>
+        </div>
+        <div class="content">
+          <div class="library">
+            <div class="section-head"><div class="section-title">TEAM SEASONS</div><button class="text-action">Manage seasons</button></div>
+            <div class="list">
+              <div class="row">
+                <div class="row-main"><strong>SJM Varsity 2026</strong><span>2026 • Varsity • opened Aug 21</span></div>
+                <div class="cell"><strong>2</strong><span>games</span></div>
+                <div class="cell"><strong>50</strong><span>plays</span></div>
+                <div class="cell status"><strong>● Linked</strong><span>50 clips</span></div>
+                <button class="open">OPEN</button>
+              </div>
+              <div class="row">
+                <div class="row-main"><strong>2025 St. Joseph Mavericks - JV</strong><span>2025 • JV • 3-2-1</span></div>
+                <div class="cell"><strong>6</strong><span>games</span></div>
+                <div class="cell"><strong>440</strong><span>plays</span></div>
+                <div class="cell status"><strong>● Linked</strong><span>all games</span></div>
+                <button class="open">OPEN</button>
+              </div>
+            </div>
+          </div>
+          <aside class="aside">
+            <div class="aside-block">
+              <div class="aside-title">Current season</div>
+              <div class="next-game"><strong>SJM Varsity 2026</strong><span>2 games • 50 plays • 100% charted</span></div>
+              <button class="action primary full">CONTINUE SEASON</button>
+            </div>
+            <div class="aside-block">
+              <div class="aside-title">Film health</div>
+              <div class="health-line"><span>Game folders linked</span><b>8 / 8</b></div>
+              <div class="health-line"><span>Clips available</span><b>490</b></div>
+              <div class="health-line"><span>Needs attention</span><b>0</b></div>
+            </div>
+            <div class="aside-block">
+              <div class="aside-title">Quick actions</div>
+              <button class="action full">Explore sample season</button>
+              <button class="action full">Recover seasons</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="scout-pane" hidden>
+        <div class="summary">
+          <div class="summary-cell"><span class="summary-label">Scouting program</span><span class="summary-value small">St. Joseph Mavericks</span></div>
+          <div class="summary-cell"><span class="summary-label">Opponents</span><span class="summary-value">2</span></div>
+          <div class="summary-cell"><span class="summary-label">Games</span><span class="summary-value">5</span></div>
+          <div class="summary-cell"><span class="summary-label">Plays</span><span class="summary-value">327</span></div>
+          <div class="summary-cell"><span class="summary-label">Scout film</span><span class="summary-value small healthy">● Ready to chart</span></div>
+        </div>
+        <div class="content">
+          <div class="library">
+            <div class="section-head"><div class="section-title">OPPONENTS</div><button class="text-action">All opponents</button></div>
+            <div class="list">
+              <div class="row">
+                <div class="row-main"><strong>Holy Family Wildcats</strong><span>Week 6 opponent • film vs OL Lakes, ND Prep, St. Peter</span></div>
+                <div class="cell"><strong>3</strong><span>games</span></div>
+                <div class="cell"><strong>201</strong><span>plays</span></div>
+                <div class="cell status"><strong>● Linked</strong><span>3 folders</span></div>
+                <button class="open">OPEN</button>
+              </div>
+              <div class="row">
+                <div class="row-main"><strong>OL Sorrows Lancers</strong><span>Week 4 opponent • film vs Refuge and Holy Family</span></div>
+                <div class="cell"><strong>2</strong><span>games</span></div>
+                <div class="cell"><strong>126</strong><span>plays</span></div>
+                <div class="cell status"><strong>● Linked</strong><span>2 folders</span></div>
+                <button class="open">OPEN</button>
+              </div>
+            </div>
+          </div>
+          <aside class="aside">
+            <div class="aside-block">
+              <div class="aside-title">Start an opponent scout</div>
+              <div class="workflow">
+                <div class="step"><span class="step-num">1</span><span><strong>Choose the opponent</strong><span>The team you are preparing to play</span></span></div>
+                <div class="step"><span class="step-num">2</span><span><strong>Add their games</strong><span>Who they played, date and film folder</span></span></div>
+                <div class="step"><span class="step-num">3</span><span><strong>Chart opponent film</strong><span>Opponent Scout mode is set automatically</span></span></div>
+              </div>
+              <button class="action primary full">+ NEW OPPONENT SCOUT</button>
+            </div>
+            <div class="aside-block">
+              <div class="aside-title">Next opponent</div>
+              <div class="next-game"><strong>Holy Family Wildcats</strong><span>3 games • 201 plays • last charted Aug 20</span></div>
+              <button class="action full">OPEN SCOUT REPORT</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const modes = [...document.querySelectorAll('.mode')];
+    const programPane = document.querySelector('.program-pane');
+    const scoutPane = document.querySelector('.scout-pane');
+    const programActions = document.querySelector('.program-actions');
+    const scoutActions = document.querySelector('.scout-actions');
+    function selectMode(name) {
+      modes.forEach((button) => button.classList.toggle('active', button.dataset.mode === name));
+      programPane.hidden = name !== 'program';
+      scoutPane.hidden = name !== 'scout';
+      programActions.hidden = name !== 'program';
+      scoutActions.hidden = name !== 'scout';
+    }
+    modes.forEach((button) => button.addEventListener('click', () => selectMode(button.dataset.mode)));
+    if (new URLSearchParams(location.search).get('mode') === 'scout') selectMode('scout');
+  </script>
+</body>
+</html>

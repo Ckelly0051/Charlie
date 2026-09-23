@@ -65,8 +65,12 @@ they are evidence, not current status. In particular, do not treat
 `sample-analytics-report.md` as current-state authority.
 
 `docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md` is append-only history.
-`docs/REPORTS-SECTION-PROMPTS.md` and its DOCX copy are retired assignment
-artifacts; current Reports work starts from the approval manifests, current
+`docs/REPORTS-SECTION-PROMPTS.md` is a retired assignment artifact; its DOCX
+copy is local-only. Untracked historical captures under
+`design-comps/visual-reset-2026-08/part1-verification/` and
+`part2-verification/` are local-only, not clean-checkout evidence; the
+manifest-owned `charlie-gate-density4` set remains tracked. Current Reports
+work starts from the approval manifests, current
 decision records, canonical real data, and the open-defect index.
 
 ## Update Discipline

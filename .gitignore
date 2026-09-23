@@ -52,5 +52,9 @@ incident-backups/
 # contain real season data and frames of the coach's team film.
 /artifacts/
 /scratchpad/
+# Historical local-only visual-reset probes may contain real season or film
+# frames. The approved density4 evidence is already tracked in Git.
+/design-comps/visual-reset-2026-08/part1-verification/
+/design-comps/visual-reset-2026-08/part2-verification/
 # Built Windows installers.
 /GridIron-IQ-*-Beta-Setup.exe
