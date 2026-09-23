@@ -19,14 +19,19 @@ same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green
 (`e2e-reports-global-strip`). The `1.12.0-95` installer contains it; neither
 the installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
-**Reports secondary bar — IMPLEMENTED IN SOURCE (`0e84464`, 2026-09-23), NOT
-PACKAGED, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
+**Reports secondary bar — IMPLEMENTED (`0e84464`, 2026-09-23), PACKAGED IN
+`1.12.0-96`, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
 (implementation record in its RATIONALE). One shared bar under the strip on
 the seven multi-section reports; Offense six pages, Defense four; the game KPI
 rail deleted; a compact Overview score; the Defense board says `Explosive
 Plays`. Coach Reports smoke Findings 1 and 2 are repaired in source only; see
-`docs/OPEN-DEFECTS.md`. No installer contains it; the full gate was not run
-for it (27 affected harnesses green).
+`docs/OPEN-DEFECTS.md`. The `1.12.0-96` installer contains it; its installed smoke is
+pending.
+**Reports down-and-distance chart — IMPLEMENTED IN SOURCE (`80941c7`,
+2026-09-23), NOT PACKAGED, NOT SMOKE-APPROVED:** item 7 of the same comp,
+first on Offense > Situations and Defense > Situations. Not in `1.12.0-96`;
+Reports approval waits on ONE new package carrying the secondary bar plus this
+chart, and Charlie's smoke of that combined result.
 **Main-checkout version:** `1.12.0-95` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is
@@ -2135,7 +2140,31 @@ Players, Self-Scout, Season and Matchup moved their existing controls into the
 bar unchanged. A page never narrows an export. Below 1440 the bar's spacing
 tightens (Special Teams' five counted sections otherwise lost 59px at 1280);
 below 1100 it stacks pages over scope and export. The proposed
-down-and-distance module is a separate, unbuilt checkpoint.
+down-and-distance chart is built separately (below).
+
+**THE DOWN-AND-DISTANCE CHART (source `80941c7`, 2026-09-23; not packaged).**
+First on Offense > Situations (our offense) and Defense > Situations (the
+opponent's offense): 1st-4th by 1-3 / 4-6 / 7+, each cell with snaps, a
+run/pass split, success and yards/play; selecting a cell shows its top play
+types and `Watch N plays` with the cell's exact composite refs. ONE owner,
+`StatsEngine.downDistanceChart(plays, { side, fallbackGameId })`, and one set
+of printed strings, `formatDownDistanceCell` / `downDistanceCohortLine`, read
+by the board and the game, season and Defense HTML exports. **The cohort is
+the run/pass snaps** (`isRun` / `isPass`; on defense only charted
+defensive snaps whose penalties let the play count), stated as `N of M
+run/pass snaps carry down and distance`. **Nothing is inferred:** a snap
+without a charted down 1-4 and a positive charted distance is placed nowhere;
+success counts only `_isSuccessfulPlayEligible` snaps (`isSuccessfulPlay`
+ours, `isOpponentSuccess` theirs, so our pick-six is not their success);
+yards/play only snaps with charted yardage; a snap without a play type is
+untyped; a multi-select play type credits each component once and never adds
+a snap (the detail says `N tags on M snaps`). An unfaced cell is a held dash
+and cannot be selected. Defense reads `defenseBoard().downDistanceChart`, so
+Current game, Full season and Season > Defense follow the board; Season >
+Offense reads the season stats. It is deliberately NOT a `data-def2-module`
+or an Offense schema module, so the pinned inventories are unchanged; its rows
+are a fixed 100px so every page stays one height on every game. A cell whose
+one snap has no yardage and is not measurable prints `- · -`.
 
 **THE GAME KPI RAIL IS DELETED (2026-09-23).** Overview's compact score is the
 only game-summary chrome: the linescore beside Result (from the OFFICIAL
@@ -2480,6 +2509,10 @@ identical tab boxes across all eight reports, both directions, scope changes
 and the opponent perspective; order, fit and no scrolling; the Overview-only
 linescore and its arithmetic; Current-game defaults and persistence; the
 outer frame at 1920/1440/1280; the Players name column; the secondary bar and the 768/390 layouts, 360) and
+`tools/e2e-reports-down-distance.mjs` (the down-and-distance chart: synthetic
+missing/sparse tags, zero denominators, overlapping play types, both success
+rules, exact refs, selection and film, scope and Season embeds, screen/export
+parity, the canonical season's cohort and refs, 1440/1280/768 fit, 46) and
 `tools/e2e-explosive-labels.mjs` (explosive-play terminology: no bare or
 abbreviated label in source, the approved wording on every rendered tab and export, the Defense board's
 implied Allowed and the export's explicit one, fit without clipping or shrunk type at

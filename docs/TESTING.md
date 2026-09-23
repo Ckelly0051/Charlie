@@ -119,6 +119,27 @@ reds the export-identity check; restoring `Explosive Plays Allowed` reds the
 Defense wording and one-line KPI checks; removing the narrow score CSS reds
 the 768/390 score checks.
 
+### Reports down-and-distance chart (source `80941c7`, 2026-09-23)
+
+`e2e-reports-down-distance` (46) is the chart's harness. Synthetic engine
+cases: the fixed twelve cells; the run/pass cohort; blank or invalid down and
+distance placed nowhere; missing yardage out of yards/play; a touchdown with no
+yardage still measurable; untyped snaps; multi-select play types credited per
+component without adding snaps; held cells; `isOpponentSuccess` on defense;
+nullified-penalty, offensive and special-teams snaps kept out of the defensive
+chart; composite refs across two games reusing bare ids and the live-game
+fallback. Rendered: first on both Situations pages, busiest cell selected,
+selection kept across a re-render, held cells not selectable, `Watch N plays`
+opening exactly the cell's refs, Defense Current game vs Full season, Season >
+Offense and Season > Defense, and on-screen vs game, season and Defense export
+parity. Canonical 2025 JV (read-only, hash-checked): the same parity, each
+chart's cohort equal to its board's run/pass count, every ref resolving to a
+real play in its cell's situation, and no clipped or sub-12.5px text or page
+overflow at 1440/1280/768. Captures: `artifacts/reports-down-distance/`.
+Mutation-verified: reading missing yardage as zero, inventing an `Unknown`
+play type, using offense success on defense, printing an unformatted export
+value and dropping the down check each red their assertions.
+
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
 cannot certify Reports acceptance. Every Reports evidence handoff must include

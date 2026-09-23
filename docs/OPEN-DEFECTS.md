@@ -100,8 +100,8 @@ no calculation or cohort changed.
   Matchup moved their existing controls into the bar unchanged. Retired: the
   Offense zone nav and zone rules, the Defense sticky scope/jump bar, the
   Season identity band. Boards embedded in Season carry the same bar inline.
-  The proposed down-and-distance module is **not** built; it is a separate
-  checkpoint.
+  The down-and-distance chart was built afterwards as its own checkpoint
+  (see below); it is not in `1.12.0-96`.
 - *Finding 1:* the game KPI rail is deleted from every tab. Overview's compact
   score is the linescore beside Result (official scores only), Charted and
   Turnover margin, with no duplicate matchup name; a one-sided game states the
@@ -121,6 +121,21 @@ current game and full season; captures in `artifacts/reports-global-strip/`
 `artifacts/defense-production-realdata/run-*/` (every page, both scopes,
 1920/1440/1280/390). Unverified: installed WebView2 rendering, and the coach's
 verdict on the composition.
+
+**Down-and-distance chart — implemented in source 2026-09-23 (`80941c7`);
+not packaged, installed smoke pending.** The comp's item 7, first on Offense >
+Situations and Defense > Situations, with one engine owner, exact film refs and
+the same cells in the game, season and Defense HTML exports. Found while
+verifying and repaired before commit: the chart's rows first sized to their
+content, so the Situations page measured 1157 or 1158px by game, breaking the
+one-height-per-page rule; rows are now fixed. Known and deliberate: a cell whose
+only snap is unmeasurable and has no yardage prints `- · -`; the chart counts
+run/pass snaps, so its per-situation counts can be lower than the Defense Down &
+Distance table's charted Snaps (e.g. season 1st & 7+: 56 run/pass vs 60
+charted), and the header says which cohort it is. **Reports approval waits on
+one new package carrying the secondary bar and this chart, and Charlie's smoke
+of that combined result.** Evidence: `tools/e2e-reports-down-distance.mjs`
+(46) and captures in `artifacts/reports-down-distance/`.
 
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 

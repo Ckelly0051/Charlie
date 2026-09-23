@@ -164,3 +164,22 @@ production departs from or adds to the list:
 - **One-sided turnover margin:** the Charted/Turnover facts come from
   `_kpiRailData`; when one side was not charted the margin reads `No data` and
   its sub-line states the observed side and names the other as not charted.
+
+## Implementation record, item 9 (2026-09-23, `80941c7`; not packaged)
+
+The down-and-distance chart is built as proposed in item 7, with these
+decisions:
+
+- **Owner and strings:** `StatsEngine.downDistanceChart` computes every value;
+  `formatDownDistanceCell` and `downDistanceCohortLine` print them for the board
+  and the game, season and Defense HTML exports alike.
+- **Cohort:** run/pass snaps on both sides (the comp's offense proposal used
+  all classified offensive snaps; production uses `isRun`/`isPass` on both so
+  the two charts measure the same thing). Defense admits only charted defensive
+  snaps whose penalties let the play count, the board's own rule.
+- **Nothing inferred:** unplaced snaps are counted, not guessed; success and
+  yards/play state their own denominators in the detail (`N of M measurable`,
+  `N of M with yardage`); overlapping play-type tags are stated as tags on
+  snaps.
+- **Geometry:** not a board module, so the approved inventories are unchanged;
+  fixed 100px rows keep each Situations page one height on every game.
