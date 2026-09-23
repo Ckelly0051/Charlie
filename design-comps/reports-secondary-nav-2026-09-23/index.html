@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reports Section Navigation</title>
+<style>
+  :root{color-scheme:dark;--bg:#0f0f0f;--panel:#1a1a1a;--line:#333;--ink:#f2f2f2;--muted:#a3a3a3;--gold:#e7ad1e;--cyan:#36bee5;--green:#48bb79;--pink:#e26aa7;font-family:"IBM Plex Sans",Segoe UI,Arial,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink)}
+  header{padding:24px 32px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 6px;font-size:22px}
+  header p{margin:0;max-width:72ch;color:var(--muted);font-size:14px;line-height:1.5}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:13px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border:2px solid}
+  nav{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:4px;padding:10px 32px;background:var(--panel);border-bottom:1px solid var(--line)}
+  nav button{min-height:32px;padding:0 12px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 13px/1 inherit;cursor:pointer}
+  nav button[aria-pressed="true"]{color:var(--ink);border-color:var(--cyan);box-shadow:inset 0 -2px var(--cyan)}
+  nav button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+  main{padding:20px 32px 48px}
+  .view h2{margin:0 0 4px;font-size:17px}
+  .view>p{margin:0 0 14px;max-width:80ch;color:var(--muted);font-size:14px;line-height:1.5}
+  figure{margin:0 0 24px}
+  figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line)}
+  figcaption{margin-top:6px;color:var(--muted);font-size:13px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:900px){.pair{grid-template-columns:1fr}header,nav,main{padding-inline:16px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Reports section navigation: design comp, 2026-09-23</h1>
+  <p>Every capture is the production build on a read-only copy of the canonical 2025 St. Joseph Mavericks - JV season, Week 1 vs St. Peter Lutheran. It shows real boards, cohorts and film actions under a proposed presentation layer. The global strip is the approved one, unchanged. Regenerate with <code>node design-comps/reports-secondary-nav-2026-09-23/build.mjs</code> after <code>npm run build</code>. Decisions and tradeoffs: <code>RATIONALE.md</code>.</p>
+  <div class="legend">
+    <span><i style="border-color:var(--gold)"></i>Global navigation: fixed strip</span>
+    <span><i style="border-color:var(--cyan)"></i>Secondary navigation: this report's pages</span>
+    <span><i style="border-color:var(--green)"></i>Scope: filters this report</span>
+    <span><i style="border-color:var(--pink)"></i>Export</span>
+  </div>
+</header>
+<nav aria-label="Comp views" id="views"></nav>
+<main id="stage"></main>
+<script>
+  const VIEWS = [
+    ['Controls', 'Which control is which', 'Annotated. Global navigation stays in the approved strip. One secondary bar sits directly under it on every multi-section report: pages on the left; scope and the report export on the right.',
+      [['proposal-1440-offense-annotated', 'Offense: six pages, no scope'], ['proposal-1440-defense-annotated', 'Defense: four pages, Current game / Full season scope, Export report'], ['proposal-1440-special-annotated', 'Special Teams: the reference interaction, now in the shared bar']]],
+    ['Overview', 'Overview: compact score', 'The linescore plus three game facts no other Overview tile states: result, charted plays, turnover margin. The Yards-per-play story (the KPI band owns it) and the second matchup name are gone. Overview is one page, so it has no secondary bar.',
+      [['proposal-1440-overview', 'Proposal, 1440'], ['current-1440-overview', 'Current production, for comparison']]],
+    ['Offense', 'Offense: long page to six pages', 'The six approved zones become pages. Every module keeps its zone; nothing is added, dropped or resized. Situations carries the proposed down-and-distance chart.',
+      [['proposal-1440-offense-1', '1 Identity'], ['proposal-1440-offense-2', '2 Calls & tendencies'], ['proposal-1440-offense-3', '3 Structure'], ['proposal-1440-offense-4', '4 Situations, with the proposed down-and-distance chart'], ['proposal-1440-offense-5', '5 Field & production'], ['proposal-1440-offense-6', '6 Advanced'], ['current-1440-offense', 'Current production: one long page with jump links']]],
+    ['Defense', 'Defense: long page to four pages', 'The four Revision 2 sections become pages, each keeping its numbered heading and cohort line. Scope and Export report move from the sticky jump bar to the shared bar.',
+      [['proposal-1440-defense-1', '1 Performance'], ['proposal-1440-defense-2', '2 Opponent offense'], ['proposal-1440-defense-3', '3 Scheme & passing'], ['proposal-1440-defense-4', '4 Situations, with the proposed opponent down-and-distance chart'], ['current-1440-defense', 'Current production']]],
+    ['Special Teams', 'Special Teams', 'The reference interaction: section tabs with counts, now in the shared bar. The KPI tiles and unit ledger stay above every section, as they do today.',
+      [['proposal-1440-special-1', 'All units'], ['proposal-1440-special-2', 'Kickoff & Kick Return']]],
+    ['Players', 'Players', 'Role sections and the three-way scope move to the shared bar; the sample line stays with the board. No game KPI banner above it.',
+      [['proposal-1440-players-1', 'All roles'], ['proposal-1440-players-3', 'Defense'], ['current-1440-players', 'Current production, with the repeated game banner']]],
+    ['Other reports', 'Self-Scout, Matchup, Season', 'The same bar. Matchup puts its opponent picker on the scope side because it filters the report; Season keeps its seven child boards as pages.',
+      [['proposal-1440-selfscout-1', 'Self-Scout'], ['proposal-1440-matchup-1', 'Matchup'], ['proposal-1440-season-1', 'Season']]],
+    ['Narrower', 'Narrower viewports', 'At 1280 the bar stays one row. Below 1100 the pages keep their own row and scroll inside it, while scope and export take the row beneath.',
+      [['proposal-1280-overview', '1280 Overview'], ['proposal-1280-offense-1', '1280 Offense'], ['proposal-1280-special-1', '1280 Special Teams'], ['proposal-1280-players-1', '1280 Players'], ['proposal-768-overview', '768 Overview'], ['proposal-768-offense-4', '768 Offense, Situations'], ['proposal-768-defense-1', '768 Defense'], ['proposal-768-players-1', '768 Players']]],
+  ];
+  const nav = document.getElementById('views'), stage = document.getElementById('stage');
+  function show(i) {
+    const [, title, note, shots] = VIEWS[i];
+    [...nav.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+    const section = document.createElement('section');
+    section.className = 'view';
+    section.innerHTML = '<h2></h2><p></p>';
+    section.querySelector('h2').textContent = title;
+    section.querySelector('p').textContent = note;
+    shots.forEach(([file, caption]) => {
+      const fig = document.createElement('figure');
+      fig.innerHTML = `<img loading="lazy" src="captures/${file}.png" alt=""><figcaption></figcaption>`;
+      fig.querySelector('img').alt = caption;
+      fig.querySelector('figcaption').textContent = caption;
+      section.append(fig);
+    });
+    stage.replaceChildren(section);
+    try { localStorage.setItem('cmp-view', String(i)); } catch {}
+  }
+  VIEWS.forEach(([label], i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', () => { show(i); window.scrollTo(0, 0); });
+    nav.append(b);
+  });
+  let start = 0;
+  try { start = Math.min(VIEWS.length - 1, Number(localStorage.getItem('cmp-view')) || 0); } catch {}
+  show(start);
+</script>
+</body>
+</html>
