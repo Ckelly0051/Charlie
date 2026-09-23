@@ -7,7 +7,8 @@ aligned on the three-package sequence in `GRIDIRON-IQ-PLAN-V2.md` (Reports,
 Breakdown charting, then Film Room). This closes intake, not the defects or
 the installed smoke verdict. No repairs are claimed by this checkpoint.
 
-**Finding 1 — open, no repair yet.** The game KPI banner (Total Plays, Plays
+**Finding 1 — implemented in source (`0e84464`), installed smoke pending;
+see below.** The game KPI banner (Total Plays, Plays
 Charted, Plays per Phase, Offense Success Rate, Turnovers) still appears on
 several detail report tabs. Keep this summary on Overview only; detail tabs
 should begin with their own report content under the unchanged global strip.
@@ -19,7 +20,8 @@ canonical sourcing. Check every Reports tab, both perspectives where
 applicable, at desktop widths. The installed candidate's version was not
 identified with this finding. No UI fix or acceptance is claimed.
 
-**Finding 2 — open, no repair yet.** Internal Reports navigation is
+**Finding 2 — implemented in source (`0e84464`), installed smoke pending;
+see below.** Internal Reports navigation is
 inconsistent: Offense uses zone jump links on one long page, Defense uses a
 different jump bar, while Special Teams and Players use section tabs that
 switch the visible page. The coach prefers the Special Teams/Players pattern
@@ -75,6 +77,50 @@ needed fit repairs, and no type was shrunk:
 exports on the canonical season at 1440/1280/768 plus sparse and empty games.
 Known and outside this finding: the Defense Down & Distance header already
 wraps to three lines at 768.
+
+*Review correction, 2026-09-23 (`0e84464`); not packaged.* On the Defense
+board "Allowed" is implied and made compact KPI tiles and table headers wrap,
+so the board reads **Explosive Plays** and **Explosive Plays Rate**; the
+Defense HTML export and mixed reports (Overview, game export) keep
+**Allowed**. The 108/96px column reservation sized for the longer label was
+replaced by one sized for the word `Explosive` (80px, 72px in a half module),
+which also stops the eleven-column Run / Pass vs Strength and Defensive
+answers tables clipping it at 768. The KPI label now holds one line.
+
+**Findings 1 and 2 — implemented in source 2026-09-23 (`0e84464`); not
+packaged, installed smoke pending.** Built to the comp above; composition only,
+no calculation or cohort changed.
+- *Finding 2:* one shared `SectionBar` sits directly under the global strip on
+  all seven multi-section reports with one 46px box: pages left, scope and the
+  report's own export right. Offense is six pages (Identity, Calls &
+  tendencies, Structure, Situations, Field & production, Advanced) and Defense
+  four (Performance, Opponent offense, Scheme & passing, Situations); every
+  module appears on exactly one page, page choice is controller state, and no
+  page narrows an export. Special Teams, Players, Self-Scout, Season and
+  Matchup moved their existing controls into the bar unchanged. Retired: the
+  Offense zone nav and zone rules, the Defense sticky scope/jump bar, the
+  Season identity band. Boards embedded in Season carry the same bar inline.
+  The proposed down-and-distance module is **not** built; it is a separate
+  checkpoint.
+- *Finding 1:* the game KPI rail is deleted from every tab. Overview's compact
+  score is the linescore beside Result (official scores only), Charted and
+  Turnover margin, with no duplicate matchup name; a one-sided game states the
+  charted side and that the other was not charted.
+- *Found while verifying, repaired:* at 1280 Special Teams' fifth section was
+  cut off 59px (bar spacing now tightens below 1440, type unchanged); at 768
+  the Overview facts were squeezed into slivers and at 390 the linescore ran
+  off the phone (facts now take their own row; the phone linescore narrows its
+  quarter columns); on a phone the global Export menu opened 30px past the
+  left edge. That last one is latent at `759a82b`: `e2e-responsive-containment`
+  passed there only because the overflowing linescore made an ancestor a
+  horizontal scroller, which exempted the menu from its check.
+Evidence: canonical 2025 JV, read-only and hash-checked, St. Peter Lutheran
+current game and full season; captures in `artifacts/reports-global-strip/`
+(every tab at 1440/1280/768/390), `artifacts/offense-production-realdata/`
+(every page, every game, 1440/1280) and
+`artifacts/defense-production-realdata/run-*/` (every page, both scopes,
+1920/1440/1280/390). Unverified: installed WebView2 rendering, and the coach's
+verdict on the composition.
 
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 

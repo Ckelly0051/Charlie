@@ -121,10 +121,13 @@ regression guard and say so.
 | Season | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
 | Matchup | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
-| Offense | 9.5px | 118 | 323 | Deferred + narrow-width exception |
+| Offense | 9.5px | 115 | 320 | Deferred + narrow-width exception |
 
 **Defense, Special Teams, Players, Self-Scout, Season and Matchup are the migrated boards.** Revision 2 renders nothing below the
-floor; the comp's 11px `JUMP TO` label and sort glyph are 12.5px in production.
+floor; its sort glyph is 12.5px in production (the `JUMP TO` label is retired
+with the jump links: Defense's sections are pages in the shared secondary bar,
+2026-09-23). The shared secondary bar's page tabs, scope buttons and export are
+13px with 12.5px counts and scope label, per its comp.
 Special Teams migrated in the 2026-09-19 acceptance pass: it carried the most
 sub-floor text of any board except Offense (98 elements, 9.5px minimum) and now
 carries none. Its KPI tile labels, ledger names and headlines, section-badge
@@ -159,7 +162,10 @@ rather than the type.
 hold a 379px band half at the floor, so at ≤1300px their cells keep 12px body and
 11.5px column labels. They carry the explicit `gi-off-narrow-fit` class and the
 census pins their whole contribution: `11.5|TH: 40` and `12|TD: 165`, which is
-the difference between Offense's 118 at 1440 and 323 at 1280. The rule was
+the difference between Offense's 115 at 1440 and 320 at 1280. (Both were three
+higher until 2026-09-23: the three 10.5px zone-rule notes left with the zone
+rules when the zones became pages. The census is taken over all six pages.)
+The rule was
 previously scoped to `.gi-offense-board .gi-overview-module th, td` — every
 module on the board — which put **876** of 997 elements below the floor while
 this file claimed eight tables. Recomposing that band remains open work.

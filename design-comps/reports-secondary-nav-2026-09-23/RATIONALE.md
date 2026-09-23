@@ -142,3 +142,25 @@ and runs the comp's focused checks:
 9. **Down-and-distance chart:** a separate checkpoint. It needs a
    StatsEngine owner over the existing twelve buckets, cohort statements,
    exact film refs, export parity, and synthetic plus canonical tests.
+
+## Implementation record (2026-09-23, `0e84464`; installed smoke pending)
+
+Items 1-8 above are implemented as written; item 9 is not started. Where
+production departs from or adds to the list:
+
+- **Portal, not a second render.** Each board renders its own
+  `ReportSectionBar`, which portals into the route's `[data-reports-secbar]`
+  host under the strip (`ReportsScreen.sectionBarHost()`); the host is empty,
+  and takes no height, on Overview. A board embedded in Season has no host and
+  renders the same bar inline in its section.
+- **The Season identity band is retired**, because the Reports head above the
+  strip already names the season (`<season> Report`).
+- **The Defense board says `Explosive Plays` / `Explosive Plays Rate`**
+  (Allowed implied, coach correction); its export keeps Allowed.
+- **Narrow repairs found while verifying:** the bar tightens its spacing below
+  1440 so Special Teams' five counted sections fit at 1280; below 1100 the
+  compact score's facts take their own row, and on a phone its linescore
+  narrows its quarter columns; the phone Export menu opens from the left.
+- **One-sided turnover margin:** the Charted/Turnover facts come from
+  `_kpiRailData`; when one side was not charted the margin reads `No data` and
+  its sub-line states the observed side and names the other as not charted.

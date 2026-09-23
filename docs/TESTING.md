@@ -84,6 +84,41 @@ short placeholder tables cannot establish data or visual parity.
 The harness generates untracked screenshots in `artifacts/reports-global-strip/`;
 run it to produce captures on a clean checkout.
 
+### Reports secondary bar (source 2026-09-23, installed smoke pending)
+
+`design-comps/reports-secondary-nav-2026-09-23` is implemented in `0e84464`.
+`e2e-reports-global-strip` (now 360) also pins: one secondary bar directly
+under the strip with the same 46px box on all seven multi-section reports,
+unmoved by Offense/Defense page changes and every scope change; no bar and no
+empty host on Overview, whose compact score starts at the strip; no second
+control row inside any board; no game KPI rail anywhere; no clipped or
+scrolling bar control at 1440/1280; and at 768/390 a stacked bar inside the
+viewport, the Overview linescore's four quarters and total on screen, its three
+facts on their own row, and no page overflow. It captures every tab at 1440,
+1280, 768 and 390.
+
+**Every multi-page board is measured page by page.** A harness that reads only
+the page a report opens on passes vacuously for the others, so the Offense,
+Defense, copy-standard, explosive-label, typefloor and rhetorical-copy checks
+walk every page of the bar and merge what they saw. `e2e-reports-offense` (62)
+and `e2e-reports-offense-realdata` (47) pin each Offense page's exact module
+list, every module on exactly one page, one height per page on all six
+canonical games, controller-state page selection, and a game export identical
+from Identity and Advanced. `e2e-reports-defense-realdata` (95) and
+`e2e-reports-defense-board` (60) pin one section per Defense page, the KPI
+strip on Performance only, every module on one page, the bar's labels, scope
+and export, and a Defense export identical from Performance and Situations
+(generated-at stamp excluded). `e2e-explosive-labels` (43) requires the Defense
+board's `Explosive Plays` / `Explosive Plays Rate` (Allowed implied), its KPI
+label on one line, 44px table headers and no clipping at 768, while exports
+keep Allowed.
+
+Mutation-verified on 2026-09-23: rendering Players' bar inline reds the bar
+box and placement checks; appending the selected page to the Defense export
+reds the export-identity check; restoring `Explosive Plays Allowed` reds the
+Defense wording and one-line KPI checks; removing the narrow score CSS reds
+the 768/390 score checks.
+
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
 cannot certify Reports acceptance. Every Reports evidence handoff must include
@@ -123,7 +158,7 @@ The smallest existing harness for the route or domain you touched.
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-reports-export-realdata`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
+| Reports | `e2e-reports-global-strip`, `e2e-explosive-labels`, `e2e-copy-standard`, `e2e-native-reports`, `e2e-reports-export-realdata`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
 **Players Revision 2, 2026-09-20.** `e2e-reports-players` (239) keeps every
 Revision 1 contract and adds the Revision 2 ones on a two-game fixture where one

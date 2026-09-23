@@ -19,6 +19,14 @@ same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green
 (`e2e-reports-global-strip`). The `1.12.0-95` installer contains it; neither
 the installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
+**Reports secondary bar — IMPLEMENTED IN SOURCE (`0e84464`, 2026-09-23), NOT
+PACKAGED, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
+(implementation record in its RATIONALE). One shared bar under the strip on
+the seven multi-section reports; Offense six pages, Defense four; the game KPI
+rail deleted; a compact Overview score; the Defense board says `Explosive
+Plays`. Coach Reports smoke Findings 1 and 2 are repaired in source only; see
+`docs/OPEN-DEFECTS.md`. No installer contains it; the full gate was not run
+for it (27 affected harnesses green).
 **Main-checkout version:** `1.12.0-95` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is
@@ -1035,7 +1043,12 @@ Calls by situation honestly hold their static slots with dashes.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
 Structure and deployment, Situational analysis, Field and production, Advanced
-metrics — over a **12-column rhythm**. Every band divides on a gridline the
+metrics — which since 2026-09-23 (`0e84464`, installed smoke pending) are six
+PAGES in the shared secondary bar (`Identity`, `Calls & tendencies`,
+`Structure`, `Situations`, `Field & production`, `Advanced`), one on screen at a
+time; the zone nav and zone rules are retired, every module renders on exactly
+one page, and "one board height" is now one height per page on every game. The
+layout runs over a **12-column rhythm**. Every band divides on a gridline the
 six-column KPI band also uses (two-column bands run 8fr/4fr or 6fr/6fr,
 three-column bands three 4fr tracks), because the generic band's 65.9% split
 missed the KPI band's 66.7% by under a percent and read as a defect rather
@@ -1065,18 +1078,23 @@ owns the geometry. `ReportsScreen` passes the scoped cohort, the full-season
 cohort, opponent labels (`gameInfo.opponent`) and the roster; Season > Defense
 gets the same board from `SeasonManager.reportModel().defenseBoard`.
 
-**Composition.** One vertically scrolling report. A sticky bar holds the
-`Full season` / `Current game` control and four literal `JUMP TO` links; below
-it, four ordered sections — Defensive performance, Opponent offense, Scheme and
-passing defense, Situational results — each headed by its number, its title and
-`N charted / M with Run/Pass charted`. Defensive performance opens with ten KPIs
-in this order: Total yards allowed, Rush yards allowed, Pass yards allowed,
-Yards / play, Takeaways, Explosive Plays Allowed, Touchdowns Allowed, Defensive
-Touchdowns, 3rd Down Stop %, 4th Down Stop %. Game-by-game renders only at Full
-season; the current game's own summary is the KPI strip. The comp's standalone
-navigation, report-title block and footer line are not reproduced: the Reports
-shell's header and scorebug already carry that identity. Export Report stays in
-the bar and still prints the unchanged four-section dashboard export.
+**Composition (pages since 2026-09-23, `0e84464`, installed smoke pending).**
+Four ordered sections — Defensive performance, Opponent offense, Scheme and
+passing defense, Situational results — are four PAGES in the shared secondary
+bar (`Performance`, `Opponent offense`, `Scheme & passing`, `Situations`), one
+on screen at a time, each headed by its number, its title and
+`N charted / M with Run/Pass charted`. The bar also holds the `Current game` /
+`Full season` scope and Export report. The retired sticky scope/`JUMP TO` bar
+and its Defense-only scrollport overrides are gone. Defensive performance opens
+with ten KPIs in this order: Total yards allowed, Rush yards allowed, Pass
+yards allowed, Yards / play, Takeaways, Explosive Plays, Touchdowns Allowed,
+Defensive Touchdowns, 3rd Down Stop %, 4th Down Stop %. **On this board
+"Allowed" is implied for explosive plays** (`Explosive Plays`, `Explosive Plays
+Rate`; coach correction 2026-09-23, because it wrapped KPI tiles and headers);
+the Defense export keeps `Allowed`. Game-by-game renders only at Full season.
+The comp's standalone navigation, report-title block and footer line are not
+reproduced. Export report prints the unchanged four-section dashboard export
+from whichever page is open.
 
 **MODULE GEOMETRY IS A CONTRACT.** A module is 96px of chrome (a 50px header, a
 44px table header, two borders) plus rows at its pitch (38px; 48, 60 or 64 for
@@ -1215,29 +1233,30 @@ sentence says rows may overlap. Every count is computed from the rows it
 describes; a hardcoded canonical value reds both the synthetic board and the
 canonical season's second game. **No total, cohort or calculation changed.**
 
-**Sticky needs the route's real scrollport.** `.ws-reports` scrolls, but the
-report pane (`overflow-x:auto`) and `.gi-reports` (`overflow-x:hidden`, which
-forces `overflow-y:auto`) are scroll containers that never move, so a sticky bar
-bound to them scrolls away — the limitation the Offense zone nav documented. On
-the Defense pane ONLY, the pane is `overflow:visible` and `.gi-reports` is
-`overflow-x:clip`, which clips without becoming a scroll container. No other
-board's sticky behavior changes. Inside Season > Defense the bar is not sticky.
+**RETIRED 2026-09-23 — the Defense-only sticky scrollport.** `.ws-reports`
+scrolls while the report pane and `.gi-reports` are scroll containers that
+never move, so a sticky element bound to them scrolls away; the Defense pane
+used to opt out of both for its sticky jump bar. The jump bar is gone (pages in
+the secondary bar replace it) and so are the overrides; the fact about the
+scrollport still holds for any future sticky control.
 
-**Widths.** The report body caps at 1680px and centers; the bar spans the
-report. KPI values must fit their tile: the production condensed face is wider
+**Widths.** The report body caps at 1680px and centers. KPI values must fit their tile: the production condensed face is wider
 than the comp's Barlow, so tiles give back side padding below 1500px, the value
 steps from 34px to 30px below 1420px, and the strip reflows to five a row below
 1240px (the comp reflows at 1100px, which the wider face cannot hold). Below
 1100px every module is full width; below 700px the KPIs are two a row and
 tables scroll horizontally inside their own module. A half-width module's
 metric headers give up 4px of side padding so `Touchdowns Allowed` never clips
-at 1280. Every coach-facing text element on the board is at or above the 12.5px
-floor; the comp's 11px `JUMP TO` label and sort glyph are 12.5px here.
+at 1280. The explosive column reserves the word `Explosive` (80px, 72px in a
+half module) so eleven-column tables do not clip it at 768. Every coach-facing
+text element on the board is at or above the 12.5px floor; the sort glyph is
+12.5px here.
 
 Evidence: `tools/e2e-reports-defense-realdata.mjs` (canonical season, read-only
 and hash-checked: all six games at 1440 and 1280, the pinned inventory and KPIs
 for both scopes, chrome edges, the floor, the dashboard's existing data
-contracts, sticky bar and jump links, KPI fit, captures at 1920/1440/1280/390)
+contracts, the four pages in the secondary bar, a page-independent export, KPI
+fit, captures of every page at 1920/1440/1280/390)
 and `tools/e2e-reports-defense-board.mjs` (a synthetic season for what the
 canonical one lacks: both touchdown sides, a takeaway without a touchdown, Safety
 and Field Goal possessions, overflowing possessions, no front/coverage/play type,
@@ -1819,7 +1838,8 @@ the defensive call tables, the approved Matchup defensive-lane metric, and a
 Study metric; none of those changed.
 
 **Self-Scout is current-game scope.** It therefore keeps the shared current-game
-header and KPI rail. The chrome follows the report's real scope; it is not a
+header (the game KPI rail it once carried is deleted, 2026-09-23). The chrome
+follows the report's real scope; it is not a
 reward for completing a design pass and must never imply a game scope for
 season or matchup data.
 
@@ -2060,7 +2080,7 @@ implemented. Carried into the Charlie Gate.
 ---
 
 **Special Teams chrome follows its scope.** At Current game it uses the shared
-current-game header and KPI rail. At Full season it suppresses all game-only
+current-game header (no KPI rail since 2026-09-23). At Full season it suppresses all game-only
 chrome and names `<season> Special Teams` / `Full season`. No
 Special-Teams-only scorebug variant exists. Export reuses the existing
 mechanism (`exportSpecialTeams` → `buildSpecialTeamsHtmlReport` → the shared
@@ -2095,20 +2115,39 @@ Overview, Offense, Defense, Special Teams, Players, Self-Scout, Matchup,
 Season, and Export. Every tab has the same bounding box on all eight reports
 at 1440 and 1280, so Overview to Season is a horizontal move. Nothing
 conditional sits above the strip: the title truncates rather than wraps, and
-the linescore, the game rail and every board's own scope, filter, jump and
-section controls render below it. The opponent perspective DISABLES the four
+the secondary bar, the Overview score and every board's own controls render
+below it. The opponent perspective DISABLES the four
 self-only tabs instead of hiding them, because hiding one moves every tab
 after it. Defense and Special Teams scope open on Current game, listed first,
 like Players; the choice is controller state and survives re-renders.
 
-`ReportsScreen._usesCurrentGameContext()` is the single scope decision. The
-scorebug can render only for a tab in `SCOREBUG_TABS` (Overview alone) that is
-also using the current game; the generic KPI rail can render only for another
-current-game report outside `NO_RAIL_TABS` (Overview, Offense, Defense, whose
-boards open on their own KPIs), and it carries no Final Score tile. Full-season Defense, Special Teams and Players, the Season board, and
-Matchup suppress both game-only elements. Their shared header names their real
-scope. Current-game scope buttons resynchronize the header before rendering,
-so changing scope cannot leave stale game or season framing behind.
+**THE SECONDARY BAR (source `0e84464`, 2026-09-23; installed smoke pending).**
+Built to `design-comps/reports-secondary-nav-2026-09-23` (its RATIONALE records
+the implementation). Directly under the strip sits ONE bar, `SectionBar` in
+`native-report-kit.jsx`, with the same 46px box on all seven multi-section
+reports: the report's pages on the left, its scope and its own export on the
+right. Each board renders `ReportSectionBar`, which portals into the route's
+`[data-reports-secbar]` host (`ReportsScreen.sectionBarHost()`); a board
+embedded in Season has no host and renders the same bar inline. Overview has
+no bar and its host takes no height. Offense is six pages and Defense four
+(`offenseSection` / `defenseSection` controller state); Special Teams,
+Players, Self-Scout, Season and Matchup moved their existing controls into the
+bar unchanged. A page never narrows an export. Below 1440 the bar's spacing
+tightens (Special Teams' five counted sections otherwise lost 59px at 1280);
+below 1100 it stacks pages over scope and export. The proposed
+down-and-distance module is a separate, unbuilt checkpoint.
+
+**THE GAME KPI RAIL IS DELETED (2026-09-23).** Overview's compact score is the
+only game-summary chrome: the linescore beside Result (from the OFFICIAL
+scores only, `gameResult()`), Charted and Turnover margin, with no Yards-per-play
+story and no duplicate matchup name. A side nobody charted is never a zero: a
+defense-only game reads `No data` for the margin with `1 takeaway, turnovers
+not charted`. `ReportsScreen._usesCurrentGameContext()` is still the single
+scope decision: the score renders only for Overview on the current game, and
+full-season Defense, Special Teams and Players, Season and Matchup name their
+real scope in the shared header. Below 1100 the facts take their own row; on a
+phone the linescore narrows its quarter columns so all four and the total stay
+on screen.
 
 **The LINESCORE scorebug is Overview-only (source, 2026-09-22).** Offense's
 linescore and Defense's linescore with its identity strip are retired, not
@@ -2281,7 +2320,8 @@ has accepted these repairs as production state.
    `REJECTED` pending a separate production-acceptance decision.
 8. **SUPERSEDED 2026-09-17 — Defense section tabs.** Defense Revision 2 is one
    scrolling report with jump links, as the approved comp specifies. Offense
-   still scrolls with its own zone navigation.
+   still scrolls with its own zone navigation. **Itself superseded
+   2026-09-23:** both are now pages in the shared secondary bar.
 9. **CLOSED 2026-09-09 — Defense band gaps.** By down completes the opening
    band; fixed aligned rows complete Opponent Offense and Situational results.
 10. **CLOSED 2026-09-09 — duplicate Defense > Self-Scout.** The fifth section
@@ -2395,9 +2435,9 @@ Full tiers, commands, and what each tier can and cannot certify:
 - **Release** — `bash tools/run-gate.sh`, Windows CI, real-data checks, and an
   **installed WebView2 smoke**.
 
-Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 99),
+Reports harnesses: `tools/e2e-native-reports.mjs` (the route as a whole, 101),
 `tools/e2e-reports-defense-realdata.mjs` (Defense Revision 2 on the canonical
-season, 89), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
+season, 95), `tools/e2e-reports-defense-board.mjs` (Defense Revision 2 contracts
 on a synthetic season, 60),
 `tools/e2e-reports-overview.mjs` (the fixed Overview schema, deterministic
 ranking/caps, sparse and overflow states, drive boundaries, film actions and
@@ -2407,14 +2447,14 @@ release widths, perspective-safe title tooltips and read-only captures, 35),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football
 contracts, the shared scorebug rule, and the static schema — module inventory
 and order, EXACT row allocations, and identical schema under populated, sparse,
-empty and over-cap data with deterministic ranking, truncation and padding, 58),
+empty and over-cap data with deterministic ranking, truncation and padding, and the six pages, 62),
 `tools/e2e-reports-offense-realdata.mjs` (the canonical six-game season,
 read-only and hash-checked, every game at 1440 and 1280: approved module
 inventory and order, exact row allocations, held slots, one board height,
 approved Team Profile metrics, a module-height ceiling, no page overflow and
-no clipped cell, 17), `tools/e2e-reports-special-teams.mjs`
+no clipped cell, walked page by page, 47), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
-corrections, legacy punt ownership, scope chrome and the printed export, 50), `tools/e2e-reports-players.mjs`
+corrections, legacy punt ownership, scope chrome and the printed export, 57), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
 absence contract, the role-specific composite film cohorts, the Grade repair, the
 one-owner game summary shared with the export, situational sort ORDER over
@@ -2439,11 +2479,11 @@ matching, per-cohort game counts, the charted-perspective red zone, our pick-six
 identical tab boxes across all eight reports, both directions, scope changes
 and the opponent perspective; order, fit and no scrolling; the Overview-only
 linescore and its arithmetic; Current-game defaults and persistence; the
-outer frame at 1920/1440/1280; the Players name column, 264) and
+outer frame at 1920/1440/1280; the Players name column; the secondary bar and the 768/390 layouts, 360) and
 `tools/e2e-explosive-labels.mjs` (explosive-play terminology: no bare or
-abbreviated label in source, the approved wording and Defense's Allowed on
-every rendered tab and export, fit without clipping or shrunk type at
-1440/1280/768, sparse and empty games, 40).
+abbreviated label in source, the approved wording on every rendered tab and export, the Defense board's
+implied Allowed and the export's explicit one, fit without clipping or shrunk type at
+1440/1280/768, sparse and empty games, 43).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the
