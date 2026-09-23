@@ -21,7 +21,7 @@
  * so a pair's top and bottom edges align; an unmatched module spans the row.
  */
 import { useState } from 'preact/hooks';
-import { Watchable, EmptyState, ReportSectionBar } from './native-report-kit.jsx';
+import { Watchable, EmptyState, ReportSectionBar, DownDistanceChart } from './native-report-kit.jsx';
 import '../css/native-defense-board.css';
 
 /* Module chrome: a 50px header, a 44px table header and two 1px borders. */
@@ -298,6 +298,13 @@ export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
           data-def2-kpi-cohort={`${board.measured} run/pass snaps`}>
           {kpis.map(([label, value]) => <div key={label} data-def2-kpi={label}><span>{label}</span><strong>{value}</strong></div>)}
         </div>}
+        {/* First on Situations: the opponent's down and distance, from the
+            board's own owner (`defenseBoard().downDistanceChart`). It is not a
+            `data-def2-module`, so the fixed module geometry contract and the
+            pinned inventory are unchanged. */}
+        {section.id === 'situations' && board.downDistanceChart
+          ? <DownDistanceChart key="dd" side="defense" title="Opponent down & distance" screen={screen} chart={board.downDistanceChart} />
+          : null}
         <div class="gi-def2-bands" key={`bands-${section.id}`}>
           {sections[section.id].map(module => <DefenseModule key={`${section.id}-${module.title}`} module={module} screen={screen} />)}
         </div>

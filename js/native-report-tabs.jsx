@@ -8,7 +8,7 @@
  * post-render DOM query/rebind pass.
  */
 import { useMemo, useState } from 'preact/hooks';
-import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar } from './native-report-kit.jsx';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar, DownDistanceChart } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { Charts } from './charts.js';
@@ -837,6 +837,13 @@ export function OffenseTab({ stats, screen }) {
 
     {/* ── ZONE 4 — situational analysis ─────────────────────────────── */}
     {page === 'situations' && <>
+    {/* First on the page (comp design-comps/reports-secondary-nav-2026-09-23):
+        our down and distance over the board's own offensive cohort. A live
+        current-game play has no stamped game, so its film ref takes the active
+        game's id, which is the game it belongs to. */}
+    <DownDistanceChart side="offense" title="Down & distance" screen={screen}
+      chart={engine.downDistanceChart(stats.offPlays, { side: 'offense',
+        fallbackGameId: screen.app?.storage?.seasonStore?.data?.activeGameId ?? null })} />
     {/* The comp's two bands: Personnel × situation beside Situational, then the
         Tendency matrix beside By quarter. Production had split these into two
         full-width bands and a pair in the wrong order, so Zone 4 read as four

@@ -271,7 +271,9 @@ export class ReportsScreen {
     if (!dashboard?.total) return false;
     const scopeLabel = this.defenseScope === 'season' ? 'Full season' : 'Current game';
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Defense';
-    const html = buildDefenseHtmlReport({ title: `Defensive Report: ${team}`, dashboard, scopeLabel });
+    const html = buildDefenseHtmlReport({ title: `Defensive Report: ${team}`, dashboard, scopeLabel,
+      // The board's own chart over the same scoped cohort the board printed.
+      ddChart: this.app.stats.downDistanceChart(scoped || [], { side: 'defense' }) });
     window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `defensive_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }

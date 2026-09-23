@@ -35,12 +35,30 @@ const tendencyTable = stats => table('Formation Tendencies', [
   { key: 'avg', label: 'Yards / Play' }, { key: 'successPct', label: 'Success', value: row => `${row.successPct}%` },
 ], (stats.tendencies?.formationList || []).slice(0, 12));
 
+/** The down-and-distance chart on paper: the same twelve cells, in the same
+ *  football order, printed through the SAME engine formatters the board uses,
+ *  with the chart's cohort sentence. A held situation prints `-`. */
+const downDistanceChartTable = (title, chart) => {
+  if (!chart) return '';
+  const fmt = StatsEngine.formatDownDistanceCell;
+  const defense = chart.side === 'defense';
+  const rows = chart.cells.map(cell => ({ cell, text: fmt(cell) }));
+  const body = `<div class="table-wrap"><table data-dd-export="${esc(chart.side)}"><thead><tr>${[
+    'Situation', 'Plays', 'Run / Pass', defense ? 'Opponent success' : 'Success',
+    defense ? 'Yards / Play Allowed' : 'Yards / Play', 'Top play types',
+  ].map(label => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows.map(({ cell, text }) =>
+    `<tr data-dd-row="${esc(cell.key)}">${[cell.label, text.plays, text.split, text.success, text.ypp, text.top].map(cellText => `<td>${esc(cellText)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  return `<section class="report-section"><h2>${esc(title)}</h2>
+    <p class="dd-cohort" data-dd-cohort>${esc(StatsEngine.downDistanceCohortLine(chart))}. Success counts only snaps whose down, distance and yardage (or scoring result) were charted; yards per play counts only snaps with charted yardage; a snap tagged with two play types is listed under both.</p>
+    ${body}</section>`;
+};
+
 const situationalTable = stats => table('Situational Offense', [
   { key: 'name', label: 'Situation' }, { key: 'total', label: 'Snaps' },
   { key: 'avg', label: 'Yards / Play' }, { key: 'success', label: 'Success' }, { key: 'tds', label: 'TD' },
 ], view.situationalBreakdown(stats).rows);
 
-const defenseTables = report => {
+const defenseTables = (report, ddChart = null) => {
   if (!report?.total) return '';
   const columns = [
     { key: 'name', label: 'Play Type' }, { key: 'n', label: 'Snaps' },
@@ -57,7 +75,7 @@ const defenseTables = report => {
     { label: 'Takeaways', value: report.takeaways, sub: 'defensive turnovers' },
     { label: 'Third-down stop', value: report.thirdDownStopRate == null ? '—' : `${report.thirdDownStopRate}%`, sub: 'charted third downs' },
   ]);
-  return `<section class="chapter"><div class="chapter-title"><span>Defense</span><h1>Defensive Performance</h1></div>${summary}${table('Opponent Offense by Play Type', columns, report.playTypes)}${table('Situational Defense', columns.map(c => ({ ...c, label: c.key === 'name' ? 'Situation' : c.label })), report.situations)}</section>`;
+  return `<section class="chapter"><div class="chapter-title"><span>Defense</span><h1>Defensive Performance</h1></div>${summary}${table('Opponent Offense by Play Type', columns, report.playTypes)}${downDistanceChartTable('Opponent Down & Distance Chart', ddChart)}${table('Situational Defense', columns.map(c => ({ ...c, label: c.key === 'name' ? 'Situation' : c.label })), report.situations)}</section>`;
 };
 
 /**
@@ -147,9 +165,9 @@ const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, def
   return `${overview}
     <section class="chapter"><div class="chapter-title"><span>Offense</span><h1>Offensive Performance</h1></div>
       <div class="two-up">${compactRows('Rushing', view.rushingRows(stats))}${compactRows('Passing', view.passingRows(stats))}</div>
-      ${tendencyTable(stats)}${dd}${situationalTable(stats)}${driveTable}${offenseVisuals(stats, engine)}
+      ${tendencyTable(stats)}${downDistanceChartTable('Down & Distance Chart', engine.downDistanceChart(stats.offPlays || [], { side: 'offense' }))}${dd}${situationalTable(stats)}${driveTable}${offenseVisuals(stats, engine)}
     </section>
-    ${defenseTables(def)}${specialTeams(stats, stSummary)}
+    ${defenseTables(def, engine.downDistanceChart(stats.defPlays || [], { side: 'defense' }))}${specialTeams(stats, stSummary)}
     <section class="chapter"><div class="chapter-title"><span>Players</span><h1>Individual Performance</h1></div>${playerTables(stats, labeler) || '<p class="empty">No player attribution charted.</p>'}</section>`;
 };
 
@@ -309,7 +327,7 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }
 
-export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generatedAt = new Date() }) {
+export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, ddChart = null, generatedAt = new Date() }) {
   if (!dashboard?.total) return '';
   const shown = value => value === null || value === undefined || value === '' ? '-' : value;
   const fixed = (rows, count) => [...(rows || []).slice(0, count),
@@ -390,7 +408,7 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
       { key: 'blitzYpp', label: 'Blitz Y/P', value: row => decimal(row.blitzYpp) },
       { key: 'baseYpp', label: 'Base Y/P', value: row => decimal(row.baseYpp) },
     ], fixed(dashboard.pressureSituations, 6));
-  const situations = table('Down & distance', [
+  const situations = downDistanceChartTable('Opponent down & distance chart', ddChart) + table('Down & distance', [
     { key: 'name', label: 'Situation' }, { key: 'n', label: 'Snaps' },
     { key: 'mix', label: 'Run / Pass', value: mix }, { key: 'yards', label: 'Total Yards' },
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },

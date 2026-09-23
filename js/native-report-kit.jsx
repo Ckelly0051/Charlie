@@ -14,6 +14,7 @@
  */
 import { useMemo, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
+import { StatsEngine } from './stats-engine.js';
 
 export function KpiBand({ items }) {
   if (!items?.length) return null;
@@ -280,4 +281,72 @@ export function ReportSectionBar({ screen, ...props }) {
   const host = screen?.sectionBarHost?.() || null;
   const bar = <SectionBar {...props} inline={!host} />;
   return host ? createPortal(bar, host) : bar;
+}
+
+/**
+ * THE DOWN-AND-DISTANCE CHART (comp design-comps/reports-secondary-nav-
+ * 2026-09-23). A fixed 4 x 3 grid - 1st to 4th down by 1-3, 4-6 and 7+ yards to
+ * go - and a detail panel for the selected cell. Every value, every printed
+ * string and the cohort sentence come from `StatsEngine.downDistanceChart` and
+ * its formatters; this lays them out. An unfaced situation is a held dash and
+ * cannot be selected. The selection is controller state per side, so a
+ * re-render keeps it; with none, the busiest cell opens (football order breaks
+ * a tie).
+ */
+export function DownDistanceChart({ chart, screen, side, title }) {
+  const store = screen && Object.isExtensible(screen) ? (screen.ddSelection ||= {}) : {};
+  const busiest = (chart?.cells || []).filter(cell => !cell.held)
+    .reduce((best, cell) => (!best || cell.n > best.n ? cell : best), null);
+  const [picked, setPicked] = useState(store[side]);
+  const selected = chart?.cells.find(cell => cell.key === picked && !cell.held) || busiest;
+  const choose = key => { store[side] = key; setPicked(key); };
+  const fmt = StatsEngine.formatDownDistanceCell;
+  const max = Math.max(1, ...(chart?.cells || []).map(cell => cell.n));
+  const detail = selected ? fmt(selected) : null;
+  const successLabel = side === 'defense' ? 'Opponent success' : 'Success';
+  const yppLabel = side === 'defense' ? 'Yds/play allowed' : 'Yds/play';
+  const rows = ['1', '2', '3', '4'];
+  const ordinal = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' };
+  return <section class="gi-dd" data-dd-chart={side} aria-label={title}>
+    <header><strong>{title}</strong><span data-dd-cohort>{StatsEngine.downDistanceCohortLine(chart)}</span></header>
+    <div class="gi-dd-body">
+      <div class="gi-dd-grid" role="grid" aria-label={`${title} by down and yards to go`}>
+        <i aria-hidden="true" />{['1-3', '4-6', '7+'].map(label => <i key={label} class="gi-dd-col">{label}</i>)}
+        {rows.map(down => [<i key={`r${down}`} class="gi-dd-row">{ordinal[down]}</i>,
+          ...chart.cells.filter(cell => cell.down === down).map(cell => {
+            const text = fmt(cell);
+            if (cell.held) return <div key={cell.key} class="gi-dd-cell is-held" data-dd-cell={cell.key} role="gridcell" aria-label={`${cell.label}: no snaps`}><span>-</span></div>;
+            const on = selected?.key === cell.key;
+            return <button key={cell.key} type="button" role="gridcell" class={`gi-dd-cell${on ? ' is-selected' : ''}`}
+              data-dd-cell={cell.key} aria-pressed={on} style={`--v:${(cell.n / max).toFixed(3)}`}
+              aria-label={`${cell.label}: ${text.plays} plays, ${text.split}, ${successLabel.toLowerCase()} ${text.success}, ${yppLabel.toLowerCase()} ${text.ypp}`}
+              onClick={() => choose(cell.key)}>
+              <strong data-dd-plays>{text.plays}</strong>
+              <em class="gi-dd-mix" aria-hidden="true"><i style={`--n:${cell.runs}`} /><i style={`--n:${cell.passes}`} /></em>
+              <small data-dd-split>{text.split}</small>
+              <small><span data-dd-success>{text.success}</span> · <span data-dd-ypp>{text.ypp}</span></small>
+            </button>;
+          })])}
+      </div>
+      <aside class="gi-dd-detail" data-dd-detail>
+        {selected ? <>
+          <h4>{selected.label} <span>{detail.plays} plays</span></h4>
+          <dl>
+            <div><dt>Run / pass</dt><dd>{detail.split}</dd></div>
+            <div><dt>{successLabel}</dt><dd>{detail.success}</dd><small>{selected.successEligible} of {selected.n} measurable</small></div>
+            <div><dt>{yppLabel}</dt><dd>{detail.ypp}</dd><small>{selected.yardsMeasured} of {selected.n} with yardage</small></div>
+          </dl>
+          <p>Top play types{selected.typeTags > selected.n ? ` · ${selected.typeTags} tags on ${selected.n} snaps` : ''}</p>
+          <ol data-dd-types>{selected.playTypes.length
+            ? selected.playTypes.slice(0, 3).map(type => <li key={type.name}><span>{type.name}</span><b>{type.n}</b></li>)
+            : <li><span>No play type charted</span></li>}
+            {selected.untyped ? <li class="is-muted"><span>No play type</span><b>{selected.untyped}</b></li> : null}</ol>
+          {selected.refs.length
+            ? <button type="button" class="gi-dd-watch" data-dd-watch
+              onClick={() => screen?.watchRefs?.(selected.refs, `${selected.label} — ${title}`)}>Watch {selected.refs.length} plays</button>
+            : null}
+        </> : <p>No down and distance charted</p>}
+      </aside>
+    </div>
+  </section>;
 }

@@ -3329,3 +3329,55 @@
 /* Player detail spans the report grid: the role nav filters the LEADERBOARD and
    is not rendered beside it. */
 .gi-reports .gi-pd{ grid-column:1 / -1 }
+
+/* ── DOWN-AND-DISTANCE CHART ─────────────────────────────────────────────
+   Offense > Situations and Defense > Situations, first on the page (comp
+   design-comps/reports-secondary-nav-2026-09-23). A fixed 4 x 3 grid beside a
+   320px detail panel; below 1100px the panel drops under the grid. Cell fill
+   scales with the cell's share of the busiest cell; an unfaced cell is a held
+   dash on no fill. Rows are a fixed 100px (120px on a phone) and the detail
+   reserves its four play-type rows, so the page is one height on every game. Every coach-facing string is at the 12.5px floor or above. */
+.gi-reports .gi-dd{margin:0 0 20px;border:1px solid var(--gi-bd-line);border-top:2px solid var(--gi-bd-cyan);background:var(--gi-bd-panel)}
+.gi-reports .gi-dd>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:12px 16px;border-bottom:1px solid var(--gi-bd-line)}
+.gi-reports .gi-dd>header strong{color:var(--gi-bd-strong);font:600 15px/1.2 var(--gi-sans);text-transform:none;letter-spacing:0}
+.gi-reports .gi-dd>header span{color:var(--gi-bd-muted);font:400 12.5px/1.2 var(--gi-sans)}
+.gi-reports .gi-dd-body{display:grid;grid-template-columns:minmax(0,1fr) 320px}
+.gi-reports .gi-dd-grid{display:grid;grid-template-columns:52px repeat(3,minmax(0,1fr));grid-template-rows:20px repeat(4,100px);gap:6px;padding:14px 16px}
+.gi-reports .gi-dd-grid>i{display:flex;align-items:center;justify-content:center;color:var(--gi-bd-muted);font:600 12.5px/1 var(--gi-sans);font-style:normal}
+.gi-reports .gi-dd-cell{
+  display:grid;gap:5px;justify-items:start;align-content:start;min-width:0;height:100px;padding:10px 12px;
+  border:1px solid var(--gi-bd-line);border-radius:0;
+  background:color-mix(in srgb,var(--gi-bd-cyan) calc(var(--v,0) * 22%),var(--gi-bd-control));
+  color:var(--gi-bd-strong);text-align:left;cursor:pointer
+}
+.gi-reports .gi-dd-cell strong{font:700 24px/1 var(--gi-cond);font-variant-numeric:tabular-nums}
+.gi-reports .gi-dd-cell small{color:var(--gi-bd-copy);font:500 12.5px/1.2 var(--gi-sans);font-variant-numeric:tabular-nums;white-space:nowrap}
+.gi-reports .gi-dd-cell:hover{border-color:var(--gi-bd-muted)}
+.gi-reports .gi-dd-cell:focus-visible,.gi-reports .gi-dd-watch:focus-visible{outline:2px solid var(--gi-bd-cyan);outline-offset:-2px}
+.gi-reports .gi-dd-cell.is-selected{border-color:var(--gi-bd-cyan);box-shadow:inset 0 0 0 1px var(--gi-bd-cyan)}
+.gi-reports .gi-dd-cell.is-held{display:flex;align-items:center;justify-content:center;background:transparent;color:var(--gi-bd-muted);cursor:default}
+.gi-reports .gi-dd-mix{display:flex;width:100%;height:6px;gap:2px}
+.gi-reports .gi-dd-mix i{flex:var(--n);background:var(--gi-bd-gold)}
+.gi-reports .gi-dd-mix i+i{background:var(--gi-bd-cyan)}
+.gi-reports .gi-dd-detail{min-width:0;padding:14px 16px;border-left:1px solid var(--gi-bd-line);color:var(--gi-bd-copy);font:400 13px/1.3 var(--gi-sans)}
+.gi-reports .gi-dd-detail h4{margin:0 0 10px;color:var(--gi-bd-strong);font:600 16px/1.2 var(--gi-sans);text-transform:none;letter-spacing:0}
+.gi-reports .gi-dd-detail h4 span{margin-left:6px;color:var(--gi-bd-muted);font-weight:400;font-size:13px}
+.gi-reports .gi-dd-detail dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.gi-reports .gi-dd-detail dt{color:var(--gi-bd-muted);font-size:12.5px}
+.gi-reports .gi-dd-detail dd{margin:2px 0 0;color:var(--gi-bd-strong);font:700 18px/1.1 var(--gi-cond);font-variant-numeric:tabular-nums}
+.gi-reports .gi-dd-detail dl small{display:block;margin-top:2px;color:var(--gi-bd-muted);font-size:12.5px}
+.gi-reports .gi-dd-detail p{margin:0 0 6px;color:var(--gi-bd-muted);font-size:12.5px}
+.gi-reports .gi-dd-detail ol{min-height:116px;margin:0 0 14px;padding:0;list-style:none}
+.gi-reports .gi-dd-detail li{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--gi-bd-line)}
+.gi-reports .gi-dd-detail li.is-muted{color:var(--gi-bd-muted)}
+.gi-reports .gi-dd-watch{width:100%;min-height:32px;border:1px solid var(--gi-bd-cyan);border-radius:0;background:transparent;color:var(--gi-bd-cyan);font:600 13px/1 var(--gi-sans);cursor:pointer}
+.gi-reports .gi-dd-watch:hover{background:var(--gi-bd-control)}
+@media(max-width:1099px){
+  .gi-reports .gi-dd-body{grid-template-columns:minmax(0,1fr)}
+  .gi-reports .gi-dd-detail{border-left:0;border-top:1px solid var(--gi-bd-line)}
+}
+@media(max-width:700px){
+  .gi-reports .gi-dd-grid{grid-template-columns:36px repeat(3,minmax(0,1fr));grid-template-rows:20px repeat(4,120px);gap:4px;padding:10px 12px}
+  .gi-reports .gi-dd-cell{padding:8px;height:120px}
+  .gi-reports .gi-dd-cell small{white-space:normal}
+}

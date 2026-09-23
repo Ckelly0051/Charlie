@@ -2293,6 +2293,8 @@ export class StatsEngine {
       personnel: d.personnel.map(tendency), backfields: d.backfields.map(tendency), strength, answers,
       passingSummary: passOverview, calls, blitz, pressure, fronts, coverages, blitzTypes, passingByCoverage,
       callTrends, downDistance, highLeverage, zones, hashes, motions: d.motions.map(tendency),
+      // The opponent's down-and-distance chart over this same scoped cohort.
+      downDistanceChart: this.downDistanceChart(all, { side: 'defense' }),
     };
   }
 
@@ -5460,6 +5462,112 @@ export class StatsEngine {
         runPct: 0, passPct: 0, lean: '', leanPct: 0, avg: 0, succRate: 0,
         runAvg: 0, passAvg: 0, explosives: 0, tds: 0, turnovers: 0, tell: false, refs: [] };
     }));
+  }
+
+  /**
+   * THE DOWN-AND-DISTANCE CHART (Reports > Offense and Defense > Situations,
+   * comp design-comps/reports-secondary-nav-2026-09-23). The one owner of every
+   * value the chart and its HTML exports print; the views only lay it out.
+   *
+   * `side` is `offense` (our offense; `plays` is the Offense board's own
+   * cohort) or `defense` (the opponent's offense on our defensive snaps; only
+   * charted defensive snaps whose accepted penalties let the play count enter,
+   * the board's own rule).
+   *
+   * COHORTS, EACH NAMED IN THE RESULT:
+   *   `measured`  run/pass snaps (`isRun` / `isPass`, the canonical rule), the
+   *               cohort the chart measures;
+   *   `placed`    those that also carry a charted down (1-4) and a positive
+   *               charted distance. Nothing is inferred: a snap missing either
+   *               is counted in `missingDownDistance` and placed nowhere.
+   * Per cell: `n` snaps; `runs` / `passes` (a snap that reads as both is a run,
+   * `_selfScoutGroup`'s precedent, so the split always sums to `n`); success
+   * over `successEligible` snaps only (`_isSuccessfulPlayEligible`, so a missing
+   * yardage is never read as zero) using `isSuccessfulPlay` for our offense and
+   * `isOpponentSuccess` for theirs; yards/play over `yardsMeasured` snaps that
+   * carry charted yardage. Play types count SNAPS per type: a multi-select tag
+   * credits each component once, so `typeTags` can exceed `n` and the snap count
+   * never grows; `untyped` snaps carry no play type. `refs` are the cell's exact
+   * composite `gameId::playId` refs; a live current-game play without a stamped
+   * game takes `fallbackGameId`. An empty cell is `held`: no value is a zero.
+   */
+  downDistanceChart(plays, { side = 'offense', fallbackGameId = null } = {}) {
+    const S = StatsEngine;
+    const source = (plays || []).filter(p => p?.tags && (side !== 'defense'
+      || (p.tags.unit === 'defense' && S._tryPenaltyResolved(p))));
+    const measured = source.filter(p => S.isRun(p) || S.isPass(p));
+    const placeOf = p => {
+      const down = String(p.tags.down ?? '').trim();
+      const distance = parseInt(p.tags.distance, 10);
+      if (!['1', '2', '3', '4'].includes(down) || !Number.isFinite(distance) || distance <= 0) return null;
+      return `${down}|${S._distBucket(distance)}`;
+    };
+    const success = side === 'defense' ? S.isOpponentSuccess : S.isSuccessfulPlay;
+    const hasYardage = p => String(p.tags.yardage ?? '').trim() !== '' && Number.isFinite(parseInt(p.tags.yardage, 10));
+    const refOf = p => {
+      const gid = p.__gid ?? fallbackGameId;
+      return gid != null && p.id != null ? `${gid}::${p.id}` : null;
+    };
+    const byKey = new Map();
+    let placed = 0;
+    for (const p of measured) {
+      const key = placeOf(p);
+      if (!key) continue;
+      placed++;
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key).push(p);
+    }
+    const cells = ['1', '2', '3', '4'].flatMap(down => S.DIST_BUCKETS.map(bucket => {
+      const key = `${down}|${bucket}`;
+      const rows = byKey.get(key) || [];
+      const runs = rows.filter(S.isRun).length;
+      const eligible = rows.filter(p => this._isSuccessfulPlayEligible(p));
+      const yardRows = rows.filter(hasYardage);
+      const types = new Map();
+      let untyped = 0, typeTags = 0;
+      for (const p of rows) {
+        const parts = [...new Set(String(p.tags.playType || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean))];
+        if (!parts.length) { untyped++; continue; }
+        for (const name of parts) { types.set(name, (types.get(name) || 0) + 1); typeTags++; }
+      }
+      const refs = [...new Set(rows.map(refOf).filter(Boolean))].sort();
+      return {
+        key, down, bucket, label: S.ddPretty(key), n: rows.length, held: rows.length === 0,
+        runs, passes: rows.length - runs,
+        successEligible: eligible.length, successes: eligible.filter(success).length,
+        successRate: eligible.length ? eligible.filter(success).length / eligible.length * 100 : null,
+        yardsMeasured: yardRows.length,
+        yards: yardRows.length ? yardRows.reduce((sum, p) => sum + parseInt(p.tags.yardage, 10), 0) : null,
+        ypp: yardRows.length ? yardRows.reduce((sum, p) => sum + parseInt(p.tags.yardage, 10), 0) / yardRows.length : null,
+        playTypes: [...types].map(([name, n]) => ({ name, n }))
+          .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)),
+        typeTags, untyped, refs,
+      };
+    }));
+    return {
+      side, charted: source.length, measured: measured.length, placed,
+      missingDownDistance: measured.length - placed, cells,
+    };
+  }
+
+  /** The chart's printed strings: the board and every HTML export read these,
+   *  so the screen and the paper cannot disagree. A held cell prints `-`. */
+  static formatDownDistanceCell(cell) {
+    if (!cell || cell.held) return { plays: '-', split: '-', success: '-', ypp: '-', top: '-' };
+    return {
+      plays: String(cell.n),
+      split: `${cell.runs}R / ${cell.passes}P`,
+      success: cell.successRate == null ? '-' : `${Math.round(cell.successRate)}%`,
+      ypp: cell.ypp == null ? '-' : cell.ypp.toFixed(1),
+      top: cell.playTypes.length ? cell.playTypes.slice(0, 3).map(t => `${t.name} ${t.n}`).join(', ') : '-',
+    };
+  }
+
+  /** The chart's cohort sentence, one owner for screen and export. */
+  static downDistanceCohortLine(chart) {
+    if (!chart) return '';
+    const noun = chart.side === 'defense' ? 'opponent run/pass snaps' : 'run/pass snaps';
+    return `${chart.placed} of ${chart.measured} ${noun} carry down and distance`;
   }
 
   /** What a defense does about a one-sided offensive tendency (the "so what")
