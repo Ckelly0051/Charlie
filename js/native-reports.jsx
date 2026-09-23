@@ -1,6 +1,8 @@
 import { render } from 'preact';
 import '../css/native-reports.css';
 
+/* The approved 2026-09-22 global-strip order. Season is last: it is the
+   full-season parent of the seven game-scoped reports before it. */
 const REPORT_TABS = [
   ['overview', 'Overview'],
   ['offense', 'Offense'],
@@ -8,8 +10,8 @@ const REPORT_TABS = [
   ['special', 'Special Teams'],
   ['players', 'Players'],
   ['selfscout', 'Self-Scout'],
-  ['season', 'Season'],
   ['matchup', 'Matchup'],
+  ['season', 'Season'],
 ];
 
 function Icon({ name }) {
@@ -34,8 +36,14 @@ function ExportMenu({ screen }) {
 }
 
 function NativeReportsRoute({ screen }) {
+  /* THE GLOBAL STRIP (coach-approved comp, 2026-09-22). One fixed-height
+     report head, then ONE strip — perspective, the eight tabs, Export — whose
+     y coordinate, height and tab x positions are identical on every tab.
+     Nothing conditional sits above it: the title truncates rather than wraps,
+     the opponent picker lives in the head's fixed row, and the Overview
+     scorebug and the game KPI rail render BELOW the strip. Report-specific
+     scope, filters, jump links and section tabs stay inside each board. */
   return <section class="gi-reports" id="statsDashboard" aria-labelledby="giReportsTitle" data-native-reports>
-    <div class="gi-reports-scorebug" data-reports-scorebug hidden></div>
     <div class="gi-reports-reporthead" data-reports-main-chrome>
       <header class="gi-reports-head">
         <div class="gi-reports-title-block">
@@ -46,17 +54,21 @@ function NativeReportsRoute({ screen }) {
         <p data-reports-context>Every number links to its film.</p>
         </div>
       </header>
-
-      <div class="gi-reports-model">
-        <span>Perspective</span>
-        <div class="gi-reports-segment" role="group" aria-label="Report perspective">
-          <button type="button" class="is-active" data-report-perspective="self" aria-pressed="true" onClick={() => screen.show()}>Our game</button>
-          <button type="button" data-report-perspective="opponent" aria-pressed="false" onClick={() => screen.scoutOpponent()}>Opponent scout</button>
-        </div>
+      <div class="gi-reports-head-actions">
         <label class="gi-reports-opponent" data-reports-opponent hidden>
           <span>Team</span>
           <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
         </label>
+        <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" aria-label="Scout opponent" title="Scout opponent" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
+      </div>
+    </div>
+
+    <div class="gi-reports-strip" data-reports-main-chrome data-reports-strip>
+      <div class="gi-reports-model">
+        <div class="gi-reports-segment" role="group" aria-label="Report perspective">
+          <button type="button" class="is-active" data-report-perspective="self" aria-pressed="true" onClick={() => screen.show()}>Our game</button>
+          <button type="button" data-report-perspective="opponent" aria-pressed="false" onClick={() => screen.scoutOpponent()}>Opponent scout</button>
+        </div>
       </div>
 
       <nav class="gi-reports-tabs stats-tabs" aria-label="Report sections">
@@ -72,10 +84,11 @@ function NativeReportsRoute({ screen }) {
       </nav>
 
       <div class="gi-reports-actions">
-        <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" aria-label="Scout opponent" title="Scout opponent" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
         <ExportMenu screen={screen} />
       </div>
     </div>
+
+    <div class="gi-reports-scorebug" data-reports-scorebug hidden></div>
 
     {/* Reports redesign — the persistent KPI rail. Carries across every game-
         scope tab (Overview/Offense/Defense/Special Teams/Players/Self-Scout/

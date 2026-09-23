@@ -1173,7 +1173,7 @@ function PlayerRoleModule({ role, table, screen }) {
     render: key === 'player'
       ? row => <button type="button" class="gi-player-ident" data-player-open={row.num}
           onClick={event => { event.stopPropagation(); screen.openPlayerDetail?.(row.num); }}>
-          <i>{`#${row.num}`}</i>{` ${String(row.player ?? '').replace(/^#\S+\s*/, '')}`}</button>
+          <i class="gi-player-num"><span>{`#${row.num}`}</span></i>{` ${String(row.player ?? '').replace(/^#\S+\s*/, '')}`}</button>
       : row => {
         const refs = row.statRefs?.[key] || [];
         const value = row[key];
@@ -1610,10 +1610,10 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       {!fixedScope && <>
         <span class="gi-st-toolbar-label">Scope</span>
         <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
-          <button type="button" data-st-scope="season" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
-            onClick={() => { screen.specialTeamsScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
           <button type="button" data-st-scope="game" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
             onClick={() => { screen.specialTeamsScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
+          <button type="button" data-st-scope="season" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
+            onClick={() => { screen.specialTeamsScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
         </div>
       </>}
       {fixedScope && <strong class="gi-st-toolbar-label">{title}</strong>}

@@ -379,7 +379,10 @@ const scope = await page.evaluate(() => {
   const sc = window.app.reportsScreen;
   return { def: sc.specialTeamsScope, buttons: document.querySelectorAll('[data-st-scope]').length };
 });
-ok(scope.def === 'season', 'Special Teams keeps its own Full-season default');
+// Coach decision, 2026-09-22: every game/season scope opens on Current game.
+ok(scope.def === 'game', 'Special Teams opens on Current game');
+await page.evaluate(() => document.querySelector('[data-st-scope="season"]')?.click());
+await sleep(250);
 ok(scope.buttons === 2, 'the Full season / Current game control is preserved');
 const chrome = await page.evaluate(() => ({
   rail: !document.querySelector('[data-reports-rail]')?.hidden,

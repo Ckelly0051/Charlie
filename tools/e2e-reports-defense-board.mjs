@@ -142,12 +142,12 @@ ok(model.unchanged, 'defenseBoard carries the existing defenseDashboard output u
 /* ══ 2. Scope switching ══════════════════════════════════════════════════ */
 console.log('\n== 2. Scope switching ==');
 ok(!moduleOf(seen, 'Game-by-game') && moduleOf(seen, 'Current game vs Season')
-  && JSON.stringify(seen.pressed) === JSON.stringify(['season:false', 'game:true']),
+  && JSON.stringify(seen.pressed) === JSON.stringify(['game:true', 'season:false']),
   'Current game scope omits Game-by-game, compares with the season, and presses its own button', JSON.stringify(seen.pressed));
 await clickScope('season');
 seen = await board();
 ok(moduleOf(seen, 'Game-by-game')?.rows.map(row => row[0]).join('|') === 'Wildcats|Knights'
-  && moduleOf(seen, 'Season vs Last 3') && JSON.stringify(seen.pressed) === JSON.stringify(['season:true', 'game:false']),
+  && moduleOf(seen, 'Season vs Last 3') && JSON.stringify(seen.pressed) === JSON.stringify(['game:false', 'season:true']),
   'Full season renders Game-by-game by opponent, excludes the scout game, and compares with the last three games',
   JSON.stringify({ games: moduleOf(seen, 'Game-by-game')?.rows, pressed: seen.pressed }));
 ok(/Full season/.test(seen.header), 'the scope button resynchronizes the shared header', seen.header);

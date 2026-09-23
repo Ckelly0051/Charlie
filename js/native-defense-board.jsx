@@ -280,10 +280,10 @@ export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
   return <div class="gi-def2" data-def2-scope={seasonScope ? 'season' : 'game'}>
     <div class="gi-def2-controls">
       {!fixedScope && <div class="gi-def2-scope" role="group" aria-label="Defense report scope">
-        <button type="button" data-defense-scope="season" class={seasonScope ? 'is-active' : ''} aria-pressed={seasonScope}
-          onClick={event => setScope('season', event)}>Full season</button>
         <button type="button" data-defense-scope="game" class={seasonScope ? '' : 'is-active'} aria-pressed={!seasonScope}
           onClick={event => setScope('game', event)}>Current game</button>
+        <button type="button" data-defense-scope="season" class={seasonScope ? 'is-active' : ''} aria-pressed={seasonScope}
+          onClick={event => setScope('season', event)}>Full season</button>
       </div>}
       <nav class="gi-def2-jumps" aria-label="Jump to section">
         <span class="gi-def2-jumps-label">JUMP TO</span>

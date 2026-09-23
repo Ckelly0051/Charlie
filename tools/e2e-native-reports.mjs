@@ -73,7 +73,7 @@ let result = await page.evaluate(() => ({
 }));
 ok(result.native === 1 && result.dashboardIds === 1 && result.legacyControllerAbsent,
   'Reports has one native owner and StatsEngine has no second presentation controller', JSON.stringify(result));
-ok(result.tabs.join(',') === 'overview,offense,defense,special,players,selfscout,season,matchup',
+ok(result.tabs.join(',') === 'overview,offense,defense,special,players,selfscout,matchup,season',
   'Native Reports exposes all eight football report views', JSON.stringify(result.tabs));
 ok(result.actions.includes('scout') && result.actions.includes('export'),
   'Native Reports exposes scout and export commands', JSON.stringify(result.actions));
@@ -606,6 +606,12 @@ result = await page.evaluate(async () => {
   await app.storage._loadActiveGame();
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
+  // Every game/season scope opens on Current game (coach decision,
+  // 2026-09-22). This block measures the season cohort, so it records the
+  // default and then chooses Full season through the real button.
+  const gameByDefault = app.reportsScreen.defenseScope === 'game'
+    && document.querySelector('[data-pane="defense"] [data-defense-scope="game"].is-active') != null;
+  document.querySelector('[data-pane="defense"] [data-defense-scope="season"]')?.click();
   // Defense Revision 2 is one vertically scrolling report: every section is
   // on screen together, so nothing needs activating before it is read.
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -646,7 +652,7 @@ result = await page.evaluate(async () => {
   pane?.querySelector('[data-defense-scope="game"]')?.click();
   const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].is-active') != null;
   const after = document.querySelector('[data-pane="defense"] [data-def2-kpi="Total yards allowed"] strong')?.textContent || '';
-  app.reportsScreen.defenseScope = 'season';
+  app.reportsScreen.defenseScope = 'game';
   app.storage.seasonStore.data.games = originalGames;
   app.storage.seasonStore.data.activeGameId = originalActiveGameId;
   await app.storage._loadActiveGame();
@@ -655,7 +661,7 @@ result = await page.evaluate(async () => {
     third: model.thirdDownStopRate, redZone: model.redZoneTdRate, takeaways: model.takeaways,
     runInside: runInside && { n: runInside.n, refs: runInside.refs },
     duplicateRefs, games: model.byGame.map(row => row.name),
-    seasonActive, gameActive, before, after, typeRowsBefore, heldTypeRows, typeModuleHeight, typeSnaps, expectedTypes,
+    gameByDefault, seasonActive, gameActive, before, after, typeRowsBefore, heldTypeRows, typeModuleHeight, typeSnaps, expectedTypes,
     watchedRunInside, answerHeaderPosition, answerHeadPosition, answerRowsClearHeader,
     // Revision 2 renders its four sections in order on one page.
     headings: [...(pane?.querySelectorAll('[data-def2-section] h2') || [])]
@@ -675,8 +681,8 @@ ok(result.runInside?.n === 2 && JSON.stringify(result.runInside.refs) === JSON.s
 ok(Array.isArray(result.watchedRunInside) && JSON.stringify(result.watchedRunInside) === JSON.stringify(['a::1', 'a::2']),
   'A season Defense row launches exactly the film refs it displays', JSON.stringify(result.watchedRunInside));
 ok(result.games.join(',') === 'Week 1,Week 2'
-  && result.seasonActive && result.gameActive && result.scoutExcluded,
-  'Defense defaults to full season, excludes opponent-scout games, and can switch to current game', JSON.stringify(result));
+  && result.gameByDefault && result.seasonActive && result.gameActive && result.scoutExcluded,
+  'Defense opens on Current game; Full season excludes opponent-scout games; it switches back to current game', JSON.stringify(result));
 // Defense presents four useful sections. The old fifth section was a
 // predictability-only duplicate of the canonical Self-Scout report and is
 // deliberately absent.
@@ -1104,7 +1110,10 @@ result = await page.evaluate(() => {
     defense: app.reportsScreen._opponentRefs('defense'),
     special: app.reportsScreen._opponentRefs('special'),
     all: app.reportsScreen._opponentRefs('all'),
-    visibleTabs: [...document.querySelectorAll('[data-report-tab]')].filter(node => !node.hidden).map(node => node.dataset.reportTab),
+    // The global strip keeps all eight tabs in place and DISABLES the self-only
+    // reports in opponent mode, so an available view is an enabled one.
+    visibleTabs: [...document.querySelectorAll('[data-report-tab]')].filter(node => !node.hidden && !node.disabled).map(node => node.dataset.reportTab),
+    allTabsPresent: [...document.querySelectorAll('[data-report-tab]')].filter(node => !node.hidden).length === 8,
     text: document.querySelector('[data-native-report-content]')?.textContent || '',
     sampleCards: [...document.querySelectorAll('[data-pane="overview"] .gi-overview-kpi')]
       .map(node => ({ label: node.querySelector('span')?.textContent.trim(), value: node.querySelector('strong')?.textContent.trim() })),
@@ -1116,7 +1125,7 @@ ok(result.games === 2
   'Opponent offense and defense retain composite game/play identity across duplicate play ids', JSON.stringify(result));
 ok(JSON.stringify(result.special) === JSON.stringify(['g-scout::3']) && !result.all.includes('g-self::3'),
   'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST', JSON.stringify(result));
-ok(result.visibleTabs.join(',') === 'overview,offense,defense,special'
+ok(result.visibleTabs.join(',') === 'overview,offense,defense,special' && result.allTabsPresent
   && result.sampleCards.some(card => card.label === 'Games charted' && card.value === '2')
   && !result.text.includes('No charted data yet'),
   'Opponent mode exposes only supported views and a dynamic sample strip', JSON.stringify(result));

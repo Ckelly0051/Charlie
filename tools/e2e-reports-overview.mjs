@@ -820,8 +820,25 @@ for (const [width, height] of VIEWPORTS) {
   const key = `${width}x${height}`;
   await page.setViewport({ width, height });
   await sleep(400);
-  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  /* THE GLOBAL STRIP (coach-approved 2026-09-22) adds a fixed report head and
+     tab strip ABOVE the board that the 2026-09-11 capture never had, so the
+     same viewport showed ~40px less of the board and its last repeated rows
+     fell below the fold. The subject here is the BOARD's rhythm, not the
+     chrome's, so the route scrolls past exactly the head and strip before the
+     capture; the crop then covers the board content the approved capture
+     covers. No board geometry or tolerance changes. */
+  const settle = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await settle();
   const shot = await page.screenshot();
+  await page.evaluate(() => {
+    const route = document.querySelector('.ws-reports');
+    const head = document.querySelector('.gi-reports-reporthead');
+    const strip = document.querySelector('[data-reports-strip]');
+    if (route && head && strip) route.scrollTop = strip.getBoundingClientRect().bottom - head.getBoundingClientRect().top;
+  });
+  await settle();
+  const boardShot = await page.screenshot();
+  await page.evaluate(() => { const route = document.querySelector('.ws-reports'); if (route) route.scrollTop = 0; });
   if (CAPTURE_DIR) {
     mkdirSync(CAPTURE_DIR, { recursive: true });
     writeFileSync(`${CAPTURE_DIR}/${canonName(key)}`, shot);
@@ -868,10 +885,15 @@ for (const [width, height] of VIEWPORTS) {
     return [...seen.entries()].filter(([, n]) => n >= 2).map(([h]) => h).sort((a, b) => a - b);
   };
   const units = repeated(canon.bands);
-  const missingUnits = units.filter(u => !prod.bands.some(p => Math.abs(p - u) <= 2));
+  /* Measured on the scroll-aligned capture (see above); every other assertion
+     here reads the unscrolled capture exactly as before. */
+  const boardUri = uriFor(boardShot);
+  const boardBox = await detectBoard(boardUri);
+  const aligned = await analyse(boardUri, { ...boardBox, h: Math.min(boardBox.h, canonBox.h) });
+  const missingUnits = units.filter(u => !aligned.bands.some(p => Math.abs(p - u) <= 2));
   /* Row pitch: the density measurement proper. A band-gap scan cannot see it,
      because a module's rows sit inside one unbroken panel. */
-  geometry.push({ key, units, canonical: canon.bands, production: prod.bands, missingUnits });
+  geometry.push({ key, units, canonical: canon.bands, production: aligned.bands, missingUnits });
   /* A viewport contributes whatever units its capture actually repeats — the
      1280 capture is only 720px tall, so its board shows one. The floor that
      stops this passing vacuously is asserted once, across all four, below. */
@@ -890,7 +912,7 @@ for (const [width, height] of VIEWPORTS) {
   const unexplained = missingUnits.filter(u => !grewTileRow(u));
   ok(units.length >= 1 && unexplained.length === 0,
     `${key}: every rhythm unit the approved capture repeats is painted to the same height, except the coach-resized tile row`,
-    JSON.stringify({ units, missing: missingUnits, unexplained, production: prod.bands }));
+    JSON.stringify({ units, missing: missingUnits, unexplained, production: aligned.bands }));
   /* The exemption above substitutes ONE pinned height for another. Stated as
      "the tile row is merely taller", it would have absorbed any future drift in
      that unit and stopped being a check at all — the reviewer's point. The

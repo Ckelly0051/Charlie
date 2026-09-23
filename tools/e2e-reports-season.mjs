@@ -718,7 +718,11 @@ const separation = await page.evaluate(() => {
   const board = document.querySelector('.gi-season-board');
   return parseFloat(getComputedStyle(board).paddingTop);
 });
-ok(separation === 12, 'the 1440 layout keeps the revised comp\'s additional top separation', String(separation));
+/* SUPERSEDED 2026-09-22: the revised comp's 12px band above the Season report
+   painted the board's near-black stage across the top of the frame, part of
+   the installed 1.12.0-94 outer-frame finding. The report now starts at its
+   board's own edge. */
+ok(separation === 0, 'the Season report starts at its board edge with no stage band above it', String(separation));
 
 console.log(`\nPage/console errors: ${errors.length}`);
 if (errors.length) console.log(errors.slice(0, 6).join('\n'));

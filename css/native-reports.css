@@ -1255,21 +1255,50 @@
    content now shares the route frame's own 32px inset, so the title, the tab
    strip, the scorebug's score and identity strip, and the board all start and
    end on the same two lines. */
-.gi-reports .gi-reports-reporthead{display:flex;align-items:flex-end;gap:14px;padding:8px var(--gi-6x) 0;background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
-.gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:1 1 360px;min-width:0;padding:0;border:0;background:transparent}
+/* THE GLOBAL STRIP (coach-approved comp design-comps/reports-global-strip-
+   2026-09-22.html). A fixed 50px report head, then ONE 44px strip: perspective,
+   the eight tabs on equal tracks, Export. Every tab sits at the same y, height
+   and x on all eight reports, so Overview to Season is a horizontal move. The
+   head cannot grow — the title and its context truncate with the full value in
+   `title` — and everything conditional (the Overview score, the game rail,
+   each board's scope and section controls) renders BELOW the strip. */
+.gi-reports .gi-reports-reporthead{display:flex;align-items:center;gap:20px;height:50px;padding:0 var(--gi-6x);background:var(--gi-bd-panel);border-bottom:1px solid var(--gi-bd-line)}
+.gi-reports .gi-reports-reporthead .gi-reports-head{display:block;flex:1 1 auto;min-width:0;padding:0;border:0;background:transparent}
 .gi-reports .gi-reports-reporthead .gi-reports-eyebrow{display:none}
-.gi-reports .gi-reports-reporthead .gi-reports-title-block h1{max-width:100%;margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase;white-space:normal;overflow:visible;overflow-wrap:anywhere;text-overflow:clip}
-.gi-reports .gi-reports-reporthead .gi-reports-title-block p{margin:1px 0 3px;color:var(--gi-bd-muted);font-size:11.5px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.gi-reports .gi-reports-reporthead .gi-reports-model{display:flex;align-items:center;gap:7px;margin:0 0 6px;padding:0;border:0;background:transparent}
-.gi-reports .gi-reports-reporthead .gi-reports-model>span{display:none}
-.gi-reports .gi-reports-reporthead .gi-reports-segment{gap:1px}
-.gi-reports .gi-reports-reporthead .gi-reports-segment button{min-height:30px;padding:7px 13px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-muted);font:600 13px/1 var(--gi-sans)}
-.gi-reports .gi-reports-reporthead .gi-reports-segment button.is-active{background:var(--gi-bd-control-active);color:var(--gi-bd-strong)}
-.gi-reports .gi-reports-reporthead .gi-reports-tabs{display:flex;flex:0 0 auto;align-self:flex-end;min-width:0;margin:0;padding:0;border:0;background:transparent;overflow-x:auto;overflow-y:hidden}
-.gi-reports .gi-reports-reporthead .gi-reports-tab{flex:0 0 auto;padding:9px 10px;border:0;background:transparent;color:var(--gi-bd-muted);font:600 13px/1 var(--gi-sans);letter-spacing:0}
-.gi-reports .gi-reports-reporthead .gi-reports-tab.active{color:var(--gi-bd-strong);background:var(--gi-bd-control);box-shadow:inset 0 -3px var(--gi-bd-gold)}
-.gi-reports .gi-reports-reporthead .gi-reports-actions{align-self:center;flex:0 0 auto;gap:6px}
-.gi-reports .gi-reports-reporthead .gi-reports-command,.gi-reports .gi-reports-reporthead .gi-reports-export>summary{min-height:30px;padding:7px 10px}
+.gi-reports .gi-reports-reporthead .gi-reports-title-block h1{max-width:100%;margin:0;font:700 18px/1.15 var(--gi-cond);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-reports .gi-reports-reporthead .gi-reports-title-block p{margin:2px 0 0;color:var(--gi-bd-muted);font-size:12.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-reports .gi-reports-head-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.gi-reports .gi-reports-head-actions .gi-reports-opponent{margin:0}
+.gi-reports .gi-reports-head-actions .gi-reports-opponent select{min-height:30px}
+.gi-reports .gi-reports-head-actions .gi-reports-command,.gi-reports .gi-reports-strip .gi-reports-export>summary{min-height:30px;padding:7px 12px}
+.gi-reports .gi-reports-strip{display:grid;grid-template-columns:248px minmax(0,1fr) auto;gap:10px;align-items:stretch;height:44px;padding:0 var(--gi-6x);background:var(--gi-bd-stage);border-bottom:1px solid var(--gi-bd-line)}
+.gi-reports .gi-reports-strip .gi-reports-model{display:flex;align-items:center;min-width:0;margin:0;padding:0;border:0;background:transparent}
+.gi-reports .gi-reports-strip .gi-reports-segment{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:1px;border:0}
+.gi-reports .gi-reports-strip .gi-reports-segment button{min-width:0;min-height:32px;padding:0 8px;border:0;background:var(--gi-bd-control);color:var(--gi-bd-muted);font:600 13px/1 var(--gi-sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-reports .gi-reports-strip .gi-reports-segment button:hover{color:var(--gi-bd-strong)}
+.gi-reports .gi-reports-strip .gi-reports-segment button.is-active{background:var(--gi-bd-control-active);color:var(--gi-bd-strong);box-shadow:inset 0 -3px var(--gi-bd-gold)}
+.gi-reports .gi-reports-strip .gi-reports-tabs{position:static;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));min-width:0;margin:0;padding:0;border:0;background:transparent;overflow:hidden}
+.gi-reports .gi-reports-strip .gi-reports-tab{min-width:0;min-height:0;height:100%;padding:0 4px;border:0;border-right:1px solid var(--gi-bd-line);background:transparent;color:var(--gi-bd-muted);font:600 13px/1 var(--gi-sans);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-reports .gi-reports-strip .gi-reports-tab:first-child{border-left:1px solid var(--gi-bd-line)}
+.gi-reports .gi-reports-strip .gi-reports-tab:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
+.gi-reports .gi-reports-strip .gi-reports-tab.active{color:var(--gi-bd-strong);background:var(--gi-bd-control);box-shadow:inset 0 -3px var(--gi-bd-gold)}
+.gi-reports .gi-reports-strip .gi-reports-tab:disabled{color:var(--gi-bd-muted);opacity:.45;background:transparent;cursor:default}
+.gi-reports .gi-reports-strip .gi-reports-tab:focus-visible{outline:0;box-shadow:inset 0 0 0 2px var(--gi-bd-cyan)}
+.gi-reports .gi-reports-strip .gi-reports-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}
+.gi-reports .gi-reports-strip[hidden],.gi-reports .gi-reports-reporthead[hidden]{display:none}
+/* Below the desktop release widths the tabs take their own full row and
+   scroll inside it; 1280 and wider keep the single fixed row. */
+@media(max-width:1099px){
+  .gi-reports .gi-reports-strip{grid-template-columns:minmax(0,260px) auto;justify-content:space-between;height:auto;padding-top:6px}
+  .gi-reports .gi-reports-strip .gi-reports-tabs{grid-column:1/-1;display:flex;height:44px;overflow-x:auto}
+  .gi-reports .gi-reports-strip .gi-reports-tab{flex:0 0 auto;padding:0 12px;overflow:visible}
+}
+@media(max-width:700px){
+  .gi-reports .gi-reports-reporthead{padding:0 var(--gi-3x)}
+  .gi-reports .gi-reports-strip{padding-inline:var(--gi-3x)}
+  .gi-reports .gi-reports-head-actions .gi-reports-command{width:36px;padding:0;gap:0;font-size:0}
+  .gi-reports .gi-reports-strip .gi-reports-tab{min-height:44px}
+}
 .gi-reports .gi-reports-rail{margin-top:1px}
 .gi-reports .gi-overview-board{
   --bd-stage:var(--gi-bd-stage);--bd-panel:var(--gi-bd-panel);--bd-panel-2:var(--gi-bd-control);--bd-panel-3:var(--gi-bd-control-active);
@@ -1356,15 +1385,12 @@
 @media(max-width:1100px){
   .gi-reports .gi-reports-scorebug{grid-template-columns:auto auto auto 1fr}
   .gi-reports .gi-scorebug-story,.gi-reports .gi-scorebug-meta{display:none}
-  .gi-reports .gi-reports-reporthead{flex-wrap:wrap;gap:8px}
-  .gi-reports .gi-reports-reporthead .gi-reports-tabs{order:4;flex-basis:100%}
   .gi-reports .gi-overview-kpis{grid-template-columns:repeat(4,1fr)}
   .gi-reports .gi-overview-phase,.gi-reports .gi-overview-production,.gi-reports .gi-overview-support{grid-template-columns:1fr 1fr}
   .gi-reports .gi-overview-decisions{grid-template-columns:1fr}
 }
 @media(max-width:700px){
   .gi-reports .gi-reports-scorebug{grid-template-columns:1fr auto 1fr}
-  .gi-reports .gi-reports-reporthead .gi-reports-actions{display:none}
   .gi-reports .gi-overview-kpis{grid-template-columns:repeat(2,1fr)}
   .gi-reports .gi-answer-head{align-items:stretch;flex-direction:column}
   .gi-reports .gi-overview-phase,.gi-reports .gi-overview-production,.gi-reports .gi-overview-decisions,.gi-reports .gi-overview-support{grid-template-columns:1fr}
@@ -1440,12 +1466,13 @@
   display:block;width:100%;margin:0;padding:0;
   border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
 }
-/* The report canvas is capped and centred, so a label on a 38px row is never
-   most of a 1920px screen away from its first measurement. The board stays
-   full width, so the stage colour reaches the pane edge. */
+/* The report fills its board. A 1648px cap centred in a full-width board left
+   an empty near-black frame around every capped report at 1920 -- the
+   installed 1.12.0-94 outer-frame finding -- so the real board surface now
+   reaches the pane edge on every tab. */
 .gi-reports .gi-selfscout-report{
   display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:4px;
-  width:min(100%,1648px);margin:0 auto
+  width:100%;margin:0
 }
 .gi-reports .gi-selfscout-toolbar{
   grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);flex-wrap:nowrap;white-space:nowrap;
@@ -1752,8 +1779,7 @@
    Two matchup directions, one on screen at a time, each led by the
    full-width situational join and followed by paired play-type context.
    Same board geometry the accepted Players and Self-Scout boards carry: no
-   padding of its own (the route already insets it), a report canvas capped
-   at 1648px and centred, and 40px data rows.
+   padding of its own (the route already insets it), a report canvas that fills its board, and 40px data rows.
 
    The comp's blue/gold cohort distinction maps onto the board's own
    broadcast tokens: cyan is the season cohort, gold the opponent's. Neither
@@ -1779,7 +1805,7 @@
   border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
 }
 .gi-reports .gi-mu-report{
-  width:min(100%,1648px);margin:0 auto;
+  width:100%;margin:0;
   border:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)
 }
 
@@ -2003,17 +2029,16 @@
   display:block;width:100%;margin:0;padding:0;
   border:0;background:var(--gi-bd-stage);color:var(--gi-bd-strong)
 }
-/* The report canvas is capped and centred, the same geometry every approved
-   Reports board carries. */
+/* The report fills its board. A 1648px cap centred in a full-width board left
+   an empty near-black frame around every capped report at 1920 -- the
+   installed 1.12.0-94 outer-frame finding -- so the real board surface now
+   reaches the pane edge on every tab. */
 .gi-reports .gi-season-report{
   display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:1px;
-  width:min(100%,1648px);margin:0 auto;background:var(--gi-bd-line);border:1px solid var(--gi-bd-line)
+  width:100%;margin:0;background:var(--gi-bd-line);border:1px solid var(--gi-bd-line)
 }
-/* The revised comp adds separation above the Season board at 1400 and wider;
-   1280 density is unchanged. The gap is INSIDE the board, not a margin on it:
-   the route pane behind carries its own light surface, and a margin exposed a
-   12px band of it across the full width. */
-@media(min-width:1400px){ .gi-reports .gi-season-board{ padding-top:12px } }
+/* No 12px band above the Season report: it painted the board's near-black
+   stage across the top of the frame (2026-09-22 outer-frame repair). */
 
 .gi-reports .gi-season-identity{
   grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);
@@ -2227,17 +2252,6 @@
   .gi-reports .gi-season-nav{ overflow-x:auto }
   .gi-reports .gi-season-nav .gi-subtab{ flex:0 0 auto }
   .gi-reports .gi-season-metrics{ grid-template-columns:repeat(2,minmax(0,1fr)) }
-}
-/* Preserve the complete report identity without making the fixed report board
-   taller at 1440. Familiar report actions collapse to labelled icons first. */
-@media(max-width:1600px){
-  .gi-reports .gi-reports-reporthead .gi-reports-actions .gi-reports-command{
-    width:32px;padding:0;gap:0;font-size:0
-  }
-}
-@media(max-width:1320px){
-  .gi-reports .gi-reports-reporthead{flex-wrap:wrap;gap:8px}
-  .gi-reports .gi-reports-reporthead .gi-reports-tabs{order:4;flex-basis:100%}
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -3224,15 +3238,13 @@
 }
 /* Scope, sample size and role navigation share ONE control row, so the board
    opens on report data rather than on two full-width bands of chrome. */
-/* The report canvas is capped and centred on a wide display: 1648px of
-   content inside the board's own 16px padding. Uncapped, a 1920 panel puts a
-   player identity at the far left of a 38px row and its first measurement
-   most of a screen away. The board itself stays full width, so the stage
-   colour reaches the pane edge rather than exposing the route's own surface
-   beside a floating panel. */
+/* The report fills its board. A 1648px cap centred in a full-width board left
+   an empty near-black frame around every capped report at 1920 -- the
+   installed 1.12.0-94 outer-frame finding -- so the real board surface now
+   reaches the pane edge on every tab. */
 .gi-reports .gi-players-report{
   display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px;
-  width:min(100%,1648px);margin:0 auto
+  width:100%;margin:0
 }
 .gi-reports .gi-players-toolbar{
   grid-column:1;display:flex;align-items:center;gap:var(--gi-3x);flex-wrap:nowrap;white-space:nowrap;
@@ -3422,6 +3434,14 @@
 .gi-reports .gi-player-module table.gi-player-table td.tl i{
   font-style:normal;color:var(--gi-bd-cyan);font-weight:700;margin-right:5px
 }
+/* THE JERSEY SLOT IS ALWAYS TWO DIGITS WIDE, so a name after #5 starts at the
+   same x as a name after #42 (installed 1.12.0-94 finding). The slot is a
+   one-cell grid holding a hidden `#00` beside the real number: it measures the
+   actual rendered glyphs rather than guessing a `ch` width, and a longer
+   number simply widens its own slot. */
+.gi-reports .gi-player-num{ display:inline-grid;flex:none;justify-items:start;font-variant-numeric:tabular-nums }
+.gi-reports .gi-player-num::before{ content:'#00';grid-area:1/1;visibility:hidden }
+.gi-reports .gi-player-num>span{ grid-area:1/1 }
 /* An absence carries the one approved literal and drops to copy weight, so it
    can never be mistaken for a measured figure. A measured zero keeps full
    strength -- it is an observation. */

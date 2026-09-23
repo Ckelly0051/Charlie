@@ -173,7 +173,7 @@ ok(zones.kpis.length === 6, 'the KPI band has exactly six columns', JSON.stringi
 ok(['Success rate', 'Explosive', 'Negative', 'Run / pass', 'Points / drive', '3rd down']
   .every((l, i) => zones.kpis[i] === l), 'the six KPIs are the approved set in order', JSON.stringify(zones.kpis));
 ok(!zones.kpis.some(l => /yards?\s*\/\s*play|yds\s*\/\s*play/i.test(l || '')),
-  'Yards/play is not duplicated into the KPI band -- the scorebug above it already leads with that metric',
+  'Yards/play is not in the KPI band -- the approved six exclude it (Team Profile carries it)',
   JSON.stringify(zones.kpis));
 
 console.log('\n== 3. Success rate states the count the engine actually produced ==');
@@ -284,7 +284,11 @@ ok(JSON.stringify(zone3[0]) === JSON.stringify(['Personnel', 'Backfield', 'Motio
 ok(JSON.stringify(zone3[1]) === JSON.stringify(['Play direction', 'Strength', 'Field hash']),
   'Zone 3 row two is Play direction, Strength, Field hash', JSON.stringify(zone3[1]));
 
-console.log('\n== 9. The scorebug and the generic rail are mutually exclusive ==');
+console.log('\n== 9. The linescore is Overview-only; the rail carries no score ==');
+/* Coach-approved global strip, 2026-09-22: the game linescore renders on
+   Overview only. Offense and Defense open on their own KPI bands, so they
+   carry neither the linescore nor the generic rail; game-scoped Special Teams
+   and Players keep the rail's non-score metrics. */
 const chrome = {};
 for (const tab of ['overview', 'offense', 'defense', 'special', 'players']) {
   await page.evaluate(t => window.app.reportsScreen.selectTab(t), tab);
@@ -295,11 +299,27 @@ for (const tab of ['overview', 'offense', 'defense', 'special', 'players']) {
   }));
 }
 ok(chrome.overview.bug && !chrome.overview.rail, 'Overview shows the scorebug and hides the rail', JSON.stringify(chrome.overview));
-ok(chrome.offense.bug && !chrome.offense.rail, 'Offense shows the scorebug and hides the rail', JSON.stringify(chrome.offense));
+ok(!chrome.offense.bug && !chrome.offense.rail, 'Offense shows neither the linescore nor the rail', JSON.stringify(chrome.offense));
 ok(!chrome.defense.bug && !chrome.defense.rail,
-  'full-season Defense suppresses both current-game chrome elements', JSON.stringify(chrome.defense));
-ok(!chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome.players.bug,
-  'full-season Special Teams suppresses game chrome while game-scoped Players keeps the KPI rail', JSON.stringify([chrome.special, chrome.players]));
+  'current-game Defense shows neither the linescore nor the rail', JSON.stringify(chrome.defense));
+ok(chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome.players.bug,
+  'current-game Special Teams and Players keep the non-score rail and no linescore', JSON.stringify([chrome.special, chrome.players]));
+const seasonSpecial = await page.evaluate(async () => {
+  // This fixture charts no Special Teams, so the board renders its empty state
+  // without scope buttons; set the scope exactly as those buttons do.
+  const sc = window.app.reportsScreen;
+  sc.selectTab('special');
+  sc.specialTeamsScope = 'season'; sc._syncHeader(); sc._renderActiveTab();
+  await new Promise(r => setTimeout(r, 300));
+  const out = { bug: document.querySelector('[data-reports-scorebug]')?.hidden !== true,
+    rail: document.querySelector('[data-reports-rail]')?.hidden !== true };
+  sc.specialTeamsScope = 'game'; sc._syncHeader(); sc._renderActiveTab();
+  return out;
+});
+ok(!seasonSpecial.rail && !seasonSpecial.bug, 'full-season Special Teams suppresses all game chrome', JSON.stringify(seasonSpecial));
+const railLabels = await page.evaluate(() => { window.app.reportsScreen.selectTab('players');
+  return [...document.querySelectorAll('[data-reports-rail] .gi-kpi-label')].map(n => n.textContent.trim()); });
+ok(railLabels.length > 0 && !railLabels.includes('Final Score'), 'the game rail carries no Final Score tile', JSON.stringify(railLabels));
 ok(Object.values(chrome).every(c => !(c.bug && c.rail)),
   'no tab ever shows the scorebug and the generic rail at the same time', JSON.stringify(chrome));
 
@@ -310,7 +330,7 @@ for (const c of [
   { teamName: 'Immaculate Heart of Mary Catholic Academy', opponent: 'Bay', scoreUs: 28, scoreThem: 21 },
   { teamName: 'Immaculate Heart of Mary Catholic Academy', opponent: 'Our Lady of Perpetual Help Prep', scoreUs: 118, scoreThem: 107 },
 ]) {
-  await load({ plays: FULL, ...c });
+  await load({ plays: FULL, ...c, tab: 'overview' });
   geometry.push(await page.evaluate(() => {
     const bug = document.querySelector('[data-reports-scorebug]');
     const x = el => Math.round(el.getBoundingClientRect().left);

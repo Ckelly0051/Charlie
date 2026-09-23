@@ -374,8 +374,10 @@ ok(/^\d+ drives · \d+ scored$/.test(b.metas['Offensive Drives']),
     await page.setViewport({ width: w, height: h });
     await sleep(400);
     const strip = await readStrip();
-    ok(!!strip && strip.count > 1 && strip.cut.length === 0 && !strip.titleClipped
-        && strip.titleOverflow !== 'ellipsis',
+    /* The approved global-strip head (2026-09-22) is one fixed row, so its CSS
+       carries an ellipsis as a last resort. What must hold is that the longest
+       real title is not actually cut at either release width. */
+    ok(!!strip && strip.count === 8 && strip.cut.length === 0 && !strip.titleClipped,
       `${w}: the complete Reports title and every tab are visible on the longest real game name (${longest.name})`,
       JSON.stringify(strip));
   }

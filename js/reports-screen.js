@@ -7,20 +7,18 @@ import { buildDefenseHtmlReport, buildSelfScoutHtmlReport, buildSpecialTeamsHtml
 const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']);
 
 /**
- * Tabs whose game context is the shared SCOREBUG rather than the generic KPI
- * rail. This set is the single owner of that rule: a tab in here shows the
- * scorebug and hides the rail, and a tab outside it does the reverse, so the
- * two can never appear together.
- *
- * It grows one tab at a time as each self-report tab receives its design pass.
- * Overview and Offense always use it. Defense uses it only at Current game;
- * season-scoped tabs and Matchup suppress all game-only shared chrome.
- *
- * Defense renders a LINESCORE variant of the bug (`is-linescore`) instead of
- * the name/score pair — approved for Defense only, so Overview and Offense keep
- * the pair until their own pass.
+ * THE GAME SCORE IS AN OVERVIEW FACT (coach-approved global strip, 2026-09-22).
+ * The linescore renders on Overview only, below the global strip; detail tabs
+ * carry no score at the top. Its sources and arithmetic are unchanged.
  */
-const SCOREBUG_TABS = new Set(['overview', 'offense', 'defense']);
+const SCOREBUG_TABS = new Set(['overview']);
+
+/**
+ * Tabs whose own board already opens on its KPIs, so the generic current-game
+ * rail would only restate them. Every other current-game self report keeps the
+ * rail's non-score metrics; no tab shows a Final Score tile.
+ */
+const NO_RAIL_TABS = new Set(['overview', 'offense', 'defense']);
 
 /** Native Reports route controller. StatsEngine owns formulas; this class owns all live presentation. */
 export class ReportsScreen {
@@ -34,8 +32,11 @@ export class ReportsScreen {
     this._mode = 'main';
     this.perspective = 'self';
     this._opponentData = null;
-    this.defenseScope = 'season';
-    this.specialTeamsScope = 'season';
+    // Every game/season scope control opens on Current game (coach decision,
+    // 2026-09-22); Season is the full-season parent. A deliberate choice made
+    // here survives ordinary re-renders because it is controller state.
+    this.defenseScope = 'game';
+    this.specialTeamsScope = 'game';
     this.playersScope = 'game';
     // Players' role section is controller state for the same reason its scope
     // is: a scope change re-renders the tab, and a selection held only in the
@@ -307,14 +308,13 @@ export class ReportsScreen {
     // the current game. Season-scoped boards and Matchup state their own scope
     // and never borrow game-only numbers from this shared strip.
     if (this._mode !== 'main' || this.perspective !== 'self'
-      || !this._usesCurrentGameContext() || SCOREBUG_TABS.has(this.activeTab)) { rail.hidden = true; return; }
+      || !this._usesCurrentGameContext() || NO_RAIL_TABS.has(this.activeTab)) { rail.hidden = true; return; }
     if (!data || !data.totalPlays) { rail.hidden = true; return; }
     const esc = Charts._esc;
     const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
     // A raw-HTML variant for the one tile whose value needs real markup
     // (the phase segments below), not another escaped string.
     const tileHtml = (label, valueHtml, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${valueHtml}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
-    const score = data.finalScore ? `${data.finalScore.us}–${data.finalScore.them}` : '—';
     // Codex review of `d567f5c` (2026-08-17): "50O / 13D / 3ST" reads as
     // "500 / 13D / 3ST" at a glance, worse on mobile. Unambiguous literal
     // labels instead -- no digit run is ever adjacent to another digit.
@@ -377,8 +377,8 @@ export class ReportsScreen {
       turnoverTile = tileHtml('Turnovers', body, sub,
         margin == null ? '' : margin > 0 ? 'pos' : margin < 0 ? 'neg' : '');
     }
+    // No Final Score tile: the game score is shown on Overview only.
     rail.innerHTML = [
-      tile('Final Score', score),
       tile('Total Plays', data.totalPlays),
       // Coach (2026-09-04): the charted count and its denominator are one
       // fact, so they share one line -- a whole sub row spent on "of 70" was
@@ -422,11 +422,6 @@ export class ReportsScreen {
     const ypp = offense ? (yards / offense).toFixed(1) : '—';
 
     bug.classList.add('is-linescore');
-    if (this.activeTab === 'defense') {
-      bug.innerHTML = this._defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game });
-      bug.hidden = false;
-      return;
-    }
     bug.innerHTML = `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
       <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds, ${offense}&nbsp;snaps</span></div>
       <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
@@ -453,63 +448,6 @@ export class ReportsScreen {
       </div>`;
   }
 
-  /**
-   * Defense adds its performance story and identity strip to the shared
-   * full-name linescore.
-   *
-   * THE RAIL AND THE BOARD ARE ONE OWNER. This method used to compute its own
-   * defensive story from `defensivePerformance`, and the two disagreed on the
-   * same screen: the rail printed `3.3 Yards per play allowed · 132 yds, 40
-   * snaps` directly above a board reading 3.4 over 127 yards and `40 charted ·
-   * 37 with play type`. Both halves were wrong in the way the 2026-09-10 repair
-   * had already fixed on the board — 132 is the unreconciled total that printed
-   * above 72 + 55, and 40 is the charted denominator a classified yardage may
-   * not be divided by.
-   *
-   * Worse, the yardage was never measured: `Math.round(ypp * total)` SYNTHESIZED
-   * it from a rate times a count, under a comment claiming nothing here is
-   * computed. `StatsEngine.defenseDashboard()` is the only football-value owner
-   * for this tab, so the rail reads its measured yardage, its measured cohort
-   * and its charted sample, and states both cohorts the way the board does.
-   */
-  _defenseScorebug({ esc, team, opponent, scoreUs, scoreThem, tagged, context, game }) {
-    const { scoped, labels } = this._defenseCohort();
-    const dashboard = this.app.stats.defenseDashboard(scoped, labels);
-    const def = this.app.stats.compute(scoped).defensive || {};
-    const charted = dashboard.total;
-    const measured = dashboard.measured;
-    const allowed = dashboard.summary.ypp == null ? '—' : dashboard.summary.ypp.toFixed(1);
-    const yardsAllowed = dashboard.summary.yards == null ? '—' : dashboard.summary.yards;
-
-    // A dimension with no charted sample says so rather than reporting a zero.
-    // Shares divide by the CHARTED cohort, which is what a front or coverage is
-    // charted on — the same denominator the board's own frequency uses.
-    const top = (list, unit) => {
-      const first = (list || [])[0];
-      if (!first) return { value: '—', sub: 'none charted' };
-      const count = first.count ?? first.n ?? 0;
-      const share = charted ? Math.round(count / charted * 100) : 0;
-      return { value: first.name, sub: `${count} ${unit}, ${share}%` };
-    };
-    const front = top(def.fronts, 'snaps');
-    const cover = top(def.coverages, 'snaps');
-    /* Blitz% divides by charted Blitz plus charted No Blitz, never by every
-       defensive snap: untagged defensive structure must not dilute the rate,
-       and the sub has to state the cohort the percentage is actually over. */
-    const blitzCharted = dashboard.pressure?.blitz?.charted || 0;
-    const noBlitzCharted = dashboard.pressure?.noBlitz?.charted || 0;
-    const blitzCohort = blitzCharted + noBlitzCharted;
-    const blitzRate = blitzCohort ? `${Math.round(blitzCharted / blitzCohort * 100)}%` : '—';
-    const blitzSub = blitzCohort
-      ? `${blitzCharted} of ${blitzCohort} charted calls` : 'none charted';
-    const ident = [['Base front', front.value, front.sub], ['Base coverage', cover.value, cover.sub],
-      ['Blitz rate', blitzRate, blitzSub]]
-      .map(([label, value, sub]) => `<div><span>${label}</span><strong>${esc(String(value))}</strong><small>${esc(sub)}</small></div>`).join('');
-
-    return `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
-      <div class="gi-scorebug-story"><strong>${allowed}</strong><span><b>Yards per play allowed</b> ${yardsAllowed}&nbsp;yds over ${measured}&nbsp;classified, ${charted}&nbsp;charted</span></div>
-      <div class="gi-scorebug-ident">${ident}</div>`;
-  }
 
   _syncHeader() {
     if (!this.host) return;
@@ -587,7 +525,10 @@ export class ReportsScreen {
     this.host?.querySelectorAll('[data-report-tab]').forEach(button => {
       const available = this.perspective === 'self' || opponentTabs.has(button.dataset.reportTab);
       const active = available && button.dataset.reportTab === this.activeTab;
-      button.hidden = !available;
+      // Disabled, never hidden: removing a tab would move every tab after it,
+      // and the global strip's tab positions are fixed in both perspectives.
+      button.hidden = false;
+      button.disabled = !available;
       button.classList.toggle('active', active);
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');

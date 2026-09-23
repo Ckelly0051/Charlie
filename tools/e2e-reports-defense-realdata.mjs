@@ -167,16 +167,18 @@ const measure = () => page.evaluate(() => {
     route: document.querySelector('.gi-reports-tab.active')?.dataset.reportTab,
     reportTitleClipped: (() => {
       const node = document.querySelector('[data-reports-title]');
-      return !!node && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1
-        || getComputedStyle(node).textOverflow === 'ellipsis');
+      // The approved global-strip head is one fixed row, so the title may only
+      // truncate as a last resort; at the release widths it must not.
+      return !!node && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1);
     })(),
+    linescore: document.querySelector('[data-reports-scorebug]')?.hidden === false,
     /* SHARED CHROME: CONTENT edges, not border boxes. A full-bleed band's own
        box starts at 0 by design; where its content starts has to line up. */
     edges: Object.fromEntries([
       ['title', '.gi-reports-reporthead .gi-reports-title-block'],
-      ['headActions', '.gi-reports-reporthead .gi-reports-actions'],
-      ['score', '.gi-scorebug-score'],
-      ['ident', '.gi-scorebug-ident'],
+      ['headActions', '.gi-reports-reporthead .gi-reports-head-actions'],
+      ['stripStart', '[data-reports-strip] .gi-reports-model'],
+      ['stripEnd', '[data-reports-strip] .gi-reports-actions'],
       ['pane', '.gi-report-pane'],
     ].map(([key, selector]) => {
       const node = document.querySelector(selector);
@@ -287,23 +289,25 @@ ok(geometry.every(item => item.route === 'defense'), 'Defense is the active repo
 ok(geometry.every(item => !item.reportTitleClipped),
   'the complete Reports title remains visible at both release widths',
   JSON.stringify(geometry.filter(item => item.reportTitleClipped).map(item => `${item.game}@${item.width}`).slice(0, 4)));
-const withEdges = geometry.filter(item => item.edges?.pane && item.edges?.score && item.edges?.ident && item.edges?.title && item.edges?.headActions);
+const withEdges = geometry.filter(item => item.edges?.pane && item.edges?.stripStart && item.edges?.stripEnd && item.edges?.title && item.edges?.headActions);
 ok(withEdges.length === geometry.length,
   'every shared Reports band is on screen before its edges are measured',
   JSON.stringify(geometry.filter(item => !withEdges.includes(item)).map(item => `${item.game}@${item.width}`).slice(0, 3)));
-const leftRagged = withEdges.flatMap(item => ['title', 'score']
+const leftRagged = withEdges.flatMap(item => ['title', 'stripStart']
   .filter(key => Math.abs(item.edges[key].left - item.edges.pane.left) > 1)
   .map(key => `${item.game}/${item.width}:${key}:${item.edges[key].left} vs pane ${item.edges.pane.left}`));
-ok(leftRagged.length === 0, "the report title and the linescore start on the report frame's own left inset",
+ok(leftRagged.length === 0, "the report title and the global strip start on the report frame's own left inset",
   JSON.stringify([...new Set(leftRagged)].slice(0, 4)));
-const rightRagged = withEdges.flatMap(item => ['headActions', 'ident']
+const rightRagged = withEdges.flatMap(item => ['headActions', 'stripEnd']
   .filter(key => Math.abs(item.edges[key].right - item.edges.pane.right) > 1)
   .map(key => `${item.game}/${item.width}:${key}:${item.edges[key].right} vs pane ${item.edges.pane.right}`));
-ok(rightRagged.length === 0, "the title-band commands and the identity strip end on the report frame's own right inset",
+ok(rightRagged.length === 0, "the head commands and the strip's Export end on the report frame's own right inset",
   JSON.stringify([...new Set(rightRagged)].slice(0, 4)));
-ok(withEdges.every(item => item.edges.ident.left >= item.edges.score.right),
-  'the linescore, its story and its identity strip stay on one row at both release widths',
-  JSON.stringify(withEdges.filter(item => item.edges.ident.left < item.edges.score.right).map(item => `${item.game}/${item.width}`)));
+/* Coach decision, 2026-09-22: the game linescore is an Overview fact. The
+   Defense linescore band and its identity strip are retired, not moved. */
+ok(geometry.every(item => !item.linescore),
+  'current-game Defense carries no linescore at either release width',
+  JSON.stringify(geometry.filter(item => item.linescore).map(item => `${item.game}/${item.width}`).slice(0, 4)));
 ok(geometry.every(item => item.columnOrigins.length === 0),
   'every first column has one left edge, whether or not a row opens film',
   JSON.stringify([...new Set(geometry.flatMap(item => item.columnOrigins))].slice(0, 4)));
@@ -758,7 +762,7 @@ await openDefense(stPeter.id, 'season');
 const sticky = await page.evaluate(async () => {
   const scroller = document.querySelector('.ws-reports');
   const bar = document.querySelector('.gi-def2-controls');
-  const tabs = document.querySelector('.gi-reports-head');
+  const tabs = document.querySelector('[data-reports-strip]');
   const rest = { bar: Math.round(bar.getBoundingClientRect().top), head: Math.round(tabs.getBoundingClientRect().bottom) };
   scroller.scrollTo(0, 3000);
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -777,7 +781,7 @@ const sticky = await page.evaluate(async () => {
   return { rest, pinned, top, jumps };
 });
 ok(sticky.rest.bar <= sticky.rest.head + 1 && sticky.pinned === sticky.top,
-  'the scope and jump bar sits directly under the report tabs and stays pinned while the report scrolls', JSON.stringify(sticky));
+  'the scope and jump bar sits directly under the global strip and stays pinned while the report scrolls', JSON.stringify(sticky));
 ok(sticky.jumps.length === 4 && sticky.jumps.every(jump => jump.headingTop >= jump.barBottom - 1 && jump.headingTop <= jump.barBottom + 12),
   'each jump link lands its section heading just below the pinned bar', JSON.stringify(sticky.jumps));
 ok(JSON.stringify(sticky.jumps.map(jump => jump.label.replace('↓', '').trim())) === JSON.stringify(['Performance', 'Opponent offense', 'Scheme', 'Situations'])
