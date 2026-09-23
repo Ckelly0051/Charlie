@@ -43,6 +43,22 @@ the Offense and Defense Situations pages. Its captures are the production build
 on a read-only canonical 2025 JV copy with a presentation layer applied; no
 production UI or calculation changed. The comp's own focused checks pass
 (strip geometry unchanged, every Offense/Defense block on exactly one page).
+The coach elected to keep the six Offense pages despite short Identity and
+Structure pages, leaving room for later growth. This is a page-grouping
+decision, not approval of the full comp or an installed build.
+
+**Finding 3 — open, terminology only.** User-facing explosive-play metrics
+must name the thing measured: use **Explosive Plays** for counts and
+**Explosive Plays Rate** for percentages. In a defensive context, qualify the
+label with **Allowed**; qualify other directions where needed so the metric
+cannot be mistaken for our offense's production. Audit every visible surface
+where the bare label **Explosive**, **Explosives**, or **Explosive Rate** names
+this metric, including Reports and its white-background exports, Study,
+season/home summaries, table headers, chart labels, tooltips, and empty states.
+Keep labels readable at desktop and narrow widths. Do not rename internal
+metric identifiers, change thresholds, formulas, cohorts, or saved data, and
+do not replace unrelated terms such as an explosive drive classification.
+No implementation or installed acceptance is claimed here.
 
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 
