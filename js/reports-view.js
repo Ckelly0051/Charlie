@@ -280,7 +280,7 @@ export function offenseHero(stats, engine) {
   const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
   const kpis = [];
   if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', tone: tone(succ, 45, 33) });
-  if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
+  if (expl != null) kpis.push({ label: 'Explosive Plays Rate', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
   if (neg != null) kpis.push({ label: 'Plays for Loss', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
   kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
   kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
@@ -323,7 +323,7 @@ export function offenseKpis(stats) {
   // "0 of N snaps" regardless of how many actually succeeded.
   kpis.push({ label: 'Success rate', value: succ != null ? `${Math.round(succ)}%` : '—',
     sub: `${e.successes || 0} of ${stats.totalPlays} snaps`, cls: 'is-gold', tone: tone(succ, 45, 33) });
-  kpis.push({ label: 'Explosive', value: expl != null ? `${Math.round(expl)}%` : '—',
+  kpis.push({ label: 'Explosive Plays Rate', value: expl != null ? `${Math.round(expl)}%` : '—',
     sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
   kpis.push({ label: 'Negative', value: neg != null ? `${Math.round(neg)}%` : '—',
     sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
@@ -727,7 +727,7 @@ export function defenseDisciplineRows(stats, statsEngine) {
      module; the approved six-row module is unchanged in count. */
   return { meta: `${def} defensive snaps`, rows: [
     ['Yards / play allowed', def ? (yards / def).toFixed(1) : '—'],
-    ['Explosive Plays allowed', explosives, explosives ? '' : 'is-good'],
+    ['Explosive Plays Allowed', explosives, explosives ? '' : 'is-good'],
     ['Takeaways', stats.defensive.turnovers],
     // Middot, per the approved Overview ("1 · 10 yds").
     ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],

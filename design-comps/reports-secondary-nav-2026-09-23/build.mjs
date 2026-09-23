@@ -94,6 +94,28 @@ for (const [tab, index] of views) {
   }
   await shot(`proposal-1440-${tab}${index == null ? '' : `-${index + 1}`}`);
 }
+/* Result needs BOTH scores: Number('') and Number(null) are 0, which once
+   read a missing opponent score as a shutout Win. */
+const cases = [['41', '0', 'Win'], [7, 13, 'Loss'], [0, 0, 'Tie'], ['13', '13', 'Tie'], ['41', '', null], ['41', null, null],
+  ['41', undefined, null], ['', '0', null], [null, null, null], [' ', '3', null], ['abc', '3', null], [-1, 3, null]];
+const got = await page.evaluate(list => list.map(([u, t]) => window.__cmp.resultOf(u, t)), cases);
+ok(cases.every(([, , want], i) => got[i] === want), 'Result is derived only when both scores are present and valid',
+  JSON.stringify(cases.map(([u, t, want], i) => ({ u, t, want, got: got[i] })).filter(c => c.want !== c.got)));
+await go('overview');
+const rendered = await page.evaluate(async () => {
+  const info = window.app.storage.gameInfo;
+  const saved = info.scoreThem;
+  info.scoreThem = '';
+  window.__cmp.apply();
+  const fact = () => [...document.querySelectorAll('.cmp-facts > div')].find(d => d.querySelector('span')?.textContent === 'Result')?.querySelector('strong')?.textContent;
+  const missing = fact();
+  info.scoreThem = saved;
+  window.__cmp.apply();
+  return { missing, restored: fact() };
+});
+ok(rendered.missing === 'No data' && rendered.restored === 'Win',
+  'Overview shows No data for Result when the opponent score is missing, and Win once it is present', JSON.stringify(rendered));
+
 for (const [tab] of [['offense'], ['defense']]) {
   await go(tab);
   await page.evaluate(t => window.__cmp.section(t, 0), tab);

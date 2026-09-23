@@ -330,7 +330,7 @@ const summaryDom = await page.evaluate(() => {
 });
 ok(summaryDom.kpis.length === 6, 'six offensive KPI tiles', String(summaryDom.kpis.length));
 ok(JSON.stringify(summaryDom.kpis.map(k => k[0])) === JSON.stringify(
-  ['Success Rate', 'Yards / Play', 'Explosive Rate', 'Negative Play Rate', 'Third Down', 'Red Zone TD']),
+  ['Success Rate', 'Yards / Play', 'Explosive Plays Rate', 'Negative Play Rate', 'Third Down', 'Red Zone TD']),
 'the approved six KPI labels', JSON.stringify(summaryDom.kpis.map(k => k[0])));
 ok(summaryDom.bandShape.length === 3 && summaryDom.bandShape.every(c => c.includes('b-2')),
   'three two-column rows beneath the KPI band', summaryDom.bandShape.join(' / '));

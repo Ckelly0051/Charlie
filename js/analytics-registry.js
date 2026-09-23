@@ -249,7 +249,7 @@ export class AnalyticsRegistry {
       deferred('yardsPerPlay', 'Yards / Play', 'No single compute()-output field for either offense- or defense-framed yards/play; use AnalyticsRegistry.metricsEngine().metric(cohort, "yardsPerPlay"|"yardsAllowedPerPlay") for an ad-hoc cohort'),
       ready('successRate', 'Success Rate', ['efficiency', 'successRate'], 'StatsEngine._efficiencyStats'),
       deferred('conversionRate', 'Conversion Rate', 'Requires conversion type/down context'),
-      ready('explosiveRate', 'Explosive Rate', ['efficiency', 'explosivePct'], 'StatsEngine._efficiencyStats'),
+      ready('explosiveRate', 'Explosive Plays Rate', ['efficiency', 'explosivePct'], 'StatsEngine._efficiencyStats'),
       ready('negativeRate', 'Negative Play Rate', ['efficiency', 'negativePct'], 'StatsEngine._efficiencyStats'),
       ready('turnovers', 'Turnovers', ['turnovers', 'total'], 'StatsEngine._turnoverStats', { unit: 'offense' }),
       deferred('scoring', 'Scoring', 'Requires an explicit points vs touchdowns contract'),

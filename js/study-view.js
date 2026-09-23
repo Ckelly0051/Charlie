@@ -36,7 +36,7 @@ function queryModel(screen, s, sets, result, metric, rich) {
   ranked.sort((a, b) => (polarity === 'lower' ? 1 : -1) * ((Number(rich ? a.metrics[metric]?.value : a.measures[metric]) || 0) - (Number(rich ? b.metrics[metric]?.value : b.measures[metric]) || 0)));
   const top = ranked.find(g => Number(rich ? g.metrics[metric]?.denominator : g.sampleSize) >= 4);
   return {
-    kind: 'rows', metricHead: name, deltaHead: rich ? '' : 'Explosive',
+    kind: 'rows', metricHead: name, deltaHead: rich ? '' : 'Explosive Plays Rate',
     summary: `${refs.length} matching play${refs.length === 1 ? '' : 's'}`,
     summaryMeta: `${screen.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension} · ${scopeName(s, sets)}`,
     rows: groups.map(g => {

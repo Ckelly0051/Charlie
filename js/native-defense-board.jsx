@@ -73,7 +73,7 @@ function buildSections(board, seasonScope) {
   const b = board;
   const performance = [];
   if (seasonScope) performance.push({ title: 'Game-by-game', wide: true, slots: 6,
-    heads: ['Opponent', 'Yards', 'Rush', 'Pass', 'Yds/play', 'Expl', 'TO', 'Touchdowns Allowed'],
+    heads: ['Opponent', 'Yards', 'Rush', 'Pass', 'Yds/play', 'Explosive Plays Allowed', 'TO', 'Touchdowns Allowed'],
     rows: b.byGame.map(r => row([r.name, r.yards, r.runYards, r.passYards, r.ypp, r.explosives, r.takeaways, r.touchdownsAllowed], r.refs)) });
   performance.push(
     { title: 'Disruption', schema: 'fixed', slots: 6, heads: ['Event', 'Plays', 'Rate', 'Eligible snaps'],
@@ -82,7 +82,7 @@ function buildSections(board, seasonScope) {
       heads: ['Measure', seasonScope ? 'Season' : 'Game', seasonScope ? 'Last 3' : 'Season'],
       rows: b.comparison.map(r => row([r.name, r.kind === 'percent' ? percent(r.current) : r.current,
         r.kind === 'percent' ? percent(r.comparison) : r.comparison])) },
-    { title: 'By down', schema: 'fixed', slots: 4, heads: ['Down', 'Total yards', 'Yds/play', 'Explosives'],
+    { title: 'By down', schema: 'fixed', slots: 4, heads: ['Down', 'Total yards', 'Yds/play', 'Explosive Plays Allowed'],
       rows: b.downs.map(r => row([r.name, r.yards, r.ypp, r.explosives], r.refs)) },
     { title: 'By quarter', schema: 'fixed', slots: 4, heads: ['Quarter', 'Total yards', 'Yds/play', 'Vs baseline', 'Touchdowns Allowed'],
       rows: b.quarters.map(r => row([r.name, r.yards, r.ypp, r.vsAverage, r.touchdownsAllowed], r.refs)) },
@@ -107,7 +107,7 @@ function buildSections(board, seasonScope) {
        Both numbers are printed — the unique snaps behind the module and the tag
        count its rows add up to — which makes the overlap visible without a
        sentence about it. The unique count comes from the rows' own film refs. */
-    { title: 'Production by play type', slots: 7, heads: ['Play type', 'Snaps', 'Yards', 'Yds/play', 'Expl', 'Touchdowns Allowed'],
+    { title: 'Production by play type', slots: 7, heads: ['Play type', 'Snaps', 'Yards', 'Yds/play', 'Explosive Plays Allowed', 'Touchdowns Allowed'],
       meta: `${new Set(b.playTypes.flatMap(r => r.refs || [])).size} snaps · ${
         b.playTypes.reduce((sum, r) => sum + (Number(r.n) || 0), 0)} tags`,
       rows: b.playTypes.map(r => row([r.name, r.n, r.yards, r.ypp, r.explosives, r.touchdownsAllowed], r.refs)) },
@@ -115,27 +115,27 @@ function buildSections(board, seasonScope) {
        whole gap between its yardage and the classified total above it. */
     { title: 'Performance by Play Direction', schema: 'fixed', slots: 4,
       meta: `${b.directions.reduce((sum, r) => sum + (Number(r.n) || 0), 0)} direction-tagged snaps`,
-      heads: ['Direction', 'Snaps', 'Share', 'Run / pass', 'Yards', 'Yds/play', 'Off succ', 'Expl'],
+      heads: ['Direction', 'Snaps', 'Share', 'Run / pass', 'Yards', 'Yds/play', 'Off succ', 'Explosive Plays Allowed'],
       rows: b.directions.map(r => row([r.name, r.n, percent(r.share), runPass(r), r.yards, r.ypp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Top 10 Formations Faced', wide: true, slots: 10, cap: true,
-      heads: ['Offensive look', 'Snaps', 'Share', 'Run / pass', 'Rush y/p', 'Pass y/p', 'Off succ', 'Expl'],
+      heads: ['Offensive look', 'Snaps', 'Share', 'Run / pass', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
       rows: b.formations.map(r => row([r.name, r.n, percent(r.share), `${r.runs}R / ${r.passes}P`, r.rushYpp, r.passYpp, percent(r.success), r.explosives], r.refs)) },
-    { title: 'Personnel faced', slots: 5, heads: ['Personnel', 'Snaps', 'Run / pass', 'Yds/play', 'Expl'],
+    { title: 'Personnel faced', slots: 5, heads: ['Personnel', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays Allowed'],
       rows: b.personnel.map(r => row([r.name, r.n, runPass(r), r.ypp, r.explosives], r.refs)) },
-    { title: 'Backfield faced', slots: 5, heads: ['Backfield', 'Snaps', 'Run / pass', 'Yds/play', 'Expl'],
+    { title: 'Backfield faced', slots: 5, heads: ['Backfield', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays Allowed'],
       rows: b.backfields.map(r => row([r.name, r.n, runPass(r), r.ypp, r.explosives], r.refs)) },
     { title: 'Run / Pass vs Strength', wide: true, schema: 'fixed', slots: 3,
-      heads: ['Relationship', 'Snaps', 'Share', 'Runs', 'Run Rate', 'Rush y/p', 'Passes', 'Pass Rate', 'Pass y/p', 'Off succ', 'Expl'],
+      heads: ['Relationship', 'Snaps', 'Share', 'Runs', 'Run Rate', 'Rush y/p', 'Passes', 'Pass Rate', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
       rows: b.strength.map(r => row([r.name, r.n, percent(r.share), r.runs, percent(r.runRate), r.rushYpp, r.passes,
         percent(r.passRate), r.passYpp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Defensive answers by offensive look', wide: true, slots: 10, pitch: 60, cls: 'is-answers',
-      heads: ['Offensive look', 'Defensive call', 'Snaps', 'Call share', 'Rush y/p', 'Pass y/p', 'Expl', 'Off succ'],
+      heads: ['Offensive look', 'Defensive call', 'Snaps', 'Call share', 'Rush y/p', 'Pass y/p', 'Explosive Plays Allowed', 'Off succ'],
       rows: b.answers.map(r => row([r.look, r.call, r.n, percent(r.share), r.rushYpp, r.passYpp, r.explosives, percent(r.success)], r.refs)) },
   ];
 
   const s = b.passingSummary;
   const callCells = r => row([r.name, r.n, r.yards, r.ypp, r.vsAverage, r.explosives], r.refs);
-  const callHeads = ['Call', 'Snaps', 'Yards', 'Yds/play', 'Vs avg', 'Expl'];
+  const callHeads = ['Call', 'Snaps', 'Yards', 'Yds/play', 'Vs avg', 'Explosive Plays Allowed'];
   const scheme = [
     { title: 'Passing Defense Summary', wide: true, schema: 'summary', slots: 1,
       heads: ['Dropbacks', 'Comp / att', 'Comp%', 'Yds/att', 'Sacks', 'INT'],
@@ -145,16 +145,16 @@ function buildSections(board, seasonScope) {
       : [{ title: 'Top Calls', slots: 4, pitch: 64, cls: 'is-calls', cap: true, heads: callHeads, rows: b.calls.top.map(callCells) },
         { title: 'Worst Calls', slots: 4, pitch: 64, cls: 'is-calls', cap: true, heads: callHeads, rows: b.calls.worst.map(callCells) }]),
     { title: 'Blitz Performance', wide: true, schema: 'fixed', slots: 4,
-      heads: ['Cohort', 'Snaps', 'Share', 'Yds/play', 'Off succ', 'Expl', 'Comp / att', 'Sacks', 'INT'],
+      heads: ['Cohort', 'Snaps', 'Share', 'Yds/play', 'Off succ', 'Explosive Plays Allowed', 'Comp / att', 'Sacks', 'INT'],
       rows: b.blitz.map(r => row([r.name, r.n, percent(r.share), r.ypp, percent(r.success), r.explosives,
         r.attempts == null ? null : `${r.completions} / ${r.attempts}`, r.sacks, r.interceptions], r.refs)) },
     { title: 'Pressure by situation', slots: 6, heads: ['Situation', 'Snaps', 'Blitz%', 'Blitz y/p', 'Base y/p'],
       rows: b.pressure.map(r => row([r.name, r.n, wholePercent(r.blitzPct), r.blitzYpp, r.baseYpp], r.refs)) },
     ...[['Front performance', b.fronts], ['Coverage performance', b.coverages]].filter(([, rows]) => rows.length)
-      .map(([title, rows]) => ({ title, slots: 7, heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Expl'],
+      .map(([title, rows]) => ({ title, slots: 7, heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
         rows: rows.map(r => row([r.name, r.n, r.rushYpp, r.passYpp, percent(r.success), r.explosives], r.refs)) })),
     { title: 'Blitz Type Performance', wide: true, schema: 'fixed', slots: 4,
-      heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Expl'],
+      heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
       rows: b.blitzTypes.map(r => row([r.name, r.n, r.rushYpp, r.passYpp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Passing by coverage', slots: 7, heads: ['Scheme', 'Dropbacks', 'Comp / att', 'Comp%', 'Yds/att', 'Sacks', 'INT'],
       rows: b.passingByCoverage.map(r => row([r.name, r.dropbacks, r.attempts ? `${r.completions} / ${r.attempts}` : null,
@@ -173,11 +173,11 @@ function buildSections(board, seasonScope) {
     { title: 'High-leverage field position', wide: true, schema: 'fixed', slots: 6, pitch: 48,
       heads: ['Situation', 'Sample', 'Yds/play', 'Touchdowns Allowed'],
       rows: b.highLeverage.map(r => row([r.name, r.sampleRate !== undefined ? percent(r.sampleRate) : r.sample, r.ypp, r.touchdownsAllowed], r.refs)) },
-    { title: 'Field zone', wide: true, slots: 5, heads: ['Zone', 'Snaps', 'Yards', 'Yds/play', 'Expl'],
+    { title: 'Field zone', wide: true, slots: 5, heads: ['Zone', 'Snaps', 'Yards', 'Yds/play', 'Explosive Plays Allowed'],
       rows: b.zones.map(r => row([r.name, r.n, r.yards, r.ypp, r.explosives], r.refs)) },
     { title: 'By hash', schema: 'fixed', slots: 5, heads: ['Hash', 'Snaps', 'Yards', 'Yds/play'],
       rows: b.hashes.map(r => row([r.name, r.n, r.yards, r.ypp], r.refs)) },
-    { title: 'Motion', slots: 5, heads: ['Motion', 'Snaps', 'Run / pass', 'Yds/play', 'Expl'],
+    { title: 'Motion', slots: 5, heads: ['Motion', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays Allowed'],
       rows: b.motions.map(r => row([r.name, r.n, runPass(r), r.ypp, r.explosives], r.refs)) },
   ];
 
@@ -230,7 +230,7 @@ function DefenseModule({ module, screen }) {
               onClick={() => sortBy(index)}
               onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); sortBy(index); } }}>
               {head}<span class="gi-def2-sortmark" aria-hidden="true">↕</span></th>
-          : <th key={head}>{head}</th>)}</tr></thead>
+          : <th key={head} class={head === 'Explosive Plays Allowed' ? 'is-expl' : undefined}>{head}</th>)}</tr></thead>
         <tbody>
           {rows.map((item, index) => <Watchable key={`${index}-${item.cells[0]}`} tag="tr"
             onActivate={item.refs.length ? () => screen.watchRefs(item.refs, `${item.cells[0]} ${title}`) : undefined}

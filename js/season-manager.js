@@ -224,7 +224,7 @@ export class SeasonManager {
         {label:'3rd Down',value:`${Math.round(p3)}%`,sub:d.thirdDownConv||'0/0',tone:tone(p3,42,33)},
         {label:'4th Down',value:`${Math.round(Number(d.fourthDownPct)||0)}%`,sub:d.fourthDownConv||'0/0'},
         {label:'Red Zone TD',value:`${pct(rz.tds,rz.total)}%`,sub:`${rz.tds}/${rz.total} trips`,tone:rz.total?tone(pct(rz.tds,rz.total),60,45):''},
-        {label:'Explosive',value:`${Math.round(exp)}%`,sub:`${eff.explosivePlays||0} plays`,tone:tone(exp,12,8)},
+        {label:'Explosive Plays Rate',value:`${Math.round(exp)}%`,sub:`${eff.explosivePlays||0} plays`,tone:tone(exp,12,8)},
         {label:'Pts / Drive',value:dr.pointsPerDrive||'0.0',sub:`${dr.scoringDrives||0}/${dr.total||0} scored`,tone:tone(ppd,2.5,1.5)},
         {label:'3-and-Out',value:`${toPct}%`,sub:`${dr.threeAndOuts||0} of ${dr.total||0}`,tone:dr.total?(toPct<=20?'good':toPct<=30?'warn':'bad'):''},
       ];
@@ -242,7 +242,7 @@ export class SeasonManager {
         {label:'Red Zone TD',value:rz.total?`${pct(rz.tds,rz.total)}%`:null},
         {label:'Points / Drive',value:dr.total?String(dr.pointsPerDrive):null},
         {label:'3-and-Out',value:dr.total?`${pct(dr.threeAndOuts,dr.total)}%`:null},
-        {label:'Explosive Rate',value:stats.totalPlays?`${Math.round(Number(eff.explosivePct)||0)}%`:null},
+        {label:'Explosive Plays Rate',value:stats.totalPlays?`${Math.round(Number(eff.explosivePct)||0)}%`:null},
       ];
     })();
     const turnoverScoring=(()=>{const margin=this._marginForRows(perGame),byQuarter=stats.scoreboard?.byQuarter||{};

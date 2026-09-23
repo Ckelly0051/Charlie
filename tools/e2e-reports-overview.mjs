@@ -82,7 +82,7 @@ const PASSING_ROWS = ['Completions / attempts', 'Completion rate', 'Yards',
 /* Stop rate sat directly under Yards / play allowed, reading as the second
    primary defensive comparison — the position the coach rejected. It keeps its
    row as supporting context at the foot; the six-row module is unchanged. */
-const DEFENSE_ROWS = ['Yards / play allowed', 'Explosive Plays allowed',
+const DEFENSE_ROWS = ['Yards / play allowed', 'Explosive Plays Allowed',
   'Takeaways', 'Penalties accepted', 'Penalties declined', 'Stop rate'];
 const COLUMNS = {
   'Snaps by phase': ['Phase', 'Snaps', 'Share', 'Yds/play'],
@@ -262,7 +262,7 @@ const EXPECTED = {
   defense: {
     'Yards / play allowed': one(sum(DEFENSE, d => d[2]) / DEFENSE.length),
     Takeaways: String(DEFENSE.filter(d => d[3] === 'Interception').length),
-    'Explosive Plays allowed': String(DEFENSE.filter(d => (d[1] === 'Run' ? d[2] >= 12 : d[2] >= 16)).length),
+    'Explosive Plays Allowed': String(DEFENSE.filter(d => (d[1] === 'Run' ? d[2] >= 12 : d[2] >= 16)).length),
     'Penalties declined': '0',
   },
 };

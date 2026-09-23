@@ -233,7 +233,7 @@ const tallest1440 = observed.find(o => o.w === 1440)?.moduleHeights || {};
 ok(Math.max(...Object.values(tallest1440)) <= 950,
   'no individual module becomes a chart-sized void at 1440',
   JSON.stringify(Object.entries(tallest1440).filter(([, h]) => h > 950)));
-const PROFILE_LABELS = ['Yards / play', 'Success rate', 'Explosive rate', 'Negative rate', '3rd down', 'Points / drive'];
+const PROFILE_LABELS = ['Yards / play', 'Success rate', 'Explosive Plays Rate', 'Negative rate', '3rd down', 'Points / drive'];
 ok(observed.every(o => JSON.stringify(o.teamProfileLabels) === JSON.stringify(PROFILE_LABELS)),
   'Team profile renders the approved six metrics in the approved order on every real game',
   JSON.stringify(observed.filter(o => JSON.stringify(o.teamProfileLabels) !== JSON.stringify(PROFILE_LABELS))

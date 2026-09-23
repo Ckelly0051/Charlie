@@ -46,14 +46,14 @@ const defenseTables = report => {
     { key: 'name', label: 'Play Type' }, { key: 'n', label: 'Snaps' },
     { key: 'yardsPerPlay', label: 'Yards / Play', value: row => Number(row.yardsPerPlay).toFixed(1) },
     { key: 'stopRate', label: 'Stop Rate', value: row => `${row.stopRate}%` },
-    { key: 'explosiveRate', label: 'Explosive', value: row => `${row.explosiveRate}%` },
+    { key: 'explosiveRate', label: 'Explosive Plays Allowed Rate', value: row => `${row.explosiveRate}%` },
     { key: 'havocRate', label: 'Havoc', value: row => `${row.havocRate}%` },
   ];
   const summary = metrics([
     { label: 'Defensive snaps', value: report.total, sub: 'charted' },
     { label: 'Yards / play allowed', value: Number(report.summary.yardsPerPlay).toFixed(1), sub: 'all defensive snaps' },
     { label: 'Stop rate', value: `${report.summary.stopRate}%`, sub: `${report.summary.stops} stops` },
-    { label: 'Explosive Plays allowed', value: report.summary.explosives, sub: `${report.summary.explosiveRate}%` },
+    { label: 'Explosive Plays Allowed', value: report.summary.explosives, sub: `${report.summary.explosiveRate}%` },
     { label: 'Takeaways', value: report.takeaways, sub: 'defensive turnovers' },
     { label: 'Third-down stop', value: report.thirdDownStopRate == null ? '—' : `${report.thirdDownStopRate}%`, sub: 'charted third downs' },
   ]);
@@ -330,7 +330,7 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'yards', label: 'Total Yards', value: row => shown(row.yards) },
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
     { key: 'vsAverage', label: 'Vs Avg', value: row => signed(row.vsAverage) },
-    { key: 'explosives', label: 'Explosive', value: row => shown(row.explosives) },
+    { key: 'explosives', label: 'Explosive Plays Allowed', value: row => shown(row.explosives) },
   ];
   const tendencyColumns = [
     { key: 'name', label: 'Name', value: row => shown(row.name) },
@@ -345,7 +345,7 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { label: 'Pass yards allowed', value: shown(dashboard.summary.passYards), sub: trend(dashboard.summary.passYards, dashboard.recent.passYards) },
     { label: 'Yards / play', value: decimal(dashboard.summary.ypp), sub: seasonScope ? `Last 3: ${decimal(dashboard.recent.ypp)}` : 'Current game' },
     { label: 'Turnovers', value: dashboard.summary.turnovers, sub: trend(dashboard.summary.turnovers, dashboard.recent.turnovers) },
-    { label: 'Explosives allowed', value: shown(dashboard.summary.explosives), sub: trend(dashboard.summary.explosives, dashboard.recent.explosives) },
+    { label: 'Explosive Plays Allowed', value: shown(dashboard.summary.explosives), sub: trend(dashboard.summary.explosives, dashboard.recent.explosives) },
     { label: '3rd down allowed', value: dashboard.thirdDownAllowed.rate == null ? '-' : `${dashboard.thirdDownAllowed.rate}%`, sub: `${dashboard.thirdDownAllowed.made} of ${dashboard.thirdDownAllowed.attempts}` },
     { label: '4th down allowed', value: dashboard.fourthDownAllowed.rate == null ? '-' : `${dashboard.fourthDownAllowed.rate}%`, sub: `${dashboard.fourthDownAllowed.made} of ${dashboard.fourthDownAllowed.attempts}` },
   ]) + table('Game-by-game', [
@@ -353,7 +353,7 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'runYards', label: 'Rush Yards', value: row => row.runs ? row.runYards : '-' },
     { key: 'passYards', label: 'Pass Yards', value: row => row.passes ? row.passYards : '-' },
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
-    { key: 'explosives', label: 'Explosive' }, { key: 'turnovers', label: 'Turnovers' }, { key: 'touchdowns', label: 'TD' },
+    { key: 'explosives', label: 'Explosive Plays Allowed' }, { key: 'turnovers', label: 'Turnovers' }, { key: 'touchdowns', label: 'TD' },
   ], fixed(dashboard.byGame, seasonScope ? 6 : 1)) + (!seasonScope ? table('Opponent drive outcomes', [
     { key: 'name', label: 'Outcome' }, { key: 'n', label: 'Drives' },
     { key: 'pct', label: 'Share', value: row => row.pct == null ? '-' : `${row.pct}%` },
@@ -361,7 +361,7 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, generated
     { key: 'avgYards', label: 'Avg Yards', value: row => decimal(row.avgYards) },
   ], fixed(dashboard.driveOutcomes, 7)) : '') + `<div class="two-up">${table('By down', [
     { key: 'name', label: 'Down' }, { key: 'yards', label: 'Total Yards' },
-    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) }, { key: 'explosives', label: 'Explosive' },
+    { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) }, { key: 'explosives', label: 'Explosive Plays Allowed' },
   ], dashboard.downs)}${table('By quarter', [
     { key: 'name', label: 'Quarter' }, { key: 'yards', label: 'Total Yards' },
     { key: 'ypp', label: 'Yards / Play', value: row => decimal(row.ypp) },
@@ -450,7 +450,7 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
     { key: 'n', label: 'Plays', value: row => ssValue(row, r => r.n) },
     { key: 'avg', label: 'Yards / Play', value: row => ssValue(row, r => r.avg) },
     { key: 'success', label: 'Success', value: row => ssValue(row, r => `${r.succRate}%`) },
-    { key: 'explosives', label: 'Explosive', value: row => ssValue(row, r => r.explosives) },
+    { key: 'explosives', label: 'Explosive Plays', value: row => ssValue(row, r => r.explosives) },
     { key: 'tds', label: 'TD', value: row => ssValue(row, r => r.tds) },
     // A giveaway IS a turnover; Reports and their exports say Turnovers.
     { key: 'turnovers', label: 'Turnovers', value: row => ssValue(row, r => r.turnovers) },
@@ -473,7 +473,7 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
   const offense = report && summary ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Offensive Summary</h1></div>${metrics([
     { label: 'Success Rate', value: `${summary.kpis.successRate}%` },
     { label: 'Yards / Play', value: summary.kpis.yardsPerPlay },
-    { label: 'Explosive Rate', value: `${summary.kpis.explosiveRate}%` },
+    { label: 'Explosive Plays Rate', value: `${summary.kpis.explosiveRate}%` },
     { label: 'Negative Play Rate', value: `${summary.kpis.negativePlayRate}%` },
     { label: 'Third Down', value: `${summary.kpis.thirdDownRate}%` },
     { label: 'Red Zone TD', value: summary.kpis.redZoneTdRate == null

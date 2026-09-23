@@ -170,7 +170,7 @@ ok(zones.navLabels.length === 6 && zones.navLabels.every((l, i) => l.toLowerCase
 
 console.log('\n== 2. The KPI band is the approved six, and excludes Yards/play ==');
 ok(zones.kpis.length === 6, 'the KPI band has exactly six columns', JSON.stringify(zones.kpis));
-ok(['Success rate', 'Explosive', 'Negative', 'Run / pass', 'Points / drive', '3rd down']
+ok(['Success rate', 'Explosive Plays Rate', 'Negative', 'Run / pass', 'Points / drive', '3rd down']
   .every((l, i) => zones.kpis[i] === l), 'the six KPIs are the approved set in order', JSON.stringify(zones.kpis));
 ok(!zones.kpis.some(l => /yards?\s*\/\s*play|yds\s*\/\s*play/i.test(l || '')),
   'Yards/play is not in the KPI band -- the approved six exclude it (Team Profile carries it)',

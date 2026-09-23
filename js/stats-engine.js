@@ -2098,7 +2098,7 @@ export class StatsEngine {
 
     const comparison = [
       { name: 'Yards / play', kind: 'number', current: d.summary.ypp, comparison: cd.summary.ypp },
-      { name: 'Explosive rate', kind: 'percent', current: rate(d.summary.explosives, d.summary.measured),
+      { name: 'Explosive Plays Allowed Rate', kind: 'percent', current: rate(d.summary.explosives, d.summary.measured),
         comparison: rate(cd.summary.explosives, cd.summary.measured) },
       { name: 'Disruption rate', kind: 'percent', current: rate(dis.distinct.length, ps.length),
         comparison: rate(cdis.distinct.length, compare.length) },
@@ -3652,7 +3652,7 @@ export class StatsEngine {
     if (stats.efficiency && stats.totalPlays >= 10) {
       const expPct = parseFloat(stats.efficiency.explosivePct);
       if (expPct >= 15)
-        working.push({ s: expPct * 20, cut: ['situation', 'explosive'], text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
+        working.push({ s: expPct * 20, cut: ['situation', 'explosive'], text: `<strong>${expPct}%</strong> explosive plays rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
       const negPct = parseFloat(stats.efficiency.negativePct);
       if (negPct >= 15)
         fix.push({ s: negPct * 20, cut: ['situation', 'negative'], text: `<strong>${negPct}%</strong> plays for loss (${stats.efficiency.negativePlays} plays) — too many losses behind the line` });
@@ -4895,7 +4895,7 @@ export class StatsEngine {
     const SPOKES = [
       { key: 'ypp', label: 'Yards / play', lower: false, fmt: v => v.toFixed(1) },
       { key: 'success', label: 'Success rate', lower: false, fmt: v => `${v.toFixed(1)}%` },
-      { key: 'explosive', label: 'Explosive rate', lower: false, fmt: v => `${v.toFixed(1)}%` },
+      { key: 'explosive', label: 'Explosive Plays Rate', lower: false, fmt: v => `${v.toFixed(1)}%` },
       { key: 'negative', label: 'Negative rate', lower: true, fmt: v => `${v.toFixed(1)}%` },
       { key: 'thirdDown', label: '3rd down', lower: false, fmt: v => `${v.toFixed(1)}%` },
       { key: 'pointsPerDrive', label: 'Points / drive', lower: false, fmt: v => v.toFixed(1) },

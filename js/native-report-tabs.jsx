@@ -203,7 +203,7 @@ function playCallParts({ stats, screen }) {
     <DataTable emptyText="Insufficient charted data" columns={[
       { key: 'name', label: 'Play Call' }, { key: 'concept', label: 'Concept', tl: true }, { key: 'n', label: 'Plays', numeric: true },
       { key: 'share', label: 'Frequency', numeric: true }, { key: 'success', label: 'Success Rate', numeric: true },
-      { key: 'ypp', label: 'Yds/Play', numeric: true }, { key: 'explosive', label: 'Explosive', numeric: true }, { key: 'negative', label: 'Negative', numeric: true },
+      { key: 'ypp', label: 'Yds/Play', numeric: true }, { key: 'explosive', label: 'Explosive Plays Rate', numeric: true }, { key: 'negative', label: 'Negative', numeric: true },
     ]} rows={mapFit(analysis.calls, OFFENSE_ROWS['Play calls'], row => ({
       id: row.name, name: row.name, concept: row.concept || '—', n: row.n, share: pct(row.sharePct), success: pct(row.successRate),
       ypp: row.yardsPerPlay.toFixed(1), explosive: pct(row.explosiveRate), negative: pct(row.negativeRate),
@@ -1424,7 +1424,7 @@ function OpponentDefenseTable({ title, meta, first, rows, screen }) {
   return <Module title={title} meta={meta}><DataTable columns={[
     { key: 'name', label: first }, { key: 'n', label: 'Snaps', numeric: true }, { key: 'avg', label: 'Yds/play', numeric: true },
     { key: 'succPct', label: 'Our success', numeric: true, render: row => `${row.succPct}%` },
-    { key: 'explPct', label: 'Explosive', numeric: true, render: row => `${row.explPct}%` }, { key: 'sacks', label: 'Sacks', numeric: true },
+    { key: 'explPct', label: 'Explosive Plays Rate', numeric: true, render: row => `${row.explPct}%` }, { key: 'sacks', label: 'Sacks', numeric: true },
   ]} rows={rows.map(row => ({ ...row, id: row.name, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${title}: ${row.name}`) : undefined, label: `${title}: ${row.name}` }))} emptyText={`No ${first.toLowerCase()} charted.`} /></Module>;
 }
 
@@ -2145,7 +2145,7 @@ function MuOffenseLane({ lane, names, screen }) {
           { key: 'count', label: 'Plays' },
           { key: 'avg', label: 'Yds / Play' },
           { key: 'success', label: 'Success' },
-          { key: 'explosive', label: 'Explosive' },
+          { key: 'explosive', label: 'Explosive Plays Rate' },
           { key: 'film', label: 'Film', cellClass: 'gi-mu-filmcell',
             render: row => <MuFilm season={row.refs} screen={screen} label={`${row.coverage}: ${row.answer}`} /> },
         ]}
@@ -2319,7 +2319,7 @@ const ssOutcomeColumns = label => [
   { key: 'n', label: 'Plays', numeric: true, size: 'n', render: row => ssCell(row, r => r.n) },
   { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg', render: row => ssCell(row, r => r.avg) },
   { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => ssCell(row, r => `${r.succRate}%`) },
-  { key: 'explosives', label: 'Explosive', numeric: true, size: 'pct', render: row => ssCell(row, r => r.explosives) },
+  { key: 'explosives', label: 'Explosive Plays', numeric: true, size: 'expl', render: row => ssCell(row, r => r.explosives) },
   { key: 'tds', label: 'TD', numeric: true, size: 'n', render: row => ssCell(row, r => r.tds) },
   // "Giveaways" was the last legacy label on this board; a giveaway IS a
   // turnover, and Reports say Turnovers.
@@ -2359,7 +2359,7 @@ function SsSummarySection({ summary, performance, screen }) {
     <KpiBand items={[
       { label: 'Success Rate', value: `${kpis.successRate}%` },
       { label: 'Yards / Play', value: kpis.yardsPerPlay },
-      { label: 'Explosive Rate', value: `${kpis.explosiveRate}%` },
+      { label: 'Explosive Plays Rate', value: `${kpis.explosiveRate}%` },
       { label: 'Negative Play Rate', value: `${kpis.negativePlayRate}%` },
       { label: 'Third Down', value: `${kpis.thirdDownRate}%` },
       kpis.redZoneTdRate != null

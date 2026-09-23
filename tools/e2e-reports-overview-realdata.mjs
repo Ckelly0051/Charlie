@@ -181,7 +181,7 @@ const EXPECTED = {
   },
   defenseRows: {
     'Yards / play allowed': def.length ? one(defYards / def.length) : '—',
-    'Explosive Plays allowed': String(def.filter(isExplosive).length),
+    'Explosive Plays Allowed': String(def.filter(isExplosive).length),
   },
 };
 

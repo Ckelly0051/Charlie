@@ -191,11 +191,25 @@ export class Charts {
       return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.5"
         style="fill:${a.isBest ? 'var(--gi-first-down)' : 'var(--gi-los)'}"><title>${Charts._esc(a.label)}: ${Charts._esc(String(a.valueLabel ?? a.value))}${a.isBest ? ' — season best' : ''}</title></circle>`;
     }).join('');
+    /* A label longer than the margin holds WRAPS onto two lines at the space
+       nearest its middle, at the same type size. "Explosive Plays Rate" (the
+       2026-09-23 terminology) ran past the viewBox edge as one line; shrinking
+       the type or re-growing the canvas would have been the wrong fixes. */
+    const lines = label => {
+      const text = String(label);
+      if (text.length <= 14 || !text.includes(' ')) return [text];
+      const spaces = [...text.matchAll(/ /g)].map(m => m.index);
+      const cut = spaces.reduce((best, s) => Math.abs(s - text.length / 2) < Math.abs(best - text.length / 2) ? s : best);
+      return [text.slice(0, cut), text.slice(cut + 1)];
+    };
     const labels = list.map((a, i) => {
       const [x, y] = at(i, r + 11);
       const anchor = x > cx + 2 ? 'start' : x < cx - 2 ? 'end' : 'middle';
-      return `<text x="${x.toFixed(2)}" y="${(y + 1.4).toFixed(2)}" text-anchor="${anchor}"
-        style="fill:var(--gi-11);font:600 3.6px var(--gi-mono)">${Charts._esc(a.label)}</text>`;
+      const parts = lines(a.label);
+      const top = y + 1.4 - (parts.length - 1) * 2.1;
+      return `<text x="${x.toFixed(2)}" y="${top.toFixed(2)}" text-anchor="${anchor}"
+        style="fill:var(--gi-11);font:600 3.6px var(--gi-mono)">${parts.map((part, k) =>
+          `<tspan x="${x.toFixed(2)}" dy="${k ? '4.2' : '0'}">${Charts._esc(part)}</tspan>`).join('')}</text>`;
     }).join('');
     return `<figure class="gi-radar">
       <svg viewBox="-24 -6 148 112" role="img" aria-label="${Charts._esc(opts.label || 'Team profile')}">

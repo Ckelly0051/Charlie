@@ -123,6 +123,20 @@
    header gives up 4px of padding a side rather than shrinking type; column
    widths come from the fixed table layout, so nothing moves. */
 .gi-reports .gi-def2-module:not(.is-wide) th:not(:first-child){padding-left:4px;padding-right:4px}
+/* `Explosive Plays Allowed` (Finding 3 wording, 2026-09-23) fits the 44px
+   header only on TWO lines. In a narrow column it wrapped to three, grew the
+   header to 62px and pushed a fixed-height module's last row behind a
+   scroller. A fixed-layout cell's width includes its padding (8px a side, 4px
+   in a half module). Rendered, 80px of text still broke to three lines, so a
+   wide module's column is 108px (92px of text) and a half module's 96px (88px,
+   verified at two lines) - which still leaves "Touchdowns Allowed" the 78px
+   its longest word needs in a half-width module at 1280. No type shrinks. */
+.gi-reports .gi-def2-module th.is-expl{width:108px}
+.gi-reports .gi-def2-module:not(.is-wide) th.is-expl{width:96px}
+/* A SIX-column half-width table has 562px at 1280: at the label column's 31%
+   the other four headers got 73px, under the 78px "Touchdowns Allowed" needs.
+   Only these tables give their label column 24%. */
+.gi-reports .gi-def2-module:not(.is-wide):has(th.is-expl) th:first-child:nth-last-child(6){width:24%}
 .gi-reports .gi-def2-module th:first-child,
 .gi-reports .gi-def2-module td:first-child{width:31%;text-align:left}
 .gi-reports .gi-def2-module.is-wide th:first-child,

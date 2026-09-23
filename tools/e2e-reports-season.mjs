@@ -284,7 +284,7 @@ ok(JSON.stringify(overviewModules) === JSON.stringify(['Game Log', 'Situational 
 const tiles = await page.evaluate(() => [...document.querySelectorAll('.gi-season-metric')]
   .map(el => el.querySelector('span').textContent.trim()));
 ok(JSON.stringify(tiles) === JSON.stringify(
-  ['3rd Down', '4th Down', 'Red Zone TD', 'Points / Drive', '3-and-Out', 'Explosive Rate']),
+  ['3rd Down', '4th Down', 'Red Zone TD', 'Points / Drive', '3-and-Out', 'Explosive Plays Rate']),
 'Situational Offense lists the six approved measures, in order', JSON.stringify(tiles));
 const quarters = await page.evaluate(() => ({
   head: [...document.querySelectorAll('.gi-season-quarters thead th')].map(th => th.textContent.trim()),

@@ -83,7 +83,7 @@ export class StudyScreen {
     return {
       success: { offense: 'successRate', defense: 'stopRate', name: 'Success Rate' },
       yards: { offense: 'yardsPerPlay', defense: 'yardsAllowedPerPlay', name: 'Yards / Play' },
-      explosive: { offense: 'explosiveRate', defense: 'explosivesAllowedRate', name: 'Explosive Rate' },
+      explosive: { offense: 'explosiveRate', defense: 'explosivesAllowedRate', name: 'Explosive Plays Rate' },
       negative: { offense: 'negativeRate', defense: 'negativeRateForced', name: 'Negative Play Rate' },
       havoc: { offense: 'havocRateAllowed', defense: 'havocRate', name: 'Havoc' },
     };
@@ -220,7 +220,7 @@ export class StudyScreen {
   static get PLAYER_METRIC_LABELS() {
     return {
       ballCarrier: {
-        successRate: 'Success Rate', yardsPerPlay: 'Yards / Carry', explosiveRate: 'Explosive Rate',
+        successRate: 'Success Rate', yardsPerPlay: 'Yards / Carry', explosiveRate: 'Explosive Plays Rate',
         negativeRate: 'Negative Play Rate', avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
       },
       passer: {
@@ -230,7 +230,7 @@ export class StudyScreen {
       },
       receiver: {
         completionRate: 'Catch Rate', yardsPerPlay: 'Yards / Target', yardsPerReception: 'Yards / Reception',
-        completions: 'Receptions', touchdowns: 'Touchdowns', explosiveRate: 'Explosive Rate',
+        completions: 'Receptions', touchdowns: 'Touchdowns', explosiveRate: 'Explosive Plays Rate',
         avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
       },
       tackler: {

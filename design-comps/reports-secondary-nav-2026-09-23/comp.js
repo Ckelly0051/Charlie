@@ -168,6 +168,22 @@
   }
 
   /* ── Overview: a compact, nonduplicative score ─────────────────────────── */
+  /* A result needs BOTH scores. `Number('')` and `Number(null)` are 0, so a
+     missing opponent score used to read as a shutout Win. A score counts only
+     when it is a finite, non-negative number actually entered. */
+  function scoreOf(value) {
+    if (value == null) return null;
+    const raw = typeof value === 'string' ? value.trim() : value;
+    if (raw === '' || typeof raw === 'boolean') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  function resultOf(scoreUs, scoreThem) {
+    const us = scoreOf(scoreUs), them = scoreOf(scoreThem);
+    if (us == null || them == null) return null;
+    return us > them ? 'Win' : us < them ? 'Loss' : 'Tie';
+  }
+
   function compactScore() {
     const bug = q('[data-reports-scorebug]');
     if (!bug || bug.hidden) return;
@@ -176,8 +192,7 @@
     const data = stats._kpiRailData?.(stats.compute());
     if (!data) return;
     const game = app().storage?.gameInfo || {};
-    const us = Number(game.scoreUs), them = Number(game.scoreThem);
-    const result = Number.isFinite(us) && Number.isFinite(them) && game.scoreUs !== '' ? (us > them ? 'Win' : us < them ? 'Loss' : 'Tie') : null;
+    const result = resultOf(game.scoreUs, game.scoreThem);
     const t = data.turnovers || {};
     const margin = t.giveaways != null && t.takeaways != null ? t.takeaways - t.giveaways : null;
     const when = [game.week ? `Week ${game.week}` : '', game.date ? new Date(`${game.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''].filter(Boolean).join(' · ');
@@ -307,7 +322,7 @@
   let pending = null;
   new MutationObserver(() => { clearTimeout(pending); pending = setTimeout(apply, 40); })
     .observe(document.querySelector('.gi-reports-content') || document.body, { childList: true });
-  window.__cmp = { apply, render, annotate, section: (tab, index) => {
+  window.__cmp = { apply, render, annotate, resultOf, section: (tab, index) => {
     const src = sources(tab);
     if (!src) return false;
     if (src.kind === 'pages') { state.page[tab] = src.sections[index]?.id; render(); return true; }

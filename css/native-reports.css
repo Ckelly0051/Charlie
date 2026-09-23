@@ -1453,7 +1453,8 @@
   --ss-label:220px;   /* floor for a situation / formation / call label */
   --ss-n:72px;        /* Plays, TD -- header-driven, plus the wider last-cell inset */
   --ss-forms:104px;   /* Formations -- header-driven */
-  --ss-pct:98px;      /* Success, Explosive, Giveaways, Stop, Havoc, Top % */
+  --ss-pct:98px;      /* Success, Turnovers, Stop, Havoc, Top % */
+  --ss-expl:152px;    /* Explosive Plays -- header-driven (Finding 3 wording) */
   --ss-avg:104px;     /* Yds / Play -- the widest header on the board */
   --ss-split:104px;   /* Run / Pass */
   --ss-dim:150px;     /* Type -- "Formation x Strength" is a real model value */
@@ -1599,6 +1600,7 @@
 .gi-reports .gi-ss-module table.gi-ss-table col.n{ width:var(--ss-n) }
 .gi-reports .gi-ss-module table.gi-ss-table col.forms{ width:var(--ss-forms) }
 .gi-reports .gi-ss-module table.gi-ss-table col.pct{ width:var(--ss-pct) }
+.gi-reports .gi-ss-module table.gi-ss-table col.expl{ width:var(--ss-expl) }
 .gi-reports .gi-ss-module table.gi-ss-table col.avg{ width:var(--ss-avg) }
 .gi-reports .gi-ss-module table.gi-ss-table col.split{ width:var(--ss-split) }
 .gi-reports .gi-ss-module table.gi-ss-table col.dim{ width:var(--ss-dim) }
