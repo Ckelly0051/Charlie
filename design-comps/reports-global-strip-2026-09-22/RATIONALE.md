@@ -70,6 +70,7 @@ this work. A later installed build and coach verdict are still required.
 `tools/e2e-reports-global-strip.mjs` measures tab bounding boxes, order,
 score placement, scope state, and frame/name geometry against a read-only copy
 of the canonical 2025 St. Joseph Mavericks - JV season at 1440 and 1280,
-with wide-frame checks at 1920. Populated source captures are under
-`artifacts/reports-global-strip/`. These are implementation evidence, not an
+with wide-frame checks at 1920. The harness writes populated source captures
+to `artifacts/reports-global-strip/` locally; they are untracked and must be
+regenerated on a clean checkout. These are implementation evidence, not an
 installed WebView2 verdict or approval of the report data beneath the strip.

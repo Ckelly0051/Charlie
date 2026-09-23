@@ -12,8 +12,9 @@ It is a standalone comp, not a full report-board redesign.
 packaged, not installed-smoke verified.** Browser evidence is
 `tools/e2e-reports-global-strip.mjs` on a read-only copy of the canonical
 2025 JV season (264/264, six mutations verified red) plus the existing
-Reports, export, film and shell harnesses; captures are in
-`artifacts/reports-global-strip/`. Chromium cannot certify the installed
+Reports, export, film and shell harnesses. The harness generates local,
+untracked captures in `artifacts/reports-global-strip/`; run it to regenerate
+them from a clean checkout. Chromium cannot certify the installed
 WebView2 rendering, so each item stays open for the next installer's smoke.
 
 1. **Shared Reports navigation — REPAIRED IN SOURCE (`160533c`).** The top-level tabs

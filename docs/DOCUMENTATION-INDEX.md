@@ -88,3 +88,11 @@ Every milestone handoff must update, in the same commit:
 
 Run `node tools/audit-design-approvals.mjs` after any canonical artifact or
 manifest change. A documentation handoff is incomplete while that audit is red.
+
+Recorded exception: the 2026-09-22 Reports handoff was split across
+`160533c` (code and tests), `c7e9f76` (status docs), `13d3027` (approved comp
+and installed-smoke record), and `58b151d` (comp rationale). These commits
+were not individually self-contained under the same-commit rule above. At
+`58b151d`, the tracked comp, rationale, smoke record, and status docs are all
+present; the split history is not retroactively compliant. Future handoffs
+still follow the same-commit rule.

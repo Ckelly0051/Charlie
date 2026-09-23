@@ -81,6 +81,8 @@ scope controls below the global strip. Compare real bounding rectangles and
 populated screenshots, not just DOM presence or zero overflow. Existing
 Reports behavior, export, film and data harnesses remain in scope; the comp's
 short placeholder tables cannot establish data or visual parity.
+The harness generates untracked screenshots in `artifacts/reports-global-strip/`;
+run it to produce captures on a clean checkout.
 
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
