@@ -7,7 +7,7 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Reports global strip — IMPLEMENTED IN SOURCE (`160533c`), NOT PACKAGED,
+**Reports global strip — IMPLEMENTED (`160533c`), PACKAGED IN `1.12.0-95`,
 NOT SMOKE-APPROVED:** `design-comps/reports-global-strip-2026-09-22.html`
 defines one fixed top-level strip on all eight Our Program Reports tabs,
 Season last, with Current game as the default where a scope choice exists and
@@ -17,15 +17,20 @@ abbreviated tables are
 placeholders; the full production boards are unchanged below the strip. The
 same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green
-(`e2e-reports-global-strip`); no installer contains it, and neither the
-installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
-**Main-checkout version:** `1.12.0-93` (`js/app.js` `APP_VERSION`,
+(`e2e-reports-global-strip`). The `1.12.0-95` installer contains it; neither
+the installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
+**Main-checkout version:** `1.12.0-95` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
-all four must match; `e2e-p0-exit` asserts it). The latest installer is
-`1.12.0-94`, built from `81fe261` in a clean detached worktree with a local,
-uncommitted four-owner version bump. See `SMOKE-1.12.0-94.md` for its recorded
-hash and in-progress coach smoke; do not mistake that package for this checkout's
-committed version.
+all four must match; `e2e-p0-exit` asserts it). **The latest installer is
+`1.12.0-95`**, built from the clean main checkout at `8b926a6` (the committed
+four-owner bump on top of `8ed64ec`, whose full gate was 123/123). Its
+installed coach smoke is **pending**; see `SMOKE-1.12.0-95.md`. It is not an
+installed approval, tag, push or published release.
+
+**Preceding installer:** `1.12.0-94`, built from `81fe261` in a clean detached
+worktree with a local, uncommitted version bump. Its installed coach smoke was
+in progress and produced the findings recorded in `SMOKE-1.12.0-94.md` and
+`docs/OPEN-DEFECTS.md`; it received no complete installed verdict.
 
 **Prior packaging status:** `1.12.0-93` is an unsigned Home and Breakdown repair
 candidate; installed acceptance is pending. The scoped repair is `a93b38e`, the four-owner
@@ -2434,7 +2439,11 @@ matching, per-cohort game counts, the charted-perspective red zone, our pick-six
 identical tab boxes across all eight reports, both directions, scope changes
 and the opponent perspective; order, fit and no scrolling; the Overview-only
 linescore and its arithmetic; Current-game defaults and persistence; the
-outer frame at 1920/1440/1280; the Players name column, 264).
+outer frame at 1920/1440/1280; the Players name column, 264) and
+`tools/e2e-explosive-labels.mjs` (explosive-play terminology: no bare or
+abbreviated label in source, the approved wording and Defense's Allowed on
+every rendered tab and export, fit without clipping or shrunk type at
+1440/1280/768, sparse and empty games, 40).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

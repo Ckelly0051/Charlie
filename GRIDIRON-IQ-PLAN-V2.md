@@ -6,10 +6,14 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-> **Release checkpoint, 2026-09-22:** unsigned Windows `1.12.0-94` is the latest
-> installer, built from source `81fe261` in a clean detached worktree with a
-> local version bump that is not yet committed. Its coach smoke is in progress,
-> with no complete installed verdict.
+> **Release checkpoint, 2026-09-22 (current status updated 2026-09-23):**
+> unsigned Windows `1.12.0-95` is the latest installer, built from `8b926a6`
+> (committed bump; full gate 123/123 at `8ed64ec`). It adds the Reports global
+> strip and the `1.12.0-94` frame and Players-name repairs; its installed smoke
+> is pending and nothing about it is accepted (`SMOKE-1.12.0-95.md`).
+> The preceding `1.12.0-94` installer was built from source `81fe261` in a clean
+> detached worktree with an uncommitted local version bump; its coach smoke was
+> in progress, with no complete installed verdict.
 > It carries the corrected Breakdown library spacing, completed Reports/export
 > work, and Balanced strength label. `1.12.0-91` passed the coach's Players,
 > Defense cohort, and Special Teams installed smoke; `1.12.0-92` received a

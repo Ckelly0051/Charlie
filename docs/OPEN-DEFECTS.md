@@ -60,6 +60,22 @@ metric identifiers, change thresholds, formulas, cohorts, or saved data, and
 do not replace unrelated terms such as an explosive drive classification.
 No implementation or installed acceptance is claimed here.
 
+*Repaired in source 2026-09-23 (`4beec7d`); not packaged, not
+installed-smoke verified.* Every user-visible label now reads **Explosive
+Plays**, **Explosive Plays Rate** or **Explosive Plays Allowed [Rate]**
+across Reports, Study, the season summaries, chart labels and the white HTML
+exports. Study's neutral concept name is **Explosive Plays Rate** by coach
+decision. The explosive-drive classification is unchanged. Longer labels
+needed fit repairs, and no type was shrunk:
+- the Team profile radar wraps long labels onto two lines;
+- Self-Scout's column gets a measured width;
+- the Defense board's explosive column gets a measured width that keeps its
+  header inside the 44px contract.
+`tools/e2e-explosive-labels.mjs` pins wording, Allowed qualification, fit and
+exports on the canonical season at 1440/1280/768 plus sparse and empty games.
+Known and outside this finding: the Defense Down & Distance header already
+wraps to three lines at 768.
+
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 
 **IN PROGRESS, NOT APPROVED AS A RELEASE.** Coach findings from the installed
@@ -68,8 +84,9 @@ navigation concept is
 `design-comps/reports-global-strip-2026-09-22.html`.
 It is a standalone comp, not a full report-board redesign.
 
-**Items 1-4 are REPAIRED IN SOURCE, 2026-09-22, commit `160533c` — not
-packaged, not installed-smoke verified.** Browser evidence is
+**Items 1-4 are REPAIRED IN SOURCE, 2026-09-22, commit `160533c`; packaged
+in `1.12.0-95` (2026-09-22) with its installed smoke pending, so not
+installed-smoke verified.** Browser evidence is
 `tools/e2e-reports-global-strip.mjs` on a read-only copy of the canonical
 2025 JV season (264/264, six mutations verified red) plus the existing
 Reports, export, film and shell harnesses. The harness generates local,

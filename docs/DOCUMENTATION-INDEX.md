@@ -26,19 +26,20 @@
 
 ## Current Snapshot
 
-- The main checkout is `1.12.0-93`. The latest unsigned installer is
-  `1.12.0-94`, built from `81fe261` in a clean detached worktree with a local,
-  uncommitted four-owner version bump. Its installed coach smoke is in
-  progress, not approved as a release; see `SMOKE-1.12.0-94.md`.
+- The main checkout is `1.12.0-95`. The latest unsigned installer is
+  `1.12.0-95`, built from `8b926a6`; its installed coach smoke is pending, not
+  approved as a release; see `SMOKE-1.12.0-95.md`. The preceding `1.12.0-94`
+  installer's smoke was in progress and produced the findings recorded in
+  `SMOKE-1.12.0-94.md`; it received no complete verdict.
 - The installed `1.12.0-91` smoke approved the bounded Players, Defense cohort
   and Special Teams presentation changes. The `1.12.0-92` smoke approved Home's
   visual composition only; later Home/Breakdown fixes still need installed
   verification. The rapid-scrubbing `Film missing` report remains open but
   deprioritized. Nothing is tagged, pushed or published.
 - The coach approved a new Reports global navigation concept on 2026-09-22:
-  `design-comps/reports-global-strip-2026-09-22.html`. It is implemented in
-  source (`160533c`) with the outer-frame and Players name repairs, and is not
-  in an installer or installed-smoke accepted.
+  `design-comps/reports-global-strip-2026-09-22.html`. It is implemented
+  (`160533c`) with the outer-frame and Players name repairs and packaged in
+  `1.12.0-95`; it is not installed-smoke accepted.
   Current `1.12.0-94` Reports smoke findings, including the outer frame,
   Overview-only score and Players name alignment, are indexed in
   `docs/OPEN-DEFECTS.md`; the shared visual contract is in

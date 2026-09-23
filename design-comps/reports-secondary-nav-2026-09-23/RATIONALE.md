@@ -24,6 +24,10 @@ and runs the comp's focused checks:
   and no page is empty.
 - There is no page-level horizontal overflow at 1280 or 768.
 - There are no console errors.
+- Result (Win/Loss/Tie) is derived only when both scores are present and
+  valid. `Number('')` and `Number(null)` are 0, which once read a missing
+  opponent score as a Win (corrected 2026-09-23); a missing score reads
+  `No data`.
 - The season file is byte-identical afterwards.
 
 `current-1440-*.png` are unmodified production for comparison.
@@ -80,12 +84,10 @@ and runs the comp's focused checks:
 
 ## Tradeoffs to decide
 
-- **Short Offense pages.** Identity, Structure and Advanced are short at
-  1440, and the Offense KPI band now appears only on Identity. The alternative
-  is fewer, longer pages (for example Identity + Calls, Structure +
-  Situations, Field + Advanced). That trades page count for scrolling. The comp
-  keeps the six approved zones so no approved composition is regrouped without
-  a decision.
+- **Short Offense pages — DECIDED 2026-09-23: keep six.** Identity,
+  Structure and Advanced are short at 1440, and the Offense KPI band appears
+  only on Identity. The coach kept the six pages to leave room for growth
+  rather than merge them into fewer, longer pages.
 - **Offense and Defense lose continuous scrolling.** A coach who read Defense
   top to bottom now switches pages. Page state is controller state (as
   Players, Self-Scout and Season already are), so an ordinary re-render will
