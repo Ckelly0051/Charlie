@@ -229,7 +229,7 @@ installed charting-library save failure and tighten desktop chip/section
 spacing without shrinking chip type; Play Call and Play Type choice sets need
 independent collapse controls. The three requested analytical additions are
 run-gap hit charting, motion-direction charting, and a down-and-distance chart,
-as detailed in the six-item future-review shortlist below. Design approval,
+as detailed in the future-review shortlist below. Design approval,
 implementation, and installed smoke are still pending.
 
 **Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
@@ -1021,7 +1021,7 @@ desktop Reports composition pass. They should reuse the canonical analytics
 registry, stored charting data, and film-navigation service rather than create
 parallel formulas or report-only data models.
 
-**Coach-prioritized six for future review (2026-09-22):** This is a shortlist,
+**Coach-prioritized future review (2026-09-22; updated 2026-09-23):** This is a shortlist,
 not approval to change the current report compositions or charting schema.
 Keep the shared Reports strip and unaffected tabs intact; design and verify
 only the charting and report surfaces each item actually touches.
@@ -1041,6 +1041,11 @@ only the charting and report surfaces each item actually touches.
    receiver so player and formation tendencies can be queried reliably.
 6. **QB run classification.** Distinguish designed QB runs, scrambles, and RPO
    keepers rather than deriving intent from Run/Pass or Play Type alone.
+7. **Missed tackles.** Chart a missed-tackle event on the defensive play and
+   optionally attribute each miss to a roster player. Allow more than one
+   player miss on a play and retain the play-level event when the player is
+   unknown. Keep plays with a missed tackle distinct from player miss credits
+   in reports and film cuts; uncharted is not the same as zero misses.
 
 New fields remain optional on historical plays; uncharted values are missing,
 not zero. Each report addition needs a focused composition decision, canonical
